@@ -1,4 +1,4 @@
-import { ThaSpotFeed } from './game';
+import { ThaSpotFeed } from "./game";
 
 export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   "badges": [
@@ -198,7 +198,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "neo-zone",
       "name": "NEO_ZONE",
-      "description": "Next-Gen execution. High-fidelity cloud gaming and premium WebGL cabinets.",
+      "description": "Next-Gen execution. High-fidelity WebGL and browser-native cabinets.",
       "icon": "auto_awesome"
     }
   ],
@@ -474,76 +474,25 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
   ],
   "games": [
     {
-      "id": "cyberpunk-2077-cloud",
-      "name": "Cyberpunk 2077",
-      "url": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
-      "description": "Night City awaits. Absolute high-fidelity future simulation.",
+      "id": "final-fantasy-ix-elite-master",
+      "name": "Final Fantasy IX",
+      "url": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
       "genre": "RPG",
-      "rating": 4.9,
-      "playersOnline": 65000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity RPG action. Experience Final Fantasy IX in a stabilized browser environment.",
       "tags": [
         "RPG",
-        "Cloud",
-        "Next-Gen",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/cyberpunk-2077/BW7RDRL3N7BD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "elden-ring-cloud",
-      "name": "Elden Ring",
-      "url": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
-      "description": "Rise, Tarnished. Absolute next-gen open world mastery.",
-      "genre": "RPG",
-      "rating": 5.0,
-      "playersOnline": 120000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Cloud",
-        "Next-Gen",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/elden-ring/9P3J32CTXLRZ",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "halo-3-cloud-elite",
-      "name": "Halo 3",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-      "description": "Finish the fight. Absolute 360-era dominance via high-fidelity cloud link.",
-      "genre": "FPS",
-      "rating": 5.0,
-      "playersOnline": 45000,
-      "availability": "Online",
-      "tags": [
-        "FPS",
-        "Cloud",
-        "Xbox 360",
+        "Retro",
         "Elite",
-        "Sequel"
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
@@ -597,7 +546,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "name": "Battlefield",
       "url": "/assets/games/battlefield/battlefield.html",
       "description": "Executive rap battle arena with live bracket energy and hybrid queue support.",
-      "genre": "Music Battle",
+      "genre": "FPS",
       "rating": 4.9,
       "playersOnline": 1250,
       "availability": "Online",
@@ -646,8 +595,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "inlinePolicy": "trusted",
         "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
         "embedMode": "inline",
-        "approvedExternalUrl": "/assets/games/battlefield/battlefield.html",
-        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "telemetryMode": "origin",
         "secure_mode": "wasm"
       },
@@ -3004,14 +2953,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
         "trustNote": "Elite open-world WASM protocol verified.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -3141,8 +3090,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "halo-combat-evolved",
       "name": "Halo: Combat Evolved (WASM)",
-      "url": "https://www.gamepix.com/play/alien-galaxy-war",
-      "genre": "Shooting",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "genre": "FPS",
       "description": "High-fidelity Spartan combat. Experience the legendary FPS in a stabilized WASM environment.",
       "availability": "Online",
       "playersOnline": 15000,
@@ -3161,7 +3110,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/alien-galaxy-war",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -3171,7 +3120,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
           "Standard Keyboard"
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.gamepix.com/play/alien-galaxy-war",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "secure_mode": "wasm",
         "inlinePolicy": "trusted"
       },
@@ -3810,8 +3759,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "wolf3d-inline-elite",
       "name": "Wolfenstein 3D",
-      "url": "https://www.retrogames.cc/embed/41724-wolfenstein-3d-v1-4.html",
-      "genre": "Shooting",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "genre": "FPS",
       "description": "The grandfather of FPS. High-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
       "availability": "Online",
       "playersOnline": 7200,
@@ -3827,14 +3776,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "DOS"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41724-wolfenstein-3d-v1-4.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
         "trustNote": "Elite DOS evacuation protocol verified.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41724-wolfenstein-3d-v1-4.html",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -4207,7 +4156,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "id": "halo-ce-web",
       "name": "Halo: Combat Evolved (Web)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
-      "genre": "Shooting",
+      "genre": "FPS",
       "description": "Elite 3D FPS demo. WebGL combat link. Master Chief protocol.",
       "availability": "Online",
       "playersOnline": 2000,
@@ -4229,7 +4178,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         ],
         "telemetryMode": "origin",
         "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "art": {
         "eyebrow": "Executive Classic",
@@ -4277,7 +4227,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "gta-san-andreas-elite",
       "name": "GTA: San Andreas (Elite HD)",
-      "url": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Return to Los Santos in the Absolute masterpiece. High-performance, high-definition emulation.",
       "availability": "Online",
@@ -4296,12 +4246,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "art": {
         "eyebrow": "Rockstar Elite",
@@ -4330,12 +4281,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Football"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "art": {
         "eyebrow": "EA Sports Elite",
@@ -4347,7 +4299,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "nba-2k1-elite",
       "name": "NBA 2K1",
-      "url": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
       "description": "Experience the birth of the 2K dynasty. High-fidelity Dreamcast emulation with online-ready logic.",
       "availability": "Online",
@@ -4364,12 +4316,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Basketball"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "art": {
         "eyebrow": "SEGA Elite",
@@ -4935,7 +4888,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "gta-vice-city-elite",
       "name": "GTA: Vice City (Elite HD)",
-      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Neon-soaked 80s in Absolute high-definition. S.M.U.V.E. demands total control.",
       "tags": [
@@ -4949,13 +4902,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "availability": "Online",
       "playersOnline": 18000,
@@ -5054,13 +5008,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -5075,7 +5030,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "gta-iii-elite",
       "name": "GTA III (Elite HD)",
-      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Liberty City in Absolute 3D. High-fidelity PS2-era execution. Dominate the streets.",
       "tags": [
@@ -5089,13 +5044,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "availability": "Online",
       "playersOnline": 7000,
@@ -5110,7 +5066,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "spider-man-2-elite",
       "name": "Spider-Man 2 (Elite)",
-      "url": "https://www.retrogames.cc/embed/41234-spider-man-2-usa.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Swing through Manhattan with Absolute precision. The web is yours to control. S.M.U.V.E. demands Elite agility.",
       "tags": [
@@ -5124,13 +5080,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41234-spider-man-2-usa.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "availability": "Online",
       "playersOnline": 6200,
@@ -5600,7 +5557,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "madden-2004-elite",
       "name": "Madden NFL 2004",
-      "url": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
       "description": "Michael Vick is a cheat code. S.M.U.V.E. demands Absolute gridiron dominance. Run the play or sit out.",
       "tags": [
@@ -5614,13 +5571,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "availability": "Online",
       "playersOnline": 6500,
@@ -5635,7 +5593,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "fifa-2005-elite",
       "name": "FIFA Soccer 2005",
-      "url": "https://www.retrogames.cc/embed/41237-fifa-soccer-2005-usa.html",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
       "description": "First touch is everything. Control the pitch with Absolute authority. S.M.U.V.E. loves the beautiful game.",
       "tags": [
@@ -5649,13 +5607,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41237-fifa-soccer-2005-usa.html",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       },
       "availability": "Online",
       "playersOnline": 6600,
@@ -5915,7 +5874,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "nfs-most-wanted-ps2-elite",
       "name": "Need for Speed: Most Wanted",
-      "url": "https://www.retrogames.cc/embed/41228-need-for-speed-most-wanted-usa.html",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
       "description": "The blacklist is waiting. Dominate the pursuits with Absolute speed. S.M.U.V.E. demands the top spot.",
       "tags": [
@@ -5929,13 +5888,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41228-need-for-speed-most-wanted-usa.html",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "availability": "Online",
       "playersOnline": 7700,
@@ -6272,7 +6232,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "FPS",
         "Multiplayer",
         "Modern",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -6308,7 +6268,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "FPS",
         "Multiplayer",
         "Modern",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -6344,7 +6304,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "FPS",
         "Multiplayer",
         "Modern",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -6380,7 +6340,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "FPS",
         "Multiplayer",
         "Modern",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -6416,7 +6376,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "Driving",
         "Relaxing",
         "Modern",
-        "Cloud",
+        "WebGL",
         "Elite"
       ],
       "badgeIds": [
@@ -6445,7 +6405,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "halo-2-xbox-elite",
       "name": "Halo 2",
-      "url": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "FPS",
       "description": "The Absolute sequel. Master the Dual-Wielding and finish the fight. S.M.U.V.E. demands total galactic dominance.",
       "tags": [
@@ -6460,13 +6420,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41221-halo-2-usa.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -6912,7 +6873,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "need-for-speed-underground-2-elite",
       "name": "Need for Speed: Underground 2",
-      "url": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
       "description": "Rule the Absolute night. S.M.U.V.E. finds your performance... exceptional. Own the streets of Bayview.",
       "tags": [
@@ -6926,13 +6887,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-need-for-speed-underground-2.html",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
-        ]
+        ],
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
       },
       "availability": "Online",
       "playersOnline": 22000,
@@ -7083,7 +7045,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7108,7 +7070,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedExternalUrl": "https://www.arenaofvalor.com/",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
       }
     },
     {
@@ -7180,7 +7143,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41220-god-of-war-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7206,7 +7169,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41258-tekken-5-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7231,14 +7194,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
     {
       "id": "halo-2-xbox-elite-alt",
       "name": "Halo 2 (Absolute Edition)",
-      "url": "https://www.retrogames.cc/embed/41215-halo-2-usa.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "description": "The Absolute shooter. Master the Chief. S.M.U.V.E. demands tactical superiority.",
       "genre": "FPS",
       "rating": 5.0,
@@ -7256,9 +7219,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41215-halo-2-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm"
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       }
     },
     {
@@ -7282,7 +7246,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
-        "embedMode": "external-only",
+        "embedMode": "inline",
         "secure_mode": "wasm"
       }
     },
@@ -7314,7 +7278,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       "id": "gta-2-elite",
       "name": "GTA 2 (Elite)",
-      "url": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Respect is everything. The Absolute top-down sequel with multi-gang loyalty systems and high-fidelity chaos.",
       "rating": 4.8,
@@ -7337,15 +7301,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/gta2-elite.png",
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       }
     },
     {
       "id": "gta-london-1969-elite",
       "name": "GTA: London 1969 (Elite)",
-      "url": "https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html",
+      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "You're nicked! The Absolute expansion taking the chaos to the streets of London. High-fidelity mod implementation.",
       "rating": 4.7,
@@ -7368,55 +7333,27 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/gta-london-elite.png",
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41729-grand-theft-auto-london-1969.html",
+        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
         "embedMode": "inline",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
       }
     },
     {
-      "id": "gta-v-cloud-elite",
-      "name": "Grand Theft Auto V",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
-      "genre": "Action",
-      "description": "The Absolute open-world masterpiece. High-fidelity crime saga across Los Santos.",
-      "rating": 5.0,
-      "playersOnline": 250000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/gta-v-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v/BP96B1B4N6PC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "fc-24-cloud-elite",
+      "id": "fc-24-tribute-elite",
       "name": "EA SPORTS FC 24",
-      "url": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute football simulation. The evolution of the world's game with high-fidelity execution.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for EA SPORTS FC 24.",
       "rating": 4.8,
       "playersOnline": 180000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Soccer",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7429,24 +7366,26 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/fc24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/ea-sports-fc-24/9N90LP816DKH",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       }
     },
     {
-      "id": "madden-24-cloud-elite",
+      "id": "madden-24-tribute-elite",
       "name": "Madden NFL 24",
-      "url": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute gridiron dominance. High-fidelity tactical execution on the field.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Madden NFL 24.",
       "rating": 4.7,
       "playersOnline": 85000,
       "availability": "Online",
       "tags": [
         "Sports",
         "NFL",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7459,24 +7398,26 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/madden24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/madden-nfl-24/9NRW2BJR7ZPC",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       }
     },
     {
-      "id": "nba-2k24-cloud-elite",
+      "id": "nba-2k24-tribute-elite",
       "name": "NBA 2K24",
-      "url": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
+      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
-      "description": "Absolute hoops mastery. The high-fidelity basketball experience.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for NBA 2K24.",
       "rating": 4.6,
       "playersOnline": 95000,
       "availability": "Online",
       "tags": [
         "Sports",
         "NBA",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7489,219 +7430,31 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/nba2k24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/nba-2k24-for-xbox-one/9P7B8KLR5F6D",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
       }
     },
     {
-      "id": "fortnite-cloud-elite",
-      "name": "Fortnite",
-      "url": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
-      "genre": "Battle Royale",
-      "description": "The Absolute cultural phenomenon. High-fidelity competitive building and shooting.",
-      "rating": 4.9,
-      "playersOnline": 1500000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "Battle Royale",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Epic Elite",
-        "accentStart": "#9333ea",
-        "accentEnd": "#581c87"
-      },
-      "image": "/assets/games/fortnite-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fortnite/BT5P2X999VH2",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "minecraft-cloud-elite",
-      "name": "Minecraft",
-      "url": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
-      "genre": "Sandbox",
-      "description": "Absolute creative freedom. The high-fidelity sandbox that shaped a generation.",
-      "rating": 4.9,
-      "playersOnline": 800000,
-      "availability": "Online",
-      "tags": [
-        "Adventure",
-        "Sandbox",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Mojang Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#14532d"
-      },
-      "image": "/assets/games/minecraft-full-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/minecraft/9NBLGGH537BL",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "cod-mw3-cloud-elite",
-      "name": "Call of Duty: MWIII",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
-      "genre": "FPS",
-      "description": "Absolute tactical superiority. High-fidelity modern warfare execution.",
-      "rating": 4.5,
-      "playersOnline": 300000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Activision Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/cod-mw3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "cod-bo2-cloud-elite",
-      "name": "Call of Duty: Black Ops II",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
-      "genre": "FPS",
-      "description": "The Absolute Golden Era classic. High-fidelity tactical shooting across timelines.",
-      "rating": 4.9,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Activision Elite",
-        "accentStart": "#ea580c",
-        "accentEnd": "#431407"
-      },
-      "image": "/assets/games/cod-bo2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-black-ops-ii/BR667W7W6V9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "rdr2-cloud-elite",
-      "name": "Red Dead Redemption 2",
-      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
+      "id": "resident-evil-3-elite-master",
+      "name": "Resident Evil 3",
+      "url": "https://www.retrogames.cc/embed/40579-resident-evil-3-nemesis.html",
       "genre": "Action",
-      "description": "Absolute cinematic perfection. A high-fidelity epic in the dying West.",
-      "rating": 5.0,
-      "playersOnline": 40000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Resident Evil 3 in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Open World",
-        "Cloud",
-        "Elite"
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/rdr2-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption-2/9N2ZDN7NWZLR",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "witcher-3-cloud-elite",
-      "name": "The Witcher 3",
-      "url": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
-      "genre": "RPG",
-      "description": "Absolute RPG mastery. High-fidelity monster hunting in a vast open world.",
-      "rating": 5.0,
-      "playersOnline": 35000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "CDPR Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/witcher3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-witcher-3-wild-hunt/BRG9V9C3GZWC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "skyrim-cloud-elite",
-      "name": "Skyrim: Special Edition",
-      "url": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
-      "genre": "RPG",
-      "description": "The Absolute legendary journey. High-fidelity dragon-slaying adventures.",
-      "rating": 4.9,
-      "playersOnline": 50000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bethesda Elite",
-        "accentStart": "#0ea5e9",
-        "accentEnd": "#0c4a6e"
-      },
-      "image": "/assets/games/skyrim-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/the-elder-scrolls-v-skyrim-special-edition/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40579-resident-evil-3-nemesis.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
@@ -7734,232 +7487,42 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       }
     },
     {
-      "id": "apex-legends-cloud-elite",
-      "name": "Apex Legends",
-      "url": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
-      "genre": "Battle Royale",
-      "description": "Absolute tactical speed. High-fidelity hero-based battle royale.",
-      "rating": 4.8,
-      "playersOnline": 200000,
-      "availability": "Online",
+      "id": "marvel-vs-capcom-2-elite-master",
+      "name": "Marvel vs Capcom 2",
+      "url": "https://www.retrogames.cc/embed/10055-marvel-vs-capcom-2-new-age-of-heroes.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Marvel vs Capcom 2 in a stabilized browser environment.",
       "tags": [
-        "Shooter",
-        "Battle Royale",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Respawn Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/apex-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/apex-legends/BV9MLDTSCHJW",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "destiny-2-cloud-elite",
-      "name": "Destiny 2",
-      "url": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
-      "genre": "FPS",
-      "description": "Absolute cosmic warfare. High-fidelity space magic and gunplay.",
-      "rating": 4.7,
-      "playersOnline": 150000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bungie Elite",
-        "accentStart": "#facc15",
-        "accentEnd": "#713f12"
-      },
-      "image": "/assets/games/destiny2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/destiny-2/BP1GZ2Z0XJWZ",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "fallout-4-cloud-elite",
-      "name": "Fallout 4",
-      "genre": "RPG",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
-      "description": "Absolute wasteland survival. High-fidelity post-nuclear exploration.",
-      "rating": 4.8,
-      "playersOnline": 60000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bethesda Elite",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#92400e"
-      },
-      "image": "/assets/games/fallout4-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-4/C4515W8M8FMS",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "starfield-cloud-elite",
-      "name": "Starfield",
-      "url": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
-      "genre": "RPG",
-      "description": "Absolute interstellar discovery. High-fidelity space exploration from Bethesda.",
-      "rating": 4.6,
-      "playersOnline": 45000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bethesda Elite",
-        "accentStart": "#38bdf8",
-        "accentEnd": "#075985"
-      },
-      "image": "/assets/games/starfield-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/starfield/9NC6ZQRV38S7",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "battlefield-4-cloud-elite",
-      "name": "Battlefield 4",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "Absolute tactical destruction. High-fidelity Golden Era warfare.",
-      "rating": 4.8,
-      "playersOnline": 10000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
+        "Fighting",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "DICE Elite",
-        "accentStart": "#1e40af",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/bf4-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-4/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10055-marvel-vs-capcom-2-new-age-of-heroes.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "mass-effect-le-cloud-elite",
-      "name": "Mass Effect LE",
-      "url": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
-      "genre": "RPG",
-      "description": "Absolute sci-fi legend. The high-fidelity trilogy that defined an era.",
-      "rating": 5.0,
-      "playersOnline": 25000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Action",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "BioWare Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/mass-effect-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-legendary-edition/9PKW68L7BNCH",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "skate-3-cloud-elite",
-      "name": "Skate 3",
-      "url": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
-      "genre": "Sports",
-      "description": "Absolute boarding freedom. The high-fidelity Golden Era skate classic.",
-      "rating": 4.9,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Skating",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "EA Black Box Elite",
-        "accentStart": "#a855f7",
-        "accentEnd": "#581c87"
-      },
-      "image": "/assets/games/skate3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/skate-3/BNKDKS5B9S76",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "forza-horizon-5-cloud-elite",
+      "id": "forza-horizon-5-tribute-elite",
       "name": "Forza Horizon 5",
-      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
-      "description": "Absolute driving bliss. High-fidelity open-world racing in Mexico.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 5.",
       "rating": 5.0,
       "playersOnline": 150000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -7972,82 +7535,48 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/forza5-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-5-standard-edition/9NKX70BBCDRN",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       }
     },
     {
-      "id": "roblox-web-elite",
-      "name": "Roblox (Web-Link)",
-      "url": "https://www.roblox.com",
-      "genre": "Sandbox",
-      "description": "Absolute social creativity. The high-fidelity platform for millions of worlds.",
-      "rating": 4.8,
-      "playersOnline": 3000000,
-      "availability": "Online",
+      "id": "tekken-tag-tournament-elite-master",
+      "name": "Tekken Tag Tournament",
+      "url": "https://www.retrogames.cc/embed/10043-tekken-tag-tournament.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Tekken Tag Tournament in a stabilized browser environment.",
       "tags": [
-        "Sandbox",
-        "Social",
-        "Elite"
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Roblox Elite",
-        "accentStart": "#27272a",
-        "accentEnd": "#09090b"
-      },
-      "image": "/assets/games/roblox-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.roblox.com",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10043-tekken-tag-tournament.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "valorant-cloud-elite",
-      "name": "Valorant",
-      "url": "https://playvalorant.com",
-      "genre": "FPS",
-      "description": "Absolute tactical precision. High-fidelity agent-based shooting.",
-      "rating": 4.9,
-      "playersOnline": 1200000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Riot Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/valorant-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://playvalorant.com",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "lol-cloud-elite",
+      "id": "lol-tribute-elite",
       "name": "League of Legends",
-      "url": "https://www.leagueoflegends.com",
+      "url": "/assets/games/remix-arena/remixarena.html",
       "genre": "MOBA",
-      "description": "Absolute MOBA dominance. High-fidelity strategic team battles.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for League of Legends.",
       "rating": 4.9,
       "playersOnline": 2000000,
       "availability": "Online",
       "tags": [
         "MOBA",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8061,113 +7590,69 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "image": "/assets/games/lol-elite.png",
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
-        "embedMode": "external-only"
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
       }
     },
     {
-      "id": "genshin-cloud-elite",
-      "name": "Genshin Impact",
-      "url": "https://genshin.hoyoverse.com",
-      "genre": "RPG",
-      "description": "Absolute open-world beauty. High-fidelity anime-style adventure.",
-      "rating": 4.8,
-      "playersOnline": 500000,
-      "availability": "Online",
+      "id": "capcom-vs-snk-2-elite-master",
+      "name": "Capcom vs SNK 2",
+      "url": "https://www.retrogames.cc/embed/10061-capcom-vs-snk-2-millionaire-fighting-2001.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Capcom vs SNK 2 in a stabilized browser environment.",
       "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite"
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "HoYoverse Elite",
-        "accentStart": "#06b6d4",
-        "accentEnd": "#083344"
-      },
-      "image": "/assets/games/genshin-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://genshin.hoyoverse.com",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10061-capcom-vs-snk-2-millionaire-fighting-2001.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "halo-infinite-cloud-elite",
-      "name": "Halo Infinite",
-      "url": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
-      "genre": "FPS",
-      "description": "Absolute combat evolution. High-fidelity Zeta Halo execution.",
-      "rating": 4.7,
-      "playersOnline": 30000,
-      "availability": "Online",
+      "id": "soulcalibur-ii-elite-master",
+      "name": "SoulCalibur II",
+      "url": "https://www.retrogames.cc/embed/10071-soulcalibur-ii.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience SoulCalibur II in a stabilized browser environment.",
       "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "343 Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/halo-infinite-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-infinite/9PP1GR9K5DBZ",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10071-soulcalibur-ii.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "gears-5-cloud-elite",
-      "name": "Gears 5",
-      "url": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
-      "genre": "Action",
-      "description": "Absolute cover-based intensity. High-fidelity Gears of War execution.",
-      "rating": 4.8,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Shooter",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "The Coalition Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/gears5-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-5/BPHL7K0V1RMV",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "forza-motorsport-cloud-elite",
+      "id": "forza-motorsport-tribute-elite",
       "name": "Forza Motorsport",
-      "url": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
+      "url": "/assets/games/neon-drift/neon-drift.html",
       "genre": "Racing",
-      "description": "Absolute racing simulation. High-fidelity track mastery.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Motorsport.",
       "rating": 4.6,
       "playersOnline": 20000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Simulation",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8180,423 +7665,114 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/forza-ms-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-motorsport/9PLTR78MT6S7",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       }
     },
     {
-      "id": "ms-flight-sim-cloud-elite",
-      "name": "MS Flight Simulator",
-      "url": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
-      "genre": "Simulation",
-      "description": "Absolute global exploration. High-fidelity flight execution across the planet.",
-      "rating": 5.0,
-      "playersOnline": 25000,
-      "availability": "Online",
-      "tags": [
-        "Simulation",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Asobo Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1d4ed8"
-      },
-      "image": "/assets/games/msfs-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/microsoft-flight-simulator-standard-40th-anniversary-edition/9PMQDM08SNK9",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "sea-of-thieves-cloud-elite",
-      "name": "Sea of Thieves",
-      "url": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
+      "id": "metal-gear-solid-2-elite-master",
+      "name": "Metal Gear Solid 2",
+      "url": "https://www.retrogames.cc/embed/42774-metal-gear-solid-2-sons-of-liberty.html",
       "genre": "Action",
-      "description": "Absolute pirate freedom. High-fidelity sailing and treasure hunting.",
-      "rating": 4.7,
-      "playersOnline": 60000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Metal Gear Solid 2 in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Rare Elite",
-        "accentStart": "#14b8a6",
-        "accentEnd": "#0f766e"
-      },
-      "image": "/assets/games/sea-of-thieves-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-thieves-2024-edition/9P2N67BPT2C6",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42774-metal-gear-solid-2-sons-of-liberty.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "doom-eternal-cloud-elite",
-      "name": "Doom Eternal",
-      "url": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
-      "genre": "FPS",
-      "description": "Absolute slayer intensity. High-fidelity demon-crushing execution.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
+      "id": "silent-hill-2-elite-master",
+      "name": "Silent Hill 2",
+      "url": "https://www.retrogames.cc/embed/42775-silent-hill-2.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Silent Hill 2 in a stabilized browser environment.",
       "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "id Software Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/doom-eternal-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom-eternal-standard-edition/9P0BRNK97L7F",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42775-silent-hill-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "fallout-nv-cloud-elite",
-      "name": "Fallout: New Vegas",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
+      "id": "final-fantasy-x-elite-master",
+      "name": "Final Fantasy X",
+      "url": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
       "genre": "RPG",
-      "description": "The Absolute post-apocalyptic masterpiece. High-fidelity Mojave survival.",
-      "rating": 4.9,
-      "playersOnline": 15000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity RPG action. Experience Final Fantasy X in a stabilized browser environment.",
       "tags": [
         "RPG",
-        "Open World",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Obsidian Elite",
-        "accentStart": "#ea580c",
-        "accentEnd": "#7c2d12"
-      },
-      "image": "/assets/games/fallout-nv-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-new-vegas/BX9S7ZMMT6S9",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "bioshock-cloud-elite",
-      "name": "BioShock",
-      "url": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
-      "genre": "FPS",
-      "description": "Absolute atmospheric mastery. A high-fidelity journey into Rapture.",
-      "rating": 5.0,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Irrational Elite",
-        "accentStart": "#06b6d4",
-        "accentEnd": "#083344"
-      },
-      "image": "/assets/games/bioshock-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/bioshock-the-collection/C2H0ZDRB4CQC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "ac2-cloud-elite",
-      "name": "Assassin's Creed II",
-      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
-      "genre": "Action",
-      "description": "Absolute historical immersion. High-fidelity Renaissance execution.",
-      "rating": 4.9,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Ubisoft Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/ac2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-the-ezio-collection/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "arkham-city-cloud-elite",
-      "name": "Batman: Arkham City",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-      "genre": "Action",
-      "description": "The Absolute Dark Knight simulator. High-fidelity stealth and combat.",
-      "rating": 5.0,
-      "playersOnline": 10000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rocksteady Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/arkham-city-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "portal2-cloud-elite",
-      "name": "Portal 2",
-      "url": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
-      "genre": "Puzzle",
-      "description": "Absolute spatial mastery. High-fidelity mind-bending execution.",
-      "rating": 5.0,
-      "playersOnline": 4000,
-      "availability": "Online",
-      "tags": [
-        "Puzzle",
-        "Action",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Valve Elite",
-        "accentStart": "#38bdf8",
-        "accentEnd": "#075985"
-      },
-      "image": "/assets/games/portal2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal-companion-collection/9P8W5S7P9CQC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "l4d2-cloud-elite",
-      "name": "Left 4 Dead 2",
-      "url": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
-      "genre": "FPS",
-      "description": "Absolute co-op survival. High-fidelity zombie-slaying execution.",
-      "rating": 4.9,
-      "playersOnline": 20000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Valve Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#14532d"
-      },
-      "image": "/assets/games/l4d2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead-2/BR667W7W6V9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "borderlands2-cloud-elite",
-      "name": "Borderlands 2",
-      "url": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
+      "id": "kingdom-hearts-elite-master",
+      "name": "Kingdom Hearts",
+      "url": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html",
       "genre": "RPG",
-      "description": "Absolute looter-shooter mayhem. High-fidelity stylized execution.",
-      "rating": 4.8,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "RPG",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Gearbox Elite",
-        "accentStart": "#f59e0b",
-        "accentEnd": "#78350f"
-      },
-      "image": "/assets/games/borderlands2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-the-handsome-collection/C49BJV1M8S9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dark-souls-cloud-elite",
-      "name": "Dark Souls",
-      "url": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
-      "genre": "RPG",
-      "description": "Absolute challenge. The high-fidelity progenitor of a new genre.",
-      "rating": 4.9,
-      "playersOnline": 7000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity RPG action. Experience Kingdom Hearts in a stabilized browser environment.",
       "tags": [
         "RPG",
-        "Action",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "FromSoft Elite",
-        "accentStart": "#1f2937",
-        "accentEnd": "#030712"
-      },
-      "image": "/assets/games/darksouls-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dark-souls-remastered/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "fc3-cloud-elite",
-      "name": "Far Cry 3",
-      "url": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
-      "genre": "Action",
-      "description": "Absolute madness. High-fidelity tropical survival and stealth.",
-      "rating": 4.8,
-      "playersOnline": 6000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Ubisoft Elite",
-        "accentStart": "#f97316",
-        "accentEnd": "#7c2d12"
-      },
-      "image": "/assets/games/farcry3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/far-cry-3-classic-edition/BP96B1B4N6PC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "ow2-cloud-elite",
-      "name": "Overwatch 2",
-      "url": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
-      "genre": "FPS",
-      "description": "Absolute hero-based tactical dominance. High-fidelity competitive shooting.",
-      "rating": 4.6,
-      "playersOnline": 500000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Blizzard Elite",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#92400e"
-      },
-      "image": "/assets/games/ow2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/overwatch-2/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "rocket-league-cloud-elite",
+      "id": "rocket-league-tribute-elite",
       "name": "Rocket League",
-      "url": "https://www.rocketleague.com",
-      "genre": "Sports",
-      "description": "Absolute motorized football. High-fidelity competitive chaos.",
+      "url": "/assets/games/neon-drift/neon-drift.html",
+      "genre": "Racing",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Rocket League.",
       "rating": 4.9,
       "playersOnline": 400000,
       "availability": "Online",
       "tags": [
         "Sports",
         "Racing",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8609,54 +7785,26 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/rocket-league-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.rocketleague.com",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       }
     },
     {
-      "id": "sf6-cloud-elite",
-      "name": "Street Fighter 6",
-      "url": "https://www.streetfighter.com/6/",
-      "genre": "Fighting",
-      "description": "Absolute fighting perfection. High-fidelity technical execution.",
-      "rating": 4.9,
-      "playersOnline": 50000,
-      "availability": "Online",
-      "tags": [
-        "Fighting",
-        "Competitive",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Capcom Elite",
-        "accentStart": "#f59e0b",
-        "accentEnd": "#7c2d12"
-      },
-      "image": "/assets/games/sf6-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.streetfighter.com/6/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "tekken8-cloud-elite",
+      "id": "tekken8-tribute-elite",
       "name": "Tekken 8",
-      "url": "https://en.bandainamcoent.eu/tekken/tekken-8",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
-      "description": "Absolute iron fist intensity. High-fidelity next-gen combat.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Tekken 8.",
       "rating": 4.9,
       "playersOnline": 45000,
       "availability": "Online",
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -8669,809 +7817,158 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/tekken8-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://en.bandainamcoent.eu/tekken/tekken-8",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       }
     },
     {
-      "id": "tlou-part1-cloud-elite",
-      "name": "The Last of Us Part I",
-      "url": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
+      "id": "gta-vice-city-elite-elite-master",
+      "name": "GTA Vice City Elite",
+      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
       "genre": "Action",
-      "description": "Absolute emotional mastery. A high-fidelity remake of the Golden Era legend.",
-      "rating": 5.0,
-      "playersOnline": 10000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience GTA Vice City Elite in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Naughty Dog Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/tlou-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/the-last-of-us-part-i/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dead-space-remake-cloud-elite",
-      "name": "Dead Space",
-      "url": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
-      "genre": "Action",
-      "description": "Absolute survival horror. High-fidelity atmospheric dread.",
-      "rating": 4.9,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Horror",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Motive Elite",
-        "accentStart": "#ea580c",
-        "accentEnd": "#431407"
-      },
-      "image": "/assets/games/dead-space-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "gta4-cloud-elite",
-      "name": "GTA IV",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
-      "genre": "Action",
-      "description": "The Absolute Liberty City experience. High-fidelity Golden Era storytelling.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/gta4-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-iv/BR667W7W6V9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "rdr1-cloud-elite",
-      "name": "Red Dead Redemption",
-      "url": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
-      "genre": "Action",
-      "description": "Absolute frontier justice. The high-fidelity Golden Era Western epic.",
-      "rating": 5.0,
-      "playersOnline": 4000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/rdr1-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/red-dead-redemption/BWDS9V65CQ6QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "mirrors-edge-cloud-elite",
-      "name": "Mirror's Edge",
-      "url": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
-      "genre": "Action",
-      "description": "Absolute flow. High-fidelity Golden Era parkour execution.",
-      "rating": 4.8,
-      "playersOnline": 2000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "DICE Elite",
-        "accentStart": "#38bdf8",
-        "accentEnd": "#075985"
-      },
-      "image": "/assets/games/mirrors-edge-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mirrors-edge/BPP1KXL089L4",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "gears-3-cloud-elite",
-      "name": "Gears of War 3",
-      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
-      "genre": "Action",
-      "description": "Absolute cover-based finale. The high-fidelity Golden Era climax.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Shooter",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Epic Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/gears3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-3/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "halo-reach-cloud-elite",
-      "name": "Halo: Reach",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-      "genre": "FPS",
-      "description": "Absolute sacrifice. The high-fidelity Golden Era prequel.",
-      "rating": 5.0,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bungie Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/halo-reach-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "fable2-cloud-elite",
-      "name": "Fable II",
-      "url": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
-      "genre": "RPG",
-      "description": "Absolute charm and consequence. The high-fidelity Golden Era fantasy epic.",
-      "rating": 4.8,
-      "playersOnline": 3000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Adventure",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Lionhead Elite",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#92400e"
-      },
-      "image": "/assets/games/fable2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fable-ii/C2Z7B3W4B5QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dead-space-2-cloud-elite",
-      "name": "Dead Space 2",
-      "url": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
-      "genre": "Action",
-      "description": "Absolute terror in the Sprawl. High-fidelity Golden Era horror.",
-      "rating": 4.9,
-      "playersOnline": 2500,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Horror",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Visceral Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/dead-space-2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-space-2/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "palworld-cloud-elite",
-      "name": "Palworld",
-      "url": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
-      "genre": "Adventure",
-      "description": "Absolute survival sensation. High-fidelity creature collection and automation.",
-      "rating": 4.7,
-      "playersOnline": 500000,
-      "availability": "Online",
-      "tags": [
-        "Adventure",
-        "Sandbox",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Pocketpair Elite",
-        "accentStart": "#10b981",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/palworld-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/palworld/9N6SVPX3BCW3",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "lies-of-p-cloud-elite",
-      "name": "Lies of P",
-      "url": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
-      "genre": "RPG",
-      "description": "Absolute soul-like mastery. High-fidelity Pinocchio reimagining.",
-      "rating": 4.9,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Action",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Neowiz Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/lies-of-p-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/lies-of-p/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "hi-fi-rush-cloud-elite",
-      "name": "Hi-Fi RUSH",
-      "url": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
-      "genre": "Action",
-      "description": "Absolute rhythm combat. High-fidelity stylized execution.",
-      "rating": 4.9,
-      "playersOnline": 10000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Music",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Tango Elite",
-        "accentStart": "#f43f5e",
-        "accentEnd": "#881337"
-      },
-      "image": "/assets/games/hifi-rush-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hi-fi-rush/9P0BRNK97L7F",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "doom-2016-cloud-elite",
-      "name": "DOOM (2016)",
-      "url": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
-      "genre": "FPS",
-      "description": "Absolute relentless combat. The high-fidelity rebirth of a legend.",
-      "rating": 4.9,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "id Software Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/doom-2016-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/doom/BPNDH6RLGZ66",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "wolfenstein-tno-cloud-elite",
-      "name": "Wolfenstein: TNO",
-      "url": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
-      "genre": "FPS",
-      "description": "Absolute alternate history. High-fidelity Nazi-crushing execution.",
-      "rating": 4.8,
-      "playersOnline": 4000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "MachineGames Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/wolfenstein-tno-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/wolfenstein-the-new-order/BR667W7W6V9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dragon-age-inq-cloud-elite",
-      "name": "Dragon Age: Inquisition",
-      "url": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
-      "genre": "RPG",
-      "description": "Absolute inquisitorial power. High-fidelity tactical fantasy.",
-      "rating": 4.7,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "BioWare Elite",
-        "accentStart": "#10b981",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/dai-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-inquisition-game-of-the-year-edition/C59BJV1M8S9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "sea-of-stars-cloud-elite",
-      "name": "Sea of Stars",
-      "url": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
-      "genre": "RPG",
-      "description": "Absolute retro charm. High-fidelity turn-based modernization.",
-      "rating": 4.9,
-      "playersOnline": 10000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
         "Retro",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Sabotage Elite",
-        "accentStart": "#06b6d4",
-        "accentEnd": "#083344"
-      },
-      "image": "/assets/games/sea-of-stars-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/sea-of-stars/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "hellblade-cloud-elite",
-      "name": "Hellblade: Senua's Sacrifice",
-      "url": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
-      "genre": "Action",
-      "description": "Absolute psychological depth. High-fidelity cinematic immersion.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Ninja Theory Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/hellblade-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/hellblade-senuas-sacrifice/C49BJV1M8S9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "psychonauts2-cloud-elite",
-      "name": "Psychonauts 2",
-      "url": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
-      "genre": "Adventure",
-      "description": "Absolute mental creativity. High-fidelity platforming excellence.",
-      "rating": 4.9,
-      "playersOnline": 6000,
-      "availability": "Online",
-      "tags": [
-        "Adventure",
-        "Platformer",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Double Fine Elite",
-        "accentStart": "#ec4899",
-        "accentEnd": "#701a75"
-      },
-      "image": "/assets/games/psychonauts2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/psychonauts-2/9N6SVPX3BCW3",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "remnant2-cloud-elite",
-      "name": "Remnant II",
-      "url": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
-      "genre": "Action",
-      "description": "Absolute procedurally-generated challenge. High-fidelity survival shooting.",
-      "rating": 4.8,
-      "playersOnline": 20000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Shooter",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Gunfire Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/remnant2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/remnant-ii-standard-edition/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "control-cloud-elite",
-      "name": "Control",
-      "url": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
-      "genre": "Action",
-      "description": "Absolute brutalist mystery. High-fidelity supernatural execution.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Remedy Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/control-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/control-ultimate-edition/9P0BRNK97L7F",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "1v1-lol-web-elite",
-      "name": "1v1.LOL (Web-Link)",
-      "url": "https://1v1.lol",
-      "genre": "Action",
-      "description": "Absolute competitive building and shooting. High-fidelity practice for the battle royale elite.",
-      "rating": 4.7,
-      "playersOnline": 150000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "Battle Royale",
         "Elite",
-        "Cloud"
+        "Stabilized"
       ],
       "badgeIds": [
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "JustPlay Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/1v1-lol-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://1v1.lol",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "slither-io-web-elite",
-      "name": "Slither.io (Web-Link)",
-      "url": "https://slither.io",
+      "id": "gta-iii-elite-elite-master",
+      "name": "GTA III Elite",
+      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
       "genre": "Action",
-      "description": "The Absolute IO classic. High-fidelity competitive snake execution.",
-      "rating": 4.6,
-      "playersOnline": 200000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience GTA III Elite in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Competitive",
+        "Retro",
         "Elite",
-        "Cloud"
+        "Stabilized"
       ],
       "badgeIds": [
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Lowtech Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/slither-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://slither.io",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "agar-io-web-elite",
-      "name": "Agar.io (Web-Link)",
-      "url": "https://agar.io",
-      "genre": "Action",
-      "description": "Absolute cell-eating dominance. The high-fidelity progenitor of the IO genre.",
-      "rating": 4.5,
-      "playersOnline": 100000,
-      "availability": "Online",
+      "id": "tony-hawk-3-elite-master",
+      "name": "Tony Hawk 3",
+      "url": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience Tony Hawk 3 in a stabilized browser environment.",
       "tags": [
-        "Action",
-        "Competitive",
+        "Sports",
+        "Retro",
         "Elite",
-        "Cloud"
+        "Stabilized"
       ],
       "badgeIds": [
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Miniclip Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/agar-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://agar.io",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "titanfall2-cloud-elite",
-      "name": "Titanfall 2",
-      "url": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "Absolute pilot and titan synergy. High-fidelity movement-based shooting.",
-      "rating": 5.0,
-      "playersOnline": 10000,
-      "availability": "Online",
+      "id": "ssx-tricky-elite-master",
+      "name": "SSX Tricky",
+      "url": "https://www.retrogames.cc/embed/42780-ssx-tricky.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience SSX Tricky in a stabilized browser environment.",
       "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
+        "Sports",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Respawn Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1d4ed8"
-      },
-      "image": "/assets/games/titanfall2-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/titanfall-2-ultimate-edition/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ssx-tricky.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "mgs5-cloud-elite",
-      "name": "Metal Gear Solid V",
-      "url": "https://www.konami.com/mg/mgsv/",
-      "genre": "Action",
-      "description": "Absolute tactical espionage. High-fidelity open-world infiltration.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Stealth",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Konami Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/mgs5-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.konami.com/mg/mgsv/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "arkham-knight-cloud-elite",
-      "name": "Batman: Arkham Knight",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
-      "genre": "Action",
-      "description": "The Absolute Batman finale. High-fidelity open-world Gotham execution.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rocksteady Elite",
-        "accentStart": "#1e40af",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/arkham-knight-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-knight/B91BVDN96CQC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "forza-horizon-4-cloud-elite",
-      "name": "Forza Horizon 4",
-      "url": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
+      "id": "burnout-3-elite-master",
+      "name": "Burnout 3",
+      "url": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
       "genre": "Racing",
-      "description": "Absolute British driving perfection. High-fidelity seasons change everything.",
+      "description": "Absolute high-fidelity Racing action. Experience Burnout 3 in a stabilized browser environment.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "need-for-speed-underground-2-elite-master",
+      "name": "Need for Speed Underground 2",
+      "url": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
+      "genre": "Racing",
+      "description": "Absolute high-fidelity Racing action. Experience Need for Speed Underground 2 in a stabilized browser environment.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "forza-horizon-4-tribute-elite",
+      "name": "Forza Horizon 4",
+      "url": "/assets/games/neon-drift/neon-drift.html",
+      "genre": "Racing",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 4.",
       "rating": 4.9,
       "playersOnline": 30000,
       "availability": "Online",
       "tags": [
         "Racing",
         "Open World",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "classic",
@@ -9484,570 +7981,136 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/forza4-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/forza-horizon-4-standard-edition/9PNJXVCVWD4K",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
       }
     },
     {
-      "id": "bf1-cloud-elite",
-      "name": "Battlefield 1",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
-      "genre": "FPS",
-      "description": "Absolute atmospheric warfare. High-fidelity WWI execution.",
-      "rating": 4.9,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "DICE Elite",
-        "accentStart": "#ea580c",
-        "accentEnd": "#431407"
-      },
-      "image": "/assets/games/bf1-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-1/BWDS9V65CQ6QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "monster-hunter-world-cloud-elite",
-      "name": "Monster Hunter: World",
-      "url": "https://www.monsterhunter.com/world/",
+      "id": "ratchet-and-clank-elite-master",
+      "name": "Ratchet and Clank",
+      "url": "https://www.retrogames.cc/embed/42783-ratchet-clank.html",
       "genre": "Action",
-      "description": "Absolute hunt intensity. High-fidelity ecosystem mastery.",
-      "rating": 4.8,
-      "playersOnline": 80000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Ratchet and Clank in a stabilized browser environment.",
       "tags": [
         "Action",
-        "RPG",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Capcom Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/mhw-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.monsterhunter.com/world/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "persona5-royal-cloud-elite",
-      "name": "Persona 5 Royal",
-      "url": "https://persona.atlus.com/p5r/",
-      "genre": "RPG",
-      "description": "Absolute stylized mastery. High-fidelity Phantom Thief execution.",
-      "rating": 5.0,
-      "playersOnline": 20000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Social",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Atlus Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/p5r-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://persona.atlus.com/p5r/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "re-village-cloud-elite",
-      "name": "Resident Evil Village",
-      "url": "https://www.residentevil.com/village/",
-      "genre": "Action",
-      "description": "Absolute survival horror. High-fidelity cinematic dread.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Horror",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Capcom Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/re-village-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.residentevil.com/village/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "it-takes-two-cloud-elite",
-      "name": "It Takes Two",
-      "url": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
-      "genre": "Adventure",
-      "description": "Absolute co-op perfection. High-fidelity diverse execution.",
-      "rating": 5.0,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Adventure",
-        "Co-op",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Hazelight Elite",
-        "accentStart": "#f59e0b",
-        "accentEnd": "#78350f"
-      },
-      "image": "/assets/games/it-takes-two-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/it-takes-two/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "gow-2018-cloud-elite",
-      "name": "God of War",
-      "url": "https://www.playstation.com/en-us/games/god-of-war/",
-      "genre": "Action",
-      "description": "Absolute mythological mastery. High-fidelity Kratos reimagining.",
-      "rating": 5.0,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Santa Monica Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/gow-2018-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "uncharted-4-cloud-elite",
-      "name": "Uncharted 4",
-      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-      "genre": "Action",
-      "description": "Absolute cinematic adventure. High-fidelity treasure hunting.",
-      "rating": 5.0,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Naughty Dog Elite",
-        "accentStart": "#1d4ed8",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/uncharted4-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "ghost-of-tsushima-cloud-elite",
-      "name": "Ghost of Tsushima",
-      "url": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
-      "genre": "Action",
-      "description": "Absolute samurai perfection. High-fidelity open-world beauty.",
-      "rating": 5.0,
-      "playersOnline": 25000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Sucker Punch Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/ghost-tsushima-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/ghost-of-tsushima/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "horizon-zero-dawn-cloud-elite",
-      "name": "Horizon Zero Dawn",
-      "url": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
-      "genre": "Action",
-      "description": "Absolute mechanical discovery. High-fidelity post-apocalyptic exploration.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "RPG",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Guerrilla Elite",
-        "accentStart": "#06b6d4",
-        "accentEnd": "#083344"
-      },
-      "image": "/assets/games/horizon-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/horizon-zero-dawn/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "fight-night-champion-cloud-elite",
-      "name": "Fight Night Champion",
-      "url": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
-      "genre": "Sports",
-      "description": "Absolute boxing realism. The high-fidelity Golden Era pugilist classic.",
-      "rating": 4.9,
-      "playersOnline": 3000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Boxing",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "EA Sports Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/fight-night-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fight-night-champion/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-ratchet-clank.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "ncaa-football-14-cloud-elite",
-      "name": "NCAA Football 14",
-      "url": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
-      "genre": "Sports",
-      "description": "The Absolute college football legend. High-fidelity Golden Era gridiron.",
-      "rating": 5.0,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "NFL",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "EA Sports Elite",
-        "accentStart": "#1d4ed8",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/ncaa14-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.ea.com/games/ncaa-football/ncaa-football-14",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dishonored-cloud-elite",
-      "name": "Dishonored",
-      "url": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
+      "id": "jak-and-daxter-elite-master",
+      "name": "Jak and Daxter",
+      "url": "https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html",
       "genre": "Action",
-      "description": "Absolute immersive stealth. High-fidelity Golden Era execution.",
-      "rating": 4.9,
-      "playersOnline": 4000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Jak and Daxter in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Stealth",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Arkane Elite",
-        "accentStart": "#4b5563",
-        "accentEnd": "#111827"
-      },
-      "image": "/assets/games/dishonored-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dishonored-definitive-edition/BQ1W1T1K1P4L",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "mgr-revengeance-cloud-elite",
-      "name": "MGR: Revengeance",
-      "url": "https://www.konami.com/mg/mgr/",
+      "id": "sly-cooper-elite-master",
+      "name": "Sly Cooper",
+      "url": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html",
       "genre": "Action",
-      "description": "Absolute hack-and-slash intensity. High-fidelity Golden Era cyborg combat.",
-      "rating": 4.8,
-      "playersOnline": 6000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Sly Cooper in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Fighting",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Platinum Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1d4ed8"
-      },
-      "image": "/assets/games/mgr-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.konami.com/mg/mgr/",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "crysis-remastered-cloud-elite",
-      "name": "Crysis Remastered",
-      "url": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
-      "genre": "FPS",
-      "description": "Absolute hardware benchmarking. High-fidelity Golden Era shooting.",
-      "rating": 4.7,
-      "playersOnline": 2000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Crytek Elite",
-        "accentStart": "#06b6d4",
-        "accentEnd": "#083344"
-      },
-      "image": "/assets/games/crysis-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/crysis-remastered/9NBLGGH52ZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dead-island-cloud-elite",
-      "name": "Dead Island",
-      "url": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
+      "id": "god-of-war-elite-elite-master",
+      "name": "God of War Elite",
+      "url": "https://www.retrogames.cc/embed/42786-god-of-war.html",
       "genre": "Action",
-      "description": "Absolute tropical nightmare. High-fidelity Golden Era zombie survival.",
-      "rating": 4.6,
-      "playersOnline": 5000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience God of War Elite in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Horror",
-        "Cloud",
+        "Retro",
         "Elite",
-        "Golden Era"
+        "Stabilized"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "Techland Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/dead-island-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-island-definitive-edition/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42786-god-of-war.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "borderlands-3-cloud-elite",
-      "name": "Borderlands 3",
-      "url": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
-      "genre": "RPG",
-      "description": "Absolute looter-shooter mayhem. High-fidelity stylized chaos across the galaxy.",
-      "rating": 4.8,
-      "playersOnline": 25000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "RPG",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Gearbox Elite",
-        "accentStart": "#facc15",
-        "accentEnd": "#713f12"
-      },
-      "image": "/assets/games/borderlands3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/borderlands-3/C3S0S0K6H0CQC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "sekiro-cloud-elite",
-      "name": "Sekiro: Shadows Die Twice",
-      "url": "https://www.sekirothegame.com",
+      "id": "devil-may-cry-3-elite-master",
+      "name": "Devil May Cry 3",
+      "url": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html",
       "genre": "Action",
-      "description": "Absolute rhythmic combat. High-fidelity shinobi execution from FromSoftware.",
-      "rating": 5.0,
-      "playersOnline": 12000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Devil May Cry 3 in a stabilized browser environment.",
       "tags": [
         "Action",
-        "Hardcore",
-        "Cloud",
-        "Elite"
+        "Retro",
+        "Elite",
+        "Stabilized"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
+        "elite",
+        "classic"
       ],
-      "art": {
-        "eyebrow": "FromSoft Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/sekiro-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.sekirothegame.com",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "hades-cloud-elite",
-      "name": "Hades",
-      "url": "https://www.supergiantgames.com/games/hades/",
-      "genre": "RPG",
-      "description": "Absolute rogue-like mastery. High-fidelity escape from the Underworld.",
-      "rating": 5.0,
-      "playersOnline": 45000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Action",
-        "Cloud",
-        "Elite"
-      ],
-      "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Supergiant Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/hades-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.supergiantgames.com/games/hades/",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "mortal-kombat-1-cloud-elite",
+      "id": "mortal-kombat-1-tribute-elite",
       "name": "Mortal Kombat 1",
-      "url": "https://www.mortalkombat.com",
+      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
       "genre": "Fighting",
-      "description": "Absolute fighting evolution. High-fidelity next-gen fatalities.",
+      "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mortal Kombat 1.",
       "rating": 4.8,
       "playersOnline": 35000,
       "availability": "Online",
       "tags": [
         "Fighting",
         "Competitive",
-        "Cloud",
-        "Elite"
+        "WebGL",
+        "Elite",
+        "Internal"
       ],
       "badgeIds": [
         "next-gen",
@@ -10060,593 +8123,3195 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "image": "/assets/games/mk1-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.mortalkombat.com",
-        "embedMode": "external-only"
+        "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "embedMode": "inline",
+        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
       }
     },
     {
-      "id": "gta-v-story-cloud-elite",
-      "name": "GTA V: Story Mode",
-      "url": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
+      "id": "okami-elite-master",
+      "name": "Okami",
+      "url": "https://www.retrogames.cc/embed/42788-okami.html",
+      "genre": "Adventure",
+      "description": "Absolute high-fidelity Adventure action. Experience Okami in a stabilized browser environment.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-okami.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "shadow-of-the-colossus-elite-master",
+      "name": "Shadow of the Colossus",
+      "url": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html",
+      "genre": "Adventure",
+      "description": "Absolute high-fidelity Adventure action. Experience Shadow of the Colossus in a stabilized browser environment.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "prince-of-persia-elite-master",
+      "name": "Prince of Persia",
+      "url": "https://www.retrogames.cc/embed/42790-prince-of-persia-the-sands-of-time.html",
       "genre": "Action",
-      "description": "Absolute cinematic crime. High-fidelity Golden Era multi-protagonist epic.",
-      "rating": 5.0,
-      "playersOnline": 50000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Rockstar Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#14532d"
-      },
-      "image": "/assets/games/gta-v-story-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/grand-theft-auto-v-story-mode/BPNDH6RLGZ66",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "mass-effect-2-cloud-elite",
-      "name": "Mass Effect 2",
-      "url": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
-      "genre": "RPG",
-      "description": "The Absolute space opera sequel. High-fidelity Golden Era choice-driven execution.",
-      "rating": 5.0,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Sci-Fi",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "BioWare Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/mass-effect-2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/mass-effect-2/BR667W7W6V9C",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dragon-age-origins-cloud-elite",
-      "name": "Dragon Age: Origins",
-      "url": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
-      "genre": "RPG",
-      "description": "Absolute tactical fantasy. The high-fidelity Golden Era RPG progenitor.",
-      "rating": 4.9,
-      "playersOnline": 4000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Fantasy",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "BioWare Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/dao-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dragon-age-origins/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "left-4-dead-cloud-elite",
-      "name": "Left 4 Dead",
-      "url": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "Absolute team-based horror. High-fidelity Golden Era zombie slaying.",
-      "rating": 4.8,
-      "playersOnline": 3500,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Valve Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#14532d"
-      },
-      "image": "/assets/games/l4d-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/left-4-dead/BPP1KXL089L4",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "portal-cloud-elite",
-      "name": "Portal",
-      "url": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
-      "genre": "Puzzle",
-      "description": "Absolute spatial logic. The high-fidelity Golden Era puzzle masterpiece.",
-      "rating": 5.0,
-      "playersOnline": 2500,
-      "availability": "Online",
-      "tags": [
-        "Puzzle",
-        "Sci-Fi",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Valve Elite",
-        "accentStart": "#38bdf8",
-        "accentEnd": "#075985"
-      },
-      "image": "/assets/games/portal-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/portal/BQ9S8XK0Q6QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "dead-cells-cloud-elite",
-      "name": "Dead Cells",
-      "url": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
-      "genre": "Action",
-      "description": "Absolute rhythmic platforming. High-fidelity combat execution.",
-      "rating": 4.9,
-      "playersOnline": 18000,
-      "availability": "Online",
+      "description": "Absolute high-fidelity Action action. Experience Prince of Persia in a stabilized browser environment.",
       "tags": [
         "Action",
         "Retro",
-        "Cloud",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42790-prince-of-persia-the-sands-of-time.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "splinter-cell-elite-master",
+      "name": "Splinter Cell",
+      "url": "https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Splinter Cell in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "star-wars-kotor-elite-master",
+      "name": "Star Wars: KOTOR",
+      "url": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html",
+      "genre": "RPG",
+      "description": "Absolute high-fidelity RPG action. Experience Star Wars: KOTOR in a stabilized browser environment.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "halo-2-elite-elite-master",
+      "name": "Halo 2 Elite",
+      "url": "https://www.retrogames.cc/embed/42793-halo-2.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience Halo 2 Elite in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42793-halo-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "metal-gear-msx-elite",
+      "name": "Metal Gear (MSX2)",
+      "url": "https://www.retrogames.cc/embed/19318-metal-gear-japan.html",
+      "description": "The Absolute origin of stealth action. Optimized MSX2 emulation.",
+      "genre": "Stealth",
+      "rating": 4.8,
+      "playersOnline": 1200,
+      "availability": "Online",
+      "tags": [
+        "MSX",
+        "Retro",
+        "Stealth",
+        "Konami",
         "Elite"
       ],
       "badgeIds": [
-        "next-gen",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Motion Twin Elite",
-        "accentStart": "#ef4444",
-        "accentEnd": "#7f1d1d"
-      },
-      "image": "/assets/games/dead-cells-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/dead-cells/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "cod-mw-classic-cloud-elite",
-      "name": "COD: Modern Warfare",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "The Absolute game changer. High-fidelity Golden Era warfare that defined a generation.",
-      "rating": 5.0,
-      "playersOnline": 10000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
         "classic",
         "elite"
       ],
-      "art": {
-        "eyebrow": "Activision Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/cod-mw-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-remastered/BPP1KXL089L4",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19318-metal-gear-japan.html",
+        "embedMode": "inline"
       }
     },
     {
-      "id": "cod-mw2-classic-cloud-elite",
-      "name": "COD: Modern Warfare 2",
-      "url": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "Absolute tactical intensity. The high-fidelity peak of Golden Era multiplayer.",
-      "rating": 5.0,
-      "playersOnline": 15000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Activision Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#064e3b"
-      },
-      "image": "/assets/games/cod-mw2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/call-of-duty-modern-warfare-2/BPP1KXL089L4",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "fallout3-cloud-elite",
-      "name": "Fallout 3",
-      "url": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
-      "genre": "RPG",
-      "description": "Absolute wasteland atmosphere. High-fidelity Golden Era exploration.",
-      "rating": 4.9,
-      "playersOnline": 8000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "Open World",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Bethesda Elite",
-        "accentStart": "#16a34a",
-        "accentEnd": "#14532d"
-      },
-      "image": "/assets/games/fallout3-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/fallout-3/C4515W8M8FMS",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "ac-black-flag-cloud-elite",
-      "name": "AC: Black Flag",
-      "url": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
+      "id": "vampire-killer-msx-elite",
+      "name": "Vampire Killer (MSX2)",
+      "url": "https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html",
+      "description": "Castlevania's Absolute MSX2 execution. Explore the castle with precision.",
       "genre": "Action",
-      "description": "Absolute naval dominance. High-fidelity Golden Era pirate execution.",
-      "rating": 4.9,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Ubisoft Elite",
-        "accentStart": "#0ea5e9",
-        "accentEnd": "#0c4a6e"
-      },
-      "image": "/assets/games/ac-black-flag-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/assassins-creed-iv-black-flag/C2Z7B3W4B5QC",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "gears-1-cloud-elite",
-      "name": "Gears of War",
-      "url": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
-      "genre": "Action",
-      "description": "Absolute cover-based intensity. The high-fidelity Golden Era progenitor.",
-      "rating": 4.8,
-      "playersOnline": 4000,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "Shooter",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "Epic Elite",
-        "accentStart": "#b91c1c",
-        "accentEnd": "#450a0a"
-      },
-      "image": "/assets/games/gears1-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/gears-of-war-ultimate-edition/BPN0N6GDBZLD",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "halo4-cloud-elite",
-      "name": "Halo 4",
-      "url": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-      "genre": "FPS",
-      "description": "Absolute combat evolution. High-fidelity Golden Era sci-fi mastery.",
       "rating": 4.7,
-      "playersOnline": 8000,
+      "playersOnline": 800,
       "availability": "Online",
       "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "343 Elite",
-        "accentStart": "#3b82f6",
-        "accentEnd": "#1e3a8a"
-      },
-      "image": "/assets/games/halo4-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/halo-the-master-chief-collection/BPNDH6RLGZ66",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "bf-bc2-cloud-elite",
-      "name": "BF: Bad Company 2",
-      "url": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
-      "genre": "FPS",
-      "description": "Absolute tactical destruction. High-fidelity Golden Era squad execution.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
-      "tags": [
-        "Shooter",
-        "FPS",
-        "Cloud",
-        "Elite",
-        "Golden Era"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "art": {
-        "eyebrow": "DICE Elite",
-        "accentStart": "#ea580c",
-        "accentEnd": "#431407"
-      },
-      "image": "/assets/games/bf-bc2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/battlefield-bad-company-2/BPP1KXL089L4",
-        "embedMode": "external-only"
-      }
-    },
-    {
-      "id": "uncharted2-cloud-elite",
-      "name": "Uncharted 2",
-      "url": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-      "genre": "Action",
-      "description": "Absolute cinematic perfection. The high-fidelity Golden Era adventure benchmark.",
-      "rating": 5.0,
-      "playersOnline": 6000,
-      "availability": "Online",
-      "tags": [
+        "MSX",
+        "Retro",
         "Action",
-        "Adventure",
-        "Cloud",
-        "Elite",
-        "Golden Era"
+        "Konami",
+        "Elite"
       ],
       "badgeIds": [
         "classic",
         "elite"
       ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "tecmo-bowl-elite",
+      "name": "Tecmo Bowl",
+      "url": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
+      "genre": "Sports",
+      "description": "The ultimate 8-bit football classic. Simple, addictive, and legendary. Featuring iconic arcade-style gridiron action.",
+      "availability": "Online",
+      "playersOnline": 12400,
+      "rating": 4.9,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "NES",
+        "Football"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      },
       "art": {
-        "eyebrow": "Naughty Dog Elite",
+        "eyebrow": "8-Bit Legend",
+        "accentStart": "#ef4444",
+        "accentEnd": "#991b1b"
+      },
+      "image": "https://www.retrogames.cc/assets/images/screenshots/nes/tecmo-bowl-usa.png"
+    },
+    {
+      "id": "nba-jam-elite",
+      "name": "NBA Jam",
+      "url": "https://www.retrogames.cc/embed/17392-nba-jam-usa.html",
+      "genre": "Sports",
+      "description": "HE'S ON FIRE! The definitive arcade basketball experience. High-flying dunks and intense 2-on-2 action.",
+      "availability": "Online",
+      "playersOnline": 15600,
+      "rating": 5.0,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "Arcade",
+        "Basketball"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17392-nba-jam-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Arcade Classic",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#b45309"
+      },
+      "image": "https://www.retrogames.cc/assets/images/screenshots/arcade/nba-jam-usa.png"
+    },
+    {
+      "id": "nba-live-2000-elite",
+      "name": "NBA Live 2000",
+      "url": "https://www.retrogames.cc/embed/41887-nba-live-2000-usa.html",
+      "genre": "Sports",
+      "description": "A turning point in basketball simulation. Featuring Michael Jordan and the deepest gameplay of its era.",
+      "availability": "Online",
+      "playersOnline": 8900,
+      "rating": 4.7,
+      "badgeIds": [
+        "classic",
+        "elite"
+      ],
+      "tags": [
+        "Sports",
+        "Retro",
+        "PS1",
+        "Basketball"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41887-nba-live-2000-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "EA Sports Heritage",
         "accentStart": "#3b82f6",
         "accentEnd": "#1d4ed8"
       },
-      "image": "/assets/games/uncharted2-elite.png",
-      "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/uncharted-legacy-of-thieves-collection/",
-        "embedMode": "external-only"
-      }
+      "image": "https://www.retrogames.cc/assets/images/screenshots/psx/nba-live-2000-usa.png"
     },
     {
-      "id": "gow3-cloud-elite",
-      "name": "God of War III",
-      "url": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
-      "genre": "Action",
-      "description": "Absolute mythological vengeance. High-fidelity Golden Era scale.",
-      "rating": 5.0,
-      "playersOnline": 7000,
+      "id": "double-dragon-classic-elite",
+      "name": "Double Dragon (Classic)",
+      "url": "https://www.retrogames.cc/embed/8499-double-dragon-japan.html",
+      "description": "The definitive street-brawling classic. Save Marian and dominate the Black Warriors.",
+      "genre": "Beat 'em up",
+      "rating": 4.9,
+      "playersOnline": 1200,
       "availability": "Online",
       "tags": [
-        "Action",
-        "Adventure",
-        "Cloud",
-        "Elite",
-        "Golden Era"
+        "Classic",
+        "Retro",
+        "Arcade",
+        "Beat 'em up",
+        "Elite"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "staff-pick"
       ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8499-double-dragon-japan.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8499-double-dragon-japan.html",
+        "secure_mode": "wasm"
+      },
       "art": {
-        "eyebrow": "Santa Monica Elite",
-        "accentStart": "#ef4444",
+        "eyebrow": "Classic Elite",
+        "accentStart": "#b91c1c",
         "accentEnd": "#7f1d1d"
       },
-      "image": "/assets/games/gow3-elite.png",
+      "image": "/assets/games/double-dragon.png"
+    },
+    {
+      "id": "dbz-buus-fury-classic-elite",
+      "name": "DBZ: Buu's Fury (Classic)",
+      "url": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+      "description": "Experience the final chapter of the Z-Saga in this high-fidelity GBA masterpiece.",
+      "genre": "RPG",
+      "rating": 4.8,
+      "playersOnline": 3400,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "GBA",
+        "RPG",
+        "Elite",
+        "DBZ"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
       "launchConfig": {
-        "approvedExternalUrl": "https://www.playstation.com/en-us/games/god-of-war-iii-remastered/",
-        "embedMode": "external-only"
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#ea580c",
+        "accentEnd": "#9a3412"
+      },
+      "image": "/assets/games/dbz-buu.png"
+    },
+    {
+      "id": "10-yard-fight-classic-elite",
+      "name": "10-Yard Fight (Classic)",
+      "url": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+      "description": "The foundational gridiron experience. Pure football strategy and execution.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 450,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "NES",
+        "Sports",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Pro",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo",
+          "Versus"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#15803d",
+        "accentEnd": "#14532d"
+      },
+      "image": "/assets/games/10-yard-fight.png"
+    },
+    {
+      "id": "megaman-classic-elite",
+      "name": "Mega Man (Classic)",
+      "url": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+      "description": "Where the Blue Bomber began. Precise platforming and legendary boss battles.",
+      "genre": "Platformer",
+      "rating": 4.9,
+      "playersOnline": 1800,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "NES",
+        "Platformer",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#2563eb",
+        "accentEnd": "#1e3a8a"
+      },
+      "image": "/assets/games/mega-man.png"
+    },
+    {
+      "id": "punch-out-classic-elite",
+      "name": "Mike Tyson's Punch-Out!!",
+      "url": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+      "description": "The Absolute boxing challenge. Rise through the ranks to face the Iron Mike.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 950,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "NES",
+        "Sports",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#dc2626",
+        "accentEnd": "#991b1b"
+      },
+      "image": "/assets/games/punch-out.png"
+    },
+    {
+      "id": "zelda-1-classic-elite",
+      "name": "The Legend of Zelda (Classic)",
+      "url": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+      "description": "The beginning of the legend. Explore Hyrule, conquer dungeons, and save Princess Zelda.",
+      "genre": "Adventure",
+      "rating": 4.9,
+      "playersOnline": 2100,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "NES",
+        "Adventure",
+        "Elite"
+      ],
+      "badgeIds": [
+        "elite",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#16a34a",
+        "accentEnd": "#14532d"
+      },
+      "image": "/assets/games/zelda-1.png"
+    },
+    {
+      "id": "gta-1-classic",
+      "name": "GTA (Classic)",
+      "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
+      "description": "The Absolute high-quality classic version of GTA.",
+      "genre": "Action",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/gta-1-classic.png"
+    },
+    {
+      "id": "gta-2-classic",
+      "name": "GTA 2 (Classic)",
+      "url": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+      "description": "The Absolute high-quality classic version of GTA 2.",
+      "genre": "Action",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/gta-2-classic.png"
+    },
+    {
+      "id": "gta-iii-classic",
+      "name": "GTA III (Classic)",
+      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+      "description": "The Absolute high-quality classic version of GTA III.",
+      "genre": "Action",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/gta-iii-classic.png"
+    },
+    {
+      "id": "gta-vc-classic",
+      "name": "GTA: Vice City (Classic)",
+      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+      "description": "The Absolute high-quality classic version of GTA: Vice City.",
+      "genre": "Action",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/gta-vc-classic.png"
+    },
+    {
+      "id": "gta-sa-classic",
+      "name": "GTA: San Andreas (Classic)",
+      "url": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+      "description": "The Absolute high-quality classic version of GTA: San Andreas.",
+      "genre": "Action",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/gta-sa-classic.png"
+    },
+    {
+      "id": "ff1-classic",
+      "name": "Final Fantasy (Classic)",
+      "url": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
+      "description": "The Absolute high-quality classic version of Final Fantasy.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/ff1-classic.png"
+    },
+    {
+      "id": "ff7-classic",
+      "name": "Final Fantasy VII (Classic)",
+      "url": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
+      "description": "The Absolute high-quality classic version of Final Fantasy VII.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/ff7-classic.png"
+    },
+    {
+      "id": "ff10-classic",
+      "name": "Final Fantasy X (Classic)",
+      "url": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+      "description": "The Absolute high-quality classic version of Final Fantasy X.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/ff10-classic.png"
+    },
+    {
+      "id": "sf2-classic",
+      "name": "Street Fighter II (Classic)",
+      "url": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
+      "description": "The Absolute high-quality classic version of Street Fighter II.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Fighting"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/sf2-classic.png"
+    },
+    {
+      "id": "sf3-classic",
+      "name": "Street Fighter III (Classic)",
+      "url": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+      "description": "The Absolute high-quality classic version of Street Fighter III.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Fighting"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/sf3-classic.png"
+    },
+    {
+      "id": "dd1-classic",
+      "name": "Double Dragon (Classic)",
+      "url": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
+      "description": "The Absolute high-quality classic version of Double Dragon.",
+      "genre": "Beat 'em up",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Beat 'em up"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/dd1-classic.png"
+    },
+    {
+      "id": "dd2-classic",
+      "name": "Double Dragon II (Classic)",
+      "url": "https://www.retrogames.cc/embed/16729-double-dragon-ii-the-revenge-usa.html",
+      "description": "The Absolute high-quality classic version of Double Dragon II.",
+      "genre": "Beat 'em up",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Beat 'em up"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16729-double-dragon-ii-the-revenge-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16729-double-dragon-ii-the-revenge-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/dd2-classic.png"
+    },
+    {
+      "id": "dbz-buu-classic",
+      "name": "DBZ: Buu's Fury (Classic)",
+      "url": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+      "description": "The Absolute high-quality classic version of DBZ: Buu's Fury.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/dbz-buu-classic.png"
+    },
+    {
+      "id": "dbz-sw-classic",
+      "name": "DBZ: Supersonic Warriors (Classic)",
+      "url": "https://www.retrogames.cc/embed/22415-dragon-ball-z-supersonic-warriors-usa.html",
+      "description": "The Absolute high-quality classic version of DBZ: Supersonic Warriors.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Fighting"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22415-dragon-ball-z-supersonic-warriors-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22415-dragon-ball-z-supersonic-warriors-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/dbz-sw-classic.png"
+    },
+    {
+      "id": "mm1-classic",
+      "name": "Mega Man (Classic)",
+      "url": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+      "description": "The Absolute high-quality classic version of Mega Man.",
+      "genre": "Platformer",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Platformer"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/mm1-classic.png"
+    },
+    {
+      "id": "mmx-classic",
+      "name": "Mega Man X (Classic)",
+      "url": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+      "description": "The Absolute high-quality classic version of Mega Man X.",
+      "genre": "Platformer",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Platformer"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/mmx-classic.png"
+    },
+    {
+      "id": "zelda1-classic",
+      "name": "The Legend of Zelda (Classic)",
+      "url": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+      "description": "The Absolute high-quality classic version of The Legend of Zelda.",
+      "genre": "Adventure",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Adventure"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/zelda1-classic.png"
+    },
+    {
+      "id": "zelda-oot-classic",
+      "name": "Zelda: Ocarina of Time (Classic)",
+      "url": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+      "description": "The Absolute high-quality classic version of Zelda: Ocarina of Time.",
+      "genre": "Adventure",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Adventure"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/zelda-oot-classic.png"
+    },
+    {
+      "id": "sonic1-classic",
+      "name": "Sonic the Hedgehog (Classic)",
+      "url": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+      "description": "The Absolute high-quality classic version of Sonic the Hedgehog.",
+      "genre": "Classic",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Classic"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/sonic1-classic.png"
+    },
+    {
+      "id": "sonic2-classic",
+      "name": "Sonic the Hedgehog 2 (Classic)",
+      "url": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
+      "description": "The Absolute high-quality classic version of Sonic the Hedgehog 2.",
+      "genre": "Classic",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Classic"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/sonic2-classic.png"
+    },
+    {
+      "id": "madden-2004-classic",
+      "name": "Madden NFL 2004 (Classic)",
+      "url": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+      "description": "The Absolute high-quality classic version of Madden NFL 2004.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Sports"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41233-madden-nfl-2004-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/madden-2004-classic.png"
+    },
+    {
+      "id": "nba-2k1-classic",
+      "name": "NBA 2K1 (Classic)",
+      "url": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+      "description": "The Absolute high-quality classic version of NBA 2K1.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Sports"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/nba-2k1-classic.png"
+    },
+    {
+      "id": "tecmo-bowl-classic",
+      "name": "Tecmo Bowl (Classic)",
+      "url": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
+      "description": "The Absolute high-quality classic version of Tecmo Bowl.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Sports"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/tecmo-bowl-classic.png"
+    },
+    {
+      "id": "10-yard-fight-classic",
+      "name": "10-Yard Fight (Classic)",
+      "url": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+      "description": "The Absolute high-quality classic version of 10-Yard Fight.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Sports"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/10-yard-fight-classic.png"
+    },
+    {
+      "id": "punch-out-classic",
+      "name": "Mike Tyson's Punch-Out!! (Classic)",
+      "url": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+      "description": "The Absolute high-quality classic version of Mike Tyson's Punch-Out!!.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 500,
+      "availability": "Online",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Sports"
+      ],
+      "badgeIds": [
+        "elite"
+      ],
+      "launchConfig": {
+        "difficulty": "Elite",
+        "controls": [
+          "Gamepad",
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "inlinePolicy": "trusted",
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
+        "secure_mode": "wasm"
+      },
+      "art": {
+        "eyebrow": "Classic Elite",
+        "accentStart": "#4ade80",
+        "accentEnd": "#166534"
+      },
+      "image": "/assets/games/punch-out-classic.png"
+    },
+    {
+      "id": "chrono-trigger-elite-master",
+      "name": "Chrono Trigger",
+      "url": "https://www.retrogames.cc/embed/18804-chrono-trigger-usa.html",
+      "genre": "RPG",
+      "description": "The Absolute pinnacle of RPG design. Time-traveling excellence with multiple endings and high-fidelity combat.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "SNES",
+        "Elite",
+        "Time-Travel"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18804-chrono-trigger-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     },
     {
-      "id": "batman-asylum-cloud-elite",
-      "name": "Batman: Arkham Asylum",
-      "url": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-      "genre": "Action",
-      "description": "Absolute atmosphere. The high-fidelity Golden Era stealth progenitor.",
-      "rating": 4.9,
-      "playersOnline": 5000,
-      "availability": "Online",
+      "id": "pokemon-emerald-elite-master",
+      "name": "Pok\u00e9mon Emerald",
+      "url": "https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html",
+      "genre": "RPG",
+      "description": "The definitive Hoenn journey. High-fidelity GBA emulation with stabilized Battle Frontier protocols.",
       "tags": [
-        "Action",
-        "Stealth",
-        "Cloud",
+        "RPG",
+        "Retro",
+        "GBA",
         "Elite",
-        "Golden Era"
+        "Pokemon"
       ],
       "badgeIds": [
-        "classic",
-        "elite"
+        "elite",
+        "trending",
+        "staff-pick"
       ],
-      "art": {
-        "eyebrow": "Rocksteady Elite",
-        "accentStart": "#3f3f46",
-        "accentEnd": "#18181b"
-      },
-      "image": "/assets/games/arkham-asylum-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "https://www.xbox.com/en-US/play/games/batman-arkham-collection/B91BVDN96CQC",
-        "embedMode": "external-only"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "doom-ii-elite-master",
+      "name": "DOOM II",
+      "url": "https://www.retrogames.cc/embed/41696-doom-ii.html",
+      "genre": "FPS",
+      "description": "Hell on Earth. The Absolute foundation of the FPS genre, now in high-fidelity browser execution.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "PC",
+        "Elite",
+        "Shooter"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41696-doom-ii.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "metal-slug-3-elite-master",
+      "name": "Metal Slug 3",
+      "url": "https://www.retrogames.cc/embed/9084-metal-slug-3.html",
+      "genre": "Action",
+      "description": "The Absolute king of run-and-gun. High-fidelity pixel art and intense arcade combat.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Shooter"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/9084-metal-slug-3.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "umk3-elite-master",
+      "name": "Ultimate Mortal Kombat 3",
+      "url": "https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html",
+      "genre": "Fighting",
+      "description": "The Absolute fighting classic. Fatalities, combos, and high-fidelity arcade execution.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Combat"
+      ],
+      "badgeIds": [
+        "elite",
+        "tournament-live"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "zelda-alttp-elite-master",
+      "name": "The Legend of Zelda: A Link to the Past",
+      "url": "https://www.retrogames.cc/embed/18826-legend-of-zelda-the-a-link-to-the-past-usa.html",
+      "genre": "Adventure",
+      "description": "The Absolute 16-bit masterpiece. High-fidelity adventure through the Light and Dark worlds.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "SNES",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18826-legend-of-zelda-the-a-link-to-the-past-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "nba-hangtime-elite-master",
+      "name": "NBA Hangtime",
+      "url": "https://www.retrogames.cc/embed/17391-nba-hangtime-usa-rev-l1-1.html",
+      "genre": "Sports",
+      "description": "Absolute high-flying arcade basketball. Create your player and dominate the court in high-fidelity.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Basketball"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17391-nba-hangtime-usa-rev-l1-1.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "street-fighter-3-elite-master",
+      "name": "Street Fighter III: 3rd Strike",
+      "url": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+      "genre": "Fighting",
+      "description": "Absolute precision fighting. High-fidelity parry mechanics and competitive arcade flow.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Combat"
+      ],
+      "badgeIds": [
+        "elite",
+        "tournament-live"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "super-metroid-elite-master",
+      "name": "Super Metroid",
+      "url": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html",
+      "genre": "Action",
+      "description": "The Absolute foundation of the Metroidvania genre. High-fidelity exploration and atmospheric execution.",
+      "tags": [
+        "Action",
+        "Retro",
+        "SNES",
+        "Elite",
+        "Adventure"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "quake-elite-master",
+      "name": "Quake",
+      "url": "https://www.retrogames.cc/embed/40600-quake.html",
+      "genre": "FPS",
+      "description": "Absolute 3D revolution. High-fidelity Lovecraftian horror and fast-paced tactical shooting.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "PC",
+        "Elite",
+        "3D"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40600-quake.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "pokemon-fire-red-elite-master",
+      "name": "Pok\u00e9mon FireRed",
+      "url": "https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html",
+      "genre": "RPG",
+      "description": "The Absolute return to Kanto. High-fidelity GBA journey with stabilized training protocols.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "GBA",
+        "Elite",
+        "Pokemon"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "final-fantasy-vi-elite-master",
+      "name": "Final Fantasy VI",
+      "url": "https://www.retrogames.cc/embed/18817-final-fantasy-iii-usa.html",
+      "genre": "RPG",
+      "description": "Absolute cinematic RPG storytelling. High-fidelity 16-bit journey through a world of magic and machines.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "SNES",
+        "Elite",
+        "Fantasy"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18817-final-fantasy-iii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "megaman-x-elite-master",
+      "name": "Mega Man X",
+      "url": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+      "genre": "Action",
+      "description": "Absolute robot-hunting action. High-fidelity dash-and-jump combat with boss ability assimilation.",
+      "tags": [
+        "Action",
+        "Retro",
+        "SNES",
+        "Elite",
+        "Platformer"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "sonic-cd-elite-master",
+      "name": "Sonic CD",
+      "url": "https://www.retrogames.cc/embed/18991-sonic-the-hedgehog-cd-usa.html",
+      "genre": "Classic",
+      "description": "Absolute time-traveling speed. High-fidelity CD-quality soundtrack and innovative level design.",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Sega CD",
+        "Elite",
+        "Sonic"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18991-sonic-the-hedgehog-cd-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "duke-nukem-3d-elite-master",
+      "name": "Duke Nukem 3D",
+      "url": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html",
+      "genre": "FPS",
+      "description": "Absolute interactive FPS attitude. High-fidelity alien-blasting action and urban exploration.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "PC",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "metal-slug-x-elite-master",
+      "name": "Metal Slug X",
+      "url": "https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html",
+      "genre": "Action",
+      "description": "Absolute refined run-and-gun. High-fidelity boss encounters and frantic weapon variety.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Shooter"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "golden-axe-elite-master",
+      "name": "Golden Axe",
+      "url": "https://www.retrogames.cc/embed/8682-golden-axe.html",
+      "genre": "Action",
+      "description": "Absolute fantasy brawler. High-fidelity hack-and-slash combat with powerful magic summons.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Fantasy"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8682-golden-axe.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "streets-of-rage-2-elite-master",
+      "name": "Streets of Rage 2",
+      "url": "https://www.retrogames.cc/embed/19020-streets-of-rage-2-usa.html",
+      "genre": "Beat 'em up",
+      "description": "Absolute urban brawling perfection. High-fidelity soundtrack and bone-crunching combat execution.",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "Genesis",
+        "Elite",
+        "Action"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19020-streets-of-rage-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "nfl-blitz-elite-master",
+      "name": "NFL Blitz",
+      "url": "https://www.retrogames.cc/embed/17395-nfl-blitz-usa.html",
+      "genre": "Sports",
+      "description": "Absolute high-impact football. High-fidelity arcade physics and no-holds-barred gridiron action.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Arcade",
+        "Elite",
+        "Football"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17395-nfl-blitz-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "castlevania-aria-elite-master",
+      "name": "Castlevania: Aria of Sorrow",
+      "url": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html",
+      "genre": "Action",
+      "description": "Absolute soul-collecting adventure. High-fidelity GBA exploration through Dracula's castle.",
+      "tags": [
+        "Action",
+        "Retro",
+        "GBA",
+        "Elite",
+        "RPG"
+      ],
+      "badgeIds": [
+        "elite",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "venge-io-pro-elite",
+      "name": "Venge.io (Pro Edition)",
+      "url": "https://www.gamepix.com/play/venge-io",
+      "genre": "FPS",
+      "description": "Absolute browser-native tactical FPS. High-fidelity multiplayer combat with optimized WebGL execution.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "WebGL",
+        "Elite",
+        "Modern"
+      ],
+      "badgeIds": [
+        "elite",
+        "trending",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/venge-io",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "krunker-io-master-elite",
+      "name": "Krunker.io (Master)",
+      "url": "https://www.gamepix.com/play/krunker-io",
+      "genre": "FPS",
+      "description": "Absolute high-speed movement shooter. High-fidelity competitive environment and deep weapon mastery.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "WebGL",
+        "Elite",
+        "Modern"
+      ],
+      "badgeIds": [
+        "elite",
+        "tournament-live"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/krunker-io",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "ev-io-tactical-elite",
+      "name": "EV.IO (Tactical)",
+      "url": "https://www.gamepix.com/play/ev-io",
+      "genre": "FPS",
+      "description": "Absolute futuristic tactical shooting. High-fidelity abilities and squad-based WebGL combat.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "WebGL",
+        "Elite",
+        "Modern"
+      ],
+      "badgeIds": [
+        "elite",
+        "new-drop"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/ev-io",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "shell-shockers-pro-elite",
+      "name": "Shell Shockers (Pro)",
+      "url": "https://www.gamepix.com/play/shell-shockers",
+      "genre": "FPS",
+      "description": "Absolute egg-based tactical shooter. High-fidelity precision and high-count multiplayer runs.",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "WebGL",
+        "Elite",
+        "Modern"
+      ],
+      "badgeIds": [
+        "elite",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/shell-shockers",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "soccer-skills-pro-elite",
+      "name": "Soccer Skills World Cup",
+      "url": "https://www.gamepix.com/play/soccer-skills-world-cup",
+      "genre": "Sports",
+      "description": "Absolute tournament football. High-fidelity 3D WebGL physics and global ladder support.",
+      "tags": [
+        "Sports",
+        "Soccer",
+        "WebGL",
+        "Elite",
+        "Modern"
+      ],
+      "badgeIds": [
+        "elite",
+        "tournament-live"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-skills-world-cup",
+        "embedMode": "inline"
+      }
+    },
+    {
+      "id": "contra-iii-elite-master",
+      "name": "Contra III",
+      "url": "https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Contra III in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "castlevania-iv-elite-master",
+      "name": "Castlevania IV",
+      "url": "https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Castlevania IV in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mega-man-x3-elite-master",
+      "name": "Mega Man X3",
+      "url": "https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Mega Man X3 in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "kirby-super-star-elite-master",
+      "name": "Kirby Super Star",
+      "url": "https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Kirby Super Star in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "super-mario-world-elite-master",
+      "name": "Super Mario World",
+      "url": "https://www.retrogames.cc/embed/18842-super-mario-world-usa.html",
+      "genre": "Classic",
+      "description": "Absolute high-fidelity Classic action. Experience Super Mario World in a stabilized browser environment.",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18842-super-mario-world-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "donkey-kong-country-elite-master",
+      "name": "Donkey Kong Country",
+      "url": "https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html",
+      "genre": "Classic",
+      "description": "Absolute high-fidelity Classic action. Experience Donkey Kong Country in a stabilized browser environment.",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "sonic-the-hedgehog-3-elite-master",
+      "name": "Sonic the Hedgehog 3",
+      "url": "https://www.retrogames.cc/embed/18848-sonic-the-hedgehog-3-usa.html",
+      "genre": "Classic",
+      "description": "Absolute high-fidelity Classic action. Experience Sonic the Hedgehog 3 in a stabilized browser environment.",
+      "tags": [
+        "Classic",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18848-sonic-the-hedgehog-3-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "aladdin-elite-master",
+      "name": "Aladdin",
+      "url": "https://www.retrogames.cc/embed/18821-disney-s-aladdin-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Aladdin in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18821-disney-s-aladdin-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "the-lion-king-elite-master",
+      "name": "The Lion King",
+      "url": "https://www.retrogames.cc/embed/18822-disney-s-the-lion-king-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience The Lion King in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18822-disney-s-the-lion-king-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "earthworm-jim-elite-master",
+      "name": "Earthworm Jim",
+      "url": "https://www.retrogames.cc/embed/18810-earthworm-jim-usa.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Earthworm Jim in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18810-earthworm-jim-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "star-fox-elite-master",
+      "name": "Star Fox",
+      "url": "https://www.retrogames.cc/embed/18836-star-fox-usa.html",
+      "genre": "Shooting",
+      "description": "Absolute high-fidelity Shooting action. Experience Star Fox in a stabilized browser environment.",
+      "tags": [
+        "Shooting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18836-star-fox-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "f-zero-elite-master",
+      "name": "F-Zero",
+      "url": "https://www.retrogames.cc/embed/18815-f-zero-usa.html",
+      "genre": "Racing",
+      "description": "Absolute high-fidelity Racing action. Experience F-Zero in a stabilized browser environment.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18815-f-zero-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mario-kart-64-elite-master",
+      "name": "Mario Kart 64",
+      "url": "https://www.retrogames.cc/embed/32269-mario-kart-64-usa.html",
+      "genre": "Racing",
+      "description": "Absolute high-fidelity Racing action. Experience Mario Kart 64 in a stabilized browser environment.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32269-mario-kart-64-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "star-fox-64-elite-master",
+      "name": "Star Fox 64",
+      "url": "https://www.retrogames.cc/embed/32356-star-fox-64-usa.html",
+      "genre": "Shooting",
+      "description": "Absolute high-fidelity Shooting action. Experience Star Fox 64 in a stabilized browser environment.",
+      "tags": [
+        "Shooting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32356-star-fox-64-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "zelda-majora-mask-elite-master",
+      "name": "Zelda: Majora Mask",
+      "url": "https://www.retrogames.cc/embed/32332-legend-of-zelda-the-majora-s-mask-usa.html",
+      "genre": "RPG",
+      "description": "Absolute high-fidelity RPG action. Experience Zelda: Majora Mask in a stabilized browser environment.",
+      "tags": [
+        "RPG",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32332-legend-of-zelda-the-majora-s-mask-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "banjo-kazooie-elite-master",
+      "name": "Banjo-Kazooie",
+      "url": "https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html",
+      "genre": "Adventure",
+      "description": "Absolute high-fidelity Adventure action. Experience Banjo-Kazooie in a stabilized browser environment.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "crash-bandicoot-elite-master",
+      "name": "Crash Bandicoot",
+      "url": "https://www.retrogames.cc/embed/41684-crash-bandicoot.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Crash Bandicoot in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41684-crash-bandicoot.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "spyro-the-dragon-elite-master",
+      "name": "Spyro the Dragon",
+      "url": "https://www.retrogames.cc/embed/40645-spyro-the-dragon.html",
+      "genre": "Adventure",
+      "description": "Absolute high-fidelity Adventure action. Experience Spyro the Dragon in a stabilized browser environment.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40645-spyro-the-dragon.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "resident-evil-2-elite-master",
+      "name": "Resident Evil 2",
+      "url": "https://www.retrogames.cc/embed/40578-resident-evil-2-dual-shock-edition.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Resident Evil 2 in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40578-resident-evil-2-dual-shock-edition.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "silent-hill-elite-master",
+      "name": "Silent Hill",
+      "url": "https://www.retrogames.cc/embed/40590-silent-hill.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Silent Hill in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40590-silent-hill.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "metal-gear-solid-elite-master",
+      "name": "Metal Gear Solid",
+      "url": "https://www.retrogames.cc/embed/40552-metal-gear-solid.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Metal Gear Solid in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40552-metal-gear-solid.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "gran-turismo-2-elite-master",
+      "name": "Gran Turismo 2",
+      "url": "https://www.retrogames.cc/embed/41460-gran-turismo-2.html",
+      "genre": "Racing",
+      "description": "Absolute high-fidelity Racing action. Experience Gran Turismo 2 in a stabilized browser environment.",
+      "tags": [
+        "Racing",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41460-gran-turismo-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "dino-crisis-elite-master",
+      "name": "Dino Crisis",
+      "url": "https://www.retrogames.cc/embed/40191-dino-crisis.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Dino Crisis in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40191-dino-crisis.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "medievil-elite-master",
+      "name": "MediEvil",
+      "url": "https://www.retrogames.cc/embed/41026-medievil.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience MediEvil in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41026-medievil.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "twisted-metal-2-elite-master",
+      "name": "Twisted Metal 2",
+      "url": "https://www.retrogames.cc/embed/40623-twisted-metal-2.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Twisted Metal 2 in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40623-twisted-metal-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "duke-nukem-time-to-kill-elite-master",
+      "name": "Duke Nukem: Time to Kill",
+      "url": "https://www.retrogames.cc/embed/40454-duke-nukem-time-to-kill.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Duke Nukem: Time to Kill in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40454-duke-nukem-time-to-kill.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "doom-64-elite-master",
+      "name": "Doom 64",
+      "url": "https://www.retrogames.cc/embed/32168-doom-64-usa.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience Doom 64 in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32168-doom-64-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "goldeneye-007-elite-elite-master",
+      "name": "GoldenEye 007 Elite",
+      "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience GoldenEye 007 Elite in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "perfect-dark-elite-master",
+      "name": "Perfect Dark",
+      "url": "https://www.retrogames.cc/embed/32351-perfect-dark-usa.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience Perfect Dark in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32351-perfect-dark-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "quake-ii-elite-master",
+      "name": "Quake II",
+      "url": "https://www.retrogames.cc/embed/32354-quake-ii-usa.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience Quake II in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32354-quake-ii-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "turok-2-elite-master",
+      "name": "Turok 2",
+      "url": "https://www.retrogames.cc/embed/32419-turok-2-seeds-of-evil-usa.html",
+      "genre": "FPS",
+      "description": "Absolute high-fidelity FPS action. Experience Turok 2 in a stabilized browser environment.",
+      "tags": [
+        "FPS",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32419-turok-2-seeds-of-evil-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "wave-race-64-elite-master",
+      "name": "Wave Race 64",
+      "url": "https://www.retrogames.cc/embed/32431-wave-race-64-usa.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience Wave Race 64 in a stabilized browser environment.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32431-wave-race-64-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "1080-snowboarding-elite-master",
+      "name": "1080 Snowboarding",
+      "url": "https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience 1080 Snowboarding in a stabilized browser environment.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mario-golf-elite-master",
+      "name": "Mario Golf",
+      "url": "https://www.retrogames.cc/embed/32267-mario-golf-usa.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience Mario Golf in a stabilized browser environment.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32267-mario-golf-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "mario-tennis-elite-master",
+      "name": "Mario Tennis",
+      "url": "https://www.retrogames.cc/embed/32268-mario-tennis-usa.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience Mario Tennis in a stabilized browser environment.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32268-mario-tennis-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "pokemon-stadium-2-elite-master",
+      "name": "Pokemon Stadium 2",
+      "url": "https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html",
+      "genre": "Strategy",
+      "description": "Absolute high-fidelity Strategy action. Experience Pokemon Stadium 2 in a stabilized browser environment.",
+      "tags": [
+        "Strategy",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "tony-hawk-2-master-elite-master",
+      "name": "Tony Hawk 2 Master",
+      "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+      "genre": "Sports",
+      "description": "Absolute high-fidelity Sports action. Experience Tony Hawk 2 Master in a stabilized browser environment.",
+      "tags": [
+        "Sports",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "spider-man-ps1-elite-master",
+      "name": "Spider-Man PS1",
+      "url": "https://www.retrogames.cc/embed/40595-spider-man.html",
+      "genre": "Action",
+      "description": "Absolute high-fidelity Action action. Experience Spider-Man PS1 in a stabilized browser environment.",
+      "tags": [
+        "Action",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40595-spider-man.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "x-men-vs-street-fighter-elite-master",
+      "name": "X-Men vs Street Fighter",
+      "url": "https://www.retrogames.cc/embed/8407-x-men-vs-street-fighter-961004.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience X-Men vs Street Fighter in a stabilized browser environment.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8407-x-men-vs-street-fighter-961004.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "marvel-super-heroes-elite-master",
+      "name": "Marvel Super Heroes",
+      "url": "https://www.retrogames.cc/embed/8403-marvel-super-heroes-951024.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Marvel Super Heroes in a stabilized browser environment.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8403-marvel-super-heroes-951024.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "street-fighter-alpha-3-elite-master",
+      "name": "Street Fighter Alpha 3",
+      "url": "https://www.retrogames.cc/embed/10006-street-fighter-alpha-3-980904.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Street Fighter Alpha 3 in a stabilized browser environment.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10006-street-fighter-alpha-3-980904.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "darkstalkers-elite-master",
+      "name": "Darkstalkers",
+      "url": "https://www.retrogames.cc/embed/8401-darkstalkers-the-night-warriors-940705.html",
+      "genre": "Fighting",
+      "description": "Absolute high-fidelity Fighting action. Experience Darkstalkers in a stabilized browser environment.",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8401-darkstalkers-the-night-warriors-940705.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "cadillacs-and-dinosaurs-elite-master",
+      "name": "Cadillacs and Dinosaurs",
+      "url": "https://www.retrogames.cc/embed/8489-cadillacs-and-dinosaurs-930201.html",
+      "genre": "Beat 'em up",
+      "description": "Absolute high-fidelity Beat 'em up action. Experience Cadillacs and Dinosaurs in a stabilized browser environment.",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8489-cadillacs-and-dinosaurs-930201.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "captain-commando-elite-master",
+      "name": "Captain Commando",
+      "url": "https://www.retrogames.cc/embed/8491-captain-commando-911101.html",
+      "genre": "Beat 'em up",
+      "description": "Absolute high-fidelity Beat 'em up action. Experience Captain Commando in a stabilized browser environment.",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8491-captain-commando-911101.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
+      }
+    },
+    {
+      "id": "the-punisher-elite-master",
+      "name": "The Punisher",
+      "url": "https://www.retrogames.cc/embed/8515-the-punisher-930422.html",
+      "genre": "Beat 'em up",
+      "description": "Absolute high-fidelity Beat 'em up action. Experience The Punisher in a stabilized browser environment.",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "Elite",
+        "Stabilized"
+      ],
+      "badgeIds": [
+        "elite",
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8515-the-punisher-930422.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm"
       }
     }
   ],
   "recommendationRails": [
     {
       "id": "rail-neo-zone",
-      "title": "NEO_ZONE Next-Gen",
-      "subtitle": "High-fidelity cloud gaming and premium WebGL execution. The Absolute future.",
+      "title": "Elite Master Selection",
+      "subtitle": "Absolute high-fidelity browser-native execution. Replaced Cloud-Link with Elite Master protocols.",
       "roomIds": [
         "neo-zone"
       ],
       "gameIds": [
-        "cod-mw2-classic-cloud-elite",
-        "gow3-cloud-elite",
-        "sekiro-cloud-elite",
-        "hades-cloud-elite",
-        "dead-cells-cloud-elite",
-        "gow-2018-cloud-elite",
-        "uncharted-4-cloud-elite",
-        "ghost-of-tsushima-cloud-elite",
-        "re-village-cloud-elite",
-        "it-takes-two-cloud-elite",
-        "palworld-cloud-elite",
-        "hi-fi-rush-cloud-elite",
-        "remnant2-cloud-elite",
-        "control-cloud-elite",
-        "sf6-cloud-elite",
-        "tekken8-cloud-elite",
-        "tlou-part1-cloud-elite",
-        "gta-v-cloud-elite",
-        "fc-24-cloud-elite",
-        "fortnite-cloud-elite",
-        "minecraft-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "forza-horizon-5-cloud-elite",
-        "starfield-cloud-elite",
-        "valorant-cloud-elite",
+        "prince-of-persia-elite-master",
+        "the-punisher-elite-master",
+        "mario-golf-elite-master",
+        "mario-tennis-elite-master",
+        "marvel-super-heroes-elite-master",
+        "twisted-metal-2-elite-master",
+        "god-of-war-elite-elite-master",
+        "devil-may-cry-3-elite-master",
+        "dino-crisis-elite-master",
+        "medievil-elite-master",
+        "the-lion-king-elite-master",
+        "star-fox-elite-master",
+        "crash-bandicoot-elite-master",
+        "spyro-the-dragon-elite-master",
+        "castlevania-iv-elite-master",
+        "tekken8-tribute-elite",
+        "mega-man-x3-elite-master",
+        "doom-ii-elite-master",
+        "fc-24-tribute-elite",
+        "metal-slug-3-elite-master",
+        "umk3-elite-master",
+        "zelda-alttp-elite-master",
+        "forza-horizon-5-tribute-elite",
+        "megaman-x-elite-master",
+        "tekken-tag-tournament-elite-master",
         "slow-roads-webgl",
         "venge-io-webgl",
-        "halo-3-cloud-elite",
-        "elden-ring-cloud",
-        "cyberpunk-2077-cloud"
+        "final-fantasy-ix-elite-master",
+        "pokemon-emerald-elite-master",
+        "chrono-trigger-elite-master"
       ],
       "maxItems": 6
     },
     {
       "id": "rail-golden-era",
-      "title": "Golden Era Essentials",
-      "subtitle": "The Absolute defining titles of the PS3 & Xbox 360 generation.",
+      "title": "Elite Master Essentials",
+      "subtitle": "The Absolute defining titles of the Golden Era. Stabilized for browser-native play.",
       "roomIds": [
         "action-zone",
         "shooting-range"
       ],
       "gameIds": [
-        "cod-mw-classic-cloud-elite",
-        "cod-mw2-classic-cloud-elite",
-        "fallout3-cloud-elite",
-        "ac-black-flag-cloud-elite",
-        "gears-1-cloud-elite",
-        "halo4-cloud-elite",
-        "bf-bc2-cloud-elite",
-        "uncharted2-cloud-elite",
-        "gow3-cloud-elite",
-        "batman-asylum-cloud-elite",
-        "gta-v-story-cloud-elite",
-        "mass-effect-2-cloud-elite",
-        "dragon-age-origins-cloud-elite",
-        "left-4-dead-cloud-elite",
-        "portal-cloud-elite",
-        "fight-night-champion-cloud-elite",
-        "ncaa-football-14-cloud-elite",
-        "dishonored-cloud-elite",
-        "mgr-revengeance-cloud-elite",
-        "crysis-remastered-cloud-elite",
-        "titanfall2-cloud-elite",
-        "mgs5-cloud-elite",
-        "arkham-knight-cloud-elite",
-        "gears-3-cloud-elite",
-        "halo-reach-cloud-elite",
-        "fable2-cloud-elite",
-        "dead-space-2-cloud-elite",
-        "gta4-cloud-elite",
-        "rdr1-cloud-elite",
-        "mirrors-edge-cloud-elite",
-        "cod-bo2-cloud-elite",
-        "skyrim-cloud-elite",
-        "battlefield-4-cloud-elite",
-        "mass-effect-le-cloud-elite",
-        "skate-3-cloud-elite",
-        "fallout-4-cloud-elite"
+        "shadow-of-the-colossus-elite-master",
+        "prince-of-persia-elite-master",
+        "street-fighter-alpha-3-elite-master",
+        "darkstalkers-elite-master",
+        "cadillacs-and-dinosaurs-elite-master",
+        "splinter-cell-elite-master",
+        "captain-commando-elite-master",
+        "star-wars-kotor-elite-master",
+        "the-punisher-elite-master",
+        "halo-2-elite-elite-master",
+        "okami-elite-master",
+        "pokemon-stadium-2-elite-master",
+        "tony-hawk-2-master-elite-master",
+        "spider-man-ps1-elite-master",
+        "x-men-vs-street-fighter-elite-master",
+        "doom-64-elite-master",
+        "goldeneye-007-elite-elite-master",
+        "perfect-dark-elite-master",
+        "quake-ii-elite-master",
+        "turok-2-elite-master",
+        "burnout-3-elite-master",
+        "gran-turismo-2-elite-master",
+        "need-for-speed-underground-2-elite-master",
+        "donkey-kong-country-elite-master",
+        "tony-hawk-3-elite-master",
+        "sonic-the-hedgehog-3-elite-master",
+        "aladdin-elite-master",
+        "gta-vice-city-elite-elite-master",
+        "gta-iii-elite-elite-master",
+        "super-mario-world-elite-master",
+        "nba-hangtime-elite-master",
+        "super-metroid-elite-master",
+        "marvel-vs-capcom-2-elite-master",
+        "sonic-cd-elite-master",
+        "duke-nukem-3d-elite-master",
+        "final-fantasy-vi-elite-master"
       ],
       "maxItems": 6
     },
@@ -10659,9 +11324,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "arcade"
       ],
       "gameIds": [
-        "1v1-lol-web-elite",
-        "slither-io-web-elite",
-        "agar-io-web-elite",
+        "resident-evil-2-elite-master",
+        "silent-hill-elite-master",
+        "metal-gear-solid-elite-master",
         "krunker-io-web-elite",
         "venge-io-web-elite",
         "shell-shockers-web-elite"
@@ -10743,7 +11408,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "gameIds": [
         "mgs2-elite",
         "re4-elite",
-        "sonic-adventure-2-elite"
+        "sonic-adventure-2-elite",
+        "metal-gear-msx-elite",
+        "vampire-killer-msx-elite",
+        "zelda-oot-classic",
+        "gta-sa-classic",
+        "sf3-classic",
+        "ff7-classic"
       ]
     },
     {
@@ -10827,26 +11498,33 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       "maxItems": 4,
       "gameIds": [
-        "mortal-kombat-1-cloud-elite",
-        "1v1-lol-web-elite",
-        "slither-io-web-elite",
-        "agar-io-web-elite",
-        "ow2-cloud-elite",
-        "rocket-league-cloud-elite",
-        "sf6-cloud-elite",
-        "tekken8-cloud-elite",
-        "fortnite-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "fc-24-cloud-elite",
-        "nba-2k24-cloud-elite",
-        "apex-legends-cloud-elite",
+        "mortal-kombat-1-tribute-elite",
+        "resident-evil-2-elite-master",
+        "silent-hill-elite-master",
+        "metal-gear-solid-elite-master",
+        "kingdom-hearts-elite-master",
+        "rocket-league-tribute-elite",
+        "castlevania-iv-elite-master",
+        "tekken8-tribute-elite",
+        "metal-slug-3-elite-master",
+        "zelda-alttp-elite-master",
+        "fc-24-tribute-elite",
+        "nba-2k24-tribute-elite",
+        "quake-elite-master",
         "mobile-legends-elite",
-        "valorant-cloud-elite",
-        "lol-cloud-elite",
+        "tekken-tag-tournament-elite-master",
+        "lol-tribute-elite",
         "tekken-5-elite",
         "burnout-3-elite",
         "def-jam-ffny-elite",
-        "tekken-tag-elite"
+        "tekken-tag-elite",
+        "double-dragon-classic-elite",
+        "dbz-buus-fury-classic-elite",
+        "sf2-classic",
+        "sf3-classic",
+        "dd1-classic",
+        "dd2-classic",
+        "dbz-buu-classic"
       ]
     },
     {
@@ -10857,26 +11535,30 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "rpg-vault"
       ],
       "gameIds": [
-        "fallout3-cloud-elite",
-        "hades-cloud-elite",
-        "borderlands-3-cloud-elite",
-        "dragon-age-origins-cloud-elite",
-        "persona5-royal-cloud-elite",
-        "monster-hunter-world-cloud-elite",
-        "dragon-age-inq-cloud-elite",
-        "sea-of-stars-cloud-elite",
-        "lies-of-p-cloud-elite",
-        "witcher-3-cloud-elite",
-        "skyrim-cloud-elite",
-        "fallout-4-cloud-elite",
-        "starfield-cloud-elite",
-        "genshin-cloud-elite",
-        "mass-effect-le-cloud-elite",
+        "street-fighter-alpha-3-elite-master",
+        "mario-tennis-elite-master",
+        "1080-snowboarding-elite-master",
+        "tony-hawk-2-master-elite-master",
+        "sly-cooper-elite-master",
+        "jak-and-daxter-elite-master",
+        "mario-kart-64-elite-master",
+        "star-fox-64-elite-master",
+        "earthworm-jim-elite-master",
+        "street-fighter-3-elite-master",
+        "super-metroid-elite-master",
+        "final-fantasy-vi-elite-master",
+        "megaman-x-elite-master",
+        "capcom-vs-snk-2-elite-master",
+        "sonic-cd-elite-master",
         "zelda-oot-elite",
         "final-fantasy-vii-elite",
         "pokemon-yellow-elite",
         "final-fantasy-nes",
-        "ffx-elite"
+        "ffx-elite",
+        "ff7-classic",
+        "ff10-classic",
+        "ff1-classic",
+        "dbz-buu-classic"
       ],
       "audience": {
         "rooms": [
@@ -10941,25 +11623,25 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "action-zone"
       ],
       "gameIds": [
-        "fallout3-cloud-elite",
-        "ac-black-flag-cloud-elite",
-        "uncharted2-cloud-elite",
-        "gta-v-story-cloud-elite",
-        "ghost-of-tsushima-cloud-elite",
-        "horizon-zero-dawn-cloud-elite",
-        "mgs5-cloud-elite",
-        "arkham-knight-cloud-elite",
-        "forza-horizon-4-cloud-elite",
-        "gta4-cloud-elite",
-        "rdr1-cloud-elite",
-        "gta-v-cloud-elite",
-        "rdr2-cloud-elite",
-        "witcher-3-cloud-elite",
-        "skyrim-cloud-elite",
-        "genshin-cloud-elite",
-        "sea-of-thieves-cloud-elite",
-        "elden-ring-cloud",
-        "cyberpunk-2077-cloud",
+        "street-fighter-alpha-3-elite-master",
+        "darkstalkers-elite-master",
+        "star-wars-kotor-elite-master",
+        "okami-elite-master",
+        "devil-may-cry-3-elite-master",
+        "duke-nukem-time-to-kill-elite-master",
+        "gran-turismo-2-elite-master",
+        "need-for-speed-underground-2-elite-master",
+        "forza-horizon-4-tribute-elite",
+        "gta-vice-city-elite-elite-master",
+        "gta-iii-elite-elite-master",
+        "doom-ii-elite-master",
+        "resident-evil-3-elite-master",
+        "street-fighter-3-elite-master",
+        "super-metroid-elite-master",
+        "capcom-vs-snk-2-elite-master",
+        "nfl-blitz-elite-master",
+        "pokemon-emerald-elite-master",
+        "chrono-trigger-elite-master",
         "gta-iii-elite",
         "gta-vice-city-elite",
         "gta-san-andreas-elite",
@@ -10967,7 +11649,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "true-crime-la-elite",
         "need-for-speed-underground-2-elite",
         "gta-2-elite",
-        "gta-london-1969-elite"
+        "gta-london-1969-elite",
+        "gta-iii-classic",
+        "gta-vc-classic",
+        "gta-sa-classic"
       ],
       "audience": {
         "minPlays": 0
@@ -10986,25 +11671,25 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "shooting-range"
       ],
       "gameIds": [
-        "cod-mw-classic-cloud-elite",
-        "cod-mw2-classic-cloud-elite",
-        "halo4-cloud-elite",
-        "bf-bc2-cloud-elite",
-        "crysis-remastered-cloud-elite",
-        "titanfall2-cloud-elite",
-        "bf1-cloud-elite",
-        "halo-reach-cloud-elite",
-        "doom-2016-cloud-elite",
-        "wolfenstein-tno-cloud-elite",
-        "ow2-cloud-elite",
-        "cod-mw3-cloud-elite",
-        "cod-bo2-cloud-elite",
-        "apex-legends-cloud-elite",
-        "destiny-2-cloud-elite",
-        "battlefield-4-cloud-elite",
-        "doom-eternal-cloud-elite",
-        "halo-infinite-cloud-elite",
-        "halo-3-cloud-elite",
+        "shadow-of-the-colossus-elite-master",
+        "prince-of-persia-elite-master",
+        "splinter-cell-elite-master",
+        "captain-commando-elite-master",
+        "turok-2-elite-master",
+        "burnout-3-elite-master",
+        "ratchet-and-clank-elite-master",
+        "tony-hawk-3-elite-master",
+        "f-zero-elite-master",
+        "ssx-tricky-elite-master",
+        "kingdom-hearts-elite-master",
+        "zelda-alttp-elite-master",
+        "nba-hangtime-elite-master",
+        "quake-elite-master",
+        "pokemon-fire-red-elite-master",
+        "marvel-vs-capcom-2-elite-master",
+        "metal-gear-solid-2-elite-master",
+        "soulcalibur-ii-elite-master",
+        "final-fantasy-ix-elite-master",
         "venge-io-webgl",
         "half-life-ps2-elite",
         "quake-3-dc-elite",
@@ -11029,18 +11714,29 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "sports"
       ],
       "gameIds": [
-        "fight-night-champion-cloud-elite",
-        "ncaa-football-14-cloud-elite",
-        "fc-24-cloud-elite",
-        "madden-24-cloud-elite",
-        "nba-2k24-cloud-elite",
-        "skate-3-cloud-elite",
-        "forza-horizon-5-cloud-elite",
+        "tecmo-bowl-elite",
+        "nba-jam-elite",
         "madden-2004-elite",
+        "nba-live-2000-elite",
+        "madden-24-tribute-elite",
+        "doom-64-elite-master",
+        "goldeneye-007-elite-elite-master",
+        "fc-24-tribute-elite",
+        "nba-2k24-tribute-elite",
+        "duke-nukem-3d-elite-master",
+        "forza-horizon-5-tribute-elite",
         "nba-street-v2-elite",
         "ssx-tricky-elite",
         "fifa-2005-elite",
-        "thps2-ps1-elite"
+        "thps2-ps1-elite",
+        "10-yard-fight-classic-elite",
+        "madden-nfl-2000-elite",
+        "punch-out-classic-elite",
+        "madden-2004-classic",
+        "nba-2k1-classic",
+        "tecmo-bowl-classic",
+        "10-yard-fight-classic",
+        "punch-out-classic"
       ],
       "audience": {
         "minPlays": 0
@@ -11063,7 +11759,12 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "dig-dug-arcade",
         "frogger-arcade",
         "pac-man-elite",
-        "asteroids-arcade"
+        "asteroids-arcade",
+        "mm1-classic",
+        "dd1-classic",
+        "sonic1-classic",
+        "zelda1-classic",
+        "sf2-classic"
       ],
       "audience": {
         "minPlays": 0
