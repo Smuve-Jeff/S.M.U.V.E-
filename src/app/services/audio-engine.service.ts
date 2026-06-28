@@ -242,6 +242,7 @@ export class AudioEngineService {
     osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
     env.gain.setValueAtTime(0, time);
     env.gain.setTargetAtTime(this.metronomeVolume(), time, 0.005);
+    env.gain.setValueAtTime(this.metronomeVolume(), time + 0.005);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     osc.connect(env);
     env.connect(this.masterGain);
