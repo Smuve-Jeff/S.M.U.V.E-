@@ -174,6 +174,18 @@ export class SocialNetworkingService {
     });
 
     this.socket.on("party_message", (data: any) => {
+
+    this.socket.on("party_launch_game", (data: any) => {
+      this.roomMessages.update(msgs => [...msgs, {
+          roomId: 'party',
+          fromUserId: 'system',
+          fromUserName: 'SQUAD_COMMAND',
+          message: `SQUAD_LEADER_LAUNCHING: ${data.gameId.toUpperCase()}. PREPARE_FOR_JOINT_MISSION.`,
+          timestamp: Date.now(),
+          metadata: { type: 'GAME_INVITE', gameId: data.gameId }
+      }]);
+    });
+
       this.roomMessages.update(msgs => [...msgs, data]);
     });
 
@@ -370,6 +382,13 @@ export class SocialNetworkingService {
     const profile = this.profileService.profile();
     this.socket?.emit("leave_party", { partyId, userId: profile.id, artistName: profile.artistName });
     this.currentPartyId.set(null);
+  }
+
+
+  launchPartyGame(gameId: string) {
+    const partyId = this.currentPartyId();
+    if (!partyId) return;
+    this.socket?.emit("party_launch_game", { partyId, gameId });
   }
 
   sendPartyMessage(message: string) {

@@ -901,6 +901,11 @@ const setupSocketIO = (server) => {
       socket.emit("party_created", { partyId, leaderId, gameId });
     });
 
+    socket.on("join_party", (data) => {
+      const { partyId, userId, artistName } = data;
+      socket.join(`party_${partyId}`);
+      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
+      console.log(`User ${userId} joined party ${partyId}`);
     });
 
     socket.on("leave_party", (data) => {
@@ -908,6 +913,13 @@ const setupSocketIO = (server) => {
       socket.leave(`party_${partyId}`);
       io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
       console.log(`User ${userId} left party ${partyId}`);
+    });
+
+
+    socket.on("party_launch_game", (data) => {
+      const { partyId, gameId } = data;
+      io.to(`party_${partyId}`).emit("party_launch_game", { partyId, gameId });
+      console.log(`Party ${partyId} launching game ${gameId}`);
     });
 
     socket.on("send_party_message", (data) => {
@@ -976,14 +988,12 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
     `;
     const params = [];
 
-    if (q && typeof q === 'string' && location && typeof location === 'string') {
-      params.push(`%${q}%`);
-      params.push(`%${location}%`);
-      query += ` AND ((profile_data->>'artistName' ILIKE $${params.length - 1} OR profile_data->>'primaryGenre' ILIKE $${params.length - 1}) OR profile_data->>'location' ILIKE $${params.length})`;
-    } else if (q && typeof q === 'string') {
+    if (q && typeof q === 'string') {
       params.push(`%${q}%`);
       query += ` AND (profile_data->>'artistName' ILIKE $${params.length} OR profile_data->>'primaryGenre' ILIKE $${params.length})`;
-    } else if (location && typeof location === 'string') {
+    }
+
+    if (location && typeof location === 'string') {
       params.push(`%${location}%`);
       query += ` AND profile_data->>'location' ILIKE $${params.length}`;
     }
@@ -1056,7 +1066,7 @@ app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUse
       [userId, friendId]
     );
     // Send notification to the friend
-    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName\' as \"artistName\" FROM user_profiles WHERE user_id = $1', [userId]);
+    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
     const artistName = userRows[0]?.artistName || 'An operative';
     await sendSocialNotification(friendId, 'New Connection Request', `${artistName} has linked with your executive profile on S.M.U.V.E 2.0.`);
     res.json({ success: true });
@@ -1104,7 +1114,7 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
   try {
     const { userId, friendId } = req.params;
     await pool.query(
-      'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
+      'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
       [userId, friendId]
     );
     res.json({ success: true });

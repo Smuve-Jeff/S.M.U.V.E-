@@ -290,6 +290,7 @@ export const initialProfile: UserProfile = {
     marketPosition: 'Independent',
   },
   primaryGenre: 'Hip Hop',
+  location: 'Unspecified',
   proName: '',
   proIpi: '',
   proData: { workIds: [], affiliations: [], ipiNumber: '' },

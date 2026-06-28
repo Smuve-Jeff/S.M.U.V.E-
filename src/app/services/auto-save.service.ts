@@ -31,6 +31,19 @@ export class AutoSaveService {
       }
 
       const currentHash = JSON.stringify(snapshot);
+      if (currentHash !== this.lastProjectHash) {
+        this.lastProjectHash = currentHash;
+        void this.syncProject(snapshot);
+
+      // Profile Auto-save
+      const currentProfile = this.profileService.profile();
+      const profileHash = JSON.stringify(currentProfile);
+      if (this.lastProfileHash !== profileHash) {
+          this.lastProfileHash = profileHash;
+          void this.syncProfile(currentProfile);
+      }
+
+      }
     });
   }
 

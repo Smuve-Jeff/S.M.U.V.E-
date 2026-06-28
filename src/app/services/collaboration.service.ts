@@ -2,13 +2,13 @@ import { LoggingService } from './logging.service';
 import { Injectable, signal, inject, effect } from '@angular/core';
 import { AuthUser } from './auth.service';
 import { MusicManagerService } from './music-manager.service';
-    });
+import { SocialNetworkingService } from './social-networking.service';
 
 @Injectable({ providedIn: 'root' })
 export class CollaborationService {
   private logger = inject(LoggingService);
   private musicManager = inject(MusicManagerService);
-    });
+  private social = inject(SocialNetworkingService);
 
   currentSession = signal<any>(null);
   private isRemoteUpdate = false;
