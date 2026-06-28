@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AudioSessionService } from './audio-session.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { HardwareService } from '../services/hardware.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { MusicManagerService } from '../services/music-manager.service';
@@ -58,6 +59,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
+  public hardware = inject(HardwareService);
   public readonly uiService = inject(UIService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

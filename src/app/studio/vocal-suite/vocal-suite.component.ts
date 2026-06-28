@@ -19,6 +19,7 @@ import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { HardwareService } from '../../services/hardware.service';
 import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
@@ -48,6 +49,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly aiService = inject(AiService);
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
+  public readonly hardware = inject(HardwareService);
   showUplink = signal(false);
 
   @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;

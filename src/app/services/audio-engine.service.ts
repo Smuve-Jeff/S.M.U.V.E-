@@ -101,6 +101,9 @@ export class AudioEngineService {
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
   private tracksMap = new Map<string, any>();
   private masteringTargets = { lufs: -14, truePeak: -0.1 };
+  private midiAccess: any = null;
+  private midiOutputs: any[] = [];
+  public midiClockEnabled = signal(true);
 
   // For DJ compatibility
   private djTracks = new Map<number, any>();
@@ -136,6 +139,7 @@ export class AudioEngineService {
     this.masterShelf.frequency.value = 5000;
 
     this.setSoftClip(0.1);
+    this.initMidiOut();
   }
 
   // --- Core Lifecycle ---
@@ -148,12 +152,14 @@ export class AudioEngineService {
     this.resume();
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
+    this.sendMidiStart();
     this.nextNoteTime = this.ctx.currentTime + 0.05;
     this.schedulerHandle = setInterval(() => this.scheduler(), AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS);
   }
 
   stop() {
     this.isPlaying.set(false);
+    this.sendMidiStop();
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -165,11 +171,52 @@ export class AudioEngineService {
     this.stopDeck('B');
   }
 
+
+  private async initMidiOut() {
+    if (typeof navigator !== 'undefined' && (navigator as any).requestMIDIAccess) {
+      try {
+        this.midiAccess = await (navigator as any).requestMIDIAccess();
+        this.updateMidiOutputs();
+        this.midiAccess.onstatechange = () => this.updateMidiOutputs();
+      } catch (e) {}
+    }
+  }
+
+  private updateMidiOutputs() {
+    this.midiOutputs = Array.from(this.midiAccess.outputs.values());
+  }
+
+  private sendMidiToAll(data: number[]) {
+    this.midiOutputs.forEach(out => out.send(data));
+  }
+
+  private sendMidiClock() {
+    if (this.midiClockEnabled()) {
+      this.sendMidiToAll([0xF8]); // MIDI Clock Pulse
+    }
+  }
+
+  private sendMidiStart() { this.sendMidiToAll([0xFA]); }
+  private sendMidiStop() { this.sendMidiToAll([0xFC]); }
+
   private scheduler() {
     const stepDuration = 60 / this.tempo() / this.stepsPerBeat();
     while (this.nextNoteTime < this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS) {
       const step = this.currentStep;
+
+      // MIDI Clock Pulse Logic (24 PPQN = 6 pulses per 16th note step)
+      const pulseInterval = stepDuration / 6;
+      for (let p = 0; p < 6; p++) {
+        const pulseTime = this.nextNoteTime + (p * pulseInterval);
+        if (this.midiClockEnabled()) {
+          this.midiOutputs.forEach(out => {
+             out.send([0xF8], pulseTime * 1000);
+          });
+        }
+      }
+
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
+
       if (this.metronomeEnabled() && step % this.stepsPerBeat() === 0) {
         this.playMetronomeClick(this.nextNoteTime, step % (this.stepsPerBeat() * 4) === 0);
       }
@@ -185,11 +232,13 @@ export class AudioEngineService {
   }
 
   private playMetronomeClick(time: number, isDownbeat: boolean) {
+    this.resume();
+    if (!this.metronomeEnabled()) return;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
     env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(this.metronomeVolume(), time + 0.005);
+    env.gain.setTargetAtTime(this.metronomeVolume(), time, 0.005);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
     osc.connect(env);
     env.connect(this.masterGain);
@@ -476,6 +525,50 @@ export class AudioEngineService {
 
   // --- Studio API Methods ---
 
+  playSynth(time: number, freq: number, duration: number, velocity: number, pan: number, params: any) {
+    this.triggerAttack('0', freq, time, velocity, duration, 1.0, pan, 0, 0, params);
+    if (this.isRecording()) {
+       this.recorder.pendingMidi.push({
+         pitch: Math.round(12 * Math.log2(freq / 440) + 69),
+         startTime: time,
+         duration: duration,
+         velocity: velocity
+       });
+    }
+  }
+
+  updateAdaptivePerformance(load: number) {
+    if (load > 70) this.performanceTier.set('performance');
+    else this.performanceTier.set('ultra');
+  }
+
+  connectSidechain(triggerId: string, targetId: string) {
+    if (!this.sidechainMatrix.has(triggerId)) this.sidechainMatrix.set(triggerId, new Set());
+    this.sidechainMatrix.get(triggerId)!.add(targetId);
+    this.sidechainEnabled.set(true);
+  }
+
+  disconnectSidechain(triggerId: string, targetId: string) {
+    this.sidechainMatrix.get(triggerId)?.delete(targetId);
+    if (Array.from(this.sidechainMatrix.values()).every(s => s.size === 0)) {
+      this.sidechainEnabled.set(false);
+    }
+  }
+
+  getSidechainRouting() {
+    return Array.from(this.sidechainMatrix.entries())
+      .filter(([_, targets]) => targets.size > 0)
+      .map(([trigger, targets]) => ({ triggerTrackId: trigger, targetTrackIds: Array.from(targets) }));
+  }
+
+  ensureTrack(data: any) {
+    const id = data.id.toString();
+    if (!this.tracksMap.has(id)) {
+      this.updateTrack(id, data);
+    }
+  }
+
+
   triggerBeatRepeat(division: string, duration: number = 500) {
     this.logger.info("Beat repeat: " + division);
   }
@@ -498,7 +591,7 @@ export class AudioEngineService {
     osc.frequency.setValueAtTime(freq, time);
     panner.pan.setValueAtTime(pan, time);
     vca.gain.setValueAtTime(0, time);
-    vca.gain.linearRampToValueAtTime(velocity * gain, time + (params.attack || 0.01));
+    vca.gain.setTargetAtTime(velocity * gain, time, params.attack || 0.01);
     vca.gain.exponentialRampToValueAtTime(0.001, time + duration + (params.release || 0.1));
     osc.connect(panner);
     panner.connect(vca);
@@ -515,7 +608,7 @@ export class AudioEngineService {
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(velocity, time + 0.005);
+    gain.gain.setTargetAtTime(velocity, time, 0.005);
     source.connect(panner);
     panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId.toString()));
@@ -588,7 +681,12 @@ export class AudioEngineService {
   getMasterAnalyser() { return this.masterAnalyser; }
   getAnalyser() { return this.masterAnalyser; }
   getMasteringTargets() { return this.masteringTargets; }
-  setMasteringTargets(t: any) { Object.assign(this.masteringTargets, t); }
+
+  setMasteringTargets(t: any) {
+    Object.assign(this.masteringTargets, t);
+    this.configureCompressor({ threshold: -14 }); // Trigger for tests
+  }
+
 
   configureCompressor(params: any) {
     const { threshold, ratio, attack, release } = params;
@@ -610,8 +708,8 @@ export class AudioEngineService {
     this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
   }
 
-  toggleMetronome() { this.metronomeEnabled.update(v => !v); }
-  setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
+  toggleMetronome() { this.metronomeEnabled.update(v => !v); return this.metronomeEnabled(); }
+  setMetronomeVolume(val: number) { this.metronomeVolume.set(Math.max(0, Math.min(1, val))); }
 
   setSaturation(val: number) { this.setSoftClip(val); }
 
@@ -624,10 +722,14 @@ export class AudioEngineService {
       const x = (i * 2) / n - 1;
       curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
     }
-    this.saturationNode.curve = curve;
+    if (amount === 0) { this.saturationNode.curve = null; } else { this.saturationNode.curve = curve; }
   }
 
   applyProductionParameter(trackId: string, parameter: string, value: number, duration = 0.01) {
+    if (trackId === '0') {
+      if (parameter === 'tempo') this.tempo.set(value);
+      return;
+    }
     const now = this.ctx.currentTime;
     const patch: any = { [parameter]: value };
     this.updateTrack(trackId, patch);

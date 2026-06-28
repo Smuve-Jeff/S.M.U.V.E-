@@ -41,6 +41,19 @@
       </div>
 
       <div class="header-section-right flex items-center gap-3">
+
+        <div class="hardware-status-indicator flex items-center gap-2 px-3 py-1 rounded bg-black/40 border border-white/5 cursor-help"
+             [title]="hardware.status().activeInterfaceName || 'No Interface Detected'">
+          <div class="w-1.5 h-1.5 rounded-full shadow-[0_0_5px]"
+               [class.bg-green-400]="hardware.status().audioInterfaceConnected"
+               [class.shadow-green-500]="hardware.status().audioInterfaceConnected"
+               [class.bg-red-900]="!hardware.status().audioInterfaceConnected"></div>
+          <span class="text-[8px] font-black uppercase tracking-tighter"
+                [class.text-green-400]="hardware.status().audioInterfaceConnected"
+                [class.text-slate-600]="!hardware.status().audioInterfaceConnected">
+            {{ hardware.status().audioInterfaceConnected ? 'Interface Ready' : 'Analog In' }}
+          </span>
+        </div>
         <div class="quality-badge hidden md:flex items-center gap-1.5 px-2 py-1 rounded bg-black/40 border border-white/5">
           <div class="w-1 h-1 rounded-full" [class.bg-green-500]="audioEngine.performanceTier() === 'ultra'"></div>
           <span class="text-[7px] font-black text-slate-500 uppercase">{{ audioEngine.performanceTier() }}</span>

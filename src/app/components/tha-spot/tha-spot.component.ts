@@ -203,7 +203,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       const gp = this.gamepadService.connectedGamepad();
       if (gp) {
-        if (gp.buttons[0]) this.confirmLaunch();
+        if (this.isBrowseView()) {
+           const dx = this.gamepadService.dpadX();
+           const dy = this.gamepadService.dpadY();
+           if (dx !== 0 || dy !== 0) {
+             if (this.contentViewport?.nativeElement) {
+               this.contentViewport.nativeElement.scrollBy({ top: dy * 100, left: dx * 100, behavior: 'smooth' });
+             }
+           }
+        }
+
+        if (gp.buttons[0]) {
+          if (this.selectedGame()) {
+            this.confirmLaunch();
+          }
+        }
         if (gp.buttons[1]) {
           this.closePreview();
           this.closeGame();
