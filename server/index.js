@@ -843,7 +843,8 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("queue_for_match", (data) => {
-      const { userId, gameId } = data;
+      const { userId, gameId } = data || {};
+      if (!userId || !gameId) return;
       console.log(`User ${userId} queued for game ${gameId}`);
       if (!matchmakingQueue.has(gameId)) {
         matchmakingQueue.set(gameId, []);
