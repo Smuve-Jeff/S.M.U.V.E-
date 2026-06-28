@@ -81,6 +81,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   matchmakingProgress = signal<number>(0);
   isWasmLoading = signal<boolean>(false);
   showBackToTop = signal<boolean>(false);
+  private currentMatchmakingId: number | null = null;
+  private latestSearchQuery: string = '';
 
   // Social & Streaming Signals
   activeHubTab = signal<'room' | 'dm' | 'stream'>('room');
@@ -169,10 +171,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   playerSearchQuery = signal('');
   filteredOnlineUsers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase();
-    return [...this.onlineUsers(), ...this.globalSearchResults()].filter((u, i, self) => self.findIndex(t => t.userId === u.userId) === i).filter(u =>
-      u.artistName?.toLowerCase().includes(query) ||
-      u.primaryGenre?.toLowerCase().includes(query) || (u.inGame ? "playing" : "online").includes(query)
-    );
+    return [...this.onlineUsers(), ...this.globalSearchResults()].filter((u, i, self) => self.findIndex(t => t.userId === u.userId) === i).filter(u => {
+      const status = u.inGame ? "playing" : (u.online !== false ? "online" : "offline");
+      return u.artistName?.toLowerCase().includes(query) ||
+        u.primaryGenre?.toLowerCase().includes(query) ||
+        status.includes(query);
+    });
   });
   selectedDmUser = computed(() => [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(u => u.userId === this.dmTargetUserId()));
   canInteract = computed(() => true);
@@ -303,6 +307,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const game = this.selectedGame();
     if (game) this.socialService.cancelMatch(game.id);
     this.isMatchmaking.set(false);
+    this.currentMatchmakingId = null;
   }
   async confirmLaunch() {
     const game = this.selectedGame();
@@ -313,6 +318,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.closePreview();
     } else {
       if (this.isMultiplayerGame(game)) {
+        this.currentMatchmakingId = Date.now();
+        const requestId = this.currentMatchmakingId;
         this.isMatchmaking.set(true);
         this.matchmakingStatus.set("WAITING FOR RIVAL...");
         this.socialService.queueForMatch(game.id);
@@ -332,16 +339,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         });
 
         const matched = await matchPromise;
+
+        // Check if matchmaking was cancelled
+        if (this.currentMatchmakingId !== requestId) {
+          return;
+        }
+
         if (!matched) {
           const useBot = confirm("NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?");
           if (!useBot) {
             this.socialService.cancelMatch(game.id);
             this.isMatchmaking.set(false);
+            this.currentMatchmakingId = null;
             return;
           }
         }
         this.isMatchmaking.set(false);
         this.socialService.matchmakingStatus.set("idle");
+        this.currentMatchmakingId = null;
       }
 
       if (this.isRetroOrArcade(game)) {
@@ -376,9 +391,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async onPlayerSearchChange(query: string) {
     this.playerSearchQuery.set(query);
+    this.latestSearchQuery = query;
     if (query.length > 2) {
       const results = await this.socialService.searchUsers(query);
-      this.globalSearchResults.set(results);
+      // Only apply results if this is still the latest search
+      if (this.latestSearchQuery === query) {
+        this.globalSearchResults.set(results);
+      }
     } else {
       this.globalSearchResults.set([]);
     }

@@ -218,13 +218,14 @@
           <div class="empty-state-discovery" *ngIf="onlineUsers().length === 0">
             <p class="mini-label">NO RIVALS ONLINE. RECOMMENDED:</p>
             <div class="online-users-strip no-scrollbar">
-              <div class="user-avatar-circle"
+              <button type="button" class="user-avatar-circle"
                    *ngFor="let user of featuredUsers()"
                    [class.unauthorized]="!user.profileSetupCompleted"
+                   [attr.aria-label]="'Message ' + (user.artistName || 'user')"
                    (click)="setDmTarget(user.userId); setHubTab('dm')">
                 <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
                 <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || "??" }}</span>
-              </div>
+              </button>
             </div>
           </div>
           <div class="message-list">
@@ -242,18 +243,19 @@
         <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
           <div class="player-search glass-v42">
               <span class="material-symbols-outlined">person_search</span>
-              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="onPlayerSearchChange($event)" placeholder="FIND RIVALS (NAME, GENRE, STATUS)..." />
+              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="onPlayerSearchChange($event)" placeholder="FIND RIVALS (NAME, GENRE, STATUS)..." aria-label="Search for rivals by name, genre, or status" />
           </div>
           <div class="online-users-strip no-scrollbar">
-            <div class="user-avatar-circle"
+            <button type="button" class="user-avatar-circle"
                  *ngFor="let user of filteredOnlineUsers()"
                  [class.active]="dmTargetUserId() === user.userId"
                  [class.unauthorized]="!user.profileSetupCompleted"
+                 [attr.aria-label]="'Message ' + (user.artistName || 'user')"
                  (click)="setDmTarget(user.userId)">
               <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
               <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
               <div class="online-indicator" [class.in-game]="user.inGame"></div>
-            </div>
+            </button>
           </div>
           <div class="dm-user-info glass-v42" *ngIf="selectedDmUser() as target">
               <div class="dm-user-meta">

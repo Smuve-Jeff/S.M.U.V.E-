@@ -6,6 +6,7 @@ import { HttpClient } from "@angular/common/http";
 import { firstValueFrom } from "rxjs";
 import { PeerNetworkingService } from './peer-networking.service';
 import { io, Socket } from 'socket.io-client';
+import { TokenService } from './token.service';
 
 export interface OnlineUser {
   userId: string;
@@ -14,6 +15,7 @@ export interface OnlineUser {
   avatarImage?: string;
   inGame?: boolean;
   profileSetupCompleted?: boolean;
+  online?: boolean;
 }
 
 export interface PrivateMessage {
@@ -53,6 +55,7 @@ export class SocialNetworkingService {
   private socket?: Socket;
   private injector = inject(Injector);
   private http = inject(HttpClient);
+  private tokenService = inject(TokenService);
 
   onlineUsers = signal<OnlineUser[]>([]);
   messages = signal<PrivateMessage[]>([]);
@@ -241,10 +244,13 @@ export class SocialNetworkingService {
 
   async searchUsers(query: string): Promise<OnlineUser[]> {
     try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       return await firstValueFrom(this.http.get<OnlineUser[]>(
         `${APP_SECURITY_CONFIG.api_url}/users/search`,
         {
-          params: { q: query }
+          params: { q: query },
+          headers
         }
       ));
     } catch (e) {
@@ -254,7 +260,9 @@ export class SocialNetworkingService {
 
   async getFeaturedUsers(): Promise<OnlineUser[]> {
     try {
-      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/featured`));
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/featured`, { headers }));
     } catch (e) {
       return [];
     }

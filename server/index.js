@@ -850,8 +850,18 @@ const setupSocketIO = (server) => {
         matchmakingQueue.set(gameId, []);
       }
       const queue = matchmakingQueue.get(gameId);
+
+      // Clean up stale entries (older than 60 seconds)
+      const now = Date.now();
+      const staleThreshold = 60000;
+      for (let i = queue.length - 1; i >= 0; i--) {
+        if (now - queue[i].timestamp > staleThreshold) {
+          queue.splice(i, 1);
+        }
+      }
+
       if (!queue.find(u => u.userId === userId)) {
-        queue.push({ userId, socketId: socket.id });
+        queue.push({ userId, socketId: socket.id, timestamp: now });
       }
 
       if (queue.length >= 2) {
@@ -860,6 +870,11 @@ const setupSocketIO = (server) => {
         io.to(player1.socketId).emit("match_found", { opponentId: player2.userId, gameId });
         io.to(player2.socketId).emit("match_found", { opponentId: player1.userId, gameId });
         console.log(`Match found for ${gameId}: ${player1.userId} vs ${player2.userId}`);
+
+        // Remove empty gameId bucket
+        if (queue.length === 0) {
+          matchmakingQueue.delete(gameId);
+        }
       }
     });
 
@@ -872,13 +887,23 @@ const setupSocketIO = (server) => {
           queue.splice(index, 1);
           console.log(`User ${userId} left queue for ${gameId}`);
         }
+        // Remove empty gameId bucket
+        if (queue.length === 0) {
+          matchmakingQueue.delete(gameId);
+        }
       }
     });
 
     socket.on("disconnect", () => {
-      matchmakingQueue.forEach((queue) => {
+      matchmakingQueue.forEach((queue, gameId) => {
         const index = queue.findIndex(u => u.socketId === socket.id);
-        if (index !== -1) queue.splice(index, 1);
+        if (index !== -1) {
+          queue.splice(index, 1);
+          // Remove empty gameId bucket
+          if (queue.length === 0) {
+            matchmakingQueue.delete(gameId);
+          }
+        }
       });
       for (const [userId, info] of onlineUsers.entries()) {
         if (info.socketId === socket.id) {
