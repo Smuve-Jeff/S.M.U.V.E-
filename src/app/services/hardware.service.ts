@@ -33,15 +33,19 @@ export class HardwareService {
 
     // Monitor Audio Devices
     this.monitorAudioDevices();
-    navigator.mediaDevices.addEventListener('devicechange', () => this.monitorAudioDevices());
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      navigator.mediaDevices.addEventListener('devicechange', () => this.monitorAudioDevices());
+    }
 
     // Monitor Gamepads
     window.addEventListener('gamepadconnected', () => this.updateGamepadStatus(true));
     window.addEventListener('gamepaddisconnected', () => this.updateGamepadStatus(false));
 
     // Initial check
-    const gps = navigator.getGamepads();
-    if (gps[0]) this.updateGamepadStatus(true);
+    if (typeof navigator !== 'undefined' && navigator.getGamepads) {
+      const gps = navigator.getGamepads();
+      if (gps && gps[0]) this.updateGamepadStatus(true);
+    }
   }
 
   private async monitorAudioDevices() {
