@@ -346,9 +346,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         }
 
         if (!matched) {
-          const useBot = confirm("NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?");
+          const useBot = confirm(
+            'NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?'
+          );
+          this.socialService.cancelMatch(game.id);
           if (!useBot) {
-            this.socialService.cancelMatch(game.id);
             this.isMatchmaking.set(false);
             this.currentMatchmakingId = null;
             return;
