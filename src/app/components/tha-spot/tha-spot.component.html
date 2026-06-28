@@ -221,7 +221,7 @@
               <div class="user-avatar-circle"
                    *ngFor="let user of featuredUsers()"
                    [class.unauthorized]="!user.profileSetupCompleted"
-                   (click)="setDmTarget(user.userId || user); setHubTab('dm')">
+      }
                 <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
                 <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || "??" }}</span>
               </div>
