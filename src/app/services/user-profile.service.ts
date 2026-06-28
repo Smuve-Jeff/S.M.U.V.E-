@@ -103,7 +103,11 @@ export class UserProfileService {
       if (!imported.artistName || !imported.settings) {
         throw new Error('Invalid profile data format.');
       }
-      await this.updateProfile(imported);
+      const current = this.profile();
+      await this.updateProfile({
+        ...imported,
+        id: current.id,
+      });
       this.logger.info('Profile imported successfully.');
       return true;
     } catch (e) {
