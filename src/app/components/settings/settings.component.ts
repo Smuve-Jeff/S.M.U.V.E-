@@ -15,6 +15,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { PermissionService } from '../../services/permission.service';
+import { HardwareService } from '../../services/hardware.service';
 import { LocalStorageService } from '../../services/local-storage.service';
 
 @Component({
@@ -33,6 +34,7 @@ export class SettingsComponent implements OnInit {
   audioEngine = inject(AudioEngineService);
   authService = inject(AuthService);
   permissionService = inject(PermissionService);
+  hardwareService = inject(HardwareService);
   localStorageService = inject(LocalStorageService);
   databaseService = inject(DatabaseService);
   dialog = inject(InteractionDialogService);
@@ -69,7 +71,7 @@ export class SettingsComponent implements OnInit {
   });
 
   activeTab = signal<
-    'ui' | 'audio' | 'ai' | 'studio' | 'dj' | 'security' | 'permissions' | 'storage'
+    'ui' | 'audio' | 'ai' | 'studio' | 'dj' | 'security' | 'permissions' | 'storage' | 'hardware'
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
@@ -209,7 +211,7 @@ export class SettingsComponent implements OnInit {
       | 'dj'
       | 'security'
       | 'permissions'
-      | 'storage'
+      | 'storage' | 'hardware'
   ) {
     this.activeTab.set(tab);
     if (tab === 'security') {

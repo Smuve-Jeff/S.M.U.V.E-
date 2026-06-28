@@ -3,6 +3,7 @@ import * as Tone from 'tone';
 import { LoggingService } from './logging.service';
 import { InstrumentsService, InstrumentPreset } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
+import { HardwareService } from './hardware.service';
 
 export type LiveInstrumentType = string;
 
@@ -13,6 +14,7 @@ export class LiveEngineService {
   private logger = inject(LoggingService);
   private instrumentsService = inject(InstrumentsService);
   private audioEngine = inject(AudioEngineService);
+  private hardwareService = inject(HardwareService);
 
   private currentInstrumentNode:
     | Tone.PolySynth
@@ -61,6 +63,7 @@ export class LiveEngineService {
           this.midiEnabled.set(true);
           const inputs = Array.from(access.inputs.values()) as any[];
           this.availableMidiInputs.set(inputs.map((i) => i.name || 'Unknown Device'));
+          this.hardwareService.updateMidiCount(inputs.length);
           inputs.forEach((input) => {
             input.onmidimessage = (msg: any) => this.handleMidiMessage(msg);
           });
