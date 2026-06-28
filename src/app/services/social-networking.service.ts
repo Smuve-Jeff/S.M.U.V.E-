@@ -160,7 +160,7 @@ export class SocialNetworkingService {
     this.socket?.emit("typing", { toUserId, isTyping, fromUserId });
   }
   updateStatus(metadata: any) {
-    const userId = this.profileService.profile().id;
+    const userId = this.profileService.profile().id; if (!userId) return;
     this.socket?.emit("update_status", { userId, metadata });
   }
   sendMessage(toUserId: string, message: string) {
@@ -256,13 +256,13 @@ export class SocialNetworkingService {
   }
 
   queueForMatch(gameId: string) {
-    const userId = this.profileService.profile().id;
+    const userId = this.profileService.profile().id; if (!userId) return;
     this.matchmakingStatus.set("searching");
     this.socket?.emit("queue_for_match", { userId, gameId });
   }
 
   cancelMatch(gameId: string) {
-    const userId = this.profileService.profile().id;
+    const userId = this.profileService.profile().id; if (!userId) return;
     this.matchmakingStatus.set("idle");
     this.socket?.emit("cancel_match", { userId, gameId });
   }

@@ -331,7 +331,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           }, 15000); // 15s timeout
         });
 
-      }
+        const matched = await matchPromise;
+        if (!matched) {
+          const useBot = confirm("NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?");
+          if (!useBot) {
+            this.socialService.cancelMatch(game.id);
+            this.isMatchmaking.set(false);
+            return;
+          }
+        }
+        this.isMatchmaking.set(false);
+        this.socialService.matchmakingStatus.set("idle");
       }
 
       if (this.isRetroOrArcade(game)) {

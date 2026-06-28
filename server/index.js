@@ -842,6 +842,15 @@ const setupSocketIO = (server) => {
       }
     });
 
+    socket.on("queue_for_match", (data) => {
+      const { userId, gameId } = data;
+      console.log(`User ${userId} queued for game ${gameId}`);
+      if (!matchmakingQueue.has(gameId)) {
+        matchmakingQueue.set(gameId, []);
+      }
+      const queue = matchmakingQueue.get(gameId);
+      if (!queue.find(u => u.userId === userId)) {
+        queue.push({ userId, socketId: socket.id });
       }
 
       if (queue.length >= 2) {
@@ -853,7 +862,17 @@ const setupSocketIO = (server) => {
       }
     });
 
+    socket.on("cancel_match", (data) => {
+      const { userId, gameId } = data;
+      if (matchmakingQueue.has(gameId)) {
+        const queue = matchmakingQueue.get(gameId);
+        const index = queue.findIndex(u => u.userId === userId);
+        if (index !== -1) {
+          queue.splice(index, 1);
+          console.log(`User ${userId} left queue for ${gameId}`);
+        }
       }
+    });
 
     socket.on("disconnect", () => {
       matchmakingQueue.forEach((queue) => {
