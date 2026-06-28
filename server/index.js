@@ -1102,7 +1102,7 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
   try {
     const { userId, friendId } = req.params;
     await pool.query(
-      'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
+      'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
       [userId, friendId]
     );
     res.json({ success: true });
