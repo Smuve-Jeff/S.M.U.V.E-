@@ -12,7 +12,7 @@ import { UIService } from '../../services/ui.service';
 import { GamepadService } from '../../services/gamepad.service';
 import { SecurityService } from '../../services/security.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
-import { SocialNetworkingService, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
+import { SocialNetworkingService, OnlineUser, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
@@ -28,7 +28,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
-  private profileService = inject(UserProfileService);
+  public profileService = inject(UserProfileService);
   private uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
   private gamepadService = inject(GamepadService);
