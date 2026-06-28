@@ -271,11 +271,16 @@ export class ProfileEditorComponent implements OnInit {
   }
 
     async onProfileImport(event: any) {
-    const file = event.target.files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
-    const success = await this.userProfileService.importProfile(file);
-    if (success) {
-      this.editableProfile.set({...this.userProfileService.profile()});
+    try {
+      const success = await this.userProfileService.importProfile(file);
+      if (success) {
+        this.editableProfile.set({ ...this.userProfileService.profile() });
+      }
+    } finally {
+      input.value = '';
     }
   }
 
