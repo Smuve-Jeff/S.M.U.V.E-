@@ -2,6 +2,8 @@ import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { Injector } from '@angular/core';
+import { HttpClient } from "@angular/common/http";
+import { firstValueFrom } from "rxjs";
 import { PeerNetworkingService } from './peer-networking.service';
 import { io, Socket } from 'socket.io-client';
 
@@ -50,6 +52,7 @@ export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
   private socket?: Socket;
   private injector = inject(Injector);
+  private http = inject(HttpClient);
 
   onlineUsers = signal<OnlineUser[]>([]);
   messages = signal<PrivateMessage[]>([]);
@@ -66,6 +69,8 @@ export class SocialNetworkingService {
     bitrate: '0 kbps'
   });
   simulatedLiveChat = signal<RoomMessage[]>([]);
+  matchmakingStatus = signal<"idle" | "searching" | "matched">("idle");
+  currentMatch = signal<{ opponentId: string, gameId: string } | null>(null);
 
   // Voice chat state
   remoteSignals = signal<any[]>([]);
@@ -111,14 +116,7 @@ export class SocialNetworkingService {
       }
     });
 
-    this.socket.on('users_online', (users: OnlineUser[]) => {
-      if (this.isIncognito()) {
-        this.onlineUsers.set([]);
-      } else {
-        this.onlineUsers.set(users.filter(u => u.userId !== userId && u.artistName !== 'Incognito'));
-      }
-      this.onlineUsers.set(Array.isArray(users) ? users.filter(u => u?.userId !== userId) : []);
-    });
+    this.socket.on('users_online', (users: OnlineUser[]) => {      if (!Array.isArray(users)) {        this.onlineUsers.set([]);        return;      }      if (this.isIncognito()) {        this.onlineUsers.set([]);      } else {        this.onlineUsers.set(users.filter(u => u.userId !== userId && u.artistName !== 'Incognito'));      }    });
 
     this.socket.on('private_message', (data: any) => {
       this.messages.update(msgs => [...msgs, { ...data, timestamp: Date.now() }]);
@@ -132,6 +130,10 @@ export class SocialNetworkingService {
       this.challenges.update(challs => [...challs, { ...data, timestamp: Date.now(), status: 'pending' }]);
     });
 
+    this.socket.on("match_found", (data: any) => {
+      this.matchmakingStatus.set("matched");
+      this.currentMatch.set(data);
+    });
     this.socket.on("user_typing", (data: any) => {
       this.typingUsers.update(users => ({ ...users, [data.fromUserId]: data.isTyping }));
     });
@@ -237,6 +239,33 @@ export class SocialNetworkingService {
     });
   }
 
+  async searchUsers(query: string): Promise<OnlineUser[]> {
+    try {
+      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/search?q=${query}`));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async getFeaturedUsers(): Promise<OnlineUser[]> {
+    try {
+      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/featured`));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  queueForMatch(gameId: string) {
+    const userId = this.profileService.profile().id;
+    this.matchmakingStatus.set("searching");
+    this.socket?.emit("queue_for_match", { userId, gameId });
+  }
+
+  cancelMatch(gameId: string) {
+    const userId = this.profileService.profile().id;
+    this.matchmakingStatus.set("idle");
+    this.socket?.emit("cancel_match", { userId, gameId });
+  }
   toggleIncognito() {
     this.isIncognito.update(v => !v);
     const profile = this.profileService.profile();

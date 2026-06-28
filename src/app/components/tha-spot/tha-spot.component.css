@@ -2294,3 +2294,28 @@
     max-width: 100%;
   }
 }
+
+.matchmaking-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  z-index: 11000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state-discovery {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.mini-label {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}

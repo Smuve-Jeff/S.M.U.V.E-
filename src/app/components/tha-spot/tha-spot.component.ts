@@ -164,15 +164,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   onlineUsers = this.socialService.onlineUsers;
+  featuredUsers = signal<OnlineUser[]>([]);
+  globalSearchResults = signal<OnlineUser[]>([]);
   playerSearchQuery = signal('');
   filteredOnlineUsers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase();
-    return this.onlineUsers().filter(u =>
+    return [...this.onlineUsers(), ...this.globalSearchResults()].filter((u, i, self) => self.findIndex(t => t.userId === u.userId) === i).filter(u =>
       u.artistName?.toLowerCase().includes(query) ||
       u.primaryGenre?.toLowerCase().includes(query) || (u.inGame ? "playing" : "online").includes(query)
     );
   });
-  selectedDmUser = computed(() => this.onlineUsers().find(u => u.userId === this.dmTargetUserId()));
+  selectedDmUser = computed(() => [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(u => u.userId === this.dmTargetUserId()));
   canInteract = computed(() => true);
   isKnocking = this.peerService.isKnocking;
   knockFromUserId = this.peerService.knockFromUserId;
@@ -222,6 +224,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.securityService.getCSRFToken();
     this.loadFeed();
+    this.loadFeaturedUsers();
     this.startLiveClock();
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
@@ -296,6 +299,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isBrowseView.update((v) => !v);
   }
 
+  cancelMatchmaking() {
+    const game = this.selectedGame();
+    if (game) this.socialService.cancelMatch(game.id);
+    this.isMatchmaking.set(false);
+  }
   async confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
@@ -306,12 +314,35 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     } else {
       if (this.isMultiplayerGame(game)) {
         this.isMatchmaking.set(true);
-        this.matchmakingStatus.set('SCANNING FOR RIVALS...');
-        for (let i = 0; i <= 100; i += 20) {
-          this.matchmakingProgress.set(i);
-          await new Promise((r) => setTimeout(r, 400));
+        this.matchmakingStatus.set("WAITING FOR RIVAL...");
+        this.socialService.queueForMatch(game.id);
+
+        // Wait for match or timeout
+        const matchPromise = new Promise<boolean>((resolve) => {
+          const checkMatch = setInterval(() => {
+            if (this.socialService.matchmakingStatus() === "matched") {
+              clearInterval(checkMatch);
+              resolve(true);
+            }
+          }, 500);
+          setTimeout(() => {
+            clearInterval(checkMatch);
+            resolve(false);
+          }, 15000); // 15s timeout
+        });
+
+        const matched = await matchPromise;
+        if (!matched) {
+          const useBot = confirm("NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?");
+          if (!useBot) {
+            this.socialService.cancelMatch(game.id);
+            this.isMatchmaking.set(false);
+            return;
+          }
         }
         this.isMatchmaking.set(false);
+        this.socialService.matchmakingStatus.set("idle");
+      }
       }
 
       if (this.isRetroOrArcade(game)) {
@@ -339,6 +370,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.gamingRooms().find((r) => r.id === this.activeRoom())?.name || 'All Games';
   }
 
+  async loadFeaturedUsers() {
+    const users = await this.socialService.getFeaturedUsers();
+    this.featuredUsers.set(users);
+  }
+
+  async onPlayerSearchChange(query: string) {
+    this.playerSearchQuery.set(query);
+    if (query.length > 2) {
+      const results = await this.socialService.searchUsers(query);
+      this.globalSearchResults.set(results);
+    } else {
+      this.globalSearchResults.set([]);
+    }
+  }
   private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService

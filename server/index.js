@@ -786,6 +786,7 @@ app.post(
 
 // SOCKET.IO INTEGRATION FOR RIVAL HUB & SOCIAL NETWORKING
 const { Server } = require("socket.io");
+const matchmakingQueue = new Map(); // gameId -> [ { userId, socketId } ]
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
@@ -841,7 +842,43 @@ const setupSocketIO = (server) => {
       }
     });
 
+    socket.on("queue_for_match", (data) => {
+      const { userId, gameId } = data;
+      console.log(`User ${userId} queued for game ${gameId}`);
+      if (!matchmakingQueue.has(gameId)) {
+        matchmakingQueue.set(gameId, []);
+      }
+      const queue = matchmakingQueue.get(gameId);
+      if (!queue.find(u => u.userId === userId)) {
+        queue.push({ userId, socketId: socket.id });
+      }
+
+      if (queue.length >= 2) {
+        const player1 = queue.shift();
+        const player2 = queue.shift();
+        io.to(player1.socketId).emit("match_found", { opponentId: player2.userId, gameId });
+        io.to(player2.socketId).emit("match_found", { opponentId: player1.userId, gameId });
+        console.log(`Match found for ${gameId}: ${player1.userId} vs ${player2.userId}`);
+      }
+    });
+
+    socket.on("cancel_match", (data) => {
+      const { userId, gameId } = data;
+      if (matchmakingQueue.has(gameId)) {
+        const queue = matchmakingQueue.get(gameId);
+        const index = queue.findIndex(u => u.userId === userId);
+        if (index !== -1) {
+          queue.splice(index, 1);
+          console.log(`User ${userId} left queue for ${gameId}`);
+        }
+      }
+    });
+
     socket.on("disconnect", () => {
+      matchmakingQueue.forEach((queue) => {
+        const index = queue.findIndex(u => u.socketId === socket.id);
+        if (index !== -1) queue.splice(index, 1);
+      });
       for (const [userId, info] of onlineUsers.entries()) {
         if (info.socketId === socket.id) {
           onlineUsers.delete(userId);
@@ -851,9 +888,7 @@ const setupSocketIO = (server) => {
       broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
     });
-  });
-
-  return io;
+    });
 };
 
 // Replace app.listen with a version that integrates Socket.IO
@@ -877,3 +912,58 @@ module.exports = {
 if (require.main === module) {
   void startEliteServer();
 }
+
+// User Discovery Endpoints
+app.get('/api/users/search', authenticateToken, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string') {
+      return res.json([]);
+    }
+
+    const searchQuery = `%${q}%`;
+    // Search by artistName or primaryGenre in profile_data JSONB
+    // Exclude 'Incognito' or users who haven't set up their profile if desired,
+    // but here we filter 'Incognito' specifically as requested.
+    const { rows } = await pool.query(
+      `SELECT
+        user_id as "userId",
+        profile_data->>'artistName' as "artistName",
+        profile_data->>'primaryGenre' as "primaryGenre",
+        profile_data->>'avatarImage' as "avatarImage",
+        (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted"
+       FROM user_profiles
+       WHERE (profile_data->>'artistName' ILIKE $1 OR profile_data->>'primaryGenre' ILIKE $1)
+       AND profile_data->>'artistName' != 'Incognito'
+       LIMIT 20`,
+      [searchQuery]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Search Error:', err);
+    res.status(500).json({ error: 'Failed to search users.' });
+  }
+});
+
+app.get('/api/users/featured', authenticateToken, async (req, res) => {
+  try {
+    // Return some real users who have completed their profile
+    const { rows } = await pool.query(
+      `SELECT
+        user_id as "userId",
+        profile_data->>'artistName' as "artistName",
+        profile_data->>'primaryGenre' as "primaryGenre",
+        profile_data->>'avatarImage' as "avatarImage",
+        (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted"
+       FROM user_profiles
+       WHERE profile_data->>'profileSetupCompleted' = 'true'
+       AND profile_data->>'artistName' != 'Incognito'
+       ORDER BY updated_at DESC
+       LIMIT 10`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Featured Users Error:', err);
+    res.status(500).json({ error: 'Failed to fetch featured users.' });
+  }
+});
