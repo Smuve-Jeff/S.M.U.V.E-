@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "Backend for S.M.U.V.E 2.0",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest"
   },
   "dependencies": {
     "@google/genai": "^1.48.0",
