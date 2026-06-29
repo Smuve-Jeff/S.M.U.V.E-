@@ -550,7 +550,7 @@ app.post(
           '',
           'If this was you, no action is required.',
           'If this was not you, please secure your account immediately.',
-        ].join(''),
+        ].join('\n'),
         html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
