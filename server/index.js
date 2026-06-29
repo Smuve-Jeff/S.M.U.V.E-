@@ -233,6 +233,7 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('send_message', async (data) => {
+      if (!data) return;
       const { toUserId, message } = data;
       const fromUserId = getSenderFromSocket(socket);
       if (!fromUserId) return;
