@@ -247,7 +247,7 @@ const sendSocialNotification = async (userId, title, body) => {
         });
 
         await transporter.sendMail({
-          from: '"S.M.U.V.E 2.0" <no-reply@smuve.com>',
+          from: process.env.SMTP_FROM || '"S.M.U.V.E 2.0" <no-reply@smuve.com>',
           to: email,
           subject: title,
           text: body,
