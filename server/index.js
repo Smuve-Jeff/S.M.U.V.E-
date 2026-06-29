@@ -76,27 +76,6 @@ const apiLimiter = rateLimit({
 
 app.use('/api/', apiLimiter);
 
-async function sendSocialNotification(userId, title, body) {
-  try {
-    const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
-    const email = rows[0]?.email;
-    if (!email) return;
-
-    const transport = createEmailTransport();
-    if (!transport) return;
-
-    void transport.sendMail({
-      from: process.env.SMTP_FROM,
-      to: email,
-      subject: `[S.M.U.V.E 2.0] ${title}`,
-      text: body,
-    }).catch((err) => {
-      console.error('Failed to send social notification:', err);
-    });
-  } catch (err) {
-    console.error('Failed to send social notification:', err);
-  }
-}
 
 const loginEmailLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -193,6 +172,25 @@ const createEmailTransport = () => {
     auth,
   });
 };
+
+async function sendSocialNotification(userId, title, body) {
+  const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
+  const email = rows[0]?.email;
+  if (!email) return;
+
+  const transport = createEmailTransport();
+  if (!transport) return;
+
+  try {
+    await transport.sendMail({
+      from: process.env.SMTP_FROM,
+      to: email,
+      subject: `[S.M.U.V.E 2.0] ${title}`,
+      text: body,
+    });
+  } catch (err) {
+    console.error('Failed to send social notification email:', err);
+  }
 
 const formatLoginTimestamp = (input) => {
   const parsed = input ? new Date(input) : new Date();
@@ -1145,3 +1143,4 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
     res.status(500).json({ error: 'Failed to remove friend.' });
   }
 });
+}

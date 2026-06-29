@@ -280,6 +280,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         if (game) {
           this.selectedGame.set(game);
         } else {
+          const sub = this.gameService.getThaSpotFeed().subscribe(feed => {
+             const found = feed.games.find(g => g.id === gameId);
+             if (found) this.selectedGame.set(found);
+             sub.unsubscribe();
           });
         }
       }
@@ -579,7 +583,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
     navigator.clipboard.writeText(url).then(() => {
-      this.snackbarService.success('Mission link copied to clipboard!');
+      this.snackbarService.success('MISSION LINK COPIED TO CLIPBOARD');
     });
   }
 

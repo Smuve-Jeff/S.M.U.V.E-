@@ -109,8 +109,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.audioEngine.resume();
     this.route.queryParamMap.subscribe(params => {
       const sessionId = params.get('sessionId');
-      const currentSessionId = this.collaboration.currentSession()?.sessionId;
-      if (sessionId && sessionId !== currentSessionId) {
+      if (sessionId && !this.collaboration.currentSession()) {
         const user = this.authService.currentUser();
         if (user) {
           this.collaboration.joinSession(sessionId, user);
@@ -148,7 +147,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
     navigator.clipboard.writeText(url).then(() => {
-      this.snackbarService.success('Studio link copied to clipboard!');
+      this.snackbarService.success('STUDIO COLLABORATION LINK COPIED');
     });
   }
 
