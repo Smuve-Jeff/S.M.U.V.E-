@@ -251,6 +251,7 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('challenge_player', (data) => {
+      if (!data) return;
       const { toUserId, gameId } = data;
       const fromUserId = getSenderFromSocket(socket);
       if (!fromUserId) return;
