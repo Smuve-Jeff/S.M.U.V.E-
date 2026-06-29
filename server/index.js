@@ -957,7 +957,7 @@ const setupSocketIO = (server) => {
     });
 
 
-    socket.on("send_message", async (data) => {
+    socket.on('send_message', async (data) => {
       const { toUserId, message } = data;
       const timestamp = Date.now();
 
@@ -983,14 +983,16 @@ const setupSocketIO = (server) => {
           [fromUserId, toUserId, message, timestamp]
         );
 
-        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+        const recipientSocket = [...onlineUsers.values()].find(
+          (u) => u.userId === toUserId
+        );
         if (recipientSocket) {
-          io.to(recipientSocket.socketId).emit("message", {
+          io.to(recipientSocket.socketId).emit('message', {
             fromUserId,
             fromUserName,
             toUserId,
             message,
-            timestamp
+            timestamp,
           });
         }
       } catch (err) {
@@ -998,35 +1000,65 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("neural_sync_request", (data) => {
+    socket.on('neural_sync_request', (data) => {
       const { toUserId, fromUserId, fromUserName, syncType } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const recipientSocket = [...onlineUsers.values()].find(
+        (u) => u.userId === toUserId
+      );
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
+        io.to(recipientSocket.socketId).emit('neural_sync_invite', {
+          fromUserId,
+          fromUserName,
+          syncType,
+        });
         console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
       }
     });
 
-    socket.on("neural_sync_approve", (data) => {
+    socket.on('neural_sync_approve', (data) => {
       const { toUserId, fromUserId, fromUserName, syncData } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const recipientSocket = [...onlineUsers.values()].find(
+        (u) => u.userId === toUserId
+      );
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
-        console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
+        io.to(recipientSocket.socketId).emit('neural_sync_complete', {
+          fromUserId,
+          fromUserName,
+          syncData,
+        });
+        console.log(
+          `Neural sync approved between ${fromUserId} and ${toUserId}`
+        );
       }
     });
 
-    socket.on("invite_to_party", (data) => {
+    socket.on('invite_to_party', (data) => {
       const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const recipientSocket = [...onlineUsers.values()].find(
+        (u) => u.userId === toUserId
+      );
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
-        console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
+        io.to(recipientSocket.socketId).emit('party_invite', {
+          partyId,
+          fromUserId,
+          fromUserName,
+          gameId,
+        });
+        console.log(
+          `Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`
+        );
       }
     });
-    socket.on("send_party_message", (data) => {
+
+    socket.on('send_party_message', (data) => {
       const { partyId, message, fromUserId, fromUserName } = data;
-      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
+      io.to(`party_${partyId}`).emit('party_message', {
+        partyId,
+        fromUserId,
+        fromUserName,
+        message,
+        timestamp: Date.now(),
+      });
     });
 
     socket.on("disconnect", () => {
