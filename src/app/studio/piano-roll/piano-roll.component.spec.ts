@@ -39,7 +39,8 @@ describe('PianoRollComponent', () => {
     strumTrack: jest.fn(),
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
-    selectedTrack: signal({ id: '1', name: 'Lead', notes: [], color: '#fff' })
+    selectedTrack: signal({ id: '1', name: 'Lead', notes: [], color: '#fff' }),
+    engine: { scaleMode: signal('major'), scaleLock: signal(false) }
   };
 
   const mockAudioEngine = {
