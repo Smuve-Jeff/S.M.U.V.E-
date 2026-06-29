@@ -216,7 +216,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.socialService.updateStatus({ inGame });
   });
 
-  constructor() {
+  constructor() { effect(() => { this.activeHubTab.set(this.socialService.activeHubTab()); });
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
 
@@ -597,6 +597,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setDmTarget(userId: string) {
     this.dmTargetUserId.set(userId);
+    this.socialService.loadMessageHistory(userId);
     setTimeout(() => this.scrollToBottom(), 50);
   }
 

@@ -942,7 +942,59 @@ const setupSocketIO = (server) => {
       console.log(`Party ${partyId} launching game ${gameId}`);
     });
 
-    socket.on("send_party_message", (data) => {
+
+    socket.on("send_message", async (data) => {
+      const { toUserId, message, fromUserId, fromUserName } = data;
+      const timestamp = Date.now();
+
+      try {
+        await pool.query(
+          'INSERT INTO direct_messages (from_user_id, to_user_id, message, timestamp) VALUES ($1, $2, $3, $4)',
+          [fromUserId, toUserId, message, timestamp]
+        );
+
+        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+        if (recipientSocket) {
+          io.to(recipientSocket.socketId).emit("message", {
+            fromUserId,
+            fromUserName,
+            toUserId,
+            message,
+            timestamp
+          });
+        }
+      } catch (err) {
+        console.error('Save DM Error:', err);
+      }
+    });
+
+    socket.on("neural_sync_request", (data) => {
+      const { toUserId, fromUserId, fromUserName, syncType } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
+        console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
+      }
+    });
+
+    socket.on("neural_sync_approve", (data) => {
+      const { toUserId, fromUserId, fromUserName } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName });
+        console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
+      }
+    });
+\n
+    socket.on("invite_to_party", (data) => {
+      const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
+        console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
+      }
+    });
+\n    socket.on("send_party_message", (data) => {
       const { partyId, message, fromUserId, fromUserName } = data;
       io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
@@ -1002,7 +1054,9 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
         profile_data->>'primaryGenre' as "primaryGenre",
         profile_data->>'avatarImage' as "avatarImage",
         profile_data->>'location' as "location",
-        (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted"
+        (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted",
+        (profile_data->>'eliteScore')::int as "eliteScore",
+        (profile_data->>'squadCount')::int as "squadCount"
        FROM user_profiles
        WHERE profile_data->>'artistName' != 'Incognito'
     `;
@@ -1018,7 +1072,7 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
       query += ` AND profile_data->>'location' ILIKE $${params.length}`;
     }
 
-    query += ` LIMIT 20`;
+    query += ` ORDER BY (profile_data->>'eliteScore')::int DESC NULLS LAST LIMIT 20`;
 
     const { rows } = await pool.query(query, params);
     res.json(rows);
@@ -1028,7 +1082,36 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/users/featured', authenticateToken, async (req, res) => {
+
+
+// Multi-Platform OAuth Scaffolds
+const PLATFORMS = ['twitch', 'youtube', 'discord', 'tiktok', 'instagram', 'kick', 'x'];
+
+PLATFORMS.forEach(platform => {
+  app.get(`/api/auth/${platform}`, (req, res) => {
+    // In production, these would use environment-specific client IDs and scopes
+    const clientId = process.env[`${platform.toUpperCase()}_CLIENT_ID`] || 'MOCK_CLIENT_ID';
+    const redirectUri = process.env[`${platform.toUpperCase()}_REDIRECT_URI`] || `https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/${platform}/callback`;
+
+    let url = '';
+    if (platform === 'twitch') {
+      url = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=user:read:email`;
+    } else if (platform === 'youtube') {
+      url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly`;
+    } else {
+      // Generic mock for others
+      url = `${redirectUri}?code=MOCK_CODE_${platform.toUpperCase()}`;
+    }
+    res.redirect(url);
+  });
+
+  app.get(`/api/auth/${platform}/callback`, (req, res) => {
+    const { code } = req.query;
+    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
+  });
+});
+
+\napp.get('/api/users/featured', authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT
@@ -1052,7 +1135,24 @@ app.get('/api/users/featured', authenticateToken, async (req, res) => {
 });
 
 // Friends Endpoints
-app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
+
+app.get('/api/users/:userId/messages/:friendId', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId, friendId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT from_user_id as "fromUserId", to_user_id as "toUserId", message, timestamp
+       FROM direct_messages
+       WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+       ORDER BY timestamp ASC LIMIT 100`,
+      [userId, friendId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Fetch DMs Error:', err);
+    res.status(500).json({ error: 'Failed to fetch message history.' });
+  }
+});
+\napp.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId } = req.params;
     const { rows } = await pool.query(

@@ -64,6 +64,7 @@ export class SocialNetworkingService {
   challenges = signal<Challenge[]>([]);
   friends = signal<OnlineUser[]>([]);
   partyMembers = signal<OnlineUser[]>([]);
+  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
   currentPartyId = signal<string | null>(null);
 
   // Go Live State
@@ -76,6 +77,9 @@ export class SocialNetworkingService {
     bitrate: '0 kbps'
   });
   simulatedLiveChat = signal<RoomMessage[]>([]);
+
+  neuralSyncStatus = signal<'idle' | 'syncing' | 'synced'>('idle');
+  lastSyncedData = signal<any>(null);
   matchmakingStatus = signal<"idle" | "searching" | "matched">("idle");
   currentMatch = signal<{ opponentId: string, gameId: string } | null>(null);
 
@@ -138,6 +142,22 @@ export class SocialNetworkingService {
       }
     });
 
+
+    this.socket.on("neural_sync_invite", (data: any) => {
+      if (confirm(`INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`)) {
+        const currentProfile = this.profileService.profile(); this.socket?.emit("neural_sync_approve", { toUserId: data.fromUserId, fromUserId: userId, fromUserName: currentProfile.artistName, syncData: { eliteScore: (currentProfile as any).eliteScore, squadCount: (currentProfile as any).squadCount } });
+      }
+    });
+
+    this.socket.on("neural_sync_complete", (data: any) => {
+      this.neuralSyncStatus.set("synced");
+      this.lastSyncedData.set({ syncedWith: data.fromUserName, timestamp: Date.now(), remoteData: data.syncData });
+      console.log("Neural sync finalized with", data.fromUserName, data.syncData);
+    });
+
+    this.socket.on("message", (data: any) => {
+      this.messages.update(msgs => [...msgs, data]);
+    });
     this.socket.on('private_message', (data: any) => {
       this.messages.update(msgs => [...msgs, { ...data, timestamp: Date.now() }]);
     });
@@ -169,6 +189,13 @@ export class SocialNetworkingService {
       });
     });
 
+
+    this.socket.on("party_invite", (data: any) => {
+      if (confirm(`INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`)) {
+        this.joinParty(data.partyId);
+        this.activeHubTab.set('party');
+      }
+    });
     this.socket.on("user_left_party", (data: any) => {
       this.partyMembers.update(members => members.filter(m => m.userId !== data.userId));
     });
@@ -243,6 +270,22 @@ export class SocialNetworkingService {
 
   // STREAMING LOGIC
   private streamInterval?: any;
+
+  startTwitchAuth() {
+    const width = 500, height = 600;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    const url = `${APP_SECURITY_CONFIG.api_url}/auth/twitch`;
+
+    const popup = window.open(url, 'Twitch Auth', `width=${width},height=${height},left=${left},top=${top}`);
+
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'TWITCH_AUTH_SUCCESS') {
+        console.log('Twitch connected successfully');
+        this.currentPlatform.set('Twitch (Connected)');
+      }
+    }, { once: true });
+  }
   startStream(platform: string) {
     this.isStreaming.set(true);
     this.currentPlatform.set(platform);
@@ -300,6 +343,33 @@ export class SocialNetworkingService {
   }
 
 
+
+  requestNeuralSync(toUserId: string) {
+    const profile = this.profileService.profile();
+    this.neuralSyncStatus.set("syncing");
+    this.socket?.emit("neural_sync_request", {
+      toUserId,
+      fromUserId: profile.id,
+      fromUserName: profile.artistName,
+      syncType: 'FULL_DASHBOARD'
+    });
+  }
+
+  async loadMessageHistory(friendId: string) {
+    const userId = this.profileService.profile().id;
+    if (!userId) return;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const history = await firstValueFrom(this.http.get<any[]>(
+        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/messages/${friendId}`,
+        { headers }
+      ));
+      this.messages.set(history);
+    } catch (e) {
+      console.error('Failed to load message history', e);
+    }
+  }
   async loadFriends() {
     const userId = this.profileService.profile().id;
     if (!userId) return;
@@ -373,6 +443,19 @@ export class SocialNetworkingService {
     this.socket?.emit("create_party", { partyId, leaderId: profile.id, gameId });
   }
 
+
+  inviteToParty(toUserId: string) {
+    const partyId = this.currentPartyId();
+    if (!partyId) return;
+    const profile = this.profileService.profile();
+    this.socket?.emit("invite_to_party", {
+      toUserId,
+      partyId,
+      fromUserId: profile.id,
+      fromUserName: profile.artistName,
+      gameId: 'global'
+    });
+  }
   joinParty(partyId: string) {
     const profile = this.profileService.profile();
     this.socket?.emit("join_party", { partyId, userId: profile.id, artistName: profile.artistName });
