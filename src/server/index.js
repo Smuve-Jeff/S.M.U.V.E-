@@ -263,6 +263,7 @@ const initDb = async () => {
     );
   } catch (err) {
     console.error('Error initializing database', err);
+    throw err;
   }
 };
 
