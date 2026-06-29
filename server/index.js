@@ -85,11 +85,13 @@ async function sendSocialNotification(userId, title, body) {
     const transport = createEmailTransport();
     if (!transport) return;
 
-    await transport.sendMail({
+    void transport.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
       subject: `[S.M.U.V.E 2.0] ${title}`,
       text: body,
+    }).catch((err) => {
+      console.error('Failed to send social notification:', err);
     });
   } catch (err) {
     console.error('Failed to send social notification:', err);
