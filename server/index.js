@@ -215,7 +215,7 @@ const setupSocketIO = (server) => {
   io.on("connection", (socket) => {
     console.log("Elite operative connected:", socket.id);
 
-    socket.on("register_presence", (data) => {
+    socket.on("register_presence", (data = {}) => {
       const { token, metadata } = data;
       if (!token) {
         socket.emit("auth_error", { error: "Authentication token required." });
@@ -240,7 +240,7 @@ const setupSocketIO = (server) => {
       socket.join(roomId);
     });
 
-    socket.on("start_matchmaking", (data) => {
+    socket.on("start_matchmaking", (data = {}) => {
       const { gameId, userId, metadata } = data;
       if (!gameId || !userId) return;
 
@@ -260,7 +260,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("send_message", async (data) => {
+    socket.on("send_message", async (data = {}) => {
       const { toUserId, message } = data;
       const sender = getSenderFromSocket(socket);
       if (!sender) return;
@@ -285,7 +285,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("request_neural_sync", (data) => {
+    socket.on("request_neural_sync", (data = {}) => {
       const { toUserId, syncType } = data;
       const sender = getSenderFromSocket(socket);
       if (!sender) return;
@@ -295,7 +295,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("approve_neural_sync", (data) => {
+    socket.on("approve_neural_sync", (data = {}) => {
       const { toUserId, syncData } = data;
       const sender = getSenderFromSocket(socket);
       if (!sender) return;
@@ -305,7 +305,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("invite_to_party", (data) => {
+    socket.on("invite_to_party", (data = {}) => {
       const { toUserId, partyId, gameId } = data;
       const sender = getSenderFromSocket(socket);
       if (!sender) return;
@@ -315,7 +315,7 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("send_party_message", (data) => {
+    socket.on("send_party_message", (data = {}) => {
       const { partyId, message } = data;
       const sender = getSenderFromSocket(socket);
       if (!sender) return;
