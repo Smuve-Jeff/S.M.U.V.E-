@@ -173,6 +173,12 @@ const createEmailTransport = () => {
   });
 };
 
+/**
+ * Sends a social notification email to a user.
+ * @param {string} userId - The recipient's user ID.
+ * @param {string} title - The email subject title.
+ * @param {string} body - The email message body.
+ */
 async function sendSocialNotification(userId, title, body) {
   const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
   const email = rows[0]?.email;
