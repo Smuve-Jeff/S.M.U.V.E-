@@ -99,8 +99,6 @@ const authorizeUser = (req, res, next) => {
 };
 
 // --- DATABASE LOGIC ---
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
 const productionSslConfig =
   process.env.NODE_ENV === 'production'
     ? process.env.PG_CA_CERT
@@ -111,7 +109,6 @@ const productionSslConfig =
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: productionSslConfig,
-});
 });
 
 pool.on('error', (err) => {
@@ -239,6 +236,10 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('join_room', (room) => {
+      const userId = getSenderFromSocket(socket);
+      if (!userId || !room || typeof room !== 'string') return;
+      // Only allow joining rooms that don't start with 'user_' (protected rooms)
+      if (room.startsWith('user_')) return;
       socket.join(room);
     });
 
