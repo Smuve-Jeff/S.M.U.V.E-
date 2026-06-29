@@ -101,7 +101,17 @@ const authorizeUser = (req, res, next) => {
 // --- DATABASE LOGIC ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+const productionSslConfig =
+  process.env.NODE_ENV === 'production'
+    ? process.env.PG_CA_CERT
+      ? { ca: process.env.PG_CA_CERT, rejectUnauthorized: true }
+      : true
+    : false;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: productionSslConfig,
+});
 });
 
 pool.on('error', (err) => {
