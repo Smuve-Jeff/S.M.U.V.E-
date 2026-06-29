@@ -550,7 +550,7 @@ app.post(
           '',
           'If this was you, no action is required.',
           'If this was not you, please secure your account immediately.',
-        ].join('\n'),
+        ].join(''),
         html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
@@ -985,7 +985,7 @@ const setupSocketIO = (server) => {
         console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
-\n
+
     socket.on("invite_to_party", (data) => {
       const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
       const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
@@ -994,7 +994,7 @@ const setupSocketIO = (server) => {
         console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
       }
     });
-\n    socket.on("send_party_message", (data) => {
+    socket.on("send_party_message", (data) => {
       const { partyId, message, fromUserId, fromUserName } = data;
       io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
@@ -1111,7 +1111,7 @@ PLATFORMS.forEach(platform => {
   });
 });
 
-\napp.get('/api/users/featured', authenticateToken, async (req, res) => {
+app.get('/api/users/featured', authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT
@@ -1152,7 +1152,7 @@ app.get('/api/users/:userId/messages/:friendId', authenticateToken, authorizeUse
     res.status(500).json({ error: 'Failed to fetch message history.' });
   }
 });
-\napp.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
+app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId } = req.params;
     const { rows } = await pool.query(
