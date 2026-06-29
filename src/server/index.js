@@ -1057,8 +1057,16 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
         profile_data->>'avatarImage' as "avatarImage",
         profile_data->>'location' as "location",
         (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted",
-        (profile_data->>'eliteScore')::int as "eliteScore",
-        (profile_data->>'squadCount')::int as "squadCount"
+        CASE
+          WHEN profile_data->>'eliteScore' ~ '^\\d+$'
+          THEN (profile_data->>'eliteScore')::int
+          ELSE 0
+        END as "eliteScore",
+        CASE
+          WHEN profile_data->>'squadCount' ~ '^\\d+$'
+          THEN (profile_data->>'squadCount')::int
+          ELSE 0
+        END as "squadCount"
        FROM user_profiles
        WHERE profile_data->>'artistName' != 'Incognito'
     `;
@@ -1074,7 +1082,7 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
       query += ` AND profile_data->>'location' ILIKE $${params.length}`;
     }
 
-    query += ` ORDER BY (profile_data->>'eliteScore')::int DESC NULLS LAST LIMIT 20`;
+    query += ` ORDER BY "eliteScore" DESC NULLS LAST LIMIT 20`;
 
     const { rows } = await pool.query(query, params);
     res.json(rows);
