@@ -539,13 +539,14 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
     const server = http.createServer(app);
     setupSocketIO(server);
     await new Promise((resolve, reject) => {
-      server.listen(port, '0.0.0.0', (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
-          resolve();
-        }
+      const onError = (err) => {
+        reject(err);
+      };
+      server.once('error', onError);
+      server.listen(port, '0.0.0.0', () => {
+        server.off('error', onError);
+        console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
+        resolve();
       });
     });
     return server;
