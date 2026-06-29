@@ -173,20 +173,23 @@ export class SocialNetworkingService {
       this.partyMembers.update(members => members.filter(m => m.userId !== data.userId));
     });
 
-    this.socket.on("party_message", (data: any) => {
+    this.socket.on('party_message', (data: any) => {
+      this.roomMessages.update((msgs) => [...msgs, data]);
+    });
 
-    this.socket.on("party_launch_game", (data: any) => {
-      this.roomMessages.update(msgs => [...msgs, {
+    this.socket.on('party_launch_game', (data: any) => {
+      if (typeof data?.gameId !== 'string') return;
+      this.roomMessages.update((msgs) => [
+        ...msgs,
+        {
           roomId: 'party',
           fromUserId: 'system',
           fromUserName: 'SQUAD_COMMAND',
           message: `SQUAD_LEADER_LAUNCHING: ${data.gameId.toUpperCase()}. PREPARE_FOR_JOINT_MISSION.`,
           timestamp: Date.now(),
-          metadata: { type: 'GAME_INVITE', gameId: data.gameId }
-      }]);
-    });
-
-      this.roomMessages.update(msgs => [...msgs, data]);
+          metadata: { type: 'GAME_INVITE', gameId: data.gameId },
+        },
+      ]);
     });
 
     this.socket.on("user_typing", (data: any) => {
