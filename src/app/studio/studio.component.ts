@@ -109,7 +109,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.audioEngine.resume();
     this.route.queryParamMap.subscribe(params => {
       const sessionId = params.get('sessionId');
-      if (sessionId && !this.collaboration.currentSession()) {
+      const currentSessionId = this.collaboration.currentSession()?.sessionId;
+      if (sessionId && sessionId !== currentSessionId) {
         const user = this.authService.currentUser();
         if (user) {
           this.collaboration.joinSession(sessionId, user);
