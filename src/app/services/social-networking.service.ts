@@ -145,61 +145,102 @@ export class SocialNetworkingService {
     });
 
 
-    this.socket.on("neural_sync_invite", (data: any) => {
-      if (confirm(`INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`)) {
-        const currentProfile = this.profileService.profile(); this.socket?.emit("neural_sync_approve", { toUserId: data.fromUserId, fromUserId: userId, fromUserName: currentProfile.artistName, syncData: { eliteScore: (currentProfile as any).eliteScore, squadCount: (currentProfile as any).squadCount } });
+    this.socket.on('neural_sync_invite', (data: any) => {
+      if (
+        confirm(
+          `INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`,
+        )
+      ) {
+        const currentProfile = this.profileService.profile();
+        this.socket?.emit('neural_sync_approve', {
+          toUserId: data.fromUserId,
+          fromUserId: userId,
+          fromUserName: currentProfile.artistName,
+          syncData: {
+            eliteScore: (currentProfile as any).eliteScore,
+            squadCount: (currentProfile as any).squadCount,
+          },
+        });
       }
     });
 
-    this.socket.on("neural_sync_complete", (data: any) => {
-      this.neuralSyncStatus.set("synced");
-      this.lastSyncedData.set({ syncedWith: data.fromUserName, timestamp: Date.now(), remoteData: data.syncData });
-      console.log("Neural sync finalized with", data.fromUserName, data.syncData);
+    this.socket.on('neural_sync_complete', (data: any) => {
+      this.neuralSyncStatus.set('synced');
+      this.lastSyncedData.set({
+        syncedWith: data.fromUserName,
+        timestamp: Date.now(),
+        remoteData: data.syncData,
+      });
+      console.log(
+        'Neural sync finalized with',
+        data.fromUserName,
+        data.syncData,
+      );
     });
 
-    this.socket.on("message", (data: any) => {
-      this.messages.update(msgs => [...msgs, data]);
+    this.socket.on('message', (data: any) => {
+      this.messages.update((msgs) => [...msgs, data]);
     });
     this.socket.on('private_message', (data: any) => {
-      this.messages.update(msgs => [...msgs, { ...data, timestamp: Date.now() }]);
+      this.messages.update((msgs) => [
+        ...msgs,
+        { ...data, timestamp: Date.now() },
+      ]);
     });
 
     this.socket.on('room_message', (data: any) => {
-      this.roomMessages.update(msgs => [...msgs, data]);
+      this.roomMessages.update((msgs) => [...msgs, data]);
     });
 
     this.socket.on('incoming_challenge', (data: any) => {
-      this.challenges.update(challs => [...challs, { ...data, timestamp: Date.now(), status: 'pending' }]);
+      this.challenges.update((challs) => [
+        ...challs,
+        { ...data, timestamp: Date.now(), status: 'pending' },
+      ]);
     });
 
-    this.socket.on("match_found", (data: any) => {
-      this.matchmakingStatus.set("matched");
+    this.socket.on('match_found', (data: any) => {
+      this.matchmakingStatus.set('matched');
       this.currentMatch.set(data);
     });
 
-    this.socket.on("party_created", (data: any) => {
+    this.socket.on('party_created', (data: any) => {
       this.currentPartyId.set(data.partyId);
-      this.partyMembers.set([{ userId: data.leaderId, artistName: this.profileService.profile().artistName }]);
+      this.partyMembers.set([
+        {
+          userId: data.leaderId,
+          artistName: this.profileService.profile().artistName,
+        },
+      ]);
     });
 
-    this.socket.on("user_joined_party", (data: any) => {
-      this.partyMembers.update(members => {
-        if (!members.find(m => m.userId === data.userId)) {
-          return [...members, { userId: data.userId, artistName: data.artistName }];
+    this.socket.on('user_joined_party', (data: any) => {
+      this.partyMembers.update((members) => {
+        if (!members.find((m) => m.userId === data.userId)) {
+          return [
+            ...members,
+            { userId: data.userId, artistName: data.artistName },
+          ];
         }
         return members;
       });
     });
 
 
-    this.socket.on("party_invite", (data: any) => {
-      if (confirm(`INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`)) {
+    this.socket.on('party_invite', (data: any) => {
+      if (
+        confirm(
+          `INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`,
+        )
+      ) {
         this.joinParty(data.partyId);
         this.activeHubTab.set('party');
       }
     });
-    this.socket.on("user_left_party", (data: any) => {
-      this.partyMembers.update(members => members.filter(m => m.userId !== data.userId));
+    this.socket.on('user_left_party', (data: any) => {
+      this.partyMembers.update((members) =>
+        members.filter((m) => m.userId !== data.userId),
+      );
     });
 
     this.socket.on('party_message', (data: any) => {
@@ -221,12 +262,15 @@ export class SocialNetworkingService {
       ]);
     });
 
-    this.socket.on("user_typing", (data: any) => {
-      this.typingUsers.update(users => ({ ...users, [data.fromUserId]: data.isTyping }));
+    this.socket.on('user_typing', (data: any) => {
+      this.typingUsers.update((users) => ({
+        ...users,
+        [data.fromUserId]: data.isTyping,
+      }));
     });
 
     this.socket.on('voice_signal', (data: any) => {
-      this.remoteSignals.update(sigs => [...sigs, data]);
+      this.remoteSignals.update((sigs) => [...sigs, data]);
       this.peerService.handleSignal(data.fromUserId, data.signal);
     });
   }
@@ -255,14 +299,27 @@ export class SocialNetworkingService {
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('send_message', { toUserId, message, fromUserId, fromUserName });
-    this.messages.update(msgs => [...msgs, { fromUserId, fromUserName, toUserId, message, timestamp: Date.now() }]);
+    this.socket?.emit('send_message', {
+      toUserId,
+      message,
+      fromUserId,
+      fromUserName,
+    });
+    this.messages.update((msgs) => [
+      ...msgs,
+      { fromUserId, fromUserName, toUserId, message, timestamp: Date.now() },
+    ]);
   }
 
   challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('challenge_player', { toUserId, fromUserId, fromUserName, gameId });
+    this.socket?.emit('challenge_player', {
+      toUserId,
+      fromUserId,
+      fromUserName,
+      gameId,
+    });
   }
 
   sendVoiceSignal(toUserId: string, signal: any) {
@@ -274,19 +331,31 @@ export class SocialNetworkingService {
   private streamInterval?: any;
 
   startTwitchAuth() {
+    this.startOAuthFlow('twitch');
+  }
+
+  startOAuthFlow(platform: string) {
     const width = 500, height = 600;
     const left = (window.screen.width / 2) - (width / 2);
     const top = (window.screen.height / 2) - (height / 2);
-    const url = `${APP_SECURITY_CONFIG.api_url}/auth/twitch`;
+    const url = `${APP_SECURITY_CONFIG.api_url}/auth/${platform}`;
 
-    const popup = window.open(url, 'Twitch Auth', `width=${width},height=${height},left=${left},top=${top}`);
+    const popup = window.open(
+      url,
+      `${platform} Auth`,
+      `width=${width},height=${height},left=${left},top=${top}`,
+    );
 
-    window.addEventListener('message', (event) => {
-      if (event.data.type === 'TWITCH_AUTH_SUCCESS') {
-        console.log('Twitch connected successfully');
-        this.currentPlatform.set('Twitch (Connected)');
-      }
-    }, { once: true });
+    window.addEventListener(
+      'message',
+      (event) => {
+        if (event.data.type === `${platform.toUpperCase()}_AUTH_SUCCESS`) {
+          console.log(`${platform} connected successfully`);
+          this.currentPlatform.set(`${platform} (Connected)`);
+        }
+      },
+      { once: true },
+    );
   }
   startStream(platform: string) {
     this.isStreaming.set(true);
@@ -308,17 +377,27 @@ export class SocialNetworkingService {
   }
 
   private updateStreamTelemetry(platform: string) {
-    this.streamTelemetry.update(t => ({
+    this.streamTelemetry.update((t) => ({
       ...t,
       platform,
       viewers: t.viewers + Math.floor(this.getSecureRandom() * 5),
       bitrate: `${5500 + Math.floor(this.getSecureRandom() * 500)} kbps`,
-      health: this.getSecureRandom() > 0.9 ? 'Fair' : 'Good'
+      health: this.getSecureRandom() > 0.9 ? 'Fair' : 'Good',
     }));
   }
 
   private generateSimulatedComment() {
-    const fans = ['EliteGamer', 'SMUVE_Fan_99', 'BeatMaker_Pro', 'VibeCheck', 'Rival_Zero', 'StreamSnip3r', 'Lurker_One', 'GiftingSubz', 'ChatMod_Alpha'];
+    const fans = [
+      'EliteGamer',
+      'SMUVE_Fan_99',
+      'BeatMaker_Pro',
+      'VibeCheck',
+      'Rival_Zero',
+      'StreamSnip3r',
+      'Lurker_One',
+      'GiftingSubz',
+      'ChatMod_Alpha',
+    ];
     const comments = [
       'This track is fire!',
       'How do you get that snare sound?',
@@ -327,7 +406,13 @@ export class SocialNetworkingService {
       'Challenge me next?',
       'Wait, is this live??',
       'Big vibes!',
-      'LFG!', 'Is this on Kick too?', 'Tiktok fam where you at?', 'Clip that!!', 'The Absolute goat', 'Streaming quality is insane', 'Discord link?'
+      'LFG!',
+      'Is this on Kick too?',
+      'Tiktok fam where you at?',
+      'Clip that!!',
+      'The Absolute goat',
+      'Streaming quality is insane',
+      'Discord link?',
     ];
 
     const newComment: RoomMessage = {
@@ -335,10 +420,10 @@ export class SocialNetworkingService {
       fromUserId: 'fan',
       fromUserName: fans[Math.floor(this.getSecureRandom() * fans.length)],
       message: comments[Math.floor(this.getSecureRandom() * comments.length)],
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
-    this.simulatedLiveChat.update(msgs => {
+    this.simulatedLiveChat.update((msgs) => {
       const updated = [...msgs, newComment];
       return updated.slice(-10); // Keep last 10
     });
@@ -348,12 +433,12 @@ export class SocialNetworkingService {
 
   requestNeuralSync(toUserId: string) {
     const profile = this.profileService.profile();
-    this.neuralSyncStatus.set("syncing");
-    this.socket?.emit("neural_sync_request", {
+    this.neuralSyncStatus.set('syncing');
+    this.socket?.emit('neural_sync_request', {
       toUserId,
       fromUserId: profile.id,
       fromUserName: profile.artistName,
-      syncType: 'FULL_DASHBOARD'
+      syncType: 'FULL_DASHBOARD',
     });
   }
 
@@ -363,10 +448,12 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const history = await firstValueFrom(this.http.get<any[]>(
-        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/messages/${friendId}`,
-        { headers }
-      ));
+      const history = await firstValueFrom(
+        this.http.get<any[]>(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/messages/${friendId}`,
+          { headers },
+        ),
+      );
       this.messages.set(history);
     } catch (e) {
       console.error('Failed to load message history', e);
@@ -378,10 +465,12 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const friends = await firstValueFrom(this.http.get<OnlineUser[]>(
-        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends`,
-        { headers }
-      ));
+      const friends = await firstValueFrom(
+        this.http.get<OnlineUser[]>(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends`,
+          { headers },
+        ),
+      );
       this.friends.set(friends);
     } catch (e) {
       console.error('Failed to load friends', e);
@@ -394,11 +483,13 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await firstValueFrom(this.http.post(
-        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
-        {},
-        { headers }
-      ));
+      await firstValueFrom(
+        this.http.post(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+          {},
+          { headers },
+        ),
+      );
       await this.loadFriends();
     } catch (e) {
       console.error('Failed to add friend', e);
@@ -412,11 +503,13 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await firstValueFrom(this.http.patch(
-        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
-        { status },
-        { headers }
-      ));
+      await firstValueFrom(
+        this.http.patch(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+          { status },
+          { headers },
+        ),
+      );
       await this.loadFriends();
     } catch (e) {
       console.error('Failed to respond to friend request', e);
@@ -429,10 +522,12 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      await firstValueFrom(this.http.delete(
-        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
-        { headers }
-      ));
+      await firstValueFrom(
+        this.http.delete(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+          { headers },
+        ),
+      );
       await this.loadFriends();
     } catch (e) {
       console.error('Failed to remove friend', e);
@@ -442,7 +537,11 @@ export class SocialNetworkingService {
   createParty(gameId: string) {
     const profile = this.profileService.profile();
     const partyId = Math.random().toString(36).substring(7);
-    this.socket?.emit("create_party", { partyId, leaderId: profile.id, gameId });
+    this.socket?.emit('create_party', {
+      partyId,
+      leaderId: profile.id,
+      gameId,
+    });
   }
 
 
@@ -450,17 +549,21 @@ export class SocialNetworkingService {
     const partyId = this.currentPartyId();
     if (!partyId) return;
     const profile = this.profileService.profile();
-    this.socket?.emit("invite_to_party", {
+    this.socket?.emit('invite_to_party', {
       toUserId,
       partyId,
       fromUserId: profile.id,
       fromUserName: profile.artistName,
-      gameId: 'global'
+      gameId: 'global',
     });
   }
   joinParty(partyId: string) {
     const profile = this.profileService.profile();
-    this.socket?.emit("join_party", { partyId, userId: profile.id, artistName: profile.artistName });
+    this.socket?.emit('join_party', {
+      partyId,
+      userId: profile.id,
+      artistName: profile.artistName,
+    });
     this.currentPartyId.set(partyId);
   }
 
@@ -468,7 +571,11 @@ export class SocialNetworkingService {
     const partyId = this.currentPartyId();
     if (!partyId) return;
     const profile = this.profileService.profile();
-    this.socket?.emit("leave_party", { partyId, userId: profile.id, artistName: profile.artistName });
+    this.socket?.emit('leave_party', {
+      partyId,
+      userId: profile.id,
+      artistName: profile.artistName,
+    });
     this.currentPartyId.set(null);
   }
 
@@ -476,27 +583,34 @@ export class SocialNetworkingService {
   launchPartyGame(gameId: string) {
     const partyId = this.currentPartyId();
     if (!partyId) return;
-    this.socket?.emit("party_launch_game", { partyId, gameId });
+    this.socket?.emit('party_launch_game', { partyId, gameId });
   }
 
   sendPartyMessage(message: string) {
     const partyId = this.currentPartyId();
     if (!partyId) return;
     const profile = this.profileService.profile();
-    this.socket?.emit("send_party_message", { partyId, message, fromUserId: profile.id, fromUserName: profile.artistName });
+    this.socket?.emit('send_party_message', {
+      partyId,
+      message,
+      fromUserId: profile.id,
+      fromUserName: profile.artistName,
+    });
   }
 
   async searchUsers(query: string): Promise<OnlineUser[]> {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      return await firstValueFrom(this.http.get<OnlineUser[]>(
-        `${APP_SECURITY_CONFIG.api_url}/users/search`,
-        {
-          params: { q: query, location: query },
-          headers
-        }
-      ));
+      return await firstValueFrom(
+        this.http.get<OnlineUser[]>(
+          `${APP_SECURITY_CONFIG.api_url}/users/search`,
+          {
+            params: { q: query, location: query },
+            headers,
+          },
+        ),
+      );
     } catch (e) {
       return [];
     }
@@ -506,7 +620,12 @@ export class SocialNetworkingService {
     try {
       const token = this.tokenService.jwtToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      return await firstValueFrom(this.http.get<OnlineUser[]>(`${APP_SECURITY_CONFIG.api_url}/users/featured`, { headers }));
+      return await firstValueFrom(
+        this.http.get<OnlineUser[]>(
+          `${APP_SECURITY_CONFIG.api_url}/users/featured`,
+          { headers },
+        ),
+      );
     } catch (e) {
       return [];
     }
@@ -515,28 +634,30 @@ export class SocialNetworkingService {
   queueForMatch(gameId: string) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
-    this.matchmakingStatus.set("searching");
-    this.socket?.emit("queue_for_match", { userId, gameId });
+    this.matchmakingStatus.set('searching');
+    this.socket?.emit('queue_for_match', { userId, gameId });
   }
 
   cancelMatch(gameId: string) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
-    this.matchmakingStatus.set("idle");
-    this.socket?.emit("cancel_match", { userId, gameId });
+    this.matchmakingStatus.set('idle');
+    this.socket?.emit('cancel_match', { userId, gameId });
   }
   toggleIncognito() {
-    this.isIncognito.update(v => !v);
+    this.isIncognito.update((v) => !v);
     const profile = this.profileService.profile();
     this.socket?.emit('register_presence', {
       userId: profile.id,
-      metadata: this.isIncognito() ? { artistName: 'Incognito', profileSetupCompleted: false } : {
-        artistName: profile.artistName,
-        primaryGenre: profile.primaryGenre,
-        avatarImage: profile.avatarImage,
-          location: profile.location,
-        profileSetupCompleted: profile.profileSetupCompleted
-      }
+      metadata: this.isIncognito()
+        ? { artistName: 'Incognito', profileSetupCompleted: false }
+        : {
+            artistName: profile.artistName,
+            primaryGenre: profile.primaryGenre,
+            avatarImage: profile.avatarImage,
+            location: profile.location,
+            profileSetupCompleted: profile.profileSetupCompleted,
+          },
     });
     if (this.isIncognito()) {
       this.onlineUsers.set([]);

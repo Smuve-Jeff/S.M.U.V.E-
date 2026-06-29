@@ -343,8 +343,9 @@
               </div>
               <div class="user-actions">
                 <ng-container *ngIf="friend.status === 'accepted'">
-                  <button class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>\n                  <button class="action-btn" *ngIf="socialService.currentPartyId()" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
-                  <button class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
+                  <button type="button" class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>
+                  <button type="button" class="action-btn" *ngIf="socialService.currentPartyId()" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
+                  <button type="button" class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
                 </ng-container>
                 <ng-container *ngIf="friend.status === 'pending'">
                   <button class="action-btn" (click)="socialService.respondToFriendRequest(friend.userId, 'accepted')">APPROVE</button>

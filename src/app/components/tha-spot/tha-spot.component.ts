@@ -216,7 +216,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.socialService.updateStatus({ inGame });
   });
 
-  constructor() { effect(() => { this.activeHubTab.set(this.socialService.activeHubTab()); });
+  constructor() {
+    effect(() => {
+      this.activeHubTab.set(this.socialService.activeHubTab());
+    });
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
 

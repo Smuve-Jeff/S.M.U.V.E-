@@ -257,6 +257,27 @@ const initDb = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS direct_messages (
+        id SERIAL PRIMARY KEY,
+        from_user_id VARCHAR(255) NOT NULL,
+        to_user_id VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp BIGINT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (from_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS friends (
+        user_id VARCHAR(255) NOT NULL,
+        friend_id VARCHAR(255) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, friend_id),
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (friend_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
     `);
     console.log(
       'Database initialized with security, project, and identity support'
@@ -846,13 +867,6 @@ const setupSocketIO = (server) => {
       io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
-    socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
-      const userInfo = onlineUsers.get(toUserId);
-      if (userInfo) {
-        io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
-      }
-    });
 
     socket.on("challenge_player", (data) => {
       const { toUserId, fromUserId, gameId } = data;
@@ -944,8 +958,24 @@ const setupSocketIO = (server) => {
 
 
     socket.on("send_message", async (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
+      const { toUserId, message } = data;
       const timestamp = Date.now();
+
+      // Derive sender from authenticated socket context
+      let fromUserId = null;
+      let fromUserName = 'ANONYMOUS';
+      for (const [userId, info] of onlineUsers.entries()) {
+        if (info.socketId === socket.id) {
+          fromUserId = userId;
+          fromUserName = info.metadata?.artistName || 'OPERATIVE';
+          break;
+        }
+      }
+
+      if (!fromUserId) {
+        console.error('Unauthorized send_message attempt');
+        return;
+      }
 
       try {
         await pool.query(
