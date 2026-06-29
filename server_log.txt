@@ -1,9 +1,0 @@
-
-> s.m.u.v.e-2.0@0.0.0 start
-> serve -s Build/browser
-
- INFO  Accepting connections at http://localhost:3000
- HTTP  6/29/2026 5:16:58 AM ::1 HEAD /
- HTTP  6/29/2026 5:16:58 AM ::1 Returned 200 in 234 ms
-
- INFO  Gracefully shutting down. Please wait...

@@ -279,16 +279,12 @@ export class SocialNetworkingService {
 
     const popup = window.open(url, 'Twitch Auth', `width=${width},height=${height},left=${left},top=${top}`);
 
-    const authOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
-    const handleAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== authOrigin) return;
-      if (event.data?.type === 'TWITCH_AUTH_SUCCESS') {
-        window.removeEventListener('message', handleAuthMessage);
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'TWITCH_AUTH_SUCCESS') {
         console.log('Twitch connected successfully');
         this.currentPlatform.set('Twitch (Connected)');
       }
-    };
-    window.addEventListener('message', handleAuthMessage);
+    }, { once: true });
   }
   startStream(platform: string) {
     this.isStreaming.set(true);

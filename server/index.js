@@ -978,10 +978,10 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, fromUserId, fromUserName, syncData } = data;
+      const { toUserId, fromUserId, fromUserName } = data;
       const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName });
         console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
@@ -1107,17 +1107,7 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    const targetOrigin = process.env.FRONTEND_ORIGIN;
-    if (!targetOrigin) {
-      return res.status(500).send('OAuth frontend origin is not configured.');
-    }
-    const payload = JSON.stringify({
-      type: `${platform.toUpperCase()}_AUTH_SUCCESS`,
-      code: typeof code === 'string' ? code : '',
-    }).replace(/</g, '\\u003c');
-    res
-      .type('html')
-      .send(`<html><script>window.opener?.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
+    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
   });
 });
 
