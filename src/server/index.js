@@ -1021,6 +1021,7 @@ const setupSocketIO = (server) => {
       console.log("Elite user disconnected:", socket.id);
     });
   });
+  return io;
 };
 
 const startEliteServer = async (port = process.env.PORT || 3000) => {
