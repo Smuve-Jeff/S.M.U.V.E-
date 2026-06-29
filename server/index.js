@@ -39,6 +39,15 @@ app.use(cors({
   credentials: true
 }));
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', apiLimiter);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -89,18 +98,9 @@ const authorizeUser = (req, res, next) => {
   next();
 };
 
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use('/api/', apiLimiter);
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false
 });
 
 const initDb = async () => {
@@ -115,7 +115,7 @@ const initDb = async () => {
       CREATE TABLE IF NOT EXISTS friends (
         user_id TEXT,
         friend_id TEXT,
-        status TEXT DEFAULT 'pending',
+        status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, friend_id)
       );
@@ -177,6 +177,7 @@ const setupSocketIO = (server) => {
 
   const onlineUsers = new Map();
   const matchmakingQueue = new Map();
+  const socketToUser = new Map();
 
   const broadcastOnlineUsers = () => {
     const users = Array.from(onlineUsers.entries()).map(([userId, info]) => ({
@@ -187,21 +188,40 @@ const setupSocketIO = (server) => {
   };
 
   const getSenderFromSocket = (socket) => {
-    for (const [userId, info] of onlineUsers.entries()) {
-      if (info.socketId === socket.id) return { userId, ...info.metadata };
-    }
-    return null;
+    const userId = socketToUser.get(socket.id);
+    if (!userId) return null;
+    const info = onlineUsers.get(userId);
+    if (!info) return null;
+    return { userId, ...info.metadata };
   };
 
   io.on("connection", (socket) => {
     console.log("Elite operative connected:", socket.id);
 
     socket.on("register_presence", (data) => {
-      const { userId, metadata } = data;
-      if (userId) {
+      const { token, metadata } = data;
+
+      if (!token) {
+        socket.emit("auth_error", { error: "Authentication token required." });
+        return;
+      }
+
+      jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+          socket.emit("auth_error", { error: "Invalid or expired token." });
+          return;
+        }
+
+        const userId = user.userId;
+        if (!userId) {
+          socket.emit("auth_error", { error: "Invalid token payload." });
+          return;
+        }
+
+        socketToUser.set(socket.id, userId);
         onlineUsers.set(userId, { socketId: socket.id, metadata });
         broadcastOnlineUsers();
-      }
+      });
     });
 
     socket.on("join_room", (roomId) => {
@@ -299,11 +319,10 @@ const setupSocketIO = (server) => {
         }
       });
 
-      for (const [userId, info] of onlineUsers.entries()) {
-        if (info.socketId === socket.id) {
-          onlineUsers.delete(userId);
-          break;
-        }
+      const userId = socketToUser.get(socket.id);
+      if (userId) {
+        onlineUsers.delete(userId);
+        socketToUser.delete(socket.id);
       }
       broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
@@ -442,6 +461,11 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
     const { userId, friendId } = req.params;
     const { status } = req.body;
 
+    const allowedStatuses = ['pending', 'accepted', 'declined'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value.' });
+    }
+
     if (status === 'declined') {
         await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
         await sendSocialNotification(friendId, 'Connection Update', "Your connection request to an operative has been declined.");
@@ -550,8 +574,10 @@ PLATFORMS.forEach(platform => {
     const { code } = req.query;
     const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
     const targetOrigin = frontendOrigin;
-    const payload = JSON.stringify({ type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null });
-    res.send("<html><script>window.opener.postMessage(" + payload + ", " + JSON.stringify(targetOrigin) + "); window.close();</script></html>");
+    const payload = { type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null };
+    const escapedPayload = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+    const escapedOrigin = JSON.stringify(targetOrigin).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + escapedOrigin + "); window.close();</script></html>");
   });
 });
 
@@ -559,8 +585,11 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
   await initDb();
   const server = http.createServer(app);
   setupSocketIO(server);
-  server.listen(port, '0.0.0.0', () => {
-    console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
+  await new Promise((resolve) => {
+    server.listen(port, '0.0.0.0', () => {
+      console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
+      resolve();
+    });
   });
   return server;
 };

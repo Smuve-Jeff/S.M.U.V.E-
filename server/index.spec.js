@@ -64,8 +64,10 @@ describe('server/index.js backend smoke tests', () => {
     await new Promise((resolve, reject) => {
       const url = new URL(path, baseUrl);
       const req = http.request(
-        url,
         {
+          hostname: url.hostname,
+          port: url.port,
+          path: url.pathname + url.search,
           method: options.method || 'GET',
           headers: options.headers,
         },
@@ -80,11 +82,15 @@ describe('server/index.js backend smoke tests', () => {
             try {
               if (body) json = JSON.parse(body);
             } catch (e) {
-              console.error('Failed to parse response body:', body);
+              // Only log parse errors for non-TLS errors
+              if (!body.includes('TLS handshake')) {
+                console.error('Failed to parse response body:', body);
+              }
             }
             resolve({
               status: res.statusCode,
               json,
+              body,
             });
           });
         }
