@@ -6,7 +6,7 @@ Follow these precise settings to ensure stable production environments.
 **Service Name**: `smuve-v4-backend`
 
 - **Root Directory**: `server`
-- **Build Command**: `npm install`
+- **Build Command**: `npm install --legacy-peer-deps`
 - **Start Command**: `node index.js`
 - **Node Version**: `22.12.0` (Set `NODE_VERSION` in Env Vars)
 
