@@ -3,7 +3,7 @@ const http = require('http');
 const { Pool } = require('pg');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 const crypto = require('node:crypto');
@@ -98,9 +98,14 @@ const authorizeUser = (req, res, next) => {
   next();
 };
 
+// --- DATABASE LOGIC ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? true : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
 });
 
 const initDb = async () => {
@@ -112,7 +117,6 @@ const initDb = async () => {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS friends (
       CREATE TABLE IF NOT EXISTS friends (
         user_id TEXT,
         friend_id TEXT,
@@ -156,7 +160,7 @@ const initDb = async () => {
   }
 };
 
-const sendSocialNotification = async (userId, title, body) => {
+const sendSocialNotification = async (userId, subject, message) => {
   try {
     const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
     const email = rows[0]?.email;
@@ -165,6 +169,7 @@ const sendSocialNotification = async (userId, title, body) => {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT || 587,
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -174,178 +179,123 @@ const sendSocialNotification = async (userId, title, body) => {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || '"S.M.U.V.E 2.0" <noreply@smuve.com>',
       to: email,
-      subject: title,
-      text: body,
+      subject: (process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0') + ': ' + subject,
+      text: message,
     });
   } catch (err) {
     console.error("Email notification failure:", err);
   }
 };
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MOCK_KEY' });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
 
 // --- SOCKET.IO LOGIC ---
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
       origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0-fixed.onrender.com', 'http://localhost:4200'],
-      methods: ["GET", "POST"],
-      credentials: true
+      methods: ["GET", "POST"]
     }
   });
 
-  const onlineUsers = new Map();
-  const matchmakingQueue = new Map();
-
-  const broadcastOnlineUsers = () => {
-    const users = Array.from(onlineUsers.entries()).map(([userId, info]) => ({
-      userId,
-      ...info.metadata
-    }));
-    io.emit("users_online", users);
-  };
-
   const getSenderFromSocket = (socket) => {
-    for (const [userId, info] of onlineUsers.entries()) {
-      if (info.socketId === socket.id) return { userId, ...info.metadata };
-    }
-    return null;
+      const authHeader = socket.handshake.auth.token;
+      if (!authHeader) return null;
+      try {
+          const token = authHeader.split(' ')[1];
+          const decoded = jwt.verify(token, JWT_SECRET);
+          return decoded.userId;
+      } catch (err) {
+          return null;
+      }
   };
 
-  io.on("connection", (socket) => {
-    console.log("Elite operative connected:", socket.id);
+  io.on('connection', (socket) => {
+    console.log('Operative connected:', socket.id);
 
-    socket.on("register_presence", (data = {}) => {
-      const { token, metadata } = data;
-      if (!token) {
-        socket.emit("auth_error", { error: "Authentication token required." });
-        return;
-      }
-
-      jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-          socket.emit("auth_error", { error: "Invalid or expired token." });
-          return;
-        }
-        const userId = user.userId;
-        if (userId) {
-          onlineUsers.set(userId, { socketId: socket.id, metadata });
-          socket.verifiedUserId = userId;
-          broadcastOnlineUsers();
-        }
-      });
+    socket.on('register_presence', async (data) => {
+      const userId = getSenderFromSocket(socket);
+      if (!userId) return;
+      socket.join('user_' + userId);
+      console.log('Presence registered for:', userId);
     });
 
-    socket.on("join_room", (roomId) => {
-      socket.join(roomId);
+    socket.on('join_room', (room) => {
+      socket.join(room);
     });
 
-    socket.on("start_matchmaking", (data = {}) => {
-      const { gameId, userId, metadata } = data;
-      if (!gameId || !userId) return;
-
-      if (!matchmakingQueue.has(gameId)) matchmakingQueue.set(gameId, []);
-      const queue = matchmakingQueue.get(gameId);
-
-      if (queue.find(u => u.userId === userId)) return;
-
-      if (queue.length > 0) {
-        const rival = queue.shift();
-        const roomId = "match_" + gameId + "_" + Date.now();
-
-        io.to(socket.id).emit("match_found", { roomId, rival: rival.metadata });
-        io.to(rival.socketId).emit("match_found", { roomId, rival: metadata });
-      } else {
-        queue.push({ userId, socketId: socket.id, metadata });
-      }
+    socket.on('send_room_message', (data) => {
+      const { room, message } = data;
+      const userId = getSenderFromSocket(socket);
+      if (!userId) return;
+      io.to(room).emit('room_message', { from: userId, message, timestamp: Date.now() });
     });
 
-    socket.on("send_message", async (data = {}) => {
+    socket.on('send_message', async (data) => {
       const { toUserId, message } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+      const fromUserId = getSenderFromSocket(socket);
+      if (!fromUserId) return;
 
+      const timestamp = Date.now();
       try {
-        const timestamp = Date.now();
-        await pool.query(
-          'INSERT INTO direct_messages (from_user_id, to_user_id, message, timestamp) VALUES ($1, $2, $3, $4)',
-          [sender.userId, toUserId, message, timestamp]
-        );
-
-        const recipientInfo = onlineUsers.get(toUserId);
-        if (recipientInfo) {
-          io.to(recipientInfo.socketId).emit("receive_message", {
-            fromUserId: sender.userId,
-            message,
-            timestamp
-          });
-        }
+          await pool.query(
+              'INSERT INTO direct_messages (from_user_id, to_user_id, message, timestamp) VALUES ($1, $2, $3, $4)',
+              [fromUserId, toUserId, message, timestamp]
+          );
+          io.to('user_' + toUserId).emit('private_message', { fromUserId, message, timestamp });
       } catch (err) {
-        console.error("DM persistence failure:", err);
+          console.error('DM Error:', err);
       }
     });
 
-    socket.on("request_neural_sync", (data = {}) => {
-      const { toUserId, syncType } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("neural_sync_request", { fromUserId: sender.userId, fromUserName: sender.artistName, syncType });
-      }
+    socket.on('challenge_player', (data) => {
+      const { toUserId, gameId } = data;
+      const fromUserId = getSenderFromSocket(socket);
+      if (!fromUserId) return;
+      io.to('user_' + toUserId).emit('challenge_received', { fromUserId, gameId });
     });
 
-    socket.on("approve_neural_sync", (data = {}) => {
-      const { toUserId, syncData } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("neural_sync_complete", { fromUserId: sender.userId, fromUserName: sender.artistName, syncData });
-      }
-    });
-
-    socket.on("invite_to_party", (data = {}) => {
-      const { toUserId, partyId, gameId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("party_invite", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, gameId });
-      }
-    });
-
-    socket.on("send_party_message", (data = {}) => {
-      const { partyId, message } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      io.to("party_" + partyId).emit("party_message", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, message, timestamp: Date.now() });
-    });
-
-    socket.on("disconnect", () => {
-      matchmakingQueue.forEach((queue, gameId) => {
-        const index = queue.findIndex(u => u.socketId === socket.id);
-        if (index !== -1) {
-          queue.splice(index, 1);
-          if (queue.length === 0) matchmakingQueue.delete(gameId);
-        }
-      });
-
-      for (const [userId, info] of onlineUsers.entries()) {
-        if (info.socketId === socket.id) {
-          onlineUsers.delete(userId);
-          break;
-        }
-      }
-      broadcastOnlineUsers();
-      console.log("Elite user disconnected:", socket.id);
+    socket.on('disconnect', () => {
+      console.log('Operative disconnected');
     });
   });
 };
 
-// --- API ENDPOINTS ---
+// --- ROUTES ---
 
-// User Discovery
+// Profile Management
+app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rows } = await pool.query('SELECT profile_data FROM user_profiles WHERE user_id = $1', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+    res.json(rows[0].profile_data);
+  } catch (err) {
+    console.error('Fetch Profile Error:', err);
+    res.status(500).json({ error: 'Failed to fetch profile.' });
+  }
+});
+
+app.post('/api/profile', authenticateToken, async (req, res) => {
+  try {
+    const { userId, profileData } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Unauthorized profile update.' });
+    }
+    await pool.query(
+      'INSERT INTO user_profiles (user_id, profile_data, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET profile_data = $2, updated_at = CURRENT_TIMESTAMP',
+      [userId, profileData]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save Profile Error:', err);
+    res.status(500).json({ error: 'Failed to save profile.' });
+  }
+});
+
+// User Search & Discovery
 app.get('/api/users/search', authenticateToken, async (req, res) => {
   try {
     const { q, location } = req.query;
@@ -356,11 +306,11 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
         profile_data->>'primaryGenre' as "primaryGenre",
         profile_data->>'avatarImage' as "avatarImage",
         profile_data->>'location' as "location",
-        (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted",
         (profile_data->>'eliteScore')::int as "eliteScore",
         (profile_data->>'squadCount')::int as "squadCount"
-       FROM user_profiles
-       WHERE profile_data->>'artistName' != 'Incognito'
+      FROM user_profiles
+      WHERE profile_data->>'profileSetupCompleted' = 'true'
+      AND profile_data->>'artistName' != 'Incognito'
     `;
     const params = [];
 
@@ -524,11 +474,10 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
   try {
     const { prompt } = req.body;
-    const response = await genAI.models.generateContent({
-      model: "gemini-1.5-pro",
-      prompt
-    });
-    res.json({ text: response.text });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ text: response.text() });
   } catch (err) {
     console.error('AI Analysis Error:', err);
     res.status(500).json({ error: 'Failed to analyze content.' });
@@ -540,11 +489,10 @@ app.post('/api/ai/deep-audit', authenticateToken, async (req, res) => {
     const { profileData, projectSummary } = req.body;
     const prompt = "Perform a deep creative audit for an artist with this profile: " + JSON.stringify(profileData) + " and current project status: " + JSON.stringify(projectSummary) + ". Provide 3 actionable strategic upgrades.";
 
-    const response = await genAI.models.generateContent({
-      model: "gemini-1.5-pro",
-      prompt
-    });
-    res.json({ audit: response.text });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ audit: response.text() });
   } catch (err) {
     console.error('Deep Audit Error:', err);
     res.status(500).json({ error: 'Failed to perform deep audit.' });
@@ -556,11 +504,10 @@ app.post('/api/ai/industry-search', authenticateToken, async (req, res) => {
     const { query } = req.body;
     const prompt = "Act as an industry intelligence operative. Research and summarize the latest trends and opportunities for: " + query;
 
-    const response = await genAI.models.generateContent({
-      model: "gemini-1.5-pro",
-      prompt
-    });
-    res.json({ intelligence: response.text });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    res.json({ intelligence: response.text() });
   } catch (err) {
     console.error('Industry Search Error:', err);
     res.status(500).json({ error: 'Failed to gather industry intelligence.' });
