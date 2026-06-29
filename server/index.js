@@ -978,10 +978,10 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, fromUserId, fromUserName } = data;
+      const { toUserId, fromUserId, fromUserName, syncData } = data;
       const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName });
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
         console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
