@@ -17,6 +17,8 @@ export interface OnlineUser {
   profileSetupCompleted?: boolean;
   online?: boolean;
   location?: string;
+  eliteScore?: number;
+  squadCount?: number;
 }
 
 export interface PrivateMessage {
