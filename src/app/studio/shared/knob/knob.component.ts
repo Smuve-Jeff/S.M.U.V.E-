@@ -242,5 +242,10 @@ export class KnobComponent implements OnInit, OnChanges {
     this.displayValue.set(formatted + this.unit);
   }
 
+  @HostListener('dblclick')
+  resetToDefault() {
+    this.value = this.defaultValue;
+    this.updateFromValue(this.value);
+    this.valueChange.emit(this.value);
   }
 }

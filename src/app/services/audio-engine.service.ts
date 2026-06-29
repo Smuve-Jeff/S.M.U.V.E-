@@ -136,7 +136,6 @@ export class AudioEngineService {
     if (this.isPlaying()) return;
     this.isCountIn.set(true);
     this.isPlaying.set(true);
-    this.currentStep = 0;
     this.countInRemainingSteps = this.stepsPerBeat() * 4;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
     this.schedulerHandle = setInterval(() => this.scheduler(), AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS);
@@ -188,7 +187,6 @@ export class AudioEngineService {
         if (this.countInRemainingSteps <= 0) {
           this.isCountIn.set(false);
           this.currentStep = 0;
-          this.sendMidiStart();
           this.onCountInComplete?.();
         }
         continue;
