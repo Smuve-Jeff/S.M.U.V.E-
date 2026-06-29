@@ -18,7 +18,7 @@ party_launch_listeners = """
 """
 
 if 'party_launch_game' not in content:
-    content = content.replace('this.socket.on("party_message", (data: any) => {', 'this.socket.on("party_message", (data: any) => {\n' + party_launch_listeners)
+    content = content.replace('this.socket.on("party_message", (data: any) => {', party_launch_listeners + '\n    this.socket.on("party_message", (data: any) => {')
 
 # Add launchPartyGame method
 launch_method = """
