@@ -1107,7 +1107,10 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
+    const frontendOrigin = process.env.FRONTEND_ORIGIN || null;
+    const targetOrigin = frontendOrigin || '*';
+    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: code || null });
+    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
   });
 });
 
