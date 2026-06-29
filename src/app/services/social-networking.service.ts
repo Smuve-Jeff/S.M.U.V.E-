@@ -113,8 +113,8 @@ export class SocialNetworkingService {
     const token = this.tokenService.jwtToken();
     this.socket = io(backendUrl, {
       auth: {
-        token: token ? `Bearer ${token}` : ''
-      }
+        token: token ? `Bearer ${token}` : '',
+      },
     });
 
     this.socket.on('connect', () => {
