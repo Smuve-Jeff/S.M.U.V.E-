@@ -332,9 +332,13 @@ export class SocialNetworkingService {
       `width=${width},height=${height},left=${left},top=${top}`,
     );
 
+    const trustedOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
     window.addEventListener(
       'message',
       (event) => {
+        if (event.origin !== trustedOrigin) {
+          return;
+        }
         if (event.data.type === `${platform.toUpperCase()}_AUTH_SUCCESS`) {
           console.log(`${platform} connected successfully`);
           this.currentPlatform.set(`${platform} (Connected)`);
