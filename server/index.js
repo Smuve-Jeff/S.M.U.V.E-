@@ -17,6 +17,7 @@ const REQUIRED_ENV_VARS = [
   'GEMINI_API_KEY'
 ];
 
+console.log('STABILITY_CHECK: Verifying environment variables...');
 const MISSING_VARS = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
 if (MISSING_VARS.length > 0) {
   console.error('CRITICAL_ERROR: Missing environment variables:', MISSING_VARS.join(', '));
@@ -182,7 +183,7 @@ const setupSocketIO = (server) => {
 
   const getSenderFromSocket = (socket) => {
     try {
-      const authHeader = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
+      const authHeader = socket.handshake.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
       if (!token) return null;
       return jwt.verify(token, JWT_SECRET);
@@ -300,7 +301,7 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
 app.get('/api/users/search', authenticateToken, async (req, res) => {
   try {
     const { q, location } = req.query;
-    let query = 'SELECT user_id as "userId", profile_data->>\'artistName\' as "artistName", profile_data->>\'primaryGenre\' as "primaryGenre", profile_data->>\'avatarImage\' as "avatarImage", profile_data->>\'location\' as "location", (profile_data->>\'eliteScore\')::int as "eliteScore", (profile_data->>\'squadCount\')::int as "squadCount" FROM user_profiles WHERE profile_data->>\'profileSetupCompleted\' = \'true\' AND profile_data->>\'artistName\' != \'Incognito\';';
+    let query = `SELECT user_id as "userId", profile_data->>'artistName' as "artistName", profile_data->>'primaryGenre' as "primaryGenre", profile_data->>'avatarImage' as "avatarImage", profile_data->>'location' as "location" FROM user_profiles WHERE 1=1`;
     const params = [];
 
     if (q && typeof q === 'string') {
@@ -534,25 +535,26 @@ PLATFORMS.forEach(platform => {
 
 const startEliteServer = async (port = process.env.PORT || 3000) => {
   try {
-    console.log('STABILITY_CHECK: Starting Elite Server...');
+    console.log(`STABILITY_CHECK: Starting Elite Server on port ${port}...`);
     await initDb();
     const server = http.createServer(app);
     setupSocketIO(server);
-    await new Promise((resolve, reject) => {
-      const onError = (err) => {
+
+    return new Promise((resolve, reject) => {
+      server.on('error', (err) => {
+        console.error('CRITICAL_RUNTIME_ERROR: Server error event:', err.message);
         reject(err);
-      };
-      server.once('error', onError);
+      });
+
       server.listen(port, '0.0.0.0', () => {
-        server.off('error', onError);
         console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
-        resolve();
+        resolve(server);
       });
     });
-    return server;
   } catch (err) {
     console.error('CRITICAL_STARTUP_ERROR: Failed to start server:', err.message);
     if (process.env.NODE_ENV === 'production') {
+      console.error('APPLICATION_FATAL: Exiting due to startup failure.');
       process.exit(1);
     }
   }
