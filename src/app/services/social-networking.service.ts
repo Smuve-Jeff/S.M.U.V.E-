@@ -154,8 +154,6 @@ export class SocialNetworkingService {
         const currentProfile = this.profileService.profile();
         this.socket?.emit('neural_sync_approve', {
           toUserId: data.fromUserId,
-          fromUserId: userId,
-          fromUserName: currentProfile.artistName,
           syncData: {
             eliteScore: (currentProfile as any).eliteScore,
             squadCount: (currentProfile as any).squadCount,
@@ -299,12 +297,7 @@ export class SocialNetworkingService {
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('send_message', {
-      toUserId,
-      message,
-      fromUserId,
-      fromUserName,
-    });
+    this.socket?.emit('send_message', { toUserId, message });
     this.messages.update((msgs) => [
       ...msgs,
       { fromUserId, fromUserName, toUserId, message, timestamp: Date.now() },
@@ -312,14 +305,7 @@ export class SocialNetworkingService {
   }
 
   challengePlayer(toUserId: string, gameId: string) {
-    const fromUserId = this.profileService.profile().id;
-    const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('challenge_player', {
-      toUserId,
-      fromUserId,
-      fromUserName,
-      gameId,
-    });
+    this.socket?.emit('challenge_player', { toUserId, gameId });
   }
 
   sendVoiceSignal(toUserId: string, signal: any) {
@@ -432,12 +418,9 @@ export class SocialNetworkingService {
 
 
   requestNeuralSync(toUserId: string) {
-    const profile = this.profileService.profile();
     this.neuralSyncStatus.set('syncing');
     this.socket?.emit('neural_sync_request', {
       toUserId,
-      fromUserId: profile.id,
-      fromUserName: profile.artistName,
       syncType: 'FULL_DASHBOARD',
     });
   }
@@ -535,11 +518,9 @@ export class SocialNetworkingService {
   }
 
   createParty(gameId: string) {
-    const profile = this.profileService.profile();
     const partyId = Math.random().toString(36).substring(7);
     this.socket?.emit('create_party', {
       partyId,
-      leaderId: profile.id,
       gameId,
     });
   }
@@ -548,34 +529,21 @@ export class SocialNetworkingService {
   inviteToParty(toUserId: string) {
     const partyId = this.currentPartyId();
     if (!partyId) return;
-    const profile = this.profileService.profile();
     this.socket?.emit('invite_to_party', {
       toUserId,
       partyId,
-      fromUserId: profile.id,
-      fromUserName: profile.artistName,
       gameId: 'global',
     });
   }
   joinParty(partyId: string) {
-    const profile = this.profileService.profile();
-    this.socket?.emit('join_party', {
-      partyId,
-      userId: profile.id,
-      artistName: profile.artistName,
-    });
+    this.socket?.emit('join_party', { partyId });
     this.currentPartyId.set(partyId);
   }
 
   leaveParty() {
     const partyId = this.currentPartyId();
     if (!partyId) return;
-    const profile = this.profileService.profile();
-    this.socket?.emit('leave_party', {
-      partyId,
-      userId: profile.id,
-      artistName: profile.artistName,
-    });
+    this.socket?.emit('leave_party', { partyId });
     this.currentPartyId.set(null);
   }
 
@@ -589,13 +557,7 @@ export class SocialNetworkingService {
   sendPartyMessage(message: string) {
     const partyId = this.currentPartyId();
     if (!partyId) return;
-    const profile = this.profileService.profile();
-    this.socket?.emit('send_party_message', {
-      partyId,
-      message,
-      fromUserId: profile.id,
-      fromUserName: profile.artistName,
-    });
+    this.socket?.emit('send_party_message', { partyId, message });
   }
 
   async searchUsers(query: string): Promise<OnlineUser[]> {
