@@ -147,6 +147,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const queryString = params.toString();
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
+    navigator.clipboard.writeText(url).then(() => {
+      this.snackbarService.success('Studio link copied to clipboard!');
     });
   }
 
