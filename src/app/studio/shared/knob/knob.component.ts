@@ -153,6 +153,7 @@ export class KnobComponent implements OnInit, OnChanges {
   @Input() max = 100;
   @Input() step = 1;
   @Input() value = 0;
+  @Input() defaultValue = 0;
   @Input() showValue = true;
   @Input() unit = '';
 
@@ -212,7 +213,9 @@ export class KnobComponent implements OnInit, OnChanges {
     const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
     const sensitivity = isMobile ? 350 : 200;
 
-    let newValue = this.startValue + (deltaY / sensitivity) * range;
+    const isFine = (event instanceof MouseEvent && event.shiftKey) || (event instanceof TouchEvent && event.touches.length > 1);
+    const finalSensitivity = isFine ? sensitivity * 5 : sensitivity;
+    let newValue = this.startValue + (deltaY / finalSensitivity) * range;
     newValue = Math.max(this.min, Math.min(this.max, newValue));
     newValue = Math.round(newValue / this.step) * this.step;
 
@@ -237,5 +240,12 @@ export class KnobComponent implements OnInit, OnChanges {
 
     const formatted = val % 1 === 0 ? val.toString() : val.toFixed(1);
     this.displayValue.set(formatted + this.unit);
+  }
+
+  @HostListener('dblclick')
+  resetToDefault() {
+    this.value = this.defaultValue;
+    this.updateFromValue(this.value);
+    this.valueChange.emit(this.value);
   }
 }

@@ -46,7 +46,7 @@ export interface InstrumentPreset {
     mix?: number;
   }[];
   synth?: {
-    type: OscillatorType;
+    type: string;
     attack: number;
     decay: number;
     sustain: number;
@@ -89,6 +89,19 @@ export class InstrumentsService {
       ],
     },
     {
+      id: 'modern-kit-elite',
+      name: 'Modern Pop Kit',
+      type: 'sample',
+      category: 'drum',
+      tags: ['drums', 'modern', 'pop', 'elite'],
+      sampleQuality: 'high',
+      zones: [
+        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3' },
+        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3' },
+        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3' }
+      ]
+    },
+    {
       id: 'strat-elite-clean',
       name: 'Strat Elite Clean',
       type: 'sample',
@@ -98,7 +111,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [40, 88],
-          url: 'https://tonejs.github.io/audio/casio/G3.mp3', // Placeholder using available Tone.js assets
+          url: 'https://tonejs.github.io/audio/casio/G3.mp3',
         },
       ],
     },
@@ -112,7 +125,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3', // Representational URL
+          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3',
         },
       ],
     },
@@ -282,7 +295,7 @@ export class InstrumentsService {
       const osc = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
 
-      osc.type = preset.synth.type;
+      osc.type = preset.synth.type as any;
       osc.frequency.setValueAtTime(preset.category === 'bass' ? 110 : 440, now);
 
       filter.type = 'lowpass';
@@ -295,7 +308,7 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-      this.audioEngine.logger.info(`Auditioning sample: ${preset.name}`);
+      this.audioEngine.logger.info('Auditioning sample: ' + preset.name);
       const osc = ctx.createOscillator();
       osc.connect(out);
       osc.start(now);

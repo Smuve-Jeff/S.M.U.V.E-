@@ -39,7 +39,7 @@
     <!-- Tempo/Sync -->
     <div class="transport-tempo glass-v42 relative">
       <div class="tempo-controls">
-        <button (click)="nudgeTempo(-1)" class="nudge-btn">-</button>
+        <button (click)="nudgeTempo(-1)" (contextmenu)="nudgeTempo(-0.1); $event.preventDefault()" class="nudge-btn">-</button>
         <div class="tempo-display-wrapper" (click)="toggleBpmDropdown()">
           <input
             type="number"
@@ -53,7 +53,7 @@
             >arrow_drop_down</span
           >
         </div>
-        <button (click)="nudgeTempo(1)" class="nudge-btn">+</button>
+        <button (click)="nudgeTempo(1)" (contextmenu)="nudgeTempo(0.1); $event.preventDefault()" class="nudge-btn">+</button>
       </div>
       <div class="neon-text-xs opacity-50">BPM</div>
 

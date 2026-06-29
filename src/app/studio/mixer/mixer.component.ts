@@ -106,9 +106,26 @@ export class MixerComponent implements OnInit, OnDestroy {
   toggleViewMode() {
     this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
   }
+
+  startMasterDrag(event: PointerEvent) {
+    const initialY = event.clientY;
+    const initialVol = this.masterVolume();
+    const onMove = (moveEvent: PointerEvent) => {
+      const delta = (initialY - moveEvent.clientY) / 2;
+      this.audioSession.updateMasterVolume(Math.max(0, Math.min(100, initialVol + delta)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
+
   updateMasterVolume(newVolume: number): void {
     this.audioSession.updateMasterVolume(newVolume);
   }
+
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
   }

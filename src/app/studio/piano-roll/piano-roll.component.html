@@ -139,7 +139,7 @@
     <div class="left-section flex flex-col">
        <div class="keys-sidebar no-scrollbar flex-1 bg-black/60" #keysSidebar>
          <div
-           *ngFor="let midi of displayKeys"
+           *ngFor="let midi of displayKeys()"
            class="key-item border-b border-black/20"
            [class.black-key]="isBlackKey(midi)"
            [style.height.px]="rowHeight()"
@@ -169,7 +169,7 @@
           [style.height.px]="canvasHeight()"
         >
           <div
-            *ngFor="let midi of displayKeys"
+            *ngFor="let midi of displayKeys()"
             class="grid-row"
             [class.black-row]="isBlackKey(midi)"
             [style.top.px]="(127 - midi) * rowHeight()"
