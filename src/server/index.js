@@ -1211,6 +1211,9 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
   try {
     const { userId, friendId } = req.params;
     const { status } = req.body; // 'accepted' or 'declined'
+    if (!['accepted', 'declined'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid connection status.' });
+    }
 
     if (status === 'declined') {
         await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
@@ -1218,10 +1221,14 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
         return res.json({ success: true, message: 'Connection declined.' });
     }
 
-    await pool.query(
-      'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
-      [status, friendId, userId]
+    const updateResult = await pool.query(
+      'UPDATE friends SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND friend_id = $3 AND status = $4',
+      [status, friendId, userId, 'pending']
     );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Pending connection request not found.' });
+    }
 
     // Create reciprocal connection
     await pool.query(
