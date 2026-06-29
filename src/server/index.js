@@ -5,7 +5,6 @@ const rateLimit = require('express-rate-limit');
 const { GoogleGenAI } = require('@google/genai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
-const http = require('node:http');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -174,12 +173,6 @@ const createEmailTransport = () => {
   });
 };
 
-/**
- * Sends a social notification email to a user's stored email address.
- * @param {string} userId - The recipient user ID.
- * @param {string} title - The notification title.
- * @param {string} body - The notification message body.
- */
 async function sendSocialNotification(userId, title, body) {
   const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
   const email = rows[0]?.email;
@@ -198,7 +191,6 @@ async function sendSocialNotification(userId, title, body) {
   } catch (err) {
     console.error('Failed to send social notification email:', err);
   }
-}
 
 const formatLoginTimestamp = (input) => {
   const parsed = input ? new Date(input) : new Date();
@@ -265,35 +257,12 @@ const initDb = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
-
-      CREATE TABLE IF NOT EXISTS direct_messages (
-        message_id SERIAL PRIMARY KEY,
-        from_user_id VARCHAR(255) NOT NULL,
-        to_user_id VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        timestamp BIGINT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (from_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS friends (
-        user_id VARCHAR(255) NOT NULL,
-        friend_id VARCHAR(255) NOT NULL,
-        status VARCHAR(20) DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, friend_id),
-        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (friend_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
-      );
     `);
     console.log(
       'Database initialized with security, project, and identity support'
     );
   } catch (err) {
     console.error('Error initializing database', err);
-    throw err;
   }
 };
 
@@ -581,7 +550,7 @@ app.post(
           '',
           'If this was you, no action is required.',
           'If this was not you, please secure your account immediately.',
-        ].join('\n'),
+        ].join(''),
         html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
@@ -772,9 +741,6 @@ app.post(
   async (req, res) => {
     try {
       const { profile } = req.body;
-      if (!isObject(profile) || !isNonEmptyString(profile.artistName)) {
-        return res.status(400).json({ error: 'Valid profile with artistName is required.' });
-      }
       const prompt = `PERFORM TOTAL PROJECT AUDIT FOR ${profile.artistName}.
       Analyze User DNA: ${JSON.stringify(profile)}.
       Identify every technical, legal, and strategic deficit.
@@ -798,9 +764,6 @@ app.post(
   async (req, res) => {
     try {
       const { query } = req.body;
-      if (!isNonEmptyString(query)) {
-        return res.status(400).json({ error: 'A non-empty query is required.' });
-      }
       const prompt = `EXTERNAL INTELLIGENCE GATHERING: ${query}.
       Provide actionable, high-stakes intel that only an Elite-level guru would possess.`;
 
@@ -862,26 +825,12 @@ const setupSocketIO = (server) => {
     io.emit("users_online", users);
   };
 
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) {
-      return next(new Error('Authentication required'));
-    }
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        return next(new Error('Invalid token'));
-      }
-      socket.user = user;
-      next();
-    });
-  });
-
   io.on("connection", (socket) => {
     console.log("Elite user connected:", socket.id);
 
     socket.on("register_presence", (data) => {
-      const userId = socket.user.userId;
-      const metadata = typeof data === "object" ? data.metadata : {};
+      const userId = typeof data === "string" ? data : data.userId;
+      const metadata = typeof data === "string" ? {} : data.metadata;
       onlineUsers.set(userId, { socketId: socket.id, metadata });
       broadcastOnlineUsers();
       console.log(`User ${userId} registered with metadata.`);
@@ -893,14 +842,12 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_room_message", (data) => {
-      const { roomId, message, fromUserName } = data;
-      const fromUserId = socket.user.userId;
+      const { roomId, message, fromUserId, fromUserName } = data;
       io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
     socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserName } = data;
-      const fromUserId = socket.user.userId;
+      const { toUserId, message, fromUserId, fromUserName } = data;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
@@ -908,8 +855,7 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("challenge_player", (data) => {
-      const { toUserId, gameId } = data;
-      const fromUserId = socket.user.userId;
+      const { toUserId, fromUserId, gameId } = data;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
@@ -917,9 +863,8 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("queue_for_match", (data) => {
-      const { gameId } = data || {};
-      const userId = socket.user.userId;
-      if (!gameId) return;
+      const { userId, gameId } = data || {};
+      if (!userId || !gameId) return;
       console.log(`User ${userId} queued for game ${gameId}`);
       if (!matchmakingQueue.has(gameId)) {
         matchmakingQueue.set(gameId, []);
@@ -954,8 +899,7 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("cancel_match", (data) => {
-      const { gameId } = data;
-      const userId = socket.user.userId;
+      const { userId, gameId } = data;
       if (matchmakingQueue.has(gameId)) {
         const queue = matchmakingQueue.get(gameId);
         const index = queue.findIndex(u => u.userId === userId);
@@ -971,24 +915,21 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("create_party", (data) => {
-      const { partyId, gameId } = data;
-      const leaderId = socket.user.userId;
+      const { partyId, leaderId, gameId } = data;
       socket.join(`party_${partyId}`);
       console.log(`Party ${partyId} created by ${leaderId} for ${gameId}`);
       socket.emit("party_created", { partyId, leaderId, gameId });
     });
 
     socket.on("join_party", (data) => {
-      const { partyId, artistName } = data;
-      const userId = socket.user.userId;
+      const { partyId, userId, artistName } = data;
       socket.join(`party_${partyId}`);
       io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
       console.log(`User ${userId} joined party ${partyId}`);
     });
 
     socket.on("leave_party", (data) => {
-      const { partyId, artistName } = data;
-      const userId = socket.user.userId;
+      const { partyId, userId, artistName } = data;
       socket.leave(`party_${partyId}`);
       io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
       console.log(`User ${userId} left party ${partyId}`);
@@ -1002,9 +943,8 @@ const setupSocketIO = (server) => {
     });
 
 
-    socket.on("send_direct_message", async (data) => {
-      const { toUserId, message, fromUserName } = data;
-      const fromUserId = socket.user.userId;
+    socket.on("send_message", async (data) => {
+      const { toUserId, message, fromUserId, fromUserName } = data;
       const timestamp = Date.now();
 
       try {
@@ -1013,7 +953,7 @@ const setupSocketIO = (server) => {
           [fromUserId, toUserId, message, timestamp]
         );
 
-        const recipientSocket = onlineUsers.get(toUserId);
+        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
         if (recipientSocket) {
           io.to(recipientSocket.socketId).emit("message", {
             fromUserId,
@@ -1029,9 +969,8 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_request", (data) => {
-      const { toUserId, fromUserName, syncType } = data;
-      const fromUserId = socket.user.userId;
-      const recipientSocket = onlineUsers.get(toUserId);
+      const { toUserId, fromUserId, fromUserName, syncType } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
       if (recipientSocket) {
         io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
         console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
@@ -1039,31 +978,24 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, fromUserName, syncData } = data;
-      const fromUserId = socket.user.userId;
-      const recipientSocket = onlineUsers.get(toUserId);
+      const { toUserId, fromUserId, fromUserName, syncData } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", {
-          fromUserId,
-          fromUserName,
-          syncData,
-        });
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
         console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
 
     socket.on("invite_to_party", (data) => {
-      const { toUserId, partyId, fromUserName, gameId } = data;
-      const fromUserId = socket.user.userId;
-      const recipientSocket = onlineUsers.get(toUserId);
+      const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
       if (recipientSocket) {
         io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
         console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
       }
     });
     socket.on("send_party_message", (data) => {
-      const { partyId, message, fromUserName } = data;
-      const fromUserId = socket.user.userId;
+      const { partyId, message, fromUserId, fromUserName } = data;
       io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
@@ -1088,7 +1020,6 @@ const setupSocketIO = (server) => {
       console.log("Elite user disconnected:", socket.id);
     });
   });
-  return io;
 };
 
 const startEliteServer = async (port = process.env.PORT || 3000) => {
@@ -1124,16 +1055,8 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
         profile_data->>'avatarImage' as "avatarImage",
         profile_data->>'location' as "location",
         (profile_data->>'profileSetupCompleted')::boolean as "profileSetupCompleted",
-        CASE
-          WHEN profile_data->>'eliteScore' ~ '^\\d+$'
-          THEN (profile_data->>'eliteScore')::int
-          ELSE 0
-        END as "eliteScore",
-        CASE
-          WHEN profile_data->>'squadCount' ~ '^\\d+$'
-          THEN (profile_data->>'squadCount')::int
-          ELSE 0
-        END as "squadCount"
+        (profile_data->>'eliteScore')::int as "eliteScore",
+        (profile_data->>'squadCount')::int as "squadCount"
        FROM user_profiles
        WHERE profile_data->>'artistName' != 'Incognito'
     `;
@@ -1149,7 +1072,7 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
       query += ` AND profile_data->>'location' ILIKE $${params.length}`;
     }
 
-    query += ` ORDER BY "eliteScore" DESC NULLS LAST LIMIT 20`;
+    query += ` ORDER BY (profile_data->>'eliteScore')::int DESC NULLS LAST LIMIT 20`;
 
     const { rows } = await pool.query(query, params);
     res.json(rows);
@@ -1184,12 +1107,7 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:4200';
-    const payload = JSON.stringify({
-      type: `${platform.toUpperCase()}_AUTH_SUCCESS`,
-      code: code || '',
-    }).replace(/</g, '\\u003c');
-    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(frontendOrigin)}); window.close();</script></html>`);
+    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
   });
 });
 
@@ -1283,9 +1201,6 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
   try {
     const { userId, friendId } = req.params;
     const { status } = req.body; // 'accepted' or 'declined'
-    if (!['accepted', 'declined'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid connection status.' });
-    }
 
     if (status === 'declined') {
         await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
@@ -1293,14 +1208,10 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
         return res.json({ success: true, message: 'Connection declined.' });
     }
 
-    const updateResult = await pool.query(
-      'UPDATE friends SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND friend_id = $3 AND status = $4',
-      [status, friendId, userId, 'pending']
+    await pool.query(
+      'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
+      [status, friendId, userId]
     );
-
-    if (updateResult.rowCount === 0) {
-      return res.status(404).json({ error: 'Pending connection request not found.' });
-    }
 
     // Create reciprocal connection
     await pool.query(
@@ -1323,7 +1234,7 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
   try {
     const { userId, friendId } = req.params;
     await pool.query(
-      'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
+      'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
       [userId, friendId]
     );
     res.json({ success: true });
@@ -1332,3 +1243,4 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
     res.status(500).json({ error: 'Failed to remove friend.' });
   }
 });
+}
