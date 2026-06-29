@@ -4,7 +4,9 @@ test('Verify Tha Spot Hub Enhancements', async ({ page }) => {
   // Bypass auth
   await page.goto('/login');
   await page.evaluate(() => {
-    const session = btoa(JSON.stringify({ id: 'test-user', token: 'mock-token' }));
+    const user = { id: 'test-user', artistName: 'Test operative', email: 'test@smuve.com' };
+    const salt = 'smuve_auth_salt_v1'; // match GLOBAL_SECURITY_CONFIG.auth_salt
+    const session = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(user) + '|' + salt)));
     sessionStorage.setItem('smuve_auth_session', session);
     localStorage.setItem('smuve_db_user_test@smuve.com', JSON.stringify({
       id: 'test-user',
