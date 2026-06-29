@@ -225,6 +225,7 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('send_room_message', (data) => {
+      if (!data) return;
       const { room, message } = data;
       const userId = getSenderFromSocket(socket);
       if (!userId) return;
