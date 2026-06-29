@@ -100,7 +100,7 @@ const authorizeUser = (req, res, next) => {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false
+  ssl: process.env.NODE_ENV === 'production' ? true : false
 });
 
 const initDb = async () => {
@@ -115,9 +115,10 @@ const initDb = async () => {
       CREATE TABLE IF NOT EXISTS friends (
         user_id TEXT,
         friend_id TEXT,
-        status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+        status TEXT DEFAULT 'pending',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, friend_id)
+        PRIMARY KEY (user_id, friend_id),
+        CHECK (status IN ('pending', 'accepted', 'declined'))
       );
 
       CREATE TABLE IF NOT EXISTS direct_messages (
@@ -163,7 +164,7 @@ const sendSocialNotification = async (userId, title, body) => {
   }
 };
 
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || 'MOCK_KEY' });
 
 // --- SOCKET.IO LOGIC ---
 const setupSocketIO = (server) => {
@@ -177,7 +178,6 @@ const setupSocketIO = (server) => {
 
   const onlineUsers = new Map();
   const matchmakingQueue = new Map();
-  const socketToUser = new Map();
 
   const broadcastOnlineUsers = () => {
     const users = Array.from(onlineUsers.entries()).map(([userId, info]) => ({
@@ -188,11 +188,10 @@ const setupSocketIO = (server) => {
   };
 
   const getSenderFromSocket = (socket) => {
-    const userId = socketToUser.get(socket.id);
-    if (!userId) return null;
-    const info = onlineUsers.get(userId);
-    if (!info) return null;
-    return { userId, ...info.metadata };
+    for (const [userId, info] of onlineUsers.entries()) {
+      if (info.socketId === socket.id) return { userId, ...info.metadata };
+    }
+    return null;
   };
 
   io.on("connection", (socket) => {
@@ -200,7 +199,6 @@ const setupSocketIO = (server) => {
 
     socket.on("register_presence", (data) => {
       const { token, metadata } = data;
-
       if (!token) {
         socket.emit("auth_error", { error: "Authentication token required." });
         return;
@@ -211,16 +209,12 @@ const setupSocketIO = (server) => {
           socket.emit("auth_error", { error: "Invalid or expired token." });
           return;
         }
-
         const userId = user.userId;
-        if (!userId) {
-          socket.emit("auth_error", { error: "Invalid token payload." });
-          return;
+        if (userId) {
+          onlineUsers.set(userId, { socketId: socket.id, metadata });
+          socket.verifiedUserId = userId;
+          broadcastOnlineUsers();
         }
-
-        socketToUser.set(socket.id, userId);
-        onlineUsers.set(userId, { socketId: socket.id, metadata });
-        broadcastOnlineUsers();
       });
     });
 
@@ -319,10 +313,11 @@ const setupSocketIO = (server) => {
         }
       });
 
-      const userId = socketToUser.get(socket.id);
-      if (userId) {
-        onlineUsers.delete(userId);
-        socketToUser.delete(socket.id);
+      for (const [userId, info] of onlineUsers.entries()) {
+        if (info.socketId === socket.id) {
+          onlineUsers.delete(userId);
+          break;
+        }
       }
       broadcastOnlineUsers();
       console.log("Elite user disconnected:", socket.id);
@@ -461,9 +456,9 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
     const { userId, friendId } = req.params;
     const { status } = req.body;
 
-    const allowedStatuses = ['pending', 'accepted', 'declined'];
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value.' });
+    const ALLOWED_STATUSES = ['pending', 'accepted', 'declined'];
+    if (!ALLOWED_STATUSES.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be pending, accepted, or declined.' });
     }
 
     if (status === 'declined') {
@@ -511,10 +506,11 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
   try {
     const { prompt } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.json({ text: response.text() });
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-pro",
+      prompt
+    });
+    res.json({ text: response.text });
   } catch (err) {
     console.error('AI Analysis Error:', err);
     res.status(500).json({ error: 'Failed to analyze content.' });
@@ -524,12 +520,13 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
 app.post('/api/ai/deep-audit', authenticateToken, async (req, res) => {
   try {
     const { profileData, projectSummary } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     const prompt = "Perform a deep creative audit for an artist with this profile: " + JSON.stringify(profileData) + " and current project status: " + JSON.stringify(projectSummary) + ". Provide 3 actionable strategic upgrades.";
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.json({ audit: response.text() });
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-pro",
+      prompt
+    });
+    res.json({ audit: response.text });
   } catch (err) {
     console.error('Deep Audit Error:', err);
     res.status(500).json({ error: 'Failed to perform deep audit.' });
@@ -539,12 +536,13 @@ app.post('/api/ai/deep-audit', authenticateToken, async (req, res) => {
 app.post('/api/ai/industry-search', authenticateToken, async (req, res) => {
   try {
     const { query } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
     const prompt = "Act as an industry intelligence operative. Research and summarize the latest trends and opportunities for: " + query;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    res.json({ intelligence: response.text() });
+    const response = await genAI.models.generateContent({
+      model: "gemini-1.5-pro",
+      prompt
+    });
+    res.json({ intelligence: response.text });
   } catch (err) {
     console.error('Industry Search Error:', err);
     res.status(500).json({ error: 'Failed to gather industry intelligence.' });
@@ -574,10 +572,9 @@ PLATFORMS.forEach(platform => {
     const { code } = req.query;
     const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
     const targetOrigin = frontendOrigin;
-    const payload = { type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null };
-    const escapedPayload = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-    const escapedOrigin = JSON.stringify(targetOrigin).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + escapedOrigin + "); window.close();</script></html>");
+    const payload = JSON.stringify({ type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null });
+    const escapedPayload = payload.replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
+    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + JSON.stringify(targetOrigin) + "); window.close();</script></html>");
   });
 });
 
@@ -585,10 +582,14 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
   await initDb();
   const server = http.createServer(app);
   setupSocketIO(server);
-  await new Promise((resolve) => {
-    server.listen(port, '0.0.0.0', () => {
-      console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
-      resolve();
+  await new Promise((resolve, reject) => {
+    server.listen(port, '0.0.0.0', (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
+        resolve();
+      }
     });
   });
   return server;
