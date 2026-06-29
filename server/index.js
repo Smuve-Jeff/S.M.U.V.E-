@@ -182,7 +182,7 @@ const setupSocketIO = (server) => {
 
   const getSenderFromSocket = (socket) => {
     try {
-      const authHeader = socket.handshake.headers['authorization'];
+      const authHeader = socket.handshake.auth?.token || socket.handshake.headers['authorization'];
       const token = authHeader && authHeader.split(' ')[1];
       if (!token) return null;
       return jwt.verify(token, JWT_SECRET);
