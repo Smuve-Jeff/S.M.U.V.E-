@@ -77,14 +77,14 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 async function sendSocialNotification(userId, title, body) {
-  const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
-  const email = rows[0]?.email;
-  if (!email) return;
-
-  const transport = createEmailTransport();
-  if (!transport) return;
-
   try {
+    const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
+    const email = rows[0]?.email;
+    if (!email) return;
+
+    const transport = createEmailTransport();
+    if (!transport) return;
+
     await transport.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
@@ -92,7 +92,7 @@ async function sendSocialNotification(userId, title, body) {
       text: body,
     });
   } catch (err) {
-    console.error('Failed to send social notification email:', err);
+    console.error('Failed to send social notification:', err);
   }
 }
 
