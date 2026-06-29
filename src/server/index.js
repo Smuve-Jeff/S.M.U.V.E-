@@ -1,10 +1,12 @@
 const express = require('express');
+const http = require('http');
 const { Pool } = require('pg');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenAI } = require('@google/genai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
+const crypto = require('node:crypto');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -16,8 +18,8 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ limit: '1mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'Invalid JSON payload.' });
@@ -25,7 +27,6 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-// Rate Limiting
 // Authentication Middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -69,13 +70,12 @@ const authorizeUser = (req, res, next) => {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500, // Increased for Studio syncing
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 app.use('/api/', apiLimiter);
-
 
 const loginEmailLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -87,7 +87,7 @@ const loginEmailLimiter = rateLimit({
 
 const aiAnalyzeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many AI requests. Try again later.' },
@@ -174,14 +174,14 @@ const createEmailTransport = () => {
 };
 
 async function sendSocialNotification(userId, title, body) {
-  const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
-  const email = rows[0]?.email;
-  if (!email) return;
-
-  const transport = createEmailTransport();
-  if (!transport) return;
-
   try {
+    const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
+    const email = rows[0]?.email;
+    if (!email) return;
+
+    const transport = createEmailTransport();
+    if (!transport) return;
+
     await transport.sendMail({
       from: process.env.SMTP_FROM,
       to: email,
@@ -191,6 +191,7 @@ async function sendSocialNotification(userId, title, body) {
   } catch (err) {
     console.error('Failed to send social notification email:', err);
   }
+}
 
 const formatLoginTimestamp = (input) => {
   const parsed = input ? new Date(input) : new Date();
@@ -257,9 +258,33 @@ const initDb = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS direct_messages (
+        id SERIAL PRIMARY KEY,
+        from_user_id VARCHAR(255) NOT NULL,
+        to_user_id VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp BIGINT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (from_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_dm_from_to_timestamp ON direct_messages(from_user_id, to_user_id, timestamp);
+      CREATE INDEX IF NOT EXISTS idx_dm_to_from_timestamp ON direct_messages(to_user_id, from_user_id, timestamp);
+
+      CREATE TABLE IF NOT EXISTS friends (
+        user_id VARCHAR(255) NOT NULL,
+        friend_id VARCHAR(255) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, friend_id),
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (friend_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
     `);
     console.log(
-      'Database initialized with security, project, and identity support'
+      'Database initialized with security, project, identity, and social support'
     );
   } catch (err) {
     console.error('Error initializing database', err);
@@ -485,7 +510,6 @@ app.post(
     try {
       const { userId, email, artistName, loginAt } = req.body || {};
 
-      // Require userId and a syntactically valid email from the request body.
       if (!userId || !isValidEmail(email)) {
         return res.status(400).json({
           success: false,
@@ -493,9 +517,6 @@ app.post(
         });
       }
 
-      // Verify the userId exists in the database and that the stored email
-      // matches the requested recipient address.  This prevents any caller from
-      // triggering a notification email to an address they do not own.
       const { rows } = await pool.query(
         'SELECT profile_data FROM user_profiles WHERE user_id = $1',
         [userId]
@@ -529,7 +550,6 @@ app.post(
         });
       }
 
-      // Use server-derived metadata instead of client-supplied values.
       const serverUserAgent = req.get('User-Agent') || 'unknown';
       const serverIpAddress = req.ip || 'unknown';
       const safeArtistName = escapeHtml(artistName || 'Artist');
@@ -715,7 +735,6 @@ app.post(
         return res.status(400).json({ error: 'Invalid connector ID.' });
       }
       const { trigger = 'manual', payload = {} } = req.body || {};
-      const crypto = require('node:crypto');
       const jobId = `job_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
       await pool.query(
@@ -746,12 +765,11 @@ app.post(
       Identify every technical, legal, and strategic deficit.
       Return JSON with fields: report (text), deficits (array), roadmap (array).`;
 
-      const response = await genAI.models.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: prompt,
-      });
-      res.json({ success: true, report: response.text });
+      const result = await genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }).generateContent(prompt);
+      const response = await result.response;
+      res.json({ success: true, report: response.text() });
     } catch (err) {
+      console.error('Deep Audit Error:', err);
       res.status(500).json({ error: 'Deep audit failed.' });
     }
   }
@@ -767,12 +785,11 @@ app.post(
       const prompt = `EXTERNAL INTELLIGENCE GATHERING: ${query}.
       Provide actionable, high-stakes intel that only an Elite-level guru would possess.`;
 
-      const response = await genAI.models.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: prompt,
-      });
-      res.json({ success: true, intel: response.text });
+      const result = await genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }).generateContent(prompt);
+      const response = await result.response;
+      res.json({ success: true, intel: response.text() });
     } catch (err) {
+      console.error('Industry Search Error:', err);
       res.status(500).json({ error: 'Industry search failed.' });
     }
   }
@@ -788,13 +805,11 @@ app.post(
     }
     try {
       const { prompt } = req.body;
-      const response = await genAI.models.generateContent({
-        model: 'gemini-1.5-pro',
-        contents: prompt,
-      });
-      res.json({ text: response.text });
+      const result = await genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }).generateContent(prompt);
+      const response = await result.response;
+      res.json({ text: response.text() });
     } catch (err) {
-      console.error('Internal Server Error:', err);
+      console.error('AI Analysis Error:', err);
       res.status(500).json({
         error: 'Strategic anomaly detected. Secure operations compromised.',
       });
@@ -802,11 +817,10 @@ app.post(
   }
 );
 
-
-
 // SOCKET.IO INTEGRATION FOR RIVAL HUB & SOCIAL NETWORKING
 const { Server } = require("socket.io");
-const matchmakingQueue = new Map(); // gameId -> [ { userId, socketId } ]
+const matchmakingQueue = new Map(); // gameId -> [ { userId, socketId, timestamp } ]
+
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
@@ -825,6 +839,15 @@ const setupSocketIO = (server) => {
     io.emit("users_online", users);
   };
 
+  const getSenderFromSocket = (socket) => {
+    for (const [userId, info] of onlineUsers.entries()) {
+      if (info.socketId === socket.id) {
+        return { userId, artistName: info.metadata?.artistName || 'OPERATIVE' };
+      }
+    }
+    return null;
+  };
+
   io.on("connection", (socket) => {
     console.log("Elite user connected:", socket.id);
 
@@ -833,7 +856,7 @@ const setupSocketIO = (server) => {
       const metadata = typeof data === "string" ? {} : data.metadata;
       onlineUsers.set(userId, { socketId: socket.id, metadata });
       broadcastOnlineUsers();
-      console.log(`User ${userId} registered with metadata.`);
+      console.log(`User ${userId} registered with presence.`);
     });
 
     socket.on("join_room", (roomId) => {
@@ -842,37 +865,38 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_room_message", (data) => {
-      const { roomId, message, fromUserId, fromUserName } = data;
-      io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
-    });
-
-    socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
-      const userInfo = onlineUsers.get(toUserId);
-      if (userInfo) {
-        io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
-      }
+      const { roomId, message } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
+      io.to(roomId).emit("room_message", {
+        roomId,
+        fromUserId: sender.userId,
+        fromUserName: sender.artistName,
+        message,
+        timestamp: Date.now()
+      });
     });
 
     socket.on("challenge_player", (data) => {
-      const { toUserId, fromUserId, gameId } = data;
+      const { toUserId, gameId } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
-        io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
+        io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId: sender.userId, gameId });
       }
     });
 
     socket.on("queue_for_match", (data) => {
       const { userId, gameId } = data || {};
       if (!userId || !gameId) return;
-      console.log(`User ${userId} queued for game ${gameId}`);
       if (!matchmakingQueue.has(gameId)) {
         matchmakingQueue.set(gameId, []);
       }
       const queue = matchmakingQueue.get(gameId);
+      const now = Date.now();
 
       // Clean up stale entries (older than 60 seconds)
-      const now = Date.now();
       const staleThreshold = 60000;
       for (let i = queue.length - 1; i >= 0; i--) {
         if (now - queue[i].timestamp > staleThreshold) {
@@ -889,12 +913,7 @@ const setupSocketIO = (server) => {
         const player2 = queue.shift();
         io.to(player1.socketId).emit("match_found", { opponentId: player2.userId, gameId });
         io.to(player2.socketId).emit("match_found", { opponentId: player1.userId, gameId });
-        console.log(`Match found for ${gameId}: ${player1.userId} vs ${player2.userId}`);
-
-        // Remove empty gameId bucket
-        if (queue.length === 0) {
-          matchmakingQueue.delete(gameId);
-        }
+        if (queue.length === 0) matchmakingQueue.delete(gameId);
       }
     });
 
@@ -905,59 +924,57 @@ const setupSocketIO = (server) => {
         const index = queue.findIndex(u => u.userId === userId);
         if (index !== -1) {
           queue.splice(index, 1);
-          console.log(`User ${userId} left queue for ${gameId}`);
         }
-        // Remove empty gameId bucket
-        if (queue.length === 0) {
-          matchmakingQueue.delete(gameId);
-        }
+        if (queue.length === 0) matchmakingQueue.delete(gameId);
       }
     });
 
     socket.on("create_party", (data) => {
-      const { partyId, leaderId, gameId } = data;
+      const { partyId, gameId } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
       socket.join(`party_${partyId}`);
-      console.log(`Party ${partyId} created by ${leaderId} for ${gameId}`);
-      socket.emit("party_created", { partyId, leaderId, gameId });
+      socket.emit("party_created", { partyId, leaderId: sender.userId, gameId });
     });
 
     socket.on("join_party", (data) => {
-      const { partyId, userId, artistName } = data;
+      const { partyId } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
       socket.join(`party_${partyId}`);
-      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
-      console.log(`User ${userId} joined party ${partyId}`);
+      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId: sender.userId, artistName: sender.artistName });
     });
 
     socket.on("leave_party", (data) => {
-      const { partyId, userId, artistName } = data;
+      const { partyId } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
       socket.leave(`party_${partyId}`);
-      io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
-      console.log(`User ${userId} left party ${partyId}`);
+      io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId: sender.userId, artistName: sender.artistName });
     });
-
 
     socket.on("party_launch_game", (data) => {
       const { partyId, gameId } = data;
       io.to(`party_${partyId}`).emit("party_launch_game", { partyId, gameId });
-      console.log(`Party ${partyId} launching game ${gameId}`);
     });
 
-
     socket.on("send_message", async (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
+      const { toUserId, message } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
       const timestamp = Date.now();
 
       try {
         await pool.query(
           'INSERT INTO direct_messages (from_user_id, to_user_id, message, timestamp) VALUES ($1, $2, $3, $4)',
-          [fromUserId, toUserId, message, timestamp]
+          [sender.userId, toUserId, message, timestamp]
         );
 
-        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
-        if (recipientSocket) {
-          io.to(recipientSocket.socketId).emit("message", {
-            fromUserId,
-            fromUserName,
+        const recipientInfo = onlineUsers.get(toUserId);
+        if (recipientInfo) {
+          io.to(recipientInfo.socketId).emit("message", {
+            fromUserId: sender.userId,
+            fromUserName: sender.artistName,
             toUserId,
             message,
             timestamp
@@ -968,48 +985,59 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("neural_sync_request", (data) => {
-      const { toUserId, fromUserId, fromUserName, syncType } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
-      if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
-        console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
+    socket.on("neural_sync_request", (data, ack) => {
+      const { toUserId, syncType } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) {
+        if (typeof ack === 'function') ack({ error: 'Unauthorized' });
+        return;
+      }
+      const recipientInfo = onlineUsers.get(toUserId);
+      if (recipientInfo) {
+        io.to(recipientInfo.socketId).emit("neural_sync_invite", { fromUserId: sender.userId, fromUserName: sender.artistName, syncType });
+        if (typeof ack === 'function') ack({ success: true });
+      } else {
+        if (typeof ack === 'function') ack({ error: 'Recipient not online' });
       }
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, fromUserId, fromUserName, syncData } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
-      if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
-        console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
+      const { toUserId, syncData } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
+      const recipientInfo = onlineUsers.get(toUserId);
+      if (recipientInfo) {
+        io.to(recipientInfo.socketId).emit("neural_sync_complete", { fromUserId: sender.userId, fromUserName: sender.artistName, syncData });
       }
     });
 
     socket.on("invite_to_party", (data) => {
-      const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
-      if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
-        console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
+      const { toUserId, partyId, gameId } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
+      const recipientInfo = onlineUsers.get(toUserId);
+      if (recipientInfo) {
+        io.to(recipientInfo.socketId).emit("party_invite", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, gameId });
       }
     });
+
     socket.on("send_party_message", (data) => {
-      const { partyId, message, fromUserId, fromUserName } = data;
-      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
+      const { partyId, message } = data;
+      const sender = getSenderFromSocket(socket);
+      if (!sender) return;
+      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, message, timestamp: Date.now() });
     });
 
     socket.on("disconnect", () => {
+      // Remove from matchmaking queue
       matchmakingQueue.forEach((queue, gameId) => {
         const index = queue.findIndex(u => u.socketId === socket.id);
         if (index !== -1) {
           queue.splice(index, 1);
-          // Remove empty gameId bucket
-          if (queue.length === 0) {
-            matchmakingQueue.delete(gameId);
-          }
+          if (queue.length === 0) matchmakingQueue.delete(gameId);
         }
       });
+
       for (const [userId, info] of onlineUsers.entries()) {
         if (info.socketId === socket.id) {
           onlineUsers.delete(userId);
@@ -1021,27 +1049,6 @@ const setupSocketIO = (server) => {
     });
   });
 };
-
-const startEliteServer = async (port = process.env.PORT || 3000) => {
-  await initDb();
-  const server = http.createServer(app);
-  const io = setupSocketIO(server);
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`S.M.U.V.E 2.0 Elite Server running on port ${port}`);
-  });
-  return { server, io };
-};
-
-// Update module exports to use startEliteServer
-module.exports = {
-  app,
-  startServer: startEliteServer,
-};
-
-if (require.main === module) {
-  void startEliteServer();
-}
-
 
 // User Discovery Endpoints
 app.get('/api/users/search', authenticateToken, async (req, res) => {
@@ -1082,38 +1089,6 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
   }
 });
 
-
-
-// Multi-Platform OAuth Scaffolds
-const PLATFORMS = ['twitch', 'youtube', 'discord', 'tiktok', 'instagram', 'kick', 'x'];
-
-PLATFORMS.forEach(platform => {
-  app.get(`/api/auth/${platform}`, (req, res) => {
-    // In production, these would use environment-specific client IDs and scopes
-    const clientId = process.env[`${platform.toUpperCase()}_CLIENT_ID`] || 'MOCK_CLIENT_ID';
-    const redirectUri = process.env[`${platform.toUpperCase()}_REDIRECT_URI`] || `https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/${platform}/callback`;
-
-    let url = '';
-    if (platform === 'twitch') {
-      url = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=user:read:email`;
-    } else if (platform === 'youtube') {
-      url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly`;
-    } else {
-      // Generic mock for others
-      url = `${redirectUri}?code=MOCK_CODE_${platform.toUpperCase()}`;
-    }
-    res.redirect(url);
-  });
-
-  app.get(`/api/auth/${platform}/callback`, (req, res) => {
-    const { code } = req.query;
-    const frontendOrigin = process.env.FRONTEND_ORIGIN || null;
-    const targetOrigin = frontendOrigin || '*';
-    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: code || null });
-    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
-  });
-});
-
 app.get('/api/users/featured', authenticateToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -1137,8 +1112,7 @@ app.get('/api/users/featured', authenticateToken, async (req, res) => {
   }
 });
 
-// Friends Endpoints
-
+// Friends & Messages Endpoints
 app.get('/api/users/:userId/messages/:friendId', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId, friendId } = req.params;
@@ -1155,6 +1129,7 @@ app.get('/api/users/:userId/messages/:friendId', authenticateToken, authorizeUse
     res.status(500).json({ error: 'Failed to fetch message history.' });
   }
 });
+
 app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1188,8 +1163,7 @@ app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUse
       'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [userId, friendId]
     );
-    // Send notification to the friend
-    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName\' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
+    const { rows: userRows } = await pool.query("SELECT profile_data->>'artistName' as \"artistName\" FROM user_profiles WHERE user_id = $1", [userId]);
     const artistName = userRows[0]?.artistName || 'An operative';
     await sendSocialNotification(friendId, 'New Connection Request', `${artistName} has linked with your executive profile on S.M.U.V.E 2.0.`);
     res.json({ success: true });
@@ -1199,11 +1173,10 @@ app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUse
   }
 });
 
-
 app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId, friendId } = req.params;
-    const { status } = req.body; // 'accepted' or 'declined'
+    const { status } = req.body;
 
     if (status === 'declined') {
         await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
@@ -1216,13 +1189,12 @@ app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUs
       [status, friendId, userId]
     );
 
-    // Create reciprocal connection
     await pool.query(
       'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3) ON CONFLICT (user_id, friend_id) DO UPDATE SET status = $3',
       [userId, friendId, status]
     );
 
-    const { rows: userRows } = await pool.query('SELECT profile_data->>\'artistName\' as "artistName" FROM user_profiles WHERE user_id = $1', [userId]);
+    const { rows: userRows } = await pool.query("SELECT profile_data->>'artistName' as \"artistName\" FROM user_profiles WHERE user_id = $1", [userId]);
     const artistName = userRows[0]?.artistName || 'An operative';
     await sendSocialNotification(friendId, 'Connection Approved', `${artistName} has approved your connection request.`);
 
@@ -1237,7 +1209,7 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
   try {
     const { userId, friendId } = req.params;
     await pool.query(
-      'DELETE FROM friends WHERE user_id = $1 AND friend_id = $2',
+      'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
       [userId, friendId]
     );
     res.json({ success: true });
@@ -1246,4 +1218,50 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
     res.status(500).json({ error: 'Failed to remove friend.' });
   }
 });
+
+// Multi-Platform OAuth Scaffolds
+const PLATFORMS = ['twitch', 'youtube', 'discord', 'tiktok', 'instagram', 'kick', 'x'];
+
+PLATFORMS.forEach(platform => {
+  app.get(`/api/auth/${platform}`, (req, res) => {
+    const clientId = process.env[`${platform.toUpperCase()}_CLIENT_ID`] || 'MOCK_CLIENT_ID';
+    const redirectUri = process.env[`${platform.toUpperCase()}_REDIRECT_URI`] || `https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/${platform}/callback`;
+
+    let url = '';
+    if (platform === 'twitch') {
+      url = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=user:read:email`;
+    } else if (platform === 'youtube') {
+      url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly`;
+    } else {
+      url = `${redirectUri}?code=MOCK_CODE_${platform.toUpperCase()}`;
+    }
+    res.redirect(url);
+  });
+
+  app.get(`/api/auth/${platform}/callback`, (req, res) => {
+    const { code } = req.query;
+    const frontendOrigin = process.env.FRONTEND_ORIGIN || null;
+    const targetOrigin = frontendOrigin || '*';
+    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: code || null });
+    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
+  });
+});
+
+const startEliteServer = async (port = process.env.PORT || 3000) => {
+  await initDb();
+  const server = http.createServer(app);
+  setupSocketIO(server);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`S.M.U.V.E 2.0 Elite Server running on port ${port}`);
+  });
+  return server;
+};
+
+module.exports = {
+  app,
+  startServer: startEliteServer,
+};
+
+if (require.main === module) {
+  void startEliteServer();
 }
