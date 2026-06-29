@@ -113,13 +113,31 @@ const initDb = async () => {
       );
 
       CREATE TABLE IF NOT EXISTS friends (
+      CREATE TABLE IF NOT EXISTS friends (
         user_id TEXT,
         friend_id TEXT,
-        status TEXT DEFAULT 'pending',
+        status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, friend_id),
-        CHECK (status IN ('pending', 'accepted', 'declined'))
+        PRIMARY KEY (user_id, friend_id)
       );
+
+      UPDATE friends
+      SET status = 'pending'
+      WHERE status IS NULL
+         OR status NOT IN ('pending', 'accepted', 'declined');
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'friends_status_check'
+        ) THEN
+          ALTER TABLE friends
+          ADD CONSTRAINT friends_status_check
+          CHECK (status IN ('pending', 'accepted', 'declined'));
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS direct_messages (
         id SERIAL PRIMARY KEY,
