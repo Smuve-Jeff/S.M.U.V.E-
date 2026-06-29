@@ -269,6 +269,9 @@ const initDb = async () => {
         FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
 
+      CREATE INDEX IF NOT EXISTS idx_dm_from_to_timestamp ON direct_messages(from_user_id, to_user_id, timestamp);
+      CREATE INDEX IF NOT EXISTS idx_dm_to_from_timestamp ON direct_messages(to_user_id, from_user_id, timestamp);
+
       CREATE TABLE IF NOT EXISTS friends (
         user_id VARCHAR(255) NOT NULL,
         friend_id VARCHAR(255) NOT NULL,
@@ -1011,14 +1014,21 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("neural_sync_request", (data) => {
+    socket.on("neural_sync_request", (data, ack) => {
       const { toUserId, syncType } = data;
       const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+      if (!sender) {
+        if (typeof ack === 'function') ack({ error: 'Unauthorized' });
+        return;
+      }
       const recipientInfo = onlineUsers.get(toUserId);
       if (recipientInfo) {
         io.to(recipientInfo.socketId).emit("neural_sync_invite", { fromUserId: sender.userId, fromUserName: sender.artistName, syncType });
         console.log(`Neural sync requested from ${sender.userId} to ${toUserId}`);
+        if (typeof ack === 'function') ack({ success: true });
+      } else {
+        console.log(`Neural sync failed: user ${toUserId} not online`);
+        if (typeof ack === 'function') ack({ error: 'Recipient not online' });
       }
     });
 
@@ -1158,10 +1168,7 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    const frontendOrigin = process.env.FRONTEND_ORIGIN || null;
-    const targetOrigin = frontendOrigin || '*';
-    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: code || null });
-    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
+    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
   });
 });
 
