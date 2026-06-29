@@ -41,6 +41,9 @@
       </div>
 
       <div class="header-section-right flex items-center gap-3">
+        <button type="button" class="tactile-v42 p-2" (click)="copyShareLink()" title="Share Studio Link">
+          <span class="material-symbols-outlined text-sm">share</span>
+        </button>
 
         <div class="hardware-status-indicator flex items-center gap-2 px-3 py-1 rounded bg-black/40 border border-white/5 cursor-help"
              [title]="hardware.status().activeInterfaceName || 'No Interface Detected'">

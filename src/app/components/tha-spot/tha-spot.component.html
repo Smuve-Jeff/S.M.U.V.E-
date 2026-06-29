@@ -17,6 +17,9 @@
     </div>
 
     <div class="header-right">
+      <button type="button" class="room-btn" (click)="copyShareLink()" title="Share Mission Link">
+        <span class="material-symbols-outlined">share</span>
+      </button>
       <div class="room-selector">
         <button class="room-btn active" (click)="toggleIntel()" [class.has-alert]="true">
           <span class="material-symbols-outlined">analytics</span>

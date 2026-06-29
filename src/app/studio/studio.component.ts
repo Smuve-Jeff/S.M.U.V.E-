@@ -19,6 +19,7 @@ import { HardwareService } from '../services/hardware.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
 import { MusicManagerService } from '../services/music-manager.service';
+import { ProjectService } from '../services/project.service';
 import { HapticService } from '../services/haptic.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
 import { ProjectTemplateService } from '../services/project-template.service';
@@ -68,6 +69,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
+  private projectService = inject(ProjectService);
   private readonly haptic = inject(HapticService);
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
@@ -103,7 +105,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  ngOnInit() { this.audioEngine.resume(); }
+  ngOnInit() {
+    this.audioEngine.resume();
+    this.route.queryParamMap.subscribe(params => {
+      const sessionId = params.get('sessionId');
+      if (sessionId && !this.collaboration.currentSession()) {
+        const user = this.authService.currentUser();
+        if (user) {
+          this.collaboration.joinSession(sessionId, user);
+          const projectHint = params.get('project');
+          this.snackbarService.info(projectHint ? `JOINING SESSION: ${projectHint}` : 'JOINING COLLABORATION SESSION');
+        }
+      }
+    });
+  }
+
   ngAfterViewInit() {}
   ngOnDestroy() {}
 
@@ -117,6 +133,24 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onBottomNavClick(viewId: string) { if (isStudioView(viewId)) this.setActiveView(viewId); }
 
+  copyShareLink() {
+    const session = this.collaboration.currentSession();
+    const sessionId = session?.sessionId;
+    const project = this.projectService.currentProject();
+    const baseUrl = window.location.origin + '/studio';
+
+    const params = new URLSearchParams();
+    if (sessionId) params.set('sessionId', sessionId);
+    if (project?.name) params.set('project', project.name);
+
+    const queryString = params.toString();
+    const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+    navigator.clipboard.writeText(url).then(() => {
+      this.snackbarService.success('STUDIO COLLABORATION LINK COPIED');
+    });
+  }
+
   async newProject() {
     const confirmed = await this.dialog.confirm({
        title: 'New Professional Session',
@@ -124,7 +158,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
        confirmLabel: 'CREATE',
        cancelLabel: 'CANCEL'
     });
-    if (confirmed) this.toggleMobilePanel('templates');
+    if (confirmed) {
+      this.musicManager.newProject();
+      this.snackbarService.success('New session created');
+    }
   }
 
   applyTemplate(id: string) {
@@ -161,7 +198,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
   toggleBrowser() { this.haptic.light(); this.browserCollapsed.update(v => !v); }
   toggleInspector() { this.haptic.light(); this.inspectorCollapsed.update(v => !v); }
-    toggleCollaboration() {
+
+  toggleCollaboration() {
     if (this.collaboration.currentSession()) {
       this.collaboration.leaveSession();
     } else {
