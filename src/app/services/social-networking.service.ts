@@ -606,7 +606,7 @@ export class SocialNetworkingService {
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/search`,
           {
-            params: { q: query, location: query },
+            params: { q: query },
             headers,
           },
         ),
