@@ -309,7 +309,17 @@
             </div>
 
             <div class="party-chat">
-               <!-- Reuse message list style -->
+
+            <div class="party-invites" style="margin-top: 1rem;">
+              <h6>INVITE OPERATIVES</h6>
+              <div class="user-list mini">
+                <div class="user-item glass-v42 mini" *ngFor="let friend of socialService.friends()">
+                  <span class="user-name">{{ friend.artistName }}</span>
+                  <button class="action-btn mini" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
+                </div>
+              </div>
+            </div>
+
             </div>
           </div>
         </div>
@@ -333,8 +343,9 @@
               </div>
               <div class="user-actions">
                 <ng-container *ngIf="friend.status === 'accepted'">
-                  <button class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>
-                  <button class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
+                  <button type="button" class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>
+                  <button type="button" class="action-btn" *ngIf="socialService.currentPartyId()" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
+                  <button type="button" class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
                 </ng-container>
                 <ng-container *ngIf="friend.status === 'pending'">
                   <button class="action-btn" (click)="socialService.respondToFriendRequest(friend.userId, 'accepted')">APPROVE</button>
@@ -356,6 +367,10 @@
               <div class="user-item glass-v42 mini" *ngFor="let user of globalSearchResults()">
                 <div class="user-info">
                   <span class="user-name">{{ user.artistName }}</span>
+                <div class="user-meta" style="font-size: 0.7rem; color: var(--success-v42)">
+                  ELITE: {{ user.eliteScore || 0 }} | SQUAD: {{ user.squadCount || 0 }}
+                </div>
+
                 </div>
                 <button class="action-btn mini" (click)="socialService.addFriend(user.userId)">LINK</button>
               </div>
@@ -368,14 +383,14 @@
           <div class="stream-controls" *ngIf="!socialService.isStreaming()">
             <h4>PRE-STREAM CONFIG</h4>
             <div class="platform-grid">
-              <button class="platform-btn twitch" (click)="goLive('Twitch')">TWITCH</button>
+              <button class="platform-btn twitch" (click)="socialService.startOAuthFlow('twitch')">TWITCH (CONNECT)</button>
               <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
               <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
               <button class="platform-btn tiktok" (click)="goLive('TikTok')">TIKTOK</button>
-              <button class="platform-btn instagram" (click)="goLive('Instagram')">INSTAGRAM</button>
-              <button class="platform-btn discord" (click)="goLive('Discord')">DISCORD</button>
-              <button class="platform-btn kick" (click)="goLive('Kick')">KICK</button>
-              <button class="platform-btn x-corp" (click)="goLive('X')">X (TWITTER)</button>
+              <button class="platform-btn instagram" (click)="socialService.startOAuthFlow('instagram')">INSTAGRAM (CONNECT)</button>
+              <button class="platform-btn discord" (click)="socialService.startOAuthFlow('discord')">DISCORD (CONNECT)</button>
+              <button class="platform-btn kick" (click)="socialService.startOAuthFlow('kick')">KICK (CONNECT)</button>
+              <button class="platform-btn x-corp" (click)="socialService.startOAuthFlow('x')">X (TWITTER) (CONNECT)</button>
             </div>
           </div>
           <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">

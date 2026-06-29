@@ -257,30 +257,6 @@ const initDb = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
-
-      CREATE TABLE IF NOT EXISTS direct_messages (
-        id SERIAL PRIMARY KEY,
-        from_user_id VARCHAR(255) NOT NULL,
-        to_user_id VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        timestamp BIGINT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (from_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_dm_from_to_timestamp ON direct_messages(from_user_id, to_user_id, timestamp);
-      CREATE INDEX IF NOT EXISTS idx_dm_to_from_timestamp ON direct_messages(to_user_id, from_user_id, timestamp);
-
-      CREATE TABLE IF NOT EXISTS friends (
-        user_id VARCHAR(255) NOT NULL,
-        friend_id VARCHAR(255) NOT NULL,
-        status VARCHAR(20) DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, friend_id),
-        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (friend_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
-      );
     `);
     console.log(
       'Database initialized with security, project, and identity support'
@@ -849,17 +825,6 @@ const setupSocketIO = (server) => {
     io.emit("users_online", users);
   };
 
-  // Derive authenticated sender identity from the socket connection.
-  // Returns { userId, artistName } or null if the socket is not registered.
-  const getSenderFromSocket = (socket) => {
-    for (const [userId, info] of onlineUsers.entries()) {
-      if (info.socketId === socket.id) {
-        return { userId, artistName: info.metadata?.artistName || 'OPERATIVE' };
-      }
-    }
-    return null;
-  };
-
   io.on("connection", (socket) => {
     console.log("Elite user connected:", socket.id);
 
@@ -877,20 +842,23 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_room_message", (data) => {
-      const { roomId, message } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      io.to(roomId).emit("room_message", { roomId, fromUserId: sender.userId, fromUserName: sender.artistName, message, timestamp: Date.now() });
+      const { roomId, message, fromUserId, fromUserName } = data;
+      io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
-
-    socket.on("challenge_player", (data) => {
-      const { toUserId, gameId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+    socket.on("send_message", (data) => {
+      const { toUserId, message, fromUserId, fromUserName } = data;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
-        io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId: sender.userId, gameId });
+        io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
+      }
+    });
+
+    socket.on("challenge_player", (data) => {
+      const { toUserId, fromUserId, gameId } = data;
+      const userInfo = onlineUsers.get(toUserId);
+      if (userInfo) {
+        io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
       }
     });
 
@@ -947,30 +915,24 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("create_party", (data) => {
-      const { partyId, gameId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+      const { partyId, leaderId, gameId } = data;
       socket.join(`party_${partyId}`);
-      console.log(`Party ${partyId} created by ${sender.userId} for ${gameId}`);
-      socket.emit("party_created", { partyId, leaderId: sender.userId, gameId });
+      console.log(`Party ${partyId} created by ${leaderId} for ${gameId}`);
+      socket.emit("party_created", { partyId, leaderId, gameId });
     });
 
     socket.on("join_party", (data) => {
-      const { partyId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+      const { partyId, userId, artistName } = data;
       socket.join(`party_${partyId}`);
-      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId: sender.userId, artistName: sender.artistName });
-      console.log(`User ${sender.userId} joined party ${partyId}`);
+      io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
+      console.log(`User ${userId} joined party ${partyId}`);
     });
 
     socket.on("leave_party", (data) => {
-      const { partyId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
+      const { partyId, userId, artistName } = data;
       socket.leave(`party_${partyId}`);
-      io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId: sender.userId, artistName: sender.artistName });
-      console.log(`User ${sender.userId} left party ${partyId}`);
+      io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
+      console.log(`User ${userId} left party ${partyId}`);
     });
 
 
@@ -982,16 +944,8 @@ const setupSocketIO = (server) => {
 
 
     socket.on("send_message", async (data) => {
-      const { toUserId, message } = data;
+      const { toUserId, message, fromUserId, fromUserName } = data;
       const timestamp = Date.now();
-
-      // Derive sender from authenticated socket context
-      const sender = getSenderFromSocket(socket);
-      if (!sender) {
-        console.error('Unauthorized send_message attempt');
-        return;
-      }
-      const { userId: fromUserId, artistName: fromUserName } = sender;
 
       try {
         await pool.query(
@@ -999,9 +953,9 @@ const setupSocketIO = (server) => {
           [fromUserId, toUserId, message, timestamp]
         );
 
-        const recipientInfo = onlineUsers.get(toUserId);
-        if (recipientInfo) {
-          io.to(recipientInfo.socketId).emit("message", {
+        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+        if (recipientSocket) {
+          io.to(recipientSocket.socketId).emit("message", {
             fromUserId,
             fromUserName,
             toUserId,
@@ -1014,50 +968,35 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on("neural_sync_request", (data, ack) => {
-      const { toUserId, syncType } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) {
-        if (typeof ack === 'function') ack({ error: 'Unauthorized' });
-        return;
-      }
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("neural_sync_invite", { fromUserId: sender.userId, fromUserName: sender.artistName, syncType });
-        console.log(`Neural sync requested from ${sender.userId} to ${toUserId}`);
-        if (typeof ack === 'function') ack({ success: true });
-      } else {
-        console.log(`Neural sync failed: user ${toUserId} not online`);
-        if (typeof ack === 'function') ack({ error: 'Recipient not online' });
+    socket.on("neural_sync_request", (data) => {
+      const { toUserId, fromUserId, fromUserName, syncType } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
+        console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
       }
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, syncData } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("neural_sync_complete", { fromUserId: sender.userId, fromUserName: sender.artistName, syncData });
-        console.log(`Neural sync approved between ${sender.userId} and ${toUserId}`);
+      const { toUserId, fromUserId, fromUserName, syncData } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
+        console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
 
     socket.on("invite_to_party", (data) => {
-      const { toUserId, partyId, gameId } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      const recipientInfo = onlineUsers.get(toUserId);
-      if (recipientInfo) {
-        io.to(recipientInfo.socketId).emit("party_invite", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, gameId });
-        console.log(`Party invite from ${sender.userId} to ${toUserId} for party ${partyId}`);
+      const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
+      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      if (recipientSocket) {
+        io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
+        console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
       }
     });
     socket.on("send_party_message", (data) => {
-      const { partyId, message } = data;
-      const sender = getSenderFromSocket(socket);
-      if (!sender) return;
-      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId: sender.userId, fromUserName: sender.artistName, message, timestamp: Date.now() });
+      const { partyId, message, fromUserId, fromUserName } = data;
+      io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
     socket.on("disconnect", () => {
@@ -1168,7 +1107,10 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
+    const frontendOrigin = process.env.FRONTEND_ORIGIN || null;
+    const targetOrigin = frontendOrigin || '*';
+    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: code || null });
+    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(targetOrigin)}); window.close();</script></html>`);
   });
 });
 

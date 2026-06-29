@@ -234,6 +234,8 @@ export interface UserProfile {
   thaSpotProgression?: any;
   profileSetupCompleted?: boolean;
   profileSetupCompletedAt?: number;
+  eliteScore?: number;
+  squadCount?: number;
 }
 
 import { createInitialArtistIdentity } from './artist-identity.types';
@@ -376,4 +378,6 @@ export const initialProfile: UserProfile = {
   gameStats: {},
   pressGallery: [],
   thaSpotProgression: { roomStats: {}, earnedCosmetics: [], eventHistory: [] },
+  eliteScore: 0,
+  squadCount: 0,
 };
