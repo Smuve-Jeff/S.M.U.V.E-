@@ -300,7 +300,7 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
 app.get('/api/users/search', authenticateToken, async (req, res) => {
   try {
     const { q, location } = req.query;
-    let query = `SELECT user_id as "userId", profile_data->>'artistName' as "artistName", profile_data->>'primaryGenre' as "primaryGenre", profile_data->>'avatarImage' as "avatarImage", profile_data->>'location' as "location" FROM user_profiles WHERE 1=1`;
+    let query = 'SELECT user_id as "userId", profile_data->>\'artistName\' as "artistName", profile_data->>\'primaryGenre\' as "primaryGenre", profile_data->>\'avatarImage\' as "avatarImage", profile_data->>\'location\' as "location", (profile_data->>\'eliteScore\')::int as "eliteScore", (profile_data->>\'squadCount\')::int as "squadCount" FROM user_profiles WHERE profile_data->>\'profileSetupCompleted\' = \'true\' AND profile_data->>\'artistName\' != \'Incognito\';';
     const params = [];
 
     if (q && typeof q === 'string') {
