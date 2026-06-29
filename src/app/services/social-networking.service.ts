@@ -85,6 +85,8 @@ export class SocialNetworkingService {
   matchmakingStatus = signal<"idle" | "searching" | "matched">("idle");
   currentMatch = signal<{ opponentId: string, gameId: string } | null>(null);
 
+  private neuralSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
   // Voice chat state
   remoteSignals = signal<any[]>([]);
   typingUsers = signal<Record<string, boolean>>({});
@@ -165,6 +167,10 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('neural_sync_complete', (data: any) => {
+      if (this.neuralSyncTimeoutId !== null) {
+        clearTimeout(this.neuralSyncTimeoutId);
+        this.neuralSyncTimeoutId = null;
+      }
       this.neuralSyncStatus.set('synced');
       this.lastSyncedData.set({
         syncedWith: data.fromUserName,
@@ -433,6 +439,9 @@ export class SocialNetworkingService {
 
   requestNeuralSync(toUserId: string) {
     const profile = this.profileService.profile();
+    if (this.neuralSyncTimeoutId !== null) {
+      clearTimeout(this.neuralSyncTimeoutId);
+    }
     this.neuralSyncStatus.set('syncing');
     this.socket?.emit('neural_sync_request', {
       toUserId,
@@ -440,6 +449,13 @@ export class SocialNetworkingService {
       fromUserName: profile.artistName,
       syncType: 'FULL_DASHBOARD',
     });
+    this.neuralSyncTimeoutId = setTimeout(() => {
+      this.neuralSyncTimeoutId = null;
+      if (this.neuralSyncStatus() === 'syncing') {
+        this.neuralSyncStatus.set('idle');
+        console.warn('Neural sync request timed out — recipient may be offline.');
+      }
+    }, 30_000);
   }
 
   async loadMessageHistory(friendId: string) {
