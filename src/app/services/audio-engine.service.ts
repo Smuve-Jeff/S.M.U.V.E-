@@ -188,6 +188,7 @@ export class AudioEngineService {
         if (this.countInRemainingSteps <= 0) {
           this.isCountIn.set(false);
           this.currentStep = 0;
+          this.sendMidiStart();
           this.onCountInComplete?.();
         }
         continue;
