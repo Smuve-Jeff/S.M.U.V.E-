@@ -197,7 +197,15 @@ const sendSocialNotification = async (userId, subject, message) => {
   }
 };
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
+const geminiApiKey =
+  process.env.GEMINI_API_KEY ||
+  (process.env.NODE_ENV === 'test' ? 'MOCK_KEY' : '');
+
+if (!geminiApiKey) {
+  throw new Error('GEMINI_API_KEY is required.');
+}
+
+const genAI = new GoogleGenerativeAI(geminiApiKey);
 
 // --- SOCKET.IO LOGIC ---
 const setupSocketIO = (server) => {
