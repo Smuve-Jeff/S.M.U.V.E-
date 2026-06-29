@@ -43,7 +43,7 @@ export default tseslint.config(
   },
   prettierConfig,
   {
-    files: ['server/**/*.js'],
+    files: ['server/**/*.js', 'src/server/**/*.js'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },

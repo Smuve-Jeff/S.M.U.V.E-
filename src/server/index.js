@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { GoogleGenAI } = require('@google/genai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
+const http = require('node:http');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -191,6 +192,7 @@ async function sendSocialNotification(userId, title, body) {
   } catch (err) {
     console.error('Failed to send social notification email:', err);
   }
+}
 
 const formatLoginTimestamp = (input) => {
   const parsed = input ? new Date(input) : new Date();
@@ -256,6 +258,28 @@ const initDb = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS direct_messages (
+        message_id SERIAL PRIMARY KEY,
+        from_user_id VARCHAR(255) NOT NULL,
+        to_user_id VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        timestamp BIGINT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (from_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS friends (
+        user_id VARCHAR(255) NOT NULL,
+        friend_id VARCHAR(255) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, friend_id),
+        FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (friend_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
       );
     `);
     console.log(
@@ -551,7 +575,7 @@ app.post(
           '',
           'If this was you, no action is required.',
           'If this was not you, please secure your account immediately.',
-        ].join(''),
+        ].join('\n'),
         html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
           <h2 style="margin-bottom: 12px;">S.M.U.V.E 2.0 Login Confirmation</h2>
@@ -742,6 +766,9 @@ app.post(
   async (req, res) => {
     try {
       const { profile } = req.body;
+      if (!isObject(profile) || !isNonEmptyString(profile.artistName)) {
+        return res.status(400).json({ error: 'Valid profile with artistName is required.' });
+      }
       const prompt = `PERFORM TOTAL PROJECT AUDIT FOR ${profile.artistName}.
       Analyze User DNA: ${JSON.stringify(profile)}.
       Identify every technical, legal, and strategic deficit.
@@ -765,6 +792,9 @@ app.post(
   async (req, res) => {
     try {
       const { query } = req.body;
+      if (!isNonEmptyString(query)) {
+        return res.status(400).json({ error: 'A non-empty query is required.' });
+      }
       const prompt = `EXTERNAL INTELLIGENCE GATHERING: ${query}.
       Provide actionable, high-stakes intel that only an Elite-level guru would possess.`;
 
@@ -826,12 +856,26 @@ const setupSocketIO = (server) => {
     io.emit("users_online", users);
   };
 
+  io.use((socket, next) => {
+    const token = socket.handshake.auth.token || socket.handshake.query.token;
+    if (!token) {
+      return next(new Error('Authentication required'));
+    }
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+      if (err) {
+        return next(new Error('Invalid token'));
+      }
+      socket.user = user;
+      next();
+    });
+  });
+
   io.on("connection", (socket) => {
     console.log("Elite user connected:", socket.id);
 
     socket.on("register_presence", (data) => {
-      const userId = typeof data === "string" ? data : data.userId;
-      const metadata = typeof data === "string" ? {} : data.metadata;
+      const userId = socket.user.userId;
+      const metadata = typeof data === "object" ? data.metadata : {};
       onlineUsers.set(userId, { socketId: socket.id, metadata });
       broadcastOnlineUsers();
       console.log(`User ${userId} registered with metadata.`);
@@ -843,12 +887,14 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("send_room_message", (data) => {
-      const { roomId, message, fromUserId, fromUserName } = data;
+      const { roomId, message, fromUserName } = data;
+      const fromUserId = socket.user.userId;
       io.to(roomId).emit("room_message", { roomId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
     socket.on("send_message", (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
+      const { toUserId, message, fromUserName } = data;
+      const fromUserId = socket.user.userId;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("private_message", { fromUserId, fromUserName, message, timestamp: Date.now() });
@@ -856,7 +902,8 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("challenge_player", (data) => {
-      const { toUserId, fromUserId, gameId } = data;
+      const { toUserId, gameId } = data;
+      const fromUserId = socket.user.userId;
       const userInfo = onlineUsers.get(toUserId);
       if (userInfo) {
         io.to(userInfo.socketId).emit("incoming_challenge", { fromUserId, gameId });
@@ -864,8 +911,9 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("queue_for_match", (data) => {
-      const { userId, gameId } = data || {};
-      if (!userId || !gameId) return;
+      const { gameId } = data || {};
+      const userId = socket.user.userId;
+      if (!gameId) return;
       console.log(`User ${userId} queued for game ${gameId}`);
       if (!matchmakingQueue.has(gameId)) {
         matchmakingQueue.set(gameId, []);
@@ -900,7 +948,8 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("cancel_match", (data) => {
-      const { userId, gameId } = data;
+      const { gameId } = data;
+      const userId = socket.user.userId;
       if (matchmakingQueue.has(gameId)) {
         const queue = matchmakingQueue.get(gameId);
         const index = queue.findIndex(u => u.userId === userId);
@@ -916,21 +965,24 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("create_party", (data) => {
-      const { partyId, leaderId, gameId } = data;
+      const { partyId, gameId } = data;
+      const leaderId = socket.user.userId;
       socket.join(`party_${partyId}`);
       console.log(`Party ${partyId} created by ${leaderId} for ${gameId}`);
       socket.emit("party_created", { partyId, leaderId, gameId });
     });
 
     socket.on("join_party", (data) => {
-      const { partyId, userId, artistName } = data;
+      const { partyId, artistName } = data;
+      const userId = socket.user.userId;
       socket.join(`party_${partyId}`);
       io.to(`party_${partyId}`).emit("user_joined_party", { partyId, userId, artistName });
       console.log(`User ${userId} joined party ${partyId}`);
     });
 
     socket.on("leave_party", (data) => {
-      const { partyId, userId, artistName } = data;
+      const { partyId, artistName } = data;
+      const userId = socket.user.userId;
       socket.leave(`party_${partyId}`);
       io.to(`party_${partyId}`).emit("user_left_party", { partyId, userId, artistName });
       console.log(`User ${userId} left party ${partyId}`);
@@ -944,8 +996,9 @@ const setupSocketIO = (server) => {
     });
 
 
-    socket.on("send_message", async (data) => {
-      const { toUserId, message, fromUserId, fromUserName } = data;
+    socket.on("send_direct_message", async (data) => {
+      const { toUserId, message, fromUserName } = data;
+      const fromUserId = socket.user.userId;
       const timestamp = Date.now();
 
       try {
@@ -954,7 +1007,7 @@ const setupSocketIO = (server) => {
           [fromUserId, toUserId, message, timestamp]
         );
 
-        const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+        const recipientSocket = onlineUsers.get(toUserId);
         if (recipientSocket) {
           io.to(recipientSocket.socketId).emit("message", {
             fromUserId,
@@ -970,8 +1023,9 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_request", (data) => {
-      const { toUserId, fromUserId, fromUserName, syncType } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const { toUserId, fromUserName, syncType } = data;
+      const fromUserId = socket.user.userId;
+      const recipientSocket = onlineUsers.get(toUserId);
       if (recipientSocket) {
         io.to(recipientSocket.socketId).emit("neural_sync_invite", { fromUserId, fromUserName, syncType });
         console.log(`Neural sync requested from ${fromUserId} to ${toUserId}`);
@@ -979,24 +1033,31 @@ const setupSocketIO = (server) => {
     });
 
     socket.on("neural_sync_approve", (data) => {
-      const { toUserId, fromUserId, fromUserName, syncData } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const { toUserId, fromUserName, syncData } = data;
+      const fromUserId = socket.user.userId;
+      const recipientSocket = onlineUsers.get(toUserId);
       if (recipientSocket) {
-        io.to(recipientSocket.socketId).emit("neural_sync_complete", { fromUserId, fromUserName, syncData });
+        io.to(recipientSocket.socketId).emit("neural_sync_complete", {
+          fromUserId,
+          fromUserName,
+          syncData,
+        });
         console.log(`Neural sync approved between ${fromUserId} and ${toUserId}`);
       }
     });
 
     socket.on("invite_to_party", (data) => {
-      const { toUserId, partyId, fromUserId, fromUserName, gameId } = data;
-      const recipientSocket = [...onlineUsers.values()].find(u => u.userId === toUserId);
+      const { toUserId, partyId, fromUserName, gameId } = data;
+      const fromUserId = socket.user.userId;
+      const recipientSocket = onlineUsers.get(toUserId);
       if (recipientSocket) {
         io.to(recipientSocket.socketId).emit("party_invite", { partyId, fromUserId, fromUserName, gameId });
         console.log(`Party invite from ${fromUserId} to ${toUserId} for party ${partyId}`);
       }
     });
     socket.on("send_party_message", (data) => {
-      const { partyId, message, fromUserId, fromUserName } = data;
+      const { partyId, message, fromUserName } = data;
+      const fromUserId = socket.user.userId;
       io.to(`party_${partyId}`).emit("party_message", { partyId, fromUserId, fromUserName, message, timestamp: Date.now() });
     });
 
@@ -1117,7 +1178,10 @@ PLATFORMS.forEach(platform => {
 
   app.get(`/api/auth/${platform}/callback`, (req, res) => {
     const { code } = req.query;
-    res.send(`<html><script>window.opener.postMessage({ type: "${platform.toUpperCase()}_AUTH_SUCCESS", code: "${code}" }, "*"); window.close();</script></html>`);
+    const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:4200';
+    const safeCode = escapeHtml(code || '');
+    const payload = JSON.stringify({ type: `${platform.toUpperCase()}_AUTH_SUCCESS`, code: safeCode });
+    res.send(`<html><script>window.opener.postMessage(${payload}, ${JSON.stringify(frontendOrigin)}); window.close();</script></html>`);
   });
 });
 
@@ -1260,4 +1324,3 @@ app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeU
     res.status(500).json({ error: 'Failed to remove friend.' });
   }
 });
-}
