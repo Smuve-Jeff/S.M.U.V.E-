@@ -225,7 +225,6 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('send_room_message', (data) => {
-      if (!data) return;
       const { room, message } = data;
       const userId = getSenderFromSocket(socket);
       if (!userId) return;
@@ -233,7 +232,6 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('send_message', async (data) => {
-      if (!data) return;
       const { toUserId, message } = data;
       const fromUserId = getSenderFromSocket(socket);
       if (!fromUserId) return;
@@ -251,7 +249,6 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('challenge_player', (data) => {
-      if (!data) return;
       const { toUserId, gameId } = data;
       const fromUserId = getSenderFromSocket(socket);
       if (!fromUserId) return;
