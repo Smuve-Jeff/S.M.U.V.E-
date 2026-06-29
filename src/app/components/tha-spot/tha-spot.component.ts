@@ -280,10 +280,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         if (game) {
           this.selectedGame.set(game);
         } else {
-          const sub = this.gameService.getThaSpotFeed().subscribe(feed => {
-             const found = feed.games.find(g => g.id === gameId);
-             if (found) this.selectedGame.set(found);
-             sub.unsubscribe();
           });
         }
       }
