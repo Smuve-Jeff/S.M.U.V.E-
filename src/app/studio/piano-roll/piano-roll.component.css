@@ -113,9 +113,6 @@
   position: relative;
 }
 
-.key-item.black-key {
-  height: 18px !important;
-  margin-top: -9px;
   margin-bottom: -9px;
   background: #1e293b;
   color: #94a3b8;
