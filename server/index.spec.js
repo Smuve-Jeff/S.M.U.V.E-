@@ -29,13 +29,19 @@ jest.mock('express-rate-limit', () =>
   jest.fn(() => (_req, _res, next) => next())
 );
 
-jest.mock('@google/genai', () => ({
-  GoogleGenAI: jest.fn(() => ({
-    models: {
-      generateContent: jest.fn(() => Promise.resolve({
-        text: "Mocked audit response"
-      })),
-    },
+const mockGenerateContent = jest.fn().mockResolvedValue({
+  response: {
+    text: () => "Mocked audit response"
+  }
+});
+
+const mockGetGenerativeModel = jest.fn().mockReturnValue({
+  generateContent: mockGenerateContent
+});
+
+jest.mock('@google/generative-ai', () => ({
+  GoogleGenerativeAI: jest.fn(() => ({
+    getGenerativeModel: mockGetGenerativeModel,
   })),
 }));
 
@@ -160,19 +166,6 @@ describe('server/index.js backend smoke tests', () => {
     const baseUrl = await startServer();
     const token = jwt.sign({}, process.env.JWT_SECRET);
 
-    const response = await requestJson(baseUrl, '/api/users/featured', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    // Note: The authorizeUser middleware checks req.user.userId
-    // If it's missing, it returns 401 Authentication required
-    // But featured doesn't use authorizeUser, only authenticateToken
-    // authenticateToken doesn't check for userId, it just verifies the JWT
-    // However, the test was checking for "Authentication required."
-    // Let's check an endpoint that uses authorizeUser
-
     const response2 = await requestJson(baseUrl, '/api/users/user-1/friends', {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -185,12 +178,11 @@ describe('server/index.js backend smoke tests', () => {
     expect(response2.status).toBe(401);
   });
 
-  it('serves profile requests when the token user matches the route user', async () => {
+  it('serves friends requests when the token user matches the route user', async () => {
     const baseUrl = await startServer();
     const token = jwt.sign({ userId: 'user-1' }, process.env.JWT_SECRET);
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
 
-    // Note: I updated the endpoint to /api/users/:userId/friends since /api/profile/user-1 didn't exist in the new index.js
     const response = await requestJson(baseUrl, '/api/users/user-1/friends', {
       headers: {
         Authorization: `Bearer ${token}`,
