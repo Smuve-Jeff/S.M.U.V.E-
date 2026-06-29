@@ -151,6 +151,30 @@ export class ProjectsComponent {
     this.selectedProject.set(newProject);
   }
 
+    exportProject(project: Project) {
+    const data = JSON.stringify(project, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smuve_project_${project.name}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async importProject(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const imported = JSON.parse(text) as Project;
+      await this.projectService.add(imported);
+      this.selectedProject.set(imported);
+    } catch (e) {
+      console.error('Project import failed', e);
+    }
+  }
+
   async finalizeReleaseCycle() {
     const project = this.selectedProject();
     if (!project) return;

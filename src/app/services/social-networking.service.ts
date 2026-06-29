@@ -16,6 +16,7 @@ export interface OnlineUser {
   inGame?: boolean;
   profileSetupCompleted?: boolean;
   online?: boolean;
+  location?: string;
 }
 
 export interface PrivateMessage {
@@ -61,6 +62,9 @@ export class SocialNetworkingService {
   messages = signal<PrivateMessage[]>([]);
   roomMessages = signal<RoomMessage[]>([]);
   challenges = signal<Challenge[]>([]);
+  friends = signal<OnlineUser[]>([]);
+  partyMembers = signal<OnlineUser[]>([]);
+  currentPartyId = signal<string | null>(null);
 
   // Go Live State
   isStreaming = signal(false);
@@ -98,7 +102,7 @@ export class SocialNetworkingService {
     });
   }
 
-  private initializeSocket(userId: string) {
+    private initializeSocket(userId: string) {
     const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
     this.socket = io(backendUrl);
 
@@ -111,6 +115,7 @@ export class SocialNetworkingService {
           artistName: profile.artistName,
           primaryGenre: profile.primaryGenre,
           avatarImage: profile.avatarImage,
+          location: profile.location,
           profileSetupCompleted: profile.profileSetupCompleted
         }
       });
@@ -149,9 +154,48 @@ export class SocialNetworkingService {
       this.matchmakingStatus.set("matched");
       this.currentMatch.set(data);
     });
+
+    this.socket.on("party_created", (data: any) => {
+      this.currentPartyId.set(data.partyId);
+      this.partyMembers.set([{ userId: data.leaderId, artistName: this.profileService.profile().artistName }]);
+    });
+
+    this.socket.on("user_joined_party", (data: any) => {
+      this.partyMembers.update(members => {
+        if (!members.find(m => m.userId === data.userId)) {
+          return [...members, { userId: data.userId, artistName: data.artistName }];
+        }
+        return members;
+      });
+    });
+
+    this.socket.on("user_left_party", (data: any) => {
+      this.partyMembers.update(members => members.filter(m => m.userId !== data.userId));
+    });
+
+    this.socket.on('party_message', (data: any) => {
+      this.roomMessages.update((msgs) => [...msgs, data]);
+    });
+
+    this.socket.on('party_launch_game', (data: any) => {
+      if (typeof data?.gameId !== 'string') return;
+      this.roomMessages.update((msgs) => [
+        ...msgs,
+        {
+          roomId: 'party',
+          fromUserId: 'system',
+          fromUserName: 'SQUAD_COMMAND',
+          message: `SQUAD_LEADER_LAUNCHING: ${data.gameId.toUpperCase()}. PREPARE_FOR_JOINT_MISSION.`,
+          timestamp: Date.now(),
+          metadata: { type: 'GAME_INVITE', gameId: data.gameId },
+        },
+      ]);
+    });
+
     this.socket.on("user_typing", (data: any) => {
       this.typingUsers.update(users => ({ ...users, [data.fromUserId]: data.isTyping }));
     });
+
     this.socket.on('voice_signal', (data: any) => {
       this.remoteSignals.update(sigs => [...sigs, data]);
       this.peerService.handleSignal(data.fromUserId, data.signal);
@@ -255,6 +299,108 @@ export class SocialNetworkingService {
     });
   }
 
+
+  async loadFriends() {
+    const userId = this.profileService.profile().id;
+    if (!userId) return;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const friends = await firstValueFrom(this.http.get<OnlineUser[]>(
+        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends`,
+        { headers }
+      ));
+      this.friends.set(friends);
+    } catch (e) {
+      console.error('Failed to load friends', e);
+    }
+  }
+
+  async addFriend(friendId: string) {
+    const userId = this.profileService.profile().id;
+    if (!userId) return;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await firstValueFrom(this.http.post(
+        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+        {},
+        { headers }
+      ));
+      await this.loadFriends();
+    } catch (e) {
+      console.error('Failed to add friend', e);
+    }
+  }
+
+
+  async respondToFriendRequest(friendId: string, status: 'accepted' | 'declined') {
+    const userId = this.profileService.profile().id;
+    if (!userId) return;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await firstValueFrom(this.http.patch(
+        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+        { status },
+        { headers }
+      ));
+      await this.loadFriends();
+    } catch (e) {
+      console.error('Failed to respond to friend request', e);
+    }
+  }
+
+  async removeFriend(friendId: string) {
+    const userId = this.profileService.profile().id;
+    if (!userId) return;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await firstValueFrom(this.http.delete(
+        `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
+        { headers }
+      ));
+      await this.loadFriends();
+    } catch (e) {
+      console.error('Failed to remove friend', e);
+    }
+  }
+
+  createParty(gameId: string) {
+    const profile = this.profileService.profile();
+    const partyId = Math.random().toString(36).substring(7);
+    this.socket?.emit("create_party", { partyId, leaderId: profile.id, gameId });
+  }
+
+  joinParty(partyId: string) {
+    const profile = this.profileService.profile();
+    this.socket?.emit("join_party", { partyId, userId: profile.id, artistName: profile.artistName });
+    this.currentPartyId.set(partyId);
+  }
+
+  leaveParty() {
+    const partyId = this.currentPartyId();
+    if (!partyId) return;
+    const profile = this.profileService.profile();
+    this.socket?.emit("leave_party", { partyId, userId: profile.id, artistName: profile.artistName });
+    this.currentPartyId.set(null);
+  }
+
+
+  launchPartyGame(gameId: string) {
+    const partyId = this.currentPartyId();
+    if (!partyId) return;
+    this.socket?.emit("party_launch_game", { partyId, gameId });
+  }
+
+  sendPartyMessage(message: string) {
+    const partyId = this.currentPartyId();
+    if (!partyId) return;
+    const profile = this.profileService.profile();
+    this.socket?.emit("send_party_message", { partyId, message, fromUserId: profile.id, fromUserName: profile.artistName });
+  }
+
   async searchUsers(query: string): Promise<OnlineUser[]> {
     try {
       const token = this.tokenService.jwtToken();
@@ -262,7 +408,7 @@ export class SocialNetworkingService {
       return await firstValueFrom(this.http.get<OnlineUser[]>(
         `${APP_SECURITY_CONFIG.api_url}/users/search`,
         {
-          params: { q: query },
+          params: { q: query, location: query },
           headers
         }
       ));
@@ -303,6 +449,7 @@ export class SocialNetworkingService {
         artistName: profile.artistName,
         primaryGenre: profile.primaryGenre,
         avatarImage: profile.avatarImage,
+          location: profile.location,
         profileSetupCompleted: profile.profileSetupCompleted
       }
     });

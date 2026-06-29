@@ -40,7 +40,7 @@ export class SettingsComponent implements OnInit {
   dialog = inject(InteractionDialogService);
   showHowTo = signal(false);
 
-  settings = computed(() => this.profileService.profile().settings);
+  settings = computed(() => this.pendingSettings() || this.profileService.profile().settings);
   themeOptions = computed(() => this.uiService.getAvailableThemes());
   appearanceSummary = computed(() => {
     const ui = this.settings().ui;
@@ -75,6 +75,7 @@ export class SettingsComponent implements OnInit {
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
+  pendingSettings = signal<AppSettings | null>(null);
   storageStats = signal<{
     usedBytes: number;
     totalBytes: number;
@@ -141,64 +142,49 @@ export class SettingsComponent implements OnInit {
     this.audioEngine.setOutputMode(mode);
   }
 
-  async updateSetting(category: keyof AppSettings, key: string, value: any) {
-    const currentProfile = this.profileService.profile();
-    const updatedSettings = {
-      ...currentProfile.settings,
+  updateSetting(category: keyof AppSettings, key: string, value: any) {
+    const current = this.pendingSettings() || this.profileService.profile().settings;
+    const updated = {
+      ...current,
       [category]: {
-        ...(currentProfile.settings as any)[category],
+        ...(current as any)[category],
         [key]: value,
       },
     };
+    this.pendingSettings.set(updated);
+
+    // Preview side effects
+    if (category === 'ui' && key === 'theme') {
+        this.uiService.setTheme(value);
+    }
+    if (category === 'ui' && key === 'performanceMode') {
+        // Toggle locally for preview if possible
+    }
+  }
+
+  async commitSettings() {
+    const pending = this.pendingSettings();
+    if (!pending) return;
+
+    const confirmed = await this.dialog.confirm({
+      title: 'COMMIT_SETTINGS_TO_CLOUD',
+      message: 'Authorize synchronization of updated executive parameters?',
+      confirmLabel: 'AUTHORIZE',
+      cancelLabel: 'ABORT',
+    });
+
+    if (!confirmed) return;
 
     try {
+      const currentProfile = this.profileService.profile();
       await this.profileService.updateProfile({
         ...currentProfile,
-        settings: updatedSettings,
+        settings: pending,
       });
-
-      // Immediate UI Feedback/Side effects
-      if (category === 'ui' && key === 'theme') {
-        this.uiService.setTheme(value);
-      }
-      if (category === 'ui' && key === 'performanceMode') {
-        if (value !== this.uiService.performanceMode()) {
-          this.uiService.togglePerformanceMode();
-        }
-      }
-
-      this.notificationService.show(
-        'Settings synchronized to cloud.',
-        'success',
-        2000
-      );
-      if (category === 'security') {
-        if (key === 'endToEndEncryption' && value === true) {
-          await this.securityService.generateE2EKeys();
-          this.notificationService.show(
-            'E2E Encryption keys generated and stored in secure enclave.',
-            'success'
-          );
-        }
-        if (key === 'twoFactorEnabled' && value === true) {
-          const setup = await this.securityService.setup2FA();
-          await this.dialog.alert({
-            title: '2FA Enrollment',
-            message: `Scan this URI in your authenticator app: ${setup.qrCodeUri}. Your secret key is: ${setup.secret}`,
-            confirmLabel: 'I have saved the key',
-          });
-        }
-        this.securityService.logEvent(
-          'SETTING_CHANGED',
-          `Updated ${key} to ${value}`
-        );
-      }
-    } catch (_err) {
-      this.notificationService.show(
-        'Sync failed. Local cache maintained.',
-        'error',
-        3000
-      );
+      this.pendingSettings.set(null);
+      this.notificationService.show('EXECUTIVE_SETTINGS_SYNC_COMPLETE', 'success');
+    } catch (e) {
+      this.notificationService.show('SYNC_FAILED', 'error');
     }
   }
 
@@ -234,6 +220,17 @@ export class SettingsComponent implements OnInit {
   openExternalLink(url: string) {
     if (typeof window !== 'undefined') {
       window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+    async onProfileImport(event: any) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const success = await this.profileService.importProfile(file);
+    if (success) {
+      this.notificationService.show('PROFILE_IMPORTED_SUCCESSFULLY', 'success');
+    } else {
+      this.notificationService.show('PROFILE_IMPORT_FAILED', 'error');
     }
   }
 

@@ -1,3 +1,5 @@
+import { AuthService } from '../services/auth.service';
+import { CollaborationService } from '../services/collaboration.service';
 import {
   Component,
   OnInit,
@@ -60,7 +62,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
   public hardware = inject(HardwareService);
+  collaboration = inject(CollaborationService);
   public readonly uiService = inject(UIService);
+  private authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   public readonly musicManager = inject(MusicManagerService);
@@ -157,5 +161,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
   toggleBrowser() { this.haptic.light(); this.browserCollapsed.update(v => !v); }
   toggleInspector() { this.haptic.light(); this.inspectorCollapsed.update(v => !v); }
+    toggleCollaboration() {
+    if (this.collaboration.currentSession()) {
+      this.collaboration.leaveSession();
+    } else {
+      const user = this.authService.currentUser() || { id: 'anon', name: 'Anonymous' };
+      this.collaboration.startSession(user as any, this.musicManager.snapshotProject());
+    }
+  }
+
   toggleNeuralFoundry() { this.haptic.light(); this.showNeuralFoundry.update(v => !v); }
 }

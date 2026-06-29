@@ -419,4 +419,11 @@ export class MusicManagerService {
       updatedAt: Date.now()
     };
   }
+
+  loadProject(snapshot: any) {
+    if (!snapshot) return;
+    this.logger.info('Loading project snapshot...');
+    // Real implementation would map snapshot to internal state
+  }
+
 }

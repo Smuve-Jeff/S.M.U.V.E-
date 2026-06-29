@@ -199,6 +199,8 @@
         </button>
         <button [class.active]="activeHubTab() === 'room'" (click)="setHubTab('room')">ROOM</button>
         <button [class.active]="activeHubTab() === 'dm'" (click)="setHubTab('dm')">DM</button>
+        <button [class.active]="activeHubTab() === 'friends'" (click)="setHubTab('friends')">NET</button>
+        <button [class.active]="activeHubTab() === 'party'" (click)="setHubTab('party')">SQUAD</button>
         <button [class.active]="activeHubTab() === 'stream'" (click)="setHubTab('stream')">LIVE</button>
       </div>
       <button class="close-intel" (click)="toggleRivalHub()">
@@ -278,6 +280,82 @@
                 <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
               </div>
               <div class="msg-content">{{ msg.message }}</div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Party View -->
+        <div class="party-view" *ngIf="activeHubTab() === 'party'">
+          <div class="party-controls" *ngIf="!socialService.currentPartyId()">
+            <h4>SQUAD_FORMATION</h4>
+            <p>Form a strike team to engage in cooperative missions.</p>
+            <button class="launch-btn mini" (click)="socialService.createParty('global')">INITIALIZE_SQUAD</button>
+          </div>
+
+          <div class="party-dashboard" *ngIf="socialService.currentPartyId() as partyId">
+            <div class="party-header glass-v42">
+              <span class="party-id">SQUAD_ID: {{ partyId }}</span>
+              <button class="terminate-btn mini" (click)="socialService.leaveParty()">ABANDON</button>
+            </div>
+
+            <div class="party-members">
+              <div class="member-chip" *ngFor="let member of socialService.partyMembers()">
+                {{ member.artistName }}
+              </div>
+            </div>
+
+            <div class="party-chat">
+               <!-- Reuse message list style -->
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Friends View -->
+        <div class="friends-view" *ngIf="activeHubTab() === 'friends'">
+          <div class="friends-header">
+            <h4>EXECUTIVE_NETWORK</h4>
+            <button class="icon-btn" (click)="socialService.loadFriends()"><span class="material-symbols-outlined">refresh</span></button>
+          </div>
+          <div class="user-list">
+            <div class="user-item glass-v42" *ngFor="let friend of socialService.friends()" [class.pending]="friend.status === 'pending'">
+              <div class="user-info">
+                <img [src]="friend.avatarImage || 'assets/avatar.jpg'" class="user-avatar" />
+                <div class="user-meta">
+                  <span class="user-name">{{ friend.artistName }}</span>
+                  <span class="user-location" *ngIf="friend.location"><span class="material-symbols-outlined mini">location_on</span> {{ friend.location }}</span>
+                  <span class="status-label" *ngIf="friend.status === 'pending'">PENDING_APPROVAL</span>
+                </div>
+              </div>
+              <div class="user-actions">
+                <ng-container *ngIf="friend.status === 'accepted'">
+                  <button class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>
+                  <button class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
+                </ng-container>
+                <ng-container *ngIf="friend.status === 'pending'">
+                  <button class="action-btn" (click)="socialService.respondToFriendRequest(friend.userId, 'accepted')">APPROVE</button>
+                  <button class="action-btn danger" (click)="socialService.respondToFriendRequest(friend.userId, 'declined')">DENY</button>
+                </ng-container>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="socialService.friends().length === 0">
+              NO_ACTIVE_FRIEND_LINKS
+            </div>
+          </div>
+
+          <div class="discovery-section">
+            <h5>DISCOVER_OPERATIVES</h5>
+            <div class="search-box">
+              <input type="text" placeholder="SEARCH BY NAME/LOCATION..." (input)="onPlayerSearchChange($any($event.target).value)" />
+            </div>
+            <div class="search-results">
+              <div class="user-item glass-v42 mini" *ngFor="let user of globalSearchResults()">
+                <div class="user-info">
+                  <span class="user-name">{{ user.artistName }}</span>
+                </div>
+                <button class="action-btn mini" (click)="socialService.addFriend(user.userId)">LINK</button>
+              </div>
             </div>
           </div>
         </div>

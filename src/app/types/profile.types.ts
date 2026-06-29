@@ -191,6 +191,7 @@ export interface UserProfile {
   id?: string;
   artistName: string;
   primaryGenre: string;
+  location?: string;
   website?: string;
   proIpi?: string;
   proName?: string;
@@ -289,6 +290,7 @@ export const initialProfile: UserProfile = {
     marketPosition: 'Independent',
   },
   primaryGenre: 'Hip Hop',
+  location: 'Unspecified',
   proName: '',
   proIpi: '',
   proData: { workIds: [], affiliations: [], ipiNumber: '' },
