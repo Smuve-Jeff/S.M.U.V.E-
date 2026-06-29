@@ -37,4 +37,4 @@ Follow these instructions to fix and optimize your deployment.
 - **Main Domain**: `https://www.smuvejeffpresents.com`
 - **Socket.io/API Origin**: `https://smuve-v4-backend-9951606049235487441.onrender.com`
 
-*Note: The GEMINI_API_KEY should only be configured on the backend service. The frontend proxies all AI calls through the backend for enhanced security.*
+*Note: The GEMINI_API_KEY should be set on BOTH services for maximum flexibility, although the frontend currently proxies calls through the backend for enhanced security.*

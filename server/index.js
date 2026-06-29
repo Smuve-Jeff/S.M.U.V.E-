@@ -99,16 +99,9 @@ const authorizeUser = (req, res, next) => {
 };
 
 // --- DATABASE LOGIC ---
-const productionSslConfig =
-  process.env.NODE_ENV === 'production'
-    ? process.env.PG_CA_CERT
-      ? { ca: process.env.PG_CA_CERT, rejectUnauthorized: true }
-      : true
-    : false;
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: productionSslConfig,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 pool.on('error', (err) => {
@@ -194,15 +187,7 @@ const sendSocialNotification = async (userId, subject, message) => {
   }
 };
 
-const geminiApiKey =
-  process.env.GEMINI_API_KEY ||
-  (process.env.NODE_ENV === 'test' ? 'MOCK_KEY' : '');
-
-if (!geminiApiKey) {
-  throw new Error('GEMINI_API_KEY is required.');
-}
-
-const genAI = new GoogleGenerativeAI(geminiApiKey);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
 
 // --- SOCKET.IO LOGIC ---
 const setupSocketIO = (server) => {
@@ -236,10 +221,6 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('join_room', (room) => {
-      const userId = getSenderFromSocket(socket);
-      if (!userId || !room || typeof room !== 'string') return;
-      // Only allow joining rooms that don't start with 'user_' (protected rooms)
-      if (room.startsWith('user_')) return;
       socket.join(room);
     });
 

@@ -110,12 +110,7 @@ export class SocialNetworkingService {
 
     private initializeSocket(userId: string) {
     const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
-    const token = this.tokenService.jwtToken();
-    this.socket = io(backendUrl, {
-      auth: {
-        token: token ? `Bearer ${token}` : '',
-      },
-    });
+    this.socket = io(backendUrl);
 
     this.socket.on('connect', () => {
       console.log('Elite socket connected');

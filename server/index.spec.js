@@ -31,12 +31,12 @@ jest.mock('express-rate-limit', () =>
 
 const mockGenerateContent = jest.fn().mockResolvedValue({
   response: {
-    text: () => 'Mocked audit response',
-  },
+    text: () => "Mocked audit response"
+  }
 });
 
 const mockGetGenerativeModel = jest.fn().mockReturnValue({
-  generateContent: mockGenerateContent,
+  generateContent: mockGenerateContent
 });
 
 jest.mock('@google/generative-ai', () => ({
