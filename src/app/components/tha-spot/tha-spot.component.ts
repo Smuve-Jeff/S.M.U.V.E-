@@ -14,6 +14,8 @@ import { SecurityService } from '../../services/security.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
 import { SocialNetworkingService, OnlineUser, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
+import { SnackbarService } from '../../services/snackbar.service';
+import { ActivatedRoute } from '@angular/router';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -31,10 +33,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public profileService = inject(UserProfileService);
   private uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
+  private route = inject(ActivatedRoute);
   private gamepadService = inject(GamepadService);
   private securityService = inject(SecurityService);
   public socialService = inject(SocialNetworkingService);
   public peerService = inject(PeerNetworkingService);
+  private snackbarService = inject(SnackbarService);
 
   // Signals
   displayMode = signal<'gaming' | 'pluto'>('gaming');
@@ -211,6 +215,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const inGame = this.inGame();
     this.socialService.updateStatus({ inGame });
   });
+
   constructor() {
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
@@ -257,12 +262,37 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
 
-    // Explicitly join the Rival room (co-op-link) to refresh active users on entry
+    // Handle Deep Links
+    this.route.queryParamMap.subscribe(params => {
+      const gameId = params.get('gameId');
+      const partyId = params.get('partyId');
+      const mission = params.get('mission');
+      if (mission) this.snackbarService.info(`MISSION ASSIGNMENT: ${mission}`);
+
+      if (partyId) {
+        this.socialService.joinParty(partyId);
+        this.setHubTab('party');
+        if (!this.showRivalHub()) this.toggleRivalHub();
+      }
+
+      if (gameId) {
+        const game = this.games().find(g => g.id === gameId);
+        if (game) {
+          this.selectedGame.set(game);
+        } else {
+          const sub = this.gameService.getThaSpotFeed().subscribe(feed => {
+             const found = feed.games.find(g => g.id === gameId);
+             if (found) this.selectedGame.set(found);
+             sub.unsubscribe();
+          });
+        }
+      }
+    });
+
     this.setActiveRoom('co-op-link');
 
-    // Auto-open Rival Hub if it's a fresh entry to show the active users as requested
     this.hubTimeoutId = setTimeout(() => {
-      if (!this.showRivalHub()) this.toggleRivalHub();
+      if (!this.showRivalHub() && !this.route.snapshot.queryParamMap.has('partyId')) this.toggleRivalHub();
     }, 1000);
   }
 
@@ -288,7 +318,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.socialService.joinRoom(id);
   }
 
-    clearFilters() {
+  clearFilters() {
     this.activeGenre.set('all');
     this.activePlatform.set('all');
     this.searchQuery.set('');
@@ -302,6 +332,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.socialService.sendTypingStatus(this.dmTargetUserId()!, val.length > 0);
     }
   }
+
   onSearchChange(val: string) {
     this.searchQuery.set(val);
   }
@@ -333,6 +364,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isMatchmaking.set(false);
     this.currentMatchmakingId = null;
   }
+
   async confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
@@ -348,7 +380,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.matchmakingStatus.set("WAITING FOR RIVAL...");
         this.socialService.queueForMatch(game.id);
 
-        // Wait for match or timeout
         const matchPromise = new Promise<boolean>((resolve) => {
           const checkMatch = setInterval(() => {
             if (this.socialService.matchmakingStatus() === "matched") {
@@ -359,20 +390,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           setTimeout(() => {
             clearInterval(checkMatch);
             resolve(false);
-          }, 15000); // 15s timeout
+          }, 15000);
         });
 
         const matched = await matchPromise;
 
-        // Check if matchmaking was cancelled
-        if (this.currentMatchmakingId !== requestId) {
-          return;
-        }
+        if (this.currentMatchmakingId !== requestId) return;
 
         if (!matched) {
-          const useBot = confirm(
-            'NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?'
-          );
+          const useBot = confirm('NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?');
           this.socialService.cancelMatch(game.id);
           if (!useBot) {
             this.isMatchmaking.set(false);
@@ -420,7 +446,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.latestSearchQuery = query;
     if (query.length > 2) {
       const results = await this.socialService.searchUsers(query);
-      // Only apply results if this is still the latest search
       if (this.latestSearchQuery === query) {
         this.globalSearchResults.set(results);
       }
@@ -428,6 +453,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.globalSearchResults.set([]);
     }
   }
+
   private loadFeed(forceRefresh = false) {
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService
@@ -455,7 +481,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url || url === "/" || url === "/hub" || url === "hub") return null;
 
-    // Ensure internal assets use root-relative paths for consistent resolution across routes
     if (url.startsWith('assets/')) {
       url = '/' + url;
     }
@@ -465,7 +490,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       url = `${url}${sep}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
     }
 
-    console.log(`[ThaSpot] Finalizing Safe URL for ${game.id}:`, url);
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
@@ -543,7 +567,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.peerService.endCall();
   }
 
-  // HUB TABS
+  copyShareLink() {
+    const game = this.currentGame() || this.selectedGame();
+    const gameId = game?.id;
+    const gameName = game?.name;
+    const partyId = this.socialService.currentPartyId();
+    const baseUrl = window.location.origin + '/tha-spot';
+
+    const params = new URLSearchParams();
+    if (gameId) params.set('gameId', gameId);
+    if (gameName) params.set('mission', gameName);
+    if (partyId) params.set('partyId', partyId);
+
+    const queryString = params.toString();
+    const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+    navigator.clipboard.writeText(url).then(() => {
+      this.snackbarService.success('MISSION LINK COPIED TO CLIPBOARD');
+    });
+  }
+
   setHubTab(tab: 'room' | 'dm' | 'stream' | 'friends' | 'party') {
     this.activeHubTab.set(tab);
     if (tab === 'dm' && !this.dmTargetUserId() && this.onlineUsers().length > 0) {
@@ -583,7 +626,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-
   addEmoji(emoji: string) {
     this.chatInput.update(v => v + emoji);
   }
@@ -594,7 +636,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  // STREAMING
   goLive(platform: string) {
     this.socialService.startStream(platform);
     this.activeHubTab.set('stream');

@@ -1,3 +1,4 @@
+import { of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   HttpClientTestingModule,
@@ -42,6 +43,7 @@ describe('ThaSpotComponent', () => {
   };
 
   beforeEach(async () => {
+    (navigator as any).getGamepads = jest.fn().mockReturnValue([]);
     const profileServiceMock = {
       profile: signal({
         primaryGenre: 'Action',
@@ -68,7 +70,10 @@ describe('ThaSpotComponent', () => {
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { queryParams: {} } },
+          useValue: {
+            snapshot: { queryParamMap: new Map(), queryParams: {} },
+            queryParamMap: of({ get: (key: string) => null, has: (key: string) => false })
+          },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
         { provide: UIService, useValue: uiServiceMock },
@@ -84,6 +89,11 @@ describe('ThaSpotComponent', () => {
 
     const req = httpMock.expectOne('assets/data/tha-spot-feed.json');
     req.flush(mockFeed);
+
+    // Also handle featured users call from ngOnInit
+    const featuredReq = httpMock.expectOne(req => req.url.includes('/api/users/featured'));
+    featuredReq.flush([]);
+
     fixture.detectChanges();
   });
 
