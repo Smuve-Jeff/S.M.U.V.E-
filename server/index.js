@@ -17,12 +17,9 @@ const REQUIRED_ENV_VARS = [
   'GEMINI_API_KEY'
 ];
 
-console.log('STABILITY_CHECK: Verifying environment variables...');
 const MISSING_VARS = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
 if (MISSING_VARS.length > 0) {
-  console.error('CRITICAL_ERROR: Missing environment variables:', MISSING_VARS.join(', '));
-  MISSING_VARS.forEach(v => console.error(`DEPLOYMENT_BLOCKER: ${v} is not set in environment.`));
-  console.error('APPLICATION_FATAL: Exiting due to missing production configuration.');
+  console.error('Missing required environment variables:', MISSING_VARS.join(', '));
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   }
@@ -30,6 +27,7 @@ if (MISSING_VARS.length > 0) {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'SMUVE_SALT_V4_SECURE_HASH';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
+const ALLOWED_ORIGINS = [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'];
 
 const app = express();
 
@@ -38,7 +36,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(cors({
-  origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
+  origin: ALLOWED_ORIGINS,
   credentials: true
 }));
 
@@ -113,7 +111,6 @@ pool.on('error', (err) => {
 
 const initDb = async () => {
   try {
-    console.log('STABILITY_CHECK: Initializing database connection...');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_profiles (
         user_id TEXT PRIMARY KEY,
@@ -155,11 +152,10 @@ const initDb = async () => {
         timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('STABILITY_CHECK: Database initialized successfully.');
+    console.log('Database initialized successfully.');
   } catch (err) {
-    console.error('CRITICAL_DATABASE_ERROR: Failed to initialize database:', err.message);
+    console.error('Database initialization failed:', err.message);
     if (process.env.NODE_ENV === 'production') {
-      console.error('APPLICATION_FATAL: Exiting due to database failure.');
       process.exit(1);
     }
   }
@@ -169,17 +165,10 @@ const initDb = async () => {
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
+      origin: ALLOWED_ORIGINS,
       methods: ["GET", "POST"]
     }
   });
-
-  const matchmakingQueues = {
-    'BATTLEFIELD': [],
-    'NEON_DRIFT': [],
-    'TEKKEN_4': [],
-    'HALO_CE': []
-  };
 
   const getSenderFromSocket = (socket) => {
     try {
@@ -222,11 +211,6 @@ const setupSocketIO = (server) => {
       }
     });
 
-    socket.on('disconnect', () => {
-      Object.keys(matchmakingQueues).forEach(game => {
-        matchmakingQueues[game] = matchmakingQueues[game].filter(q => q.userId !== userId);
-      });
-    });
   });
 };
 
@@ -525,24 +509,21 @@ PLATFORMS.forEach(platform => {
 
   app.get('/api/auth/' + platform + '/callback', (req, res) => {
     const { code } = req.query;
-    const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
-    const targetOrigin = frontendOrigin;
     const payload = JSON.stringify({ type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null });
     const escapedPayload = payload.replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
-    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + JSON.stringify(targetOrigin) + "); window.close();</script></html>");
+    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + JSON.stringify(FRONTEND_ORIGIN) + "); window.close();</script></html>");
   });
 });
 
 const startEliteServer = async (port = process.env.PORT || 3000) => {
   try {
-    console.log(`STABILITY_CHECK: Starting Elite Server on port ${port}...`);
     await initDb();
     const server = http.createServer(app);
     setupSocketIO(server);
 
     return new Promise((resolve, reject) => {
       server.on('error', (err) => {
-        console.error('CRITICAL_RUNTIME_ERROR: Server error event:', err.message);
+        console.error('Server error:', err.message);
         reject(err);
       });
 
@@ -552,9 +533,8 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
       });
     });
   } catch (err) {
-    console.error('CRITICAL_STARTUP_ERROR: Failed to start server:', err.message);
+    console.error('Failed to start server:', err.message);
     if (process.env.NODE_ENV === 'production') {
-      console.error('APPLICATION_FATAL: Exiting due to startup failure.');
       process.exit(1);
     }
   }
