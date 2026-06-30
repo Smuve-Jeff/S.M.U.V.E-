@@ -27,7 +27,11 @@ if (MISSING_VARS.length > 0) {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'SMUVE_SALT_V4_SECURE_HASH';
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
-const ALLOWED_ORIGINS = [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'];
+const ALLOWED_ORIGINS = [
+  FRONTEND_ORIGIN,
+  'https://s-m-u-v-e-2-0-frontend.onrender.com',
+  'http://localhost:4200',
+];
 
 const app = express();
 
