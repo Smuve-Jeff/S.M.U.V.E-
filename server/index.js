@@ -17,9 +17,12 @@ const REQUIRED_ENV_VARS = [
   'GEMINI_API_KEY'
 ];
 
+console.log('STABILITY_CHECK: Verifying environment variables...');
 const MISSING_VARS = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
 if (MISSING_VARS.length > 0) {
-  console.error('CRITICAL: Missing environment variables:', MISSING_VARS.join(', '));
+  console.error('CRITICAL_ERROR: Missing environment variables:', MISSING_VARS.join(', '));
+  MISSING_VARS.forEach(v => console.error(`DEPLOYMENT_BLOCKER: ${v} is not set in environment.`));
+  console.error('APPLICATION_FATAL: Exiting due to missing production configuration.');
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   }
@@ -35,7 +38,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(cors({
-  origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0-fixed.onrender.com', 'http://localhost:4200'],
+  origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
   credentials: true
 }));
 
@@ -110,6 +113,7 @@ pool.on('error', (err) => {
 
 const initDb = async () => {
   try {
+    console.log('STABILITY_CHECK: Initializing database connection...');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_profiles (
         user_id TEXT PRIMARY KEY,
@@ -148,122 +152,116 @@ const initDb = async () => {
         from_user_id TEXT,
         to_user_id TEXT,
         message TEXT,
-        timestamp BIGINT,
-        is_read BOOLEAN DEFAULT false
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-
-      CREATE INDEX IF NOT EXISTS idx_direct_messages_users ON direct_messages(from_user_id, to_user_id);
     `);
-    console.log("Elite database schema verified.");
+    console.log('STABILITY_CHECK: Database initialized successfully.');
   } catch (err) {
-    console.error("Database initialization failure:", err);
+    console.error('CRITICAL_DATABASE_ERROR: Failed to initialize database:', err.message);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('APPLICATION_FATAL: Exiting due to database failure.');
+      process.exit(1);
+    }
   }
 };
 
-const sendSocialNotification = async (userId, subject, message) => {
-  try {
-    const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
-    const email = rows[0]?.email;
-    if (!email || !process.env.SMTP_HOST) return;
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"S.M.U.V.E 2.0" <noreply@smuve.com>',
-      to: email,
-      subject: (process.env.SMTP_SUBJECT_PREFIX || 'S.M.U.V.E 2.0') + ': ' + subject,
-      text: message,
-    });
-  } catch (err) {
-    console.error("Email notification failure:", err);
-  }
-};
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
-
-// --- SOCKET.IO LOGIC ---
+// Socket.io Setup
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0-fixed.onrender.com', 'http://localhost:4200'],
+      origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
       methods: ["GET", "POST"]
     }
   });
 
+  const matchmakingQueues = {
+    'BATTLEFIELD': [],
+    'NEON_DRIFT': [],
+    'TEKKEN_4': [],
+    'HALO_CE': []
+  };
+
   const getSenderFromSocket = (socket) => {
-      const authHeader = socket.handshake.auth.token;
-      if (!authHeader) return null;
-      try {
-          const token = authHeader.split(' ')[1];
-          const decoded = jwt.verify(token, JWT_SECRET);
-          return decoded.userId;
-      } catch (err) {
-          return null;
-      }
+    try {
+      const authHeader = socket.handshake.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) return null;
+      return jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      return null;
+    }
   };
 
   io.on('connection', (socket) => {
-    console.log('Operative connected:', socket.id);
+    const user = getSenderFromSocket(socket);
+    if (!user) {
+      socket.disconnect();
+      return;
+    }
 
-    socket.on('register_presence', async (data) => {
-      const userId = getSenderFromSocket(socket);
-      if (!userId) return;
-      socket.join('user_' + userId);
-      console.log('Presence registered for:', userId);
+    const userId = user.userId;
+    socket.join(userId);
+
+    socket.on('INITIALIZE_SQUAD', (data = {}) => {
+      const squadId = `squad_${crypto.randomUUID()}`;
+      socket.join(squadId);
+      io.to(userId).emit('SQUAD_CREATED', { squadId, members: [userId] });
     });
 
-    socket.on('join_room', (room) => {
-      socket.join(room);
-    });
-
-    socket.on('send_room_message', (data) => {
-      const { room, message } = data;
-      const userId = getSenderFromSocket(socket);
-      if (!userId) return;
-      io.to(room).emit('room_message', { from: userId, message, timestamp: Date.now() });
-    });
-
-    socket.on('send_message', async (data) => {
+    socket.on('SEND_DIRECT_MESSAGE', async (data = {}) => {
       const { toUserId, message } = data;
-      const fromUserId = getSenderFromSocket(socket);
-      if (!fromUserId) return;
-
-      const timestamp = Date.now();
+      if (!toUserId || !message) return;
       try {
-          await pool.query(
-              'INSERT INTO direct_messages (from_user_id, to_user_id, message, timestamp) VALUES ($1, $2, $3, $4)',
-              [fromUserId, toUserId, message, timestamp]
-          );
-          io.to('user_' + toUserId).emit('private_message', { fromUserId, message, timestamp });
+        await pool.query(
+          'INSERT INTO direct_messages (from_user_id, to_user_id, message) VALUES ($1, $2, $3)',
+          [userId, toUserId, message]
+        );
+        io.to(toUserId).emit('RECEIVE_DIRECT_MESSAGE', { fromUserId: userId, message, timestamp: new Date() });
       } catch (err) {
-          console.error('DM Error:', err);
+        console.error('DM Error:', err);
       }
     });
 
-    socket.on('challenge_player', (data) => {
-      const { toUserId, gameId } = data;
-      const fromUserId = getSenderFromSocket(socket);
-      if (!fromUserId) return;
-      io.to('user_' + toUserId).emit('challenge_received', { fromUserId, gameId });
-    });
-
     socket.on('disconnect', () => {
-      console.log('Operative disconnected');
+      Object.keys(matchmakingQueues).forEach(game => {
+        matchmakingQueues[game] = matchmakingQueues[game].filter(q => q.userId !== userId);
+      });
     });
   });
 };
 
-// --- ROUTES ---
+const sendSocialNotification = async (userId, title, body) => {
+    try {
+      const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
+      const email = rows[0]?.email;
 
-// Profile Management
+      if (email && process.env.SMTP_HOST) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT || 587,
+          secure: false,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: '"S.M.U.V.E 2.0" <no-reply@smuve.com>',
+          to: email,
+          subject: title,
+          text: body,
+        });
+      }
+    } catch (err) {
+      console.error('Notification Error:', err);
+    }
+};
+
+// AI SDK
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
+
+// REST Endpoints
 app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -281,9 +279,14 @@ app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, re
 app.post('/api/profile', authenticateToken, async (req, res) => {
   try {
     const { userId, profileData } = req.body;
-    if (req.user.userId !== userId) {
-        return res.status(403).json({ error: 'Unauthorized profile update.' });
+    if (!userId || !profileData) {
+      return res.status(400).json({ error: 'Missing userId or profileData.' });
     }
+    const authUser = req.user.userId;
+    if (authUser !== userId) {
+        return res.status(403).json({ error: 'Access denied.' });
+    }
+
     await pool.query(
       'INSERT INTO user_profiles (user_id, profile_data, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP) ON CONFLICT (user_id) DO UPDATE SET profile_data = $2, updated_at = CURRENT_TIMESTAMP',
       [userId, profileData]
@@ -295,23 +298,10 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// User Search & Discovery
 app.get('/api/users/search', authenticateToken, async (req, res) => {
   try {
     const { q, location } = req.query;
-    let query = `
-      SELECT
-        user_id as "userId",
-        profile_data->>'artistName' as "artistName",
-        profile_data->>'primaryGenre' as "primaryGenre",
-        profile_data->>'avatarImage' as "avatarImage",
-        profile_data->>'location' as "location",
-        (profile_data->>'eliteScore')::int as "eliteScore",
-        (profile_data->>'squadCount')::int as "squadCount"
-      FROM user_profiles
-      WHERE profile_data->>'profileSetupCompleted' = 'true'
-      AND profile_data->>'artistName' != 'Incognito'
-    `;
+    let query = `SELECT user_id as "userId", profile_data->>'artistName' as "artistName", profile_data->>'primaryGenre' as "primaryGenre", profile_data->>'avatarImage' as "avatarImage", profile_data->>'location' as "location" FROM user_profiles WHERE 1=1`;
     const params = [];
 
     if (q && typeof q === 'string') {
@@ -544,20 +534,30 @@ PLATFORMS.forEach(platform => {
 });
 
 const startEliteServer = async (port = process.env.PORT || 3000) => {
-  await initDb();
-  const server = http.createServer(app);
-  setupSocketIO(server);
-  await new Promise((resolve, reject) => {
-    server.listen(port, '0.0.0.0', (err) => {
-      if (err) {
+  try {
+    console.log(`STABILITY_CHECK: Starting Elite Server on port ${port}...`);
+    await initDb();
+    const server = http.createServer(app);
+    setupSocketIO(server);
+
+    return new Promise((resolve, reject) => {
+      server.on('error', (err) => {
+        console.error('CRITICAL_RUNTIME_ERROR: Server error event:', err.message);
         reject(err);
-      } else {
+      });
+
+      server.listen(port, '0.0.0.0', () => {
         console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
-        resolve();
-      }
+        resolve(server);
+      });
     });
-  });
-  return server;
+  } catch (err) {
+    console.error('CRITICAL_STARTUP_ERROR: Failed to start server:', err.message);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('APPLICATION_FATAL: Exiting due to startup failure.');
+      process.exit(1);
+    }
+  }
 };
 
 module.exports = {
