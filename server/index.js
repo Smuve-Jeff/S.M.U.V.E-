@@ -161,6 +161,8 @@ const initDb = async () => {
     if (process.env.NODE_ENV === 'production') {
       console.error('APPLICATION_FATAL: Exiting due to database failure.');
       process.exit(1);
+    } else {
+      throw err;
     }
   }
 };
@@ -556,6 +558,8 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
     if (process.env.NODE_ENV === 'production') {
       console.error('APPLICATION_FATAL: Exiting due to startup failure.');
       process.exit(1);
+    } else {
+      throw err;
     }
   }
 };
