@@ -197,6 +197,12 @@ export class StudioRecordingEngineService implements OnDestroy {
     monitor();
   }
 
+  recordMidiNote(note: { pitch: number; startTime: number; duration: number; velocity: number }) {
+    if (this.isRecording()) {
+      this.pendingMidi.push({ ...note, recordingStartTime: Date.now() - this.recordingTime() * 1000 });
+    }
+  }
+
   private cleanup() {
     this.workletNode?.disconnect();
     this.sourceNode?.disconnect();

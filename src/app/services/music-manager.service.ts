@@ -502,7 +502,7 @@ export class MusicManagerService {
     return existing.id;
   }
 
-  importAudio() { this.logger.info('Importing audio track...'); }
+
   startRecording() { this.recordingEngine.startRecording(); }
   stopRecording(id: string) {
      this.recordingEngine.stopRecording();

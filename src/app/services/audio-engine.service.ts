@@ -287,6 +287,10 @@ export class AudioEngineService {
     osc.connect(panner); panner.connect(vca);
     vca.connect(this.getTrackOutput(trackId.toString()));
     osc.start(time); osc.stop(time + duration + (params.release || 0.1) + 0.1);
+    // Record MIDI event if recording
+    if (this.isRecording() && this.recorder) {
+      this.recorder.recordMidiNote({ pitch: Math.round(12 * Math.log2(freq / 440) + 69), startTime: time, duration, velocity: Math.round(velocity * 127) });
+    }
   }
 
   triggerSampler(trackId: string | number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number, playbackRate: number = 1, fadeIn: number = 0, fadeOut: number = 0) {
@@ -298,18 +302,19 @@ export class AudioEngineService {
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
     const minLevel = 0.0001;
+    const clampedVelocity = Math.max(minLevel, Math.min(1, velocity));
     gain.gain.setValueAtTime(minLevel, time);
 
     const fadeInEnd = time + Math.min(fadeIn, duration * 0.5);
     if (fadeIn > 0) {
-      gain.gain.linearRampToValueAtTime(velocity, fadeInEnd);
+      gain.gain.linearRampToValueAtTime(clampedVelocity, fadeInEnd);
     } else {
-      gain.gain.setValueAtTime(velocity, time);
+      gain.gain.setValueAtTime(clampedVelocity, time);
     }
 
     const fadeOutStart = time + duration - Math.min(fadeOut, duration * 0.5);
     if (fadeOut > 0 && fadeOutStart > fadeInEnd) {
-      gain.gain.setValueAtTime(velocity, fadeOutStart);
+      gain.gain.setValueAtTime(clampedVelocity, fadeOutStart);
       gain.gain.linearRampToValueAtTime(minLevel, time + duration);
     } else {
       gain.gain.setTargetAtTime(minLevel, time + duration, 0.01);
@@ -348,7 +353,7 @@ export class AudioEngineService {
 
   setMasterOutputLevel(val: number) { this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05); }
   toggleMetronome() { this.metronomeEnabled.update(v => !v); return this.metronomeEnabled(); }
-  setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
+  setMetronomeVolume(val: number) { this.metronomeVolume.set(Math.max(0, Math.min(1, val))); }
   setSoftClip(amount: number) {
     const k = amount * 100, n = 256, curve = new Float32Array(n), deg = Math.PI / 180;
     for (let i = 0; i < n; i++) {
@@ -369,8 +374,19 @@ export class AudioEngineService {
   getSidechainRouting() { return []; }
   calculatePlaybackRate(bpm: number) { return this.tempo() / bpm; }
   getMasteringTargets() { return { lufs: -14, truePeak: -0.1 }; }
-  configureCompressor(p: any) {}
-  configureLimiter(p: any) {}
+  configureCompressor(p: any) {
+    if (p.threshold !== undefined) this.compressor.threshold.setTargetAtTime(p.threshold, this.ctx.currentTime, 0.01);
+    if (p.ratio !== undefined) this.compressor.ratio.setValueAtTime(p.ratio, this.ctx.currentTime);
+    if (p.attack !== undefined) this.compressor.attack.setValueAtTime(p.attack, this.ctx.currentTime);
+    if (p.release !== undefined) this.compressor.release.setValueAtTime(p.release, this.ctx.currentTime);
+    if (p.knee !== undefined) this.compressor.knee.setValueAtTime(p.knee, this.ctx.currentTime);
+  }
+  configureLimiter(p: any) {
+    if (p.threshold !== undefined) this.limiter.threshold.setTargetAtTime(p.threshold, this.ctx.currentTime, 0.01);
+    if (p.ratio !== undefined) this.limiter.ratio.setValueAtTime(p.ratio, this.ctx.currentTime);
+    if (p.attack !== undefined) this.limiter.attack.setValueAtTime(p.attack, this.ctx.currentTime);
+    if (p.release !== undefined) this.limiter.release.setValueAtTime(p.release, this.ctx.currentTime);
+  }
   syncDecks(m: DeckId, s: DeckId) {}
   setOutputMode(mode: 'speakers' | 'headphones') { this.outputMode.set(mode); }
   setAdvancedFX(id: DeckId, type: string, amount: number) { /* fx logic */ }

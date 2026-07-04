@@ -13,6 +13,7 @@ export interface GameLaunchConfig {
   embedMode?: EmbedMode;
   approvedEmbedUrl?: string;
   approvedExternalUrl?: string;
+  preloadUrl?: string;
   telemetryMode?: TelemetryMode;
   telemetryOrigins?: string[];
   trustNote?: string;

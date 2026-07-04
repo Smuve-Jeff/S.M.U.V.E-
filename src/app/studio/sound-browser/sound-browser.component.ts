@@ -112,7 +112,16 @@ export class SoundBrowserComponent {
   }
 
   importAudio() {
-    this.musicManager.importAudio();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = (event: any) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        this.musicManager.importAudio(file);
+      }
+    };
+    input.click();
   }
 
   aiSearch() {
