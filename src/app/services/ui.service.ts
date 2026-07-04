@@ -69,10 +69,17 @@ export class UIService {
   recentViewModes = signal<MainViewMode[]>(this.readModes(this.recentKey));
   pinnedViewModes = signal<MainViewMode[]>(this.readModes(this.pinnedKey));
   subtleGlow = signal<string | null>(null);
+  connectionType = signal<'slow-2g' | '2g' | '3g' | '4g' | 'unknown'>('unknown');
+  connectionSaveData = signal(false);
 
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
   isUplinkActive = computed(() => this.isOnline());
+  isLowBandwidth = computed(
+    () =>
+      this.connectionSaveData() ||
+      ['slow-2g', '2g', '3g'].includes(this.connectionType())
+  );
 
   private viewConfigs: ViewConfig[] = WORKSPACE_REGISTRY.filter(
     (workspace) => !workspace.hidden && !workspace.aliasOf
@@ -87,9 +94,12 @@ export class UIService {
       );
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
+      this.updateConnectionState();
+      this.addConnectionListener();
       this.destroyRef.onDestroy(() => {
         window.removeEventListener('online', this.handleOnline);
         window.removeEventListener('offline', this.handleOffline);
+        this.removeConnectionListener();
       });
 
       effect(() => {
@@ -166,6 +176,58 @@ export class UIService {
   setSubtleGlow(color: string | null) {
     this.subtleGlow.set(color);
   }
+
+  private addConnectionListener() {
+    if (typeof window === 'undefined') return;
+
+    const connection =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+
+    if (connection && typeof connection.addEventListener === 'function') {
+      connection.addEventListener('change', this.updateConnectionState);
+    }
+  }
+
+  private removeConnectionListener() {
+    if (typeof window === 'undefined') return;
+
+    const connection =
+      (navigator as any).connection ||
+      (navigator as any).mozConnection ||
+      (navigator as any).webkitConnection;
+
+    if (connection && typeof connection.removeEventListener === 'function') {
+      connection.removeEventListener('change', this.updateConnectionState);
+    }
+  }
+
+  private updateConnectionState = () => {
+    if (typeof window === 'undefined') return;
+
+    const nav = navigator as any;
+    const connection =
+      nav.connection || nav.mozConnection || nav.webkitConnection;
+    const effectiveType =
+      connection?.effectiveType || 'unknown';
+    const saveData = Boolean(connection?.saveData);
+
+    const normalizedType =
+      effectiveType === 'slow-2g' ||
+      effectiveType === '2g' ||
+      effectiveType === '3g' ||
+      effectiveType === '4g'
+        ? effectiveType
+        : 'unknown';
+
+    this.connectionType.set(normalizedType);
+    this.connectionSaveData.set(saveData);
+
+    if (saveData || ['slow-2g', '2g', '3g'].includes(normalizedType)) {
+      this.performanceMode.set(true);
+    }
+  } 
 
   private updateSetting(key: string, value: any) {
     const currentProfile = this.profileService.profile();

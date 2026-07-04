@@ -36,6 +36,14 @@ export interface StudioClip {
   compRegions?: StudioCompRegion[];
   notes?: any[];
   automation?: StudioAutomationLane[];
+  audioData?: AudioBuffer;
+  originalBpm?: number;
+  sampleRate?: number;
+  durationSeconds?: number;
+  fileName?: string;
+  waveform?: number[];
+  fadeIn?: number;
+  fadeOut?: number;
 }
 
 export interface StudioAutomationPoint {

@@ -36,6 +36,9 @@ export class LiveEngineService {
   scaleMode = signal<'major' | 'minor' | 'blues' | 'pentatonic'>('major');
   smartChords = signal(false);
 
+  // Live note tracking
+  private activeNotes = new Set<string>();
+
   // Arpeggiator State
   arpeggiatorEnabled = signal(false);
   arpeggiatorRate = signal('8n');
@@ -87,6 +90,23 @@ export class LiveEngineService {
     return `${names[midi % 12]}${octave}`;
   }
 
+  private quantizeToScale(midi: number): number {
+    const octave = Math.floor(midi / 12) * 12;
+    const degree = midi % 12;
+    const scale = this.currentScale();
+    if (scale.length === 0) return midi;
+    let nearest = scale[0];
+    let nearestDiff = Math.abs(degree - nearest);
+    for (const step of scale) {
+      const diff = Math.abs(degree - step);
+      if (diff < nearestDiff) {
+        nearest = step;
+        nearestDiff = diff;
+      }
+    }
+    return octave + nearest;
+  }
+
   private connectToFilter(node: Tone.PolySynth | Tone.Sampler, cutoff: number) {
     this.filterNode = new Tone.Filter(cutoff, 'lowpass').connect(Tone.getDestination());
     node.connect(this.filterNode);
@@ -121,15 +141,26 @@ export class LiveEngineService {
 
   triggerNoteStart(midi: number, velocity: number = 0.8) {
     if (!this.currentInstrumentNode) return;
-    const note = this.midiToNote(midi);
+    const pitch = this.scaleLock() ? this.quantizeToScale(midi) : midi;
+    const note = this.midiToNote(pitch);
     const time = Tone.now();
     this.currentInstrumentNode.triggerAttack(note, time, velocity);
+    this.activeNotes.add(note);
   }
 
   triggerNoteEnd(midi: number) {
     if (!this.currentInstrumentNode) return;
     const note = this.midiToNote(midi);
     this.currentInstrumentNode.triggerRelease(note, Tone.now());
+    this.activeNotes.delete(note);
+  }
+
+  stopAllNotes() {
+    if (!this.currentInstrumentNode) return;
+    for (const note of Array.from(this.activeNotes)) {
+      this.currentInstrumentNode.triggerRelease(note, Tone.now());
+    }
+    this.activeNotes.clear();
   }
 
   updateParameter(param: string, value: number) {
@@ -146,7 +177,35 @@ export class LiveEngineService {
     }
   }
 
-  setScale(mode: any) { this.scaleMode.set(mode); }
-  setPitchBend(val: number) { if (this.currentInstrumentNode) (this.currentInstrumentNode as any).set({ detune: val * 200 }); }
-  setModWheel(val: number) {}
+  setScale(mode: any) {
+    this.scaleMode.set(mode);
+    const scales: Record<string, number[]> = {
+      major: [0, 2, 4, 5, 7, 9, 11],
+      minor: [0, 2, 3, 5, 7, 8, 10],
+      blues: [0, 3, 5, 6, 7, 10],
+      pentatonic: [0, 2, 4, 7, 9],
+    };
+    this.currentScale.set(scales[mode] || [0, 2, 4, 5, 7, 9, 11]);
+  }
+
+  setPitchBend(val: number) {
+    if (!this.currentInstrumentNode) return;
+    const detuneVal = val * 200;
+    (this.currentInstrumentNode as any).set({ detune: detuneVal });
+  }
+
+  setModWheel(val: number) {
+    if (!this.currentInstrumentNode) return;
+    if (this.filterNode) {
+      this.filterNode.Q.value = 1 + val * 20;
+      this.filterNode.frequency.value = 250 + val * 5000;
+    }
+    if ((this.currentInstrumentNode as any).volume) {
+      (this.currentInstrumentNode as any).volume.value = -12 + val * 12;
+    }
+  }
+
+  setModulation(val: number) {
+    this.setModWheel(val);
+  }
 }

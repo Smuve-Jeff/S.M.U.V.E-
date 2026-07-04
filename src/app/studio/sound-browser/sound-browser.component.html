@@ -78,6 +78,8 @@
       (click)="selectPreset(preset)"
       draggable="true"
       (dragstart)="onDragStart($event, preset)"
+      (mouseenter)="scheduleHoverPreview(preset)"
+      (mouseleave)="cancelHoverPreview()"
     >
       <div class="flex items-center gap-3">
         <div

@@ -489,10 +489,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "elite",
         "classic"
       ],
+      "availability": "Online",
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
         "embedMode": "inline",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "telemetryOrigins": [
+          "https://www.retrogames.cc"
+        ]
       }
     },
     {
@@ -7455,7 +7459,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40579-resident-evil-3-nemesis.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mobile-legends-elite",
@@ -7506,7 +7511,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10055-marvel-vs-capcom-2-new-age-of-heroes.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "forza-horizon-5-tribute-elite",
@@ -7560,7 +7566,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10043-tekken-tag-tournament.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "lol-tribute-elite",
@@ -7614,7 +7621,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10061-capcom-vs-snk-2-millionaire-fighting-2001.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "soulcalibur-ii-elite-master",
@@ -7636,7 +7644,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10071-soulcalibur-ii.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "forza-motorsport-tribute-elite",
@@ -7690,7 +7699,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42774-metal-gear-solid-2-sons-of-liberty.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "silent-hill-2-elite-master",
@@ -7712,7 +7722,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42775-silent-hill-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "final-fantasy-x-elite-master",
@@ -7734,7 +7745,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "kingdom-hearts-elite-master",
@@ -7756,7 +7768,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "rocket-league-tribute-elite",
@@ -7842,7 +7855,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "gta-iii-elite-elite-master",
@@ -7864,7 +7878,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "tony-hawk-3-elite-master",
@@ -7886,7 +7901,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "ssx-tricky-elite-master",
@@ -7908,7 +7924,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ssx-tricky.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "burnout-3-elite-master",
@@ -7930,7 +7947,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "need-for-speed-underground-2-elite-master",
@@ -7952,7 +7970,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "forza-horizon-4-tribute-elite",
@@ -8006,7 +8025,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-ratchet-clank.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "jak-and-daxter-elite-master",
@@ -8028,7 +8048,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "sly-cooper-elite-master",
@@ -8050,7 +8071,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "god-of-war-elite-elite-master",
@@ -8072,7 +8094,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42786-god-of-war.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "devil-may-cry-3-elite-master",
@@ -8094,7 +8117,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mortal-kombat-1-tribute-elite",
@@ -8148,7 +8172,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-okami.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "shadow-of-the-colossus-elite-master",
@@ -8170,7 +8195,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "prince-of-persia-elite-master",
@@ -8192,7 +8218,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42790-prince-of-persia-the-sands-of-time.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "splinter-cell-elite-master",
@@ -8214,7 +8241,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "star-wars-kotor-elite-master",
@@ -8236,7 +8264,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "halo-2-elite-elite-master",
@@ -8258,7 +8287,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42793-halo-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "metal-gear-msx-elite",
@@ -9679,7 +9709,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18804-chrono-trigger-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "pokemon-emerald-elite-master",
@@ -9703,7 +9734,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "doom-ii-elite-master",
@@ -9726,7 +9758,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41696-doom-ii.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "metal-slug-3-elite-master",
@@ -9749,7 +9782,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9084-metal-slug-3.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "umk3-elite-master",
@@ -9772,7 +9806,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "zelda-alttp-elite-master",
@@ -9796,7 +9831,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18826-legend-of-zelda-the-a-link-to-the-past-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "nba-hangtime-elite-master",
@@ -9819,7 +9855,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17391-nba-hangtime-usa-rev-l1-1.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "street-fighter-3-elite-master",
@@ -9842,7 +9879,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "super-metroid-elite-master",
@@ -9866,7 +9904,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "quake-elite-master",
@@ -9889,7 +9928,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40600-quake.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "pokemon-fire-red-elite-master",
@@ -9912,7 +9952,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "final-fantasy-vi-elite-master",
@@ -9936,7 +9977,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18817-final-fantasy-iii-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "megaman-x-elite-master",
@@ -9959,7 +10001,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "sonic-cd-elite-master",
@@ -9982,7 +10025,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18991-sonic-the-hedgehog-cd-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "duke-nukem-3d-elite-master",
@@ -10005,7 +10049,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "metal-slug-x-elite-master",
@@ -10028,7 +10073,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "golden-axe-elite-master",
@@ -10051,7 +10097,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8682-golden-axe.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "streets-of-rage-2-elite-master",
@@ -10075,7 +10122,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19020-streets-of-rage-2-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "nfl-blitz-elite-master",
@@ -10098,7 +10146,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17395-nfl-blitz-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "castlevania-aria-elite-master",
@@ -10121,7 +10170,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "venge-io-pro-elite",
@@ -10144,7 +10194,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/venge-io",
         "embedMode": "inline"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "krunker-io-master-elite",
@@ -10166,7 +10217,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/krunker-io",
         "embedMode": "inline"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "ev-io-tactical-elite",
@@ -10188,7 +10240,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/ev-io",
         "embedMode": "inline"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "shell-shockers-pro-elite",
@@ -10210,7 +10263,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/shell-shockers",
         "embedMode": "inline"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "soccer-skills-pro-elite",
@@ -10232,7 +10286,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-skills-world-cup",
         "embedMode": "inline"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "contra-iii-elite-master",
@@ -10254,7 +10309,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "castlevania-iv-elite-master",
@@ -10276,7 +10332,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mega-man-x3-elite-master",
@@ -10298,7 +10355,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "kirby-super-star-elite-master",
@@ -10320,7 +10378,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "super-mario-world-elite-master",
@@ -10342,7 +10401,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18842-super-mario-world-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "donkey-kong-country-elite-master",
@@ -10364,7 +10424,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "sonic-the-hedgehog-3-elite-master",
@@ -10386,7 +10447,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18848-sonic-the-hedgehog-3-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "aladdin-elite-master",
@@ -10408,7 +10470,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18821-disney-s-aladdin-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "the-lion-king-elite-master",
@@ -10430,7 +10493,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18822-disney-s-the-lion-king-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "earthworm-jim-elite-master",
@@ -10452,7 +10516,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18810-earthworm-jim-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "star-fox-elite-master",
@@ -10474,7 +10539,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18836-star-fox-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "f-zero-elite-master",
@@ -10496,7 +10562,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/18815-f-zero-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mario-kart-64-elite-master",
@@ -10518,7 +10585,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32269-mario-kart-64-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "star-fox-64-elite-master",
@@ -10540,7 +10608,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32356-star-fox-64-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "zelda-majora-mask-elite-master",
@@ -10562,7 +10631,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32332-legend-of-zelda-the-majora-s-mask-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "banjo-kazooie-elite-master",
@@ -10584,7 +10654,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "crash-bandicoot-elite-master",
@@ -10606,7 +10677,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41684-crash-bandicoot.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "spyro-the-dragon-elite-master",
@@ -10628,7 +10700,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40645-spyro-the-dragon.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "resident-evil-2-elite-master",
@@ -10650,7 +10723,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40578-resident-evil-2-dual-shock-edition.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "silent-hill-elite-master",
@@ -10672,7 +10746,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40590-silent-hill.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "metal-gear-solid-elite-master",
@@ -10694,7 +10769,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40552-metal-gear-solid.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "gran-turismo-2-elite-master",
@@ -10716,7 +10792,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41460-gran-turismo-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "dino-crisis-elite-master",
@@ -10738,7 +10815,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40191-dino-crisis.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "medievil-elite-master",
@@ -10760,7 +10838,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41026-medievil.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "twisted-metal-2-elite-master",
@@ -10782,7 +10861,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40623-twisted-metal-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "duke-nukem-time-to-kill-elite-master",
@@ -10804,7 +10884,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40454-duke-nukem-time-to-kill.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "doom-64-elite-master",
@@ -10826,7 +10907,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32168-doom-64-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "goldeneye-007-elite-elite-master",
@@ -10848,7 +10930,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "perfect-dark-elite-master",
@@ -10870,7 +10953,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32351-perfect-dark-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "quake-ii-elite-master",
@@ -10892,7 +10976,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32354-quake-ii-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "turok-2-elite-master",
@@ -10914,7 +10999,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32419-turok-2-seeds-of-evil-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "wave-race-64-elite-master",
@@ -10936,7 +11022,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32431-wave-race-64-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "1080-snowboarding-elite-master",
@@ -10958,7 +11045,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mario-golf-elite-master",
@@ -10980,7 +11068,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32267-mario-golf-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "mario-tennis-elite-master",
@@ -11002,7 +11091,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32268-mario-tennis-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "pokemon-stadium-2-elite-master",
@@ -11024,7 +11114,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "tony-hawk-2-master-elite-master",
@@ -11046,7 +11137,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "spider-man-ps1-elite-master",
@@ -11068,7 +11160,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40595-spider-man.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "x-men-vs-street-fighter-elite-master",
@@ -11090,7 +11183,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8407-x-men-vs-street-fighter-961004.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "marvel-super-heroes-elite-master",
@@ -11112,7 +11206,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8403-marvel-super-heroes-951024.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "street-fighter-alpha-3-elite-master",
@@ -11134,7 +11229,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10006-street-fighter-alpha-3-980904.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "darkstalkers-elite-master",
@@ -11156,7 +11252,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8401-darkstalkers-the-night-warriors-940705.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "cadillacs-and-dinosaurs-elite-master",
@@ -11178,7 +11275,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8489-cadillacs-and-dinosaurs-930201.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "captain-commando-elite-master",
@@ -11200,7 +11298,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8491-captain-commando-911101.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     },
     {
       "id": "the-punisher-elite-master",
@@ -11222,7 +11321,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8515-the-punisher-930422.html",
         "embedMode": "inline",
         "secure_mode": "wasm"
-      }
+      },
+      "availability": "Online"
     }
   ],
   "recommendationRails": [

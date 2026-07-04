@@ -163,12 +163,22 @@
                 <span *ngIf="clip.isComp" class="comp-badge text-[7px] bg-brand-primary text-black px-1 rounded">COMP</span>
               </div>
               <div class="clip-content relative flex-1 overflow-hidden pointer-events-none">
-                 <!-- Waveform or MIDI dots -->
-                 <div class="waveform-pro opacity-40 h-full w-full bg-white/5 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-xs opacity-20">{{ clip.type === 'midi' ? 'piano' : 'waves' }}</span>
-                 </div>
+                <ng-container *ngIf="clip.type === 'audio' && clip.waveform?.length; else midiPlaceholder">
+                  <div class="clip-waveform flex items-end gap-[1px] h-full px-2">
+                    <div *ngFor="let value of clip.waveform"
+                         class="waveform-segment"
+                         [style.height.%]="Math.max(8, Math.abs(value) * 100)">
+                    </div>
+                  </div>
+                </ng-container>
+                <ng-template #midiPlaceholder>
+                  <div class="waveform-pro opacity-40 h-full w-full bg-white/5 flex items-center justify-center">
+                     <span class="material-symbols-outlined text-xs opacity-20">{{ clip.type === 'midi' ? 'piano' : 'waves' }}</span>
+                  </div>
+                </ng-template>
               </div>
-              <div class="resize-handle"></div>
+              <div class="resize-handle resize-left" (pointerdown)="onClipResizeStart($event, track, clip, 'start')"></div>
+              <div class="resize-handle resize-right" (pointerdown)="onClipResizeStart($event, track, clip, 'end')"></div>
             </div>
           </div>
 

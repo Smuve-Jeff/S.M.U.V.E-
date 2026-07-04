@@ -101,6 +101,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private clockId?: any;
   private feedRefreshId?: any;
   private readonly messageHandler = (event: MessageEvent) => this.onMessage(event);
+  private pendingChallengeNonce: string | null = null;
+  private handshakeVerifiedOrigins = new Set<string>();
 
   // Computed signals
   filteredGames = computed(() => {
@@ -351,6 +353,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   closeGame() {
     this.inGame.set(false);
     this.currentGame.set(null);
+    this.pendingChallengeNonce = null;
+    this.handshakeVerifiedOrigins.clear();
   }
 
   toggleIntel() {
@@ -416,12 +420,44 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
       if (this.isRetroOrArcade(game)) {
         this.isWasmLoading.set(true);
-        await new Promise(r => setTimeout(r, 1200));
+        try {
+          if (game.launchConfig?.preloadUrl) {
+            await fetch(game.launchConfig.preloadUrl, { method: 'GET', cache: 'force-cache' });
+          } else if (game.launchConfig?.approvedEmbedUrl) {
+            await fetch(game.launchConfig.approvedEmbedUrl, { method: 'HEAD' });
+          } else {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+        } catch (e) {
+          // ignore preload failures and fallback to short delay
+          await new Promise((r) => setTimeout(r, 600));
+        }
         this.isWasmLoading.set(false);
       }
       this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
       this.inGame.set(true);
       this.currentGame.set(game);
+      // attempt optional handshake challenge for cross-origin embeds
+      setTimeout(() => {
+        try {
+          const iframe = this.gameIframe?.nativeElement;
+          const iframeWin = iframe?.contentWindow;
+          if (!iframeWin) return;
+          const origins = (game.launchConfig?.telemetryOrigins || []);
+          const nonce = Math.random().toString(36).slice(2);
+          this.pendingChallengeNonce = nonce;
+          for (const o of origins.length ? origins : [window.location.origin]) {
+            try {
+              iframeWin.postMessage({ type: 'SMUVE_PARENT_CHALLENGE', nonce }, o || '*');
+            } catch (err) {
+              // best-effort
+              iframeWin.postMessage({ type: 'SMUVE_PARENT_CHALLENGE', nonce }, '*');
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      }, 50);
       this.closePreview();
     }
   }
@@ -498,7 +534,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private onMessage(event: MessageEvent): void {
     const active = this.currentGame();
-    if (event.origin !== window.location.origin || !active || !this.gameIframe?.nativeElement?.contentWindow || event.source !== this.gameIframe.nativeElement.contentWindow) return;
+    const iframeWin = this.gameIframe?.nativeElement?.contentWindow;
+    if (!active || !iframeWin || event.source !== iframeWin) return;
+
+    const cfgOrigins = active.launchConfig?.telemetryOrigins || [];
+    const allowedOrigins = new Set<string>([window.location.origin, ...cfgOrigins]);
+
+    // child responding to parent challenge
+    if (event.data?.type === 'SMUVE_CHILD_RESP') {
+      if (event.data?.nonce && this.pendingChallengeNonce && event.data.nonce === this.pendingChallengeNonce) {
+        this.handshakeVerifiedOrigins.add(event.origin);
+        this.pendingChallengeNonce = null;
+      }
+      return;
+    }
+
+    if (!allowedOrigins.has(event.origin)) return;
+
+    // if the feed requests strict origin-handshake, require verification
+    if (active.launchConfig?.telemetryMode === 'origin' && cfgOrigins.includes(event.origin) && !this.handshakeVerifiedOrigins.has(event.origin)) {
+      return;
+    }
+
     if (event.data?.type === 'GAME_OVER') {
       this.profileService.recordGameResult(active.id, { ...this.buildSessionContext(active), score: event.data.data?.score });
       this.closeGame();

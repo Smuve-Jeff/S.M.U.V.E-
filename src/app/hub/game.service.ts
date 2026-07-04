@@ -49,6 +49,14 @@ function normalizeGame(game: Game): Game {
       accentStart: asString(game.art?.accentStart, '#af25f4'),
       accentEnd: asString(game.art?.accentEnd, '#3d2b1f'),
     },
+    launchConfig: {
+      ...((game.launchConfig || {}) as any),
+      approvedEmbedUrl: asString(game.launchConfig?.approvedEmbedUrl),
+      approvedExternalUrl: asString(game.launchConfig?.approvedExternalUrl),
+      embedMode: (game.launchConfig?.embedMode as any) || undefined,
+      telemetryMode: (game.launchConfig?.telemetryMode as any) || undefined,
+      telemetryOrigins: asStringArray(game.launchConfig?.telemetryOrigins),
+    },
   };
 }
 

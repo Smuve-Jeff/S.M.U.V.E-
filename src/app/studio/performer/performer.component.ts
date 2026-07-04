@@ -156,25 +156,35 @@ export class PerformerComponent implements OnDestroy {
     this.performanceLog.update(log => [this.liveEngine.midiToNote(actualMidi), ...log.slice(0, 9)]);
   }
 
-  onKeyUp(midi: number, event?: PointerEvent) {
-    const actualMidi = midi + this.octave() * 12;
-    this.liveEngine.triggerNoteEnd(actualMidi);
-    
-    this.activeKeys.update((keys) => {
-      const next = new Set(keys);
-      next.delete(midi);
-      return next;
-    });
-  }
-
   onPadPointerDown(event: PointerEvent, midi: number) {
     event.preventDefault();
     event.stopPropagation();
     this.onKeyDown(midi, event);
   }
 
-  onPadPointerUp(event: PointerEvent, midi: number) {
-    this.onKeyUp(midi, event);
+  onPadPointerEnter(event: PointerEvent, midi: number) {
+    if (event.buttons > 0) {
+      this.onKeyDown(midi, event);
+    }
+  }
+
+  onPadPointerLeave(event: PointerEvent, midi: number) {
+    if (event.buttons > 0) {
+      this.onKeyUp(midi, event);
+    }
+  }
+
+  onKeyUp(midi: number, event?: PointerEvent) {
+    const actualMidi = midi + this.octave() * 12;
+    this.liveEngine.triggerNoteEnd(actualMidi);
+    if (event?.pointerType === 'touch') {
+      this.activePointers.delete(event.pointerId);
+    }
+    this.activeKeys.update((keys) => {
+      const next = new Set(keys);
+      next.delete(midi);
+      return next;
+    });
   }
 
   onPitchBend(event: any) {
@@ -192,6 +202,13 @@ export class PerformerComponent implements OnDestroy {
   launchScene(scene: PerformerScene) {
     this.musicManager.launchScene(scene.id);
     this.haptic.medium();
+  }
+
+  stopPerformance() {
+    this.liveEngine.stopAllNotes();
+    this.activeKeys.set(new Set());
+    this.performanceLog.update((log) => ['PANIC', ...log.slice(0, 8)]);
+    this.haptic.heavy();
   }
 
   isSceneActive(scene: PerformerScene): boolean {

@@ -32,8 +32,10 @@ describe('PerformerComponent', () => {
       setInstrument: jest.fn().mockResolvedValue(true),
       triggerNoteStart: jest.fn(),
       triggerNoteEnd: jest.fn(),
+      stopAllNotes: jest.fn(),
       setPitchBend: jest.fn(),
       setModulation: jest.fn(),
+      setModWheel: jest.fn(),
       setScale: jest.fn(),
       midiToNote: jest.fn().mockReturnValue('C4'),
     };
@@ -72,7 +74,7 @@ describe('PerformerComponent', () => {
         },
         {
           provide: HapticService,
-          useValue: { light: jest.fn(), impact: jest.fn() },
+          useValue: { light: jest.fn(), impact: jest.fn(), heavy: jest.fn() },
         },
         {
           provide: InstrumentsService,
@@ -99,5 +101,11 @@ describe('PerformerComponent', () => {
     component.toggleSmartChords();
     expect(component.smartChords()).toBe(true);
     expect(mockLiveEngine.smartChords()).toBe(true);
+  });
+
+  it('should stop all notes when panic is triggered', () => {
+    component.stopPerformance();
+    expect(mockLiveEngine.stopAllNotes).toHaveBeenCalled();
+    expect(component.activeKeys().size).toBe(0);
   });
 });

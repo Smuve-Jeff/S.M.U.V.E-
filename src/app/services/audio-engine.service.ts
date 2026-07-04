@@ -289,18 +289,36 @@ export class AudioEngineService {
     osc.start(time); osc.stop(time + duration + (params.release || 0.1) + 0.1);
   }
 
-  triggerSampler(trackId: string | number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number, playbackRate: number = 1) {
+  triggerSampler(trackId: string | number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number, playbackRate: number = 1, fadeIn: number = 0, fadeOut: number = 0) {
+    if (duration <= 0) return;
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.setValueAtTime(playbackRate, time);
     const panner = this.ctx.createStereoPanner();
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.setTargetAtTime(velocity, time, 0.005);
+    const minLevel = 0.0001;
+    gain.gain.setValueAtTime(minLevel, time);
+
+    const fadeInEnd = time + Math.min(fadeIn, duration * 0.5);
+    if (fadeIn > 0) {
+      gain.gain.linearRampToValueAtTime(velocity, fadeInEnd);
+    } else {
+      gain.gain.setValueAtTime(velocity, time);
+    }
+
+    const fadeOutStart = time + duration - Math.min(fadeOut, duration * 0.5);
+    if (fadeOut > 0 && fadeOutStart > fadeInEnd) {
+      gain.gain.setValueAtTime(velocity, fadeOutStart);
+      gain.gain.linearRampToValueAtTime(minLevel, time + duration);
+    } else {
+      gain.gain.setTargetAtTime(minLevel, time + duration, 0.01);
+    }
+
     source.connect(panner); panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId.toString()));
-    source.start(time); source.stop(time + duration);
+    source.start(time);
+    source.stop(time + duration);
   }
 
   getTrackOutput(id: string): GainNode {

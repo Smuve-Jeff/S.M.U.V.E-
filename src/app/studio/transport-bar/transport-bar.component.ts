@@ -20,6 +20,7 @@ export class TransportBarComponent {
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
+  isRecordingPaused = this.audioSession.isRecordingPaused;
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
 
@@ -32,6 +33,10 @@ export class TransportBarComponent {
 
   toggleRecord(): void {
     this.audioSession.toggleRecord();
+  }
+
+  toggleRecordingPause(): void {
+    this.audioSession.toggleRecordingPause();
   }
 
   stop(): void {

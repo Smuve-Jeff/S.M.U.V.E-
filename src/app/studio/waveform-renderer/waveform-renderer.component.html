@@ -5,26 +5,30 @@
     class="absolute inset-0 bg-gradient-to-t from-red-500/5 to-transparent"
   ></div>
 
-  <div class="flex items-end gap-[1px] h-full w-full px-2" *ngIf="isRecording">
+  <div class="flex items-end gap-[1px] h-full w-full px-2">
     <div
       *ngFor="let value of waveform"
-      class="waveform-bar flex-grow bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] rounded-t-[1px]"
+      class="waveform-bar flex-grow rounded-t-[1px]"
+      [ngClass]="isRecording ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-slate-400/80'"
       [style.height.%]="10 + Math.abs(value) * 100"
     ></div>
   </div>
 
   <div class="absolute top-2 left-4 flex items-center gap-2">
     <div
-      class="w-2 h-2 rounded-full bg-red-500 animate-pulse-subtle shadow-[0_0_10px_#ef4444]"
+      class="w-2 h-2 rounded-full"
+      [ngClass]="isRecording ? 'bg-red-500 animate-pulse-subtle shadow-[0_0_10px_#ef4444]' : 'bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.5)]'"
     ></div>
     <span
-      class="text-[9px] font-black uppercase tracking-widest text-red-500/80"
-      >Recording In Progress</span
+      class="text-[9px] font-black uppercase tracking-widest"
+      [ngClass]="isRecording ? 'text-red-500/80' : 'text-slate-300/80'"
+      >{{ isRecording ? 'Recording In Progress' : 'Audio Clip Preview' }}</span
     >
   </div>
 
   <div
-    class="absolute bottom-2 right-4 text-[9px] font-mono text-[11px] tracking-tight text-slate-500 uppercase tracking-tighter"
+    class="absolute bottom-2 right-4 text-[9px] font-mono text-[11px] tracking-tight uppercase tracking-tighter"
+    [ngClass]="isRecording ? 'text-slate-500' : 'text-slate-400'"
   >
     Buffer: 44.1kHz / 24bit
   </div>

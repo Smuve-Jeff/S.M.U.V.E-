@@ -3,9 +3,9 @@
     <!-- Branding/Status -->
     <div class="transport-branding hidden md:flex">
       <div class="neon-text-xs neon-text">ANALOG ENGINE v4.2</div>
-      <div class="status-indicator" [class.recording]="isRecording()">
+      <div class="status-indicator" [class.recording]="isRecording() && !isRecordingPaused()">
         <span class="dot"></span>
-        {{ isRecording() ? 'RECORDING' : isPlaying() ? 'PLAYING' : 'IDLE' }}
+        {{ isRecordingPaused() ? 'RECORD PAUSED' : isRecording() ? 'RECORDING' : isPlaying() ? 'PLAYING' : 'IDLE' }}
       </div>
     </div>
 
@@ -33,6 +33,14 @@
         [class.active]="isRecording()"
       >
         <span class="material-symbols-outlined">fiber_manual_record</span>
+      </button>
+      <button
+        *ngIf="isRecording()"
+        class="transport-btn tactile-v42 glass-v42"
+        (click)="toggleRecordingPause()"
+        [class.active]="isRecordingPaused()"
+      >
+        <span class="material-symbols-outlined">{{ isRecordingPaused() ? 'play_arrow' : 'pause' }}</span>
       </button>
     </div>
 

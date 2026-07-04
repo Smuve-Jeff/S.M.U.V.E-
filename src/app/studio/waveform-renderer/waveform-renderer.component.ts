@@ -12,6 +12,6 @@ export class WaveformRendererComponent {
   @Input() waveform: number[] = new Array(128)
     .fill(0)
     .map(() => Math.random() * 0.2);
-  @Input() isRecording = true;
+  @Input() isRecording = false;
   protected readonly Math = Math;
 }

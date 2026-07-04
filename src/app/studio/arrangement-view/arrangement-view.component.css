@@ -165,7 +165,6 @@
 
 .resize-handle {
   position: absolute;
-  right: 0;
   top: 0;
   bottom: 0;
   width: 24px; /* Larger touch target */
@@ -173,6 +172,28 @@
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1));
   pointer-events: auto;
   z-index: 10;
+}
+
+.resize-handle.resize-left {
+  left: 0;
+  right: auto;
+  background: linear-gradient(270deg, transparent, rgba(255, 255, 255, 0.1));
+}
+
+.resize-handle.resize-right {
+  right: 0;
+  left: auto;
+}
+
+.clip-waveform {
+  width: 100%;
+}
+
+.waveform-segment {
+  flex: 1;
+  min-width: 1px;
+  background: rgba(255,255,255,0.45);
+  border-radius: 100px 100px 0 0;
 }
 
 .resize-handle::after {
@@ -184,6 +205,11 @@
   font-size: 8px;
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: -1px;
+}
+
+.resize-handle.resize-left::after {
+  right: auto;
+  left: 4px;
 }
 
 .playhead {
