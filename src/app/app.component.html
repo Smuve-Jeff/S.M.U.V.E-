@@ -774,6 +774,50 @@
       </div>
     </div>
 
+    <div
+      *ngIf="androidInstallBannerVisible()"
+      class="mobile-install-banner glass-v42 border border-brand-primary/20 text-text-main px-4 py-3 mx-4 mb-3 rounded-3xl shadow-v42-xl"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-brand-primary mb-1">
+            Android Ready
+          </p>
+          <p class="text-[11px] leading-snug text-text-main">
+            Add S.M.U.V.E. to your home screen for optimized mobile access,
+            offline workspace caching, and faster Android startup.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="mobile-install-button btn-pro btn-pro-primary h-11 px-4"
+          (click)="promptPwaInstall()"
+        >
+          Install
+        </button>
+      </div>
+    </div>
+
+    <div
+      *ngIf="uiService.isLowBandwidth()"
+      class="mobile-performance-hint glass-v42 border border-amber-400/20 text-amber-100 px-4 py-3 mx-4 mb-3 rounded-3xl shadow-v42-xl"
+    >
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-xl text-amber-300">
+          signal_cellular_alt
+        </span>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-amber-300 mb-1">
+            Data-aware mode enabled
+          </p>
+          <p class="text-[11px] leading-snug text-amber-100">
+            S.M.U.V.E. has switched into mobile performance mode to preserve
+            bandwidth and keep your Android experience responsive.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div class="mobile-footer-branding glass-v42 border-t border-border">
       <span class="text-[8px] uppercase elegant-footer-text cursor-default"
         >©️ Smuve Jeff Presents</span

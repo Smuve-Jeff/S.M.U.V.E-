@@ -27,6 +27,20 @@ export class ArrangementViewComponent {
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
   isRecordingAutomation = signal(false);
+  activeResize = signal<{
+    trackId: string;
+    clipId: string;
+    edge: 'start' | 'end';
+    anchorX: number;
+    initialStart: number;
+    initialLength: number;
+  } | null>(null);
+  activeDrag = signal<{
+    trackId: string;
+    clipId: string;
+    anchorX: number;
+    initialStart: number;
+  } | null>(null);
 
   laneHeight = signal(80);
   barWidth = signal(200);
@@ -69,6 +83,7 @@ export class ArrangementViewComponent {
 
   onClipPointerDown(e: PointerEvent, trackId: string, clip: StudioClip) {
     e.stopPropagation();
+    if (this.activeResize()) return;
     this.selectTrack(trackId);
     if (!e.shiftKey) this.selectedClipIds.set(new Set([clip.id]));
     else {
@@ -77,6 +92,96 @@ export class ArrangementViewComponent {
       else next.add(clip.id);
       this.selectedClipIds.set(next);
     }
+
+    if (this.activeTool() === 'select') {
+      this.activeDrag.set({
+        trackId,
+        clipId: clip.id,
+        anchorX: e.clientX,
+        initialStart: clip.start,
+      });
+    }
+  }
+
+  onClipResizeStart(e: PointerEvent, track: TrackModel, clip: StudioClip, edge: 'start' | 'end') {
+    e.stopPropagation();
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    if (target.setPointerCapture) {
+      target.setPointerCapture(e.pointerId);
+    }
+    this.activeResize.set({
+      trackId: track.id,
+      clipId: clip.id,
+      edge,
+      anchorX: e.clientX,
+      initialStart: clip.start,
+      initialLength: clip.length,
+    });
+  }
+
+  @HostListener('window:pointermove', ['$event'])
+  onWindowPointerMove(event: PointerEvent) {
+    const resize = this.activeResize();
+    const drag = this.activeDrag();
+    if (!resize && !drag) return;
+    event.preventDefault();
+
+    if (resize) {
+      const dx = event.clientX - resize.anchorX;
+      let deltaBars = dx / this.barWidth();
+      if (this.snapEnabled()) {
+        deltaBars = Math.round(deltaBars * 4) / 4;
+      }
+      const found = this.findClipOwner(resize.clipId);
+      if (!found || found.track.id !== resize.trackId) return;
+
+      let newStart = resize.initialStart;
+      let newLength = resize.initialLength;
+      if (resize.edge === 'end') {
+        newLength = Math.max(0.25, resize.initialLength + deltaBars);
+      } else {
+        newStart = Math.max(0, resize.initialStart + deltaBars);
+        newLength = Math.max(0.25, resize.initialLength - (newStart - resize.initialStart));
+        if (newLength <= 0.25) {
+          newLength = 0.25;
+          newStart = resize.initialStart + resize.initialLength - 0.25;
+        }
+      }
+
+      this.musicManager.updateClip(found.track.id, found.clip.id, {
+        start: parseFloat(newStart.toFixed(4)),
+        length: parseFloat(newLength.toFixed(4)),
+      });
+      return;
+    }
+
+    if (drag) {
+      const dx = event.clientX - drag.anchorX;
+      let deltaBars = dx / this.barWidth();
+      if (this.snapEnabled()) {
+        deltaBars = Math.round(deltaBars * 4) / 4;
+      }
+      const found = this.findClipOwner(drag.clipId);
+      if (!found || found.track.id !== drag.trackId) return;
+
+      const newStart = Math.max(0, drag.initialStart + deltaBars);
+      this.musicManager.updateClip(found.track.id, found.clip.id, {
+        start: parseFloat(newStart.toFixed(4)),
+      });
+    }
+  }
+
+  @HostListener('window:pointerup', ['$event'])
+  onWindowPointerUp(event: PointerEvent) {
+    const target = event.target as HTMLElement;
+    if (target && target.releasePointerCapture) {
+      try {
+        target.releasePointerCapture(event.pointerId);
+      } catch {}
+    }
+    this.activeResize.set(null);
+    this.activeDrag.set(null);
   }
 
   onLanePointerDown(e: PointerEvent, track: TrackModel) {

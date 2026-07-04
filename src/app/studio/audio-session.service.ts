@@ -95,6 +95,29 @@ export class AudioSessionService {
     }
   }
 
+  readonly isRecordingPaused = computed(() => this.recordingEngine.isPaused());
+
+  pauseRecording(): void {
+    if (this.recordingEngine.isRecording() && !this.recordingEngine.isPaused()) {
+      this.recordingEngine.pauseRecording();
+    }
+  }
+
+  resumeRecording(): void {
+    if (this.recordingEngine.isRecording() && this.recordingEngine.isPaused()) {
+      this.recordingEngine.resumeRecording();
+    }
+  }
+
+  toggleRecordingPause(): void {
+    if (!this.recordingEngine.isRecording()) return;
+    if (this.recordingEngine.isPaused()) {
+      this.resumeRecording();
+    } else {
+      this.pauseRecording();
+    }
+  }
+
   stop(): void {
     this.engine.stop();
     if (this.recordingEngine.isRecording()) {

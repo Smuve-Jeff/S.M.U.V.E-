@@ -90,10 +90,20 @@ export class AppComponent implements ErrorHandler {
   isSidebarOpen = signal(true);
   isFullPageMode = signal(false);
   isMobile = signal(false);
+  isAndroid = signal(false);
+  isStandalone = signal(false);
   isAuthRoute = signal(false);
   isSyncCenterOpen = signal(false);
   isMobileWorkspaceTrayOpen = signal(false);
   installPrompt = signal<BeforeInstallPromptEvent | null>(null);
+  androidInstallBannerVisible = computed(
+    () =>
+      this.isAndroid() &&
+      !this.isStandalone() &&
+      !!this.installPrompt() &&
+      this.isMobile() &&
+      !this.isAuthRoute()
+  );
 
   navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
   activeViewConfig = computed(
@@ -183,14 +193,25 @@ export class AppComponent implements ErrorHandler {
   }
 
   private checkMobile() {
-    if (
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const hasUserAgentData =
       typeof navigator !== 'undefined' &&
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    ) {
-      if (!this.uiService.performanceMode()) {
-        this.uiService.togglePerformanceMode();
-      }
+      'userAgentData' in navigator &&
+      typeof (navigator as any).userAgentData === 'object';
+    const userAgentDataPlatform =
+      hasUserAgentData && (navigator as any).userAgentData.platform
+        ? String((navigator as any).userAgentData.platform)
+        : '';
+
+    const isAndroidDevice =
+      /Android/i.test(userAgent) || /Android/i.test(userAgentDataPlatform);
+
+    if (isAndroidDevice && !this.uiService.performanceMode()) {
+      this.uiService.togglePerformanceMode();
     }
+
+    this.isAndroid.set(isAndroidDevice);
+    this.updateInstallState();
 
     const isNowMobile = window.innerWidth <= 1024;
     if (isNowMobile !== this.isMobile()) {
@@ -235,13 +256,36 @@ export class AppComponent implements ErrorHandler {
   private setupPwaListeners() {
     if (typeof window === 'undefined') return;
 
+    const displayModeMedia = window.matchMedia('(display-mode: standalone)');
+    const displayModeChangeHandler = () => this.updateInstallState();
+
     window.addEventListener('appinstalled', () => {
       this.installPrompt.set(null);
+      this.isStandalone.set(true);
       this.notificationService.show(
         'S.M.U.V.E. successfully installed!',
         'success'
       );
     });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      this.updateInstallState();
+    });
+
+    displayModeMedia.addEventListener('change', displayModeChangeHandler);
+    this.destroyRef.onDestroy(() => {
+      displayModeMedia.removeEventListener('change', displayModeChangeHandler);
+    });
+  }
+
+  private updateInstallState() {
+    if (typeof window === 'undefined') return;
+
+    const isStandaloneApp =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+
+    this.isStandalone.set(isStandaloneApp);
   }
 
   private isVersionReadyEvent(event: unknown): event is VersionReadyEvent {

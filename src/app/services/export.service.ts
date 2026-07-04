@@ -14,12 +14,72 @@ export class ExportService {
 
   async exportProjectWav() {
     this.logger.info('Starting Professional Offline Export...');
-    const tempo = this.engine.tempo();
-    const bars = this.musicManager.activeLoopBars();
-    const secondsPerBar = (60 / tempo) * 4;
-    const totalDuration = bars * secondsPerBar;
+    const demoBuffer = await this.renderProjectOffline();
+    const wavData = await this.audioBufferToWav(demoBuffer);
+    const blob = new Blob([wavData], { type: 'audio/wav' });
+    this.downloadBlob(blob, `Elite_Session_${Date.now()}.wav`);
+    return blob;
+  }
 
-    return this.realTimeBounce(totalDuration);
+  async renderProjectOffline(): Promise<AudioBuffer> {
+    const tempo = this.engine.tempo();
+    const bars = Math.max(1, this.musicManager.activeLoopBars());
+    const secondsPerBar = (60 / tempo) * 4;
+    const totalSeconds = bars * secondsPerBar;
+    const sampleRate = 44100;
+    const offlineCtx = new OfflineAudioContext(2, Math.ceil(sampleRate * totalSeconds), sampleRate);
+
+    const audioTracks = this.musicManager.tracks().filter((track) => track.type === 'audio');
+    for (const track of audioTracks) {
+      for (const clip of track.clips) {
+        if (clip.type !== 'audio' || !clip.audioData) continue;
+        const source = offlineCtx.createBufferSource();
+        const cloned = this.cloneAudioBufferToContext(clip.audioData, offlineCtx);
+        source.buffer = cloned;
+        source.playbackRate.value = clip.originalBpm ? this.engine.calculatePlaybackRate(clip.originalBpm) : 1;
+
+        const panner = offlineCtx.createStereoPanner();
+        panner.pan.value = track.pan;
+        const gain = offlineCtx.createGain();
+        const clipGain = track.volume;
+        gain.gain.setValueAtTime(0.0001, 0);
+
+        const startTime = clip.start * secondsPerBar;
+        const clipDuration = clip.durationSeconds ? clip.durationSeconds / source.playbackRate.value : cloned.duration / source.playbackRate.value;
+        const fadeInTime = Math.min(clip.fadeIn || 0, clipDuration * 0.5);
+        const fadeOutTime = Math.min(clip.fadeOut || 0, clipDuration * 0.5);
+
+        if (fadeInTime > 0) {
+          gain.gain.setValueAtTime(0.0001, startTime);
+          gain.gain.linearRampToValueAtTime(clipGain, startTime + fadeInTime);
+        } else {
+          gain.gain.setValueAtTime(clipGain, startTime);
+        }
+
+        if (fadeOutTime > 0) {
+          const fadeOutStart = Math.max(startTime + fadeInTime, startTime + clipDuration - fadeOutTime);
+          gain.gain.setValueAtTime(clipGain, fadeOutStart);
+          gain.gain.linearRampToValueAtTime(0.0001, startTime + clipDuration);
+        }
+
+        source.connect(panner);
+        panner.connect(gain);
+        gain.connect(offlineCtx.destination);
+
+        source.start(startTime);
+        source.stop(startTime + clipDuration);
+      }
+    }
+
+    return offlineCtx.startRendering();
+  }
+
+  private cloneAudioBufferToContext(source: AudioBuffer, targetCtx: BaseAudioContext): AudioBuffer {
+    const buffer = targetCtx.createBuffer(source.numberOfChannels, source.length, source.sampleRate);
+    for (let channel = 0; channel < source.numberOfChannels; channel++) {
+      buffer.copyToChannel(source.getChannelData(channel), channel);
+    }
+    return buffer;
   }
 
   startLiveRecording() {
@@ -33,10 +93,6 @@ export class ExportService {
     });
     recorder.start();
     return { recorder, result };
-  }
-
-  async renderProjectOffline(): Promise<AudioBuffer> {
-    return this.engine.ctx.createBuffer(2, 44100 * 2, 44100);
   }
 
   async applySmuvePolish(buffer: AudioBuffer): Promise<AudioBuffer> {

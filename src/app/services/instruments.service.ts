@@ -272,6 +272,64 @@ export class InstrumentsService {
         detune: 2,
       },
     },
+    {
+      id: 'studio-epic-harp',
+      name: 'Studio Epic Harp',
+      type: 'sample',
+      category: 'strings',
+      tags: ['harp', 'ethereal', 'high-fidelity'],
+      sampleQuality: 'high',
+      previewUrl: 'https://tonejs.github.io/audio/harpsichord/harpsichord_C4.mp3',
+      zones: [
+        {
+          midiRange: [40, 80],
+          url: 'https://tonejs.github.io/audio/harpsichord/harpsichord_C4.mp3',
+        },
+      ],
+    },
+    {
+      id: 'orchestral-brass-elite',
+      name: 'Orchestral Brass Elite',
+      type: 'sample',
+      category: 'strings',
+      tags: ['orchestral', 'brass', 'cinematic'],
+      sampleQuality: 'high',
+      previewUrl: 'https://tonejs.github.io/audio/berlin/brass_staccato_C4.mp3',
+      zones: [
+        {
+          midiRange: [48, 84],
+          url: 'https://tonejs.github.io/audio/berlin/brass_staccato_C4.mp3',
+        },
+      ],
+    },
+    {
+      id: 'cinematic-choir-vault',
+      name: 'Cinematic Choir Vault',
+      type: 'sample',
+      category: 'pad',
+      tags: ['choir', 'ambient', 'vocal'],
+      sampleQuality: 'high',
+      previewUrl: 'https://tonejs.github.io/audio/berlin/choir_a4.mp3',
+      zones: [
+        {
+          midiRange: [48, 76],
+          url: 'https://tonejs.github.io/audio/berlin/choir_a4.mp3',
+        },
+      ],
+    },
+    {
+      id: 'studio-drum-elite',
+      name: 'Studio Drum Elite',
+      type: 'sample',
+      category: 'drum',
+      tags: ['acoustic', 'punchy', 'live'],
+      sampleQuality: 'high',
+      zones: [
+        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3' },
+        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3' },
+        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3' },
+      ],
+    },
   ];
 
   getPresets() {
@@ -308,11 +366,23 @@ export class InstrumentsService {
       osc.start(now);
       osc.stop(now + 0.5);
     } else if (preset.type === 'sample' && preset.zones?.[0]) {
-      this.audioEngine.logger.info('Auditioning sample: ' + preset.name);
-      const osc = ctx.createOscillator();
-      osc.connect(out);
-      osc.start(now);
-      osc.stop(now + 0.2);
+      const sample = preset.zones[0];
+      try {
+        const response = await fetch(sample.url);
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = await ctx.decodeAudioData(arrayBuffer);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(out);
+        source.start(now);
+        source.stop(now + Math.min(buffer.duration, 1.2));
+      } catch (error) {
+        this.audioEngine.logger.warn('InstrumentsService: Sample audition failed, falling back to oscillator', error);
+        const osc = ctx.createOscillator();
+        osc.connect(out);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
     }
   }
 }

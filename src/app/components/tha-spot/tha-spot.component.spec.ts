@@ -137,6 +137,29 @@ describe('ThaSpotComponent', () => {
     expect(profileService.recordGameResult).not.toHaveBeenCalled();
   });
 
+  it('accepts game messages from telemetryOrigins when configured', () => {
+    const profileService = TestBed.inject(UserProfileService) as any;
+    const frameWindow = {} as Window;
+    component.gameIframe = {
+      nativeElement: { contentWindow: frameWindow },
+    } as any;
+    component.currentGame.set({
+      id: '1',
+      url: '/assets/games/demo.html',
+      launchConfig: { embedMode: 'inline', telemetryOrigins: ['https://evil.example'], telemetryMode: 'none' },
+    } as any);
+
+    const message = {
+      origin: 'https://evil.example',
+      source: frameWindow,
+      data: { type: 'GAME_OVER', data: { score: 99 } },
+    } as MessageEvent;
+
+    component.onMessage(message);
+
+    expect(profileService.recordGameResult).toHaveBeenCalledWith('1', expect.objectContaining({ score: 99 }));
+  });
+
   it('removes the exact message listener on destroy', () => {
     component.ngOnDestroy();
     const removeCall = removeListenerSpy.mock.calls.find(

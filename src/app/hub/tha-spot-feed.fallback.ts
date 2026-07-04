@@ -492,7 +492,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
         "embedMode": "inline",
-        "secure_mode": "wasm"
+        "secure_mode": "wasm",
+        "telemetryOrigins": ["https://www.retrogames.cc"]
       }
     },
     {

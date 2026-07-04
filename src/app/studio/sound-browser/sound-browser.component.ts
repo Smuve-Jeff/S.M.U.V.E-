@@ -24,6 +24,7 @@ export class SoundBrowserComponent {
   selectedCategory = signal<string>('all');
   selectedTag = signal<string | null>(null);
   previewingId = signal<string | null>(null);
+  private hoverPreviewTimer: number | null = null;
 
   allPresets = computed(() => this.instruments.getPresets());
 
@@ -74,8 +75,9 @@ export class SoundBrowserComponent {
     this.musicManager.ensureTrack(preset.id);
   }
 
-  async previewPreset(preset: InstrumentPreset, event: MouseEvent) {
-    event.stopPropagation();
+  async previewPreset(preset: InstrumentPreset, event?: MouseEvent) {
+    event?.stopPropagation();
+    this.cancelHoverPreview();
     this.previewingId.set(preset.id);
 
     await this.instruments.audition(preset.id);
@@ -85,6 +87,20 @@ export class SoundBrowserComponent {
         this.previewingId.set(null);
       }
     }, 500);
+  }
+
+  scheduleHoverPreview(preset: InstrumentPreset) {
+    this.cancelHoverPreview();
+    this.hoverPreviewTimer = window.setTimeout(() => {
+      void this.previewPreset(preset);
+    }, 300);
+  }
+
+  cancelHoverPreview() {
+    if (this.hoverPreviewTimer) {
+      window.clearTimeout(this.hoverPreviewTimer);
+      this.hoverPreviewTimer = null;
+    }
   }
 
   toggleTag(tag: string) {

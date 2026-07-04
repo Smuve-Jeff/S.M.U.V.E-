@@ -212,6 +212,98 @@ export class MusicManagerService {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t));
   }
 
+  async importAudio(file: File, targetTrackId?: string) {
+    const arrayBuffer = await this.readFileAsArrayBuffer(file);
+    const audioBuffer = await this.decodeAudio(arrayBuffer);
+    const tempo = this.engine.tempo();
+    const secondsPerBar = (60 / tempo) * 4;
+    const durationSeconds = audioBuffer.duration;
+    const bars = Math.max(1, Math.ceil(durationSeconds / secondsPerBar));
+
+    let trackId = targetTrackId;
+    let track = trackId ? this.tracks().find((t) => t.id === trackId) : null;
+
+    if (!track || track.type !== 'audio') {
+      trackId = this.addTrack(file.name.replace(/\.[^/.]+$/, ''), 'audio', 'audio');
+      track = this.tracks().find((t) => t.id === trackId) || null;
+    }
+
+    if (!track) {
+      throw new Error('Unable to create or resolve audio track for import.');
+    }
+
+    const clip = this.createAudioClip(file, audioBuffer, bars, durationSeconds, tempo);
+    this.tracks.update((ts) => ts.map((t) => (t.id === trackId ? { ...t, clips: [...t.clips, clip] } : t)));
+    this.selectedTrackId.set(trackId);
+    return clip;
+  }
+
+  private createAudioClip(
+    file: File,
+    audioBuffer: AudioBuffer,
+    lengthBars: number,
+    durationSeconds: number,
+    tempo: number
+  ): StudioClip {
+    return {
+      id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      start: 0,
+      length: lengthBars,
+      type: 'audio',
+      audioData: audioBuffer,
+      originalBpm: tempo,
+      sampleRate: audioBuffer.sampleRate,
+      durationSeconds,
+      fileName: file.name,
+      waveform: this.buildWaveform(audioBuffer, 128),
+    };
+  }
+
+  private buildWaveform(buffer: AudioBuffer, resolution: number): number[] {
+    const channelData = buffer.numberOfChannels > 1
+      ? new Float32Array(buffer.length).map((_, index) => {
+          let sum = 0;
+          for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+            sum += buffer.getChannelData(channel)[index];
+          }
+          return sum / buffer.numberOfChannels;
+        })
+      : buffer.getChannelData(0);
+
+    const blockSize = Math.max(1, Math.floor(channelData.length / resolution));
+    const waveform = [] as number[];
+    for (let i = 0; i < resolution; i++) {
+      let sum = 0;
+      const start = i * blockSize;
+      const end = Math.min(channelData.length, start + blockSize);
+      for (let j = start; j < end; j++) {
+        sum += Math.abs(channelData[j]);
+      }
+      waveform.push(end > start ? Math.min(1, sum / (end - start)) : 0);
+    }
+    return waveform;
+  }
+
+  private readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  private decodeAudio(arrayBuffer: ArrayBuffer): Promise<AudioBuffer> {
+    return new Promise((resolve, reject) => {
+      this.engine.ctx.decodeAudioData(
+        arrayBuffer,
+        (decoded) => resolve(decoded),
+        (error) => reject(error)
+      );
+    });
+  }
+
   updateClip(trackId: string, clipId: string, patch: Partial<StudioClip>) {
     this.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, clips: t.clips.map(c => c.id === clipId ? { ...c, ...patch } : c) } : t));
   }
@@ -258,7 +350,17 @@ export class MusicManagerService {
              const audioData = (clip as any).audioData;
              if (audioData) {
                 const rate = this.engine.calculatePlaybackRate((clip as any).originalBpm || this.engine.tempo());
-                this.engine.triggerSampler(t.id, audioData, swungTime, t.gain, t.pan, clip.length * 4 * (60/this.engine.tempo()), rate);
+                this.engine.triggerSampler(
+                  t.id,
+                  audioData,
+                  swungTime,
+                  t.gain,
+                  t.pan,
+                  clip.length * 4 * (60 / this.engine.tempo()),
+                  rate,
+                  clip.fadeIn || 0,
+                  clip.fadeOut || 0
+                );
              }
           }
         }
