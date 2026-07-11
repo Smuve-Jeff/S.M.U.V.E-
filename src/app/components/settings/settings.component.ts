@@ -40,7 +40,9 @@ export class SettingsComponent implements OnInit {
   dialog = inject(InteractionDialogService);
   showHowTo = signal(false);
 
-  settings = computed(() => this.pendingSettings() || this.profileService.profile().settings);
+  settings = computed(
+    () => this.pendingSettings() || this.profileService.profile().settings
+  );
   themeOptions = computed(() => this.uiService.getAvailableThemes());
   appearanceSummary = computed(() => {
     const ui = this.settings().ui;
@@ -71,7 +73,15 @@ export class SettingsComponent implements OnInit {
   });
 
   activeTab = signal<
-    'ui' | 'audio' | 'ai' | 'studio' | 'dj' | 'security' | 'permissions' | 'storage' | 'hardware'
+    | 'ui'
+    | 'audio'
+    | 'ai'
+    | 'studio'
+    | 'dj'
+    | 'security'
+    | 'permissions'
+    | 'storage'
+    | 'hardware'
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
@@ -143,7 +153,8 @@ export class SettingsComponent implements OnInit {
   }
 
   updateSetting(category: keyof AppSettings, key: string, value: any) {
-    const current = this.pendingSettings() || this.profileService.profile().settings;
+    const current =
+      this.pendingSettings() || this.profileService.profile().settings;
     const updated = {
       ...current,
       [category]: {
@@ -155,10 +166,10 @@ export class SettingsComponent implements OnInit {
 
     // Preview side effects
     if (category === 'ui' && key === 'theme') {
-        this.uiService.setTheme(value);
+      this.uiService.setTheme(value);
     }
     if (category === 'ui' && key === 'performanceMode') {
-        // Toggle locally for preview if possible
+      // Toggle locally for preview if possible
     }
   }
 
@@ -182,7 +193,10 @@ export class SettingsComponent implements OnInit {
         settings: pending,
       });
       this.pendingSettings.set(null);
-      this.notificationService.show('EXECUTIVE_SETTINGS_SYNC_COMPLETE', 'success');
+      this.notificationService.show(
+        'EXECUTIVE_SETTINGS_SYNC_COMPLETE',
+        'success'
+      );
     } catch (e) {
       this.notificationService.show('SYNC_FAILED', 'error');
     }
@@ -197,7 +211,8 @@ export class SettingsComponent implements OnInit {
       | 'dj'
       | 'security'
       | 'permissions'
-      | 'storage' | 'hardware'
+      | 'storage'
+      | 'hardware'
   ) {
     this.activeTab.set(tab);
     if (tab === 'security') {
@@ -223,7 +238,7 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-    async onProfileImport(event: any) {
+  async onProfileImport(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
     const success = await this.profileService.importProfile(file);

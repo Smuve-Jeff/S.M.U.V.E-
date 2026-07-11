@@ -31,12 +31,12 @@ jest.mock('express-rate-limit', () =>
 
 const mockGenerateContent = jest.fn().mockResolvedValue({
   response: {
-    text: () => "Mocked audit response"
-  }
+    text: () => 'Mocked audit response',
+  },
 });
 
 const mockGetGenerativeModel = jest.fn().mockReturnValue({
-  generateContent: mockGenerateContent
+  generateContent: mockGenerateContent,
 });
 
 jest.mock('@google/generative-ai', () => ({
@@ -100,7 +100,9 @@ describe('server/index.js backend smoke tests', () => {
       const headerLines = Object.entries(headers)
         .map(([k, v]) => `${k}: ${v}`)
         .join('\r\n');
-      const contentLengthLine = bodyStr ? `Content-Length: ${Buffer.byteLength(bodyStr)}\r\n` : '';
+      const contentLengthLine = bodyStr
+        ? `Content-Length: ${Buffer.byteLength(bodyStr)}\r\n`
+        : '';
       const rawRequest =
         `${method} ${url.pathname}${url.search} HTTP/1.1\r\n` +
         `Host: ${url.hostname}:${url.port}\r\n` +
@@ -112,13 +114,18 @@ describe('server/index.js backend smoke tests', () => {
 
       // url.hostname for IPv6 includes brackets e.g. "[::1]", strip them
       const host = url.hostname.replace(/^\[|\]$/g, '');
-      const socket = net.createConnection({ host, port: Number(url.port) }, () => {
-        socket.write(rawRequest);
-      });
+      const socket = net.createConnection(
+        { host, port: Number(url.port) },
+        () => {
+          socket.write(rawRequest);
+        }
+      );
 
       let rawResponse = '';
       socket.setEncoding('utf8');
-      socket.on('data', (chunk) => { rawResponse += chunk; });
+      socket.on('data', (chunk) => {
+        rawResponse += chunk;
+      });
       socket.on('end', () => {
         const headerEnd = rawResponse.indexOf('\r\n\r\n');
         const headerSection = rawResponse.slice(0, headerEnd);

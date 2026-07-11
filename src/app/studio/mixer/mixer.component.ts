@@ -87,14 +87,21 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.animationFrame = requestAnimationFrame(update);
   }
 
-  toggleMixerWidth() { this.toggleViewMode(); }
-  isPeaking(id: string) { return (this.trackLevels()[id] || 0) > 0.95; }
+  toggleMixerWidth() {
+    this.toggleViewMode();
+  }
+  isPeaking(id: string) {
+    return (this.trackLevels()[id] || 0) > 0.95;
+  }
   startFaderDrag(event: PointerEvent, track: TrackModel) {
     const initialY = event.clientY;
     const initialVol = track.volume;
     const onMove = (moveEvent: PointerEvent) => {
       const delta = (initialY - moveEvent.clientY) / 100;
-      this.musicManager.updateVolume(track.id, Math.max(0, Math.min(1.5, initialVol + delta)));
+      this.musicManager.updateVolume(
+        track.id,
+        Math.max(0, Math.min(1.5, initialVol + delta))
+      );
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -112,7 +119,9 @@ export class MixerComponent implements OnInit, OnDestroy {
     const initialVol = this.masterVolume();
     const onMove = (moveEvent: PointerEvent) => {
       const delta = (initialY - moveEvent.clientY) / 2;
-      this.audioSession.updateMasterVolume(Math.max(0, Math.min(100, initialVol + delta)));
+      this.audioSession.updateMasterVolume(
+        Math.max(0, Math.min(100, initialVol + delta))
+      );
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -143,7 +152,7 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   removeTrack(id: string, event: Event) {
     event.stopPropagation();
-    if (confirm("Permanently remove this mixer track?")) {
+    if (confirm('Permanently remove this mixer track?')) {
       this.musicManager.removeTrack(id);
     }
   }
@@ -164,7 +173,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.engine.updateTrack(id, { pan });
   }
 
-  updateSend(id: string, send: "A" | "B", value: number) {
+  updateSend(id: string, send: 'A' | 'B', value: number) {
     this.musicManager.updateSend(id, send, value / 100);
   }
 
@@ -172,7 +181,11 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, [param]: value } : t))
     );
-    this.musicManager.engine.applyProductionParameter(id.toString(), param, value);
+    this.musicManager.engine.applyProductionParameter(
+      id.toString(),
+      param,
+      value
+    );
   }
 
   gainPercent(track: TrackModel): number {
@@ -190,6 +203,6 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   toggleAutomation() {
     this.haptic.medium();
-    this.isRecordingAutomation.update(v => !v);
+    this.isRecordingAutomation.update((v) => !v);
   }
 }

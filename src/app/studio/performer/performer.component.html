@@ -1,49 +1,156 @@
-<div class="performer-container glass-v42 flex flex-col h-full bg-slate-950 overflow-hidden select-none">
-  <div class="performer-header wood-panel border-b border-white/10 px-8 py-4 flex items-center justify-between">
+<div
+  class="performer-container glass-v42 flex flex-col h-full bg-slate-950 overflow-hidden select-none"
+>
+  <div
+    class="performer-header wood-panel border-b border-white/10 px-8 py-4 flex items-center justify-between"
+  >
     <div class="header-main flex items-center gap-8">
       <div class="visualizer-mini h-8 flex items-end gap-0.5 mb-2">
-        <div *ngFor="let val of spectrumData()" class="w-1 bg-fl-blue/40 rounded-t-full transition-all" [style.height.%]="val * 100"></div>
+        <div
+          *ngFor="let val of spectrumData()"
+          class="w-1 bg-fl-blue/40 rounded-t-full transition-all"
+          [style.height.%]="val * 100"
+        ></div>
       </div>
-      <h2 class="neon-text text-xs font-black uppercase tracking-[0.4em]">Neural Performance Interface</h2>
-      <div class="performance-ticker executive-glass px-4 py-1 rounded-full flex gap-3 overflow-hidden">
-        <span *ngFor="let note of performanceLog()" class="text-[8px] font-mono text-fl-blue animate-pulse">{{ note }}</span>
+      <h2 class="neon-text text-xs font-black uppercase tracking-[0.4em]">
+        Neural Performance Interface
+      </h2>
+      <div
+        class="performance-ticker executive-glass px-4 py-1 rounded-full flex gap-3 overflow-hidden"
+      >
+        <span
+          *ngFor="let note of performanceLog()"
+          class="text-[8px] font-mono text-fl-blue animate-pulse"
+          >{{ note }}</span
+        >
       </div>
     </div>
 
     <div class="layout-toggle glass-v42 p-1 rounded-xl flex gap-1">
-      <button (click)="setLayout('keyboard')" [class.active]="layout() === 'keyboard'" class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg">Keyboard</button>
-      <button (click)="setLayout('pads')" [class.active]="layout() === 'pads'" class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg">Pads</button>
-      <button (click)="setLayout('matrix')" [class.active]="layout() === 'matrix'" class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg">Matrix</button>
+      <button
+        (click)="setLayout('keyboard')"
+        [class.active]="layout() === 'keyboard'"
+        class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg"
+      >
+        Keyboard
+      </button>
+      <button
+        (click)="setLayout('pads')"
+        [class.active]="layout() === 'pads'"
+        class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg"
+      >
+        Pads
+      </button>
+      <button
+        (click)="setLayout('matrix')"
+        [class.active]="layout() === 'matrix'"
+        class="tactile-v42 px-4 py-1.5 text-[8px] font-black uppercase rounded-lg"
+      >
+        Matrix
+      </button>
     </div>
   </div>
 
   <div class="performer-content flex-1 flex flex-col min-h-0">
-    <div class="performer-dashboard glass-v42 border-b border-white/10 p-4 flex items-center justify-between gap-6">
+    <div
+      class="performer-dashboard glass-v42 border-b border-white/10 p-4 flex items-center justify-between gap-6"
+    >
       <div class="instrument-selector flex items-center gap-3">
         <span class="material-symbols-outlined text-fl-blue text-sm">tune</span>
-        <select [ngModel]="activeInstrumentId()" (ngModelChange)="setInstrument($event)" class="executive-glass text-[10px] px-3 py-1.5 rounded-lg border-white/10">
-          <option *ngFor="let inst of availableInstruments()" [value]="inst.id">{{ inst.name }}</option>
+        <select
+          [ngModel]="activeInstrumentId()"
+          (ngModelChange)="setInstrument($event)"
+          class="executive-glass text-[10px] px-3 py-1.5 rounded-lg border-white/10"
+        >
+          <option *ngFor="let inst of availableInstruments()" [value]="inst.id">
+            {{ inst.name }}
+          </option>
         </select>
       </div>
-      <div class="mixing-quick-controls flex items-center gap-6" *ngIf="selectedTrack() as track">
+      <div
+        class="mixing-quick-controls flex items-center gap-6"
+        *ngIf="selectedTrack() as track"
+      >
         <div class="track-info">
-          <div class="text-[7px] text-slate-500 uppercase font-black">Active Track</div>
+          <div class="text-[7px] text-slate-500 uppercase font-black">
+            Active Track
+          </div>
           <div class="text-[10px] text-white font-bold">{{ track.name }}</div>
         </div>
-        <app-knob label="VOL" [min]="0" [max]="150" [value]="track.gain * 100" (valueChange)="updateTrackVolume($event)"></app-knob>
-        <app-knob label="PAN" [min]="-100" [max]="100" [value]="track.pan * 100" (valueChange)="updateTrackPan($event)"></app-knob>
-        <div class="granular-rack flex items-center gap-4 ml-6 border-l border-white/10 pl-6">
-          <app-knob label="CUTOFF" [min]="20" [max]="20000" [value]="20000" (valueChange)="liveEngine.updateParameter('cutoff', $event)"></app-knob>
-          <app-knob label="RESO" [min]="0" [max]="20" [value]="1" (valueChange)="liveEngine.updateParameter('resonance', $event)"></app-knob>
-          <app-knob label="ATT" [min]="0.001" [max]="2" [value]="0.01" (valueChange)="liveEngine.updateParameter('attack', $event)"></app-knob>
-          <app-knob label="REL" [min]="0.01" [max]="5" [value]="0.5" (valueChange)="liveEngine.updateParameter('release', $event)"></app-knob>
+        <app-knob
+          label="VOL"
+          [min]="0"
+          [max]="150"
+          [value]="track.gain * 100"
+          (valueChange)="updateTrackVolume($event)"
+        ></app-knob>
+        <app-knob
+          label="PAN"
+          [min]="-100"
+          [max]="100"
+          [value]="track.pan * 100"
+          (valueChange)="updateTrackPan($event)"
+        ></app-knob>
+        <div
+          class="granular-rack flex items-center gap-4 ml-6 border-l border-white/10 pl-6"
+        >
+          <app-knob
+            label="CUTOFF"
+            [min]="20"
+            [max]="20000"
+            [value]="20000"
+            (valueChange)="liveEngine.updateParameter('cutoff', $event)"
+          ></app-knob>
+          <app-knob
+            label="RESO"
+            [min]="0"
+            [max]="20"
+            [value]="1"
+            (valueChange)="liveEngine.updateParameter('resonance', $event)"
+          ></app-knob>
+          <app-knob
+            label="ATT"
+            [min]="0.001"
+            [max]="2"
+            [value]="0.01"
+            (valueChange)="liveEngine.updateParameter('attack', $event)"
+          ></app-knob>
+          <app-knob
+            label="REL"
+            [min]="0.01"
+            [max]="5"
+            [value]="0.5"
+            (valueChange)="liveEngine.updateParameter('release', $event)"
+          ></app-knob>
         </div>
       </div>
       <div class="performance-toggles flex items-center gap-2">
-        <button (click)="toggleSmartChords()" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="smartChords()">Smart Chords</button>
-        <button (click)="liveEngine.arpeggiatorEnabled.update(v => !v)" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="liveEngine.arpeggiatorEnabled()">Arp</button>
-        <button (click)="liveEngine.scaleLock.update(v => !v)" class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10" [class.active]="liveEngine.scaleLock()">Scale Lock</button>
-        <select [ngModel]="liveEngine.scaleMode()" (ngModelChange)="liveEngine.setScale($event)" class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border-white/10 uppercase font-black">
+        <button
+          (click)="toggleSmartChords()"
+          class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10"
+          [class.active]="smartChords()"
+        >
+          Smart Chords
+        </button>
+        <button
+          (click)="liveEngine.arpeggiatorEnabled.update((v) => !v)"
+          class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10"
+          [class.active]="liveEngine.arpeggiatorEnabled()"
+        >
+          Arp
+        </button>
+        <button
+          (click)="liveEngine.scaleLock.update((v) => !v)"
+          class="tactile-v42 px-3 py-1.5 text-[8px] font-black uppercase rounded-lg border border-white/10"
+          [class.active]="liveEngine.scaleLock()"
+        >
+          Scale Lock
+        </button>
+        <select
+          [ngModel]="liveEngine.scaleMode()"
+          (ngModelChange)="liveEngine.setScale($event)"
+          class="executive-glass text-[8px] px-3 py-1.5 rounded-lg border-white/10 uppercase font-black"
+        >
           <option value="major">Major</option>
           <option value="minor">Minor</option>
           <option value="blues">Blues</option>
@@ -53,68 +160,171 @@
     </div>
 
     <div class="view-viewport flex-1 relative overflow-hidden">
-      <div *ngIf="layout() === 'keyboard'" class="keyboard-view h-full flex flex-col">
-        <div class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-start pt-12">
-          <div class="keyboard-container relative flex" style="height: 300px;">
-            <div *ngFor="let key of keyboardKeys"
-                 class="perf-key-v42 transition-all duration-75"
-                 [class.black-key]="isBlackKey(key.midi)"
-                 [class.white-key]="!isBlackKey(key.midi)"
-                 [class.active]="activeKeys().has(key.midi)"
-                 (pointerdown)="onKeyDown(key.midi, $event)"
-                 (pointerup)="onKeyUp(key.midi, $event)"
-                 (pointerleave)="onKeyUp(key.midi, $event)"
-                 (pointermove)="onKeyDown(key.midi, $event)">
-              <span class="key-label absolute bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase pointer-events-none opacity-30">{{ key.name }}</span>
+      <div
+        *ngIf="layout() === 'keyboard'"
+        class="keyboard-view h-full flex flex-col"
+      >
+        <div
+          class="keyboard-scroll flex-1 overflow-x-auto overflow-y-hidden no-scrollbar px-10 flex items-start pt-12"
+        >
+          <div class="keyboard-container relative flex" style="height: 300px">
+            <div
+              *ngFor="let key of keyboardKeys"
+              class="perf-key-v42 transition-all duration-75"
+              [class.black-key]="isBlackKey(key.midi)"
+              [class.white-key]="!isBlackKey(key.midi)"
+              [class.active]="activeKeys().has(key.midi)"
+              (pointerdown)="onKeyDown(key.midi, $event)"
+              (pointerup)="onKeyUp(key.midi, $event)"
+              (pointerleave)="onKeyUp(key.midi, $event)"
+              (pointermove)="onKeyDown(key.midi, $event)"
+            >
+              <span
+                class="key-label absolute bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-black uppercase pointer-events-none opacity-30"
+                >{{ key.name }}</span
+              >
             </div>
           </div>
         </div>
-        <div class="expressive-controls px-10 py-6 flex gap-10 items-center justify-center border-t border-white/5 bg-black/20">
+        <div
+          class="expressive-controls px-10 py-6 flex gap-10 items-center justify-center border-t border-white/5 bg-black/20"
+        >
           <div class="expression-strip flex flex-col gap-2">
-            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Pitch Bend</label>
-            <input type="range" min="-1" max="1" step="0.01" [value]="pitchBend()" (input)="onPitchBend($event)" class="pitch-slider">
+            <label
+              class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+              >Pitch Bend</label
+            >
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              step="0.01"
+              [value]="pitchBend()"
+              (input)="onPitchBend($event)"
+              class="pitch-slider"
+            />
           </div>
           <div class="expression-strip flex flex-col gap-2">
-            <label class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Mod Wheel</label>
-            <input type="range" min="0" max="1" step="0.01" [value]="modWheel()" (input)="onModWheel($event)" class="mod-slider">
+            <label
+              class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+              >Mod Wheel</label
+            >
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [value]="modWheel()"
+              (input)="onModWheel($event)"
+              class="mod-slider"
+            />
           </div>
         </div>
       </div>
 
       <div *ngIf="layout() === 'matrix'" class="matrix-view h-full flex">
-        <div class="scene-launcher w-32 border-r border-white/10 bg-black/40 flex flex-col p-4 gap-3">
-          <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Scenes</div>
-          <button *ngFor="let scene of scenes()" (click)="launchScene(scene)" class="scene-btn tactile-v42 p-3 rounded-xl border border-white/10 flex flex-col items-center gap-1 group transition-all" [class.active]="isSceneActive(scene)">
-            <div class="w-2 h-2 rounded-full border-2 border-white/20" [style.background-color]="scene.color"></div>
-            <span class="text-[7px] font-black uppercase tracking-tighter">{{ scene.name }}</span>
+        <div
+          class="scene-launcher w-32 border-r border-white/10 bg-black/40 flex flex-col p-4 gap-3"
+        >
+          <div
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2"
+          >
+            Scenes
+          </div>
+          <button
+            *ngFor="let scene of scenes()"
+            (click)="launchScene(scene)"
+            class="scene-btn tactile-v42 p-3 rounded-xl border border-white/10 flex flex-col items-center gap-1 group transition-all"
+            [class.active]="isSceneActive(scene)"
+          >
+            <div
+              class="w-2 h-2 rounded-full border-2 border-white/20"
+              [style.background-color]="scene.color"
+            ></div>
+            <span class="text-[7px] font-black uppercase tracking-tighter">{{
+              scene.name
+            }}</span>
           </button>
         </div>
         <app-performance-grid class="session-grid-panel"></app-performance-grid>
       </div>
 
-      <div *ngIf="layout() === 'pads'" class="pads-view h-full flex items-center justify-center p-6">
-        <div class="perf-pads-grid-v42 grid grid-cols-4 gap-6 w-full max-w-4xl aspect-square">
-          <div *ngFor="let pad of performerPads" class="perf-pad-v42 relative flex flex-col items-center justify-center rounded-2xl border-2 border-white/10 glass-v42 cursor-pointer select-none transition-all active:scale-95 active:shadow-inner overflow-hidden" [class.active]="activeKeys().has(pad.midi)" [style.--pad-color]="pad.color" (pointerdown)="onPadPointerDown($event, pad.midi)" (pointerenter)="onPadPointerEnter($event, pad.midi)" (pointerup)="onPadPointerUp($event, pad.midi)" (pointercancel)="onPadPointerUp($event, pad.midi)" (pointerleave)="onPadPointerUp($event, pad.midi)">
-            <div class="pad-bg absolute inset-0 transition-all" [style.background-color]="activeKeys().has(pad.midi) ? pad.color : 'transparent'"></div>
-            <div class="pad-led absolute top-3 right-3 w-3 h-3 rounded-full border border-black/50" [style.background-color]="pad.color"></div>
-            <span class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10">{{ pad.name }}</span>
+      <div
+        *ngIf="layout() === 'pads'"
+        class="pads-view h-full flex items-center justify-center p-6"
+      >
+        <div
+          class="perf-pads-grid-v42 grid grid-cols-4 gap-6 w-full max-w-4xl aspect-square"
+        >
+          <div
+            *ngFor="let pad of performerPads"
+            class="perf-pad-v42 relative flex flex-col items-center justify-center rounded-2xl border-2 border-white/10 glass-v42 cursor-pointer select-none transition-all active:scale-95 active:shadow-inner overflow-hidden"
+            [class.active]="activeKeys().has(pad.midi)"
+            [style.--pad-color]="pad.color"
+            (pointerdown)="onPadPointerDown($event, pad.midi)"
+            (pointerenter)="onPadPointerEnter($event, pad.midi)"
+            (pointerup)="onPadPointerUp($event, pad.midi)"
+            (pointercancel)="onPadPointerUp($event, pad.midi)"
+            (pointerleave)="onPadPointerUp($event, pad.midi)"
+          >
+            <div
+              class="pad-bg absolute inset-0 transition-all"
+              [style.background-color]="
+                activeKeys().has(pad.midi) ? pad.color : 'transparent'
+              "
+            ></div>
+            <div
+              class="pad-led absolute top-3 right-3 w-3 h-3 rounded-full border border-black/50"
+              [style.background-color]="pad.color"
+            ></div>
+            <span
+              class="pad-label-v42 font-black text-xs uppercase tracking-widest relative z-10"
+              >{{ pad.name }}</span
+            >
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="performer-footer wood-panel flex items-center justify-between px-8 py-4 border-t border-white/10">
+  <div
+    class="performer-footer wood-panel flex items-center justify-between px-8 py-4 border-t border-white/10"
+  >
     <div class="footer-control-group flex gap-8">
       <div class="perf-control flex flex-col gap-2">
-        <app-knob label="VELOCITY" [min]="0" [max]="1" [step]="0.01" [value]="velocity" (valueChange)="velocity = $event"></app-knob>
+        <app-knob
+          label="VELOCITY"
+          [min]="0"
+          [max]="1"
+          [step]="0.01"
+          [value]="velocity"
+          (valueChange)="velocity = $event"
+        ></app-knob>
       </div>
       <div class="perf-control flex flex-col gap-2">
-        <label class="neon-text-xs font-black opacity-50 uppercase tracking-widest px-1">OCTAVE SHIFT</label>
-        <div class="octave-panel glass-v42 flex items-center p-1 rounded-xl border border-white/10">
-          <button (click)="nudgeOctave(-1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">-</button>
-          <span class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-hv-secondary">{{ octave() }}</span>
-          <button (click)="nudgeOctave(1)" class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black">+</button>
+        <label
+          class="neon-text-xs font-black opacity-50 uppercase tracking-widest px-1"
+          >OCTAVE SHIFT</label
+        >
+        <div
+          class="octave-panel glass-v42 flex items-center p-1 rounded-xl border border-white/10"
+        >
+          <button
+            (click)="nudgeOctave(-1)"
+            class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black"
+          >
+            -
+          </button>
+          <span
+            class="octave-value font-mono text-xl font-black px-6 min-w-[60px] text-center text-hv-secondary"
+            >{{ octave() }}</span
+          >
+          <button
+            (click)="nudgeOctave(1)"
+            class="octave-btn tactile-v42 w-10 h-10 flex items-center justify-center rounded-lg text-lg font-black"
+          >
+            +
+          </button>
         </div>
       </div>
     </div>

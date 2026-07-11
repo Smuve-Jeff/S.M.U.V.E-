@@ -115,7 +115,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
         transientSharpness: 0.74,
       });
 
-      const corrective =  {
+      const corrective = {
         compressorThreshold: -14,
         compressorRatio: 4,
         limiterCeiling: -0.1,
@@ -134,10 +134,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
         settings?.ceiling || -0.1,
         corrective.limiterCeiling
       );
-      const mergedTargetLufs = Math.min(
-        (-14) || -14,
-        corrective.targetLufs
-      );
+      const mergedTargetLufs = Math.min(-14, corrective.targetLufs);
 
       (this.audioEngine as any).configureCompressor({
         threshold: mergedThreshold,
@@ -150,12 +147,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       });
       this.targetLufs.set(mergedTargetLufs);
       this.safeCeiling.set(mergedCeiling);
-      this.smartAssistSuggestion.set(
-        'Standard mastering applied'
-      );
-      this.eqMaskingHint.set(
-        'No significant masking detected'
-      );
+      this.smartAssistSuggestion.set('Standard mastering applied');
+      this.eqMaskingHint.set('No significant masking detected');
     } finally {
       this.isProcessing.set(false);
     }

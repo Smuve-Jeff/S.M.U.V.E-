@@ -10,9 +10,11 @@ export class AdsrEnvelope {
 
   apply(gainNode: GainNode, velocity: number) {
     const now = this.context.currentTime;
-    if (gainNode.gain.cancelScheduledValues) gainNode.gain.cancelScheduledValues(now);
+    if (gainNode.gain.cancelScheduledValues)
+      gainNode.gain.cancelScheduledValues(now);
     if (gainNode.gain.setValueAtTime) gainNode.gain.setValueAtTime(0, now);
-    if (gainNode.gain.linearRampToValueAtTime) gainNode.gain.linearRampToValueAtTime(velocity, now + this.attack);
+    if (gainNode.gain.linearRampToValueAtTime)
+      gainNode.gain.linearRampToValueAtTime(velocity, now + this.attack);
 
     if (this.exponential) {
       if (gainNode.gain.exponentialRampToValueAtTime) {
@@ -35,7 +37,8 @@ export class AdsrEnvelope {
     const now = this.context.currentTime;
     if (param.cancelScheduledValues) param.cancelScheduledValues(now);
     if (param.setValueAtTime) param.setValueAtTime(min, now);
-    if (param.linearRampToValueAtTime) param.linearRampToValueAtTime(max * velocity, now + this.attack);
+    if (param.linearRampToValueAtTime)
+      param.linearRampToValueAtTime(max * velocity, now + this.attack);
     if (param.exponentialRampToValueAtTime) {
       param.exponentialRampToValueAtTime(
         Math.max(0.0001, min + (max - min) * this.sustain),
@@ -46,8 +49,10 @@ export class AdsrEnvelope {
 
   releaseEnvelope(gainNode: GainNode) {
     const now = this.context.currentTime;
-    if (gainNode.gain.cancelScheduledValues) gainNode.gain.cancelScheduledValues(now);
-    if (gainNode.gain.setValueAtTime) gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+    if (gainNode.gain.cancelScheduledValues)
+      gainNode.gain.cancelScheduledValues(now);
+    if (gainNode.gain.setValueAtTime)
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
     if (gainNode.gain.exponentialRampToValueAtTime) {
       gainNode.gain.exponentialRampToValueAtTime(0.0001, now + this.release);
     }

@@ -83,13 +83,18 @@ export class FileLoaderService {
     return buffer;
   }
 
-  async loadSampleMap(map: SampleMap, context?: BaseAudioContext | null): Promise<void> {
+  async loadSampleMap(
+    map: SampleMap,
+    context?: BaseAudioContext | null
+  ): Promise<void> {
     const urls = new Set<string>();
-    map.zones.forEach(zone => {
-      zone.layers.forEach(layer => urls.add(layer.url));
+    map.zones.forEach((zone) => {
+      zone.layers.forEach((layer) => urls.add(layer.url));
     });
 
-    const promises = Array.from(urls).map(url => this.loadAudio(url, context));
+    const promises = Array.from(urls).map((url) =>
+      this.loadAudio(url, context)
+    );
     await Promise.all(promises);
   }
 

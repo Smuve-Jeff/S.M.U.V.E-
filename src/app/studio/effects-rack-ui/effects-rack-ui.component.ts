@@ -25,9 +25,17 @@ export class EffectsRackUiComponent {
   toggleFx(slotId: string) {
     const track = this.selectedTrack();
     if (!track) return;
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? {
-      ...t,
-      fxSlots: t.fxSlots.map(s => s.id === slotId ? { ...s, enabled: !s.enabled } : s)
-    } : t));
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === track.id
+          ? {
+              ...t,
+              fxSlots: t.fxSlots.map((s) =>
+                s.id === slotId ? { ...s, enabled: !s.enabled } : s
+              ),
+            }
+          : t
+      )
+    );
   }
 }

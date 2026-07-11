@@ -20,38 +20,44 @@ export class PeerNetworkingService {
 
   async handleSignal(fromUserId: string, data: any) {
     if (data.type === 'KNOCK') {
-        this.knockFromUserId.set(fromUserId);
-        this.isKnocking.set(true);
-        return;
+      this.knockFromUserId.set(fromUserId);
+      this.isKnocking.set(true);
+      return;
     }
 
     if (data.type === 'KNOCK_ACCEPTED') {
-        await this.initializePeerConnection(fromUserId);
-        const offer = await this.peerConnection!.createOffer();
-        await this.peerConnection!.setLocalDescription(offer);
-        this.social.sendVoiceSignal(fromUserId, { offer });
-        return;
+      await this.initializePeerConnection(fromUserId);
+      const offer = await this.peerConnection!.createOffer();
+      await this.peerConnection!.setLocalDescription(offer);
+      this.social.sendVoiceSignal(fromUserId, { offer });
+      return;
     }
 
     if (data.type === 'KNOCK_DECLINED') {
-        this.endCall();
-        return;
+      this.endCall();
+      return;
     }
 
     if (!this.peerConnection) {
-        await this.initializePeerConnection(fromUserId);
+      await this.initializePeerConnection(fromUserId);
     }
 
     if (data.offer) {
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await this.peerConnection!.createAnswer();
-        await this.peerConnection!.setLocalDescription(answer);
-        this.social.sendVoiceSignal(fromUserId, { answer });
-        this.isCallActive.set(true);
+      await this.peerConnection!.setRemoteDescription(
+        new RTCSessionDescription(data.offer)
+      );
+      const answer = await this.peerConnection!.createAnswer();
+      await this.peerConnection!.setLocalDescription(answer);
+      this.social.sendVoiceSignal(fromUserId, { answer });
+      this.isCallActive.set(true);
     } else if (data.answer) {
-        await this.peerConnection!.setRemoteDescription(new RTCSessionDescription(data.answer));
+      await this.peerConnection!.setRemoteDescription(
+        new RTCSessionDescription(data.answer)
+      );
     } else if (data.candidate) {
-        await this.peerConnection!.addIceCandidate(new RTCIceCandidate(data.candidate));
+      await this.peerConnection!.addIceCandidate(
+        new RTCIceCandidate(data.candidate)
+      );
     }
   }
 
@@ -69,7 +75,7 @@ export class PeerNetworkingService {
   declineKnock() {
     const fromUserId = this.knockFromUserId();
     if (fromUserId) {
-        this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_DECLINED' });
+      this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_DECLINED' });
     }
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
@@ -77,29 +83,33 @@ export class PeerNetworkingService {
 
   private async initializePeerConnection(targetUserId: string) {
     this.peerConnection = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
 
-    this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    this.localStream.getTracks().forEach(track => {
-        this.peerConnection?.addTrack(track, this.localStream!);
+    this.localStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+    });
+    this.localStream.getTracks().forEach((track) => {
+      this.peerConnection?.addTrack(track, this.localStream!);
     });
 
     this.peerConnection.ontrack = (event) => {
-        this.remoteStream.set(event.streams[0]);
+      this.remoteStream.set(event.streams[0]);
     };
 
     this.peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            this.social.sendVoiceSignal(targetUserId, { candidate: event.candidate });
-        }
+      if (event.candidate) {
+        this.social.sendVoiceSignal(targetUserId, {
+          candidate: event.candidate,
+        });
+      }
     };
   }
 
   endCall() {
     this.peerConnection?.close();
     this.peerConnection = undefined;
-    this.localStream?.getTracks().forEach(t => t.stop());
+    this.localStream?.getTracks().forEach((t) => t.stop());
     this.remoteStream.set(null);
     this.isCallActive.set(false);
     this.isKnocking.set(false);

@@ -151,7 +151,7 @@ export class ProjectsComponent {
     this.selectedProject.set(newProject);
   }
 
-    exportProject(project: Project) {
+  exportProject(project: Project) {
     const data = JSON.stringify(project, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

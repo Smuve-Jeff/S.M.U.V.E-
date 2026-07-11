@@ -46,7 +46,11 @@ export class ProjectTemplateService {
       tracks: [
         { name: 'P-Bass', instrumentId: 'p-bass-elite', type: 'midi' },
         { name: 'Ethereal Keys', instrumentId: 'neon-shimmer', type: 'midi' },
-        { name: 'Strat Guitar', instrumentId: 'strat-elite-clean', type: 'midi' },
+        {
+          name: 'Strat Guitar',
+          instrumentId: 'strat-elite-clean',
+          type: 'midi',
+        },
         { name: 'Vocal Lead', instrumentId: 'grand-piano', type: 'midi' },
       ],
     },
@@ -60,18 +64,20 @@ export class ProjectTemplateService {
         { name: 'Neon Lead', instrumentId: 'neon-shimmer', type: 'midi' },
         { name: 'Cyber Drums', instrumentId: 'cyber-stab', type: 'midi' },
       ],
-    }
+    },
   ];
 
   applyTemplate(templateId: string) {
-    const template = this.templates.find(t => t.id === templateId);
+    const template = this.templates.find((t) => t.id === templateId);
     if (!template) return;
 
     this.musicManager.newProject(true);
-    template.tracks.forEach(t => {
+    template.tracks.forEach((t) => {
       this.musicManager.addTrack(t.name, t.instrumentId);
     });
     this.musicManager.engine.tempo.set(template.bpm);
-    this.logger.info(`ProjectTemplateService: Applied template ${template.name}`);
+    this.logger.info(
+      `ProjectTemplateService: Applied template ${template.name}`
+    );
   }
 }

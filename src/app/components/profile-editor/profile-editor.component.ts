@@ -27,6 +27,7 @@ import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
+import { DatabaseService } from '../../services/database.service';
 
 @Component({
   selector: 'app-profile-editor',
@@ -59,6 +60,7 @@ export class ProfileEditorComponent implements OnInit {
   private aiService = inject(AiService);
   private artistIdentityService = inject(ArtistIdentityService);
   private route = inject(ActivatedRoute);
+  private dbService = inject(DatabaseService);
   onboarding = inject(OnboardingService);
   private uplinkService = inject(UplinkService);
 
@@ -70,6 +72,7 @@ export class ProfileEditorComponent implements OnInit {
   showQuestionnaire = signal(false);
   syncingWithAi = signal(false);
   showUplink = signal(false);
+  uploadingImage = signal(false);
   optimizationScore = computed(
     () => this.userProfileService.profile().strategicHealthScore || 0
   );
@@ -187,14 +190,19 @@ export class ProfileEditorComponent implements OnInit {
     }));
   }
 
-  onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
+  async onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.updateProfileField(target, e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      this.uploadingImage.set(true);
+      const url = await this.dbService.uploadAsset(file);
+      this.updateProfileField(target, url);
+    } catch (err) {
+      console.error(`Failed to upload ${target}:`, err);
+      alert(`Error uploading ${target}. Please try again.`);
+    } finally {
+      this.uploadingImage.set(false);
     }
   }
 
@@ -270,12 +278,12 @@ export class ProfileEditorComponent implements OnInit {
     });
   }
 
-    async onProfileImport(event: any) {
+  async onProfileImport(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
     const success = await this.userProfileService.importProfile(file);
     if (success) {
-      this.editableProfile.set({...this.userProfileService.profile()});
+      this.editableProfile.set({ ...this.userProfileService.profile() });
     }
   }
 

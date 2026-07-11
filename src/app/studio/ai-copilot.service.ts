@@ -1,5 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { MusicManagerService, SongSection } from '../services/music-manager.service';
+import {
+  MusicManagerService,
+  SongSection,
+} from '../services/music-manager.service';
 import { LoggingService } from '../services/logging.service';
 
 @Injectable({

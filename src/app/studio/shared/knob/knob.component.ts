@@ -7,7 +7,7 @@ import {
   signal,
   OnChanges,
   OnInit,
-  computed
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -32,9 +32,14 @@ import { CommonModule } from '@angular/common';
         </div>
         <svg class="knob-ring-svg absolute inset-[-4px]" viewBox="0 0 72 72">
           <circle class="ring-bg" cx="36" cy="36" r="32" />
-          <circle class="ring-fill" cx="36" cy="36" r="32"
-                  [style.stroke-dasharray]="dashArray()"
-                  [style.stroke]="ringColor()" />
+          <circle
+            class="ring-fill"
+            cx="36"
+            cy="36"
+            r="32"
+            [style.stroke-dasharray]="dashArray()"
+            [style.stroke]="ringColor()"
+          />
         </svg>
       </div>
       <div class="knob-value" *ngIf="showValue">{{ displayValue() }}</div>
@@ -64,7 +69,12 @@ import { CommonModule } from '@angular/common';
         width: 100%;
         height: 100%;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, #444 0%, #222 50%, #111 100%);
+        background: radial-gradient(
+          circle at 30% 30%,
+          #444 0%,
+          #222 50%,
+          #111 100%
+        );
         border: 2px solid rgba(255, 255, 255, 0.05);
         position: relative;
         z-index: 2;
@@ -85,7 +95,9 @@ import { CommonModule } from '@angular/common';
         left: 50%;
         transform: translateX(-50%);
         border-radius: 2px;
-        box-shadow: 0 0 10px #00e5ff, 0 0 20px rgba(0, 229, 255, 0.4);
+        box-shadow:
+          0 0 10px #00e5ff,
+          0 0 20px rgba(0, 229, 255, 0.4);
       }
       .knob-center-cap {
         position: absolute;
@@ -113,7 +125,9 @@ import { CommonModule } from '@angular/common';
         fill: none;
         stroke-width: 3;
         stroke-linecap: round;
-        transition: stroke-dasharray 0.1s ease, stroke 0.3s ease;
+        transition:
+          stroke-dasharray 0.1s ease,
+          stroke 0.3s ease;
       }
       .knob-label {
         font-size: 8px;
@@ -169,7 +183,7 @@ export class KnobComponent implements OnInit, OnChanges {
 
   dashArray = computed(() => {
     const circumference = 2 * Math.PI * 32;
-    const fill = (this.percent() * 270 / 360) * circumference;
+    const fill = ((this.percent() * 270) / 360) * circumference;
     return `${fill} ${circumference}`;
   });
 
@@ -197,7 +211,9 @@ export class KnobComponent implements OnInit, OnChanges {
   startDrag(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
     this.startY =
-      event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY;
+      event instanceof MouseEvent
+        ? event.clientY
+        : (event as TouchEvent).touches[0].clientY;
     this.startValue = this.value;
   }
 
@@ -207,13 +223,17 @@ export class KnobComponent implements OnInit, OnChanges {
     if (!this.isDragging) return;
 
     const currentY =
-      event instanceof MouseEvent ? event.clientY : (event as TouchEvent).touches[0].clientY;
+      event instanceof MouseEvent
+        ? event.clientY
+        : (event as TouchEvent).touches[0].clientY;
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
-    const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
     const sensitivity = isMobile ? 350 : 200;
 
-    const isFine = (event instanceof MouseEvent && event.shiftKey) || (event instanceof TouchEvent && event.touches.length > 1);
+    const isFine =
+      (event instanceof MouseEvent && event.shiftKey) ||
+      (event instanceof TouchEvent && event.touches.length > 1);
     const finalSensitivity = isFine ? sensitivity * 5 : sensitivity;
     let newValue = this.startValue + (deltaY / finalSensitivity) * range;
     newValue = Math.max(this.min, Math.min(this.max, newValue));

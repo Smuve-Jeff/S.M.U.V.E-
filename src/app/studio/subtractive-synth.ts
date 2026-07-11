@@ -56,9 +56,13 @@ export class SubtractiveSynth extends Instrument {
     super(audioContext, 12);
     this.samplerEngine = samplerEngine;
 
-    this.oscillatorPool = new NodePool(this.audioContext, (ctx) => ctx.createOscillator());
+    this.oscillatorPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createOscillator()
+    );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
-    this.filterPool = new NodePool(this.audioContext, (ctx) => ctx.createBiquadFilter());
+    this.filterPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createBiquadFilter()
+    );
 
     this.masterFilter = this.audioContext.createBiquadFilter();
     this.masterFilter.type = 'lowpass';
@@ -150,7 +154,12 @@ export class SubtractiveSynth extends Instrument {
       const sampleGain = this.gainPool.get();
       sampleGain.gain.value = this.sampleLayerMix;
       sampleGain.connect(voiceFilter);
-      sampleStop = this.samplerEngine.playNote(this.activeSampleMap, note, velocity, sampleGain);
+      sampleStop = this.samplerEngine.playNote(
+        this.activeSampleMap,
+        note,
+        velocity,
+        sampleGain
+      );
     }
 
     const voice: Voice = {
@@ -159,13 +168,13 @@ export class SubtractiveSynth extends Instrument {
       gain,
       filter: voiceFilter,
       filterGain,
-      sampleStop
+      sampleStop,
     };
 
     this.voiceManager.addVoice({
       note,
       startTime: this.audioContext.currentTime,
-      stop: () => this.executeStop(voice)
+      stop: () => this.executeStop(voice),
     });
 
     this.voices.set(note, voice);
@@ -190,21 +199,28 @@ export class SubtractiveSynth extends Instrument {
         voice.sampleStop();
       }
 
-      setTimeout(() => {
-        this.executeStop(voice);
-        this.voices.delete(note);
-        this.voiceManager.removeVoice(note);
-      }, this.envelope.release * 1000 + 100);
+      setTimeout(
+        () => {
+          this.executeStop(voice);
+          this.voices.delete(note);
+          this.voiceManager.removeVoice(note);
+        },
+        this.envelope.release * 1000 + 100
+      );
     }
   }
 
   private executeStop(voice: Voice) {
-    voice.oscillators.forEach(osc => {
-      try { osc.stop(); } catch(e) {}
+    voice.oscillators.forEach((osc) => {
+      try {
+        osc.stop();
+      } catch (e) {}
       this.oscillatorPool.release(osc);
     });
     if (voice.subOscillator) {
-      try { voice.subOscillator.stop(); } catch(e) {}
+      try {
+        voice.subOscillator.stop();
+      } catch (e) {}
       this.oscillatorPool.release(voice.subOscillator);
     }
     this.gainPool.release(voice.gain);

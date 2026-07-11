@@ -61,11 +61,20 @@ describe('StudioComponent', () => {
         { provide: ProjectTemplateService, useValue: { templates: [] } },
         { provide: SnackbarService, useValue: { info: jest.fn() } },
         { provide: Router, useValue: { navigate: jest.fn() } },
-        { provide: ActivatedRoute, useValue: { queryParamMap: of({ get: () => 'arrangement' }), snapshot: { queryParamMap: { get: () => 'arrangement' } } } },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            queryParamMap: of({ get: () => 'arrangement' }),
+            snapshot: { queryParamMap: { get: () => 'arrangement' } },
+          },
+        },
       ],
-      schemas: [NO_ERRORS_SCHEMA]
-    }).overrideComponent(StudioComponent, { set: { imports: [], template: '<div></div>' } })
-    .compileComponents();
+      schemas: [NO_ERRORS_SCHEMA],
+    })
+      .overrideComponent(StudioComponent, {
+        set: { imports: [], template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(StudioComponent);
     component = fixture.componentInstance;

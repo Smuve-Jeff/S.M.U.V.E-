@@ -8,17 +8,21 @@ test.describe('S.M.U.V.E. 2.0 UI Audit', () => {
     const body = page.locator('body');
     await expect(body).toBeVisible();
     // Check if background is solid black/dark blue as expected
-    const bgColor = await body.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    const bgColor = await body.evaluate(
+      (el) => window.getComputedStyle(el).backgroundColor
+    );
     console.log('Login BG Color:', bgColor);
   });
 
   test('should load hub with mock session', async ({ page }) => {
     // Inject mock session
     await page.addInitScript(() => {
-      const mockSession = btoa(JSON.stringify({
-        user: { id: 'test-user', artistName: 'Test Artist' },
-        expiry: Date.now() + 86400000
-      }) + '|SMUVE_SALT_V4_SECURE_HASH');
+      const mockSession = btoa(
+        JSON.stringify({
+          user: { id: 'test-user', artistName: 'Test Artist' },
+          expiry: Date.now() + 86400000,
+        }) + '|SMUVE_SALT_V4_SECURE_HASH'
+      );
       localStorage.setItem('smuve_auth_session', mockSession);
     });
 
@@ -31,10 +35,12 @@ test.describe('S.M.U.V.E. 2.0 UI Audit', () => {
   test('should load studio and verify interactive BPM', async ({ page }) => {
     // Inject mock session
     await page.addInitScript(() => {
-      const mockSession = btoa(JSON.stringify({
-        user: { id: 'test-user', artistName: 'Test Artist' },
-        expiry: Date.now() + 86400000
-      }) + '|SMUVE_SALT_V4_SECURE_HASH');
+      const mockSession = btoa(
+        JSON.stringify({
+          user: { id: 'test-user', artistName: 'Test Artist' },
+          expiry: Date.now() + 86400000,
+        }) + '|SMUVE_SALT_V4_SECURE_HASH'
+      );
       localStorage.setItem('smuve_auth_session', mockSession);
     });
 

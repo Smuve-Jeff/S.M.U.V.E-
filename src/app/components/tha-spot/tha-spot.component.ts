@@ -1,4 +1,15 @@
-import { Component, OnInit, OnDestroy, signal, computed, inject, effect, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  inject,
+  effect,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -12,7 +23,12 @@ import { UIService } from '../../services/ui.service';
 import { GamepadService } from '../../services/gamepad.service';
 import { SecurityService } from '../../services/security.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
-import { SocialNetworkingService, OnlineUser, RoomMessage, PrivateMessage } from '../../services/social-networking.service';
+import {
+  SocialNetworkingService,
+  OnlineUser,
+  RoomMessage,
+  PrivateMessage,
+} from '../../services/social-networking.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ActivatedRoute } from '@angular/router';
@@ -25,7 +41,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './tha-spot.component.html',
-  styleUrls: ['./tha-spot.component.css']
+  styleUrls: ['./tha-spot.component.css'],
 })
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -54,10 +70,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   allPlatforms = computed(() => {
     const platforms = new Set<string>();
-    const knownPlatforms = ['PS1', 'PS2', 'N64', 'Xbox', 'Dreamcast', 'SNES', 'NES', 'Arcade', 'DOS', 'Web', 'PC'];
+    const knownPlatforms = [
+      'PS1',
+      'PS2',
+      'N64',
+      'Xbox',
+      'Dreamcast',
+      'SNES',
+      'NES',
+      'Arcade',
+      'DOS',
+      'Web',
+      'PC',
+    ];
     this.games().forEach((g) => {
-      const tags = (g.tags || []).map(t => t.toUpperCase());
-      knownPlatforms.forEach(p => {
+      const tags = (g.tags || []).map((t) => t.toUpperCase());
+      knownPlatforms.forEach((p) => {
         if (tags.includes(p.toUpperCase())) platforms.add(p);
       });
     });
@@ -100,7 +128,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private feedSubscription?: Subscription;
   private clockId?: any;
   private feedRefreshId?: any;
-  private readonly messageHandler = (event: MessageEvent) => this.onMessage(event);
+  private readonly messageHandler = (event: MessageEvent) =>
+    this.onMessage(event);
 
   // Computed signals
   filteredGames = computed(() => {
@@ -109,9 +138,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const currentRoomId = this.activeRoom();
     if (currentRoomId !== 'all') {
-      const room = this.gamingRooms().find(r => r.id === currentRoomId);
+      const room = this.gamingRooms().find((r) => r.id === currentRoomId);
       if (room) {
-        games = games.filter(g => this.gameService.matchesRoom(g, room));
+        games = games.filter((g) => this.gameService.matchesRoom(g, room));
       }
     }
 
@@ -175,11 +204,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   playerSearchQuery = signal('');
   filteredOnlineUsers = computed(() => {
     const query = this.playerSearchQuery().toLowerCase();
-    const merged = [...this.onlineUsers(), ...this.globalSearchResults()].filter(
-      (u, i, self) => self.findIndex((t) => t.userId === u.userId) === i,
+    const merged = [
+      ...this.onlineUsers(),
+      ...this.globalSearchResults(),
+    ].filter(
+      (u, i, self) => self.findIndex((t) => t.userId === u.userId) === i
     );
     return merged.filter((u) => {
-      const status = u.inGame ? 'playing' : u.online !== false ? 'online' : 'offline';
+      const status = u.inGame
+        ? 'playing'
+        : u.online !== false
+          ? 'online'
+          : 'offline';
       return (
         u.artistName?.toLowerCase().includes(query) ||
         u.primaryGenre?.toLowerCase().includes(query) ||
@@ -188,9 +224,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   });
   selectedDmUser = computed(() =>
-    [...this.onlineUsers(), ...this.globalSearchResults(), ...this.featuredUsers()].find(
-      (u) => u.userId === this.dmTargetUserId(),
-    ),
+    [
+      ...this.onlineUsers(),
+      ...this.globalSearchResults(),
+      ...this.featuredUsers(),
+    ].find((u) => u.userId === this.dmTargetUserId())
   );
   canInteract = computed(() => true);
   isKnocking = this.peerService.isKnocking;
@@ -202,9 +240,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const targetId = this.dmTargetUserId();
     const myId = this.profileService.profile().id;
     if (!targetId || !myId) return [];
-    return this.messages().filter(m =>
-      (m.fromUserId === targetId && m.toUserId === myId) ||
-      (m.fromUserId === myId && m.toUserId === targetId)
+    return this.messages().filter(
+      (m) =>
+        (m.fromUserId === targetId && m.toUserId === myId) ||
+        (m.fromUserId === myId && m.toUserId === targetId)
     );
   });
   isCallActive = this.peerService.isCallActive;
@@ -227,13 +266,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       const gp = this.gamepadService.connectedGamepad();
       if (gp) {
         if (this.isBrowseView()) {
-           const dx = this.gamepadService.dpadX();
-           const dy = this.gamepadService.dpadY();
-           if (dx !== 0 || dy !== 0) {
-             if (this.contentViewport?.nativeElement) {
-               this.contentViewport.nativeElement.scrollBy({ top: dy * 100, left: dx * 100, behavior: 'smooth' });
-             }
-           }
+          const dx = this.gamepadService.dpadX();
+          const dy = this.gamepadService.dpadY();
+          if (dx !== 0 || dy !== 0) {
+            if (this.contentViewport?.nativeElement) {
+              this.contentViewport.nativeElement.scrollBy({
+                top: dy * 100,
+                left: dx * 100,
+                behavior: 'smooth',
+              });
+            }
+          }
         }
 
         if (gp.buttons[0]) {
@@ -266,7 +309,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     window.addEventListener('message', this.messageHandler);
 
     // Handle Deep Links
-    this.route.queryParamMap.subscribe(params => {
+    this.route.queryParamMap.subscribe((params) => {
       const gameId = params.get('gameId');
       const partyId = params.get('partyId');
       const mission = params.get('mission');
@@ -279,14 +322,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       }
 
       if (gameId) {
-        const game = this.games().find(g => g.id === gameId);
+        const game = this.games().find((g) => g.id === gameId);
         if (game) {
           this.selectedGame.set(game);
         } else {
-          const sub = this.gameService.getThaSpotFeed().subscribe(feed => {
-             const found = feed.games.find(g => g.id === gameId);
-             if (found) this.selectedGame.set(found);
-             sub.unsubscribe();
+          const sub = this.gameService.getThaSpotFeed().subscribe((feed) => {
+            const found = feed.games.find((g) => g.id === gameId);
+            if (found) this.selectedGame.set(found);
+            sub.unsubscribe();
           });
         }
       }
@@ -295,7 +338,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveRoom('co-op-link');
 
     this.hubTimeoutId = setTimeout(() => {
-      if (!this.showRivalHub() && !this.route.snapshot.queryParamMap.has('partyId')) this.toggleRivalHub();
+      if (
+        !this.showRivalHub() &&
+        !this.route.snapshot.queryParamMap.has('partyId')
+      )
+        this.toggleRivalHub();
     }, 1000);
   }
 
@@ -332,7 +379,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   onChatInput(val: string) {
     this.chatInput.set(val);
     if (this.activeHubTab() === 'dm' && this.dmTargetUserId()) {
-      this.socialService.sendTypingStatus(this.dmTargetUserId()!, val.length > 0);
+      this.socialService.sendTypingStatus(
+        this.dmTargetUserId()!,
+        val.length > 0
+      );
     }
   }
 
@@ -380,12 +430,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.currentMatchmakingId = Date.now();
         const requestId = this.currentMatchmakingId;
         this.isMatchmaking.set(true);
-        this.matchmakingStatus.set("WAITING FOR RIVAL...");
+        this.matchmakingStatus.set('WAITING FOR RIVAL...');
         this.socialService.queueForMatch(game.id);
 
         const matchPromise = new Promise<boolean>((resolve) => {
           const checkMatch = setInterval(() => {
-            if (this.socialService.matchmakingStatus() === "matched") {
+            if (this.socialService.matchmakingStatus() === 'matched') {
               clearInterval(checkMatch);
               resolve(true);
             }
@@ -401,7 +451,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.currentMatchmakingId !== requestId) return;
 
         if (!matched) {
-          const useBot = confirm('NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?');
+          const useBot = confirm(
+            'NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?'
+          );
           this.socialService.cancelMatch(game.id);
           if (!useBot) {
             this.isMatchmaking.set(false);
@@ -410,16 +462,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           }
         }
         this.isMatchmaking.set(false);
-        this.socialService.matchmakingStatus.set("idle");
+        this.socialService.matchmakingStatus.set('idle');
         this.currentMatchmakingId = null;
       }
 
       if (this.isRetroOrArcade(game)) {
         this.isWasmLoading.set(true);
-        await new Promise(r => setTimeout(r, 1200));
+        await new Promise((r) => setTimeout(r, 1200));
         this.isWasmLoading.set(false);
       }
-      this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+      this.profileService.recordGameLaunch(
+        game.id,
+        this.buildSessionContext(game)
+      );
       this.inGame.set(true);
       this.currentGame.set(game);
       this.closePreview();
@@ -436,7 +491,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getActiveRoomName(): string {
-    return this.gamingRooms().find((r) => r.id === this.activeRoom())?.name || 'All Games';
+    return (
+      this.gamingRooms().find((r) => r.id === this.activeRoom())?.name ||
+      'All Games'
+    );
   }
 
   async loadFeaturedUsers() {
@@ -473,16 +531,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private startLiveClock(): void {
-    this.clockId = window.setInterval(() => this.now.set(Date.now()), LIVE_CLOCK_INTERVAL_MS);
+    this.clockId = window.setInterval(
+      () => this.now.set(Date.now()),
+      LIVE_CLOCK_INTERVAL_MS
+    );
   }
 
   private startFeedRefresh(): void {
-    this.feedRefreshId = window.setInterval(() => this.loadFeed(true), FEED_REFRESH_INTERVAL_MS);
+    this.feedRefreshId = window.setInterval(
+      () => this.loadFeed(true),
+      FEED_REFRESH_INTERVAL_MS
+    );
   }
 
   getSafeUrl(game: Game): SafeResourceUrl | null {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
-    if (!url || url === "/" || url === "/hub" || url === "hub") return null;
+    if (!url || url === '/' || url === '/hub' || url === 'hub') return null;
 
     if (url.startsWith('assets/')) {
       url = '/' + url;
@@ -498,9 +562,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private onMessage(event: MessageEvent): void {
     const active = this.currentGame();
-    if (event.origin !== window.location.origin || !active || !this.gameIframe?.nativeElement?.contentWindow || event.source !== this.gameIframe.nativeElement.contentWindow) return;
+    if (
+      event.origin !== window.location.origin ||
+      !active ||
+      !this.gameIframe?.nativeElement?.contentWindow ||
+      event.source !== this.gameIframe.nativeElement.contentWindow
+    )
+      return;
     if (event.data?.type === 'GAME_OVER') {
-      this.profileService.recordGameResult(active.id, { ...this.buildSessionContext(active), score: event.data.data?.score });
+      this.profileService.recordGameResult(active.id, {
+        ...this.buildSessionContext(active),
+        score: event.data.data?.score,
+      });
       this.closeGame();
     }
   }
@@ -508,7 +581,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private resolveEventStatus(event: LiveEvent, now: number): LiveEvent {
     if (!event.schedule?.startAt) return event;
     const start = new Date(event.schedule.startAt).getTime();
-    const end = event.schedule.endAt ? new Date(event.schedule.endAt).getTime() : null;
+    const end = event.schedule.endAt
+      ? new Date(event.schedule.endAt).getTime()
+      : null;
     let status: LiveEvent['status'] = event.status;
     if (now < start) status = 'upcoming';
     else if (end && now > end) status = 'ending-soon';
@@ -517,12 +592,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private resolveLaunchWarning(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only' ? 'External governance required.' : 'Verified.';
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'External governance required.'
+      : 'Verified.';
   }
 
   isRetroOrArcade(game: Game): boolean {
     const tags = (game.tags || []).map((t) => t.toLowerCase());
-    return tags.includes('retro') || tags.includes('arcade') || game.badgeIds?.includes('elite') === true;
+    return (
+      tags.includes('retro') ||
+      tags.includes('arcade') ||
+      game.badgeIds?.includes('elite') === true
+    );
   }
 
   private isMultiplayerGame(game: Game): boolean {
@@ -531,31 +612,46 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private buildSessionContext(game: Game) {
     const event = this.activeEvents().find((e) => e.featuredGameId === game.id);
-    return { roomId: this.activeRoom(), eventId: event?.id, reward: event?.reward };
+    return {
+      roomId: this.activeRoom(),
+      eventId: event?.id,
+      reward: event?.reward,
+    };
   }
 
   launchActionLabel(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only' ? 'LAUNCH MISSION' : 'PLAY NOW';
+    return game.launchConfig?.embedMode === 'external-only'
+      ? 'LAUNCH MISSION'
+      : 'PLAY NOW';
   }
 
   getGamesForRail(rail: RecommendationRail): Game[] {
     const allGames = this.games();
     if (rail.gameIds?.length) {
       const gameMap = new Map(allGames.map((g) => [g.id, g]));
-      const ordered = rail.gameIds.map((id) => gameMap.get(id)).filter((g): g is Game => g !== undefined);
+      const ordered = rail.gameIds
+        .map((id) => gameMap.get(id))
+        .filter((g): g is Game => g !== undefined);
       return rail.maxItems != null ? ordered.slice(0, rail.maxItems) : ordered;
     }
-    if (rail.audience?.primaryGenres?.length) return allGames.filter((g) => rail.audience!.primaryGenres!.includes(g.genre || ''));
-    if (rail.badgeId) return allGames.filter((g) => g.badgeIds?.includes(rail.badgeId!));
+    if (rail.audience?.primaryGenres?.length)
+      return allGames.filter((g) =>
+        rail.audience!.primaryGenres!.includes(g.genre || '')
+      );
+    if (rail.badgeId)
+      return allGames.filter((g) => g.badgeIds?.includes(rail.badgeId!));
     return allGames.slice(0, rail.maxItems || 4);
   }
 
-  private matchesRecommendationAudience(rail: RecommendationRail, profile: any): boolean {
+  private matchesRecommendationAudience(
+    rail: RecommendationRail,
+    profile: any
+  ): boolean {
     return true;
   }
 
   toggleRivalHub() {
-    this.showRivalHub.update(v => !v);
+    this.showRivalHub.update((v) => !v);
   }
 
   sendChallenge(userId: string, gameId: string) {
@@ -592,7 +688,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setHubTab(tab: 'room' | 'dm' | 'stream' | 'friends' | 'party') {
     this.activeHubTab.set(tab);
-    if (tab === 'dm' && !this.dmTargetUserId() && this.onlineUsers().length > 0) {
+    if (
+      tab === 'dm' &&
+      !this.dmTargetUserId() &&
+      this.onlineUsers().length > 0
+    ) {
       this.dmTargetUserId.set(this.onlineUsers()[0].userId);
     }
     setTimeout(() => this.scrollToBottom(), 50);
@@ -626,17 +726,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   scrollToTop() {
     if (this.contentViewport?.nativeElement) {
-      this.contentViewport.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
+      this.contentViewport.nativeElement.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
     }
   }
 
   addEmoji(emoji: string) {
-    this.chatInput.update(v => v + emoji);
+    this.chatInput.update((v) => v + emoji);
   }
 
   scrollToBottom() {
     if (this.scrollContainer?.nativeElement) {
-      this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      this.scrollContainer.nativeElement.scrollTop =
+        this.scrollContainer.nativeElement.scrollHeight;
     }
   }
 

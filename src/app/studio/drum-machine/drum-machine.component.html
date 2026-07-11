@@ -1,25 +1,54 @@
 <div class="drum-machine-container glass-v42">
   <div class="drum-header wood-panel">
     <div class="module-logo flex items-center gap-3">
-      <div class="logo-box bg-fl-blue w-8 h-8 rounded flex items-center justify-center shadow-lg shadow-fl-blue/20">
-        <span class="material-symbols-outlined text-white text-lg">grid_view</span>
+      <div
+        class="logo-box bg-fl-blue w-8 h-8 rounded flex items-center justify-center shadow-lg shadow-fl-blue/20"
+      >
+        <span class="material-symbols-outlined text-white text-lg"
+          >grid_view</span
+        >
       </div>
       <div class="logo-text">
-        <h2 class="text-[12px] font-black tracking-tighter leading-none">RHYTHM UNIT</h2>
-        <span class="text-[6px] font-black tracking-widest text-white/40">S.M.U.V.E. v2.0</span>
+        <h2 class="text-[12px] font-black tracking-tighter leading-none">
+          RHYTHM UNIT
+        </h2>
+        <span class="text-[6px] font-black tracking-widest text-white/40"
+          >S.M.U.V.E. v2.0</span
+        >
       </div>
     </div>
 
     <div class="flex-1"></div>
 
     <div class="ai-actions glass-v42 p-1 rounded-xl flex gap-1">
-      <button (click)="evolveRhythm()" class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-fl-blue/20 flex items-center gap-2 group">
-        <span class="material-symbols-outlined text-[12px] group-hover:rotate-180 transition-transform">neurology</span>
+      <button
+        (click)="evolveRhythm()"
+        class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-fl-blue/20 flex items-center gap-2 group"
+      >
+        <span
+          class="material-symbols-outlined text-[12px] group-hover:rotate-180 transition-transform"
+          >neurology</span
+        >
         <span>EVOLVE</span>
       </button>
-      <button (click)="generateGenre('trap')" class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5">TRAP</button>
-      <button (click)="generateGenre('house')" class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5">HOUSE</button>
-      <button (click)="randomizeAll()" class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5">RANDOM</button>
+      <button
+        (click)="generateGenre('trap')"
+        class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5"
+      >
+        TRAP
+      </button>
+      <button
+        (click)="generateGenre('house')"
+        class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5"
+      >
+        HOUSE
+      </button>
+      <button
+        (click)="randomizeAll()"
+        class="ai-btn tactile-v42 px-3 py-1.5 rounded-lg border border-white/5"
+      >
+        RANDOM
+      </button>
     </div>
 
     <div class="module-transport glass-v42 mx-4">
@@ -34,138 +63,355 @@
           [class.active]="audioSession.isRecording()"
           (click)="audioSession.toggleRecord()"
         >
-          <span class="material-symbols-outlined text-sm">fiber_manual_record</span>
+          <span class="material-symbols-outlined text-sm"
+            >fiber_manual_record</span
+          >
         </button>
       </div>
     </div>
   </div>
 
   <div class="drum-content">
-    <div class="pads-grid-container p-6 bg-black/20" [class.collapsed]="padsCollapsed()">
-      <div class="pads-hardware-grid grid grid-cols-4 gap-4 w-[360px] md:w-[480px]">
-        <div *ngFor="let pad of pads()"
-             class="hw-pad-v42 glass-v42 holographic-glimmer relative flex flex-col items-center justify-center rounded-xl border-2 border-white/10 tactile-v42 cursor-pointer transition-all active:scale-95"
-             [class.active-hw]="selectedPadId() === pad.id"
-             (click)="selectPad(pad.id)"
-             [style.--pad-color]="pad.color">
-          <div class="pad-led absolute top-2 right-2 w-2 h-2 rounded-full shadow-lg transition-all"
-               [class.glowing]="isStepPlaying(pad)"
-               [style.background-color]="pad.color"></div>
-          <span class="pad-name-hw font-black text-[10px] uppercase tracking-widest relative z-10">{{ pad.name }}</span>
-          <div class="pad-feedback absolute inset-0 opacity-0 bg-white pointer-events-none" [class.animate-ping]="isStepPlaying(pad)"></div>
-          <button (click)="triggerPad(pad); $event.stopPropagation()" class="absolute inset-0 opacity-0"></button>
+    <div
+      class="pads-grid-container p-6 bg-black/20"
+      [class.collapsed]="padsCollapsed()"
+    >
+      <div
+        class="pads-hardware-grid grid grid-cols-4 gap-4 w-[360px] md:w-[480px]"
+      >
+        <div
+          *ngFor="let pad of pads()"
+          class="hw-pad-v42 glass-v42 holographic-glimmer relative flex flex-col items-center justify-center rounded-xl border-2 border-white/10 tactile-v42 cursor-pointer transition-all active:scale-95"
+          [class.active-hw]="selectedPadId() === pad.id"
+          (click)="selectPad(pad.id)"
+          [style.--pad-color]="pad.color"
+        >
+          <div
+            class="pad-led absolute top-2 right-2 w-2 h-2 rounded-full shadow-lg transition-all"
+            [class.glowing]="isStepPlaying(pad)"
+            [style.background-color]="pad.color"
+          ></div>
+          <span
+            class="pad-name-hw font-black text-[10px] uppercase tracking-widest relative z-10"
+            >{{ pad.name }}</span
+          >
+          <div
+            class="pad-feedback absolute inset-0 opacity-0 bg-white pointer-events-none"
+            [class.animate-ping]="isStepPlaying(pad)"
+          ></div>
+          <button
+            (click)="triggerPad(pad); $event.stopPropagation()"
+            class="absolute inset-0 opacity-0"
+          ></button>
         </div>
       </div>
 
       <div class="master-params mt-8 grid grid-cols-2 gap-4">
-        <button (click)="openSamplePicker()" class="tactile-v42 w-full py-4 rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1 group">
-           <span class="material-symbols-outlined text-fl-blue group-hover:scale-125 transition-transform">upload_file</span>
-           <span class="text-[8px] font-black uppercase tracking-widest">Load Sample</span>
+        <button
+          (click)="openSamplePicker()"
+          class="tactile-v42 w-full py-4 rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1 group"
+        >
+          <span
+            class="material-symbols-outlined text-fl-blue group-hover:scale-125 transition-transform"
+            >upload_file</span
+          >
+          <span class="text-[8px] font-black uppercase tracking-widest"
+            >Load Sample</span
+          >
         </button>
-        <input type="file" #sampleInput class="hidden" (change)="onSampleSelected($event)" accept="audio/*">
+        <input
+          type="file"
+          #sampleInput
+          class="hidden"
+          (change)="onSampleSelected($event)"
+          accept="audio/*"
+        />
 
-        <div class="master-knob glass-v42 p-4 rounded-xl flex flex-col items-center border border-white/5">
+        <div
+          class="master-knob glass-v42 p-4 rounded-xl flex flex-col items-center border border-white/5"
+        >
           <app-knob label="GRID" [min]="1" [max]="32" [value]="16"></app-knob>
         </div>
       </div>
     </div>
 
-    <div class="sequencer-panel flex-1 flex flex-col border-l border-white/10 overflow-hidden bg-slate-950/50">
-      <div class="sequencer-controls wood-panel px-6 py-3 flex items-center justify-between border-b border-white/5">
+    <div
+      class="sequencer-panel flex-1 flex flex-col border-l border-white/10 overflow-hidden bg-slate-950/50"
+    >
+      <div
+        class="sequencer-controls wood-panel px-6 py-3 flex items-center justify-between border-b border-white/5"
+      >
         <div class="flex items-center gap-6">
-          <button (click)="padsCollapsed.set(!padsCollapsed())" class="mini-tab-btn mr-4" [class.active]="!padsCollapsed()">
-            <span class="material-symbols-outlined text-xs">{{ padsCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+          <button
+            (click)="padsCollapsed.set(!padsCollapsed())"
+            class="mini-tab-btn mr-4"
+            [class.active]="!padsCollapsed()"
+          >
+            <span class="material-symbols-outlined text-xs">{{
+              padsCollapsed() ? 'chevron_right' : 'chevron_left'
+            }}</span>
           </button>
-          <h3 class="text-[9px] font-black uppercase text-fl-blue tracking-[0.2em]">Step Sequencer</h3>
+          <h3
+            class="text-[9px] font-black uppercase text-fl-blue tracking-[0.2em]"
+          >
+            Step Sequencer
+          </h3>
           <div class="bar-selectors flex gap-1">
-            <button *ngFor="let bar of barRange"
-                    (click)="currentBar.set(bar)"
-                    class="bar-btn px-3 py-1 text-[8px] font-black uppercase rounded glass-v42 border border-white/5"
-                    [class.active-bar]="currentBar() === bar">
+            <button
+              *ngFor="let bar of barRange"
+              (click)="currentBar.set(bar)"
+              class="bar-btn px-3 py-1 text-[8px] font-black uppercase rounded glass-v42 border border-white/5"
+              [class.active-bar]="currentBar() === bar"
+            >
               BAR {{ bar + 1 }}
             </button>
           </div>
         </div>
 
         <div class="view-toggles glass-v42 p-1 rounded-lg flex gap-1">
-          <button (click)="inspectorCollapsed.set(!inspectorCollapsed())" class="mini-tab-btn" [class.active]="!inspectorCollapsed()">
-            <span class="material-symbols-outlined text-xs">{{ inspectorCollapsed() ? 'chevron_left' : 'chevron_right' }}</span>
+          <button
+            (click)="inspectorCollapsed.set(!inspectorCollapsed())"
+            class="mini-tab-btn"
+            [class.active]="!inspectorCollapsed()"
+          >
+            <span class="material-symbols-outlined text-xs">{{
+              inspectorCollapsed() ? 'chevron_left' : 'chevron_right'
+            }}</span>
           </button>
 
-          <button (click)="viewMode.set('sequencer')" class="mini-tab-btn" [class.active]="viewMode() === 'sequencer'">Grid</button>
-          <button (click)="viewMode.set('knobs')" class="mini-tab-btn" [class.active]="viewMode() === 'knobs'">Mix</button>
+          <button
+            (click)="viewMode.set('sequencer')"
+            class="mini-tab-btn"
+            [class.active]="viewMode() === 'sequencer'"
+          >
+            Grid
+          </button>
+          <button
+            (click)="viewMode.set('knobs')"
+            class="mini-tab-btn"
+            [class.active]="viewMode() === 'knobs'"
+          >
+            Mix
+          </button>
         </div>
       </div>
 
-      <div class="macro-bar glass-v42 px-6 py-2 flex gap-4 border-b border-white/5">
-        <button (click)="clearCurrentPad()" class="text-[8px] font-black uppercase text-red-400 hover:text-red-300">Clear Pad</button>
-        <button (click)="doublePattern()" class="text-[8px] font-black uppercase text-fl-blue">Double (1-2 to 3-4)</button>
-        <button (click)="humanize()" class="text-[8px] font-black uppercase text-amber-400">Humanize</button>
-        <button (click)="generateEuclidean(5)" class="text-[8px] font-black uppercase text-emerald-400">Euclid (5/16)</button>
+      <div
+        class="macro-bar glass-v42 px-6 py-2 flex gap-4 border-b border-white/5"
+      >
+        <button
+          (click)="clearCurrentPad()"
+          class="text-[8px] font-black uppercase text-red-400 hover:text-red-300"
+        >
+          Clear Pad
+        </button>
+        <button
+          (click)="doublePattern()"
+          class="text-[8px] font-black uppercase text-fl-blue"
+        >
+          Double (1-2 to 3-4)
+        </button>
+        <button
+          (click)="humanize()"
+          class="text-[8px] font-black uppercase text-amber-400"
+        >
+          Humanize
+        </button>
+        <button
+          (click)="generateEuclidean(5)"
+          class="text-[8px] font-black uppercase text-emerald-400"
+        >
+          Euclid (5/16)
+        </button>
       </div>
 
-      <div class="sequencer-grid-viewport flex-1 overflow-auto p-6 no-scrollbar">
-        <div *ngIf="viewMode() === 'sequencer'" class="steps-grid-v42 grid gap-2" [class.grid-cols-16]="!highDensity()" [class.grid-cols-32]="highDensity()" [class.high-density]="highDensity()">
-          <div *ngFor="let stepIdx of (highDensity() ? fullStepRange : barStepRange)"
-               class="step-v42 relative aspect-square rounded-lg border-2 transition-all cursor-pointer group"
-               [class.active-step]="getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active"
-               [class.current-step]="isGlobalStep(resolveStepIdx(stepIdx))"
-               [style.background-color]="getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active ? (selectedPad()?.color || '#af25f4') : 'rgba(255,255,255,0.02)'"
-               [style.border-color]="getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active ? (selectedPad()?.color || '#af25f4') : 'rgba(255,255,255,0.05)'"
-               (click)="toggleStep(selectedPadId(), resolveStepIdx(stepIdx))">
+      <div
+        class="sequencer-grid-viewport flex-1 overflow-auto p-6 no-scrollbar"
+      >
+        <div
+          *ngIf="viewMode() === 'sequencer'"
+          class="steps-grid-v42 grid gap-2"
+          [class.grid-cols-16]="!highDensity()"
+          [class.grid-cols-32]="highDensity()"
+          [class.high-density]="highDensity()"
+        >
+          <div
+            *ngFor="let stepIdx of highDensity() ? fullStepRange : barStepRange"
+            class="step-v42 relative aspect-square rounded-lg border-2 transition-all cursor-pointer group"
+            [class.active-step]="
+              getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active
+            "
+            [class.current-step]="isGlobalStep(resolveStepIdx(stepIdx))"
+            [style.background-color]="
+              getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active
+                ? selectedPad()?.color || '#af25f4'
+                : 'rgba(255,255,255,0.02)'
+            "
+            [style.border-color]="
+              getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).active
+                ? selectedPad()?.color || '#af25f4'
+                : 'rgba(255,255,255,0.05)'
+            "
+            (click)="toggleStep(selectedPadId(), resolveStepIdx(stepIdx))"
+          >
+            <div
+              class="velocity-fill absolute bottom-0 inset-x-0 bg-white/20 pointer-events-none transition-all"
+              [style.height.%]="
+                getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).velocity *
+                100
+              "
+            ></div>
 
-            <div class="velocity-fill absolute bottom-0 inset-x-0 bg-white/20 pointer-events-none transition-all"
-                 [style.height.%]="getPadStep(selectedPadId(), resolveStepIdx(stepIdx)).velocity * 100"></div>
-
-            <span class="step-num absolute top-1 left-1 text-[6px] font-black opacity-20">{{ resolveStepIdx(stepIdx) + 1 }}</span>
+            <span
+              class="step-num absolute top-1 left-1 text-[6px] font-black opacity-20"
+              >{{ resolveStepIdx(stepIdx) + 1 }}</span
+            >
           </div>
         </div>
 
-        <div *ngIf="viewMode() === 'knobs'" class="pad-mixer-v42 grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
-          <div *ngFor="let p of pads()" class="pad-strip glass-v42 p-4 rounded-xl border border-white/10 flex flex-col items-center gap-4"
-               [class.selected-strip]="selectedPadId() === p.id"
-               (click)="selectPad(p.id)">
-            <div class="w-1.5 h-1.5 rounded-full mb-2" [style.background-color]="p.color"></div>
-            <app-knob [label]="'PITCH'" [min]="-12" [max]="12" [value]="p.params.semitone" (valueChange)="updatePadParam(p.id, 'semitone', $event)"></app-knob>
-            <app-knob [label]="'DECAY'" [min]="0.01" [max]="2" [value]="p.params.decay" (valueChange)="updatePadParam(p.id, 'decay', $event)"></app-knob>
-            <div class="text-[8px] font-black uppercase text-slate-500 mt-2">{{ p.name }}</div>
+        <div
+          *ngIf="viewMode() === 'knobs'"
+          class="pad-mixer-v42 grid grid-cols-2 md:grid-cols-4 gap-6 p-4"
+        >
+          <div
+            *ngFor="let p of pads()"
+            class="pad-strip glass-v42 p-4 rounded-xl border border-white/10 flex flex-col items-center gap-4"
+            [class.selected-strip]="selectedPadId() === p.id"
+            (click)="selectPad(p.id)"
+          >
+            <div
+              class="w-1.5 h-1.5 rounded-full mb-2"
+              [style.background-color]="p.color"
+            ></div>
+            <app-knob
+              [label]="'PITCH'"
+              [min]="-12"
+              [max]="12"
+              [value]="p.params.semitone"
+              (valueChange)="updatePadParam(p.id, 'semitone', $event)"
+            ></app-knob>
+            <app-knob
+              [label]="'DECAY'"
+              [min]="0.01"
+              [max]="2"
+              [value]="p.params.decay"
+              (valueChange)="updatePadParam(p.id, 'decay', $event)"
+            ></app-knob>
+            <div class="text-[8px] font-black uppercase text-slate-500 mt-2">
+              {{ p.name }}
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="pad-inspector wood-panel w-[320px] border-l border-white/10 p-6 overflow-y-auto no-scrollbar" [class.collapsed]="inspectorCollapsed()" *ngIf="selectedPad() as pad">
+    <div
+      class="pad-inspector wood-panel w-[320px] border-l border-white/10 p-6 overflow-y-auto no-scrollbar"
+      [class.collapsed]="inspectorCollapsed()"
+      *ngIf="selectedPad() as pad"
+    >
       <div class="inspector-header mb-8">
-        <h4 class="text-[10px] font-black uppercase text-hv-secondary mb-1">Pad Parameters</h4>
+        <h4 class="text-[10px] font-black uppercase text-hv-secondary mb-1">
+          Pad Parameters
+        </h4>
         <div class="flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full" [style.background-color]="pad.color"></div>
-          <span class="text-lg font-black tracking-tighter">{{ pad.name }}</span>
+          <div
+            class="w-3 h-3 rounded-full"
+            [style.background-color]="pad.color"
+          ></div>
+          <span class="text-lg font-black tracking-tighter">{{
+            pad.name
+          }}</span>
         </div>
       </div>
 
       <div class="params-pro-grid grid grid-cols-2 gap-8">
-        <app-knob label="CUTOFF" [min]="20" [max]="15000" [value]="pad.params.cutoff" (valueChange)="updatePadParam(pad.id, 'cutoff', $event)"></app-knob>
-        <app-knob label="RES" [min]="0.1" [max]="10" [value]="pad.params.resonance" (valueChange)="updatePadParam(pad.id, 'resonance', $event)"></app-knob>
-        <app-knob label="PAN" [min]="-1" [max]="1" [value]="pad.params.pan" (valueChange)="updatePadParam(pad.id, 'pan', $event)"></app-knob>
-        <app-knob label="ATTACK" [min]="0.001" [max]="0.1" [value]="pad.params.attack" (valueChange)="updatePadParam(pad.id, 'attack', $event)"></app-knob>
-        <app-knob label="SAT" [min]="0" [max]="1" [value]="pad.params.saturation" (valueChange)="updatePadParam(pad.id, 'saturation', $event)"></app-knob>
-        <app-knob label="COMP" [min]="0" [max]="1" [value]="pad.params.compression" (valueChange)="updatePadParam(pad.id, 'compression', $event)"></app-knob>
+        <app-knob
+          label="CUTOFF"
+          [min]="20"
+          [max]="15000"
+          [value]="pad.params.cutoff"
+          (valueChange)="updatePadParam(pad.id, 'cutoff', $event)"
+        ></app-knob>
+        <app-knob
+          label="RES"
+          [min]="0.1"
+          [max]="10"
+          [value]="pad.params.resonance"
+          (valueChange)="updatePadParam(pad.id, 'resonance', $event)"
+        ></app-knob>
+        <app-knob
+          label="PAN"
+          [min]="-1"
+          [max]="1"
+          [value]="pad.params.pan"
+          (valueChange)="updatePadParam(pad.id, 'pan', $event)"
+        ></app-knob>
+        <app-knob
+          label="ATTACK"
+          [min]="0.001"
+          [max]="0.1"
+          [value]="pad.params.attack"
+          (valueChange)="updatePadParam(pad.id, 'attack', $event)"
+        ></app-knob>
+        <app-knob
+          label="SAT"
+          [min]="0"
+          [max]="1"
+          [value]="pad.params.saturation"
+          (valueChange)="updatePadParam(pad.id, 'saturation', $event)"
+        ></app-knob>
+        <app-knob
+          label="COMP"
+          [min]="0"
+          [max]="1"
+          [value]="pad.params.compression"
+          (valueChange)="updatePadParam(pad.id, 'compression', $event)"
+        ></app-knob>
       </div>
 
       <div class="velocity-matrix mt-12 pt-8 border-t border-white/5">
         <div class="flex items-center justify-between mb-4">
-          <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Velocity & Probability</span>
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+            >Velocity & Probability</span
+          >
           <div class="flex gap-1">
-             <button (click)="graphTarget.set('velocity')" class="mini-tab-btn" [class.active]="graphTarget() === 'velocity'">VEL</button>
-             <button (click)="graphTarget.set('probability')" class="mini-tab-btn" [class.active]="graphTarget() === 'probability'">PROB</button>
+            <button
+              (click)="graphTarget.set('velocity')"
+              class="mini-tab-btn"
+              [class.active]="graphTarget() === 'velocity'"
+            >
+              VEL
+            </button>
+            <button
+              (click)="graphTarget.set('probability')"
+              class="mini-tab-btn"
+              [class.active]="graphTarget() === 'probability'"
+            >
+              PROB
+            </button>
           </div>
         </div>
-        <div class="v-grid h-24 bg-black/40 rounded-lg flex items-end p-2 gap-1 overflow-hidden">
-          <div *ngFor="let step of selectedPadSteps().slice(currentBar()*16, (currentBar()+1)*16)"
-               class="v-bar-pro flex-1 bg-fl-blue/20 rounded-t transition-all"
-               [class.active-v-bar]="step.active"
-               [style.height.%]="(graphTarget() === 'velocity' ? step.velocity : step.probability) * 100"
-               [style.background-color]="step.active ? pad.color : null"></div>
+        <div
+          class="v-grid h-24 bg-black/40 rounded-lg flex items-end p-2 gap-1 overflow-hidden"
+        >
+          <div
+            *ngFor="
+              let step of selectedPadSteps().slice(
+                currentBar() * 16,
+                (currentBar() + 1) * 16
+              )
+            "
+            class="v-bar-pro flex-1 bg-fl-blue/20 rounded-t transition-all"
+            [class.active-v-bar]="step.active"
+            [style.height.%]="
+              (graphTarget() === 'velocity'
+                ? step.velocity
+                : step.probability) * 100
+            "
+            [style.background-color]="step.active ? pad.color : null"
+          ></div>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ export class ProjectService {
       .pipe(
         map(([list, currentId]) => list.find((item) => item.id === currentId))
       )
-      .subscribe(project => {
+      .subscribe((project) => {
         this._current.next(project);
         this.currentProject.set(project ?? null);
       });
@@ -33,10 +33,14 @@ export class ProjectService {
 
   private async loadProjects() {
     try {
-      const projects = await this.storage.getAllItems('studio_projects') || [];
+      const projects =
+        (await this.storage.getAllItems('studio_projects')) || [];
       this._list.next(projects);
     } catch (e) {
-      this.logger.error('ProjectService: Failed to load projects from storage', e);
+      this.logger.error(
+        'ProjectService: Failed to load projects from storage',
+        e
+      );
     }
   }
 
@@ -60,13 +64,17 @@ export class ProjectService {
 
   public async update(project: Project) {
     const list = this._list.getValue();
-    const index = list.findIndex(p => p.id === project.id);
+    const index = list.findIndex((p) => p.id === project.id);
     if (index !== -1) {
       list[index] = { ...project, updatedAt: Date.now() };
       this._list.next([...list]);
       await this.saveAll(list);
       const updated = { ...project, updatedAt: Date.now() };
-      const updatedList = [...list.slice(0, index), updated, ...list.slice(index + 1)];
+      const updatedList = [
+        ...list.slice(0, index),
+        updated,
+        ...list.slice(index + 1),
+      ];
       this._list.next(updatedList);
       await this.saveAll(updatedList);
     }
@@ -92,7 +100,7 @@ export class ProjectService {
       updatedAt: Date.now(),
       tracks: [],
       masterChain: [],
-      tasks: []
+      tasks: [],
     };
   }
 }

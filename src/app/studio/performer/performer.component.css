@@ -36,7 +36,9 @@
   cursor: grabbing;
 }
 
-.keyboard-scroll::-webkit-scrollbar { display: none; }
+.keyboard-scroll::-webkit-scrollbar {
+  display: none;
+}
 
 .keyboard-container {
   display: flex !important;
@@ -63,12 +65,16 @@
   height: 100%;
   z-index: 10;
   border-radius: 0 0 12px 12px;
-  box-shadow: inset 0 -8px 15px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow:
+    inset 0 -8px 15px rgba(0, 0, 0, 0.1),
+    0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .perf-key-v42.white-key.active {
   background: linear-gradient(to bottom, #38bdf8 0%, #0284c7 100%);
-  box-shadow: inset 0 4px 20px rgba(255,255,255,0.4), 0 0 30px rgba(56, 189, 248, 0.6);
+  box-shadow:
+    inset 0 4px 20px rgba(255, 255, 255, 0.4),
+    0 0 30px rgba(56, 189, 248, 0.6);
   transform: translateY(4px);
 }
 
@@ -81,12 +87,14 @@
   margin-left: -22px;
   margin-right: -22px;
   border-radius: 0 0 8px 8px;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
 }
 
 .perf-key-v42.black-key.active {
   background: linear-gradient(to bottom, #af25f4 0%, #7e22ce 100%);
-  box-shadow: 0 0 30px rgba(175, 37, 244, 0.6), inset 0 0 15px rgba(255,255,255,0.3);
+  box-shadow:
+    0 0 30px rgba(175, 37, 244, 0.6),
+    inset 0 0 15px rgba(255, 255, 255, 0.3);
   transform: translateY(4px);
 }
 
@@ -103,7 +111,9 @@
   scrollbar-width: none;
 }
 
-.performer-dashboard::-webkit-scrollbar { display: none; }
+.performer-dashboard::-webkit-scrollbar {
+  display: none;
+}
 
 .key-label {
   position: absolute;
@@ -115,8 +125,12 @@
   pointer-events: none;
 }
 
-.white-key .key-label { color: #64748b; }
-.black-key .key-label { color: #f8fafc; }
+.white-key .key-label {
+  color: #64748b;
+}
+.black-key .key-label {
+  color: #f8fafc;
+}
 
 @media (max-width: 768px) {
   .performer-header {
@@ -136,7 +150,8 @@
   width: 100%;
 }
 
-.pitch-slider, .mod-slider {
+.pitch-slider,
+.mod-slider {
   -webkit-appearance: none;
   width: 120px;
   height: 4px;
@@ -145,7 +160,8 @@
   outline: none;
 }
 
-.pitch-slider::-webkit-slider-thumb, .mod-slider::-webkit-slider-thumb {
+.pitch-slider::-webkit-slider-thumb,
+.mod-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 16px;
   height: 16px;
@@ -155,7 +171,8 @@
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
-.pitch-slider::-moz-range-thumb, .mod-slider::-moz-range-thumb {
+.pitch-slider::-moz-range-thumb,
+.mod-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   background: #38bdf8;

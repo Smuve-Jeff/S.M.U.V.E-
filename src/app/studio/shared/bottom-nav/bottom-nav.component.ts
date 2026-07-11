@@ -13,7 +13,7 @@ export type BottomNavItem = {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './bottom-nav.component.html',
-  styleUrls: ['./bottom-nav.component.css']
+  styleUrls: ['./bottom-nav.component.css'],
 })
 export class BottomNavComponent {
   items = input.required<BottomNavItem[]>();

@@ -64,7 +64,7 @@ export interface StudioTrack {
   effects: any[];
   color?: string;
   parentId?: string; // For grouping/folders
-  busId?: string;    // Target bus ID (default 'master')
+  busId?: string; // Target bus ID (default 'master')
   sendA?: number;
   sendB?: number;
   collapsed?: boolean;
@@ -85,7 +85,13 @@ export interface Project {
   key?: string;
   scale?: string; // e.g. 'major', 'minor'
   timeSignature: [number, number];
-  status: 'Draft' | 'In Progress' | 'Mixing' | 'Mastering' | 'Completed' | 'Pending';
+  status:
+    | 'Draft'
+    | 'In Progress'
+    | 'Mixing'
+    | 'Mastering'
+    | 'Completed'
+    | 'Pending';
   createdAt: number;
   updatedAt: number;
   tracks: StudioTrack[];

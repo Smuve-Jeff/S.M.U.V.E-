@@ -21,7 +21,7 @@ export class HardwareService {
     activeInterfaceName: null,
     midiDevicesConnected: 0,
     gamepadConnected: false,
-    recordReady: false
+    recordReady: false,
   });
 
   constructor() {
@@ -34,12 +34,18 @@ export class HardwareService {
     // Monitor Audio Devices
     this.monitorAudioDevices();
     if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-      navigator.mediaDevices.addEventListener('devicechange', () => this.monitorAudioDevices());
+      navigator.mediaDevices.addEventListener('devicechange', () =>
+        this.monitorAudioDevices()
+      );
     }
 
     // Monitor Gamepads
-    window.addEventListener('gamepadconnected', () => this.updateGamepadStatus(true));
-    window.addEventListener('gamepaddisconnected', () => this.updateGamepadStatus(false));
+    window.addEventListener('gamepadconnected', () =>
+      this.updateGamepadStatus(true)
+    );
+    window.addEventListener('gamepaddisconnected', () =>
+      this.updateGamepadStatus(false)
+    );
 
     // Initial check
     if (typeof navigator !== 'undefined' && navigator.getGamepads) {
@@ -52,15 +58,17 @@ export class HardwareService {
     await this.micService.updateAvailableDevices();
     const devices = this.micService.availableDevices();
 
-    const interfaces = devices.filter(d => d.type === 'interface' || d.capabilities?.includes('usb-interface'));
+    const interfaces = devices.filter(
+      (d) => d.type === 'interface' || d.capabilities?.includes('usb-interface')
+    );
     const isConnected = interfaces.length > 0;
     const name = isConnected ? interfaces[0].label : null;
 
-    this.status.update(s => ({
+    this.status.update((s) => ({
       ...s,
       audioInterfaceConnected: isConnected,
       activeInterfaceName: name,
-      recordReady: isConnected // If interface is connected, we consider it record-ready for high quality
+      recordReady: isConnected, // If interface is connected, we consider it record-ready for high quality
     }));
 
     if (isConnected) {
@@ -69,10 +77,10 @@ export class HardwareService {
   }
 
   private updateGamepadStatus(connected: boolean) {
-    this.status.update(s => ({ ...s, gamepadConnected: connected }));
+    this.status.update((s) => ({ ...s, gamepadConnected: connected }));
   }
 
   updateMidiCount(count: number) {
-    this.status.update(s => ({ ...s, midiDevicesConnected: count }));
+    this.status.update((s) => ({ ...s, midiDevicesConnected: count }));
   }
 }

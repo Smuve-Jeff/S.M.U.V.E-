@@ -86,7 +86,9 @@ export class AudioSessionService {
   toggleRecord(): void {
     if (this.isRecording()) {
       this.engine.stop();
-      void this.musicManager.stopRecording(this.musicManager.selectedTrackId() || "");
+      void this.musicManager.stopRecording(
+        this.musicManager.selectedTrackId() || ''
+      );
       this.playbackState.set('stopped');
     } else {
       this.engine.start();
@@ -98,7 +100,9 @@ export class AudioSessionService {
   stop(): void {
     this.engine.stop();
     if (this.recordingEngine.isRecording()) {
-      void this.musicManager.stopRecording(this.musicManager.selectedTrackId() || "");
+      void this.musicManager.stopRecording(
+        this.musicManager.selectedTrackId() || ''
+      );
     }
     this.playbackState.set('stopped');
   }

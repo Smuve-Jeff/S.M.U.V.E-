@@ -66,7 +66,10 @@ export class LoginComponent implements OnInit {
     try {
       let result;
       if (this.isVerifying()) {
-        result = await this.authService.verifyEmail(this.verificationCode, this.credentials.email);
+        result = await this.authService.verifyEmail(
+          this.verificationCode,
+          this.credentials.email
+        );
       } else if (this.isRegistering()) {
         const validation = this.passwordValidation;
         if (!validation.isValid) {

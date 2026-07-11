@@ -28,7 +28,23 @@ describe('PianoRollComponent', () => {
   };
 
   const mockMusicManager = {
-    tracks: signal([{ id: '1', name: 'Lead', instrumentId: 'synth', notes: [], clips: [], fxSlots: [], gain: 1, pan: 0, sendA: 0, sendB: 0, mute: false, solo: false, steps: [] }]),
+    tracks: signal([
+      {
+        id: '1',
+        name: 'Lead',
+        instrumentId: 'synth',
+        notes: [],
+        clips: [],
+        fxSlots: [],
+        gain: 1,
+        pan: 0,
+        sendA: 0,
+        sendB: 0,
+        mute: false,
+        solo: false,
+        steps: [],
+      },
+    ]),
     selectedTrackId: signal('1'),
     currentStep: signal(0),
     updateNote: jest.fn(),
@@ -40,7 +56,7 @@ describe('PianoRollComponent', () => {
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
     selectedTrack: signal({ id: '1', name: 'Lead', notes: [], color: '#fff' }),
-    engine: { scaleMode: signal('major'), scaleLock: signal(false) }
+    engine: { scaleMode: signal('major'), scaleLock: signal(false) },
   };
 
   const mockAudioEngine = {
@@ -53,7 +69,7 @@ describe('PianoRollComponent', () => {
     verticalZoomLevel: signal(1),
     handlePinch: jest.fn(),
     adjustZoom: jest.fn(),
-    resetZoom: jest.fn()
+    resetZoom: jest.fn(),
   };
 
   const mockHaptic = {
@@ -63,14 +79,22 @@ describe('PianoRollComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PianoRollComponent, CommonModule, FormsModule, StubChannelRackComponent],
+      imports: [
+        PianoRollComponent,
+        CommonModule,
+        FormsModule,
+        StubChannelRackComponent,
+      ],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
-        { provide: EnhancedTouchGestureService, useValue: mockEnhancedTouchGestures },
-        { provide: HapticService, useValue: mockHaptic }
-      ]
+        {
+          provide: EnhancedTouchGestureService,
+          useValue: mockEnhancedTouchGestures,
+        },
+        { provide: HapticService, useValue: mockHaptic },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PianoRollComponent);

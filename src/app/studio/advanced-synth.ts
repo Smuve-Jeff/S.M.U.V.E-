@@ -13,7 +13,12 @@ type SupportedFilterType =
   | 'notch'
   | 'peaking';
 
-export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle' | 'sample';
+export type OscillatorType =
+  | 'sine'
+  | 'square'
+  | 'sawtooth'
+  | 'triangle'
+  | 'sample';
 
 export interface SynthParams {
   osc1Type: OscillatorType;
@@ -76,9 +81,13 @@ export class AdvancedSynth extends Instrument {
   constructor(audioContext: AudioContext, samplerEngine?: SamplerEngine) {
     super(audioContext, 8); // Slightly lower polyphony for advanced synth on mobile
     this.samplerEngine = samplerEngine;
-    this.oscPool = new NodePool(this.audioContext, (ctx) => ctx.createOscillator());
+    this.oscPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createOscillator()
+    );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
-    this.filterPool = new NodePool(this.audioContext, (ctx) => ctx.createBiquadFilter());
+    this.filterPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createBiquadFilter()
+    );
   }
 
   setParams(params: Partial<SynthParams>) {
@@ -97,7 +106,10 @@ export class AdvancedSynth extends Instrument {
 
     // LFO
     const lfo = this.oscPool.get();
-    lfo.type = this.params.lfoType as OscillatorType !== 'sample' ? this.params.lfoType as any : 'sine';
+    lfo.type =
+      (this.params.lfoType as OscillatorType) !== 'sample'
+        ? (this.params.lfoType as any)
+        : 'sine';
     lfo.frequency.setValueAtTime(this.params.lfoRate, now);
 
     const lfoGain = this.gainPool.get();
@@ -128,29 +140,63 @@ export class AdvancedSynth extends Instrument {
     let sampleStop2: (() => void) | undefined;
 
     // Osc 1
-    if (this.params.osc1Type === 'sample' && this.samplerEngine && this.params.sampleMap) {
-      sampleStop1 = this.samplerEngine.playNote(this.params.sampleMap, note, velocity, osc1Gain);
+    if (
+      this.params.osc1Type === 'sample' &&
+      this.samplerEngine &&
+      this.params.sampleMap
+    ) {
+      sampleStop1 = this.samplerEngine.playNote(
+        this.params.sampleMap,
+        note,
+        velocity,
+        osc1Gain
+      );
     } else if (this.params.osc1Type !== 'sample') {
       const osc1 = this.oscPool.get();
       osc1.type = this.params.osc1Type as any;
-      osc1.frequency.setValueAtTime(freq * Math.pow(2, this.params.osc1Octave), now);
+      osc1.frequency.setValueAtTime(
+        freq * Math.pow(2, this.params.osc1Octave),
+        now
+      );
       osc1.detune.setValueAtTime(this.params.osc1Detune, now);
       osc1.connect(osc1Gain);
       osc1.start();
-      sampleStop1 = () => { try { osc1.stop(); } catch(e) {} this.oscPool.release(osc1); };
+      sampleStop1 = () => {
+        try {
+          osc1.stop();
+        } catch (e) {}
+        this.oscPool.release(osc1);
+      };
     }
 
     // Osc 2
-    if (this.params.osc2Type === 'sample' && this.samplerEngine && this.params.sampleMap) {
-      sampleStop2 = this.samplerEngine.playNote(this.params.sampleMap, note, velocity, osc2Gain);
+    if (
+      this.params.osc2Type === 'sample' &&
+      this.samplerEngine &&
+      this.params.sampleMap
+    ) {
+      sampleStop2 = this.samplerEngine.playNote(
+        this.params.sampleMap,
+        note,
+        velocity,
+        osc2Gain
+      );
     } else if (this.params.osc2Type !== 'sample') {
       const osc2 = this.oscPool.get();
       osc2.type = this.params.osc2Type as any;
-      osc2.frequency.setValueAtTime(freq * Math.pow(2, this.params.osc2Octave), now);
+      osc2.frequency.setValueAtTime(
+        freq * Math.pow(2, this.params.osc2Octave),
+        now
+      );
       osc2.detune.setValueAtTime(this.params.osc2Detune, now);
       osc2.connect(osc2Gain);
       osc2.start();
-      sampleStop2 = () => { try { osc2.stop(); } catch(e) {} this.oscPool.release(osc2); };
+      sampleStop2 = () => {
+        try {
+          osc2.stop();
+        } catch (e) {}
+        this.oscPool.release(osc2);
+      };
     }
 
     if (this.params.lfoTarget === 'volume') {
@@ -168,11 +214,20 @@ export class AdvancedSynth extends Instrument {
 
     lfo.start();
 
-    const voice = { lfo, ampGain, filter, lfoGain, osc1Gain, osc2Gain, sampleStop1, sampleStop2 };
+    const voice = {
+      lfo,
+      ampGain,
+      filter,
+      lfoGain,
+      osc1Gain,
+      osc2Gain,
+      sampleStop1,
+      sampleStop2,
+    };
     this.voiceManager.addVoice({
       note,
       startTime: now,
-      stop: () => this.executeStop(voice)
+      stop: () => this.executeStop(voice),
     });
 
     this.voices.set(note, voice);
@@ -184,20 +239,28 @@ export class AdvancedSynth extends Instrument {
       const now = this.audioContext.currentTime;
       voice.ampGain.gain.cancelScheduledValues(now);
       voice.ampGain.gain.setValueAtTime(voice.ampGain.gain.value, now);
-      voice.ampGain.gain.exponentialRampToValueAtTime(0.001, now + this.params.release);
+      voice.ampGain.gain.exponentialRampToValueAtTime(
+        0.001,
+        now + this.params.release
+      );
 
-      setTimeout(() => {
-        this.executeStop(voice);
-        this.voices.delete(note);
-        this.voiceManager.removeVoice(note);
-      }, this.params.release * 1000 + 100);
+      setTimeout(
+        () => {
+          this.executeStop(voice);
+          this.voices.delete(note);
+          this.voiceManager.removeVoice(note);
+        },
+        this.params.release * 1000 + 100
+      );
     }
   }
 
   private executeStop(voice: any) {
     if (voice.sampleStop1) voice.sampleStop1();
     if (voice.sampleStop2) voice.sampleStop2();
-    try { voice.lfo.stop(); } catch(e) {}
+    try {
+      voice.lfo.stop();
+    } catch (e) {}
     this.oscPool.release(voice.lfo);
     this.gainPool.release(voice.ampGain);
     this.filterPool.release(voice.filter);

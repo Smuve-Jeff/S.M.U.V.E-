@@ -72,7 +72,10 @@ describe('ThaSpotComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             snapshot: { queryParamMap: new Map(), queryParams: {} },
-            queryParamMap: of({ get: (key: string) => null, has: (key: string) => false })
+            queryParamMap: of({
+              get: (key: string) => null,
+              has: (key: string) => false,
+            }),
           },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
@@ -91,7 +94,9 @@ describe('ThaSpotComponent', () => {
     req.flush(mockFeed);
 
     // Also handle featured users call from ngOnInit
-    const featuredReq = httpMock.expectOne(req => req.url.includes('/api/users/featured'));
+    const featuredReq = httpMock.expectOne((req) =>
+      req.url.includes('/api/users/featured')
+    );
     featuredReq.flush([]);
 
     fixture.detectChanges();

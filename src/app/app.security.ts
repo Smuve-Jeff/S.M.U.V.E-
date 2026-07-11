@@ -12,7 +12,9 @@ export const APP_SECURITY_CONFIG = {
   auth_salt: env.AUTH_SALT || 'SMUVE_SALT_V4_SECURE_HASH',
   encryption_key: env.ENCRYPTION_KEY || 'SMUVE_V4_ULTRA_ENCRYPTION_SECRET',
   session_timeout: env.SESSION_TIMEOUT || 3600000,
-  api_url: env.API_URL || 'https://smuve-v4-backend-9951606049235487441.onrender.com/api',
+  api_url:
+    env.API_URL ||
+    'https://smuve-v4-backend-9951606049235487441.onrender.com/api',
   pbkdf2_iterations: 210000,
   key_length: 512,
 };

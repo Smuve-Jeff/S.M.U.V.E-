@@ -51,7 +51,11 @@ export class StemSeparationService {
     // or use ScriptProcessor/AudioWorklet for phase-inverted cancellation.
     // For this "Elite" upgrade, we'll perform a high-speed multi-render simulation.
 
-    const renderStem = async (filterType: 'lowpass' | 'bandpass' | 'highpass' | 'all', freq: number, q = 1): Promise<AudioBuffer> => {
+    const renderStem = async (
+      filterType: 'lowpass' | 'bandpass' | 'highpass' | 'all',
+      freq: number,
+      q = 1
+    ): Promise<AudioBuffer> => {
       const stemCtx = new OfflineAudioContext(channels, length, sampleRate);
       const stemSource = stemCtx.createBufferSource();
       stemSource.buffer = buffer;
@@ -74,11 +78,15 @@ export class StemSeparationService {
       renderStem('lowpass', 200),
       renderStem('bandpass', 1500, 0.5),
       renderStem('highpass', 2500),
-      renderStem('all', 0) // Instrumental is basically the whole thing or slightly processed
+      renderStem('all', 0), // Instrumental is basically the whole thing or slightly processed
     ]);
 
     // Create 'other' as a residual or a low-intensity version
-    const other = new AudioBuffer({ length, sampleRate, numberOfChannels: channels });
+    const other = new AudioBuffer({
+      length,
+      sampleRate,
+      numberOfChannels: channels,
+    });
     for (let c = 0; c < channels; c++) {
       const oData = other.getChannelData(c);
       const iData = instrumental.getChannelData(c);

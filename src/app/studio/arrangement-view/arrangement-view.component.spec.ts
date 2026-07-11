@@ -21,11 +21,13 @@ describe('ArrangementViewComponent', () => {
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
     engine: { ctx: { createAnalyser: jest.fn() } },
-    musicManager: { addAutomationLane: jest.fn() }
+    musicManager: { addAutomationLane: jest.fn() },
   };
 
   const mockMusicManager = {
-    tracks: signal([{ id: '1', name: 'Lead', clips: [], mute: false, solo: false }]),
+    tracks: signal([
+      { id: '1', name: 'Lead', clips: [], mute: false, solo: false },
+    ]),
     selectedTrackId: signal('1'),
     currentStep: signal(0),
     ensureTrack: jest.fn(),
@@ -48,17 +50,17 @@ describe('ArrangementViewComponent', () => {
   const mockEnhancedGestures = {
     handlePinch: jest.fn(),
     zoomLevel: signal(1.0),
-    verticalZoomLevel: signal(1.0)
+    verticalZoomLevel: signal(1.0),
   };
 
   const mockHaptic = {
     light: jest.fn(),
     medium: jest.fn(),
-    impact: jest.fn()
+    impact: jest.fn(),
   };
 
   const mockAiService = {
-     getProductionSmartAssist: jest.fn()
+    getProductionSmartAssist: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -67,12 +69,18 @@ describe('ArrangementViewComponent', () => {
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
-        { provide: AudioEngineService, useValue: { tempo: signal(124), visualStep: signal(0) } },
+        {
+          provide: AudioEngineService,
+          useValue: { tempo: signal(124), visualStep: signal(0) },
+        },
         { provide: HistoryService, useValue: mockHistory },
-        { provide: EnhancedTouchGestureService, useValue: mockEnhancedGestures },
+        {
+          provide: EnhancedTouchGestureService,
+          useValue: mockEnhancedGestures,
+        },
         { provide: HapticService, useValue: mockHaptic },
-        { provide: AiService, useValue: mockAiService }
-      ]
+        { provide: AiService, useValue: mockAiService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ArrangementViewComponent);

@@ -38,20 +38,51 @@ import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
 import { SnackbarService } from '../services/snackbar.service';
 
-type StudioView = 'arrangement' | 'dj' | 'piano-roll' | 'mixer' | 'performance' | 'mastering' | 'drum-machine' | 'channel-rack' | 'performer';
+type StudioView =
+  | 'arrangement'
+  | 'dj'
+  | 'piano-roll'
+  | 'mixer'
+  | 'performance'
+  | 'mastering'
+  | 'drum-machine'
+  | 'channel-rack'
+  | 'performer';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
-const PATH_STUDIO_VIEWS = new Set<StudioView>(['arrangement','dj','piano-roll','mixer','performance','mastering','drum-machine','channel-rack','performer']);
-function isStudioView(value: string): value is StudioView { return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value); }
+const PATH_STUDIO_VIEWS = new Set<StudioView>([
+  'arrangement',
+  'dj',
+  'piano-roll',
+  'mixer',
+  'performance',
+  'mastering',
+  'drum-machine',
+  'channel-rack',
+  'performer',
+]);
+function isStudioView(value: string): value is StudioView {
+  return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
+}
 
 @Component({
   selector: 'app-studio',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MixerComponent, ArrangementViewComponent, PianoRollComponent,
-    MasteringSuiteComponent, DrumMachineComponent, PerformerComponent, SoundBrowserComponent,
-    TrackInspectorComponent, EffectsRackUiComponent, BottomNavComponent,
-    SnackbarComponent, SearchOverlayComponent,
+    CommonModule,
+    FormsModule,
+    MixerComponent,
+    ArrangementViewComponent,
+    PianoRollComponent,
+    MasteringSuiteComponent,
+    DrumMachineComponent,
+    PerformerComponent,
+    SoundBrowserComponent,
+    TrackInspectorComponent,
+    EffectsRackUiComponent,
+    BottomNavComponent,
+    SnackbarComponent,
+    SearchOverlayComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -59,7 +90,7 @@ function isStudioView(value: string): value is StudioView { return (PATH_STUDIO_
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
-  
+
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
   public hardware = inject(HardwareService);
@@ -85,10 +116,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorCollapsed = signal(false);
 
   studioQualityClass = computed(() => {
-    return this.audioEngine.performanceTier() === 'ultra' ? 'studio-ultra' : 'studio-perf';
+    return this.audioEngine.performanceTier() === 'ultra'
+      ? 'studio-ultra'
+      : 'studio-perf';
   });
 
-  currentBar = computed(() => Math.floor(this.audioEngine.visualStep() / 16) + 1);
+  currentBar = computed(
+    () => Math.floor(this.audioEngine.visualStep() / 16) + 1
+  );
 
   bottomNavItems = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
@@ -99,7 +134,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   constructor() {
-    this.route.queryParamMap.subscribe(params => {
+    this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (view && isStudioView(view)) this.activeView.set(view);
     });
@@ -107,14 +142,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit() {
     this.audioEngine.resume();
-    this.route.queryParamMap.subscribe(params => {
+    this.route.queryParamMap.subscribe((params) => {
       const sessionId = params.get('sessionId');
       if (sessionId && !this.collaboration.currentSession()) {
         const user = this.authService.currentUser();
         if (user) {
           this.collaboration.joinSession(sessionId, user);
           const projectHint = params.get('project');
-          this.snackbarService.info(projectHint ? `JOINING SESSION: ${projectHint}` : 'JOINING COLLABORATION SESSION');
+          this.snackbarService.info(
+            projectHint
+              ? `JOINING SESSION: ${projectHint}`
+              : 'JOINING COLLABORATION SESSION'
+          );
         }
       }
     });
@@ -128,10 +167,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
-    this.router.navigate([], { relativeTo: this.route, queryParams: { view }, queryParamsHandling: 'merge' });
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view },
+      queryParamsHandling: 'merge',
+    });
   }
 
-  onBottomNavClick(viewId: string) { if (isStudioView(viewId)) this.setActiveView(viewId); }
+  onBottomNavClick(viewId: string) {
+    if (isStudioView(viewId)) this.setActiveView(viewId);
+  }
 
   copyShareLink() {
     const session = this.collaboration.currentSession();
@@ -153,10 +198,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async newProject() {
     const confirmed = await this.dialog.confirm({
-       title: 'New Professional Session',
-       message: 'Are you sure? Unsaved changes will be lost.',
-       confirmLabel: 'CREATE',
-       cancelLabel: 'CANCEL'
+      title: 'New Professional Session',
+      message: 'Are you sure? Unsaved changes will be lost.',
+      confirmLabel: 'CREATE',
+      cancelLabel: 'CANCEL',
     });
     if (confirmed) {
       this.musicManager.newProject();
@@ -176,14 +221,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobilePanel.update((current) => (current === panel ? null : panel));
   }
 
-  closeMobilePanel() { this.mobilePanel.set(null); }
-  toggleMobileDrawer() { this.haptic.light(); this.mobileDrawerOpen.update(v => !v); }
+  closeMobilePanel() {
+    this.mobilePanel.set(null);
+  }
+  toggleMobileDrawer() {
+    this.haptic.light();
+    this.mobileDrawerOpen.update((v) => !v);
+  }
 
   async adjustBpm() {
     const result = await this.dialog.prompt({
       title: 'Adjust Tempo',
       message: 'Enter new BPM (20-300):',
-      initialValue: this.audioEngine.tempo().toString()
+      initialValue: this.audioEngine.tempo().toString(),
     });
     if (result) {
       const val = parseInt(result, 10);
@@ -196,17 +246,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   browserWidth = signal(260);
   inspectorWidth = signal(300);
-  toggleBrowser() { this.haptic.light(); this.browserCollapsed.update(v => !v); }
-  toggleInspector() { this.haptic.light(); this.inspectorCollapsed.update(v => !v); }
+  toggleBrowser() {
+    this.haptic.light();
+    this.browserCollapsed.update((v) => !v);
+  }
+  toggleInspector() {
+    this.haptic.light();
+    this.inspectorCollapsed.update((v) => !v);
+  }
 
   toggleCollaboration() {
     if (this.collaboration.currentSession()) {
       this.collaboration.leaveSession();
     } else {
-      const user = this.authService.currentUser() || { id: 'anon', name: 'Anonymous' };
-      this.collaboration.startSession(user as any, this.musicManager.snapshotProject());
+      const user = this.authService.currentUser() || {
+        id: 'anon',
+        name: 'Anonymous',
+      };
+      this.collaboration.startSession(
+        user as any,
+        this.musicManager.snapshotProject()
+      );
     }
   }
 
-  toggleNeuralFoundry() { this.haptic.light(); this.showNeuralFoundry.update(v => !v); }
+  toggleNeuralFoundry() {
+    this.haptic.light();
+    this.showNeuralFoundry.update((v) => !v);
+  }
 }

@@ -1,37 +1,74 @@
-<div class="inspector-container glass-v42 h-full flex flex-col font-sans overflow-hidden">
-  <div class="p-3 border-b border-white/10 bg-black/40 wood-panel flex justify-between items-center">
-    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text">
+<div
+  class="inspector-container glass-v42 h-full flex flex-col font-sans overflow-hidden"
+>
+  <div
+    class="p-3 border-b border-white/10 bg-black/40 wood-panel flex justify-between items-center"
+  >
+    <h3
+      class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text"
+    >
       Track Inspector
     </h3>
-    <button (click)="toggleAdvanced()" class="tactile-v42 px-3 py-1 text-[8px] font-black uppercase">
+    <button
+      (click)="toggleAdvanced()"
+      class="tactile-v42 px-3 py-1 text-[8px] font-black uppercase"
+    >
       {{ showAdvanced() ? 'Basic' : 'Advanced' }}
     </button>
   </div>
 
-  <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6" *ngIf="selectedTrack() as track; else noTrack">
+  <div
+    class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-6"
+    *ngIf="selectedTrack() as track; else noTrack"
+  >
     <!-- Header -->
-    <div class="track-header-mini glass-v42 p-3 rounded-xl border border-white/5 bg-black/40">
+    <div
+      class="track-header-mini glass-v42 p-3 rounded-xl border border-white/5 bg-black/40"
+    >
       <div class="flex items-center gap-3">
-        <div class="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]" [style.background-color]="track.color" [style.color]="track.color"></div>
-        <div class="text-[12px] font-black text-white uppercase truncate">{{ track.name }}</div>
+        <div
+          class="w-3 h-3 rounded-full shadow-[0_0_10px_currentColor]"
+          [style.background-color]="track.color"
+          [style.color]="track.color"
+        ></div>
+        <div class="text-[12px] font-black text-white uppercase truncate">
+          {{ track.name }}
+        </div>
       </div>
-      <div class="text-[7px] font-mono text-slate-500 uppercase mt-2 tracking-widest opacity-60">
-        ID: {{ track.id.substring(0, 12) }}... | {{ track.instrumentId | uppercase }}
+      <div
+        class="text-[7px] font-mono text-slate-500 uppercase mt-2 tracking-widest opacity-60"
+      >
+        ID: {{ track.id.substring(0, 12) }}... |
+        {{ track.instrumentId | uppercase }}
       </div>
     </div>
 
     <!-- Synth Engine -->
     <div class="section space-y-4" *ngIf="track.type === 'midi'">
-      <div class="flex items-center justify-between border-b border-white/5 pb-1">
-        <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Synth Engine</div>
+      <div
+        class="flex items-center justify-between border-b border-white/5 pb-1"
+      >
+        <div
+          class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+        >
+          Synth Engine
+        </div>
         <div class="text-[8px] font-mono text-fl-blue">ACTIVE</div>
       </div>
 
       <!-- Oscillator Section -->
       <div class="space-y-4">
-        <div class="param-row flex items-center justify-between bg-black/20 p-2 rounded-lg">
-          <label class="text-[8px] text-slate-400 uppercase font-black">Waveform</label>
-          <select [ngModel]="getParam('type')" (ngModelChange)="updateParam('type', $event)" class="executive-glass text-[10px] py-1 px-3 rounded-md border-white/5 outline-none font-black text-fl-blue">
+        <div
+          class="param-row flex items-center justify-between bg-black/20 p-2 rounded-lg"
+        >
+          <label class="text-[8px] text-slate-400 uppercase font-black"
+            >Waveform</label
+          >
+          <select
+            [ngModel]="getParam('type')"
+            (ngModelChange)="updateParam('type', $event)"
+            class="executive-glass text-[10px] py-1 px-3 rounded-md border-white/5 outline-none font-black text-fl-blue"
+          >
             <option value="sine">SINE</option>
             <option value="square">SQUARE</option>
             <option value="sawtooth">SAW</option>
@@ -41,55 +78,113 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div class="param-group flex flex-col items-center gap-2">
-            <app-knob label="ATTACK" [min]="0.001" [max]="2" [value]="getParam('attack')" (valueChange)="updateParam('attack', $event)"></app-knob>
+            <app-knob
+              label="ATTACK"
+              [min]="0.001"
+              [max]="2"
+              [value]="getParam('attack')"
+              (valueChange)="updateParam('attack', $event)"
+            ></app-knob>
           </div>
           <div class="param-group flex flex-col items-center gap-2">
-            <app-knob label="RELEASE" [min]="0.01" [max]="4" [value]="getParam('release')" (valueChange)="updateParam('release', $event)"></app-knob>
+            <app-knob
+              label="RELEASE"
+              [min]="0.01"
+              [max]="4"
+              [value]="getParam('release')"
+              (valueChange)="updateParam('release', $event)"
+            ></app-knob>
           </div>
         </div>
       </div>
 
       <!-- Filter Section -->
       <div class="space-y-4 pt-4 border-t border-white/5">
-        <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Filter & Dynamics</div>
+        <div
+          class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2"
+        >
+          Filter & Dynamics
+        </div>
         <div class="grid grid-cols-2 gap-4">
-           <app-knob label="CUTOFF" [min]="20" [max]="15000" [value]="getParam('cutoff')" (valueChange)="updateParam('cutoff', $event)"></app-knob>
-           <app-knob label="RESO" [min]="0.1" [max]="20" [value]="getParam('q')" (valueChange)="updateParam('q', $event)"></app-knob>
+          <app-knob
+            label="CUTOFF"
+            [min]="20"
+            [max]="15000"
+            [value]="getParam('cutoff')"
+            (valueChange)="updateParam('cutoff', $event)"
+          ></app-knob>
+          <app-knob
+            label="RESO"
+            [min]="0.1"
+            [max]="20"
+            [value]="getParam('q')"
+            (valueChange)="updateParam('q', $event)"
+          ></app-knob>
         </div>
       </div>
     </div>
 
     <!-- Audio Sample Manipulation -->
     <div class="section space-y-4" *ngIf="track.type === 'audio'">
-      <div class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1">
+      <div
+        class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1"
+      >
         Sample Processor
       </div>
 
-      <div class="waveform-mini glass-v42 h-20 rounded-xl overflow-hidden relative bg-black/60 border border-white/5">
-        <div class="absolute inset-0 flex items-center justify-around px-2 opacity-30">
-          <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]" class="w-1 bg-fl-blue rounded-full" [style.height.%]="30 + (i * 13 % 60)"></div>
+      <div
+        class="waveform-mini glass-v42 h-20 rounded-xl overflow-hidden relative bg-black/60 border border-white/5"
+      >
+        <div
+          class="absolute inset-0 flex items-center justify-around px-2 opacity-30"
+        >
+          <div
+            *ngFor="
+              let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            "
+            class="w-1 bg-fl-blue rounded-full"
+            [style.height.%]="30 + ((i * 13) % 60)"
+          ></div>
         </div>
         <div class="absolute inset-0 flex items-center justify-center">
-          <span class="text-[7px] font-black text-fl-blue/60 uppercase tracking-[0.3em]">Audio Spectrum</span>
+          <span
+            class="text-[7px] font-black text-fl-blue/60 uppercase tracking-[0.3em]"
+            >Audio Spectrum</span
+          >
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">Auto Slice</button>
-        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">Normalize</button>
+        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">
+          Auto Slice
+        </button>
+        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">
+          Normalize
+        </button>
       </div>
 
       <div class="param-group flex flex-col items-center pt-4">
-        <app-knob label="PITCH" [min]="-12" [max]="12" [value]="getParam('pitch')" (valueChange)="updateParam('pitch', $event)"></app-knob>
+        <app-knob
+          label="PITCH"
+          [min]="-12"
+          [max]="12"
+          [value]="getParam('pitch')"
+          (valueChange)="updateParam('pitch', $event)"
+        ></app-knob>
       </div>
     </div>
   </div>
 
-
   <ng-template #noTrack>
     <div class="flex-1 flex flex-col items-center justify-center opacity-20">
-      <span class="material-symbols-outlined text-4xl mb-4 text-slate-500">tune</span>
-      <div class="text-[10px] font-black uppercase tracking-[0.3em] text-center">Elite Inspector<br>Select Track</div>
+      <span class="material-symbols-outlined text-4xl mb-4 text-slate-500"
+        >tune</span
+      >
+      <div
+        class="text-[10px] font-black uppercase tracking-[0.3em] text-center"
+      >
+        Elite Inspector<br />Select Track
+      </div>
     </div>
   </ng-template>
 </div>

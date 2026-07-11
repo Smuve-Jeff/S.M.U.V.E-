@@ -1,5 +1,14 @@
-import { Injectable, signal, ApplicationRef, createComponent, EnvironmentInjector } from '@angular/core';
-import { SnackbarComponent, SnackbarConfig } from '../studio/shared/snackbar/snackbar.component';
+import {
+  Injectable,
+  signal,
+  ApplicationRef,
+  createComponent,
+  EnvironmentInjector,
+} from '@angular/core';
+import {
+  SnackbarComponent,
+  SnackbarConfig,
+} from '../studio/shared/snackbar/snackbar.component';
 
 @Injectable({
   providedIn: 'root',
@@ -15,9 +24,8 @@ export class SnackbarService {
   ) {}
 
   show(config: SnackbarConfig | string) {
-    const snackbarConfig: SnackbarConfig = typeof config === 'string' 
-      ? { message: config }
-      : config;
+    const snackbarConfig: SnackbarConfig =
+      typeof config === 'string' ? { message: config } : config;
 
     if (this.isShowing()) {
       this.queue.push(snackbarConfig);
@@ -46,11 +54,12 @@ export class SnackbarService {
   private displaySnackbar(config: SnackbarConfig) {
     if (!this.snackbarRef) {
       this.snackbarRef = createComponent(SnackbarComponent, {
-        environmentInjector: this.injector
+        environmentInjector: this.injector,
       });
-      
+
       this.appRef.attachView(this.snackbarRef.hostView);
-      const domElem = (this.snackbarRef.hostView as any).rootNodes[0] as HTMLElement;
+      const domElem = (this.snackbarRef.hostView as any)
+        .rootNodes[0] as HTMLElement;
       document.body.appendChild(domElem);
     }
 

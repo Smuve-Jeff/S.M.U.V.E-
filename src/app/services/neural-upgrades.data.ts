@@ -61,7 +61,8 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     id: 'upg-tha-spot-god-mode',
     title: 'THA SPOT: GOD MODE ENABLED',
     type: 'Universal Patch',
-    description: 'Absolute dominance across every cabinet. Unlocks hidden characters, infinite retries, and secret developmental levels.',
+    description:
+      'Absolute dominance across every cabinet. Unlocks hidden characters, infinite retries, and secret developmental levels.',
     cost: '5.0 ETH',
     impact: 'Extreme',
     rationale: 'Why play the game when you can be the god of the machine?',
@@ -78,10 +79,12 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     id: 'upg-neural-ghostwriter-pro',
     title: 'NEURAL GHOSTWRITER ELITE',
     type: 'Cognitive Layer',
-    description: 'Generates multi-platinum lyrical structures and complex rhythmic flows based on top 0.1% billboard metadata.',
+    description:
+      'Generates multi-platinum lyrical structures and complex rhythmic flows based on top 0.1% billboard metadata.',
     cost: '3.5 ETH',
     impact: 'High',
-    rationale: 'Skip the writers block and access the collective consciousness of hit-makers.',
+    rationale:
+      'Skip the writers block and access the collective consciousness of hit-makers.',
     targetArea: 'Studio / Composition',
     priority: 'High',
     prerequisites: [],
@@ -95,7 +98,8 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     id: 'upg-engagement-hijacker',
     title: 'ENGAGEMENT HIJACKER PROTOCOL',
     type: 'Network Virus',
-    description: 'Autonomous algorithm manipulation to force-multiply social traction, fan conversion, and viral probability.',
+    description:
+      'Autonomous algorithm manipulation to force-multiply social traction, fan conversion, and viral probability.',
     cost: '4.0 ETH',
     impact: 'Extreme',
     rationale: 'Organic growth is for amateurs. Use brute-force relevance.',
@@ -112,7 +116,8 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     id: 'upg-quantum-mastering',
     title: 'QUANTUM SPECTRAL MASTERING',
     type: 'Audio Engine',
-    description: 'Next-generation audio processing utilizing sub-atomic frequency correction and zero-latency harmonic saturation.',
+    description:
+      'Next-generation audio processing utilizing sub-atomic frequency correction and zero-latency harmonic saturation.',
     cost: '6.0 ETH',
     impact: 'Absolute',
     rationale: 'Hear the silence between the bits. Superior sonic fidelity.',

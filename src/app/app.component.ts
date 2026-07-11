@@ -134,8 +134,6 @@ export class AppComponent implements ErrorHandler {
   }));
 
   constructor() {
-
-
     this.breakIframeLoop();
     this.checkMobile();
     this.setupPwaListeners();
@@ -286,21 +284,35 @@ export class AppComponent implements ErrorHandler {
   }
 
   private breakIframeLoop() {
-    if (typeof window === "undefined" || window.self === window.top) return;
+    if (typeof window === 'undefined' || window.self === window.top) return;
 
     const path = window.location.pathname;
-    const isGameAsset = path.includes("/assets/games/");
+    const isGameAsset = path.includes('/assets/games/');
 
     if (isGameAsset) {
-      console.error("[AppComponent] Missing game asset detected (fallback to app) for path: " + path + ". Breaking loop.");
-      window.location.replace("about:blank");
+      console.error(
+        '[AppComponent] Missing game asset detected (fallback to app) for path: ' +
+          path +
+          '. Breaking loop.'
+      );
+      window.location.replace('about:blank');
       return;
     }
 
-    const isAppRoute = ["/", "/hub", "/tha-spot", "/studio", "/networking"].some(r => path === r || path.startsWith(r + "/"));
+    const isAppRoute = [
+      '/',
+      '/hub',
+      '/tha-spot',
+      '/studio',
+      '/networking',
+    ].some((r) => path === r || path.startsWith(r + '/'));
     if (isAppRoute) {
-      console.error("[AppComponent] App route detected in iframe: " + path + ". Breaking loop.");
-      window.location.replace("about:blank");
+      console.error(
+        '[AppComponent] App route detected in iframe: ' +
+          path +
+          '. Breaking loop.'
+      );
+      window.location.replace('about:blank');
     }
   }
 

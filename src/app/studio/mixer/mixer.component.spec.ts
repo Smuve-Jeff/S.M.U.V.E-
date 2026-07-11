@@ -19,13 +19,22 @@ describe('MixerComponent', () => {
     togglePlay: jest.fn(),
     updateMasterVolume: jest.fn(),
     engine: {
-      ctx: { createAnalyser: () => ({ fftSize: 0, connect: () => {}, frequencyBinCount: 0, getByteFrequencyData: () => {} }) },
-      getTrackOutput: () => ({ connect: () => {} })
-    }
+      ctx: {
+        createAnalyser: () => ({
+          fftSize: 0,
+          connect: () => {},
+          frequencyBinCount: 0,
+          getByteFrequencyData: () => {},
+        }),
+      },
+      getTrackOutput: () => ({ connect: () => {} }),
+    },
   };
 
   const mockMusicManager = {
-    tracks: signal([{ id: 1, name: 'Track 1', gain: 1, pan: 0, mute: false, solo: false }]),
+    tracks: signal([
+      { id: 1, name: 'Track 1', gain: 1, pan: 0, mute: false, solo: false },
+    ]),
     selectedTrackId: signal(1),
     engine: { updateTrack: jest.fn(), applyProductionParameter: jest.fn() },
     toggleMute: jest.fn(),
@@ -39,7 +48,7 @@ describe('MixerComponent', () => {
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
-      ]
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(MixerComponent);
@@ -53,7 +62,9 @@ describe('MixerComponent', () => {
 
   it('updates track volume', () => {
     component.updateTrackVolume(1, 120);
-    expect(mockMusicManager.engine.updateTrack).toHaveBeenCalledWith(1, { gain: 1.2 });
+    expect(mockMusicManager.engine.updateTrack).toHaveBeenCalledWith(1, {
+      gain: 1.2,
+    });
   });
 
   it('removes track', () => {

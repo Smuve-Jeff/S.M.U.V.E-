@@ -7,29 +7,48 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 const crypto = require('node:crypto');
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const multer = require('multer');
 require('dotenv').config();
 
 // Environment Variable Validation
-const REQUIRED_ENV_VARS = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'GEMINI_API_KEY'
-];
+const REQUIRED_ENV_VARS = ['DATABASE_URL', 'JWT_SECRET', 'GEMINI_API_KEY'];
 
 console.log('STABILITY_CHECK: Verifying environment variables...');
-const MISSING_VARS = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+const MISSING_VARS = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
 if (MISSING_VARS.length > 0) {
-  console.error('CRITICAL_ERROR: Missing environment variables:', MISSING_VARS.join(', '));
-  MISSING_VARS.forEach(v => console.error(`DEPLOYMENT_BLOCKER: ${v} is not set in environment.`));
-  console.error('APPLICATION_FATAL: Exiting due to missing production configuration.');
+  console.error(
+    'CRITICAL_ERROR: Missing environment variables:',
+    MISSING_VARS.join(', ')
+  );
+  MISSING_VARS.forEach((v) =>
+    console.error(`DEPLOYMENT_BLOCKER: ${v} is not set in environment.`)
+  );
+  console.error(
+    'APPLICATION_FATAL: Exiting due to missing production configuration.'
+  );
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   }
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'SMUVE_SALT_V4_SECURE_HASH';
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
+
+// --- R2 STORAGE CONFIG ---
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
+
+const upload = multer({ storage: multer.memoryStorage() });
+// ------------------------
 
 const app = express();
 
@@ -37,10 +56,16 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-app.use(cors({
-  origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      FRONTEND_ORIGIN,
+      'https://s-m-u-v-e-2-0.onrender.com',
+      'http://localhost:4200',
+    ],
+    credentials: true,
+  })
+);
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -104,7 +129,10 @@ const authorizeUser = (req, res, next) => {
 // --- DATABASE LOGIC ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 pool.on('error', (err) => {
@@ -157,7 +185,10 @@ const initDb = async () => {
     `);
     console.log('STABILITY_CHECK: Database initialized successfully.');
   } catch (err) {
-    console.error('CRITICAL_DATABASE_ERROR: Failed to initialize database:', err.message);
+    console.error(
+      'CRITICAL_DATABASE_ERROR: Failed to initialize database:',
+      err.message
+    );
     if (process.env.NODE_ENV === 'production') {
       console.error('APPLICATION_FATAL: Exiting due to database failure.');
       process.exit(1);
@@ -169,16 +200,20 @@ const initDb = async () => {
 const setupSocketIO = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: [FRONTEND_ORIGIN, 'https://s-m-u-v-e-2-0.onrender.com', 'http://localhost:4200'],
-      methods: ["GET", "POST"]
-    }
+      origin: [
+        FRONTEND_ORIGIN,
+        'https://s-m-u-v-e-2-0.onrender.com',
+        'http://localhost:4200',
+      ],
+      methods: ['GET', 'POST'],
+    },
   });
 
   const matchmakingQueues = {
-    'BATTLEFIELD': [],
-    'NEON_DRIFT': [],
-    'TEKKEN_4': [],
-    'HALO_CE': []
+    BATTLEFIELD: [],
+    NEON_DRIFT: [],
+    TEKKEN_4: [],
+    HALO_CE: [],
   };
 
   const getSenderFromSocket = (socket) => {
@@ -216,65 +251,115 @@ const setupSocketIO = (server) => {
           'INSERT INTO direct_messages (from_user_id, to_user_id, message) VALUES ($1, $2, $3)',
           [userId, toUserId, message]
         );
-        io.to(toUserId).emit('RECEIVE_DIRECT_MESSAGE', { fromUserId: userId, message, timestamp: new Date() });
+        io.to(toUserId).emit('RECEIVE_DIRECT_MESSAGE', {
+          fromUserId: userId,
+          message,
+          timestamp: new Date(),
+        });
       } catch (err) {
         console.error('DM Error:', err);
       }
     });
 
     socket.on('disconnect', () => {
-      Object.keys(matchmakingQueues).forEach(game => {
-        matchmakingQueues[game] = matchmakingQueues[game].filter(q => q.userId !== userId);
+      Object.keys(matchmakingQueues).forEach((game) => {
+        matchmakingQueues[game] = matchmakingQueues[game].filter(
+          (q) => q.userId !== userId
+        );
       });
     });
   });
 };
 
 const sendSocialNotification = async (userId, title, body) => {
-    try {
-      const { rows } = await pool.query("SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1", [userId]);
-      const email = rows[0]?.email;
+  try {
+    const { rows } = await pool.query(
+      "SELECT profile_data->>'email' as email FROM user_profiles WHERE user_id = $1",
+      [userId]
+    );
+    const email = rows[0]?.email;
 
-      if (email && process.env.SMTP_HOST) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT || 587,
-          secure: false,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
+    if (email && process.env.SMTP_HOST) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || 587,
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
 
-        await transporter.sendMail({
-          from: '"S.M.U.V.E 2.0" <no-reply@smuve.com>',
-          to: email,
-          subject: title,
-          text: body,
-        });
-      }
-    } catch (err) {
-      console.error('Notification Error:', err);
+      await transporter.sendMail({
+        from: '"S.M.U.V.E 2.0" <no-reply@smuve.com>',
+        to: email,
+        subject: title,
+        text: body,
+      });
     }
+  } catch (err) {
+    console.error('Notification Error:', err);
+  }
 };
 
 // AI SDK
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'MOCK_KEY');
 
 // REST Endpoints
-app.get('/api/profile/:userId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query('SELECT profile_data FROM user_profiles WHERE user_id = $1', [userId]);
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Profile not found.' });
+
+app.post(
+  '/api/upload',
+  authenticateToken,
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded.' });
+      }
+
+      const userId = req.user.userId;
+      const fileName = `${userId}_${Date.now()}_${req.file.originalname}`;
+      const bucketName = process.env.R2_BUCKET_NAME;
+
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: fileName,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
+
+      await s3Client.send(command);
+
+      const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${fileName}`;
+      res.json({ url: publicUrl });
+    } catch (err) {
+      console.error('R2 Upload Error:', err);
+      res.status(500).json({ error: 'Failed to upload asset to storage.' });
     }
-    res.json(rows[0].profile_data);
-  } catch (err) {
-    console.error('Fetch Profile Error:', err);
-    res.status(500).json({ error: 'Failed to fetch profile.' });
   }
-});
+);
+
+app.get(
+  '/api/profile/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        'SELECT profile_data FROM user_profiles WHERE user_id = $1',
+        [userId]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Profile not found.' });
+      }
+      res.json(rows[0].profile_data);
+    } catch (err) {
+      console.error('Fetch Profile Error:', err);
+      res.status(500).json({ error: 'Failed to fetch profile.' });
+    }
+  }
+);
 
 app.post('/api/profile', authenticateToken, async (req, res) => {
   try {
@@ -284,7 +369,7 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
     }
     const authUser = req.user.userId;
     if (authUser !== userId) {
-        return res.status(403).json({ error: 'Access denied.' });
+      return res.status(403).json({ error: 'Access denied.' });
     }
 
     await pool.query(
@@ -349,28 +434,37 @@ app.get('/api/users/featured', authenticateToken, async (req, res) => {
 });
 
 // Friends & Messages
-app.get('/api/users/:userId/messages/:friendId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId, friendId } = req.params;
-    const { rows } = await pool.query(
-      `SELECT from_user_id as "fromUserId", to_user_id as "toUserId", message, timestamp
+app.get(
+  '/api/users/:userId/messages/:friendId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, friendId } = req.params;
+      const { rows } = await pool.query(
+        `SELECT from_user_id as "fromUserId", to_user_id as "toUserId", message, timestamp
        FROM direct_messages
        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
        ORDER BY timestamp ASC LIMIT 100`,
-      [userId, friendId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('Fetch DMs Error:', err);
-    res.status(500).json({ error: 'Failed to fetch message history.' });
+        [userId, friendId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Fetch DMs Error:', err);
+      res.status(500).json({ error: 'Failed to fetch message history.' });
+    }
   }
-});
+);
 
-app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { rows } = await pool.query(
-      `SELECT
+app.get(
+  '/api/users/:userId/friends',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        `SELECT
         u.user_id as "userId",
         u.profile_data->>'artistName' as "artistName",
         u.profile_data->>'primaryGenre' as "primaryGenre",
@@ -380,85 +474,124 @@ app.get('/api/users/:userId/friends', authenticateToken, authorizeUser, async (r
        FROM friends f
        JOIN user_profiles u ON f.friend_id = u.user_id
        WHERE f.user_id = $1`,
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('Friends List Error:', err);
-    res.status(500).json({ error: 'Failed to fetch friends list.' });
-  }
-});
-
-app.post('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId, friendId } = req.params;
-    if (userId === friendId) {
-      return res.status(400).json({ error: 'Cannot friend yourself.' });
+        [userId]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Friends List Error:', err);
+      res.status(500).json({ error: 'Failed to fetch friends list.' });
     }
-    await pool.query(
-      'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [userId, friendId]
-    );
-    const { rows: userRows } = await pool.query("SELECT profile_data->>'artistName' as \"artistName\" FROM user_profiles WHERE user_id = $1", [userId]);
-    const artistName = userRows[0]?.artistName || 'An operative';
-    await sendSocialNotification(friendId, 'New Connection Request', artistName + " has linked with your executive profile on S.M.U.V.E 2.0.");
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Add Friend Error:', err);
-    res.status(500).json({ error: 'Failed to add friend.' });
   }
-});
+);
 
-app.patch('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId, friendId } = req.params;
-    const { status } = req.body;
-
-    const ALLOWED_STATUSES = ['pending', 'accepted', 'declined'];
-    if (!ALLOWED_STATUSES.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be pending, accepted, or declined.' });
+app.post(
+  '/api/users/:userId/friends/:friendId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, friendId } = req.params;
+      if (userId === friendId) {
+        return res.status(400).json({ error: 'Cannot friend yourself.' });
+      }
+      await pool.query(
+        'INSERT INTO friends (user_id, friend_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [userId, friendId]
+      );
+      const { rows: userRows } = await pool.query(
+        'SELECT profile_data->>\'artistName\' as "artistName" FROM user_profiles WHERE user_id = $1',
+        [userId]
+      );
+      const artistName = userRows[0]?.artistName || 'An operative';
+      await sendSocialNotification(
+        friendId,
+        'New Connection Request',
+        artistName + ' has linked with your executive profile on S.M.U.V.E 2.0.'
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Add Friend Error:', err);
+      res.status(500).json({ error: 'Failed to add friend.' });
     }
+  }
+);
 
-    if (status === 'declined') {
-        await pool.query('DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)', [friendId, userId]);
-        await sendSocialNotification(friendId, 'Connection Update', "Your connection request to an operative has been declined.");
+app.patch(
+  '/api/users/:userId/friends/:friendId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, friendId } = req.params;
+      const { status } = req.body;
+
+      const ALLOWED_STATUSES = ['pending', 'accepted', 'declined'];
+      if (!ALLOWED_STATUSES.includes(status)) {
+        return res.status(400).json({
+          error: 'Invalid status. Must be pending, accepted, or declined.',
+        });
+      }
+
+      if (status === 'declined') {
+        await pool.query(
+          'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
+          [friendId, userId]
+        );
+        await sendSocialNotification(
+          friendId,
+          'Connection Update',
+          'Your connection request to an operative has been declined.'
+        );
         return res.json({ success: true, message: 'Connection declined.' });
+      }
+
+      await pool.query(
+        'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
+        [status, friendId, userId]
+      );
+
+      await pool.query(
+        'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3) ON CONFLICT (user_id, friend_id) DO UPDATE SET status = $3',
+        [userId, friendId, status]
+      );
+
+      const { rows: userRows } = await pool.query(
+        'SELECT profile_data->>\'artistName\' as "artistName" FROM user_profiles WHERE user_id = $1',
+        [userId]
+      );
+      const artistName = userRows[0]?.artistName || 'An operative';
+      await sendSocialNotification(
+        friendId,
+        'Connection Approved',
+        artistName + ' has approved your connection request.'
+      );
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Update Friend Status Error:', err);
+      res.status(500).json({ error: 'Failed to update connection status.' });
     }
-
-    await pool.query(
-      'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
-      [status, friendId, userId]
-    );
-
-    await pool.query(
-      'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3) ON CONFLICT (user_id, friend_id) DO UPDATE SET status = $3',
-      [userId, friendId, status]
-    );
-
-    const { rows: userRows } = await pool.query("SELECT profile_data->>'artistName' as \"artistName\" FROM user_profiles WHERE user_id = $1", [userId]);
-    const artistName = userRows[0]?.artistName || 'An operative';
-    await sendSocialNotification(friendId, 'Connection Approved', artistName + " has approved your connection request.");
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Update Friend Status Error:', err);
-    res.status(500).json({ error: 'Failed to update connection status.' });
   }
-});
+);
 
-app.delete('/api/users/:userId/friends/:friendId', authenticateToken, authorizeUser, async (req, res) => {
-  try {
-    const { userId, friendId } = req.params;
-    await pool.query(
-      'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
-      [userId, friendId]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Remove Friend Error:', err);
-    res.status(500).json({ error: 'Failed to remove friend.' });
+app.delete(
+  '/api/users/:userId/friends/:friendId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, friendId } = req.params;
+      await pool.query(
+        'DELETE FROM friends WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
+        [userId, friendId]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Remove Friend Error:', err);
+      res.status(500).json({ error: 'Failed to remove friend.' });
+    }
   }
-});
+);
 
 // AI & Analysis Endpoints
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
@@ -477,7 +610,12 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
 app.post('/api/ai/deep-audit', authenticateToken, async (req, res) => {
   try {
     const { profileData, projectSummary } = req.body;
-    const prompt = "Perform a deep creative audit for an artist with this profile: " + JSON.stringify(profileData) + " and current project status: " + JSON.stringify(projectSummary) + ". Provide 3 actionable strategic upgrades.";
+    const prompt =
+      'Perform a deep creative audit for an artist with this profile: ' +
+      JSON.stringify(profileData) +
+      ' and current project status: ' +
+      JSON.stringify(projectSummary) +
+      '. Provide 3 actionable strategic upgrades.';
 
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     const result = await model.generateContent(prompt);
@@ -492,7 +630,9 @@ app.post('/api/ai/deep-audit', authenticateToken, async (req, res) => {
 app.post('/api/ai/industry-search', authenticateToken, async (req, res) => {
   try {
     const { query } = req.body;
-    const prompt = "Act as an industry intelligence operative. Research and summarize the latest trends and opportunities for: " + query;
+    const prompt =
+      'Act as an industry intelligence operative. Research and summarize the latest trends and opportunities for: ' +
+      query;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     const result = await model.generateContent(prompt);
@@ -505,31 +645,66 @@ app.post('/api/ai/industry-search', authenticateToken, async (req, res) => {
 });
 
 // Multi-Platform OAuth Scaffolds
-const PLATFORMS = ['twitch', 'youtube', 'discord', 'tiktok', 'instagram', 'kick', 'x'];
+const PLATFORMS = [
+  'twitch',
+  'youtube',
+  'discord',
+  'tiktok',
+  'instagram',
+  'kick',
+  'x',
+];
 
-PLATFORMS.forEach(platform => {
+PLATFORMS.forEach((platform) => {
   app.get('/api/auth/' + platform, (req, res) => {
-    const clientId = process.env[platform.toUpperCase() + '_CLIENT_ID'] || 'MOCK_CLIENT_ID';
-    const redirectUri = process.env[platform.toUpperCase() + '_REDIRECT_URI'] || "https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/" + platform + "/callback";
+    const clientId =
+      process.env[platform.toUpperCase() + '_CLIENT_ID'] || 'MOCK_CLIENT_ID';
+    const redirectUri =
+      process.env[platform.toUpperCase() + '_REDIRECT_URI'] ||
+      'https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/' +
+        platform +
+        '/callback';
 
     let url = '';
     if (platform === 'twitch') {
-      url = "https://id.twitch.tv/oauth2/authorize?client_id=" + clientId + "&redirect_uri=" + redirectUri + "&response_type=code&scope=user:read:email";
+      url =
+        'https://id.twitch.tv/oauth2/authorize?client_id=' +
+        clientId +
+        '&redirect_uri=' +
+        redirectUri +
+        '&response_type=code&scope=user:read:email';
     } else if (platform === 'youtube') {
-      url = "https://accounts.google.com/o/oauth2/v2/auth?client_id=" + clientId + "&redirect_uri=" + redirectUri + "&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly";
+      url =
+        'https://accounts.google.com/o/oauth2/v2/auth?client_id=' +
+        clientId +
+        '&redirect_uri=' +
+        redirectUri +
+        '&response_type=code&scope=https://www.googleapis.com/auth/youtube.readonly';
     } else {
-      url = redirectUri + "?code=MOCK_CODE_" + platform.toUpperCase();
+      url = redirectUri + '?code=MOCK_CODE_' + platform.toUpperCase();
     }
     res.redirect(url);
   });
 
   app.get('/api/auth/' + platform + '/callback', (req, res) => {
     const { code } = req.query;
-    const frontendOrigin = process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
+    const frontendOrigin =
+      process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
     const targetOrigin = frontendOrigin;
-    const payload = JSON.stringify({ type: platform.toUpperCase() + "_AUTH_SUCCESS", code: code || null });
-    const escapedPayload = payload.replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
-    res.send("<html><script>window.opener.postMessage(" + escapedPayload + ", " + JSON.stringify(targetOrigin) + "); window.close();</script></html>");
+    const payload = JSON.stringify({
+      type: platform.toUpperCase() + '_AUTH_SUCCESS',
+      code: code || null,
+    });
+    const escapedPayload = payload
+      .replace(/</g, '\\x3c')
+      .replace(/>/g, '\\x3e');
+    res.send(
+      '<html><script>window.opener.postMessage(' +
+        escapedPayload +
+        ', ' +
+        JSON.stringify(targetOrigin) +
+        '); window.close();</script></html>'
+    );
   });
 });
 
@@ -542,17 +717,23 @@ const startEliteServer = async (port = process.env.PORT || 3000) => {
 
     return new Promise((resolve, reject) => {
       server.on('error', (err) => {
-        console.error('CRITICAL_RUNTIME_ERROR: Server error event:', err.message);
+        console.error(
+          'CRITICAL_RUNTIME_ERROR: Server error event:',
+          err.message
+        );
         reject(err);
       });
 
       server.listen(port, '0.0.0.0', () => {
-        console.log("S.M.U.V.E 2.0 Elite Server running on port " + port);
+        console.log('S.M.U.V.E 2.0 Elite Server running on port ' + port);
         resolve(server);
       });
     });
   } catch (err) {
-    console.error('CRITICAL_STARTUP_ERROR: Failed to start server:', err.message);
+    console.error(
+      'CRITICAL_STARTUP_ERROR: Failed to start server:',
+      err.message
+    );
     if (process.env.NODE_ENV === 'production') {
       console.error('APPLICATION_FATAL: Exiting due to startup failure.');
       process.exit(1);

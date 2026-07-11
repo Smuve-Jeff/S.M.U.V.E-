@@ -39,7 +39,7 @@
 
 /* Touch targets */
 @media (pointer: coarse) {
-  input[type="range"] {
+  input[type='range'] {
     height: 44px;
   }
 

@@ -37,7 +37,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   private startMetering() {
     const update = () => {
       const levels: Record<string, number> = {};
-      this.tracks().forEach(track => {
+      this.tracks().forEach((track) => {
         let analyser = this.analysers.get(track.id);
         if (!analyser) {
           analyser = this.audioSession.engine.ctx.createAnalyser();
@@ -47,7 +47,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
         }
         const data = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(data);
-        levels[track.id] = (data.reduce((a,b) => a+b, 0) / data.length) / 255;
+        levels[track.id] = data.reduce((a, b) => a + b, 0) / data.length / 255;
       });
       this.trackLevels.set(levels);
       this.animationFrame = requestAnimationFrame(update);
@@ -55,7 +55,9 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     this.animationFrame = requestAnimationFrame(update);
   }
 
-  getTrackLevel(id: string) { return this.trackLevels()[id] || 0; }
+  getTrackLevel(id: string) {
+    return this.trackLevels()[id] || 0;
+  }
 
   toggleClip(trackId: string, clipIndex: number) {
     this.haptic.light();

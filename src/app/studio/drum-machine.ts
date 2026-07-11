@@ -29,8 +29,14 @@ export class DrumMachine extends Instrument {
     this.sampler.connect(this.output);
 
     const padNames = [
-      'Kick', 'Snare', 'Clap', 'Hi-Hat (C)',
-      'Hi-Hat (O)', 'Tom', 'Rim', 'Crash',
+      'Kick',
+      'Snare',
+      'Clap',
+      'Hi-Hat (C)',
+      'Hi-Hat (O)',
+      'Tom',
+      'Rim',
+      'Crash',
     ];
 
     padNames.forEach((name, i) => {
@@ -45,7 +51,7 @@ export class DrumMachine extends Instrument {
         pitch: 36 + i,
         fx: { saturation: 0, cutoff: 20000, resonance: 1, bitCrush: 0 },
         gain,
-        filter
+        filter,
       };
       this.pads.push(pad);
     });
@@ -59,7 +65,11 @@ export class DrumMachine extends Instrument {
     // Drums usually don't stop, but we can implement choke groups here
   }
 
-  loadSample(pitch: number, buffer: AudioBuffer, velocityThreshold: number = 127) {
+  loadSample(
+    pitch: number,
+    buffer: AudioBuffer,
+    velocityThreshold: number = 127
+  ) {
     this.sampler.loadSample(pitch, buffer, velocityThreshold);
   }
 

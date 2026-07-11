@@ -14,15 +14,15 @@ describe('SocialNetworkingService', () => {
         id: '',
         artistName: 'Test Artist',
         primaryGenre: 'Test Genre',
-        profileSetupCompleted: true
-      })
+        profileSetupCompleted: true,
+      }),
     };
 
     TestBed.configureTestingModule({
       providers: [
         SocialNetworkingService,
-        { provide: UserProfileService, useValue: mockProfileService }
-      ]
+        { provide: UserProfileService, useValue: mockProfileService },
+      ],
     });
     service = TestBed.inject(SocialNetworkingService);
   });

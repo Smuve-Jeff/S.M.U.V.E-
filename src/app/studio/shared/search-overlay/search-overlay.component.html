@@ -14,17 +14,31 @@
           (ngModelChange)="onSearch($event)"
           autofocus
         />
-        <button *ngIf="query()" class="clear-btn" (click)="query.set(''); onSearch('')" type="button">
+        <button
+          *ngIf="query()"
+          class="clear-btn"
+          (click)="query.set(''); onSearch('')"
+          type="button"
+        >
           <span class="material-icons">close</span>
         </button>
       </div>
     </div>
-    
+
     <div class="search-content">
-      <div class="recent-section" *ngIf="recentSearches().length > 0 && !query()">
+      <div
+        class="recent-section"
+        *ngIf="recentSearches().length > 0 && !query()"
+      >
         <div class="section-header">
           <span class="section-title">Recent Searches</span>
-          <button class="clear-all-btn" (click)="clearRecentSearches()" type="button">Clear</button>
+          <button
+            class="clear-all-btn"
+            (click)="clearRecentSearches()"
+            type="button"
+          >
+            Clear
+          </button>
         </div>
         <div class="recent-list">
           <button
@@ -38,12 +52,12 @@
           </button>
         </div>
       </div>
-      
+
       <div class="results-section" *ngIf="query()">
         <div class="section-header" *ngIf="results().length > 0">
           <span class="section-title">Results ({{ results().length }})</span>
         </div>
-        
+
         <div class="results-list" *ngIf="results().length > 0">
           <button
             *ngFor="let result of results()"
@@ -56,12 +70,14 @@
             </div>
             <div class="result-content">
               <div class="result-title">{{ result.title }}</div>
-              <div class="result-subtitle" *ngIf="result.subtitle">{{ result.subtitle }}</div>
+              <div class="result-subtitle" *ngIf="result.subtitle">
+                {{ result.subtitle }}
+              </div>
             </div>
             <span class="material-icons result-arrow">arrow_forward</span>
           </button>
         </div>
-        
+
         <div class="no-results" *ngIf="results().length === 0">
           <span class="material-icons">search_off</span>
           <p>No results found for "{{ query() }}"</p>

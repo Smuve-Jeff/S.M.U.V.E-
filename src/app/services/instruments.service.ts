@@ -96,10 +96,19 @@ export class InstrumentsService {
       tags: ['drums', 'modern', 'pop', 'elite'],
       sampleQuality: 'high',
       zones: [
-        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3' },
-        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3' },
-        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3' }
-      ]
+        {
+          midiRange: [36, 36],
+          url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',
+        },
+        {
+          midiRange: [38, 38],
+          url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',
+        },
+        {
+          midiRange: [42, 42],
+          url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',
+        },
+      ],
     },
     {
       id: 'strat-elite-clean',

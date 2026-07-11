@@ -24,7 +24,7 @@ export enum GamepadButton {
   DPAD_DOWN = 13,
   DPAD_LEFT = 14,
   DPAD_RIGHT = 15,
-  HOME = 16
+  HOME = 16,
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,8 +42,12 @@ export class GamepadService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      window.addEventListener('gamepadconnected', (e: any) => this.onGamepadConnected(e));
-      window.addEventListener('gamepaddisconnected', (e: any) => this.onGamepadDisconnected(e));
+      window.addEventListener('gamepadconnected', (e: any) =>
+        this.onGamepadConnected(e)
+      );
+      window.addEventListener('gamepaddisconnected', (e: any) =>
+        this.onGamepadDisconnected(e)
+      );
 
       // Check for already connected gamepads
       const gps = navigator.getGamepads();
@@ -69,14 +73,14 @@ export class GamepadService {
         const gp = gamepads[0];
         if (gp) {
           this.zone.run(() => {
-            const buttons = gp.buttons.map(b => b.pressed);
+            const buttons = gp.buttons.map((b) => b.pressed);
             const axes = [...gp.axes];
 
             this.connectedGamepad.set({
               connected: true,
               id: gp.id,
               buttons,
-              axes
+              axes,
             });
 
             // Detect last button pressed

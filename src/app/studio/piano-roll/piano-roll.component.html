@@ -49,10 +49,7 @@
 
     <div class="module-transport glass-v42 mx-4">
       <div class="btn-group flex gap-1">
-        <button
-          class="m-btn tactile-v42"
-          (click)="audioSession.togglePlay()"
-        >
+        <button class="m-btn tactile-v42" (click)="audioSession.togglePlay()">
           <span class="material-symbols-outlined text-sm">
             {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
           </span>
@@ -63,24 +60,38 @@
           (click)="audioSession.toggleRecord()"
         >
           <span class="material-symbols-outlined text-sm"
-            >fiber_manual_record</span>
+            >fiber_manual_record</span
+          >
         </button>
       </div>
     </div>
 
     <div class="toolbar glass-v42">
       <div class="flex items-center gap-2 mx-2">
-        <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
+        <button
+          class="tactile-v42 px-3 py-1 text-[8px] font-black"
+          [class.bg-red-500]="isRecordingAutomation()"
+          (click)="toggleAutomation()"
+        >
+          AUTO
+        </button>
       </div>
 
-      <div class="chord-stamp-selector flex items-center gap-1 mx-2 border-l border-white/10 pl-4">
-        <span class="text-[7px] font-black text-slate-500 uppercase">Chord</span>
-        <select [ngModel]="activeChord()" (ngModelChange)="setChord($event)"
-                class="bg-black/40 text-[9px] font-black uppercase text-fl-blue rounded border border-white/5 py-1 px-1">
+      <div
+        class="chord-stamp-selector flex items-center gap-1 mx-2 border-l border-white/10 pl-4"
+      >
+        <span class="text-[7px] font-black text-slate-500 uppercase"
+          >Chord</span
+        >
+        <select
+          [ngModel]="activeChord()"
+          (ngModelChange)="setChord($event)"
+          class="bg-black/40 text-[9px] font-black uppercase text-fl-blue rounded border border-white/5 py-1 px-1"
+        >
           <option *ngFor="let c of chordTypes" [value]="c">{{ c }}</option>
         </select>
       </div>
-<div class="tool-group flex gap-1">
+      <div class="tool-group flex gap-1">
         <button
           [class.active]="editMode() === 'draw'"
           (click)="setEditMode('draw')"
@@ -137,20 +148,26 @@
 
   <div class="piano-roll-content flex-1 flex overflow-hidden">
     <div class="left-section flex flex-col">
-       <div class="keys-sidebar no-scrollbar flex-1 bg-black/60" #keysSidebar>
-         <div
-           *ngFor="let midi of displayKeys()"
-           class="key-item border-b border-black/20"
-           [class.black-key]="isBlackKey(midi)"
-           [style.height.px]="rowHeight()"
-         >
-           <span class="key-name font-mono text-[7px] font-black opacity-30"
-             >{{ getKeyName(midi) }}{{ getOctaveLabel(midi) }}</span>
-         </div>
-       </div>
-       <div class="velocity-label h-24 wood-panel flex items-center justify-center">
-          <span class="text-[7px] font-black rotate-[-90deg] opacity-40 uppercase tracking-widest">Velocity</span>
-       </div>
+      <div class="keys-sidebar no-scrollbar flex-1 bg-black/60" #keysSidebar>
+        <div
+          *ngFor="let midi of displayKeys()"
+          class="key-item border-b border-black/20"
+          [class.black-key]="isBlackKey(midi)"
+          [style.height.px]="rowHeight()"
+        >
+          <span class="key-name font-mono text-[7px] font-black opacity-30"
+            >{{ getKeyName(midi) }}{{ getOctaveLabel(midi) }}</span
+          >
+        </div>
+      </div>
+      <div
+        class="velocity-label h-24 wood-panel flex items-center justify-center"
+      >
+        <span
+          class="text-[7px] font-black rotate-[-90deg] opacity-40 uppercase tracking-widest"
+          >Velocity</span
+        >
+      </div>
     </div>
 
     <div class="grid-section flex-1 flex flex-col overflow-hidden">
@@ -197,62 +214,109 @@
             [style.background-color]="selectedTrack()?.color"
             (pointerdown)="onNotePointerDown($event, note)"
           >
-            <div *ngIf="note.isSlide" class="absolute top-0 right-0 w-2 h-2 bg-white/40 clip-triangle"></div>
+            <div
+              *ngIf="note.isSlide"
+              class="absolute top-0 right-0 w-2 h-2 bg-white/40 clip-triangle"
+            ></div>
           </div>
 
           <div
             class="playhead absolute top-0 bottom-0 w-0.5 bg-fl-blue shadow-[0_0_10px_#00e5ff] z-30"
-            [style.left.px]="(musicManager.currentStep() % cells.length) * cellWidth()"
+            [style.left.px]="
+              (musicManager.currentStep() % cells.length) * cellWidth()
+            "
           ></div>
         </div>
       </div>
 
-      <div class="velocity-editor h-24 wood-panel relative overflow-x-auto custom-scrollbar" #velocityViewport (scroll)="onVelocityScroll($event)" (pointerdown)="onVelocityPointerDown($event)">
-         <div class="velocity-canvas relative" [style.width.px]="gridWidth()" [style.height.px]="96">
-            <div *ngFor="let column of gridColumns"
-                 class="grid-col absolute top-0 bottom-0 border-r border-white/5"
-                 [class.bar-line]="column % 16 === 0"
-                 [style.left.px]="column * cellWidth()"
-                 [style.width.px]="cellWidth()">
-            </div>
-            <div *ngFor="let note of viewportNotes()"
-                 class="velocity-bar absolute bottom-0 bg-fl-blue/60 hover:bg-fl-blue transition-colors"
-                 [class.selected]="selectedNoteIds().has(note.id)"
-                 [style.left.px]="note.step * cellWidth()"
-                 [style.width.px]="note.length * cellWidth()"
-                 [style.height.px]="note.velocity * 60"
-                 [style.background-color]="selectedTrack()?.color"
-                 (pointerdown)="onNotePointerDown($event, note)">
-            </div>
-         </div>
+      <div
+        class="velocity-editor h-24 wood-panel relative overflow-x-auto custom-scrollbar"
+        #velocityViewport
+        (scroll)="onVelocityScroll($event)"
+        (pointerdown)="onVelocityPointerDown($event)"
+      >
+        <div
+          class="velocity-canvas relative"
+          [style.width.px]="gridWidth()"
+          [style.height.px]="96"
+        >
+          <div
+            *ngFor="let column of gridColumns"
+            class="grid-col absolute top-0 bottom-0 border-r border-white/5"
+            [class.bar-line]="column % 16 === 0"
+            [style.left.px]="column * cellWidth()"
+            [style.width.px]="cellWidth()"
+          ></div>
+          <div
+            *ngFor="let note of viewportNotes()"
+            class="velocity-bar absolute bottom-0 bg-fl-blue/60 hover:bg-fl-blue transition-colors"
+            [class.selected]="selectedNoteIds().has(note.id)"
+            [style.left.px]="note.step * cellWidth()"
+            [style.width.px]="note.length * cellWidth()"
+            [style.height.px]="note.velocity * 60"
+            [style.background-color]="selectedTrack()?.color"
+            (pointerdown)="onNotePointerDown($event, note)"
+          ></div>
+        </div>
       </div>
     </div>
 
-    <div class="note-params glass-v42 wood-panel no-scrollbar border-l border-white/10 flex flex-col gap-8">
-      <div class="neon-text text-[9px] font-black tracking-[0.2em] uppercase">Note Properties</div>
+    <div
+      class="note-params glass-v42 wood-panel no-scrollbar border-l border-white/10 flex flex-col gap-8"
+    >
+      <div class="neon-text text-[9px] font-black tracking-[0.2em] uppercase">
+        Note Properties
+      </div>
       <div class="param-group flex flex-col items-center gap-4">
         <label class="param-slider">
           <span>Velocity</span>
-          <input type="range" min="0.1" max="1.5" step="0.05" [value]="selectedNoteVelocity()" (input)="updateSelectedNoteParam('velocity', $event)"/>
+          <input
+            type="range"
+            min="0.1"
+            max="1.5"
+            step="0.05"
+            [value]="selectedNoteVelocity()"
+            (input)="updateSelectedNoteParam('velocity', $event)"
+          />
         </label>
         <label class="param-slider">
           <span>Probability</span>
-          <input type="range" min="0" max="1" step="0.05" [value]="selectedNoteProbability()" (input)="updateSelectedNoteParam('probability', $event)"/>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            [value]="selectedNoteProbability()"
+            (input)="updateSelectedNoteParam('probability', $event)"
+          />
         </label>
       </div>
       <div class="flex flex-col gap-4 px-4">
         <div class="flex items-center justify-between">
-          <span class="text-[8px] font-black text-slate-500 uppercase">Slide (Glide)</span>
-          <button (click)="toggleSelectedSlide()" class="w-6 h-6 rounded-md glass-v42 border border-white/5 flex items-center justify-center">
-            <span class="material-symbols-outlined text-xs" [class.text-fl-blue]="hasSelectedSlide()">check_circle</span>
+          <span class="text-[8px] font-black text-slate-500 uppercase"
+            >Slide (Glide)</span
+          >
+          <button
+            (click)="toggleSelectedSlide()"
+            class="w-6 h-6 rounded-md glass-v42 border border-white/5 flex items-center justify-center"
+          >
+            <span
+              class="material-symbols-outlined text-xs"
+              [class.text-fl-blue]="hasSelectedSlide()"
+              >check_circle</span
+            >
           </button>
         </div>
       </div>
       <div class="flex-1"></div>
       <div class="grid-info border-t border-white/5 pt-4">
-        <div class="flex justify-between text-[7px] font-black text-slate-500 uppercase">
+        <div
+          class="flex justify-between text-[7px] font-black text-slate-500 uppercase"
+        >
           <span>Grid Zoom</span>
-          <span class="text-fl-blue">{{ (touchGestures.zoomLevel() * 100).toFixed(0) }}%</span>
+          <span class="text-fl-blue"
+            >{{ (touchGestures.zoomLevel() * 100).toFixed(0) }}%</span
+          >
         </div>
       </div>
     </div>

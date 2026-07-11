@@ -14,7 +14,7 @@
     "test": "jest",
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",
-    "deploy": "ng build --configuration=ghpages && cp Build/index.html Build/404.html && npx angular-cli-ghpages --dir=Build"
+    "deploy": "ng build --configuration=ghpages && cp Build/browser/index.html Build/browser/404.html && npx angular-cli-ghpages --dir=Build/browser"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "21.2.7",

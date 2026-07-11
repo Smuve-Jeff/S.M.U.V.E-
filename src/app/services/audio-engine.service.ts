@@ -41,7 +41,9 @@ export class AudioEngineService {
   public static readonly DEFAULT_LOOKAHEAD_SECONDS = 0.1;
   public static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
-  public readonly ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  public readonly ctx = new (
+    window.AudioContext || (window as any).webkitAudioContext
+  )();
 
   public logger = inject(LoggingService);
   private injector = inject(Injector);
@@ -75,7 +77,7 @@ export class AudioEngineService {
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
-  public scaleMode = signal("major");
+  public scaleMode = signal('major');
   public scaleLock = signal(false);
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
@@ -87,7 +89,11 @@ export class AudioEngineService {
   private schedulerHandle: any = null;
   private currentStep = 0;
   private countInRemainingSteps = 0;
-  public onScheduleStep?: (step: number, time: number, duration: number) => void;
+  public onScheduleStep?: (
+    step: number,
+    time: number,
+    duration: number
+  ) => void;
   public onCountInComplete?: () => void;
 
   private sidechainMatrix = new Map<string, Set<string>>();
@@ -129,7 +135,9 @@ export class AudioEngineService {
     this.initMidiOut();
   }
 
-  resume() { if (this.ctx.state === 'suspended') this.ctx.resume(); }
+  resume() {
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
 
   startCountIn() {
     this.resume();
@@ -138,7 +146,10 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.countInRemainingSteps = this.stepsPerBeat() * 4;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(() => this.scheduler(), AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS);
+    this.schedulerHandle = setInterval(
+      () => this.scheduler(),
+      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+    );
   }
 
   start() {
@@ -147,13 +158,19 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.sendMidiStart();
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(() => this.scheduler(), AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS);
+    this.schedulerHandle = setInterval(
+      () => this.scheduler(),
+      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+    );
   }
 
   stop() {
     this.isPlaying.set(false);
     this.sendMidiStop();
-    if (this.schedulerHandle) { clearInterval(this.schedulerHandle); this.schedulerHandle = null; }
+    if (this.schedulerHandle) {
+      clearInterval(this.schedulerHandle);
+      this.schedulerHandle = null;
+    }
     this.currentStep = 0;
     this.currentBeat.set(0);
     this.visualStep.set(0);
@@ -162,7 +179,10 @@ export class AudioEngineService {
   }
 
   private async initMidiOut() {
-    if (typeof navigator !== 'undefined' && (navigator as any).requestMIDIAccess) {
+    if (
+      typeof navigator !== 'undefined' &&
+      (navigator as any).requestMIDIAccess
+    ) {
       try {
         this.midiAccess = await (navigator as any).requestMIDIAccess();
         this.updateMidiOutputs();
@@ -170,17 +190,31 @@ export class AudioEngineService {
       } catch (e) {}
     }
   }
-  private updateMidiOutputs() { if (this.midiAccess) this.midiOutputs = Array.from(this.midiAccess.outputs.values()); }
-  private sendMidiToAll(data: number[]) { this.midiOutputs.forEach(out => out.send(data)); }
-  private sendMidiStart() { this.sendMidiToAll([0xFA]); }
-  private sendMidiStop() { this.sendMidiToAll([0xFC]); }
+  private updateMidiOutputs() {
+    if (this.midiAccess)
+      this.midiOutputs = Array.from(this.midiAccess.outputs.values());
+  }
+  private sendMidiToAll(data: number[]) {
+    this.midiOutputs.forEach((out) => out.send(data));
+  }
+  private sendMidiStart() {
+    this.sendMidiToAll([0xfa]);
+  }
+  private sendMidiStop() {
+    this.sendMidiToAll([0xfc]);
+  }
 
   private scheduler() {
     const stepDuration = 60 / this.tempo() / this.stepsPerBeat();
-    while (this.nextNoteTime < this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS) {
+    while (
+      this.nextNoteTime <
+      this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
+    ) {
       const step = this.currentStep;
       if (this.isCountIn()) {
-        if (step % this.stepsPerBeat() === 0) { this.playMetronomeClick(this.nextNoteTime, step === 0, true); }
+        if (step % this.stepsPerBeat() === 0) {
+          this.playMetronomeClick(this.nextNoteTime, step === 0, true);
+        }
         this.nextNoteTime += stepDuration;
         this.currentStep++;
         this.countInRemainingSteps--;
@@ -193,19 +227,29 @@ export class AudioEngineService {
       }
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
       if (this.metronomeEnabled() && step % this.stepsPerBeat() === 0) {
-        this.playMetronomeClick(this.nextNoteTime, step % (this.stepsPerBeat() * 4) === 0);
+        this.playMetronomeClick(
+          this.nextNoteTime,
+          step % (this.stepsPerBeat() * 4) === 0
+        );
       }
       const visualDelay = (this.nextNoteTime - this.ctx.currentTime) * 1000;
-      setTimeout(() => {
-        this.visualStep.set(step);
-        this.currentBeat.set(step / this.stepsPerBeat());
-      }, Math.max(0, visualDelay));
+      setTimeout(
+        () => {
+          this.visualStep.set(step);
+          this.currentBeat.set(step / this.stepsPerBeat());
+        },
+        Math.max(0, visualDelay)
+      );
       this.nextNoteTime += stepDuration;
       this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
     }
   }
 
-  private playMetronomeClick(time: number, isDownbeat: boolean, force: boolean = false) {
+  private playMetronomeClick(
+    time: number,
+    isDownbeat: boolean,
+    force: boolean = false
+  ) {
     if (!this.metronomeEnabled() && !force) return;
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
@@ -219,62 +263,183 @@ export class AudioEngineService {
     osc.stop(time + 0.1);
   }
 
-  stepsPerBeat() { return 4; }
+  stepsPerBeat() {
+    return 4;
+  }
 
   private createDeck(id: DeckId): DeckChannel {
     const gains: any = {};
-    ['drums', 'bass', 'other', 'vocals'].forEach((s) => { gains[s] = this.ctx.createGain(); gains[s].gain.value = 1; });
+    ['drums', 'bass', 'other', 'vocals'].forEach((s) => {
+      gains[s] = this.ctx.createGain();
+      gains[s].gain.value = 1;
+    });
     const deck: DeckChannel = {
-      id, buffer: null, sources: {}, gains,
-      eqLow: this.ctx.createBiquadFilter(), eqMid: this.ctx.createBiquadFilter(), eqHigh: this.ctx.createBiquadFilter(),
-      filter: this.ctx.createBiquadFilter(), pan: this.ctx.createStereoPanner(), gain: this.ctx.createGain(),
-      sendA: this.ctx.createGain(), sendB: this.ctx.createGain(), analyser: this.ctx.createAnalyser(),
-      isPlaying: false, startTime: 0, pauseOffset: 0, rate: 1.0, stems: null, loopEnabled: false,
-      slipEnabled: false, slipActive: false, slipStartTime: 0, slipStartOffset: 0, hotCues: new Array(8).fill(null),
+      id,
+      buffer: null,
+      sources: {},
+      gains,
+      eqLow: this.ctx.createBiquadFilter(),
+      eqMid: this.ctx.createBiquadFilter(),
+      eqHigh: this.ctx.createBiquadFilter(),
+      filter: this.ctx.createBiquadFilter(),
+      pan: this.ctx.createStereoPanner(),
+      gain: this.ctx.createGain(),
+      sendA: this.ctx.createGain(),
+      sendB: this.ctx.createGain(),
+      analyser: this.ctx.createAnalyser(),
+      isPlaying: false,
+      startTime: 0,
+      pauseOffset: 0,
+      rate: 1.0,
+      stems: null,
+      loopEnabled: false,
+      slipEnabled: false,
+      slipActive: false,
+      slipStartTime: 0,
+      slipStartOffset: 0,
+      hotCues: new Array(8).fill(null),
     };
-    deck.eqLow.type = 'lowshelf'; deck.eqLow.frequency.value = 250;
-    deck.eqMid.type = 'peaking'; deck.eqMid.frequency.value = 1000;
-    deck.eqHigh.type = 'highshelf'; deck.eqHigh.frequency.value = 4000;
-    deck.filter.type = 'lowpass'; deck.filter.frequency.value = 20000;
+    deck.eqLow.type = 'lowshelf';
+    deck.eqLow.frequency.value = 250;
+    deck.eqMid.type = 'peaking';
+    deck.eqMid.frequency.value = 1000;
+    deck.eqHigh.type = 'highshelf';
+    deck.eqHigh.frequency.value = 4000;
+    deck.filter.type = 'lowpass';
+    deck.filter.frequency.value = 20000;
     return deck;
   }
 
-  getDeck(id: DeckId) { return id === 'A' ? this.deckA : this.deckB; }
-  stopDeck(id: DeckId) { const deck = this.getDeck(id); if (!deck) return; deck.isPlaying = false; Object.values(deck.sources).forEach(s => { if(s) { try { s.stop(); } catch(e) {} } }); deck.sources = {}; }
-  playDeck(id: DeckId) { const deck = this.getDeck(id); if (deck) deck.isPlaying = true; }
-  pauseDeck(id: DeckId) { const deck = this.getDeck(id); if (deck) deck.isPlaying = false; }
-  seekDeck(id: DeckId, pos: number) { /* seek logic */ }
-  getDeckProgress(id: DeckId) { return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 }; }
-  getDeckLevel(id: DeckId) { return 0.5; }
-  getDeckWaveformData(id: DeckId) { return new Float32Array(0); }
-  setDeckGain(id: DeckId, val: number) { const deck = this.getDeck(id); if (deck) deck.gain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01); }
-  setDeckRate(id: DeckId, rate: number, sync: boolean = false) { const deck = this.getDeck(id); if (deck) deck.rate = rate; }
-  setDeckLoop(id: DeckId, enabled: boolean) { const deck = this.getDeck(id); if (deck) deck.loopEnabled = enabled; }
-  setSlipMode(id: DeckId, enabled: boolean) { const deck = this.getDeck(id); if (deck) { deck.slipEnabled = enabled; if (!enabled) deck.slipActive = false; } }
-  setDeckStemGain(id: DeckId, stem: string, gain: number) { const deck = this.getDeck(id); if (deck && (deck.gains as any)[stem]) { (deck.gains as any)[stem].gain.setTargetAtTime(gain, this.ctx.currentTime, 0.01); } }
-  setDeckCue(id: DeckId, active: boolean) { /* cue logic */ }
-  loadDeck(id: DeckId, buffer: AudioBuffer) { /* load logic */ }
-  setHotCue(id: DeckId, slot: number) { /* hotcue logic */ }
-  clearHotCue(id: DeckId, slot: number) { /* hotcue logic */ }
-  jumpToHotCue(id: DeckId, slot: number) { /* hotcue logic */ }
-  setDeckEq(id: DeckId, high: number, mid: number, low: number) { /* eq logic */ }
-  setDeckFilter(id: DeckId, freq: number) { /* filter logic */ }
-  setDeckSend(id: DeckId, send: 'A'|'B', gain: number) { /* send logic */ }
-  scratch(id: DeckId, delta: number) { /* scratch logic */ }
-  brakeDeck(id: DeckId) { /* brake logic */ }
-  spinbackDeck(id: DeckId) { /* spinback logic */ }
-  transformDeck(id: DeckId) { /* transform logic */ }
-
-  setCrossfader(val: number, curve: string = 'linear', hamster: boolean = false) {
-    this.crossfaderValue = val; this.crossfaderHamster = hamster;
-    let actualVal = hamster ? 1 - val : val;
-    const left = Math.cos(actualVal * 0.5 * Math.PI);
-    const right = Math.sin(actualVal * 0.5 * Math.PI);
-    if (this.deckA) this.deckA.gain.gain.setTargetAtTime(left, this.ctx.currentTime, 0.01);
-    if (this.deckB) this.deckB.gain.gain.setTargetAtTime(right, this.ctx.currentTime, 0.01);
+  getDeck(id: DeckId) {
+    return id === 'A' ? this.deckA : this.deckB;
+  }
+  stopDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.isPlaying = false;
+    Object.values(deck.sources).forEach((s) => {
+      if (s) {
+        try {
+          s.stop();
+        } catch (e) {}
+      }
+    });
+    deck.sources = {};
+  }
+  playDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (deck) deck.isPlaying = true;
+  }
+  pauseDeck(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (deck) deck.isPlaying = false;
+  }
+  seekDeck(id: DeckId, pos: number) {
+    /* seek logic */
+  }
+  getDeckProgress(id: DeckId) {
+    return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+  }
+  getDeckLevel(id: DeckId) {
+    return 0.5;
+  }
+  getDeckWaveformData(id: DeckId) {
+    return new Float32Array(0);
+  }
+  setDeckGain(id: DeckId, val: number) {
+    const deck = this.getDeck(id);
+    if (deck) deck.gain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01);
+  }
+  setDeckRate(id: DeckId, rate: number, sync: boolean = false) {
+    const deck = this.getDeck(id);
+    if (deck) deck.rate = rate;
+  }
+  setDeckLoop(id: DeckId, enabled: boolean) {
+    const deck = this.getDeck(id);
+    if (deck) deck.loopEnabled = enabled;
+  }
+  setSlipMode(id: DeckId, enabled: boolean) {
+    const deck = this.getDeck(id);
+    if (deck) {
+      deck.slipEnabled = enabled;
+      if (!enabled) deck.slipActive = false;
+    }
+  }
+  setDeckStemGain(id: DeckId, stem: string, gain: number) {
+    const deck = this.getDeck(id);
+    if (deck && (deck.gains as any)[stem]) {
+      (deck.gains as any)[stem].gain.setTargetAtTime(
+        gain,
+        this.ctx.currentTime,
+        0.01
+      );
+    }
+  }
+  setDeckCue(id: DeckId, active: boolean) {
+    /* cue logic */
+  }
+  loadDeck(id: DeckId, buffer: AudioBuffer) {
+    /* load logic */
+  }
+  setHotCue(id: DeckId, slot: number) {
+    /* hotcue logic */
+  }
+  clearHotCue(id: DeckId, slot: number) {
+    /* hotcue logic */
+  }
+  jumpToHotCue(id: DeckId, slot: number) {
+    /* hotcue logic */
+  }
+  setDeckEq(id: DeckId, high: number, mid: number, low: number) {
+    /* eq logic */
+  }
+  setDeckFilter(id: DeckId, freq: number) {
+    /* filter logic */
+  }
+  setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
+    /* send logic */
+  }
+  scratch(id: DeckId, delta: number) {
+    /* scratch logic */
+  }
+  brakeDeck(id: DeckId) {
+    /* brake logic */
+  }
+  spinbackDeck(id: DeckId) {
+    /* spinback logic */
+  }
+  transformDeck(id: DeckId) {
+    /* transform logic */
   }
 
-  triggerAttack(trackId: string | number, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, params: any) {
+  setCrossfader(
+    val: number,
+    curve: string = 'linear',
+    hamster: boolean = false
+  ) {
+    this.crossfaderValue = val;
+    this.crossfaderHamster = hamster;
+    const actualVal = hamster ? 1 - val : val;
+    const left = Math.cos(actualVal * 0.5 * Math.PI);
+    const right = Math.sin(actualVal * 0.5 * Math.PI);
+    if (this.deckA)
+      this.deckA.gain.gain.setTargetAtTime(left, this.ctx.currentTime, 0.01);
+    if (this.deckB)
+      this.deckB.gain.gain.setTargetAtTime(right, this.ctx.currentTime, 0.01);
+  }
+
+  triggerAttack(
+    trackId: string | number,
+    freq: number,
+    time: number,
+    velocity: number,
+    duration: number,
+    gain: number,
+    pan: number,
+    sendA: number,
+    sendB: number,
+    params: any
+  ) {
     const osc = this.ctx.createOscillator();
     const panner = this.ctx.createStereoPanner();
     const vca = this.ctx.createGain();
@@ -283,13 +448,26 @@ export class AudioEngineService {
     panner.pan.setValueAtTime(pan, time);
     vca.gain.setValueAtTime(0, time);
     vca.gain.setTargetAtTime(velocity * gain, time, params.attack || 0.01);
-    vca.gain.exponentialRampToValueAtTime(0.001, time + duration + (params.release || 0.1));
-    osc.connect(panner); panner.connect(vca);
+    vca.gain.exponentialRampToValueAtTime(
+      0.001,
+      time + duration + (params.release || 0.1)
+    );
+    osc.connect(panner);
+    panner.connect(vca);
     vca.connect(this.getTrackOutput(trackId.toString()));
-    osc.start(time); osc.stop(time + duration + (params.release || 0.1) + 0.1);
+    osc.start(time);
+    osc.stop(time + duration + (params.release || 0.1) + 0.1);
   }
 
-  triggerSampler(trackId: string | number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number, playbackRate: number = 1) {
+  triggerSampler(
+    trackId: string | number,
+    buffer: AudioBuffer,
+    time: number,
+    velocity: number,
+    pan: number,
+    duration: number,
+    playbackRate: number = 1
+  ) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.setValueAtTime(playbackRate, time);
@@ -298,9 +476,11 @@ export class AudioEngineService {
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(0, time);
     gain.gain.setTargetAtTime(velocity, time, 0.005);
-    source.connect(panner); panner.connect(gain);
+    source.connect(panner);
+    panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId.toString()));
-    source.start(time); source.stop(time + duration);
+    source.start(time);
+    source.stop(time + duration);
   }
 
   getTrackOutput(id: string): GainNode {
@@ -308,8 +488,16 @@ export class AudioEngineService {
       const g = this.ctx.createGain();
       g.connect(this.masterGain);
       this.trackOutputs.set(id, g);
-      const sA = this.ctx.createGain(); sA.gain.value = 0; g.connect(sA); sA.connect(this.sendAReturn); this.trackSendAGains.set(id, sA);
-      const sB = this.ctx.createGain(); sB.gain.value = 0; g.connect(sB); sB.connect(this.sendBReturn); this.trackSendBGains.set(id, sB);
+      const sA = this.ctx.createGain();
+      sA.gain.value = 0;
+      g.connect(sA);
+      sA.connect(this.sendAReturn);
+      this.trackSendAGains.set(id, sA);
+      const sB = this.ctx.createGain();
+      sB.gain.value = 0;
+      g.connect(sB);
+      sB.connect(this.sendBReturn);
+      this.trackSendBGains.set(id, sB);
     }
     return this.trackOutputs.get(id)!;
   }
@@ -317,45 +505,116 @@ export class AudioEngineService {
   updateTrack(id: string | number, patch: any) {
     const idStr = id.toString();
     const output = this.getTrackOutput(idStr);
-    if (patch.gain !== undefined) output.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
-    if (patch.sendA !== undefined) this.trackSendAGains.get(idStr)?.gain.setTargetAtTime(patch.sendA, this.ctx.currentTime, 0.05);
-    if (patch.sendB !== undefined) this.trackSendBGains.get(idStr)?.gain.setTargetAtTime(patch.sendB, this.ctx.currentTime, 0.05);
-    this.tracksMap.set(idStr, { ...(this.tracksMap.get(idStr) || {}), ...patch });
+    if (patch.gain !== undefined)
+      output.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
+    if (patch.sendA !== undefined)
+      this.trackSendAGains
+        .get(idStr)
+        ?.gain.setTargetAtTime(patch.sendA, this.ctx.currentTime, 0.05);
+    if (patch.sendB !== undefined)
+      this.trackSendBGains
+        .get(idStr)
+        ?.gain.setTargetAtTime(patch.sendB, this.ctx.currentTime, 0.05);
+    this.tracksMap.set(idStr, {
+      ...(this.tracksMap.get(idStr) || {}),
+      ...patch,
+    });
   }
 
-  applyProductionParameter(trackId: string, parameter: string, value: number, duration: number = 0.01) {
-    if (trackId === '0' && parameter === 'tempo') { this.tempo.set(value); return; }
+  applyProductionParameter(
+    trackId: string,
+    parameter: string,
+    value: number,
+    duration: number = 0.01
+  ) {
+    if (trackId === '0' && parameter === 'tempo') {
+      this.tempo.set(value);
+      return;
+    }
     this.updateTrack(trackId, { [parameter]: value });
   }
 
-  setMasterOutputLevel(val: number) { this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05); }
-  toggleMetronome() { this.metronomeEnabled.update(v => !v); return this.metronomeEnabled(); }
-  setMetronomeVolume(val: number) { this.metronomeVolume.set(val); }
+  setMasterOutputLevel(val: number) {
+    this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
+  }
+  toggleMetronome() {
+    this.metronomeEnabled.update((v) => !v);
+    return this.metronomeEnabled();
+  }
+  setMetronomeVolume(val: number) {
+    this.metronomeVolume.set(val);
+  }
   setSoftClip(amount: number) {
-    const k = amount * 100, n = 256, curve = new Float32Array(n), deg = Math.PI / 180;
+    const k = amount * 100,
+      n = 256,
+      curve = new Float32Array(n),
+      deg = Math.PI / 180;
     for (let i = 0; i < n; i++) {
       const x = (i * 2) / n - 1;
       curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
     }
     this.saturationNode.curve = amount === 0 ? null : curve;
   }
-  setSaturation(val: number) { this.setSoftClip(val); }
-  getContext() { return this.ctx; }
-  getMasterAnalyser() { return this.masterAnalyser; }
-  getAnalyser() { return this.masterAnalyser; }
-  ensureTrack(data: any) { if (!this.trackOutputs.has(data.id.toString())) this.updateTrack(data.id, data); }
-  playSynth(time: number, freq: number, duration: number, velocity: number, pan: number, params: any) { this.triggerAttack('0', freq, time, velocity, duration, 1.0, pan, 0, 0, params); }
-  updateAdaptivePerformance(load: number) { this.performanceTier.set(load > 70 ? 'performance' : 'ultra'); }
+  setSaturation(val: number) {
+    this.setSoftClip(val);
+  }
+  getContext() {
+    return this.ctx;
+  }
+  getMasterAnalyser() {
+    return this.masterAnalyser;
+  }
+  getAnalyser() {
+    return this.masterAnalyser;
+  }
+  ensureTrack(data: any) {
+    if (!this.trackOutputs.has(data.id.toString()))
+      this.updateTrack(data.id, data);
+  }
+  playSynth(
+    time: number,
+    freq: number,
+    duration: number,
+    velocity: number,
+    pan: number,
+    params: any
+  ) {
+    this.triggerAttack(
+      '0',
+      freq,
+      time,
+      velocity,
+      duration,
+      1.0,
+      pan,
+      0,
+      0,
+      params
+    );
+  }
+  updateAdaptivePerformance(load: number) {
+    this.performanceTier.set(load > 70 ? 'performance' : 'ultra');
+  }
   connectSidechain(t: string, g: string) {}
   disconnectSidechain(t: string, g: string) {}
-  getSidechainRouting() { return []; }
-  calculatePlaybackRate(bpm: number) { return this.tempo() / bpm; }
-  getMasteringTargets() { return { lufs: -14, truePeak: -0.1 }; }
+  getSidechainRouting() {
+    return [];
+  }
+  calculatePlaybackRate(bpm: number) {
+    return this.tempo() / bpm;
+  }
+  getMasteringTargets() {
+    return { lufs: -14, truePeak: -0.1 };
+  }
   configureCompressor(p: any) {}
   configureLimiter(p: any) {}
   syncDecks(m: DeckId, s: DeckId) {}
-  setOutputMode(mode: 'speakers' | 'headphones') { this.outputMode.set(mode); }
-  setAdvancedFX(id: DeckId, type: string, amount: number) { /* fx logic */ }
+  setOutputMode(mode: 'speakers' | 'headphones') {
+    this.outputMode.set(mode);
+  }
+  setAdvancedFX(id: DeckId, type: string, amount: number) {
+    /* fx logic */
+  }
   getMasterStream(): MediaStreamAudioDestinationNode {
     if (!this.recordingDestination) {
       this.recordingDestination = this.ctx.createMediaStreamDestination();

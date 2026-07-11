@@ -22,12 +22,14 @@ export class Sampler {
 
   constructor(private readonly context: AudioContext) {
     this.output = this.context.createGain();
-    this.sourcePool = new NodePool(this.context, (ctx) => ctx.createBufferSource());
+    this.sourcePool = new NodePool(this.context, (ctx) =>
+      ctx.createBufferSource()
+    );
     this.gainPool = new NodePool(this.context, (ctx) => ctx.createGain());
   }
 
   loadSample(pitch: number, buffer: AudioBuffer, threshold: number = 127) {
-    let layers = this.bufferLayers.get(pitch) || [];
+    const layers = this.bufferLayers.get(pitch) || [];
     layers.push({ threshold, buffer });
     layers.sort((a, b) => a.threshold - b.threshold);
     this.bufferLayers.set(pitch, layers);
@@ -42,7 +44,9 @@ export class Sampler {
     if (!layers || layers.length === 0) return;
 
     // Find correct velocity layer
-    const layer = layers.find(l => velocity * 127 <= l.threshold) || layers[layers.length - 1];
+    const layer =
+      layers.find((l) => velocity * 127 <= l.threshold) ||
+      layers[layers.length - 1];
     const buffer = layer.buffer;
 
     const source = this.sourcePool.get();

@@ -11,7 +11,10 @@ export class DjMidiService {
   private midiAccess: any = null;
 
   async initMidi() {
-    if (typeof navigator !== 'undefined' && (navigator as any).requestMIDIAccess) {
+    if (
+      typeof navigator !== 'undefined' &&
+      (navigator as any).requestMIDIAccess
+    ) {
       try {
         this.midiAccess = await (navigator as any).requestMIDIAccess();
         this.logger.info('DJ MIDI Access Granted');
@@ -24,7 +27,11 @@ export class DjMidiService {
 
   private setupInputs() {
     const inputs = this.midiAccess.inputs.values();
-    for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
+    for (
+      let input = inputs.next();
+      input && !input.done;
+      input = inputs.next()
+    ) {
       input.value.onmidimessage = (msg: any) => this.handleMidi(msg);
     }
   }
@@ -38,9 +45,11 @@ export class DjMidiService {
     // Channel 0 = Deck A, Channel 1 = Deck B
     const deck = channel === 0 ? 'A' : 'B';
 
-    if (cmd === 9 && data2 > 0) { // Note On / Button Press
+    if (cmd === 9 && data2 > 0) {
+      // Note On / Button Press
       this.handleButton(deck, data1);
-    } else if (cmd === 11) { // CC / Faders & Knobs
+    } else if (cmd === 11) {
+      // CC / Faders & Knobs
       this.handleControl(deck, data1, data2);
     }
   }
@@ -67,8 +76,10 @@ export class DjMidiService {
         break;
       case 2: // Pitch Fader
         const pitch = 0.9 + normalized * 0.2; // 0.9 to 1.1
-        if (deck === 'A') this.deckService.deckA.update(d => ({ ...d, playbackRate: pitch }));
-        else this.deckService.deckB.update(d => ({ ...d, playbackRate: pitch }));
+        if (deck === 'A')
+          this.deckService.deckA.update((d) => ({ ...d, playbackRate: pitch }));
+        else
+          this.deckService.deckB.update((d) => ({ ...d, playbackRate: pitch }));
         break;
       case 3: // Crossfader
         this.deckService.crossfade.set((normalized - 0.5) * 2);
@@ -80,7 +91,8 @@ export class DjMidiService {
   }
 
   private updateEq(deck: 'A' | 'B', type: 'high' | 'mid' | 'low', val: number) {
-    const state = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const state =
+      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     let { eqHigh, eqMid, eqLow } = state;
     if (type === 'high') eqHigh = val;
     if (type === 'mid') eqMid = val;

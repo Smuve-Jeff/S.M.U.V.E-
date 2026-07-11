@@ -48,9 +48,14 @@ describe('PerformerComponent', () => {
             setActivePatternSlot: jest.fn(),
             tracks: signal([]),
             selectedTrackId: signal(null),
-            engine: { masterAnalyser: { frequencyBinCount: 1024, getByteFrequencyData: jest.fn() } },
+            engine: {
+              masterAnalyser: {
+                frequencyBinCount: 1024,
+                getByteFrequencyData: jest.fn(),
+              },
+            },
             performerScenes: signal([]),
-            activeSceneId: signal(null)
+            activeSceneId: signal(null),
           },
         },
         {
@@ -64,7 +69,7 @@ describe('PerformerComponent', () => {
         },
         {
           provide: AudioEngineService,
-          useValue: { ctx: { currentTime: 0 } }
+          useValue: { ctx: { currentTime: 0 } },
         },
         {
           provide: LiveEngineService,
@@ -76,8 +81,8 @@ describe('PerformerComponent', () => {
         },
         {
           provide: InstrumentsService,
-          useValue: { getPresets: () => [] }
-        }
+          useValue: { getPresets: () => [] },
+        },
       ],
     }).compileComponents();
 

@@ -63,9 +63,14 @@ export class StudioRecordingEngineService implements OnDestroy {
       const ctx = this.audioEngine.ctx;
 
       try {
-        await ctx.audioWorklet.addModule('assets/worklets/recording-processor.js');
+        await ctx.audioWorklet.addModule(
+          'assets/worklets/recording-processor.js'
+        );
       } catch (e) {
-        this.logger.warn('StudioRecordingEngine: Worklet might already be loaded or failed to load via assets path.', e);
+        this.logger.warn(
+          'StudioRecordingEngine: Worklet might already be loaded or failed to load via assets path.',
+          e
+        );
       }
 
       this.sourceNode = ctx.createMediaStreamSource(this.mediaStream);
@@ -76,7 +81,9 @@ export class StudioRecordingEngineService implements OnDestroy {
 
       this.isInitialized.set(true);
       this.startLevelMonitoring();
-      this.logger.info('StudioRecordingEngine: Initialized high-performance capture via AudioWorklet.');
+      this.logger.info(
+        'StudioRecordingEngine: Initialized high-performance capture via AudioWorklet.'
+      );
       return true;
     } catch (error) {
       this.logger.error('StudioRecordingEngine: Initialization failed', error);
@@ -96,7 +103,9 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.isInitialized.set(true);
       this.startLevelMonitoring();
     } else if (!this.isInitialized()) {
-      this.logger.error('StudioRecordingEngine: Cannot start recording without initialization');
+      this.logger.error(
+        'StudioRecordingEngine: Cannot start recording without initialization'
+      );
       return;
     }
 
@@ -111,8 +120,11 @@ export class StudioRecordingEngineService implements OnDestroy {
       if (event.data.command === 'DATA') {
         this.leftChannel.push(...event.data.left);
         this.rightChannel.push(...event.data.right);
-        const sampleCount = event.data.left.reduce((acc: number, cur: Float32Array) => acc + cur.length, 0);
-        this.recordingTime.update(t => t + (sampleCount / ctx.sampleRate));
+        const sampleCount = event.data.left.reduce(
+          (acc: number, cur: Float32Array) => acc + cur.length,
+          0
+        );
+        this.recordingTime.update((t) => t + sampleCount / ctx.sampleRate);
       }
     };
 
@@ -141,7 +153,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.isRecording.set(false);
     this.workletNode?.port.postMessage({ command: 'STOP' });
     this.workletNode?.port.postMessage({ command: 'FLUSH' });
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     this.workletNode?.disconnect();
 
     const sampleRate = this.audioEngine.ctx.sampleRate;
@@ -159,7 +171,11 @@ export class StudioRecordingEngineService implements OnDestroy {
       bitDepth: 16,
       sampleRate,
     };
-    await this.localStorage.saveItem('audio_blobs', { id, blob: wavBlob, ...metadata });
+    await this.localStorage.saveItem('audio_blobs', {
+      id,
+      blob: wavBlob,
+      ...metadata,
+    });
     const url = URL.createObjectURL(wavBlob);
     this.recordingFinished$.next({ id, blob: wavBlob, url, metadata });
   }
@@ -168,7 +184,10 @@ export class StudioRecordingEngineService implements OnDestroy {
     return this.analyserNode;
   }
 
-  private interleave(left: Float32Array[], right: Float32Array[]): Float32Array {
+  private interleave(
+    left: Float32Array[],
+    right: Float32Array[]
+  ): Float32Array {
     let totalLength = 0;
     for (const chunk of left) totalLength += chunk.length;
     const result = new Float32Array(totalLength * 2);

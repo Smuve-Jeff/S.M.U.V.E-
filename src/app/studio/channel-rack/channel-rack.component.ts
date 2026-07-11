@@ -1,14 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+} from '../../services/music-manager.service';
 
 @Component({
   selector: 'app-channel-rack',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './channel-rack.component.html',
-  styleUrls: ['./channel-rack.component.css']
+  styleUrls: ['./channel-rack.component.css'],
 })
 export class ChannelRackComponent {
   public musicManager = inject(MusicManagerService);
@@ -50,7 +53,7 @@ export class ChannelRackComponent {
   }
 
   toggleStep(track: TrackModel, stepIdx: number) {
-    const existing = track.notes.find(n => Math.floor(n.step) === stepIdx);
+    const existing = track.notes.find((n) => Math.floor(n.step) === stepIdx);
     if (existing) {
       this.musicManager.removeNotes(track.id, [existing.id]);
     } else {
@@ -59,7 +62,7 @@ export class ChannelRackComponent {
         midi: track.type === 'drum' ? 36 : 60,
         step: stepIdx,
         length: 1,
-        velocity: 0.8
+        velocity: 0.8,
       });
     }
   }
@@ -73,14 +76,21 @@ export class ChannelRackComponent {
   }
 
   cloneTrack(track: TrackModel) {
-    this.musicManager.addTrack(track.name + ' (Copy)', track.instrumentId, track.type);
+    this.musicManager.addTrack(
+      track.name + ' (Copy)',
+      track.instrumentId,
+      track.type
+    );
   }
 
   reorderTrack(index: number, direction: 'up' | 'down') {
     const newTracks = [...this.tracks()];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex >= 0 && targetIndex < newTracks.length) {
-      [newTracks[index], newTracks[targetIndex]] = [newTracks[targetIndex], newTracks[index]];
+      [newTracks[index], newTracks[targetIndex]] = [
+        newTracks[targetIndex],
+        newTracks[index],
+      ];
       this.musicManager.tracks.set(newTracks);
     }
   }

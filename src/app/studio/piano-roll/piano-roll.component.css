@@ -29,7 +29,9 @@
   scrollbar-width: none;
 }
 
-.piano-roll-header::-webkit-scrollbar { display: none; }
+.piano-roll-header::-webkit-scrollbar {
+  display: none;
+}
 
 .header-main {
   display: flex;
@@ -120,7 +122,7 @@
   background: #1e293b;
   color: #94a3b8;
   z-index: 2;
-  box-shadow: inset -4px 0 0 rgba(0,0,0,0.5);
+  box-shadow: inset -4px 0 0 rgba(0, 0, 0, 0.5);
 }
 
 .grid-viewport {
@@ -136,8 +138,8 @@
   position: relative;
   touch-action: none;
   background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 24px; /* Standard step width and key height */
 }
 
@@ -149,7 +151,9 @@
   box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
   z-index: 100;
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.1s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.1s;
 }
 
 .note-block:active {
@@ -236,7 +240,9 @@
   transition: background 0.1s;
   background: #fff;
   border: 1px solid #ddd;
-  box-shadow: inset 0 2px 2px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow:
+    inset 0 2px 2px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .key-item.black-key {
@@ -246,7 +252,7 @@
   background: linear-gradient(to right, #333, #000) !important;
   width: 70%;
   z-index: 10;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
   border-color: #000;
 }
 
@@ -255,17 +261,19 @@
 }
 
 .grid-row {
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .grid-row.black-row {
-  background: rgba(255,255,255,0.015);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .note-block {
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 2px !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .note-block.selected-note {
@@ -275,5 +283,5 @@
 
 .note-params {
   background: #111827 !important;
-  box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+  box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
 }

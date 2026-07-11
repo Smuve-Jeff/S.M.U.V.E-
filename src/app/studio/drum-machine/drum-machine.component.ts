@@ -7,7 +7,7 @@ import {
   signal,
   ViewChild,
   ElementRef,
-  effect
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -51,19 +51,23 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public viewMode = signal<'sequencer' | 'knobs'>('sequencer');
   public currentBar = signal(0);
   public barRange = [0, 1, 2, 3];
-  public barStepRange = Array.from({length: 16}, (_, i) => i);
-  public fullStepRange = Array.from({length: 64}, (_, i) => i);
+  public barStepRange = Array.from({ length: 16 }, (_, i) => i);
+  public fullStepRange = Array.from({ length: 64 }, (_, i) => i);
   public selectedPadId = signal<string>('pad-36');
-  public selectedPad = computed(() => this.pads().find(p => p.id === this.selectedPadId()));
+  public selectedPad = computed(() =>
+    this.pads().find((p) => p.id === this.selectedPadId())
+  );
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
   public inspectorCollapsed = signal(false);
   public padsCollapsed = signal(false);
-  public highDensity = computed(() => this.padsCollapsed() && this.inspectorCollapsed());
+  public highDensity = computed(
+    () => this.padsCollapsed() && this.inspectorCollapsed()
+  );
 
   public selectedPadSteps = computed(() => {
     const pad = this.selectedPad();
     if (!pad) return [];
-    return Array.from({length: 64}, (_, i) => this.getPadStep(pad.id, i));
+    return Array.from({ length: 64 }, (_, i) => this.getPadStep(pad.id, i));
   });
 
   private blueprints = [
@@ -85,88 +89,120 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   ngOnDestroy() {}
 
   private initPads() {
-    const initialPads = this.blueprints.map(b => ({
+    const initialPads = this.blueprints.map((b) => ({
       ...b,
       id: `pad-${b.midi}`,
-      params: { semitone: 0, decay: 0.3, pan: 0, cutoff: 15000, resonance: 1, saturation: 0, compression: 0, attack: 0.005 }
+      params: {
+        semitone: 0,
+        decay: 0.3,
+        pan: 0,
+        cutoff: 15000,
+        resonance: 1,
+        saturation: 0,
+        compression: 0,
+        attack: 0.005,
+      },
     }));
     this.pads.set(initialPads);
   }
 
   private getDrumTrack() {
-    return this.musicManager.tracks().find(t => t.id === MusicManagerService.DRUM_TRACK_ID);
+    return this.musicManager
+      .tracks()
+      .find((t) => t.id === MusicManagerService.DRUM_TRACK_ID);
   }
 
   private clearDrumPattern() {
     const track = this.getDrumTrack();
-    if (track) this.musicManager.removeNotes(track.id, track.notes.map(n => n.id));
+    if (track)
+      this.musicManager.removeNotes(
+        track.id,
+        track.notes.map((n) => n.id)
+      );
   }
 
   toggleStep(padId: string, stepIndex: number) {
     this.haptic.light();
-    const pad = this.pads().find(p => p.id === padId);
+    const pad = this.pads().find((p) => p.id === padId);
     if (!pad) return;
 
     const drumTrack = this.getDrumTrack();
     if (!drumTrack) return;
 
-    const existingNote = drumTrack.notes.find(n => n.midi === pad.midi && n.step === stepIndex);
+    const existingNote = drumTrack.notes.find(
+      (n) => n.midi === pad.midi && n.step === stepIndex
+    );
     if (existingNote) {
-       this.musicManager.removeNotes(drumTrack.id, [existingNote.id]);
+      this.musicManager.removeNotes(drumTrack.id, [existingNote.id]);
     } else {
-       this.musicManager.addNoteToTrack(drumTrack.id, {
-          id: 'drum_' + Date.now() + Math.random(),
-          midi: pad.midi,
-          step: stepIndex,
-          length: 1,
-          velocity: 0.8,
-          probability: 1.0,
-          params: { ...pad.params, sampleBuffer: pad.sampleBuffer }
-       });
+      this.musicManager.addNoteToTrack(drumTrack.id, {
+        id: 'drum_' + Date.now() + Math.random(),
+        midi: pad.midi,
+        step: stepIndex,
+        length: 1,
+        velocity: 0.8,
+        probability: 1.0,
+        params: { ...pad.params, sampleBuffer: pad.sampleBuffer },
+      });
     }
   }
 
-  selectPad(id: string) { this.selectedPadId.set(id); }
+  selectPad(id: string) {
+    this.selectedPadId.set(id);
+  }
 
   getPadStep(padId: string, stepIdx: number) {
-    const pad = this.pads().find(p => p.id === padId);
+    const pad = this.pads().find((p) => p.id === padId);
     if (!pad) return { active: false, velocity: 0.8, probability: 1 };
 
-    const note = this.getDrumTrack()?.notes.find(n => n.midi === pad.midi && n.step === stepIdx);
-    return { active: !!note, velocity: note?.velocity || 0.8, probability: note?.probability || 1.0 };
+    const note = this.getDrumTrack()?.notes.find(
+      (n) => n.midi === pad.midi && n.step === stepIdx
+    );
+    return {
+      active: !!note,
+      velocity: note?.velocity || 0.8,
+      probability: note?.probability || 1.0,
+    };
   }
 
   isStepPlaying(pad: DrumPad) {
     const currentStep = this.audioEngine.visualStep() % 64;
-    return this.audioSession.isPlaying() && !!this.getDrumTrack()?.notes.find(n => n.midi === pad.midi && n.step === currentStep);
+    return (
+      this.audioSession.isPlaying() &&
+      !!this.getDrumTrack()?.notes.find(
+        (n) => n.midi === pad.midi && n.step === currentStep
+      )
+    );
   }
 
-  isGlobalStep(step: number) { return this.audioEngine.visualStep() % 64 === step; }
+  isGlobalStep(step: number) {
+    return this.audioEngine.visualStep() % 64 === step;
+  }
 
   resolveStepIdx(stepIdx: number) {
-    return this.highDensity() ? stepIdx : stepIdx + (this.currentBar() * 16);
+    return this.highDensity() ? stepIdx : stepIdx + this.currentBar() * 16;
   }
 
   evolveRhythm() {
-     this.haptic.impact('heavy');
-     const pad = this.selectedPad();
-     if (!pad) return;
-     for (let i = 0; i < 64; i++) {
-        if (Math.random() > 0.9) this.toggleStep(pad.id, i);
-     }
+    this.haptic.impact('heavy');
+    const pad = this.selectedPad();
+    if (!pad) return;
+    for (let i = 0; i < 64; i++) {
+      if (Math.random() > 0.9) this.toggleStep(pad.id, i);
+    }
   }
 
   generateGenre(genre: string) {
-     this.haptic.medium();
-     this.clearDrumPattern();
-     const patterns: Record<number, number[]> = {
-       36: [0, 8, 11, 24, 32],
-       42: Array.from({length: 32}, (_, i) => i * 2),
-       38: [4, 12, 20, 28],
-     };
-     Object.entries(patterns).forEach(([midi, steps]) => {
-       steps.forEach(s => this.toggleStep(`pad-${midi}`, s));
-     });
+    this.haptic.medium();
+    this.clearDrumPattern();
+    const patterns: Record<number, number[]> = {
+      36: [0, 8, 11, 24, 32],
+      42: Array.from({ length: 32 }, (_, i) => i * 2),
+      38: [4, 12, 20, 28],
+    };
+    Object.entries(patterns).forEach(([midi, steps]) => {
+      steps.forEach((s) => this.toggleStep(`pad-${midi}`, s));
+    });
   }
 
   clearCurrentPad() {
@@ -174,17 +210,22 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!pad) return;
     const track = this.getDrumTrack();
     if (track) {
-      const notes = track.notes.filter(n => n.midi === pad.midi);
-      this.musicManager.removeNotes(track.id, notes.map(n => n.id));
+      const notes = track.notes.filter((n) => n.midi === pad.midi);
+      this.musicManager.removeNotes(
+        track.id,
+        notes.map((n) => n.id)
+      );
     }
   }
 
   doublePattern() {
     const track = this.getDrumTrack();
     if (!track) return;
-    const sourceNotes = track.notes.filter(n => n.step < 32);
-    sourceNotes.forEach(n => {
-      const exists = track.notes.find(e => e.midi === n.midi && e.step === n.step + 32);
+    const sourceNotes = track.notes.filter((n) => n.step < 32);
+    sourceNotes.forEach((n) => {
+      const exists = track.notes.find(
+        (e) => e.midi === n.midi && e.step === n.step + 32
+      );
       if (!exists) {
         this.musicManager.addNoteToTrack(track.id, {
           id: 'drum_' + Date.now() + Math.random(),
@@ -193,7 +234,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: n.length,
           velocity: n.velocity,
           probability: n.probability,
-          params: { ...n.params }
+          params: { ...n.params },
         });
       }
     });
@@ -202,8 +243,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   humanize() {
     const track = this.getDrumTrack();
     if (!track) return;
-    track.notes.forEach(n => {
-      const velocity = Math.min(1, Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.2));
+    track.notes.forEach((n) => {
+      const velocity = Math.min(
+        1,
+        Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.2)
+      );
       this.musicManager.updateNote(track.id, n.id, { velocity });
     });
   }
@@ -213,8 +257,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!pad) return;
     const track = this.getDrumTrack();
     if (!track) return;
-    const existing = track.notes.filter(n => n.midi === pad.midi && n.step < steps);
-    this.musicManager.removeNotes(track.id, existing.map(n => n.id));
+    const existing = track.notes.filter(
+      (n) => n.midi === pad.midi && n.step < steps
+    );
+    this.musicManager.removeNotes(
+      track.id,
+      existing.map((n) => n.id)
+    );
     // Bjorklund/Euclidean rhythm distribution
     const pattern: boolean[] = Array(steps).fill(false);
     let bucket = 0;
@@ -234,23 +283,27 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: 1,
           velocity: 0.8,
           probability: 1.0,
-          params: { ...pad.params, sampleBuffer: pad.sampleBuffer }
+          params: { ...pad.params, sampleBuffer: pad.sampleBuffer },
         });
       }
     });
   }
 
   randomizeAll() {
-     this.clearDrumPattern();
-     this.pads().forEach(p => {
-        for (let i = 0; i < 64; i++) {
-           if (Math.random() > 0.9) this.toggleStep(p.id, i);
-        }
-     });
+    this.clearDrumPattern();
+    this.pads().forEach((p) => {
+      for (let i = 0; i < 64; i++) {
+        if (Math.random() > 0.9) this.toggleStep(p.id, i);
+      }
+    });
   }
 
   updatePadParam(padId: string, param: string, value: number) {
-    this.pads.update(ps => ps.map(p => p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p));
+    this.pads.update((ps) =>
+      ps.map((p) =>
+        p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p
+      )
+    );
     this.haptic.light();
   }
 
@@ -258,21 +311,52 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.haptic.impact('light');
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
     if (pad.sampleBuffer) {
-       this.audioEngine.triggerSampler(MusicManagerService.DRUM_TRACK_ID, pad.sampleBuffer, this.audioEngine.ctx.currentTime, 1.0, pad.params.pan, pad.params.decay || 0.3);
+      this.audioEngine.triggerSampler(
+        MusicManagerService.DRUM_TRACK_ID,
+        pad.sampleBuffer,
+        this.audioEngine.ctx.currentTime,
+        1.0,
+        pad.params.pan,
+        pad.params.decay || 0.3
+      );
     } else {
-       this.audioEngine.triggerAttack(MusicManagerService.DRUM_TRACK_ID, freq, this.audioEngine.ctx.currentTime, 1.0, pad.params.decay || 0.3, 1, pad.params.pan, 0, 0, pad.params);
+      this.audioEngine.triggerAttack(
+        MusicManagerService.DRUM_TRACK_ID,
+        freq,
+        this.audioEngine.ctx.currentTime,
+        1.0,
+        pad.params.decay || 0.3,
+        1,
+        pad.params.pan,
+        0,
+        0,
+        pad.params
+      );
     }
   }
 
-  openSamplePicker() { this.sampleInput.nativeElement.click(); }
+  openSamplePicker() {
+    this.sampleInput.nativeElement.click();
+  }
 
   async onSampleSelected(event: any) {
     const file = event.target.files?.[0];
     if (file && this.selectedPad()) {
-       const arrayBuffer = await file.arrayBuffer();
-       const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
-       this.pads.update(ps => ps.map(p => p.id === this.selectedPadId() ? { ...p, sampleBuffer: audioBuffer, name: file.name.split('.')[0].toUpperCase().substring(0, 8) } : p));
-       this.haptic.medium();
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer =
+        await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      this.pads.update((ps) =>
+        ps.map((p) =>
+          p.id === this.selectedPadId()
+            ? {
+                ...p,
+                sampleBuffer: audioBuffer,
+                name: file.name.split('.')[0].toUpperCase().substring(0, 8),
+              }
+            : p
+        )
+      );
+      this.haptic.medium();
     }
   }
 }

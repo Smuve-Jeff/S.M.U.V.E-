@@ -223,17 +223,27 @@ export class AuthService {
     const MIN_CODE = 100000;
     const CODE_RANGE = 900000;
     const verificationCodeNumber =
-      (typeof crypto !== 'undefined' && typeof (crypto as any).randomInt === 'function')
+      typeof crypto !== 'undefined' &&
+      typeof (crypto as any).randomInt === 'function'
         ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE)
         : Math.floor(MIN_CODE + Math.random() * CODE_RANGE);
     const verificationCode = verificationCodeNumber.toString();
-    localStorage.setItem(`smuve_verification_${creds.email.toLowerCase()}`, verificationCode);
-    console.log(`[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`);
-    
+    localStorage.setItem(
+      `smuve_verification_${creds.email.toLowerCase()}`,
+      verificationCode
+    );
+    console.log(
+      `[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`
+    );
+
     if (typeof window !== 'undefined') {
       setTimeout(() => {
-        console.warn(`[DEVELOPMENT ONLY] S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`);
-        alert(`S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`);
+        console.warn(
+          `[DEVELOPMENT ONLY] S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`
+        );
+        alert(
+          `S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`
+        );
       }, 500);
     }
 
@@ -268,9 +278,11 @@ export class AuthService {
 
   async verifyEmail(code: string, email?: string) {
     await new Promise((r) => setTimeout(r, 800));
-    
+
     if (email) {
-      const storedCode = localStorage.getItem(`smuve_verification_${email.toLowerCase()}`);
+      const storedCode = localStorage.getItem(
+        `smuve_verification_${email.toLowerCase()}`
+      );
       if (storedCode && code !== storedCode) {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
       }
@@ -279,7 +291,7 @@ export class AuthService {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
       }
     }
-    
+
     return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };
   }
 

@@ -2,8 +2,8 @@ import { APP_SECURITY_CONFIG } from '../app.security';
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { Injector } from '@angular/core';
-import { HttpClient } from "@angular/common/http";
-import { firstValueFrom } from "rxjs";
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { PeerNetworkingService } from './peer-networking.service';
 import { io, Socket } from 'socket.io-client';
 import { TokenService } from './token.service';
@@ -76,14 +76,14 @@ export class SocialNetworkingService {
     viewers: 0,
     health: 'Good',
     platform: 'NONE',
-    bitrate: '0 kbps'
+    bitrate: '0 kbps',
   });
   simulatedLiveChat = signal<RoomMessage[]>([]);
 
   neuralSyncStatus = signal<'idle' | 'syncing' | 'synced'>('idle');
   lastSyncedData = signal<any>(null);
-  matchmakingStatus = signal<"idle" | "searching" | "matched">("idle");
-  currentMatch = signal<{ opponentId: string, gameId: string } | null>(null);
+  matchmakingStatus = signal<'idle' | 'searching' | 'matched'>('idle');
+  currentMatch = signal<{ opponentId: string; gameId: string } | null>(null);
 
   // Voice chat state
   remoteSignals = signal<any[]>([]);
@@ -91,7 +91,9 @@ export class SocialNetworkingService {
   isIncognito = signal(false);
 
   private currentRoomId: string | null = null;
-  private get peerService() { return this.injector.get(PeerNetworkingService); }
+  private get peerService() {
+    return this.injector.get(PeerNetworkingService);
+  }
 
   private getSecureRandom(): number {
     const array = new Uint32Array(1);
@@ -108,7 +110,7 @@ export class SocialNetworkingService {
     });
   }
 
-    private initializeSocket(userId: string) {
+  private initializeSocket(userId: string) {
     const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
     this.socket = io(backendUrl);
 
@@ -117,13 +119,15 @@ export class SocialNetworkingService {
       const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
-        metadata: this.isIncognito() ? { artistName: 'Incognito', profileSetupCompleted: false } : {
-          artistName: profile.artistName,
-          primaryGenre: profile.primaryGenre,
-          avatarImage: profile.avatarImage,
-          location: profile.location,
-          profileSetupCompleted: profile.profileSetupCompleted
-        }
+        metadata: this.isIncognito()
+          ? { artistName: 'Incognito', profileSetupCompleted: false }
+          : {
+              artistName: profile.artistName,
+              primaryGenre: profile.primaryGenre,
+              avatarImage: profile.avatarImage,
+              location: profile.location,
+              profileSetupCompleted: profile.profileSetupCompleted,
+            },
       });
       if (this.currentRoomId) {
         this.socket?.emit('join_room', this.currentRoomId);
@@ -139,16 +143,17 @@ export class SocialNetworkingService {
         this.onlineUsers.set([]);
       } else {
         this.onlineUsers.set(
-          users.filter((u) => u.userId !== userId && u.artistName !== 'Incognito'),
+          users.filter(
+            (u) => u.userId !== userId && u.artistName !== 'Incognito'
+          )
         );
       }
     });
 
-
     this.socket.on('neural_sync_invite', (data: any) => {
       if (
         confirm(
-          `INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`,
+          `INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`
         )
       ) {
         const currentProfile = this.profileService.profile();
@@ -172,7 +177,7 @@ export class SocialNetworkingService {
       console.log(
         'Neural sync finalized with',
         data.fromUserName,
-        data.syncData,
+        data.syncData
       );
     });
 
@@ -224,12 +229,9 @@ export class SocialNetworkingService {
       });
     });
 
-
     this.socket.on('party_invite', (data: any) => {
       if (
-        confirm(
-          `INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`,
-        )
+        confirm(`INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`)
       ) {
         this.joinParty(data.partyId);
         this.activeHubTab.set('party');
@@ -237,7 +239,7 @@ export class SocialNetworkingService {
     });
     this.socket.on('user_left_party', (data: any) => {
       this.partyMembers.update((members) =>
-        members.filter((m) => m.userId !== data.userId),
+        members.filter((m) => m.userId !== data.userId)
       );
     });
 
@@ -282,17 +284,22 @@ export class SocialNetworkingService {
   sendRoomMessage(roomId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('send_room_message', { roomId, message, fromUserId, fromUserName });
+    this.socket?.emit('send_room_message', {
+      roomId,
+      message,
+      fromUserId,
+      fromUserName,
+    });
   }
 
   sendTypingStatus(toUserId: string, isTyping: boolean) {
     const fromUserId = this.profileService.profile().id;
-    this.socket?.emit("typing", { toUserId, isTyping, fromUserId });
+    this.socket?.emit('typing', { toUserId, isTyping, fromUserId });
   }
   updateStatus(metadata: any) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
-    this.socket?.emit("update_status", { userId, metadata });
+    this.socket?.emit('update_status', { userId, metadata });
   }
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
@@ -321,15 +328,16 @@ export class SocialNetworkingService {
   }
 
   startOAuthFlow(platform: string) {
-    const width = 500, height = 600;
-    const left = (window.screen.width / 2) - (width / 2);
-    const top = (window.screen.height / 2) - (height / 2);
+    const width = 500,
+      height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
     const url = `${APP_SECURITY_CONFIG.api_url}/auth/${platform}`;
 
     const popup = window.open(
       url,
       `${platform} Auth`,
-      `width=${width},height=${height},left=${left},top=${top}`,
+      `width=${width},height=${height},left=${left},top=${top}`
     );
 
     window.addEventListener(
@@ -340,7 +348,7 @@ export class SocialNetworkingService {
           this.currentPlatform.set(`${platform} (Connected)`);
         }
       },
-      { once: true },
+      { once: true }
     );
   }
   startStream(platform: string) {
@@ -415,8 +423,6 @@ export class SocialNetworkingService {
     });
   }
 
-
-
   requestNeuralSync(toUserId: string) {
     this.neuralSyncStatus.set('syncing');
 
@@ -428,17 +434,21 @@ export class SocialNetworkingService {
       }
     }, 10000); // 10 second timeout
 
-    this.socket?.emit('neural_sync_request', {
-      toUserId,
-      syncType: 'FULL_DASHBOARD',
-    }, (response: any) => {
-      clearTimeout(syncTimeout);
-      // Handle acknowledgment or error
-      if (response?.error) {
-        console.error('Neural sync failed:', response.error);
-        this.neuralSyncStatus.set('idle');
+    this.socket?.emit(
+      'neural_sync_request',
+      {
+        toUserId,
+        syncType: 'FULL_DASHBOARD',
+      },
+      (response: any) => {
+        clearTimeout(syncTimeout);
+        // Handle acknowledgment or error
+        if (response?.error) {
+          console.error('Neural sync failed:', response.error);
+          this.neuralSyncStatus.set('idle');
+        }
       }
-    });
+    );
   }
 
   async loadMessageHistory(friendId: string) {
@@ -450,8 +460,8 @@ export class SocialNetworkingService {
       const history = await firstValueFrom(
         this.http.get<any[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/messages/${friendId}`,
-          { headers },
-        ),
+          { headers }
+        )
       );
       this.messages.set(history);
     } catch (e) {
@@ -467,8 +477,8 @@ export class SocialNetworkingService {
       const friends = await firstValueFrom(
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends`,
-          { headers },
-        ),
+          { headers }
+        )
       );
       this.friends.set(friends);
     } catch (e) {
@@ -486,8 +496,8 @@ export class SocialNetworkingService {
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
           {},
-          { headers },
-        ),
+          { headers }
+        )
       );
       await this.loadFriends();
     } catch (e) {
@@ -495,8 +505,10 @@ export class SocialNetworkingService {
     }
   }
 
-
-  async respondToFriendRequest(friendId: string, status: 'accepted' | 'declined') {
+  async respondToFriendRequest(
+    friendId: string,
+    status: 'accepted' | 'declined'
+  ) {
     const userId = this.profileService.profile().id;
     if (!userId) return;
     try {
@@ -506,8 +518,8 @@ export class SocialNetworkingService {
         this.http.patch(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
           { status },
-          { headers },
-        ),
+          { headers }
+        )
       );
       await this.loadFriends();
     } catch (e) {
@@ -524,8 +536,8 @@ export class SocialNetworkingService {
       await firstValueFrom(
         this.http.delete(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/friends/${friendId}`,
-          { headers },
-        ),
+          { headers }
+        )
       );
       await this.loadFriends();
     } catch (e) {
@@ -540,7 +552,6 @@ export class SocialNetworkingService {
       gameId,
     });
   }
-
 
   inviteToParty(toUserId: string) {
     const partyId = this.currentPartyId();
@@ -562,7 +573,6 @@ export class SocialNetworkingService {
     this.socket?.emit('leave_party', { partyId });
     this.currentPartyId.set(null);
   }
-
 
   launchPartyGame(gameId: string) {
     const partyId = this.currentPartyId();
@@ -586,8 +596,8 @@ export class SocialNetworkingService {
           {
             params: { q: query },
             headers,
-          },
-        ),
+          }
+        )
       );
     } catch (e) {
       return [];
@@ -601,8 +611,8 @@ export class SocialNetworkingService {
       return await firstValueFrom(
         this.http.get<OnlineUser[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/featured`,
-          { headers },
-        ),
+          { headers }
+        )
       );
     } catch (e) {
       return [];

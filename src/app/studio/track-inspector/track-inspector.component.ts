@@ -1,7 +1,10 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+} from '../../services/music-manager.service';
 import { AiService } from '../../services/ai.service';
 
 @Component({
@@ -17,7 +20,7 @@ export class TrackInspectorComponent {
   showAdvanced = signal(false);
 
   toggleAdvanced() {
-    this.showAdvanced.update(v => !v);
+    this.showAdvanced.update((v) => !v);
   }
 
   selectedTrack = computed<TrackModel | null>(() => {
@@ -35,21 +38,28 @@ export class TrackInspectorComponent {
   async generatePattern() {
     const track = this.selectedTrack();
     if (!track) return;
-    const pattern = await this.aiService.generateDrumPattern(track.instrumentId.includes('trap') ? 'Trap' : 'Electronic');
-    this.musicManager.tracks.update(ts => ts.map(t => t.id === track.id ? { ...t, steps: pattern } : t));
+    const pattern = await this.aiService.generateDrumPattern(
+      track.instrumentId.includes('trap') ? 'Trap' : 'Electronic'
+    );
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => (t.id === track.id ? { ...t, steps: pattern } : t))
+    );
   }
 
   async generateChords() {
     const track = this.selectedTrack();
     if (!track) return;
-    const chordMidis = await this.aiService.generateChordProgression('C', 'minor');
+    const chordMidis = await this.aiService.generateChordProgression(
+      'C',
+      'minor'
+    );
     chordMidis.forEach((midi, i) => {
       this.musicManager.addNoteToTrack(track.id, {
         id: `ai_chord_${Date.now()}_${i}`,
         midi,
         step: i * 16,
         length: 4,
-        velocity: 0.8
+        velocity: 0.8,
       });
     });
   }

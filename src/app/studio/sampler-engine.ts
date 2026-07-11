@@ -6,11 +6,22 @@ export class SamplerEngine {
     private readonly fileLoader: FileLoaderService
   ) {}
 
-  playNote(sampleMap: SampleMap, midi: number, velocity: number, output: AudioNode, when: number = this.context.currentTime): () => void {
-    const zone = sampleMap.zones.find(z => midi >= z.midiRange[0] && midi <= z.midiRange[1]);
+  playNote(
+    sampleMap: SampleMap,
+    midi: number,
+    velocity: number,
+    output: AudioNode,
+    when: number = this.context.currentTime
+  ): () => void {
+    const zone = sampleMap.zones.find(
+      (z) => midi >= z.midiRange[0] && midi <= z.midiRange[1]
+    );
     if (!zone) return () => {};
 
-    const layer = zone.layers.find(l => velocity >= l.minVelocity && velocity <= l.maxVelocity) || zone.layers[0];
+    const layer =
+      zone.layers.find(
+        (l) => velocity >= l.minVelocity && velocity <= l.maxVelocity
+      ) || zone.layers[0];
     const buffer = this.fileLoader.getBuffer(layer.url);
     if (!buffer) return () => {};
 

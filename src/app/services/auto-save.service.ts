@@ -35,19 +35,18 @@ export class AutoSaveService {
         this.lastProjectHash = currentHash;
         void this.syncProject(snapshot);
 
-      // Profile Auto-save
-      const currentProfile = this.profileService.profile();
-      const profileHash = JSON.stringify(currentProfile);
-      if (this.lastProfileHash !== profileHash) {
+        // Profile Auto-save
+        const currentProfile = this.profileService.profile();
+        const profileHash = JSON.stringify(currentProfile);
+        if (this.lastProfileHash !== profileHash) {
           this.lastProfileHash = profileHash;
           void this.syncProfile(currentProfile);
-      }
-
+        }
       }
     });
   }
 
-    private async syncProfile(profile: any) {
+  private async syncProfile(profile: any) {
     if (!profile.id) return;
     try {
       await this.databaseService.saveUserProfile(profile, profile.id);

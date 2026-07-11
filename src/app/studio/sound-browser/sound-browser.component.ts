@@ -103,7 +103,7 @@ export class SoundBrowserComponent {
     console.log('Deep AI Search Triggered');
   }
 
-    async bulkExport() {
+  async bulkExport() {
     // Basic implementation to export current project tracks as separate WAVs if needed,
     // but here we just export the whole project for now.
     // Real "Cloud Drive" logic would require more backend integration.

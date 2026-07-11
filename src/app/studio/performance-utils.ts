@@ -44,7 +44,7 @@ export class VoiceManager {
   }
 
   removeVoice(note: number) {
-    this.voices = this.voices.filter(v => v.note !== note);
+    this.voices = this.voices.filter((v) => v.note !== note);
   }
 
   private stealVoice() {
@@ -55,7 +55,7 @@ export class VoiceManager {
   }
 
   clear() {
-    this.voices.forEach(v => v.stop());
+    this.voices.forEach((v) => v.stop());
     this.voices = [];
   }
 }

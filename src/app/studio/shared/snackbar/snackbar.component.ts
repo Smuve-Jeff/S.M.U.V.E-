@@ -13,7 +13,7 @@ export type SnackbarConfig = {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './snackbar.component.html',
-  styleUrls: ['./snackbar.component.css']
+  styleUrls: ['./snackbar.component.css'],
 })
 export class SnackbarComponent {
   visible = signal(false);

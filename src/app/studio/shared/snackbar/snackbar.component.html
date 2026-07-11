@@ -1,4 +1,8 @@
-<div class="snackbar" [class.visible]="visible()" [class]="'snackbar-' + type()">
+<div
+  class="snackbar"
+  [class.visible]="visible()"
+  [class]="'snackbar-' + type()"
+>
   <span class="snackbar-message">{{ message() }}</span>
   <button
     *ngIf="action()"

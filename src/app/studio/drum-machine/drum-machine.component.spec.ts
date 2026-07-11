@@ -21,11 +21,13 @@ describe('DrumMachineComponent', () => {
   };
 
   const mockMusicManager = {
-    tracks: signal([{ id: MusicManagerService.DRUM_TRACK_ID, notes: [] as any[] }]),
+    tracks: signal([
+      { id: MusicManagerService.DRUM_TRACK_ID, notes: [] as any[] },
+    ]),
     currentStep: signal(0),
     addNoteToTrack: jest.fn((trackId: string, note: any) => {
       const tracks = mockMusicManager.tracks();
-      const track = tracks.find(t => t.id === trackId);
+      const track = tracks.find((t) => t.id === trackId);
       if (track) {
         track.notes.push(note);
         mockMusicManager.tracks.set([...tracks]);
@@ -33,17 +35,17 @@ describe('DrumMachineComponent', () => {
     }),
     removeNotes: jest.fn((trackId: string, noteIds: string[]) => {
       const tracks = mockMusicManager.tracks();
-      const track = tracks.find(t => t.id === trackId);
+      const track = tracks.find((t) => t.id === trackId);
       if (track) {
-        track.notes = track.notes.filter(n => !noteIds.includes(n.id));
+        track.notes = track.notes.filter((n) => !noteIds.includes(n.id));
         mockMusicManager.tracks.set([...tracks]);
       }
     }),
     updateNote: jest.fn((trackId: string, noteId: string, patch: any) => {
       const tracks = mockMusicManager.tracks();
-      const track = tracks.find(t => t.id === trackId);
+      const track = tracks.find((t) => t.id === trackId);
       if (track) {
-        const note = track.notes.find(n => n.id === noteId);
+        const note = track.notes.find((n) => n.id === noteId);
         if (note) Object.assign(note, patch);
         mockMusicManager.tracks.set([...tracks]);
       }
@@ -78,7 +80,7 @@ describe('DrumMachineComponent', () => {
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: HapticService, useValue: mockHaptic },
         { provide: AiService, useValue: mockAiService },
-      ]
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DrumMachineComponent);
@@ -139,8 +141,11 @@ describe('DrumMachineComponent', () => {
   it('generateEuclidean creates patterns', () => {
     const padId = component.pads()[0].id;
     component.generateEuclidean(4, 16);
-    const steps = Array.from({length: 16}, (_, i) => component.getPadStep(padId, i).active);
-    const activeCount = steps.filter(s => s).length;
+    const steps = Array.from(
+      { length: 16 },
+      (_, i) => component.getPadStep(padId, i).active
+    );
+    const activeCount = steps.filter((s) => s).length;
     expect(activeCount).toBe(4);
   });
 });

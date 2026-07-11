@@ -331,7 +331,12 @@ export class AutomationService {
         this.getMacroBiasForLane(lane)
       );
       if (value !== null) {
-        this.engine.applyProductionParameter(lane.target.trackId, lane.target.parameter, value, duration);
+        this.engine.applyProductionParameter(
+          lane.target.trackId,
+          lane.target.parameter,
+          value,
+          duration
+        );
       }
     });
   }

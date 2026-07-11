@@ -38,7 +38,11 @@ export class PerformerComponent implements OnDestroy {
   availableInstruments = signal<InstrumentPreset[]>([]);
   activeInstrumentId = this.liveEngine.activeInstrument;
   pitchBend = signal(0);
-  selectedTrack = computed(() => this.musicManager.tracks().find(t => t.id === this.musicManager.selectedTrackId()));
+  selectedTrack = computed(() =>
+    this.musicManager
+      .tracks()
+      .find((t) => t.id === this.musicManager.selectedTrackId())
+  );
   modWheel = signal(0);
   spectrumData = signal<number[]>(new Array(64).fill(0));
   performanceLog = signal<string[]>([]);
@@ -78,12 +82,25 @@ export class PerformerComponent implements OnDestroy {
 
   generateKeyboardKeys() {
     const keys = [];
-    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const names = [
+      'C',
+      'C#',
+      'D',
+      'D#',
+      'E',
+      'F',
+      'F#',
+      'G',
+      'G#',
+      'A',
+      'A#',
+      'B',
+    ];
     for (let i = 0; i < 25; i++) {
       const midi = 48 + i;
       keys.push({
         midi,
-        name: "" + names[midi % 12] + (Math.floor(midi / 12) - 1),
+        name: '' + names[midi % 12] + (Math.floor(midi / 12) - 1),
       });
     }
     return keys;
@@ -91,7 +108,16 @@ export class PerformerComponent implements OnDestroy {
 
   generatePads() {
     const pads = [];
-    const colors = ['#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9'];
+    const colors = [
+      '#f43f5e',
+      '#ec4899',
+      '#d946ef',
+      '#a855f7',
+      '#8b5cf6',
+      '#6366f1',
+      '#3b82f6',
+      '#0ea5e9',
+    ];
     for (let i = 0; i < 16; i++) {
       pads.push({
         midi: 36 + i,
@@ -102,17 +128,30 @@ export class PerformerComponent implements OnDestroy {
     return pads;
   }
 
-  isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
-  isKeyPressed(midi: number): boolean { return this.activeKeys().has(midi); }
+  isBlackKey(midi: number): boolean {
+    return [1, 3, 6, 8, 10].includes(midi % 12);
+  }
+  isKeyPressed(midi: number): boolean {
+    return this.activeKeys().has(midi);
+  }
 
-  setLayout(mode: 'keyboard' | 'pads' | 'matrix') { this.layout.set(mode); }
-  toggleSmartChords() { this.smartChords.update((value) => !value); this.liveEngine.smartChords.set(this.smartChords()); }
-  nudgeOctave(delta: number) { this.octave.update((value) => Math.min(2, Math.max(-2, value + delta))); }
+  setLayout(mode: 'keyboard' | 'pads' | 'matrix') {
+    this.layout.set(mode);
+  }
+  toggleSmartChords() {
+    this.smartChords.update((value) => !value);
+    this.liveEngine.smartChords.set(this.smartChords());
+  }
+  nudgeOctave(delta: number) {
+    this.octave.update((value) => Math.min(2, Math.max(-2, value + delta)));
+  }
 
   updateTrackVolume(val: number) {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
-      this.musicManager.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, gain: val / 100 } : t));
+      this.musicManager.tracks.update((ts) =>
+        ts.map((t) => (t.id === trackId ? { ...t, gain: val / 100 } : t))
+      );
       this.musicManager.engine.updateTrack(trackId, { gain: val / 100 });
     }
   }
@@ -120,7 +159,9 @@ export class PerformerComponent implements OnDestroy {
   updateTrackPan(val: number) {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
-      this.musicManager.tracks.update(ts => ts.map(t => t.id === trackId ? { ...t, pan: val / 100 } : t));
+      this.musicManager.tracks.update((ts) =>
+        ts.map((t) => (t.id === trackId ? { ...t, pan: val / 100 } : t))
+      );
       this.musicManager.engine.updateTrack(trackId, { pan: val / 100 });
     }
   }
@@ -133,11 +174,11 @@ export class PerformerComponent implements OnDestroy {
 
   async onKeyDown(midi: number, event?: PointerEvent) {
     if (event && event.pointerType === 'touch') {
-       const prevMidi = this.activePointers.get(event.pointerId);
-       if (prevMidi !== undefined && prevMidi !== midi) {
-          this.onKeyUp(prevMidi, event);
-       }
-       this.activePointers.set(event.pointerId, midi);
+      const prevMidi = this.activePointers.get(event.pointerId);
+      if (prevMidi !== undefined && prevMidi !== midi) {
+        this.onKeyUp(prevMidi, event);
+      }
+      this.activePointers.set(event.pointerId, midi);
     }
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
@@ -153,13 +194,16 @@ export class PerformerComponent implements OnDestroy {
       next.add(midi);
       return next;
     });
-    this.performanceLog.update(log => [this.liveEngine.midiToNote(actualMidi), ...log.slice(0, 9)]);
+    this.performanceLog.update((log) => [
+      this.liveEngine.midiToNote(actualMidi),
+      ...log.slice(0, 9),
+    ]);
   }
 
   onKeyUp(midi: number, event?: PointerEvent) {
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteEnd(actualMidi);
-    
+
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
       next.delete(midi);

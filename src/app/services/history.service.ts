@@ -17,7 +17,9 @@ export class HistoryService {
   canRedo = signal(false);
   lastActionName = signal('');
 
-  add(command: Command) { this.execute(command); }
+  add(command: Command) {
+    this.execute(command);
+  }
   execute(command: Command) {
     command.execute();
     this.past.push(command);
@@ -54,7 +56,9 @@ export class HistoryService {
   private updateSignals() {
     this.canUndo.set(this.past.length > 0);
     this.canRedo.set(this.future.length > 0);
-    this.lastActionName.set(this.past.length > 0 ? this.past[this.past.length - 1].name : '');
+    this.lastActionName.set(
+      this.past.length > 0 ? this.past[this.past.length - 1].name : ''
+    );
   }
 
   clear() {

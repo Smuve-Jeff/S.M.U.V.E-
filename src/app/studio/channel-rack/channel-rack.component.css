@@ -117,7 +117,9 @@ button.soloed {
 .channel-item.glass-v42 {
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
   border: 1px solid #000;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 4px rgba(0,0,0,0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .channel-item.selected {
@@ -126,7 +128,9 @@ button.soloed {
 }
 
 .step-pad {
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.1);
   border: 1px solid #000;
 }
 

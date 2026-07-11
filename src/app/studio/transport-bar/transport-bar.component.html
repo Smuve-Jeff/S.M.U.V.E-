@@ -39,7 +39,13 @@
     <!-- Tempo/Sync -->
     <div class="transport-tempo glass-v42 relative">
       <div class="tempo-controls">
-        <button (click)="nudgeTempo(-1)" (contextmenu)="nudgeTempo(-0.1); $event.preventDefault()" class="nudge-btn">-</button>
+        <button
+          (click)="nudgeTempo(-1)"
+          (contextmenu)="nudgeTempo(-0.1); $event.preventDefault()"
+          class="nudge-btn"
+        >
+          -
+        </button>
         <div class="tempo-display-wrapper" (click)="toggleBpmDropdown()">
           <input
             type="number"
@@ -53,7 +59,13 @@
             >arrow_drop_down</span
           >
         </div>
-        <button (click)="nudgeTempo(1)" (contextmenu)="nudgeTempo(0.1); $event.preventDefault()" class="nudge-btn">+</button>
+        <button
+          (click)="nudgeTempo(1)"
+          (contextmenu)="nudgeTempo(0.1); $event.preventDefault()"
+          class="nudge-btn"
+        >
+          +
+        </button>
       </div>
       <div class="neon-text-xs opacity-50">BPM</div>
 
@@ -94,13 +106,19 @@
       >
     </div>
 
-
     <!-- Export -->
     <div class="transport-export hidden md:flex">
-      <button class="transport-btn tactile-v42 glass-v42 flex items-center gap-2 px-3"
-              (click)="exportWav()" [disabled]="isExporting()">
-        <span class="material-symbols-outlined text-sm">{{ isExporting() ? 'hourglass_bottom' : 'download' }}</span>
-        <span class="text-[8px] font-black uppercase tracking-tighter">{{ isExporting() ? 'BOUNCING...' : 'EXPORT' }}</span>
+      <button
+        class="transport-btn tactile-v42 glass-v42 flex items-center gap-2 px-3"
+        (click)="exportWav()"
+        [disabled]="isExporting()"
+      >
+        <span class="material-symbols-outlined text-sm">{{
+          isExporting() ? 'hourglass_bottom' : 'download'
+        }}</span>
+        <span class="text-[8px] font-black uppercase tracking-tighter">{{
+          isExporting() ? 'BOUNCING...' : 'EXPORT'
+        }}</span>
       </button>
     </div>
     <!-- Metronome -->

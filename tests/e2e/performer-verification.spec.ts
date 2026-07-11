@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test('Performance Module keyboard and enhancements verification', async ({ page }) => {
+test('Performance Module keyboard and enhancements verification', async ({
+  page,
+}) => {
   await page.goto('http://localhost:4200/studio?view=performance');
 
   // Wait for the container

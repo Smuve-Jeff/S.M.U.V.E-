@@ -443,16 +443,26 @@
               </button>
             </div>
 
-          <div class="flex gap-4 mt-10 border-t border-white/5 pt-10">
-            <button (click)="userProfileService.exportProfile()" class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors">
-              Export Archive
-            </button>
-            <label class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors cursor-pointer">
-              Import Archive
-              <input type="file" (change)="onProfileImport($event)" class="hidden" accept=".json" />
-            </label>
-          </div>
-</section>
+            <div class="flex gap-4 mt-10 border-t border-white/5 pt-10">
+              <button
+                (click)="userProfileService.exportProfile()"
+                class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                Export Archive
+              </button>
+              <label
+                class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Import Archive
+                <input
+                  type="file"
+                  (change)="onProfileImport($event)"
+                  class="hidden"
+                  accept=".json"
+                />
+              </label>
+            </div>
+          </section>
         </div>
 
         <div

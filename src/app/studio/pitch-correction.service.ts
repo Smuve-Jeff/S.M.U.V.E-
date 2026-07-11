@@ -6,7 +6,7 @@ import { Injectable, signal } from '@angular/core';
 export class PitchCorrectionService {
   enabled = signal(false);
   amount = signal(0.5); // 0 to 1
-  retuneSpeed = signal(0.1);  // 0 to 1
+  retuneSpeed = signal(0.1); // 0 to 1
   scale = signal<string>('C Major');
 
   // Elite pitch correction parameters

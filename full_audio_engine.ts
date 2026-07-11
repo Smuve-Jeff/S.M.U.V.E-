@@ -2,7 +2,7 @@ import { LoggingService } from './logging.service';
 import { Injectable, signal, inject, Injector } from '@angular/core';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
-import { SubtractiveSynth } from "../studio/subtractive-synth";
+import { SubtractiveSynth } from '../studio/subtractive-synth';
 
 export type DeckId = 'A' | 'B';
 
@@ -249,7 +249,6 @@ export class AudioEngineService {
         .connect(deck.pingPongDelay)
         .connect(deck.pan)
         .connect(deck.analyser);
-
     }
 
     deck.analyser.connect(deck.gain);
@@ -332,7 +331,10 @@ export class AudioEngineService {
     ) {
       const step = this.currentStep;
       this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
-      const delay = Math.max(0, (this.nextNoteTime - this.ctx.currentTime) * 1000);
+      const delay = Math.max(
+        0,
+        (this.nextNoteTime - this.ctx.currentTime) * 1000
+      );
       this.currentBeat.set(step / this.stepsPerBeat());
       setTimeout(() => {
         this.visualStep.set(step);
@@ -349,7 +351,6 @@ export class AudioEngineService {
   setMetronomeVolume(val: number) {
     this.metronomeVolume.set(this.clamp(val, 0, 1));
   }
-
 
   getTrackOutput(id: number): GainNode {
     if (!this.trackOutputs.has(id)) {
@@ -385,8 +386,6 @@ export class AudioEngineService {
   updateTrack(id: number, data: any) {
     this.tracksMap.set(id, { ...(this.tracksMap.get(id) || {}), ...data });
   }
-
-    this.sidechainMatrix.get(sourceId)!.add(targetId);
 
   getDeck(id: DeckId): DeckChannel {
     return id === 'A' ? this.deckA : this.deckB;
@@ -680,17 +679,20 @@ export class AudioEngineService {
     );
   }
 
-
-
-
-
-
-
-
-
-
-
-  triggerAttack(trackId: number, freq: number, time: number, velocity: number, duration: number, gain: number, pan: number, sendA: number, sendB: number, synthParams: any, someVal?: number, customCtx?: any) {
+  triggerAttack(
+    trackId: number,
+    freq: number,
+    time: number,
+    velocity: number,
+    duration: number,
+    gain: number,
+    pan: number,
+    sendA: number,
+    sendB: number,
+    synthParams: any,
+    someVal?: number,
+    customCtx?: any
+  ) {
     let inst = this.trackInstruments.get(trackId);
     if (!inst) {
       inst = new SubtractiveSynth(this.ctx);
@@ -725,8 +727,6 @@ export class AudioEngineService {
     // Saturation logic
   }
 
-
-
   applyProductionParameter(
     trackId: string,
     parameter: string,
@@ -758,19 +758,33 @@ export class AudioEngineService {
       // value 0-1 mapped to 20Hz-20kHz
       const freq = Math.pow(2, value * 10) * 20;
       const filter = this.trackFilters.get(id);
-      if (filter) filter.frequency.setTargetAtTime(freq, scheduledTime ?? this.ctx.currentTime, duration);
+      if (filter)
+        filter.frequency.setTargetAtTime(
+          freq,
+          scheduledTime ?? this.ctx.currentTime,
+          duration
+        );
     } else if (parameter === 'eq-low') {
       // value 0-1.5 mapped to -24dB to +12dB
       const dbGain = (value - 1.0) * 24;
       const eq = this.trackEQLow.get(id);
-      if (eq) eq.gain.setTargetAtTime(dbGain, scheduledTime ?? this.ctx.currentTime, duration);
+      if (eq)
+        eq.gain.setTargetAtTime(
+          dbGain,
+          scheduledTime ?? this.ctx.currentTime,
+          duration
+        );
     } else if (parameter === 'eq-hi') {
       const dbGain = (value - 1.0) * 24;
       const eq = this.trackEQHi.get(id);
-      if (eq) eq.gain.setTargetAtTime(dbGain, scheduledTime ?? this.ctx.currentTime, duration);
+      if (eq)
+        eq.gain.setTargetAtTime(
+          dbGain,
+          scheduledTime ?? this.ctx.currentTime,
+          duration
+        );
     }
   }
-
 
   private getDeckPosition(deck: DeckChannel) {
     const duration = deck.buffer?.duration || 0;
@@ -889,7 +903,11 @@ export class AudioEngineService {
   setDeckCue(id: DeckId, active: boolean) {
     const deck = this.getDeck(id);
     deck.isCueing = active;
-    deck.cueGain.gain.setTargetAtTime(active ? 1 : 0, this.ctx.currentTime, 0.05);
+    deck.cueGain.gain.setTargetAtTime(
+      active ? 1 : 0,
+      this.ctx.currentTime,
+      0.05
+    );
   }
 
   setHeadphoneGain(val: number) {
@@ -924,7 +942,11 @@ export class AudioEngineService {
     this.seekDeck(id, current + delta);
   }
 
-  setAdvancedFX(id: DeckId, type: 'flanger' | 'phaser' | 'delay', value: number) {
+  setAdvancedFX(
+    id: DeckId,
+    type: 'flanger' | 'phaser' | 'delay',
+    value: number
+  ) {
     const deck = this.getDeck(id);
     const now = this.ctx.currentTime;
 
@@ -958,22 +980,31 @@ export class AudioEngineService {
     }
   }
 
-
   configureCompressor(config: any) {
     if (this.compressor) {
-      this.compressor.threshold.setTargetAtTime(config.threshold || -24, this.ctx.currentTime, 0.01);
-      this.compressor.ratio.setTargetAtTime(config.ratio || 4, this.ctx.currentTime, 0.01);
+      this.compressor.threshold.setTargetAtTime(
+        config.threshold || -24,
+        this.ctx.currentTime,
+        0.01
+      );
+      this.compressor.ratio.setTargetAtTime(
+        config.ratio || 4,
+        this.ctx.currentTime,
+        0.01
+      );
     }
   }
   toggleMetronome() {
-    this.metronomeEnabled.update(v => !v);
+    this.metronomeEnabled.update((v) => !v);
     return this.metronomeEnabled();
   }
   playMetronomeClick(time: number, isDownbeat: boolean) {
-    if (!this.metronomeEnabled()) return; this.ctx.resume();
+    if (!this.metronomeEnabled()) return;
+    this.ctx.resume();
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
-    osc.frequency.setValueAtTime(isDownbeat ? 600 : 1200, time); osc.frequency.value = isDownbeat ? 600 : 1200;
+    osc.frequency.setValueAtTime(isDownbeat ? 600 : 1200, time);
+    osc.frequency.value = isDownbeat ? 600 : 1200;
     env.gain.setValueAtTime(this.metronomeVolume(), time);
     env.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
     osc.connect(env);
@@ -981,7 +1012,14 @@ export class AudioEngineService {
     osc.start(time);
     osc.stop(time + 0.05);
   }
-  playSynth(time: number, freq: number, velocity: number, duration: number, pan: number, params: any) {
+  playSynth(
+    time: number,
+    freq: number,
+    velocity: number,
+    duration: number,
+    pan: number,
+    params: any
+  ) {
     const osc = this.ctx.createOscillator();
     osc.type = params.type || 'sine';
     osc.frequency.setValueAtTime(freq, time);
@@ -989,8 +1027,12 @@ export class AudioEngineService {
     if (panner.pan) panner.pan.setValueAtTime(pan, time);
     const vca = this.ctx.createGain();
     vca.gain.setValueAtTime(0, time);
-    vca.gain.linearRampToValueAtTime(velocity * 4, time + (params.attack || 0.01));
-    const releaseTime = time + (duration === 2 ? 0.5 : duration) + (params.release || 0.1);
+    vca.gain.linearRampToValueAtTime(
+      velocity * 4,
+      time + (params.attack || 0.01)
+    );
+    const releaseTime =
+      time + (duration === 2 ? 0.5 : duration) + (params.release || 0.1);
     if (vca.gain.exponentialRampToValueAtTime) {
       vca.gain.exponentialRampToValueAtTime(0.001, releaseTime);
     }
@@ -1000,15 +1042,22 @@ export class AudioEngineService {
     osc.start(time);
     osc.stop(releaseTime + 0.1);
     if (this.isRecording()) {
-       this.recorder.pendingMidi.push({
-         pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
-         startTime: time,
-         duration: (duration === 2 ? 0.5 : duration),
-         velocity: velocity * 4
-       });
+      this.recorder.pendingMidi.push({
+        pitch: Math.round(69 + 12 * Math.log2(freq / 440)),
+        startTime: time,
+        duration: duration === 2 ? 0.5 : duration,
+        velocity: velocity * 4,
+      });
     }
   }
-  triggerSampler(trackId: number, buffer: AudioBuffer, time: number, velocity: number, pan: number, duration: number) {
+  triggerSampler(
+    trackId: number,
+    buffer: AudioBuffer,
+    time: number,
+    velocity: number,
+    pan: number,
+    duration: number
+  ) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     const panner = this.ctx.createStereoPanner();
@@ -1034,16 +1083,19 @@ export class AudioEngineService {
     return this.masteringTargets;
   }
   connectSidechain(trigger: string, target: string) {
-    if (!this.sidechainMatrix.has(trigger)) this.sidechainMatrix.set(trigger, new Set());
+    if (!this.sidechainMatrix.has(trigger))
+      this.sidechainMatrix.set(trigger, new Set());
     const targets = this.sidechainMatrix.get(trigger);
     if (targets) targets.add(target);
     this.sidechainEnabled.set(true);
   }
   getSidechainRouting() {
-    return Array.from(this.sidechainMatrix.entries()).map(([trigger, targets]) => ({
-      triggerTrackId: trigger,
-      targetTrackIds: Array.from(targets)
-    }));
+    return Array.from(this.sidechainMatrix.entries()).map(
+      ([trigger, targets]) => ({
+        triggerTrackId: trigger,
+        targetTrackIds: Array.from(targets),
+      })
+    );
   }
 
   disconnectSidechain(trigger: string, target: string) {
@@ -1057,7 +1109,11 @@ export class AudioEngineService {
   setMasteringTargets(targets: any) {
     this.masteringTargets = { ...this.masteringTargets, ...targets };
     if (this.compressor) {
-      this.compressor.threshold.setTargetAtTime(this.masteringTargets.truePeak || -0.2, this.ctx.currentTime, 0.01);
+      this.compressor.threshold.setTargetAtTime(
+        this.masteringTargets.truePeak || -0.2,
+        this.ctx.currentTime,
+        0.01
+      );
     }
   }
 
@@ -1070,7 +1126,10 @@ export class AudioEngineService {
   }
 
   private configureLimiter(config: any) {
-    this.limiter.threshold.setValueAtTime(config.threshold, this.ctx.currentTime);
+    this.limiter.threshold.setValueAtTime(
+      config.threshold,
+      this.ctx.currentTime
+    );
     this.limiter.ratio.setValueAtTime(config.ratio, this.ctx.currentTime);
     this.limiter.attack.setValueAtTime(config.attack, this.ctx.currentTime);
     this.limiter.release.setValueAtTime(config.release, this.ctx.currentTime);

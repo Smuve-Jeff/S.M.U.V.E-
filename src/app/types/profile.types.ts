@@ -173,7 +173,6 @@ export interface ProfileAuditLog {
   auditType?: string;
 }
 
-
 export interface MusicalJourney {
   songwritingStyle: string;
   productionPhilosophy: string;

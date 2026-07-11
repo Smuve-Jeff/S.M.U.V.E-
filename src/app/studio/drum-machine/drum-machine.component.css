@@ -72,14 +72,18 @@
 
 .hw-pad-v42.active-hw {
   border-color: var(--pad-color);
-  box-shadow: 0 0 20px var(--pad-color), inset 0 0 10px var(--pad-color);
+  box-shadow:
+    0 0 20px var(--pad-color),
+    inset 0 0 10px var(--pad-color);
   background: rgba(255, 255, 255, 0.15);
 }
 
 .hw-pad-v42.tactile-v42 {
   background: linear-gradient(135deg, #2a2a2a, #1a1a1a) !important;
   border: 1px solid #000 !important;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .sequencer-panel {
@@ -97,7 +101,9 @@
 }
 
 /* Touch targets for buttons */
-.m-btn, .mini-tab-btn, .bar-btn {
+.m-btn,
+.mini-tab-btn,
+.bar-btn {
   min-height: 40px;
   min-width: 40px;
   display: flex;
@@ -107,12 +113,16 @@
 }
 
 .step-v42 {
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05);
   border: 1px solid #000 !important;
 }
 
 .active-step.step-v42 {
-  box-shadow: 0 0 12px currentColor, inset 0 0 6px rgba(255,255,255,0.3) !important;
+  box-shadow:
+    0 0 12px currentColor,
+    inset 0 0 6px rgba(255, 255, 255, 0.3) !important;
 }
 
 .pad-inspector.wood-panel {
@@ -135,7 +145,7 @@
 }
 
 .macro-bar {
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .high-density {

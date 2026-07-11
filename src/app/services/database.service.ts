@@ -260,4 +260,23 @@ export class DatabaseService {
     }
     return [];
   }
+
+  async uploadAsset(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post<{ url: string }>(
+          `${this.API_URL}/upload`,
+          formData,
+          this.getHeaders()
+        )
+      );
+      return response.url;
+    } catch (error) {
+      this.logger.error('Failed to upload asset to R2', error);
+      throw error;
+    }
+  }
 }

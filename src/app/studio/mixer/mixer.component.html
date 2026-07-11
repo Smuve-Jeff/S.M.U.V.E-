@@ -1,19 +1,37 @@
 <div class="mixer-container glass-v42-pro flex flex-col h-full overflow-hidden">
   <!-- Mixer Header -->
-  <div class="mixer-header flex items-center justify-between p-3 border-b border-white/10 bg-black/40">
+  <div
+    class="mixer-header flex items-center justify-between p-3 border-b border-white/10 bg-black/40"
+  >
     <div class="flex items-center gap-4">
-      <h2 class="text-xs font-black tracking-widest text-slate-400 uppercase flex items-center gap-2">
+      <h2
+        class="text-xs font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"
+      >
         <span class="material-symbols-outlined text-sm">tune</span>
         Console_Mixer_v4.2
       </h2>
       <div class="h-4 w-px bg-white/10"></div>
       <div class="flex gap-2">
-        <button class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300">MASTER</button>
-        <button class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300">INSERTS</button>
+        <button
+          class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300"
+        >
+          MASTER
+        </button>
+        <button
+          class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300"
+        >
+          INSERTS
+        </button>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <button class="tactile-v42 px-3 py-1 text-[8px] font-black" [class.bg-red-500]="isRecordingAutomation()" (click)="toggleAutomation()">AUTO</button>
+      <button
+        class="tactile-v42 px-3 py-1 text-[8px] font-black"
+        [class.bg-red-500]="isRecordingAutomation()"
+        (click)="toggleAutomation()"
+      >
+        AUTO
+      </button>
       <button class="icon-btn mini" (click)="toggleMixerWidth()">
         <span class="material-symbols-outlined text-sm">unfold_more</span>
       </button>
@@ -21,81 +39,139 @@
   </div>
 
   <!-- Strips Container -->
-  <div class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20">
+  <div
+    class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20"
+  >
     <!-- Channel Strips -->
-    <div *ngFor="let track of tracks(); let i = index"
-         class="mixer-strip holographic-glimmer snap-start flex flex-col transition-all min-w-[84px] relative"
-         [class.selected-track]="isSelected(track)"
-         (click)="selectTrack(track.id)">
-
+    <div
+      *ngFor="let track of tracks(); let i = index"
+      class="mixer-strip holographic-glimmer snap-start flex flex-col transition-all min-w-[84px] relative"
+      [class.selected-track]="isSelected(track)"
+      (click)="selectTrack(track.id)"
+    >
       <!-- Top Label & Index -->
       <div class="p-2 border-b border-white/5 bg-black/40 text-center">
-         <div class="flex justify-between items-center mb-1"><div class="text-[6px] font-black text-slate-500 uppercase">CH-{{ i + 1 }}</div><div class="text-[6px] font-black text-fl-blue/60 uppercase">{{ track.type }}</div></div>
-         <div class="track-lcd bg-[#050505] py-1 px-1 rounded border border-white/10">
-            <div class="text-[7px] font-black text-[#10b981] truncate uppercase text-shadow-glow">{{ track.name }}</div>
-         </div>
+        <div class="flex justify-between items-center mb-1">
+          <div class="text-[6px] font-black text-slate-500 uppercase">
+            CH-{{ i + 1 }}
+          </div>
+          <div class="text-[6px] font-black text-fl-blue/60 uppercase">
+            {{ track.type }}
+          </div>
+        </div>
+        <div
+          class="track-lcd bg-[#050505] py-1 px-1 rounded border border-white/10"
+        >
+          <div
+            class="text-[7px] font-black text-[#10b981] truncate uppercase text-shadow-glow"
+          >
+            {{ track.name }}
+          </div>
+        </div>
       </div>
 
       <!-- Meter & Pan -->
       <div class="p-2 space-y-2 flex-1 flex flex-col">
         <div class="vu-meter-container flex-1 relative flex items-end">
-           <div class="w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 opacity-80 transition-all duration-75"
-                [style.height.%]="getTrackLevel(track.id) * 100"></div>
-           <div class="absolute top-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_red]"
-                *ngIf="isPeaking(track.id)"></div>
+          <div
+            class="w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 opacity-80 transition-all duration-75"
+            [style.height.%]="getTrackLevel(track.id) * 100"
+          ></div>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_red]"
+            *ngIf="isPeaking(track.id)"
+          ></div>
         </div>
 
         <div class="pan-control flex flex-col items-center gap-1">
-           <div class="text-[6px] text-slate-500 font-bold uppercase tracking-tighter">Pan</div>
-           <div class="pan-track w-full relative">
-              <div class="pan-indicator absolute top-0"
-                   [style.left.%]="50 + (track.pan * 50)"></div>
-           </div>
+          <div
+            class="text-[6px] text-slate-500 font-bold uppercase tracking-tighter"
+          >
+            Pan
+          </div>
+          <div class="pan-track w-full relative">
+            <div
+              class="pan-indicator absolute top-0"
+              [style.left.%]="50 + track.pan * 50"
+            ></div>
+          </div>
         </div>
       </div>
 
-
       <!-- Sends -->
       <div class="p-2 space-y-3 border-t border-white/5 bg-black/20">
-         <div class="flex flex-col gap-1">
-            <div class="flex justify-between items-center">
-               <span class="text-[6px] text-slate-500 font-bold uppercase">Send A</span>
-               <span class="text-[6px] text-cyan-400 font-mono">{{ track.sendA * 100 | number:'1.0-0' }}</span>
-            </div>
-            <input type="range" class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-cyan-500"
-                   [ngModel]="track.sendA * 100" (ngModelChange)="updateSend(track.id, 'A', $event)">
-         </div>
-         <div class="flex flex-col gap-1">
-            <div class="flex justify-between items-center">
-               <span class="text-[6px] text-slate-500 font-bold uppercase">Send B</span>
-               <span class="text-[6px] text-purple-400 font-mono">{{ track.sendB * 100 | number:'1.0-0' }}</span>
-            </div>
-            <input type="range" class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
-                   [ngModel]="track.sendB * 100" (ngModelChange)="updateSend(track.id, 'B', $event)">
-         </div>
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between items-center">
+            <span class="text-[6px] text-slate-500 font-bold uppercase"
+              >Send A</span
+            >
+            <span class="text-[6px] text-cyan-400 font-mono">{{
+              track.sendA * 100 | number: '1.0-0'
+            }}</span>
+          </div>
+          <input
+            type="range"
+            class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-cyan-500"
+            [ngModel]="track.sendA * 100"
+            (ngModelChange)="updateSend(track.id, 'A', $event)"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between items-center">
+            <span class="text-[6px] text-slate-500 font-bold uppercase"
+              >Send B</span
+            >
+            <span class="text-[6px] text-purple-400 font-mono">{{
+              track.sendB * 100 | number: '1.0-0'
+            }}</span>
+          </div>
+          <input
+            type="range"
+            class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
+            [ngModel]="track.sendB * 100"
+            (ngModelChange)="updateSend(track.id, 'B', $event)"
+          />
+        </div>
       </div>
       <!-- Fader Section -->
       <div class="p-2 pt-0 pb-4 flex flex-col items-center gap-3">
-         <div class="fader-slot h-40 w-8 relative flex flex-col items-center p-1">
-            <div class="absolute inset-y-4 w-0.5 bg-white/5 shadow-inner"></div>
-            <div class="fader-handle absolute"
-                 [style.bottom.%]="(track.gain / 1.5) * 85 + 5"
-                 (pointerdown)="startFaderDrag($event, track)">
-            </div>
-         </div>
-         <div class="text-[8px] font-mono text-slate-400">{{ (track.gain * 100) | number:'1.0-0' }}%</div>
+        <div
+          class="fader-slot h-40 w-8 relative flex flex-col items-center p-1"
+        >
+          <div class="absolute inset-y-4 w-0.5 bg-white/5 shadow-inner"></div>
+          <div
+            class="fader-handle absolute"
+            [style.bottom.%]="(track.gain / 1.5) * 85 + 5"
+            (pointerdown)="startFaderDrag($event, track)"
+          ></div>
+        </div>
+        <div class="text-[8px] font-mono text-slate-400">
+          {{ track.gain * 100 | number: '1.0-0' }}%
+        </div>
       </div>
 
       <!-- Controls -->
       <div class="p-2 grid grid-cols-2 gap-1 border-t border-white/5">
-         <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
-                 [class.bg-orange-500]="track.muted" [class.text-white]="track.muted"
-                 [class.bg-white/5]="!track.muted" [class.text-slate-500]="!track.muted"
-                 (click)="toggleMute(track); $event.stopPropagation()">M</button>
-         <button class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
-                 [class.bg-yellow-400]="track.soloed" [class.text-black]="track.soloed"
-                 [class.bg-white/5]="!track.soloed" [class.text-slate-500]="!track.soloed"
-                 (click)="toggleSolo(track); $event.stopPropagation()">S</button>
+        <button
+          class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
+          [class.bg-orange-500]="track.muted"
+          [class.text-white]="track.muted"
+          [class.bg-white/5]="!track.muted"
+          [class.text-slate-500]="!track.muted"
+          (click)="toggleMute(track); $event.stopPropagation()"
+        >
+          M
+        </button>
+        <button
+          class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
+          [class.bg-yellow-400]="track.soloed"
+          [class.text-black]="track.soloed"
+          [class.bg-white/5]="!track.soloed"
+          [class.text-slate-500]="!track.soloed"
+          (click)="toggleSolo(track); $event.stopPropagation()"
+        >
+          S
+        </button>
       </div>
     </div>
   </div>

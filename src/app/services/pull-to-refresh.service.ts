@@ -12,7 +12,7 @@ export interface PullToRefreshConfig {
 export class PullToRefreshService {
   isRefreshing = signal(false);
   pullDistance = signal(0);
-  
+
   private startY = 0;
   private currentY = 0;
   private isPulling = false;
@@ -20,11 +20,17 @@ export class PullToRefreshService {
 
   attach(element: HTMLElement, config: PullToRefreshConfig) {
     this.config = config;
-    
-    element.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: true });
-    element.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
-    element.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: true });
-    
+
+    element.addEventListener('touchstart', this.onTouchStart.bind(this), {
+      passive: true,
+    });
+    element.addEventListener('touchmove', this.onTouchMove.bind(this), {
+      passive: false,
+    });
+    element.addEventListener('touchend', this.onTouchEnd.bind(this), {
+      passive: true,
+    });
+
     return () => {
       element.removeEventListener('touchstart', this.onTouchStart.bind(this));
       element.removeEventListener('touchmove', this.onTouchMove.bind(this));
@@ -63,7 +69,7 @@ export class PullToRefreshService {
 
     if (this.pullDistance() >= threshold && !this.isRefreshing()) {
       this.isRefreshing.set(true);
-      
+
       try {
         if (this.config?.onRefresh) {
           await this.config.onRefresh();

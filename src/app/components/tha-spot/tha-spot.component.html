@@ -1,6 +1,14 @@
-<div class="tha-spot-container full-page no-scrollbar animate-enter" [class.pluto-active]="displayMode() === 'pluto'" (scroll)="onContentScroll($event)" #contentViewport>
+<div
+  class="tha-spot-container full-page no-scrollbar animate-enter"
+  [class.pluto-active]="displayMode() === 'pluto'"
+  (scroll)="onContentScroll($event)"
+  #contentViewport
+>
   <!-- Spot Header -->
-  <header class="spot-header glass-v42 shadow-v42-lg" *ngIf="displayMode() !== 'pluto'">
+  <header
+    class="spot-header glass-v42 shadow-v42-lg"
+    *ngIf="displayMode() !== 'pluto'"
+  >
     <div class="header-left">
       <h1 class="glitch-text" data-text="THA_SPOT">THA_SPOT</h1>
       <div class="status-badge hide-mobile">
@@ -12,25 +20,56 @@
     <div class="header-center hide-mobile">
       <div class="search-bar glass-v42">
         <span class="material-symbols-outlined">search</span>
-        <input type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)" placeholder="LOCATE CABINET..." />
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChange($event)"
+          placeholder="LOCATE CABINET..."
+        />
       </div>
     </div>
 
     <div class="header-right">
-      <button type="button" class="room-btn" (click)="copyShareLink()" title="Share Mission Link">
+      <button
+        type="button"
+        class="room-btn"
+        (click)="copyShareLink()"
+        title="Share Mission Link"
+      >
         <span class="material-symbols-outlined">share</span>
       </button>
       <div class="room-selector">
-        <button class="room-btn active" (click)="toggleIntel()" [class.has-alert]="true">
+        <button
+          class="room-btn active"
+          (click)="toggleIntel()"
+          [class.has-alert]="true"
+        >
           <span class="material-symbols-outlined">analytics</span>
         </button>
-        <button class="room-btn" (click)="toggleRivalHub()" [class.has-alert]="socialService.roomMessages().length > 0">
+        <button
+          class="room-btn"
+          (click)="toggleRivalHub()"
+          [class.has-alert]="socialService.roomMessages().length > 0"
+        >
           <span class="material-symbols-outlined">groups</span>
         </button>
       </div>
       <div class="h-6 w-px bg-white/10 mx-2"></div>
-      <button class="mode-btn" [class.active]="displayMode() === 'gaming'" (click)="setMode('gaming')">GAMING</button>
-      <button type="button" class="mode-btn" [class.active]="displayMode() === 'pluto'" (click)="setMode('pluto')">PLUTO TV</button>
+      <button
+        class="mode-btn"
+        [class.active]="displayMode() === 'gaming'"
+        (click)="setMode('gaming')"
+      >
+        GAMING
+      </button>
+      <button
+        type="button"
+        class="mode-btn"
+        [class.active]="displayMode() === 'pluto'"
+        (click)="setMode('pluto')"
+      >
+        PLUTO TV
+      </button>
     </div>
   </header>
 
@@ -42,10 +81,16 @@
           <div class="hero-content">
             <span class="hero-tag">ELITE_FEATURED</span>
             <h2>HIGH-FIDELITY RERUNS</h2>
-            <p>Access the Absolute gaming catalog with zero-latency emulation.</p>
+            <p>
+              Access the Absolute gaming catalog with zero-latency emulation.
+            </p>
             <div class="hero-actions">
-              <button class="primary-btn" (click)="setActiveRoom('arcade')">ARCADE_FLOOR</button>
-              <button class="secondary-btn" (click)="setActiveRoom('neo-zone')">NEO_ZONE</button>
+              <button class="primary-btn" (click)="setActiveRoom('arcade')">
+                ARCADE_FLOOR
+              </button>
+              <button class="secondary-btn" (click)="setActiveRoom('neo-zone')">
+                NEO_ZONE
+              </button>
             </div>
           </div>
         </div>
@@ -53,22 +98,37 @@
         <div class="catalog-filters-row glass-v42">
           <div class="filter-group">
             <label>ROOM</label>
-            <select [ngModel]="activeRoom()" (ngModelChange)="setActiveRoom($event)">
-              <option *ngFor="let room of gamingRooms()" [value]="room.id">{{ room.name }}</option>
+            <select
+              [ngModel]="activeRoom()"
+              (ngModelChange)="setActiveRoom($event)"
+            >
+              <option *ngFor="let room of gamingRooms()" [value]="room.id">
+                {{ room.name }}
+              </option>
             </select>
           </div>
           <div class="filter-group">
             <label>GENRE</label>
-            <select [ngModel]="activeGenre()" (ngModelChange)="activeGenre.set($event)">
+            <select
+              [ngModel]="activeGenre()"
+              (ngModelChange)="activeGenre.set($event)"
+            >
               <option value="all">ALL_GENRES</option>
-              <option *ngFor="let g of availableGenres()" [value]="g">{{ g }}</option>
+              <option *ngFor="let g of availableGenres()" [value]="g">
+                {{ g }}
+              </option>
             </select>
           </div>
           <div class="filter-group">
             <label>PLATFORM</label>
-            <select [ngModel]="activePlatform()" (ngModelChange)="activePlatform.set($event)">
+            <select
+              [ngModel]="activePlatform()"
+              (ngModelChange)="activePlatform.set($event)"
+            >
               <option value="all">ALL_PLATFORMS</option>
-              <option *ngFor="let p of allPlatforms()" [value]="p">{{ p }}</option>
+              <option *ngFor="let p of allPlatforms()" [value]="p">
+                {{ p }}
+              </option>
             </select>
           </div>
           <button class="clear-btn mini" (click)="clearFilters()">RESET</button>
@@ -81,13 +141,38 @@
               <p>{{ rail.subtitle }}</p>
             </div>
             <div class="rail-content no-scrollbar">
-              <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of getGamesForRail(rail)" (click)="onGameClick(game)">
+              <div
+                class="game-card glass-v42 shadow-v42-md"
+                *ngFor="let game of getGamesForRail(rail)"
+                (click)="onGameClick(game)"
+              >
                 <div class="card-media">
-                  <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
-                  <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
-                  <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-                  <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
-                  <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
+                  <img
+                    [src]="game.image || 'assets/desktop_hub.png'"
+                    [alt]="game.name"
+                    loading="lazy"
+                  />
+                  <div class="card-overlay">
+                    <span class="material-symbols-outlined">play_circle</span>
+                  </div>
+                  <div
+                    class="card-badge"
+                    *ngIf="game.badgeIds?.includes('elite')"
+                  >
+                    ELITE
+                  </div>
+                  <div
+                    class="card-badge next-gen"
+                    *ngIf="game.badgeIds?.includes('next-gen')"
+                  >
+                    NEXT-GEN
+                  </div>
+                  <div
+                    class="card-badge modern"
+                    *ngIf="game.badgeIds?.includes('modern')"
+                  >
+                    MODERN
+                  </div>
                 </div>
                 <div class="card-info">
                   <span class="game-name">{{ game.name }}</span>
@@ -106,13 +191,38 @@
           </div>
 
           <div class="catalog-grid">
-            <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of filteredGames()" (click)="onGameClick(game)">
+            <div
+              class="game-card glass-v42 shadow-v42-md"
+              *ngFor="let game of filteredGames()"
+              (click)="onGameClick(game)"
+            >
               <div class="card-media">
-                <img [src]="game.image || 'assets/desktop_hub.png'" [alt]="game.name" loading="lazy" />
-                <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
-                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-                <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
-                <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
+                <img
+                  [src]="game.image || 'assets/desktop_hub.png'"
+                  [alt]="game.name"
+                  loading="lazy"
+                />
+                <div class="card-overlay">
+                  <span class="material-symbols-outlined">play_circle</span>
+                </div>
+                <div
+                  class="card-badge"
+                  *ngIf="game.badgeIds?.includes('elite')"
+                >
+                  ELITE
+                </div>
+                <div
+                  class="card-badge next-gen"
+                  *ngIf="game.badgeIds?.includes('next-gen')"
+                >
+                  NEXT-GEN
+                </div>
+                <div
+                  class="card-badge modern"
+                  *ngIf="game.badgeIds?.includes('modern')"
+                >
+                  MODERN
+                </div>
               </div>
               <div class="card-info">
                 <span class="game-name">{{ game.name }}</span>
@@ -127,30 +237,52 @@
       <div class="room-view animate-enter" *ngIf="!isBrowseView()">
         <div class="room-header">
           <button class="back-btn" (click)="toggleBrowse()">
-            <span class="material-symbols-outlined">arrow_back</span> BACK_TO_CATALOG
+            <span class="material-symbols-outlined">arrow_back</span>
+            BACK_TO_CATALOG
           </button>
           <h2>{{ getActiveRoomName() }}</h2>
         </div>
         <div class="catalog-grid">
-           <div class="game-card glass-v42 shadow-v42-md" *ngFor="let game of filteredGames()" (click)="onGameClick(game)">
-              <div class="card-media">
-                <img [src]="game.image" [alt]="game.name" loading="lazy" />
-                <div class="card-overlay"><span class="material-symbols-outlined">play_circle</span></div>
-                <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">ELITE</div>
-                <div class="card-badge next-gen" *ngIf="game.badgeIds?.includes('next-gen')">NEXT-GEN</div>
-                <div class="card-badge modern" *ngIf="game.badgeIds?.includes('modern')">MODERN</div>
+          <div
+            class="game-card glass-v42 shadow-v42-md"
+            *ngFor="let game of filteredGames()"
+            (click)="onGameClick(game)"
+          >
+            <div class="card-media">
+              <img [src]="game.image" [alt]="game.name" loading="lazy" />
+              <div class="card-overlay">
+                <span class="material-symbols-outlined">play_circle</span>
               </div>
-              <div class="card-info">
-                <span class="game-name">{{ game.name }}</span>
-                <span class="game-genre">{{ game.genre }}</span>
+              <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">
+                ELITE
               </div>
-           </div>
+              <div
+                class="card-badge next-gen"
+                *ngIf="game.badgeIds?.includes('next-gen')"
+              >
+                NEXT-GEN
+              </div>
+              <div
+                class="card-badge modern"
+                *ngIf="game.badgeIds?.includes('modern')"
+              >
+                MODERN
+              </div>
+            </div>
+            <div class="card-info">
+              <span class="game-name">{{ game.name }}</span>
+              <span class="game-genre">{{ game.genre }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </ng-container>
 
     <!-- Pluto TV Integration -->
-    <div class="pluto-standalone-experience animate-enter full-standalone" *ngIf="displayMode() === 'pluto'">
+    <div
+      class="pluto-standalone-experience animate-enter full-standalone"
+      *ngIf="displayMode() === 'pluto'"
+    >
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
         <span class="material-symbols-outlined">arrow_back</span> EXIT PLUTO TV
       </button>
@@ -169,7 +301,10 @@
   </main>
 
   <!-- Sidebar Intel Panel -->
-  <aside class="executive-sidebar glass-v42-pro" [class.active]="showIntelPanel() && displayMode() !== 'pluto'">
+  <aside
+    class="executive-sidebar glass-v42-pro"
+    [class.active]="showIntelPanel() && displayMode() !== 'pluto'"
+  >
     <header class="sidebar-header">
       <span class="material-symbols-outlined">neurology</span> STRATEGIC INTEL
       <button class="close-intel" (click)="toggleIntel()">
@@ -182,7 +317,9 @@
           <div class="label">NEURAL SYNC</div>
           <div class="value">{{ neuralSyncScore() }}%</div>
         </div>
-        <div class="sync-bar"><div class="fill" [style.width.%]="neuralSyncScore()"></div></div>
+        <div class="sync-bar">
+          <div class="fill" [style.width.%]="neuralSyncScore()"></div>
+        </div>
       </div>
       <div class="directives-section">
         <h4>OPERATIONAL DIRECTIVES</h4>
@@ -194,17 +331,52 @@
   </aside>
 
   <!-- Rival Hub Sidebar -->
-  <aside class="executive-sidebar glass-v42-pro rival-hub" [class.active]="showRivalHub() && displayMode() !== 'pluto'">
+  <aside
+    class="executive-sidebar glass-v42-pro rival-hub"
+    [class.active]="showRivalHub() && displayMode() !== 'pluto'"
+  >
     <header class="sidebar-header">
       <div class="hub-tabs">
-        <button class="incognito-toggle" [class.active]="isIncognito()" (click)="socialService.toggleIncognito()" title="Toggle Incognito Mode">
-          <span class="material-symbols-outlined">{{ isIncognito() ? "visibility_off" : "visibility" }}</span>
+        <button
+          class="incognito-toggle"
+          [class.active]="isIncognito()"
+          (click)="socialService.toggleIncognito()"
+          title="Toggle Incognito Mode"
+        >
+          <span class="material-symbols-outlined">{{
+            isIncognito() ? 'visibility_off' : 'visibility'
+          }}</span>
         </button>
-        <button [class.active]="activeHubTab() === 'room'" (click)="setHubTab('room')">ROOM</button>
-        <button [class.active]="activeHubTab() === 'dm'" (click)="setHubTab('dm')">DM</button>
-        <button [class.active]="activeHubTab() === 'friends'" (click)="setHubTab('friends')">NET</button>
-        <button [class.active]="activeHubTab() === 'party'" (click)="setHubTab('party')">SQUAD</button>
-        <button [class.active]="activeHubTab() === 'stream'" (click)="setHubTab('stream')">LIVE</button>
+        <button
+          [class.active]="activeHubTab() === 'room'"
+          (click)="setHubTab('room')"
+        >
+          ROOM
+        </button>
+        <button
+          [class.active]="activeHubTab() === 'dm'"
+          (click)="setHubTab('dm')"
+        >
+          DM
+        </button>
+        <button
+          [class.active]="activeHubTab() === 'friends'"
+          (click)="setHubTab('friends')"
+        >
+          NET
+        </button>
+        <button
+          [class.active]="activeHubTab() === 'party'"
+          (click)="setHubTab('party')"
+        >
+          SQUAD
+        </button>
+        <button
+          [class.active]="activeHubTab() === 'stream'"
+          (click)="setHubTab('stream')"
+        >
+          LIVE
+        </button>
       </div>
       <button class="close-intel" (click)="toggleRivalHub()">
         <span class="material-symbols-outlined">close</span>
@@ -212,32 +384,50 @@
     </header>
 
     <div class="sidebar-content custom-scrollbar" #scrollContainer>
-
       <ng-container *ngIf="canInteract()">
         <!-- Room Chat View -->
         <div class="chat-view" *ngIf="activeHubTab() === 'room'">
           <div class="room-info-bar glass-v42">
             <span>{{ getActiveRoomName() | uppercase }}</span>
-            <span class="players-count">{{ onlineUsers().length + 1 }} ACTIVE</span>
+            <span class="players-count"
+              >{{ onlineUsers().length + 1 }} ACTIVE</span
+            >
           </div>
           <div class="empty-state-discovery" *ngIf="onlineUsers().length === 0">
             <p class="mini-label">NO RIVALS ONLINE. RECOMMENDED:</p>
             <div class="online-users-strip no-scrollbar">
-              <button type="button" class="user-avatar-circle"
-                   *ngFor="let user of featuredUsers()"
-                   [class.unauthorized]="!user.profileSetupCompleted"
-                   [attr.aria-label]="'Message ' + (user.artistName || 'user')"
-                   (click)="setDmTarget(user.userId); setHubTab('dm')">
-                <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
-                <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || "??" }}</span>
+              <button
+                type="button"
+                class="user-avatar-circle"
+                *ngFor="let user of featuredUsers()"
+                [class.unauthorized]="!user.profileSetupCompleted"
+                [attr.aria-label]="'Message ' + (user.artistName || 'user')"
+                (click)="setDmTarget(user.userId); setHubTab('dm')"
+              >
+                <img
+                  *ngIf="user.avatarImage"
+                  [src]="user.avatarImage"
+                  class="mini-avatar"
+                />
+                <span *ngIf="!user.avatarImage">{{
+                  user.artistName?.substring(0, 2).toUpperCase() || '??'
+                }}</span>
               </button>
             </div>
           </div>
           <div class="message-list">
-            <div class="msg-bubble" *ngFor="let msg of roomMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+            <div
+              class="msg-bubble"
+              *ngFor="let msg of roomMessages()"
+              [class.own-msg]="msg.fromUserId === profileService.profile().id"
+            >
               <div class="msg-meta">
-                <span class="msg-user">{{ msg.fromUserName || 'ANONYMOUS' }}</span>
-                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+                <span class="msg-user">{{
+                  msg.fromUserName || 'ANONYMOUS'
+                }}</span>
+                <span class="msg-time">{{
+                  msg.timestamp | date: 'shortTime'
+                }}</span>
               </div>
               <div class="msg-content">{{ msg.message }}</div>
             </div>
@@ -247,113 +437,227 @@
         <!-- Direct Messaging View -->
         <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
           <div class="player-search glass-v42">
-              <span class="material-symbols-outlined">person_search</span>
-              <input type="text" [ngModel]="playerSearchQuery()" (ngModelChange)="onPlayerSearchChange($event)" placeholder="FIND RIVALS (NAME, GENRE, STATUS)..." aria-label="Search for rivals by name, genre, or status" />
+            <span class="material-symbols-outlined">person_search</span>
+            <input
+              type="text"
+              [ngModel]="playerSearchQuery()"
+              (ngModelChange)="onPlayerSearchChange($event)"
+              placeholder="FIND RIVALS (NAME, GENRE, STATUS)..."
+              aria-label="Search for rivals by name, genre, or status"
+            />
           </div>
           <div class="online-users-strip no-scrollbar">
-            <button type="button" class="user-avatar-circle"
-                 *ngFor="let user of filteredOnlineUsers()"
-                 [class.active]="dmTargetUserId() === user.userId"
-                 [class.unauthorized]="!user.profileSetupCompleted"
-                 [attr.aria-label]="'Message ' + (user.artistName || 'user')"
-                 (click)="setDmTarget(user.userId)">
-              <img *ngIf="user.avatarImage" [src]="user.avatarImage" class="mini-avatar" />
-              <span *ngIf="!user.avatarImage">{{ user.artistName?.substring(0, 2).toUpperCase() || '??' }}</span>
+            <button
+              type="button"
+              class="user-avatar-circle"
+              *ngFor="let user of filteredOnlineUsers()"
+              [class.active]="dmTargetUserId() === user.userId"
+              [class.unauthorized]="!user.profileSetupCompleted"
+              [attr.aria-label]="'Message ' + (user.artistName || 'user')"
+              (click)="setDmTarget(user.userId)"
+            >
+              <img
+                *ngIf="user.avatarImage"
+                [src]="user.avatarImage"
+                class="mini-avatar"
+              />
+              <span *ngIf="!user.avatarImage">{{
+                user.artistName?.substring(0, 2).toUpperCase() || '??'
+              }}</span>
               <div class="online-indicator" [class.in-game]="user.inGame"></div>
             </button>
           </div>
-          <div class="dm-user-info glass-v42" *ngIf="selectedDmUser() as target">
-              <div class="dm-user-meta">
-                  <span class="dm-target-name">{{ target.artistName || 'OPERATIVE' }}</span>
-                  <span class="dm-target-genre">{{ target.primaryGenre }}</span>
-              </div>
-              <div class="dm-actions" *ngIf="target.profileSetupCompleted">
-                  <button class="icon-btn mini" (click)="startVoiceChat(target.userId)" title="Voice Uplink">
-                      <span class="material-symbols-outlined">call</span>
-                  </button>
-                  <button class="icon-btn mini" (click)="sendChallenge(target.userId, gameIdToInvite())" title="Challenge">
-                      <span class="material-symbols-outlined">swords</span>
-                  </button>
-              </div>
+          <div
+            class="dm-user-info glass-v42"
+            *ngIf="selectedDmUser() as target"
+          >
+            <div class="dm-user-meta">
+              <span class="dm-target-name">{{
+                target.artistName || 'OPERATIVE'
+              }}</span>
+              <span class="dm-target-genre">{{ target.primaryGenre }}</span>
+            </div>
+            <div class="dm-actions" *ngIf="target.profileSetupCompleted">
+              <button
+                class="icon-btn mini"
+                (click)="startVoiceChat(target.userId)"
+                title="Voice Uplink"
+              >
+                <span class="material-symbols-outlined">call</span>
+              </button>
+              <button
+                class="icon-btn mini"
+                (click)="sendChallenge(target.userId, gameIdToInvite())"
+                title="Challenge"
+              >
+                <span class="material-symbols-outlined">swords</span>
+              </button>
+            </div>
           </div>
           <div class="message-list">
-            <div class="msg-bubble" *ngFor="let msg of filteredMessages()" [class.own-msg]="msg.fromUserId === profileService.profile().id">
+            <div
+              class="msg-bubble"
+              *ngFor="let msg of filteredMessages()"
+              [class.own-msg]="msg.fromUserId === profileService.profile().id"
+            >
               <div class="msg-meta">
-                <span class="msg-user">{{ msg.fromUserName || 'OPERATIVE' }}</span>
-                <span class="msg-time">{{ msg.timestamp | date:'shortTime' }}</span>
+                <span class="msg-user">{{
+                  msg.fromUserName || 'OPERATIVE'
+                }}</span>
+                <span class="msg-time">{{
+                  msg.timestamp | date: 'shortTime'
+                }}</span>
               </div>
               <div class="msg-content">{{ msg.message }}</div>
             </div>
           </div>
         </div>
 
-
         <!-- Party View -->
         <div class="party-view" *ngIf="activeHubTab() === 'party'">
           <div class="party-controls" *ngIf="!socialService.currentPartyId()">
             <h4>SQUAD_FORMATION</h4>
             <p>Form a strike team to engage in cooperative missions.</p>
-            <button class="launch-btn mini" (click)="socialService.createParty('global')">INITIALIZE_SQUAD</button>
+            <button
+              class="launch-btn mini"
+              (click)="socialService.createParty('global')"
+            >
+              INITIALIZE_SQUAD
+            </button>
           </div>
 
-          <div class="party-dashboard" *ngIf="socialService.currentPartyId() as partyId">
+          <div
+            class="party-dashboard"
+            *ngIf="socialService.currentPartyId() as partyId"
+          >
             <div class="party-header glass-v42">
               <span class="party-id">SQUAD_ID: {{ partyId }}</span>
-              <button class="terminate-btn mini" (click)="socialService.leaveParty()">ABANDON</button>
+              <button
+                class="terminate-btn mini"
+                (click)="socialService.leaveParty()"
+              >
+                ABANDON
+              </button>
             </div>
 
             <div class="party-members">
-              <div class="member-chip" *ngFor="let member of socialService.partyMembers()">
+              <div
+                class="member-chip"
+                *ngFor="let member of socialService.partyMembers()"
+              >
                 {{ member.artistName }}
               </div>
             </div>
 
             <div class="party-chat">
-
-            <div class="party-invites" style="margin-top: 1rem;">
-              <h6>INVITE OPERATIVES</h6>
-              <div class="user-list mini">
-                <div class="user-item glass-v42 mini" *ngFor="let friend of socialService.friends()">
-                  <span class="user-name">{{ friend.artistName }}</span>
-                  <button class="action-btn mini" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
+              <div class="party-invites" style="margin-top: 1rem">
+                <h6>INVITE OPERATIVES</h6>
+                <div class="user-list mini">
+                  <div
+                    class="user-item glass-v42 mini"
+                    *ngFor="let friend of socialService.friends()"
+                  >
+                    <span class="user-name">{{ friend.artistName }}</span>
+                    <button
+                      class="action-btn mini"
+                      (click)="socialService.inviteToParty(friend.userId)"
+                    >
+                      INVITE
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-
-            </div>
           </div>
         </div>
-
 
         <!-- Friends View -->
         <div class="friends-view" *ngIf="activeHubTab() === 'friends'">
           <div class="friends-header">
             <h4>EXECUTIVE_NETWORK</h4>
-            <button class="icon-btn" (click)="socialService.loadFriends()"><span class="material-symbols-outlined">refresh</span></button>
+            <button class="icon-btn" (click)="socialService.loadFriends()">
+              <span class="material-symbols-outlined">refresh</span>
+            </button>
           </div>
           <div class="user-list">
-            <div class="user-item glass-v42" *ngFor="let friend of socialService.friends()" [class.pending]="friend.status === 'pending'">
+            <div
+              class="user-item glass-v42"
+              *ngFor="let friend of socialService.friends()"
+              [class.pending]="friend.status === 'pending'"
+            >
               <div class="user-info">
-                <img [src]="friend.avatarImage || 'assets/avatar.jpg'" class="user-avatar" />
+                <img
+                  [src]="friend.avatarImage || 'assets/avatar.jpg'"
+                  class="user-avatar"
+                />
                 <div class="user-meta">
                   <span class="user-name">{{ friend.artistName }}</span>
-                  <span class="user-location" *ngIf="friend.location"><span class="material-symbols-outlined mini">location_on</span> {{ friend.location }}</span>
-                  <span class="status-label" *ngIf="friend.status === 'pending'">PENDING_APPROVAL</span>
+                  <span class="user-location" *ngIf="friend.location"
+                    ><span class="material-symbols-outlined mini"
+                      >location_on</span
+                    >
+                    {{ friend.location }}</span
+                  >
+                  <span class="status-label" *ngIf="friend.status === 'pending'"
+                    >PENDING_APPROVAL</span
+                  >
                 </div>
               </div>
               <div class="user-actions">
                 <ng-container *ngIf="friend.status === 'accepted'">
-                  <button type="button" class="action-btn" (click)="setDmTarget(friend.userId); setHubTab('dm')">DM</button>
-                  <button type="button" class="action-btn" *ngIf="socialService.currentPartyId()" (click)="socialService.inviteToParty(friend.userId)">INVITE</button>
-                  <button type="button" class="action-btn danger" (click)="socialService.removeFriend(friend.userId)">UNLINK</button>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    (click)="setDmTarget(friend.userId); setHubTab('dm')"
+                  >
+                    DM
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    *ngIf="socialService.currentPartyId()"
+                    (click)="socialService.inviteToParty(friend.userId)"
+                  >
+                    INVITE
+                  </button>
+                  <button
+                    type="button"
+                    class="action-btn danger"
+                    (click)="socialService.removeFriend(friend.userId)"
+                  >
+                    UNLINK
+                  </button>
                 </ng-container>
                 <ng-container *ngIf="friend.status === 'pending'">
-                  <button class="action-btn" (click)="socialService.respondToFriendRequest(friend.userId, 'accepted')">APPROVE</button>
-                  <button class="action-btn danger" (click)="socialService.respondToFriendRequest(friend.userId, 'declined')">DENY</button>
+                  <button
+                    class="action-btn"
+                    (click)="
+                      socialService.respondToFriendRequest(
+                        friend.userId,
+                        'accepted'
+                      )
+                    "
+                  >
+                    APPROVE
+                  </button>
+                  <button
+                    class="action-btn danger"
+                    (click)="
+                      socialService.respondToFriendRequest(
+                        friend.userId,
+                        'declined'
+                      )
+                    "
+                  >
+                    DENY
+                  </button>
                 </ng-container>
               </div>
             </div>
-            <div class="empty-state" *ngIf="socialService.friends().length === 0">
+            <div
+              class="empty-state"
+              *ngIf="socialService.friends().length === 0"
+            >
               NO_ACTIVE_FRIEND_LINKS
             </div>
           </div>
@@ -361,18 +665,33 @@
           <div class="discovery-section">
             <h5>DISCOVER_OPERATIVES</h5>
             <div class="search-box">
-              <input type="text" placeholder="SEARCH BY NAME/LOCATION..." (input)="onPlayerSearchChange($any($event.target).value)" />
+              <input
+                type="text"
+                placeholder="SEARCH BY NAME/LOCATION..."
+                (input)="onPlayerSearchChange($any($event.target).value)"
+              />
             </div>
             <div class="search-results">
-              <div class="user-item glass-v42 mini" *ngFor="let user of globalSearchResults()">
+              <div
+                class="user-item glass-v42 mini"
+                *ngFor="let user of globalSearchResults()"
+              >
                 <div class="user-info">
                   <span class="user-name">{{ user.artistName }}</span>
-                <div class="user-meta" style="font-size: 0.7rem; color: var(--success-v42)">
-                  ELITE: {{ user.eliteScore || 0 }} | SQUAD: {{ user.squadCount || 0 }}
+                  <div
+                    class="user-meta"
+                    style="font-size: 0.7rem; color: var(--success-v42)"
+                  >
+                    ELITE: {{ user.eliteScore || 0 }} | SQUAD:
+                    {{ user.squadCount || 0 }}
+                  </div>
                 </div>
-
-                </div>
-                <button class="action-btn mini" (click)="socialService.addFriend(user.userId)">LINK</button>
+                <button
+                  class="action-btn mini"
+                  (click)="socialService.addFriend(user.userId)"
+                >
+                  LINK
+                </button>
               </div>
             </div>
           </div>
@@ -383,21 +702,62 @@
           <div class="stream-controls" *ngIf="!socialService.isStreaming()">
             <h4>PRE-STREAM CONFIG</h4>
             <div class="platform-grid">
-              <button class="platform-btn twitch" (click)="socialService.startOAuthFlow('twitch')">TWITCH (CONNECT)</button>
-              <button class="platform-btn youtube" (click)="goLive('YouTube')">YOUTUBE</button>
-              <button class="platform-btn social" (click)="goLive('S.M.U.V.E.')">SMUVE LIVE</button>
-              <button class="platform-btn tiktok" (click)="goLive('TikTok')">TIKTOK</button>
-              <button class="platform-btn instagram" (click)="socialService.startOAuthFlow('instagram')">INSTAGRAM (CONNECT)</button>
-              <button class="platform-btn discord" (click)="socialService.startOAuthFlow('discord')">DISCORD (CONNECT)</button>
-              <button class="platform-btn kick" (click)="socialService.startOAuthFlow('kick')">KICK (CONNECT)</button>
-              <button class="platform-btn x-corp" (click)="socialService.startOAuthFlow('x')">X (TWITTER) (CONNECT)</button>
+              <button
+                class="platform-btn twitch"
+                (click)="socialService.startOAuthFlow('twitch')"
+              >
+                TWITCH (CONNECT)
+              </button>
+              <button class="platform-btn youtube" (click)="goLive('YouTube')">
+                YOUTUBE
+              </button>
+              <button
+                class="platform-btn social"
+                (click)="goLive('S.M.U.V.E.')"
+              >
+                SMUVE LIVE
+              </button>
+              <button class="platform-btn tiktok" (click)="goLive('TikTok')">
+                TIKTOK
+              </button>
+              <button
+                class="platform-btn instagram"
+                (click)="socialService.startOAuthFlow('instagram')"
+              >
+                INSTAGRAM (CONNECT)
+              </button>
+              <button
+                class="platform-btn discord"
+                (click)="socialService.startOAuthFlow('discord')"
+              >
+                DISCORD (CONNECT)
+              </button>
+              <button
+                class="platform-btn kick"
+                (click)="socialService.startOAuthFlow('kick')"
+              >
+                KICK (CONNECT)
+              </button>
+              <button
+                class="platform-btn x-corp"
+                (click)="socialService.startOAuthFlow('x')"
+              >
+                X (TWITTER) (CONNECT)
+              </button>
             </div>
           </div>
-          <div class="stream-dashboard animate-enter" *ngIf="socialService.isStreaming()">
+          <div
+            class="stream-dashboard animate-enter"
+            *ngIf="socialService.isStreaming()"
+          >
             <div class="stream-status glass-v42">
               <div class="status-indicator live pulse"></div>
-              <div class="status-text">LIVE ON {{ socialService.currentPlatform() | uppercase }}</div>
-              <button class="terminate-btn mini" (click)="endStream()">STOP</button>
+              <div class="status-text">
+                LIVE ON {{ socialService.currentPlatform() | uppercase }}
+              </div>
+              <button class="terminate-btn mini" (click)="endStream()">
+                STOP
+              </button>
             </div>
             <div class="telemetry-grid">
               <div class="telemetry-item">
@@ -406,7 +766,10 @@
               </div>
               <div class="telemetry-item">
                 <label>HEALTH</label>
-                <span [class]="socialService.streamTelemetry().health.toLowerCase()">{{ socialService.streamTelemetry().health }}</span>
+                <span
+                  [class]="socialService.streamTelemetry().health.toLowerCase()"
+                  >{{ socialService.streamTelemetry().health }}</span
+                >
               </div>
               <div class="telemetry-item">
                 <label>BITRATE</label>
@@ -419,7 +782,14 @@
     </div>
 
     <!-- Chat Input (Shared for Room & DM) -->
-    <footer class="hub-footer glass-v42" *ngIf="displayMode() !== 'pluto' && activeHubTab() !== 'stream' && canInteract()">
+    <footer
+      class="hub-footer glass-v42"
+      *ngIf="
+        displayMode() !== 'pluto' &&
+        activeHubTab() !== 'stream' &&
+        canInteract()
+      "
+    >
       <div class="emoji-bar">
         <span (click)="addEmoji('🔥')">🔥</span>
         <span (click)="addEmoji('💯')">💯</span>
@@ -430,7 +800,8 @@
       <div class="input-wrapper">
         <input
           type="text"
-          [ngModel]="chatInput()" (ngModelChange)="onChatInput($event)"
+          [ngModel]="chatInput()"
+          (ngModelChange)="onChatInput($event)"
           (keyup.enter)="handleChatSubmit()"
           placeholder="SEND DATA PACKET..."
         />
@@ -443,31 +814,59 @@
 
   <!-- Selection Preview Overlay -->
   <!-- Full-Screen Launch Mission Page -->
-  <div class="launch-mission-page" *ngIf="selectedGame() as selected" [class.active]="selected">
-    <div class="mission-background" [style.backgroundImage]="'url(' + (selected.image || 'assets/desktop_hub.png') + ')'"></div>
+  <div
+    class="launch-mission-page"
+    *ngIf="selectedGame() as selected"
+    [class.active]="selected"
+  >
+    <div
+      class="mission-background"
+      [style.backgroundImage]="
+        'url(' + (selected.image || 'assets/desktop_hub.png') + ')'
+      "
+    ></div>
     <div class="mission-content animate-enter-mission fit-screen">
       <div class="mission-header">
-        <div class="mission-id">SYS_UPLINK_READY // {{ selected.id | uppercase }}</div>
+        <div class="mission-id">
+          SYS_UPLINK_READY // {{ selected.id | uppercase }}
+        </div>
         <h1 class="mission-title">{{ selected.name }}</h1>
         <div class="mission-badges">
-          <span class="tag elite" *ngIf="selected.badgeIds?.includes('elite')">ELITE</span>
-          <span class="tag next-gen" *ngIf="selected.badgeIds?.includes('next-gen')">NEXT-GEN</span>
-          <span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')">MODERN</span>
+          <span class="tag elite" *ngIf="selected.badgeIds?.includes('elite')"
+            >ELITE</span
+          >
+          <span
+            class="tag next-gen"
+            *ngIf="selected.badgeIds?.includes('next-gen')"
+            >NEXT-GEN</span
+          >
+          <span class="tag modern" *ngIf="selected.badgeIds?.includes('modern')"
+            >MODERN</span
+          >
         </div>
       </div>
 
       <div class="mission-central-hub">
         <div class="mission-hero-visual-compact">
           <div class="hero-frame-compact glass-v42-pro">
-            <img [src]="selected.image || 'assets/desktop_hub.png'" [alt]="selected.name" />
+            <img
+              [src]="selected.image || 'assets/desktop_hub.png'"
+              [alt]="selected.name"
+            />
             <div class="scan-overlay"></div>
           </div>
         </div>
 
         <div class="mission-primary-action-centered">
-          <button class="launch-btn-ultra" (click)="confirmLaunch()" [disabled]="isMatchmaking() || isWasmLoading()">
+          <button
+            class="launch-btn-ultra"
+            (click)="confirmLaunch()"
+            [disabled]="isMatchmaking() || isWasmLoading()"
+          >
             <div class="btn-aura"></div>
-            <span class="material-symbols-outlined btn-icon-giant">play_circle</span>
+            <span class="material-symbols-outlined btn-icon-giant"
+              >play_circle</span
+            >
             <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
             <span class="btn-subtext-status">INITIALIZE_LINK_v5.0</span>
           </button>
@@ -480,8 +879,12 @@
           <p class="truncate-2">{{ selected.description }}</p>
         </div>
         <div class="meta-cluster">
-          <div class="meta-tag"><span class="m-label">GENRE:</span> {{ selected.genre }}</div>
-          <div class="meta-tag"><span class="m-label">RATING:</span> {{ selected.rating }}</div>
+          <div class="meta-tag">
+            <span class="m-label">GENRE:</span> {{ selected.genre }}
+          </div>
+          <div class="meta-tag">
+            <span class="m-label">RATING:</span> {{ selected.rating }}
+          </div>
         </div>
       </div>
 
@@ -501,7 +904,9 @@
       <div class="loader-progress">
         <div class="progress-fill animate-pulse"></div>
       </div>
-      <button class="terminate-btn" (click)="cancelMatchmaking()">CANCEL MATCHMAKING</button>
+      <button class="terminate-btn" (click)="cancelMatchmaking()">
+        CANCEL MATCHMAKING
+      </button>
     </div>
   </div>
   <div class="wasm-loader-overlay" *ngIf="isWasmLoading()">
@@ -515,42 +920,59 @@
     </div>
   </div>
 
-  <div class="immersive-overlay" *ngIf="currentGame() as active" [class.active]="currentGame()">
-    <div class="game-console-window glass-v42-pro shadow-v42-xl elite-gaming-hud">
+  <div
+    class="immersive-overlay"
+    *ngIf="currentGame() as active"
+    [class.active]="currentGame()"
+  >
+    <div
+      class="game-console-window glass-v42-pro shadow-v42-xl elite-gaming-hud"
+    >
       <header class="console-header glass-v42">
         <div class="console-title">
-          <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px">terminal</span>
+          <span
+            class="material-symbols-outlined"
+            style="vertical-align: middle; margin-right: 8px"
+            >terminal</span
+          >
           {{ active.name | uppercase }}
         </div>
         <!-- Decorative HUD corners -->
         <div class="hud-corner top-left"></div>
         <div class="hud-corner top-right"></div>
         <div class="console-telemetry hide-mobile">
-          SECURE_UPLINK: <span class="success">ENCRYPTED</span> | WASM_CORE: <span class="success">LOADED</span>
+          SECURE_UPLINK: <span class="success">ENCRYPTED</span> | WASM_CORE:
+          <span class="success">LOADED</span>
         </div>
         <div class="console-actions">
-          <button class="icon-btn" (click)="reloadGame()"><span class="material-symbols-outlined">refresh</span></button>
-          <button class="icon-btn" (click)="closeGame()"><span class="material-symbols-outlined">close</span></button>
+          <button class="icon-btn" (click)="reloadGame()">
+            <span class="material-symbols-outlined">refresh</span>
+          </button>
+          <button class="icon-btn" (click)="closeGame()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
         </div>
       </header>
       <div class="console-body">
         <div class="hud-decorative-line left"></div>
         <div class="hud-decorative-line right"></div>
         <div class="iframe-glitch-wrapper">
-        <iframe
-          [src]="currentSafeUrl()"
-          #gameIframe
-          class="game-frame"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
-          allowfullscreen
-        ></iframe>
-        <div class="hud-glitch-overlay"></div>
-      </div>
+          <iframe
+            [src]="currentSafeUrl()"
+            #gameIframe
+            class="game-frame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
+            allowfullscreen
+          ></iframe>
+          <div class="hud-glitch-overlay"></div>
+        </div>
         <div class="hud-overlay-scanner"></div>
       </div>
       <footer class="console-footer glass-v42">
         <div class="session-timer">ACTIVE_UPLINK_STABLE</div>
-        <button class="terminate-btn" (click)="closeGame()">TERMINATE PROCESS</button>
+        <button class="terminate-btn" (click)="closeGame()">
+          TERMINATE PROCESS
+        </button>
       </footer>
     </div>
   </div>
@@ -566,4 +988,9 @@
   </button>
 </div>
 
-<audio #remoteAudio [srcObject]="peerService.remoteStream()" autoplay *ngIf="peerService.remoteStream()"></audio>
+<audio
+  #remoteAudio
+  [srcObject]="peerService.remoteStream()"
+  autoplay
+  *ngIf="peerService.remoteStream()"
+></audio>

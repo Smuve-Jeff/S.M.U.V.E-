@@ -17,12 +17,12 @@ export class EnhancedTouchGestureService {
   readonly maxZoom = 4.0;
   readonly swipeThreshold = 40;
   readonly swipeVelocityThreshold = 0.2;
-  
+
   zoomLevel = signal(1.0);
   verticalZoomLevel = signal(1.0);
   isSwipeActive = signal(false);
   lastSwipe = signal<SwipeEvent | null>(null);
-  
+
   private touchStartX = 0;
   private touchStartY = 0;
   private touchStartTime = 0;
@@ -45,7 +45,7 @@ export class EnhancedTouchGestureService {
 
     // Center point for vertical zoom reference
     const centerY = (touch1.clientY + touch2.clientY) / 2;
-    
+
     if (this.lastPinchDistance > 0) {
       const scale = distance / this.lastPinchDistance;
 
@@ -54,11 +54,11 @@ export class EnhancedTouchGestureService {
 
       // Vertical zoom if pinch is more vertical
       if (Math.abs(dy) > Math.abs(dx) * 1.5) {
-         const vScale = Math.abs(dy) / (this.lastPinchDistance || 1);
-         this.adjustVerticalZoom((vScale - 1) * 0.5);
+        const vScale = Math.abs(dy) / (this.lastPinchDistance || 1);
+        this.adjustVerticalZoom((vScale - 1) * 0.5);
       }
     }
-    
+
     this.lastPinchDistance = distance;
     return distance;
   }
@@ -82,7 +82,7 @@ export class EnhancedTouchGestureService {
     const deltaX = touch.clientX - this.touchStartX;
     const deltaY = touch.clientY - this.touchStartY;
     const duration = Date.now() - this.touchStartTime;
-    
+
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
     const distance = Math.max(absX, absY);
@@ -90,7 +90,10 @@ export class EnhancedTouchGestureService {
 
     this.isSwipeActive.set(false);
 
-    if (distance < this.swipeThreshold || velocity < this.swipeVelocityThreshold) {
+    if (
+      distance < this.swipeThreshold ||
+      velocity < this.swipeVelocityThreshold
+    ) {
       return null;
     }
 
@@ -105,7 +108,7 @@ export class EnhancedTouchGestureService {
       direction,
       distance,
       velocity,
-      duration
+      duration,
     };
 
     this.lastSwipe.set(swipeEvent);

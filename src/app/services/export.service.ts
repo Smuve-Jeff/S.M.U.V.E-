@@ -54,7 +54,11 @@ export class ExportService {
       channels.push(buffer.getChannelData(i));
     }
     const interleaved = this.interleave(channels);
-    const blob = WavEncoder.encode([interleaved], buffer.numberOfChannels, buffer.sampleRate);
+    const blob = WavEncoder.encode(
+      [interleaved],
+      buffer.numberOfChannels,
+      buffer.sampleRate
+    );
     return await blob.arrayBuffer();
   }
 
@@ -71,7 +75,10 @@ export class ExportService {
   }
 
   async startVideoExport(config: any) {
-    return { recorder: { stop: () => {} }, result: Promise.resolve(new Blob()) };
+    return {
+      recorder: { stop: () => {} },
+      result: Promise.resolve(new Blob()),
+    };
   }
 
   public downloadBlob(blob: Blob, filename: string) {
@@ -85,16 +92,21 @@ export class ExportService {
 
   private async realTimeBounce(duration: number) {
     if (this.engine.isPlaying()) {
-      throw new Error('WAV export requires playback to be stopped before starting the bounce.');
+      throw new Error(
+        'WAV export requires playback to be stopped before starting the bounce.'
+      );
     }
 
     const { recorder, result } = this.startLiveRecording();
     this.engine.start();
 
-    setTimeout(() => {
-      this.engine.stop();
-      recorder.stop();
-    }, duration * 1000 + 500);
+    setTimeout(
+      () => {
+        this.engine.stop();
+        recorder.stop();
+      },
+      duration * 1000 + 500
+    );
 
     const blob = await result;
     this.downloadBlob(blob, `Elite_Session_${Date.now()}.wav`);

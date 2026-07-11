@@ -39,7 +39,11 @@ const createMockNode = () => ({
   frequency: { value: 0, setTargetAtTime: jest.fn() },
   pan: { value: 0 },
   Q: { value: 0 },
-  threshold: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn() },
+  threshold: {
+    value: 0,
+    setTargetAtTime: jest.fn(),
+    setValueAtTime: jest.fn(),
+  },
   ratio: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn() },
   attack: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn() },
   release: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn() },

@@ -1,4 +1,13 @@
-import { Component, inject, signal, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../../audio-session.service';
@@ -48,9 +57,15 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         </div>
 
         <!-- Mastering Visualizer -->
-        <div class="mastering-viz flex-1 h-12 bg-black/60 rounded-lg border border-white/5 relative overflow-hidden hidden md:block">
-           <canvas #vizCanvas class="w-full h-full"></canvas>
-           <div class="absolute top-1 left-2 text-[6px] font-black text-fl-blue/40 uppercase tracking-[0.2em]">Master Output Spectrum</div>
+        <div
+          class="mastering-viz flex-1 h-12 bg-black/60 rounded-lg border border-white/5 relative overflow-hidden hidden md:block"
+        >
+          <canvas #vizCanvas class="w-full h-full"></canvas>
+          <div
+            class="absolute top-1 left-2 text-[6px] font-black text-fl-blue/40 uppercase tracking-[0.2em]"
+          >
+            Master Output Spectrum
+          </div>
         </div>
 
         <!-- Global Macros -->
@@ -177,17 +192,30 @@ import { KnobComponent } from '../../shared/knob/knob.component';
         border-color: #00e5ff;
       }
       @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
       }
       @media (max-width: 768px) {
-        .system-stats, .macro-cluster { display: none; }
-        .master-grid { flex-wrap: wrap; padding: 10px; }
+        .system-stats,
+        .macro-cluster {
+          display: none;
+        }
+        .master-grid {
+          flex-wrap: wrap;
+          padding: 10px;
+        }
       }
     `,
   ],
 })
-export class UniversalMasterComponent implements OnInit, OnDestroy, AfterViewInit {
+export class UniversalMasterComponent
+  implements OnInit, OnDestroy, AfterViewInit
+{
   private readonly audioSession = inject(AudioSessionService);
   readonly audioEngine = inject(AudioEngineService);
 
@@ -237,9 +265,15 @@ export class UniversalMasterComponent implements OnInit, OnDestroy, AfterViewIni
     draw();
   }
 
-  togglePlay(): void { this.audioSession.togglePlay(); }
-  toggleRecord(): void { this.audioSession.toggleRecord(); }
-  stop(): void { this.audioSession.stop(); }
+  togglePlay(): void {
+    this.audioSession.togglePlay();
+  }
+  toggleRecord(): void {
+    this.audioSession.toggleRecord();
+  }
+  stop(): void {
+    this.audioSession.stop();
+  }
 
   updateMasterVolume(val: number): void {
     this.audioSession.updateMasterVolume(val);
@@ -250,7 +284,10 @@ export class UniversalMasterComponent implements OnInit, OnDestroy, AfterViewIni
       this.audioEngine.setSaturation(value / 100);
     } else if (type === 'space') {
       if (this.audioEngine.reverbWet) {
-        this.audioEngine.reverbWet.gain.setValueAtTime(value / 100, this.audioEngine.ctx.currentTime);
+        this.audioEngine.reverbWet.gain.setValueAtTime(
+          value / 100,
+          this.audioEngine.ctx.currentTime
+        );
       }
     }
   }
