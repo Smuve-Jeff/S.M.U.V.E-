@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vinyl Vault</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #09090b;
+        --card: rgba(24, 24, 27, 0.94);
+        --accent: #f59e0b;
+        --accent-soft: rgba(245, 158, 11, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, sans-serif;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(245, 158, 11, 0.15),
+            transparent 30%
+          ),
+          linear-gradient(180deg, #09090b, #18181b);
+        color: white;
+      }
+
+      .shell {
+        width: min(92vw, 960px);
+        padding: 24px;
+        border-radius: 28px;
+        background: var(--card);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+      }
+
+      .header,
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      h1 {
+        margin: 4px 0 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .eyebrow,
+      .status {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        min-width: 118px;
+      }
+
+      .stat label {
+        display: block;
+        color: rgba(255, 255, 255, 0.48);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.3rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin: 24px 0;
+      }
+
+      .card {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        transform-style: preserve-3d;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease;
+      }
+
+      .card.flipped,
+      .card.matched {
+        transform: rotateY(180deg);
+        border-color: rgba(245, 158, 11, 0.6);
+      }
+
+      .face {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        border-radius: inherit;
+        backface-visibility: hidden;
+        font-size: clamp(1.8rem, 5vw, 2.7rem);
+        font-weight: 900;
+      }
+
+      .front {
+        background:
+          radial-gradient(circle, rgba(245, 158, 11, 0.26), transparent 55%),
+          rgba(255, 255, 255, 0.06);
+      }
+
+      .back {
+        transform: rotateY(180deg);
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.18),
+          rgba(255, 255, 255, 0.06)
+        );
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 16px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 800;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: #09090b;
+      }
+
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="header">
+        <div>
+          <div class="eyebrow">Offline Puzzle</div>
+          <h1>Vinyl Vault</h1>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <label>Matches</label><strong id="matches">0/8</strong>
+          </div>
+          <div class="stat">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <label>Streak</label><strong id="streak">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" id="grid"></div>
+
+      <div class="footer">
+        <div class="status" id="status">
+          Clear the collection and keep your streak alive.
+        </div>
+        <button id="resetBtn">Reshuffle Crate</button>
+      </div>
+    </div>
+
+    <script>
+      const icons = ['🎛️', '🎚️', '💿', '🎤', '🎵', '🥁', '🎹', '🎧'];
+      const grid = document.getElementById('grid');
+      const matchesEl = document.getElementById('matches');
+      const scoreEl = document.getElementById('score');
+      const streakEl = document.getElementById('streak');
+      const statusEl = document.getElementById('status');
+
+      let cards = [];
+      let flipped = [];
+      let matched = 0;
+      let score = 0;
+      let streak = 0;
+      let locked = false;
+
+      function report(lastAction) {
+        scoreEl.textContent = String(score);
+        matchesEl.textContent = `${matched}/8`;
+        streakEl.textContent = String(streak);
+        window.parent.postMessage(
+          {
+            type: matched === 8 ? 'GAME_OVER' : 'GAME_UPDATE',
+            data: {
+              score,
+              combo: streak,
+              health: 100,
+              lastAction,
+            },
+          },
+          '*'
+        );
+      }
+
+      function shuffle(list) {
+        const shuffled = [...list];
+        for (let index = shuffled.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          [shuffled[index], shuffled[swapIndex]] = [
+            shuffled[swapIndex],
+            shuffled[index],
+          ];
+        }
+        return shuffled;
+      }
+
+      function buildCard(icon, index) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'card';
+        button.innerHTML = `
+          <span class="face front">SM</span>
+          <span class="face back">${icon}</span>
+        `;
+        button.addEventListener('click', () => reveal(button, icon, index));
+        return button;
+      }
+
+      function resetBoard() {
+        cards = shuffle([...icons, ...icons]);
+        flipped = [];
+        matched = 0;
+        score = 0;
+        streak = 0;
+        locked = false;
+        grid.innerHTML = '';
+        cards.forEach((icon, index) =>
+          grid.appendChild(buildCard(icon, index))
+        );
+        statusEl.textContent =
+          'Clear the collection and keep your streak alive.';
+        report('RESET');
+      }
+
+      function reveal(button, icon, index) {
+        if (
+          locked ||
+          button.classList.contains('flipped') ||
+          button.classList.contains('matched')
+        ) {
+          return;
+        }
+
+        button.classList.add('flipped');
+        flipped.push({ button, icon, index });
+
+        if (flipped.length < 2) return;
+
+        locked = true;
+        const [first, second] = flipped;
+
+        if (first.icon === second.icon) {
+          first.button.classList.add('matched');
+          second.button.classList.add('matched');
+          matched += 1;
+          streak += 1;
+          score += 180 + streak * 25;
+          statusEl.textContent = 'Perfect pull. Keep digging.';
+          flipped = [];
+          locked = false;
+          report('MATCH');
+          if (matched === 8) {
+            statusEl.textContent = 'Vault cleared. Collection complete.';
+          }
+          return;
+        }
+
+        streak = 0;
+        score = Math.max(0, score - 20);
+        statusEl.textContent = 'Mismatch. Recenter and try again.';
+        report('MISS');
+
+        setTimeout(() => {
+          first.button.classList.remove('flipped');
+          second.button.classList.remove('flipped');
+          flipped = [];
+          locked = false;
+        }, 650);
+      }
+
+      document.getElementById('resetBtn').addEventListener('click', resetBoard);
+      window.parent.postMessage({ type: 'GAME_READY' }, '*');
+      resetBoard();
+    </script>
+  </body>
+</html>

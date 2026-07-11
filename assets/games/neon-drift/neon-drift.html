@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Drift Elite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #020617;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: 'Inter', sans-serif;
+      }
+      #game-container {
+        border: 2px solid #22d3ee;
+        border-radius: 12px;
+        box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script>
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: 'game-container',
+        physics: {
+          default: 'arcade',
+          arcade: { debug: false },
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
+
+      let player;
+      let obstacles;
+      let cursors;
+      let score = 0;
+      let health = 100;
+      let scoreText;
+      let healthText;
+      let isGameOver = false;
+      let speed = 200;
+      let spawnTimer;
+
+      const game = new Phaser.Game(config);
+
+      function preload() {
+        // Generate textures since we can't rely on external assets
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+
+        // Player Car
+        graphics.clear();
+        graphics.fillStyle(0x22d3ee, 1);
+        graphics.fillRoundedRect(0, 0, 40, 70, 8);
+        graphics.lineStyle(2, 0xffffff, 1);
+        graphics.strokeRoundedRect(0, 0, 40, 70, 8);
+        graphics.generateTexture('player', 40, 70);
+
+        // Obstacle
+        graphics.clear();
+        graphics.fillStyle(0xfb7185, 1);
+        graphics.fillRoundedRect(0, 0, 45, 75, 8);
+        graphics.lineStyle(2, 0x7c3aed, 1);
+        graphics.strokeRoundedRect(0, 0, 45, 75, 8);
+        graphics.generateTexture('obstacle', 45, 75);
+
+        // Road line
+        graphics.clear();
+        graphics.fillStyle(0xffffff, 0.3);
+        graphics.fillRect(0, 0, 4, 40);
+        graphics.generateTexture('line', 4, 40);
+      }
+
+      function create() {
+        // Road Background
+        this.add.rectangle(400, 300, 800, 600, 0x0f172a);
+
+        // Road Lines
+        this.lines = this.add.group();
+        for (let i = 0; i < 10; i++) {
+          this.lines.create(266, i * 80, 'line');
+          this.lines.create(533, i * 80, 'line');
+        }
+
+        player = this.physics.add.sprite(400, 500, 'player');
+        player.setCollideWorldBounds(true);
+
+        obstacles = this.physics.add.group();
+
+        cursors = this.input.keyboard.createCursorKeys();
+
+        scoreText = this.add.text(16, 16, 'Score: 0', {
+          fontSize: '24px',
+          fill: '#fff',
+          fontStyle: 'bold',
+        });
+        healthText = this.add.text(620, 16, 'Shield: 100%', {
+          fontSize: '24px',
+          fill: '#22d3ee',
+          fontStyle: 'bold',
+        });
+
+        this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
+
+        // Spawn obstacles
+        spawnTimer = this.time.addEvent({
+          delay: 1000,
+          callback: spawnObstacle,
+          callbackScope: this,
+          loop: true,
+        });
+
+        // Protocol: GAME_READY
+        window.parent.postMessage({ type: 'GAME_READY' }, '*');
+
+        // Handle LOAD_STATE
+        window.addEventListener('message', (event) => {
+          if (event.data.type === 'LOAD_STATE' && event.data.payload) {
+            score = event.data.payload.score || 0;
+            health = event.data.payload.health || 100;
+            scoreText.setText('Score: ' + score);
+            healthText.setText('Shield: ' + health + '%');
+          }
+        });
+      }
+
+      function update() {
+        if (isGameOver) return;
+
+        // Move road lines for movement effect
+        this.lines.children.iterate((line) => {
+          line.y += 5;
+          if (line.y > 600) line.y = -40;
+        });
+
+        if (cursors.left.isDown) {
+          player.setVelocityX(-300);
+        } else if (cursors.right.isDown) {
+          player.setVelocityX(300);
+        } else {
+          player.setVelocityX(0);
+        }
+
+        score += 1;
+        scoreText.setText('Score: ' + Math.floor(score / 10));
+
+        // Increase difficulty
+        speed = 200 + score / 100;
+        spawnTimer.delay = Math.max(300, 1000 - score / 200);
+
+        // Protocol: GAME_UPDATE
+        if (score % 60 === 0) {
+          window.parent.postMessage(
+            {
+              type: 'GAME_UPDATE',
+              data: {
+                score: Math.floor(score / 10),
+                health: health,
+              },
+            },
+            '*'
+          );
+
+          // Save state periodically
+          window.parent.postMessage(
+            {
+              type: 'GAME_SAVE',
+              payload: { score: Math.floor(score / 10), health: health },
+            },
+            '*'
+          );
+        }
+      }
+
+      function spawnObstacle() {
+        if (isGameOver) return;
+        const x = Phaser.Math.Between(200, 600);
+        const obstacle = obstacles.create(x, -50, 'obstacle');
+        obstacle.setVelocityY(speed);
+        obstacle.checkWorldBounds = true;
+        obstacle.outOfBoundsKill = true;
+      }
+
+      function hitObstacle(player, obstacle) {
+        obstacle.destroy();
+        health -= 20;
+        healthText.setText('Shield: ' + health + '%');
+
+        if (health <= 0) {
+          gameOver.call(this);
+        }
+      }
+
+      function gameOver() {
+        isGameOver = true;
+        this.physics.pause();
+        player.setTint(0xff0000);
+
+        this.add
+          .text(400, 300, 'RUN TERMINATED', {
+            fontSize: '64px',
+            fill: '#fb7185',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5);
+
+        this.add
+          .text(400, 380, 'PRESS REFRESH TO RE-INITIALIZE', {
+            fontSize: '24px',
+            fill: '#fff',
+          })
+          .setOrigin(0.5);
+
+        // Protocol: GAME_OVER
+        window.parent.postMessage(
+          {
+            type: 'GAME_OVER',
+            data: {
+              score: Math.floor(score / 10),
+              isWin: false,
+            },
+          },
+          '*'
+        );
+      }
+    </script>
+  </body>
+</html>

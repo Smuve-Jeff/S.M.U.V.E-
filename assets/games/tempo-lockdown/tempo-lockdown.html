@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tempo Lockdown</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #030712;
+        --panel: rgba(17, 24, 39, 0.92);
+        --accent: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, sans-serif;
+        color: white;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(52, 211, 153, 0.18),
+            transparent 34%
+          ),
+          linear-gradient(180deg, #020617, #111827);
+      }
+
+      .shell {
+        width: min(92vw, 920px);
+        padding: 24px;
+        border-radius: 28px;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      }
+
+      .header,
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .eyebrow,
+      .status {
+        font-size: 0.82rem;
+        color: rgba(255, 255, 255, 0.72);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+
+      h1 {
+        margin: 6px 0 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+      }
+
+      .stats {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        min-width: 112px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .stat label {
+        display: block;
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.48);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.28rem;
+      }
+
+      .track {
+        position: relative;
+        height: 160px;
+        margin: 32px 0 20px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+
+      .target {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 110px;
+        transform: translateX(-50%);
+        background: rgba(52, 211, 153, 0.18);
+        border-left: 2px solid rgba(52, 211, 153, 0.8);
+        border-right: 2px solid rgba(52, 211, 153, 0.8);
+      }
+
+      .needle {
+        position: absolute;
+        top: 18px;
+        left: 0;
+        width: 10px;
+        height: calc(100% - 36px);
+        border-radius: 999px;
+        background: linear-gradient(180deg, #f8fafc, var(--accent));
+        box-shadow: 0 0 18px rgba(52, 211, 153, 0.4);
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 18px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 800;
+        background: linear-gradient(135deg, #34d399, #10b981);
+        color: #02110c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="header">
+        <div>
+          <div class="eyebrow">Offline Rhythm</div>
+          <h1>Tempo Lockdown</h1>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <label>Score</label><strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <label>Streak</label><strong id="combo">0</strong>
+          </div>
+          <div class="stat">
+            <label>Health</label><strong id="health">100%</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="track">
+        <div class="target"></div>
+        <div class="needle" id="needle"></div>
+      </div>
+
+      <div class="footer">
+        <div class="status" id="status">
+          Drop the beat while the needle is inside the green zone.
+        </div>
+        <div>
+          <button id="hitBtn">Drop Beat</button>
+          <button id="resetBtn">Reset Session</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const needle = document.getElementById('needle');
+      const scoreEl = document.getElementById('score');
+      const comboEl = document.getElementById('combo');
+      const healthEl = document.getElementById('health');
+      const statusEl = document.getElementById('status');
+
+      let position = 0;
+      let velocity = 4.6;
+      let score = 0;
+      let combo = 0;
+      let health = 100;
+      let playing = true;
+
+      function render(lastAction, gameOver = false) {
+        needle.style.left = `${position}px`;
+        scoreEl.textContent = String(score);
+        comboEl.textContent = String(combo);
+        healthEl.textContent = `${health}%`;
+        window.parent.postMessage(
+          {
+            type: gameOver ? 'GAME_OVER' : 'GAME_UPDATE',
+            data: {
+              score,
+              combo,
+              health,
+              lastAction,
+            },
+          },
+          '*'
+        );
+      }
+
+      function reset() {
+        position = 0;
+        velocity = 4.6;
+        score = 0;
+        combo = 0;
+        health = 100;
+        playing = true;
+        statusEl.textContent =
+          'Drop the beat while the needle is inside the green zone.';
+        render('RESET');
+      }
+
+      function hit() {
+        if (!playing) return;
+        const center = position + 5;
+        const inWindow = center >= 355 && center <= 465;
+        if (inWindow) {
+          combo += 1;
+          score += 120 + combo * 18;
+          velocity += 0.18;
+          statusEl.textContent = 'Locked in. Keep the streak moving.';
+          render('HIT');
+          return;
+        }
+        combo = 0;
+        health = Math.max(0, health - 20);
+        statusEl.textContent =
+          health > 0
+            ? 'Late drop. Rebuild the pocket.'
+            : 'Session over. Reset and try again.';
+        render('MISS', health <= 0);
+        if (health <= 0) playing = false;
+      }
+
+      function loop() {
+        requestAnimationFrame(loop);
+        if (!playing) return;
+        position += velocity;
+        const max = document.querySelector('.track').clientWidth - 10;
+        if (position <= 0 || position >= max) {
+          velocity *= -1;
+          position = Math.max(0, Math.min(max, position));
+        }
+        render('SWING');
+      }
+
+      document.getElementById('hitBtn').addEventListener('click', hit);
+      document.getElementById('resetBtn').addEventListener('click', reset);
+      window.parent.postMessage({ type: 'GAME_READY' }, '*');
+      window.addEventListener('keydown', (event) => {
+        if (event.code === 'Space') hit();
+      });
+
+      window.parent.postMessage({ type: 'GAME_READY' }, '*');
+      reset();
+      loop();
+    </script>
+  </body>
+</html>

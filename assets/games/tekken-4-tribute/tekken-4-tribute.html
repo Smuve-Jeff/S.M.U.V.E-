@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tekken 4 Tribute Elite</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #000;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: 'Inter', sans-serif;
+      }
+      #game-container {
+        border: 2px solid #af25f4;
+        border-radius: 4px;
+        box-shadow: 0 0 30px rgba(175, 37, 244, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script>
+      const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 450,
+        parent: 'game-container',
+        physics: {
+          default: 'arcade',
+          arcade: { gravity: { y: 1000 }, debug: false },
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update,
+        },
+      };
+
+      let player;
+      let enemy;
+      let cursors;
+      let p1Health = 100;
+      let p2Health = 100;
+      let p1HealthBar;
+      let p2HealthBar;
+      let isGameOver = false;
+      let keys;
+
+      const game = new Phaser.Game(config);
+
+      function preload() {
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+
+        // Fighter 1 (Jin Kazama Style)
+        graphics.clear();
+        graphics.fillStyle(0x1d4ed8, 1);
+        graphics.fillRect(0, 0, 40, 100);
+        graphics.generateTexture('p1', 40, 100);
+
+        // Fighter 2 (Kazuya Mishima Style)
+        graphics.clear();
+        graphics.fillStyle(0x991b1b, 1);
+        graphics.fillRect(0, 0, 40, 100);
+        graphics.generateTexture('p2', 40, 100);
+
+        // Background Floor
+        graphics.clear();
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillRect(0, 0, 800, 50);
+        graphics.generateTexture('floor', 800, 50);
+      }
+
+      function create() {
+        // Stage
+        this.add.rectangle(400, 225, 800, 450, 0x111111);
+        this.add
+          .text(400, 50, 'ELITE ARENA: SHINJUKU', {
+            fontSize: '20px',
+            fill: '#af25f4',
+          })
+          .setOrigin(0.5);
+
+        const platforms = this.physics.add.staticGroup();
+        platforms.create(400, 425, 'floor');
+
+        player = this.physics.add.sprite(200, 300, 'p1');
+        player.setCollideWorldBounds(true);
+
+        enemy = this.physics.add.sprite(600, 300, 'p2');
+        enemy.setCollideWorldBounds(true);
+        enemy.setPushable(false);
+
+        this.physics.add.collider(player, platforms);
+        this.physics.add.collider(enemy, platforms);
+        this.physics.add.collider(player, enemy);
+
+        cursors = this.input.keyboard.createCursorKeys();
+        keys = this.input.keyboard.addKeys('A,D,W,SPACE,J,K,L');
+
+        // UI
+        p1HealthBar = this.add.rectangle(200, 80, 300, 20, 0x00ff00);
+        p2HealthBar = this.add.rectangle(600, 80, 300, 20, 0x00ff00);
+        this.add.text(50, 60, 'P1: JIN', { fontSize: '16px', fill: '#fff' });
+        this.add.text(650, 60, 'P2: KAZUYA', {
+          fontSize: '16px',
+          fill: '#fff',
+        });
+
+        window.parent.postMessage({ type: 'GAME_READY' }, '*');
+      }
+
+      function update() {
+        if (isGameOver) return;
+
+        // Simple AI for enemy
+        if (Math.abs(player.x - enemy.x) > 100) {
+          if (player.x < enemy.x) enemy.setVelocityX(-100);
+          else enemy.setVelocityX(100);
+        } else {
+          enemy.setVelocityX(0);
+          if (Phaser.Math.Between(0, 100) > 98) {
+            performAttack(enemy, player, 'enemy');
+          }
+        }
+
+        // Player movement
+        if (cursors.left.isDown) {
+          player.setVelocityX(-200);
+        } else if (cursors.right.isDown) {
+          player.setVelocityX(200);
+        } else {
+          player.setVelocityX(0);
+        }
+
+        if (cursors.up.isDown && player.body.touching.down) {
+          player.setVelocityY(-500);
+        }
+
+        // Attacks
+        if (Phaser.Input.Keyboard.JustDown(keys.J))
+          performAttack(player, enemy, 'player', 'Punch');
+        if (Phaser.Input.Keyboard.JustDown(keys.K))
+          performAttack(player, enemy, 'player', 'Kick');
+      }
+
+      function performAttack(attacker, target, side, type = 'Strike') {
+        if (isGameOver) return;
+
+        // Visual feedback
+        attacker.setTint(0xffffff);
+        setTimeout(() => attacker.clearTint(), 100);
+
+        const dist = Phaser.Math.Distance.Between(
+          attacker.x,
+          attacker.y,
+          target.x,
+          target.y
+        );
+        if (dist < 80) {
+          if (side === 'player') {
+            p2Health -= 5;
+            updateHealthBars();
+            if (p2Health <= 0) win('P1');
+          } else {
+            p1Health -= 2;
+            updateHealthBars();
+            if (p1Health <= 0) win('P2');
+          }
+
+          target.setTint(0xff0000);
+          setTimeout(() => target.clearTint(), 100);
+
+          window.parent.postMessage(
+            {
+              type: 'GAME_UPDATE',
+              data: { score: (100 - p2Health) * 10, health: p1Health },
+            },
+            '*'
+          );
+        }
+      }
+
+      function updateHealthBars() {
+        p1HealthBar.width = Math.max(0, p1Health * 3);
+        p2HealthBar.width = Math.max(0, p2Health * 3);
+        if (p1Health < 30) p1HealthBar.fillColor = 0xff0000;
+        if (p2Health < 30) p2HealthBar.fillColor = 0xff0000;
+      }
+
+      function win(winner) {
+        isGameOver = true;
+        this.game.scene.scenes[0].physics.pause();
+
+        this.game.scene.scenes[0].add
+          .text(400, 225, winner + ' WINS', {
+            fontSize: '64px',
+            fill: winner === 'P1' ? '#1d4ed8' : '#991b1b',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0.5);
+
+        window.parent.postMessage(
+          {
+            type: 'GAME_OVER',
+            data: { score: (100 - p2Health) * 10, isWin: winner === 'P1' },
+          },
+          '*'
+        );
+      }
+    </script>
+  </body>
+</html>
