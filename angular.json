@@ -68,7 +68,11 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "port": 4200,
-            "host": "0.0.0.0"
+            "host": "0.0.0.0",
+            "allowedHosts": [
+              "smuvejeffpresents.com",
+              "www.smuvejeffpresents.com"
+            ]
           },
           "configurations": {
             "production": {
