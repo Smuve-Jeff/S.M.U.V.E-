@@ -239,6 +239,16 @@
   color: var(--espresso-muted);
 }
 
+/* ---------- STAGE MARQUEE (concert visual) ---------- */
+.comp-stage-marquee {
+  margin: 0;
+  padding: 8px 16px;
+  background:
+    linear-gradient(180deg, rgba(0, 229, 255, 0.04) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(180, 200, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(180, 200, 255, 0.04);
+}
+
 /* ---------- CANVAS ---------- */
 .comp-canvas {
   flex: 1 1 auto;

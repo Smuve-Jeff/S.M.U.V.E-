@@ -11,7 +11,7 @@
           <p
             class="text-[10px] font-black uppercase tracking-tighter text-primary"
           >
-            S.M.U.V.E 2.0 // EXECUTIVE SCANNING
+            PARALLAX RECORDS // A&amp;R SCANNING
           </p>
           <p class="text-xs font-bold">
             {{ aiService.currentProcessStep() }} ({{
@@ -38,7 +38,7 @@
           <p
             class="text-[10px] font-black uppercase tracking-tighter text-accent"
           >
-            STRATEGIC DECREE ISSUED
+            LABEL DECREE // SIGN THIS
           </p>
           <p class="text-xs italic truncate">
             "{{ aiService.strategicDecrees()[0] }}"
@@ -77,24 +77,36 @@
   </div>
 
   <div class="hub-container animate-enter">
-    <!-- Header: Business Intelligence Overview -->
+    <!-- Marquee strip — record-label banner -->
+    <div class="stage-marquee mb-4" aria-hidden="true">
+      <div class="stage-marquee-track">
+        <span>★ PARALLAX RECORDS ★ UNSIGNED &amp; INDEPENDENT ★</span>
+        <span>★ NOW SPINNING: SIGNING WAVE 2.0 ★ TOP 40 RADAR ACTIVE ★</span>
+        <span>★ LABEL ROSTER OPEN ★ STUDIO TIME BOOKABLE ★ PRESS PULSE LIVE ★</span>
+        <span>★ PARALLAX RECORDS ★ UNSIGNED &amp; INDEPENDENT ★</span>
+        <span>★ NOW SPINNING: SIGNING WAVE 2.0 ★ TOP 40 RADAR ACTIVE ★</span>
+        <span>★ LABEL ROSTER OPEN ★ STUDIO TIME BOOKABLE ★ PRESS PULSE LIVE ★</span>
+      </div>
+    </div>
+
+    <!-- Header: Label Executive Overview -->
     <header class="hub-header">
       <div class="header-left">
         <p class="brand-eyebrow glimmer-text">
-          S.M.U.V.E 2.0 // EXECUTIVE COMMAND
+          PARALLAX RECORDS // INDEPENDENT LABEL
         </p>
         <h1 class="header-title glimmer-text">
-          STATUS VERIFIED. EXECUTION RESUMED,
-          {{ profileService.profile().artistName }}
+          WELCOME TO THE ROSTER,
+          {{ profileService.profile().artistName }} — STAGE AWAITS.
         </h1>
       </div>
       <div class="header-right">
         <div class="executive-stat">
-          <span class="stat-label">Strategic Health</span>
+          <span class="stat-label">Chart Position</span>
           <span class="stat-value text-primary"
-            >{{
+            >#{{
               profileService.profile().knowledgeBase.strategicHealthScore
-            }}%</span
+            }}</span
           >
         </div>
         <div class="executive-stat">
@@ -102,7 +114,7 @@
           <span class="stat-value text-accent">{{
             profileService.profile().catalog.length
           }}</span>
-          <span class="stat-label">Workspace Access</span>
+          <span class="stat-label">Roster Access</span>
           <span class="stat-value text-accent">OPEN</span>
         </div>
       </div>
@@ -110,7 +122,7 @@
 
     <section
       *ngIf="onboarding.shouldShow()"
-      class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8"
+      class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8 led-strip"
     >
       <div
         class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6"
@@ -119,17 +131,17 @@
           <p
             class="text-[10px] font-black uppercase tracking-[0.35em] text-brand-primary"
           >
-            Guided Launch Flow
+            First-Signing Path
           </p>
           <h2
             class="text-2xl md:text-3xl font-black italic uppercase text-white tracking-tight mt-3"
           >
-            Build the first-session path without leaving the hub
+            Get signed, get in the booth, get heard tonight
           </h2>
           <p class="text-sm text-slate-400 leading-relaxed mt-3">
-            We detected setup gaps and recent activity so you can finish
-            identity, answer the onboarding questionnaire, and jump straight
-            back into the right workspace.
+            Finish your artist profile, lock your sound, and jump straight to the
+            studio floor. We'll keep your session synced and your next move
+            queued.
           </p>
         </div>
 
@@ -138,13 +150,13 @@
             (click)="continueOnboarding()"
             class="px-5 py-3 rounded-2xl bg-brand-primary text-black text-[11px] font-black uppercase tracking-[0.2em]"
           >
-            Continue setup
+            Lock It In
           </button>
           <button
             (click)="resumeWorkspace()"
             class="px-5 py-3 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white"
           >
-            Resume workspace
+            Back to the Booth
           </button>
         </div>
       </div>
@@ -170,7 +182,7 @@
               <div
                 class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400"
               >
-                {{ step.complete ? 'Complete' : 'Next Step' }}
+                {{ step.complete ? 'Signed Off' : 'Next Drop' }}
               </div>
               <h3 class="text-sm font-black uppercase text-white mt-2">
                 {{ step.title }}
@@ -214,10 +226,10 @@
             <h3
               class="text-sm font-black uppercase tracking-widest text-brand-danger"
             >
-              Security Deficit Detected
+              Roster Security Deficit
             </h3>
             <p class="text-xs text-silver-dim mt-1 font-bold">
-              Your artist identity is vulnerable.
+              Your artist identity is at risk.
               {{ securityService.getSecurityAudit().alerts[0] }}
             </p>
           </div>
@@ -231,7 +243,7 @@
     }
 
     <div class="bento-grid">
-      <!-- Module 1: S.M.U.V.E Audit (2x2) -->
+      <!-- Module 1: Top 40 Radar (2x2) -->
       <div
         class="bento-item bento-2x2 bento-card glass-v42 audit-module"
         (click)="uiService.navigateToView('knowledge-base')"
@@ -241,16 +253,17 @@
           <div class="flex justify-between items-start mb-6">
             <div class="card-icon-box bg-primary/20 text-primary">
               <span class="material-symbols-outlined"
-                >security_update_good</span
+                >trending_up</span
               >
             </div>
-            <span class="pill pill-live">AI AUDIT ACTIVE</span>
+            <span class="pill pill-live">TOP 40 RADAR ON</span>
           </div>
           <h2 class="card-heading glimmer-text">
-            Executive Intelligence Brief
+            Roster Intelligence Brief
           </h2>
           <p class="card-subtext mb-8">
-            Real-time scanning of your sonic assets and market readiness.
+            Live scanning of street buzz, fan signal, and chart momentum for
+            the label.
           </p>
 
           <!-- Mobile Explicit Directives -->
@@ -258,7 +271,7 @@
             <p
               class="text-[9px] font-black uppercase tracking-widest text-accent"
             >
-              Current Executive Directives
+              Open Label Slot — Up Next
             </p>
             @for (
               task of aiService.getDynamicChecklist().slice(0, 2);
@@ -292,7 +305,7 @@
               </div>
             </div>
             <div class="score-row">
-              <span class="score-label">Market Viability</span>
+              <span class="score-label">Chart Trajectory</span>
               <div class="score-bar-track">
                 <div
                   class="score-bar-fill bg-accent"
@@ -310,7 +323,7 @@
                 <span
                   class="w-1 h-1 rounded-full bg-emerald-500 animate-ping"
                 ></span>
-                Global Studio Pulse
+                Label Pulse — Live Floor
               </div>
               <div
                 class="h-10 overflow-hidden relative bg-black/20 rounded-lg border border-white/5"
@@ -339,7 +352,7 @@
               <p class="note-text text-sm">
                 "{{
                   aiService.strategicDecrees()[0] ||
-                    'Awaiting leadership directive...'
+                    'The roster is listening — drop your next move.'
                 }}"
               </p>
             </div>
@@ -347,7 +360,7 @@
         </div>
       </div>
 
-      <!-- Module 2: Current Project (2x1 Wide) -->
+      <!-- Module 2: Now Spinning (2x1 Wide) -->
       <div
         class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module"
       >
@@ -366,7 +379,7 @@
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="eyebrow text-accent glimmer-text">Active Production</p>
+            <p class="eyebrow text-accent glimmer-text">A-Side // Now Spinning</p>
             <h3 class="truncate text-xl font-black glimmer-text">
               {{ playerService.currentTrack()?.title }}
             </h3>
@@ -408,11 +421,11 @@
           <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
             <span class="material-symbols-outlined">insights</span>
           </div>
-          <h2 class="card-heading glimmer-text">Career Path</h2>
+          <h2 class="card-heading glimmer-text">Tour Trajectory</h2>
           <div class="flex-1 mt-6 space-y-6">
             <div class="progress-circle-container">
               <div class="level-badge">
-                {{ profileService.profile().catalog.length }} tracks
+                {{ profileService.profile().catalog.length }} drops
               </div>
               <svg viewBox="0 0 36 36" class="circular-chart">
                 <path
@@ -433,10 +446,10 @@
               <p class="font-bold text-sm">
                 {{
                   profileService.profile().careerGoals[0] ||
-                    'Shape next release'
+                    'Lock the next drop'
                 }}
               </p>
-              <div class="level-badge">OPEN</div>
+              <div class="level-badge">ON TOUR</div>
               <svg viewBox="0 0 36 36" class="circular-chart">
                 <path
                   class="circle-bg"
@@ -451,30 +464,30 @@
             </div>
             <div class="text-center">
               <p class="text-xs uppercase tracking-widest opacity-60">
-                Profile Complete
+                Roster Status
               </p>
-              <p class="font-bold text-sm">Every workspace is ready to use.</p>
+              <p class="font-bold text-sm">Every booth is unlocked and lit.</p>
             </div>
             <div class="space-y-2">
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">verified</span>
-                <span>Catalog ready</span>
+                <span>Catalog shipped</span>
               </div>
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">tune</span>
                 <span>{{ profileService.profile().primaryGenre }}</span>
-                <span>Artist profile committed</span>
+                <span>Genre locked</span>
               </div>
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">apps</span>
                 <span
-                  >Studio, visuals, strategy, and release tools are open</span
+                  >Booth, visuals, strategy, and release tools all open</span
                 >
               </div>
             </div>
           </div>
           <button class="btn-pro-outline w-full mt-4">
-            Open Workspace Board
+            Open the Label Desk
           </button>
         </div>
       </div>
@@ -496,7 +509,7 @@
           >
             Tha Spot
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Go Live</p>
+          <p class="text-[10px] opacity-60 uppercase">Open Mic</p>
         </div>
       </div>
 
@@ -517,7 +530,7 @@
           >
             CinemaEngine
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Visual Lab</p>
+          <p class="text-[10px] opacity-60 uppercase">Press Visuals</p>
         </div>
       </div>
 
@@ -530,14 +543,14 @@
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <span class="material-symbols-outlined text-4xl mb-2 text-white"
-            >tune</span
+            >graphic_eq</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            Studio
+            The Stage
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Cut Records</p>
+          <p class="text-[10px] opacity-60 uppercase">Cut the Record</p>
         </div>
       </div>
 
@@ -550,12 +563,12 @@
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <span class="material-symbols-outlined text-4xl mb-2 text-secondary"
-            >analytics</span
+            >campaign</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            Intel Hub
+            Press Desk
           </h3>
           <p class="text-[10px] opacity-60 uppercase">Campaigns</p>
         </div>
@@ -566,18 +579,18 @@
     <div class="hub-footer flex flex-wrap gap-4 mt-8">
       <button class="pill-action" (click)="playerService.loadExternalTrack()">
         <span class="material-symbols-outlined text-base">cloud_upload</span>
-        Import Asset
+        Submit Demo
       </button>
       <button
         class="pill-action"
         (click)="uiService.navigateToView('settings')"
       >
         <span class="material-symbols-outlined text-base">settings</span>
-        Shell Config
+        Booth Config
       </button>
       <div class="flex-1"></div>
       <p class="elegant-footer-text text-[10px] uppercase">
-        S.M.U.V.E Intelligence Network v2.0
+        PARALLAX RECORDS // Independent Label Network v2.0
       </p>
     </div>
   </div>

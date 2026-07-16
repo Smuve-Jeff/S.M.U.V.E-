@@ -1,4 +1,4 @@
-<div class="comp-shell" [class.comp-compact]="uiService.isCompactMobile()" [attr.aria-label]="'S.M.U.V.E. Studio workspace'">
+<div class="comp-shell" [class.comp-compact]="uiService.isCompactMobile()" [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'">
   <!-- ====================== TOP TRANSPORT ====================== -->
   <header class="comp-topbar" role="banner">
     <div class="comp-topbar-left">
@@ -11,13 +11,13 @@
       >
         <span class="material-symbols-outlined">menu</span>
       </button>
-      <div class="comp-brand" (click)="newProject()" tabindex="0" role="button" [attr.aria-label]="'S.M.U.V.E. Composer Studio – tap to start new session'">
+      <div class="comp-brand led-strip" (click)="newProject()" tabindex="0" role="button" [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'">
         <div class="comp-brand-mark" aria-hidden="true">
           <span class="comp-brand-pulse"></span>
         </div>
         <div class="comp-brand-text">
           <span class="comp-brand-name">S.M.U.V.E.</span>
-          <span class="comp-brand-tag">Composer</span>
+          <span class="comp-brand-tag">STAGE</span>
         </div>
       </div>
     </div>
@@ -25,6 +25,11 @@
     <app-transport-bar class="comp-topbar-center"></app-transport-bar>
 
     <div class="comp-topbar-right">
+      <!-- Stage status pip -->
+      <span class="comp-now-performing" aria-label="Studio session is live and ready">
+        <span>●</span>
+        <span>NOW PERFORMING</span>
+      </span>
       <!-- Dark mode toggle -->
       <button
         type="button"
@@ -59,7 +64,7 @@
       </button>
       <button
         type="button"
-        class="comp-icon-btn comp-ai-btn"
+        class="comp-icon-btn comp-ai-btn led-strip"
         (click)="toggleAiAssistant()"
         [attr.aria-label]="'Toggle AI Assistant'"
         [attr.aria-expanded]="showAiAssistant()"
@@ -69,6 +74,18 @@
       </button>
     </div>
   </header>
+
+  <!-- ====================== STAGE MARQUEE ====================== -->
+  <div class="stage-marquee comp-stage-marquee" aria-hidden="true">
+    <div class="stage-marquee-track">
+      <span>★ S.M.U.V.E. STAGE ★ NOW PERFORMING LIVE ★</span>
+      <span>★ CITY LIGHTS / BOOTH FLOOR OPEN ★ DROP YOUR NEXT BAR ★</span>
+      <span>★ ROOSTER MIX ACTIVE ★ TRACK ARMS READY ★ SOUND CHECK OK ★</span>
+      <span>★ S.M.U.V.E. STAGE ★ NOW PERFORMING LIVE ★</span>
+      <span>★ CITY LIGHTS / BOOTH FLOOR OPEN ★ DROP YOUR NEXT BAR ★</span>
+      <span>★ ROOSTER MIX ACTIVE ★ TRACK ARMS READY ★ SOUND CHECK OK ★</span>
+    </div>
+  </div>
 
   <!-- ====================== MAIN WORKSPACE ====================== -->
   <main class="comp-main" role="main">
@@ -147,7 +164,7 @@
     aria-label="Studio navigation"
   >
     <header class="comp-drawer-header">
-      <span class="comp-drawer-title">Workspace</span>
+      <span class="comp-drawer-title">Stage Map</span>
       <button
         type="button"
         class="comp-icon-btn"
@@ -184,7 +201,7 @@
         (click)="newProject(); toggleMobileDrawer()"
       >
         <span class="material-symbols-outlined">add_circle</span>
-        New Session
+        New Set
       </button>
     </div>
   </aside>
