@@ -13,6 +13,9 @@
   --font-sans: 'Inter', 'Public Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-display: 'Public Sans', 'Inter', sans-serif;
+  /* Elegant brand fonts (footer / label stamp / PRESENTS accents) */
+  --font-elegant: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+  --font-flourish: 'Italiana', 'Italiana Fallback', 'Bodoni Moda', 'Times New Roman', serif;
 
   /* Mobile guards */
   --mobile-nav-height: 64px;
