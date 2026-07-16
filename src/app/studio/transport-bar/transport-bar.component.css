@@ -345,3 +345,32 @@
   .ctb-bpm-unit { font-size: 8px; }
   .ctb-meter { display: none; }
 }
+
+/* ================================================
+   DARK MODE — Transport Bar overrides
+   ================================================ */
+:host-context(.dark-mode) .ctb-group {
+  box-shadow: var(--shadow-ivory-sm), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:host-context(.dark-mode) .ctb-volume {
+  box-shadow: var(--shadow-ivory-sm), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:host-context(.dark-mode) .ctb-btn:hover,
+:host-context(.dark-mode) .ctb-btn:focus-visible {
+  background: rgba(93, 196, 194, 0.14);
+}
+:host-context(.dark-mode) .ctb-tempo {
+  background: #0A0A08;
+}
+:host-context(.dark-mode) .ctb-nudge {
+  color: rgba(255, 255, 255, 0.55);
+}
+:host-context(.dark-mode) .ctb-nudge:hover,
+:host-context(.dark-mode) .ctb-nudge:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+:host-context(.dark-mode) .ctb-stop:active,
+:host-context(.dark-mode) .ctb-stop[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.10);
+}
