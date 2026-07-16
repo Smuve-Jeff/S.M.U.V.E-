@@ -97,6 +97,35 @@ export class MusicManagerService {
   activeSceneId = signal<string | null>(null);
   takesExpanded = signal<Record<string, boolean>>({});
 
+  /**
+   * Cross-link request: one component (Arrangement, DrumMachine) asks the
+   * Studio shell to jump into another view (typically piano-roll) with a
+   * specific track selected and an optional note range to spotlight.
+   *
+   * The `timestamp` lets observers dedupe / detect newly emitted
+   * requests without comparing deep object identity.
+   */
+  crossLinkRequest = signal<{
+    view: 'piano-roll';
+    trackId: string;
+    noteRange?: { startStep: number; endStep: number };
+    label?: string;
+    timestamp: number;
+  } | null>(null);
+
+  requestCrossLink(req: {
+    view: 'piano-roll';
+    trackId: string;
+    noteRange?: { startStep: number; endStep: number };
+    label?: string;
+  }) {
+    this.crossLinkRequest.set({ ...req, timestamp: Date.now() });
+  }
+
+  clearCrossLink() {
+    this.crossLinkRequest.set(null);
+  }
+
   activeLoopBars = signal(64);
   structure = signal<SongSection[]>([]);
   performerScenes = signal<PerformerScene[]>([]);

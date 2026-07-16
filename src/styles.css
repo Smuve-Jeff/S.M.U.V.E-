@@ -356,3 +356,109 @@ input[type='range'] {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* === Cross-link live announcer (sr-only) === */
+.sr-only,
+.comp-sr-announcer {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* === Cross-link slide banner === */
+.comp-crosstrack-banner {
+  position: fixed;
+  bottom: calc(2rem + var(--mobile-nav-height, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--teal-500), #0A5F5E);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.55rem 1.15rem;
+  box-shadow: 0 8px 22px rgba(14, 124, 123, 0.30);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  z-index: 60;
+  max-width: 90vw;
+  pointer-events: none;
+  animation: crosstrackFadeIn 240ms ease-out;
+}
+@keyframes crosstrackFadeIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Cross-link highlight for piano-roll notes */
+.pr-note.is-crosslinked {
+  outline: 2px solid var(--teal-500);
+  outline-offset: -1px;
+  box-shadow: 0 0 0 4px rgba(14, 124, 123, 0.20), 0 2px 6px rgba(14, 124, 123, 0.30);
+  z-index: 2;
+  animation: prLinkPulse 1.4s ease-in-out 2;
+}
+@keyframes prLinkPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(14, 124, 123, 0.20), 0 2px 6px rgba(14, 124, 123, 0.30); }
+  50%      { box-shadow: 0 0 0 7px rgba(14, 124, 123, 0.35), 0 4px 10px rgba(14, 124, 123, 0.45); }
+}
+
+/* Cross-link badge on clips */
+.av-clip.is-crosslinked {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--teal-soft-glow), var(--shadow-ivory-lg);
+}
+
+.av-clip-edit-pr {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--teal-500);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow: 0 2px 6px rgba(14, 124, 123, 0.40);
+  -webkit-tap-highlight-color: transparent;
+  min-width: 28px;
+  min-height: 28px;
+}
+.av-clip:hover .av-clip-edit-pr,
+.av-clip.selected .av-clip-edit-pr,
+.av-clip:focus-within .av-clip-edit-pr { display: inline-flex; }
+.av-clip-edit-pr:hover { background: var(--teal-700, #0A5F5E); }
+
+/* Drum cross-link chip */
+.dm-pr-jump {
+  background: linear-gradient(135deg, var(--teal-500), #0A5F5E);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 10px rgba(14, 124, 123, 0.30);
+  min-height: 36px;
+}
+.dm-pr-jump:hover { background: var(--teal-700, #0A5F5E); }
+.dm-pr-jump .material-symbols-outlined { font-size: 16px; }

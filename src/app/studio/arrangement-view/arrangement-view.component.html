@@ -127,6 +127,16 @@
           <span class="material-symbols-outlined text-[10px]">waves</span>
           BOUNCE
         </button>
+        <button
+          (click)="crossLinkToPianoRoll(findFirstSelectedTrack()!, findFirstSelectedClip()!)"
+          class="mini-btn tactile-v42 executive-glass av-pr-btn"
+          title="Open in Piano Roll"
+          aria-label="Open selected clip in Piano Roll editor"
+          [disabled]="!findFirstSelectedClip()"
+        >
+          <span class="material-symbols-outlined text-[10px]">arrow_outward</span>
+          PR
+        </button>
       </div>
 
       <button
@@ -261,6 +271,7 @@
               *ngFor="let clip of track.clips"
               class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
               [class.selected-clip]="selectedClipIds().has(clip.id)"
+              [class.is-crosslinked]="isClipCrosslinked(track, clip)"
               [style.left.px]="clip.start * barWidth()"
               [style.width.px]="clip.length * barWidth()"
               [style.background-color]="
@@ -268,6 +279,7 @@
               "
               [style.border-color]="clip.color || track.color || '#af25f4'"
               (pointerdown)="onClipPointerDown($event, track.id, clip)"
+              (dblclick)="crossLinkToPianoRoll(track, clip); $event.stopPropagation()"
             >
               <div
                 class="clip-header flex justify-between items-center px-1 py-0.5"
@@ -281,6 +293,15 @@
                   >COMP</span
                 >
               </div>
+              <button
+                type="button"
+                class="av-clip-edit-pr"
+                title="Open this clip in Piano Roll"
+                aria-label="Open this clip in Piano Roll editor"
+                (click)="crossLinkToPianoRoll(track, clip); $event.stopPropagation()"
+              >
+                <span class="material-symbols-outlined">arrow_outward</span>
+              </button>
               <div
                 class="clip-content relative flex-1 overflow-hidden pointer-events-none"
               >

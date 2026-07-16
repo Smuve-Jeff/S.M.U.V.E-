@@ -7,6 +7,14 @@
         <span class="pr-track-dot" [style.background-color]="track.color"></span>
         <span>{{ track.name }}</span>
       </div>
+      <span
+        *ngIf="highlightedRange() as range"
+        class="pr-link-badge"
+        title="Highlighted via cross-link"
+      >
+        <span class="material-symbols-outlined">arrow_outward</span>
+        Linked · steps {{ range.startStep }}–{{ range.endStep }}
+      </span>
     </div>
 
     <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
@@ -129,6 +137,7 @@
           class="pr-note"
           [class.selected]="selectedNoteIds().has(note.id)"
           [class.slide]="note.isSlide"
+          [class.is-crosslinked]="isHighlighted(note)"
           [style.left.px]="note.step * cellWidth()"
           [style.top.px]="noteTopPx(note.midi)"
           [style.width.px]="note.length * cellWidth()"

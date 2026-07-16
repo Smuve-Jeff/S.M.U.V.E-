@@ -10,6 +10,7 @@ import {
   Output,
   EventEmitter,
   OnInit,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -89,6 +90,62 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     return Number((first?.probability ?? 1.0).toFixed(2));
   });
 
+  /** Cross-link target range — null when none active. */
+  highlightedRange = computed(() =>
+    this.musicManager.crossLinkRequest()?.noteRange ?? null
+  );
+  highlightedNoteIds = computed(() => {
+    const r = this.highlightedRange();
+    if (!r) return new Set<string>();
+    const ids = new Set<string>();
+    (this.selectedTrack()?.notes ?? []).forEach((n) => {
+      if (n.step >= r.startStep && n.step <= r.endStep) ids.add(n.id);
+    });
+    return ids;
+  });
+
+  isHighlighted(note: TrackNote): boolean {
+    return this.highlightedNoteIds().has(note.id);
+  }
+
+  /** Smoothly scroll the grid to the highlighted range. Guarded so
+   *  scrollContainer being null (pre-viewInit) is safe. */
+  scrollToHighlight(range: { startStep: number; endStep: number }) {
+    setTimeout(() => {
+      if (!this.scrollContainer) return;
+      const target = Math.max(0, range.startStep - 4) * this.cellWidth();
+      this.scrollContainer.nativeElement.scrollTo({
+        left: target,
+        behavior: 'smooth',
+      });
+    }, 60);
+  }
+
+  /** Drop the cross-link highlight when the user starts editing. */
+  dismissCrossLink() {
+    if (this.musicManager.crossLinkRequest()) {
+      this.musicManager.clearCrossLink();
+    }
+  }
+
+  private lastHandledTimestamp = 0;
+
+  constructor() {
+    // React to a newly-arriving cross-link request by scrolling the
+    // grid to it. The timestamp guard prevents duplicate scrolls and
+    //   the `scrollContainer` null check protects pre-viewInit.
+    effect(() => {
+      const req = this.musicManager.crossLinkRequest();
+      if (!req?.noteRange) return;
+      if (req.timestamp === this.lastHandledTimestamp) return;
+      if (req.timestamp <= this.lastHandledTimestamp) return;
+      this.lastHandledTimestamp = req.timestamp;
+      if (this.scrollContainer) {
+        this.scrollToHighlight(req.noteRange);
+      }
+    });
+  }
+
   ngOnInit() {
     try {
       const c = (this.musicManager as any).editorZoomLevel;
@@ -97,9 +154,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
+    // Default vertical scroll to mid-keyboard view.
     if (this.scrollContainer) {
       const top = (96) * this.rowHeight() - 200;
       this.scrollContainer.nativeElement.scrollTop = Math.max(0, top);
+    }
+    // If we mounted with an active cross-link (e.g. user navigated
+    //   via deep-link or post-render), honor it by scrolling to the
+    //   range AFTER the default vertical scroll.
+    const req = this.musicManager.crossLinkRequest();
+    if (req && req.noteRange) {
+      this.lastHandledTimestamp = req.timestamp;
+      this.scrollToHighlight(req.noteRange);
     }
   }
 
@@ -164,6 +230,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   // ---- Pointer interactions ----
   onGridPointerDown(event: PointerEvent) {
+    // Local interaction — clear any stale cross-link highlight so
+    // the focus doesn't outlive its useful context.
+    this.dismissCrossLink();
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
     const x = event.clientX - rect.left + container.scrollLeft;
@@ -226,6 +295,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   onNotePointerDown(event: PointerEvent, note: TrackNote) {
     event.stopPropagation();
+    // Editing an explicit note also dismisses the cross-link shimmer.
+    this.dismissCrossLink();
     const track = this.selectedTrack();
     if (!track) return;
     if (!event.shiftKey && !this.selectedNoteIds().has(note.id)) {
@@ -279,6 +350,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   onVelocityPointerDown(event: PointerEvent) {
+    this.dismissCrossLink();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const x = event.clientX - rect.left + (event.currentTarget as HTMLElement).scrollLeft;
     const y = event.clientY - rect.top;

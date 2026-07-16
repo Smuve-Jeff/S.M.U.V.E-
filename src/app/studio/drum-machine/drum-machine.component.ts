@@ -151,6 +151,37 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.selectedPadId.set(id);
   }
 
+  /** Cross-link the selected pad to Piano Roll. Computes the
+   *  note range from any existing pad notes so the user lands
+   *  in a focused, scrolled view of the relevant MIDI steps. */
+  crossLinkSelectedPad() {
+    const pad = this.selectedPad();
+    if (!pad) return;
+    const track = this.getDrumTrack();
+    this.selectedPadId.set(pad.id);
+    this.musicManager.selectedTrackId.set(MusicManagerService.DRUM_TRACK_ID);
+    const padNotes = track?.notes.filter((n) => n.midi === pad.midi) ?? [];
+    if (padNotes.length === 0) {
+      this.musicManager.requestCrossLink({
+        view: 'piano-roll',
+        trackId: MusicManagerService.DRUM_TRACK_ID,
+        label: pad.name + ' pad',
+      });
+    } else {
+      const steps = padNotes.map((n) => n.step);
+      this.musicManager.requestCrossLink({
+        view: 'piano-roll',
+        trackId: MusicManagerService.DRUM_TRACK_ID,
+        noteRange: {
+          startStep: Math.max(0, Math.floor(Math.min(...steps))),
+          endStep: Math.ceil(Math.max(...steps)) + 1,
+        },
+        label: pad.name + ' pad',
+      });
+    }
+    this.haptic.medium();
+  }
+
   getPadStep(padId: string, stepIdx: number) {
     const pad = this.pads().find((p) => p.id === padId);
     if (!pad) return { active: false, velocity: 0.8, probability: 1 };

@@ -6,6 +6,8 @@ import {
   inject,
   signal,
   computed,
+  effect,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -113,6 +115,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showAIAssistant = false; // legacy
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
+  /** Polite live-region announcement for cross-link view-jumps. */
+  crossLinkAnnouncement = signal<string>('');
+  /** Last consumed cross-link timestamp so we don't re-route on replay. */
+  private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
@@ -145,6 +151,42 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (view && isStudioView(view)) this.activeView.set(view);
+    });
+
+    // ── Cross-link router ───────────────────────────────────────
+    // Any child component (Arrangement clip, Drum pad) pushes a
+    // request onto MusicManagerService.crossLinkRequest. We watch
+    // it here and switch views accordingly. The `untracked` guard
+    // prevents setActiveView() from re-entering this effect when
+    // it later updates activeView / route params.
+    effect(() => {
+      const req = this.musicManager.crossLinkRequest();
+      if (!req || req.timestamp <= this.lastConsumedCrossLinkTimestamp) return;
+      this.lastConsumedCrossLinkTimestamp = req.timestamp;
+      untracked(() => {
+        const trackName =
+          this.musicManager
+            .tracks()
+            .find((t) => t.id === req.trackId)?.name || 'selected track';
+        if (this.activeView() !== req.view) {
+          this.setActiveView(req.view);
+        }
+        // Ensure the requested track is actually selected (the
+        // cross-link source component already does this, but it's
+        // idempotent and keeps the contract tidy).
+        if (
+          this.musicManager.selectedTrackId() !== req.trackId &&
+          req.trackId
+        ) {
+          this.musicManager.selectedTrackId.set(req.trackId);
+        }
+        this.crossLinkAnnouncement.set(
+          `Opened Piano Roll for ${req.label || trackName}. The related notes are highlighted.`
+        );
+        // Clear the announcement after a beat so it doesn't re-read
+        // if the user lingers.
+        setTimeout(() => this.crossLinkAnnouncement.set(''), 4500);
+      });
     });
   }
 

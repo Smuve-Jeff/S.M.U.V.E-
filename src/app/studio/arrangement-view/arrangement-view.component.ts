@@ -148,6 +148,23 @@ export class ArrangementViewComponent {
     return null;
   }
 
+  /** Toolbar cross-link helper: first selected clip's parent track. */
+  findFirstSelectedTrack(): TrackModel | null {
+    const ids = this.selectedClipIds();
+    if (ids.size === 0) {
+      const id = this.musicManager.selectedTrackId();
+      return id ? this.tracks().find((t) => t.id === id) ?? null : null;
+    }
+    return (
+      this.findClipOwner(ids.values().next().value ?? '')?.track ?? null
+    );
+  }
+  findFirstSelectedClip(): StudioClip | null {
+    const ids = this.selectedClipIds();
+    if (ids.size === 0) return null;
+    return this.findClipOwner(ids.values().next().value ?? '')?.clip ?? null;
+  }
+
   splitAtPlayhead() {
     const bar = this.musicManager.currentStep() / 16;
     this.selectedClipIds().forEach((id) => {
@@ -187,6 +204,41 @@ export class ArrangementViewComponent {
     });
     this.selectedClipIds.set(newSelection);
     this.haptic.medium();
+  }
+
+  /**
+   * Cross-link to Piano Roll — switches the Studio view to
+   * piano-roll, ensures the parent track is selected, and tells
+   * the roll which step range to spotlight.
+   */
+  crossLinkToPianoRoll(track: TrackModel, clip: StudioClip) {
+    this.selectTrack(track.id);
+    const selectedIds = new Set(this.selectedClipIds());
+    selectedIds.add(clip.id);
+    this.selectedClipIds.set(selectedIds);
+    const startStep = Math.max(0, Math.floor((clip.start || 0) * 16));
+    const endStep = Math.max(
+      startStep + 1,
+      Math.floor(((clip.start || 0) + (clip.length || 4)) * 16)
+    );
+    this.musicManager.requestCrossLink({
+      view: 'piano-roll',
+      trackId: track.id,
+      noteRange: { startStep, endStep },
+      label: clip.name || track.name,
+    });
+    this.haptic.medium();
+  }
+
+  /** True when the renderer should show this clip highlighted
+   *  because it is the source of an active cross-link request. */
+  isClipCrosslinked(track: TrackModel, clip: StudioClip): boolean {
+    const req = this.musicManager.crossLinkRequest();
+    if (!req || req.trackId !== track.id) return false;
+    if (!req.noteRange) return false;
+    const startStep = (clip.start || 0) * 16;
+    const endStep = ((clip.start || 0) + (clip.length || 4)) * 16;
+    return startStep <= req.noteRange.endStep && endStep >= req.noteRange.startStep;
   }
 
   aiVariation() {

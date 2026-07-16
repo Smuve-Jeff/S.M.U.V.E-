@@ -181,6 +181,16 @@
     (close)="showAiAssistant.set(false)"
   ></app-ai-assistant>
 
+  <!-- ====================== CROSS-LINK LIVE ANNOUNCER (a11y) ====================== -->
+  <div
+    class="comp-sr-announcer"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {{ crossLinkAnnouncement() }}
+  </div>
+
   <!-- ====================== GLOBAL OVERLAYS (legacy) ====================== -->
   <app-search-overlay></app-search-overlay>
   <app-snackbar></app-snackbar>
