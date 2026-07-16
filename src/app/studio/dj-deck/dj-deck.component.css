@@ -13,19 +13,18 @@
  * "rotate device" overlay is shown below.
  */
 
-/* ─── Tokens ─────────────────────────────────────────────────── */
+/* ─── Tokens (mapped to global Ivory + Teal palette for dark-mode support) ── */
 :root {
-  --paper: #f5efe0;
-  --paper-warm: #ece4d2;
-  --teal: #0e7c7b;
-  --teal-deep: #0a5a59;
-  --teal-soft: rgba(14, 124, 123, 0.18);
-  --heat: #d97706;
-  --heat-light: #f59e0b;
-  --espresso: #1f1a12;
-  --espresso-soft: rgba(31, 26, 18, 0.65);
-  --ivory-shadow: 0 8px 22px -10px rgba(38, 30, 18, 0.35),
-    0 2px 4px rgba(38, 30, 18, 0.08);
+  --paper: var(--ivory-paper);
+  --paper-warm: var(--ivory-panel);
+  --teal: var(--teal-500);
+  --teal-deep: #0A5F5E;
+  --teal-soft: var(--teal-soft-glow);
+  --heat: var(--orange);
+  --heat-light: #F59E0B;
+  --espresso: var(--espresso-text);
+  --espresso-soft: var(--espresso-muted);
+  --ivory-shadow: var(--shadow-ivory-md);
   --color-hotcue-0: #ef4444;
   --color-hotcue-1: #f59e0b;
   --color-hotcue-2: #facc15;
