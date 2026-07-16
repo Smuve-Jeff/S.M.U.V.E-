@@ -9,6 +9,7 @@ import { ProjectService } from '../../services/project.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { HistoryService } from '../../services/history.service';
 
 @Component({
   selector: 'app-transport-bar',
@@ -26,6 +27,8 @@ export class TransportBarComponent {
   private readonly musicManager = inject(MusicManagerService);
   private readonly haptic = inject(HapticService);
   private readonly snack = inject(SnackbarService);
+  /** Real history stack — bound so Undo/Redo buttons actually reverse mutations. */
+  readonly history = inject(HistoryService);
   isExporting = signal(false);
 
   isPlaying = this.audioSession.isPlaying;
@@ -67,9 +70,15 @@ export class TransportBarComponent {
   // ── Pro: Count-in picker ───────────────────────────────
   countInBars = signal<0 | 1 | 2>(0);
 
-  // ── Pro: Undo / redo stacks (kept local; affordable) ──
-  undoCount = signal(0);
-  redoCount = signal(0);
+  // ── Pro: History — undo/redo (backed by HistoryService) ──
+  /** Convenience flags so templates can wire disabled state */
+  canUndo = this.history.canUndo;
+  canRedo = this.history.canRedo;
+  /** Live counters that drive the badges inside undo/redo buttons */
+  undoCount = this.history.undoCount;
+  redoCount = this.history.redoCount;
+  /** Most recent reversible action name (snackbar label) */
+  lastActionName = this.history.lastActionName;
 
   constructor() {
     // Refresh tap buffer window: discard stale taps on tick
@@ -195,20 +204,20 @@ export class TransportBarComponent {
     return db.toFixed(1);
   }
 
-  // ── Pro: Undo / redo (lightweight stubs) ────────────────
+  // ── History: real Undo / Redo ──────────────────────────
   undo(): void {
-    this.undoCount.update((n) => n + 1);
-    this.redoCount.update((n) => Math.max(0, n - 1));
+    if (!this.canUndo()) return;
+    this.history.undo();
     this.haptic.light();
-    this.snack.info(
-      `Undo · depth ${this.undoCount()} (project history not deeply wired, but action registered)`
-    );
+    const last = this.lastActionName();
+    this.snack.info(`Undo · ${last || 'last action'}`);
   }
+
   redo(): void {
-    this.redoCount.update((n) => n + 1);
-    this.undoCount.update((n) => Math.max(0, n - 1));
+    if (!this.canRedo()) return;
+    this.history.redo();
     this.haptic.light();
-    this.snack.info(`Redo · depth ${this.redoCount()}`);
+    this.snack.info(`Redo · ${this.lastActionName() || 'next action'}`);
   }
 
   async exportWav() {

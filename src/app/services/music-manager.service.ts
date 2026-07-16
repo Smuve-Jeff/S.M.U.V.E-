@@ -150,56 +150,59 @@ export class MusicManagerService {
         if (project && this.tracks().length === 0) {
           this.tracks.set((project.tracks || []) as any);
           this.engine.tempo.set(project.bpm || 120);
+          this.history.clear();
         }
       },
       { allowSignalWrites: true }
     );
   }
 
+  // ── History-aware mutation primitives ──────────────────────────────
+
+  /** Run a regular (non-coalesced) reversible command. */
   private runCommand(name: string, execute: () => void, undo: () => void) {
     this.history.execute({ name, execute, undo });
   }
 
-  setActivePatternSlotId(id: string) {
-    this.activePatternSlotId.set(id);
+  /** Run a coalesced command — merges with previous on matching mergeKey. */
+  private runMerge(
+    mergeKey: string,
+    name: string,
+    execute: () => void,
+    undo: () => void
+  ) {
+    this.history.coalesce({ name, execute, undo, mergeKey });
   }
 
-  addPatternSlot() {
-    const id = 'slot-' + Date.now();
-    this.patternSlots.update((ps) => [
-      ...ps,
-      { id, name: 'Pattern ' + (ps.length + 1) },
-    ]);
+  /** Deep-clone plain-object arrays (notes, clips, tracks). */
+  private clone<T>(v: T): T {
+    return JSON.parse(JSON.stringify(v));
   }
 
-  createBus(name: string) {
-    return this.addTrack(name, 'bus', 'bus');
+  /** Default one-slot pattern rack attached to a fresh track. */
+  private createDefaultSlots(): PatternSlot[] {
+    return [
+      {
+        id: 'slot-0',
+        name: 'Pattern 1',
+        activeVersionId: 'v1',
+        versions: [
+          {
+            id: 'v1',
+            name: 'v1',
+            steps: new Array(64).fill(false),
+            notes: [],
+          },
+        ],
+      },
+    ];
   }
 
-  setTrackBus(trackId: string, busId: string | undefined) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === trackId ? { ...t, busId } : t))
-    );
-    this.engine.updateTrack(trackId, { busId });
-  }
-
-  setPadRouting(padId: string, busId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
-          const newPads =
-            (t as any).pads?.map((p: any) =>
-              p.id === padId ? { ...p, busId } : p
-            ) || [];
-          return { ...t, pads: newPads };
-        }
-        return t;
-      })
-    );
-  }
+  // ── Project lifecycle ──────────────────────────────────────────────
 
   newProject(skipDefaults = false) {
-    const oldTracks = this.tracks();
+    const oldTracks = this.clone(this.tracks());
+    const oldSelected = this.selectedTrackId();
     this.runCommand(
       'New Project',
       () => {
@@ -211,9 +214,21 @@ export class MusicManagerService {
           this.addTrack('Drums', 'trap-808-elite', 'drum');
         }
       },
-      () => this.tracks.set(oldTracks)
+      () => {
+        this.tracks.set(this.clone(oldTracks));
+        this.selectedTrackId.set(oldSelected);
+      }
     );
+    this.history.clear();
   }
+
+  loadProject(snapshot: any) {
+    if (!snapshot) return;
+    this.logger.info('Loading project snapshot...');
+    this.history.clear();
+  }
+
+  // ── Tracks ─────────────────────────────────────────────────────────
 
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
     const id = instrumentId.includes('drum')
@@ -251,56 +266,410 @@ export class MusicManagerService {
     return id;
   }
 
-  private createDefaultSlots(): PatternSlot[] {
-    return [
-      {
-        id: 'slot-0',
-        name: 'Pattern 1',
-        activeVersionId: 'v1',
-        versions: [
-          { id: 'v1', name: 'v1', steps: new Array(64).fill(false), notes: [] },
-        ],
-      },
-    ];
-  }
-
   removeTrack(id: string) {
-    this.tracks.update((ts) => ts.filter((t) => t.id !== id));
-    if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
-  }
-
-  addNoteToTrack(trackId: string, note: TrackNote) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId ? { ...t, notes: [...t.notes, note] } : t
-      )
+    const list = this.tracks();
+    const idx = list.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    const snapshot = this.clone(list[idx]);
+    const prevSelected = this.selectedTrackId();
+    this.runCommand(
+      'Remove Track · ' + snapshot.name,
+      () => {
+        this.tracks.update((ts) => ts.filter((t) => t.id !== id));
+        if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
+      },
+      () => {
+        this.tracks.update((ts) => {
+          const next = [...ts];
+          next.splice(idx, 0, snapshot);
+          return next;
+        });
+        this.selectedTrackId.set(prevSelected);
+      }
     );
   }
 
-  updateNote(trackId: string, noteId: string, patch: Partial<TrackNote>) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? {
-              ...t,
-              notes: t.notes.map((n) =>
-                n.id === noteId ? { ...n, ...patch } : n
-              ),
-            }
-          : t
-      )
+  setInstrument(trackId: string, instId: string) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const oldInstrument = t.instrumentId;
+    const oldSynth = this.clone(t.synthParams);
+    const preset = this.instruments.getPresets().find((p) => p.id === instId);
+    this.runCommand(
+      'Switch Instrument · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  instrumentId: instId,
+                  synthParams: preset?.synth || x.synthParams,
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, instrumentId: oldInstrument, synthParams: oldSynth }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  // ── Notes ──────────────────────────────────────────────────────────
+
+  addNoteToTrack(trackId: string, note: TrackNote) {
+    const noteClone = this.clone(note);
+    this.runCommand(
+      'Add Note · ' + note.midi,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, notes: [...t.notes, noteClone] } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, notes: t.notes.filter((n) => n.id !== noteClone.id) }
+              : t
+          )
+        );
+      }
     );
   }
 
   removeNotes(trackId: string, noteIds: string[]) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? { ...t, notes: t.notes.filter((n) => !noteIds.includes(n.id)) }
-          : t
-      )
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track || noteIds.length === 0) return;
+    const removed = this.clone(
+      track.notes.filter((n) => noteIds.includes(n.id))
+    );
+    this.runCommand(
+      'Delete ' + noteIds.length + ' Note' + (noteIds.length === 1 ? '' : 's'),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, notes: t.notes.filter((n) => !noteIds.includes(n.id)) }
+              : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, notes: [...t.notes, ...removed] } : t
+          )
+        );
+      }
     );
   }
+
+  updateNote(trackId: string, noteId: string, patch: Partial<TrackNote>) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const note = t?.notes.find((n) => n.id === noteId);
+    if (!note) return;
+    const prev = this.clone(note);
+    const next = { ...note, ...patch };
+    this.runCommand(
+      'Edit Note · ' + next.midi,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  notes: x.notes.map((n) =>
+                    n.id === noteId ? { ...n, ...patch } : n
+                  ),
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  notes: x.notes.map((n) =>
+                    n.id === noteId ? prev : n
+                  ),
+                }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  duplicateNotes(trackId: string, ids: string[], offset: number) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const sources = t.notes.filter((n) => ids.includes(n.id));
+    const dupes = sources.map((n) => ({
+      ...this.clone(n),
+      id: 'note-' + Date.now() + '-' + Math.random(),
+      step: n.step + offset,
+    }));
+    this.runCommand(
+      'Duplicate ' + dupes.length + ' Note' + (dupes.length === 1 ? '' : 's'),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, notes: [...x.notes, ...dupes] } : x
+          )
+        );
+      },
+      () => {
+        const dupeIds = new Set(dupes.map((d) => d.id));
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, notes: x.notes.filter((n) => !dupeIds.has(n.id)) }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  applyChordStamp(
+    trackId: string,
+    baseMidi: number,
+    step: number,
+    chordType: string
+  ) {
+    const intervals: Record<string, number[]> = {
+      maj: [0, 4, 7],
+      min: [0, 3, 7],
+      maj7: [0, 4, 7, 11],
+      min7: [0, 3, 7, 10],
+      dom7: [0, 4, 7, 10],
+      sus4: [0, 5, 7],
+    };
+    const offsets = intervals[chordType] || [0];
+    const stamped: TrackNote[] = offsets.map((interval) => ({
+      id: 'chord_' + Date.now() + '_' + interval,
+      midi: baseMidi + interval,
+      step,
+      length: 1,
+      velocity: 0.8,
+    }));
+    this.runCommand(
+      'Stamp Chord · ' + chordType,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, notes: [...t.notes, ...stamped.map((n) => this.clone(n))] }
+              : t
+          )
+        );
+      },
+      () => {
+        const stampedIds = new Set(stamped.map((n) => n.id));
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: t.notes.filter((n) => !stampedIds.has(n.id)),
+                }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  recordLiveNote(midi: number, velocity: number) {
+    // Reads selection-time state — wraps a single addNoteToTrack as history step
+    const trackId = this.selectedTrackId();
+    if (!trackId) return;
+    this.addNoteToTrack(trackId, {
+      id: 'rec_' + Date.now(),
+      midi,
+      step: this.engine.visualStep() % 64,
+      length: 1,
+      velocity,
+    });
+  }
+
+  // ── Mixer (mute / solo / volume / pan / sends) ──────────────────────
+
+  toggleMute(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const wasMuted = !!t.muted;
+    this.runCommand(
+      (wasMuted ? 'Unmute · ' : 'Mute · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, muted: !x.muted } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, muted: wasMuted } : x))
+        );
+      }
+    );
+  }
+
+  toggleSolo(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const wasSoloed = !!t.soloed;
+    this.runCommand(
+      (wasSoloed ? 'Unsolo · ' : 'Solo · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloed: !x.soloed } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloed: wasSoloed } : x))
+        );
+      }
+    );
+  }
+
+  updateVolume(id: string, vol: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldGain = t.gain;
+    const newGain = Math.max(0, Math.min(1.5, vol));
+    // Coalesce: consecutive fader moves on the same track collapse to one
+    // undo step that rewinds to the original pre-drag volume.
+    this.runMerge(
+      'volume:' + id,
+      'Set Volume · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === id
+              ? { ...x, gain: newGain, volume: newGain }
+              : x
+          )
+        );
+        this.engine.updateTrack(id, { gain: newGain });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === id ? { ...x, gain: oldGain, volume: oldGain } : x
+          )
+        );
+        this.engine.updateTrack(id, { gain: oldGain });
+      }
+    );
+  }
+
+  updateTrackPan(id: string, val: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldPan = t.pan;
+    const newPan = Math.max(-1, Math.min(1, val / 100));
+    this.runMerge(
+      'pan:' + id,
+      'Set Pan · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, pan: newPan } : x))
+        );
+        this.engine.updateTrack(id, { pan: newPan });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, pan: oldPan } : x))
+        );
+        this.engine.updateTrack(id, { pan: oldPan });
+      }
+    );
+  }
+
+  updateSend(id: string, send: 'A' | 'B', value: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldSend = send === 'A' ? t.sendA : t.sendB;
+    const newSend = Math.max(0, Math.min(1, value));
+    this.runMerge(
+      'send' + send + ':' + id,
+      'Set Send ' + send + ' · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            send === 'A'
+              ? x.id === id
+                ? { ...x, sendA: newSend }
+                : x
+              : x.id === id
+                ? { ...x, sendB: newSend }
+                : x
+          )
+        );
+        this.engine.updateTrack(
+          id,
+          send === 'A' ? { sendA: newSend } : { sendB: newSend }
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            send === 'A'
+              ? x.id === id
+                ? { ...x, sendA: oldSend }
+                : x
+              : x.id === id
+                ? { ...x, sendB: oldSend }
+                : x
+          )
+        );
+        this.engine.updateTrack(
+          id,
+          send === 'A' ? { sendA: oldSend } : { sendB: oldSend }
+        );
+      }
+    );
+  }
+
+  updateSynthParams(trackId: string, params: any) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const oldParams = this.clone(t.synthParams);
+    const newParams = { ...t.synthParams, ...params };
+    this.runCommand(
+      'Edit Synth · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, synthParams: newParams } : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, synthParams: oldParams } : x
+          )
+        );
+      }
+    );
+  }
+
+  // ── Clips ──────────────────────────────────────────────────────────
 
   addClipToTrack(trackId: string, clip: Partial<StudioClip>) {
     const newClip: StudioClip = {
@@ -311,57 +680,407 @@ export class MusicManagerService {
       type: 'midi',
       ...clip,
     };
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId ? { ...t, clips: [...t.clips, newClip] } : t
-      )
+    const clipClone = this.clone(newClip);
+    this.runCommand(
+      'Add Clip · ' + clipClone.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, clips: [...t.clips, clipClone] } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, clips: t.clips.filter((c) => c.id !== clipClone.id) }
+              : t
+          )
+        );
+      }
     );
   }
 
   updateClip(trackId: string, clipId: string, patch: Partial<StudioClip>) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? {
-              ...t,
-              clips: t.clips.map((c) =>
-                c.id === clipId ? { ...c, ...patch } : c
-              ),
-            }
-          : t
-      )
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const prev = this.clone(clip);
+    this.runCommand(
+      'Edit Clip · ' + (patch.name || clip.name),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: x.clips.map((c) =>
+                    c.id === clipId ? { ...c, ...patch } : c
+                  ),
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: x.clips.map((c) =>
+                    c.id === clipId ? prev : c
+                  ),
+                }
+              : x
+          )
+        );
+      }
     );
   }
 
   removeClip(trackId: string, clipId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        return { ...t, clips: t.clips.filter((c) => c.id !== clipId) };
-      })
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const snapshot = this.clone(clip);
+    this.runCommand(
+      'Remove Clip · ' + clip.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, clips: x.clips.filter((c) => c.id !== clipId) }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: [...x.clips, snapshot] } : x
+          )
+        );
+      }
     );
   }
 
   splitClip(trackId: string, clipId: string, bar: number) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const original = this.clone(clip);
+    const first = this.clone({
+      ...clip,
+      length: bar - clip.start,
+    });
+    const secondId = 'clip_' + Date.now() + '_b';
+    const second = this.clone({
+      ...clip,
+      id: secondId,
+      start: bar,
+      length: clip.length - (bar - clip.start),
+    });
+    this.runCommand(
+      'Split Clip · ' + clip.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => {
+            if (x.id !== trackId) return x;
+            return {
+              ...x,
+              clips: [
+                ...x.clips.filter((c) => c.id !== clipId),
+                first,
+                second,
+              ],
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: [
+                    ...x.clips.filter(
+                      (c) => c.id !== secondId
+                    ),
+                    original,
+                  ],
+                }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  // ── Bulk-mutate current notes (array wholesale replace for clean undo) ─
+
+  quantizeTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      noteIds && !noteIds.includes(n.id)
+        ? n
+        : { ...n, step: Math.round(n.step) }
+    );
+    this.runCommand(
+      'Quantize · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  humanizeTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      noteIds && !noteIds.includes(n.id)
+        ? n
+        : {
+            ...n,
+            step: n.step + (Math.random() - 0.5) * 0.1,
+            velocity: Math.max(
+              0.1,
+              Math.min(1, n.velocity + (Math.random() - 0.5) * 0.2)
+            ),
+          }
+    );
+    this.runCommand(
+      'Humanize · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  strumTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const sortedAsc = [...t.notes].sort((a, b) => a.midi - b.midi);
+    const targetIds = noteIds ?? sortedAsc.map((n) => n.id);
+    const targets = sortedAsc.filter((n) => targetIds.includes(n.id));
+    const { step: _ignored, ...rest } = targets[0] ?? { step: 0 };
+    const after = t.notes.map((n) => {
+      if (!targetIds.includes(n.id)) return n;
+      const idx = targets.indexOf(n);
+      return { ...n, step: n.step + idx * 0.02 };
+    });
+    this.runCommand(
+      'Strum · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  arpeggiateTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const targetIds = new Set(noteIds ?? t.notes.map((n) => n.id));
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    const others = t.notes.filter((n) => !targetIds.has(n.id));
+    if (targets.length === 0) return;
+    const arpNotes: TrackNote[] = [];
+    targets.forEach((base) => {
+      [0, 4, 7, 12].forEach((v, i) => {
+        arpNotes.push({
+          ...this.clone(base),
+          id: `arp_${base.id}_${i}_${Date.now()}`,
+          midi: base.midi + v,
+          step: base.step + i * 0.25,
+          length: 0.25,
+        });
+      });
+    });
+    const arpIds = new Set(arpNotes.map((n) => n.id));
+    const after = [...others, ...arpNotes];
+    this.runCommand(
+      'Arpeggiate · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  // ── Pattern slots / scenes / takes (kept lightweight) ─────────────
+
+  setActivePatternSlotId(id: string) {
+    this.activePatternSlotId.set(id);
+  }
+
+  addPatternSlot() {
+    const id = 'slot-' + Date.now();
+    this.patternSlots.update((ps) => [
+      ...ps,
+      { id, name: 'Pattern ' + (ps.length + 1) },
+    ]);
+  }
+
+  setActivePatternSlot(trackId: string, slotId: string) {
+    this.runCommand(
+      'Switch Pattern Slot',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, activePatternSlotId: slotId } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, activePatternSlotId: t.activePatternSlotId } : t
+          )
+        );
+      }
+    );
+  }
+
+  // ── Routing / bus (not history-tracked; they're a UX affordance) ──
+
+  setTrackBus(trackId: string, busId: string | undefined) {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === trackId ? { ...t, busId } : t))
+    );
+    this.engine.updateTrack(trackId, { busId });
+  }
+
+  setPadRouting(padId: string, busId: string) {
     this.tracks.update((ts) =>
       ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const clip = t.clips.find((c) => c.id === clipId);
-        if (!clip) return t;
-        const first = { ...clip, length: bar - clip.start };
-        const second = {
-          ...clip,
-          id: 'clip_' + Date.now(),
-          start: bar,
-          length: clip.length - (bar - clip.start),
-        };
-        return {
-          ...t,
-          clips: [...t.clips.filter((c) => c.id !== clipId), first, second],
-        };
+        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+          const newPads =
+            (t as any).pads?.map((p: any) =>
+              p.id === padId ? { ...p, busId } : p
+            ) || [];
+          return { ...t, pads: newPads };
+        }
+        return t;
       })
     );
   }
+
+  updateDrumSwing(amount: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+          return { ...t, swingAmount: amount };
+        }
+        return t;
+      })
+    );
+  }
+
+  // ── Misc helpers (non-history) ────────────────────────────────────
+
+  ensureTrack(instrumentId: string) {
+    const existing = this.tracks().find((t) => t.instrumentId === instrumentId);
+    if (!existing) {
+      return this.addTrack('New ' + instrumentId, instrumentId);
+    }
+    return existing.id;
+  }
+
+  snapshotProject(): Project | null {
+    const current = this.projectService.currentProject();
+    if (!current) return null;
+    return {
+      ...current,
+      tracks: this.tracks() as any,
+      bpm: this.engine.tempo(),
+      updatedAt: Date.now(),
+    };
+  }
+
+  importProject(file: File) {
+    if (!file) return;
+    const oldTracks = this.clone(this.tracks());
+    const oldBpm = this.engine.tempo();
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        this.runCommand(
+          'Import Project',
+          () => {
+            if (data.tracks) this.tracks.set(data.tracks);
+            if (data.bpm) this.engine.tempo.set(data.bpm);
+          },
+          () => {
+            this.tracks.set(this.clone(oldTracks));
+            this.engine.tempo.set(oldBpm);
+          }
+        );
+      } catch (err) {
+        console.error('Import failed', err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  launchScene(id: string) {
+    this.activeSceneId.set(id);
+  }
+  promoteTakeRegion(t: string, c: string, r: any) {}
+  async bounceTrack(id: string) {
+    this.logger.info('Bouncing track...');
+  }
+
+  importAudio() {
+    this.logger.info('Importing audio track...');
+  }
+  startRecording() {
+    this.recordingEngine.startRecording();
+  }
+  stopRecording(id: string) {
+    this.recordingEngine.stopRecording();
+    return Promise.resolve(null);
+  }
+
+  addAutomationLane(trackId: string, param: string) {
+    this.logger.info(`Added automation lane for ${param}`);
+  }
+
+  // ── Playback engine stepper ───────────────────────────────────────
 
   playStep(step: number, time: number, duration: number) {
     const bar = Math.floor(step / 16);
@@ -427,271 +1146,7 @@ export class MusicManagerService {
     return track.notes.some((n) => Math.floor(n.step) === stepIdx);
   }
 
-  quantizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              notes: t.notes.map((n) => ({ ...n, step: Math.round(n.step) })),
-            }
-          : t
-      )
-    );
-  }
-  humanizeTrack(id: string, noteIds?: string[]) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              notes: t.notes.map((n) => ({
-                ...n,
-                step: n.step + (Math.random() - 0.5) * 0.1,
-                velocity: Math.max(
-                  0.1,
-                  Math.min(1, n.velocity + (Math.random() - 0.5) * 0.2)
-                ),
-              })),
-            }
-          : t
-      )
-    );
-  }
-  strumTrack(id: string, noteIds?: string[]) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              notes: [...t.notes]
-                .sort((a, b) => a.midi - b.midi)
-                .map((n, i) => ({ ...n, step: n.step + i * 0.02 })),
-            }
-          : t
-      )
-    );
-  }
-  arpeggiateTrack(id: string, noteIds?: string[]) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== id) return t;
-        const targetNotes = noteIds
-          ? t.notes.filter((n) => noteIds.includes(n.id))
-          : t.notes;
-        if (targetNotes.length === 0) return t;
-
-        const newNotes: any[] = t.notes.filter((n) => !targetNotes.includes(n));
-        targetNotes.forEach((base) => {
-          [0, 4, 7, 12].forEach((v, i) => {
-            newNotes.push({
-              ...base,
-              id: `arp_${base.id}_${i}_${Date.now()}`,
-              midi: base.midi + v,
-              step: base.step + i * 0.25,
-              length: 0.25,
-            });
-          });
-        });
-        return { ...t, notes: newNotes };
-      })
-    );
-  }
-
-  toggleMute(id: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, muted: !t.muted } : t))
-    );
-  }
-  toggleSolo(id: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, soloed: !t.soloed } : t))
-    );
-  }
-
-  updateDrumSwing(amount: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
-          return { ...t, swingAmount: amount };
-        }
-        return t;
-      })
-    );
-  }
-
-  updateVolume(id: string, vol: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, volume: vol, gain: vol } : t))
-    );
-    this.engine.updateTrack(id, { gain: vol });
-  }
-
-  updateTrackPan(id: string, val: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, pan: val / 100 } : t))
-    );
-    this.engine.updateTrack(id, { pan: val / 100 });
-  }
-
-  updateSend(id: string, send: 'A' | 'B', value: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== id) return t;
-        return send === 'A' ? { ...t, sendA: value } : { ...t, sendB: value };
-      })
-    );
-    this.engine.updateTrack(
-      id,
-      send === 'A' ? { sendA: value } : { sendB: value }
-    );
-  }
-
-  updateSynthParams(trackId: string, params: any) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? { ...t, synthParams: { ...t.synthParams, ...params } }
-          : t
-      )
-    );
-  }
-
-  importProject(file: File) {
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (data.tracks) this.tracks.set(data.tracks);
-        if (data.bpm) this.engine.tempo.set(data.bpm);
-      } catch (err) {}
-    };
-    reader.readAsText(file);
-  }
-
-  applyChordStamp(
-    trackId: string,
-    baseMidi: number,
-    step: number,
-    chordType: string
-  ) {
-    const intervals: Record<string, number[]> = {
-      maj: [0, 4, 7],
-      min: [0, 3, 7],
-      maj7: [0, 4, 7, 11],
-      min7: [0, 3, 7, 10],
-      dom7: [0, 4, 7, 10],
-      sus4: [0, 5, 7],
-    };
-    const notes = intervals[chordType] || [0];
-    notes.forEach((interval) => {
-      this.addNoteToTrack(trackId, {
-        id: 'chord_' + Date.now() + '_' + interval,
-        midi: baseMidi + interval,
-        step,
-        length: 1,
-        velocity: 0.8,
-      });
-    });
-  }
-
-  recordLiveNote(midi: number, velocity: number) {
-    const trackId = this.selectedTrackId();
-    if (trackId) {
-      this.addNoteToTrack(trackId, {
-        id: 'rec_' + Date.now(),
-        midi,
-        step: this.engine.visualStep() % 64,
-        length: 1,
-        velocity,
-      });
-    }
-  }
-
-  launchScene(id: string) {
-    this.activeSceneId.set(id);
-  }
-  promoteTakeRegion(t: string, c: string, r: any) {}
-  async bounceTrack(id: string) {
-    this.logger.info('Bouncing track...');
-  }
-
-  setActivePatternSlot(trackId: string, slotId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId ? { ...t, activePatternSlotId: slotId } : t
-      )
-    );
-  }
-
-  duplicateNotes(trackId: string, ids: string[], offset: number) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== trackId) return t;
-        const dupes = t.notes
-          .filter((n) => ids.includes(n.id))
-          .map((n) => ({
-            ...n,
-            id: `note-${Date.now()}-${Math.random()}`,
-            step: n.step + offset,
-          }));
-        return { ...t, notes: [...t.notes, ...dupes] };
-      })
-    );
-  }
-
-  setInstrument(trackId: string, instId: string) {
-    const preset = this.instruments.getPresets().find((p) => p.id === instId);
-    this.tracks.update((ts) =>
-      ts.map((t) =>
-        t.id === trackId
-          ? {
-              ...t,
-              instrumentId: instId,
-              synthParams: preset?.synth || t.synthParams,
-            }
-          : t
-      )
-    );
-  }
-
-  ensureTrack(instrumentId: string) {
-    const existing = this.tracks().find((t) => t.instrumentId === instrumentId);
-    if (!existing) {
-      return this.addTrack('New ' + instrumentId, instrumentId);
-    }
-    return existing.id;
-  }
-
-  importAudio() {
-    this.logger.info('Importing audio track...');
-  }
-  startRecording() {
-    this.recordingEngine.startRecording();
-  }
-  stopRecording(id: string) {
-    this.recordingEngine.stopRecording();
-    return Promise.resolve(null);
-  }
-
-  addAutomationLane(trackId: string, param: string) {
-    this.logger.info(`Added automation lane for ${param}`);
-  }
-
-  snapshotProject(): Project | null {
-    const current = this.projectService.currentProject();
-    if (!current) return null;
-    return {
-      ...current,
-      tracks: this.tracks() as any,
-      bpm: this.engine.tempo(),
-      updatedAt: Date.now(),
-    };
-  }
-
-  loadProject(snapshot: any) {
-    if (!snapshot) return;
-    this.logger.info('Loading project snapshot...');
-    // Real implementation would map snapshot to internal state
+  createBus(name: string) {
+    return this.addTrack(name, 'bus', 'bus');
   }
 }
