@@ -7,10 +7,11 @@
     "server"
   ],
   "scripts": {
+    "install:legacy": "npm install --legacy-peer-deps",
     "dev": "ng serve",
     "build": "ng build",
     "start": "serve -s Build/browser",
-    "preview": "ng serve --configuration=production",
+    "preview": "npm run build && npm run start -- -l 4200",
     "test": "jest",
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",
