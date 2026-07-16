@@ -1,31 +1,20 @@
-<div
-  class="waveform-container bg-black/40 rounded-2xl border border-red-500/20 overflow-hidden relative h-24 flex items-center justify-center"
->
-  <div
-    class="absolute inset-0 bg-gradient-to-t from-red-500/5 to-transparent"
-  ></div>
+<div class="wr-shell">
+  <canvas
+    #waveCanvas
+    class="wr-canvas"
+    [attr.width]="800"
+    [attr.height]="160"
+  ></canvas>
 
-  <div class="flex items-end gap-[1px] h-full w-full px-2" *ngIf="isRecording">
-    <div
-      *ngFor="let value of waveform"
-      class="waveform-bar flex-grow bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] rounded-t-[1px]"
-      [style.height.%]="10 + Math.abs(value) * 100"
-    ></div>
+  <!-- Recording indicator overlay -->
+  <div class="wr-rec-badge" *ngIf="isRecording">
+    <span class="wr-rec-dot"></span>
+    <span class="wr-rec-label">REC</span>
   </div>
 
-  <div class="absolute top-2 left-4 flex items-center gap-2">
-    <div
-      class="w-2 h-2 rounded-full bg-red-500 animate-pulse-subtle shadow-[0_0_10px_#ef4444]"
-    ></div>
-    <span
-      class="text-[9px] font-black uppercase tracking-widest text-red-500/80"
-      >Recording In Progress</span
-    >
-  </div>
-
-  <div
-    class="absolute bottom-2 right-4 text-[9px] font-mono text-[11px] tracking-tight text-slate-500 uppercase tracking-tighter"
-  >
-    Buffer: 44.1kHz / 24bit
+  <!-- Meta footer -->
+  <div class="wr-meta" *ngIf="duration > 0">
+    <span>{{ (duration * progress) | number:'1.2-2' }}s</span>
+    <span>{{ duration | number:'1.2-2' }}s</span>
   </div>
 </div>

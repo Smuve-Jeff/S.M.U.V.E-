@@ -90,8 +90,8 @@
           ></div>
           <div
             class="mix-meter-peak"
-            [class.show]="isPeaking(track.id)"
-            [style.bottom.%]="getTrackLevel(track.id) * 100"
+            [style.bottom.%]="getTrackPeakHold(track.id) * 100"
+            [class.show]="getTrackPeakHold(track.id) > 0.01"
           ></div>
         </div>
 
@@ -198,7 +198,11 @@
 
         <div class="mix-meter" aria-hidden="true">
           <div class="mix-meter-bar" [style.transform]="'scaleY(' + masterLevel() + ')'"></div>
-          <div class="mix-meter-peak" [class.show]="masterLevel() > 0.92" [style.bottom.%]="masterLevel() * 100"></div>
+          <div
+            class="mix-meter-peak"
+            [style.bottom.%]="masterPeakHold() * 100"
+            [class.show]="masterPeakHold() > 0.01"
+          ></div>
         </div>
 
         <div class="mix-strip-body">

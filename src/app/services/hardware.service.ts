@@ -55,24 +55,29 @@ export class HardwareService {
   }
 
   private async monitorAudioDevices() {
-    await this.micService.updateAvailableDevices();
-    const devices = this.micService.availableDevices();
+    try {
+      await this.micService.updateAvailableDevices();
+      const devices = this.micService.availableDevices();
 
-    const interfaces = devices.filter(
-      (d) => d.type === 'interface' || d.capabilities?.includes('usb-interface')
-    );
-    const isConnected = interfaces.length > 0;
-    const name = isConnected ? interfaces[0].label : null;
+      const interfaces = devices.filter(
+        (d) => d.type === 'interface' || d.capabilities?.includes('usb-interface')
+      );
+      const isConnected = interfaces.length > 0;
+      const name = isConnected ? interfaces[0].label : null;
 
-    this.status.update((s) => ({
-      ...s,
-      audioInterfaceConnected: isConnected,
-      activeInterfaceName: name,
-      recordReady: isConnected, // If interface is connected, we consider it record-ready for high quality
-    }));
+      this.status.update((s) => ({
+        ...s,
+        audioInterfaceConnected: isConnected,
+        activeInterfaceName: name,
+        recordReady: isConnected,
+      }));
 
-    if (isConnected) {
-      this.logger.info(`Elite Hardware Detected: ${name}`);
+      if (isConnected) {
+        this.logger.info(`Elite Hardware Detected: ${name}`);
+      }
+    } catch {
+      // Gracefully handle environments where mic service is unavailable
+      // (e.g. test runners, browsers without media device APIs)
     }
   }
 

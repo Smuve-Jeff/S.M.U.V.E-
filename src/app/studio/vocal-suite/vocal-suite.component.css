@@ -1,10 +1,43 @@
+/* ===========================================================
+   Vocal Suite — Neural Lab dark theme (always-on dark aesthetic)
+   CSS custom properties centralise the vocal palette so it
+   respects global .dark-mode without hardcoded colour drift.
+   =========================================================== */
+
 :host {
+  /* ── Core vocal palette (dark by design) ── */
+  --vs-obsidian: #07070a;
+  --vs-oled: #0a0a0d;
+  --vs-titanium: #111116;
+  --vs-primary: #a855f7;
+  --vs-primary-dim: rgba(168, 85, 247, 0.18);
+  --vs-accent: #ec5b13;
+  --vs-fl-blue: #3b82f6;
+  --vs-border: rgba(255, 255, 255, 0.06);
+  --vs-text: #f0f0f5;
+  --vs-text-dim: #6b7280;
+  --vs-glass: rgba(255, 255, 255, 0.03);
+
   display: block;
   height: 100%;
-  background: var(--studio-bg, #07070a);
-  color: #f0f0f5;
+  background: var(--vs-obsidian);
+  color: var(--vs-text);
   padding: 1.5rem;
   font-family: 'Rajdhani', sans-serif;
+}
+
+/* Dark-mode: intensify the palette (already dark, just refined) */
+:host-context(.dark-mode) {
+  --vs-obsidian: #050508;
+  --vs-oled: #08080b;
+  --vs-titanium: #0e0e13;
+  --vs-primary: #c084fc;
+  --vs-accent: #f97316;
+  --vs-fl-blue: #60a5fa;
+  --vs-border: rgba(255, 255, 255, 0.08);
+  --vs-text: #fafafa;
+  --vs-text-dim: #9ca3af;
+  --vs-glass: rgba(255, 255, 255, 0.04);
 }
 
 .vocal-suite-container {

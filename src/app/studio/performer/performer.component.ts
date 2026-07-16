@@ -15,6 +15,7 @@ import {
 } from '../../services/instruments.service';
 import { PerformanceGridComponent } from '../performance-grid/performance-grid.component';
 import { PerformanceRecordingService } from '../performance-recording.service';
+import { RecordingStatusService } from '../recording-status.service';
 
 @Component({
   selector: 'app-performer',
@@ -34,6 +35,7 @@ export class PerformerComponent implements OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
   public readonly liveEngine = inject(LiveEngineService);
   public readonly perfRecording = inject(PerformanceRecordingService);
+  private readonly recordingStatus = inject(RecordingStatusService);
   private readonly haptic = inject(HapticService);
   private readonly instrumentsService = inject(InstrumentsService);
 
@@ -82,6 +84,7 @@ export class PerformerComponent implements OnDestroy {
         .finishTake(track?.id, track?.name)
         .catch(() => undefined);
       this.haptic.medium();
+      this.recordingStatus.clearRecordingSource();
       return;
     }
     if (!this.perfRecording.isArmed()) {
@@ -92,6 +95,10 @@ export class PerformerComponent implements OnDestroy {
         const track = this.selectedTrack();
         this.perfRecording.startRecording(track?.id, track?.name);
         this.haptic.medium();
+        this.recordingStatus.setRecordingSource({
+          type: 'performer',
+          takeNumber: this.perfRecording.armedTakeNumber(),
+        });
       }, 120);
     } else {
       this.perfRecording.disarm();

@@ -15,5 +15,10 @@
 }
 
 .effects-rack-container {
+  background: var(--ivory-bg);
+}
+
+/* Dark mode: deep rack gradient */
+:host-context(.dark-mode) .effects-rack-container {
   background: linear-gradient(180deg, #111827 0%, #050507 100%);
 }

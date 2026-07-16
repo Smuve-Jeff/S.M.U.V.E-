@@ -33,6 +33,17 @@
     >
       <span class="material-symbols-outlined">fiber_manual_record</span>
     </button>
+
+    <!-- Recording source indicator (shows what's being recorded) -->
+    <span
+      *ngIf="recordingLabel()"
+      class="ctb-rec-source"
+      [attr.aria-live]="'polite'"
+      role="status"
+    >
+      <span class="ctb-rec-dot" aria-hidden="true"></span>
+      {{ recordingLabel() }}
+    </span>
   </div>
 
   <!-- Tempo group -->
@@ -93,6 +104,8 @@
   <div class="ctb-meter" aria-hidden="true">
     <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
     <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
+    <!-- Peak-hold line (lingering red) -->
+    <div class="ctb-meter-peak" [style.bottom.%]="masterPeakHold() * 100"></div>
   </div>
 
   <!-- Master volume -->

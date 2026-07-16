@@ -70,6 +70,13 @@ export default {
         'text-dim': '#7E7259',
         border: '#3D352A',
         'border-bright': '#1F1A12',
+        // Vocal Suite — Neural Lab palette (CSS-var driven for theme)
+        'vocal-obsidian': 'var(--vs-obsidian, #07070a)',
+        'vocal-oled': 'var(--vs-oled, #0a0a0d)',
+        'vocal-titanium': 'var(--vs-titanium, #111116)',
+        'vocal-primary': 'var(--vs-primary, #a855f7)',
+        'vocal-fl-blue': 'var(--vs-fl-blue, #3b82f6)',
+        'fl-border': 'var(--vs-border, rgba(255,255,255,0.06))',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

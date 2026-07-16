@@ -185,6 +185,7 @@
   border-radius: 4px;
   padding: 3px;
   overflow: hidden;
+  position: relative;
 }
 .ctb-meter-bar {
   width: 7px;
@@ -194,6 +195,19 @@
   transform: scaleY(0.3);
   transition: transform 0.06s ease-out;
   border-radius: 1px;
+}
+/* Peak-hold line — lingers at highest recent level then decays */
+.ctb-meter-peak {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 2px;
+  background: var(--record);
+  border-radius: 1px;
+  box-shadow: 0 0 3px var(--record-glow);
+  pointer-events: none;
+  z-index: 2;
+  transition: bottom 0.15s ease-out;
 }
 
 /* volume */
@@ -335,6 +349,35 @@
   cursor: pointer;
 }
 .ctb-dropdown-action:hover { background: var(--teal-500); }
+
+/* ----- Recording source indicator ----- */
+.ctb-rec-source {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--teal-500);
+  white-space: nowrap;
+  padding: 0 6px;
+  animation: recSourceFadeIn 0.3s ease-out;
+}
+.ctb-rec-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-500);
+  animation: recDotBlink 0.8s ease-in-out infinite;
+}
+@keyframes recSourceFadeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes recDotBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
 
 /* ----- Mobile compactness ----- */
 @media (max-width: 640px) {

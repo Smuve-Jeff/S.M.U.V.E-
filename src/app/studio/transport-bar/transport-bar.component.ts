@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { ExportService } from '../../services/export.service';
+import { RecordingStatusService } from '../recording-status.service';
 
 @Component({
   selector: 'app-transport-bar',
@@ -16,6 +17,7 @@ export class TransportBarComponent {
   private readonly audioSession = inject(AudioSessionService);
   readonly audioEngine = inject(AudioEngineService);
   private readonly exportService = inject(ExportService);
+  readonly recordingStatus = inject(RecordingStatusService);
   isExporting = signal(false);
 
   isPlaying = this.audioSession.isPlaying;
@@ -25,25 +27,12 @@ export class TransportBarComponent {
   metronomeEnabled = this.audioEngine.metronomeEnabled;
   loopEnabled = signal(false);
 
-  /** Animated visual level to drive meter */
-  private levelTick = signal(0);
-  masterLevelVisual = computed(() => {
-    const t = this.levelTick();
-    if (this.isPlaying()) {
-      const base = 0.4 + Math.sin(t / 14) * 0.2 + Math.sin(t / 5) * 0.15;
-      return Math.max(0.1, Math.min(0.95, base));
-    }
-    return 0.06;
-  });
-
-  constructor() {
-    // simple ticker so CSS transitions have something to interpolate
-    let n = 0;
-    setInterval(() => {
-      n++;
-      this.levelTick.set(n);
-    }, 80);
-  }
+  /** Real master level from RecordingStatusService (drives meter bars) */
+  masterLevelVisual = this.recordingStatus.masterLevelLinear;
+  /** Peak-hold level (lingering red line) */
+  masterPeakHold = this.recordingStatus.masterPeakHoldLinear;
+  /** Human-readable label of what's recording */
+  recordingLabel = this.recordingStatus.recordingLabel;
 
   showBpmDropdown = signal(false);
   bpmPresets = [80, 90, 100, 110, 120, 124, 128, 130, 140, 150, 160];

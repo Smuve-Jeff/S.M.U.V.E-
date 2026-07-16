@@ -27,6 +27,7 @@ import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { AiService } from '../../services/ai.service';
+import { RecordingStatusService } from '../recording-status.service';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -190,6 +191,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private samplerReturnTimers: Record<'A' | 'B', any> = { A: null, B: null };
 
   public uiService = inject(UIService);
+  private recordingStatus = inject(RecordingStatusService);
   private profileService = inject(UserProfileService);
   private databaseService = inject(DatabaseService);
   public playerService = inject(PlayerService);
@@ -625,9 +627,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recording.set(true);
     this.startRecordingTimer();
     this.sessionNotice.set('Recording live mix...');
+    this.recordingStatus.setRecordingSource({ type: 'dj-deck', deckId: 'master' });
 
     recorder.onerror = () => {
       this.sessionNotice.set('Recording failed to complete.');
+      this.recordingStatus.clearRecordingSource();
       this.cleanupRecordingState();
     };
 
@@ -645,9 +649,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .then(() => {
         this.sessionNotice.set('Live mix exported successfully.');
+        this.recordingStatus.clearRecordingSource();
       })
       .catch(() => {
         this.sessionNotice.set('Live mix export failed.');
+        this.recordingStatus.clearRecordingSource();
       })
       .finally(() => {
         this.cleanupRecordingState();

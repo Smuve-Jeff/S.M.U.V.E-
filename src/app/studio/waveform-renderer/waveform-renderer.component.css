@@ -1,7 +1,70 @@
-.waveform-container {
+/* ===========================================================
+   S.M.U.V.E. Waveform Renderer — Canvas-backed professional
+   PCM waveform with playhead, recording overlay, and meta.
+   =========================================================== */
+
+:host {
+  display: block;
+  width: 100%;
   height: 100%;
 }
 
-.waveform-bar {
-  min-width: 1px;
+.wr-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--espresso-text, #1F1A12);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--espresso-line, rgba(61,53,42,0.15));
+}
+
+.wr-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+
+/* Recording badge (top-left) */
+.wr-rec-badge {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(185, 28, 28, 0.85);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  animation: wrPulse 1.2s ease-in-out infinite;
+}
+.wr-rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
+@keyframes wrPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Meta footer (bottom-right timecodes) */
+.wr-meta {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  display: flex;
+  gap: 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
 }

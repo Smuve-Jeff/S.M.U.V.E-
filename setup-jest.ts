@@ -141,6 +141,53 @@ jest.mock('tone', () => ({
   }
 };
 
+// Polyfill window.alert for JSDOM — JSDOM defines alert as a function
+// that throws "Not implemented", so we always overwrite it.
+if (typeof window !== 'undefined') {
+  (window as any).alert = jest.fn();
+}
+
+// Polyfill Blob.arrayBuffer() for JSDOM (not implemented in older versions)
+if (typeof Blob !== 'undefined' && typeof (Blob.prototype as any).arrayBuffer !== 'function') {
+  (Blob.prototype as any).arrayBuffer = function () {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as ArrayBuffer);
+      reader.readAsArrayBuffer(this as Blob);
+    });
+  };
+}
+
+
+// Polyfill MediaStream for JSDOM
+try { new (globalThis as any).MediaStream?.(); } catch {
+  (globalThis as any).MediaStream = class MockMediaStream {
+    private _tracks: any[] = [];
+    getTracks() { return [...this._tracks]; }
+    getAudioTracks() { return this._tracks.filter((t: any) => t.kind === 'audio'); }
+    getVideoTracks() { return this._tracks.filter((t: any) => t.kind === 'video'); }
+    addTrack(t: any) { this._tracks.push(t); }
+    removeTrack(t: any) { this._tracks = this._tracks.filter((tr: any) => tr !== t); }
+    getTrackById() { return null; }
+    active = true;
+    id = 'mock-stream';
+  };
+}
+
+// Polyfill MediaStreamTrack for JSDOM
+try { new (globalThis as any).MediaStreamTrack?.(); } catch {
+  (globalThis as any).MediaStreamTrack = class MockMediaStreamTrack {
+    kind = 'audio';
+    id = 'mock-track';
+    label = 'mock';
+    enabled = true;
+    muted = false;
+    readyState = 'live';
+    stop() {}
+    clone() { return this; }
+  };
+}
+
 // Mock Web Crypto API using node:crypto
 if (typeof crypto === 'undefined') {
   (global as any).crypto = nodeCrypto.webcrypto;

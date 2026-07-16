@@ -2,10 +2,10 @@
   class="inspector-container glass-v42 h-full flex flex-col font-sans overflow-hidden"
 >
   <div
-    class="p-3 border-b border-white/10 bg-black/40 wood-panel flex justify-between items-center"
+    class="p-3 border-b flex justify-between items-center ti-topbar"
   >
     <h3
-      class="text-[10px] font-black uppercase tracking-[0.2em] text-fl-blue neon-text"
+      class="text-[10px] font-black uppercase tracking-[0.2em] text-teal-500"
     >
       Track Inspector
     </h3>
@@ -23,7 +23,7 @@
   >
     <!-- Header -->
     <div
-      class="track-header-mini glass-v42 p-3 rounded-xl border border-white/5 bg-black/40"
+      class="track-header-mini glass-v42 p-3 rounded-xl border ti-header-card"
     >
       <div class="flex items-center gap-3">
         <div
@@ -31,12 +31,12 @@
           [style.background-color]="track.color"
           [style.color]="track.color"
         ></div>
-        <div class="text-[12px] font-black text-white uppercase truncate">
+        <div class="text-[12px] font-black text-espresso-text uppercase truncate">
           {{ track.name }}
         </div>
       </div>
       <div
-        class="text-[7px] font-mono text-slate-500 uppercase mt-2 tracking-widest opacity-60"
+        class="text-[7px] font-mono text-espresso-muted uppercase mt-2 tracking-widest opacity-60"
       >
         ID: {{ track.id.substring(0, 12) }}... |
         {{ track.instrumentId | uppercase }}
@@ -46,28 +46,28 @@
     <!-- Synth Engine -->
     <div class="section space-y-4" *ngIf="track.type === 'midi'">
       <div
-        class="flex items-center justify-between border-b border-white/5 pb-1"
+        class="flex items-center justify-between border-b border-espresso-line pb-1"
       >
         <div
-          class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+          class="text-[8px] font-black text-espresso-muted uppercase tracking-widest"
         >
           Synth Engine
         </div>
-        <div class="text-[8px] font-mono text-fl-blue">ACTIVE</div>
+        <div class="text-[8px] font-mono text-teal-500">ACTIVE</div>
       </div>
 
       <!-- Oscillator Section -->
       <div class="space-y-4">
         <div
-          class="param-row flex items-center justify-between bg-black/20 p-2 rounded-lg"
+          class="param-row flex items-center justify-between bg-ivory-panel p-2 rounded-lg"
         >
-          <label class="text-[8px] text-slate-400 uppercase font-black"
+          <label class="text-[8px] text-espresso-muted uppercase font-black"
             >Waveform</label
           >
           <select
             [ngModel]="getParam('type')"
             (ngModelChange)="updateParam('type', $event)"
-            class="executive-glass text-[10px] py-1 px-3 rounded-md border-white/5 outline-none font-black text-fl-blue"
+            class="executive-glass text-[10px] py-1 px-3 rounded-md border-espresso-line outline-none font-black text-teal-500"
           >
             <option value="sine">SINE</option>
             <option value="square">SQUARE</option>
@@ -99,9 +99,9 @@
       </div>
 
       <!-- Filter Section -->
-      <div class="space-y-4 pt-4 border-t border-white/5">
+      <div class="space-y-4 pt-4 border-t border-espresso-line">
         <div
-          class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2"
+          class="text-[8px] font-black text-espresso-muted uppercase tracking-widest mb-2"
         >
           Filter & Dynamics
         </div>
@@ -127,13 +127,13 @@
     <!-- Audio Sample Manipulation -->
     <div class="section space-y-4" *ngIf="track.type === 'audio'">
       <div
-        class="text-[8px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1"
+        class="text-[8px] font-black text-espresso-muted uppercase tracking-widest border-b border-espresso-line pb-1"
       >
         Sample Processor
       </div>
 
       <div
-        class="waveform-mini glass-v42 h-20 rounded-xl overflow-hidden relative bg-black/60 border border-white/5"
+        class="waveform-mini glass-v42 h-20 rounded-xl overflow-hidden relative border border-espresso-line"
       >
         <div
           class="absolute inset-0 flex items-center justify-around px-2 opacity-30"
@@ -142,13 +142,13 @@
             *ngFor="
               let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
             "
-            class="w-1 bg-fl-blue rounded-full"
+            class="w-1 bg-teal-500 rounded-full"
             [style.height.%]="30 + ((i * 13) % 60)"
           ></div>
         </div>
         <div class="absolute inset-0 flex items-center justify-center">
           <span
-            class="text-[7px] font-black text-fl-blue/60 uppercase tracking-[0.3em]"
+            class="text-[7px] font-black text-teal-500/60 uppercase tracking-[0.3em]"
             >Audio Spectrum</span
           >
         </div>

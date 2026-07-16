@@ -6,6 +6,7 @@ import { PlaybackState } from './playback-state';
 import { MusicManagerService } from '../services/music-manager.service';
 import { MicrophoneService } from '../services/microphone.service';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
+import { RecordingStatusService } from './recording-status.service';
 
 export interface MicChannel {
   id: string;
@@ -27,6 +28,7 @@ export class AudioSessionService {
   private readonly micService = inject(MicrophoneService);
   private readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly musicManager = inject(MusicManagerService);
+  private readonly recordingStatus = inject(RecordingStatusService);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -90,10 +92,20 @@ export class AudioSessionService {
         this.musicManager.selectedTrackId() || ''
       );
       this.playbackState.set('stopped');
+      this.recordingStatus.clearRecordingSource();
     } else {
       this.engine.start();
       this.musicManager.startRecording();
       this.playbackState.set('recording');
+      const trackId = this.musicManager.selectedTrackId();
+      const track = trackId
+        ? this.musicManager.tracks().find((t) => t.id === trackId)
+        : null;
+      this.recordingStatus.setRecordingSource({
+        type: 'transport',
+        trackId: trackId || undefined,
+        trackName: track?.name,
+      });
     }
   }
 
@@ -105,6 +117,7 @@ export class AudioSessionService {
       );
     }
     this.playbackState.set('stopped');
+    this.recordingStatus.clearRecordingSource();
   }
 
   updateMasterVolume(newVolume: number): void {

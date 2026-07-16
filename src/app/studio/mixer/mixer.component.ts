@@ -20,6 +20,7 @@ import { HapticService } from '../../services/haptic.service';
 import { AiService } from '../../services/ai.service';
 import { Clip } from '../instrument.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { RecordingStatusService } from '../recording-status.service';
 
 interface MeterReadings { [trackId: string]: number; }
 
@@ -38,6 +39,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   public readonly mixerService = inject(MixerService);
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);
+  readonly recordingStatus = inject(RecordingStatusService);
 
   @Input() activeClip: Clip | null = null;
 
@@ -54,6 +56,8 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   private analyserMap = new Map<string, AnalyserNode>();
   trackLevels = signal<MeterReadings>({});
+  trackPeakHolds = signal<MeterReadings>({});
+  masterPeakHold = signal(0);
   private masterAnalyser?: AnalyserNode;
   private raf?: number;
 
@@ -89,6 +93,16 @@ export class MixerComponent implements OnInit, OnDestroy {
       });
       this.trackLevels.set(levels);
 
+      // Peak-hold: latch up instantly, decay slowly
+      const DECAY = 0.015;
+      this.trackPeakHolds.update((holds) => {
+        const next: MeterReadings = { ...holds };
+        for (const [id, lvl] of Object.entries(levels)) {
+          next[id] = Math.max(lvl, (next[id] ?? 0) - DECAY);
+        }
+        return next;
+      });
+
       // master level
       if (!this.masterAnalyser) {
         const master = (this.audioSession.engine as any).masterAnalyser;
@@ -96,6 +110,11 @@ export class MixerComponent implements OnInit, OnDestroy {
           this.masterAnalyser = master;
         }
       }
+      // Master peak-hold decay
+      const masterLvl = this.masterLevel();
+      this.masterPeakHold.update((v) =>
+        Math.max(masterLvl, v - 0.015)
+      );
       this.raf = requestAnimationFrame(update);
     };
     this.raf = requestAnimationFrame(update);
@@ -105,8 +124,8 @@ export class MixerComponent implements OnInit, OnDestroy {
   getTrackLevel(id: string): number {
     return Math.min(1, this.trackLevels()[id] || 0);
   }
-  isPeaking(id: string): boolean {
-    return (this.trackLevels()[id] || 0) > 0.95;
+  getTrackPeakHold(id: string): number {
+    return Math.min(1, this.trackPeakHolds()[id] || 0);
   }
   masterLevel(): number {
     if (!this.masterAnalyser) return 0;
@@ -226,6 +245,22 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   toggleArmTrack(id: string): void {
     this.haptic.medium();
+    const track = this.tracks().find((t) => t.id === id);
+    const trackName = track?.name || id;
+    if (this.recordingStatus.isTrackArmed(id)) {
+      this.recordingStatus.disarmTrack(id);
+    } else {
+      this.recordingStatus.armTrack(id);
+      // When arming from mixer, set recording source so user knows what's armed
+      if (this.isRecording()) {
+        this.recordingStatus.setRecordingSource({
+          type: 'mixer-strip',
+          trackId: id,
+          trackName,
+        });
+      }
+    }
+    // Also maintain the local track.armed flag for UI display
     this.musicManager.tracks.update((ts) =>
       ts.map((t) => (t.id === id ? { ...t, armed: !(t as any).armed } : t))
     );
