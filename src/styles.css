@@ -76,7 +76,12 @@
   --glass-border: rgba(61, 53, 42, 0.10);
 }
 
+/* ================================================
+   DARK MODE — Obsidian + Teal (professional DAW dark)
+   Flipped: Ivory→Obsidian, Espresso→Warm white
+   ================================================ */
 .dark-mode {
+  /* ── Legacy remaps ── */
   --color-primary: #5DC4C2;
   --color-accent: #D97706;
   --color-secondary: #5DC4C2;
@@ -88,6 +93,55 @@
   --color-border-bright: rgba(255, 255, 255, 0.18);
   --color-text: #FBF7EC;
   --color-text-dim: #C2B295;
+
+  /* ── Ivory → Obsidian flip ── */
+  --ivory-bg: #14110B;
+  --ivory-bg-rgb: 20, 17, 11;
+  --ivory-panel: #2D271F;
+  --ivory-paper: #1F1A12;
+  --ivory-deep: #3D352A;
+  --ivory-line: #5C513E;
+
+  /* ── Espresso → Warm white flip ── */
+  --espresso-text: #FBF7EC;
+  --espresso-muted: #C2B295;
+  --espresso-line: rgba(255, 255, 255, 0.12);
+  --espresso-soft: rgba(255, 255, 255, 0.06);
+
+  /* ── Teal stays (slightly brighter for contrast on dark) ── */
+  --teal-500: #2BA09C;
+  --teal-400: #5DC4C2;
+  --teal-300: #8FD2CE;
+  --teal-100: rgba(93, 196, 194, 0.18);
+  --teal-50: rgba(93, 196, 194, 0.10);
+  --teal-glow: rgba(93, 196, 194, 0.35);
+  --teal-soft-glow: rgba(93, 196, 194, 0.20);
+
+  /* ── Warm accent stays ── */
+  --orange: #F59E0B;
+  --orange-glow: rgba(245, 158, 11, 0.35);
+
+  /* ── Shadows become glow-based (no paper shadows) ── */
+  --shadow-ivory-sm: 0 1px 3px rgba(0, 0, 0, 0.40);
+  --shadow-ivory-md: 0 4px 12px rgba(0, 0, 0, 0.50);
+  --shadow-ivory-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+  --shadow-ivory-xl: 0 20px 48px rgba(0, 0, 0, 0.60);
+  --shadow-sm: var(--shadow-ivory-sm);
+  --shadow-md: var(--shadow-ivory-md);
+  --shadow-lg: var(--shadow-ivory-lg);
+  --shadow-xl: var(--shadow-ivory-xl);
+
+  /* ── Glass → dark translucent ── */
+  --glass: rgba(31, 26, 18, 0.60);
+  --glass-border: rgba(255, 255, 255, 0.10);
+
+  /* ── Misc remaps ── */
+  --color-bg-rgb: 20, 17, 11;
+  --color-surface-rgb: 31, 26, 18;
+
+  /* ── fl-blue (legacy) ── */
+  --fl-blue: #2BA09C;
+  --color-neon: #2BA09C;
 }
 
 html, body {
@@ -115,6 +169,16 @@ body::before {
   pointer-events: none;
   z-index: 0;
   opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+/* Dark mode: subtle pixel-noise grain instead of paper grain */
+.dark-mode body::before,
+body.dark-mode::before {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  opacity: 0.4;
 }
 
 /* Material Symbols default sizing */
@@ -137,11 +201,10 @@ body::before {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   flex-shrink: 0;
-  /* Optically balanced */
   font-variation-settings: 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* === Glassmorphism (Ivory) === */
+/* === Glassmorphism === */
 .glass-v42 {
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(14px) saturate(140%);
@@ -266,6 +329,93 @@ body::before {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ================================================
+   DARK MODE — Global utility overrides
+   ================================================ */
+.dark-mode .tactile-v42 {
+  background: linear-gradient(180deg, #2D271F 0%, #1F1A12 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.50), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.dark-mode .tactile-v42:active,
+.dark-mode .tactile-v42.active {
+  background: linear-gradient(180deg, #3D352A 0%, #2D271F 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.40);
+}
+.dark-mode .glass-v42 {
+  background: rgba(31, 26, 18, 0.65);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.dark-mode .executive-glass {
+  background: rgba(31, 26, 18, 0.70);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.dark-mode .holographic-glimmer {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(93,196,194,0.12) 100%);
+}
+.dark-mode .wood-panel {
+  background: linear-gradient(180deg, #2D271F 0%, #1F1A12 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+.dark-mode ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.04); }
+.dark-mode ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); }
+
+/* ================================================
+   DARK MODE — Piano roll grid
+   ================================================ */
+.dark-mode .pr-key.black {
+  background: #0A0A08;
+  color: rgba(255, 255, 255, 0.40);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.dark-mode .pr-key {
+  background: var(--ivory-paper);
+  border-bottom: 1px solid var(--espresso-soft);
+}
+.dark-mode .pr-row.black {
+  background: #141110;
+}
+.dark-mode .pr-row.in-scale {
+  background: rgba(93, 196, 194, 0.08);
+}
+.dark-mode .pr-col-line {
+  border-right-color: rgba(255, 255, 255, 0.05);
+}
+.dark-mode .pr-col-line.beat {
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+.dark-mode .pr-col-line.bar {
+  border-right-color: rgba(255, 255, 255, 0.14);
+}
+.dark-mode .pr-grid {
+  background: #0E0D0A;
+}
+
+/* ================================================
+   DARK MODE — DJ Deck 3D
+   ================================================ */
+.dark-mode .dj-3d-stage {
+  background:
+    radial-gradient(circle at 25% 0%, rgba(93, 196, 194, 0.10) 0%, transparent 35%),
+    radial-gradient(circle at 75% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+    #14110B;
+}
+.dark-mode .deck-section {
+  background: linear-gradient(180deg, #1F1A12 0%, #14110B 100%);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.dark-mode .deck-plinth .deck-controls-surface {
+  background: #1F1A12;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dark-mode .cue-pad {
+  background: linear-gradient(180deg, #2D271F 0%, #1F1A12 100%);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: var(--espresso-text);
+}
+.dark-mode .cue-pad .cue-name { color: var(--espresso-text); }
+.dark-mode .cue-pad .cue-index { color: var(--espresso-muted); }
+
 /* === Perf mode (disable heavy fx for Android) === */
 .perf-mode-active *,
 .perf-mode-active *::before,
@@ -317,18 +467,11 @@ body { overscroll-behavior-y: none; }
   box-shadow: var(--shadow-ivory-md);
 }
 
-.tactile-v42 {
-  background: linear-gradient(180deg, #FBF7EC 0%, #EBE3CF 100%);
-  border: 1px solid rgba(61, 53, 42, 0.18);
-  border-radius: 10px;
-  box-shadow: var(--shadow-ivory-sm), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
 .holographic-glimmer {
   background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(14,124,123,0.05) 100%);
 }
 
-/* Studio hub overrides — consumer-grade ivory instead of CRT */
+/* Studio hub overrides — follow theme */
 app-piano-roll,
 app-drum-machine,
 app-vocal-suite,
@@ -338,11 +481,20 @@ app-mastering-suite,
 app-studio {
   color-scheme: light;
 }
+.dark-mode app-piano-roll,
+.dark-mode app-drum-machine,
+.dark-mode app-vocal-suite,
+.dark-mode app-mixer,
+.dark-mode app-dj-deck,
+.dark-mode app-mastering-suite,
+.dark-mode app-studio {
+  color-scheme: dark;
+}
 
-/* Hard guard: any app-studio host is forced ivory */
-app-studio {
-  background-color: var(--ivory-bg);
-  color: var(--espresso-text);
+/* Hard guard: any app-studio host follows theme */
+.dark-mode app-studio {
+  background-color: #14110B;
+  color: #FBF7EC;
 }
 
 /* === Touch-refined ranges (legacy) === */

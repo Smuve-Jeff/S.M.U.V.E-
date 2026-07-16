@@ -25,6 +25,17 @@
     <app-transport-bar class="comp-topbar-center"></app-transport-bar>
 
     <div class="comp-topbar-right">
+      <!-- Dark mode toggle -->
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleDarkMode()"
+        [attr.aria-label]="isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+        [attr.aria-pressed]="isDarkMode()"
+        title="Toggle dark mode"
+      >
+        <span class="material-symbols-outlined">{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</span>
+      </button>
       <button
         type="button"
         class="comp-icon-btn"
@@ -155,6 +166,15 @@
       >
         <span class="material-symbols-outlined">{{ item.icon }}</span>
         <span>{{ item.label }}</span>
+      </button>
+      <!-- Dark mode in mobile drawer -->
+      <button
+        (click)="toggleDarkMode()"
+        class="comp-drawer-item"
+        [attr.aria-pressed]="isDarkMode()"
+      >
+        <span class="material-symbols-outlined">{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</span>
+        <span>{{ isDarkMode() ? 'Light Mode' : 'Dark Mode' }}</span>
       </button>
     </nav>
     <div class="comp-drawer-footer">

@@ -446,3 +446,58 @@
 @media (prefers-reduced-motion: reduce) {
   .comp-tab-indicator, .comp-drawer, .comp-fab, .comp-brand-pulse { transition: none !important; animation: none !important; }
 }
+
+/* ================================================
+   DARK MODE — Studio Shell overrides
+   ================================================ */
+:host-context(.dark-mode) {
+  background-color: #14110B;
+}
+
+.dark-mode .comp-topbar,
+:host-context(.dark-mode) .comp-topbar {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .comp-fab,
+:host-context(.dark-mode) .comp-fab {
+  box-shadow: 0 8px 24px rgba(14, 124, 123, 0.40), 0 0 0 4px rgba(31, 26, 18, 0.80);
+}
+
+.dark-mode .comp-bottombar,
+:host-context(.dark-mode) .comp-bottombar {
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .comp-drawer,
+:host-context(.dark-mode) .comp-drawer {
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.50);
+}
+
+.dark-mode .comp-backdrop,
+:host-context(.dark-mode) .comp-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode .comp-icon-btn:hover,
+:host-context(.dark-mode) .comp-icon-btn:hover,
+.dark-mode .comp-rail-item:hover,
+:host-context(.dark-mode) .comp-rail-item:hover {
+  background: rgba(93, 196, 194, 0.12);
+}
+
+.dark-mode .comp-rail-item:active,
+:host-context(.dark-mode) .comp-rail-item:active,
+.dark-mode .comp-rail-item.comp-rail-active,
+:host-context(.dark-mode) .comp-rail-item.comp-rail-active {
+  background: linear-gradient(180deg, var(--teal-100), rgba(93, 196, 194, 0.28));
+  color: var(--teal-300);
+}
+
+.dark-mode .comp-drawer-item:hover,
+:host-context(.dark-mode) .comp-drawer-item:hover,
+.dark-mode .comp-brand:hover,
+:host-context(.dark-mode) .comp-brand:hover {
+  background: rgba(93, 196, 194, 0.12);
+}
+

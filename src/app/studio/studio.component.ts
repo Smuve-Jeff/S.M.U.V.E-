@@ -67,6 +67,8 @@ function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
 }
 
+const DARK_MODE_STORAGE_KEY = 'smuve_dark_mode';
+
 @Component({
   selector: 'app-studio',
   standalone: true,
@@ -115,9 +117,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showAIAssistant = false; // legacy
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
-  /** Polite live-region announcement for cross-link view-jumps. */
   crossLinkAnnouncement = signal<string>('');
-  /** Last consumed cross-link timestamp so we don't re-route on replay. */
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
@@ -125,6 +125,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
+
+  /** Dark mode toggle — persisted in localStorage, applied to <body> */
+  isDarkMode = signal(false);
 
   browserWidth = signal(260);
   inspectorWidth = signal(300);
@@ -153,12 +156,31 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (view && isStudioView(view)) this.activeView.set(view);
     });
 
-    // ── Cross-link router ───────────────────────────────────────
-    // Any child component (Arrangement clip, Drum pad) pushes a
-    // request onto MusicManagerService.crossLinkRequest. We watch
-    // it here and switch views accordingly. The `untracked` guard
-    // prevents setActiveView() from re-entering this effect when
-    // it later updates activeView / route params.
+    // Restore dark mode preference from localStorage
+    try {
+      const stored = localStorage.getItem(DARK_MODE_STORAGE_KEY);
+      if (stored === 'true') {
+        this.isDarkMode.set(true);
+        document.body.classList.add('dark-mode');
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
+
+    // ── Dark mode effect — sync body class ──
+    effect(() => {
+      const dark = this.isDarkMode();
+      try {
+        localStorage.setItem(DARK_MODE_STORAGE_KEY, String(dark));
+      } catch { /* ignore */ }
+      if (dark) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    });
+
+    // ── Cross-link router ──
     effect(() => {
       const req = this.musicManager.crossLinkRequest();
       if (!req || req.timestamp <= this.lastConsumedCrossLinkTimestamp) return;
@@ -171,9 +193,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.activeView() !== req.view) {
           this.setActiveView(req.view);
         }
-        // Ensure the requested track is actually selected (the
-        // cross-link source component already does this, but it's
-        // idempotent and keeps the contract tidy).
         if (
           this.musicManager.selectedTrackId() !== req.trackId &&
           req.trackId
@@ -183,8 +202,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.crossLinkAnnouncement.set(
           `Opened Piano Roll for ${req.label || trackName}. The related notes are highlighted.`
         );
-        // Clear the announcement after a beat so it doesn't re-read
-        // if the user lingers.
         setTimeout(() => this.crossLinkAnnouncement.set(''), 4500);
       });
     });
@@ -194,7 +211,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       this.audioEngine.resume();
     } catch (e) {
-      // soft warn via snackbar service as fallback
       if (this.snackbarService) {
         // do not toast for engine resume issues
       }
@@ -214,15 +230,20 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       }
     });
-    void this.logger; // keep reference for tooling
+    void this.logger;
   }
 
   ngAfterViewInit() {
-    // announce view for screen readers when it changes
     this.activeView();
   }
 
   ngOnDestroy() {}
+
+  // ── Dark mode toggle ─────────────────────────────────────────
+  toggleDarkMode() {
+    this.haptic.light();
+    this.isDarkMode.update((v) => !v);
+  }
 
   setActiveView(view: StudioView) {
     this.mobileDrawerOpen.set(false);
