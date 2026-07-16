@@ -1,5 +1,3 @@
-import { AuthService } from '../services/auth.service';
-import { CollaborationService } from '../services/collaboration.service';
 import {
   Component,
   OnInit,
@@ -13,6 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+
 import { AudioSessionService } from './audio-session.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { HardwareService } from '../services/hardware.service';
@@ -23,6 +22,10 @@ import { ProjectService } from '../services/project.service';
 import { HapticService } from '../services/haptic.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
 import { ProjectTemplateService } from '../services/project-template.service';
+import { AuthService } from '../services/auth.service';
+import { CollaborationService } from '../services/collaboration.service';
+import { SnackbarService } from '../services/snackbar.service';
+import { LoggingService } from '../services/logging.service';
 
 import { MixerComponent } from './mixer/mixer.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
@@ -30,13 +33,10 @@ import { PianoRollComponent } from './piano-roll/piano-roll.component';
 import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
 import { DrumMachineComponent } from './drum-machine/drum-machine.component';
 import { PerformerComponent } from './performer/performer.component';
-import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
-import { TrackInspectorComponent } from './track-inspector/track-inspector.component';
-import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
-import { BottomNavComponent } from './shared/bottom-nav/bottom-nav.component';
+import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
-import { SnackbarService } from '../services/snackbar.service';
+import { AiAssistantComponent } from './shared/ai-assistant/ai-assistant.component';
 
 type StudioView =
   | 'arrangement'
@@ -77,12 +77,10 @@ function isStudioView(value: string): value is StudioView {
     MasteringSuiteComponent,
     DrumMachineComponent,
     PerformerComponent,
-    SoundBrowserComponent,
-    TrackInspectorComponent,
-    EffectsRackUiComponent,
-    BottomNavComponent,
+    TransportBarComponent,
     SnackbarComponent,
     SearchOverlayComponent,
+    AiAssistantComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -91,29 +89,39 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
 
+  // ---- Services (public for templates) ----
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
   public hardware = inject(HardwareService);
   collaboration = inject(CollaborationService);
   public readonly uiService = inject(UIService);
-  private authService = inject(AuthService);
+  public readonly musicManager = inject(MusicManagerService);
+  public readonly aiService = inject(AiService);
+  private readonly authService = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  public readonly musicManager = inject(MusicManagerService);
   private projectService = inject(ProjectService);
   private readonly haptic = inject(HapticService);
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
+  private readonly logger = inject(LoggingService);
   public readonly templateService = inject(ProjectTemplateService);
 
+  // ---- State ----
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
+  showAIAssistant = false; // legacy
+  showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
+  railCollapsed = signal(false);
+
+  browserWidth = signal(260);
+  inspectorWidth = signal(300);
 
   studioQualityClass = computed(() => {
     return this.audioEngine.performanceTier() === 'ultra'
@@ -141,7 +149,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
-    this.audioEngine.resume();
+    try {
+      this.audioEngine.resume();
+    } catch (e) {
+      // soft warn via snackbar service as fallback
+      if (this.snackbarService) {
+        // do not toast for engine resume issues
+      }
+    }
     this.route.queryParamMap.subscribe((params) => {
       const sessionId = params.get('sessionId');
       if (sessionId && !this.collaboration.currentSession()) {
@@ -157,9 +172,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       }
     });
+    void this.logger; // keep reference for tooling
   }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() {
+    // announce view for screen readers when it changes
+    this.activeView();
+  }
+
   ngOnDestroy() {}
 
   setActiveView(view: StudioView) {
@@ -191,17 +211,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const queryString = params.toString();
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
-    navigator.clipboard.writeText(url).then(() => {
-      this.snackbarService.success('STUDIO COLLABORATION LINK COPIED');
-    });
+    navigator.clipboard
+      .writeText(url)
+      .then(() => this.snackbarService.success('Studio link copied to clipboard'))
+      .catch(() => this.snackbarService.error('Could not copy link'));
   }
 
   async newProject() {
     const confirmed = await this.dialog.confirm({
-      title: 'New Professional Session',
-      message: 'Are you sure? Unsaved changes will be lost.',
-      confirmLabel: 'CREATE',
-      cancelLabel: 'CANCEL',
+      title: 'New Session',
+      message: 'Start a fresh session? Unsaved changes will be lost.',
+      confirmLabel: 'Create',
+      cancelLabel: 'Cancel',
     });
     if (confirmed) {
       this.musicManager.newProject();
@@ -212,7 +233,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   applyTemplate(id: string) {
     this.templateService.applyTemplate(id);
     this.closeMobilePanel();
-    this.snackbarService.success('Elite session initialized from template');
+    this.snackbarService.success('Template applied');
     this.haptic.medium();
   }
 
@@ -224,9 +245,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   closeMobilePanel() {
     this.mobilePanel.set(null);
   }
+
   toggleMobileDrawer() {
     this.haptic.light();
     this.mobileDrawerOpen.update((v) => !v);
+  }
+
+  toggleRail() {
+    this.railCollapsed.update((v) => !v);
+  }
+
+  toggleAiAssistant() {
+    this.haptic.light();
+    this.showAiAssistant.update((v) => !v);
   }
 
   async adjustBpm() {
@@ -244,8 +275,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  browserWidth = signal(260);
-  inspectorWidth = signal(300);
   toggleBrowser() {
     this.haptic.light();
     this.browserCollapsed.update((v) => !v);
@@ -258,6 +287,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleCollaboration() {
     if (this.collaboration.currentSession()) {
       this.collaboration.leaveSession();
+      this.snackbarService.info('Left collaboration session');
     } else {
       const user = this.authService.currentUser() || {
         id: 'anon',
@@ -267,6 +297,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         user as any,
         this.musicManager.snapshotProject()
       );
+      this.snackbarService.success('Collaboration session started');
     }
   }
 

@@ -19,13 +19,16 @@ import { MixerService } from '../mixer.service';
 import { HapticService } from '../../services/haptic.service';
 import { AiService } from '../../services/ai.service';
 import { Clip } from '../instrument.service';
+import { SnackbarService } from '../../services/snackbar.service';
+
+interface MeterReadings { [trackId: string]: number; }
 
 @Component({
   selector: 'app-mixer',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './mixer.component.html',
-  styleUrl: './mixer.component.css',
+  styleUrls: ['./mixer.component.css'],
 })
 export class MixerComponent implements OnInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
@@ -34,74 +37,123 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly haptic = inject(HapticService);
   public readonly mixerService = inject(MixerService);
   public readonly aiService = inject(AiService);
+  private readonly snack = inject(SnackbarService);
 
   @Input() activeClip: Clip | null = null;
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
   masterVolume = this.audioSession.masterVolume;
+  masterMuted = signal(false);
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
   selectedTrack = computed(() =>
     this.tracks().find((t) => t.id === this.selectedTrackId())
   );
-  viewMode = signal<'compact' | 'expanded'>('expanded');
-  isRecordingAutomation = signal(false);
 
-  private analysers = new Map<string, AnalyserNode>();
-  private trackLevels = signal<Record<string, number>>({});
-  private animationFrame?: number;
+  private analyserMap = new Map<string, AnalyserNode>();
+  trackLevels = signal<MeterReadings>({});
+  private masterAnalyser?: AnalyserNode;
+  private raf?: number;
 
   ngOnInit() {
     this.startMetering();
   }
 
   ngOnDestroy() {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-    }
+    if (this.raf) cancelAnimationFrame(this.raf);
   }
+
+  trackById = (_: number, t: TrackModel) => t.id;
 
   private startMetering() {
     const update = () => {
-      const levels: Record<string, number> = {};
+      const levels: MeterReadings = {};
+      // per-track levels
       this.tracks().forEach((track) => {
-        let analyser = this.analysers.get(track.id);
+        let analyser = this.analyserMap.get(track.id);
         if (!analyser) {
           analyser = this.audioSession.engine.ctx.createAnalyser();
           analyser.fftSize = 32;
-          const output = this.audioSession.engine.getTrackOutput(track.id);
-          output.connect(analyser);
-          this.analysers.set(track.id, analyser);
+          const out = this.audioSession.engine.getTrackOutput(track.id);
+          if (out) {
+            try { out.connect(analyser); } catch { /* already connected */ }
+          }
+          this.analyserMap.set(track.id, analyser);
         }
-
         const data = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        const avg = data.reduce((a, b) => a + b, 0) / data.length || 0;
         levels[track.id] = avg / 255;
       });
       this.trackLevels.set(levels);
-      this.animationFrame = requestAnimationFrame(update);
+
+      // master level
+      if (!this.masterAnalyser) {
+        const master = (this.audioSession.engine as any).masterAnalyser;
+        if (master) {
+          this.masterAnalyser = master;
+        }
+      }
+      this.raf = requestAnimationFrame(update);
     };
-    this.animationFrame = requestAnimationFrame(update);
+    this.raf = requestAnimationFrame(update);
   }
 
-  toggleMixerWidth() {
-    this.toggleViewMode();
+  // ---- Meter helpers ----
+  getTrackLevel(id: string): number {
+    return Math.min(1, this.trackLevels()[id] || 0);
   }
-  isPeaking(id: string) {
+  isPeaking(id: string): boolean {
     return (this.trackLevels()[id] || 0) > 0.95;
   }
-  startFaderDrag(event: PointerEvent, track: TrackModel) {
-    const initialY = event.clientY;
-    const initialVol = track.volume;
+  masterLevel(): number {
+    if (!this.masterAnalyser) return 0;
+    const data = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+    this.masterAnalyser.getByteFrequencyData(data);
+    const avg = data.reduce((a, b) => a + b, 0) / data.length || 0;
+    return Math.min(1, avg / 200);
+  }
+
+  // ---- Display helpers ----
+  gainPercent(id: string): number {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return 0;
+    return Math.round(Math.max(0, Math.min(1.5, t.gain)) * 100);
+  }
+  panPercent(id: string): number {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return 0;
+    return Math.round((t.pan ?? 0) * 100);
+  }
+  faderBottomPct(id: string): number {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return 0;
+    return Math.max(0, Math.min(1.5, t.gain)) / 1.5 * 100;
+  }
+  masterFaderBottom(): number {
+    return this.masterVolume();
+  }
+  isSelected(id: string): boolean {
+    return this.selectedTrackId() === id;
+  }
+
+  // ---- Fader interactions ----
+  onFaderPointerDown(ev: PointerEvent, trackId: string) {
+    ev.stopPropagation();
+    this.startFaderDrag(ev, trackId);
+  }
+  startFaderDrag(event: PointerEvent, trackId: string) {
+    const startY = event.clientY;
+    const initialVol = this.gainPercent(trackId) / 100;
+    const track = this.tracks().find((t) => t.id === trackId);
+    const baseHeight = this.faderBottomPct(trackId);
     const onMove = (moveEvent: PointerEvent) => {
-      const delta = (initialY - moveEvent.clientY) / 100;
-      this.musicManager.updateVolume(
-        track.id,
-        Math.max(0, Math.min(1.5, initialVol + delta))
-      );
+      const dy = startY - moveEvent.clientY;
+      const ratio = 1 / 200;
+      const v = Math.max(0, Math.min(1.5, initialVol + dy * ratio));
+      this.musicManager.updateVolume(trackId, v);
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -109,19 +161,17 @@ export class MixerComponent implements OnInit, OnDestroy {
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    void track;
+    void baseHeight;
   }
-  toggleViewMode() {
-    this.viewMode.update((v) => (v === 'compact' ? 'expanded' : 'compact'));
-  }
-
-  startMasterDrag(event: PointerEvent) {
-    const initialY = event.clientY;
+  onMasterFaderPointerDown(event: PointerEvent) {
+    event.stopPropagation();
+    const startY = event.clientY;
     const initialVol = this.masterVolume();
     const onMove = (moveEvent: PointerEvent) => {
-      const delta = (initialY - moveEvent.clientY) / 2;
-      this.audioSession.updateMasterVolume(
-        Math.max(0, Math.min(100, initialVol + delta))
-      );
+      const dy = startY - moveEvent.clientY;
+      const v = Math.max(0, Math.min(100, initialVol + dy));
+      this.audioSession.updateMasterVolume(v);
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
@@ -131,26 +181,56 @@ export class MixerComponent implements OnInit, OnDestroy {
     window.addEventListener('pointerup', onUp);
   }
 
-  updateMasterVolume(newVolume: number): void {
-    this.audioSession.updateMasterVolume(newVolume);
+  // ---- Pan ----
+  onPanPointerDown(ev: PointerEvent, track: TrackModel) {
+    ev.stopPropagation();
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const ratio = (ev.clientX - rect.left) / rect.width;
+    const pan = Math.max(-1, Math.min(1, (ratio - 0.5) * 2));
+    this.musicManager.updateTrackPan(track.id, pan * 100);
+    this.startPanDrag(ev, track);
+  }
+  onPanClick(ev: MouseEvent, track: TrackModel) {
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    const ratio = (ev.clientX - rect.left) / rect.width;
+    const pan = Math.max(-1, Math.min(1, (ratio - 0.5) * 2));
+    this.musicManager.updateTrackPan(track.id, pan * 100);
+  }
+  private startPanDrag(event: PointerEvent, track: TrackModel) {
+    const initialX = event.clientX;
+    const initialPan = track.pan ?? 0;
+    const onMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - initialX;
+      const newPan = Math.max(-1, Math.min(1, initialPan + dx / 100));
+      this.musicManager.updateTrackPan(track.id, newPan * 100);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   }
 
-  applyNeuralMix(): void {
-    this.neuralMixer.applyNeuralMix();
-  }
+  // ---- Selection / standard ops ----
   selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
   }
-  toggleMute(track: any) {
+  toggleMute(id: string): void {
     this.haptic.light();
-    this.musicManager.toggleMute(track.id);
+    this.musicManager.toggleMute(id);
   }
-  toggleSolo(track: any) {
+  toggleSolo(id: string): void {
     this.haptic.light();
-    this.musicManager.toggleSolo(track.id);
+    this.musicManager.toggleSolo(id);
   }
-
-  removeTrack(id: string, event: Event) {
+  toggleArmTrack(id: string): void {
+    this.haptic.medium();
+    this.musicManager.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, armed: !(t as any).armed } : t))
+    );
+  }
+  removeTrack(id: string, event: Event): void {
     event.stopPropagation();
     if (confirm('Permanently remove this mixer track?')) {
       this.musicManager.removeTrack(id);
@@ -159,50 +239,32 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   updateTrackVolume(id: string, value: number) {
     const gain = Math.max(0, Math.min(1.5, value / 100));
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, gain } : t))
-    );
-    this.musicManager.engine.updateTrack(id, { gain });
-  }
-
-  updateTrackPan(id: string, value: number) {
-    const pan = Math.max(-1, Math.min(1, value / 100));
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, pan } : t))
-    );
-    this.musicManager.engine.updateTrack(id, { pan });
+    this.musicManager.updateVolume(id, gain);
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {
     this.musicManager.updateSend(id, send, value / 100);
   }
 
-  updateTrackParam(id: string, param: string, value: number) {
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, [param]: value } : t))
-    );
-    this.musicManager.engine.applyProductionParameter(
-      id.toString(),
-      param,
-      value
-    );
-  }
-
-  gainPercent(track: TrackModel): number {
-    return Math.round(track.gain * 100);
-  }
-  panPercent(track: TrackModel): number {
-    return Math.round(track.pan * 100);
-  }
-  isSelected(track: TrackModel): boolean {
-    return this.selectedTrackId() === track.id;
-  }
-  getTrackLevel(id: any): number {
-    return this.trackLevels()[id] || 0;
-  }
-
-  toggleAutomation() {
+  applyNeuralMix(): void {
+    this.neuralMixer.applyNeuralMix();
     this.haptic.medium();
-    this.isRecordingAutomation.update((v) => !v);
+    this.snack.success('Neural mix applied — try other sounds on a clean list.');
+  }
+
+  // ---- Master strip ----
+  toggleMasterMute(): void {
+    this.masterMuted.update((v) => !v);
+    this.audioSession.updateMasterVolume(this.masterMuted() ? 0 : (this.masterVolume() || 80));
+  }
+  resetMaster(): void {
+    this.masterMuted.set(false);
+    this.audioSession.updateMasterVolume(80);
+    this.haptic.medium();
+    this.snack.info('Master reset to 80%');
+  }
+  openSmartEq(): void {
+    this.aiService.getSmartMixAdvice(this.tracks());
+    this.snack.info('Smart EQ suggestions are in the AI Assistant');
   }
 }

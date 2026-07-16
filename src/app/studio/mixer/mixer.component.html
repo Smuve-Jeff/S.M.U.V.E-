@@ -1,177 +1,249 @@
-<div class="mixer-container glass-v42-pro flex flex-col h-full overflow-hidden">
-  <!-- Mixer Header -->
-  <div
-    class="mixer-header flex items-center justify-between p-3 border-b border-white/10 bg-black/40"
-  >
-    <div class="flex items-center gap-4">
-      <h2
-        class="text-xs font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"
-      >
-        <span class="material-symbols-outlined text-sm">tune</span>
-        Console_Mixer_v4.2
-      </h2>
-      <div class="h-4 w-px bg-white/10"></div>
-      <div class="flex gap-2">
-        <button
-          class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300"
-        >
-          MASTER
-        </button>
-        <button
-          class="text-[10px] font-bold px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-300"
-        >
-          INSERTS
-        </button>
+<div class="mix-shell">
+  <header class="mix-header" role="banner">
+    <div class="mix-header-title">
+      <span class="material-symbols-outlined">tune</span>
+      <div>
+        <h1>Console</h1>
+        <p>Mixer</p>
       </div>
     </div>
-    <div class="flex items-center gap-2">
+
+    <div class="mix-segmented" role="group" aria-label="View mode">
       <button
-        class="tactile-v42 px-3 py-1 text-[8px] font-black"
-        [class.bg-red-500]="isRecordingAutomation()"
-        (click)="toggleAutomation()"
-      >
-        AUTO
-      </button>
-      <button class="icon-btn mini" (click)="toggleMixerWidth()">
-        <span class="material-symbols-outlined text-sm">unfold_more</span>
-      </button>
+        type="button"
+        class="active"
+        aria-pressed="true"
+        title="Strips view"
+      >Strips</button>
+      <button
+        type="button"
+        title="Sends view"
+        aria-pressed="false"
+      >Sends</button>
+      <button
+        type="button"
+        title="Routing view"
+        aria-pressed="false"
+      >Routing</button>
     </div>
-  </div>
 
-  <!-- Strips Container -->
-  <div
-    class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar p-2 gap-2 bg-black/20"
-  >
-    <!-- Channel Strips -->
-    <div
-      *ngFor="let track of tracks(); let i = index"
-      class="mixer-strip holographic-glimmer snap-start flex flex-col transition-all min-w-[84px] relative"
-      [class.selected-track]="isSelected(track)"
-      (click)="selectTrack(track.id)"
+    <button
+      type="button"
+      class="mix-ai-chip"
+      (click)="applyNeuralMix()"
+      [attr.aria-label]="'Apply AI Neural mix balancing'"
     >
-      <!-- Top Label & Index -->
-      <div class="p-2 border-b border-white/5 bg-black/40 text-center">
-        <div class="flex justify-between items-center mb-1">
-          <div class="text-[6px] font-black text-slate-500 uppercase">
-            CH-{{ i + 1 }}
-          </div>
-          <div class="text-[6px] font-black text-fl-blue/60 uppercase">
-            {{ track.type }}
-          </div>
-        </div>
-        <div
-          class="track-lcd bg-[#050505] py-1 px-1 rounded border border-white/10"
-        >
-          <div
-            class="text-[7px] font-black text-[#10b981] truncate uppercase text-shadow-glow"
-          >
-            {{ track.name }}
-          </div>
-        </div>
-      </div>
+      <span class="material-symbols-outlined">auto_awesome</span>
+      AI Mix
+    </button>
+  </header>
 
-      <!-- Meter & Pan -->
-      <div class="p-2 space-y-2 flex-1 flex flex-col">
-        <div class="vu-meter-container flex-1 relative flex items-end">
+  <div
+    class="mix-strips"
+    role="list"
+    aria-label="Mixer channel strips"
+  >
+    <div class="mix-strips-track">
+      <!-- Channel strips -->
+      <div
+        *ngFor="let track of tracks(); let i = index; trackBy: trackById"
+        class="mix-strip"
+        [class.mix-strip-selected]="isSelected(track.id)"
+        role="listitem"
+        (click)="selectTrack(track.id)"
+        [attr.aria-label]="'Channel strip for ' + track.name + ', type ' + (track.type || 'midi')"
+      >
+        <div class="mix-strip-top">
           <div
-            class="w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 opacity-80 transition-all duration-75"
-            [style.height.%]="getTrackLevel(track.id) * 100"
+            class="mix-strip-channel-bar"
+            [style.background-color]="track.color || '#0E7C7B'"
           ></div>
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_8px_red]"
-            *ngIf="isPeaking(track.id)"
-          ></div>
+          <div class="mix-strip-num">CH-{{ i + 1 }}</div>
+          <div class="mix-strip-name">{{ track.name }}</div>
+          <div class="mix-strip-type">{{ track.type }}</div>
         </div>
 
-        <div class="pan-control flex flex-col items-center gap-1">
+        <div class="mix-pan-wrap">
+          <div class="mix-pan-label">Pan</div>
           <div
-            class="text-[6px] text-slate-500 font-bold uppercase tracking-tighter"
+            class="mix-pan-track"
+            (click)="onPanClick($event, track)"
+            (pointerdown)="onPanPointerDown($event, track)"
+            role="slider"
+            tabindex="0"
+            [attr.aria-label]="'Pan for ' + track.name"
+            [attr.aria-valuemin]="-100"
+            [attr.aria-valuemax]="100"
+            [attr.aria-valuenow]="panPercent(track.id)"
           >
-            Pan
-          </div>
-          <div class="pan-track w-full relative">
             <div
-              class="pan-indicator absolute top-0"
-              [style.left.%]="50 + track.pan * 50"
+              class="mix-pan-grip"
+              [style.left.%]="50 + (track.pan ?? 0) * 50"
             ></div>
           </div>
         </div>
-      </div>
 
-      <!-- Sends -->
-      <div class="p-2 space-y-3 border-t border-white/5 bg-black/20">
-        <div class="flex flex-col gap-1">
-          <div class="flex justify-between items-center">
-            <span class="text-[6px] text-slate-500 font-bold uppercase"
-              >Send A</span
-            >
-            <span class="text-[6px] text-cyan-400 font-mono">{{
-              track.sendA * 100 | number: '1.0-0'
-            }}</span>
-          </div>
-          <input
-            type="range"
-            class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-cyan-500"
-            [ngModel]="track.sendA * 100"
-            (ngModelChange)="updateSend(track.id, 'A', $event)"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <div class="flex justify-between items-center">
-            <span class="text-[6px] text-slate-500 font-bold uppercase"
-              >Send B</span
-            >
-            <span class="text-[6px] text-purple-400 font-mono">{{
-              track.sendB * 100 | number: '1.0-0'
-            }}</span>
-          </div>
-          <input
-            type="range"
-            class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500"
-            [ngModel]="track.sendB * 100"
-            (ngModelChange)="updateSend(track.id, 'B', $event)"
-          />
-        </div>
-      </div>
-      <!-- Fader Section -->
-      <div class="p-2 pt-0 pb-4 flex flex-col items-center gap-3">
-        <div
-          class="fader-slot h-40 w-8 relative flex flex-col items-center p-1"
-        >
-          <div class="absolute inset-y-4 w-0.5 bg-white/5 shadow-inner"></div>
+        <div class="mix-meter" aria-hidden="true">
           <div
-            class="fader-handle absolute"
-            [style.bottom.%]="(track.gain / 1.5) * 85 + 5"
-            (pointerdown)="startFaderDrag($event, track)"
+            class="mix-meter-bar"
+            [style.transform]="'scaleY(' + getTrackLevel(track.id) + ')'"
+          ></div>
+          <div
+            class="mix-meter-peak"
+            [class.show]="isPeaking(track.id)"
+            [style.bottom.%]="getTrackLevel(track.id) * 100"
           ></div>
         </div>
-        <div class="text-[8px] font-mono text-slate-400">
-          {{ track.gain * 100 | number: '1.0-0' }}%
+
+        <div class="mix-strip-body">
+          <div
+            class="mix-fader-area"
+            (pointerdown)="onFaderPointerDown($event, track.id)"
+            role="slider"
+            tabindex="0"
+            [attr.aria-label]="'Volume for ' + track.name + ', current ' + gainPercent(track.id) + ' percent'"
+            [attr.aria-valuemin]="0"
+            [attr.aria-valuemax]="150"
+            [attr.aria-valuenow]="gainPercent(track.id)"
+          >
+            <div class="mix-fader-rail" aria-hidden="true">
+              <div class="mix-fader-tick" style="bottom: 53%"></div>
+              <div class="mix-fader-tick zero" style="bottom: 66%"></div>
+              <div class="mix-fader-tick" style="bottom: 80%"></div>
+              <div class="mix-fader-tick" style="bottom: 100%"></div>
+            </div>
+            <div
+              class="mix-fader-cap"
+              [style.bottom.%]="faderBottomPct(track.id)"
+            ></div>
+          </div>
+          <div class="mix-fader-readout">{{ gainPercent(track.id) }}</div>
+        </div>
+
+        <div class="mix-msr">
+          <button
+            type="button"
+            class="mix-msr-btn"
+            [class.on]="track.muted"
+            [class.mute]="track.muted"
+            (click)="toggleMute(track.id); $event.stopPropagation()"
+            [attr.aria-pressed]="track.muted"
+            [attr.aria-label]="'Mute ' + track.name"
+          >M</button>
+          <button
+            type="button"
+            class="mix-msr-btn"
+            [class.on]="track.soloed"
+            [class.solo]="track.soloed"
+            (click)="toggleSolo(track.id); $event.stopPropagation()"
+            [attr.aria-pressed]="track.soloed"
+            [attr.aria-label]="'Solo ' + track.name"
+          >S</button>
+          <button
+            type="button"
+            class="mix-msr-btn"
+            [class.on]="track.armed"
+            [class.record]="track.armed"
+            (click)="toggleArmTrack(track.id); $event.stopPropagation()"
+            [attr.aria-pressed]="track.armed"
+            [attr.aria-label]="
+              (track.armed ? 'Disarm recording on ' : 'Arm recording on ') + track.name
+            "
+          >R</button>
+        </div>
+
+        <div class="mix-sends">
+          <div class="mix-sends-row">
+            <span class="mix-sends-label">SND A</span>
+            <input
+              type="range"
+              class="mix-sends-slider"
+              min="0"
+              max="100"
+              [ngModel]="(track.sendA ?? 0) * 100"
+              (ngModelChange)="updateSend(track.id, 'A', $event); $event.stopPropagation()"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Send A level on ' + track.name"
+            />
+            <span class="mix-sends-readout">{{ ((track.sendA ?? 0) * 100) | number:'1.0-0' }}</span>
+          </div>
+          <div class="mix-sends-row">
+            <span class="mix-sends-label">SND B</span>
+            <input
+              type="range"
+              class="mix-sends-slider"
+              min="0"
+              max="100"
+              [ngModel]="(track.sendB ?? 0) * 100"
+              (ngModelChange)="updateSend(track.id, 'B', $event); $event.stopPropagation()"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Send B level on ' + track.name"
+            />
+            <span class="mix-sends-readout">{{ ((track.sendB ?? 0) * 100) | number:'1.0-0' }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Controls -->
-      <div class="p-2 grid grid-cols-2 gap-1 border-t border-white/5">
-        <button
-          class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
-          [class.bg-orange-500]="track.muted"
-          [class.text-white]="track.muted"
-          [class.bg-white/5]="!track.muted"
-          [class.text-slate-500]="!track.muted"
-          (click)="toggleMute(track); $event.stopPropagation()"
-        >
-          M
-        </button>
-        <button
-          class="w-full py-1 rounded-[2px] text-[8px] font-black transition-all"
-          [class.bg-yellow-400]="track.soloed"
-          [class.text-black]="track.soloed"
-          [class.bg-white/5]="!track.soloed"
-          [class.text-slate-500]="!track.soloed"
-          (click)="toggleSolo(track); $event.stopPropagation()"
-        >
-          S
-        </button>
+      <!-- Master strip -->
+      <div
+        class="mix-strip mix-strip-master"
+        role="listitem"
+        [attr.aria-label]="'Master output strip'"
+      >
+        <div class="mix-strip-top">
+          <div class="mix-strip-num">MASTER</div>
+          <div class="mix-strip-name">MAIN</div>
+          <div class="mix-strip-type">SUM</div>
+        </div>
+
+        <div class="mix-meter" aria-hidden="true">
+          <div class="mix-meter-bar" [style.transform]="'scaleY(' + masterLevel() + ')'"></div>
+          <div class="mix-meter-peak" [class.show]="masterLevel() > 0.92" [style.bottom.%]="masterLevel() * 100"></div>
+        </div>
+
+        <div class="mix-strip-body">
+          <div
+            class="mix-fader-area"
+            (pointerdown)="onMasterFaderPointerDown($event)"
+            role="slider"
+            tabindex="0"
+            [attr.aria-label]="'Master volume'"
+            [attr.aria-valuemin]="0"
+            [attr.aria-valuemax]="100"
+            [attr.aria-valuenow]="masterVolume()"
+          >
+            <div class="mix-fader-rail" aria-hidden="true">
+              <div class="mix-fader-tick" style="bottom: 53%"></div>
+              <div class="mix-fader-tick zero" style="bottom: 66%"></div>
+              <div class="mix-fader-tick" style="bottom: 80%"></div>
+              <div class="mix-fader-tick" style="bottom: 100%"></div>
+            </div>
+            <div class="mix-fader-cap" [style.bottom.%]="masterFaderBottom()"></div>
+          </div>
+          <div class="mix-fader-readout">{{ masterVolume() }}</div>
+        </div>
+
+        <div class="mix-msr">
+          <button
+            type="button"
+            class="mix-msr-btn"
+            (click)="toggleMasterMute(); $event.stopPropagation()"
+            [attr.aria-label]="'Mute master output'"
+            [attr.aria-pressed]="masterMuted()"
+          >M</button>
+          <button
+            type="button"
+            class="mix-msr-btn"
+            (click)="resetMaster(); $event.stopPropagation()"
+            [attr.aria-label]="'Reset master to unity'"
+          >0dB</button>
+          <button
+            type="button"
+            class="mix-msr-btn"
+            (click)="openSmartEq()"
+            [attr.aria-label]="'Open AI smart EQ assistant'"
+          >AI</button>
+        </div>
       </div>
     </div>
   </div>

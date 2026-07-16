@@ -1,0 +1,110 @@
+<aside
+  class="ai-shell"
+  [class.ai-shell-open]="open"
+  role="dialog"
+  aria-modal="false"
+  aria-label="AI Compose Assistant"
+  (keydown)="onKeyDown($event)"
+  tabindex="-1"
+>
+  <header class="ai-header">
+    <div class="ai-header-title">
+      <span class="material-symbols-outlined ai-header-icon">auto_awesome</span>
+      <div>
+        <p class="ai-header-name">Compose Assistant</p>
+        <p class="ai-header-sub">Context-aware AI · always-on tip</p>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="ai-close"
+      (click)="close.emit()"
+      aria-label="Close AI Assistant"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </header>
+
+  <nav class="ai-tabs" role="tablist" aria-label="Assistant tabs">
+    <button
+      type="button"
+      role="tab"
+      class="ai-tab"
+      [class.ai-tab-active]="tab() === 'quick'"
+      [attr.aria-selected]="tab() === 'quick'"
+      (click)="setTab('quick')"
+    >
+      <span class="material-symbols-outlined">flash_on</span>
+      Quick Actions
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="ai-tab"
+      [class.ai-tab-active]="tab() === 'chat'"
+      [attr.aria-selected]="tab() === 'chat'"
+      (click)="setTab('chat')"
+    >
+      <span class="material-symbols-outlined">forum</span>
+      Chat
+    </button>
+  </nav>
+
+  <!-- ============ QUICK ACTIONS ============ -->
+  <div class="ai-body" *ngIf="tab() === 'quick'" role="tabpanel">
+    <p class="ai-hint">
+      Tap any action — the AI is aware of your selected track & current view.
+    </p>
+    <ul class="ai-chips">
+      <li *ngFor="let a of quickActions()">
+        <button
+          type="button"
+          class="ai-chip"
+          (click)="runAction(a)"
+          [attr.aria-label]="'Run ' + a.label + ': ' + a.description"
+        >
+          <span class="material-symbols-outlined ai-chip-icon">{{ a.icon }}</span>
+          <div class="ai-chip-text">
+            <p class="ai-chip-label">{{ a.label }}</p>
+            <p class="ai-chip-desc">{{ a.description }}</p>
+          </div>
+          <span class="material-symbols-outlined ai-chip-arrow">arrow_forward</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ============ CHAT ============ -->
+  <div class="ai-body ai-chat" *ngIf="tab() === 'chat'" role="tabpanel">
+    <div class="ai-chat-scroll no-scrollbar" #chatScroll>
+      <div *ngFor="let m of messages()" class="ai-msg" [class.ai-msg-user]="m.role === 'user'">
+        <span class="ai-msg-role" *ngIf="m.role === 'assistant'">
+          <span class="material-symbols-outlined">auto_awesome</span>
+        </span>
+        <p>{{ m.text }}</p>
+      </div>
+      <div *ngIf="isThinking()" class="ai-msg ai-msg-assistant ai-msg-thinking">
+        <span class="material-symbols-outlined">more_horiz</span>
+        Composing…
+      </div>
+    </div>
+    <form class="ai-input-row" (submit)="$event.preventDefault(); sendMessage()">
+      <input
+        type="text"
+        class="ai-input"
+        [ngModel]="userInput()"
+        (ngModelChange)="userInput.set($event)"
+        placeholder="Ask the assistant…"
+        aria-label="Ask the AI assistant"
+      />
+      <button
+        type="submit"
+        class="ai-send"
+        [disabled]="!userInput().trim()"
+        aria-label="Send message"
+      >
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </form>
+  </div>
+</aside>

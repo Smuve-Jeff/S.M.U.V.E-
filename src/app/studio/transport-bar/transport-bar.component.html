@@ -1,143 +1,145 @@
-<div class="transport-container wood-panel shadow-v42-xl glass-v42">
-  <div class="transport-content">
-    <!-- Branding/Status -->
-    <div class="transport-branding hidden md:flex">
-      <div class="neon-text-xs neon-text">ANALOG ENGINE v4.2</div>
-      <div class="status-indicator" [class.recording]="isRecording()">
-        <span class="dot"></span>
-        {{ isRecording() ? 'RECORDING' : isPlaying() ? 'PLAYING' : 'IDLE' }}
-      </div>
-    </div>
+<div class="ctb-shell" role="toolbar" aria-label="Transport controls">
+  <!-- Play / Stop / Record -->
+  <div class="ctb-group" role="group" aria-label="Playback">
+    <button
+      type="button"
+      class="ctb-btn ctb-stop"
+      (click)="stop()"
+      [attr.aria-label]="'Stop playback'"
+      [attr.aria-pressed]="isStopped()"
+    >
+      <span class="material-symbols-outlined">stop</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-play"
+      [class.ctb-play-active]="isPlaying()"
+      (click)="togglePlay()"
+      [attr.aria-label]="isPlaying() ? 'Pause playback' : 'Start playback'"
+      [attr.aria-pressed]="isPlaying()"
+    >
+      <span class="material-symbols-outlined">
+        {{ isPlaying() ? 'pause' : 'play_arrow' }}
+      </span>
+      <span class="ctb-play-pulse" *ngIf="isPlaying()" aria-hidden="true"></span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-rec"
+      [class.ctb-rec-active]="isRecording()"
+      (click)="toggleRecord()"
+      [attr.aria-label]="isRecording() ? 'Stop recording' : 'Start recording'"
+      [attr.aria-pressed]="isRecording()"
+    >
+      <span class="material-symbols-outlined">fiber_manual_record</span>
+    </button>
+  </div>
 
-    <!-- Main Controls -->
-    <div class="transport-main">
-      <button
-        class="transport-btn tactile-v42 glass-v42"
-        (click)="stop()"
-        [class.active]="isStopped()"
-      >
-        <span class="material-symbols-outlined">stop</span>
-      </button>
-      <button
-        class="transport-btn tactile-v42 glass-v42"
-        (click)="togglePlay()"
-        [class.active]="isPlaying()"
-      >
-        <span class="material-symbols-outlined">{{
-          isPlaying() ? 'pause' : 'play_arrow'
-        }}</span>
-      </button>
-      <button
-        class="transport-btn rec-btn tactile-v42 glass-v42"
-        (click)="toggleRecord()"
-        [class.active]="isRecording()"
-      >
-        <span class="material-symbols-outlined">fiber_manual_record</span>
-      </button>
-    </div>
+  <!-- Tempo group -->
+  <div class="ctb-group ctb-tempo" role="group" aria-label="Tempo">
+    <button
+      type="button"
+      class="ctb-btn ctb-nudge"
+      (click)="nudgeTempo(-1)"
+      [attr.aria-label]="'Decrease tempo by 1 BPM'"
+    >
+      <span class="material-symbols-outlined">remove</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-bpm"
+      (click)="showBpmDropdown.set(!showBpmDropdown())"
+      [attr.aria-label]="'Tempo ' + audioEngine.tempo() + ' BPM — tap to change'"
+      aria-haspopup="dialog"
+    >
+      <span class="ctb-bpm-value">{{ audioEngine.tempo() }}</span>
+      <span class="ctb-bpm-unit">BPM</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-nudge"
+      (click)="nudgeTempo(1)"
+      [attr.aria-label]="'Increase tempo by 1 BPM'"
+    >
+      <span class="material-symbols-outlined">add</span>
+    </button>
+  </div>
 
-    <!-- Tempo/Sync -->
-    <div class="transport-tempo glass-v42 relative">
-      <div class="tempo-controls">
-        <button
-          (click)="nudgeTempo(-1)"
-          (contextmenu)="nudgeTempo(-0.1); $event.preventDefault()"
-          class="nudge-btn"
-        >
-          -
-        </button>
-        <div class="tempo-display-wrapper" (click)="toggleBpmDropdown()">
-          <input
-            type="number"
-            [ngModel]="audioEngine.tempo()"
-            (blur)="onTempoInput($event)"
-            (keyup.enter)="onTempoInput($event)"
-            class="tempo-input font-mono"
-            (click)="$event.stopPropagation()"
-          />
-          <span class="material-symbols-outlined text-[10px] opacity-50"
-            >arrow_drop_down</span
-          >
-        </div>
-        <button
-          (click)="nudgeTempo(1)"
-          (contextmenu)="nudgeTempo(0.1); $event.preventDefault()"
-          class="nudge-btn"
-        >
-          +
-        </button>
-      </div>
-      <div class="neon-text-xs opacity-50">BPM</div>
+  <!-- Loop + Metronome toggles -->
+  <div class="ctb-group ctb-toggles" role="group" aria-label="Toggles">
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="loopEnabled()"
+      (click)="toggleLoop()"
+      [attr.aria-pressed]="loopEnabled()"
+      [attr.aria-label]="'Toggle loop region'"
+    >
+      <span class="material-symbols-outlined">repeat</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="metronomeEnabled()"
+      (click)="toggleMetronome()"
+      [attr.aria-pressed]="metronomeEnabled()"
+      [attr.aria-label]="'Toggle metronome'"
+    >
+      <span class="material-symbols-outlined">metronome</span>
+    </button>
+  </div>
 
-      <!-- BPM Dropdown -->
-      <div
-        class="bpm-dropdown glass-v42 shadow-v42-xl"
-        *ngIf="showBpmDropdown()"
-      >
-        <div class="dropdown-header neon-text-xs border-b border-white/10 p-2">
-          PRESETS
-        </div>
-        <div class="presets-grid grid grid-cols-3 gap-1 p-2">
-          <button
-            *ngFor="let bpm of bpmPresets"
-            (click)="setTempo(bpm)"
-            class="preset-btn text-[10px] font-mono p-1 rounded hover:bg-white/10 transition-colors"
-            [class.active]="audioEngine.tempo() === bpm"
-          >
-            {{ bpm }}
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- Master meter (mini) -->
+  <div class="ctb-meter" aria-hidden="true">
+    <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
+    <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
+  </div>
 
-    <!-- Master Volume -->
-    <div class="transport-master glass-v42 hidden sm:flex">
-      <span class="material-symbols-outlined text-sm">volume_up</span>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        [ngModel]="masterVolume()"
-        (input)="updateMasterVolume($event)"
-        class="volume-slider extreme-glow"
-      />
-      <span class="font-mono text-[10px] w-8 text-center"
-        >{{ masterVolume() }}%</span
-      >
-    </div>
+  <!-- Master volume -->
+  <div class="ctb-volume">
+    <span class="material-symbols-outlined ctb-volume-icon">volume_up</span>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      step="1"
+      [ngModel]="masterVolume()"
+      (input)="updateMasterVolume($event)"
+      class="ctb-volume-slider"
+      [attr.aria-label]="'Master volume ' + masterVolume() + ' percent'"
+    />
+    <span class="ctb-volume-readout">{{ masterVolume() }}</span>
+  </div>
 
-    <!-- Export -->
-    <div class="transport-export hidden md:flex">
+  <!-- BPM dropdown menu -->
+  <div class="ctb-dropdown glass-v42" *ngIf="showBpmDropdown()" role="dialog" aria-label="BPM presets">
+    <button
+      type="button"
+      class="ctb-dropdown-close"
+      (click)="showBpmDropdown.set(false)"
+      aria-label="Close preset list"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <p class="ctb-dropdown-title">BPM Presets</p>
+    <div class="ctb-dropdown-grid">
       <button
-        class="transport-btn tactile-v42 glass-v42 flex items-center gap-2 px-3"
-        (click)="exportWav()"
-        [disabled]="isExporting()"
+        *ngFor="let bpm of bpmPresets"
+        type="button"
+        class="ctb-dropdown-item"
+        [class.ctb-dropdown-item-active]="audioEngine.tempo() === bpm"
+        (click)="setTempo(bpm)"
       >
-        <span class="material-symbols-outlined text-sm">{{
-          isExporting() ? 'hourglass_bottom' : 'download'
-        }}</span>
-        <span class="text-[8px] font-black uppercase tracking-tighter">{{
-          isExporting() ? 'BOUNCING...' : 'EXPORT'
-        }}</span>
+        {{ bpm }}
       </button>
     </div>
-    <!-- Metronome -->
-    <div class="transport-metronome glass-v42 hidden lg:flex">
-      <button
-        class="metronome-toggle"
-        [class.active]="audioEngine.metronomeEnabled()"
-        (click)="toggleMetronome()"
-      >
-        <span class="material-symbols-outlined">metronome</span>
-      </button>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        [ngModel]="audioEngine.metronomeVolume() * 100"
-        (input)="updateMetronomeVolume($event)"
-        class="mini-slider"
-      />
-    </div>
+    <button
+      type="button"
+      class="ctb-dropdown-action"
+      (click)="showBpmDropdown.set(false); exportWav()"
+    >
+      <span class="material-symbols-outlined">download</span>
+      Export WAV
+    </button>
   </div>
 </div>

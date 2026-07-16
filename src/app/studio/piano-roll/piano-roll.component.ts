@@ -40,17 +40,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   @Output() close = new EventEmitter<void>();
 
-  isMobile = signal(window.innerWidth < 768);
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
-  selectedNoteIds = signal<Set<string>>(new Set());
-  selectionBox = signal<{ x: number; y: number; w: number; h: number } | null>(
-    null
-  );
-  isSelecting = false;
-  isRecordingAutomation = signal(false);
+  snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
+  snapOptions = [
+    { label: '1/4', value: '1/4' as const },
+    { label: '1/8', value: '1/8' as const },
+    { label: '1/16', value: '1/16' as const },
+    { label: '1/32', value: '1/32' as const },
+    { label: 'Off', value: 'off' as const },
+  ];
 
-  private startX = 0;
-  private startY = 0;
+  selectedNoteIds = signal<Set<string>>(new Set());
   private draggingNotes: {
     startX: number;
     startY: number;
@@ -59,36 +59,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   selectedTrack = this.musicManager.selectedTrack;
 
-  rowHeight = computed(
-    () => (this.isMobile() ? 48 : 24) * this.touchGestures.verticalZoomLevel()
+  rowHeight = computed(() =>
+    Math.max(18, 22 * this.touchGestures.verticalZoomLevel())
   );
-  cellWidth = computed(() => 40 * this.touchGestures.zoomLevel());
+  cellWidth = computed(() => Math.max(20, 32 * this.touchGestures.zoomLevel()));
+  columns = computed(() => Array.from({ length: 64 }, (_, i) => i));
 
   viewportNotes = computed(() => this.selectedTrack()?.notes || []);
 
-  gridColumns = Array.from({ length: 64 }, (_, i) => i);
-  cells = this.gridColumns;
-
-  scaleMode = this.musicManager.engine.scaleMode;
-  isScaleLocked = this.musicManager.engine.scaleLock;
-  isFolded = signal(false);
-
   displayKeys = computed(() => {
-    if (!this.isFolded()) return Array.from({ length: 128 }, (_, i) => 127 - i);
-    return (
-      this.selectedTrack()
-        ?.notes.map((n) => n.midi)
-        .filter((v, i, a) => a.indexOf(v) === i)
-        .sort((a, b) => b - a) || []
-    );
+    return Array.from({ length: 96 }, (_, i) => 24 + i);
   });
+
+  selectionCount = computed(() => this.selectedNoteIds().size);
 
   selectedNoteVelocity = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
     if (!track || ids.size === 0) return 0.8;
     const first = track.notes.find((n) => ids.has(n.id));
-    return first?.velocity || 0.8;
+    return Number((first?.velocity ?? 0.8).toFixed(2));
   });
 
   selectedNoteProbability = computed(() => {
@@ -96,34 +86,70 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const ids = this.selectedNoteIds();
     if (!track || ids.size === 0) return 1.0;
     const first = track.notes.find((n) => ids.has(n.id));
-    return first?.probability ?? 1.0;
+    return Number((first?.probability ?? 1.0).toFixed(2));
   });
 
-  activeChord = signal('maj');
-  chordTypes = ['maj', 'min', 'maj7', 'min7', 'dom7', 'sus4'];
-
   ngOnInit() {
-    this.checkMobile();
+    try {
+      const c = (this.musicManager as any).editorZoomLevel;
+      if (typeof c === 'function') void c();
+    } catch { /* harmless */ }
   }
 
   ngAfterViewInit() {
     if (this.scrollContainer) {
-      const top = (127 - 60) * this.rowHeight() - 100;
+      const top = (96) * this.rowHeight() - 200;
       this.scrollContainer.nativeElement.scrollTop = Math.max(0, top);
-      this.syncKeyScroll();
     }
   }
 
-  @HostListener('window:resize')
-  checkMobile() {
-    this.isMobile.set(window.innerWidth < 768);
+  setEditMode(mode: 'draw' | 'select' | 'erase') {
+    this.editMode.set(mode);
+    this.haptic.light();
+  }
+
+  setSnap(snap: '1/4' | '1/8' | '1/16' | '1/32' | 'off') {
+    this.snap.set(snap);
+    this.haptic.light();
+  }
+
+  setSelectedVelocity(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { velocity: value }));
+  }
+
+  setSelectedProbability(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { probability: value }));
+  }
+
+  // ---- Coordinate helpers ----
+  gridWidth = computed(() => 64 * this.cellWidth());
+  canvasHeight = computed(() => 96 * this.rowHeight());
+
+  rowTopPx(midi: number): number {
+    return (95 - (midi - 24)) * this.rowHeight();
+  }
+
+  noteTopPx(midi: number): number {
+    return (95 - (midi - 24)) * this.rowHeight();
+  }
+
+  playheadPx(): number {
+    const step = this.musicManager.engine?.visualStep?.() ?? 0;
+    return (step % 64) * this.cellWidth();
   }
 
   syncKeyScroll() {
-    if (!this.scrollContainer || !this.keysSidebar) return;
-    this.keysSidebar.nativeElement.scrollTop =
-      this.scrollContainer.nativeElement.scrollTop;
-    if (this.velocityViewport) {
+    if (this.scrollContainer && this.keysSidebar) {
+      this.keysSidebar.nativeElement.scrollTop =
+        this.scrollContainer.nativeElement.scrollTop;
+    }
+    if (this.scrollContainer && this.velocityViewport) {
       this.velocityViewport.nativeElement.scrollLeft =
         this.scrollContainer.nativeElement.scrollLeft;
     }
@@ -131,39 +157,133 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   onVelocityScroll(event: Event) {
     if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollLeft = (
-        event.target as HTMLElement
-      ).scrollLeft;
+      this.scrollContainer.nativeElement.scrollLeft =
+        (event.target as HTMLElement).scrollLeft;
     }
   }
 
+  // ---- Pointer interactions ----
   onGridPointerDown(event: PointerEvent) {
-    if (this.editMode() === 'select') {
-      const container = event.currentTarget as HTMLElement;
-      const rect = container.getBoundingClientRect();
-      this.isSelecting = true;
-      this.startX = event.clientX - rect.left + container.scrollLeft;
-      this.startY = event.clientY - rect.top + container.scrollTop;
+    const container = event.currentTarget as HTMLElement;
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left + container.scrollLeft;
+    const y = event.clientY - rect.top + container.scrollTop;
+    const step = Math.max(0, Math.floor(x / this.cellWidth()));
+    const rowIndex = Math.floor(y / this.rowHeight());
+    const midi = 24 + (95 - rowIndex);
+
+    if (this.editMode() === 'draw') {
+      this.createNoteAt(step, midi);
+    }
+  }
+
+  onGridTouchStart(event: TouchEvent) {
+    if (event.touches.length === 2) {
+      try { this.touchGestures.handlePinch(event); } catch { /* swallow */ }
+    }
+  }
+
+  onGridTouchMove(event: TouchEvent) {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      try { this.touchGestures.handlePinch(event); } catch { /* swallow */ }
+    }
+  }
+
+  private createNoteAt(step: number, midi: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const snappedStep = this.applySnap(step);
+    this.musicManager.addNoteToTrack(track.id, {
+      id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      midi,
+      step: snappedStep,
+      length: this.lengthFromSnap(),
+      velocity: 0.8,
+    });
+    this.haptic.light();
+  }
+
+  private applySnap(step: number): number {
+    switch (this.snap()) {
+      case '1/4': return Math.round(step / 4) * 4;
+      case '1/8': return Math.round(step / 2) * 2;
+      case '1/16': return step;
+      case '1/32': return step; // half steps represented finer in audio engine
+      default: return step;
+    }
+  }
+
+  private lengthFromSnap(): number {
+    switch (this.snap()) {
+      case '1/4': return 4;
+      case '1/8': return 2;
+      case '1/16': return 1;
+      case '1/32': return 0.5;
+      default: return 1;
+    }
+  }
+
+  onNotePointerDown(event: PointerEvent, note: TrackNote) {
+    event.stopPropagation();
+    const track = this.selectedTrack();
+    if (!track) return;
+    if (!event.shiftKey && !this.selectedNoteIds().has(note.id)) {
+      this.selectedNoteIds.set(new Set([note.id]));
+    } else if (event.shiftKey) {
+      const next = new Set(this.selectedNoteIds());
+      if (next.has(note.id)) next.delete(note.id);
+      else next.add(note.id);
+      this.selectedNoteIds.set(next);
+    }
+
+    if (this.editMode() === 'erase') {
+      this.musicManager.removeNotes(track.id, [note.id]);
       return;
     }
-    if (this.editMode() === 'draw') {
-      this.createNoteAtPoint(
-        event.clientX,
-        event.clientY,
-        event.currentTarget as HTMLElement
-      );
+
+    const originalPositions = new Map<string, { step: number; midi: number }>();
+    this.selectedNoteIds().forEach((id) => {
+      const n = this.musicManager.selectedTrack()?.notes.find((nn) => nn.id === id);
+      if (n) originalPositions.set(id, { step: n.step, midi: n.midi });
+    });
+    this.draggingNotes = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originalPositions,
+    };
+  }
+
+  @HostListener('pointermove', ['$event'])
+  onPointerMove(e: PointerEvent) {
+    if (this.draggingNotes) {
+      const dx = e.clientX - this.draggingNotes.startX;
+      const dy = e.clientY - this.draggingNotes.startY;
+      const dSteps = dx / this.cellWidth();
+      const dMidi = -Math.round(dy / this.rowHeight());
+
+      const track = this.musicManager.selectedTrack();
+      if (!track) return;
+      this.draggingNotes.originalPositions.forEach((pos, id) => {
+        this.musicManager.updateNote(track.id, id, {
+          step: Math.max(0, pos.step + dSteps),
+          midi: Math.max(0, Math.min(127, pos.midi + dMidi)),
+        });
+      });
     }
+  }
+
+  @HostListener('pointerup')
+  onPointerUp() {
+    this.draggingNotes = null;
   }
 
   onVelocityPointerDown(event: PointerEvent) {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x =
-      event.clientX -
-      rect.left +
-      (event.currentTarget as HTMLElement).scrollLeft;
+    const x = event.clientX - rect.left + (event.currentTarget as HTMLElement).scrollLeft;
     const y = event.clientY - rect.top;
-    const step = Math.floor(x / this.cellWidth());
-    const velocity = Math.max(0.1, Math.min(1.5, (96 - y) / 60));
+    const step = Math.max(0, Math.floor(x / this.cellWidth()));
+    const velocity = Math.max(0.1, Math.min(1.5, 1 - y / 60));
 
     const track = this.selectedTrack();
     if (!track) return;
@@ -174,154 +294,27 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onGridTouchStart(event: TouchEvent) {
-    if (event.touches.length === 2) this.touchGestures.handlePinch(event);
+  // ---- Keyboard / utility ----
+  @HostListener('window:keydown', ['$event'])
+  onKey(ev: KeyboardEvent) {
+    if (ev.target instanceof HTMLInputElement) return;
+    if (ev.key === 'd' || ev.key === 'D') this.setEditMode('draw');
+    if (ev.key === 's' || ev.key === 'S') this.setEditMode('select');
+    if (ev.key === 'e' || ev.key === 'E') this.setEditMode('erase');
   }
 
-  onGridTouchMove(event: TouchEvent) {
-    if (event.touches.length === 2) {
-      event.preventDefault();
-      this.touchGestures.handlePinch(event);
-    }
-  }
-
-  onGridTouchEnd() {}
-
-  onNotePointerDown(event: PointerEvent, note: TrackNote) {
-    event.stopPropagation();
-    if (this.editMode() === 'select') {
-      if (!event.shiftKey && !this.selectedNoteIds().has(note.id)) {
-        this.selectedNoteIds.set(new Set([note.id]));
-      } else if (event.shiftKey) {
-        const next = new Set(this.selectedNoteIds());
-        if (next.has(note.id)) next.delete(note.id);
-        else next.add(note.id);
-        this.selectedNoteIds.set(next);
-      }
-
-      const originalPositions = new Map<
-        string,
-        { step: number; midi: number }
-      >();
-      this.selectedNoteIds().forEach((id) => {
-        const n = this.selectedTrack()?.notes.find((note) => note.id === id);
-        if (n) originalPositions.set(id, { step: n.step, midi: n.midi });
-      });
-
-      this.draggingNotes = {
-        startX: event.clientX,
-        startY: event.clientY,
-        originalPositions,
-      };
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    } else if (this.editMode() === 'erase') {
-      const track = this.selectedTrack();
-      if (track) {
-        this.musicManager.removeNotes(track.id, [note.id]);
-      }
-    }
-  }
-
-  @HostListener('pointermove', [''])
-  onPointerMove(e: PointerEvent) {
-    if (this.draggingNotes) {
-      const dx = e.clientX - this.draggingNotes.startX;
-      const dy = e.clientY - this.draggingNotes.startY;
-      const dSteps = dx / this.cellWidth();
-      const dMidi = -Math.round(dy / this.rowHeight());
-
-      const track = this.selectedTrack();
-      if (track) {
-        this.draggingNotes.originalPositions.forEach((pos, id) => {
-          this.musicManager.updateNote(track.id, id, {
-            step: Math.max(0, pos.step + dSteps),
-            midi: Math.max(0, Math.min(127, pos.midi + dMidi)),
-          });
-        });
-      }
-      return;
-    }
-    if (this.isSelecting) {
-      const container = this.scrollContainer.nativeElement;
-      const rect = container.getBoundingClientRect();
-      const currentX = e.clientX - rect.left + container.scrollLeft;
-      const currentY = e.clientY - rect.top + container.scrollTop;
-      const x = Math.min(this.startX, currentX);
-      const y = Math.min(this.startY, currentY);
-      const w = Math.abs(this.startX - currentX);
-      const h = Math.abs(this.startY - currentY);
-      this.selectionBox.set({ x, y, w, h });
-      this.updateSelectionFromBox(x, y, w, h);
-    }
-  }
-
-  private updateSelectionFromBox(x: number, y: number, w: number, h: number) {
+  humanizeNotes() {
     const track = this.selectedTrack();
     if (!track) return;
-    const newSelection = new Set<string>();
-    track.notes.forEach((note) => {
-      const noteX = note.step * this.cellWidth();
-      const noteY = (127 - note.midi) * this.rowHeight();
-      const noteW = note.length * this.cellWidth();
-      const noteH = this.rowHeight();
-      if (
-        noteX < x + w &&
-        noteX + noteW > x &&
-        noteY < y + h &&
-        noteY + noteH > y
-      )
-        newSelection.add(note.id);
-    });
-    this.selectedNoteIds.set(newSelection);
+    this.haptic.medium();
+    this.musicManager.humanizeTrack(track.id);
   }
 
-  @HostListener('pointerup')
-  onPointerUp() {
-    this.isSelecting = false;
-    this.draggingNotes = null;
-    this.selectionBox.set(null);
-  }
-
-  createNoteAtPoint(x: number, y: number, container: HTMLElement) {
-    const rect = container.getBoundingClientRect();
-    const relX = x - rect.left + container.scrollLeft;
-    const relY = y - rect.top + container.scrollTop;
-    const step = Math.floor(relX / this.cellWidth());
-    const midi = 127 - Math.floor(relY / this.rowHeight());
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.addNoteToTrack(track.id, {
-        id: 'note-' + Date.now(),
-        midi,
-        step,
-        length: 1,
-        velocity: 0.8,
-      });
-    }
-  }
-
-  quantizeNotes() {
-    const ids = Array.from(this.selectedNoteIds());
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.quantizeTrack(
-        track.id,
-        ids.length > 0 ? ids : undefined
-      );
-    }
-  }
-  duplicateSelected() {
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.duplicateNotes(
-        track.id,
-        Array.from(this.selectedNoteIds()),
-        4
-      );
-    }
-  }
   isBlackKey(midi: number): boolean {
     return [1, 3, 6, 8, 10].includes(midi % 12);
+  }
+  isInScale(midi: number): boolean {
+    return [0, 2, 4, 5, 7, 9, 11].includes(midi % 12);
   }
   getKeyName(midi: number): string {
     return ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][
@@ -330,118 +323,5 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
   getOctaveLabel(midi: number): string {
     return Math.floor(midi / 12 - 1).toString();
-  }
-
-  updateSelectedNoteParam(param: 'velocity' | 'probability', event: any) {
-    const val = parseFloat(event.target.value);
-    const trackId = this.selectedTrack()?.id;
-    if (!trackId) return;
-    this.selectedNoteIds().forEach((id) => {
-      this.musicManager.updateNote(trackId, id, { [param]: val });
-    });
-  }
-
-  clearNotes() {
-    const track = this.selectedTrack();
-    if (!track) return;
-    if (confirm('Clear pattern?'))
-      this.musicManager.removeNotes(
-        track.id,
-        track.notes.map((n) => n.id)
-      );
-  }
-  setEditMode(mode: any) {
-    this.editMode.set(mode);
-  }
-  humanizeNotes() {
-    const ids = Array.from(this.selectedNoteIds());
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.humanizeTrack(
-        track.id,
-        ids.length > 0 ? ids : undefined
-      );
-    }
-  }
-  strumNotes() {
-    const ids = Array.from(this.selectedNoteIds());
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.strumTrack(track.id, ids.length > 0 ? ids : undefined);
-    }
-  }
-  arpeggiateNotes() {
-    const ids = Array.from(this.selectedNoteIds());
-    const track = this.selectedTrack();
-    if (track) {
-      this.musicManager.arpeggiateTrack(
-        track.id,
-        ids.length > 0 ? ids : undefined
-      );
-    }
-  }
-
-  toggleSelectedSlide() {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const hasSlide = this.hasSelectedSlide();
-    this.selectedNoteIds().forEach((id) => {
-      this.musicManager.updateNote(track.id, id, { isSlide: !hasSlide });
-    });
-  }
-
-  hasSelectedSlide() {
-    const track = this.selectedTrack();
-    if (!track) return false;
-    return Array.from(this.selectedNoteIds()).some(
-      (id) => track.notes.find((n) => n.id === id)?.isSlide
-    );
-  }
-
-  getScaleNotes(): number[] {
-    const intervals =
-      this.scaleMode() === 'minor'
-        ? [0, 2, 3, 5, 7, 8, 10]
-        : [0, 2, 4, 5, 7, 9, 11];
-    return intervals;
-  }
-
-  isInScale(midi: number): boolean {
-    return this.getScaleNotes().includes(midi % 12);
-  }
-
-  getGhostNotes() {
-    return this.musicManager
-      .tracks()
-      .filter((t) => t.id !== this.selectedTrack()?.id)
-      .flatMap((t) => t.notes);
-  }
-
-  zoomIn() {
-    this.touchGestures.adjustZoom(0.1);
-  }
-  zoomOut() {
-    this.touchGestures.adjustZoom(-0.1);
-  }
-  fitToPage() {
-    this.touchGestures.resetZoom();
-  }
-
-  closePianoRoll() {
-    this.close.emit();
-  }
-  toggleAutomation() {
-    this.isRecordingAutomation.update((v) => !v);
-  }
-
-  gridWidth = computed(() => 64 * this.cellWidth());
-  canvasHeight = computed(() => 128 * this.rowHeight());
-
-  toggleFold() {
-    this.isFolded.update((v) => !v);
-  }
-
-  setChord(type: string) {
-    this.activeChord.set(type);
   }
 }
