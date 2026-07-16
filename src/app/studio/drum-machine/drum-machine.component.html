@@ -2,6 +2,10 @@
   <header class="dm-header" role="banner">
     <div>
       <h1>Rhythm Unit<small>Drum Machine</small></h1>
+      <div class="dm-header-eyebrow">
+        <span class="material-symbols-outlined">graphic_eq</span>
+        AI BEAT STUDIO
+      </div>
     </div>
 
     <div class="dm-header-icons">
@@ -25,6 +29,56 @@
       </button>
     </div>
   </header>
+
+  <!-- Pro: AI Style picker (chip rail) + Swing slider -->
+  <section class="dm-style-bar" aria-label="AI style generator">
+    <div class="dm-style-bar-label">
+      <span class="material-symbols-outlined">auto_awesome</span>
+      AI Style
+    </div>
+    <div class="dm-style-chips" role="group">
+      <button
+        *ngFor="let style of drumStyles"
+        type="button"
+        class="dm-style-chip"
+        [class.dm-style-chip-active]="selectedDrumStyle().id === style.id"
+        (click)="setDrumStyle(style)"
+        [attr.aria-pressed]="selectedDrumStyle().id === style.id"
+        [attr.aria-label]="'Switch to ' + style.label + ' style'"
+      >
+        <span class="dm-style-chip-emoji">{{ style.emoji }}</span>
+        <span class="dm-style-chip-label">{{ style.label }}</span>
+      </button>
+    </div>
+    <button
+      type="button"
+      class="dm-style-apply"
+      (click)="applyDrumStyle()"
+      title="Replace full pattern with this style's recipe"
+    >
+      <span class="material-symbols-outlined">bolt</span>
+      Generate Style
+    </button>
+
+    <!-- Pro: Swing slider -->
+    <div class="dm-swing-block">
+      <div class="dm-swing-label">
+        <span class="material-symbols-outlined">waves</span>
+        Swing
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="75"
+        step="1"
+        [ngModel]="swingPercent()"
+        (ngModelChange)="setSwing($event)"
+        class="dm-swing-slider"
+        [attr.aria-label]="'Swing ' + swingPercent() + ' percent'"
+      />
+      <span class="dm-swing-readout">{{ swingPercent() }}%</span>
+    </div>
+  </section>
 
   <div class="dm-body">
     <!-- Pad grid -->
@@ -150,6 +204,20 @@
         </button>
       </div>
 
+      <!-- Pro: Per-pad AI Generate -->
+      <button
+        type="button"
+        class="dm-ai-generate"
+        (click)="generateForSelectedPad()"
+        title="Replace {{ pad.name }} hits with {{ selectedDrumStyle().label }} recipe"
+      >
+        <span class="dm-ai-generate-emoji">{{ selectedDrumStyle().emoji }}</span>
+        <span class="dm-ai-generate-label">
+          Generate {{ pad.name }} · {{ selectedDrumStyle().label }}
+        </span>
+        <span class="material-symbols-outlined">auto_awesome</span>
+      </button>
+
       <button
         type="button"
         class="dm-pr-jump"
@@ -165,10 +233,10 @@
         <div class="dm-inspector-title" style="margin-bottom: 8px;">Velocity</div>
         <div class="dm-vel-strip">
           <div
-            *ngFor="let step of velocityLaneForBar()"
+            *ngFor="let step of selectedPadSteps()"
             class="dm-vel-bar"
-            [style.height.%]="step * 100"
-            [style.opacity]="step > 0.05 ? 1 : 0.2"
+            [style.height.%]="(step.velocity ?? 0) * 100"
+            [style.opacity]="(step.velocity ?? 0) > 0.05 ? 1 : 0.2"
           ></div>
         </div>
       </div>

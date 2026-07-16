@@ -34,7 +34,6 @@
       <span class="material-symbols-outlined">fiber_manual_record</span>
     </button>
 
-    <!-- Recording source indicator (shows what's being recorded) -->
     <span
       *ngIf="recordingLabel()"
       class="ctb-rec-source"
@@ -46,7 +45,7 @@
     </span>
   </div>
 
-  <!-- Tempo group -->
+  <!-- Tempo group + Tap Tempo -->
   <div class="ctb-group ctb-tempo" role="group" aria-label="Tempo">
     <button
       type="button"
@@ -74,6 +73,101 @@
     >
       <span class="material-symbols-outlined">add</span>
     </button>
+
+    <!-- Pro: Tap Tempo button -->
+    <button
+      type="button"
+      class="ctb-btn ctb-tap"
+      [class.ctb-tap-armed]="tapBpmGuess() !== null"
+      (click)="tapTempo()"
+      (dblclick)="resetTapTempo()"
+      [attr.aria-label]="tapBpmGuess() ? 'Tap tempo · detected ' + tapBpmGuess() + ' BPM' : 'Tap tempo — tap 3-4 times to lock in BPM'"
+      title="Tap 3+ times · double-click to reset"
+    >
+      <span class="material-symbols-outlined">touch_app</span>
+      <span class="ctb-tap-readout" *ngIf="tapBpmGuess() !== null">
+        {{ tapBpmGuess() }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Pro: Count-in picker -->
+  <div class="ctb-group ctb-countin" role="group" aria-label="Count-in bars before play">
+    <span class="ctb-countin-label" title="Count-in before play / record">CI</span>
+    <button
+      *ngFor="let n of [0, 1, 2]"
+      type="button"
+      class="ctb-countin-chip"
+      [class.ctb-countin-active]="countInBars() === n"
+      (click)="setCountIn(n)"
+      [attr.aria-label]="'Count-in ' + n + ' bar' + (n === 1 ? '' : 's') + ' before play'"
+      [attr.aria-pressed]="countInBars() === n"
+    >
+      {{ n === 0 ? 'OFF' : (n + 'B') }}
+    </button>
+  </div>
+
+  <!-- Pro: A/B Loop Region -->
+  <div class="ctb-group ctb-loop-ab" role="group" aria-label="A/B loop region">
+    <button
+      type="button"
+      class="ctb-loop-chip"
+      [class.ctb-loop-chip-on]="loopStartStep() !== null"
+      (click)="setLoopMarker('start')"
+      title="Set loop START at playhead"
+      [attr.aria-label]="'Set loop A marker at step ' + (loopStartStep() === null ? 'playhead' : loopStartStep())"
+    >
+      <span class="material-symbols-outlined">first_page</span>
+      A
+    </button>
+    <button
+      type="button"
+      class="ctb-loop-chip"
+      [class.ctb-loop-chip-on]="loopEndStep() !== null"
+      (click)="setLoopMarker('end')"
+      title="Set loop END at playhead"
+      [attr.aria-label]="'Set loop B marker at step ' + (loopEndStep() === null ? 'playhead' : loopEndStep())"
+    >
+      <span class="material-symbols-outlined">last_page</span>
+      B
+    </button>
+    <span class="ctb-loop-readout" *ngIf="loopRegionLabel() !== '—'">
+      {{ loopRegionLabel() }}
+    </span>
+    <button
+      type="button"
+      class="ctb-loop-clear"
+      (click)="clearLoopRegion()"
+      *ngIf="hasLoopRegion()"
+      title="Clear loop region"
+      aria-label="Clear loop region"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Pro: Undo / Redo -->
+  <div class="ctb-group ctb-undo" role="group" aria-label="History">
+    <button
+      type="button"
+      class="ctb-undo-btn"
+      (click)="undo()"
+      [attr.aria-label]="'Undo · depth ' + undoCount()"
+      title="Undo last action"
+    >
+      <span class="material-symbols-outlined">undo</span>
+      <span class="ctb-undo-badge" *ngIf="undoCount() > 0">{{ undoCount() }}</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-undo-btn"
+      (click)="redo()"
+      [attr.aria-label]="'Redo · depth ' + redoCount()"
+      title="Redo last undone action"
+    >
+      <span class="material-symbols-outlined">redo</span>
+      <span class="ctb-undo-badge" *ngIf="redoCount() > 0">{{ redoCount() }}</span>
+    </button>
   </div>
 
   <!-- Loop + Metronome toggles -->
@@ -100,12 +194,21 @@
     </button>
   </div>
 
-  <!-- Master meter (mini) -->
-  <div class="ctb-meter" aria-hidden="true">
-    <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
-    <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
-    <!-- Peak-hold line (lingering red) -->
-    <div class="ctb-meter-peak" [style.bottom.%]="masterPeakHold() * 100"></div>
+  <!-- Pro: Master meter (with dB readout) -->
+  <div class="ctb-meter ctb-meter-pro" aria-hidden="false">
+    <div class="ctb-meter-bars">
+      <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
+      <div class="ctb-meter-bar" [style.transform]="'scaleY(' + masterLevelVisual() + ')'"></div>
+      <div class="ctb-meter-peak" [style.bottom.%]="masterPeakHold() * 100"></div>
+    </div>
+    <div class="ctb-meter-readout" aria-live="off">
+      <span class="ctb-db-now" [class.over]="masterDb() > 0">
+        {{ formatDb(masterDb()) }}
+      </span>
+      <span class="ctb-db-peak">
+        PK {{ formatDb(masterPeakDb()) }}
+      </span>
+    </div>
   </div>
 
   <!-- Master volume -->

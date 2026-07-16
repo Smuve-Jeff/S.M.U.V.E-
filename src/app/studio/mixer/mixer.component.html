@@ -38,6 +38,53 @@
     </button>
   </header>
 
+  <!-- Pro: Master Phase Correlation meter -->
+  <section
+    class="mix-phase-bar glass-v42"
+    aria-label="Master stereo phase correlation"
+  >
+    <div class="mix-phase-header">
+      <div class="mix-phase-title">
+        <span class="material-symbols-outlined">balance</span>
+        Stereo Phase Correlation
+      </div>
+      <div class="mix-phase-readout" [style.color]="phaseCorrelationColor()">
+        {{ phaseCorrelation().toFixed(2) | number:'1.2-2' }}
+      </div>
+      <span
+        class="mix-phase-label"
+        [style.background-color]="phaseCorrelationColor()"
+      >{{ phaseCorrelationLabel() }}</span>
+    </div>
+    <div class="mix-phase-meter" aria-hidden="true">
+      <div class="mix-phase-meter-axis"></div>
+      <div class="mix-phase-meter-zero"></div>
+      <div
+        class="mix-phase-meter-indicator"
+        [style.left.%]="(phaseCorrelation() + 1) * 50"
+        [style.background-color]="phaseCorrelationColor()"
+      ></div>
+      <div class="mix-phase-meter-ticks">
+        <span style="left: 0%">−1</span>
+        <span style="left: 25%">−0.5</span>
+        <span style="left: 50%">0</span>
+        <span style="left: 75%">+0.5</span>
+        <span style="left: 100%">+1</span>
+      </div>
+    </div>
+    <p class="mix-phase-help">
+      <span *ngIf="phaseCorrelation() < 0" class="mix-phase-help-warn">
+        ⚠ Out of phase content detected · check stereo mic placement on bass / kick
+      </span>
+      <span *ngIf="phaseCorrelation() >= 0 && phaseCorrelation() < 0.3" class="mix-phase-help-warn">
+        ⚠ Very wide mix · consider mono check for club translation
+      </span>
+      <span *ngIf="phaseCorrelation() >= 0.3" class="mix-phase-help-ok">
+        ✓ Mono-compatible · safe for club + broadcast translation
+      </span>
+    </p>
+  </section>
+
   <div
     class="mix-strips"
     role="list"
@@ -49,6 +96,7 @@
         *ngFor="let track of tracks(); let i = index; trackBy: trackById"
         class="mix-strip"
         [class.mix-strip-selected]="isSelected(track.id)"
+        [class.mix-strip-sidechain]="hasSidechain(track.id)"
         role="listitem"
         (click)="selectTrack(track.id)"
         [attr.aria-label]="'Channel strip for ' + track.name + ', type ' + (track.type || 'midi')"
@@ -61,6 +109,43 @@
           <div class="mix-strip-num">CH-{{ i + 1 }}</div>
           <div class="mix-strip-name">{{ track.name }}</div>
           <div class="mix-strip-type">{{ track.type }}</div>
+        </div>
+
+        <!-- Pro: Sidechain routing chip -->
+        <div class="mix-sidechain-chip-wrap" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="mix-sidechain-chip"
+            [class.mix-sidechain-on]="hasSidechain(track.id)"
+            (click)="toggleSidechain(track.id, hasSidechain(track.id) ? null : (sidechainCandidates(track.id)[0]?.id || null))"
+            [attr.aria-pressed]="hasSidechain(track.id)"
+            [attr.aria-label]="
+              hasSidechain(track.id)
+                ? 'Sidechain active. Sidechain source: ' + sidechainSourceNameFor(track.id)
+                : 'Route a sidechain source into ' + track.name
+            "
+            title="Configure sidechain input"
+          >
+            <span class="material-symbols-outlined">shuffle</span>
+            <span class="mix-sidechain-text">
+              <ng-container *ngIf="hasSidechain(track.id); else noSC">
+                SC ← {{ sidechainSourceNameFor(track.id) }}
+              </ng-container>
+              <ng-template #noSC>SC OFF</ng-template>
+            </span>
+          </button>
+          <select
+            *ngIf="hasSidechain(track.id)"
+            class="mix-sidechain-pick"
+            [ngModel]="sidechainSourceFor(track.id)"
+            (ngModelChange)="toggleSidechain(track.id, $event); $event.stopPropagation()"
+            (click)="$event.stopPropagation()"
+            [attr.aria-label]="'Pick sidechain source for ' + track.name"
+          >
+            <option *ngFor="let cand of sidechainCandidates(track.id)" [value]="cand.id">
+              {{ cand.name }}
+            </option>
+          </select>
         </div>
 
         <div class="mix-pan-wrap">

@@ -1,7 +1,7 @@
 <div
   class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-fl-border rounded-3xl animate__animated animate__fadeIn"
 >
-  <header class="flex justify-between items-center mb-10">
+  <header class="flex justify-between items-center mb-6">
     <div>
       <h1
         class="text-3xl font-black text-white italic tracking-tighter uppercase"
@@ -11,10 +11,18 @@
       <p
         class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]"
       >
-        Precision Bus Processor v2.0
+        Precision Bus Processor v2.0 · AI Presets Ready
       </p>
     </div>
     <div class="flex gap-4">
+      <button
+        (click)="refreshRoast()"
+        class="px-5 py-2 bg-white/5 tactile-v42 text-slate-200 text-xs font-black uppercase tracking-widest rounded-full border border-fl-border hover:bg-white/10 transition-all"
+        aria-label="Refresh AI mastering roast"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1">refresh</span>
+        Roast
+      </button>
       <button
         (click)="processMastering()"
         class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all"
@@ -23,6 +31,46 @@
       </button>
     </div>
   </header>
+
+  <!-- Pro: AI mastering presets rail -->
+  <section class="mb-6" aria-label="AI mastering presets">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="material-symbols-outlined text-fl-blue text-lg">auto_awesome</span>
+      <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+        AI Mastering Presets · one-click destination
+      </span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      <button
+        *ngFor="let preset of presets"
+        type="button"
+        class="ms-preset-card"
+        [class.ms-preset-active]="activePresetId() === preset.id"
+        (click)="applyPreset(preset)"
+        [attr.aria-pressed]="activePresetId() === preset.id"
+        [attr.aria-label]="
+          'Apply ' + preset.label + ' mastering preset · target ' +
+          preset.targetLufs + ' LUFS, ceiling ' + preset.safeCeiling + ' dBFS'
+        "
+      >
+        <span class="ms-preset-emoji">{{ preset.emoji }}</span>
+        <span class="ms-preset-label">{{ preset.label }}</span>
+        <span class="ms-preset-tagline">{{ preset.tagline }}</span>
+        <span class="ms-preset-readout">
+          <span class="ms-preset-lufs">{{ preset.targetLufs }} LUFS</span>
+          <span class="ms-preset-ceiling">⌐ {{ preset.safeCeiling }} dBFS</span>
+        </span>
+        <span
+          class="ms-preset-flair"
+          *ngIf="activePresetId() === preset.id"
+          aria-hidden="true"
+        >
+          <span class="material-symbols-outlined text-base">check_circle</span>
+          ACTIVE
+        </span>
+      </button>
+    </div>
+  </section>
 
   <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
     <!-- Visualizer Section -->
@@ -180,13 +228,19 @@
           >
           <span
             class="text-[10px] font-black text-fl-blue uppercase tracking-[0.2em]"
-            >Safety_Intelligence</span
+            >Safety_Intelligence · AI Roast</span
           >
+          <span
+            *ngIf="activePresetId()"
+            class="ml-auto px-2 py-0.5 bg-fl-blue/20 rounded border border-fl-blue/30 text-[9px] font-black text-fl-blue uppercase tracking-widest"
+          >
+            {{ activePresetId() }}
+          </span>
         </div>
         <p class="text-xs text-slate-400 italic leading-relaxed">
           {{ masteringRoast() }}
         </p>
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap">
           <div
             class="px-3 py-1 bg-fl-blue/20 rounded border border-fl-blue/30 text-[9px] font-black text-fl-blue uppercase"
           >
@@ -196,6 +250,12 @@
             class="px-3 py-1 bg-white/5 rounded border border-fl-border text-[9px] font-black text-slate-500 uppercase"
           >
             Oversampling_4X
+          </div>
+          <div
+            *ngIf="activePresetId()"
+            class="px-3 py-1 bg-accent-magenta/20 rounded border border-accent-magenta/30 text-[9px] font-black text-accent-magenta uppercase"
+          >
+            Preset_Active
           </div>
         </div>
       </div>
