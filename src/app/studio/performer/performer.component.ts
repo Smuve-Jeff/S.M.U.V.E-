@@ -16,6 +16,7 @@ import {
 import { PerformanceGridComponent } from '../performance-grid/performance-grid.component';
 import { PerformanceRecordingService } from '../performance-recording.service';
 import { RecordingStatusService } from '../recording-status.service';
+import { FxMacrosService } from '../../services/fx-macros.service';
 
 @Component({
   selector: 'app-performer',
@@ -39,7 +40,7 @@ export class PerformerComponent implements OnDestroy {
   private readonly haptic = inject(HapticService);
   private readonly instrumentsService = inject(InstrumentsService);
 
-  layout = signal<'keyboard' | 'pads' | 'matrix'>('keyboard');
+  layout = signal<'keyboard' | 'pads' | 'matrix' | 'macros'>('keyboard');
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   velocity = 0.8;
@@ -59,6 +60,11 @@ export class PerformerComponent implements OnDestroy {
   private visualizerFrame: number | null = null;
 
   private readonly activePointers = new Map<number, number>();
+
+  /** FX Macros — one-finger XY control over master EQ + limiter + reverb. */
+  public readonly fxMacros = inject(FxMacrosService);
+  /** ptr<=>position while dragging. Null when not engaged. */
+  private xyPointerId: number | null = null;
 
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
@@ -197,8 +203,42 @@ export class PerformerComponent implements OnDestroy {
     return this.activeKeys().has(midi);
   }
 
-  setLayout(mode: 'keyboard' | 'pads' | 'matrix') {
+  setLayout(mode: 'keyboard' | 'pads' | 'matrix' | 'macros') {
     this.layout.set(mode);
+  }
+
+  // ── FX Macros XY Pad handlers ─────────────────────────────────────
+
+  onPadDown(event: PointerEvent, padEl: HTMLElement): void {
+    event.preventDefault();
+    padEl.setPointerCapture?.(event.pointerId);
+    this.xyPointerId = event.pointerId;
+    this.fxMacros.engage();
+    this.updatePadXY(event, padEl);
+  }
+
+  onPadMove(event: PointerEvent, padEl: HTMLElement): void {
+    if (this.xyPointerId !== event.pointerId) return;
+    event.preventDefault();
+    this.updatePadXY(event, padEl);
+  }
+
+  onPadUp(event: PointerEvent, padEl: HTMLElement): void {
+    if (this.xyPointerId !== event.pointerId) return;
+    padEl.releasePointerCapture?.(event.pointerId);
+    this.xyPointerId = null;
+    this.fxMacros.release();
+  }
+
+  private updatePadXY(event: PointerEvent, padEl: HTMLElement): void {
+    const rect = padEl.getBoundingClientRect();
+    const safeRect = { w: Math.max(1, rect.width), h: Math.max(1, rect.height) };
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / safeRect.w));
+    const yRaw = (event.clientY - rect.top) / safeRect.h;
+    // Y on-screen = (clientY - top) / h → 0 at top, 1 at bottom.
+    // Map to engine Y: top of pad = 1 (max), bottom = 0 (min). Invert.
+    const y = 1 - Math.max(0, Math.min(1, yRaw));
+    this.fxMacros.setXY(x, y);
   }
   toggleSmartChords() {
     this.smartChords.update((value) => !value);

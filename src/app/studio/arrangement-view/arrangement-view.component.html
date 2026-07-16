@@ -155,6 +155,9 @@
       <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
         + TRACK
       </button>
+      <button (click)="openStemSplit()" class="mini-btn tactile-v42 executive-glass stem-btn">
+        🎚 STEM SPLIT
+      </button>
     </div>
   </div>
 
@@ -345,6 +348,66 @@
           [style.left.px]="playheadPos()"
           [style.top.px]="rulerHeight"
         ></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STEM SPLITTER MODAL (fixed overlay outside the playlist)
+     ───────────────────────────────────────────────────────────── -->
+<div class="stem-modal-root" *ngIf="stemOpen()" role="dialog" aria-label="Stem Splitter">
+  <div class="stem-modal-backdrop" (click)="closeStemSplit()"></div>
+  <div class="stem-modal-card">
+    <button class="stem-modal-close" (click)="closeStemSplit()" aria-label="Close">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <header class="stem-modal-head">
+      <span class="stem-modal-glyph">🎚</span>
+      <h2 class="stem-modal-title">Neural Stem Splitter</h2>
+      <p class="stem-modal-sub">
+        Drop an audio file — get vocals, drums, bass, instrumental, and other as
+        separate tracks you can mute / solo / mix.
+      </p>
+    </header>
+
+    <div class="stem-modal-body">
+      <label class="stem-drop-zone" tabindex="0">
+        <span class="material-symbols-outlined">upload</span>
+        <span class="stem-drop-label">
+          {{ stemFileName() ? stemFileName() : 'Drop or browse audio file' }}
+        </span>
+        <input
+          type="file"
+          accept="audio/*"
+          hidden
+          (change)="onStemFile($event)"
+        />
+      </label>
+
+      <div class="stem-progress" *ngIf="stemBusy() || stemProgress() > 0">
+        <div class="stem-progress-bar" [style.width.%]="stemProgress()"></div>
+        <span class="stem-progress-text">
+          {{ stemProgress() < 50 ? 'Decoding ·' : stemProgress() < 100 ? 'Spectral Decomposition ·' : 'Stems Ready' }}
+          {{ stemProgress() }}%
+        </span>
+      </div>
+
+      <div class="stem-results" *ngIf="stemStems() as stems">
+        <div class="stem-card" *ngFor="let s of [{key:'vocals',label:'🎤 Vocals'},{key:'drums',label:'🥁 Drums'},{key:'bass',label:'🎸 Bass'},{key:'instrumental',label:'🎹 Instrumental'},{key:'other',label:'🎺 Other'}]">
+          <div class="stem-card-glyph">{{ s.label.split(' ')[0] }}</div>
+          <div class="stem-card-name">{{ s.label.split(' ')[1] }}</div>
+          <div class="stem-card-meta">
+            {{ (stems[s.key]?.duration ?? 0) | number:'1.1-1' }}s
+          </div>
+        </div>
+        <button
+          class="stem-apply-btn"
+          [disabled]="!stemStems()"
+          (click)="applyStems()"
+        >
+          ➕ Add 5 Stem Tracks
+        </button>
       </div>
     </div>
   </div>

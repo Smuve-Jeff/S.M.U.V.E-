@@ -1008,3 +1008,231 @@
   .perf-pad { min-height: 50px; }
   .xb-label { width: 50px; font-size: 7px; }
 }
+
+/* ========================================================
+   FX MACROS TAB — XY PAD (one-finger modulator)
+   ======================================================== */
+
+.macros-tab .icn { font-size: 13px; }
+
+.view-macros {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--ivory-bg);
+  overflow: hidden;
+  align-items: center;
+}
+
+.macro-preset-strip {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  max-width: 640px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+.macro-preset-strip::-webkit-scrollbar { display: none; }
+
+.macro-preset-chip {
+  flex: 1 1 0;
+  min-width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: var(--ivory-paper);
+  border: 1.5px solid var(--espresso-line);
+  border-radius: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, border-color 0.12s, box-shadow 0.12s;
+}
+.macro-preset-chip:hover {
+  border-color: var(--macro-color, var(--teal-500));
+  transform: translateY(-1px);
+}
+.macro-preset-chip.is-active {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--macro-color) 20%, var(--ivory-paper)) 0%, var(--ivory-paper) 100%);
+  border-color: var(--macro-color, var(--teal-500));
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+    0 4px 16px rgba(0, 0, 0, 0.15);
+}
+.macro-preset-glyph { font-size: 18px; line-height: 1; }
+.macro-preset-name {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+  text-align: center;
+}
+
+/* The XY pad surface itself */
+.xy-pad {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1 / 1;
+  background:
+    radial-gradient(circle at 50% 50%, var(--ivory-paper) 0%, var(--ivory-deep) 100%);
+  border: 2px solid var(--espresso-line);
+  border-radius: 22px;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none; /* CRITICAL: prevents browser scroll/zoom hijack on drag */
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), inset 0 -4px 12px rgba(0, 0, 0, 0.10);
+}
+
+.xy-cross {
+  position: absolute;
+  background: rgba(14, 124, 123, 0.18);
+  pointer-events: none;
+}
+.xy-cross-v {
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+}
+.xy-cross-h {
+  top: 50%;
+  left: 0; right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.xy-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  pointer-events: none;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+.xy-corner-tl { top: 0; left: 0; align-items: flex-start; }
+.xy-corner-tr { top: 0; right: 0; align-items: flex-end; }
+.xy-corner-bl { bottom: 0; left: 0; align-items: flex-start; }
+.xy-corner-br {
+  bottom: 0; right: 0; align-items: flex-end;
+  pointer-events: auto;
+}
+
+.xy-corner-label {
+  font-size: 8px;
+  color: var(--teal-500);
+}
+.xy-corner-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--espresso-text);
+  text-transform: none;
+  font-weight: 700;
+}
+.xy-corner-glyph { font-size: 18px; line-height: 1; }
+.xy-corner-name {
+  font-size: 9px;
+  color: var(--espresso-text);
+  font-weight: 800;
+}
+.xy-corner-status {
+  font-size: 8px;
+  color: var(--espresso-muted);
+  letter-spacing: 0.16em;
+}
+.xy-corner-reset {
+  background: var(--teal-500);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+  transition: all 0.12s;
+}
+.xy-corner-reset:hover {
+  background: var(--teal-700, #0a5e5d);
+  box-shadow: 0 0 0 3px rgba(14, 124, 123, 0.25);
+}
+
+/* The position dot — shows where the user is dragging */
+.xy-dot {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.04s linear, top 0.04s linear;
+  z-index: 3;
+}
+.xy-dot::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  background: var(--teal-500);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.6),
+    0 0 14px rgba(14, 124, 123, 0.6);
+}
+.xy-dot-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--teal-500);
+  border-radius: 50%;
+  opacity: 0.5;
+  animation: xyDotPing 1.6s ease-out infinite;
+}
+.xy-dot.is-engaged::after {
+  background: var(--orange, #d97706);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.7),
+    0 0 22px rgba(217, 119, 6, 0.7);
+}
+.xy-dot.is-engaged .xy-dot-ring {
+  border-color: var(--orange, #d97706);
+  opacity: 0.7;
+  animation: xyDotPing 0.9s ease-out infinite;
+}
+@keyframes xyDotPing {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+.macro-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--espresso-muted);
+  line-height: 1.45;
+  max-width: 480px;
+  padding: 0 12px;
+}
+.macro-hint strong {
+  color: var(--teal-500);
+  font-weight: 800;
+}
+
+/* Mobile compaction for the macros view */
+@media (max-width: 768px) {
+  .xy-pad { width: min(100%, 280px); }
+  .xy-corner-value { font-size: 11px; }
+  .macro-preset-chip { min-width: 70px; padding: 8px 6px; }
+  .macro-preset-name { font-size: 8px; }
+  .macro-preset-glyph { font-size: 14px; }
+}

@@ -18,6 +18,8 @@ import { HistoryService } from '../../services/history.service';
 import { HapticService } from '../../services/haptic.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { StudioTrack, StudioClip } from '../../types/studio.types';
+import { StemSeparationService, Stems } from '../../services/stem-separation.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 @Component({
   selector: 'app-arrangement-view',
@@ -32,6 +34,15 @@ export class ArrangementViewComponent {
   public readonly history = inject(HistoryService);
   private readonly haptic = inject(HapticService);
   private readonly enhancedGestures = inject(EnhancedTouchGestureService);
+  private readonly stemSvc = inject(StemSeparationService);
+  private readonly snackbar = inject(SnackbarService);
+
+  // ── Stem-Splitter UI state ───────────────────────────────────────
+  stemOpen = signal(false);
+  stemProgress = signal(0);
+  stemStems = signal<Stems | null>(null);
+  stemFileName = signal<string | null>(null);
+  stemBusy = signal(false);
 
   readonly tracks = this.musicManager.tracks;
   activeTool = signal<'select' | 'blade' | 'glue'>('select');
@@ -278,6 +289,55 @@ export class ArrangementViewComponent {
         return t;
       })
     );
+  }
+
+  // ── Stem Splitter handlers ───────────────────────────────────────
+
+  openStemSplit(): void {
+    this.stemOpen.set(true);
+    this.stemProgress.set(0);
+    this.stemStems.set(null);
+    this.stemFileName.set(null);
+  }
+
+  closeStemSplit(): void {
+    this.stemOpen.set(false);
+  }
+
+  async onStemFile(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.stemBusy.set(true);
+    this.stemFileName.set(file.name);
+    this.stemProgress.set(15);
+    this.snackbar.show('🎚 Stem Split · decoding ' + file.name);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const ctx = this.musicManager.engine.ctx;
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      this.stemProgress.set(45);
+      this.snackbar.show('🎚 Stem Split · spectral decomposition');
+      const stems = await this.stemSvc.separate(audioBuffer);
+      this.stemStems.set(stems);
+      this.stemProgress.set(100);
+      this.snackbar.show('🎚 Stem Split · 4 stems ready');
+    } catch (err: any) {
+      console.error('Stem split failed', err);
+      this.snackbar.show('🎚 Stem Split failed: ' + (err?.message ?? 'unknown'));
+    } finally {
+      this.stemBusy.set(false);
+      // Reset file input so the same file can be re-uploaded.
+      input.value = '';
+    }
+  }
+
+  applyStems(): void {
+    const stems = this.stemStems();
+    if (!stems) return;
+    this.musicManager.addStemsAsAudioTracks(stems as any);
+    this.snackbar.show('🎚 4 Stem Tracks added');
+    this.closeStemSplit();
   }
 
   canvasHeight() {

@@ -227,6 +227,20 @@
     <span class="ctb-volume-readout">{{ masterVolume() }}</span>
   </div>
 
+  <!-- Pro: Ideas Generator trigger chip (one-tap 4-bar starter) -->
+  <div class="ctb-group ctb-ideas-group">
+    <button
+      type="button"
+      class="ctb-btn ctb-ideas"
+      (click)="openIdeas()"
+      [attr.aria-label]="'Open Ideas Generator — curated starter loops'"
+      title="Ideas Generator — pick a starter kit"
+    >
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span class="ctb-ideas-label">IDEAS</span>
+    </button>
+  </div>
+
   <!-- BPM dropdown menu -->
   <div class="ctb-dropdown glass-v42" *ngIf="showBpmDropdown()" role="dialog" aria-label="BPM presets">
     <button
@@ -257,5 +271,43 @@
       <span class="material-symbols-outlined">download</span>
       Export WAV
     </button>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     IDEAS GENERATOR MODAL — 6 curated genre starter loops
+     ───────────────────────────────────────────────────────────── -->
+<div class="ideas-modal-root" *ngIf="ideasOpen()" role="dialog" aria-label="Ideas generator">
+  <div class="ideas-modal-backdrop" (click)="closeIdeas()"></div>
+  <div class="ideas-modal-card">
+    <button class="ideas-modal-close" type="button" (click)="closeIdeas()" aria-label="Close ideas generator">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <header class="ideas-modal-head">
+      <span class="ideas-modal-glyph">✨</span>
+      <h2 class="ideas-modal-title">Loop Starters</h2>
+      <p class="ideas-modal-sub">
+        One tap and you have a session-ready loop: curated chord progression,
+        drum groove, and bassline. BPM-aware.
+      </p>
+    </header>
+
+    <div class="ideas-modal-bento">
+      <button
+        *ngFor="let r of ideas.recipes"
+        type="button"
+        class="ideas-card"
+        (click)="useRecipe(r)"
+        [attr.aria-label]="'Generate ' + r.name + ' at ' + r.bpm + ' BPM'"
+      >
+        <span class="ideas-card-glyph">{{ r.glyph }}</span>
+        <span class="ideas-card-name">{{ r.name }}</span>
+        <span class="ideas-card-meta">{{ r.bpm }} BPM · {{ r.vibe }}</span>
+        <span class="ideas-card-prog">
+          <span class="ideas-card-prog-chip" *ngFor="let p of r.progression">{{ p }}</span>
+        </span>
+        <span class="ideas-card-cta">➕ Generate</span>
+      </button>
+    </div>
   </div>
 </div>

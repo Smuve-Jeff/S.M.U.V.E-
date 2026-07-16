@@ -3,6 +3,8 @@ import { AudioEngineService } from './audio-engine.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
 import { InstrumentsService } from './instruments.service';
+import { StemSeparationService } from './stem-separation.service';
+import { IdeaRecipe } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import {
@@ -89,7 +91,17 @@ export class MusicManagerService {
   private history = inject(HistoryService);
   private instruments = inject(InstrumentsService);
   private recordingEngine = inject(StudioRecordingEngineService);
+  private stemSplitter = inject(StemSeparationService);
   private logger = inject(LoggingService);
+
+  /**
+   * AudioBuffer cache for stem-derived audio clips.
+   *
+   * `clone()` (used by HistoryService via JSON.parse/stringify) destroys
+   * AudioBuffers because they're not JSON-serializable. Storing the raw
+   * buffers here — keyed by clip id — keeps them alive across undo/redo.
+   */
+  public stemAudioCache = new Map<string, AudioBuffer>();
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<string | null>(null);
@@ -1080,6 +1092,186 @@ export class MusicManagerService {
     this.logger.info(`Added automation lane for ${param}`);
   }
 
+  // ── Generated recipes (blank-canvas killer) ───────────────────────
+
+  /**
+   * One-tap setup: snapshot current state, wipe, populate with the recipe's
+   * curated tracks + drum steps + bpm. Single reversible history step.
+   */
+  applyGeneratedRecipe(recipe: IdeaRecipe): void {
+    const beforeTracks = this.clone(this.tracks());
+    const beforeBpm = this.engine.tempo();
+    const beforeSel = this.selectedTrackId();
+
+    // Build all new tracks in memory first.
+    const newTracks: TrackModel[] = [];
+    const stepsByTrack = new Map<string, boolean[]>();
+    recipe.tracks.forEach((rt) => {
+      const built = this.buildRecipeTrack(rt);
+      newTracks.push(built);
+      if (rt.drum) {
+        stepsByTrack.set(
+          built.id,
+          this.expandDrumPattern(rt.drum.kick, rt.drum.snare, rt.drum.hat)
+        );
+      }
+    });
+    // Apply drum steps for tracks that have a drum pattern.
+    if (stepsByTrack.size) {
+      newTracks.forEach((t) => {
+        const steps = stepsByTrack.get(t.id);
+        if (steps) t.steps = steps;
+      });
+    }
+
+    const setTempo = (bpm: number) => this.engine.tempo.set(bpm);
+    const restore = () => {
+      this.stemAudioCache.clear();
+      this.tracks.set(this.clone(beforeTracks));
+      this.selectedTrackId.set(beforeSel);
+      setTempo(beforeBpm);
+    };
+
+    this.history.execute({
+      name: 'Generate · ' + recipe.name,
+      execute: () => {
+        this.tracks.set(newTracks);
+        this.selectedTrackId.set(newTracks[0]?.id ?? null);
+        setTempo(recipe.bpm);
+      },
+      undo: restore,
+    });
+  }
+
+  /** Build a `TrackModel` matching addTrack()'s shape, from a recipe track. */
+  private buildRecipeTrack(rt: {
+    name: string;
+    instrumentId: string;
+    notes: IdeaRecipe['tracks'][0]['notes'];
+  }): TrackModel {
+    const id = rt.instrumentId.includes('drum')
+      ? MusicManagerService.DRUM_TRACK_ID
+      : 'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const preset = this.instruments.getPresets().find((p) => p.id === rt.instrumentId);
+    return {
+      id,
+      name: rt.name,
+      type: rt.instrumentId.includes('drum') ? 'drum' : 'midi',
+      instrumentId: rt.instrumentId,
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      notes: rt.notes.map((n, i) => ({
+        id: `recipe_${id}_${i}`,
+        midi: n.midi,
+        step: n.step,
+        length: n.length,
+        velocity: n.velocity,
+      })),
+      steps: new Array(64).fill(false),
+      fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      sendA: 0,
+      sendB: 0,
+      color: '#af25f4',
+      synthParams: preset?.synth || { type: 'sine' },
+      effects: [],
+      patternSlots: this.createDefaultSlots(),
+      activePatternSlotId: 'slot-0',
+    };
+  }
+
+  /** Expand 3 lane-arrays (kick/snare/hat) → single 64-step boolean array. */
+  private expandDrumPattern(
+    kick: number[],
+    snare: number[],
+    hat: number[]
+  ): boolean[] {
+    const steps = new Array(64).fill(false);
+    [...kick, ...snare, ...hat].forEach((i) => {
+      if (i >= 0 && i < 64) steps[i] = true;
+    });
+    return steps;
+  }
+
+  /**
+   * Create 4 audio tracks from a stem split — caches audio buffers in
+   * `stemAudioCache` keyed by clip id, so audio survives undo/redo
+   * (which would otherwise JSON-strip the AudioBuffer reference).
+   */
+  addStemsAsAudioTracks(stems: {
+    vocals: AudioBuffer;
+    drums: AudioBuffer;
+    bass: AudioBuffer;
+    instrumental: AudioBuffer;
+    other?: AudioBuffer;
+  }): void {
+    const beforeTracks = this.clone(this.tracks());
+    const beforeSel = this.selectedTrackId();
+
+    const labels: Record<keyof typeof stems, string> = {
+      vocals: '🎤 Vocals',
+      drums: '🥁 Drums',
+      bass: '🎸 Bass',
+      instrumental: '🎹 Instrumental',
+      other: '🎺 Other',
+    };
+
+    // Build tracks + clip refs (no buffer refs on the tracks signal itself).
+    const builtRefs: Array<{
+      trackId: string;
+      clipId: string;
+      name: string;
+      buffer: AudioBuffer;
+    }> = [];
+    const newTracks: TrackModel[] = [];
+    (Object.keys(stems) as (keyof typeof stems)[]).forEach((key) => {
+      const buf = stems[key];
+      if (!buf) return;
+      const trackId =
+        'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const clipId = 'stem_' + Date.now() + '_' + key;
+      const barsAt124 = Math.ceil(buf.duration / (60 / 124 / 4));
+      const track = this.buildRecipeTrack({
+        name: labels[key] ?? key,
+        instrumentId: 'sampler-elite',
+        notes: [],
+      });
+      track.id = trackId;
+      track.type = 'audio';
+      newTracks.push(track);
+      builtRefs.push({ trackId, clipId, name: labels[key] ?? key, buffer: buf });
+    });
+
+    const restore = () => {
+      builtRefs.forEach((r) => this.stemAudioCache.delete(r.clipId));
+      this.tracks.set(this.clone(beforeTracks));
+      this.selectedTrackId.set(beforeSel);
+    };
+
+    this.history.execute({
+      name: 'Add Stems (Split)',
+      execute: () => {
+        builtRefs.forEach((r) => {
+          this.stemAudioCache.set(r.clipId, r.buffer);
+          // Add the audio clip referencing the cache by id.
+          this.addClipToTrack(r.trackId, {
+            id: r.clipId,
+            name: r.name,
+            start: 0,
+            length: Math.max(1, builtRefs[0] ? Math.ceil(builtRefs[0].buffer.duration / (60 / 124 / 4)) : 4),
+            type: 'audio',
+            audioRefId: r.clipId,
+          } as any);
+        });
+        this.tracks.set(newTracks);
+      },
+      undo: restore,
+    });
+  }
+
   // ── Playback engine stepper ───────────────────────────────────────
 
   playStep(step: number, time: number, duration: number) {
@@ -1121,7 +1313,11 @@ export class MusicManagerService {
             });
 
           if (clip.type === 'audio' && stepInBar === 0 && bar === clip.start) {
-            const audioData = (clip as any).audioData;
+            // Audio can be either inline (legacy) or cached by id (stem splits).
+            const audioData =
+              (clip as any).audioData ||
+              ((clip as any).audioRefId &&
+                this.stemAudioCache.get((clip as any).audioRefId));
             if (audioData) {
               const rate = this.engine.calculatePlaybackRate(
                 (clip as any).originalBpm || this.engine.tempo()

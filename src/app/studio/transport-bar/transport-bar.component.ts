@@ -5,10 +5,11 @@ import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { ExportService } from '../../services/export.service';
 import { RecordingStatusService } from '../recording-status.service';
-import { ProjectService } from '../../services/project.service';
+import { IdeasGeneratorService, IdeaRecipe } from '../../services/ideas-generator.service';
 import { MusicManagerService } from '../../services/music-manager.service';
-import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { ProjectService } from '../../services/project.service';
+import { HapticService } from '../../services/haptic.service';
 import { HistoryService } from '../../services/history.service';
 
 @Component({
@@ -30,6 +31,11 @@ export class TransportBarComponent {
   /** Real history stack — bound so Undo/Redo buttons actually reverse mutations. */
   readonly history = inject(HistoryService);
   isExporting = signal(false);
+
+  /** Ideas generator — one-tap 4-bar starter recipes. */
+  public readonly ideas = inject(IdeasGeneratorService);
+  /** Ideas modal open state. */
+  ideasOpen = signal(false);
 
   isPlaying = this.audioSession.isPlaying;
   isRecording = this.audioSession.isRecording;
@@ -132,6 +138,24 @@ export class TransportBarComponent {
 
   toggleLoop(): void {
     this.loopEnabled.update((v) => !v);
+  }
+
+  // ── Ideas Generator ───────────────────────────────────────────────
+
+  openIdeas(): void {
+    this.ideasOpen.set(true);
+  }
+
+  closeIdeas(): void {
+    this.ideasOpen.set(false);
+  }
+
+  /** Trigger generation of a curated 4-bar starter. */
+  useRecipe(r: IdeaRecipe): void {
+    this.audioEngine.resume();
+    this.snack.show('✨ Generating · ' + r.name);
+    this.musicManager.applyGeneratedRecipe(r);
+    this.ideasOpen.set(false);
   }
 
   // ── Pro: Tap tempo ─────────────────────────────────────

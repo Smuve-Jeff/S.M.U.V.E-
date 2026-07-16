@@ -55,6 +55,16 @@
       >
         <span class="icn" aria-hidden="true">▦</span> Matrix
       </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="layout() === 'macros'"
+        [class.is-active]="layout() === 'macros'"
+        (click)="setLayout('macros')"
+        class="macros-tab"
+      >
+        <span class="icn" aria-hidden="true">🎛</span> FX Macros
+      </button>
     </div>
   </header>
 
@@ -333,6 +343,80 @@
           <span class="pad-label">{{ pad.name }}</span>
         </button>
       </div>
+    </div>
+
+    <!-- FX MACROS (XY pad) -->
+    <div class="view-macros" *ngIf="layout() === 'macros'">
+      <!-- 5 preset chips on top -->
+      <div class="macro-preset-strip" role="tablist" aria-label="Macro presets">
+        <button
+          *ngFor="let p of fxMacros.presets"
+          type="button"
+          class="macro-preset-chip"
+          [class.is-active]="fxMacros.activeMacroId() === p.id"
+          [style.--macro-color]="p.color"
+          (click)="fxMacros.setMacro(p.id)"
+          [attr.aria-pressed]="fxMacros.activeMacroId() === p.id"
+        >
+          <span class="macro-preset-glyph">{{ p.glyph }}</span>
+          <span class="macro-preset-name">{{ p.name }}</span>
+        </button>
+      </div>
+
+      <!-- The XY surface -->
+      <div
+        class="xy-pad"
+        #xyPad
+        (pointerdown)="onPadDown($event, xyPad)"
+        (pointermove)="onPadMove($event, xyPad)"
+        (pointerup)="onPadUp($event, xyPad)"
+        (pointerleave)="onPadUp($event, xyPad)"
+        role="slider"
+        aria-label="FX Macro XY pad"
+        [attr.aria-valuetext]="fxMacros.activeMacro().name + ' · X=' + fxMacros.currentValues().xLabel + ', Y=' + fxMacros.currentValues().yLabel"
+      >
+        <!-- Crosshair guide lines -->
+        <div class="xy-cross xy-cross-v"></div>
+        <div class="xy-cross xy-cross-h"></div>
+        <!-- Corner HUD labels (from current macro's target specs) -->
+        <div class="xy-corner xy-corner-tl">
+          <span class="xy-corner-label">{{ fxMacros.activeMacro().xTarget.label }}</span>
+          <span class="xy-corner-value">{{ fxMacros.currentValues().xLabel }}</span>
+        </div>
+        <div class="xy-corner xy-corner-tr">
+          <span class="xy-corner-label">{{ fxMacros.activeMacro().yTarget.label }}</span>
+          <span class="xy-corner-value">{{ fxMacros.currentValues().yLabel }}</span>
+        </div>
+        <div class="xy-corner xy-corner-bl">
+          <span class="xy-corner-glyph">{{ fxMacros.activeMacro().glyph }}</span>
+          <span class="xy-corner-name">{{ fxMacros.activeMacro().name }}</span>
+        </div>
+        <div class="xy-corner xy-corner-br">
+          <span class="xy-corner-status">{{ fxMacros.engaged() ? 'ENGAGED' : 'OPEN' }}</span>
+          <button
+            type="button"
+            class="xy-corner-reset"
+            (click)="fxMacros.reset(); $event.stopPropagation()"
+            aria-label="Reset macro to center"
+          >RESET</button>
+        </div>
+        <!-- Position dot -->
+        <div
+          class="xy-dot"
+          [class.is-engaged]="fxMacros.engaged()"
+          [style.left.%]="fxMacros.xyPos().x * 100"
+          [style.top.%]="(1 - fxMacros.xyPos().y) * 100"
+        >
+          <span class="xy-dot-ring"></span>
+        </div>
+      </div>
+
+      <p class="macro-hint">
+        Drag with one finger to modulate
+        <strong>{{ fxMacros.activeMacro().xTarget.label }}</strong>
+        and <strong>{{ fxMacros.activeMacro().yTarget.label }}</strong> simultaneously.
+        {{ fxMacros.activeMacro().description }}.
+      </p>
     </div>
 
     <!-- MATRIX -->
