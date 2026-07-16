@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { KnobComponent } from '../shared/knob/knob.component';
@@ -14,11 +14,18 @@ import {
   InstrumentPreset,
 } from '../../services/instruments.service';
 import { PerformanceGridComponent } from '../performance-grid/performance-grid.component';
+import { PerformanceRecordingService } from '../performance-recording.service';
 
 @Component({
   selector: 'app-performer',
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent, PerformanceGridComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    KnobComponent,
+    PerformanceGridComponent,
+    DecimalPipe,
+  ],
   templateUrl: './performer.component.html',
   styleUrls: ['./performer.component.css'],
 })
@@ -26,6 +33,7 @@ export class PerformerComponent implements OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   public readonly liveEngine = inject(LiveEngineService);
+  public readonly perfRecording = inject(PerformanceRecordingService);
   private readonly haptic = inject(HapticService);
   private readonly instrumentsService = inject(InstrumentsService);
 
@@ -60,6 +68,53 @@ export class PerformerComponent implements OnDestroy {
 
   ngOnDestroy() {
     if (this.visualizerFrame) cancelAnimationFrame(this.visualizerFrame);
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Multi-take recording wiring
+  // ────────────────────────────────────────────────────────────────
+  toggleArm() {
+    // Toggles armed → immediately starts capture so the user can dive in.
+    // Pressing again while recording finalizes the take.
+    if (this.perfRecording.isRecording()) {
+      const track = this.selectedTrack();
+      this.perfRecording
+        .finishTake(track?.id, track?.name)
+        .catch(() => undefined);
+      this.haptic.medium();
+      return;
+    }
+    if (!this.perfRecording.isArmed()) {
+      this.perfRecording.arm();
+      this.haptic.light();
+      // Auto-start capture within a short delay so the artist can prepare.
+      setTimeout(() => {
+        const track = this.selectedTrack();
+        this.perfRecording.startRecording(track?.id, track?.name);
+        this.haptic.medium();
+      }, 120);
+    } else {
+      this.perfRecording.disarm();
+    }
+  }
+
+  /** Convert dBFS (-60..0) to a 0-100 percentage for meter fills. */
+  dbToPct(db: number): number {
+    if (!isFinite(db) || db <= -60) return 0;
+    if (db >= 0) return 100;
+    // Map -60..0 → 0..100 with a perceptual curve
+    const raw = ((db + 60) / 60) * 100;
+    return Math.round(Math.max(0, Math.min(100, raw)));
+  }
+
+  /** Format a duration in ms as M:SS.s */
+  formatTakeDuration(ms: number): string {
+    if (!ms || !isFinite(ms)) return '0:00.0';
+    const total = Math.floor(ms / 1000);
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    const tenths = Math.floor((ms % 1000) / 100);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`;
   }
 
   private startVisualizer() {
@@ -188,6 +243,9 @@ export class PerformerComponent implements OnDestroy {
     if (this.audioSession.isRecording()) {
       this.musicManager.recordLiveNote(actualMidi, this.velocity);
     }
+
+    // Tag MIDI to current take if we're capturing.
+    this.perfRecording.recordMidi(actualMidi, this.velocity);
 
     this.activeKeys.update((keys) => {
       const next = new Set(keys);

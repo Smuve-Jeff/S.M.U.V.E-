@@ -62,6 +62,97 @@
   >
     <!-- Left Deck (A) -->
     <div class="deck-section deck-left" id="deck-a">
+      <!-- DiscDj-style top cue strip — 4 prominent pads -->
+      <div class="cue-strip" role="group" aria-label="Deck A hot cues">
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('A', 0)"
+          [class.is-fired]="deckService.deckA().hotCues[0] !== null && rotationA() > 0"
+          [style.--cue-color]="'var(--color-hotcue-0)'"
+          (click)="handlePadPress('A', 0)"
+          (contextmenu)="clearPad('A', 0, $event)"
+          [attr.aria-label]="'Deck A cue 1'">
+          <span class="cue-index">CUE&nbsp;1</span>
+          <span class="cue-name">{{ deckService.deckA().hotCues[0] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('A', 1)"
+          [style.--cue-color]="'var(--color-hotcue-1)'"
+          (click)="handlePadPress('A', 1)"
+          (contextmenu)="clearPad('A', 1, $event)"
+          [attr.aria-label]="'Deck A cue 2'">
+          <span class="cue-index">CUE&nbsp;2</span>
+          <span class="cue-name">{{ deckService.deckA().hotCues[1] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('A', 2)"
+          [style.--cue-color]="'var(--color-hotcue-2)'"
+          (click)="handlePadPress('A', 2)"
+          (contextmenu)="clearPad('A', 2, $event)"
+          [attr.aria-label]="'Deck A cue 3'">
+          <span class="cue-index">CUE&nbsp;3</span>
+          <span class="cue-name">{{ deckService.deckA().hotCues[2] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('A', 3)"
+          [style.--cue-color]="'var(--color-hotcue-3)'"
+          (click)="handlePadPress('A', 3)"
+          (contextmenu)="clearPad('A', 3, $event)"
+          [attr.aria-label]="'Deck A cue 4'">
+          <span class="cue-index">CUE&nbsp;4</span>
+          <span class="cue-name">{{ deckService.deckA().hotCues[3] !== null ? '◉' : '◯' }}</span>
+        </button>
+      </div>
+
+      <!-- Loop length preset chips -->
+      <div class="loop-presets" role="group" aria-label="Loop length presets">
+        <button
+          *ngFor="let preset of loopLengthPresets"
+          type="button"
+          class="loop-preset-chip"
+          [class.is-active]="deckService.deckA().loop && deckService.deckA().isPlaying"
+          (click)="setLoopLengthPreset('A', preset.beats)"
+          [attr.aria-label]="'Loop ' + preset.label + ' beats'">
+          {{ preset.label }}
+        </button>
+      </div>
+
+      <!-- Pitch bend buttons flanking pitch slider -->
+      <div class="pitch-control">
+        <button
+          type="button"
+          class="bend-btn"
+          (click)="nudgePitch('A', 'down')"
+          aria-label="Deck A pitch down"
+          title="Pitch down −1%">−</button>
+        <div class="pitch-fader-container">
+          <div class="fader-track">
+            <input
+              type="range"
+              min="0.9"
+              max="1.1"
+              step="0.001"
+              [value]="deckService.deckA().playbackRate"
+              (input)="setPlaybackRate('A', $any($event.target).value)"
+            />
+          </div>
+          <label>PITCH {{ pitchAPercentage() }}</label>
+        </div>
+        <button
+          type="button"
+          class="bend-btn"
+          (click)="nudgePitch('A', 'up')"
+          aria-label="Deck A pitch up"
+          title="Pitch up +1%">+</button>
+      </div>
+
       <div class="deck-plinth">
         <div
           class="platter-container"
@@ -397,6 +488,96 @@
 
     <!-- Right Deck (B) -->
     <div class="deck-section deck-right" id="deck-b">
+      <!-- DiscDj-style top cue strip — 4 prominent pads -->
+      <div class="cue-strip" role="group" aria-label="Deck B hot cues">
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('B', 0)"
+          [style.--cue-color]="'var(--color-hotcue-4)'"
+          (click)="handlePadPress('B', 0)"
+          (contextmenu)="clearPad('B', 0, $event)"
+          [attr.aria-label]="'Deck B cue 1'">
+          <span class="cue-index">CUE&nbsp;1</span>
+          <span class="cue-name">{{ deckService.deckB().hotCues[0] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('B', 1)"
+          [style.--cue-color]="'var(--color-hotcue-5)'"
+          (click)="handlePadPress('B', 1)"
+          (contextmenu)="clearPad('B', 1, $event)"
+          [attr.aria-label]="'Deck B cue 2'">
+          <span class="cue-index">CUE&nbsp;2</span>
+          <span class="cue-name">{{ deckService.deckB().hotCues[1] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('B', 2)"
+          [style.--cue-color]="'var(--color-hotcue-6)'"
+          (click)="handlePadPress('B', 2)"
+          (contextmenu)="clearPad('B', 2, $event)"
+          [attr.aria-label]="'Deck B cue 3'">
+          <span class="cue-index">CUE&nbsp;3</span>
+          <span class="cue-name">{{ deckService.deckB().hotCues[2] !== null ? '◉' : '◯' }}</span>
+        </button>
+        <button
+          type="button"
+          class="cue-pad"
+          [class.is-set]="isCuePadSet('B', 3)"
+          [style.--cue-color]="'var(--color-hotcue-7)'"
+          (click)="handlePadPress('B', 3)"
+          (contextmenu)="clearPad('B', 3, $event)"
+          [attr.aria-label]="'Deck B cue 4'">
+          <span class="cue-index">CUE&nbsp;4</span>
+          <span class="cue-name">{{ deckService.deckB().hotCues[3] !== null ? '◉' : '◯' }}</span>
+        </button>
+      </div>
+
+      <!-- Loop length preset chips -->
+      <div class="loop-presets" role="group" aria-label="Loop length presets">
+        <button
+          *ngFor="let preset of loopLengthPresets"
+          type="button"
+          class="loop-preset-chip"
+          [class.is-active]="deckService.deckB().loop && deckService.deckB().isPlaying"
+          (click)="setLoopLengthPreset('B', preset.beats)"
+          [attr.aria-label]="'Loop ' + preset.label + ' beats'">
+          {{ preset.label }}
+        </button>
+      </div>
+
+      <!-- Pitch bend buttons flanking pitch slider -->
+      <div class="pitch-control">
+        <button
+          type="button"
+          class="bend-btn"
+          (click)="nudgePitch('B', 'down')"
+          aria-label="Deck B pitch down"
+          title="Pitch down −1%">−</button>
+        <div class="pitch-fader-container">
+          <div class="fader-track">
+            <input
+              type="range"
+              min="0.9"
+              max="1.1"
+              step="0.001"
+              [value]="deckService.deckB().playbackRate"
+              (input)="setPlaybackRate('B', $any($event.target).value)"
+            />
+          </div>
+          <label>PITCH {{ pitchBPercentage() }}</label>
+        </div>
+        <button
+          type="button"
+          class="bend-btn"
+          (click)="nudgePitch('B', 'up')"
+          aria-label="Deck B pitch up"
+          title="Pitch up +1%">+</button>
+      </div>
+
       <div class="deck-plinth">
         <div
           class="platter-container"

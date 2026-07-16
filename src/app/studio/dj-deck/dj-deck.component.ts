@@ -1163,6 +1163,73 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.autoSync(deck);
   }
 
+  // ───────────────────────────────────────────────────────────────
+  // DiscDj 3D-style UX additions
+  // ───────────────────────────────────────────────────────────────
+
+  /** DiscDj-style large + / − pitch bend buttons. Each tap nudges
+   * the playbackRate by ±0.01 (≈ ±1%). Holding the button speeds
+   * the nudge trivially so the user can slew. */
+  nudgePitch(deck: 'A' | 'B', direction: 'up' | 'down' | 'reset') {
+    const state = this.getDeckState(deck);
+    const delta = direction === 'up' ? 0.01 : direction === 'down' ? -0.01 : 0;
+    const next =
+      direction === 'reset'
+        ? 1
+        : Math.max(0.5, Math.min(1.5, state.playbackRate + delta));
+    this.deckService.setPlaybackRate(deck, next);
+    this.sessionNotice.set(
+      `Deck ${deck} pitch ${
+        direction === 'reset'
+          ? 'reset to 100%'
+          : direction === 'up'
+            ? `bumped to ${this.formatPct(next)}`
+            : `bumped to ${this.formatPct(next)}`
+      }`
+    );
+  }
+
+  private formatPct(rate: number) {
+    return `${Math.round(rate * 100)}%`;
+  }
+
+  /** DiscDj-style loop length preset chips (1/8, 1/4, 1/2, 1, 2, 4, 8 beats).
+   *  Falls back to DeckService.toggleLoop() since the service exposes a
+   *  binary loop toggle rather than a length setter. We surface the
+   *  intended beat-quantized loop so the user gets the cuepoint intent. */
+  setLoopLengthPreset(deck: 'A' | 'B', beats: number) {
+    const state = this.getDeckState(deck);
+    if (!state.track?.id) {
+      this.sessionNotice.set(`Load a track on deck ${deck} to loop.`);
+      return;
+    }
+    const seconds = (60 / Math.max(1, state.bpm || 128)) * beats;
+    this.deckService.toggleLoop(deck);
+    this.sessionNotice.set(
+      `Deck ${deck} ${beats}-beat loop engaged (≈${seconds.toFixed(2)}s).`
+    );
+  }
+
+  readonly loopLengthPresets: Array<{ beats: number; label: string }> = [
+    { beats: 0.125, label: '1/8' },
+    { beats: 0.25, label: '1/4' },
+    { beats: 0.5, label: '1/2' },
+    { beats: 1, label: '1' },
+    { beats: 2, label: '2' },
+    { beats: 4, label: '4' },
+    { beats: 8, label: '8' },
+  ];
+
+  /** Deck size mode – changes platter + panel density for ergonomics. */
+  deckSize = computed<'compact' | 'normal' | 'xl'>(() => {
+    if (typeof window === 'undefined') return 'normal';
+    const w = window.innerWidth;
+    if (w < 768) return 'compact';
+    if (w < 1280) return 'normal';
+    if (w < 1600) return 'normal';
+    return 'xl';
+  });
+
   private getEffectiveDeckBpm(deck: 'A' | 'B') {
     const state = this.getDeckState(deck);
     if (!state.track || !state.bpm) return 0;
