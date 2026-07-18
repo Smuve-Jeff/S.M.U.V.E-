@@ -1,5 +1,5 @@
 import { LoggingService } from './logging.service';
-import { Injectable, signal, inject, OnDestroy } from '@angular/core';
+import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 
 export interface AudioInputDevice {
   deviceId: string;
@@ -34,6 +34,9 @@ export class MicrophoneService implements OnDestroy {
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private chunks: Blob[] = [];
+  /** Pre-analyser input gain so external mics / interfaces can be
+   *  attenuated or boosted (0 = mute, 1 = unity, up to 2 = +6 dB). */
+  private inputGainNode: GainNode | null = null;
 
   isInitialized = signal(false);
   isRecording = signal(false);
@@ -43,6 +46,22 @@ export class MicrophoneService implements OnDestroy {
 
   availableDevices = signal<AudioInputDevice[]>([]);
   selectedDeviceId = signal<string | null>(null);
+
+  /** Live input gain (0–2). Defaults to unity gain. */
+  micInputGain = signal<number>(1);
+  /** Friendly label for the active input source. */
+  inputDeviceName = computed(() => {
+    const id = this.selectedDeviceId();
+    const m = this.availableDevices().find((d) => d.deviceId === id);
+    return m?.label || 'Default microphone';
+  });
+  /** True when a non-default (interface / USB / headset) mic is selected. */
+  externalInputActive = computed(() => {
+    const id = this.selectedDeviceId();
+    if (!id) return false;
+    const m = this.availableDevices().find((d) => d.deviceId === id);
+    return !!m && m.type !== 'built-in';
+  });
 
   private timerInterval: any;
 
@@ -176,7 +195,13 @@ export class MicrophoneService implements OnDestroy {
       this.sourceNode = this.audioContext.createMediaStreamSource(
         this.mediaStream
       );
-      this.sourceNode.connect(this.analyserNode);
+      // Insert input gain so external microphones can be attenuated
+      // or boosted without screaming into the analyser. Default value
+      // mirrors the current micInputGain() signal (defaults to 1).
+      this.inputGainNode = this.audioContext.createGain();
+      this.inputGainNode.gain.value = this.micInputGain();
+      this.sourceNode.connect(this.inputGainNode);
+      this.inputGainNode.connect(this.analyserNode);
 
       this.isInitialized.set(true);
       if (deviceId) this.selectedDeviceId.set(deviceId);
@@ -265,7 +290,18 @@ export class MicrophoneService implements OnDestroy {
       this.mediaStream.getTracks().forEach((track) => track.stop());
     }
     if (this.sourceNode) {
-      this.sourceNode.disconnect();
+      try {
+        this.sourceNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+    }
+    if (this.inputGainNode) {
+      try {
+        this.inputGainNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
     }
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
@@ -275,6 +311,44 @@ export class MicrophoneService implements OnDestroy {
     this.audioContext = null;
     this.analyserNode = null;
     this.sourceNode = null;
+    this.inputGainNode = null;
+  }
+
+  /**
+   * Adjust the microphone input gain. Pass 0 to mute, 1 for unity
+   * gain (default), or up to 2 for +6 dB of clean boost. Updates
+   * the live inputGainNode immediately so the user hears the change.
+   */
+  setMicGain(value: number): void {
+    const clamped = Math.max(0, Math.min(2, value));
+    this.micInputGain.set(clamped);
+    if (this.inputGainNode && this.audioContext) {
+      try {
+        this.inputGainNode.gain.setTargetAtTime(
+          clamped,
+          this.audioContext.currentTime,
+          0.02
+        );
+      } catch {
+        // AudioContext might be closed — fall back to direct value
+        try {
+          this.inputGainNode.gain.value = clamped;
+        } catch {
+          /* node was disposed */
+        }
+      }
+    }
+  }
+
+  /**
+   * Switch to a different audio-input device by re-initializing the
+   * MediaStream with the specified deviceId. Safe to call while
+   * recording is paused. convenience helper for the Studio IO panel
+   * and any auto-routing logic.
+   */
+  async setInputDevice(deviceId: string): Promise<void> {
+    if (!deviceId) return;
+    return this.initialize(deviceId);
   }
 
   private resolveDeviceType(label: string): AudioInputDevice['type'] {

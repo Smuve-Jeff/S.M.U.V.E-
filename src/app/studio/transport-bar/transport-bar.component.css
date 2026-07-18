@@ -210,6 +210,49 @@
   transition: bottom 0.15s ease-out;
 }
 
+/* ============================================================
+   OUTPUT METER (post-master live level) — drives the OUT chip
+   beside the master meter. Distinct teal accent so it does
+   not visually clash with the warm master meter.
+   ============================================================ */
+.ctb-meter-out {
+  min-width: 44px;
+  background: linear-gradient(180deg, rgba(14, 124, 123, 0.18), rgba(0, 0, 0, 0.30));
+  border: 1px solid rgba(14, 124, 123, 0.30);
+  width: 44px;
+}
+.ctb-meter-out-bar {
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--record) 0%, var(--orange) 35%, var(--teal-300) 75%, var(--teal-500) 100%);
+  transform-origin: bottom;
+  transform: scaleY(0.25);
+  transition: transform 0.08s ease-out;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(14, 124, 123, 0.45);
+}
+.ctb-meter-out-bar-peak {
+  opacity: 0.55;
+  filter: saturate(0.85);
+}
+.ctb-meter-out-eq {
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--teal-500, #0E7C7B);
+  max-width: 96px;
+  text-align: right;
+  opacity: 0.85;
+  font-weight: 700;
+  line-height: 1.2;
+  display: block;
+  font-family: var(--font-mono);
+}
+@media (max-width: 640px) {
+  .ctb-meter-out-eq { display: none; }
+  .ctb-meter-out { min-width: 36px; width: 36px; }
+}
+
 /* volume */
 .ctb-volume {
   display: flex;
@@ -309,6 +352,127 @@
   letter-spacing: 0.15em;
   color: var(--teal-500);
   padding: 0 4px;
+}
+
+/* ================================================
+   AUDIO OUTPUT DEVICE PICKER
+   ================================================ */
+.ctb-output-group {
+  position: relative;
+}
+
+.ctb-output-pill {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 999px;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  max-width: 220px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.ctb-output-pill:hover,
+.ctb-output-pill:focus-visible {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+}
+
+.ctb-output-pill .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--espresso-muted);
+}
+
+.ctb-output-pill.ctb-output-external {
+  border-color: var(--teal-500);
+  background: linear-gradient(135deg, var(--teal-100), var(--ivory-panel));
+  color: var(--teal-700);
+}
+
+.ctb-output-pill.ctb-output-external .material-symbols-outlined {
+  color: var(--teal-500);
+}
+
+.ctb-output-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.ctb-output-arrow {
+  font-size: 16px !important;
+  color: var(--espresso-muted);
+}
+
+.ctb-output-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 240px;
+  max-width: 320px;
+  z-index: 50;
+  box-shadow: var(--shadow-ivory-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ctb-output-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ctb-output-item:hover {
+  background: var(--teal-100);
+}
+
+.ctb-output-item-active {
+  background: var(--teal-500);
+  color: white;
+}
+
+.ctb-output-item-active .material-symbols-outlined {
+  color: white;
+}
+
+.ctb-output-item .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--teal-500);
+}
+
+.ctb-output-hint {
+  margin: 4px 12px 6px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--espresso-muted);
+  font-style: italic;
 }
 
 .ctb-dropdown-grid {

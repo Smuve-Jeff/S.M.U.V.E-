@@ -54,8 +54,44 @@ export class TransportBarComponent {
   /** Human-readable label of what's recording */
   recordingLabel = this.recordingStatus.recordingLabel;
 
+  /** Output level meter signals from AudioEngineService (post-master) */
+  outputPeak = this.audioEngine.outputPeak;
+  outputRms = this.audioEngine.outputRms;
+  /** dB FS readout derived from outputPeak — safe for label rendering */
+  outputDb = computed(() => this.audioEngine.outputLevelDb());
+  /** Active EQ profile chip label (driven by engine outputProfileLabel) */
+  outputProfileLabel = this.audioEngine.outputProfileLabel;
+  /** Active monitor blend readout */
+  monitorBlendPct = computed(() =>
+    Math.round(this.audioEngine.monitorBlend() * 100)
+  );
+
   showBpmDropdown = signal(false);
   bpmPresets = [80, 90, 100, 110, 120, 124, 128, 130, 140, 150, 160];
+
+  // ── Pro: Output device dropdown (drive new pill in template) ─────
+  /** Open/close the audio-output device picker. */
+  showOutputDeviceDropdown = signal(false);
+  /** Switched sink id, persisted via audioEngine.setOutputDevice. */
+  async selectOutputDevice(deviceId: string): Promise<void> {
+    const ok = await this.audioEngine.setOutputDevice(deviceId);
+    this.showOutputDeviceDropdown.set(false);
+    if (deviceId) {
+      this.haptic.light();
+      this.snack[ok ? 'success' : 'info'](
+        ok
+          ? 'Audio routed to: ' + this.audioEngine.outputDeviceName()
+          : 'Audio device saved (browser lacks setSinkId support)'
+      );
+    }
+  }
+  /** Friendly tooltip for the output pill. */
+  outputDeviceTooltip = computed(() => {
+    const name = this.audioEngine.outputDeviceName();
+    return this.audioEngine.supportsSinkId()
+      ? 'Tap to change audio output — currently: ' + name
+      : 'Audio output: ' + name + ' (browser cannot switch sinks)';
+  });
 
   // ── Pro: Tap tempo ─────────────────────────────────────
   tapTempoBuffer = signal<number[]>([]);

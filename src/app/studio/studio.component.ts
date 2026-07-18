@@ -165,6 +165,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
+  footerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
@@ -440,6 +441,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleRail() {
     this.railCollapsed.update((v) => !v);
+  }
+
+  toggleHeader() {
+    this.haptic.light();
+    this.headerCollapsed.update((v) => !v);
+  }
+
+  toggleFooter() {
+    this.haptic.light();
+    this.footerCollapsed.update((v) => !v);
   }
 
   toggleAiAssistant() {

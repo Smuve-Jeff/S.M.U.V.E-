@@ -1,4 +1,4 @@
-<div class="comp-shell" [class.comp-compact]="uiService.isCompactMobile()" [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'">
+<div class="comp-shell" [class.comp-compact]="uiService.isCompactMobile()" [class.comp-header-collapsed]="headerCollapsed()" [class.comp-footer-collapsed]="footerCollapsed()" [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'">
   <!-- ====================== TOP TRANSPORT ====================== -->
   <header class="comp-topbar" role="banner">
     <div class="comp-topbar-left">
@@ -10,6 +10,24 @@
         [attr.aria-expanded]="mobileDrawerOpen()"
       >
         <span class="material-symbols-outlined">menu</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn comp-header-toggle hidden md:grid"
+        (click)="toggleHeader()"
+        [attr.aria-label]="
+          headerCollapsed()
+            ? 'SHOW top bar with transport controls'
+            : 'HIDE top bar · maximize canvas for the current view'
+        "
+        [attr.aria-pressed]="headerCollapsed()"
+        [attr.title]="
+          headerCollapsed()
+            ? 'Click to SHOW transport bar &amp; theme controls'
+            : 'Click to HIDE top bar &amp; maximize canvas'
+        "
+      >
+        <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
       </button>
       <div class="comp-brand led-strip" (click)="newProject()" tabindex="0" role="button" [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'">
         <div class="comp-brand-mark" aria-hidden="true">
@@ -26,9 +44,22 @@
 
     <div class="comp-topbar-right">
       <!-- Stage status pip -->
-      <span class="comp-now-performing" aria-label="Studio session is live and ready">
+      <span class="comp-now-performing" aria-label="Studio session is live and ready to play">
         <span>●</span>
         <span>NOW PERFORMING</span>
+      </span>
+
+      <!-- External hardware badge — visible only when an external device
+           (audio interface, MIDI keyboard, gamepad) is connected. -->
+      <span
+        *ngIf="hardware?.status?.()?.audioInterfaceConnected || hardware?.status?.()?.midiDevicesConnected > 0 || hardware?.status?.()?.gamepadConnected"
+        class="comp-hw-badge led-strip"
+        [attr.aria-label]="hardware ? hardware.connectedDevicesBadge() : ''"
+        [title]="hardware ? hardware.connectedDevicesBadge() : ''"
+        role="status"
+      >
+        <span class="material-symbols-outlined">cable</span>
+        <span>{{ hardware ? hardware.connectedDevicesBadge() : '' }}</span>
       </span>
 
       <!-- ARM AUDIO pip — visible until first user gesture arms the AudioContext -->
@@ -37,8 +68,8 @@
         type="button"
         class="comp-arm-audio"
         (click)="audioEngine.resume()"
-        [attr.aria-label]="'Audio suspended — tap to arm AudioContext'"
-        title="Tap once to enable audio"
+        aria-label="Tap to arm audio — browsers require a click before sound plays"
+        title="Tap to arm audio · browsers require a user click before sound plays"
       >
         <span class="material-symbols-outlined">volume_up</span>
         <span>TAP TO ARM AUDIO</span>
@@ -49,9 +80,9 @@
         type="button"
         class="comp-icon-btn"
         (click)="cycleTheme()"
-        [attr.aria-label]="'Switch theme — currently ' + currentThemeLabel() + ' mode'"
+        [attr.aria-label]="'Switch theme — currently ' + currentThemeLabel() + ' mode · click to advance'"
         [attr.data-current-theme]="themeMode()"
-        title="Cycle theme (Light / Focus / Dark)"
+        title="Switch theme · currently: {{ currentThemeLabel() }}"
       >
         <span class="material-symbols-outlined">{{ nextThemeIcon() }}</span>
         <span class="comp-theme-chip" aria-hidden="true">{{ currentThemeLabel() }}</span>
@@ -60,8 +91,8 @@
         type="button"
         class="comp-icon-btn"
         (click)="copyShareLink()"
-        title="Share Studio Link"
-        [attr.aria-label]="'Share Studio session link'"
+        title="Copy Studio share link to clipboard"
+        aria-label="Copy Studio share link to clipboard"
       >
         <span class="material-symbols-outlined">share</span>
       </button>
@@ -71,9 +102,16 @@
         [class.comp-active]="collaboration.currentSession()"
         (click)="toggleCollaboration()"
         [attr.aria-label]="
-          collaboration.currentSession() ? 'Leave collaboration session' : 'Start collaboration session'
+          collaboration.currentSession()
+            ? 'Leave live collaboration session'
+            : 'Start live collaboration session — invite producers to join in real-time'
         "
         [attr.aria-pressed]="!!collaboration.currentSession()"
+        [attr.title]="
+          collaboration.currentSession()
+            ? 'You are in a live collab session · click to leave'
+            : 'Start a live collab session and invite producers'
+        "
       >
         <span class="material-symbols-outlined">group</span>
       </button>
@@ -81,8 +119,13 @@
         type="button"
         class="comp-icon-btn comp-ai-btn led-strip"
         (click)="toggleAiAssistant()"
-        [attr.aria-label]="'Toggle AI Assistant'"
+        [attr.aria-label]="
+          showAiAssistant()
+            ? 'Close AI Assistant chat'
+            : 'Open AI Assistant chat — get mixing, sound design &amp; strategy help'
+        "
         [attr.aria-expanded]="showAiAssistant()"
+        [attr.title]="showAiAssistant() ? 'AI Assistant · click to close' : 'Open AI Assistant · mixing &amp; strategy'"
       >
         <span class="material-symbols-outlined">auto_awesome</span>
         <span class="comp-ai-pip" aria-hidden="true"></span>
@@ -182,6 +225,79 @@
       </div>
     </section>
   </main>
+
+  <!-- ====================== STUDIO FOOTER ====================== -->
+  <footer class="comp-footer" role="contentinfo">
+    <div class="comp-footer-left">
+      <button
+        type="button"
+        class="comp-icon-btn comp-footer-toggle"
+        (click)="toggleFooter()"
+        [attr.aria-label]="footerCollapsed() ? 'Show bottom status bar' : 'Hide bottom status bar · maximize workspace'"
+        [attr.aria-pressed]="footerCollapsed()"
+        [attr.title]="footerCollapsed() ? 'Click to SHOW bottom status bar' : 'Click to HIDE bottom status bar &amp; maximize canvas'"
+      >
+        <span class="material-symbols-outlined">{{ footerCollapsed() ? 'expand_less' : 'expand_more' }}</span>
+      </button>
+      <span class="comp-footer-brand" aria-label="Smuve Jeff Presents — S.M.U.V.E. 2.0 footer branding">
+        <span class="comp-footer-mark">©️</span>
+        <span>Smuve Jeff Presents</span>
+      </span>
+    </div>
+
+    <div class="comp-footer-center">
+      <span class="comp-footer-chip" title="Current view">
+        <span class="material-symbols-outlined">view_quilt</span>
+        {{ activeView() | titlecase }}
+      </span>
+      <span class="comp-footer-chip" title="Project tempo">
+        <span class="material-symbols-outlined">speed</span>
+        {{ audioEngine.tempo() }} BPM
+      </span>
+      <span class="comp-footer-chip" title="Playback position (1-based bar)">
+        <span class="material-symbols-outlined">music_note</span>
+        Bar {{ currentBar() }}
+      </span>
+      <span
+        class="comp-footer-chip"
+        *ngIf="audioEngine.externalOutputActive()"
+        title="Audio routed to an external sink"
+      >
+        <span class="material-symbols-outlined">speaker</span>
+        OUT · {{ audioEngine.outputDeviceName() }}
+      </span>
+      <span
+        class="comp-footer-chip"
+        *ngIf="hardware && hardware.externalHardwareConnected()"
+        [title]="hardware.connectedDevicesBadge()"
+      >
+        <span class="material-symbols-outlined">cable</span>
+        {{ hardware.connectedDevicesBadge() }}
+      </span>
+    </div>
+
+    <div class="comp-footer-right">
+      <!-- Desktop side-panel toggles -->
+      <button
+        type="button"
+        class="comp-icon-btn hidden md:grid"
+        (click)="toggleRail()"
+        [attr.aria-label]="railCollapsed() ? 'Expand view sidebar' : 'Collapse view sidebar · see more canvas'"
+        [attr.title]="railCollapsed() ? 'Click to EXPAND view sidebar' : 'Click to COLLAPSE view sidebar &amp; see more canvas'"
+      >
+        <span class="material-symbols-outlined">{{ railCollapsed() ? 'dock_to_right' : 'dock_to_left' }}</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn hidden md:grid"
+        (click)="toggleHeader()"
+        [attr.aria-label]="headerCollapsed() ? 'Show top bar with transport controls' : 'Hide top bar · maximize canvas'"
+        [attr.title]="headerCollapsed() ? 'Click to SHOW top bar' : 'Click to HIDE top bar &amp; maximize canvas'"
+      >
+        <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
+      </button>
+    </div>
+  </footer>
 
   <!-- ====================== BOTTOM TAB BAR (Mobile FL pattern) ====================== -->
   <nav class="comp-bottombar" *ngIf="uiService.isCompactMobile()" role="tablist" aria-label="Studio modules">

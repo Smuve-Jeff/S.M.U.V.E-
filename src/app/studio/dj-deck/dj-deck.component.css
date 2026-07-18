@@ -13,34 +13,53 @@
  * "rotate device" overlay is shown below.
  */
 
-/* ─── Tokens (mapped to global Ivory + Teal palette for dark-mode support) ── */
+/* ─── Tokens — DJ Music Maker 3D Player aesthetic ────────────────────
+   Nightclub dark base + neon glow palette. Uses the global dark-mode
+   fallbacks when user prefers subtle dark; otherwise stands alone. */
 :root {
-  --paper: var(--ivory-paper);
-  --paper-warm: var(--ivory-panel);
-  --teal: var(--teal-500);
-  --teal-deep: #0A5F5E;
-  --teal-soft: var(--teal-soft-glow);
-  --heat: var(--orange);
-  --heat-light: #F59E0B;
-  --espresso: var(--espresso-text);
-  --espresso-soft: var(--espresso-muted);
-  --ivory-shadow: var(--shadow-ivory-md);
-  --color-hotcue-0: #ef4444;
-  --color-hotcue-1: #f59e0b;
-  --color-hotcue-2: #facc15;
-  --color-hotcue-3: #10b981;
-  --color-hotcue-4: #14b8a6;
-  --color-hotcue-5: #3b82f6;
-  --color-hotcue-6: #8b5cf6;
-  --color-hotcue-7: #ec4899;
+  --console-bg:      #0A0A14;
+  --console-deep:    #06060D;
+  --console-channel: #15151F;
+  --console-rail:    #1F1F2E;
+  --console-bezel:   #2A2A3D;
+  --brushed-steel:   #2D2D40;
+  --neon-cyan:       #00E5FF;
+  --neon-magenta:    #FF2D95;
+  --neon-lime:       #39FF14;
+  --neon-orange:     #FF6F1A;
+  --neon-purple:     #9D00FF;
+  --neon-yellow:     #FFD600;
+  --vinyl-black:     #0A0A0F;
+  --wood-grain-1:    #1A1208;
+  --wood-grain-2:    #261A0E;
+  --wood-grain-3:    #2F1F11;
+  --paper: #15151F;        /* mapped for legacy references */
+  --paper-warm: #1F1F2E;
+  --teal: var(--neon-cyan);
+  --teal-deep: #00838F;
+  --teal-soft: rgba(0, 229, 255, 0.14);
+  --heat: var(--neon-orange);
+  --heat-light: var(--neon-yellow);
+  --espresso: #E8E8F4;
+  --espresso-soft: #9090B0;
+  --ivory-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --color-hotcue-0: #FF3B3B;
+  --color-hotcue-1: #FF7A1A;
+  --color-hotcue-2: #FFD600;
+  --color-hotcue-3: #39FF14;
+  --color-hotcue-4: #00FFD0;
+  --color-hotcue-5: #00B8FF;
+  --color-hotcue-6: #B14EFF;
+  --color-hotcue-7: #FF2D95;
 }
 
 /* ─── Shell ──────────────────────────────────────────────────── */
 .dj-3d-stage {
   background:
-    radial-gradient(circle at 25% 0%, var(--teal-soft) 0%, transparent 35%),
-    radial-gradient(circle at 75% 100%, rgba(217, 119, 6, 0.12) 0%, transparent 40%),
-    var(--paper);
+    radial-gradient(ellipse 60% 50% at 20% 0%, rgba(0, 229, 255, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(157, 0, 255, 0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 45, 149, 0.10) 0%, transparent 70%),
+    linear-gradient(180deg, var(--console-deep) 0%, var(--console-bg) 50%, #050509 100%);
   color: var(--espresso);
   background-attachment: fixed;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -48,26 +67,69 @@
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  position: relative;
+  overflow: hidden;
+  min-height: 100%;
+}
+.dj-3d-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 4px,
+      rgba(255, 255, 255, 0.012) 4px,
+      rgba(255, 255, 255, 0.012) 5px
+    );
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: overlay;
 }
 
 /* ─── Top bar ────────────────────────────────────────────────── */
 .dj-top-bar {
-  background: var(--paper-warm);
-  border-bottom: 1.5px solid rgba(31, 26, 18, 0.12);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, var(--ivory-shadow);
+  background:
+    linear-gradient(180deg, var(--console-rail) 0%, var(--console-bg) 100%);
+  border-bottom: 1.5px solid rgba(0, 229, 255, 0.30);
+  box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.12) inset, 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 18px rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.55rem 0.9rem;
+  position: relative;
+  z-index: 2;
+}
+.dj-top-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--neon-cyan) 30%,
+    var(--neon-magenta) 70%,
+    transparent 100%);
+  filter: blur(2px);
+  opacity: 0.7;
 }
 .dj-top-bar .logo {
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--espresso);
-  font-size: 0.9rem;
+  font-size: 1rem;
+  text-shadow:
+    0 0 8px rgba(0, 229, 255, 0.55),
+    0 0 16px rgba(0, 229, 255, 0.35);
 }
 .dj-top-bar .logo .neon-accent-secondary {
-  color: var(--teal);
+  color: var(--neon-magenta);
+  text-shadow:
+    0 0 6px var(--neon-magenta),
+    0 0 14px rgba(255, 45, 149, 0.55);
 }
 .session-notice {
   font-size: 0.7rem;
@@ -99,31 +161,48 @@
   gap: 0.4rem;
 }
 
-/* ─── Tactile Buttons (DiscDj style) ─────────────────────────── */
+/* ─── Tactile Buttons (DiscDj / 3D Player style) ──────────────── */
 .tactile-v42 {
-  background: var(--paper);
-  border: 1px solid rgba(31, 26, 18, 0.12);
+  background:
+    linear-gradient(180deg, var(--console-bezel) 0%, var(--console-channel) 100%);
+  border: 1px solid rgba(0, 229, 255, 0.20);
   border-radius: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   color: var(--espresso);
   cursor: pointer;
   transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 2px 0 rgba(31, 26, 18, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45),
+    0 3px 8px rgba(0, 0, 0, 0.5);
 }
 .tactile-v42:hover {
-  background: var(--paper-warm);
+  background:
+    linear-gradient(180deg, var(--console-bezel) 0%, var(--console-rail) 100%);
+  border-color: rgba(0, 229, 255, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 229, 255, 0.20),
+    0 4px 14px rgba(0, 229, 255, 0.25);
 }
 .tactile-v42:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 0 rgba(31, 26, 18, 0.12);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 229, 255, 0.40);
 }
 .tactile-v42.active {
-  background: var(--teal);
-  color: var(--paper);
-  border-color: var(--teal-deep);
+  background:
+    linear-gradient(180deg, var(--neon-cyan) 0%, #00838F 100%);
+  color: #020812;
+  border-color: var(--neon-cyan);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 0 12px var(--neon-cyan),
+    0 0 28px rgba(0, 229, 255, 0.55);
+  animation: neon-pulse-cyan 1.6s ease-in-out infinite;
 }
 .btn-cue,
 .btn-play {
@@ -157,32 +236,67 @@
   display: grid;
   grid-template-columns: 1fr 0.65fr 1fr;
   gap: 0.8rem;
-  padding: 0.8rem;
+  padding: 1rem;
   min-height: 0;
   position: relative;
+  background:
+    linear-gradient(180deg, rgba(38, 26, 14, 0.55) 0%, rgba(10, 10, 20, 0.85) 100%),
+    repeating-linear-gradient(95deg,
+      var(--wood-grain-1) 0px,
+      var(--wood-grain-2) 6px,
+      var(--wood-grain-3) 14px,
+      var(--wood-grain-2) 22px);
+  border: 1px solid rgba(255, 200, 100, 0.10);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 229, 255, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.65);
+  perspective: 1000px;
+  z-index: 1;
 }
 .dj-console-3d.is-scratching {
   cursor: grabbing;
+}
+.dj-console-3d > * {
+  transform-style: preserve-3d;
 }
 
 /* ─── Each Deck half (A & B) ─────────────────────────────────── */
 .deck-section {
   background:
-    linear-gradient(180deg, var(--paper-warm) 0%, var(--paper) 100%);
+    radial-gradient(ellipse at top, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
+    linear-gradient(180deg, var(--console-channel) 0%, var(--console-bg) 100%);
   border-radius: 1rem;
-  border: 1px solid rgba(31, 26, 18, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.18);
   padding: 0.8rem;
-  box-shadow: var(--ivory-shadow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.5),
+    0 6px 20px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
   position: relative;
 }
 .deck-left {
-  border-top: 4px solid var(--teal);
+  border-top: 4px solid var(--neon-cyan);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(0, 229, 255, 0.18),
+    0 -1px 0 rgba(0, 229, 255, 0.6),
+    0 6px 20px rgba(0, 0, 0, 0.55);
 }
 .deck-right {
-  border-top: 4px solid var(--heat);
+  border-top: 4px solid var(--neon-orange);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.5),
+    0 0 16px rgba(255, 111, 26, 0.20),
+    0 -1px 0 rgba(255, 111, 26, 0.6),
+    0 6px 20px rgba(0, 0, 0, 0.55);
 }
 .deck-plinth {
   display: grid;
@@ -191,52 +305,79 @@
   align-items: stretch;
 }
 
-/* ─── Top Cue Strip (DiscDj signature — 4 prominent pads) ────── */
+/* ─── Top Cue Strip (3D Player signature — 4 prominent neon pads) ── */
 .cue-strip {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 .cue-pad {
   background:
-    linear-gradient(180deg, var(--paper) 0%, var(--paper-warm) 100%);
-  border: 1px solid rgba(31, 26, 18, 0.12);
+    linear-gradient(180deg, var(--console-bezel) 0%, var(--console-rail) 100%);
+  border: 2px solid rgba(0, 229, 255, 0.45);
   border-radius: 0.7rem;
-  padding: 0.65rem 0.4rem 0.5rem;
+  padding: 0.7rem 0.4rem 0.55rem;
   font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-align: center;
   cursor: pointer;
   transition: all 0.1s ease;
-  box-shadow: var(--ivory-shadow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 229, 255, 0.10),
+    0 4px 10px rgba(0, 0, 0, 0.5);
   position: relative;
-  min-height: 56px;
+  min-height: 60px;
+  color: var(--espresso);
+}
+.cue-pad::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 0.5rem;
+  background: var(--cue-color, var(--neon-cyan));
+  opacity: 0.08;
+  pointer-events: none;
 }
 .cue-pad .cue-index {
   display: block;
   font-size: 0.55rem;
   color: var(--espresso-soft);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   margin-bottom: 0.1rem;
+  font-weight: 700;
 }
 .cue-pad .cue-name {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: var(--espresso);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.45);
 }
 .cue-pad.is-set {
-  background: linear-gradient(180deg, var(--teal) 0%, var(--teal-deep) 100%);
-  color: var(--paper);
+  background:
+    linear-gradient(180deg, var(--cue-color, var(--neon-cyan)) 0%, rgba(0, 0, 0, 0.5) 100%);
+  color: #02060F;
+  border-color: var(--cue-color, var(--neon-cyan));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    0 0 12px var(--cue-color, var(--neon-cyan)),
+    0 0 32px color-mix(in srgb, var(--cue-color, var(--neon-cyan)) 45%, transparent);
 }
 .cue-pad.is-set .cue-index,
 .cue-pad.is-set .cue-name {
-  color: var(--paper);
+  color: #02060F;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .cue-pad.is-fired {
-  transform: scale(0.96);
-  box-shadow: 0 0 0 2px var(--heat) inset, var(--ivory-shadow);
+  transform: scale(0.94);
+  box-shadow:
+    0 0 0 3px var(--cue-color, var(--neon-orange)) inset,
+    0 0 0 5px rgba(0, 0, 0, 0.4),
+    0 0 22px var(--cue-color, var(--neon-orange));
+  animation: neon-pad-fired 0.45s ease-out 1;
 }
 
 /* ─── Platter (3D illusion turntable) ─────────────────────────── */
@@ -245,41 +386,47 @@
   aspect-ratio: 1;
   margin: 0 auto;
   cursor: grab;
-  max-width: 280px;
+  max-width: 320px;
   width: 100%;
-  filter: drop-shadow(0 10px 18px rgba(31, 26, 18, 0.25));
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.65));
+  transform: perspective(600px) rotateX(4deg);
 }
 .platter-container.scratching {
   cursor: grabbing;
 }
 .platter-container.scratching .platter-vinyl {
-  filter: brightness(1.1);
+  filter: brightness(1.18) saturate(1.15);
 }
 .platter-base {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 50%, var(--paper-warm) 0%, #c9bfa3 65%, #9d9275 100%);
+    radial-gradient(circle at 50% 50%, #2D2D40 0%, #1A1A2A 60%, #06060E 100%);
   border-radius: 50%;
-  border: 1px solid rgba(31, 26, 18, 0.15);
+  border: 2px solid rgba(0, 229, 255, 0.20);
   box-shadow:
-    inset 0 4px 8px rgba(31, 26, 18, 0.4),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.5),
-    0 0 0 6px var(--paper-warm),
-    0 0 0 7px rgba(31, 26, 18, 0.2);
+    inset 0 6px 14px rgba(0, 0, 0, 0.65),
+    inset 0 -3px 6px rgba(0, 229, 255, 0.12),
+    0 0 0 5px var(--console-bezel),
+    0 0 0 6px rgba(0, 229, 255, 0.45),
+    0 0 24px rgba(0, 229, 255, 0.30);
 }
 .platter-vinyl {
   position: absolute;
-  inset: 6%;
+  inset: 8%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 50%, #1a1714 0%, #0d0b09 70%, #000000 100%);
+    radial-gradient(circle at 50% 50%, #1A1A22 0%, #08080C 70%, #020203 100%);
   transition: transform 0.02s linear;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    inset 0 4px 14px rgba(255, 255, 255, 0.05);
+    inset 0 0 0 1px rgba(0, 229, 255, 0.20),
+    inset 0 6px 16px rgba(255, 255, 255, 0.06);
   overflow: hidden;
+  animation: vinyl-idle-spin 18s linear infinite;
 }
+.platter-container .platter-vinyl { animation-play-state: paused; }
+.deck-left   .platter-container.is-spinning .platter-vinyl { animation-play-state: running; animation-duration: 4.2s; }
+.deck-right  .platter-container.is-spinning .platter-vinyl { animation-play-state: running; animation-duration: 4.2s; }
 .vinyl-grooves {
   position: absolute;
   inset: 0;
@@ -529,41 +676,53 @@
   font-size: 0.75rem;
 }
 
-/* ─── Visualizers (waveform + level meter) ───────────────────── */
+/* ─── Visualizers (waveform + level meter) — neon dark ─────────── */
 .deck-visuals {
   display: flex;
   gap: 0.5rem;
   align-items: stretch;
-  background: rgba(31, 26, 18, 0.92);
-  padding: 0.45rem;
+  background:
+    linear-gradient(180deg, #050509 0%, #0F0F1A 100%);
+  padding: 0.55rem;
   border-radius: 0.6rem;
-  border: 1px solid rgba(31, 26, 18, 0.3);
-  box-shadow: var(--ivory-shadow);
+  border: 1px solid rgba(0, 229, 255, 0.30);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 229, 255, 0.10),
+    0 0 14px rgba(0, 229, 255, 0.18);
 }
 .waveform-canvas {
   flex: 1;
   height: 64px;
   border-radius: 0.4rem;
-  background: rgba(0, 0, 0, 0.4);
+  background: radial-gradient(ellipse at center, #020205 0%, #050509 100%);
+  border: 1px solid rgba(0, 229, 255, 0.16);
 }
 .level-meter {
   width: 18px;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.7);
   border-radius: 0.4rem;
   overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.18);
 }
 .level-meter canvas {
   width: 100%;
   height: 100%;
 }
 
-/* ─── Mixer center column ────────────────────────────────────── */
+/* ─── Mixer center column — neon console ───────────────────────── */
 .mixer-section {
-  background: var(--paper-warm);
+  background:
+    radial-gradient(ellipse at top, rgba(255, 45, 149, 0.10) 0%, transparent 50%),
+    linear-gradient(180deg, var(--console-channel) 0%, var(--console-bg) 100%);
   border-radius: 1rem;
-  border: 1px solid rgba(31, 26, 18, 0.12);
+  border: 1px solid rgba(255, 45, 149, 0.30);
   padding: 0.8rem 0.5rem;
-  box-shadow: var(--ivory-shadow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(255, 45, 149, 0.18),
+    0 0 22px rgba(255, 45, 149, 0.20),
+    0 8px 28px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
 }
@@ -747,14 +906,16 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(31, 26, 18, 0.85);
+  background:
+    radial-gradient(circle at center, rgba(0, 229, 255, 0.10) 0%, rgba(6, 6, 13, 0.95) 60%);
   z-index: 9999;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  color: var(--paper);
+  color: var(--neon-cyan);
   font-family: inherit;
+  text-shadow: 0 0 12px var(--neon-cyan);
 }
 .rotate-overlay .rotate-icon {
   font-size: 4rem;
@@ -792,7 +953,143 @@
 
 /* ─── Focus ring (a11y) ──────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--teal);
+  outline: 2px solid var(--neon-cyan);
   outline-offset: 2px;
   border-radius: 4px;
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+/* ============================================================
+   Neon Glow Keyframes + Utilities (3D Player signature)
+   ============================================================ */
+@keyframes vinyl-idle-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes neon-pulse-cyan {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.30),
+      0 0 12px var(--neon-cyan),
+      0 0 28px rgba(0, 229, 255, 0.55);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.40),
+      0 0 22px var(--neon-cyan),
+      0 0 44px rgba(0, 229, 255, 0.75);
+  }
+}
+
+@keyframes neon-pulse-magenta {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.20),
+      0 0 10px var(--neon-magenta),
+      0 0 26px rgba(255, 45, 149, 0.50);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.32),
+      0 0 20px var(--neon-magenta),
+      0 0 42px rgba(255, 45, 149, 0.70);
+  }
+}
+
+@keyframes neon-pad-fired {
+  0%   { transform: scale(1); filter: brightness(1.4); }
+  60%  { transform: scale(0.94); filter: brightness(1.7); }
+  100% { transform: scale(0.94); filter: brightness(1.0); }
+}
+
+@keyframes vu-march {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.35) saturate(1.4); }
+}
+
+@keyframes neon-scanline-drift {
+  0%   { background-position: 0 -100%; }
+  100% { background-position: 0 100%; }
+}
+
+/* Utility: animated bright outline that comes from a chord pulse */
+.neon-outline-cyan   { box-shadow: 0 0 0 1px var(--neon-cyan),   0 0 16px var(--neon-cyan); }
+.neon-outline-magenta{ box-shadow: 0 0 0 1px var(--neon-magenta),0 0 16px var(--neon-magenta); }
+.neon-outline-lime   { box-shadow: 0 0 0 1px var(--neon-lime),   0 0 16px var(--neon-lime); }
+.neon-outline-orange { box-shadow: 0 0 0 1px var(--neon-orange), 0 0 16px var(--neon-orange); }
+
+/* DJ booth master section graffiti accents */
+.dj-graffiti-title {
+  font-family: 'Geist Mono', 'Courier New', monospace;
+  font-weight: 900;
+  letter-spacing: 0.20em;
+  background: linear-gradient(90deg,
+    var(--neon-cyan) 0%,
+    var(--neon-magenta) 50%,
+    var(--neon-orange) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.30);
+}
+
+.bpm-lcd {
+  font-family: 'Geist Mono', 'Courier New', monospace;
+  font-weight: 900;
+  color: var(--neon-cyan);
+  background: #020206;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  text-align: center;
+  text-shadow: 0 0 8px var(--neon-cyan);
+  box-shadow: inset 0 0 6px rgba(0, 229, 255, 0.18);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+.bpm-lcd.over {
+  color: var(--neon-magenta);
+  border-color: rgba(255, 45, 149, 0.45);
+  text-shadow: 0 0 10px var(--neon-magenta);
+  animation: neon-pulse-magenta 0.9s ease-in-out infinite;
+}
+
+/* Drop a chrome ring around anything important */
+.neon-ring {
+  outline: 1px solid rgba(0, 229, 255, 0.35);
+  outline-offset: 1px;
+  border-radius: 8px;
+}
+
+/* Animated spinner used by the action buttons */
+@keyframes dj-spin {
+  to { transform: rotate(360deg); }
+}
+.dj-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 229, 255, 0.20);
+  border-top-color: var(--neon-cyan);
+  border-radius: 50%;
+  animation: dj-spin 0.9s linear infinite;
+}
+
+/* Section stage-light effect for marquee title */
+@keyframes dj-light-flicker {
+  0%, 100% { opacity: 0.85; }
+  47%      { opacity: 1.00; }
+  50%      { opacity: 0.55; }
+  53%      { opacity: 1.00; }
+}
+.dj-stage-light {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 229, 255, 0.45) 25%,
+    rgba(255, 45, 149, 0.45) 50%,
+    rgba(255, 111, 26, 0.45) 75%,
+    transparent 100%);
+  filter: blur(8px);
+  animation: dj-light-flicker 4.5s ease-in-out infinite;
+  pointer-events: none;
 }

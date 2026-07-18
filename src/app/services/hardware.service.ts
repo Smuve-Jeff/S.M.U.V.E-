@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, NgZone } from '@angular/core';
+import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { AudioInputDevice, MicrophoneService } from './microphone.service';
 
@@ -22,6 +22,35 @@ export class HardwareService {
     midiDevicesConnected: 0,
     gamepadConnected: false,
     recordReady: false,
+  });
+
+  /**
+   * Friendly summary used by the topbar / footer badges. Empty when
+   * nothing interesting is connected. Format: "AUDIO IN: name · MIDI × N".
+   */
+  readonly connectedDevicesBadge = computed(() => {
+    const s = this.status();
+    const parts: string[] = [];
+    if (s.audioInterfaceConnected && s.activeInterfaceName) {
+      parts.push('AUDIO IN: ' + s.activeInterfaceName);
+    }
+    if (s.midiDevicesConnected > 0) {
+      parts.push('MIDI × ' + s.midiDevicesConnected);
+    }
+    if (s.gamepadConnected) {
+      parts.push('GAMEPAD connected');
+    }
+    return parts.join(' · ');
+  });
+
+  /** True when at least one external (non-built-in) device is connected. */
+  readonly externalHardwareConnected = computed(() => {
+    const s = this.status();
+    return (
+      s.audioInterfaceConnected ||
+      s.midiDevicesConnected > 0 ||
+      s.gamepadConnected
+    );
   });
 
   constructor() {

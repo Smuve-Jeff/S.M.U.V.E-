@@ -591,6 +591,141 @@
           </div>
         </div>
 
+        <!-- ─── Audio Devices Routing — output + input + monitor blend ─── -->
+        <div class="setting-group audio-devices-group">
+          <h4 class="setting-subhead">Audio Devices</h4>
+          <p class="setting-help">
+            Pick where audio is routed, which mic is captured, and how the
+            monitor blend mixes input with playback. Auto-adjust refreshes the
+            master EQ profile whenever a device is added or removed.
+          </p>
+
+          <label class="setting-label"
+            >Output Device ({{ audioEngine.outputDeviceName() }})</label
+          >
+          <div class="audio-device-row">
+            <select
+              class="smuve-select"
+              aria-label="Audio output device"
+              [ngModel]="audioEngine.selectedOutputDeviceId()"
+              (ngModelChange)="selectOutputDevice($event)"
+              [disabled]="!audioEngine.outputDevices().length"
+            >
+              <option value="">System default output</option>
+              <option
+                *ngFor="let d of audioEngine.outputDevices()"
+                [value]="d.deviceId"
+              >
+                {{ d.label }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="setting-btn"
+              (click)="refreshOutputs()"
+              aria-label="Re-scan audio output devices"
+              title="Re-scan audio output devices"
+            >
+              <span class="material-symbols-outlined">refresh</span>
+              Rescan
+            </button>
+          </div>
+          <p
+            class="setting-help"
+            *ngIf="!audioEngine.supportsSinkId()"
+          >
+            ⚠ This browser cannot switch output sinks live — selection is
+            informational only.
+          </p>
+          <p
+            class="setting-help"
+            *ngIf="audioEngine.outputDevices().length === 0"
+          >
+            Plug in a USB audio interface, DAC, or Bluetooth output to see it
+            listed here.
+          </p>
+
+          <label class="setting-label">
+            Input Microphone ({{ microphoneService.inputDeviceName() }})
+          </label>
+          <div class="audio-device-row">
+            <select
+              class="smuve-select"
+              aria-label="Input microphone device"
+              [ngModel]="selectedAudioInputId()"
+              (ngModelChange)="selectAudioInput($event)"
+            >
+              <option
+                *ngFor="let d of audioInputDevices()"
+                [value]="d.deviceId"
+              >
+                {{ d.label }}
+                <ng-container *ngIf="d.type === 'interface'"
+                  >· interface</ng-container
+                >
+                <ng-container *ngIf="d.type === 'headset'"
+                  >· headset</ng-container
+                >
+              </option>
+            </select>
+            <button
+              type="button"
+              class="setting-btn"
+              (click)="refreshAudioInputs()"
+              aria-label="Re-scan audio inputs"
+              title="Re-scan audio input devices"
+            >
+              <span class="material-symbols-outlined">refresh</span>
+              Rescan
+            </button>
+          </div>
+
+          <label class="setting-label">
+            Microphone Input Gain ({{
+              (microphoneService.micInputGain() * 100).toFixed(0)
+            }}%)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            [ngModel]="microphoneService.micInputGain()"
+            (ngModelChange)="setMicGain($event)"
+            class="smuve-slider w-full mt-2"
+            aria-label="Microphone input gain, 0 to 200 percent"
+          />
+
+          <label class="setting-label">
+            Monitor Blend · input vs playback ({{ monitorBlendPct() }}%)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [ngModel]="audioEngine.monitorBlend()"
+            (ngModelChange)="setMonitorBlend($event)"
+            class="smuve-slider w-full mt-2"
+            aria-label="Monitor blend between input and playback, 0 to 100 percent"
+          />
+
+          <div class="audio-device-toggle-row">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                [ngModel]="audioEngine.autoAdjustEnabled()"
+                (ngModelChange)="setAutoAdjust($event)"
+              />
+              <span>Auto-adjust EQ profile when output device changes</span>
+            </label>
+          </div>
+          <p class="setting-help">
+            Currently active EQ profile:
+            <strong>{{ audioEngine.outputProfileLabel() }}</strong>
+          </p>
+        </div>
+
         <div class="setting-group">
           <label class="setting-label"
             >Master Gain ({{

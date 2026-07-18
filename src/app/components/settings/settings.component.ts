@@ -148,6 +148,37 @@ export class SettingsComponent implements OnInit {
     await this.microphoneService.initialize(deviceId);
   }
 
+  /** Re-scan the OS for audio output sinks (label chips + dropdown). */
+  async refreshOutputs() {
+    await this.audioEngine.refreshOutputDevices();
+  }
+
+  /** Route studio audio to a specific output sink via setSinkId
+   *  (gracefully no-ops on browsers that lack the API). */
+  async selectOutputDevice(deviceId: string) {
+    await this.audioEngine.setOutputDevice(deviceId || '');
+  }
+
+  /** Push the microphone input gain slider value into the live gain node. */
+  setMicGain(value: number) {
+    this.microphoneService.setMicGain(value);
+  }
+
+  /** Persist monitor blend crossfade between input and playback. */
+  setMonitorBlend(value: number) {
+    this.audioEngine.setMonitorBlend(value);
+  }
+
+  /** Toggle the auto-adjust EQ profile behavior on device changes. */
+  setAutoAdjust(enabled: boolean) {
+    this.audioEngine.setAutoAdjust(!!enabled);
+  }
+
+  /** Readout of monitor-blend percentage for the slider label. */
+  monitorBlendPct(): number {
+    return Math.round(this.audioEngine.monitorBlend() * 100);
+  }
+
   setOutputMode(mode: 'speakers' | 'headphones') {
     this.audioEngine.setOutputMode(mode);
   }
