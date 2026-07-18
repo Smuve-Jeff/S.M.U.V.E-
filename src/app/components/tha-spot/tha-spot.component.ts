@@ -539,9 +539,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const game = this.selectedGame();
     if (!game) return;
 
-    // --- External-only games: show confirmation before opening ---
-    if (game.launchConfig?.embedMode === 'external-only') {
-      const url = game.launchConfig.approvedExternalUrl || game.url;
+    const launchMode = this.resolveLaunchMode(game);
+
+    // --- External / blocked games: open in a new tab with confirmation ---
+    if (launchMode === 'external') {
+      const url = game.launchConfig?.approvedExternalUrl || game.launchConfig?.approvedEmbedUrl || game.url;
       try {
         const domain = new URL(url, window.location.origin).hostname;
         this.externalTargetDomain.set(domain);
@@ -757,11 +759,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Trusted embed domains — only these hosts are allowed in the game iframe.
    * Internal /assets/ paths are always allowed (same-origin).
    */
+  /**
+   * Trusted embed domains — only these hosts are allowed in the game iframe.
+   * Internal /assets/ paths are always allowed (same-origin).
+   * Subdomains are matched automatically.
+   */
   private static readonly TRUSTED_EMBED_DOMAINS: string[] = [
     'retrogames.cc',
     'www.retrogames.cc',
     'gamepix.com',
     'embed.gamepix.com',
+    'www.gamepix.com',
     '1v1.lol',
     'www.1v1.lol',
     'pluto.tv',
@@ -776,6 +784,50 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     'playvalorant.com',
     'www.crazygames.com',
     'games.crazygames.com',
+    'crazygames.com',
+    'poki.com',
+    'www.poki.com',
+    'html5.gamedistribution.com',
+    'gamedistribution.com',
+    'www.addictinggames.com',
+    'addictinggames.com',
+    'www.miniclip.com',
+    'miniclip.com',
+    'www.kongregate.com',
+    'kongregate.com',
+    'itch.io',
+    'www.itch.io',
+    'newgrounds.com',
+    'www.newgrounds.com',
+    'dos.zone',
+    'www.dos.zone',
+    'embed.gamedistribution.com',
+    'html5.gamedistribution.com',
+    'gamedistribution.com',
+    'www.gamedistribution.com',
+    'playclassic.games',
+    'www.playclassic.games',
+    'playretrogames.com',
+    'www.playretrogames.com',
+    'emulatorgames.net',
+    'www.emulatorgames.net',
+    'classicgame.com',
+    'www.classicgame.com',
+  ];
+
+  /**
+   * Domains known to block iframe embedding via X-Frame-Options / CSP.
+   * These games are launched externally instead of in an iframe.
+   */
+  private static readonly EMBED_BLOCKED_DOMAINS: string[] = [
+    'retrogames.cc',
+    'www.retrogames.cc',
+    'emulatorgames.net',
+    'www.emulatorgames.net',
+    'playretrogames.com',
+    'www.playretrogames.com',
+    'classicgame.com',
+    'www.classicgame.com',
   ];
 
   /**
@@ -802,6 +854,39 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * Check whether a URL is known to block iframe embedding.
+   * These hosts send X-Frame-Options / CSP headers that prevent inline play.
+   */
+  private isEmbedBlockedUrl(url: string): boolean {
+    if (!url) return true;
+    if (url.startsWith('/') || url.startsWith('assets/') || url.startsWith('./')) {
+      return false;
+    }
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.toLowerCase();
+      return ThaSpotComponent.EMBED_BLOCKED_DOMAINS.some(
+        (d) => hostname === d || hostname.endsWith('.' + d)
+      );
+    } catch {
+      return true;
+    }
+  }
+
+  /**
+   * Determine the effective launch mode for a game.
+   * - 'external-only' from config always opens in a new tab.
+   * - Known X-Frame/CSP blocking domains fall back to external.
+   * - Everything else attempts inline iframe launch.
+   */
+  resolveLaunchMode(game: Game): 'inline' | 'external' {
+    if (game.launchConfig?.embedMode === 'external-only') return 'external';
+    const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    if (this.isEmbedBlockedUrl(url)) return 'external';
+    return 'inline';
+  }
+
   getSafeUrl(game: Game): SafeResourceUrl | null {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url || url === '/' || url === '/hub' || url === 'hub') return null;
@@ -812,7 +897,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Security: Validate URL against trusted domain allowlist
     if (!this.isTrustedEmbedUrl(url)) {
-      console.warn('[ThaSpot] Blocked untrusted embed URL:', url);
       return null;
     }
 
@@ -822,6 +906,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // postMessage handshake after the iframe loads.
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  /**
+   * Public helper used by the template to decide whether a selected game
+   * will launch inline or externally.
+   */
+  getLaunchMode(game: Game): 'inline' | 'external' {
+    return this.resolveLaunchMode(game);
   }
 
   private onMessage(event: MessageEvent): void {

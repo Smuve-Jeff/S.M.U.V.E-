@@ -137,7 +137,6 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('connect', () => {
-      console.log('Elite socket connected');
       const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
@@ -196,11 +195,6 @@ export class SocialNetworkingService {
         timestamp: Date.now(),
         remoteData: data.syncData,
       });
-      console.log(
-        'Neural sync finalized with',
-        data.fromUserName,
-        data.syncData
-      );
     });
 
     this.socket.on('message', (data: any) => {
@@ -360,7 +354,6 @@ export class SocialNetworkingService {
       'message',
       (event) => {
         if (event.data.type === `${platform.toUpperCase()}_AUTH_SUCCESS`) {
-          console.log(`${platform} connected successfully`);
           this.currentPlatform.set(`${platform} (Connected)`);
         }
       },

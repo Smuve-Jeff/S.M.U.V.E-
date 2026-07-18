@@ -949,18 +949,20 @@
         </div>
 
         <div class="mission-primary-action-centered">
-          <button
-            class="launch-btn-ultra"
-            (click)="confirmLaunch()"
-            [disabled]="isMatchmaking() || isWasmLoading()"
+        <button
+          class="launch-btn-ultra"
+          (click)="confirmLaunch()"
+          [disabled]="isMatchmaking() || isWasmLoading()"
+        >
+          <div class="btn-aura"></div>
+          <span class="material-symbols-outlined btn-icon-giant"
+            >play_circle</span
           >
-            <div class="btn-aura"></div>
-            <span class="material-symbols-outlined btn-icon-giant"
-              >play_circle</span
-            >
-            <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
-            <span class="btn-subtext-status">INITIALIZE_LINK_v5.0</span>
-          </button>
+          <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
+          <span class="btn-subtext-status">
+            {{ getLaunchMode(selected) === 'external' ? 'OPENS IN NEW TAB' : 'INLINE CABINET' }}
+          </span>
+        </button>
         </div>
       </div>
 
@@ -1136,15 +1138,15 @@
         <div class="hud-decorative-line right"></div>
         <div class="iframe-glitch-wrapper">
           <!-- Game iframe — sandbox without allow-same-origin to prevent parent DOM access -->
-          <iframe
-            *ngIf="currentSafeUrl() && !gameLoadError()"
-            [src]="currentSafeUrl()"
-            #gameIframe
-            class="game-frame"
-            sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
-            allowfullscreen
-            (load)="onGameIframeLoad()"
-          ></iframe>
+        <iframe
+          *ngIf="currentSafeUrl() && !gameLoadError()"
+          [src]="currentSafeUrl()"
+          #gameIframe
+          class="game-frame"
+          sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads allow-same-origin"
+          allowfullscreen
+          (load)="onGameIframeLoad()"
+        ></iframe>
           <!-- Error fallback UI -->
           <div *ngIf="gameLoadError()" class="game-load-error" style="
             display: flex; flex-direction: column; align-items: center; justify-content: center;

@@ -24,6 +24,5 @@ export class LyricEditorComponent {
 
   saveLyrics() {
     // In a real app, this would save to the specific track in the release pipeline
-    console.log('Lyrics saved:', this.lyrics());
   }
 }

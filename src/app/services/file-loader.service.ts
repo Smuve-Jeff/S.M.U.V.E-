@@ -137,6 +137,6 @@ export class FileLoaderService {
   }
 
   async loadExternalTrack(): Promise<void> {
-    console.log('FileLoader: Initializing track ingestion protocol.');
+    // Track ingestion integration point
   }
 }

@@ -237,15 +237,9 @@ export class AuthService {
       `smuve_verification_${creds.email.toLowerCase()}`,
       verificationCode
     );
-    console.log(
-      `[SYSTEM MAIL] Verification code for ${creds.email}: ${verificationCode}`
-    );
 
     if (typeof window !== 'undefined') {
       setTimeout(() => {
-        console.warn(
-          `[DEVELOPMENT ONLY] S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`
-        );
         alert(
           `S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`
         );

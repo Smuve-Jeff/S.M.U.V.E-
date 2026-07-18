@@ -56,12 +56,10 @@ export class GamepadService {
   }
 
   private onGamepadConnected(e: GamepadEvent) {
-    console.log('S.M.U.V.E Controller Linked:', e.gamepad.id);
     this.startPolling();
   }
 
   private onGamepadDisconnected(e: GamepadEvent) {
-    console.log('S.M.U.V.E Controller Severed:', e.gamepad.id);
     this.connectedGamepad.set(null);
     if (this.rafId) cancelAnimationFrame(this.rafId);
   }

@@ -12,13 +12,9 @@ export class SettingsIntegrationService {
   private audioEngine = inject(AudioEngineService);
 
   constructor() {
-    // AI Integration
+    // AI Integration — persona changes are reactive via signals
     effect(() => {
-      const aiSettings = this.profileService.profile().settings.ai;
-      // Personas are not yet implemented as a signal in AiService but we can log or trigger a state change
-      console.log(
-        `[Settings] AI Persona set to: ${aiSettings.commanderPersona}`
-      );
+      const _aiSettings = this.profileService.profile().settings.ai;
     });
 
     // Audio Integration

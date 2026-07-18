@@ -19,7 +19,6 @@ export class PeerNetworkingService {
   micPermissionDenied = signal(false);
 
   async startCall(toUserId: string) {
-    console.log(`Knocking for user: ${toUserId}`);
     this.callState.set('calling');
     this.targetUserId = toUserId;
     this.social.sendVoiceSignal(toUserId, { type: 'KNOCK' });
@@ -150,7 +149,6 @@ export class PeerNetworkingService {
     // Monitor connection state for disconnects/failures
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection?.connectionState;
-      console.log(`[Peer] Connection state: ${state}`);
       if (state === 'connected') {
         this.callState.set('connected');
       } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {

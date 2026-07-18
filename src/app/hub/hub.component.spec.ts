@@ -195,11 +195,11 @@ describe('HubComponent', () => {
 
     // Check for specialized modules by looking for unique text or material icons
     const text = nativeElement.textContent || '';
-    expect(text).toContain('Executive Intelligence Brief');
-    expect(text).toContain('Active Production');
-    expect(text).toContain('Career Path');
+    expect(text).toContain('Roster Intelligence Brief');
+    expect(text).toContain('Tour Trajectory');
     expect(text).toContain('Tha Spot');
     expect(text).toContain('CinemaEngine');
+    expect(text).toContain('The Stage');
 
     // Check for upload button (pill-action)
     expect(nativeElement.querySelector('.pill-action')).not.toBeNull();

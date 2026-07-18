@@ -48,7 +48,6 @@ export class SmuveAdvisorComponent {
   refreshAdvice() {
     // Assuming aiService has a method to refresh advice
     // this.aiService.refreshAdvisorAdvice();
-    console.log('Requesting new advice...');
   }
 
   /**
@@ -77,7 +76,6 @@ export class SmuveAdvisorComponent {
     const action = (item as any).action;
 
     if (!action) {
-      console.log('No action defined for this advice:', item.title);
       return;
     }
 
@@ -105,6 +103,5 @@ export class SmuveAdvisorComponent {
   dismissAdvice(item: AdvisorAdvice) {
     // Assuming aiService can handle dismissing advice.
     // this.aiService.dismissAdvisorAdvice((item as any).id);
-    console.log('Dismissing advice:', item.title);
   }
 }
