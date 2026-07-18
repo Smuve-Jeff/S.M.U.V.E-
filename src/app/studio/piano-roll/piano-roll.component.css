@@ -1,12 +1,13 @@
 /* ===========================================================
    S.M.U.V.E. Composer — Piano Roll (FL Studio Mobile pattern)
+   City Skylines After Dark — Stage Edition
    =========================================================== */
 
 :host {
   display: block;
   height: 100%;
   width: 100%;
-  background-color: var(--ivory-bg);
+  background-color: var(--ivory-deep, #06091A);
   color: var(--espresso-text);
   overflow: hidden;
   --pr-cell: 32px;
@@ -18,7 +19,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--ivory-bg);
+  background: var(--ivory-deep, #06091A);
 }
 
 /* ---------- HEADER ---------- */
@@ -27,8 +28,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--ivory-paper);
-  border-bottom: 1px solid var(--espresso-line);
+  background: linear-gradient(180deg, var(--ivory-panel) 0%, var(--ivory-deep) 100%);
+  border-bottom: 1px solid var(--ivory-line);
   gap: 12px;
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -45,19 +46,33 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.05em;
+  color: var(--espresso-text);
 }
 
 .pr-track-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+}
+
+.pr-link-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--neon-pink), var(--neon-violet));
+  color: white;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
 }
 
 .pr-header-tools {
@@ -69,8 +84,8 @@
 .pr-tool {
   width: 40px;
   height: 40px;
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   border-radius: 10px;
   display: grid;
   place-items: center;
@@ -82,21 +97,21 @@
 .pr-tool:hover, .pr-tool:focus-visible {
   background: var(--teal-100);
   border-color: var(--teal-500);
-  color: var(--teal-700);
+  color: var(--teal-400);
 }
 .pr-tool:active, .pr-tool.active {
   background: var(--teal-500);
-  color: white;
+  color: var(--ivory-deep);
   border-color: var(--teal-500);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset, 0 2px 8px rgba(14, 124, 123, 0.30);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.15) inset, 0 2px 8px var(--teal-glow);
 }
 
 .pr-snap {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   border-radius: 10px;
   padding: 4px;
 }
@@ -125,7 +140,7 @@
 }
 .pr-snap-btn.active {
   background: var(--teal-500);
-  color: white;
+  color: var(--ivory-deep);
 }
 
 .pr-ai-chip {
@@ -133,7 +148,7 @@
   align-items: center;
   gap: 6px;
   background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
-  color: white;
+  color: var(--ivory-deep);
   border: none;
   padding: 0 14px;
   height: 36px;
@@ -143,7 +158,7 @@
   letter-spacing: 0.06em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 10px rgba(14, 124, 123, 0.30);
+  box-shadow: 0 4px 10px var(--teal-glow);
 }
 
 /* ---------- CANVAS AREA (Keys + Grid + Velocity + Sidebar) ---------- */
@@ -157,93 +172,49 @@
 /* ----- KEYS ----- */
 .pr-keys {
   width: 56px;
-  background: var(--ivory-paper);
-  border-right: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-right: 1px solid var(--ivory-line);
   overflow: hidden;
   flex-shrink: 0;
 }
-.pr-key {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 6px;
-  background: var(--ivory-paper);
-  border-bottom: 1px solid var(--espresso-soft);
-  font-size: 8px;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--espresso-muted);
-  position: relative;
-}
-.pr-key.black {
-  background: var(--espresso-text);
-  color: rgba(255, 255, 255, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  height: calc(var(--pr-row) * 0.6);
-}
-.pr-key.in-scale::after {
-  content: '';
-  position: absolute;
-  right: 3px;
-  top: 50%;
-  width: 5px;
-  height: 5px;
-  background: var(--teal-500);
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
+/* .pr-key styles now globally in styles.css for consistency */
 
 /* ----- GRID ----- */
 .pr-grid {
   flex: 1 1 auto;
   position: relative;
   overflow: auto;
-  background: var(--ivory-bg);
   -webkit-overflow-scrolling: touch;
   touch-action: none;
 }
 
-.pr-grid-canvas {
-  position: relative;
-  /* width/height set inline */
-}
+/* .pr-grid-canvas background-image pattern now in styles.css */
 
-.pr-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-  background: var(--ivory-paper);
-  border-bottom: 1px solid var(--espresso-soft);
-}
-.pr-row.black {
-  background: var(--ivory-panel);
-}
-.pr-row.in-scale {
-  background: var(--teal-50);
-}
-.pr-col-line {
+.pr-playhead {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-right: 1px solid var(--espresso-soft);
+  width: 2px;
+  background: var(--neon-amber);
+  box-shadow: 0 0 14px var(--neon-amber-glow), 0 0 24px rgba(255, 182, 39, 0.20);
   pointer-events: none;
+  z-index: 4;
 }
-.pr-col-line.beat { border-right-color: var(--espresso-soft); }
-.pr-col-line.bar { border-right-color: var(--espresso-line); border-right-width: 2px; }
 
+/* ----- NOTES ----- */
 .pr-note {
   position: absolute;
   border-radius: 4px;
-  background: var(--teal-500);
-  border: 1px solid var(--teal-700);
-  box-shadow: 0 2px 4px rgba(14, 124, 123, 0.30);
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  border: 1px solid var(--teal-600);
+  box-shadow: 0 2px 6px var(--teal-glow), 0 0 12px var(--teal-soft-glow);
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   display: flex;
   align-items: center;
   padding: 0 3px;
-  color: white;
+  color: var(--ivory-deep);
   font-size: 9px;
   font-weight: 700;
 }
@@ -261,38 +232,28 @@
 }
 
 .pr-note.selected {
-  outline: 2px solid var(--orange);
+  outline: 2px solid var(--neon-amber);
   outline-offset: 1px;
   z-index: 3;
+  box-shadow: 0 0 20px var(--neon-amber-glow), 0 4px 12px var(--teal-glow);
 }
 
 .pr-note.slide {
-  background: var(--orange);
-  border-color: #92400E;
-}
-
-.pr-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--orange);
-  box-shadow: 0 0 12px var(--orange-glow);
-  pointer-events: none;
-  z-index: 4;
+  background: linear-gradient(180deg, var(--neon-amber) 0%, #E69900 100%);
+  border-color: var(--neon-amber);
 }
 
 /* ----- VELOCITY LANE ----- */
 .pr-velocity {
   height: 80px;
-  background: var(--ivory-paper);
-  border-top: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-top: 1px solid var(--ivory-line);
   overflow-x: auto;
   flex-shrink: 0;
 }
 
 .pr-velocity-head {
-  background: var(--ivory-panel);
+  background: var(--ivory-paper);
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -303,7 +264,7 @@
   transform: rotate(180deg);
   width: 22px;
   height: 80px;
-  border-right: 1px solid var(--espresso-line);
+  border-right: 1px solid var(--ivory-line);
   display: grid;
   place-items: center;
 }
@@ -311,20 +272,26 @@
 .pr-velocity-bar {
   position: absolute;
   bottom: 0;
-  background: var(--teal-500);
+  background: linear-gradient(180deg, var(--teal-400) 0%, var(--teal-600) 100%);
   border-radius: 4px 4px 0 0;
   cursor: ns-resize;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 0 8px var(--teal-soft-glow);
 }
 .pr-velocity-bar.selected {
-  background: var(--orange);
+  background: linear-gradient(180deg, var(--neon-amber) 0%, var(--orange) 100%);
+}
+
+.pr-velocity-canvas {
+  position: relative;
+  /* width set inline */
 }
 
 /* ---------- RIGHT-SIDE INSPECTOR ---------- */
 .pr-inspector {
   width: 80px;
-  background: var(--ivory-paper);
-  border-left: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-left: 1px solid var(--ivory-line);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -332,8 +299,8 @@
   flex-shrink: 0;
 }
 .pr-inspector-pill {
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   border-radius: 8px;
   padding: 6px;
   text-align: center;
@@ -356,6 +323,43 @@
   width: 100%;
   height: 24px;
   margin-top: 4px;
+}
+
+/* ---------- DARK MODE OVERRIDES (component-level) ---------- */
+:host-context(.dark-mode) {
+  background-color: #000208;
+}
+
+:host-context(.dark-mode) .pr-header {
+  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .pr-tool {
+  background: #0A0F22;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .pr-note {
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  box-shadow: 0 2px 6px var(--teal-glow), 0 0 18px var(--teal-soft-glow);
+}
+
+:host-context(.dark-mode) .pr-note.selected {
+  outline-color: var(--neon-amber);
+  box-shadow: 0 0 24px var(--neon-amber-glow), 0 4px 16px var(--teal-glow);
+}
+
+:host-context(.dark-mode) .pr-inspector {
+  background: #0A0F22;
+}
+
+:host-context(.dark-mode) .pr-velocity {
+  background: #0A0F22;
+}
+
+:host-context(.dark-mode) .pr-keys {
+  background: #0A0F22;
 }
 
 /* ---------- Mobile ---------- */

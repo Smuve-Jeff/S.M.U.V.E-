@@ -36,6 +36,7 @@ import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogComponent } from './components/interaction-dialog/interaction-dialog.component';
 import { InteractionDialogService } from './services/interaction-dialog.service';
+import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { ViewConfig } from './services/workspace-registry';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -83,6 +84,7 @@ export class AppComponent implements ErrorHandler {
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
   dialog = inject(InteractionDialogService);
+  inboxService = inject(ChallengeInboxService);
   swUpdate = inject(SwUpdate, { optional: true });
   router = inject(Router);
   destroyRef = inject(DestroyRef);
@@ -122,6 +124,8 @@ export class AppComponent implements ErrorHandler {
     this.uiService.getOverflowMobileViewConfigs()
   );
   spotlightTips = computed(() => this.commandPalette.activeTips().slice(0, 3));
+  unreadNotifications = this.inboxService.unreadCount;
+  pendingChallenges = this.inboxService.pendingCount;
   syncSummary = computed(() => ({
     autoSaveBusy: this.autoSaveService.isSaving(),
     lastSavedAt: this.autoSaveService.lastSavedAt(),

@@ -182,6 +182,34 @@ const initDb = async () => {
         message TEXT,
         timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS game_challenges (
+        id SERIAL PRIMARY KEY,
+        from_user_id TEXT NOT NULL,
+        from_user_name TEXT,
+        to_user_id TEXT NOT NULL,
+        game_id TEXT NOT NULL,
+        message TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'expired')),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP WITH TIME ZONE
+      );
+      CREATE INDEX IF NOT EXISTS idx_challenges_to_status ON game_challenges(to_user_id, status);
+      CREATE INDEX IF NOT EXISTS idx_challenges_from ON game_challenges(from_user_id);
+      CREATE INDEX IF NOT EXISTS idx_challenges_to_created ON game_challenges(to_user_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        payload JSONB DEFAULT '{}',
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id, is_read, created_at DESC);
     `);
     console.log('STABILITY_CHECK: Database initialized successfully.');
   } catch (err) {
@@ -209,23 +237,38 @@ const setupSocketIO = (server) => {
     },
   });
 
-  const matchmakingQueues = {
-    BATTLEFIELD: [],
-    NEON_DRIFT: [],
-    TEKKEN_4: [],
-    HALO_CE: [],
-  };
+  // Module-level reference so REST endpoints can broadcast via Socket.io
+let appIO = null;
+
+// In-memory state for real-time social features
+  const presence = new Map(); // userId -> { socketId, metadata }
+  const rooms = new Map(); // roomId -> Set<userId>
+  const parties = new Map(); // partyId -> { leaderId, members: [{userId, artistName}], gameId }
+  const matchmakingQueues = new Map(); // gameId -> [{userId, socketId, timestamp}]
 
   const getSenderFromSocket = (socket) => {
     try {
-      const authHeader = socket.handshake.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
+      // Support token in handshake.auth (Socket.io client) or Authorization header
+      const token =
+        socket.handshake.auth?.token ||
+        (socket.handshake.headers['authorization'] || '').split(' ')[1];
       if (!token) return null;
       return jwt.verify(token, JWT_SECRET);
     } catch (e) {
       return null;
     }
   };
+
+  const broadcastOnlineUsers = () => {
+    const users = Array.from(presence.entries()).map(([userId, data]) => ({
+      userId,
+      ...data.metadata,
+      online: true,
+    }));
+    io.emit('users_online', users);
+  };
+
+  const getPartyRoom = (partyId) => `party:${partyId}`;
 
   io.on('connection', (socket) => {
     const user = getSenderFromSocket(socket);
@@ -237,6 +280,383 @@ const setupSocketIO = (server) => {
     const userId = user.userId;
     socket.join(userId);
 
+    // --- Presence ---
+    socket.on('register_presence', async (data = {}) => {
+      const metadata = data.metadata || {};
+      presence.set(userId, { socketId: socket.id, metadata });
+      broadcastOnlineUsers();
+      // Auto-deliver pending challenges + unread notifications on reconnect
+      try {
+        await pool.query(
+          `UPDATE game_challenges
+           SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE status = 'pending' AND to_user_id = $1 AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
+          [userId]
+        );
+        const { rows: chalRows } = await pool.query(
+          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+           FROM game_challenges
+           WHERE (to_user_id = $1 OR from_user_id = $1)
+             AND created_at > (CURRENT_TIMESTAMP - INTERVAL '7 days')
+           ORDER BY created_at DESC LIMIT 50`,
+          [userId]
+        );
+        const challenges = chalRows.map((r) => ({
+          id: Number(r.id),
+          fromUserId: r.from_user_id,
+          fromUserName: r.from_user_name,
+          toUserId: r.to_user_id,
+          gameId: r.game_id,
+          message: r.message,
+          status: r.status,
+          timestamp: Number(r.timestamp),
+        }));
+        io.to(userId).emit('challenge_inbox_sync', challenges);
+        const { rows: notifRows } = await pool.query(
+          `SELECT id, type, title, body, payload, is_read, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+           FROM notifications
+           WHERE user_id = $1
+           ORDER BY created_at DESC LIMIT 30`,
+          [userId]
+        );
+        const notifications = notifRows.map((r) => ({
+          id: Number(r.id),
+          type: r.type,
+          title: r.title,
+          body: r.body,
+          payload: r.payload || {},
+          read: r.is_read,
+          timestamp: Number(r.timestamp),
+        }));
+        io.to(userId).emit('notification_sync', notifications);
+      } catch (err) {
+        console.error('Auto-sync error on register_presence:', err);
+      }
+    });
+
+    socket.on('update_status', (data = {}) => {
+      const current = presence.get(userId);
+      if (current) {
+        current.metadata = { ...current.metadata, ...(data.metadata || {}) };
+        broadcastOnlineUsers();
+      }
+    });
+
+    // --- Rooms ---
+    socket.on('join_room', (roomId) => {
+      if (!roomId) return;
+      if (!rooms.has(roomId)) rooms.set(roomId, new Set());
+      rooms.get(roomId).add(userId);
+      socket.join(roomId);
+    });
+
+    socket.on('send_room_message', (data = {}) => {
+      const { roomId, message, fromUserName } = data;
+      if (!roomId || !message) return;
+      const payload = {
+        roomId,
+        fromUserId: userId,
+        fromUserName: fromUserName || userId,
+        message,
+        timestamp: Date.now(),
+      };
+      io.to(roomId).emit('room_message', payload);
+    });
+
+    // --- Private Messages ---
+    socket.on('send_message', async (data = {}) => {
+      const { toUserId, message } = data;
+      if (!toUserId || !message) return;
+      try {
+        await pool.query(
+          'INSERT INTO direct_messages (from_user_id, to_user_id, message) VALUES ($1, $2, $3)',
+          [userId, toUserId, message]
+        );
+        const payload = {
+          fromUserId: userId,
+          toUserId,
+          message,
+          timestamp: Date.now(),
+        };
+        io.to(toUserId).emit('private_message', payload);
+        // Also emit to sender for local echo consistency
+        io.to(userId).emit('private_message', payload);
+      } catch (err) {
+        console.error('DM Error:', err);
+      }
+    });
+
+    // --- Typing Indicators ---
+    socket.on('typing', (data = {}) => {
+      const { toUserId, isTyping } = data;
+      if (!toUserId) return;
+      io.to(toUserId).emit('user_typing', {
+        fromUserId: userId,
+        isTyping: !!isTyping,
+      });
+    });
+
+    // --- Challenges (persisted, offline notifications) ---
+    socket.on('challenge_player', async (data = {}) => {
+      const { toUserId, gameId, message } = data;
+      if (!toUserId || !gameId) return;
+      const fromUserName = presence.get(userId)?.metadata?.artistName || userId;
+      try {
+        const { rows } = await pool.query(
+          `INSERT INTO game_challenges (from_user_id, from_user_name, to_user_id, game_id, message, status)
+           VALUES ($1, $2, $3, $4, $5, 'pending')
+           RETURNING id, from_user_id, from_user_name, to_user_id, game_id, message, status, created_at`,
+          [userId, fromUserName, toUserId, gameId, message || null]
+        );
+        const record = {
+          id: rows[0].id,
+          fromUserId: rows[0].from_user_id,
+          fromUserName: rows[0].from_user_name,
+          toUserId: rows[0].to_user_id,
+          gameId: rows[0].game_id,
+          message: rows[0].message,
+          status: rows[0].status,
+          timestamp: new Date(rows[0].created_at).getTime(),
+        };
+        const isOnline = presence.has(toUserId);
+        // Always write a notification record (covers both online + offline cases)
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, body, payload)
+           VALUES ($1, 'challenge_incoming', $2, $3, $4)`,
+          [
+            toUserId,
+            '🎮 Game Challenge',
+            `${fromUserName} challenged you to ${gameId}`,
+            JSON.stringify({ challengeId: record.id, fromUserId: userId, gameId }),
+          ]
+        );
+        if (isOnline) {
+          io.to(toUserId).emit('incoming_challenge', record);
+        } else {
+          // Offline target: email via existing nodemailer helper
+          await sendSocialNotification(
+            toUserId,
+            '🎮 SMUVE Challenge',
+            `${fromUserName} challenged you to ${gameId} on S.M.U.V.E. 2.0.\n` +
+              `Open the app to accept or decline: https://smuvejeffpresents.com/inbox`
+          );
+        }
+        // Acknowledge sender
+        io.to(userId).emit('challenge_persisted', record);
+      } catch (err) {
+        console.error('Challenge persist error:', err);
+      }
+    });
+
+    // --- Inbox sync on reconnect ---
+    socket.on('request_inbox_sync', async () => {
+      try {
+        // Lazy-expire pending challenges older than 7 days
+        await pool.query(
+          `UPDATE game_challenges
+           SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+           WHERE status = 'pending' AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`
+        );
+        const { rows: chalRows } = await pool.query(
+          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+           FROM game_challenges
+           WHERE to_user_id = $1 OR from_user_id = $1
+           ORDER BY created_at DESC LIMIT 50`,
+          [userId]
+        );
+        const challenges = chalRows.map((r) => ({
+          id: Number(r.id),
+          fromUserId: r.from_user_id,
+          fromUserName: r.from_user_name,
+          toUserId: r.to_user_id,
+          gameId: r.game_id,
+          message: r.message,
+          status: r.status,
+          timestamp: Number(r.timestamp),
+        }));
+        io.to(userId).emit('challenge_inbox_sync', challenges);
+        const { rows: notifRows } = await pool.query(
+          `SELECT id, type, title, body, payload, is_read, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+           FROM notifications
+           WHERE user_id = $1
+           ORDER BY created_at DESC LIMIT 30`,
+          [userId]
+        );
+        const notifications = notifRows.map((r) => ({
+          id: Number(r.id),
+          type: r.type,
+          title: r.title,
+          body: r.body,
+          payload: r.payload || {},
+          read: r.is_read,
+          timestamp: Number(r.timestamp),
+        }));
+        io.to(userId).emit('notification_sync', notifications);
+      } catch (err) {
+        console.error('Inbox sync error:', err);
+      }
+    });
+
+    // --- Voice Signaling (WebRTC relay) ---
+    socket.on('voice_signal', (data = {}) => {
+      const { toUserId, signal } = data;
+      if (!toUserId || !signal) return;
+      io.to(toUserId).emit('voice_signal', {
+        fromUserId: userId,
+        signal,
+      });
+    });
+
+    // --- Parties / Squads ---
+    socket.on('create_party', (data = {}) => {
+      const partyId = data.partyId || `party_${crypto.randomUUID()}`;
+      const leaderMeta = presence.get(userId)?.metadata || {};
+      parties.set(partyId, {
+        leaderId: userId,
+        members: [{ userId, artistName: leaderMeta.artistName || userId }],
+        gameId: data.gameId || 'global',
+      });
+      socket.join(getPartyRoom(partyId));
+      io.to(userId).emit('party_created', {
+        partyId,
+        leaderId: userId,
+        members: [{ userId, artistName: leaderMeta.artistName || userId }],
+      });
+    });
+
+    socket.on('invite_to_party', (data = {}) => {
+      const { toUserId, partyId, gameId } = data;
+      if (!toUserId || !partyId) return;
+      const party = parties.get(partyId);
+      if (!party) return;
+      const inviterMeta = presence.get(userId)?.metadata || {};
+      io.to(toUserId).emit('party_invite', {
+        fromUserId: userId,
+        fromUserName: inviterMeta.artistName || userId,
+        partyId,
+        gameId: gameId || party.gameId,
+      });
+    });
+
+    socket.on('join_party', (data = {}) => {
+      const { partyId } = data;
+      if (!partyId) return;
+      const party = parties.get(partyId);
+      if (!party) return;
+      const memberMeta = presence.get(userId)?.metadata || {};
+      if (!party.members.find((m) => m.userId === userId)) {
+        party.members.push({
+          userId,
+          artistName: memberMeta.artistName || userId,
+        });
+      }
+      socket.join(getPartyRoom(partyId));
+      io.to(getPartyRoom(partyId)).emit('user_joined_party', {
+        userId,
+        artistName: memberMeta.artistName || userId,
+      });
+    });
+
+    socket.on('leave_party', (data = {}) => {
+      const { partyId } = data;
+      if (!partyId) return;
+      const party = parties.get(partyId);
+      if (party) {
+        party.members = party.members.filter((m) => m.userId !== userId);
+        if (party.members.length === 0) {
+          parties.delete(partyId);
+        }
+      }
+      socket.leave(getPartyRoom(partyId));
+      io.to(getPartyRoom(partyId)).emit('user_left_party', { userId });
+    });
+
+    socket.on('party_launch_game', (data = {}) => {
+      const { partyId, gameId } = data;
+      if (!partyId || !gameId) return;
+      const party = parties.get(partyId);
+      if (!party || party.leaderId !== userId) return;
+      io.to(getPartyRoom(partyId)).emit('party_launch_game', { partyId, gameId });
+    });
+
+    socket.on('send_party_message', (data = {}) => {
+      const { partyId, message } = data;
+      if (!partyId || !message) return;
+      const senderMeta = presence.get(userId)?.metadata || {};
+      io.to(getPartyRoom(partyId)).emit('party_message', {
+        roomId: partyId,
+        fromUserId: userId,
+        fromUserName: senderMeta.artistName || userId,
+        message,
+        timestamp: Date.now(),
+      });
+    });
+
+    // --- Matchmaking ---
+    socket.on('queue_for_match', (data = {}) => {
+      const { gameId } = data;
+      if (!gameId) return;
+      if (!matchmakingQueues.has(gameId)) {
+        matchmakingQueues.set(gameId, []);
+      }
+      const queue = matchmakingQueues.get(gameId);
+      // Prevent duplicate entries
+      if (!queue.find((q) => q.userId === userId)) {
+        queue.push({ userId, socketId: socket.id, timestamp: Date.now() });
+      }
+      // Simple FIFO matching: if 2+ players, match them
+      if (queue.length >= 2) {
+        const player1 = queue.shift();
+        const player2 = queue.shift();
+        if (player1 && player2) {
+          io.to(player1.userId).emit('match_found', {
+            opponentId: player2.userId,
+            gameId,
+          });
+          io.to(player2.userId).emit('match_found', {
+            opponentId: player1.userId,
+            gameId,
+          });
+        }
+      }
+    });
+
+    socket.on('cancel_match', (data = {}) => {
+      const { gameId } = data;
+      if (!gameId) return;
+      const queue = matchmakingQueues.get(gameId);
+      if (queue) {
+        matchmakingQueues.set(
+          gameId,
+          queue.filter((q) => q.userId !== userId)
+        );
+      }
+    });
+
+    // --- Neural Sync ---
+    socket.on('neural_sync_request', (data = {}) => {
+      const { toUserId, syncType } = data;
+      if (!toUserId) return;
+      const senderMeta = presence.get(userId)?.metadata || {};
+      io.to(toUserId).emit('neural_sync_invite', {
+        fromUserId: userId,
+        fromUserName: senderMeta.artistName || userId,
+        syncType: syncType || 'FULL_DASHBOARD',
+      });
+    });
+
+    socket.on('neural_sync_approve', (data = {}) => {
+      const { toUserId, syncData } = data;
+      if (!toUserId) return;
+      const senderMeta = presence.get(userId)?.metadata || {};
+      io.to(toUserId).emit('neural_sync_complete', {
+        fromUserId: userId,
+        fromUserName: senderMeta.artistName || userId,
+        syncData,
+      });
+    });
+
+    // --- Legacy squad handler (kept for compatibility) ---
     socket.on('INITIALIZE_SQUAD', (data = {}) => {
       const squadId = `squad_${crypto.randomUUID()}`;
       socket.join(squadId);
@@ -262,13 +682,19 @@ const setupSocketIO = (server) => {
     });
 
     socket.on('disconnect', () => {
-      Object.keys(matchmakingQueues).forEach((game) => {
-        matchmakingQueues[game] = matchmakingQueues[game].filter(
-          (q) => q.userId !== userId
+      presence.delete(userId);
+      // Remove from all matchmaking queues
+      matchmakingQueues.forEach((queue, gameId) => {
+        matchmakingQueues.set(
+          gameId,
+          queue.filter((q) => q.userId !== userId)
         );
       });
+      broadcastOnlineUsers();
     });
   });
+  appIO = io;
+  return io;
 };
 
 const sendSocialNotification = async (userId, title, body) => {
@@ -589,6 +1015,152 @@ app.delete(
     } catch (err) {
       console.error('Remove Friend Error:', err);
       res.status(500).json({ error: 'Failed to remove friend.' });
+    }
+  }
+);
+
+// --- CHALLENGE INBOX (persisted multiplayer state) ---
+app.get(
+  '/api/users/:userId/challenges',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const status = (req.query.status || 'all').toString();
+      // Lazy-expire pending > 7 days
+      await pool.query(
+        `UPDATE game_challenges
+         SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'pending' AND to_user_id = $1 AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
+        [userId]
+      );
+      let query =
+        `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status,
+                EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+         FROM game_challenges
+         WHERE (to_user_id = $1 OR from_user_id = $1)`;
+      const params = [userId];
+      if (['pending', 'accepted', 'declined', 'expired'].includes(status)) {
+        query += ` AND status = $2`;
+        params.push(status);
+      }
+      query += ` ORDER BY created_at DESC LIMIT 50`;
+      const { rows } = await pool.query(query, params);
+      res.json(
+        rows.map((r) => ({
+          id: Number(r.id),
+          fromUserId: r.from_user_id,
+          fromUserName: r.from_user_name,
+          toUserId: r.to_user_id,
+          gameId: r.game_id,
+          message: r.message,
+          status: r.status,
+          timestamp: Number(r.timestamp),
+        }))
+      );
+    } catch (err) {
+      console.error('Challenge inbox error:', err);
+      res.status(500).json({ error: 'Failed to load challenge inbox.' });
+    }
+  }
+);
+
+app.post(
+  '/api/users/:userId/challenges/:challengeId/respond',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, challengeId } = req.params;
+      const newStatus = (req.body && req.body.status) || '';
+      if (!['accepted', 'declined'].includes(newStatus)) {
+        return res
+          .status(400)
+          .json({ error: 'status must be accepted or declined' });
+      }
+      const { rows } = await pool.query(
+        `UPDATE game_challenges
+         SET status = $1, updated_at = CURRENT_TIMESTAMP, responded_at = CURRENT_TIMESTAMP
+         WHERE id = $2 AND to_user_id = $3
+         RETURNING id, from_user_id, from_user_name, to_user_id, game_id, message, status,
+                   EXTRACT(EPOCH FROM responded_at)::bigint * 1000 as timestamp`,
+        [newStatus, challengeId, userId]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'Challenge not found.' });
+      }
+      const updated = rows[0];
+      // Notify the challenger via socket if online
+      if (appIO) {
+        appIO
+          .to(updated.from_user_id)
+        .emit('challenge_response', {
+          id: Number(updated.id),
+          responderId: userId,
+          gameId: updated.game_id,
+          status: updated.status,
+          timestamp: Number(updated.timestamp),
+        });
+      }
+      res.json({ success: true, challenge: { ...updated, id: Number(updated.id) } });
+    } catch (err) {
+      console.error('Respond challenge error:', err);
+      res.status(500).json({ error: 'Failed to respond to challenge.' });
+    }
+  }
+);
+
+// --- NOTIFICATIONS ---
+app.get(
+  '/api/users/:userId/notifications',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const unreadOnly = req.query.unreadOnly === 'true';
+      let query = `SELECT id, type, title, body, payload, is_read, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+                   FROM notifications WHERE user_id = $1`;
+      const params = [userId];
+      if (unreadOnly) {
+        query += ` AND is_read = FALSE`;
+      }
+      query += ` ORDER BY created_at DESC LIMIT 50`;
+      const { rows } = await pool.query(query, params);
+      res.json(
+        rows.map((r) => ({
+          id: Number(r.id),
+          type: r.type,
+          title: r.title,
+          body: r.body,
+          payload: r.payload || {},
+          read: r.is_read,
+          timestamp: Number(r.timestamp),
+        }))
+      );
+    } catch (err) {
+      console.error('Notifications list error:', err);
+      res.status(500).json({ error: 'Failed to load notifications.' });
+    }
+  }
+);
+
+app.post(
+  '/api/users/:userId/notifications/:notifId/read',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId, notifId } = req.params;
+      await pool.query(
+        `UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2`,
+        [notifId, userId]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Mark read error:', err);
+      res.status(500).json({ error: 'Failed to mark notification read.' });
     }
   }
 );

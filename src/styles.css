@@ -45,8 +45,13 @@
      NEON CYAN palette (formerly Teal) — primary accent
      ==================================================== */
   --teal-500: #00E5FF;          /* Neon Cyan — buttons / links */
+  --teal-600: #00B8D4;          /* Deeper Cyan — active states */
+  --teal-700: #0097A7;          /* Dark Cyan — borders / text */
+  --teal-800: #007885;          /* Deep Cyan */
+  --teal-900: #005A64;          /* Abyss Cyan */
   --teal-400: #66F0FF;
   --teal-300: #A5F8FF;
+  --teal-200: #C8FBFF;
   --teal-100: rgba(0, 229, 255, 0.18);
   --teal-50: rgba(0, 229, 255, 0.10);
   --teal-glow: rgba(0, 229, 255, 0.40);
@@ -139,8 +144,13 @@
   --espresso-soft: rgba(180, 200, 255, 0.08);
 
   --teal-500: #66F0FF;
+  --teal-600: #33E8FF;
+  --teal-700: #00D4E8;
+  --teal-800: #00AEC2;
+  --teal-900: #008A9E;
   --teal-400: #99F7FF;
   --teal-300: #C8FBFF;
+  --teal-200: #DDFCFF;
   --teal-100: rgba(102, 240, 255, 0.22);
   --teal-50: rgba(102, 240, 255, 0.12);
   --teal-glow: rgba(102, 240, 255, 0.55);
@@ -603,7 +613,7 @@ body.dark-mode::before {
 .dark-mode ::-webkit-scrollbar-thumb { background: rgba(102, 240, 255, 0.40); }
 
 /* ================================================
-   PIANO ROLL — Stage lights grid
+   PIANO ROLL — Stage lights grid (high-contrast)
    Uses --pr-white-key to preserve piano keys in both modes
    ================================================ */
 .pr-key.black {
@@ -616,29 +626,69 @@ body.dark-mode::before {
   border-bottom: 1px solid rgba(11, 14, 31, 0.30);
   color: #06091A;
 }
+/* ── Grid rows: alternating subtle banding for visibility ── */
+.pr-row {
+  background: rgba(20, 25, 50, 0.50);
+  border-bottom: 1px solid rgba(180, 200, 255, 0.04);
+}
+.pr-row:nth-child(even) {
+  background: rgba(26, 32, 64, 0.45);
+}
 .pr-row.black {
-  background: rgba(6, 9, 26, 0.92);
+  background: rgba(6, 9, 26, 0.94);
+  border-bottom: 1px solid rgba(102, 240, 255, 0.04);
 }
 .pr-row.in-scale {
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba(0, 229, 255, 0.09);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
 }
+/* ── Grid column lines: stronger contrast ── */
 .pr-col-line {
-  border-right-color: rgba(180, 200, 255, 0.06);
+  border-right: 1px solid rgba(180, 200, 255, 0.10);
 }
 .pr-col-line.beat {
-  border-right-color: rgba(180, 200, 255, 0.10);
+  border-right: 1px solid rgba(180, 200, 255, 0.18);
 }
 .pr-col-line.bar {
-  border-right-color: rgba(0, 229, 255, 0.18);
+  border-right: 2px solid rgba(0, 229, 255, 0.28);
+}
+/* ── Grid canvas: CSS background grid pattern fallback ── */
+.pr-grid-canvas {
+  background-image:
+    linear-gradient(to right, rgba(180, 200, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(180, 200, 255, 0.04) 1px, transparent 1px);
 }
 .pr-grid {
   background:
-    linear-gradient(180deg, #06091A 0%, #0B0E1F 100%);
+    linear-gradient(180deg, #0A0E1A 0%, #0B0E1F 100%);
 }
 .dark-mode .pr-grid {
   background:
     radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.06) 0%, transparent 50%),
     linear-gradient(180deg, #000208 0%, #0A0F22 100%);
+}
+.dark-mode .pr-row {
+  background: rgba(10, 15, 34, 0.55);
+}
+.dark-mode .pr-row:nth-child(even) {
+  background: rgba(16, 22, 48, 0.50);
+}
+.dark-mode .pr-row.in-scale {
+  background: rgba(102, 240, 255, 0.10);
+}
+.dark-mode .pr-col-line {
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+.dark-mode .pr-col-line.beat {
+  border-right-color: rgba(255, 255, 255, 0.14);
+}
+.dark-mode .pr-col-line.bar {
+  border-right-color: rgba(102, 240, 255, 0.32);
+}
+.dark-mode .pr-grid-canvas {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 /* ================================================

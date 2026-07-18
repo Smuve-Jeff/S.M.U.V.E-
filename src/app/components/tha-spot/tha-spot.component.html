@@ -5,6 +5,28 @@
   #contentViewport
 >
   <!-- Spot Header -->
+  <!-- Incoming Challenge Banner -->
+  <div
+    class="challenge-banner glass-v42-pro"
+    *ngIf="incomingChallenge() as challenge"
+  >
+    <div class="challenge-info">
+      <span class="material-symbols-outlined">swords</span>
+      <span
+        >{{ challenge.fromUserName || 'A RIVAL' }} CHALLENGED YOU TO
+        {{ challenge.gameId | uppercase }}</span
+      >
+    </div>
+    <div class="challenge-actions">
+      <button class="action-btn" (click)="acceptIncomingChallenge()">
+        ACCEPT
+      </button>
+      <button class="action-btn danger" (click)="declineIncomingChallenge()">
+        DECLINE
+      </button>
+    </div>
+  </div>
+
   <header
     class="spot-header glass-v42 shadow-v42-lg"
     *ngIf="displayMode() !== 'pluto'"
@@ -487,10 +509,27 @@
               </button>
               <button
                 class="icon-btn mini"
-                (click)="sendChallenge(target.userId, gameIdToInvite())"
+                (click)="sendChallenge(target.userId, gameIdToInvite() || '')"
                 title="Challenge"
+                [disabled]="!gameIdToInvite()"
               >
                 <span class="material-symbols-outlined">swords</span>
+              </button>
+              <button
+                class="icon-btn mini"
+                (click)="shareChallengeLink(gameIdToInvite() || '', target.userId)"
+                title="Share Challenge Link"
+                [disabled]="!gameIdToInvite()"
+              >
+                <span class="material-symbols-outlined">share</span>
+              </button>
+              <button
+                class="icon-btn mini"
+                (click)="shareChallengeViaSms(gameIdToInvite() || '', target.userId)"
+                title="Text Challenge Link"
+                [disabled]="!gameIdToInvite()"
+              >
+                <span class="material-symbols-outlined">sms</span>
               </button>
             </div>
           </div>

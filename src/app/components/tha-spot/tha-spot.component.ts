@@ -29,6 +29,7 @@ import {
   RoomMessage,
   PrivateMessage,
 } from '../../services/social-networking.service';
+import { ChallengeInboxService } from '../../services/challenge-inbox.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ActivatedRoute } from '@angular/router';
@@ -42,6 +43,66 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   imports: [CommonModule, FormsModule],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
+  styles: [`
+    .challenge-banner {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 110;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(225, 29, 72, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+      border: 1px solid rgba(225, 29, 72, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      animation: slideDown 0.4s ease-out;
+    }
+    .challenge-banner .challenge-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #fff;
+    }
+    .challenge-banner .challenge-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .challenge-banner .action-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .challenge-banner .action-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .challenge-banner .action-btn.danger {
+      background: rgba(225, 29, 72, 0.3);
+      border-color: rgba(225, 29, 72, 0.5);
+    }
+    .challenge-banner .action-btn.danger:hover {
+      background: rgba(225, 29, 72, 0.5);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    .icon-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  `],
 })
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -53,6 +114,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gamepadService = inject(GamepadService);
   private securityService = inject(SecurityService);
   public socialService = inject(SocialNetworkingService);
+  public inboxService = inject(ChallengeInboxService);
   public peerService = inject(PeerNetworkingService);
   private snackbarService = inject(SnackbarService);
 
@@ -235,7 +297,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   knockFromUserId = this.peerService.knockFromUserId;
   messages = this.socialService.messages;
   roomMessages = this.socialService.roomMessages;
-  challenges = this.socialService.challenges;
+  challenges = this.inboxService.challenges;
   filteredMessages = computed(() => {
     const targetId = this.dmTargetUserId();
     const myId = this.profileService.profile().id;
@@ -248,7 +310,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   });
   isCallActive = this.peerService.isCallActive;
   inGame = signal(false);
-  gameIdToInvite = signal('all');
+  gameIdToInvite = signal<string | null>(null);
+  incomingChallenge = signal<{ fromUserId: string; fromUserName?: string; gameId: string; timestamp: number } | null>(null);
 
   statusEffect = effect(() => {
     const inGame = this.inGame();
@@ -333,6 +396,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           });
         }
       }
+
+      // Handle challenge deep links: ?challenge=true&gameId=...&from=...
+      const challenge = params.get('challenge');
+      if (challenge === 'true') {
+        const fromUserId = params.get('from') || '';
+        const fromUserName = params.get('fromName') || 'Unknown';
+        const challengeGameId = params.get('gameId') || '';
+        if (challengeGameId) {
+          this.incomingChallenge.set({
+            fromUserId,
+            fromUserName,
+            gameId: challengeGameId,
+            timestamp: Date.now(),
+          });
+          // Optionally auto-select the game
+          const game = this.games().find((g) => g.id === challengeGameId);
+          if (game) this.selectedGame.set(game);
+        }
+      }
     });
 
     this.setActiveRoom('co-op-link');
@@ -392,6 +474,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onGameClick(game: Game) {
     this.selectedGame.set(game);
+    this.gameIdToInvite.set(game.id);
   }
 
   closePreview() {
@@ -655,7 +738,83 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   sendChallenge(userId: string, gameId: string) {
-    this.socialService.challengePlayer(userId, gameId);
+    if (!gameId || gameId === 'all') {
+      this.snackbarService.info('SELECT A GAME CABINET FIRST');
+      return;
+    }
+    this.inboxService.challengePlayer(userId, gameId);
+    this.snackbarService.success('CHALLENGE DISPATCHED');
+  }
+
+  buildChallengeLink(gameId: string, toUserId?: string): string {
+    const baseUrl = window.location.origin + '/tha-spot';
+    const params = new URLSearchParams();
+    params.set('challenge', 'true');
+    params.set('gameId', gameId);
+    params.set('from', this.profileService.profile().id);
+    params.set('fromName', this.profileService.profile().artistName || 'Rival');
+    if (toUserId) params.set('to', toUserId);
+    return `${baseUrl}?${params.toString()}`;
+  }
+
+  async shareChallengeLink(gameId: string, toUserId?: string) {
+    if (!gameId || gameId === 'all') {
+      this.snackbarService.info('SELECT A GAME CABINET FIRST');
+      return;
+    }
+    const game = this.games().find((g) => g.id === gameId) || this.selectedGame();
+    const gameName = game?.name || gameId;
+    const link = this.buildChallengeLink(gameId, toUserId);
+    const text = `🎮 Challenge me to ${gameName} on S.M.U.V.E.! ${link}`;
+
+    // Use Web Share API when available (mobile native share sheet)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'S.M.U.V.E. Challenge',
+          text,
+          url: link,
+        });
+        return;
+      } catch (_err) {
+        // Fall through to clipboard / sms
+      }
+    }
+
+    // Copy to clipboard as fallback
+    try {
+      await navigator.clipboard.writeText(text);
+      this.snackbarService.success('CHALLENGE LINK COPIED');
+    } catch (_err) {
+      this.snackbarService.error('FAILED TO COPY LINK');
+    }
+  }
+
+  shareChallengeViaSms(gameId: string, toUserId?: string) {
+    if (!gameId || gameId === 'all') {
+      this.snackbarService.info('SELECT A GAME CABINET FIRST');
+      return;
+    }
+    const game = this.games().find((g) => g.id === gameId) || this.selectedGame();
+    const gameName = game?.name || gameId;
+    const link = this.buildChallengeLink(gameId, toUserId);
+    const body = encodeURIComponent(`🎮 Challenge me to ${gameName} on S.M.U.V.E.! ${link}`);
+    window.location.href = `sms:?body=${body}`;
+  }
+
+  acceptIncomingChallenge() {
+    const challenge = this.incomingChallenge();
+    if (!challenge) return;
+    const game = this.games().find((g) => g.id === challenge.gameId);
+    if (game) {
+      this.selectedGame.set(game);
+    }
+    this.incomingChallenge.set(null);
+    this.snackbarService.success('CHALLENGE ACCEPTED — INITIALIZING');
+  }
+
+  declineIncomingChallenge() {
+    this.incomingChallenge.set(null);
   }
 
   startVoiceChat(userId: string) {

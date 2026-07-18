@@ -38,11 +38,13 @@ export interface RoomMessage {
 }
 
 export interface Challenge {
+  id?: number;
   fromUserId: string;
   fromUserName?: string;
+  toUserId?: string;
   gameId: string;
   timestamp: number;
-  status?: 'pending' | 'accepted' | 'declined';
+  status?: 'pending' | 'accepted' | 'declined' | 'expired';
 }
 
 export interface StreamTelemetry {
@@ -63,7 +65,7 @@ export class SocialNetworkingService {
   onlineUsers = signal<OnlineUser[]>([]);
   messages = signal<PrivateMessage[]>([]);
   roomMessages = signal<RoomMessage[]>([]);
-  challenges = signal<Challenge[]>([]);
+  // challenges moved to ChallengeInboxService (single source of truth)
   friends = signal<OnlineUser[]>([]);
   partyMembers = signal<OnlineUser[]>([]);
   activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
@@ -112,7 +114,10 @@ export class SocialNetworkingService {
 
   private initializeSocket(userId: string) {
     const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
-    this.socket = io(backendUrl);
+    const token = this.tokenService.jwtToken();
+    this.socket = io(backendUrl, {
+      auth: { token },
+    });
 
     this.socket.on('connect', () => {
       console.log('Elite socket connected');
@@ -195,12 +200,8 @@ export class SocialNetworkingService {
       this.roomMessages.update((msgs) => [...msgs, data]);
     });
 
-    this.socket.on('incoming_challenge', (data: any) => {
-      this.challenges.update((challs) => [
-        ...challs,
-        { ...data, timestamp: Date.now(), status: 'pending' },
-      ]);
-    });
+    // incoming_challenge + challenge_inbox_sync are dispatched by ChallengeInboxComponent
+    // (the inbox owns the persisted challenge signal; see ChallengeInboxService).
 
     this.socket.on('match_found', (data: any) => {
       this.matchmakingStatus.set('matched');
@@ -311,9 +312,7 @@ export class SocialNetworkingService {
     ]);
   }
 
-  challengePlayer(toUserId: string, gameId: string) {
-    this.socket?.emit('challenge_player', { toUserId, gameId });
-  }
+  // challengePlayer() moved to ChallengeInboxService (single source of truth).
 
   sendVoiceSignal(toUserId: string, signal: any) {
     const fromUserId = this.profileService.profile().id;

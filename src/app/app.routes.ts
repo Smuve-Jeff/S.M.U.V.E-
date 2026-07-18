@@ -153,6 +153,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'inbox',
+    loadComponent: () =>
+      import('./components/challenge-inbox/challenge-inbox.component').then(
+        (m) => m.ChallengeInboxComponent
+      ),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./components/login/login.component').then(

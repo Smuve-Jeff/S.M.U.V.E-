@@ -460,32 +460,62 @@
 }
 
 /* ── Dark mode overrides ──────────────────────────────────── */
-.dark-mode .grid-canvas {
+:host-context(.dark-mode) .grid-canvas {
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
 }
-.dark-mode .clip-item {
-  background: rgba(93, 196, 194, 0.08);
+:host-context(.dark-mode) .playlist-header {
+  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
-.dark-mode .clip-header {
-  background: rgba(0,0,0,0.25);
+:host-context(.dark-mode) .track-headers {
+  background: #0A0F22;
+  border-right-color: rgba(255, 255, 255, 0.06);
 }
-.dark-mode .take-clip {
-  background: rgba(93, 196, 194, 0.15);
+:host-context(.dark-mode) .track-header {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
 }
-.dark-mode .track-header:hover { background: var(--teal-50); }
-.dark-mode .track-header.selected {
+:host-context(.dark-mode) .track-header:hover { background: var(--teal-50); }
+:host-context(.dark-mode) .track-header.selected {
   background: var(--teal-100);
+  box-shadow: inset 3px 0 0 var(--teal-500);
 }
-.dark-mode .ruler-bar {
-  background: var(--ivory-panel);
+:host-context(.dark-mode) .lane-row {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+:host-context(.dark-mode) .lane-row:hover { background: rgba(102, 240, 255, 0.06); }
+:host-context(.dark-mode) .clip-item {
+  background: rgba(102, 240, 255, 0.08);
+}
+:host-context(.dark-mode) .clip-header {
+  background: rgba(0, 0, 0, 0.40);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:host-context(.dark-mode) .take-clip {
+  background: rgba(102, 240, 255, 0.12);
+}
+:host-context(.dark-mode) .grid-viewport {
+  background: #000208;
+}
+:host-context(.dark-mode) .time-ruler {
+  background: #0A0F22;
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+:host-context(.dark-mode) .ruler-bar {
   color: var(--teal-500);
 }
-.dark-mode .lane-row {
-  border-bottom-color: var(--espresso-soft);
+:host-context(.dark-mode) .mini-btn {
+  background: #0A0F22;
+  border-color: rgba(255, 255, 255, 0.08);
 }
-.dark-mode .lane-row:hover { background: var(--teal-50); }
+:host-context(.dark-mode) .tab-btn {
+  background: #0A0F22;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+:host-context(.dark-mode) .tool-btn {
+  color: var(--espresso-muted);
+}
 
 /* ── Mobile responsive ────────────────────────────────────── */
 @media (max-width: 768px) {

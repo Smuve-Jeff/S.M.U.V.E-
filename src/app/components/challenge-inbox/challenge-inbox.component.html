@@ -1,0 +1,152 @@
+<div class="inbox-shell animate-enter">
+  <!-- Header -->
+  <header class="inbox-header glass-v42-pro">
+    <div class="inbox-title">
+      <span class="material-symbols-outlined title-icon">inbox</span>
+      <div class="title-block">
+        <h1>CHALLENGE INBOX</h1>
+        <p class="subtitle">
+          {{ pendingCount() }} PENDING
+          <span class="dot-sep">·</span>
+          {{ unreadCount() }} UNREAD
+        </p>
+      </div>
+    </div>
+    <div class="inbox-actions">
+      <button
+        class="icon-btn"
+        (click)="refreshAll()"
+        [disabled]="loading()"
+        title="Refresh"
+      >
+        <span class="material-symbols-outlined">refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notifications Strip -->
+  <section class="notifications-strip" *ngIf="notifications().length > 0">
+    <h2 class="strip-title">NOTIFICATIONS</h2>
+    <div class="notif-grid">
+      <button
+        *ngFor="let n of notifications().slice(0, 3)"
+        class="notif-card glass-v42"
+        [class.unread]="!n.read"
+        (click)="markRead(n)"
+      >
+        <div class="notif-left">
+          <span class="material-symbols-outlined">{{
+            n.type === 'challenge_incoming' ? 'swords' : 'notifications'
+          }}</span>
+          <span class="notif-unread-dot" *ngIf="!n.read"></span>
+        </div>
+        <div class="notif-body">
+          <strong class="notif-title">{{ n.title }}</strong>
+          <span class="notif-meta">{{ relativeTime(n.timestamp) }}</span>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <nav class="inbox-tabs">
+    <button
+      *ngFor="let t of tabs"
+      class="tab-btn"
+      [class.active]="activeTab() === t.id"
+      (click)="setTab(t.id)"
+    >
+      {{ t.label }}
+      <span class="tab-count" *ngIf="t.id === 'pending' && pendingCount() > 0">
+        {{ pendingCount() }}
+      </span>
+    </button>
+  </nav>
+
+  <!-- Content -->
+  <main class="inbox-main">
+    <div class="empty-state glass-v42" *ngIf="filteredChallenges().length === 0">
+      <span class="material-symbols-outlined empty-icon">inbox</span>
+      <h3>
+        {{
+          activeTab() === 'pending'
+            ? 'NO PENDING CHALLENGES'
+            : activeTab() === 'accepted'
+              ? 'NO ACCEPTED CHALLENGES'
+              : activeTab() === 'declined'
+                ? 'NO DECLINED CHALLENGES'
+                : 'INBOX IS CLEAR'
+        }}
+      </h3>
+      <p>
+        Challenge another artist from the Rival Hub to populate your inbox.
+      </p>
+    </div>
+
+    <article
+      *ngFor="let c of filteredChallenges()"
+      class="challenge-card glass-v42-pro"
+      [class.incoming]="isIncoming(c)"
+      [class.outgoing]="!isIncoming(c)"
+      [class.status-pending]="c.status === 'pending'"
+      [class.status-accepted]="c.status === 'accepted'"
+      [class.status-declined]="c.status === 'declined' || c.status === 'expired'"
+    >
+      <div class="card-badge-strip">
+        <span class="status-pill status-{{ c.status }}">{{
+          c.status.toUpperCase()
+        }}</span>
+        <span class="badge-direction">
+          {{ isIncoming(c) ? 'INCOMING' : 'SENT' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="card-icon">
+          <span class="material-symbols-outlined">swords</span>
+        </div>
+        <div class="card-text">
+          <h3 class="card-title">
+            {{ opponentName(c) }}
+            <span class="vs">VS</span>
+            {{ formatGameName(c.gameId) }}
+          </h3>
+          <p class="card-message" *ngIf="c.message">{{ c.message }}</p>
+          <span class="card-time">{{ relativeTime(c.timestamp) }}</span>
+        </div>
+      </div>
+      <div class="card-actions" *ngIf="c.status === 'pending' && isIncoming(c)">
+        <button
+          class="action-btn accept-btn"
+          (click)="accept(c)"
+          title="Accept"
+        >
+          ACCEPT
+        </button>
+        <button
+          class="action-btn decline-btn"
+          (click)="decline(c)"
+          title="Decline"
+        >
+          DECLINE
+        </button>
+      </div>
+      <div class="card-actions" *ngIf="c.status === 'accepted' && isIncoming(c)">
+        <button
+          class="action-btn play-btn"
+          routerLink="/tha-spot"
+          [queryParams]="{ gameId: c.gameId }"
+          title="Launch game"
+        >
+          LAUNCH GAME
+        </button>
+      </div>
+      <div *ngIf="!isIncoming(c)" class="card-meta">
+        <span class="meta-muted">
+          Awaiting
+          {{ c.toUserId.toUpperCase() }}
+          response.
+        </span>
+      </div>
+    </article>
+  </main>
+</div>

@@ -1,11 +1,12 @@
 /* ===========================================================
    S.M.U.V.E. Composer — Drum Machine (FL Studio Mobile pattern)
+   City Skylines After Dark — Stage Edition
    =========================================================== */
 
 :host {
   display: block;
   height: 100%;
-  background: var(--ivory-bg);
+  background: var(--ivory-deep, #06091A);
   color: var(--espresso-text);
   overflow: hidden;
 }
@@ -14,7 +15,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--ivory-bg);
+  background: var(--ivory-deep, #06091A);
 }
 
 /* ---- HEADER ---- */
@@ -23,8 +24,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--ivory-paper);
-  border-bottom: 1px solid var(--espresso-line);
+  background: linear-gradient(180deg, var(--ivory-panel) 0%, var(--ivory-deep) 100%);
+  border-bottom: 1px solid var(--ivory-line);
   flex-shrink: 0;
   gap: 12px;
   flex-wrap: wrap;
@@ -55,7 +56,7 @@
   align-items: center;
   gap: 6px;
   background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
-  color: white;
+  color: var(--ivory-deep);
   border: none;
   padding: 0 14px;
   height: 36px;
@@ -65,7 +66,7 @@
   letter-spacing: 0.06em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 4px 10px rgba(14, 124, 123, 0.30);
+  box-shadow: 0 4px 10px var(--teal-glow);
 }
 
 /* ---- body: pads + step grid + inspector ---- */
@@ -85,14 +86,14 @@
   flex: 1 1 auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: var(--ivory-bg);
+  background: var(--ivory-deep);
   align-content: start;
 }
 
 .dm-pad {
   aspect-ratio: 1;
-  background: var(--ivory-paper);
-  border: 2px solid var(--espresso-soft);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
+  border: 2px solid var(--ivory-line);
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -113,7 +114,7 @@
 
 .dm-pad.selected {
   border-color: var(--pad-color, var(--teal-500));
-  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 0 18px rgba(14, 124, 123, 0.30);
+  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 0 18px var(--teal-glow);
 }
 
 .dm-pad.playing {
@@ -122,7 +123,7 @@
 
 @keyframes dm-pad-flash {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(0.98); background: var(--pad-color, var(--teal-500)); color: white; }
+  50% { transform: scale(0.98); background: var(--pad-color, var(--teal-500)); color: var(--ivory-deep); }
 }
 
 .dm-pad-led {
@@ -136,7 +137,7 @@
   right: 8px;
 }
 .dm-pad-led.off {
-  background: var(--espresso-soft);
+  background: var(--espresso-line);
   box-shadow: none;
 }
 
@@ -157,10 +158,10 @@
 /* ---- step grid (FL mobile 16 cells) ---- */
 .dm-step-grid {
   flex: 1 1 auto;
-  background: var(--ivory-bg);
+  background: var(--ivory-deep);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--espresso-line);
+  border-left: 1px solid var(--ivory-line);
   min-width: 0;
 }
 
@@ -168,14 +169,14 @@
   display: flex;
   gap: 4px;
   padding: 12px 12px 4px;
-  background: var(--ivory-paper);
-  border-bottom: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-bottom: 1px solid var(--ivory-line);
 }
 
 .dm-bar-tab {
   flex: 1 1 0;
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   border-radius: 8px;
   padding: 8px 6px;
   font-size: 10px;
@@ -188,21 +189,25 @@
 }
 .dm-bar-tab.active {
   background: var(--teal-500);
-  color: white;
+  color: var(--ivory-deep);
   border-color: var(--teal-500);
+}
+
+.dm-steps-list {
+  overflow-y: auto;
 }
 
 .dm-step-row {
   display: grid;
   grid-template-columns: 100px repeat(16, 1fr);
   align-items: stretch;
-  border-bottom: 1px solid var(--espresso-soft);
+  border-bottom: 1px solid var(--ivory-line);
   min-height: 36px;
 }
 
 .dm-step-row-label {
-  background: var(--ivory-paper);
-  border-right: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-right: 1px solid var(--ivory-line);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -210,8 +215,8 @@
   cursor: pointer;
 }
 .dm-step-row.active .dm-step-row-label {
-  background: var(--teal-50);
-  color: var(--teal-700);
+  background: var(--teal-100);
+  color: var(--teal-500);
 }
 .dm-step-row-label-dot {
   width: 8px;
@@ -227,8 +232,8 @@
 
 .dm-step {
   position: relative;
-  background: var(--ivory-paper);
-  border-right: 1px solid var(--espresso-soft);
+  background: var(--ivory-panel);
+  border-right: 1px solid var(--ivory-line);
   height: 36px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -237,13 +242,14 @@
   justify-content: center;
   padding-bottom: 4px;
 }
-.dm-step.beat-end { border-right-width: 1px; }
+.dm-step.beat-end { border-right: 2px solid var(--ivory-line); }
 .dm-step.bar-end { border-right: 2px solid var(--teal-500); }
 .dm-step.current {
   background: var(--teal-50);
 }
 .dm-step.on {
-  background: var(--teal-500);
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  box-shadow: 0 0 8px var(--teal-soft-glow);
 }
 .dm-step.on::after {
   content: '';
@@ -253,9 +259,6 @@
   border-radius: 50%;
   margin-bottom: 8px;
 }
-.dm-step.vel-fill {
-  /* shows velocity as fill */
-}
 .dm-step:hover:not(.on) {
   background: var(--teal-100);
 }
@@ -263,8 +266,8 @@
 /* ---- right inspector (knobs + sliders) ---- */
 .dm-inspector {
   width: 240px;
-  background: var(--ivory-paper);
-  border-left: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-left: 1px solid var(--ivory-line);
   padding: 14px 12px;
   flex-shrink: 0;
   overflow-y: auto;
@@ -280,7 +283,7 @@
   text-transform: uppercase;
   color: var(--teal-500);
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--espresso-soft);
+  border-bottom: 1px solid var(--ivory-line);
 }
 
 .dm-knob-row {
@@ -302,8 +305,8 @@
   justify-content: space-between;
   height: 36px;
   padding: 0 10px;
-  background: var(--ivory-panel);
-  border: 1px solid var(--espresso-soft);
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
   border-radius: 9px;
   font-size: 10px;
   font-weight: 800;
@@ -312,26 +315,79 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.dm-macro:hover { background: var(--teal-50); border-color: var(--teal-500); color: var(--teal-700); }
-.dm-macro.warn { color: var(--orange); }
+.dm-macro:hover { background: var(--teal-100); border-color: var(--teal-500); color: var(--teal-400); }
+.dm-macro.warn { color: var(--neon-amber); }
 
 /* Velocity visualisation */
 .dm-vel-strip {
   display: grid;
   grid-template-columns: repeat(16, 1fr);
   gap: 2px;
-  background: var(--espresso-text);
+  background: var(--ivory-deep);
   border-radius: 6px;
   padding: 4px;
   height: 56px;
   align-items: end;
 }
 .dm-vel-bar {
-  background: var(--teal-500);
+  background: linear-gradient(180deg, var(--teal-400) 0%, var(--teal-600) 100%);
   border-radius: 2px;
   cursor: ns-resize;
   -webkit-tap-highlight-color: transparent;
   border: 1px solid var(--teal-700);
+}
+
+/* ---- DARK MODE OVERRIDES ---- */
+:host-context(.dark-mode) .dm-header {
+  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .dm-pad {
+  background: linear-gradient(180deg, #0A0F22 0%, #050817 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .dm-pad.selected {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 0 28px var(--teal-glow);
+}
+
+:host-context(.dark-mode) .dm-step {
+  background: #0A0F22;
+  border-right-color: rgba(255, 255, 255, 0.04);
+}
+
+:host-context(.dark-mode) .dm-step.on {
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  box-shadow: 0 0 16px var(--teal-glow);
+}
+
+:host-context(.dark-mode) .dm-step.current {
+  background: rgba(102, 240, 255, 0.10);
+}
+
+:host-context(.dark-mode) .dm-step.beat-end {
+  border-right-color: rgba(255, 255, 255, 0.10);
+}
+
+:host-context(.dark-mode) .dm-inspector {
+  background: #0A0F22;
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .dm-vel-strip {
+  background: #000208;
+}
+
+:host-context(.dark-mode) .dm-step-row-label {
+  background: #0A0F22;
+  border-right-color: rgba(255, 255, 255, 0.04);
+}
+
+:host-context(.dark-mode) .dm-bar-tab {
+  background: #0A0F22;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 /* ---- MOBILE FLAT single-column ---- */
@@ -344,12 +400,12 @@
   }
   .dm-step-grid {
     border-left: none;
-    border-top: 1px solid var(--espresso-line);
+    border-top: 1px solid var(--ivory-line);
   }
   .dm-inspector {
     width: 100%;
     border-left: none;
-    border-top: 1px solid var(--espresso-line);
+    border-top: 1px solid var(--ivory-line);
   }
 }
 

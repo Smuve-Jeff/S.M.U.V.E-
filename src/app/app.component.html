@@ -450,6 +450,26 @@
           </button>
         </div>
 
+        <a
+          *ngIf="!isAuthRoute()"
+          routerLink="/inbox"
+          class="shell-icon-button relative group"
+          aria-label="Open challenge inbox"
+          title="Inbox"
+        >
+          <div
+            class="w-10 h-10 rounded-lg bg-background-alt border border-border flex items-center justify-center text-text-dim group-hover:text-brand-primary group-hover:border-brand-primary/40 transition-all"
+          >
+            <span class="material-symbols-outlined text-xl md:text-2xl"
+              >inbox</span>
+          </div>
+          <div
+            *ngIf="pendingChallenges() + unreadNotifications() > 0"
+            class="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 border-2 border-surface text-white text-[10px] font-bold flex items-center justify-center animate-pulse"
+          >
+            {{ pendingChallenges() + unreadNotifications() }}
+          </div>
+        </a>
         <button
           type="button"
           (click)="toggleChatbot()"
