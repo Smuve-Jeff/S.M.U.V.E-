@@ -85,6 +85,13 @@
       >
         Storage
       </button>
+      <button
+        (click)="setTab('hardware')"
+        [class.active-tab]="activeTab() === 'hardware'"
+        class="settings-tab"
+      >
+        Hardware
+      </button>
     </div>
 
     <div
@@ -1398,6 +1405,108 @@
         >
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Hardware Management -->
+<div
+  *ngIf="activeTab() === 'hardware'"
+  class="flex flex-col gap-8 animate-enter"
+>
+  <!-- Hardware Status Overview -->
+  <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+    <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center">
+      <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+      Hardware_Status_Matrix
+    </h4>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2">
+        <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Audio Interface</span>
+        <div class="flex items-center gap-2">
+          <div [class]="hardwareService.status().audioInterfaceConnected ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse' : 'w-2 h-2 rounded-full bg-red-500'"></div>
+          <span class="text-xs font-black text-text-main">
+            {{ hardwareService.status().audioInterfaceConnected ? hardwareService.status().activeInterfaceName || 'Connected' : 'Not Detected' }}
+          </span>
+        </div>
+      </div>
+      <div class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2">
+        <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">MIDI Devices</span>
+        <div class="flex items-center gap-2">
+          <div [class]="hardwareService.status().midiDevicesConnected > 0 ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse' : 'w-2 h-2 rounded-full bg-yellow-500'"></div>
+          <span class="text-xs font-black text-text-main">
+            {{ hardwareService.status().midiDevicesConnected }} Connected
+          </span>
+        </div>
+      </div>
+      <div class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2">
+        <span class="text-[9px] font-bold text-text-dim uppercase tracking-widest">Gamepad</span>
+        <div class="flex items-center gap-2">
+          <div [class]="hardwareService.status().gamepadConnected ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse' : 'w-2 h-2 rounded-full bg-yellow-500'"></div>
+          <span class="text-xs font-black text-text-main">
+            {{ hardwareService.status().gamepadConnected ? 'Controller Linked' : 'No Controller' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDI Devices -->
+  <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+    <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
+      <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+      MIDI_Hardware
+    </h4>
+    <p class="text-[10px] text-text-dim mb-4">
+      S.M.U.V.E. automatically detects connected MIDI keyboards and DJ controllers.
+      MIDI note input is routed to the active instrument in the Studio.
+      DJ controller mapping is handled by the DJ MIDI service with customizable MIDI Learn.
+    </p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+        <div>
+          <h3 class="setting-title">MIDI Clock Output</h3>
+          <p class="text-xs text-text-dim">Send 24 PPQN clock pulses to external MIDI hardware synced to the transport.</p>
+        </div>
+        <button
+          (click)="audioEngine.midiClockEnabled.set(!audioEngine.midiClockEnabled())"
+          class="toggle-btn"
+          [class.on]="audioEngine.midiClockEnabled()"
+        >
+          <div class="toggle-handle"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Input Devices -->
+  <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+    <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center">
+      <span class="w-1 h-4 bg-brand-accent mr-2"></span>
+      Audio_Input_Devices
+    </h4>
+    <p class="text-[10px] text-text-dim mb-4">
+      All detected audio input devices including built-in microphones, USB interfaces, headsets, and MIDI devices.
+    </p>
+    <div class="flex flex-col gap-2">
+      <div *ngFor="let device of audioInputDevices()"
+        class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50">
+        <div class="flex flex-col">
+          <span class="text-[11px] font-bold text-text-main">{{ device.label }}</span>
+          <span class="text-[9px] text-text-dim uppercase tracking-tighter">
+            {{ device.type }}
+            <span *ngFor="let cap of device.capabilities" class="ml-1 px-1.5 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[8px]">{{ cap }}</span>
+          </span>
+        </div>
+        <span *ngIf="device.isDefault" class="text-[8px] font-bold text-brand-primary uppercase tracking-widest">Default</span>
+      </div>
+      <p *ngIf="audioInputDevices().length === 0" class="text-xs text-text-dim text-center py-4">
+        No audio input devices detected. Connect a microphone or audio interface and click Refresh.
+      </p>
+    </div>
+    <button (click)="refreshAudioInputs()"
+      class="mt-4 px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors">
+      Refresh Devices
+    </button>
   </div>
 </div>
 

@@ -97,6 +97,8 @@ export class AudioEngineService {
   public currentBeat = signal(0);
   public visualStep = signal(0);
   private nextNoteTime = 0;
+  private midiClockPulseCounter = 0;
+  private lastMidiClockTime = 0;
   private schedulerHandle: any = null;
   private currentStep = 0;
   private countInRemainingSteps = 0;
@@ -267,10 +269,19 @@ export class AudioEngineService {
     this.midiOutputs.forEach((out) => out.send(data));
   }
   private sendMidiStart() {
+    this.midiClockPulseCounter = 0;
+    this.lastMidiClockTime = this.ctx.currentTime;
     this.sendMidiToAll([0xfa]);
   }
   private sendMidiStop() {
     this.sendMidiToAll([0xfc]);
+  }
+  sendMidiContinue() {
+    this.sendMidiToAll([0xfb]);
+  }
+  sendMidiPositionPointer(bar: number, beat: number) {
+    const position = bar * 16 + beat * 4;
+    this.sendMidiToAll([0xF2, position & 0x7F, (position >> 7) & 0x7F]);
   }
 
   private scheduler() {
@@ -309,6 +320,22 @@ export class AudioEngineService {
         },
         Math.max(0, visualDelay)
       );
+      // MIDI Clock: send 24 pulses per quarter note
+      if (this.midiClockEnabled() && this.midiOutputs.length > 0) {
+        const ppqn = 24;
+        const quarterDuration = 60 / this.tempo();
+        const pulseInterval = quarterDuration / ppqn;
+        while (this.lastMidiClockTime < this.nextNoteTime) {
+          if (this.lastMidiClockTime >= this.ctx.currentTime - 0.05) {
+            const delay = (this.lastMidiClockTime - this.ctx.currentTime) * 1000;
+            setTimeout(() => this.sendMidiToAll([0xF8]), Math.max(0, delay));
+          } else {
+            this.sendMidiToAll([0xF8]);
+          }
+          this.lastMidiClockTime += pulseInterval;
+        }
+      }
+
       this.nextNoteTime += stepDuration;
       this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
     }
@@ -404,16 +431,47 @@ export class AudioEngineService {
     if (deck) deck.isPlaying = false;
   }
   seekDeck(id: DeckId, pos: number) {
-    /* seek logic */
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return;
+    deck.pauseOffset = Math.max(0, Math.min(pos, deck.buffer.duration));
+    if (deck.isPlaying) {
+      this.stopDeck(id);
+      this._playDeckInternal(id);
+    }
   }
+
   getDeckProgress(id: DeckId) {
-    return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    let position = deck.pauseOffset;
+    if (deck.isPlaying && deck.startTime > 0) {
+      position = (this.ctx.currentTime - deck.startTime) * deck.rate;
+      position = position % deck.buffer.duration;
+    }
+    let slipPosition = 0;
+    if (deck.slipActive) {
+      slipPosition = (this.ctx.currentTime - deck.slipStartTime) * deck.rate;
+    }
+    return { position, duration: deck.buffer.duration, isPlaying: deck.isPlaying, slipPosition };
   }
+
   getDeckLevel(id: DeckId) {
-    return 0.5;
+    const deck = this.getDeck(id);
+    if (!deck) return 0;
+    const dataArray = new Uint8Array(deck.analyser.frequencyBinCount);
+    deck.analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+    return sum / (dataArray.length * 255);
   }
+
   getDeckWaveformData(id: DeckId) {
-    return new Float32Array(0);
+    const deck = this.getDeck(id);
+    if (!deck) return new Float32Array(0);
+    const bufferLength = deck.analyser.fftSize;
+    const dataArray = new Float32Array(bufferLength);
+    deck.analyser.getFloatTimeDomainData(dataArray);
+    return dataArray;
   }
   setDeckGain(id: DeckId, val: number) {
     const deck = this.getDeck(id);
@@ -445,40 +503,145 @@ export class AudioEngineService {
     }
   }
   setDeckCue(id: DeckId, active: boolean) {
-    /* cue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    if (active) {
+      deck.pauseOffset = deck.isPlaying
+        ? (this.ctx.currentTime - deck.startTime) * deck.rate
+        : deck.pauseOffset;
+      this.stopDeck(id);
+    } else {
+      this._playDeckInternal(id);
+    }
   }
+
   loadDeck(id: DeckId, buffer: AudioBuffer) {
-    /* load logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    this.stopDeck(id);
+    deck.buffer = buffer;
+    deck.pauseOffset = 0;
+    deck.startTime = 0;
+    this.logger.info(`Deck ${id} loaded: ${(buffer.duration).toFixed(1)}s`);
   }
+
   setHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck || slot < 0 || slot >= 8) return;
+    const pos = deck.isPlaying
+      ? (this.ctx.currentTime - deck.startTime) * deck.rate
+      : deck.pauseOffset;
+    deck.hotCues[slot] = pos;
   }
+
   clearHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck || slot < 0 || slot >= 8) return;
+    deck.hotCues[slot] = null;
   }
+
   jumpToHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck || slot < 0 || slot >= 8) return;
+    const pos = deck.hotCues[slot];
+    if (pos === null) return;
+    deck.pauseOffset = pos;
+    if (deck.isPlaying) {
+      this.stopDeck(id);
+      this._playDeckInternal(id);
+    }
   }
+
   setDeckEq(id: DeckId, high: number, mid: number, low: number) {
-    /* eq logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const now = this.ctx.currentTime;
+    deck.eqHigh.gain.setTargetAtTime((high - 1) * 12, now, 0.02);
+    deck.eqMid.gain.setTargetAtTime((mid - 1) * 12, now, 0.02);
+    deck.eqLow.gain.setTargetAtTime((low - 1) * 12, now, 0.02);
   }
+
   setDeckFilter(id: DeckId, freq: number) {
-    /* filter logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.filter.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.02);
   }
+
   setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
-    /* send logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const sendNode = send === 'A' ? deck.sendA : deck.sendB;
+    sendNode.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.02);
   }
+
   scratch(id: DeckId, delta: number) {
-    /* scratch logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const newRate = Math.max(0, Math.min(4, deck.rate + delta * 0.01));
+    Object.values(deck.sources).forEach((s) => {
+      if (s) s.playbackRate.setTargetAtTime(newRate, this.ctx.currentTime, 0.005);
+    });
+    deck.rate = newRate;
   }
+
   brakeDeck(id: DeckId) {
-    /* brake logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const steps = 20;
+    const duration = 0.8;
+    for (let i = 0; i <= steps; i++) {
+      const rate = Math.max(0, deck.rate * (1 - i / steps));
+      const t = this.ctx.currentTime + (i / steps) * duration;
+      Object.values(deck.sources).forEach((s) => {
+        if (s) s.playbackRate.linearRampToValueAtTime(rate, t);
+      });
+    }
+    deck.rate = 0;
   }
+
   spinbackDeck(id: DeckId) {
-    /* spinback logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const steps = 30;
+    const duration = 1.2;
+    for (let i = 0; i <= steps; i++) {
+      const t = this.ctx.currentTime + (i / steps) * duration;
+      const rate = deck.rate * (1 - (i / steps) * 2);
+      Object.values(deck.sources).forEach((s) => {
+        if (s) s.playbackRate.linearRampToValueAtTime(Math.max(-2, rate), t);
+      });
+    }
+    deck.rate = -1;
   }
+
   transformDeck(id: DeckId) {
-    /* transform logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const current = deck.gain.gain.value;
+    deck.gain.gain.setTargetAtTime(current > 0.01 ? 0 : 1, this.ctx.currentTime, 0.005);
+  }
+
+  private _playDeckInternal(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = deck.buffer;
+    source.playbackRate.setValueAtTime(deck.rate, this.ctx.currentTime);
+    source.connect(deck.eqLow);
+    deck.eqLow.connect(deck.eqMid);
+    deck.eqMid.connect(deck.eqHigh);
+    deck.eqHigh.connect(deck.filter);
+    deck.filter.connect(deck.pan);
+    deck.pan.connect(deck.gain);
+    deck.gain.connect(deck.analyser);
+    deck.analyser.connect(this.masterGain);
+    deck.sendA.connect(this.sendAReturn);
+    deck.sendB.connect(this.sendBReturn);
+    const offset = deck.pauseOffset || 0;
+    source.start(0, offset);
+    deck.startTime = this.ctx.currentTime - offset;
+    deck.isPlaying = true;
+    (deck.sources as any)['main'] = source;
   }
 
   setCrossfader(

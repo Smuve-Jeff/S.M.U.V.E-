@@ -27,6 +27,26 @@
     </div>
   </div>
 
+  <!-- Incoming Voice Knock Banner -->
+  <div
+    class="challenge-banner glass-v42-pro"
+    *ngIf="isKnocking()"
+    style="border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);"
+  >
+    <div class="challenge-info">
+      <span class="material-symbols-outlined" style="color: #10b981;">call</span>
+      <span>INCOMING VOICE UPLINK REQUEST</span>
+    </div>
+    <div class="challenge-actions">
+      <button class="action-btn" (click)="peerService.acceptKnock()" style="background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5);">
+        ACCEPT
+      </button>
+      <button class="action-btn danger" (click)="peerService.declineKnock()">
+        DECLINE
+      </button>
+    </div>
+  </div>
+
   <header
     class="spot-header glass-v42 shadow-v42-lg"
     *ngIf="displayMode() !== 'pluto'"
@@ -489,6 +509,28 @@
               <div class="online-indicator" [class.in-game]="user.inGame"></div>
             </button>
           </div>
+          <!-- Voice Call Status -->
+          <div
+            *ngIf="isCallActive()"
+            class="voice-call-status glass-v42"
+            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08);"
+          >
+            <span class="material-symbols-outlined" style="color: #10b981; font-size: 1rem; animation: pulse 1.5s infinite;">call</span>
+            <span style="font-size: 0.7rem; color: #10b981; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">VOICE UPLINK ACTIVE</span>
+            <button class="icon-btn mini" (click)="endVoiceChat()" style="margin-left: auto; color: #ef4444;">
+              <span class="material-symbols-outlined" style="font-size: 0.9rem;">call_end</span>
+            </button>
+          </div>
+
+          <!-- Mic Permission Warning -->
+          <div
+            *ngIf="peerService.micPermissionDenied()"
+            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); font-size: 0.7rem; color: #ef4444;"
+          >
+            <span class="material-symbols-outlined" style="font-size: 1rem;">mic_off</span>
+            MICROPHONE ACCESS DENIED — CHECK BROWSER PERMISSIONS
+          </div>
+
           <div
             class="dm-user-info glass-v42"
             *ngIf="selectedDmUser() as target"
@@ -504,8 +546,18 @@
                 class="icon-btn mini"
                 (click)="startVoiceChat(target.userId)"
                 title="Voice Uplink"
+                *ngIf="!isCallActive()"
               >
                 <span class="material-symbols-outlined">call</span>
+              </button>
+              <button
+                class="icon-btn mini"
+                (click)="endVoiceChat()"
+                title="End Voice Uplink"
+                *ngIf="isCallActive()"
+                style="color: #10b981; animation: pulse 1.5s infinite;"
+              >
+                <span class="material-symbols-outlined">call_end</span>
               </button>
               <button
                 class="icon-btn mini"
@@ -924,6 +976,43 @@
           <div class="meta-tag">
             <span class="m-label">RATING:</span> {{ selected.rating }}
           </div>
+          <div class="meta-tag" *ngIf="selected.multiplayerType && selected.multiplayerType !== 'None'">
+            <span class="m-label">MODE:</span> {{ selected.multiplayerType }}
+          </div>
+          <div class="meta-tag" *ngIf="selected.availability">
+            <span class="m-label">STATUS:</span> {{ selected.availability }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Objectives -->
+      <div *ngIf="selected.sessionObjectives?.length" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+        <div class="info-cluster">
+          <label>SESSION OBJECTIVES</label>
+          <div *ngFor="let obj of selected.sessionObjectives" style="font-size: 0.7rem; color: rgba(255,255,255,0.7); padding: 0.15rem 0;">
+            <span style="color: #00e5ff;">▸</span> {{ obj }}
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Briefing -->
+      <div *ngIf="selected.aiBriefing" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+        <div class="info-cluster">
+          <label>AI INTEL BRIEFING</label>
+          <p style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">{{ selected.aiBriefing }}</p>
+        </div>
+      </div>
+
+      <!-- Controls Hint -->
+      <div *ngIf="selected.controlHints?.length" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+        <div class="info-cluster">
+          <label>CONTROLS</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+            <span *ngFor="let hint of selected.controlHints" style="
+              font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px;
+              border: 1px solid rgba(0,229,255,0.25); background: rgba(0,229,255,0.06); color: rgba(255,255,255,0.7);
+            ">{{ hint }}</span>
+          </div>
         </div>
       </div>
 
@@ -935,26 +1024,76 @@
     </div>
   </div>
 
-  <div class="matchmaking-overlay" *ngIf="isMatchmaking()">
+  <!-- Matchmaking Queue Overlay (visual, replaces browser confirm()) -->
+  <div class="matchmaking-overlay" *ngIf="isMatchmaking() || showBotOption()">
     <div class="loader-content glass-v42-pro">
       <div class="scanner-line"></div>
       <div class="loader-brand">S.M.U.V.E. MATCHMAKING</div>
       <div class="loader-status">{{ matchmakingStatus() }}</div>
-      <div class="loader-progress">
-        <div class="progress-fill animate-pulse"></div>
+      <div *ngIf="matchmakingElapsed() > 0" style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">
+        {{ matchmakingElapsed() }}s elapsed
       </div>
-      <button class="terminate-btn" (click)="cancelMatchmaking()">
+      <div class="loader-progress">
+        <div class="progress-fill animate-pulse" [style.width.%]="matchmakingProgress()"></div>
+      </div>
+      <!-- Bot option (shown after timeout, replaces confirm() dialog) -->
+      <div *ngIf="showBotOption()" style="margin-top: 1rem; text-align: center;">
+        <p style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 0.75rem;">
+          NO ONLINE RIVALS DETECTED. ENGAGE AI BOT FOR SOLO PRACTICE?
+        </p>
+        <div style="display: flex; gap: 0.75rem; justify-content: center;">
+          <button class="launch-btn mini" (click)="engageAiBot()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+            ENGAGE AI BOT
+          </button>
+          <button class="terminate-btn mini" (click)="cancelMatchmaking()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+            CANCEL
+          </button>
+        </div>
+      </div>
+      <button *ngIf="!showBotOption()" class="terminate-btn" (click)="cancelMatchmaking()">
         CANCEL MATCHMAKING
       </button>
     </div>
   </div>
-  <div class="wasm-loader-overlay" *ngIf="isWasmLoading()">
+
+  <!-- Multi-Stage Game Loading Overlay -->
+  <div class="matchmaking-overlay" *ngIf="gameLoadStage() !== 'idle' && gameLoadStage() !== 'ready' && !currentGame()">
     <div class="loader-content glass-v42-pro">
       <div class="scanner-line"></div>
-      <div class="loader-brand">S.M.U.V.E. WASM_CORE</div>
-      <div class="loader-status">INITIALIZING HIGH-FIDELITY UPLINK...</div>
+      <div class="loader-brand">S.M.U.V.E. UPLINK</div>
+      <div class="loader-status">
+        <span *ngIf="gameLoadStage() === 'initializing'">INITIALIZING ENVIRONMENT...</span>
+        <span *ngIf="gameLoadStage() === 'connecting'">ESTABLISHING SECURE CONNECTION...</span>
+        <span *ngIf="gameLoadStage() === 'loading'">LOADING GAME ASSETS...</span>
+      </div>
       <div class="loader-progress">
-        <div class="progress-fill animate-pulse"></div>
+        <div class="progress-fill animate-pulse"
+          [style.width.%]="gameLoadStage() === 'initializing' ? 25 : gameLoadStage() === 'connecting' ? 55 : 85">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- External URL Confirmation Modal -->
+  <div class="matchmaking-overlay" *ngIf="showExternalConfirm()">
+    <div class="loader-content glass-v42-pro" style="max-width: 420px;">
+      <div class="scanner-line"></div>
+      <div class="loader-brand" style="font-size: 1.1rem;">EXTERNAL DEPLOYMENT</div>
+      <div style="margin: 1rem 0; text-align: center;">
+        <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8); margin-bottom: 0.5rem;">
+          You are leaving the S.M.U.V.E. secure environment.
+        </p>
+        <p style="font-size: 0.9rem; font-weight: 800; color: #00e5ff; letter-spacing: 0.05em; padding: 0.5rem 1rem; border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; background: rgba(0,229,255,0.05);">
+          {{ externalTargetDomain() }}
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem;">
+        <button class="launch-btn mini" (click)="confirmExternalLaunch()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+          DEPLOY
+        </button>
+        <button class="terminate-btn mini" (click)="cancelExternalLaunch()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+          ABORT
+        </button>
       </div>
     </div>
   </div>
@@ -996,13 +1135,36 @@
         <div class="hud-decorative-line left"></div>
         <div class="hud-decorative-line right"></div>
         <div class="iframe-glitch-wrapper">
+          <!-- Game iframe — sandbox without allow-same-origin to prevent parent DOM access -->
           <iframe
+            *ngIf="currentSafeUrl() && !gameLoadError()"
             [src]="currentSafeUrl()"
             #gameIframe
             class="game-frame"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
+            sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads"
             allowfullscreen
+            (load)="onGameIframeLoad()"
           ></iframe>
+          <!-- Error fallback UI -->
+          <div *ngIf="gameLoadError()" class="game-load-error" style="
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; gap: 1rem; text-align: center; padding: 2rem;
+            background: linear-gradient(180deg, rgba(6,9,26,0.95), rgba(20,17,11,0.95));
+          ">
+            <span class="material-symbols-outlined" style="font-size: 3rem; color: #ff1a4d;">cloud_off</span>
+            <div style="font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #fff;">SIGNAL LOST</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); max-width: 300px;">
+              The game server could not be reached. This may be a temporary network issue or the game source may be unavailable.
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="launch-btn mini" (click)="reloadGame(); gameLoadError.set(false);" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+                RETRY CONNECTION
+              </button>
+              <button class="terminate-btn mini" (click)="closeGame()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+                TERMINATE
+              </button>
+            </div>
+          </div>
           <div class="hud-glitch-overlay"></div>
         </div>
         <div class="hud-overlay-scanner"></div>
@@ -1029,7 +1191,6 @@
 
 <audio
   #remoteAudio
-  [srcObject]="peerService.remoteStream()"
   autoplay
   *ngIf="peerService.remoteStream()"
 ></audio>

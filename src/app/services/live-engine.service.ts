@@ -81,10 +81,83 @@ export class LiveEngineService {
   private handleMidiMessage(message: any) {
     const [status, data1, data2] = message.data;
     const cmd = status >> 4;
+    const channel = status & 0xf;
     const velocity = data2;
-    if (cmd === 9 && velocity > 0) this.triggerNoteStart(data1, velocity / 127);
-    else if (cmd === 8 || (cmd === 9 && velocity === 0))
-      this.triggerNoteEnd(data1);
+
+    switch (cmd) {
+      case 9: // Note On
+        if (velocity > 0) this.triggerNoteStart(data1, velocity / 127);
+        else this.triggerNoteEnd(data1);
+        break;
+      case 8: // Note Off
+        this.triggerNoteEnd(data1);
+        break;
+      case 11: // Control Change (CC)
+        this.handleMidiCC(data1, data2);
+        break;
+      case 14: // Pitch Bend
+        this.handlePitchBend(data1, data2);
+        break;
+      case 12: // Program Change (instrument select)
+        break;
+    }
+  }
+
+  private sustainActive = false;
+  private sustainedNotes = new Set<number>();
+
+  private handleMidiCC(cc: number, value: number) {
+    const normalized = value / 127;
+    switch (cc) {
+      case 1: // Mod Wheel
+        this.setModWheel(normalized);
+        break;
+      case 7: // Volume
+        this.updateParameter('volume', normalized);
+        break;
+      case 10: // Pan
+        break;
+      case 11: // Expression
+        if (this.currentInstrumentNode instanceof Tone.PolySynth) {
+          this.currentInstrumentNode.set({ volume: (normalized - 1) * 40 });
+        }
+        break;
+      case 64: // Sustain Pedal
+        this.handleSustainPedal(value >= 64);
+        break;
+      case 71: // Resonance / Filter Q
+        this.updateParameter('resonance', normalized * 20);
+        break;
+      case 74: // Filter Cutoff (brightness)
+        this.updateParameter('cutoff', 100 + normalized * 19900);
+        break;
+      case 72: // Release
+        this.updateParameter('release', 0.01 + normalized * 4);
+        break;
+      case 73: // Attack
+        this.updateParameter('attack', 0.001 + normalized * 2);
+        break;
+      case 75: // Decay
+        this.updateParameter('decay', 0.01 + normalized * 3);
+        break;
+      case 70: // Sound Controller (mapped to cutoff)
+        this.updateParameter('cutoff', 100 + normalized * 19900);
+        break;
+    }
+  }
+
+  private handleSustainPedal(down: boolean) {
+    this.sustainActive = down;
+    if (!down && this.sustainedNotes.size > 0) {
+      this.sustainedNotes.forEach((midi) => this.triggerNoteEnd(midi));
+      this.sustainedNotes.clear();
+    }
+  }
+
+  private handlePitchBend(lsb: number, msb: number) {
+    const value = (msb << 7) | lsb;
+    const normalized = (value - 8192) / 8192; // -1 to +1
+    this.setPitchBend(normalized);
   }
 
   public midiToNote(midi: number): string {
@@ -193,5 +266,12 @@ export class LiveEngineService {
     if (this.currentInstrumentNode)
       (this.currentInstrumentNode as any).set({ detune: val * 200 });
   }
-  setModWheel(val: number) {}
+  setModWheel(val: number) {
+    if (!this.currentInstrumentNode || !this.filterNode) return;
+    // Mod wheel sweeps filter cutoff from preset cutoff to max
+    const baseCutoff = this.activePreset?.synth?.cutoff || 2000;
+    const maxCutoff = 20000;
+    const cutoff = baseCutoff + val * (maxCutoff - baseCutoff);
+    this.filterNode.frequency.rampTo(cutoff, 0.05);
+  }
 }

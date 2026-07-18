@@ -5,6 +5,7 @@ import { Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { PeerNetworkingService } from './peer-networking.service';
+import { ChallengeInboxService } from './challenge-inbox.service';
 import { io, Socket } from 'socket.io-client';
 import { TokenService } from './token.service';
 
@@ -58,6 +59,11 @@ export interface StreamTelemetry {
 export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
   private socket?: Socket;
+
+  /** Public accessor so ChallengeInboxService can bind to socket without fragile `any` casts */
+  getSocket(): Socket | undefined {
+    return this.socket;
+  }
   private injector = inject(Injector);
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
@@ -108,6 +114,17 @@ export class SocialNetworkingService {
       const profile = this.profileService.profile();
       if (profile.id && !this.socket) {
         this.initializeSocket(profile.id);
+      }
+    });
+
+    // Auto-bind ChallengeInboxService to socket when it becomes available
+    effect(() => {
+      const sock = this.socket;
+      if (sock) {
+        try {
+          const inbox = this.injector.get(ChallengeInboxService, null);
+          if (inbox) inbox.bindSocket(sock);
+        } catch (_) { /* noop */ }
       }
     });
   }

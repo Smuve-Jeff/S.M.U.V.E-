@@ -182,9 +182,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isMatchmaking = signal<boolean>(false);
   matchmakingStatus = signal<string>('');
   matchmakingProgress = signal<number>(0);
+  matchmakingElapsed = signal<number>(0);
+  showBotOption = signal<boolean>(false);
   isWasmLoading = signal<boolean>(false);
+  gameLoadStage = signal<string>('idle');
+  gameLoadError = signal<boolean>(false);
   showBackToTop = signal<boolean>(false);
+  showExternalConfirm = signal<boolean>(false);
+  externalTargetUrl = signal<string>('');
+  externalTargetDomain = signal<string>('');
   private currentMatchmakingId: number | null = null;
+  private matchmakingTimerId: any = null;
   private latestSearchQuery: string = '';
 
   // Social & Streaming Signals
@@ -195,6 +203,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('contentViewport') contentViewport?: ElementRef<HTMLDivElement>;
+  @ViewChild('remoteAudio') remoteAudio?: ElementRef<HTMLAudioElement>;
 
   private feedSubscription?: Subscription;
   private clockId?: any;
@@ -369,6 +378,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.socialService.simulatedLiveChat();
       setTimeout(() => this.scrollToBottom(), 100);
     });
+
+    // Wire up srcObject on the audio element when remote stream arrives
+    // (Angular can't bind srcObject via template — it's a DOM property, not an HTML attribute)
+    effect(() => {
+      const stream = this.peerService.remoteStream();
+      const audioEl = this.remoteAudio?.nativeElement;
+      if (audioEl && stream) {
+        (audioEl as any).srcObject = stream;
+        audioEl.play().catch(() => {});
+      }
+    });
   }
 
   ngOnInit() {
@@ -510,67 +530,164 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.currentMatchmakingId = null;
   }
 
+  async  /**
+   * Main game launch entry point. Handles:
+   *  - External-only games: shows domain confirmation before opening
+   *  - Inline games: URL validation → multiplayer matchmaking → multi-stage loading → iframe
+   */
   async confirmLaunch() {
     const game = this.selectedGame();
     if (!game) return;
+
+    // --- External-only games: show confirmation before opening ---
     if (game.launchConfig?.embedMode === 'external-only') {
       const url = game.launchConfig.approvedExternalUrl || game.url;
-      window.open(url, '_blank');
-      this.closePreview();
-    } else {
-      if (this.isMultiplayerGame(game)) {
-        this.currentMatchmakingId = Date.now();
-        const requestId = this.currentMatchmakingId;
-        this.isMatchmaking.set(true);
-        this.matchmakingStatus.set('WAITING FOR RIVAL...');
-        this.socialService.queueForMatch(game.id);
-
-        const matchPromise = new Promise<boolean>((resolve) => {
-          const checkMatch = setInterval(() => {
-            if (this.socialService.matchmakingStatus() === 'matched') {
-              clearInterval(checkMatch);
-              resolve(true);
-            }
-          }, 500);
-          setTimeout(() => {
-            clearInterval(checkMatch);
-            resolve(false);
-          }, 15000);
-        });
-
-        const matched = await matchPromise;
-
-        if (this.currentMatchmakingId !== requestId) return;
-
-        if (!matched) {
-          const useBot = confirm(
-            'NO RIVALS FOUND. WOULD YOU LIKE TO ENGAGE AI BOT?'
-          );
-          this.socialService.cancelMatch(game.id);
-          if (!useBot) {
-            this.isMatchmaking.set(false);
-            this.currentMatchmakingId = null;
-            return;
-          }
-        }
-        this.isMatchmaking.set(false);
-        this.socialService.matchmakingStatus.set('idle');
-        this.currentMatchmakingId = null;
+      try {
+        const domain = new URL(url, window.location.origin).hostname;
+        this.externalTargetDomain.set(domain);
+      } catch {
+        this.externalTargetDomain.set(url);
       }
-
-      if (this.isRetroOrArcade(game)) {
-        this.isWasmLoading.set(true);
-        await new Promise((r) => setTimeout(r, 1200));
-        this.isWasmLoading.set(false);
-      }
-      this.profileService.recordGameLaunch(
-        game.id,
-        this.buildSessionContext(game)
-      );
-      this.inGame.set(true);
-      this.currentGame.set(game);
-      this.closePreview();
+      this.externalTargetUrl.set(url);
+      this.showExternalConfirm.set(true);
+      return;
     }
+
+    // --- Inline games ---
+
+    // Security: Pre-validate the embed URL before doing anything else
+    const safeUrl = this.getSafeUrl(game);
+    if (!safeUrl) {
+      this.gameLoadError.set(true);
+      this.snackbarService.error('SECURITY: This game source is not on the trusted allowlist.');
+      return;
+    }
+
+    // Multiplayer matchmaking
+    if (this.isMultiplayerGame(game)) {
+      this.currentMatchmakingId = Date.now();
+      const requestId = this.currentMatchmakingId;
+      this.isMatchmaking.set(true);
+      this.matchmakingStatus.set('SCANNING FOR RIVALS...');
+      this.matchmakingProgress.set(0);
+      this.matchmakingElapsed.set(0);
+      this.showBotOption.set(false);
+      this.socialService.queueForMatch(game.id);
+
+      // Visual progress timer
+      const startTime = Date.now();
+      this.matchmakingTimerId = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        this.matchmakingElapsed.set(elapsed);
+        this.matchmakingProgress.set(Math.min(95, elapsed * 6.3));
+      }, 1000);
+
+      const matchPromise = new Promise<boolean>((resolve) => {
+        const checkMatch = setInterval(() => {
+          if (this.socialService.matchmakingStatus() === 'matched') {
+            clearInterval(checkMatch);
+            resolve(true);
+          }
+        }, 500);
+        setTimeout(() => {
+          clearInterval(checkMatch);
+          resolve(false);
+        }, 15000);
+      });
+
+      const matched = await matchPromise;
+      clearInterval(this.matchmakingTimerId);
+
+      if (this.currentMatchmakingId !== requestId) return;
+
+      if (!matched) {
+        // Show visual bot option instead of browser confirm()
+        this.matchmakingStatus.set('NO RIVALS FOUND');
+        this.matchmakingProgress.set(100);
+        this.showBotOption.set(true);
+        this.isMatchmaking.set(false);
+        this.currentMatchmakingId = null;
+        return;
+      }
+
+      this.isMatchmaking.set(false);
+      this.socialService.matchmakingStatus.set('idle');
+      this.currentMatchmakingId = null;
+    }
+
+    // Multi-stage loading indicator
+    this.gameLoadStage.set('initializing');
+    this.gameLoadError.set(false);
+    await new Promise((r) => setTimeout(r, 300));
+    this.gameLoadStage.set('connecting');
+    await new Promise((r) => setTimeout(r, 300));
+    this.gameLoadStage.set('loading');
+    await new Promise((r) => setTimeout(r, 400));
+    this.gameLoadStage.set('ready');
+
+    this.profileService.recordGameLaunch(
+      game.id,
+      this.buildSessionContext(game)
+    );
+    this.inGame.set(true);
+    this.currentGame.set(game);
+    this.closePreview();
+  }
+
+  /**
+   * User confirms they want to visit the external game URL.
+   */
+  confirmExternalLaunch() {
+    const url = this.externalTargetUrl();
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+    this.showExternalConfirm.set(false);
+    this.closePreview();
+  }
+
+  cancelExternalLaunch() {
+    this.showExternalConfirm.set(false);
+  }
+
+  /**
+   * After matchmaking fails, user can choose to engage an AI bot.
+   */
+  engageAiBot() {
+    const game = this.selectedGame();
+    if (game) this.socialService.cancelMatch(game.id);
+    this.showBotOption.set(false);
+    this.isMatchmaking.set(false);
+    // Proceed to launch the game in solo mode
+    this.gameLoadStage.set('initializing');
+    this.gameLoadError.set(false);
+    setTimeout(() => this.gameLoadStage.set('connecting'), 300);
+    setTimeout(() => this.gameLoadStage.set('loading'), 600);
+    setTimeout(() => {
+      this.gameLoadStage.set('ready');
+      if (game) {
+        this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+        this.inGame.set(true);
+        this.currentGame.set(game);
+        this.closePreview();
+      }
+    }, 1000);
+  }
+
+  /**
+   * Iframe load success handler.
+   */
+  onGameIframeLoad() {
+    this.gameLoadStage.set('ready');
+    this.gameLoadError.set(false);
+  }
+
+  /**
+   * Iframe error handler — shows retry UI.
+   */
+  onGameIframeError() {
+    this.gameLoadError.set(true);
+    this.gameLoadStage.set('idle');
   }
 
   reloadGame() {
@@ -636,6 +753,55 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
+  /**
+   * Trusted embed domains — only these hosts are allowed in the game iframe.
+   * Internal /assets/ paths are always allowed (same-origin).
+   */
+  private static readonly TRUSTED_EMBED_DOMAINS: string[] = [
+    'retrogames.cc',
+    'www.retrogames.cc',
+    'gamepix.com',
+    'embed.gamepix.com',
+    '1v1.lol',
+    'www.1v1.lol',
+    'pluto.tv',
+    'play2048.co',
+    'hextris.github.io',
+    'slither.io',
+    'agar.io',
+    'krunker.io',
+    'venge.io',
+    'slowroads.io',
+    'www.roblox.com',
+    'playvalorant.com',
+    'www.crazygames.com',
+    'games.crazygames.com',
+  ];
+
+  /**
+   * Validate that a game URL points to a trusted embed host.
+   * Returns true for internal /assets/ paths (same-origin).
+   * Returns true for relative paths.
+   */
+  private isTrustedEmbedUrl(url: string): boolean {
+    if (!url) return false;
+    // Internal asset paths are always safe (same origin)
+    if (url.startsWith('/') || url.startsWith('assets/') || url.startsWith('./')) {
+      return !url.startsWith('//'); // Block protocol-relative URLs
+    }
+    try {
+      const parsed = new URL(url);
+      // Only allow https and http
+      if (!['https:', 'http:'].includes(parsed.protocol)) return false;
+      const hostname = parsed.hostname.toLowerCase();
+      return ThaSpotComponent.TRUSTED_EMBED_DOMAINS.some(
+        (d) => hostname === d || hostname.endsWith('.' + d)
+      );
+    } catch {
+      return false;
+    }
+  }
+
   getSafeUrl(game: Game): SafeResourceUrl | null {
     let url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (!url || url === '/' || url === '/hub' || url === 'hub') return null;
@@ -644,10 +810,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       url = '/' + url;
     }
 
-    if (this.isRetroOrArcade(game)) {
-      const sep = url.includes('?') ? '&' : '?';
-      url = `${url}${sep}smuve_auth_token=${APP_SECURITY_CONFIG.auth_salt}&secure_mode=wasm`;
+    // Security: Validate URL against trusted domain allowlist
+    if (!this.isTrustedEmbedUrl(url)) {
+      console.warn('[ThaSpot] Blocked untrusted embed URL:', url);
+      return null;
     }
+
+    // Security: auth_salt is NOT appended to iframe URLs — it was a security
+    // exposure. Games don't need the server auth salt; the iframe sandbox
+    // isolates them. If game authentication is needed in the future, use a
+    // postMessage handshake after the iframe loads.
 
     return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }

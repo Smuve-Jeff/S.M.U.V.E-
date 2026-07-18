@@ -165,17 +165,13 @@ export class ChallengeInboxService {
   }
 
   /**
-   * Send a challenge to a user. Persists to server. UI updates come back
-   * via socket `challenge_inbox_sync` (recipient) or local state (sender echo).
+   * Send a challenge to a user. Persists to server via both socket and REST.
+   * UI updates come back via socket `challenge_inbox_sync` (recipient) or
+   * local state (sender echo).
    */
   challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.currentUserId();
     if (!fromUserId || !toUserId || !gameId) return;
-    // Optimistically add a pending record for the sender's own view of the challenger
-    // (it'll be replaced by the authoritative sync on the response round-trip)
-    // Note: the user is the FROM here so the record will be filtered for pendingCount
-    //          unless we treat "sent challenges" as pending too. We don't — only incoming
-    //          count toward pendingCount. So just trigger the socket.
     this.emitChallenge(toUserId, gameId);
   }
 
@@ -185,21 +181,32 @@ export class ChallengeInboxService {
     this.socket = socket;
   }
   private emitChallenge(toUserId: string, gameId: string) {
+    // Primary: emit via socket for real-time delivery
     if (this.socket && typeof this.socket.emit === 'function') {
       this.socket.emit('challenge_player', { toUserId, gameId });
     }
-    // Also call REST as a backup resilience path (kills new dependency on socket)
+    // Backup: persist via REST so challenge survives socket drops
     this.persistChallengeViaRest(toUserId, gameId);
   }
 
+  /**
+   * REST fallback for challenge sending. Fires-and-forgets so the challenge
+   * is persisted server-side even if the socket is unavailable.
+   */
   async persistChallengeViaRest(toUserId: string, gameId: string) {
     const userId = this.currentUserId();
     if (!userId) return;
     try {
-      // No dedicated REST endpoint for send — use socket as primary. This is a
-      // safety-net that quietly logs if the socket is unavailable.
+      await firstValueFrom(
+        this.http.post(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/challenges`,
+          { toUserId, gameId },
+          { headers: this.authHeaders() }
+        )
+      );
     } catch (e) {
-      console.warn('[ChallengeInbox] persist fallback failed', e);
+      // Silent fallback — socket path is primary. Log for debugging.
+      console.warn('[ChallengeInbox] REST challenge persist failed (socket primary):', e);
     }
   }
 
