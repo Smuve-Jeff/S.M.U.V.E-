@@ -144,6 +144,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       'DOS',
       'Web',
       'PC',
+      'Genesis',
+      'GBA',
+      'Game Boy',
+      'Game Boy Color',
+      'Neo Geo',
+      'TurboGrafx',
+      'Saturn',
+      'Master System',
+      'Neo-Geo',
     ];
     this.games().forEach((g) => {
       const tags = (g.tags || []).map((t) => t.toUpperCase());
