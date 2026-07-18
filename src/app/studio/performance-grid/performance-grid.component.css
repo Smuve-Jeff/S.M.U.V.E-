@@ -1,63 +1,136 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Performance Grid (Clip Launcher)
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
 .performance-grid-container {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--ivory-deep, #06091A);
+  overflow: hidden;
 }
 
+/* Grid layout */
+.perf-grid-layout {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* Clip cell */
 .clip-cell-v42 {
-  height: 72px;
+  aspect-ratio: 1;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
+  border: 2px solid var(--ivory-line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+  min-height: 80px;
+  position: relative;
+  box-shadow: var(--shadow-ivory-sm);
 }
 
 .clip-cell-v42:hover {
+  border-color: var(--teal-500);
+  box-shadow: var(--shadow-ivory-md), 0 0 16px var(--teal-soft-glow);
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
 }
 
 .clip-cell-v42.active {
-  box-shadow: 0 0 25px currentColor;
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 0 28px var(--teal-glow);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--teal-500) 20%, var(--ivory-paper)) 0%, var(--ivory-paper) 100%);
 }
 
-.clip-led-v42.glowing {
-  box-shadow: 0 0 10px currentColor;
+.clip-cell-v42:active { transform: scale(0.96); }
+
+.cell-led-v42 {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--espresso-muted);
+  border: 1px solid var(--ivory-line);
 }
 
-.animate-music-bar-1 {
-  animation: musicBar 0.8s ease-in-out infinite;
+.cell-led-v42.glowing {
+  background: var(--teal-500);
+  box-shadow: 0 0 10px var(--teal-glow);
+  border-color: var(--teal-300);
+  animation: cellLedPulse 1.2s ease-in-out infinite;
 }
-.animate-music-bar-2 {
-  animation: musicBar 0.5s ease-in-out infinite;
+
+@keyframes cellLedPulse {
+  0%, 100% { box-shadow: 0 0 8px var(--teal-glow); }
+  50% { box-shadow: 0 0 18px var(--teal-glow), 0 0 24px var(--teal-soft-glow); }
 }
-.animate-music-bar-3 {
-  animation: musicBar 0.7s ease-in-out infinite;
+
+.cell-name {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--espresso-text);
 }
+
+.cell-type {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Music bar animations */
+.animate-music-bar-1 { animation: musicBar 0.8s ease-in-out infinite; }
+.animate-music-bar-2 { animation: musicBar 0.5s ease-in-out infinite; }
+.animate-music-bar-3 { animation: musicBar 0.7s ease-in-out infinite; }
 
 @keyframes musicBar {
-  0%,
-  100% {
-    height: 4px;
-  }
-  50% {
-    height: 12px;
-  }
+  0%, 100% { height: 4px; }
+  50% { height: 12px; }
 }
 
-.grid-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Scrollbar */
+.grid-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.grid-scroll::-webkit-scrollbar-track { background: var(--ivory-deep); }
+.grid-scroll::-webkit-scrollbar-thumb { background: var(--teal-500); border-radius: 3px; opacity: 0.5; }
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .clip-cell-v42 {
+  background: linear-gradient(180deg, #0A0F22 0%, #06091A 100%);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
-.grid-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+:host-context(.dark-mode) .clip-cell-v42:hover {
+  border-color: var(--teal-500);
 }
 
-.grid-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+:host-context(.dark-mode) .clip-cell-v42.active {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 0 32px var(--teal-glow);
+  background: linear-gradient(180deg, rgba(102, 240, 255, 0.16) 0%, #0A0F22 100%);
 }
 
-.grid-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-color, #00e5ff);
+@media (max-width: 768px) {
+  .perf-grid-layout { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+  .clip-cell-v42 { min-height: 64px; }
+}
+
+@media (max-width: 480px) {
+  .perf-grid-layout { grid-template-columns: repeat(2, 1fr); gap: 6px; }
 }

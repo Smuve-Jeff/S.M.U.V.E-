@@ -1,0 +1,93 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Timeline Ruler
+   FL Studio Mobile pattern — bar/beat ruler with playhead
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+  background: var(--ivory-panel);
+  border-bottom: 1px solid var(--ivory-line);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  height: 30px;
+}
+
+.timeline-ruler {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
+}
+
+.timeline-tick {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 5px;
+  border-right: 1px solid var(--ivory-line);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  position: relative;
+  overflow: hidden;
+}
+
+.timeline-tick.is-bar {
+  color: var(--teal-500);
+  border-right-color: var(--teal-500);
+  border-right-width: 2px;
+  font-weight: 900;
+}
+
+.timeline-tick.is-beat {
+  color: var(--espresso-muted);
+  border-right-color: var(--espresso-soft);
+}
+
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--neon-amber);
+  box-shadow: 0 0 10px var(--neon-amber-glow), 0 0 20px rgba(255, 182, 39, 0.20);
+  pointer-events: none;
+  z-index: 10;
+  transition: left 0.06s linear;
+}
+
+.timeline-loop-region {
+  position: absolute;
+  top: 30%;
+  bottom: 30%;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid var(--teal-500);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .timeline-ruler {
+  background: linear-gradient(180deg, #0A0F22 0%, #06091A 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .timeline-tick {
+  border-right-color: rgba(255, 255, 255, 0.04);
+  color: var(--espresso-muted);
+}
+
+:host-context(.dark-mode) .timeline-tick.is-bar {
+  border-right-color: var(--teal-500);
+}
+
+:host-context(.dark-mode) .timeline-tick.is-beat {
+  border-right-color: rgba(255, 255, 255, 0.06);
+}

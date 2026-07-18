@@ -1,0 +1,91 @@
+<section class="spg-shell" aria-label="Sound pad bank">
+  <header class="spg-header">
+    <div class="spg-title">
+      <span class="material-symbols-outlined spg-title-icon">grid_on</span>
+      <div>
+        <h2 class="spg-h2">Performance Pads</h2>
+        <p class="spg-sub">MPC-style 4×4 instrument bank — tap to audition, long-press to reassign.</p>
+      </div>
+    </div>
+    <div class="spg-actions">
+      <div class="spg-kpi">
+        <span class="spg-kpi-label">ARMED</span>
+        <span class="spg-kpi-value">{{ armedCount() }} / {{ pads().length }}</span>
+      </div>
+      <button type="button" class="spg-clear-btn" (click)="clearAll()">
+        <span class="material-symbols-outlined">refresh</span>
+        Clear
+      </button>
+    </div>
+  </header>
+
+  <!-- PAD GRID — uses the <app-sound-pad> child for proper reuse -->
+  <div class="spg-grid" role="grid" aria-label="Pad bank">
+    <div
+      *ngFor="let pad of pads(); trackBy: trackByIndex"
+      class="spg-cell"
+      [class.spg-cell-active]="pad.active"
+      [class.spg-cell-empty]="!pad.presetId"
+      [class.spg-cell-reassigning]="reassignIndex() === pad.index"
+      [style.--pad-color]="pad.color"
+      (contextmenu)="openReassign(pad.index); $event.preventDefault()"
+      role="gridcell"
+      [attr.aria-label]="pad.label + (pad.presetId ? '' : ' — empty pad (long-press to assign)')"
+    >
+      <app-sound-pad
+        [name]="pad.label"
+        [active]="pad.active"
+        [color]="pad.color"
+        (padTriggered)="triggerPad(pad.index)"
+      ></app-sound-pad>
+
+      <span
+        *ngIf="reassignIndex() === pad.index"
+        class="spg-cell-arrow"
+        aria-hidden="true"
+      >▼</span>
+
+      <!-- Preset picker overlay -->
+      <div
+        *ngIf="reassignIndex() === pad.index"
+        class="spg-cell-picker"
+        (click)="$event.stopPropagation()"
+        role="listbox"
+      >
+        <div class="spg-cell-picker-head">
+          <span class="spg-cell-picker-title">Assign Pad {{ pad.index + 1 }}</span>
+          <button
+            type="button"
+            class="spg-cell-picker-close"
+            (click)="openReassign(pad.index)"
+            aria-label="Close preset picker"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <ul class="spg-cell-picker-list">
+          <li *ngFor="let preset of allPresets()">
+            <button
+              type="button"
+              class="spg-cell-picker-item"
+              (click)="reassign(pad.index, preset.id)"
+            >
+              <span class="material-symbols-outlined">{{ preset.icon || 'music_note' }}</span>
+              <span class="spg-cell-picker-text">
+                <strong>{{ preset.name }}</strong>
+                <small>{{ preset.category }}</small>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer class="spg-foot">
+    <div class="spg-hint">
+      <span class="material-symbols-outlined">touch_app</span>
+      <span>Tap = trigger · Long-press / right-click = reassign instrument</span>
+    </div>
+  </footer>
+</section>

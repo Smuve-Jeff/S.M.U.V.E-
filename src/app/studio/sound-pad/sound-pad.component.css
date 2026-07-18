@@ -1,28 +1,64 @@
+/* =============================================================
+   S.M.U.V.E. — Single Pad
+   Color is driven by parent's --pad-color CSS variable so the
+   surrounding grid can paint each pad independently. Falls back
+   to neon cyan when no color is passed.
+   ============================================================= */
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .sound-pad {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
-  background-color: var(--tertiary-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pad-color, #00E5FF) 26%, #11141F 80%) 0%,
+    #0B0E1F 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--pad-color, #00E5FF) 35%, transparent);
+  border-radius: 12px;
+  color: var(--espresso-text, #F1F5FF);
+  font-family: var(--font-display, 'Inter'), sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.10em;
   cursor: pointer;
   transition:
-    background-color 0.2s,
-    transform 0.1s;
+    transform 90ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
   user-select: none;
 }
 
 .sound-pad:hover {
-  background-color: #4a4a4a;
+  border-color: var(--pad-color, #00E5FF);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--pad-color, #00E5FF) 28%, transparent);
 }
 
-.sound-pad:active {
-  transform: scale(0.95);
-}
-
+.sound-pad:active,
 .sound-pad.active {
-  background-color: var(--accent-color);
-  color: white;
-  box-shadow: 0 0 10px var(--accent-color);
+  transform: scale(0.97);
+  border-color: var(--pad-color, #00E5FF);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--pad-color, #00E5FF) 30%, transparent),
+    0 0 32px color-mix(in srgb, var(--pad-color, #00E5FF) 60%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--pad-color, #00E5FF) 50%, #11141F 60%) 0%,
+    #11141F 100%
+  );
+}
+
+.sp-label {
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 14px
+    color-mix(in srgb, var(--pad-color, #00E5FF) 70%, transparent);
 }

@@ -95,6 +95,11 @@ export class TransportBarComponent {
   }
 
   togglePlay(): void {
+    // CRITICAL: Browser autoplay policy requires the AudioContext resume()
+    // happen inside a user gesture. This Play button click IS a gesture,
+    // so we explicitly resume() before delegating to audioSession.
+    this.audioEngine.resume();
+
     if (!this.isPlaying() && this.countInBars() > 0) {
       // Use the engine's built-in count-in
       this.audioEngine.startCountIn();
@@ -244,6 +249,56 @@ export class TransportBarComponent {
     this.snack.info(`Redo · ${this.lastActionName() || 'next action'}`);
   }
 
+  /**
+   * One-shot audible probe — confirms the audio path is live end-to-end.
+   * Plays a 0.6s sine sweep even if NO tracks are loaded, so users can
+   * immediately verify that speakers are working.
+   */
+  testSoundFired = signal(false);
+  testSoundFiredAt = signal(0);
+  private testSoundOsc: OscillatorNode | null = null;
+
+  playTestSound(): void {
+    try {
+      const ctx = this.audioEngine.getContext();
+      this.audioEngine.resume();
+      if (this.testSoundOsc) {
+        try {
+          this.testSoundOsc.stop();
+        } catch {}
+      }
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.linearRampToValueAtTime(
+        783.99,
+        ctx.currentTime + 0.35
+      ); // sweep up to G5
+      env.gain.setValueAtTime(0, ctx.currentTime);
+      env.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.04);
+      env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.connect(env);
+      env.connect(this.audioEngine.masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.65);
+      this.testSoundOsc = osc;
+      this.testSoundFiredAt.set(Date.now());
+      this.testSoundFired.set(true);
+      this.snack.success('Audio path armed ✓ — 0.6s probe sent');
+      this.haptic.light();
+      // Auto-clear the badge after 4s
+      setTimeout(() => this.testSoundFired.set(false), 4000);
+    } catch (err) {
+      this.snack.error('Audio probe failed: ' + (err as Error)?.message);
+    }
+  }
+
+  secondsSinceTest(): number {
+    const at = this.testSoundFiredAt();
+    return at === 0 ? 0 : Math.floor((Date.now() - at) / 1000);
+  }
+
   async exportWav() {
     this.isExporting.set(true);
     try {
@@ -254,6 +309,8 @@ export class TransportBarComponent {
   }
 
   toggleMetronome(): void {
+    // Always arm the AudioContext in user-gesture context
+    this.audioEngine.resume();
     this.audioEngine.toggleMetronome();
   }
 

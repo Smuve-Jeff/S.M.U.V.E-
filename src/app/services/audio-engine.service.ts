@@ -82,6 +82,17 @@ export class AudioEngineService {
   public metronomeEnabled = signal(false);
   public metronomeVolume = signal(0.5);
 
+  /**
+   * Live AudioContext state — drives the 'ARM AUDIO' pip in the tobtap.
+   * Updated both on resume() and on the ctx.onstatechange event so the
+   * UI always knows whether audio is armed, suspended, or closed.
+   */
+  public contextState = signal<'suspended' | 'running' | 'closed'>('suspended');
+
+  /** True after the user has performed ANY gesture in this session — used
+   *  to suppress repeated pre-roll UI affordances. */
+  public userGestureSeen = signal(false);
+
   public loopLengthSteps = signal(64);
   public currentBeat = signal(0);
   public visualStep = signal(0);
@@ -112,6 +123,27 @@ export class AudioEngineService {
   constructor() {
     this.deckA = this.createDeck('A');
     this.deckB = this.createDeck('B');
+    // Reflect AudioContext state changes into a signal so the UI can react.
+    this.contextState.set(
+      this.ctx.state === 'running'
+        ? 'running'
+        : this.ctx.state === 'closed'
+          ? 'closed'
+          : 'suspended'
+    );
+    // Modern browsers expose an "onstatechange" event on AudioContext.
+    const ctxAny = this.ctx as any;
+    if (typeof ctxAny.addEventListener === 'function') {
+      ctxAny.addEventListener('statechange', () => {
+        this.contextState.set(
+          this.ctx.state === 'running'
+            ? 'running'
+            : this.ctx.state === 'closed'
+              ? 'closed'
+              : 'suspended'
+          );
+      });
+    }
     this.masterGain.connect(this.compressor);
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.limiter);
@@ -136,7 +168,44 @@ export class AudioEngineService {
   }
 
   resume() {
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state === 'suspended') {
+      this.ctx
+        .resume()
+        .then(() => {
+          this.contextState.set('running');
+        })
+        .catch((e) => {
+          this.logger.warn('AudioContext resume failed: ' + e?.message);
+        });
+    }
+  }
+
+  private armListenerInstalled = false;
+
+  /**
+   * Install a one-time listener that calls resume() on the user's first
+   * click or keydown anywhere on the page. After the first gesture the
+   * listeners remove themselves, so there's no leak.
+   *
+   * Idempotent — calling it twice is a no-op. Safe to call from any
+   * component's ngOnInit without worrying about duplicates.
+   */
+  armOnFirstUserGesture(): void {
+    if (this.armListenerInstalled) return;
+    if (typeof window === 'undefined') return;
+    this.armListenerInstalled = true;
+
+    const handler = () => {
+      this.userGestureSeen.set(true);
+      this.resume();
+      window.removeEventListener('pointerdown', handler, true);
+      window.removeEventListener('keydown', handler, true);
+      window.removeEventListener('touchstart', handler, true);
+    };
+
+    window.addEventListener('pointerdown', handler, true);
+    window.addEventListener('keydown', handler, true);
+    window.addEventListener('touchstart', handler, true);
   }
 
   startCountIn() {
@@ -606,8 +675,66 @@ export class AudioEngineService {
   getMasteringTargets() {
     return { lufs: -14, truePeak: -0.1 };
   }
-  configureCompressor(p: any) {}
-  configureLimiter(p: any) {}
+  configureCompressor(p: any) {
+    if (!this.compressor) return;
+    if (p?.threshold !== undefined)
+      this.compressor.threshold.setTargetAtTime(
+        p.threshold,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.ratio !== undefined)
+      this.compressor.ratio.setTargetAtTime(
+        p.ratio,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.attack !== undefined)
+      this.compressor.attack.setTargetAtTime(
+        p.attack,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.release !== undefined)
+      this.compressor.release.setTargetAtTime(
+        p.release,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.knee !== undefined)
+      this.compressor.knee.setTargetAtTime(
+        p.knee,
+        this.ctx.currentTime,
+        0.05
+      );
+  }
+  configureLimiter(p: any) {
+    if (!this.limiter) return;
+    if (p?.threshold !== undefined)
+      this.limiter.threshold.setTargetAtTime(
+        p.threshold,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.ratio !== undefined)
+      this.limiter.ratio.setTargetAtTime(
+        p.ratio,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.attack !== undefined)
+      this.limiter.attack.setTargetAtTime(
+        p.attack,
+        this.ctx.currentTime,
+        0.05
+      );
+    if (p?.release !== undefined)
+      this.limiter.release.setTargetAtTime(
+        p.release,
+        this.ctx.currentTime,
+        0.05
+      );
+  }
   syncDecks(m: DeckId, s: DeckId) {}
   setOutputMode(mode: 'speakers' | 'headphones') {
     this.outputMode.set(mode);

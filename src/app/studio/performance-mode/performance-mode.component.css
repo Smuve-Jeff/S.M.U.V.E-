@@ -1,48 +1,71 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Performance Mode
+   Live clip launcher pads with scene control
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
 .performance-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  padding: 1rem;
+  gap: 14px;
+  padding: 16px;
 }
 
 .performance-pad {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
+  border: 2px solid var(--ivory-line);
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
+  min-height: 80px;
+  box-shadow: var(--shadow-ivory-sm);
 }
 
 .performance-pad:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--teal-50) 100%);
+  border-color: var(--teal-500);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-ivory-md), 0 0 16px var(--teal-soft-glow);
 }
 
 .performance-pad.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 30px var(--color-primary);
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  border-color: var(--teal-300);
+  box-shadow: 0 0 30px var(--teal-glow);
 }
 
 .performance-pad.active .pad-name {
-  color: #000;
+  color: var(--ivory-deep);
+}
+
+.performance-pad:active {
+  transform: scale(0.96);
 }
 
 .pad-name {
-  font-size: 0.7rem;
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #64748b;
-  z-index: 10;
+  letter-spacing: 0.06em;
+  color: var(--espresso-text);
+  z-index: 2;
+}
+
+.pad-type {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  z-index: 2;
 }
 
 .pad-status-indicator {
@@ -51,13 +74,13 @@
   left: 0;
   height: 4px;
   width: 0%;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--teal-500);
   transition: width 0.1s linear;
 }
 
 .performance-pad.active .pad-status-indicator {
   width: 100%;
-  background: #000;
+  background: var(--teal-300);
 }
 
 .performance-pad.loop {
@@ -68,5 +91,33 @@
   grid-column: span 4;
   text-align: center;
   padding: 4rem;
-  color: #475569;
+  color: var(--espresso-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .performance-pad {
+  background: linear-gradient(180deg, #0A0F22 0%, #06091A 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .performance-pad:hover {
+  border-color: var(--teal-500);
+  box-shadow: var(--shadow-ivory-md), 0 0 20px var(--teal-glow);
+}
+
+:host-context(.dark-mode) .performance-pad.active {
+  box-shadow: 0 0 40px var(--teal-glow);
+}
+
+@media (max-width: 768px) {
+  .performance-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+  .performance-pad { min-height: 70px; }
+}
+
+@media (max-width: 480px) {
+  .performance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .empty-state { grid-column: span 2; }
 }

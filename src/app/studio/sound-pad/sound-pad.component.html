@@ -1,3 +1,8 @@
-<div class="sound-pad" [class.active]="active" (click)="triggerPad()">
-  {{ name }}
+<div
+  class="sound-pad"
+  [class.active]="active"
+  [style.--pad-color]="color"
+  (click)="triggerPad()"
+>
+  <span class="sp-label">{{ name }}</span>
 </div>

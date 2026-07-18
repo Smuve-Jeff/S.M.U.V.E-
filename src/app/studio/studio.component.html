@@ -30,16 +30,31 @@
         <span>●</span>
         <span>NOW PERFORMING</span>
       </span>
-      <!-- Dark mode toggle -->
+
+      <!-- ARM AUDIO pip — visible until first user gesture arms the AudioContext -->
+      <button
+        *ngIf="showArmAudioPip()"
+        type="button"
+        class="comp-arm-audio"
+        (click)="audioEngine.resume()"
+        [attr.aria-label]="'Audio suspended — tap to arm AudioContext'"
+        title="Tap once to enable audio"
+      >
+        <span class="material-symbols-outlined">volume_up</span>
+        <span>TAP TO ARM AUDIO</span>
+      </button>
+
+      <!-- Theme cycle button (Light → Focus → Dark) -->
       <button
         type="button"
         class="comp-icon-btn"
-        (click)="toggleDarkMode()"
-        [attr.aria-label]="isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
-        [attr.aria-pressed]="isDarkMode()"
-        title="Toggle dark mode"
+        (click)="cycleTheme()"
+        [attr.aria-label]="'Switch theme — currently ' + currentThemeLabel() + ' mode'"
+        [attr.data-current-theme]="themeMode()"
+        title="Cycle theme (Light / Focus / Dark)"
       >
-        <span class="material-symbols-outlined">{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</span>
+        <span class="material-symbols-outlined">{{ nextThemeIcon() }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{ currentThemeLabel() }}</span>
       </button>
       <button
         type="button"
@@ -92,10 +107,11 @@
     <!-- Desktop view rail (FL Studio side rail pattern) -->
     <nav class="comp-rail" [class.comp-rail-collapsed]="railCollapsed()" aria-label="Studio view selector">
       <button
-        *ngFor="let item of bottomNavItems()"
+        *ngFor="let item of allStudioViews()"
         type="button"
         class="comp-rail-item"
         [class.comp-rail-active]="activeView() === item.id"
+        [class.comp-rail-hidden]="item.hidden"
         (click)="setActiveView(item.id)"
         [attr.aria-label]="'Switch to ' + item.label + ' view'"
         [attr.aria-pressed]="activeView() === item.id"
@@ -134,6 +150,36 @@
       <div class="comp-view" *ngSwitchCase="'mastering'">
         <app-mastering-suite></app-mastering-suite>
       </div>
+      <div class="comp-view" *ngSwitchCase="'dj'">
+        <app-dj-deck></app-dj-deck>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'vocal-suite'">
+        <app-vocal-suite></app-vocal-suite>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'channel-rack'">
+        <app-channel-rack></app-channel-rack>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'effects-rack'">
+        <app-effects-rack-ui></app-effects-rack-ui>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'audio-recorder'">
+        <app-audio-recorder-view></app-audio-recorder-view>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sample-library'">
+        <app-sample-library></app-sample-library>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sound-browser'">
+        <app-sound-browser></app-sound-browser>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sound-pad'">
+        <app-sound-pad-grid></app-sound-pad-grid>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'synthesizer'">
+        <app-synthesizer [clip]="null"></app-synthesizer>
+      </div>
+      <div class="comp-view" *ngSwitchDefault>
+        <app-arrangement-view></app-arrangement-view>
+      </div>
     </section>
   </main>
 
@@ -151,6 +197,19 @@
     >
       <span class="material-symbols-outlined">{{ item.icon }}</span>
       <span class="comp-tab-label">{{ item.label }}</span>
+      <span class="comp-tab-indicator" aria-hidden="true"></span>
+    </button>
+    <!-- "+" overflow button opens the full mobile drawer with all 10 views -->
+    <button
+      type="button"
+      role="tab"
+      class="comp-tab comp-tab-more"
+      (click)="toggleMobileDrawer()"
+      [attr.aria-label]="'Open full navigation (' + (allStudioViews().length - bottomNavItems().length) + ' more)'"
+      [attr.aria-expanded]="mobileDrawerOpen()"
+    >
+      <span class="material-symbols-outlined">more_horiz</span>
+      <span class="comp-tab-label">MORE</span>
       <span class="comp-tab-indicator" aria-hidden="true"></span>
     </button>
   </nav>
@@ -176,22 +235,36 @@
     </header>
     <nav class="comp-drawer-nav" aria-label="Mobile navigation">
       <button
-        *ngFor="let item of bottomNavItems()"
-        (click)="setActiveView(item.id)"
+        *ngFor="let item of allStudioViews()"
+        (click)="setActiveView(item.id); toggleMobileDrawer()"
         [class.comp-drawer-active]="activeView() === item.id"
+        [class.comp-drawer-hidden]="item.hidden"
         class="comp-drawer-item"
       >
         <span class="material-symbols-outlined">{{ item.icon }}</span>
         <span>{{ item.label }}</span>
       </button>
-      <!-- Dark mode in mobile drawer -->
+      <!-- ARM AUDIO + Theme in mobile drawer -->
       <button
-        (click)="toggleDarkMode()"
-        class="comp-drawer-item"
-        [attr.aria-pressed]="isDarkMode()"
+        *ngIf="showArmAudioPip()"
+        (click)="audioEngine.resume()"
+        class="comp-drawer-item comp-drawer-arm"
       >
-        <span class="material-symbols-outlined">{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</span>
-        <span>{{ isDarkMode() ? 'Light Mode' : 'Dark Mode' }}</span>
+        <span class="material-symbols-outlined">volume_up</span>
+        <span>🔊 ARM AUDIO</span>
+      </button>
+
+      <!-- 3-way theme picker in drawer (more explicit than cycle) -->
+      <button
+        *ngFor="let t of ['light','focus','dark']"
+        (click)="themeMode.set(t)"
+        class="comp-drawer-item"
+        [class.comp-drawer-active]="themeMode() === t"
+      >
+        <span class="material-symbols-outlined">
+          {{ t === 'light' ? 'light_mode' : t === 'focus' ? 'filter_drama' : 'dark_mode' }}
+        </span>
+        <span>{{ t === 'light' ? 'Light Mode' : t === 'focus' ? 'Focus Mode' : 'Dark Mode' }}</span>
       </button>
     </nav>
     <div class="comp-drawer-footer">

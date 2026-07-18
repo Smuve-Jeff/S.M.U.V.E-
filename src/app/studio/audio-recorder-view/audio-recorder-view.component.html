@@ -1,0 +1,110 @@
+<section class="arv-shell" aria-label="Audio recorder view">
+  <header class="arv-header">
+    <div class="arv-title">
+      <span class="material-symbols-outlined arv-title-icon">mic_external_on</span>
+      <div>
+        <h2 class="arv-h2">Live Capture</h2>
+        <p class="arv-sub">Record microphone or instrument input. Tag-stamped takes save straight to your takes folder.</p>
+      </div>
+    </div>
+    <div class="arv-kpis" role="status">
+      <span class="arv-kpi-label">TAKES</span>
+      <span class="arv-kpi-value">{{ recordingCount() }}</span>
+    </div>
+  </header>
+
+  <!-- BIG TRANSPORT -->
+  <div class="arv-transport">
+    <button
+      type="button"
+      class="arv-record-btn"
+      [class.arv-record-btn-armed]="isRequestingMic()"
+      [class.arv-record-btn-live]="isRecording()"
+      (click)="toggleRecord()"
+      [attr.aria-pressed]="isRecording()"
+      [attr.aria-label]="isRecording() ? 'Stop recording' : 'Start recording'"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">
+        {{ isRecording() ? 'stop_circle' : 'radio_button_checked' }}
+      </span>
+      <span class="arv-record-label">
+        {{ isRequestingMic() ? 'ARMING MIC…' : isRecording() ? 'STOP' : 'REC' }}
+      </span>
+      <span class="arv-record-time" *ngIf="isRecording()">
+        {{ formatTime(elapsedSec()) }}
+      </span>
+    </button>
+
+    <div class="arv-transport-meta">
+      <div class="arv-meta-row">
+        <span class="arv-meta-label">CHANNELS</span>
+        <span class="arv-meta-value">1 · MONO</span>
+      </div>
+      <div class="arv-meta-row">
+        <span class="arv-meta-label">FORMAT</span>
+        <span class="arv-meta-value">WEBM / OPUS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERMISSIONS / ERROR -->
+  <div class="arv-banners" *ngIf="permissionsDenied()">
+    <div class="arv-banner arv-banner-warn" role="alert">
+      <span class="material-symbols-outlined">mic_off</span>
+      <div class="arv-banner-text">
+        <strong>Microphone access blocked.</strong>
+        <small>Enable mic permission in your browser settings, then tap REC again.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECORDINGS LIST -->
+  <div class="arv-bank">
+    <header class="arv-bank-head">
+      <span class="arv-bank-title">Recording Bank</span>
+      <span class="arv-bank-count">{{ recordings().length }} take{{ recordings().length === 1 ? '' : 's' }}</span>
+    </header>
+
+    <ul class="arv-list" *ngIf="recordings().length; else empty">
+      <li *ngFor="let rec of recordings()" class="arv-row">
+        <div class="arv-row-icon">
+          <span class="material-symbols-outlined">audio_file</span>
+        </div>
+        <div class="arv-row-main">
+          <div class="arv-row-name">{{ rec.name }}</div>
+          <div class="arv-row-meta">{{ formatRecordedAt(rec.timestamp) }}</div>
+        </div>
+        <audio
+          *ngIf="rec.url"
+          [src]="rec.url"
+          controls
+          class="arv-row-audio"
+          preload="none"
+        ></audio>
+        <button
+          type="button"
+          class="arv-row-del"
+          (click)="deleteRecording(rec.id)"
+          [attr.aria-label]="'Delete ' + rec.name"
+        >
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </li>
+    </ul>
+
+    <ng-template #empty>
+      <div class="arv-empty">
+        <span class="material-symbols-outlined" aria-hidden="true">mic_none</span>
+        <p>No takes yet. Tap <strong>REC</strong> when you're ready to capture.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- QUICK HINTS -->
+  <footer class="arv-foot">
+    <div class="arv-hint">
+      <span class="material-symbols-outlined">tips_and_updates</span>
+      <span>Tap once to start, tap again to stop. Recordings persist offline automatically.</span>
+    </div>
+  </footer>
+</section>

@@ -1,36 +1,95 @@
-<div
-  class="p-4 rounded h-full overflow-y-auto"
-  [class]="'bg-' + theme().neutral + '-800'"
->
-  <h3
-    class="text-lg font-bold mb-4"
-    [class]="'text-' + theme().accent + '-400'"
-  >
-    [ SAMPLE LIBRARY ]
-  </h3>
-
-  <div class="space-y-4">
-    @for (pack of samplePacks(); track pack.name) {
+<section class="sl-shell" aria-label="Sample library">
+  <header class="sl-header">
+    <div class="sl-title">
+      <span class="material-symbols-outlined sl-title-icon">library_music</span>
       <div>
-        <h4
-          class="text-md font-bold"
-          [class]="'text-' + theme().primary + '-400'"
-        >
-          {{ pack.name }}
-        </h4>
-        <p class="text-sm opacity-70 mb-2">{{ pack.genre }}</p>
-        <div class="space-y-2">
-          @for (sample of pack.samples; track sample.name) {
-            <div
-              class="flex items-center justify-between p-2 rounded"
-              [class]="'bg-' + theme().neutral + '-700'"
-            >
-              <span class="text-sm">{{ sample.name }}</span>
-              <button class="p-1 border text-xs">[ PREVIEW ]</button>
-            </div>
-          }
+        <h2 class="sl-h2">Sample Library</h2>
+        <p class="sl-sub">Tag-stamped drum kits, bass patches, keys, and FX — usable across any set.</p>
+      </div>
+    </div>
+    <label class="sl-search" role="search">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        placeholder="Search samples, tags, kits…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        aria-label="Search sample library"
+      />
+    </label>
+  </header>
+
+  <!-- CATEGORY CHIPS -->
+  <nav class="sl-cats" aria-label="Sample categories">
+    <button
+      *ngFor="let cat of categories()"
+      type="button"
+      class="sl-cat"
+      [class.sl-cat-active]="selectedCategory() === cat.id"
+      (click)="selectedCategory.set(cat.id)"
+      [attr.aria-pressed]="selectedCategory() === cat.id"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{ cat.icon }}</span>
+      <span class="sl-cat-label">{{ cat.label }}</span>
+      <span class="sl-cat-count">{{ cat.count }}</span>
+    </button>
+  </nav>
+
+  <!-- GRID -->
+  <div class="sl-grid" role="list">
+    <article
+      *ngFor="let sample of filteredSamples()"
+      class="sl-card"
+      [class.sl-card-previewing]="previewingId() === sample.id"
+      (click)="loadSample(sample.id)"
+      (dblclick)="previewSample(sample.id)"
+      tabindex="0"
+      role="listitem"
+      [attr.aria-label]="'Sample ' + sample.name + ', category ' + sample.category"
+      (keydown.enter)="loadSample(sample.id)"
+      (keydown.space)="previewSample(sample.id); $event.preventDefault()"
+    >
+      <div class="sl-card-icon">
+        <span class="material-symbols-outlined">{{ sample.icon }}</span>
+      </div>
+      <div class="sl-card-body">
+        <div class="sl-card-name">{{ sample.name }}</div>
+        <div class="sl-card-tags">
+          <button
+            *ngFor="let tag of sample.tags.slice(0, 3)"
+            type="button"
+            class="sl-tag"
+            [class.sl-tag-active]="selectedTag() === tag"
+            (click)="toggleTag(tag); $event.stopPropagation()"
+          >
+            #{{ tag }}
+          </button>
         </div>
       </div>
-    }
+      <div class="sl-card-meta">
+        <button
+          type="button"
+          class="sl-icon-btn"
+          (click)="previewSample(sample.id); $event.stopPropagation()"
+          [attr.aria-label]="'Preview ' + sample.name"
+          title="Preview"
+        >
+          <span class="material-symbols-outlined">play_arrow</span>
+        </button>
+        <button
+          type="button"
+          class="sl-icon-btn sl-icon-btn-primary"
+          (click)="loadSample(sample.id); $event.stopPropagation()"
+          [attr.aria-label]="'Load ' + sample.name + ' onto new track'"
+          title="Load"
+        >
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+    </article>
   </div>
-</div>
+
+  <footer class="sl-foot" *ngIf="filteredSamples().length === 0">
+    <p>No samples match those filters. Try clearing search or switching category.</p>
+  </footer>
+</section>

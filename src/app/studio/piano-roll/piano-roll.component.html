@@ -18,6 +18,16 @@
     </div>
 
     <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
+      <!-- Zoom controls -->
+      <div class="pr-zoom-group">
+        <button type="button" class="pr-tool pr-tool-sm" (click)="zoomOut()" title="Zoom out" aria-label="Zoom out grid">
+          <span class="material-symbols-outlined">zoom_out</span>
+        </button>
+        <span class="pr-zoom-readout">{{ zoomPercent() }}%</span>
+        <button type="button" class="pr-tool pr-tool-sm" (click)="zoomIn()" title="Zoom in" aria-label="Zoom in grid">
+          <span class="material-symbols-outlined">zoom_in</span>
+        </button>
+      </div>
       <button
         type="button"
         class="pr-tool"
@@ -77,6 +87,30 @@
     </button>
   </header>
 
+  <!-- KEY / SCALE SELECTOR BAR -->
+  <div class="pr-key-scale-bar" role="group" aria-label="Key and scale">
+    <span class="pr-ks-label">Key</span>
+    <select class="pr-ks-select" [ngModel]="selectedKey()" (ngModelChange)="setKey($event)" aria-label="Root key">
+      <option *ngFor="let k of keyOptions" [value]="k">{{ k }}</option>
+    </select>
+    <span class="pr-ks-label">Scale</span>
+    <div class="pr-scale-chips">
+      <button
+        *ngFor="let s of scaleOptions"
+        type="button"
+        class="pr-scale-chip"
+        [class.active]="selectedScale() === s.value"
+        (click)="setScale(s.value)"
+      >{{ s.label }}</button>
+    </div>
+    <label class="pr-scale-lock">
+      <input type="checkbox" [ngModel]="scaleLockEnabled()" (ngModelChange)="toggleScaleLock()" />
+      <span>Lock</span>
+    </label>
+    <span class="pr-grid-steps">Steps: {{ gridSteps() }}</span>
+    <button type="button" class="pr-expand-btn" (click)="expandGrid()" title="Add 16 more steps">+16</button>
+  </div>
+
   <!-- MAIN CANVAS ROW -->
   <div class="pr-canvas-row">
     <!-- Pitch keys column -->
@@ -91,9 +125,9 @@
         class="pr-key"
         [class.black]="isBlackKey(midi)"
         [class.in-scale]="isInScale(midi)"
-        [style.height.px]="isBlackKey(midi) ? 0 : rowHeight()"
+        [style.height.px]="isBlackKey(midi) ? rowHeight() * 0.55 : rowHeight()"
       >
-        <span>{{ isBlackKey(midi) ? '' : (getKeyName(midi) + getOctaveLabel(midi)) }}</span>
+        <span>{{ getKeyName(midi) + getOctaveLabel(midi) }}</span>
       </div>
     </div>
 
@@ -111,6 +145,10 @@
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
       >
+        <!-- beat labels row -->
+        <div class="pr-beat-labels">
+          <span *ngFor="let b of beatLabels()" class="pr-beat-label" [style.left.px]="b.pos">{{ b.label }}</span>
+        </div>
         <!-- rows -->
         <div
           *ngFor="let midi of displayKeys()"

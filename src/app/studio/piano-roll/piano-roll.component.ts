@@ -43,6 +43,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   editMode = signal<'draw' | 'select' | 'erase'>('draw');
   snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
+  zoomLevel = signal(1.0);
+  gridSteps = signal(64);
+  selectedKey = signal('C');
+  selectedScale = signal('major');
+  scaleLockEnabled = signal(false);
   snapOptions = [
     { label: '1/4', value: '1/4' as const },
     { label: '1/8', value: '1/8' as const },
@@ -174,6 +179,36 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     this.haptic.light();
   }
 
+  setKey(key: string) { this.selectedKey.set(key); this.haptic.light(); }
+  setScale(scale: string) { this.selectedScale.set(scale); this.haptic.light(); }
+  toggleScaleLock() { this.scaleLockEnabled.update(v => !v); this.haptic.light(); }
+
+  zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
+
+  zoomIn() { this.zoomLevel.update(v => Math.min(3.0, v + 0.25)); this.haptic.light(); }
+  zoomOut() { this.zoomLevel.update(v => Math.max(0.25, v - 0.25)); this.haptic.light(); }
+
+  expandGrid() { this.gridSteps.update(v => Math.min(256, v + 16)); }
+
+  beatLabels = computed(() => {
+    const cw = this.cellWidth();
+    const steps = this.gridSteps();
+    const labels: { label: string; pos: number }[] = [];
+    for (let i = 0; i < steps; i += 4) {
+      labels.push({ label: String(Math.floor(i / 16) + 1) + '.' + ((i % 16) / 4 + 1), pos: i * cw });
+    }
+    return labels;
+  });
+
+  keyOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  scaleOptions = [
+    { label: 'Major', value: 'major' },
+    { label: 'Minor', value: 'minor' },
+    { label: 'Blues', value: 'blues' },
+    { label: 'Penta', value: 'pentatonic' },
+    { label: 'Chromatic', value: 'chromatic' },
+  ];
+
   setSnap(snap: '1/4' | '1/8' | '1/16' | '1/32' | 'off') {
     this.snap.set(snap);
     this.haptic.light();
@@ -194,7 +229,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   // ---- Coordinate helpers ----
-  gridWidth = computed(() => 64 * this.cellWidth());
+  gridWidth = computed(() => this.gridSteps() * this.cellWidth());
   canvasHeight = computed(() => 96 * this.rowHeight());
 
   rowTopPx(midi: number): number {
@@ -207,7 +242,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   playheadPx(): number {
     const step = this.musicManager.engine?.visualStep?.() ?? 0;
-    return (step % 64) * this.cellWidth();
+    return (step % this.gridSteps()) * this.cellWidth();
   }
 
   syncKeyScroll() {

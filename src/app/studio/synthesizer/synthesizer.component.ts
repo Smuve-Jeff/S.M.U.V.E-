@@ -15,7 +15,12 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 export class SynthesizerComponent implements OnInit {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
-  @Input() clip!: Clip;
+  /**
+   * Optional — when undefined the panel uses its standalone default
+   * synth params. When the studio shell passes a clip the panel mutates
+   * its params into the clip's `synthParams` storage.
+   */
+  @Input() clip: Clip | null = null;
 
   // Default synthesizer parameters
   synthParams: any = {

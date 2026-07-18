@@ -39,6 +39,16 @@ import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
 import { AiAssistantComponent } from './shared/ai-assistant/ai-assistant.component';
+import { DjDeckComponent } from './dj-deck/dj-deck.component';
+import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
+import { ChannelRackComponent } from './channel-rack/channel-rack.component';
+import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
+import { IdeasGeneratorService } from '../services/ideas-generator.service';
+import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
+import { SynthesizerComponent } from './synthesizer/synthesizer.component';
+import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component';
+import { AudioRecorderViewComponent } from './audio-recorder-view/audio-recorder-view.component';
+import { SampleLibraryComponent } from './sample-library/sample-library.component';
 
 type StudioView =
   | 'arrangement'
@@ -49,7 +59,14 @@ type StudioView =
   | 'mastering'
   | 'drum-machine'
   | 'channel-rack'
-  | 'performer';
+  | 'vocal-suite'
+  | 'effects-rack'
+  | 'performer'
+  | 'audio-recorder'
+  | 'sample-library'
+  | 'sound-browser'
+  | 'sound-pad'
+  | 'synthesizer';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
@@ -61,13 +78,33 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'mastering',
   'drum-machine',
   'channel-rack',
+  'vocal-suite',
+  'effects-rack',
   'performer',
+  'audio-recorder',
+  'sample-library',
+  'sound-browser',
+  'sound-pad',
+  'synthesizer',
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
 }
 
-const DARK_MODE_STORAGE_KEY = 'smuve_dark_mode';
+/** 3-way theme storage key. Persists across sessions. */
+const THEME_STORAGE_KEY = 'smuve_studio_theme';
+type AppTheme = 'light' | 'focus' | 'dark';
+const THEME_ORDER: AppTheme[] = ['light', 'focus', 'dark'];
+const NEXT_THEME_ICON: Record<AppTheme, string> = {
+  light: 'filter_drama',
+  focus: 'dark_mode',
+  dark: 'light_mode',
+};
+const THEME_LABEL: Record<AppTheme, string> = {
+  light: 'LIGHT',
+  focus: 'FOCUS',
+  dark: 'DARK',
+};
 
 @Component({
   selector: 'app-studio',
@@ -85,6 +122,15 @@ const DARK_MODE_STORAGE_KEY = 'smuve_dark_mode';
     SnackbarComponent,
     SearchOverlayComponent,
     AiAssistantComponent,
+    DjDeckComponent,
+    VocalSuiteComponent,
+    ChannelRackComponent,
+    EffectsRackUiComponent,
+    SoundBrowserComponent,
+    SynthesizerComponent,
+    SoundPadGridComponent,
+    AudioRecorderViewComponent,
+    SampleLibraryComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -109,9 +155,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly logger = inject(LoggingService);
-  public readonly templateService = inject(ProjectTemplateService);
-
-  // ---- State ----
+  public readonly templateService = inject(ProjectTemplateService);    // ---- State ----
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAIAssistant = false; // legacy
@@ -126,8 +170,24 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
 
-  /** Dark mode toggle — persisted in localStorage, applied to <body> */
-  isDarkMode = signal(false);
+  /**
+   * 3-way theme model — replaces the old binary isDarkMode.
+   * Persisted in localStorage; applied via <body> class.
+   */
+  themeMode = signal<AppTheme>('light');
+  /** Next theme icon shown on the cycle button (affordance). */
+  nextThemeIcon = computed(() => NEXT_THEME_ICON[this.themeMode()]);
+  /** Current theme label — exposed for the tobtap chip. */
+  currentThemeLabel = computed(() => THEME_LABEL[this.themeMode()]);
+
+  /** Live AudioContext state — drives the 'ARM AUDIO' pip. */
+  audioContextState = this.audioEngine.contextState;
+  /** Defaults to false until the user has interacted. */
+  userGestureSeen = this.audioEngine.userGestureSeen;
+  /** True when the tobtap should show the ARM AUDIO pip. */
+  showArmAudioPip = computed(
+    () => this.audioContextState() === 'suspended' && !this.userGestureSeen()
+  );
 
   browserWidth = signal(260);
   inspectorWidth = signal(300);
@@ -142,12 +202,43 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     () => Math.floor(this.audioEngine.visualStep() / 16) + 1
   );
 
+  /**
+   * Mobile bottom nav — capped at 4 main views + a "More" button.
+   * "More" toggles the existing mobileDrawer which lists all 11 views.
+   */
   bottomNavItems = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
     { id: 'piano-roll', label: 'Piano', icon: 'piano' },
     { id: 'drum-machine', label: 'Drums', icon: 'grid_view' },
     { id: 'mixer', label: 'Mix', icon: 'tune' },
-    { id: 'performance', label: 'Perform', icon: 'interpreter_mode' },
+  ]);
+
+  /**
+   * All 11 studio views — rendered in the mobile side drawer.
+   * Desktop side rail uses the same list (scrollable on narrow screens).
+   */
+  allStudioViews = computed(() => [
+    { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
+    { id: 'piano-roll', label: 'Piano Roll', icon: 'piano' },
+    { id: 'drum-machine', label: 'Drum Machine', icon: 'grid_view' },
+    { id: 'channel-rack', label: 'Channel Rack', icon: 'inventory_2' },
+    { id: 'mixer', label: 'Mixer', icon: 'tune' },
+    { id: 'effects-rack', label: 'Effects Rack', icon: 'magic_button' },
+    { id: 'vocal-suite', label: 'Vocal Suite', icon: 'mic' },
+    { id: 'dj', label: 'DJ Booth', icon: 'album' },
+    { id: 'performance', label: 'Performance', icon: 'interpreter_mode' },
+    { id: 'mastering', label: 'Mastering', icon: 'graphic_eq' },
+    { id: 'sound-browser', label: 'Sound Browser', icon: 'queue_music' },
+    { id: 'sound-pad', label: 'Sound Pad', icon: 'grid_on' },
+    { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },
+    { id: 'sample-library', label: 'Sample Library', icon: 'library_music' },
+    { id: 'audio-recorder', label: 'Recorder', icon: 'mic_external_on' },
+    {
+      id: 'performer',
+      label: 'Performer',
+      icon: 'piano_off',
+      hidden: !this.uiService.isCompactMobile(),
+    },
   ]);
 
   constructor() {
@@ -156,29 +247,31 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (view && isStudioView(view)) this.activeView.set(view);
     });
 
-    // Restore dark mode preference from localStorage
+    // Restore 3-way theme preference from localStorage
     try {
-      const stored = localStorage.getItem(DARK_MODE_STORAGE_KEY);
-      if (stored === 'true') {
-        this.isDarkMode.set(true);
-        document.body.classList.add('dark-mode');
+      const stored = localStorage.getItem(THEME_STORAGE_KEY) as AppTheme | null;
+      if (stored && (THEME_ORDER as string[]).includes(stored)) {
+        this.themeMode.set(stored);
+        document.body.classList.add(stored + '-mode');
       }
     } catch {
       // localStorage unavailable — ignore
     }
 
-    // ── Dark mode effect — sync body class ──
+    // ── Theme effect — sync body class for all 3 modes ──
     effect(() => {
-      const dark = this.isDarkMode();
+      const theme = this.themeMode();
       try {
-        localStorage.setItem(DARK_MODE_STORAGE_KEY, String(dark));
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
       } catch { /* ignore */ }
-      if (dark) {
-        document.body.classList.add('dark-mode');
-      } else {
-        document.body.classList.remove('dark-mode');
-      }
+      document.body.classList.remove('light-mode', 'focus-mode', 'dark-mode');
+      document.body.classList.add(theme + '-mode');
     });
+
+    // ── Audio arming: install one-time pointerdown/keydown listener ──
+    // Runs at studio start. On the user's first gesture anywhere, the
+    // AudioContext is resumed. Idempotent — safe to call repeatedly.
+    this.audioEngine.armOnFirstUserGesture();
 
     // ── Cross-link router ──
     effect(() => {
@@ -209,12 +302,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit() {
     try {
+      // Try to resume immediately (works on first server-side render or
+      // if browser is already primed). Failure here is harmless —
+      // the pointerdown listener installed in the constructor will
+      // take over the moment the user interacts.
       this.audioEngine.resume();
     } catch (e) {
-      if (this.snackbarService) {
-        // do not toast for engine resume issues
+      // silent — fallback handled by armOnFirstUserGesture()
+    }
+
+    // ── Seed an empty studio with a starter recipe ──
+    // If the user opens Studio fresh and tracks() is empty, we apply
+    // a curated 4-bar starter so the FIRST Play click produces audio.
+    if (this.musicManager.tracks().length === 0) {
+      const ideas = inject(IdeasGeneratorService);
+      const first = ideas.recipes?.[0];
+      if (first) {
+        this.musicManager.applyGeneratedRecipe(first);
+      } else {
+        // Fallback — newProject auto-populates piano + drums.
+        this.musicManager.newProject(false);
       }
     }
+
     this.route.queryParamMap.subscribe((params) => {
       const sessionId = params.get('sessionId');
       if (sessionId && !this.collaboration.currentSession()) {
@@ -239,10 +349,24 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {}
 
-  // ── Dark mode toggle ─────────────────────────────────────────
-  toggleDarkMode() {
+  // ── Theme cycle: Light → Focus → Dark → Light ─────────────────
+  cycleTheme() {
     this.haptic.light();
-    this.isDarkMode.update((v) => !v);
+    this.themeMode.update((current) => {
+      const idx = THEME_ORDER.indexOf(current);
+      const nextIdx = (idx + 1) % THEME_ORDER.length;
+      const next = THEME_ORDER[nextIdx];
+      this.snackbarService.info(`Theme · ${THEME_LABEL[next]} mode`);
+      return next;
+    });
+  }
+
+  /**
+   * Backwards-compat alias so existing template bindings still work.
+   * @deprecated use cycleTheme() instead
+   */
+  toggleDarkMode() {
+    this.cycleTheme();
   }
 
   setActiveView(view: StudioView) {
