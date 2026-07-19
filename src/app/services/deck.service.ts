@@ -303,11 +303,16 @@ export class DeckService {
         eqLow: low,
       }));
   }
-
   setDeckFilter(deck: DeckId, freq: number) {
     this.engine.setDeckFilter(deck, freq);
     if (deck === 'A') this.deckA.update((d) => ({ ...d, filterFreq: freq }));
     else this.deckB.update((d) => ({ ...d, filterFreq: freq }));
+  }
+
+  setDeckFilterMode(deck: DeckId, type: BiquadFilterType) {
+    this.engine.setDeckFilterMode(deck, type);
+    if (deck === 'A') this.deckA.update((d) => ({ ...d, filterMode: type }));
+    else this.deckB.update((d) => ({ ...d, filterMode: type }));
   }
 
   setDeckSend(deck: DeckId, send: 'A' | 'B', gain: number) {

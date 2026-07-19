@@ -479,10 +479,24 @@ export class AudioEngineService {
     /* hotcue logic */
   }
   setDeckEq(id: DeckId, high: number, mid: number, low: number) {
-    /* eq logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const now = this.ctx.currentTime;
+    deck.eqHigh.gain.setTargetAtTime((high - 1) * 12, now, 0.02);
+    deck.eqMid.gain.setTargetAtTime((mid - 1) * 12, now, 0.02);
+    deck.eqLow.gain.setTargetAtTime((low - 1) * 12, now, 0.02);
   }
+
   setDeckFilter(id: DeckId, freq: number) {
-    /* filter logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.filter.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.02);
+  }
+
+  setDeckFilterMode(id: DeckId, type: BiquadFilterType) {
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.filter.type = type;
   }
   setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
     /* send logic */
