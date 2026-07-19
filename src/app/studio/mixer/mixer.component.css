@@ -571,3 +571,48 @@
   border-color: var(--neon-violet, #8B5CF6);
   box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
 }
+
+/* ---------- Pro Features: Phase & Stats ---------- */
+.mix-phase-btn {
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 10px !important;
+  color: var(--espresso-muted);
+}
+
+.mix-phase-btn.on {
+  color: #34f5c5 !important;
+  background: rgba(52, 245, 197, 0.1) !important;
+  border-color: rgba(52, 245, 197, 0.3) !important;
+  text-shadow: 0 0 8px rgba(52, 245, 197, 0.5);
+}
+
+.mix-master-stats {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.mix-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.mix-stat-label {
+  color: var(--espresso-muted);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mix-stat-value {
+  color: var(--teal-300);
+  font-weight: 700;
+}

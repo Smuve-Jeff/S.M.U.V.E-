@@ -71,6 +71,12 @@ export interface TrackModel extends StudioTrack {
   gain: number;
   sendA: number;
   sendB: number;
+  /** Pro: Phase inversion state */
+  phaseInvert?: boolean;
+  /** Pro: Stereo Width / Pan amount (-1..1) */
+  stereoWidth?: number;
+  /** Pro: Map of auxBusId -> level (0..1) */
+  auxSends?: Record<string, number>;
   activePatternSlotId?: string | null;
   patternSlots?: PatternSlot[];
   swingAmount?: number;
@@ -610,6 +616,26 @@ export class MusicManagerService {
         this.engine.updateTrack(id, { pan: oldPan });
       }
     );
+  }
+
+  togglePhase(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const inverted = !t.phaseInvert;
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === id ? { ...x, phaseInvert: inverted } : x))
+    );
+    this.engine.updateTrack(id, { phaseInvert: inverted });
+  }
+
+  updateStereoWidth(id: string, val: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const width = Math.max(-1, Math.min(1, val / 100));
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === id ? { ...x, stereoWidth: width } : x))
+    );
+    this.engine.updateTrack(id, { pan: width }); // Reusing pan node for simple implementation
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {

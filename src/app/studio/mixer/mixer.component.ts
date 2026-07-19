@@ -61,6 +61,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private masterAnalyser?: AnalyserNode;
   /** Pro: Phase correlation computed at runtime from master analyser */
   phaseCorrelation = signal(0);
+  outputLufs = this.audioSession.engine.outputLufs;
   private raf?: number;
 
   // ── Pro: Sidechain routing map ─────────────────────────────
@@ -354,6 +355,10 @@ export class MixerComponent implements OnInit, OnDestroy {
   toggleSolo(id: string): void {
     this.haptic.preset('soloFlash');
     this.musicManager.toggleSolo(id);
+  }
+  togglePhase(id: string): void {
+    this.haptic.light();
+    this.musicManager.togglePhase(id);
   }
   toggleArmTrack(id: string): void {
     this.haptic.medium();

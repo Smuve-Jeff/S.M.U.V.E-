@@ -211,6 +211,15 @@
         <div class="mix-msr">
           <button
             type="button"
+            class="mix-msr-btn mix-phase-btn"
+            [class.on]="track.phaseInvert"
+            (click)="togglePhase(track.id); $event.stopPropagation()"
+            [attr.aria-pressed]="track.phaseInvert"
+            [attr.aria-label]="'Invert phase on ' + track.name"
+            title="Phase Invert (Ø)"
+          >Ø</button>
+          <button
+            type="button"
             class="mix-msr-btn"
             [class.on]="track.muted"
             [class.mute]="track.muted"
@@ -282,6 +291,16 @@
           <div class="mix-strip-num">MASTER</div>
           <div class="mix-strip-name">MAIN</div>
           <div class="mix-strip-type">SUM</div>
+          <div class="mix-master-stats">
+            <div class="mix-stat-row">
+              <span class="mix-stat-label">LUFS</span>
+              <span class="mix-stat-value">{{ outputLufs() | number:'1.1-1' }}</span>
+            </div>
+            <div class="mix-stat-row">
+              <span class="mix-stat-label">PEAK</span>
+              <span class="mix-stat-value">{{ (masterPeakHold() * 1.5) | number:'1.1-1' }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="mix-meter" aria-hidden="true">

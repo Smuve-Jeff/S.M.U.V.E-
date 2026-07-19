@@ -819,3 +819,56 @@
   background: rgba(93, 196, 194, 0.12);
 }
 
+
+/* ============================================================
+   PRO PRODUCTION: MOBILE ENHANCEMENTS
+   ============================================================ */
+@media (max-width: 768px) {
+  .comp-shell {
+    --pro-spacing: 4px;
+  }
+  
+  .comp-main {
+    padding: var(--pro-spacing);
+  }
+  
+  /* Tighter rail for more canvas */
+  .comp-rail {
+    width: 48px;
+  }
+  
+  .comp-rail-label {
+    display: none;
+  }
+  
+  /* High-density grid for mobile production */
+  .comp-view {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+}
+
+/* Glass-v42 Professional Styling */
+.glass-pro {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(52, 245, 197, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.neon-border {
+  position: relative;
+}
+
+.neon-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(45deg, transparent, rgba(52, 245, 197, 0.3), transparent);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

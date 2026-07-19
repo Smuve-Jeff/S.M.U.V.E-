@@ -65,10 +65,10 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     { id: 5, name: 'AIR',  range: '10kHz - 22kHz',  gain: 1.5, threshold: -1.2, ratio: 1.5 },
   ]);
 
-  lufsIntegrated = signal(-12.42);
-  truePeak = signal(-0.08);
+  lufsIntegrated = this.audioEngine.outputLufs;
+  truePeak = this.audioEngine.outputPeak;
   lra = signal(6.2);
-  correlation = signal(0.82);
+  correlation = signal(0.82); // This could be wired to a real phase correlation node if added
   targetLufs = signal(-14);
   safeCeiling = signal(-0.1);
   isProcessing = signal(false);
