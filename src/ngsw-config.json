@@ -1,0 +1,80 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app-shell",
+      "installMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "static-assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/assets/**",
+          "!/assets/data/**"
+        ]
+      }
+    },
+    {
+      "name": "fonts-and-icons",
+      "installMode": "prefetch",
+      "resources": {
+        "urls": [
+          "https://fonts.googleapis.com/**",
+          "https://fonts.gstatic.com/**"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-quick-cache",
+      "urls": [
+        "/api/profile/**",
+        "/api/projects/**",
+        "/api/templates/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 50,
+        "maxAge": "1h"
+      }
+    },
+    {
+      "name": "audio-cache",
+      "urls": [
+        "/api/sounds/**",
+        "/api/samples/**",
+        "/api/presets/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 200,
+        "maxAge": "7d"
+      }
+    },
+    {
+      "name": "ai-api",
+      "urls": [
+        "/api/ai/**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 10,
+        "maxAge": "5m",
+        "timeout": "15s"
+      }
+    }
+  ]
+}

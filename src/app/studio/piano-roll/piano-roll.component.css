@@ -323,9 +323,12 @@
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: none;
+  /* Cleaner grid background — subtle stage-lit surface */
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+    linear-gradient(180deg, #0A0F1E 0%, #0D1228 50%, #0A0F1E 100%);
 }
-
-/* .pr-grid-canvas background-image pattern now in styles.css */
 
 .pr-playhead {
   position: absolute;
@@ -507,9 +510,58 @@
   .pr-snap-label { display: none; }
   .pr-inspector { display: none; }
   .pr-tool { width: 36px; height: 36px; }
+
+  /* Enhanced touch targets for mobile piano roll */
+  .pr-snap-btn {
+    min-height: 40px;
+    min-width: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .pr-scale-chip {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  .pr-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .pr-header-tools {
+    gap: 4px;
+  }
+  .pr-grid {
+    touch-action: none;
+  }
+  /* Velocity lane — taller on mobile for easier dragging */
+  .pr-velocity {
+    height: 90px;
+  }
+  .pr-velocity-bar {
+    min-width: 4px;
+    border-radius: 3px 3px 0 0;
+  }
 }
 
 @media (max-width: 480px) {
   .pr-velocity-head { display: none; }
   :host { --pr-cell: 22px; --pr-row: 18px; }
+  .pr-keys { width: 40px; }
+  .pr-header-left { gap: 6px; }
+  .pr-track-pill { padding: 4px 8px; font-size: 10px; }
+}
+
+/* ---------- Precision mode indicator ---------- */
+.pr-grid.precision-mode {
+  cursor: crosshair;
+}
+.pr-grid.precision-mode .pr-note {
+  border: 1px dashed var(--neon-violet, #8B5CF6);
+}
+
+/* ---------- Swipe draw hint ---------- */
+@keyframes pr-swipe-hint {
+  0% { opacity: 0; transform: translateX(-8px); }
+  50% { opacity: 0.6; }
+  100% { opacity: 0; transform: translateX(8px); }
 }

@@ -572,14 +572,84 @@
   100% { transform: scale(1); }
 }
 
-/* ----- Mobile compactness ----- */
+/* ----- Mobile: slideable toolbar ----- */
 @media (max-width: 640px) {
-  .ctb-shell { gap: 6px; padding: 4px; }
-  .ctb-group { padding: 3px; }
-  .ctb-toggles, .ctb-volume { display: none; }
+  .ctb-shell {
+    gap: 6px;
+    padding: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .ctb-shell::-webkit-scrollbar { display: none; }
+
+  .ctb-group {
+    padding: 3px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  /* Show ALL groups on mobile — no more hiding */
+  .ctb-toggles, .ctb-volume {
+    display: flex !important;
+  }
+  .ctb-volume {
+    min-width: 110px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  .ctb-toggles {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
   .ctb-bpm-value { font-size: 16px; }
   .ctb-bpm-unit { font-size: 8px; }
-  .ctb-meter { display: none; }
+
+  .ctb-meter {
+    display: flex !important;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  .ctb-meter-out {
+    display: flex !important;
+  }
+
+  .ctb-output-group { flex-shrink: 0; scroll-snap-align: start; }
+  .ctb-ideas-group { flex-shrink: 0; scroll-snap-align: start; }
+  .ctb-undo { flex-shrink: 0; scroll-snap-align: start; }
+  .ctb-loop-ab { flex-shrink: 0; scroll-snap-align: start; }
+  .ctb-countin { flex-shrink: 0; scroll-snap-align: start; }
+}
+
+/* ----- Swipe feedback hint (mobile) ----- */
+.ctb-shell {
+  touch-action: pan-x;
+  position: relative;
+}
+.ctb-shell::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+  transition: background 0.2s ease;
+}
+
+/* ----- Enhanced touch targets on mobile ----- */
+@media (max-width: 768px) {
+  .ctb-btn { min-width: 44px; min-height: 44px; }
+  .ctb-play { width: 48px; height: 48px; }
+  .ctb-rec { width: 44px; height: 44px; }
+  .ctb-toggle { min-width: 40px; min-height: 40px; }
+  .ctb-nudge { width: 36px; height: 36px; }
+  .ctb-tap { min-width: 44px; min-height: 44px; }
 }
 
 /* ================================================

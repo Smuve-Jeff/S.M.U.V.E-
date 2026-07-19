@@ -524,3 +524,50 @@
   .mix-strip-top { padding: 6px 4px 4px; }
   .mix-strip-name { font-size: 9px; }
 }
+
+/* ---- Enhanced mobile fader interaction ---- */
+@media (max-width: 768px) {
+  .mix-fader-cap {
+    width: 38px;
+    height: 28px;
+    border-radius: 7px;
+  }
+  .mix-fader-area {
+    min-height: 130px;
+    touch-action: none;
+  }
+  .mix-fader-rail {
+    width: 6px;
+  }
+  .mix-msr-btn {
+    min-height: 36px;
+    min-width: 36px;
+    font-size: 13px;
+  }
+  .mix-sends-slider {
+    height: 6px;
+  }
+  .mix-sends-slider::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+  }
+  .mix-pan-track {
+    height: 8px;
+  }
+  .mix-pan-grip {
+    width: 14px;
+    height: 14px;
+    top: -3px;
+  }
+  /* Long-press hint */
+  .mix-strip:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* ---- Precision mode indicator ---- */
+.mix-strip.fine-mode .mix-fader-cap {
+  border-color: var(--neon-violet, #8B5CF6);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}

@@ -285,6 +285,38 @@ export class TransportBarComponent {
     this.snack.info(`Redo · ${this.lastActionName() || 'next action'}`);
   }
 
+  // ── Pro: Swipe gestures for undo/redo on mobile ────
+  private swipeStartX = 0;
+  private swipeStartY = 0;
+  private swipeStartTime = 0;
+
+  onTouchStart(event: TouchEvent) {
+    if (event.touches.length === 1) {
+      this.swipeStartX = event.touches[0].clientX;
+      this.swipeStartY = event.touches[0].clientY;
+      this.swipeStartTime = Date.now();
+    }
+  }
+
+  onTouchEnd(event: TouchEvent) {
+    if (event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - this.swipeStartX;
+    const dy = touch.clientY - this.swipeStartY;
+    const dt = Date.now() - this.swipeStartTime;
+
+    // Horizontal swipe, fast enough, long enough
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400 && dt > 50) {
+      if (dx < 0) {
+        // Swipe left = undo
+        this.undo();
+      } else {
+        // Swipe right = redo
+        this.redo();
+      }
+    }
+  }
+
   /**
    * One-shot audible probe — confirms the audio path is live end-to-end.
    * Plays a 0.6s sine sweep even if NO tracks are loaded, so users can

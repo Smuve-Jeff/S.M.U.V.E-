@@ -192,7 +192,10 @@ export class MixerComponent implements OnInit, OnDestroy {
     return this.selectedTrackId() === id;
   }
 
-  // ---- Fader interactions ----
+  // ---- Fader interactions (precision mobile) ----
+  private faderFineMode = false;
+  private faderPrevGain: Record<string, number> = {};
+
   onFaderPointerDown(ev: PointerEvent, trackId: string) {
     ev.stopPropagation();
     this.startFaderDrag(ev, trackId);
@@ -200,26 +203,82 @@ export class MixerComponent implements OnInit, OnDestroy {
   startFaderDrag(event: PointerEvent, trackId: string) {
     const startY = event.clientY;
     const initialVol = this.gainPercent(trackId) / 100;
+    this.faderPrevGain[trackId] = initialVol;
+    let lastY = startY;
+    let lastTime = Date.now();
+    let velocity = 0;
+    this.faderFineMode = false;
+
     const onMove = (moveEvent: PointerEvent) => {
+      const now = Date.now();
+      const dt = Math.max(1, now - lastTime);
+      velocity = Math.abs(moveEvent.clientY - lastY) / dt;
+      lastY = moveEvent.clientY;
+      lastTime = now;
+
+      // Precision mode: slow drags get finer control
+      const isFine = velocity < 0.3 || moveEvent.shiftKey;
+      const ratio = isFine ? 1 / 600 : 1 / 200;
+      if (isFine && !this.faderFineMode) {
+        this.faderFineMode = true;
+        this.haptic.preset('detent');
+      } else if (!isFine && this.faderFineMode) {
+        this.faderFineMode = false;
+      }
+
       const dy = startY - moveEvent.clientY;
-      const ratio = 1 / 200;
       const v = Math.max(0, Math.min(1.5, initialVol + dy * ratio));
       this.musicManager.updateVolume(trackId, v);
+
+      // Haptic feedback at key levels
+      this.checkFaderHaptics(trackId, v);
     };
     const onUp = () => {
+      this.faderFineMode = false;
+      // Snap to unity (1.0) if close
+      const current = this.gainPercent(trackId) / 100;
+      if (Math.abs(current - 1.0) < 0.03) {
+        this.musicManager.updateVolume(trackId, 1.0);
+        this.haptic.preset('faderUnity');
+      }
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
   }
+
+  private checkFaderHaptics(trackId: string, v: number) {
+    const prev = this.faderPrevGain[trackId] ?? v;
+    // Unity crossing (1.0)
+    if ((prev < 1.0 && v >= 1.0) || (prev > 1.0 && v <= 1.0)) {
+      this.haptic.preset('faderUnity');
+    }
+    // Zero crossing
+    if (prev > 0.02 && v <= 0.02) {
+      this.haptic.preset('faderZero');
+    }
+    this.faderPrevGain[trackId] = v;
+  }
+
   onMasterFaderPointerDown(event: PointerEvent) {
     event.stopPropagation();
     const startY = event.clientY;
     const initialVol = this.masterVolume();
+    let lastY = startY;
+    let lastTime = Date.now();
+
     const onMove = (moveEvent: PointerEvent) => {
+      const now = Date.now();
+      const dt = Math.max(1, now - lastTime);
+      const velocity = Math.abs(moveEvent.clientY - lastY) / dt;
+      lastY = moveEvent.clientY;
+      lastTime = now;
+
+      const isFine = velocity < 0.3 || moveEvent.shiftKey;
+      const scale = isFine ? 0.3 : 1.0;
       const dy = startY - moveEvent.clientY;
-      const v = Math.max(0, Math.min(100, initialVol + dy));
+      const v = Math.max(0, Math.min(100, initialVol + dy * scale));
       this.audioSession.updateMasterVolume(v);
     };
     const onUp = () => {
@@ -261,16 +320,39 @@ export class MixerComponent implements OnInit, OnDestroy {
     window.addEventListener('pointerup', onUp);
   }
 
+  // ---- Long-press for quick-solo ----
+  private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressTrackId: string | null = null;
+
+  onStripTouchStart(event: TouchEvent, trackId: string): void {
+    this.longPressTrackId = trackId;
+    this.longPressTimer = setTimeout(() => {
+      // Long press = quick solo
+      this.toggleSolo(trackId);
+      this.haptic.preset('soloFlash');
+      this.longPressTrackId = null;
+    }, 450);
+  }
+
+  onStripTouchEnd(): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+    this.longPressTrackId = null;
+  }
+
   // ---- Selection / standard ops ----
   selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
+    this.haptic.preset('snap');
   }
   toggleMute(id: string): void {
-    this.haptic.light();
+    this.haptic.preset('muteFlash');
     this.musicManager.toggleMute(id);
   }
   toggleSolo(id: string): void {
-    this.haptic.light();
+    this.haptic.preset('soloFlash');
     this.musicManager.toggleSolo(id);
   }
   toggleArmTrack(id: string): void {

@@ -281,8 +281,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // ---- Touch interactions (enhanced mobile) ----
+  private touchStartTime = 0;
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private isSwiping = false;
+  private swipeAccum = 0;
+  private lastPinchZoom = 1;
+  private drawFromTouch = false;
+
   onGridTouchStart(event: TouchEvent) {
+    this.touchStartTime = Date.now();
+    if (event.touches.length === 1) {
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+      this.isSwiping = false;
+      this.swipeAccum = 0;
+      this.drawFromTouch = false;
+    }
     if (event.touches.length === 2) {
+      this.lastPinchZoom = this.touchGestures.zoomLevel();
       try { this.touchGestures.handlePinch(event); } catch { /* swallow */ }
     }
   }
@@ -290,8 +308,58 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   onGridTouchMove(event: TouchEvent) {
     if (event.touches.length === 2) {
       event.preventDefault();
-      try { this.touchGestures.handlePinch(event); } catch { /* swallow */ }
+      try {
+        this.touchGestures.handlePinch(event);
+        // Haptic tick on zoom level changes
+        const newZoom = this.touchGestures.zoomLevel();
+        if (Math.abs(newZoom - this.lastPinchZoom) > 0.15) {
+          this.haptic.preset('tick');
+          this.lastPinchZoom = newZoom;
+        }
+      } catch { /* swallow */ }
     }
+    if (event.touches.length === 1 && this.editMode() === 'draw') {
+      const dx = event.touches[0].clientX - this.touchStartX;
+      const dy = event.touches[0].clientY - this.touchStartY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 15 && !this.drawFromTouch) {
+        this.isSwiping = true;
+      }
+    }
+  }
+
+  onGridTouchEnd(event: TouchEvent) {
+    // Single-finger tap = draw note with velocity from Y-position
+    if (event.changedTouches.length === 1 && !this.isSwiping && this.editMode() === 'draw') {
+      const touch = event.changedTouches[0];
+      const container = this.scrollContainer?.nativeElement;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const x = touch.clientX - rect.left + container.scrollLeft;
+      const y = touch.clientY - rect.top + container.scrollTop;
+      const step = Math.max(0, Math.floor(x / this.cellWidth()));
+      const rowIndex = Math.floor(y / this.rowHeight());
+      const midi = 24 + (95 - rowIndex);
+      const snappedStep = this.applySnap(step);
+
+      // Velocity from Y-position within the row (top = loud, bottom = soft)
+      const rowFraction = (y % this.rowHeight()) / this.rowHeight();
+      const velocity = Math.max(0.15, Math.min(1.0, 1.0 - rowFraction * 0.6));
+
+      const track = this.selectedTrack();
+      if (track) {
+        this.musicManager.addNoteToTrack(track.id, {
+          id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+          midi,
+          step: snappedStep,
+          length: this.lengthFromSnap(),
+          velocity: Number(velocity.toFixed(2)),
+        });
+        this.haptic.velocity(velocity);
+        this.drawFromTouch = true;
+      }
+    }
+    this.isSwiping = false;
   }
 
   private createNoteAt(step: number, midi: number) {
@@ -397,8 +465,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const note = track.notes.find((n) => Math.floor(n.step) === step);
     if (note) {
       this.musicManager.updateNote(track.id, note.id, { velocity });
-      this.haptic.light();
+      this.haptic.velocity(velocity);
     }
+  }
+
+  /** Drag to scrub velocity lane — continuous velocity painting */
+  onVelocityPointerMove(event: PointerEvent) {
+    if (event.buttons !== 1) return;
+    this.onVelocityPointerDown(event);
   }
 
   // ---- Keyboard / utility ----

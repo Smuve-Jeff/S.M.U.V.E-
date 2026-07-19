@@ -1,4 +1,4 @@
-<div class="ctb-shell" role="toolbar" aria-label="Transport controls">
+<div class="ctb-shell" role="toolbar" aria-label="Transport controls" (touchstart)="onTouchStart($event)" (touchend)="onTouchEnd($event)">
   <!-- Play / Stop / Record -->
   <div class="ctb-group" role="group" aria-label="Playback">
     <button

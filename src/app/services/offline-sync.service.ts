@@ -31,6 +31,10 @@ export class OfflineSyncService {
   deadLetterCount = signal(0);
   lastSyncAttempt = signal<number | null>(null);
   networkStatus = signal<'online' | 'offline'>('online');
+  /** Optimistic local-save mode — data persists to IndexedDB instantly */
+  localSaveEnabled = signal(true);
+  /** Last local save timestamp for fast offline feedback */
+  lastLocalSaveAt = signal<number | null>(null);
 
   private syncInProgress = false;
   private onlineHandler: (() => void) | null = null;
@@ -39,6 +43,10 @@ export class OfflineSyncService {
   constructor() {
     this.initNetworkListeners();
     void this.updatePendingCount();
+    // Flush queue on startup if we're already online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      setTimeout(() => void this.processQueue(), 2000);
+    }
   }
 
   private initNetworkListeners(): void {
@@ -63,6 +71,8 @@ export class OfflineSyncService {
 
   /**
    * Queues an operation for offline sync.
+   * If localSaveEnabled, the payload is also persisted to IndexedDB
+   * immediately so the app never blocks on network.
    */
   async queueOperation(
     action: SyncQueueItem['action'],
@@ -83,6 +93,17 @@ export class OfflineSyncService {
       userId: metadata.userId,
     };
 
+    // Local-first: persist to IndexedDB instantly so UI never stalls
+    if (this.localSaveEnabled()) {
+      await this.localStorage.saveItem('offline_local_cache', {
+        id: item.id,
+        endpoint: item.endpoint,
+        payload: item.payload,
+        savedAt: Date.now(),
+      }, 24 * 60 * 60 * 1000); // 24h TTL
+      this.lastLocalSaveAt.set(Date.now());
+    }
+
     await this.localStorage.saveItem(this.SYNC_STORE, item);
     await this.updatePendingCount();
 
@@ -94,6 +115,26 @@ export class OfflineSyncService {
     }
 
     return item.id;
+  }
+
+  /**
+   * Save data directly to local cache without queuing for sync.
+   * Used for instant offline-first project saves.
+   */
+  async saveLocal(key: string, data: any, ttlMs = 7 * 24 * 60 * 60 * 1000): Promise<void> {
+    await this.localStorage.saveItem('offline_local_cache', {
+      id: key,
+      payload: data,
+      savedAt: Date.now(),
+    }, ttlMs);
+    this.lastLocalSaveAt.set(Date.now());
+  }
+
+  /**
+   * Read data from local cache.
+   */
+  async readLocal(key: string): Promise<any> {
+    return this.localStorage.getItem('offline_local_cache', key);
   }
 
   async queueConnectorSync(

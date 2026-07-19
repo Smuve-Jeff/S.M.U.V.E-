@@ -99,7 +99,10 @@
         [class.mix-strip-sidechain]="hasSidechain(track.id)"
         role="listitem"
         (click)="selectTrack(track.id)"
-        [attr.aria-label]="'Channel strip for ' + track.name + ', type ' + (track.type || 'midi')"
+        (touchstart)="onStripTouchStart($event, track.id)"
+        (touchend)="onStripTouchEnd()"
+        (touchcancel)="onStripTouchEnd()"
+        [attr.aria-label]="'Channel strip for ' + track.name + ', type ' + (track.type || 'midi') + '. Long-press to solo.'"
       >
         <div class="mix-strip-top">
           <div

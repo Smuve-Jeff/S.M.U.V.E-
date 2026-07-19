@@ -138,6 +138,7 @@
       (pointerdown)="onGridPointerDown($event)"
       (touchstart)="onGridTouchStart($event)"
       (touchmove)="onGridTouchMove($event)"
+      (touchend)="onGridTouchEnd($event)"
       (scroll)="syncKeyScroll()"
     >
       <div
@@ -198,6 +199,7 @@
       #velocityViewport
       (scroll)="onVelocityScroll($event)"
       (pointerdown)="onVelocityPointerDown($event)"
+      (pointermove)="onVelocityPointerMove($event)"
     >
       <div
         class="pr-velocity-canvas"
