@@ -79,6 +79,23 @@ export class DjMidiService {
   readonly MIDI_LOG_MAX = 50;
   midiLog = signal<MidiLogEntry[]>([]);
 
+  // ── MIDI Thru/Merge Router ───────────────────────────
+  /** Exposed input device names for routing UI */
+  midiInputNames = signal<string[]>([]);
+  /** Exposed output device names for routing UI */
+  midiOutputNames = signal<string[]>([]);
+  /** Whether thru routing is active */
+  thruEnabled = signal(false);
+  /** Source input index (-1 = all inputs) */
+  thruInputIndex = signal(0);
+  /** Destination output index */
+  thruOutputIndex = signal(0);
+  /** Filter by message type: 'all' | 'notes' | 'cc' | 'clock' */
+  thruFilter = signal<string>('all');
+
+  private midiInputDevices: any[] = [];
+  private midiOutputDeviceList: any[] = [];
+
   // ── MIDI Slave Sync ──────────────────────────────────
   slaveSyncEnabled = signal(false);
   slaveBpm = signal(120);
@@ -98,6 +115,7 @@ export class DjMidiService {
   clockOutputIndex = signal(0);
 
   private midiOutputDevices: any[] = [];
+  private midiOutputDevicesList: any[] = [];
   private clockInterval: any = null;
   private readonly CLOCK_PPQN = 24; // pulses per quarter note
 
@@ -276,6 +294,7 @@ export class DjMidiService {
   private setupInputs() {
     if (!this.midiAccess) return;
     const devices: string[] = [];
+    this.midiInputDevices = [];
     const inputs = this.midiAccess.inputs.values();
     for (
       let input = inputs.next();
@@ -283,10 +302,13 @@ export class DjMidiService {
       input = inputs.next()
     ) {
       const device = input.value;
+      this.midiInputDevices.push(device);
       devices.push(device.name || 'Unknown MIDI Device');
       device.onmidimessage = (msg: any) => this.handleMidi(msg);
     }
     this.connectedDevices.set(devices);
+    this.midiInputNames.set(devices);
+    this.refreshOutputList();
     if (devices.length > 0) {
       this.logger.info(`DJ MIDI Devices: ${devices.join(', ')}`);
     }
@@ -355,6 +377,19 @@ export class DjMidiService {
     } catch {}
   }
 
+  /** Consolidate MIDI output devices list */
+  private refreshOutputList(): void {
+    if (!this.midiAccess) return;
+    this.midiOutputDeviceList = [];
+    this.midiOutputDevicesList = [];
+    const outputs = this.midiAccess.outputs.values();
+    for (let o = outputs.next(); o && !o.done; o = outputs.next()) {
+      this.midiOutputDeviceList.push(o.value);
+      this.midiOutputDevicesList.push(o.value);
+    }
+    this.midiOutputNames.set(this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output'));
+  }
+
   // ── Message Handler ──────────────────────────────────
   private handleMidi(message: any) {
     const [status, data1, data2] = message.data;
@@ -363,6 +398,10 @@ export class DjMidiService {
 
     // ── Detect MIDI System Real-Time messages (Clock, Start, Stop, Continue) ──
     if (status >= 0xF8) {
+      // Forward real-time messages if thru is enabled
+      if (this.thruEnabled() && (this.thruFilter() === 'all' || this.thruFilter() === 'clock')) {
+        this.forwardThru(status);
+      }
       this.handleRealTime(status);
       return;
     }
@@ -380,6 +419,25 @@ export class DjMidiService {
 
     // Push to activity log
     this.pushMidiLog(this.lastMidiMessage()!.type, channel, data1, data2);
+
+    // ── MIDI Thru/Merge Router: forward to output if enabled ──
+    if (this.thruEnabled()) {
+      const sourceMatch =
+        this.thruInputIndex() === 0 || // index 0 = all inputs
+        (this.midiInputDevices.indexOf(message.target) >= 0 &&
+          this.midiInputDevices.indexOf(message.target) + 1 === this.thruInputIndex());
+
+      if (sourceMatch) {
+        const filterPass =
+          this.thruFilter() === 'all' ||
+          (this.thruFilter() === 'notes' && (cmd === 9 || cmd === 8)) ||
+          (this.thruFilter() === 'cc' && cmd === 11);
+
+        if (filterPass) {
+          this.forwardThru(status, data1, data2);
+        }
+      }
+    }
 
     // Performer MIDI Learn: capture CC input
     if (this.performerLearnActive() && cmd === 11 && this.performerLearnTarget()) {
@@ -440,6 +498,19 @@ export class DjMidiService {
     } else if (cmd === 11) {
       this.handleCC(channel, data1, data2);
     }
+  }
+
+  /** Forward MIDI message to the thru output device */
+  private forwardThru(status: number, data1?: number, data2?: number): void {
+    this.refreshOutputList();
+    const idx = this.thruOutputIndex();
+    if (idx < 0 || idx >= this.midiOutputDeviceList.length) return;
+    try {
+      const bytes: number[] = [status];
+      if (data1 !== undefined) bytes.push(data1);
+      if (data2 !== undefined) bytes.push(data2);
+      this.midiOutputDeviceList[idx].send(bytes);
+    } catch {}
   }
 
   /** Handle MIDI System Real-Time messages for Slave Sync */

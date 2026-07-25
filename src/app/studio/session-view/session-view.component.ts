@@ -17,6 +17,15 @@ interface SessionScene {
   index: number;
 }
 
+interface AutomationPoint {
+  /** Bar position (e.g. 0.0, 1.5, 3.0) */
+  position: number;
+  /** Value 0-1 */
+  value: number;
+  /** Parameter target */
+  target: string;
+}
+
 interface SessionClip {
   id: string;
   name: string;
@@ -27,6 +36,8 @@ interface SessionClip {
   duration?: string;
   /** Velocity 0-1 for dynamics-sensitive triggering */
   velocity?: number;
+  /** Automation lanes for this clip */
+  automation?: AutomationPoint[];
 }
 
 @Component({
@@ -136,6 +147,92 @@ export class SessionViewComponent {
     );
     this.snackbar.info(
       `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'} · vel ${Math.round(clampedVel * 100)}%`
+    );
+  }
+
+  // ── Automation Lanes ────────────────────────────────
+  selectedClipId = signal<string | null>(null);
+  automationEditTarget = signal<string>('volume');
+  automationTargets = ['volume', 'filter', 'pan', 'pitch', 'reverb', 'delay'];
+
+  toggleAutomation(clipId: string): void {
+    this.haptic.light();
+    if (this.selectedClipId() === clipId) {
+      this.selectedClipId.set(null);
+    } else {
+      this.selectedClipId.set(clipId);
+      // Ensure clip has automation array
+      this.clips.update((list) =>
+        list.map((c) =>
+          c.id === clipId && !c.automation
+            ? { ...c, automation: [] }
+            : c
+        )
+      );
+    }
+  }
+
+  addAutomationPoint(clipId: string): void {
+    const clip = this.clips().find((c) => c.id === clipId);
+    if (!clip) return;
+    const points = clip.automation?.filter((a) => a.target === this.automationEditTarget()) ?? [];
+    const nextPos = points.length > 0 ? Math.round((points[points.length - 1].position + 1) * 10) / 10 : 0;
+    const newPoint: AutomationPoint = {
+      position: nextPos,
+      value: 0.5,
+      target: this.automationEditTarget(),
+    };
+    this.clips.update((list) =>
+      list.map((c) =>
+        c.id === clipId
+          ? { ...c, automation: [...(c.automation ?? []), newPoint] }
+          : c
+      )
+    );
+    this.haptic.light();
+    this.snackbar.info(`Automation point added at ${nextPos} bars`);
+  }
+
+  deleteAutomationPoint(clipId: string, pointIdx: number): void {
+    this.clips.update((list) =>
+      list.map((c) =>
+        c.id === clipId && c.automation
+          ? { ...c, automation: c.automation.filter((_, i) => i !== pointIdx) }
+          : c
+      )
+    );
+    this.haptic.light();
+  }
+
+  updateAutomationValue(clipId: string, pointIdx: number, newValue: number): void {
+    const clamped = Math.max(0, Math.min(1, Math.round(newValue * 100) / 100));
+    this.clips.update((list) =>
+      list.map((c) =>
+        c.id === clipId && c.automation
+          ? {
+              ...c,
+              automation: c.automation.map((p, i) =>
+                i === pointIdx ? { ...p, value: clamped } : p
+              ),
+            }
+          : c
+      )
+    );
+  }
+
+  updateAutomationPosition(clipId: string, pointIdx: number, newPos: number): void {
+    const clamped = Math.max(0, Math.round(newPos * 10) / 10);
+    this.clips.update((list) =>
+      list.map((c) =>
+        c.id === clipId && c.automation
+          ? {
+              ...c,
+              automation: c.automation.map((p, i) =>
+                i === pointIdx ? { ...p, position: clamped } : p
+              ),
+            }
+          : c
+      )
     );
   }
 
@@ -289,7 +386,90 @@ export class SessionViewComponent {
     this.snackbar.info(`Track ${trackId} muted`);
   }
 
+  // ── Export / Import Project Bundles ──────────────────
+  exportProject(): void {
+    this.haptic.medium();
+    const bundle = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      app: 'S.M.U.V.E. Composer',
+      scenes: this.scenes().map((s) => ({
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        index: s.index,
+      })),
+      clips: this.clips().map((c) => ({
+        id: c.id,
+        name: c.name,
+        trackId: c.trackId,
+        sceneId: c.sceneId,
+        color: c.color,
+        duration: c.duration,
+        velocity: c.velocity,
+        automation: c.automation,
+      })),
+    };
+    const json = JSON.stringify(bundle, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `smuve-project-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.snackbar.success('Project exported');
+  }
+
+  importProject(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.haptic.medium();
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const bundle = JSON.parse(reader.result as string);
+        if (!bundle.scenes || !bundle.clips) {
+          this.snackbar.error('Invalid project file');
+          return;
+        }
+        this.scenes.set(
+          bundle.scenes.map((s: any, i: number) => ({
+            id: s.id,
+            name: s.name,
+            color: s.color,
+            index: i,
+          }))
+        );
+        this.clips.set(
+          bundle.clips.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            trackId: c.trackId,
+            sceneId: c.sceneId,
+            isPlaying: false,
+            color: c.color,
+            duration: c.duration,
+            velocity: c.velocity,
+            automation: c.automation || [],
+          }))
+        );
+        this.activeSceneId.set(null);
+        this.snackbar.success(
+          `Project imported: ${bundle.scenes.length} scenes, ${bundle.clips.length} clips`
+        );
+      } catch {
+        this.snackbar.error('Failed to parse project file');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so re-importing the same file triggers change
+    input.value = '';
+  }
+
   trackByScene = (_i: number, s: SessionScene) => s.id;
   trackByClip = (_i: number, c: SessionClip) => c.id;
   trackByTrackId = (_i: number, t: { id: string }) => t.id;
+  trackByPoint = (_i: number, p: AutomationPoint) => `${p.target}-${p.position}`;
 }

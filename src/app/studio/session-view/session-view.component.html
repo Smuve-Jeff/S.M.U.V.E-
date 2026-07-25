@@ -32,6 +32,14 @@
           {{ presetLoadOpen() ? '✕' : '📂' }}
         </button>
       </div>
+      <!-- Export/Import -->
+      <button type="button" class="sv-action-btn" (click)="exportProject()" title="Export project as JSON bundle">
+        <span class="material-symbols-outlined" style="font-size:14px">file_download</span> Export
+      </button>
+      <label class="sv-action-btn sv-import-label" title="Import project from JSON bundle">
+        <span class="material-symbols-outlined" style="font-size:14px">file_upload</span> Import
+        <input type="file" accept=".json" (change)="importProject($event)" style="display:none" />
+      </label>
     </div>
   </header>
 
@@ -52,6 +60,81 @@
         </div>
       }
     </div>
+  }
+
+  <!-- ───────── AUTOMATION EDITOR PANEL ───────── -->
+  @if (selectedClipId()) {
+    @let selClip = clips().find(c => c.id === selectedClipId());
+    @if (selClip) {
+      <div class="sv-auto-editor">
+        <div class="sv-auto-editor-header">
+          <span class="sv-auto-editor-title">Automation — {{ selClip.name }}</span>
+          <div class="sv-auto-editor-targets">
+            <select
+              class="sv-auto-target-select"
+              [value]="automationEditTarget()"
+              (change)="automationEditTarget.set($any($event.target).value)"
+            >
+              @for (tgt of automationTargets; track tgt) {
+                <option [value]="tgt">{{ tgt | uppercase }}</option>
+              }
+            </select>
+            <button type="button" class="sv-auto-add-btn" (click)="addAutomationPoint(selClip.id)">
+              + Point
+            </button>
+          </div>
+          <button type="button" class="sv-auto-close" (click)="selectedClipId.set(null)">✕</button>
+        </div>
+        <div class="sv-auto-points-list">
+          @let filtered = selClip.automation?.filter(a => a.target === automationEditTarget()) ?? [];
+          @if (filtered.length === 0) {
+            <div class="sv-auto-empty">
+              No automation points for "{{ automationEditTarget() }}". Tap "+ Point" to add one.
+              <div class="sv-auto-empty-hint">Points define envelope breakpoints across the clip duration.</div>
+            </div>
+          }
+          @for (point of filtered; track trackByPoint($index, point); let i = $index) {
+            <div class="sv-auto-point-row">
+              <span class="sv-auto-point-idx">{{ 'P' + (i + 1) }}</span>
+              <div class="sv-auto-point-fields">
+                <label class="sv-auto-field">
+                  <span class="sv-auto-field-label">Bar</span>
+                  <input
+                    type="number"
+                    class="sv-auto-input"
+                    [value]="point.position"
+                    min="0"
+                    step="0.5"
+                    (input)="updateAutomationPosition(selClip.id, i, +$any($event.target).value)"
+                  />
+                </label>
+                <label class="sv-auto-field">
+                  <span class="sv-auto-field-label">Value</span>
+                  <div class="sv-auto-slider-wrap">
+                    <input
+                      type="range"
+                      class="sv-auto-slider"
+                      [value]="point.value"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      (input)="updateAutomationValue(selClip.id, i, +$any($event.target).value)"
+                    />
+                    <span class="sv-auto-val">{{ Math.round(point.value * 100) }}%</span>
+                  </div>
+                </label>
+              </div>
+              <button
+                type="button"
+                class="sv-auto-del-btn"
+                (click)="deleteAutomationPoint(selClip.id, i)"
+                aria-label="Delete point {{ i + 1 }}"
+              >✕</button>
+            </div>
+          }
+        </div>
+      </div>
+    }
   }
 
   <!-- MAIN BODY -->
@@ -144,9 +227,22 @@
                 <div class="sv-clip-velocity-bar" aria-label="Velocity {{ Math.round((clip.velocity ?? 0.85) * 100) }}%">
                   <div class="sv-clip-velocity-fill" [style.width.%]="(clip.velocity ?? 0.85) * 100"></div>
                 </div>
+                @if (clip.automation && clip.automation.length > 0) {
+                  <div class="sv-clip-auto-indicator" title="{{ clip.automation.length }} automation points">
+                    <span class="sv-auto-dot"></span>
+                  </div>
+                }
                 <span class="sv-clip-slot-play" aria-hidden="true">
                   {{ clip.isPlaying ? '⏸' : '▶' }}
                 </span>
+                <button
+                  type="button"
+                  class="sv-clip-auto-toggle"
+                  (click)="$event.stopPropagation(); toggleAutomation(clip.id)"
+                  [class.is-active]="selectedClipId() === clip.id"
+                  title="Toggle automation lane"
+                  aria-label="Toggle automation for {{ clip.name }}"
+                >A</button>
               }
               @if (!clip && dragOverSlotKey() === scene.id + '|' + track.id) {
                 <span class="sv-clip-slot-drop-hint">Drop sample</span>
