@@ -531,19 +531,73 @@
 
 .comp-footer-brand {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--espresso-muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  align-items: baseline;
+  gap: 8px;
   white-space: nowrap;
+  user-select: none;
+  position: relative;
 }
 
+/* ── Elegant copyright mark ── */
 .comp-footer-mark {
-  font-size: 14px;
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--teal-500);
   line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Elegant brand name ── */
+.comp-footer-brand .comp-footer-brand-name {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--espresso-text);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+/* ── Elegant "Presents" ── */
+.comp-footer-brand .comp-footer-brand-byline {
+  font-family: 'Inter', 'Public Sans', system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--espresso-muted);
+  opacity: 0.65;
+  line-height: 1;
+}
+
+/* ── Thin decorative accent line ── */
+.comp-footer-brand::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), transparent);
+  opacity: 0.5;
+  align-self: center;
+  margin-right: 4px;
+  transition: width 0.5s ease, opacity 0.5s ease;
+}
+
+/* ── Hover refinement ── */
+.comp-footer-brand:hover .comp-footer-mark {
+  opacity: 1;
+}
+
+.comp-footer-brand:hover .comp-footer-brand-name {
+  color: var(--teal-500);
+}
+
+.comp-footer-brand:hover::before {
+  width: 28px;
+  opacity: 0.8;
 }
 
 .comp-footer-chip {
@@ -705,8 +759,11 @@
     padding: 0 10px;
   }
 
-  .comp-footer-brand span:last-child {
+  .comp-footer-brand .comp-footer-brand-byline {
     display: none;
+  }
+  .comp-footer-brand::before {
+    width: 12px;
   }
 
   .comp-bottombar {

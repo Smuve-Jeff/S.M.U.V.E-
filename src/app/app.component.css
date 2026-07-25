@@ -334,3 +334,80 @@ footer {
   width: 100%;
   height: 100%;
 }
+
+/* ── Elegant Footer Branding ────────────────────────────────── */
+.app-footer-brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  cursor: default;
+}
+
+.app-footer-brand::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), transparent);
+  opacity: 0.5;
+  align-self: center;
+  margin-right: 4px;
+  transition: width 0.5s ease, opacity 0.5s ease;
+}
+
+.app-footer-brand-mark {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--teal-500);
+  line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.app-footer-brand-name {
+  font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--espresso-text);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.app-footer-brand-byline {
+  font-family: 'Inter', 'Public Sans', system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--espresso-muted);
+  opacity: 0.65;
+  line-height: 1;
+}
+
+.app-footer-brand:hover .app-footer-brand-mark {
+  opacity: 1;
+}
+
+.app-footer-brand:hover .app-footer-brand-name {
+  color: var(--teal-500);
+}
+
+.app-footer-brand:hover::before {
+  width: 28px;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .app-footer-brand .app-footer-brand-byline {
+    display: none;
+  }
+  .app-footer-brand::before {
+    width: 12px;
+  }
+}
