@@ -184,6 +184,10 @@ export class AudioEngineService {
     this.setSoftClip(0.1);
     this.setQuantumSaturation(0.0);
     this.initMidiOut();
+    // Track AudioContext.state reactively so the contextState signal stays in sync
+    // with engine lifecycle transitions (suspended ↔ running ↔ closed).
+    this.ctx.onstatechange = this._ctxStateHandler;
+    this._ctxStateHandler();
     this.startOutputMetering();
     this.autoAdjustEffect();
   }
@@ -854,7 +858,98 @@ export class AudioEngineService {
   readonly autoAdjustEnabled = signal<boolean>(true);
   readonly monitorBlend = signal<number>(0.5);
   readonly outputProfile = signal<'flat' | 'speakers-bright' | 'headphones-flat' | 'auto'>('auto');
-  
+
+  // ── Pro: Output Device & Engine Session State ──────────
+  readonly outputProfileLabel = computed(() => {
+    switch (this.outputProfile()) {
+      case 'flat': return 'Flat';
+      case 'speakers-bright': return 'Speakers · Bright';
+      case 'headphones-flat': return 'Headphones · Flat';
+      case 'auto':
+      default: return 'Auto';
+    }
+  });
+
+  readonly userGestureSeen = signal<boolean>(false);
+
+  armOnFirstUserGesture(): void {
+    if (this.userGestureSeen()) return;
+    if (typeof document === 'undefined') return;
+
+    const body = document.body;
+    const onGesture = () => {
+      this.resume();
+      this.userGestureSeen.set(true);
+      // Clean up peer listeners safely
+      ['click', 'touchstart', 'keydown'].forEach(e =>
+        body.removeEventListener(e, onGesture, { capture: true })
+      );
+    };
+
+    ['click', 'touchstart', 'keydown'].forEach(e =>
+      body.addEventListener(e, onGesture, { once: true, capture: true })
+    );
+  }
+
+  readonly selectedOutputDeviceId = signal<string>('');
+  readonly outputDeviceName = signal<string>('System Default');
+  readonly externalOutputActive = computed(() => this.selectedOutputDeviceId() !== '');
+
+  supportsSinkId(): boolean {
+    return typeof HTMLAudioElement !== 'undefined' && 'setSinkId' in HTMLAudioElement.prototype;
+  }
+
+  async setOutputDevice(deviceId: string): Promise<boolean> {
+    if (!this.supportsSinkId()) return false;
+    try {
+      if ('setSinkId' in this.ctx) {
+        await (this.ctx as any).setSinkId(deviceId);
+      } else {
+        return false;
+      }
+      this.selectedOutputDeviceId.set(deviceId);
+
+      // Update friendly name
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const target = devices.find(d => d.kind === 'audiooutput' && d.deviceId === deviceId);
+        this.outputDeviceName.set(deviceId === '' ? 'System Default' : (target?.label || 'External Output'));
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async refreshOutputDevices(): Promise<void> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const match = devices.find(d => d.kind === 'audiooutput' && d.deviceId === this.selectedOutputDeviceId());
+      if (match?.label) {
+        this.outputDeviceName.set(this.selectedOutputDeviceId() === '' ? 'System Default' : match.label);
+      }
+    } catch {
+      /* enumeration blocked (e.g. insecure context) — keep current name */
+    }
+  }
+
+  // ── Pro: Settings setters (mirror the existing setOutputMode shape) ──
+  setMonitorBlend(value: number): void {
+    const clamped = Math.max(0, Math.min(1, value));
+    this.monitorBlend.set(clamped);
+  }
+
+  setAutoAdjust(enabled: boolean): void {
+    this.autoAdjustEnabled.set(!!enabled);
+  }
+
+  // ── Pro: AudioContext state surfaced as a signal ─────────
+  readonly contextState = signal<AudioContextState>('suspended');
+  private _ctxStateHandler = (): void => {
+    this.contextState.set(this.ctx.state);
+  };
+
   private _meteringBuffer = new Float32Array(1024);
   private _meteringRAF: number | null = null;
   private startOutputMetering(): void {
