@@ -7,6 +7,7 @@ import { VocalMasteringService } from '../../services/vocal-mastering.service';
 import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
 import { AudioSessionService } from '../audio-session.service';
+import { StudioRecordingEngineService } from '../studio-recording-engine.service';
 
 describe('VocalSuiteComponent', () => {
   let component: VocalSuiteComponent;
@@ -61,6 +62,22 @@ describe('VocalSuiteComponent', () => {
       applyToSource: jest.fn(),
     };
 
+    const recordingEngineMock = {
+      isInitialized: signal(false),
+      isRecording: signal(false),
+      isPaused: signal(false),
+      recordingTime: signal(0),
+      inputLevel: signal(0),
+      recordedBlob: signal<Blob | null>(null),
+      pendingMidi: [],
+      initialize: jest.fn().mockResolvedValue(true),
+      startRecording: jest.fn(),
+      stopRecording: jest.fn(),
+      pauseRecording: jest.fn(),
+      resumeRecording: jest.fn(),
+      getAnalyserNode: jest.fn().mockReturnValue({}),
+    };
+
     await TestBed.configureTestingModule({
       imports: [VocalSuiteComponent],
       providers: [
@@ -73,6 +90,10 @@ describe('VocalSuiteComponent', () => {
         },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: VocalMasteringService, useValue: masteringMock },
+        {
+          provide: StudioRecordingEngineService,
+          useValue: recordingEngineMock,
+        },
         {
           provide: VocalAiService,
           useValue: {

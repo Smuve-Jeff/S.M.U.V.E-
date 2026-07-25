@@ -43,6 +43,7 @@ export class MicrophoneService implements OnDestroy {
   isPaused = signal(false);
   recordingTime = signal(0);
   recordedBlob = signal<Blob | null>(null);
+  inputLevel = signal(0);
 
   availableDevices = signal<AudioInputDevice[]>([]);
   selectedDeviceId = signal<string | null>(null);

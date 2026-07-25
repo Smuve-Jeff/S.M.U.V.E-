@@ -4,6 +4,7 @@ import { MicrophoneInterfaceComponent } from './microphone-interface.component';
 import { AudioSessionService } from '../audio-session.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { VocalMasteringService } from '../../services/vocal-mastering.service';
+import { StudioRecordingEngineService } from '../studio-recording-engine.service';
 
 describe('MicrophoneInterfaceComponent', () => {
   const createComponent = async () => {
@@ -50,6 +51,7 @@ describe('MicrophoneInterfaceComponent', () => {
       isInitialized: signal(false),
       isRecording: signal(false),
       isPaused: signal(false),
+      inputLevel: signal(0),
       initialize: jest.fn().mockResolvedValue(undefined),
       getAnalyserNode: jest
         .fn()
@@ -76,12 +78,35 @@ describe('MicrophoneInterfaceComponent', () => {
       applyToSource: jest.fn(),
     };
 
+    const recordingEngineMock = {
+      isInitialized: signal(false),
+      isRecording: signal(false),
+      isPaused: signal(false),
+      recordingTime: signal(0),
+      inputLevel: signal(0),
+      recordedBlob: signal<Blob | null>(null),
+      pendingMidi: [],
+      initialize: jest.fn().mockResolvedValue(true),
+      startRecording: jest.fn(),
+      stopRecording: jest.fn(),
+      pauseRecording: jest.fn(),
+      resumeRecording: jest.fn(),
+      getAnalyserNode: jest.fn().mockReturnValue({
+        getByteTimeDomainData: jest.fn(),
+        fftSize: 32,
+      }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [MicrophoneInterfaceComponent],
       providers: [
         { provide: AudioSessionService, useValue: audioSessionMock },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: VocalMasteringService, useValue: masteringMock },
+        {
+          provide: StudioRecordingEngineService,
+          useValue: recordingEngineMock,
+        },
       ],
     }).compileComponents();
 

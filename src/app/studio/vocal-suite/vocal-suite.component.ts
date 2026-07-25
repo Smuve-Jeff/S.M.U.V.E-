@@ -68,10 +68,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private waveformData: number[] = [];
 
   recordingTimeFormatted = computed(() => {
-    const s = Math.floor(this.recordingEngine.recordingTime());
+    const s = Math.floor(this.micService.recordingTime());
     const m = Math.floor(s / 60);
     const secs = s % 60;
-    const ms = Math.floor((this.recordingEngine.recordingTime() % 1) * 10);
+    const ms = Math.floor((this.micService.recordingTime() % 1) * 10);
     return `${m.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms}`;
   });
 
@@ -101,30 +101,26 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   setStep(step: PipelineStep) {
     this.currentStep.set(step);
-    if (step === 'record' && !this.recordingEngine.isInitialized()) {
+    if (step === 'record' && !this.micService.isInitialized()) {
       this.initializeMic();
     }
   }
 
   async initializeMic() {
     const deviceId = this.micService.selectedDeviceId();
-    const success = await this.recordingEngine.initialize(
-      deviceId || undefined
-    );
-    if (success) {
-      const node = this.recordingEngine.getAnalyserNode();
-      if (node) {
-        this.mastering.applyToSource(node);
-      }
+    await this.micService.initialize(deviceId || undefined);
+    const node = this.micService.getAnalyserNode();
+    if (node) {
+      this.mastering.applyToSource(node);
     }
   }
 
   toggleRecording() {
-    if (this.recordingEngine.isRecording()) {
-      void this.recordingEngine.stopRecording();
+    if (this.micService.isRecording()) {
+      this.micService.stopRecording();
     } else {
       this.waveformData = [];
-      this.recordingEngine.startRecording();
+      this.micService.startRecording();
     }
   }
 
@@ -139,9 +135,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   private drawSpectrograph() {
     const canvas = this.spectrographRef?.nativeElement;
-    if (!canvas || !this.ctx2d || !this.recordingEngine.isInitialized()) return;
+    if (!canvas || !this.ctx2d || !this.micService.isInitialized()) return;
 
-    const analyser = this.recordingEngine.getAnalyserNode();
+    const analyser = this.micService.getAnalyserNode();
     if (!analyser) return;
 
     const width = canvas.width;
@@ -173,8 +169,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const canvas = this.waveformRef?.nativeElement;
     if (!canvas || !this.waveformCtx) return;
 
-    const analyser = this.recordingEngine.getAnalyserNode();
-    if (this.recordingEngine.isRecording() && analyser) {
+    const analyser = this.micService.getAnalyserNode();
+    if (this.micService.isRecording() && analyser) {
       const dataArray = new Uint8Array(analyser.fftSize);
       analyser.getByteTimeDomainData(dataArray);
 
@@ -212,7 +208,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async downloadRecording() {
-    const blob = this.recordingEngine.recordedBlob();
+    const blob = this.micService.recordedBlob();
     if (blob) {
       this.showUplink.set(true);
       const success = await this.uplinkService.initiateUplink(

@@ -347,6 +347,7 @@ export class AudioEngineService {
     force: boolean = false
   ) {
     if (!this.metronomeEnabled() && !force) return;
+    this.resume();
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
     osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
@@ -567,6 +568,16 @@ export class AudioEngineService {
     vca.connect(this.getTrackOutput(trackId.toString()));
     osc.start(time);
     osc.stop(time + duration + (params.release || 0.1) + 0.1);
+
+    if (this.isRecording()) {
+      const pitch = Math.round(69 + 12 * Math.log2(freq / 440));
+      this.recorder.pendingMidi.push({
+        pitch,
+        startTime: time,
+        duration,
+        velocity,
+      });
+    }
   }
 
   triggerSampler(
@@ -679,7 +690,7 @@ export class AudioEngineService {
     return this.metronomeEnabled();
   }
   setMetronomeVolume(val: number) {
-    this.metronomeVolume.set(val);
+    this.metronomeVolume.set(Math.max(0, Math.min(1, val)));
   }
   setSoftClip(amount: number) {
     const k = amount * 100,
@@ -732,16 +743,44 @@ export class AudioEngineService {
   updateAdaptivePerformance(load: number) {
     this.performanceTier.set(load > 70 ? 'performance' : 'ultra');
   }
-  connectSidechain(t: string, g: string) {}
-  disconnectSidechain(t: string, g: string) {}
+  connectSidechain(trigger: string, target: string) {
+    if (!this.sidechainMatrix.has(trigger)) {
+      this.sidechainMatrix.set(trigger, new Set<string>());
+    }
+    this.sidechainMatrix.get(trigger)!.add(target);
+    this.sidechainEnabled.set(true);
+  }
+  disconnectSidechain(trigger: string, target: string) {
+    const targets = this.sidechainMatrix.get(trigger);
+    if (targets) {
+      targets.delete(target);
+      if (targets.size === 0) {
+        this.sidechainMatrix.delete(trigger);
+      }
+    }
+    this.sidechainEnabled.set(this.sidechainMatrix.size > 0);
+  }
   getSidechainRouting() {
-    return [];
+    const routes: { triggerTrackId: string; targetTrackIds: string[] }[] = [];
+    this.sidechainMatrix.forEach((targets, trigger) => {
+      routes.push({ triggerTrackId: trigger, targetTrackIds: Array.from(targets) });
+    });
+    return routes;
   }
   calculatePlaybackRate(bpm: number) {
     return this.tempo() / bpm;
   }
+  setMasteringTargets(targets: { lufs: number; truePeak: number }) {
+    this.masteringTargets = { ...targets };
+    // Apply a safe ceiling through the limiter/compressor chain
+    this.compressor.threshold.setTargetAtTime(
+      targets.lufs,
+      this.ctx.currentTime,
+      0.05
+    );
+  }
   getMasteringTargets() {
-    return { lufs: -14, truePeak: -0.1 };
+    return { ...this.masteringTargets };
   }
 
   /** Pro: Aux Bus Architecture */
@@ -801,25 +840,25 @@ export class AudioEngineService {
       this.compressor.threshold.setTargetAtTime(
         p.threshold,
         this.ctx.currentTime,
-        0.05
+        0.01
       );
     if (p?.ratio !== undefined)
       this.compressor.ratio.setTargetAtTime(
         p.ratio,
         this.ctx.currentTime,
-        0.05
+        0.01
       );
     if (p?.attack !== undefined)
       this.compressor.attack.setTargetAtTime(
         p.attack,
         this.ctx.currentTime,
-        0.05
+        0.01
       );
     if (p?.release !== undefined)
       this.compressor.release.setTargetAtTime(
         p.release,
         this.ctx.currentTime,
-        0.05
+        0.01
       );
   }
 

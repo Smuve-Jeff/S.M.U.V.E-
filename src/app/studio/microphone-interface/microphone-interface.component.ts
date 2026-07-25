@@ -38,11 +38,11 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
   devices = this.micService.availableDevices;
   params = this.mastering.params;
 
-  // Mirror recording engine state
-  inputLevel = this.recordingEngine.inputLevel;
-  isRecording = this.recordingEngine.isRecording;
-  isPaused = this.recordingEngine.isPaused;
-  recordingTime = this.recordingEngine.recordingTime;
+  // Mirror microphone service state
+  inputLevel = this.micService.inputLevel;
+  isRecording = this.micService.isRecording;
+  isPaused = this.micService.isPaused;
+  recordingTime = this.micService.recordingTime;
 
   currentChannel = computed(
     () =>
@@ -65,7 +65,7 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
 
   signalReadiness = computed(() => {
     if (this.isRecording()) return 'recording';
-    if (this.recordingEngine.isInitialized()) return 'ready';
+    if (this.micService.isInitialized()) return 'ready';
     return 'offline';
   });
 
@@ -115,11 +115,14 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
       this.audioSession.updateChannelDevice(activeChannel.id, resolvedDeviceId);
     }
 
-    const success = await this.recordingEngine.initialize(resolvedDeviceId);
-    if (success && activeChannel && !activeChannel.armed) {
+    await this.micService.initialize(resolvedDeviceId);
+    if (activeChannel && !activeChannel.armed) {
       this.audioSession.toggleChannelArm(activeChannel.id);
     }
-    // Note: Mastering integration would happen here if using a real AudioNode source
+    const analyserNode = this.micService.getAnalyserNode();
+    if (analyserNode) {
+      this.mastering.applyToSource(analyserNode);
+    }
   }
 
   async updateDevice(deviceId: string): Promise<void> {
@@ -127,23 +130,23 @@ export class MicrophoneInterfaceComponent implements OnDestroy {
   }
 
   toggleRecording(): void {
-    if (!this.recordingEngine.isInitialized()) {
+    if (!this.micService.isInitialized()) {
       void this.initializeInterface();
       return;
     }
 
     if (this.isRecording()) {
-      void this.recordingEngine.stopRecording();
+      this.micService.stopRecording();
     } else {
-      this.recordingEngine.startRecording();
+      this.micService.startRecording();
     }
   }
 
   togglePause(): void {
     if (this.isPaused()) {
-      this.recordingEngine.resumeRecording();
+      this.micService.resumeRecording();
     } else {
-      this.recordingEngine.pauseRecording();
+      this.micService.pauseRecording();
     }
   }
 

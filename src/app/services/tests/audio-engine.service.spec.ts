@@ -23,7 +23,7 @@ describe('AudioEngineService', () => {
         setTargetAtTime: jest.fn(),
         setValueAtTime: jest.fn(),
       },
-      pan: { value: 0, setValueAtTime: jest.fn() },
+      pan: { value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn() },
       Q: { value: 0, setValueAtTime: jest.fn() },
       threshold: {
         value: 0,
@@ -214,8 +214,12 @@ describe('AudioEngineService', () => {
     const vca =
       gains.find((g: any) => g.gain.setTargetAtTime.mock.calls.length > 0) ||
       gains.at(-1);
+    const panners = mockAudioContext.createStereoPanner.mock.results.map(
+      (r: any) => r.value
+    );
     const panner =
-      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+      panners.find((p: any) => p.pan.setValueAtTime.mock.calls.length > 0) ||
+      panners.at(-1);
 
     expect(osc.type).toBe('square');
     expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(440, 1.25);
@@ -250,8 +254,12 @@ describe('AudioEngineService', () => {
     const vca =
       gains.find((g: any) => g.gain.setTargetAtTime.mock.calls.length > 0) ||
       gains.at(-1);
+    const panners = mockAudioContext.createStereoPanner.mock.results.map(
+      (r: any) => r.value
+    );
     const panner =
-      mockAudioContext.createStereoPanner.mock.results.at(-1)?.value;
+      panners.find((p: any) => p.pan.setValueAtTime.mock.calls.length > 0) ||
+      panners.at(-1);
 
     expect(source.buffer).toBe(buffer);
     expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(0.4, 2);
