@@ -29,6 +29,12 @@ export interface MidiLearnState {
   targetDeck: 'A' | 'B' | null;
 }
 
+export interface PerformerCCMapping {
+  controller: number;
+  channel: number;
+  target: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -50,6 +56,14 @@ export class DjMidiService {
 
   /** Connected MIDI device names */
   connectedDevices = signal<string[]>([]);
+
+  /** Performer-specific MIDI Learn */
+  performerLearnActive = signal(false);
+  performerLearnTarget = signal<string | null>(null);
+  performerCCMap = signal<PerformerCCMapping[]>([]);
+
+  /** MIDI activity pulse — toggles on each incoming message for visual feedback */
+  midiActivityPulse = signal(false);
 
   /** Performer-oriented MIDI streams */
   readonly performerNoteOn = new Subject<MidiNoteEvent>();
@@ -112,6 +126,7 @@ export class DjMidiService {
 
   constructor() {
     this.loadCustomMappings();
+    this.loadPerformerCCMappings();
     this.autoInit();
   }
 
@@ -157,7 +172,33 @@ export class DjMidiService {
     }
   }
 
-  // ── MIDI Learn ────────────────────────────────────────
+  // ── Performer MIDI Learn ─────────────────────────────
+  startPerformerLearn(target: string) {
+    this.performerLearnActive.set(true);
+    this.performerLearnTarget.set(target);
+    this.logger.info(`Performer MIDI Learn: waiting for CC input for "${target}"`);
+  }
+
+  cancelPerformerLearn() {
+    this.performerLearnActive.set(false);
+    this.performerLearnTarget.set(null);
+  }
+
+  private savePerformerCCMappings() {
+    try {
+      localStorage.setItem('smuve_performer_cc_mappings', JSON.stringify(this.performerCCMap()));
+    } catch {}
+  }
+
+  private loadPerformerCCMappings() {
+    try {
+      const raw = localStorage.getItem('smuve_performer_cc_mappings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) this.performerCCMap.set(parsed);
+      }
+    } catch {}
+  }
   startLearn(action: string, deck: 'A' | 'B' | null = null) {
     this.learnState.set({ active: true, targetAction: action, targetDeck: deck });
     this.logger.info(`MIDI Learn: waiting for input for "${action}"`);
@@ -206,6 +247,27 @@ export class DjMidiService {
       number: data1,
       value: data2,
     });
+
+    // Activity pulse for device picker LED
+    this.midiActivityPulse.set(true);
+    setTimeout(() => this.midiActivityPulse.set(false), 150);
+
+    // Performer MIDI Learn: capture CC input
+    if (this.performerLearnActive() && cmd === 11 && this.performerLearnTarget()) {
+      const newCC: PerformerCCMapping = {
+        controller: data1,
+        channel,
+        target: this.performerLearnTarget()!,
+      };
+      this.performerCCMap.update((m) => {
+        const filtered = m.filter((x) => x.target !== newCC.target);
+        return [...filtered, newCC];
+      });
+      this.savePerformerCCMappings();
+      this.logger.info(`Performer CC Learned: ${newCC.target} → CH${channel} CC${data1}`);
+      this.cancelPerformerLearn();
+      return;
+    }
 
     // MIDI Learn: capture this input as a mapping
     if (this.learnState().active && this.learnState().targetAction) {

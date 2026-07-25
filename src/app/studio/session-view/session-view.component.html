@@ -99,8 +99,12 @@
               [class.is-filled]="!!clip"
               [class.is-empty]="!clip"
               [class.is-playing]="clip?.isPlaying"
+              [class.sv-clip-slot-dragover]="dragOverSlotKey() === scene.id + '|' + track.id"
               [style.--slot-color]="clip?.color"
               (click)="clip && triggerClip(clip)"
+              (dragover)="onSlotDragOver($event, scene.id, track.id)"
+              (dragleave)="onSlotDragLeave()"
+              (drop)="onSlotDrop($event, scene.id, track.id)"
               [attr.aria-label]="clip ? (clip.name + (clip.isPlaying ? ' — playing' : ' — stopped')) : 'Empty clip slot — ' + scene.name + ', ' + track.name"
               role="gridcell"
             >
@@ -110,6 +114,9 @@
                 <span class="sv-clip-slot-play" aria-hidden="true">
                   {{ clip.isPlaying ? '⏸' : '▶' }}
                 </span>
+              }
+              @if (!clip && dragOverSlotKey() === scene.id + '|' + track.id) {
+                <span class="sv-clip-slot-drop-hint">Drop sample</span>
               }
             </button>
           </ng-container>

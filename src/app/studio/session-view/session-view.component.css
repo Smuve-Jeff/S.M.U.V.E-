@@ -471,3 +471,19 @@
   border-color: var(--teal-500) !important;
   box-shadow: 0 0 16px var(--teal-soft-glow), inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 40%, transparent);
 }
+
+/* ── CLIP SLOT DRAG HIGHLIGHT ─────────────────────── */
+.sv-clip-slot-dragover {
+  border-color: var(--teal-500) !important;
+  box-shadow: 0 0 14px var(--teal-soft-glow), inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 35%, transparent) !important;
+  border-style: solid !important;
+}
+
+.sv-clip-slot-drop-hint {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--teal-500);
+  text-align: center;
+  pointer-events: none;
+}

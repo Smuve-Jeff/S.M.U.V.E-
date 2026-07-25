@@ -153,6 +153,7 @@ export class SessionViewComponent {
 
   // ── Drag-to-track drop zone ──────────────────────────
   dragOverTrackId = signal<string | null>(null);
+  dragOverSlotKey = signal<string | null>(null);
 
   onDragOver(event: DragEvent, trackId: string): void {
     event.preventDefault();
@@ -174,6 +175,46 @@ export class SessionViewComponent {
       this.haptic.medium();
       this.musicManager.ensureTrack(id);
       this.snackbar.success(`${name} → track`);
+    } catch {
+      // invalid payload — ignore
+    }
+  }
+
+  // ── Drag-to-clip-slot ─────────────────────────────────
+  onSlotDragOver(event: DragEvent, sceneId: string, trackId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer!.dropEffect = 'copy';
+    this.dragOverSlotKey.set(`${sceneId}|${trackId}`);
+  }
+
+  onSlotDragLeave(): void {
+    this.dragOverSlotKey.set(null);
+  }
+
+  onSlotDrop(event: DragEvent, sceneId: string, trackId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragOverSlotKey.set(null);
+    const raw = event.dataTransfer?.getData('application/smuve-sample');
+    if (!raw) return;
+    try {
+      const { id, name } = JSON.parse(raw);
+      this.haptic.medium();
+      // Create a new clip in this slot
+      this.clips.update((list) => [
+        ...list,
+        {
+          id: `clip-${Date.now()}`,
+          name,
+          trackId,
+          sceneId,
+          isPlaying: false,
+          color: '#5DC4C2',
+          duration: '4 bars',
+        },
+      ]);
+      this.snackbar.success(`${name} → clip in ${sceneId}`);
     } catch {
       // invalid payload — ignore
     }

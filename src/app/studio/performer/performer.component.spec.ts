@@ -81,6 +81,12 @@ describe('PerformerComponent', () => {
             performerNoteOn: new Subject(),
             performerNoteOff: new Subject(),
             performerCC: new Subject(),
+            performerLearnActive: signal(false),
+            performerLearnTarget: signal(null),
+            performerCCMap: signal([]),
+            midiActivityPulse: signal(false),
+            startPerformerLearn: jest.fn(),
+            cancelPerformerLearn: jest.fn(),
           },
         },
         {

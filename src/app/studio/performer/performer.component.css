@@ -1238,3 +1238,160 @@
   .macro-preset-name { font-size: 8px; }
   .macro-preset-glyph { font-size: 14px; }
 }
+
+/* ── MIDI Device Picker Panel ─────────────────────── */
+.midi-picker-panel {
+  position: relative;
+  margin: 0 10px;
+  padding: 10px 14px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--teal-500);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: midiSlideIn 0.2s ease-out;
+}
+
+@keyframes midiSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.midi-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.midi-picker-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.midi-picker-activity {
+  font-size: 10px;
+  color: var(--espresso-muted);
+  transition: color 0.08s, text-shadow 0.08s;
+}
+
+.midi-picker-activity.is-pulsing {
+  color: var(--teal-500);
+  text-shadow: 0 0 8px var(--teal-glow);
+}
+
+.midi-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.midi-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+}
+
+.midi-picker-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--espresso-text);
+}
+
+.midi-picker-toggle {
+  padding: 3px 8px;
+  background: var(--ivory-deep);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.midi-picker-toggle.is-on {
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  border-color: var(--teal-500);
+}
+
+.midi-picker-close {
+  align-self: flex-end;
+  background: none;
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  color: var(--espresso-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+/* ── MIDI Learn Button ──────────────────────────────── */
+.midi-learn-btn {
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  padding: 1px 3px;
+  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.midi-learn-btn:hover {
+  opacity: 1;
+  border-color: var(--teal-500);
+}
+
+.midi-learn-btn.is-learning {
+  opacity: 1;
+  background: var(--teal-500);
+  border-color: var(--teal-500);
+  color: var(--ivory-deep);
+  animation: midiLearnPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes midiLearnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(14,124,123,0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(14,124,123,0); }
+}
+
+.midi-learn-mapping {
+  font-size: 7px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--teal-500);
+  letter-spacing: 0.04em;
+}
+
+/* ── MIDI indicator in header ─────────────────────── */
+.midi-indicator {
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: none;
+  font-family: inherit;
+}
+
+.midi-indicator:hover {
+  border-color: var(--teal-500);
+}
+
+.midi-indicator.midi-active {
+  color: var(--teal-500);
+  text-shadow: 0 0 6px var(--teal-glow);
+}

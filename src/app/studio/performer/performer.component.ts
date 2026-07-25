@@ -72,6 +72,11 @@ export class PerformerComponent implements OnDestroy, OnInit {
   /** MIDI subscriptions */
   private midiSubs = new Subscription();
 
+  /** MIDI device picker panel visibility */
+  midiPanelOpen = signal(false);
+  /** Enabled device names (all enabled by default) */
+  enabledDevices = signal<string[]>([]);
+
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
 
@@ -117,26 +122,15 @@ export class PerformerComponent implements OnDestroy, OnInit {
       })
     );
 
-    // Subscribe to MIDI CC → performer controls
+    // Subscribe to MIDI CC → performer controls (uses performerCCMap for custom mappings)
     this.midiSubs.add(
       this.midiService.performerCC.subscribe((ev) => {
-        switch (ev.controller) {
-          case 1: // Mod wheel
-            this.modWheel.set(ev.value);
-            this.liveEngine.setModWheel(ev.value);
-            break;
-          case 7: // Channel volume → track gain
-            this.updateTrackVolume(ev.value * 100);
-            break;
-          case 10: // Pan
-            this.updateTrackPan((ev.value - 0.5) * 200);
-            break;
-          case 64: // Sustain pedal — note hold behavior
-            // Sustain handled implicitly via activeKeys tracking
-            break;
-          default:
-            break;
-        }
+        // Check custom performer CC mappings first
+        const customMap = this.midiService.performerCCMap().find(
+          (m) => m.controller === ev.controller && m.channel === ev.channel
+        );
+        const target = customMap?.target ?? this.defaultCCTarget(ev.controller);
+        this.applyCCTarget(target, ev.value);
       })
     );
   }
@@ -413,5 +407,55 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   isSceneActive(scene: PerformerScene): boolean {
     return this.musicManager.activeSceneId() === scene.id;
+  }
+
+  // ── MIDI CC routing helpers ──────────────────────────
+  private defaultCCTarget(controller: number): string {
+    switch (controller) {
+      case 1: return 'modulation';
+      case 7: return 'volume';
+      case 10: return 'pan';
+      default: return 'none';
+    }
+  }
+
+  private applyCCTarget(target: string, value: number): void {
+    switch (target) {
+      case 'modulation': this.modWheel.set(value); this.liveEngine.setModWheel(value); break;
+      case 'volume': this.updateTrackVolume(value * 100); break;
+      case 'pan': this.updateTrackPan((value - 0.5) * 200); break;
+    }
+  }
+
+  // ── MIDI Learn ────────────────────────────────────────
+  startLearn(target: string): void {
+    this.haptic.light();
+    this.midiService.startPerformerLearn(target);
+  }
+
+  cancelLearn(): void {
+    this.midiService.cancelPerformerLearn();
+  }
+
+  getCCMappingLabel(target: string): string {
+    const mapping = this.midiService.performerCCMap().find((m) => m.target === target);
+    return mapping ? `CH${mapping.channel} CC${mapping.controller}` : '—';
+  }
+
+  // ── MIDI device picker ────────────────────────────────
+  toggleMidiPanel(): void {
+    this.midiPanelOpen.update((v) => !v);
+  }
+
+  isDeviceEnabled(name: string): boolean {
+    if (this.enabledDevices().length === 0) return true;
+    return this.enabledDevices().includes(name);
+  }
+
+  toggleDevice(name: string): void {
+    this.enabledDevices.update((list) => {
+      if (list.includes(name)) return list.filter((d) => d !== name);
+      return [...list, name];
+    });
   }
 }

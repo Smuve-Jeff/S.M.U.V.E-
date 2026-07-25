@@ -21,9 +21,13 @@
       </div>
       <div class="perf-notebook" aria-live="polite">
         @if (midiService.connectedDevices().length) {
-          <span class="notebook-label midi-indicator" title="MIDI devices connected: {{ midiService.connectedDevices().join(', ') }}">
+          <button type="button" class="notebook-label midi-indicator"
+                  [class.midi-active]="midiService.midiActivityPulse()"
+                  (click)="toggleMidiPanel()"
+                  [attr.aria-expanded]="midiPanelOpen()"
+                  title="MIDI devices: {{ midiService.connectedDevices().join(', ') }}">
             🎹 MIDI
-          </span>
+          </button>
         }
         <span class="notebook-stream">
           <span *ngFor="let note of performanceLog()" class="notebook-note">{{ note }}</span>
@@ -72,6 +76,28 @@
     </div>
   </header>
 
+  <!-- ───────── MIDI DEVICE PICKER PANEL ───────── -->
+  @if (midiPanelOpen() && midiService.connectedDevices().length) {
+    <div class="midi-picker-panel" role="region" aria-label="MIDI device picker">
+      <div class="midi-picker-head">
+        <span class="midi-picker-title">MIDI Devices</span>
+        <span class="midi-picker-activity" [class.is-pulsing]="midiService.midiActivityPulse()">●</span>
+      </div>
+      <div class="midi-picker-list">
+        <div *ngFor="let device of midiService.connectedDevices()" class="midi-picker-row">
+          <span class="midi-picker-name">{{ device }}</span>
+          <button type="button" class="midi-picker-toggle"
+                  [class.is-on]="isDeviceEnabled(device)"
+                  (click)="toggleDevice(device)"
+                  [attr.aria-label]="(isDeviceEnabled(device) ? 'Disable' : 'Enable') + ' ' + device">
+            {{ isDeviceEnabled(device) ? 'ON' : 'OFF' }}
+          </button>
+        </div>
+      </div>
+      <button type="button" class="midi-picker-close" (click)="midiPanelOpen.set(false)" aria-label="Close MIDI panel">✕</button>
+    </div>
+  }
+
   <!-- ───────── INSTRUMENT RACK ───────── -->
   <section class="perf-rack" *ngIf="selectedTrack() as track">
     <div class="rack-cell rack-instrument">
@@ -93,12 +119,28 @@
     </div>
 
     <div class="rack-cell rack-knobs">
-      <app-knob label="VOL" [min]="0" [max]="150"
-                [value]="track.gain * 100"
-                (valueChange)="updateTrackVolume($event)"></app-knob>
-      <app-knob label="PAN" [min]="-100" [max]="100"
-                [value]="track.pan * 100"
-                (valueChange)="updateTrackPan($event)"></app-knob>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <app-knob label="VOL" [min]="0" [max]="150"
+                  [value]="track.gain * 100"
+                  (valueChange)="updateTrackVolume($event)"></app-knob>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button type="button" class="midi-learn-btn"
+                  [class.is-learning]="midiService.performerLearnTarget() === 'volume'"
+                  (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'volume' ? cancelLearn() : startLearn('volume')">🎯</button>
+          <span class="midi-learn-mapping">{{ getCCMappingLabel('volume') }}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <app-knob label="PAN" [min]="-100" [max]="100"
+                  [value]="track.pan * 100"
+                  (valueChange)="updateTrackPan($event)"></app-knob>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button type="button" class="midi-learn-btn"
+                  [class.is-learning]="midiService.performerLearnTarget() === 'pan'"
+                  (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'pan' ? cancelLearn() : startLearn('pan')">🎯</button>
+          <span class="midi-learn-mapping">{{ getCCMappingLabel('pan') }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="rack-cell rack-craft">
@@ -302,7 +344,15 @@
           <div class="xb-readout">{{ pitchBend() | number:'1.2-2' }}</div>
         </div>
         <div class="xb-strip">
-          <label class="xb-label">Modulation</label>
+          <label class="xb-label">Modulation
+            <button type="button" class="midi-learn-btn"
+                    [class.is-learning]="midiService.performerLearnTarget() === 'modulation'"
+                    (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'modulation' ? cancelLearn() : startLearn('modulation')"
+                    [title]="midiService.performerLearnTarget() === 'modulation' ? 'Listening... press any CC' : 'MIDI Learn: map a controller to Modulation'">
+              {{ midiService.performerLearnTarget() === 'modulation' ? '🎯' : '🎯' }}
+            </button>
+            <span class="midi-learn-mapping">{{ getCCMappingLabel('modulation') }}</span>
+          </label>
           <input
             type="range"
             class="xb-slider xb-mod"
