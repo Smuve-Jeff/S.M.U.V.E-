@@ -22,8 +22,37 @@
         <span class="material-symbols-outlined" style="font-size:16px">stop</span>
         Stop All
       </button>
+      <!-- Preset save/load -->
+      <div class="sv-preset-group">
+        <input type="text" class="sv-preset-input" placeholder="Preset name…" [value]="presetNameInput()" (input)="presetNameInput.set($any($event.target).value)" />
+        <button type="button" class="sv-action-btn sv-preset-save" (click)="savePreset()" title="Save current session as preset">
+          <span class="material-symbols-outlined" style="font-size:14px">save</span> Save
+        </button>
+        <button type="button" class="sv-action-btn" (click)="presetLoadOpen.update(v => !v)" aria-label="Load preset">
+          {{ presetLoadOpen() ? '✕' : '📂' }}
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- ───────── PRESET LOAD LIST ───────── -->
+  @if (presetLoadOpen()) {
+    <div class="sv-preset-list">
+      @if (savedPresets().length === 0) {
+        <div class="sv-preset-empty">No saved presets yet. Name your session and tap Save.</div>
+      }
+      @for (preset of savedPresets(); track preset.name) {
+        <div class="sv-preset-item">
+          <button type="button" class="sv-preset-load" (click)="loadPreset(preset.name)">
+            <span class="sv-preset-icon">📂</span>
+            <span class="sv-preset-name">{{ preset.name }}</span>
+            <span class="sv-preset-info">{{ preset.scenes.length }} scenes · {{ preset.clips.length }} clips</span>
+          </button>
+          <button type="button" class="sv-preset-del" (click)="deletePreset(preset.name)" aria-label="Delete preset {{ preset.name }}">✕</button>
+        </div>
+      }
+    </div>
+  }
 
   <!-- MAIN BODY -->
   <div class="sv-body">

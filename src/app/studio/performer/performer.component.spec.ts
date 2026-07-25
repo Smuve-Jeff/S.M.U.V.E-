@@ -94,6 +94,12 @@ describe('PerformerComponent', () => {
             stopClock: jest.fn(),
             setClockBpm: jest.fn(),
             setClockOutput: jest.fn(),
+            midiLog: signal([]),
+            slaveSyncEnabled: signal(false),
+            slaveBpm: signal(120),
+            slaveTransportRunning: signal(false),
+            clearMidiLog: jest.fn(),
+            toggleSlaveSync: jest.fn(),
           },
         },
         {

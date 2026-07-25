@@ -443,6 +443,123 @@
   background: #0A0F22;
 }
 
+/* ---------- SESSION PRESETS ────────────────────────── */
+.sv-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sv-preset-input {
+  width: 100px;
+  padding: 6px 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.sv-preset-input::placeholder {
+  color: var(--espresso-muted);
+  opacity: 0.6;
+}
+
+.sv-preset-save {
+  background: var(--teal-500) !important;
+  color: var(--ivory-deep) !important;
+  border-color: var(--teal-500) !important;
+}
+
+.sv-preset-list {
+  margin: 0 16px;
+  padding: 10px 12px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--ivory-line);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  animation: svPresetSlideIn 0.18s ease-out;
+}
+
+@keyframes svPresetSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sv-preset-empty {
+  text-align: center;
+  color: var(--espresso-muted);
+  font-size: 11px;
+  padding: 12px 0;
+}
+
+.sv-preset-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sv-preset-load {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  color: var(--espresso-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.sv-preset-load:hover {
+  background: color-mix(in srgb, var(--teal-500) 12%, transparent);
+}
+
+.sv-preset-icon { font-size: 14px; }
+
+.sv-preset-name {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sv-preset-info {
+  margin-left: auto;
+  font-size: 8px;
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+}
+
+.sv-preset-del {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--ivory-line);
+  padding: 6px 10px;
+  color: var(--record);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.sv-preset-del:hover {
+  background: var(--record);
+  color: var(--ivory-deep);
+}
+
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
   .sv-scene-rail { width: 96px; }

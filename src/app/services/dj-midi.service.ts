@@ -35,6 +35,15 @@ export interface PerformerCCMapping {
   target: string;
 }
 
+export interface MidiLogEntry {
+  id: number;
+  type: string;
+  channel: number;
+  number: number;
+  value: number;
+  timestamp: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -64,6 +73,19 @@ export class DjMidiService {
 
   /** MIDI activity pulse — toggles on each incoming message for visual feedback */
   midiActivityPulse = signal(false);
+
+  // ── MIDI Activity Log ────────────────────────────────
+  private logIdCounter = 0;
+  readonly MIDI_LOG_MAX = 50;
+  midiLog = signal<MidiLogEntry[]>([]);
+
+  // ── MIDI Slave Sync ──────────────────────────────────
+  slaveSyncEnabled = signal(false);
+  slaveBpm = signal(120);
+  slaveTransportRunning = signal(false);
+  private lastClockTime = 0;
+  private clockIntervals: number[] = [];
+  private readonly SLAVE_INTERVAL_SAMPLE = 16; // average over 16 ticks
 
   // ── MIDI Clock Output ────────────────────────────────
   /** Available MIDI output ports */
@@ -238,6 +260,19 @@ export class DjMidiService {
     this.sendMidiMessage(0xFB);
   }
 
+  // ── MIDI Slave Sync ──────────────────────────────────
+  toggleSlaveSync(): void {
+    this.slaveSyncEnabled.update((v) => !v);
+    if (!this.slaveSyncEnabled()) {
+      this.clockIntervals = [];
+      this.slaveTransportRunning.set(false);
+    }
+  }
+
+  clearMidiLog(): void {
+    this.midiLog.set([]);
+  }
+
   private setupInputs() {
     if (!this.midiAccess) return;
     const devices: string[] = [];
@@ -326,6 +361,12 @@ export class DjMidiService {
     const cmd = status >> 4;
     const channel = status & 0xf;
 
+    // ── Detect MIDI System Real-Time messages (Clock, Start, Stop, Continue) ──
+    if (status >= 0xF8) {
+      this.handleRealTime(status);
+      return;
+    }
+
     this.lastMidiMessage.set({
       type: cmd === 9 ? 'note_on' : cmd === 8 ? 'note_off' : cmd === 11 ? 'cc' : 'other',
       channel,
@@ -336,6 +377,9 @@ export class DjMidiService {
     // Activity pulse for device picker LED
     this.midiActivityPulse.set(true);
     setTimeout(() => this.midiActivityPulse.set(false), 150);
+
+    // Push to activity log
+    this.pushMidiLog(this.lastMidiMessage()!.type, channel, data1, data2);
 
     // Performer MIDI Learn: capture CC input
     if (this.performerLearnActive() && cmd === 11 && this.performerLearnTarget()) {
@@ -396,6 +440,74 @@ export class DjMidiService {
     } else if (cmd === 11) {
       this.handleCC(channel, data1, data2);
     }
+  }
+
+  /** Handle MIDI System Real-Time messages for Slave Sync */
+  private handleRealTime(status: number): void {
+    switch (status) {
+      case 0xF8: // Timing Clock
+        this.midiActivityPulse.set(true);
+        setTimeout(() => this.midiActivityPulse.set(false), 20);
+        this.pushMidiLog('clock', 0, 0, 0);
+
+        if (this.slaveSyncEnabled()) {
+          const now = performance.now();
+          if (this.lastClockTime > 0) {
+            const delta = now - this.lastClockTime;
+            this.clockIntervals.push(delta);
+            if (this.clockIntervals.length > this.SLAVE_INTERVAL_SAMPLE) {
+              this.clockIntervals.shift();
+            }
+            // Derive BPM: average interval → ms per tick → BPM = 60000 / (avgInterval * 24)
+            if (this.clockIntervals.length >= 4) {
+              const avgInterval = this.clockIntervals.reduce((a, b) => a + b, 0) / this.clockIntervals.length;
+              const bpm = Math.max(40, Math.min(300, Math.round(60000 / (avgInterval * 24))));
+              this.slaveBpm.set(bpm);
+            }
+          }
+          this.lastClockTime = now;
+        }
+        break;
+      case 0xFA: // Start
+        this.pushMidiLog('start', 0, 0, 0);
+        if (this.slaveSyncEnabled()) {
+          this.slaveTransportRunning.set(true);
+          this.lastClockTime = performance.now();
+          this.clockIntervals = [];
+        }
+        break;
+      case 0xFB: // Continue
+        this.pushMidiLog('continue', 0, 0, 0);
+        if (this.slaveSyncEnabled()) {
+          this.slaveTransportRunning.set(true);
+          this.lastClockTime = performance.now();
+        }
+        break;
+      case 0xFC: // Stop
+        this.pushMidiLog('stop', 0, 0, 0);
+        if (this.slaveSyncEnabled()) {
+          this.slaveTransportRunning.set(false);
+          this.lastClockTime = 0;
+        }
+        break;
+    }
+  }
+
+  /** Push to the activity log, capped at MIDI_LOG_MAX */
+  private pushMidiLog(type: string, channel: number, number: number, value: number): void {
+    this.midiLog.update((log) => {
+      const entry: MidiLogEntry = {
+        id: ++this.logIdCounter,
+        type,
+        channel,
+        number,
+        value,
+        timestamp: Date.now(),
+      };
+      const next = [...log, entry];
+      if (next.length > this.MIDI_LOG_MAX) next.shift();
+      return next;
+    });
   }
 
   private findMapping(type: 'cc' | 'note', channel: number, number: number): MidiMapping | undefined {

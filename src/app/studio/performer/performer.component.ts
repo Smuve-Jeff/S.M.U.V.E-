@@ -76,6 +76,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
   midiPanelOpen = signal(false);
   /** MIDI mapping editor panel visibility */
   midiMappingEditorOpen = signal(false);
+  /** MIDI activity log panel visibility */
+  midiLogOpen = signal(false);
   /** Enabled device names (all enabled by default) */
   enabledDevices = signal<string[]>([]);
 
@@ -461,6 +463,20 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.midiService.performerCCMap.set([]);
     if ((this.midiService as any).savePerformerCCMappings) {
       (this.midiService as any).savePerformerCCMappings();
+    }
+  }
+
+  /** MIDI log helper */
+  logTypeIcon(type: string): string {
+    switch (type) {
+      case 'note_on': return '♪';
+      case 'note_off': return '♩';
+      case 'cc': return '🎛';
+      case 'clock': return '⏱';
+      case 'start': return '▶';
+      case 'stop': return '⏹';
+      case 'continue': return '⏩';
+      default: return '•';
     }
   }
 

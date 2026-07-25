@@ -1590,3 +1590,88 @@
   color: var(--ivory-deep);
   border-color: var(--record);
 }
+
+/* ── MIDI Activity Log ──────────────────────────────── */
+.midi-activity-log {
+  margin: 0 10px;
+  padding: 10px 14px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--ivory-line);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  animation: midiSlideIn 0.2s ease-out;
+}
+
+.midi-log-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.midi-log-stream {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.midi-log-empty {
+  color: var(--espresso-muted);
+  font-size: 10px;
+  padding: 12px 0;
+  text-align: center;
+}
+
+.midi-log-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  animation: midiLogFade 0.15s ease-out;
+}
+
+@keyframes midiLogFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.midi-log-row.midi-log-clock {
+  opacity: 0.4;
+  border-color: transparent;
+  background: transparent;
+}
+
+.midi-log-icon {
+  font-size: 10px;
+  width: 16px;
+  text-align: center;
+}
+
+.midi-log-type {
+  font-weight: 800;
+  color: var(--teal-500);
+  min-width: 32px;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+.midi-log-ch {
+  color: var(--espresso-muted);
+  min-width: 24px;
+}
+
+.midi-log-val {
+  color: var(--espresso-text);
+  white-space: nowrap;
+}

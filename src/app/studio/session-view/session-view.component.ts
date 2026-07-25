@@ -225,6 +225,65 @@ export class SessionViewComponent {
     }
   }
 
+  // ── Session Presets (Save/Load) ──────────────────────
+  savedPresets = signal<Array<{ name: string; scenes: SessionScene[]; clips: SessionClip[] }>>([]);
+  presetNameInput = signal('');
+  presetLoadOpen = signal(false);
+
+  ngOnInit_(): void {
+    this.loadPresetList();
+  }
+
+  private loadPresetList(): void {
+    try {
+      const raw = localStorage.getItem('smuve_session_presets');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) this.savedPresets.set(parsed);
+      }
+    } catch {}
+  }
+
+  private savePresetList(): void {
+    try {
+      localStorage.setItem('smuve_session_presets', JSON.stringify(this.savedPresets()));
+    } catch {}
+  }
+
+  savePreset(): void {
+    const name = this.presetNameInput().trim() || `Preset ${this.savedPresets().length + 1}`;
+    const preset = {
+      name,
+      scenes: this.scenes().map((s) => ({ ...s })),
+      clips: this.clips().map((c) => ({ ...c, isPlaying: false })),
+    };
+    this.savedPresets.update((list) => {
+      const filtered = list.filter((p) => p.name !== name);
+      return [...filtered, preset];
+    });
+    this.savePresetList();
+    this.presetNameInput.set('');
+    this.haptic.medium();
+    this.snackbar.success(`Preset "${name}" saved`);
+  }
+
+  loadPreset(name: string): void {
+    const preset = this.savedPresets().find((p) => p.name === name);
+    if (!preset) return;
+    this.scenes.set(preset.scenes.map((s, i) => ({ ...s, index: i })));
+    this.clips.set(preset.clips.map((c) => ({ ...c, isPlaying: false })));
+    this.activeSceneId.set(null);
+    this.presetLoadOpen.set(false);
+    this.haptic.medium();
+    this.snackbar.success(`Preset "${name}" loaded`);
+  }
+
+  deletePreset(name: string): void {
+    this.savedPresets.update((list) => list.filter((p) => p.name !== name));
+    this.savePresetList();
+    this.snackbar.info(`Preset "${name}" deleted`);
+  }
+
   muteTrack(trackId: string): void {
     this.haptic.light();
     this.snackbar.info(`Track ${trackId} muted`);

@@ -111,6 +111,53 @@
       <button type="button" class="midi-picker-edit-btn" (click)="toggleMappingEditor()">
         {{ midiMappingEditorOpen() ? '✕ Close Editor' : '✎ Edit CC Mappings' }}
       </button>
+      <!-- Slave sync toggle -->
+      <div class="midi-clock-strip" style="margin-top:4px">
+        <label class="midi-clock-label">Slave Sync</label>
+        <button type="button" class="midi-clock-btn" [class.is-active]="midiService.slaveSyncEnabled()" (click)="midiService.toggleSlaveSync()">
+          {{ midiService.slaveSyncEnabled() ? '⏱ ON' : '⏱ OFF' }}
+        </button>
+        @if (midiService.slaveSyncEnabled()) {
+          <span class="midi-clock-readout" style="font-size:10px">{{ midiService.slaveBpm() }} BPM</span>
+          <span [style.color]="midiService.slaveTransportRunning() ? 'var(--teal-500)' : 'var(--record)'">
+            {{ midiService.slaveTransportRunning() ? '▶' : '⏸' }}
+          </span>
+        }
+      </div>
+      <!-- Activity log toggle -->
+      <button type="button" class="midi-picker-edit-btn" (click)="midiLogOpen.update(v => !v)">
+        {{ midiLogOpen() ? '✕ Close Log' : '📋 MIDI Activity Log' }}
+      </button>
+    </div>
+  }
+
+  <!-- ───────── MIDI ACTIVITY LOG ───────── -->
+  @if (midiLogOpen()) {
+    <div class="midi-activity-log">
+      <div class="midi-log-head">
+        <span class="midi-mapping-title">MIDI Activity</span>
+        <button type="button" class="midi-mapping-clear-all" (click)="midiService.clearMidiLog()">Clear</button>
+      </div>
+      <div class="midi-log-stream">
+        @if (midiService.midiLog().length === 0) {
+          <div class="midi-log-empty">Waiting for MIDI messages…</div>
+        }
+        @for (entry of midiService.midiLog(); track entry.id) {
+          <div class="midi-log-row" [class.midi-log-clock]="entry.type === 'clock'">
+            <span class="midi-log-icon">{{ logTypeIcon(entry.type) }}</span>
+            <span class="midi-log-type">{{ entry.type === 'note_on' ? 'ON' : entry.type === 'note_off' ? 'OFF' : entry.type.toUpperCase() }}</span>
+            @if (entry.channel > 0 || (entry.type !== 'clock' && entry.type !== 'start' && entry.type !== 'stop' && entry.type !== 'continue')) {
+              <span class="midi-log-ch">CH{{ entry.channel }}</span>
+            }
+            @if (entry.type === 'note_on' || entry.type === 'note_off') {
+              <span class="midi-log-val">#{{ entry.number }} v{{ entry.value }}</span>
+            }
+            @if (entry.type === 'cc') {
+              <span class="midi-log-val">CC{{ entry.number }} = {{ entry.value }}</span>
+            }
+          </div>
+        }
+      </div>
     </div>
   }
 
