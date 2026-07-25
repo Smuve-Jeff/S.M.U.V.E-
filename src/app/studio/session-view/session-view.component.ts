@@ -151,6 +151,34 @@ export class SessionViewComponent {
     this.snackbar.success('New scene added');
   }
 
+  // ── Drag-to-track drop zone ──────────────────────────
+  dragOverTrackId = signal<string | null>(null);
+
+  onDragOver(event: DragEvent, trackId: string): void {
+    event.preventDefault();
+    event.dataTransfer!.dropEffect = 'copy';
+    this.dragOverTrackId.set(trackId);
+  }
+
+  onDragLeave(): void {
+    this.dragOverTrackId.set(null);
+  }
+
+  onDrop(event: DragEvent, trackId: string): void {
+    event.preventDefault();
+    this.dragOverTrackId.set(null);
+    const raw = event.dataTransfer?.getData('application/smuve-sample');
+    if (!raw) return;
+    try {
+      const { id, name } = JSON.parse(raw);
+      this.haptic.medium();
+      this.musicManager.ensureTrack(id);
+      this.snackbar.success(`${name} → track`);
+    } catch {
+      // invalid payload — ignore
+    }
+  }
+
   muteTrack(trackId: string): void {
     this.haptic.light();
     this.snackbar.info(`Track ${trackId} muted`);

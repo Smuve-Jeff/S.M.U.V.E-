@@ -460,3 +460,14 @@
   .sv-track-header { flex: 0 0 100px; }
   .sv-clip-slot { flex: 0 0 100px; height: 52px; }
 }
+
+/* ---------- DRAG-TO-TRACK DROP HIGHLIGHT ---------- */
+.sv-track-header {
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sv-track-header-dragover {
+  background: color-mix(in srgb, var(--teal-500) 20%, var(--ivory-paper)) !important;
+  border-color: var(--teal-500) !important;
+  box-shadow: 0 0 16px var(--teal-soft-glow), inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 40%, transparent);
+}

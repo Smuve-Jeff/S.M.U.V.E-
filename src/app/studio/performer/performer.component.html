@@ -20,7 +20,11 @@
         <p>Live instruments · Multi-take recording · Pro metering</p>
       </div>
       <div class="perf-notebook" aria-live="polite">
-        <span class="notebook-label">Note</span>
+        @if (midiService.connectedDevices().length) {
+          <span class="notebook-label midi-indicator" title="MIDI devices connected: {{ midiService.connectedDevices().join(', ') }}">
+            🎹 MIDI
+          </span>
+        }
         <span class="notebook-stream">
           <span *ngFor="let note of performanceLog()" class="notebook-note">{{ note }}</span>
         </span>

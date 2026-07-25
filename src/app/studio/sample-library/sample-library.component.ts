@@ -98,10 +98,30 @@ export class SampleLibraryComponent implements OnInit {
   });
 
   previewingId = signal<string | null>(null);
+  dragSampleId = signal<string | null>(null);
 
   ngOnInit(): void {
     // Touch recorder to pull any offline takes metadata on mount
     void this.recorder.getOfflineRecordings().catch(() => []);
+  }
+
+  // ── Drag-to-track ────────────────────────────────────
+  onDragStart(event: DragEvent, sampleId: string, name: string): void {
+    this.dragSampleId.set(sampleId);
+    event.dataTransfer?.setData('application/smuve-sample', JSON.stringify({ id: sampleId, name }));
+    event.dataTransfer!.effectAllowed = 'copy';
+    if (event.dataTransfer?.setDragImage) {
+      const el = document.createElement('div');
+      el.textContent = name;
+      el.style.cssText = 'position:fixed;top:-100px;padding:8px 14px;background:var(--teal-500);color:#fff;border-radius:8px;font-size:11px;font-weight:800;pointer-events:none';
+      document.body.appendChild(el);
+      event.dataTransfer.setDragImage(el, 0, 0);
+      setTimeout(() => el.remove(), 0);
+    }
+  }
+
+  onDragEnd(): void {
+    this.dragSampleId.set(null);
   }
 
   toggleTag(tag: string): void {

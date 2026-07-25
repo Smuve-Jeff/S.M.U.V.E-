@@ -287,3 +287,18 @@
   font-size: 12px;
   padding: 24px 0;
 }
+
+/* ---------- DRAG-TO-TRACK VISUAL ---------- */
+.sl-card {
+  cursor: grab;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sl-card:active {
+  cursor: grabbing;
+}
+
+.sl-card-dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}

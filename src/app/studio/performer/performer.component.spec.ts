@@ -6,6 +6,11 @@ import { LiveEngineService } from '../../services/live-engine.service';
 import { InstrumentsService } from '../../services/instruments.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { HapticService } from '../../services/haptic.service';
+import { DjMidiService } from '../../services/dj-midi.service';
+import { PerformanceRecordingService } from '../performance-recording.service';
+import { RecordingStatusService } from '../recording-status.service';
+import { FxMacrosService } from '../../services/fx-macros.service';
+import { Subject } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { signal, Component } from '@angular/core';
 
@@ -34,7 +39,9 @@ describe('PerformerComponent', () => {
       triggerNoteEnd: jest.fn(),
       setPitchBend: jest.fn(),
       setModulation: jest.fn(),
+      setModWheel: jest.fn(),
       setScale: jest.fn(),
+      updateParameter: jest.fn(),
       midiToNote: jest.fn().mockReturnValue('C4'),
     };
 
@@ -45,10 +52,10 @@ describe('PerformerComponent', () => {
           provide: MusicManagerService,
           useValue: {
             recordLiveNote: jest.fn(),
-            setActivePatternSlot: jest.fn(),
             tracks: signal([]),
             selectedTrackId: signal(null),
             engine: {
+              updateTrack: jest.fn(),
               masterAnalyser: {
                 frequencyBinCount: 1024,
                 getByteFrequencyData: jest.fn(),
@@ -56,32 +63,69 @@ describe('PerformerComponent', () => {
             },
             performerScenes: signal([]),
             activeSceneId: signal(null),
+            launchScene: jest.fn(),
+            ensureTrack: jest.fn(),
+            setInstrument: jest.fn(),
           },
         },
+        { provide: AudioSessionService, useValue: { isPlaying: signal(false), isRecording: signal(false), micChannels: signal([]) } },
+        { provide: AudioEngineService, useValue: { ctx: { currentTime: 0 } } },
+        { provide: LiveEngineService, useValue: mockLiveEngine },
+        { provide: HapticService, useValue: { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
         {
-          provide: AudioSessionService,
+          provide: DjMidiService,
           useValue: {
-            isPlaying: signal(false),
-            isRecording: signal(false),
-            togglePlay: jest.fn(),
-            toggleRecord: jest.fn(),
+            autoInit: jest.fn(),
+            connectedDevices: signal([]),
+            performerNoteOn: new Subject(),
+            performerNoteOff: new Subject(),
+            performerCC: new Subject(),
           },
         },
         {
-          provide: AudioEngineService,
-          useValue: { ctx: { currentTime: 0 } },
+          provide: PerformanceRecordingService,
+          useValue: {
+            isArmed: () => false,
+            isRecording: () => false,
+            armedTakeNumber: () => 1,
+            recordMidi: jest.fn(),
+            finishTake: jest.fn().mockResolvedValue(undefined),
+            arm: jest.fn(),
+            disarm: jest.fn(),
+            startRecording: jest.fn(),
+            takes: signal([]),
+            takeCount: signal(0),
+            selectedTakeId: signal(null),
+            monitorEnabled: signal(false),
+            phantomPowerEnabled: signal(false),
+            toggleMonitor: jest.fn(),
+            togglePhantom: jest.fn(),
+            setComping: jest.fn(),
+            exportTake: jest.fn(),
+            deleteTake: jest.fn(),
+            liveInputDbL: signal(-60),
+            liveInputDbR: signal(-60),
+            liveOutputDbL: signal(-60),
+            liveOutputDbR: signal(-60),
+          },
         },
+        { provide: RecordingStatusService, useValue: { clearRecordingSource: jest.fn(), setRecordingSource: jest.fn() } },
         {
-          provide: LiveEngineService,
-          useValue: mockLiveEngine,
-        },
-        {
-          provide: HapticService,
-          useValue: { light: jest.fn(), impact: jest.fn() },
-        },
-        {
-          provide: InstrumentsService,
-          useValue: { getPresets: () => [] },
+          provide: FxMacrosService,
+          useValue: {
+            presets: [],
+            activeMacroId: signal(null),
+            activeMacro: () => ({ name: 'Test', glyph: '🎛', description: '', xTarget: { label: 'X' }, yTarget: { label: 'Y' } }),
+            engage: jest.fn(),
+            release: jest.fn(),
+            setXY: jest.fn(),
+            setMacro: jest.fn(),
+            reset: jest.fn(),
+            engaged: signal(false),
+            xyPos: signal({ x: 0.5, y: 0.5 }),
+            currentValues: signal({ xLabel: '0', yLabel: '0' }),
+          },
         },
       ],
     }).compileComponents();

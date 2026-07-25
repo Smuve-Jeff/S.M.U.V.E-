@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -17,6 +17,8 @@ import { PerformanceGridComponent } from '../performance-grid/performance-grid.c
 import { PerformanceRecordingService } from '../performance-recording.service';
 import { RecordingStatusService } from '../recording-status.service';
 import { FxMacrosService } from '../../services/fx-macros.service';
+import { DjMidiService } from '../../services/dj-midi.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-performer',
@@ -31,7 +33,7 @@ import { FxMacrosService } from '../../services/fx-macros.service';
   templateUrl: './performer.component.html',
   styleUrls: ['./performer.component.css'],
 })
-export class PerformerComponent implements OnDestroy {
+export class PerformerComponent implements OnDestroy, OnInit {
   public readonly audioSession = inject(AudioSessionService);
   public readonly musicManager = inject(MusicManagerService);
   public readonly liveEngine = inject(LiveEngineService);
@@ -39,6 +41,7 @@ export class PerformerComponent implements OnDestroy {
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly haptic = inject(HapticService);
   private readonly instrumentsService = inject(InstrumentsService);
+  public readonly midiService = inject(DjMidiService);
 
   layout = signal<'keyboard' | 'pads' | 'matrix' | 'macros'>('keyboard');
   scenes = this.musicManager.performerScenes;
@@ -66,6 +69,9 @@ export class PerformerComponent implements OnDestroy {
   /** ptr<=>position while dragging. Null when not engaged. */
   private xyPointerId: number | null = null;
 
+  /** MIDI subscriptions */
+  private midiSubs = new Subscription();
+
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
 
@@ -74,8 +80,70 @@ export class PerformerComponent implements OnDestroy {
     this.startVisualizer();
   }
 
+  ngOnInit(): void {
+    // Auto-init MIDI on performer mount
+    this.midiService.autoInit();
+
+    // Subscribe to MIDI note on → trigger performer keys
+    this.midiSubs.add(
+      this.midiService.performerNoteOn.subscribe((ev) => {
+        const midiNote = ev.note;
+        const vel = ev.velocity;
+        this.liveEngine.initialize().then(() => {
+          this.liveEngine.triggerNoteStart(midiNote + this.octave() * 12, vel);
+          if (this.audioSession.isRecording()) {
+            this.musicManager.recordLiveNote(midiNote, vel);
+          }
+          this.perfRecording.recordMidi(midiNote, vel);
+          this.activeKeys.update((keys) => {
+            const next = new Set(keys);
+            next.add(midiNote);
+            return next;
+          });
+        });
+      })
+    );
+
+    // Subscribe to MIDI note off
+    this.midiSubs.add(
+      this.midiService.performerNoteOff.subscribe((ev) => {
+        const midiNote = ev.note;
+        this.liveEngine.triggerNoteEnd(midiNote + this.octave() * 12);
+        this.activeKeys.update((keys) => {
+          const next = new Set(keys);
+          next.delete(midiNote);
+          return next;
+        });
+      })
+    );
+
+    // Subscribe to MIDI CC → performer controls
+    this.midiSubs.add(
+      this.midiService.performerCC.subscribe((ev) => {
+        switch (ev.controller) {
+          case 1: // Mod wheel
+            this.modWheel.set(ev.value);
+            this.liveEngine.setModWheel(ev.value);
+            break;
+          case 7: // Channel volume → track gain
+            this.updateTrackVolume(ev.value * 100);
+            break;
+          case 10: // Pan
+            this.updateTrackPan((ev.value - 0.5) * 200);
+            break;
+          case 64: // Sustain pedal — note hold behavior
+            // Sustain handled implicitly via activeKeys tracking
+            break;
+          default:
+            break;
+        }
+      })
+    );
+  }
+
   ngOnDestroy() {
     if (this.visualizerFrame) cancelAnimationFrame(this.visualizerFrame);
+    this.midiSubs.unsubscribe();
   }
 
   // ────────────────────────────────────────────────────────────────

@@ -1,6 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 import { DeckService } from './deck.service';
 import { LoggingService } from './logging.service';
+
+export interface MidiNoteEvent {
+  note: number;
+  velocity: number;
+  channel: number;
+}
+
+export interface MidiCCEvent {
+  controller: number;
+  value: number;
+  channel: number;
+}
 
 export interface MidiMapping {
   type: 'cc' | 'note';
@@ -37,6 +50,11 @@ export class DjMidiService {
 
   /** Connected MIDI device names */
   connectedDevices = signal<string[]>([]);
+
+  /** Performer-oriented MIDI streams */
+  readonly performerNoteOn = new Subject<MidiNoteEvent>();
+  readonly performerNoteOff = new Subject<MidiNoteEvent>();
+  readonly performerCC = new Subject<MidiCCEvent>();
 
   /** Last received MIDI message for debugging */
   lastMidiMessage = signal<{ type: string; channel: number; number: number; value: number } | null>(null);
@@ -212,6 +230,15 @@ export class DjMidiService {
         this.cancelLearn();
         return;
       }
+    }
+
+    // Always forward note events for the Performer regardless of DJ mappings
+    if (cmd === 9 && data2 > 0) {
+      this.performerNoteOn.next({ note: data1, velocity: data2 / 127, channel });
+    } else if (cmd === 8 || (cmd === 9 && data2 === 0)) {
+      this.performerNoteOff.next({ note: data1, velocity: 0, channel });
+    } else if (cmd === 11) {
+      this.performerCC.next({ controller: data1, value: data2 / 127, channel });
     }
 
     // Process message against mappings
