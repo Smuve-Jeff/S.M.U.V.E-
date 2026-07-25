@@ -58,21 +58,50 @@ describe('DjDeckComponent', () => {
       jumpToHotCue: jest.fn(),
       clearHotCue: jest.fn(),
       clearSamplerPad: jest.fn(),
+      onStemGainChange: jest.fn().mockImplementation((id, payload) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({
+          ...d,
+          stemGains: { ...d.stemGains, [payload.stem]: payload.gain },
+        }));
+      }),
       toggleViewMode: jest.fn(),
       toggleSlip: jest.fn(),
       togglePlay: jest.fn(),
-      setDeckEq: jest.fn(),
-      setDeckFilter: jest.fn(),
+      setDeckEq: jest.fn().mockImplementation((id, high, mid, low) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({
+          ...d,
+          eqHigh: high,
+          eqMid: mid,
+          eqLow: low,
+        }));
+      }),
+      setDeckFilter: jest.fn().mockImplementation((id, freq) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({ ...d, filterFreq: freq }));
+      }),
+      setDeckGain: jest.fn().mockImplementation((id, gain) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({ ...d, gain }));
+      }),
       setDeckGain: jest.fn(),
       setDeckSend: jest.fn(),
       setBpm: jest.fn(),
       sync: jest.fn(),
+      toggleLoop: jest.fn(),
       autoSync: jest.fn(),
       setFx: jest.fn(),
       toggleAutomix: jest.fn(),
       automixEnabled: jest.fn().mockReturnValue(false),
-      setPlaybackRate: jest.fn(),
-      setKeyLock: jest.fn(),
+      setPlaybackRate: jest.fn().mockImplementation((id, rate) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({ ...d, playbackRate: rate }));
+      }),
+      setKeyLock: jest.fn().mockImplementation((id, enabled) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({ ...d, keyLock: enabled }));
+      }),
       setBassBoost: jest.fn(),
     };
 
@@ -108,6 +137,8 @@ describe('DjDeckComponent', () => {
             setDeckRate: jest.fn(),
             setSaturation: jest.fn(),
             setMasterOutputLevel: jest.fn(),
+            setDeckGain: jest.fn(),
+            setDeckFilter: jest.fn(),
             brakeDeck: jest.fn(),
             spinbackDeck: jest.fn(),
             transformDeck: jest.fn(),
@@ -295,5 +326,258 @@ describe('DjDeckComponent', () => {
     expect(component.isScratchingB()).toBe(false);
     expect(component.scratchVelocityB()).toBe(0);
     expect(engine.setDeckRate).toHaveBeenCalledWith('B', 0.95, true);
+  });
+
+  // ------------------------------------------------------------------
+  // Setter hardening: every setter must reject NaN / out-of-range values
+  // before they reach the deck service or the audio engine.
+  // ------------------------------------------------------------------
+
+  it('clamps setPlaybackRate to the safe [0.5, 2] range', () => {
+    component.setPlaybackRate('A', 5);
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 2);
+
+    component.setPlaybackRate('A', -1);
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 0.5);
+
+    // NaN coerces to fallback 0, which is then clamped to the safe floor 0.5.
+    component.setPlaybackRate('A', Number.NaN);
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 0.5);
+
+    component.setPlaybackRate('A', null);
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 0.5);
+
+    component.setPlaybackRate('A', '');
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 0.5);
+  });
+
+  it('clamps setBassBoost into [0, 1]', () => {
+    component.setBassBoost('A', 2);
+    expect(mockDeckService.setBassBoost).toHaveBeenLastCalledWith('A', 1);
+
+    component.setBassBoost('A', -3);
+    expect(mockDeckService.setBassBoost).toHaveBeenLastCalledWith('A', 0);
+
+    component.setBassBoost('A', 'not-a-number');
+    expect(mockDeckService.setBassBoost).toHaveBeenLastCalledWith('A', 0);
+  });
+
+  it('clamps setMasterVolume into [0, 1.5] and ignores garbage', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    component.setMasterVolume(2);
+    expect(component.masterVolume()).toBe(1.5);
+    expect(engine.setMasterOutputLevel).toHaveBeenLastCalledWith(1.5);
+
+    component.setMasterVolume(-1);
+    expect(component.masterVolume()).toBe(0);
+    expect(engine.setMasterOutputLevel).toHaveBeenLastCalledWith(0);
+
+    component.setMasterVolume(undefined);
+    expect(component.masterVolume()).toBe(0);
+    expect(engine.setMasterOutputLevel).toHaveBeenLastCalledWith(0);
+  });
+
+  it('clamps setCrossfade into [-1, 1]', () => {
+    component.setCrossfade(2);
+    expect(mockDeckService.crossfade()).toBe(1);
+
+    component.setCrossfade(-3);
+    expect(mockDeckService.crossfade()).toBe(-1);
+
+    component.setCrossfade('abc');
+    expect(mockDeckService.crossfade()).toBe(0);
+  });
+
+  it('clamps setGain / updateGain into [0, 2]', () => {
+    component.setGain('A', 5);
+    expect(mockDeckService.setDeckGain).toHaveBeenLastCalledWith('A', 2);
+
+    component.setGain('A', -1);
+    expect(mockDeckService.setDeckGain).toHaveBeenLastCalledWith('A', 0);
+
+    component.updateGain('A', NaN);
+    expect(mockDeckService.deckA().gain).toBe(0);
+    expect(mockDeckService.setDeckGain).toHaveBeenLastCalledWith('A', 0);
+
+    const engine = TestBed.inject(AudioEngineService) as any;
+    component.updateGain('B', 7);
+    expect(mockDeckService.deckB().gain).toBe(2);
+    expect(engine.setDeckGain).toHaveBeenLastCalledWith('B', 2);
+  });
+
+  it('clamps updateCrossfader into [-1, 1]', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    component.updateCrossfader(5);
+    expect(mockDeckService.crossfade()).toBe(1);
+    expect(engine.setCrossfader).toHaveBeenLastCalledWith(1);
+
+    component.updateCrossfader(-5);
+    expect(mockDeckService.crossfade()).toBe(-1);
+    expect(engine.setCrossfader).toHaveBeenLastCalledWith(-1);
+
+    component.updateCrossfader('garbage');
+    expect(mockDeckService.crossfade()).toBe(0);
+    expect(engine.setCrossfader).toHaveBeenLastCalledWith(0);
+  });
+
+  it('clamps setSend into [0, 1]', () => {
+    component.setSend('A', 'A', 2);
+    expect(mockDeckService.setDeckSend).toHaveBeenLastCalledWith('A', 'A', 1);
+
+    component.setSend('B', 'B', -1);
+    expect(mockDeckService.setDeckSend).toHaveBeenLastCalledWith('B', 'B', 0);
+  });
+
+  it('clamps setFxAmount into [0, 1]', () => {
+    component.setFxAmount('A', 4);
+    expect(mockDeckService.setFx).toHaveBeenLastCalledWith('A', 'echo', 1);
+
+    component.setFxAmount('A', -2);
+    expect(mockDeckService.setFx).toHaveBeenLastCalledWith('A', 'echo', 0);
+
+    component.setFxAmount('A', 'oops');
+    expect(mockDeckService.setFx).toHaveBeenLastCalledWith('A', 'echo', 0);
+  });
+
+  it('clamps setSaturation into [0, 1]', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    component.setSaturation(3);
+    expect(engine.setSaturation).toHaveBeenLastCalledWith(1);
+
+    component.setSaturation(-1);
+    expect(engine.setSaturation).toHaveBeenLastCalledWith(0);
+
+    component.setSaturation(NaN);
+    expect(engine.setSaturation).toHaveBeenLastCalledWith(0);
+  });
+
+  it('clamps updateFilter frequencies into the audible range', () => {
+    component.updateFilter('A', 100000);
+    expect(mockDeckService.setDeckFilter).toHaveBeenLastCalledWith('A', 22050);
+
+    component.updateFilter('A', -50);
+    expect(mockDeckService.setDeckFilter).toHaveBeenLastCalledWith('A', 20);
+
+    // 'wat' coerces to NaN → fallback 0 → clamped to audible floor 20.
+    component.updateFilter('A', 'wat');
+    expect(mockDeckService.setDeckFilter).toHaveBeenLastCalledWith('A', 20);
+  });
+
+  it('clamps updateEq band values into [0, 2] and preserves untouched bands', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      eqHigh: 1,
+      eqMid: 1.1,
+      eqLow: 0.9,
+    }));
+
+    component.updateEq('A', 'high', 5);
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 2, 1.1, 0.9);
+
+    component.updateEq('A', 'low', -2);
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 2, 1.1, 0);
+  });
+
+  it('clamps setStemGain event values into [0, 2] and rejects unknown stems', () => {
+    component.setStemGain('A', 'vocals', {
+      target: { valueAsNumber: 5 },
+    } as unknown as Event);
+    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith(
+      'A',
+      { stem: 'vocals', gain: 2 }
+    );
+
+    component.setStemGain('A', 'unknown-stem', {
+      target: { valueAsNumber: 0.5 },
+    } as unknown as Event);
+    expect(mockDeckService.onStemGainChange).toHaveBeenCalledTimes(1);
+
+    component.setStemGain('A', 'vocals', {
+      target: null,
+    } as unknown as Event);
+    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith(
+      'A',
+      { stem: 'vocals', gain: 0 }
+    );
+  });
+
+  it('rejects invalid sampler categories without changing state', () => {
+    component.setSamplerCategory('fx');
+    expect(component.samplerCategory()).toBe('fx');
+
+    // Invalid string should be ignored (runtime guard in addition to TS type).
+    component.setSamplerCategory(
+      'invalid' as unknown as 'drums' | 'fx' | 'vocals'
+    );
+    expect(component.samplerCategory()).toBe('fx');
+  });
+
+  it('clamps nudgePitch into the safe playback rate range', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      playbackRate: 1.49,
+    }));
+
+    component.nudgePitch('A', 'up');
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 1.5);
+
+    component.nudgePitch('A', 'up');
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 1.51);
+
+    // Reset always returns to 1.0 regardless of current rate.
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      playbackRate: 1.95,
+    }));
+    component.nudgePitch('A', 'reset');
+    expect(mockDeckService.setPlaybackRate).toHaveBeenLastCalledWith('A', 1);
+  });
+
+  it('refuses setLoopLengthPreset when no track is loaded', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      track: { name: '', url: '' },
+    }));
+    component.setLoopLengthPreset('A', 1);
+    expect(mockDeckService.toggleLoop).not.toHaveBeenCalled();
+  });
+
+  it('refuses setLoopLengthPreset when beats is not finite', () => {
+    component.setLoopLengthPreset('A', NaN);
+    expect(mockDeckService.toggleLoop).not.toHaveBeenCalled();
+    expect(component.sessionNotice()).toMatch(/finite/i);
+  });
+
+  it('clamps setPrecisionEqBand into [0, 2] and ignores out-of-range indices', () => {
+    component.precisionEqA.set(new Array(10).fill(1));
+
+    component.setPrecisionEqBand('A', 3, 5);
+    expect(component.precisionEqA()[3]).toBe(2);
+
+    component.setPrecisionEqBand('A', 7, -1);
+    expect(component.precisionEqA()[7]).toBe(0);
+
+    component.setPrecisionEqBand('A', 99, 1);
+    // Out-of-range index should not mutate the precision EQ array length.
+    expect(component.precisionEqA().length).toBe(10);
+  });
+
+  it('flips setQuickEq between off (0) and on (1) based on current value', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      eqHigh: 1,
+      eqMid: 0,
+      eqLow: 1,
+    }));
+
+    component.setQuickEq('A', 'high');
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 0, 0, 1);
+
+    component.setQuickEq('A', 'mid');
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 0, 1, 1);
+
+    component.setQuickEq('A', 'low');
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 0, 1, 0);
   });
 });

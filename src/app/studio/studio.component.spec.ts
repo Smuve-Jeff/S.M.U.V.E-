@@ -13,6 +13,7 @@ import { TouchGestureService } from '../services/touch-gesture.service';
 import { SequencerService } from './sequencer.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
 import { ProjectTemplateService } from '../services/project-template.service';
+import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { SnackbarService } from '../services/snackbar.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { signal, Component, NO_ERRORS_SCHEMA } from '@angular/core';
@@ -30,11 +31,27 @@ describe('StudioComponent', () => {
     toggleRecord: jest.fn(),
   };
 
+  const mockMusicManager = {
+    currentStep: signal(0),
+    tracks: signal([]),
+    applyGeneratedRecipe: jest.fn(),
+    newProject: jest.fn(),
+    crossLinkRequest: jest.fn(),
+    crossLinkAnnounce: jest.fn(),
+    crossLinkSubscribe: jest.fn().mockReturnValue(() => undefined),
+  };
+
+  const mockIdeasGenerator = {
+    recipes: [],
+  };
+
   const mockAudioEngine = {
     tempo: signal(124),
     performanceTier: signal('ultra'),
     visualStep: signal(0),
     resume: jest.fn(),
+    armOnFirstUserGesture: jest.fn(),
+    setSaturation: jest.fn(),
   };
 
   const mockHaptic = {
@@ -51,7 +68,7 @@ describe('StudioComponent', () => {
         { provide: AiService, useValue: {} },
         { provide: UIService, useValue: { isCompactMobile: () => false } },
         { provide: NotificationService, useValue: {} },
-        { provide: MusicManagerService, useValue: { currentStep: signal(0) } },
+        { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: UserProfileService, useValue: { profile: signal({}) } },
         { provide: AiCopilotService, useValue: {} },
         { provide: HapticService, useValue: mockHaptic },
@@ -60,6 +77,7 @@ describe('StudioComponent', () => {
         { provide: InteractionDialogService, useValue: {} },
         { provide: ProjectTemplateService, useValue: { templates: [] } },
         { provide: SnackbarService, useValue: { info: jest.fn() } },
+        { provide: IdeasGeneratorService, useValue: mockIdeasGenerator },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
           provide: ActivatedRoute,
@@ -83,5 +101,17 @@ describe('StudioComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('exposes an active view signal initialised by the queryParamMap mock', () => {
+    expect(component.activeView()).toBe('arrangement');
+  });
+
+  it('exposes an empty mobile panel by default', () => {
+    expect(component.mobilePanel()).toBeNull();
+  });
+
+  it('exposes a templates collection backed by the ProjectTemplateService mock', () => {
+    expect(component.templateService.templates).toEqual([]);
   });
 });

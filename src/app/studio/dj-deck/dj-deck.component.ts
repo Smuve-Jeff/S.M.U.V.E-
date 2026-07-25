@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KnobComponent } from '../shared/knob/knob.component';
-import { AppTheme } from '../../services/user-context.service';
+import { AppTheme, Stems } from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
 import { LibraryService } from '../../services/library.service';
@@ -36,6 +36,33 @@ const SCRATCH_VELOCITY_NORMALIZER = 8;
 const EQ_LOW_RANGE = [0, 3] as const;
 const EQ_MID_RANGE = [3, 7] as const;
 const EQ_HIGH_RANGE = [7, 10] as const;
+
+// Defensive bounds applied at the UI layer. The downstream services and
+// AudioEngine also clamp internally, but sanitising here keeps the in-flight
+// signal state valid (no NaN/Infinity leaking into deck signals).
+const PLAYBACK_RATE_MIN = 0.5;
+const PLAYBACK_RATE_MAX = 2;
+const BASS_BOOST_MAX = 1;
+const MASTER_VOLUME_MIN = 0;
+const MASTER_VOLUME_MAX = 1.5;
+const CROSSFADE_MIN = -1;
+const CROSSFADE_MAX = 1;
+const DECK_GAIN_MIN = 0;
+const DECK_GAIN_MAX = 2;
+const SEND_GAIN_MIN = 0;
+const SEND_GAIN_MAX = 1;
+const FX_AMOUNT_MIN = 0;
+const FX_AMOUNT_MAX = 1;
+const STEM_GAIN_MIN = 0;
+const STEM_GAIN_MAX = 2;
+const EQ_BAND_MIN = 0;
+const EQ_BAND_MAX = 2;
+const FILTER_FREQ_MIN = 20;
+const FILTER_FREQ_MAX = 22050;
+const SATURATION_MIN = 0;
+const SATURATION_MAX = 1;
+const LOOP_PRESET_BEAT_MIN = 1 / 32;
+const LOOP_PRESET_BEAT_MAX = 32;
 
 @Component({
   selector: 'app-dj-deck',
@@ -538,9 +565,81 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
+  private toFiniteNumber(value: unknown, fallback = 0): number {
+    if (value === null || value === undefined || value === '') return fallback;
+    const numeric =
+      typeof value === 'number' ? value : Number(value as unknown);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  }
+
+  private clampRange(value: number, min: number, max: number): number {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }
+
+  private clampPlaybackRate(rate: number) {
+    return this.clampRange(rate, PLAYBACK_RATE_MIN, PLAYBACK_RATE_MAX);
+  }
+
+  private clampBassBoost(amount: number) {
+    return this.clampRange(amount, 0, BASS_BOOST_MAX);
+  }
+
+  private clampMasterVolume(volume: number) {
+    return this.clampRange(volume, MASTER_VOLUME_MIN, MASTER_VOLUME_MAX);
+  }
+
+  private clampCrossfade(value: number) {
+    return this.clampRange(value, CROSSFADE_MIN, CROSSFADE_MAX);
+  }
+
+  private clampDeckGain(gain: number) {
+    return this.clampRange(gain, DECK_GAIN_MIN, DECK_GAIN_MAX);
+  }
+
+  private clampSendGain(gain: number) {
+    return this.clampRange(gain, SEND_GAIN_MIN, SEND_GAIN_MAX);
+  }
+
+  private clampFxAmount(amount: number) {
+    return this.clampRange(amount, FX_AMOUNT_MIN, FX_AMOUNT_MAX);
+  }
+
+  private clampStemGain(gain: number) {
+    return this.clampRange(gain, STEM_GAIN_MIN, STEM_GAIN_MAX);
+  }
+
+  private clampEqBand(value: number) {
+    return this.clampRange(value, EQ_BAND_MIN, EQ_BAND_MAX);
+  }
+
+  private clampFilterFreq(freq: number) {
+    return this.clampRange(freq, FILTER_FREQ_MIN, FILTER_FREQ_MAX);
+  }
+
+  private clampSaturation(amount: number) {
+    return this.clampRange(amount, SATURATION_MIN, SATURATION_MAX);
+  }
+
+  private clampLoopBeats(beats: number) {
+    return this.clampRange(beats, LOOP_PRESET_BEAT_MIN, LOOP_PRESET_BEAT_MAX);
+  }
+
+  private validateStem(stem: string): keyof Stems | null {
+    const allowed: Array<keyof Stems> = [
+      'vocals',
+      'drums',
+      'bass',
+      'instrumental',
+      'other',
+    ];
+    return (allowed as string[]).includes(stem) ? (stem as keyof Stems) : null;
+  }
+
   setPlaybackRate(deck: 'A' | 'B', rate: any) {
-    const r = parseFloat(rate);
-    this.deckService.setPlaybackRate(deck, r);
+    const r = this.toFiniteNumber(rate);
+    this.deckService.setPlaybackRate(deck, this.clampPlaybackRate(r));
   }
 
   toggleKeyLock(deck: 'A' | 'B') {
@@ -552,32 +651,29 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setBassBoost(deck: 'A' | 'B', value: any) {
-    const amount = parseFloat(value);
-    this.deckService.setBassBoost(deck, amount);
+    const amount = this.toFiniteNumber(value);
+    this.deckService.setBassBoost(deck, this.clampBassBoost(amount));
   }
 
   setQuickEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low') {
     const state = this.getDeckState(deck);
-    const nextValue =
+    const currentValue =
       band === 'high'
-        ? state.eqHigh > 0.2
-          ? 0
-          : 1
+        ? state.eqHigh
         : band === 'mid'
-          ? state.eqMid > 0.2
-            ? 0
-            : 1
-          : state.eqLow > 0.2
-            ? 0
-            : 1;
+          ? state.eqMid
+          : state.eqLow;
+    const nextValue = currentValue > 0.2 ? 0 : 1;
     this.updateEq(deck, band, nextValue);
   }
 
   setPrecisionEqBand(deck: 'A' | 'B', index: number, value: any) {
-    const next = parseFloat(value);
+    const raw = this.toFiniteNumber(value, 1);
     const precision = deck === 'A' ? this.precisionEqA : this.precisionEqB;
-    const updated = [...precision()];
-    updated[index] = next;
+    const current = precision();
+    if (index < 0 || index >= current.length) return;
+    const updated = [...current];
+    updated[index] = this.clampEqBand(raw);
     precision.set(updated);
 
     const low = this.averageBand(updated, EQ_LOW_RANGE[0], EQ_LOW_RANGE[1]);
@@ -587,32 +683,37 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low', val: any) {
-    const v = parseFloat(val);
+    const v = this.toFiniteNumber(val);
     const d =
       deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     let { eqHigh, eqMid, eqLow } = d;
-    if (band === 'high') eqHigh = v;
-    if (band === 'mid') eqMid = v;
-    if (band === 'low') eqLow = v;
+    const clamped = this.clampEqBand(v);
+    if (band === 'high') eqHigh = clamped;
+    if (band === 'mid') eqMid = clamped;
+    if (band === 'low') eqLow = clamped;
     this.deckService.setDeckEq(deck, eqHigh, eqMid, eqLow);
   }
 
   updateFilter(deck: 'A' | 'B', val: any) {
-    this.deckService.setDeckFilter(deck, parseFloat(val));
+    const freq = this.toFiniteNumber(val);
+    this.deckService.setDeckFilter(deck, this.clampFilterFreq(freq));
   }
 
   setGain(deck: 'A' | 'B', val: any) {
-    this.deckService.setDeckGain(deck, parseFloat(val));
+    const gain = this.toFiniteNumber(val);
+    this.deckService.setDeckGain(deck, this.clampDeckGain(gain));
   }
 
   setSend(deck: 'A' | 'B', send: 'A' | 'B', val: any) {
-    this.deckService.setDeckSend(deck, send, parseFloat(val));
+    const gain = this.toFiniteNumber(val);
+    this.deckService.setDeckSend(deck, send, this.clampSendGain(gain));
   }
 
   setMasterVolume(val: any) {
-    const v = parseFloat(val);
-    this.masterVolume.set(v);
-    this.engine.setMasterOutputLevel(v);
+    const v = this.toFiniteNumber(val);
+    const clamped = this.clampMasterVolume(v);
+    this.masterVolume.set(clamped);
+    this.engine.setMasterOutputLevel(clamped);
   }
 
   toggleRecording() {
@@ -669,12 +770,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setStemGain(deck: 'A' | 'B', stem: string, event: Event) {
-    const gain = (event.target as HTMLInputElement).valueAsNumber;
-    this.deckService.onStemGainChange(deck, { stem: stem as any, gain });
+    const target = event.target as HTMLInputElement | null;
+    const gain = target?.valueAsNumber ?? 0;
+    const safeStem = this.validateStem(stem);
+    if (!safeStem) return;
+    this.deckService.onStemGainChange(deck, {
+      stem: safeStem,
+      gain: this.clampStemGain(gain),
+    });
   }
 
   setCrossfade(val: any) {
-    this.deckService.crossfade.set(parseFloat(val));
+    const cf = this.toFiniteNumber(val);
+    this.deckService.crossfade.set(this.clampCrossfade(cf));
   }
 
   onPlatterDown(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
@@ -761,15 +869,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
     let delta = angle - lastAngle;
 
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
+    // Normalise delta into the principal range [-π, π] so we never feed
+    // multi-revolution jumps to the audio engine or the scrub math.
+    if (delta > Math.PI) delta -= 2 * Math.PI;
+    if (delta < -Math.PI) delta += 2 * Math.PI;
 
     // Use the advanced scratch engine
     const scratchDelta = (delta / (2 * Math.PI)) * 2; // Arbitrary scaling for feel
     this.deckService.scratch(deck, scratchDelta);
-
-    if (delta > Math.PI) delta -= 2 * Math.PI;
-    if (delta < -Math.PI) delta += 2 * Math.PI;
 
     const scrubSecondsPerRadian = 1.8 / (2 * Math.PI);
     const scrub = delta * scrubSecondsPerRadian;
@@ -838,7 +945,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setSaturation(val: any) {
-    this.engine.setSaturation(parseFloat(val));
+    const amount = this.toFiniteNumber(val);
+    this.engine.setSaturation(this.clampSaturation(amount));
   }
 
   applyScratchFx(deck: 'A' | 'B', type: 'brake' | 'spinback' | 'transform') {
@@ -1113,7 +1221,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateGain(deck: 'A' | 'B', value: any) {
-    const gain = parseFloat(value);
+    const raw = this.toFiniteNumber(value);
+    const gain = this.clampDeckGain(raw);
     if (deck === 'A') {
       this.deckService.deckA.update((d) => ({ ...d, gain }));
     } else {
@@ -1123,12 +1232,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   updateCrossfader(value: any) {
-    const cf = parseFloat(value);
+    const raw = this.toFiniteNumber(value);
+    const cf = this.clampCrossfade(raw);
     this.deckService.crossfade.set(cf);
     this.engine.setCrossfader(cf);
   }
 
   setSamplerCategory(cat: 'drums' | 'fx' | 'vocals') {
+    if (cat !== 'drums' && cat !== 'fx' && cat !== 'vocals') return;
     this.samplerCategory.set(cat);
   }
 
@@ -1146,8 +1257,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setFxAmount(deck: 'A' | 'B', amount: any) {
-    const val = parseFloat(amount);
-    this.deckService.setFx(deck, this.fxMode(), val);
+    const val = this.toFiniteNumber(amount);
+    this.deckService.setFx(deck, this.fxMode(), this.clampFxAmount(val));
   }
 
   getSyncDelta() {
@@ -1179,18 +1290,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   nudgePitch(deck: 'A' | 'B', direction: 'up' | 'down' | 'reset') {
     const state = this.getDeckState(deck);
     const delta = direction === 'up' ? 0.01 : direction === 'down' ? -0.01 : 0;
-    const next =
-      direction === 'reset'
-        ? 1
-        : Math.max(0.5, Math.min(1.5, state.playbackRate + delta));
+    const raw = direction === 'reset' ? 1 : state.playbackRate + delta;
+    const next = this.clampPlaybackRate(raw);
     this.deckService.setPlaybackRate(deck, next);
     this.sessionNotice.set(
       `Deck ${deck} pitch ${
         direction === 'reset'
           ? 'reset to 100%'
-          : direction === 'up'
-            ? `bumped to ${this.formatPct(next)}`
-            : `bumped to ${this.formatPct(next)}`
+          : `bumped to ${this.formatPct(next)}`
       }`
     );
   }
@@ -1205,14 +1312,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    *  intended beat-quantized loop so the user gets the cuepoint intent. */
   setLoopLengthPreset(deck: 'A' | 'B', beats: number) {
     const state = this.getDeckState(deck);
+    if (!Number.isFinite(beats)) {
+      this.sessionNotice.set(`Loop length must be a finite number.`);
+      return;
+    }
     if (!state.track?.id) {
       this.sessionNotice.set(`Load a track on deck ${deck} to loop.`);
       return;
     }
-    const seconds = (60 / Math.max(1, state.bpm || 128)) * beats;
+    const safeBeats = this.clampLoopBeats(beats);
+    const seconds = (60 / Math.max(1, state.bpm || 128)) * safeBeats;
     this.deckService.toggleLoop(deck);
     this.sessionNotice.set(
-      `Deck ${deck} ${beats}-beat loop engaged (≈${seconds.toFixed(2)}s).`
+      `Deck ${deck} ${safeBeats}-beat loop engaged (≈${seconds.toFixed(2)}s).`
     );
   }
 

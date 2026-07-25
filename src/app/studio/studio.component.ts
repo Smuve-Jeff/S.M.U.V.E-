@@ -155,6 +155,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly dialog = inject(InteractionDialogService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly logger = inject(LoggingService);
+  private readonly ideasGenerator = inject(IdeasGeneratorService);
   public readonly templateService = inject(ProjectTemplateService);    // ---- State ----
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
@@ -316,7 +317,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // If the user opens Studio fresh and tracks() is empty, we apply
     // a curated 4-bar starter so the FIRST Play click produces audio.
     if (this.musicManager.tracks().length === 0) {
-      const ideas = inject(IdeasGeneratorService);
+      const ideas = this.ideasGenerator;
       const first = ideas.recipes?.[0];
       if (first) {
         this.musicManager.applyGeneratedRecipe(first);
