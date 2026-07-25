@@ -1,18 +1,64 @@
-<div class="performance-grid">
-  <div
-    *ngFor="let pad of pads"
-    class="performance-pad"
-    [ngClass]="{
-      loop: pad.type === 'loop',
-      'one-shot': pad.type === 'one-shot',
-      active: pad.isPlaying,
-    }"
-    (click)="padClicked.emit(pad)"
-  >
-    <div class="pad-name">{{ pad.name || 'PAD' }}</div>
-    <div class="pad-status-indicator"></div>
+<!--
+  Performance Mode — Live clip launcher with velocity control
+  MPC-style pad grid with haptic feedback, long-press context
+  Ivory + Teal DAW theme, mobile-responsive
+-->
+<div class="performance-shell">
+  <!-- VELOCITY STRIP -->
+  <div class="perf-velocity-strip" aria-label="Velocity control">
+    <span class="perf-velo-label">Velocity</span>
+    <input
+      type="range"
+      class="perf-velo-slider"
+      min="0.1" max="1" step="0.05"
+      [value]="activeVelocity()"
+      (input)="setVelocity(+($any($event.target).value))"
+      aria-label="Pad velocity"
+    />
+    <span class="perf-velo-readout">{{ (activeVelocity() * 100).toFixed(0) }}%</span>
   </div>
-  <div *ngIf="pads.length === 0" class="empty-state">
-    <p>No performance pads mapped. Load an instrument or clips to begin.</p>
+
+  <!-- PAD GRID -->
+  <div class="performance-grid" role="grid" aria-label="Performance pad grid">
+    <button
+      *ngFor="let pad of pads; trackBy: trackByPad"
+      type="button"
+      class="performance-pad"
+      [ngClass]="{
+        loop: pad.type === 'loop',
+        'one-shot': pad.type === 'one-shot',
+        active: pad.isPlaying,
+        'is-longpressed': longPressPadId() === pad.id
+      }"
+      [style.--velo-scale]="activeVelocity()"
+      (pointerdown)="onPointerDown(pad, $event)"
+      (pointerup)="onPointerUp(pad, $event)"
+      (pointerleave)="onPointerUp(pad, $event)"
+      (contextmenu)="onContextMenu(pad); $event.preventDefault()"
+      [attr.aria-pressed]="pad.isPlaying"
+      [attr.aria-label]="pad.name + ' — ' + (pad.type === 'loop' ? 'Loop' : 'One-shot') + (pad.isPlaying ? ' — playing' : '')"
+      role="gridcell"
+    >
+      <div class="pad-name">{{ pad.name || 'PAD' }}</div>
+      <div class="pad-type">{{ pad.type === 'loop' ? 'LOOP' : '1-SHOT' }}</div>
+      <div class="pad-status-indicator"></div>
+
+      <!-- Long-press context menu -->
+      @if (longPressPadId() === pad.id) {
+        <div class="pad-context-menu" (click)="$event.stopPropagation()">
+          <button type="button" class="pad-ctx-btn" (click)="triggerPad(pad); dismissLongPress()">
+            ▶ Play
+          </button>
+          <button type="button" class="pad-ctx-btn" (click)="dismissLongPress()">
+            ✕ Close
+          </button>
+        </div>
+      }
+    </button>
+
+    <div *ngIf="pads.length === 0" class="empty-state">
+      <span class="empty-icon">∿</span>
+      <p>No performance pads mapped. Load an instrument or clips to begin.</p>
+    </div>
   </div>
 </div>

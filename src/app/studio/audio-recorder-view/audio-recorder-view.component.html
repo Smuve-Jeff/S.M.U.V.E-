@@ -1,3 +1,8 @@
+<!--
+  Audio Recorder View — Live Capture with input meter
+  Record mic/instrument input with real-time level monitoring
+  Ivory + Teal DAW theme, mobile-responsive
+-->
 <section class="arv-shell" aria-label="Audio recorder view">
   <header class="arv-header">
     <div class="arv-title">
@@ -12,6 +17,34 @@
       <span class="arv-kpi-value">{{ recordingCount() }}</span>
     </div>
   </header>
+
+  <!-- INPUT LEVEL METER -->
+  <div class="arv-meter-strip" aria-label="Input level">
+    <div class="arv-meter-channel">
+      <span class="arv-meter-label">IN L</span>
+      <div class="arv-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" [attr.aria-valuenow]="inputLevel()">
+        <div class="arv-meter-fill arv-meter-fill-l" [style.width.%]="levelToPct(inputLevel())"></div>
+      </div>
+      <span class="arv-meter-db">{{ inputLevel() }} dB</span>
+    </div>
+    <div class="arv-meter-channel">
+      <span class="arv-meter-label">IN R</span>
+      <div class="arv-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" [attr.aria-valuenow]="inputLevel()">
+        <div class="arv-meter-fill arv-meter-fill-r" [style.width.%]="levelToPct(inputLevel())"></div>
+      </div>
+      <span class="arv-meter-db">{{ inputLevel() }} dB</span>
+    </div>
+    @if (isRecording()) {
+      <div class="arv-meter-recording-pulse" aria-hidden="true"></div>
+    }
+  </div>
+
+  <!-- WAVEFORM VISUALIZER (during recording) -->
+  @if (isRecording()) {
+    <div class="arv-waveform" aria-hidden="true">
+      <canvas #waveformCanvas class="arv-waveform-canvas" width="800" height="80"></canvas>
+    </div>
+  }
 
   <!-- BIG TRANSPORT -->
   <div class="arv-transport">

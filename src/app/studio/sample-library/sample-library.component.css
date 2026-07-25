@@ -274,7 +274,7 @@
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  .sl-shell { padding: 16px 12px 100px; }
+  .sl-shell { padding: 16px 12px calc(100px + env(safe-area-inset-bottom, 0px)); }
   .sl-cat-label { display: none; }
   .sl-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .sl-card { padding: 10px; gap: 8px; }

@@ -983,6 +983,7 @@
 
 /* ── Mobile responsive ────────────────────────────────────── */
 @media (max-width: 768px) {
+  .performer-shell { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   .perf-header { padding: 8px 10px; gap: 6px; }
   .layout-switcher button { padding: 5px 10px; font-size: 9px; }
   .perf-rack { padding: 8px 10px; gap: 8px; }
@@ -1000,6 +1001,7 @@
 }
 
 @media (max-width: 480px) {
+  .performer-shell { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .perf-header { padding: 6px 8px; }
   .layout-switcher button { padding: 4px 8px; font-size: 8px; }
   .track-headers { width: 80px; }

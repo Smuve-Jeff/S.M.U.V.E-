@@ -272,7 +272,7 @@
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  .spg-shell { padding: 16px 12px 100px; }
+  .spg-shell { padding: 16px 12px calc(100px + env(safe-area-inset-bottom, 0px)); }
   .spg-grid { gap: 8px; padding: 8px; }
   .spg-cell { min-height: 76px; }
   .spg-cell-picker { inset: -4px; }

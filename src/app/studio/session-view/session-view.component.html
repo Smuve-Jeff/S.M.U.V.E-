@@ -1,31 +1,116 @@
-<div
-  class="session-view-container h-full w-full bg-brand-dark p-4 overflow-x-auto overflow-y-hidden flex gap-4"
->
-  <!-- Track Headers -->
-  <div class="track-headers w-48 flex flex-col gap-2">
-    <div
-      *ngFor="let channel of micChannels()"
-      class="track-header bg-brand-surface p-2 rounded-xl h-24 flex flex-col justify-center"
-    >
-      <h4 class="font-bold truncate">{{ channel.label }}</h4>
-      <div class="text-xs text-slate-400">
-        {{ channel.armed ? 'ARMED' : 'SAFE' }}
+<!--
+  Session View — Ableton-style clip launcher
+  Scene rail (left) + track column headers + clip slot grid
+  Ivory + Teal DAW theme, mobile-responsive
+-->
+<div class="sv-shell" aria-label="Session clip launcher">
+  <!-- HEADER -->
+  <header class="sv-header">
+    <div class="sv-header-left">
+      <span class="material-symbols-outlined" style="color:var(--teal-500);font-size:24px">grid_view</span>
+      <div class="sv-header-title">
+        <h2>Session View</h2>
+        <small>Clip Launcher · {{ scenes().length }} Scenes · {{ clipTracks().length }} Tracks</small>
       </div>
     </div>
-  </div>
-
-  <!-- Timeline -->
-  <div class="timeline flex-grow flex flex-col gap-2 relative">
-    <!-- Tracks -->
-    <div
-      *ngFor="let channel of micChannels()"
-      class="track bg-brand-surface rounded-xl h-24 relative"
-    >
-      <!-- Placeholder for clips -->
-      <app-clip *ngIf="channel.armed"></app-clip>
+    <div class="sv-header-actions">
+      <button type="button" class="sv-action-btn" (click)="addScene()" aria-label="Add scene">
+        <span class="material-symbols-outlined" style="font-size:16px">add</span>
+        Add Scene
+      </button>
+      <button type="button" class="sv-action-btn" aria-label="Stop all">
+        <span class="material-symbols-outlined" style="font-size:16px">stop</span>
+        Stop All
+      </button>
     </div>
+  </header>
 
-    <!-- Playhead (Example) -->
-    <div class="playhead absolute top-0 left-1/4 w-0.5 h-full bg-red-500"></div>
+  <!-- MAIN BODY -->
+  <div class="sv-body">
+    <!-- SCENE RAIL (left sidebar) -->
+    <nav class="sv-scene-rail" aria-label="Scene list">
+      <div class="sv-scene-rail-header">
+        <span class="sv-scene-rail-title">Scenes</span>
+        <button type="button" class="sv-scene-rail-add" (click)="addScene()" aria-label="Add new scene">+</button>
+      </div>
+      <button
+        *ngFor="let scene of scenes(); trackBy: trackByScene"
+        type="button"
+        class="sv-scene-item"
+        [class.is-active]="activeSceneId() === scene.id"
+        [style.--scene-color]="scene.color"
+        (click)="launchScene(scene)"
+        [attr.aria-label]="'Launch scene ' + scene.name"
+      >
+        <span class="sv-scene-pip" aria-hidden="true"></span>
+        <span class="sv-scene-name">{{ scene.name }}</span>
+        <span class="sv-scene-play" aria-hidden="true">▶</span>
+      </button>
+    </nav>
+
+    <!-- CLIP GRID -->
+    <div class="sv-clip-grid" role="grid" aria-label="Clip launcher grid">
+      <div class="sv-grid-canvas">
+        <!-- TRACK COLUMN HEADERS -->
+        <div class="sv-track-headers" role="row">
+          <div
+            *ngFor="let track of clipTracks(); trackBy: trackByTrackId"
+            class="sv-track-header"
+            role="columnheader"
+          >
+            <div class="sv-track-header-top">
+              <span
+                class="sv-track-color-strip"
+                [style.background]="track.type === 'drum' ? '#FFB627' : track.type === 'bass' ? '#00E5FF' : '#5DC4C2'"
+              ></span>
+              <span class="sv-track-name">{{ track.name }}</span>
+            </div>
+            <span class="sv-track-type">{{ track.type }}</span>
+            <button
+              type="button"
+              class="sv-track-mute"
+              [class.is-muted]="track.isMuted"
+              (click)="muteTrack(track.id)"
+              [attr.aria-label]="track.isMuted ? 'Unmute ' + track.name : 'Mute ' + track.name"
+            >M</button>
+          </div>
+        </div>
+
+        <!-- SCENE ROWS WITH CLIP SLOTS -->
+        <div
+          *ngFor="let scene of scenes(); trackBy: trackByScene"
+          class="sv-scene-row"
+          role="row"
+        >
+          <div class="sv-scene-label" aria-hidden="true">
+            <span class="sv-scene-label-num">{{ scene.index + 1 }}</span>
+            <span class="sv-scene-label-name">{{ scene.name }}</span>
+          </div>
+
+          <ng-container *ngFor="let track of clipTracks(); trackBy: trackByTrackId">
+            @let clip = getClipsForScene(scene.id).find(c => c.trackId === track.id);
+            <button
+              type="button"
+              class="sv-clip-slot"
+              [class.is-filled]="!!clip"
+              [class.is-empty]="!clip"
+              [class.is-playing]="clip?.isPlaying"
+              [style.--slot-color]="clip?.color"
+              (click)="clip && triggerClip(clip)"
+              [attr.aria-label]="clip ? (clip.name + (clip.isPlaying ? ' — playing' : ' — stopped')) : 'Empty clip slot — ' + scene.name + ', ' + track.name"
+              role="gridcell"
+            >
+              @if (clip) {
+                <span class="sv-clip-slot-name">{{ clip.name }}</span>
+                <span class="sv-clip-slot-meta">{{ clip.duration }}</span>
+                <span class="sv-clip-slot-play" aria-hidden="true">
+                  {{ clip.isPlaying ? '⏸' : '▶' }}
+                </span>
+              }
+            </button>
+          </ng-container>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

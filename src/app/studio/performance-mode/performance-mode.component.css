@@ -1,14 +1,66 @@
 /* ===========================================================
    S.M.U.V.E. Composer — Performance Mode
-   Live clip launcher pads with scene control
-   City Skylines After Dark — Stage Edition
+   Live clip launcher pads with velocity control
+   MPC-style grid · haptic feedback · long-press context
    =========================================================== */
 
+:host {
+  display: block;
+  height: 100%;
+  background: var(--ivory-deep, #06091A);
+  color: var(--espresso-text);
+}
+
+.performance-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  gap: 14px;
+}
+
+/* ---------- VELOCITY STRIP ---------- */
+.perf-velocity-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--ivory-panel, #14192E);
+  border: 1px solid var(--ivory-line, rgba(180,200,255,0.08));
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.perf-velo-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.perf-velo-slider {
+  flex: 1;
+  accent-color: var(--teal-500);
+  min-height: 28px;
+}
+
+.perf-velo-readout {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal-500);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ---------- PAD GRID ---------- */
 .performance-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  padding: 16px;
+  gap: 12px;
+  flex: 1;
+  align-content: start;
 }
 
 .performance-pad {
@@ -24,16 +76,22 @@
   -webkit-tap-highlight-color: transparent;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   min-height: 80px;
   box-shadow: var(--shadow-ivory-sm);
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .performance-pad:hover {
-  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--teal-50) 100%);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, color-mix(in srgb, var(--teal-500) 12%, var(--ivory-panel)) 100%);
   border-color: var(--teal-500);
   transform: translateY(-2px);
   box-shadow: var(--shadow-ivory-md), 0 0 16px var(--teal-soft-glow);
+}
+
+.performance-pad:active {
+  transform: scale(calc(0.94 + var(--velo-scale, 0.85) * 0.04));
 }
 
 .performance-pad.active {
@@ -42,14 +100,18 @@
   box-shadow: 0 0 30px var(--teal-glow);
 }
 
-.performance-pad.active .pad-name {
-  color: var(--ivory-deep);
+.performance-pad.active .pad-name,
+.performance-pad.active .pad-type {
+  color: var(--ivory-deep, #06091A);
 }
 
-.performance-pad:active {
-  transform: scale(0.96);
+.performance-pad.is-longpressed {
+  border-color: var(--neon-amber, #FFB627);
+  box-shadow: 0 0 20px var(--neon-amber-glow, rgba(255,182,39,0.4));
+  z-index: 5;
 }
 
+/* ---------- PAD INTERIOR ---------- */
 .pad-name {
   font-size: 11px;
   font-weight: 900;
@@ -66,6 +128,7 @@
   text-transform: uppercase;
   color: var(--espresso-muted);
   z-index: 2;
+  margin-top: 2px;
 }
 
 .pad-status-indicator {
@@ -75,6 +138,7 @@
   height: 4px;
   width: 0%;
   background: var(--teal-500);
+  border-radius: 0 0 12px 12px;
   transition: width 0.1s linear;
 }
 
@@ -87,6 +151,47 @@
   border-style: dashed;
 }
 
+/* ---------- LONG-PRESS CONTEXT MENU ---------- */
+.pad-context-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--ivory-panel, #14192E);
+  border: 1px solid var(--neon-amber, #FFB627);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  min-width: 100px;
+}
+
+.pad-ctx-btn {
+  padding: 8px 14px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+  text-align: center;
+  min-height: 36px;
+}
+
+.pad-ctx-btn:hover {
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  border-color: var(--teal-500);
+}
+
+/* ---------- EMPTY STATE ---------- */
 .empty-state {
   grid-column: span 4;
   text-align: center;
@@ -95,29 +200,51 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  opacity: 0.3;
 }
 
 /* ---------- DARK MODE ---------- */
 :host-context(.dark-mode) .performance-pad {
   background: linear-gradient(180deg, #0A0F22 0%, #06091A 100%);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255,255,255,0.06);
 }
 
 :host-context(.dark-mode) .performance-pad:hover {
   border-color: var(--teal-500);
-  box-shadow: var(--shadow-ivory-md), 0 0 20px var(--teal-glow);
 }
 
-:host-context(.dark-mode) .performance-pad.active {
-  box-shadow: 0 0 40px var(--teal-glow);
+:host-context(.dark-mode) .perf-velocity-strip {
+  background: #0A0F22;
 }
 
+/* ---------- FOCUS ---------- */
+.performance-pad:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
-  .performance-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
-  .performance-pad { min-height: 70px; }
+  .performance-shell { padding: 10px; gap: 10px; }
+  .performance-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .performance-pad { min-height: 72px; }
+  .pad-name { font-size: 10px; }
 }
 
 @media (max-width: 480px) {
-  .performance-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .performance-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .empty-state { grid-column: span 2; }
+}
+
+@media (max-width: 360px) {
+  .performance-grid { grid-template-columns: repeat(2, 1fr); }
+  .performance-pad { min-height: 64px; border-radius: 10px; }
 }

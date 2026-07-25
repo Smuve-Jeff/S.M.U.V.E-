@@ -1,30 +1,36 @@
+<!--
+  Neural Synth v4 — Professional synthesizer interface
+  Oscillator · Filter · Amplitude Envelope · LFO · Effects
+  Ivory + Teal DAW theme, mobile-responsive
+-->
 <div class="synth-container">
-  <div class="synth-header">
-    <div
-      style="
-        font-weight: 900;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 1px;
-      "
-    >
-      Neural Synth v4
+  <!-- HEADER -->
+  <header class="synth-header">
+    <div class="synth-header-left">
+      <span class="synth-title">Neural Synth v4</span>
+      <span class="synth-patch-name">{{ activePatch()?.name ?? 'INIT PATCH' }}</span>
     </div>
-    <div
-      class="synth-patch-name"
-      style="color: var(--fl-blue); font-size: 0.7rem; font-weight: 800"
-    >
-      DEFAULT PATCH
+    <div class="synth-patch-browser">
+      <button
+        *ngFor="let patch of patches"
+        type="button"
+        class="synth-patch-btn"
+        [class.is-active]="activePatchId() === patch.id"
+        (click)="loadPatch(patch.id)"
+      >
+        {{ patch.name }}
+      </button>
     </div>
-  </div>
+  </header>
 
   <div class="synth-content no-scrollbar">
-    <!-- Oscillator -->
+    <!-- OSCILLATOR -->
     <div class="synth-section oscillator-section">
       <div class="section-title">Oscillator</div>
       <div class="wave-selector">
         <button
           *ngFor="let type of ['sine', 'square', 'sawtooth', 'triangle']"
+          type="button"
           (click)="updateSynthParam('oscillator', type)"
           [class.active]="synthParams.oscillator === type"
           class="wave-btn"
@@ -34,94 +40,131 @@
       </div>
       <div class="knob-row">
         <div class="knob-container">
-          <div class="large-knob"></div>
-          <span class="knob-label">CUTOFF</span>
+          <span class="knob-label">Cutoff</span>
+          <span class="knob-value">{{ synthParams.cutoff }} Hz</span>
           <input
             type="range"
-            min="20"
-            max="15000"
-            [(ngModel)]="synthParams.cutoff"
+            min="20" max="15000" step="1"
+            [ngModel]="synthParams.cutoff"
             (ngModelChange)="updateSynthParam('cutoff', $event)"
+            aria-label="Filter cutoff frequency"
           />
         </div>
         <div class="knob-container">
-          <div class="large-knob" style="width: 40px; height: 40px"></div>
-          <span class="knob-label">RESO</span>
+          <span class="knob-label">Resonance</span>
+          <span class="knob-value">{{ synthParams.q.toFixed(1) }}</span>
           <input
             type="range"
-            min="0"
-            max="20"
-            step="0.1"
-            [(ngModel)]="synthParams.q"
+            min="0" max="20" step="0.1"
+            [ngModel]="synthParams.q"
             (ngModelChange)="updateSynthParam('q', $event)"
+            aria-label="Filter resonance"
           />
         </div>
       </div>
     </div>
 
-    <!-- Envelope -->
+    <!-- AMPLITUDE ENVELOPE -->
     <div class="synth-section envelope-section">
       <div class="section-title">Amplitude Envelope</div>
       <div class="adsr-grid">
-        <div
-          *ngFor="let stage of ['attack', 'decay', 'sustain', 'release']"
-          class="adsr-fader"
-        >
+        <div *ngFor="let stage of adStages" class="adsr-fader">
           <div class="fader-well">
             <div
               class="fader-fill"
-              [style.height.%]="
-                (stage === 'sustain'
-                  ? synthParams.sustain
-                  : synthParams[stage] / 2) * 100
-              "
+              [style.height.%]="(stage.key === 'sustain' ? synthParams.sustain : synthParams[stage.key] / 2) * 100"
             ></div>
           </div>
           <input
             type="range"
             orient="vertical"
-            min="0"
-            [max]="stage === 'sustain' ? 1 : 2"
+            [min]="0"
+            [max]="stage.key === 'sustain' ? 1 : 2"
             step="0.01"
-            [(ngModel)]="synthParams[stage]"
-            (ngModelChange)="updateSynthParam(stage, $event)"
+            [ngModel]="synthParams[stage.key]"
+            (ngModelChange)="updateSynthParam(stage.key, $event)"
+            [attr.aria-label]="stage.label"
           />
-          <span class="adsr-label">{{
-            stage.substring(0, 3).toUpperCase()
-          }}</span>
+          <span class="adsr-label">{{ stage.abbr }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Effects -->
+    <!-- LFO -->
+    <div class="synth-section lfo-section">
+      <div class="section-title">LFO</div>
+      <div class="lfo-wave-select">
+        <button
+          *ngFor="let w of lfoWaves"
+          type="button"
+          class="lfo-wave-btn"
+          [class.is-active]="lfoParams.wave === w.value"
+          (click)="updateLfoParam('wave', w.value)"
+          [attr.aria-label]="w.label"
+        >{{ w.icon }}</button>
+      </div>
+      <select
+        class="lfo-target-select"
+        [ngModel]="lfoParams.target"
+        (ngModelChange)="updateLfoParam('target', $event)"
+        aria-label="LFO modulation target"
+      >
+        <option value="cutoff">→ Filter Cutoff</option>
+        <option value="pitch">→ Osc Pitch</option>
+        <option value="volume">→ Volume</option>
+        <option value="pan">→ Pan</option>
+      </select>
+      <div class="knob-row">
+        <div class="knob-container">
+          <span class="knob-label">Rate</span>
+          <span class="knob-value">{{ lfoParams.rate.toFixed(1) }} Hz</span>
+          <input type="range" min="0.1" max="32" step="0.1"
+                 [ngModel]="lfoParams.rate"
+                 (ngModelChange)="updateLfoParam('rate', $event)"
+                 aria-label="LFO rate" />
+        </div>
+        <div class="knob-container">
+          <span class="knob-label">Depth</span>
+          <span class="knob-value">{{ (lfoParams.depth * 100).toFixed(0) }}%</span>
+          <input type="range" min="0" max="1" step="0.01"
+                 [ngModel]="lfoParams.depth"
+                 (ngModelChange)="updateLfoParam('depth', $event)"
+                 aria-label="LFO depth" />
+        </div>
+      </div>
+    </div>
+
+    <!-- EFFECTS -->
     <div class="synth-section effects-section">
-      <div class="section-title">Saturation</div>
-      <div class="knob-container">
-        <div class="large-knob" style="border-color: var(--fl-orange)"></div>
-        <span class="knob-label">DRIVE</span>
+      <div class="section-title">Effects</div>
+      <div class="knob-container" style="margin-bottom: 0.75rem">
+        <span class="knob-label">Drive</span>
+        <span class="knob-value">{{ (synthParams.distortion * 100).toFixed(0) }}%</span>
         <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          [(ngModel)]="synthParams.distortion"
+          type="range" min="0" max="1" step="0.01"
+          [ngModel]="synthParams.distortion"
           (ngModelChange)="updateSynthParam('distortion', $event)"
+          aria-label="Saturation drive"
         />
       </div>
-      <div class="knob-container" style="margin-top: 1rem">
-        <div
-          class="large-knob"
-          [style.background]="synthParams.subOsc ? 'var(--fl-blue)' : ''"
-          (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
-        ></div>
-        <span class="knob-label">SUB OSC</span>
+      <div
+        class="sub-osc-toggle"
+        [class.is-active]="synthParams.subOsc"
+        (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
+        role="switch"
+        [attr.aria-checked]="synthParams.subOsc"
+      >
+        <span class="sub-osc-dot"></span>
+        SUB OSC
+      </div>
+      <div class="knob-container" style="margin-top: 0.5rem">
+        <span class="knob-label">Sub Gain</span>
+        <span class="knob-value">{{ (synthParams.subGain * 100).toFixed(0) }}%</span>
         <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          [(ngModel)]="synthParams.subGain"
+          type="range" min="0" max="1" step="0.01"
+          [ngModel]="synthParams.subGain"
           (ngModelChange)="updateSynthParam('subGain', $event)"
+          aria-label="Sub oscillator gain"
         />
       </div>
     </div>
