@@ -95,6 +95,55 @@
         </div>
       </div>
       <button type="button" class="midi-picker-close" (click)="midiPanelOpen.set(false)" aria-label="Close MIDI panel">✕</button>
+      <!-- MIDI clock controls -->
+      <div class="midi-clock-strip">
+        <label class="midi-clock-label">MIDI Clock</label>
+        <button type="button" class="midi-clock-btn" [class.is-active]="midiService.clockEnabled()" (click)="toggleClock()">
+          {{ midiService.clockEnabled() ? '⏹ STOP' : '▶ START' }}
+        </button>
+        <div class="midi-clock-bpm">
+          <input type="range" min="40" max="300" step="1" [value]="midiService.clockBpm()" (input)="midiService.setClockBpm(+($any($event.target).value))"
+                 aria-label="Clock BPM" class="midi-clock-slider" />
+          <span class="midi-clock-readout">{{ midiService.clockBpm() }} BPM</span>
+        </div>
+      </div>
+      <!-- Mapping editor toggle -->
+      <button type="button" class="midi-picker-edit-btn" (click)="toggleMappingEditor()">
+        {{ midiMappingEditorOpen() ? '✕ Close Editor' : '✎ Edit CC Mappings' }}
+      </button>
+    </div>
+  }
+
+  <!-- ───────── MIDI MAPPING EDITOR MODAL ───────── -->
+  @if (midiMappingEditorOpen()) {
+    <div class="midi-mapping-editor">
+      <div class="midi-mapping-editor-head">
+        <span class="midi-mapping-title">Performer CC Mappings</span>
+        <button type="button" class="midi-mapping-clear-all" (click)="clearAllPerformerMappings()">Clear All</button>
+      </div>
+      @if (midiService.performerCCMap().length === 0) {
+        <div class="midi-mapping-empty">
+          <p>No custom CC mappings. Click 🎯 on Modulation, Volume, or Pan to learn.</p>
+        </div>
+      }
+      @if (midiService.performerCCMap().length > 0) {
+        <div class="midi-mapping-table">
+          <div class="midi-mapping-row midi-mapping-header">
+            <span>Target</span>
+            <span>Channel</span>
+            <span>CC#</span>
+            <span></span>
+          </div>
+          @for (mapping of midiService.performerCCMap(); track mapping.target) {
+            <div class="midi-mapping-row">
+              <span class="midi-mapping-target">{{ mapping.target }}</span>
+              <span class="midi-mapping-detail">{{ mapping.channel }}</span>
+              <span class="midi-mapping-detail">{{ mapping.controller }}</span>
+              <button type="button" class="midi-mapping-delete" (click)="deletePerformerMapping(mapping.target)" aria-label="Delete mapping for {{ mapping.target }}">✕</button>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
 

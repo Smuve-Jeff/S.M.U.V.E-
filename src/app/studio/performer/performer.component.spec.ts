@@ -87,6 +87,13 @@ describe('PerformerComponent', () => {
             midiActivityPulse: signal(false),
             startPerformerLearn: jest.fn(),
             cancelPerformerLearn: jest.fn(),
+            clockEnabled: signal(false),
+            clockBpm: signal(140),
+            midiOutputs: signal([]),
+            startClock: jest.fn(),
+            stopClock: jest.fn(),
+            setClockBpm: jest.fn(),
+            setClockOutput: jest.fn(),
           },
         },
         {

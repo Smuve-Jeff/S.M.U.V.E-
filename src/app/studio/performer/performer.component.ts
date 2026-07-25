@@ -74,6 +74,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   /** MIDI device picker panel visibility */
   midiPanelOpen = signal(false);
+  /** MIDI mapping editor panel visibility */
+  midiMappingEditorOpen = signal(false);
   /** Enabled device names (all enabled by default) */
   enabledDevices = signal<string[]>([]);
 
@@ -440,6 +442,35 @@ export class PerformerComponent implements OnDestroy, OnInit {
   getCCMappingLabel(target: string): string {
     const mapping = this.midiService.performerCCMap().find((m) => m.target === target);
     return mapping ? `CH${mapping.channel} CC${mapping.controller}` : '—';
+  }
+
+  // ── MIDI mapping editor ───────────────────────────────
+  toggleMappingEditor(): void {
+    this.midiMappingEditorOpen.update((v) => !v);
+  }
+
+  deletePerformerMapping(target: string): void {
+    this.midiService.performerCCMap.update((m) => m.filter((x) => x.target !== target));
+    // Persist immediately
+    if ((this.midiService as any).savePerformerCCMappings) {
+      (this.midiService as any).savePerformerCCMappings();
+    }
+  }
+
+  clearAllPerformerMappings(): void {
+    this.midiService.performerCCMap.set([]);
+    if ((this.midiService as any).savePerformerCCMappings) {
+      (this.midiService as any).savePerformerCCMappings();
+    }
+  }
+
+  /** MIDI clock controls */
+  toggleClock(): void {
+    if (this.midiService.clockEnabled()) {
+      this.midiService.stopClock();
+    } else {
+      this.midiService.startClock();
+    }
   }
 
   // ── MIDI device picker ────────────────────────────────

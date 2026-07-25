@@ -65,6 +65,20 @@ export class DjMidiService {
   /** MIDI activity pulse — toggles on each incoming message for visual feedback */
   midiActivityPulse = signal(false);
 
+  // ── MIDI Clock Output ────────────────────────────────
+  /** Available MIDI output ports */
+  midiOutputs = signal<string[]>([]);
+  /** Whether MIDI clock transmission is active */
+  clockEnabled = signal(false);
+  /** Current BPM for clock timing */
+  clockBpm = signal(140);
+  /** Target output device index */
+  clockOutputIndex = signal(0);
+
+  private midiOutputDevices: any[] = [];
+  private clockInterval: any = null;
+  private readonly CLOCK_PPQN = 24; // pulses per quarter note
+
   /** Performer-oriented MIDI streams */
   readonly performerNoteOn = new Subject<MidiNoteEvent>();
   readonly performerNoteOff = new Subject<MidiNoteEvent>();
@@ -151,6 +165,77 @@ export class DjMidiService {
         this.logger.warn('DJ MIDI Access Denied');
       }
     }
+  }
+
+  // ── MIDI Clock Output ────────────────────────────────
+  startClock(): void {
+    if (!this.midiAccess || this.clockEnabled()) return;
+    this.clockEnabled.set(true);
+
+    // Collect output devices
+    this.midiOutputDevices = [];
+    const outputs = this.midiAccess.outputs.values();
+    for (let o = outputs.next(); o && !o.done; o = outputs.next()) {
+      this.midiOutputDevices.push(o.value);
+    }
+    this.midiOutputs.set(this.midiOutputDevices.map((o) => o.name || 'MIDI Output'));
+
+    // Send MIDI Start (0xFA)
+    this.sendMidiMessage(0xFA);
+
+    // Calculate clock interval: 60000 / (BPM * 24) ms per tick
+    this.updateClockInterval();
+  }
+
+  stopClock(): void {
+    if (!this.clockEnabled()) return;
+    this.clockEnabled.set(false);
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = null;
+    }
+    // Send MIDI Stop (0xFC)
+    this.sendMidiMessage(0xFC);
+  }
+
+  setClockBpm(bpm: number): void {
+    const clamped = Math.max(40, Math.min(300, bpm));
+    this.clockBpm.set(clamped);
+    if (this.clockEnabled()) {
+      this.updateClockInterval();
+    }
+  }
+
+  setClockOutput(index: number): void {
+    this.clockOutputIndex.set(Math.max(0, Math.min(this.midiOutputDevices.length - 1, index)));
+  }
+
+  private updateClockInterval(): void {
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+      this.clockInterval = null;
+    }
+    const intervalMs = 60000 / (this.clockBpm() * this.CLOCK_PPQN);
+    this.clockInterval = setInterval(() => {
+      if (!this.clockEnabled()) return;
+      this.sendMidiMessage(0xF8);
+      this.midiActivityPulse.set(true);
+      setTimeout(() => this.midiActivityPulse.set(false), 20);
+    }, intervalMs);
+  }
+
+  private sendMidiMessage(...bytes: number[]): void {
+    if (!this.midiOutputDevices.length) return;
+    const idx = this.clockOutputIndex();
+    if (idx >= this.midiOutputDevices.length) return;
+    try {
+      this.midiOutputDevices[idx].send(bytes);
+    } catch {}
+  }
+
+  /** Send MIDI Continue (0xFB) after pause */
+  sendContinue(): void {
+    this.sendMidiMessage(0xFB);
   }
 
   private setupInputs() {

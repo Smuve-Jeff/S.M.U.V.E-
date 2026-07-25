@@ -25,6 +25,8 @@ interface SessionClip {
   isPlaying: boolean;
   color: string;
   duration?: string;
+  /** Velocity 0-1 for dynamics-sensitive triggering */
+  velocity?: number;
 }
 
 @Component({
@@ -123,15 +125,17 @@ export class SessionViewComponent {
     }
   }
 
-  triggerClip(clip: SessionClip): void {
+  /** Trigger a clip with optional velocity (0-1) */
+  triggerClip(clip: SessionClip, velocity: number = 0.85): void {
     this.haptic.light();
+    const clampedVel = Math.max(0, Math.min(1, velocity));
     this.clips.update((list) =>
       list.map((c) =>
-        c.id === clip.id ? { ...c, isPlaying: !c.isPlaying } : c
+        c.id === clip.id ? { ...c, isPlaying: !c.isPlaying, velocity: clampedVel } : c
       )
     );
     this.snackbar.info(
-      `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'}`
+      `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'} · vel ${Math.round(clampedVel * 100)}%`
     );
   }
 
@@ -212,6 +216,7 @@ export class SessionViewComponent {
           isPlaying: false,
           color: '#5DC4C2',
           duration: '4 bars',
+          velocity: 0.8,
         },
       ]);
       this.snackbar.success(`${name} → clip in ${sceneId}`);

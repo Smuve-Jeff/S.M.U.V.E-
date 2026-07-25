@@ -487,3 +487,26 @@
   text-align: center;
   pointer-events: none;
 }
+
+/* ── VELOCITY BAR inside clip slots ─────────────────── */
+.sv-clip-velocity-bar {
+  height: 3px;
+  background: var(--ivory-deep);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.sv-clip-velocity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500) 0%, var(--teal-300) 100%);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+/* Animate velocity bar when playing */
+.sv-clip-slot.is-playing .sv-clip-velocity-fill {
+  background: linear-gradient(90deg, var(--neon-amber) 0%, var(--teal-300) 100%);
+  box-shadow: 0 0 6px var(--teal-soft-glow);
+}

@@ -101,7 +101,8 @@
               [class.is-playing]="clip?.isPlaying"
               [class.sv-clip-slot-dragover]="dragOverSlotKey() === scene.id + '|' + track.id"
               [style.--slot-color]="clip?.color"
-              (click)="clip && triggerClip(clip)"
+              [style.--clip-velocity]="clip?.velocity ?? 0.85"
+              (click)="clip && triggerClip(clip, clip.velocity)"
               (dragover)="onSlotDragOver($event, scene.id, track.id)"
               (dragleave)="onSlotDragLeave()"
               (drop)="onSlotDrop($event, scene.id, track.id)"
@@ -111,6 +112,9 @@
               @if (clip) {
                 <span class="sv-clip-slot-name">{{ clip.name }}</span>
                 <span class="sv-clip-slot-meta">{{ clip.duration }}</span>
+                <div class="sv-clip-velocity-bar" aria-label="Velocity {{ Math.round((clip.velocity ?? 0.85) * 100) }}%">
+                  <div class="sv-clip-velocity-fill" [style.width.%]="(clip.velocity ?? 0.85) * 100"></div>
+                </div>
                 <span class="sv-clip-slot-play" aria-hidden="true">
                   {{ clip.isPlaying ? '⏸' : '▶' }}
                 </span>

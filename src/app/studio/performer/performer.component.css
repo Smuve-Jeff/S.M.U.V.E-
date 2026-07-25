@@ -1395,3 +1395,198 @@
   color: var(--teal-500);
   text-shadow: 0 0 6px var(--teal-glow);
 }
+
+/* ── MIDI Clock Strip ──────────────────────────────── */
+.midi-clock-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.midi-clock-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  min-width: 48px;
+}
+
+.midi-clock-btn {
+  padding: 4px 10px;
+  background: var(--ivory-deep);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--espresso-text);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.midi-clock-btn.is-active {
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  border-color: var(--teal-500);
+}
+
+.midi-clock-bpm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 80px;
+}
+
+.midi-clock-slider {
+  flex: 1;
+  accent-color: var(--teal-500);
+  min-height: 16px;
+}
+
+.midi-clock-readout {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--teal-500);
+  min-width: 44px;
+  text-align: right;
+}
+
+.midi-picker-edit-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.midi-picker-edit-btn:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+/* ── MIDI Mapping Editor Modal ─────────────────────── */
+.midi-mapping-editor {
+  margin: 0 10px;
+  padding: 12px 14px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--ivory-line);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: midiSlideIn 0.2s ease-out;
+}
+
+.midi-mapping-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.midi-mapping-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.midi-mapping-clear-all {
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--record);
+  border-radius: 4px;
+  color: var(--record);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.midi-mapping-clear-all:hover {
+  background: var(--record);
+  color: var(--ivory-deep);
+}
+
+.midi-mapping-empty {
+  padding: 12px 0;
+  text-align: center;
+  color: var(--espresso-muted);
+  font-size: 11px;
+}
+
+.midi-mapping-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.midi-mapping-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 28px;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  gap: 4px;
+}
+
+.midi-mapping-header {
+  background: transparent;
+  border: none;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  padding: 2px 8px;
+}
+
+.midi-mapping-target {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  text-transform: capitalize;
+}
+
+.midi-mapping-detail {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--teal-500);
+  text-align: center;
+}
+
+.midi-mapping-delete {
+  background: transparent;
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  color: var(--record);
+  font-size: 10px;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.midi-mapping-delete:hover {
+  background: var(--record);
+  color: var(--ivory-deep);
+  border-color: var(--record);
+}
