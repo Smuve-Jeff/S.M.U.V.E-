@@ -27,6 +27,7 @@ describe('MixerComponent', () => {
           getByteFrequencyData: () => {},
         }),
       },
+      outputLufs: signal(-14),
       getTrackOutput: () => ({ connect: () => {} }),
     },
   };
@@ -37,6 +38,7 @@ describe('MixerComponent', () => {
     ]),
     selectedTrackId: signal(1),
     engine: { updateTrack: jest.fn(), applyProductionParameter: jest.fn() },
+    updateVolume: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
     removeTrack: jest.fn(),

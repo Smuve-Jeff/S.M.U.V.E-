@@ -3,10 +3,36 @@ import { PracticeSpaceComponent } from './practice-space.component';
 import { provideRouter } from '@angular/router';
 import { API_KEY_TOKEN } from '../../services/ai.service';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { UserProfileService } from '../../services/user-profile.service';
+import { UIService } from '../../services/ui.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { signal } from '@angular/core';
 
 describe('PracticeSpaceComponent', () => {
   let component: PracticeSpaceComponent;
   let fixture: ComponentFixture<PracticeSpaceComponent>;
+
+  const mockAiService = {
+    getUpgradeRecommendations: () => [],
+  };
+
+  const mockProfileService = {
+    profile: signal({
+      recommendationHistory: [],
+    }),
+    acquireUpgrade: jest.fn(),
+    setRecommendationState: jest.fn(),
+  };
+
+  const mockUiService = {
+    navigateToView: jest.fn(),
+  };
+
+  const mockAudioEngine = {
+    // Minimal surface — the component does not exercise the engine here.
+    start: jest.fn(),
+    stop: jest.fn(),
+  };
 
   beforeEach(async () => {
     const mockNode = {
@@ -20,10 +46,26 @@ describe('PracticeSpaceComponent', () => {
         exponentialRampToValueAtTime: jest.fn(),
       },
       frequency: { value: 0, setTargetAtTime: jest.fn() },
-      threshold: { value: 0, setTargetAtTime: jest.fn() },
-      ratio: { value: 0, setTargetAtTime: jest.fn() },
-      attack: { value: 0, setTargetAtTime: jest.fn() },
-      release: { value: 0, setTargetAtTime: jest.fn() },
+      threshold: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
+      ratio: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
+      attack: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
+      release: {
+        value: 0,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
       pan: { value: 0, setTargetAtTime: jest.fn() },
       Q: { value: 0, setTargetAtTime: jest.fn() },
       curve: null,
@@ -91,6 +133,9 @@ describe('PracticeSpaceComponent', () => {
           provide: API_KEY_TOKEN,
           useValue: 'TEST_KEY_LONG_ENOUGH_FOR_STRATEGIC_DECREE',
         },
+        { provide: UserProfileService, useValue: mockProfileService },
+        { provide: UIService, useValue: mockUiService },
+        { provide: AudioEngineService, useValue: mockAudioEngine },
       ],
     }).compileComponents();
 

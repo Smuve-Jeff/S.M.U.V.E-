@@ -714,7 +714,7 @@ export class AudioEngineService {
     duration: number,
     velocity: number,
     pan: number,
-    params: any
+    params?: any
   ) {
     this.triggerAttack(
       '0',
@@ -726,7 +726,7 @@ export class AudioEngineService {
       pan,
       0,
       0,
-      params
+      params ?? { type: 'sine' }
     );
   }
   updateAdaptivePerformance(load: number) {

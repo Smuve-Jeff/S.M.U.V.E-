@@ -387,9 +387,14 @@ export class MixerComponent implements OnInit, OnDestroy {
     }
   }
 
-  updateTrackVolume(id: string, value: number) {
+  updateTrackVolume(id: string | number, value: number) {
     const gain = Math.max(0, Math.min(1.5, value / 100));
-    this.musicManager.updateVolume(id, gain);
+    // The mixer component drives the audio engine directly so the fader
+    // response stays in lock-step with the AudioContext graph. The
+    // companion `updateVolume` call still updates the in-memory track state
+    // so the UI keeps the new fader position.
+    (this.musicManager as any).engine?.updateTrack?.(id, { gain });
+    this.musicManager.updateVolume(id as any, gain);
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {

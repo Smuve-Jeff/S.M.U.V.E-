@@ -140,8 +140,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     // grid to it. The timestamp guard prevents duplicate scrolls and
     //   the `scrollContainer` null check protects pre-viewInit.
     effect(() => {
-      const req = this.musicManager.crossLinkRequest();
-      if (!req?.noteRange) return;
+      const req = this.musicManager.crossLinkRequest?.();
+      if (!req || !req.noteRange) return;
       if (req.timestamp === this.lastHandledTimestamp) return;
       if (req.timestamp <= this.lastHandledTimestamp) return;
       this.lastHandledTimestamp = req.timestamp;
@@ -187,6 +187,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   zoomIn() { this.zoomLevel.update(v => Math.min(3.0, v + 0.25)); this.haptic.light(); }
   zoomOut() { this.zoomLevel.update(v => Math.max(0.25, v - 0.25)); this.haptic.light(); }
+
+  /**
+   * Recalculate the piano-roll viewport so the entire sequence plus a
+   * comfortable amount of trailing bars are visible without scrolling. The
+   * piano-roll spec exercises this entry point directly, so it must exist as
+   * a public no-op-safe method even when the canvas hasn't rendered yet.
+   */
+  fitToPage(): void {
+    const totalSteps = this.musicManager
+      .tracks()
+      .reduce((max, track: any) => {
+        const length = (track.notes ?? []).reduce(
+          (m: number, n: any) => Math.max(m, (n.start ?? 0) + (n.duration ?? 0)),
+          0
+        );
+        return Math.max(max, length);
+      }, 0) + 16;
+    const targetZoom = Math.max(0.25, Math.min(3, 96 / Math.max(1, totalSteps)));
+    this.zoomLevel.set(targetZoom);
+  }
 
   expandGrid() { this.gridSteps.update(v => Math.min(256, v + 16)); }
 

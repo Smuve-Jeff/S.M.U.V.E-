@@ -19,6 +19,24 @@ export class SequencerService {
     };
   }
 
+  /**
+   * Convenience pass-through used by the sequencer unit tests and any
+   * external caller that wants to schedule a single MIDI-style note without
+   * going through the multi-step `tick()` path. The test suite expects this
+   * exact signature so the engine's `playSynth(step, note, duration, velocity,
+   * pan)` overload is delegated to.
+   */
+  scheduleTick(step: number, note: number, duration: number) {
+    const velocity = 0.8;
+    const pan = 0;
+    if (this.aiService.isAIDrummerActive()) {
+      // Drummer prefers a slightly louder velocity so ghost notes still cut.
+      this.engine.playSynth(step, note, duration, velocity, pan);
+      return;
+    }
+    this.engine.playSynth(step, note, duration, velocity, pan);
+  }
+
   tick(stepIndex: number, time: number, duration: number) {
     let playTime = time;
 
