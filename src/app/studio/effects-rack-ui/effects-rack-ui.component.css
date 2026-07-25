@@ -1,24 +1,449 @@
-.effects-rack-container {
+/* ===========================================================
+   S.M.U.V.E. Composer — Effects Rack
+   Professional parameter control — knob grid + slot list
+   =========================================================== */
+
+:host {
+  display: block;
+  height: 100%;
+  background: var(--ivory-bg);
+  color: var(--espresso-text);
+  overflow: hidden;
+}
+
+.er-shell {
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
-.slot-item {
-  transition: transform 0.2s;
+/* ── Header ───────────────────────────────────────────────── */
+.er-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--ivory-paper);
+  border-bottom: 1px solid var(--espresso-line);
+  flex-shrink: 0;
+  gap: 12px;
 }
 
-.slot-item:active {
-  transform: scale(0.98);
-}
-.active-slot-ui {
-  border-color: rgba(56, 189, 248, 0.4) !important;
-  background: rgba(56, 189, 248, 0.05) !important;
+.er-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.effects-rack-container {
-  background: var(--ivory-bg);
+.er-header-title h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--espresso-text);
 }
 
-/* Dark mode: deep rack gradient */
-:host-context(.dark-mode) .effects-rack-container {
-  background: linear-gradient(180deg, #111827 0%, #050507 100%);
+.er-header-title small {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.er-header-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--espresso-muted);
+  letter-spacing: 0.04em;
+}
+
+.er-header-chip .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--teal-500);
+}
+
+/* ── Body: slots on left, params on right ──────────────────── */
+.er-body {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Slot list ─────────────────────────────────────────────── */
+.er-slots {
+  width: 200px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--ivory-panel);
+  border-right: 1px solid var(--espresso-line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.er-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.er-slot:hover {
+  border-color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+.er-slot.active {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 1px var(--teal-500), 0 0 18px var(--teal-soft-glow);
+}
+
+.er-slot-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: box-shadow 0.15s;
+}
+
+.er-slot-status.enabled {
+  background: var(--teal-500);
+  box-shadow: 0 0 8px var(--teal-glow);
+}
+
+.er-slot-status.disabled {
+  background: var(--espresso-soft);
+}
+
+.er-slot-name {
+  flex: 1 1 auto;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--espresso-text);
+}
+
+.er-slot.disabled .er-slot-name {
+  color: var(--espresso-muted);
+  opacity: 0.6;
+}
+
+.er-slot-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+}
+
+.er-slot-toggle:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.er-slot-toggle.enabled {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+  box-shadow: 0 0 8px var(--teal-glow);
+}
+
+.er-slot-toggle .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.er-add-slot {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px dashed var(--espresso-line);
+  background: transparent;
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+}
+
+.er-add-slot:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+/* ── Parameters panel ──────────────────────────────────────── */
+.er-params {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.er-params-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--espresso-muted);
+}
+
+.er-params-empty .material-symbols-outlined {
+  font-size: 48px;
+  opacity: 0.25;
+}
+
+.er-params-empty p {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  max-width: 200px;
+}
+
+.er-params-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--espresso-line);
+}
+
+/* ── Knob grid ─────────────────────────────────────────────── */
+.er-knob-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.er-knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  gap: 8px;
+}
+
+/* ── Master section ───────────────────────────────────────── */
+.er-master {
+  margin-top: auto;
+  padding: 16px;
+  background: var(--ivory-paper);
+  border-top: 1px solid var(--espresso-line);
+  border-radius: 12px;
+}
+
+.er-master-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.er-master-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.er-master-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal-500);
+}
+
+.er-master-bar {
+  flex: 1 1 auto;
+  height: 6px;
+  background: var(--ivory-deep);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.er-master-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500), var(--teal-300));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 6px var(--teal-glow);
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .er-body {
+    flex-direction: column;
+  }
+
+  .er-slots {
+    width: 100%;
+    flex-shrink: 0;
+    max-height: 180px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid var(--espresso-line);
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .er-slot {
+    flex: 0 0 auto;
+    min-width: 100px;
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .er-slot-name {
+    font-size: 10px;
+  }
+
+  .er-add-slot {
+    min-width: 100px;
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  .er-params {
+    padding: 12px;
+  }
+
+  .er-knob-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .er-knob-cell {
+    padding: 8px;
+  }
+
+  .er-master {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .er-slots {
+    max-height: 140px;
+    padding: 6px;
+  }
+
+  .er-slot {
+    min-width: 80px;
+    padding: 6px 8px;
+    border-radius: 8px;
+  }
+
+  .er-knob-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+/* ── Dark mode ─────────────────────────────────────────────── */
+:host-context(.dark-mode) .er-header {
+  background: #14110B;
+}
+
+:host-context(.dark-mode) .er-slots {
+  background: #14110B;
+  border-right-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .er-slot {
+  background: #1A1712;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .er-slot:hover {
+  background: rgba(93, 196, 194, 0.10);
+}
+
+:host-context(.dark-mode) .er-slot.active {
+  background: rgba(93, 196, 194, 0.16);
+  border-color: var(--teal-500);
+}
+
+:host-context(.dark-mode) .er-params {
+  background: #14110B;
+}
+
+:host-context(.dark-mode) .er-knob-cell {
+  background: #1A1712;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .er-master {
+  background: #1A1712;
+}
+
+/* ── Focus-visible ─────────────────────────────────────────── */
+.er-slot:focus-visible,
+.er-slot-toggle:focus-visible,
+.er-add-slot:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar hide ─────────────────────────────────────────── */
+.er-slots,
+.er-params {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.er-slots::-webkit-scrollbar,
+.er-params::-webkit-scrollbar {
+  width: 4px;
+}
+
+.er-slots::-webkit-scrollbar-thumb,
+.er-params::-webkit-scrollbar-thumb {
+  background: var(--teal-500);
+  border-radius: 2px;
 }

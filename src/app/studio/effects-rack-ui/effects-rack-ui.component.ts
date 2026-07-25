@@ -1,12 +1,14 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { KnobComponent } from '../shared/knob/knob.component';
 
 @Component({
   selector: 'app-effects-rack-ui',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './effects-rack-ui.component.html',
   styleUrls: ['./effects-rack-ui.component.css'],
 })
@@ -20,6 +22,13 @@ export class EffectsRackUiComponent {
   fxSlots = computed(() => {
     const track = this.selectedTrack();
     return track?.fxSlots || [];
+  });
+
+  /** Returns the currently selected effect slot for parameter display */
+  activeFxSlot = computed(() => {
+    const slots = this.fxSlots();
+    const idx = this.activeSlot() - 1;
+    return idx >= 0 && idx < slots.length ? slots[idx] : null;
   });
 
   toggleFx(slotId: string) {

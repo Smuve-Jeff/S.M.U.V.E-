@@ -6,7 +6,7 @@
 :host {
   display: block;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-bg);
   color: var(--espresso-text);
   overflow: hidden;
 }
@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-bg);
 }
 
 /* ---- HEADER ---- */
@@ -350,12 +350,12 @@
 
 /* ---- DARK MODE OVERRIDES ---- */
 :host-context(.dark-mode) .dm-header {
-  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  background: linear-gradient(180deg, #14110B 0%, #0D0A06 100%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .dm-pad {
-  background: linear-gradient(180deg, #0A0F22 0%, #050817 100%);
+  background: linear-gradient(180deg, #1A1712 0%, #14110B 100%);
   border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -365,7 +365,7 @@
 }
 
 :host-context(.dark-mode) .dm-step {
-  background: #0A0F22;
+  background: #1A1712;
   border-right-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -375,7 +375,7 @@
 }
 
 :host-context(.dark-mode) .dm-step.current {
-  background: rgba(102, 240, 255, 0.10);
+  background: rgba(14, 124, 123, 0.14);
 }
 
 :host-context(.dark-mode) .dm-step.beat-end {
@@ -383,22 +383,36 @@
 }
 
 :host-context(.dark-mode) .dm-inspector {
-  background: #0A0F22;
+  background: #14110B;
   border-left-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .dm-vel-strip {
-  background: #000208;
+  background: #0D0A06;
 }
 
 :host-context(.dark-mode) .dm-step-row-label {
-  background: #0A0F22;
+  background: #14110B;
   border-right-color: rgba(255, 255, 255, 0.04);
 }
 
 :host-context(.dark-mode) .dm-bar-tab {
-  background: #0A0F22;
+  background: #14110B;
   border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Focus-visible ─────────────────────────────────────────── */
+.dm-pad:focus-visible,
+.dm-step:focus-visible,
+.dm-bar-tab:focus-visible,
+.dm-style-chip:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* ── Safe-area ─────────────────────────────────────────────── */
+.dm-shell {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ---- MOBILE FLAT single-column ---- */

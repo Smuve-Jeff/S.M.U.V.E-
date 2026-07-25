@@ -526,16 +526,44 @@
   .tab-btn { padding: 3px 8px; font-size: 8px; }
   .track-headers { width: 108px; }
   .track-name { font-size: 9px; }
-  .mini-btn { height: 26px; padding: 0 6px; font-size: 8px; }
+  .mini-btn { height: 26px; padding: 0 6px; font-size: 8px; min-width: 28px; }
   .tool-btn { height: 26px; min-width: 26px; }
   .lane-row { min-height: 42px; }
   .clip-title { font-size: 8px; }
+
+  /* Larger touch targets for transport buttons */
+  .m-btn { min-width: 36px; min-height: 36px; }
+  .tab-btn { min-height: 32px; }
+
+  /* Stem splitter modal: full-width on mobile */
+  .stem-modal-card {
+    width: calc(100vw - 32px);
+    max-height: 85vh;
+    border-radius: 16px;
+  }
 }
 
 @media (max-width: 480px) {
   .track-headers { width: 88px; }
   .playlist-header { padding: 3px 6px; }
-  .mini-btn { height: 24px; padding: 0 4px; font-size: 7px; }
-  .m-btn { height: 28px; min-width: 28px; }
-  .tab-btn { padding: 2px 6px; font-size: 7px; }
+  .mini-btn { height: 24px; padding: 0 4px; font-size: 7px; min-width: 24px; }
+  .m-btn { height: 28px; min-width: 28px; min-height: 28px; }
+  .tab-btn { padding: 2px 6px; font-size: 7px; min-height: 28px; }
+}
+
+/* ── Focus-visible ─────────────────────────────────────────── */
+.mini-btn:focus-visible,
+.m-btn:focus-visible,
+.tool-btn:focus-visible,
+.track-header:focus-visible,
+.clip-item:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* ── Safe-area for bottom navigation on mobile ────────────── */
+@media (max-width: 768px) {
+  .playlist-container {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }

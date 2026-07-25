@@ -257,7 +257,37 @@
 }
 
 @media (max-width: 768px) {
-  .channel-item { padding: 6px 8px; }
+  .channel-item { padding: 6px 8px; min-height: 56px; }
   .step-pad { max-width: 24px; max-height: 24px; }
-  .rack-fader-pro { display: none; }
+
+  /* Show touch-optimized faders on mobile instead of hiding */
+  .rack-fader-pro {
+    display: block;
+    height: 4px;
+  }
+  .rack-fader-pro::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Enlarge mute/solo touch targets */
+  .channel-ctrl-btn {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .channel-item { padding: 6px 6px; gap: 4px; }
+  .channel-name { font-size: 9px; }
+  .rack-fader-pro { height: 5px; }
+  .rack-fader-pro::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Pad safe-area for bottom navigation */
+  .channel-list {
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
 }
