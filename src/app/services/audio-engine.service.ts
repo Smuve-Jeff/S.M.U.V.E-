@@ -184,6 +184,10 @@ export class AudioEngineService {
     this.setSoftClip(0.1);
     this.setQuantumSaturation(0.0);
     this.initMidiOut();
+    // Populate the sink enumeration so the transport-bar dropdown has options on first click.
+    // Device labels stay empty until the user grants permission, but deviceId entries are still
+    // useful for setSinkId targeting and the empty-state hint check (`outputDevices().length === 0`).
+    this.refreshOutputDevices();
     // Track AudioContext.state reactively so the contextState signal stays in sync
     // with engine lifecycle transitions (suspended ↔ running ↔ closed).
     this.ctx.onstatechange = this._ctxStateHandler;
@@ -892,6 +896,7 @@ export class AudioEngineService {
   }
 
   readonly selectedOutputDeviceId = signal<string>('');
+  readonly outputDevices = signal<MediaDeviceInfo[]>([]);
   readonly outputDeviceName = signal<string>('System Default');
   readonly externalOutputActive = computed(() => this.selectedOutputDeviceId() !== '');
 
@@ -925,7 +930,10 @@ export class AudioEngineService {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const match = devices.find(d => d.kind === 'audiooutput' && d.deviceId === this.selectedOutputDeviceId());
+      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+      // Surface the full enumeration so the transport-bar dropdown can list every sink.
+      this.outputDevices.set(audioOutputs);
+      const match = audioOutputs.find(d => d.deviceId === this.selectedOutputDeviceId());
       if (match?.label) {
         this.outputDeviceName.set(this.selectedOutputDeviceId() === '' ? 'System Default' : match.label);
       }
