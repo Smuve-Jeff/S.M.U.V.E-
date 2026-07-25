@@ -42,7 +42,7 @@ export class LoginConfirmationService {
         )
       );
     } catch (e) {
-      this.logger.warn('Login confirmation failed', e);
+      this.logger.warn('LoginConfirmationService: Failed to send login confirmation email', e);
     }
   }
 }

@@ -87,6 +87,35 @@ export class HistoryService {
     this.execute(command);
   }
 
+  /** Legacy alias for specs that push plain action objects. */
+  pushAction(action: { description: string; undo: () => void; redo: () => void }): void {
+    this.past.push({
+      name: action.description,
+      execute: action.redo,
+      undo: action.undo,
+    });
+    this.future = [];
+    this.enforceLimit();
+    this.updateSignals();
+  }
+
+  private enforceLimit(): void {
+    const MAX_HISTORY = 100;
+    if (this.past.length > MAX_HISTORY) {
+      this.past = this.past.slice(-MAX_HISTORY);
+    }
+  }
+
+  /** Legacy getter for the most recent undo action name. */
+  getUndoDescription(): string | null {
+    return this.past.length > 0 ? this.past[this.past.length - 1].name : null;
+  }
+
+  /** Legacy getter for the next redo action name. */
+  getRedoDescription(): string | null {
+    return this.future.length > 0 ? this.future[this.future.length - 1].name : null;
+  }
+
   execute(command: Command): void {
     // Within a transaction: run the command but don't push to undo stack
     if (this.isBatching) {
@@ -97,6 +126,7 @@ export class HistoryService {
     command.execute();
     this.past.push(command);
     this.future = []; // any new action invalidates the redo stack
+    this.enforceLimit();
     this.updateSignals();
   }
 

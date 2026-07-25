@@ -61,6 +61,12 @@ export interface PerformerScene {
   color: string;
 }
 
+export interface GlobalChord {
+  root: string;
+  quality: string;
+  steps?: number[];
+}
+
 export interface TrackModel extends StudioTrack {
   id: string;
   instrumentId: string;
@@ -81,6 +87,7 @@ export interface TrackModel extends StudioTrack {
   patternSlots?: PatternSlot[];
   swingAmount?: number;
   collapsed?: boolean;
+  stepVelocities?: Record<number, number>;
 }
 
 @Injectable({
@@ -145,7 +152,13 @@ export class MusicManagerService {
   }
 
   activeLoopBars = signal(64);
-  structure = signal<SongSection[]>([]);
+  structure = signal<SongSection[]>([
+    { id: 'intro', name: 'Intro', start: 0, length: 4 },
+    { id: 'verse', name: 'Verse', start: 4, length: 8 },
+    { id: 'chorus', name: 'Chorus', start: 12, length: 8 },
+    { id: 'outro', name: 'Outro', start: 20, length: 4 },
+  ]);
+  chords = signal<GlobalChord[]>([]);
   performerScenes = signal<PerformerScene[]>([]);
   projectLoaded = signal(true);
 
@@ -981,6 +994,17 @@ export class MusicManagerService {
 
   // ── Pattern slots / scenes / takes (kept lightweight) ─────────────
 
+  toggleStep(id: string, stepIndex: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const steps = [...t.steps];
+        steps[stepIndex] = !steps[stepIndex];
+        return { ...t, steps };
+      })
+    );
+  }
+
   setActivePatternSlotId(id: string) {
     this.activePatternSlotId.set(id);
   }
@@ -1056,6 +1080,116 @@ export class MusicManagerService {
       return this.addTrack('New ' + instrumentId, instrumentId);
     }
     return existing.id;
+  }
+
+  setTrackColor(id: string, color: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, color } : t))
+    );
+  }
+
+  reorderTrack(fromIndex: number, toIndex: number) {
+    this.tracks.update((ts) => {
+      const next = [...ts];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  setTrackQualityMode(id: string, mode: 'performance' | 'quality') {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, qualityMode: mode } : t))
+    );
+  }
+
+  setStepVelocity(id: string, stepIndex: number, velocity: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const stepVelocities = { ...t.stepVelocities };
+        stepVelocities[stepIndex] = velocity;
+        return { ...t, stepVelocities };
+      })
+    );
+  }
+
+  createPatternSlot(id: string, name: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const slotId = 'slot-' + Date.now();
+        const newSlot: PatternSlot = {
+          id: slotId,
+          name,
+          activeVersionId: 'v1',
+          versions: [
+            {
+              id: 'v1',
+              name: 'v1',
+              steps: [...t.steps],
+              notes: this.clone(t.notes),
+            },
+          ],
+        };
+        return {
+          ...t,
+          patternSlots: [...(t.patternSlots || []), newSlot],
+          activePatternSlotId: slotId,
+        };
+      })
+    );
+  }
+
+  snapshotPatternVersion(trackId: string, slotId: string, versionName: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slot = t.patternSlots?.find((s) => s.id === slotId);
+        if (!slot) return t;
+        const versionId = 'v-' + Date.now();
+        const newVersion: PatternVersion = {
+          id: versionId,
+          name: versionName,
+          steps: [...t.steps],
+          notes: this.clone(t.notes),
+        };
+        return {
+          ...t,
+          patternSlots: t.patternSlots?.map((s) =>
+            s.id === slotId
+              ? { ...s, versions: [...s.versions, newVersion] }
+              : s
+          ),
+        };
+      })
+    );
+  }
+
+  clearPatternLane(id: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === id
+          ? { ...t, steps: new Array(t.steps.length).fill(false), notes: [] }
+          : t
+      )
+    );
+  }  recallPatternSlot(id: string, slotId: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const slot = t.patternSlots?.find((s) => s.id === slotId);
+        if (!slot) return t;
+        // Restore the most recently saved version so new snapshots are recalled.
+        const version = slot.versions[slot.versions.length - 1];
+        return {
+          ...t,
+          steps: [...(version?.steps || t.steps)],
+          notes: this.clone(version?.notes || t.notes),
+          activePatternSlotId: slotId,
+        };
+      })
+    );
   }
 
   snapshotProject(): Project | null {

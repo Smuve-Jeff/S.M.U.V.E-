@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { signal } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { ProjectsComponent } from './projects.component';
+import { ProjectService } from '../../services/project.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { UplinkService } from '../../services/uplink.service';
 import {
@@ -21,6 +23,15 @@ describe('ProjectsComponent', () => {
       profile: signal(initialProfile),
     };
 
+    const listSubject = new BehaviorSubject<any[]>([]);
+    const projectServiceMock = {
+      list$: listSubject.asObservable(),
+      add: (project: any) => {
+        listSubject.next([...listSubject.getValue(), project]);
+        return Promise.resolve();
+      },
+    };
+
     await TestBed.configureTestingModule({
       imports: [ProjectsComponent],
       providers: [
@@ -28,6 +39,7 @@ describe('ProjectsComponent', () => {
         { provide: InteractionDialogService, useValue: dialogMock },
         { provide: UplinkService, useValue: uplinkMock },
         { provide: UserProfileService, useValue: profileServiceMock },
+        { provide: ProjectService, useValue: projectServiceMock },
       ],
     }).compileComponents();
 

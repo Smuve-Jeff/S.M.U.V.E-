@@ -53,13 +53,57 @@ export class UserProfileService {
 
   async acquireUpgrade(u: any) {
     const p = this.profile();
-    if (u.type === 'Gear') p.equipment.push(u.title);
-    if (u.type === 'Software') p.daw.push(u.title);
-    if (u.type === 'Service') p.services.push(u.title);
+    if (u.type === 'Gear' && !p.equipment.includes(u.title)) {
+      p.equipment.push(u.title);
+    }
+    if (u.type === 'Software' && !p.daw.includes(u.title)) {
+      p.daw.push(u.title);
+    }
+    if (u.type === 'Service' && !p.services.includes(u.title)) {
+      p.services.push(u.title);
+    }
+    if (u.recommendationId) {
+      p.recommendationPreferences = {
+        ...p.recommendationPreferences,
+        [u.recommendationId]: {
+          ...(p.recommendationPreferences?.[u.recommendationId] || {}),
+          state: 'acquired',
+        },
+      };
+    }
     await this.updateProfile(p);
   }
   async completeUpgrade(u: any) {
-    await this.acquireUpgrade(u);
+    const p = this.profile();
+    if (u.type === 'Gear' && !p.equipment.includes(u.title)) {
+      p.equipment.push(u.title);
+    }
+    if (u.type === 'Software' && !p.daw.includes(u.title)) {
+      p.daw.push(u.title);
+    }
+    if (u.type === 'Service' && !p.services.includes(u.title)) {
+      p.services.push(u.title);
+    }
+    if (u.recommendationId) {
+      p.recommendationPreferences = {
+        ...p.recommendationPreferences,
+        [u.recommendationId]: {
+          ...(p.recommendationPreferences?.[u.recommendationId] || {}),
+          state: 'completed',
+        },
+      };
+      p.recommendationHistory = [
+        ...(p.recommendationHistory || []),
+        {
+          recommendationId: u.recommendationId,
+          title: u.title || '',
+          type: u.type || 'Gear',
+          state: 'completed',
+          updatedAt: Date.now(),
+        },
+      ];
+    }
+    await this.updateProfile(p);
   }
   async updateExpertise(u: Partial<ExpertiseLevels>) {
     await this.updateProfile({

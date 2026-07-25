@@ -179,6 +179,13 @@ export class LiveEngineService {
     return `${names[midi % 12]}${octave}`;
   }
 
+  generateSmartChord(rootNote: string): string[] {
+    const scale = this.currentScale();
+    const root = Tone.Frequency(rootNote).toMidi();
+    const chord = [root, root + 4, root + 7].map((midi) => this.midiToNote(midi));
+    return chord;
+  }
+
   private connectToFilter(node: Tone.PolySynth | Tone.Sampler, cutoff: number) {
     this.filterNode = new Tone.Filter(cutoff, 'lowpass').connect(
       Tone.getDestination()

@@ -1,10 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import {
-  provideHttpClientTesting,
-  HttpTestingController,
-} from '@angular/common/http/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { SecurityService } from '../security.service';
 import { LoggingService } from '../logging.service';
 import { UserProfileService, initialProfile } from '../user-profile.service';
@@ -26,24 +20,14 @@ describe('SecurityService', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
       providers: [
         SecurityService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
         { provide: LoggingService, useValue: loggerMock },
         { provide: UserProfileService, useValue: profileMock },
       ],
     });
     service = TestBed.inject(SecurityService);
-    const httpMock = TestBed.inject(HttpTestingController);
-    const req = httpMock.expectOne(
-      'https://s-m-u-v-e-2-0-fixed.onrender.com/api/security/csrf-token'
-    );
-    req.flush({ csrfToken: 'test-token' });
-    service['csrfToken'] = 'test-token';
-    service['csrfToken'] = 'test-token';
-    (service as any).csrfToken = 'test-token';
+    service.setCSRFToken('test-token');
   });
 
   it('should be created', () => {

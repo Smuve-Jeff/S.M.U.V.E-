@@ -169,7 +169,11 @@ describe('DeckService', () => {
     service.deckA.update((d) => ({
       ...d,
       hotCues: [24, null, null, null, null, null, null, null],
-      samplerPads: new Array(8).fill(null),
+      samplerPads: {
+        drums: new Array(8).fill(null),
+        fx: new Array(8).fill(null),
+        vocals: new Array(8).fill(null),
+      },
     }));
     mockEngine.getDeckProgress.mockReturnValueOnce({
       position: 48,
@@ -178,15 +182,15 @@ describe('DeckService', () => {
       slipPosition: 48,
     });
 
-    service.setSamplerPad('A', 0);
+    service.setSamplerPad('A', 0, 'drums');
 
     expect(service.deckA().hotCues[0]).toBe(24);
-    expect(service.deckA().samplerPads[0]).toBe(48);
+    expect(service.deckA().samplerPads.drums[0]).toBe(48);
 
-    service.clearSamplerPad('A', 0);
+    service.clearSamplerPad('A', 0, 'drums');
 
     expect(service.deckA().hotCues[0]).toBe(24);
-    expect(service.deckA().samplerPads[0]).toBeNull();
+    expect(service.deckA().samplerPads.drums[0]).toBeNull();
   });
 
   it('loads deck buffers and resets progress-sensitive state', () => {
@@ -205,7 +209,11 @@ describe('DeckService', () => {
     expect(service.deckA().duration).toBe(245);
     expect(service.deckA().progress).toBe(0);
     expect(service.deckA().hotCues).toEqual(new Array(8).fill(null));
-    expect(service.deckA().samplerPads).toEqual(new Array(8).fill(null));
+    expect(service.deckA().samplerPads).toEqual({
+      drums: new Array(8).fill(null),
+      fx: new Array(8).fill(null),
+      vocals: new Array(8).fill(null),
+    });
     expect(service.deckA().vinylImageUrl).toBe('vinyl://anthem');
   });
 });

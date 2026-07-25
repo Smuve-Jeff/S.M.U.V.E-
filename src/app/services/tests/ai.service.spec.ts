@@ -4,6 +4,7 @@ import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
 import { LoggingService } from '../logging.service';
+import { MusicManagerService } from '../music-manager.service';
 import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
@@ -91,6 +92,13 @@ describe('AiService', () => {
         { provide: UserContextService, useValue: userContextServiceMock },
         { provide: AnalyticsService, useValue: analyticsServiceMock },
         { provide: LoggingService, useValue: loggingServiceMock },
+        {
+          provide: MusicManagerService,
+          useValue: {
+            tracks: signal([]),
+            engine: { tempo: signal(120) },
+          },
+        },
       ],
     });
 

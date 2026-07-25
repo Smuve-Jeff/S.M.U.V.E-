@@ -123,6 +123,9 @@ export class SpeechSynthesisService {
   }
 
   private applyAuthoritativePronunciation(text: string): string {
+    if (/S\.M\.U\.V\.E(?:\s+\d+\.\d+)?\s+INITIALIZED/i.test(text)) {
+      return 'Welcome to Smooth';
+    }
     return text
       .replace(/S\.M\.U\.V\.E(?:\s+\d+\.\d+)?/gi, 'Smooth')
       .replace(/SMUVE/gi, 'Smooth')
@@ -141,16 +144,45 @@ export class SpeechSynthesisService {
     const conversationId = options?.conversationId;
     let selectedVoice: any = null;
 
-    // Even within a conversation, we might want to rotate voices for "variation"
-    // but keep some anchor if conversationId is provided.
-    // However, the requirement is "randomly changes tone for each conversation"
-    // and "tone vary with every message" (from user input).
+    // Persist the same voice for a given conversation while avoiding reuse
+    // across different conversations when alternatives exist.
+    let preferredVoice: SpeechSynthesisVoice | null = null;
 
-    selectedVoice = this.pickEliteVoice(voices, this.currentArchetype);
+    if (conversationId && this.conversationVoices.has(conversationId)) {
+      preferredVoice = this.conversationVoices.get(conversationId) || null;
+    }
+
+    if (preferredVoice) {
+      selectedVoice = preferredVoice;
+    } else {
+      // Rotate through available voices based on how many conversations are
+      // already assigned, so distinct conversations get distinct voices
+      // when alternatives exist.
+      const existing = this.conversationVoices.size;
+      const englishVoices = voices.filter((voice) =>
+        voice.lang?.toLowerCase().startsWith('en')
+      );
+      const pool = englishVoices.length ? englishVoices : voices;
+      if (pool.length > 0) {
+        const index = existing % pool.length;
+        selectedVoice = pool[index];
+      }
+      if (!selectedVoice) {
+        selectedVoice = this.pickEliteVoice(voices, this.currentArchetype);
+      }
+    }
+
+    if (selectedVoice && conversationId && !preferredVoice) {
+      this.conversationVoices.set(conversationId, selectedVoice);
+    }
 
     if (selectedVoice) {
       this.lastUsedVoice = selectedVoice;
-      utterance.voice = selectedVoice;
+      try {
+        utterance.voice = selectedVoice;
+      } catch {
+        // Some environments reject the voice object; continue without it.
+      }
     }
 
     // Apply "Jitter" to parameters for advanced vocal realism

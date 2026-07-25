@@ -16,17 +16,48 @@ export class SecurityService {
 
   constructor() {}
 
+  private rateLimitMap = new Map<
+    string,
+    { attempts: number; blockedUntil: number }
+  >();
+  private maxAttempts = 5;
+  private blockDurationMs = 15 * 60 * 1000;
+
   validateSession(): boolean {
     if (typeof window === 'undefined') return true;
     const expires = this.sessionExpiresAt();
     return !expires || Date.now() < expires;
   }
-  refreshSession() {}
-  recordAttempt(k: string) {
-    return { allowed: true, remainingAttempts: 5, blockedUntil: 0 };
+  refreshSession() {
+    this.sessionExpiresAt.set(Date.now() + 3600000);
+    this.isSessionValid.set(true);
+    this.lastActivity.set(Date.now());
   }
-  clearRateLimit(k: string) {}
+  recordAttempt(k: string) {
+    const now = Date.now();
+    const entry = this.rateLimitMap.get(k) || {
+      attempts: 0,
+      blockedUntil: 0,
+    };
+    if (entry.blockedUntil > now) {
+      return { allowed: false, remainingAttempts: 0, blockedUntil: entry.blockedUntil };
+    }
+    entry.attempts += 1;
+    if (entry.attempts > this.maxAttempts) {
+      entry.blockedUntil = now + this.blockDurationMs;
+      this.rateLimitMap.set(k, entry);
+      return { allowed: false, remainingAttempts: 0, blockedUntil: entry.blockedUntil };
+    }
+    this.rateLimitMap.set(k, entry);
+    return { allowed: true, remainingAttempts: this.maxAttempts - entry.attempts + 1, blockedUntil: 0 };
+  }
+  clearRateLimit(k: string) {
+    this.rateLimitMap.delete(k);
+  }
   isRateLimited(k: string) {
+    const entry = this.rateLimitMap.get(k);
+    if (!entry) return false;
+    if (entry.blockedUntil > Date.now()) return true;
     return false;
   }
   isValidRedirectUrl(url: string): boolean {
@@ -76,10 +107,16 @@ export class SecurityService {
       requireReauthForSensitive: true,
     };
   }
+  private csrfToken: string | null = null;
+
+  setCSRFToken(token: string) {
+    this.csrfToken = token;
+  }
+
   getCSRFToken() {
-    return 'mock-token';
+    return this.csrfToken || 'mock-token';
   }
   validateCSRFToken(t: string) {
-    return true;
+    return t === this.csrfToken && !!t;
   }
 }

@@ -131,6 +131,10 @@ export class AiService {
     this.mimicryBuffer = [...this.mimicryBuffer, ...words].slice(-10);
   }
 
+  getMimicryBuffer(): string[] {
+    return [...this.mimicryBuffer];
+  }
+
   async processCommand(text: string) {
     this.isProcessing.set(true);
     try {
@@ -251,16 +255,19 @@ export class AiService {
   isUnlocked(id: string) {
     return this.unlockedUpgrades().includes(id);
   }
-  unlockUpgrade(id: string) {
+  unlockUpgrade(id: string): Promise<void> {
     if (this.unlockedUpgrades().includes(id)) {
       this.loggingService.info(`Upgrade ${id} is already unlocked.`);
-      return;
+      return Promise.resolve();
     }
     this.isProcessing.set(true);
-    setTimeout(() => {
-      this.unlockedUpgrades.update((u) => [...u, id]);
-      this.isProcessing.set(false);
-    }, 1500);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        this.unlockedUpgrades.update((u) => [...u, id]);
+        this.isProcessing.set(false);
+        resolve();
+      }, 1500);
+    });
   }
 
   isAIDrummerActive() {
