@@ -903,3 +903,39 @@
   background: linear-gradient(90deg, var(--neon-amber) 0%, var(--teal-300) 100%);
   box-shadow: 0 0 6px var(--teal-soft-glow);
 }
+
+/* ── AUTOMATION CURVE TYPE ───────────────────────────── */
+.sv-auto-curve-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  color: var(--teal-500);
+  flex-shrink: 0;
+}
+
+.sv-auto-curve-select {
+  padding: 3px 6px;
+  background: var(--ivory-deep);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  color: var(--espresso-text);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  min-height: 22px;
+}
+
+.sv-auto-curve-new {
+  display: flex;
+  align-items: center;
+}
+
+.sv-auto-curve-new .sv-auto-curve-select {
+  font-size: 8px;
+  padding: 2px 4px;
+  min-height: 20px;
+}

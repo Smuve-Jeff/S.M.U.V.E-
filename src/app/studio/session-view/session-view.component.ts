@@ -17,6 +17,8 @@ interface SessionScene {
   index: number;
 }
 
+type AutomationCurveType = 'linear' | 'exponential' | 'step';
+
 interface AutomationPoint {
   /** Bar position (e.g. 0.0, 1.5, 3.0) */
   position: number;
@@ -24,6 +26,8 @@ interface AutomationPoint {
   value: number;
   /** Parameter target */
   target: string;
+  /** Interpolation curve between this point and the next */
+  curveType?: AutomationCurveType;
 }
 
 interface SessionClip {
@@ -128,6 +132,7 @@ export class SessionViewComponent {
         isPlaying: c.sceneId === scene.id && this.activeSceneId() === scene.id,
       }))
     );
+    this.scheduleAutoSave();
 
     if (this.activeSceneId() === scene.id) {
       this.snackbar.info(`Scene "${scene.name}" launched`);
@@ -145,6 +150,7 @@ export class SessionViewComponent {
         c.id === clip.id ? { ...c, isPlaying: !c.isPlaying, velocity: clampedVel } : c
       )
     );
+    this.scheduleAutoSave();
     this.snackbar.info(
       `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'} · vel ${Math.round(clampedVel * 100)}%`
     );
@@ -172,6 +178,9 @@ export class SessionViewComponent {
     }
   }
 
+  /** Default curve type when adding a new point */
+  defaultCurveType = signal<AutomationCurveType>('linear');
+
   addAutomationPoint(clipId: string): void {
     const clip = this.clips().find((c) => c.id === clipId);
     if (!clip) return;
@@ -181,6 +190,7 @@ export class SessionViewComponent {
       position: nextPos,
       value: 0.5,
       target: this.automationEditTarget(),
+      curveType: this.defaultCurveType(),
     };
     this.clips.update((list) =>
       list.map((c) =>
@@ -190,7 +200,33 @@ export class SessionViewComponent {
       )
     );
     this.haptic.light();
-    this.snackbar.info(`Automation point added at ${nextPos} bars`);
+    this.scheduleAutoSave();
+    this.snackbar.info(`Automation point added at ${nextPos} bars (${this.defaultCurveType()})`);
+  }
+
+  updateAutomationCurve(clipId: string, pointIdx: number, curve: AutomationCurveType): void {
+    this.clips.update((list) =>
+      list.map((c) =>
+        c.id === clipId && c.automation
+          ? {
+              ...c,
+              automation: c.automation.map((p, i) =>
+                i === pointIdx ? { ...p, curveType: curve } : p
+              ),
+            }
+          : c
+      )
+    );
+    this.scheduleAutoSave();
+  }
+
+  /** Visual icon for curve type */
+  curveIcon(curve?: AutomationCurveType): string {
+    switch (curve) {
+      case 'exponential': return '↗';
+      case 'step': return '⏐';
+      default: return '╱';
+    }
   }
 
   deleteAutomationPoint(clipId: string, pointIdx: number): void {
@@ -202,6 +238,8 @@ export class SessionViewComponent {
       )
     );
     this.haptic.light();
+    this.scheduleAutoSave();
+    this.scheduleAutoSave();
   }
 
   updateAutomationValue(clipId: string, pointIdx: number, newValue: number): void {
@@ -218,6 +256,7 @@ export class SessionViewComponent {
           : c
       )
     );
+    this.scheduleAutoSave();
   }
 
   updateAutomationPosition(clipId: string, pointIdx: number, newPos: number): void {
@@ -249,6 +288,7 @@ export class SessionViewComponent {
         index: idx,
       },
     ]);
+    this.scheduleAutoSave();
     this.snackbar.success('New scene added');
   }
 
@@ -316,6 +356,7 @@ export class SessionViewComponent {
           velocity: 0.8,
         },
       ]);
+      this.scheduleAutoSave();
       this.snackbar.success(`${name} → clip in ${sceneId}`);
     } catch {
       // invalid payload — ignore
@@ -326,10 +367,6 @@ export class SessionViewComponent {
   savedPresets = signal<Array<{ name: string; scenes: SessionScene[]; clips: SessionClip[] }>>([]);
   presetNameInput = signal('');
   presetLoadOpen = signal(false);
-
-  ngOnInit_(): void {
-    this.loadPresetList();
-  }
 
   private loadPresetList(): void {
     try {
@@ -383,7 +420,64 @@ export class SessionViewComponent {
 
   muteTrack(trackId: string): void {
     this.haptic.light();
+    this.scheduleAutoSave();
     this.snackbar.info(`Track ${trackId} muted`);
+  }
+
+  // ── Auto-Save on Reload ────────────────────────────
+  private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly AUTO_SAVE_KEY = 'smuve_session_autosave';
+  private readonly AUTO_SAVE_DELAY = 2000; // 2s debounce
+
+  /** Schedule an auto-save after scenes/clips change */
+  private scheduleAutoSave(): void {
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    this.autoSaveTimer = setTimeout(() => {
+      try {
+        const data = {
+          scenes: this.scenes().map((s) => ({ id: s.id, name: s.name, color: s.color, index: s.index })),
+          clips: this.clips().map((c) => ({
+            id: c.id, name: c.name, trackId: c.trackId, sceneId: c.sceneId,
+            color: c.color, duration: c.duration, velocity: c.velocity,
+            automation: c.automation?.map((a) => ({
+              position: a.position, value: a.value, target: a.target, curveType: a.curveType,
+            })),
+          })),
+          savedAt: Date.now(),
+        };
+        localStorage.setItem(this.AUTO_SAVE_KEY, JSON.stringify(data));
+      } catch {}
+    }, this.AUTO_SAVE_DELAY);
+  }
+
+  /** Restore from auto-save if available */
+  private restoreAutoSave(): boolean {
+    try {
+      const raw = localStorage.getItem(this.AUTO_SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data.scenes || !data.clips) return false;
+      // Check if auto-save is fresh enough (within last 24h)
+      if (data.savedAt && Date.now() - data.savedAt > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(this.AUTO_SAVE_KEY);
+        return false;
+      }
+      this.scenes.set(data.scenes.map((s: any, i: number) => ({
+        id: s.id, name: s.name, color: s.color, index: i,
+      })));
+      this.clips.set(data.clips.map((c: any) => ({
+        ...c,
+        isPlaying: false,
+        automation: c.automation?.map((a: any) => ({
+          position: a.position, value: a.value, target: a.target, curveType: a.curveType || 'linear',
+        })) || [],
+      })));
+      this.snackbar.info('Session restored from auto-save');
+      return true;
+    } catch {
+      localStorage.removeItem(this.AUTO_SAVE_KEY);
+      return false;
+    }
   }
 
   // ── Export / Import Project Bundles ──────────────────
@@ -468,8 +562,23 @@ export class SessionViewComponent {
     input.value = '';
   }
 
+  /** Override ngOnInit_ to add auto-save restore */
+  ngOnInit_(): void {
+    this.loadPresetList();
+    if (!this.restoreAutoSave()) {
+      this.snackbar.info('New session — no auto-save found');
+    }
+  }
+
+  /** Wrap list-modifying methods to trigger auto-save */
+  private autoSaveWrap<T>(fn: () => T): T {
+    const result = fn();
+    this.scheduleAutoSave();
+    return result;
+  }
+
   trackByScene = (_i: number, s: SessionScene) => s.id;
   trackByClip = (_i: number, c: SessionClip) => c.id;
   trackByTrackId = (_i: number, t: { id: string }) => t.id;
-  trackByPoint = (_i: number, p: AutomationPoint) => `${p.target}-${p.position}`;
+  trackByPoint = (_i: number, p: AutomationPoint) => `${p.target}-${p.position}-${p.curveType || 'linear'}`;
 }

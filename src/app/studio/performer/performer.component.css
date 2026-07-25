@@ -1675,3 +1675,46 @@
   color: var(--espresso-text);
   white-space: nowrap;
 }
+
+/* ── MIDI Thru Router ──────────────────────────────────── */
+.midi-thru-details {
+  margin-top: 6px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.midi-thru-summary {
+  padding: 6px 10px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--teal-500);
+  cursor: pointer;
+  background: var(--ivory-paper);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.midi-thru-summary:hover {
+  background: color-mix(in srgb, var(--teal-500) 10%, var(--ivory-paper));
+}
+
+.midi-thru-body {
+  padding: 8px 10px;
+  background: var(--ivory-panel);
+}
+
+.midi-thru-select {
+  flex: 1;
+  padding: 4px 6px;
+  background: var(--ivory-deep);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  color: var(--espresso-text);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  min-height: 24px;
+}

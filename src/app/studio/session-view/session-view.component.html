@@ -82,6 +82,13 @@
             <button type="button" class="sv-auto-add-btn" (click)="addAutomationPoint(selClip.id)">
               + Point
             </button>
+            <div class="sv-auto-curve-new">
+              <select class="sv-auto-curve-select" [value]="defaultCurveType()" (change)="defaultCurveType.set($any($event.target).value)" title="Default curve for new points">
+                <option value="linear">╱ Lin</option>
+                <option value="exponential">↗ Exp</option>
+                <option value="step">⏐ Step</option>
+              </select>
+            </div>
           </div>
           <button type="button" class="sv-auto-close" (click)="selectedClipId.set(null)">✕</button>
         </div>
@@ -96,6 +103,9 @@
           @for (point of filtered; track trackByPoint($index, point); let i = $index) {
             <div class="sv-auto-point-row">
               <span class="sv-auto-point-idx">{{ 'P' + (i + 1) }}</span>
+              <span class="sv-auto-curve-icon" [title]="'Curve: ' + (point.curveType || 'linear')">
+                {{ curveIcon(point.curveType) }}
+              </span>
               <div class="sv-auto-point-fields">
                 <label class="sv-auto-field">
                   <span class="sv-auto-field-label">Bar</span>
@@ -122,6 +132,19 @@
                     />
                     <span class="sv-auto-val">{{ Math.round(point.value * 100) }}%</span>
                   </div>
+                </label>
+                <label class="sv-auto-field">
+                  <span class="sv-auto-field-label">Curve</span>
+                  <select
+                    class="sv-auto-curve-select"
+                    [value]="point.curveType || 'linear'"
+                    (change)="updateAutomationCurve(selClip.id, i, $any($event.target).value)"
+                    aria-label="Curve type for point {{ i + 1 }}"
+                  >
+                    <option value="linear">╱ Linear</option>
+                    <option value="exponential">↗ Exp</option>
+                    <option value="step">⏐ Step</option>
+                  </select>
                 </label>
               </div>
               <button

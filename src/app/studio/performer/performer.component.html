@@ -128,6 +128,50 @@
       <button type="button" class="midi-picker-edit-btn" (click)="midiLogOpen.update(v => !v)">
         {{ midiLogOpen() ? '✕ Close Log' : '📋 MIDI Activity Log' }}
       </button>
+
+      <!-- ── MIDI Thru/Merge Router Controls ── -->
+      <details class="midi-thru-details">
+        <summary class="midi-thru-summary">🔀 MIDI Thru</summary>
+        <div class="midi-thru-body">
+          <div class="midi-clock-strip">
+            <label class="midi-clock-label">Active</label>
+            <button type="button" class="midi-clock-btn" [class.is-active]="midiService.thruEnabled()" (click)="midiService.thruEnabled.update(v => !v)">
+              {{ midiService.thruEnabled() ? 'ON' : 'OFF' }}
+            </button>
+          </div>
+          @if (midiService.thruEnabled()) {
+            <div class="midi-clock-strip" style="margin-top:4px;">
+              <label class="midi-clock-label">Source</label>
+              <select class="midi-thru-select" [value]="midiService.thruInputIndex()" (change)="midiService.thruInputIndex.set(+$any($event.target).value)">
+                <option value="0">All Inputs</option>
+                @for (name of midiService.midiInputNames(); track name; let i = $index) {
+                  <option [value]="i + 1">{{ name }}</option>
+                }
+              </select>
+            </div>
+            <div class="midi-clock-strip" style="margin-top:4px;">
+              <label class="midi-clock-label">Filter</label>
+              <select class="midi-thru-select" [value]="midiService.thruFilter()" (change)="midiService.thruFilter.set($any($event.target).value)">
+                <option value="all">All Messages</option>
+                <option value="notes">Notes Only</option>
+                <option value="cc">CC Only</option>
+                <option value="clock">Clock Only</option>
+              </select>
+            </div>
+            <div class="midi-clock-strip" style="margin-top:4px;">
+              <label class="midi-clock-label">Output</label>
+              <select class="midi-thru-select" [value]="midiService.thruOutputIndex()" (change)="midiService.thruOutputIndex.set(+$any($event.target).value)">
+                @if (midiService.midiOutputNames().length === 0) {
+                  <option value="0">No Outputs</option>
+                }
+                @for (name of midiService.midiOutputNames(); track name; let i = $index) {
+                  <option [value]="i">{{ name }}</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+      </details>
     </div>
   }
 
