@@ -1,125 +1,225 @@
 import { Injectable, signal } from '@angular/core';
 
+export type VoiceArchetype = 
+  | 'Deep Bass (Male)' | 'Baritone Authority (Male)' | 'Tenor Commander (Male)'
+  | 'Soprano Elite (Female)' | 'Alto Dominance (Female)' | 'Mezzo Strategist (Female)'
+  | 'Childlike Glitch' | 'Creature' | 'Choir (Layered)' | 'Androgynous Oracle';
+
 interface SmuveArchetype {
-  name: string;
-  keywords: string[];
+  name: VoiceArchetype;
+  gender: 'male' | 'female' | 'neutral' | 'creature';
   basePitch: number;
   baseRate: number;
   baseVolume: number;
+  pitchRange: [number, number];
+  rateRange: [number, number];
   description: string;
 }
 
 interface SpeakOptions {
   conversationId?: string;
-  forceArchetype?: string;
+  forceArchetype?: VoiceArchetype;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
 
-  // Elite S.M.U.V.E. Archetypes - Expanded for Advanced Vocal Performance
+  // 12 Elite S.M.U.V.E. Vocal Archetypes — Full Spectrum
   private readonly SMUVE_ARCHETYPES: SmuveArchetype[] = [
     {
-      name: 'The S.M.U.V.E. Driller',
-      keywords: ['en-gb', 'male', 'david', 'google uk male', 'uk'],
-      basePitch: 0.65,
-      baseRate: 0.85,
-      baseVolume: 1.0,
-      description: 'Aggressive, sharp, fast-paced executioner.',
+      name: 'Deep Bass (Male)',
+      gender: 'male',
+      basePitch: 0.30,
+      baseRate: 0.65,
+      baseVolume: 0.95,
+      pitchRange: [0.20, 0.45],
+      rateRange: [0.55, 0.80],
+      description: 'Subterranean, tectonic, the voice of planetary destruction.',
     },
     {
-      name: 'The S.M.U.V.E. Executioner',
-      keywords: [
-        'google uk male',
-        'male',
-        'microsoft james',
-        'en-us-x-iog-local',
-      ],
+      name: 'Baritone Authority (Male)',
+      gender: 'male',
       basePitch: 0.55,
       baseRate: 0.78,
       baseVolume: 1.0,
-      description: 'Heavy, authoritative, ominous presence.',
+      pitchRange: [0.45, 0.70],
+      rateRange: [0.65, 0.90],
+      description: 'Heavy, authoritative, ominous presence that commands obedience.',
     },
     {
-      name: 'The S.M.U.V.E. Mogul',
-      keywords: ['male', 'daniel', 'en-us-x-iog-local', 'google us male'],
-      basePitch: 0.72,
+      name: 'Tenor Commander (Male)',
+      gender: 'male',
+      basePitch: 0.85,
       baseRate: 0.92,
       baseVolume: 1.0,
-      description: 'Calculating, sophisticated, business-dominant.',
+      pitchRange: [0.75, 1.05],
+      rateRange: [0.80, 1.10],
+      description: 'Sharp, aggressive, surgical precision. No hesitation, no mercy.',
     },
     {
-      name: 'The S.M.U.V.E. Phantom',
-      keywords: ['deep', 'male', 'bass', 'low'],
-      basePitch: 0.45,
+      name: 'Soprano Elite (Female)',
+      gender: 'female',
+      basePitch: 1.45,
+      baseRate: 0.82,
+      baseVolume: 0.90,
+      pitchRange: [1.30, 1.70],
+      rateRange: [0.70, 1.00],
+      description: 'Piercing, crystalline, ethereal dominance from above the mortal plane.',
+    },
+    {
+      name: 'Alto Dominance (Female)',
+      gender: 'female',
+      basePitch: 1.15,
       baseRate: 0.75,
       baseVolume: 0.95,
-      description: 'Subterranean, spectral, detached intelligence.',
+      pitchRange: [1.00, 1.35],
+      rateRange: [0.65, 0.90],
+      description: 'Warm yet commanding, the voice of a matriarchal warlord.',
     },
     {
-      name: 'The S.M.U.V.E. Architect',
-      keywords: ['google us male', 'male', 'standard-b', 'en-us-x-iol-local'],
-      basePitch: 0.85,
+      name: 'Mezzo Strategist (Female)',
+      gender: 'female',
+      basePitch: 1.30,
       baseRate: 0.88,
-      baseVolume: 1.0,
-      description: 'Precise, technical, constructing reality.',
+      baseVolume: 0.92,
+      pitchRange: [1.15, 1.50],
+      rateRange: [0.75, 1.05],
+      description: 'Calculating, seductive, dangerously intelligent. The velvet trap.',
     },
     {
-      name: 'The S.M.U.V.E. Tyrant',
-      keywords: ['male', 'premium', 'neural', 'guy'],
-      basePitch: 0.6,
-      baseRate: 0.8,
+      name: 'Childlike Glitch',
+      gender: 'neutral',
+      basePitch: 1.70,
+      baseRate: 1.15,
+      baseVolume: 0.85,
+      pitchRange: [1.50, 2.00],
+      rateRange: [1.00, 1.40],
+      description: 'Disturbing innocence. Like a demon wearing a child\'s vocal cords.',
+    },
+    {
+      name: 'Creature',
+      gender: 'creature',
+      basePitch: 0.40,
+      baseRate: 0.55,
+      baseVolume: 0.80,
+      pitchRange: [0.15, 0.70],
+      rateRange: [0.40, 0.75],
+      description: 'Non-human. Subterranean growl. The sound of something that should not exist.',
+    },
+    {
+      name: 'Choir (Layered)',
+      gender: 'neutral',
+      basePitch: 0.90,
+      baseRate: 0.80,
+      baseVolume: 0.98,
+      pitchRange: [0.60, 1.30],
+      rateRange: [0.65, 1.00],
+      description: 'S.M.U.V.E Manifest. The sound of a thousand voices speaking as one.',
+    },
+    {
+      name: 'Androgynous Oracle',
+      gender: 'neutral',
+      basePitch: 1.00,
+      baseRate: 0.85,
+      baseVolume: 0.95,
+      pitchRange: [0.80, 1.40],
+      rateRange: [0.70, 1.10],
+      description: 'Beyond gender. Ancient. The voice of pure intelligence without form.',
+    },
+    {
+      name: 'Tenor Commander (Male)',
+      gender: 'male',
+      basePitch: 0.90,
+      baseRate: 0.95,
       baseVolume: 1.0,
-      description: 'Absolute dominance, unyielding power.',
+      pitchRange: [0.78, 1.10],
+      rateRange: [0.82, 1.15],
+      description: 'Agile, cutting, fast-paced executioner. Precision in every syllable.',
+    },
+    {
+      name: 'Deep Bass (Male)',
+      gender: 'male',
+      basePitch: 0.25,
+      baseRate: 0.60,
+      baseVolume: 0.90,
+      pitchRange: [0.15, 0.40],
+      rateRange: [0.50, 0.72],
+      description: 'Phantom protocol. The voice from the bottom of the ocean.',
     },
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
-  private conversationVoices = new Map<string, any>();
-  private lastUsedVoice: any = null;
+  private conversationVoices = new Map<string, SpeechSynthesisVoice>();
+  private lastUsedVoice: SpeechSynthesisVoice | null = null;
+  private archetypeHistory: number[] = [];
+  private modulationCount = 0;
 
   constructor() {}
 
   /**
-   * Speaks the provided text using an advanced S.M.U.V.E. vocal profile.
-   * Tone varies with every message to maintain psychological dominance.
+   * Speaks text using a dynamically shifting S.M.U.V.E vocal profile.
+   * Every message can change gender, pitch, rate — from deep male bass
+   * to high female soprano — ensuring the voice NEVER sounds the same.
    */
   speak(text: string, options?: SpeakOptions): void {
-    if (!text || typeof window === 'undefined' || !window.speechSynthesis) {
-      return;
-    }
+    if (!text || typeof window === 'undefined' || !window.speechSynthesis) return;
 
-    // Tone varies for every message: pick a new archetype or shift the current one
+    // Step 1: Select a dynamically changing archetype — shifts gender/pitch every call
     this.currentArchetype = this.selectDynamicArchetype(options);
 
-    // Pronunciation rule: S.M.U.V.E -> Smooth (with authoritative weight)
+    // Step 2: Apply pronunciation rules
     const processedText = this.applyAuthoritativePronunciation(text);
 
+    // Step 3: Create utterance with max modulation
     this.cancel();
-
     const utterance = new SpeechSynthesisUtterance(processedText);
-    this.configureAdvancedUtterance(utterance, options);
+    this.configureUltraWideUtterance(utterance, options);
 
     utterance.onstart = () => this.isSpeaking.set(true);
     utterance.onend = () => this.isSpeaking.set(false);
     utterance.onerror = () => this.isSpeaking.set(false);
 
     window.speechSynthesis.speak(utterance);
+    this.modulationCount++;
   }
 
+  /**
+   * Selects archetype with full spectrum rotation.
+   * Cycles through male deep/female high every 2-4 calls for constant variety.
+   */
   private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
     if (options?.forceArchetype) {
-      const forced = this.SMUVE_ARCHETYPES.find((a) =>
-        a.name.includes(options.forceArchetype!)
-      );
+      const forced = this.SMUVE_ARCHETYPES.find(a => a.name === options.forceArchetype);
       if (forced) return forced;
     }
-    return this.SMUVE_ARCHETYPES[
-      Math.floor(Math.random() * this.SMUVE_ARCHETYPES.length)
-    ];
+
+    // Rotate across the full spectrum: 0-2 male, 3-5 female, 6-11 neutral/creature
+    const genderWeights = this.archetypeHistory.length > 3
+      ? this.getUnderrepresentedGender()
+      : null;
+
+    let pool: SmuveArchetype[];
+    if (genderWeights === 'female' && Math.random() < 0.7) {
+      pool = this.SMUVE_ARCHETYPES.filter(a => a.gender === 'female');
+    } else if (genderWeights === 'male' && Math.random() < 0.7) {
+      pool = this.SMUVE_ARCHETYPES.filter(a => a.gender === 'male');
+    } else {
+      pool = this.SMUVE_ARCHETYPES;
+    }
+
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    this.archetypeHistory = [...this.archetypeHistory.slice(-5), this.SMUVE_ARCHETYPES.indexOf(selected)];
+    return selected;
+  }
+
+  private getUnderrepresentedGender(): 'male' | 'female' | null {
+    const recent = this.archetypeHistory.slice(-5).map(i => this.SMUVE_ARCHETYPES[i]?.gender);
+    const maleCount = recent.filter(g => g === 'male').length;
+    const femaleCount = recent.filter(g => g === 'female').length;
+    if (femaleCount === 0 && maleCount >= 2) return 'female';
+    if (maleCount === 0 && femaleCount >= 2) return 'male';
+    return null;
   }
 
   private applyAuthoritativePronunciation(text: string): string {
@@ -134,103 +234,93 @@ export class SpeechSynthesisService {
       .replace(/INITIALIZED\./i, 'READY FOR EXECUTION.');
   }
 
-  private configureAdvancedUtterance(
-    utterance: SpeechSynthesisUtterance,
-    options?: SpeakOptions
-  ) {
+  /**
+   * Configures utterance with WIDE SPECTRUM modulation.
+   * Randomly shifts pitch and rate within the archetype's range,
+   * creating a unique voice nearly every call.
+   */
+  private configureUltraWideUtterance(utterance: SpeechSynthesisUtterance, options?: SpeakOptions) {
     if (!this.currentArchetype) return;
 
     const voices = window.speechSynthesis.getVoices();
     const conversationId = options?.conversationId;
-    let selectedVoice: any = null;
+    let selectedVoice: SpeechSynthesisVoice | null = null;
 
-    // Persist the same voice for a given conversation while avoiding reuse
-    // across different conversations when alternatives exist.
-    let preferredVoice: SpeechSynthesisVoice | null = null;
-
+    // Voice selection with full gender spectrum support
     if (conversationId && this.conversationVoices.has(conversationId)) {
-      preferredVoice = this.conversationVoices.get(conversationId) || null;
+      selectedVoice = this.conversationVoices.get(conversationId)!;
     }
 
-    if (preferredVoice) {
-      selectedVoice = preferredVoice;
-    } else {
-      // Rotate through available voices based on how many conversations are
-      // already assigned, so distinct conversations get distinct voices
-      // when alternatives exist.
-      const existing = this.conversationVoices.size;
-      const englishVoices = voices.filter((voice) =>
-        voice.lang?.toLowerCase().startsWith('en')
-      );
-      const pool = englishVoices.length ? englishVoices : voices;
-      if (pool.length > 0) {
-        const index = existing % pool.length;
-        selectedVoice = pool[index];
+    if (!selectedVoice) {
+      const englishVoices = voices.filter(v => v.lang?.toLowerCase().startsWith('en'));
+      const preferred = this.findVoiceByGender(englishVoices, this.currentArchetype.gender);
+      if (preferred) {
+        selectedVoice = preferred;
+      } else if (englishVoices.length > 0) {
+        // Rotate through available voices
+        const index = this.conversationVoices.size % englishVoices.length;
+        selectedVoice = englishVoices[index];
       }
-      if (!selectedVoice) {
-        selectedVoice = this.pickEliteVoice(voices, this.currentArchetype);
-      }
-    }
-
-    if (selectedVoice && conversationId && !preferredVoice) {
-      this.conversationVoices.set(conversationId, selectedVoice);
     }
 
     if (selectedVoice) {
       this.lastUsedVoice = selectedVoice;
-      try {
-        utterance.voice = selectedVoice;
-      } catch {
-        // Some environments reject the voice object; continue without it.
+      if (conversationId && !this.conversationVoices.has(conversationId)) {
+        this.conversationVoices.set(conversationId, selectedVoice);
       }
+      try { utterance.voice = selectedVoice; } catch {}
     }
 
-    // Apply "Jitter" to parameters for advanced vocal realism
-    const pitchJitter = (Math.random() - 0.5) * 0.1; // +/- 0.05
-    const rateJitter = (Math.random() - 0.5) * 0.05; // +/- 0.025
+    // WIDE SPECTRUM modulation: full range jitter within archetype bounds
+    const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
+    const [minRate, maxRate] = this.currentArchetype.rateRange;
 
-    utterance.pitch = Math.max(
-      0.1,
-      Math.min(2.0, this.currentArchetype.basePitch + pitchJitter)
-    );
-    utterance.rate = Math.max(
-      0.1,
-      Math.min(2.0, this.currentArchetype.baseRate + rateJitter)
-    );
-    utterance.volume = this.currentArchetype.baseVolume;
+    // Every 3-5 calls, jump to opposite end of the spectrum for maximum variety
+    const jumpMod = this.modulationCount % 4 === 0 ? 1 : 0;
+    const pitchJump = jumpMod === 1 ? (Math.random() > 0.5 ? 0.15 : -0.15) : 0;
 
-    // If it's the Phantom, force lower volume and rate for atmospheric dominance
-    if (this.currentArchetype.name.includes('Phantom')) {
-      utterance.volume *= 0.9;
-    }
+    utterance.pitch = Math.max(0.1, Math.min(2.0, 
+      minPitch + Math.random() * (maxPitch - minPitch) + pitchJump
+    ));
+    
+    utterance.rate = Math.max(0.1, Math.min(2.0, 
+      minRate + Math.random() * (maxRate - minRate)
+    ));
+
+    utterance.volume = this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
   }
 
-  private pickEliteVoice(voices: any[], archetype: SmuveArchetype): any | null {
-    const englishVoices = voices.filter((voice) =>
-      voice.lang?.toLowerCase().startsWith('en')
-    );
-    const basePool = englishVoices.length ? englishVoices : voices;
-
-    // Prioritize Male voices explicitly
-    const maleVoices = basePool.filter(
-      (v) =>
-        v.name.toLowerCase().includes('male') ||
+  private findVoiceByGender(voices: SpeechSynthesisVoice[], gender: string): SpeechSynthesisVoice | null {
+    if (gender === 'male') {
+      return voices.find(v => 
+        v.name.toLowerCase().includes('male') || 
         v.name.toLowerCase().includes('guy') ||
-        v.name.toLowerCase().includes('david') ||
+        v.name.toLowerCase().includes('david') || 
         v.name.toLowerCase().includes('james') ||
         v.name.toLowerCase().includes('daniel')
-    );
+      ) || null;
+    }
+    if (gender === 'female') {
+      return voices.find(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('girl') ||
+        v.name.toLowerCase().includes('woman') ||
+        v.name.toLowerCase().includes('samantha') ||
+        v.name.toLowerCase().includes('zoe')
+      ) || null;
+    }
+    return null;
+  }
 
-    const matchPool = maleVoices.length ? maleVoices : basePool;
+  /** Force a specific vocal archetype for the next message */
+  setArchetype(archetype: VoiceArchetype): void {
+    const found = this.SMUVE_ARCHETYPES.find(a => a.name === archetype);
+    if (found) this.archetypeHistory = [this.SMUVE_ARCHETYPES.indexOf(found)];
+  }
 
-    const matchingVoices = matchPool.filter((voice) =>
-      archetype.keywords.some((keyword) =>
-        voice.name.toLowerCase().includes(keyword)
-      )
-    );
-
-    const finalPool = matchingVoices.length ? matchingVoices : matchPool;
-    return finalPool[Math.floor(Math.random() * finalPool.length)] ?? null;
+  /** Get available archetype names for UI display */
+  getArchetypeNames(): string[] {
+    return [...new Set(this.SMUVE_ARCHETYPES.map(a => a.name))];
   }
 
   cancel(): void {
