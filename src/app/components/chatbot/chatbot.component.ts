@@ -21,6 +21,9 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS } from './chatbot.commands';
+import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
+import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
+import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
 
 interface ChatMessage {
   id: string;
@@ -54,6 +57,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   private audioEngineService = inject(AudioEngineService);
   private speechSynthesisService = inject(SpeechSynthesisService);
   private logger = inject(LoggingService);
+  private controlService = inject(SmuveTotalControlService);
+  private knowledgeEngine = inject(SmuveKnowledgeEngine);
+  private styleMimicService = inject(SmuveStyleMimicService);
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
 
@@ -155,9 +161,47 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     this.isTyping.set(true);
 
     try {
-      const response = await this.aiService.processCommand(text);
-      const content =
-        response || 'Protocol error. Re-initializing neural link.';
+      let content: string;
+
+      // Route slash commands to new control services
+      if (text.startsWith('/')) {
+        const cmdResult = await this.controlService.executeCommand(text);
+        content = cmdResult.message;
+      }
+      // Route style mimic commands
+      else if (text.toLowerCase().startsWith('mimic ')) {
+        const artist = text.substring(6).trim();
+        const styleGuide = this.styleMimicService.generateStyleGuide(artist);
+        if (styleGuide) {
+          content = styleGuide;
+        } else {
+          const available = this.styleMimicService.getAvailableArtists().join(', ');
+          content = `Style profile not found for "${artist}". Available artists: ${available}. Or try: /mimic [artist]`;
+        }
+      }
+      // Route knowledge queries
+      else if (text.toLowerCase().startsWith('teach me ') || text.toLowerCase().startsWith('learn ')) {
+        const topic = text.replace(/^(teach me|learn) /i, '').trim();
+        const results = this.knowledgeEngine.search(topic);
+        if (results.length > 0) {
+          const entry = results[0];
+          content = `📚 S.M.U.V.E KNOWLEDGE: ${entry.title}
+${'─'.repeat(50)}
+Category: ${entry.category} › ${entry.subcategory}
+Difficulty: ${entry.difficulty}
+
+${entry.content}
+
+${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
+        } else {
+          content = `No knowledge found for "${topic}". Try: mixing, mastering, vocal, songwriting, marketing, legal, business, distribution, or career.`;
+        }
+      }
+      // Standard AI processing
+      else {
+        const response = await this.aiService.processCommand(text);
+        content = response || 'Protocol error. Re-initializing neural link.';
+      }
 
       // Stream the response for perceived speed/neural feel
       await this.streamResponse(content, category);
