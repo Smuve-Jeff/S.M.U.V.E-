@@ -200,6 +200,24 @@ export class SmuveTotalControlService {
       return { domain: 'ai', action, requiresConfirmation: false };
     }
 
+    // Piano Roll command
+    if (text === '/pianoroll' || text === '/piano-roll' || text === '/piano') {
+      return { domain: 'navigation', action: 'navigate', target: 'cowrite', requiresConfirmation: false };
+    }
+
+    // Auto-Harmony commands
+    if (text === '/harmony' || text === '/auto-harmony' || text === '/harmonize') {
+      return { domain: 'ai', action: 'harmony', requiresConfirmation: false };
+    }
+
+    // Project Manager commands
+    if (text === '/projects' || text === '/saves' || text === '/project-manager') {
+      return { domain: 'navigation', action: 'navigate', target: 'cowrite', requiresConfirmation: false };
+    }
+    if (text === '/saveproject' || text === '/save-project') {
+      return { domain: 'ai', action: 'saveproject', requiresConfirmation: false };
+    }
+
     // Melody generation commands
     if (text === '/melody' || text === '/melody cowrite' || text === '/melody lyrics') {
       return { domain: 'ai', action: 'melody', requiresConfirmation: false };
@@ -530,6 +548,26 @@ export class SmuveTotalControlService {
       this.cowrite.endSession();
       return { success: true, message: 'Co-write session ended. Your compiled lyrics are available with /cowrite lyrics. To start a new session: /cowrite [topic]' };
     }
+    if (cmd.action === 'harmony' || cmd.action === 'harmonize') {
+      const result = this.cowrite.generateAutoHarmony(['3rd', '5th', '7th'], this.cowrite.currentSession()?.key || 'C');
+      if (result.totalNotes === 0) {
+        return { success: false, message: 'No accepted lines to generate harmony for. Accept some lines in your co-write session first.' };
+      }
+      return {
+        success: true,
+        message: `🎵 S.M.U.V.E AUTO-HARMONY\n${'═'.repeat(50)}\nGenerated ${result.melody.length} melody + ${result.harmony.length} harmony notes\nHarmony types: 3rds, 5ths, 7ths\n\nOpen the Co-Write Studio to see the full Piano Roll with harmony visualization.\nUse /pianoroll to open the piano roll view.`
+      };
+    }
+    if (cmd.action === 'saveproject') {
+      const project = this.cowrite.saveProject();
+      if (project) {
+        return {
+          success: true,
+          message: `💾 PROJECT SAVED\n${'═'.repeat(50)}\n"${project.title}" — ${project.acceptedLineCount} accepted lines, ${project.genre}, ${project.key}\nSaved to local storage. Load with /projects in the Co-Write Studio.`
+        };
+      }
+      return { success: false, message: 'No active co-write session to save. Start one with /cowrite [topic].' };
+    }
     if (cmd.action === 'melody') {
       const result = this.cowrite.generateMelodyForSession();
       if (result.noteCount === 0) {
@@ -537,7 +575,7 @@ export class SmuveTotalControlService {
       }
       return {
         success: true,
-        message: `🎵 S.M.U.V.E MELODY GENERATION\n${'═'.repeat(50)}\n${result.melody}\n${'─'.repeat(50)}\n${result.noteCount} notes generated from your accepted lyrics.\n\nOpen /cowrite studio to see the full melody preview with note-by-note mapping.`
+        message: `🎵 S.M.U.V.E MELODY GENERATION\n${'═'.repeat(50)}\n${result.melody}\n${'─'.repeat(50)}\n${result.noteCount} notes generated from your accepted lyrics.\n\nOpen /cowrite studio to see the full piano roll with harmony.`
       };
     }
     if (cmd.action === 'exportstudio') {

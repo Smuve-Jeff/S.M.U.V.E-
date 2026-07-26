@@ -1,15 +1,16 @@
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CoWriteService, CoWriteTurn, CoWriteSuggestion } from '../../services/cowrite.service';
+import { CoWriteService, CoWriteTurn, CoWriteSuggestion, CoWriteProject, PianoRollNote } from '../../services/cowrite.service';
 import { SongwritingAssistantService } from '../../services/songwriting-assistant.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
 import { AiService } from '../../services/ai.service';
+import { MelodyPianoRollComponent } from '../melody-piano-roll/melody-piano-roll.component';
 
 @Component({
   selector: 'app-cowrite-studio',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MelodyPianoRollComponent],
   templateUrl: './cowrite-studio.component.html',
   styleUrls: ['./cowrite-studio.component.css'],
 })
@@ -40,9 +41,24 @@ export class CowriteStudioComponent implements OnInit {
   readonly moods = ['emotional', 'dark', 'uplifting', 'angry', 'dreamy', 'hopeful', 'melancholic', 'aggressive'];
   readonly artists = this.styleMimic.getAvailableArtists();
 
-  // Melody & export state
+  // ── Melody & Piano Roll state ──────────────────────────
+  showPianoRoll = signal(false);
   showMelody = signal(false);
   melodyResult = signal<{ melody: string; notes: string; noteCount: number } | null>(null);
+  melodyNotes = signal<PianoRollNote[]>([]);
+  harmonyNotes = signal<PianoRollNote[]>([]);
+  harmonyTypes = signal<string[]>(['3rd', '5th']);
+
+  // ── Project Manager state ──────────────────────────────
+  showProjects = signal(false);
+  savedProjectsList = signal<CoWriteProject[]>([]);
+  projectNameInput = signal('');
+  saveConfirm = signal<string | null>(null);
+  loadError = signal<string | null>(null);
+
+  // ── Auto-Harmony state ─────────────────────────────────
+  showHarmony = signal(false);
+  harmonyTypeOptions = signal<Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>>(['3rd', '5th']);
 
   exportResult = signal<string | null>(null);
 
@@ -61,6 +77,9 @@ export class CowriteStudioComponent implements OnInit {
     this.currentSession()?.turns.filter(t => t.accepted).length || 0
   );
 
+  // ── Computed for piano roll ────────────────────────────
+  totalHarmonyNotes = computed(() => this.harmonyNotes().length);
+
   getSongStructurePreview(): string[] {
     const session = this.currentSession();
     if (!session) return [];
@@ -71,13 +90,14 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Pre-populate with some vibe
     this.setupConfig.set({
       topic: '',
       mood: 'emotional',
       artist: '',
       genre: 'Pop',
     });
+    // Load saved projects from localStorage on init
+    this.cowrite.loadProjects();
   }
 
   toggleArtist(artist: string) {
@@ -93,10 +113,98 @@ export class CowriteStudioComponent implements OnInit {
     });
   }
 
+  // ── Melody Piano Roll ──────────────────────────────────
+
   generateMelody() {
     const result = this.cowrite.generateMelodyForSession();
     this.melodyResult.set(result);
     this.showMelody.set(true);
+  }
+
+  openPianoRoll() {
+    const result = this.cowrite.generateMelodyForSession();
+    this.melodyResult.set(result);
+
+    // Generate melody notes for piano roll
+    const harm = this.cowrite.generateAutoHarmony(
+      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>,
+      this.currentSession()?.key || 'C'
+    );
+    this.melodyNotes.set(harm.melody);
+    this.harmonyNotes.set(harm.harmony);
+    this.showPianoRoll.set(true);
+  }
+
+  closePianoRoll() {
+    this.showPianoRoll.set(false);
+  }
+
+  // ── Auto-Harmony ───────────────────────────────────────
+
+  generateHarmony() {
+    const harm = this.cowrite.generateAutoHarmony(
+      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>,
+      this.currentSession()?.key || 'C'
+    );
+    this.melodyNotes.set(harm.melody);
+    this.harmonyNotes.set(harm.harmony);
+    this.showHarmony.set(true);
+    this.showPianoRoll.set(true);
+  }
+
+  toggleHarmonyType(type: '3rd' | '5th' | '7th' | 'octave' | 'unison') {
+    this.harmonyTypeOptions.update(current => {
+      const idx = current.indexOf(type);
+      if (idx >= 0) {
+        return current.filter(t => t !== type) as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>;
+      }
+      return [...current, type] as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>;
+    });
+  }
+
+  // ── Project Manager ────────────────────────────────────
+
+  openProjectManager() {
+    const projects = this.cowrite.loadProjects();
+    this.savedProjectsList.set(projects);
+    this.showProjects.set(true);
+  }
+
+  closeProjectManager() {
+    this.showProjects.set(false);
+  }
+
+  saveCurrentProject() {
+    const name = this.projectNameInput().trim() || undefined;
+    const project = this.cowrite.saveProject(name);
+    if (project) {
+      this.savedProjectsList.update(list => [project, ...list]);
+      this.saveConfirm.set(`Project "${project.title}" saved successfully.`);
+      this.projectNameInput.set('');
+      setTimeout(() => this.saveConfirm.set(null), 3000);
+    } else {
+      this.saveConfirm.set('No active session to save.');
+      setTimeout(() => this.saveConfirm.set(null), 3000);
+    }
+  }
+
+  loadProject(projectId: string) {
+    const project = this.cowrite.loadProject(projectId);
+    if (project) {
+      this.showSetup.set(false);
+      this.showLyrics.set(true);
+      this.loadError.set(null);
+      this.saveConfirm.set(`Loaded "${project.title}"`);
+      setTimeout(() => this.saveConfirm.set(null), 3000);
+    } else {
+      this.loadError.set('Failed to load project.');
+      setTimeout(() => this.loadError.set(null), 3000);
+    }
+  }
+
+  deleteProject(projectId: string) {
+    this.cowrite.deleteProject(projectId);
+    this.savedProjectsList.update(list => list.filter(p => p.id !== projectId));
   }
 
   exportToStudio() {
@@ -104,6 +212,8 @@ export class CowriteStudioComponent implements OnInit {
     this.exportResult.set(result.message);
     setTimeout(() => this.exportResult.set(null), 5000);
   }
+
+  // ── Session methods ────────────────────────────────────
 
   startSession() {
     const config = this.setupConfig();
@@ -121,10 +231,7 @@ export class CowriteStudioComponent implements OnInit {
     this.showSetup.set(false);
     this.showLyrics.set(true);
 
-    // S.M.U.V.E opens the session with a characteristic remark + first line
     this.cowrite.generateSmuveContribution();
-    
-    // Generate an initial suggestion
     this.suggestions.set([this.cowrite.getSuggestion('start')]);
   }
 
@@ -136,10 +243,7 @@ export class CowriteStudioComponent implements OnInit {
     this.userInput.set('');
     this.selectedLineIndex.set(null);
 
-    // S.M.U.V.E responds
     await this.cowrite.generateSmuveContribution(text);
-
-    // Generate new suggestion
     this.suggestions.set([this.cowrite.getSuggestion(text)]);
   }
 
@@ -154,10 +258,8 @@ export class CowriteStudioComponent implements OnInit {
   async nextSection() {
     const next = this.cowrite.nextSection();
     if (next) {
-      // S.M.U.V.E suggests the opening line for the next section
       await this.cowrite.generateSmuveContribution(`Opening ${next}`);
     } else {
-      // Session complete
       this.suggestions.set([{
         type: 'feedback',
         content: 'Session complete! Use /cowrite lyrics to view your compiled song, or start a new session with /cowrite [topic]',

@@ -103,12 +103,29 @@
             </span>
           }
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <!-- Project Manager -->
           <button
-            (click)="generateMelody()"
-            class="px-3 py-1.5 bg-violet-500/10 border border-violet-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-500/20 transition-all"
+            (click)="openProjectManager()"
+            class="px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-amber-400 hover:bg-amber-500/20 transition-all"
           >
-            Melody
+            Projects
+          </button>
+          <!-- Piano Roll -->
+          <button
+            (click)="openPianoRoll()"
+            [disabled]="acceptedCount() === 0"
+            class="px-3 py-1.5 bg-violet-500/10 border border-violet-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-500/20 transition-all disabled:opacity-30"
+          >
+            Piano Roll
+          </button>
+          <!-- Harmony -->
+          <button
+            (click)="generateHarmony()"
+            [disabled]="acceptedCount() === 0"
+            class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-30"
+          >
+            Auto-Harmony
           </button>
           <button
             (click)="exportToStudio()"
@@ -316,22 +333,113 @@
             </button>
           </div>
 
-          <!-- Melody Preview Toggle -->
-          @if (acceptedCount() > 0) {
-            <div class="bg-brand-surface/20 border border-violet-500/20 rounded-2xl p-4 shrink-0">
+          <!-- Piano Roll Panel (full canvas component) -->
+          @if (showPianoRoll() && melodyNotes().length > 0) {
+            <div class="bg-brand-surface/20 border border-violet-500/20 rounded-2xl p-3 shrink-0" style="min-height: 300px;">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[9px] font-black uppercase tracking-widest text-violet-400">Piano Roll</span>
+                <button
+                  (click)="closePianoRoll()"
+                  class="text-[8px] text-slate-500 hover:text-white transition-all"
+                >✕</button>
+              </div>
+              <app-melody-piano-roll
+                [melodyNotes]="melodyNotes()"
+                [harmonyNotes]="harmonyNotes()"
+                [harmonyTypes]="harmonyTypes()"
+              />
+            </div>
+          }
+
+          <!-- Auto-Harmony Controls -->
+          @if (showHarmony()) {
+            <div class="bg-brand-surface/20 border border-emerald-500/20 rounded-2xl p-4 shrink-0">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-[9px] font-black uppercase tracking-widest text-emerald-400">Auto-Harmony</h3>
+                <span class="text-[8px] text-slate-500 font-mono">{{ totalHarmonyNotes() }} notes</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 mb-3">
+                @for (t of ['3rd', '5th', '7th', 'octave', 'unison']; track t) {
+                  <button
+                    (click)="toggleHarmonyType(t)"
+                    class="px-2 py-1 rounded text-[7px] font-black uppercase tracking-widest border transition-all"
+                    [class.bg-emerald-500/30]="harmonyTypeOptions().includes(t)"
+                    [class.text-emerald-400]="harmonyTypeOptions().includes(t)"
+                    [class.border-emerald-500/40]="harmonyTypeOptions().includes(t)"
+                    [class.border-white/10]="!harmonyTypeOptions().includes(t)"
+                    [class.text-slate-500]="!harmonyTypeOptions().includes(t)"
+                  >{{ t }}</button>
+                }
+              </div>
               <button
-                (click)="showMelody.set(!showMelody())"
-                class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-violet-400 mb-2"
+                (click)="generateHarmony()"
+                class="w-full py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 transition-all"
               >
-                <span class="material-symbols-outlined text-sm">music_note</span>
-                Melody Preview {{ showMelody() ? '▲' : '▼' }}
+                Regenerate Harmony
               </button>
-              @if (showMelody() && melodyResult(); as mel) {
-                <div class="bg-brand-dark/30 rounded-xl p-3 overflow-y-auto max-h-[180px] custom-scrollbar">
-                  <pre class="text-[7px] text-slate-400 font-mono leading-relaxed">{{ mel.melody }}</pre>
-                  <p class="text-[8px] text-slate-500 mt-2">{{ mel.noteCount }} notes generated</p>
-                </div>
+            </div>
+          }
+
+          <!-- Project Manager Panel -->
+          @if (showProjects()) {
+            <div class="bg-brand-surface/20 border border-amber-500/20 rounded-2xl p-4 shrink-0 max-h-[300px] flex flex-col">
+              <div class="flex items-center justify-between mb-2 shrink-0">
+                <h3 class="text-[9px] font-black uppercase tracking-widest text-amber-400">Projects</h3>
+                <button
+                  (click)="closeProjectManager()"
+                  class="text-[8px] text-slate-500 hover:text-white transition-all"
+                >✕</button>
+              </div>
+
+              <!-- Save current session -->
+              <div class="flex gap-2 mb-2 shrink-0">
+                <input
+                  [(ngModel)]="projectNameInput"
+                  (keyup.enter)="saveCurrentProject()"
+                  type="text"
+                  placeholder="Project name..."
+                  class="flex-1 bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[9px] text-white placeholder:text-slate-700 focus:border-amber-500/50 outline-none transition-all"
+                />
+                <button
+                  (click)="saveCurrentProject()"
+                  [disabled]="!currentSession()?.isActive"
+                  class="px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-amber-400 hover:bg-amber-500/30 transition-all disabled:opacity-30"
+                >
+                  Save
+                </button>
+              </div>
+
+              <!-- Save confirmation -->
+              @if (saveConfirm(); as msg) {
+                <div class="text-[8px] text-amber-400 mb-2 shrink-0">{{ msg }}</div>
               }
+
+              <!-- Project list -->
+              <div class="flex-1 overflow-y-auto custom-scrollbar space-y-1.5">
+                @if (savedProjectsList().length === 0) {
+                  <div class="text-[8px] text-slate-600 text-center py-4">No saved projects yet.</div>
+                }
+                @for (proj of savedProjectsList(); track proj.id) {
+                  <div class="bg-brand-dark/30 rounded-lg p-2 flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1">
+                      <div class="text-[8px] font-bold text-white truncate">{{ proj.title }}</div>
+                      <div class="text-[7px] text-slate-500">
+                        {{ proj.genre }} · {{ proj.key }} · {{ proj.acceptedLineCount }} lines · {{ proj.artists.length > 0 ? proj.artists.join(', ') : 'No artist' }}
+                      </div>
+                    </div>
+                    <div class="flex gap-1">
+                      <button
+                        (click)="loadProject(proj.id)"
+                        class="px-2 py-1 bg-violet-500/20 border border-violet-500/30 rounded text-[7px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-500/30 transition-all"
+                      >Load</button>
+                      <button
+                        (click)="deleteProject(proj.id)"
+                        class="px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-[7px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/30 transition-all"
+                      >✕</button>
+                    </div>
+                  </div>
+                }
+              </div>
             </div>
           }
 

@@ -1,5 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { SongwritingAssistantService, LyricSection, LyricLine } from './songwriting-assistant.service';
+import { SongwritingAssistantService, LyricSection, LyricLine, MelodyNote } from './songwriting-assistant.service';
 import { SmuveStyleMimicService } from './smuve-style-mimic.service';
 import { AiService } from './ai.service';
 
@@ -41,6 +41,44 @@ export interface CoWriteSuggestion {
   type: 'line' | 'rhyme' | 'word' | 'phrase' | 'restructure' | 'feedback';
   content: string;
   context?: string;
+}
+
+export interface CoWriteProject {
+  id: string;
+  title: string;
+  topic: string;
+  genre: string;
+  bpm: number;
+  key: string;
+  mood: string;
+  artists: string[];
+  lyrics: Record<string, string[]>;
+  acceptedLineCount: number;
+  totalTurnCount: number;
+  createdAt: number;
+  lastModified: number;
+  sessionPreview: string;
+}
+
+export interface HarmonyNote {
+  melodyPitch: number;
+  harmonyType: '3rd' | '5th' | '7th' | 'octave' | 'unison';
+  harmonyPitch: number;
+  duration: string;
+  velocity: number;
+  startBeat: number;
+  word?: string;
+}
+
+export interface PianoRollNote {
+  pitch: number;
+  noteName: string;
+  startBeat: number;
+  duration: number;
+  velocity: number;
+  type: 'melody' | 'harmony';
+  word?: string;
+  harmonyType?: '3rd' | '5th' | '7th' | 'octave' | 'unison';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -368,6 +406,83 @@ export class CoWriteService {
     this.isThinking.set(false);
   }
 
+  /** Generate auto-harmony notes from melody for the current session */
+  generateAutoHarmony(
+    harmonyTypes: Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'> = ['3rd', '5th'],
+    key: string = 'C',
+    scaleType: string = 'major'
+  ): { melody: PianoRollNote[]; harmony: PianoRollNote[]; totalNotes: number } {
+    const session = this.currentSession();
+    if (!session) return { melody: [], harmony: [], totalNotes: 0 };
+
+    const accepted = session.turns.filter(t => t.accepted);
+    if (accepted.length === 0) return { melody: [], harmony: [], totalNotes: 0 };
+
+    const useKey = key || session.key || 'C';
+    const scaleNotes = this.getScaleNotes(useKey, scaleType);
+    const melody: PianoRollNote[] = [];
+    const harmony: PianoRollNote[] = [];
+    let beat = 0;
+
+    for (const turn of accepted) {
+      const words = turn.text.split(' ');
+      const noteCount = Math.min(words.length, 8);
+
+      for (let n = 0; n < noteCount; n++) {
+        // Generate melody pitch
+        const wave = Math.sin((n / noteCount) * Math.PI * 2);
+        const step = Math.round(wave * 3 + 4);
+        const index = ((step % scaleNotes.length) + scaleNotes.length) % scaleNotes.length;
+        const pitch = scaleNotes[index] + 60;
+        const noteName = this.midiToNoteName(pitch);
+        const word = words[n]?.replace(/[^a-zA-Z']/g, '') || '';
+
+        melody.push({
+          pitch,
+          noteName,
+          startBeat: beat,
+          duration: 1,
+          velocity: 90,
+          type: 'melody',
+          word,
+        });
+
+        // Generate harmony notes for each selected harmony type
+        for (const hType of harmonyTypes) {
+          let interval: number;
+          switch (hType) {
+            case '3rd': interval = 4; break;  // Major 3rd
+            case '5th': interval = 7; break;  // Perfect 5th
+            case '7th': interval = 10; break; // Minor 7th
+            case 'octave': interval = 12; break;
+            case 'unison': interval = 0; break;
+            default: interval = 4;
+          }
+
+          // Ensure harmony stays in scale
+          const harmonyPitch = pitch + interval;
+          const harmonyNoteName = this.midiToNoteName(harmonyPitch);
+
+          harmony.push({
+            pitch: harmonyPitch,
+            noteName: harmonyNoteName,
+            startBeat: beat,
+            duration: 1,
+            velocity: Math.max(40, 75 - harmonyTypes.length * 10),
+            type: 'harmony',
+            word,
+            harmonyType: hType,
+          });
+        }
+
+        beat += 1;
+      }
+      beat += 2; // gap between lines
+    }
+
+    return { melody, harmony, totalNotes: melody.length + harmony.length };
+  }
+
   /** Generate melody grid from accepted lyrics for the current session */
   generateMelodyForSession(): { melody: string; notes: string; noteCount: number } {
     const session = this.currentSession();
@@ -489,6 +604,109 @@ export class CoWriteService {
       message: `Exported "${session.topic}" to studio. ${accepted.length} lines, ${session.key}, ${session.bpm}BPM. Track the project in your studio workspace.`,
       project,
     };
+  }
+
+  // ── Project Manager ────────────────────────────────────────
+
+  private readonly STORAGE_KEY = 'smuve_cowrite_projects';
+  private projectsSignal = signal<CoWriteProject[]>([]);
+
+  /** Get all saved projects */
+  get savedProjects() {
+    return this.projectsSignal.asReadonly();
+  }
+
+  /** Load projects from localStorage */
+  loadProjects(): CoWriteProject[] {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const projects = JSON.parse(raw) as CoWriteProject[];
+        this.projectsSignal.set(projects);
+        return projects;
+      }
+    } catch {}
+    this.projectsSignal.set([]);
+    return [];
+  }
+
+  /** Save the current session as a project */
+  saveProject(name?: string): CoWriteProject | null {
+    const session = this.currentSession();
+    if (!session) return null;
+
+    // Build lyric sections from accepted turns
+    const sectionMap: Record<string, string[]> = {};
+    for (const turn of session.turns.filter(t => t.accepted)) {
+      if (!sectionMap[turn.sectionType]) sectionMap[turn.sectionType] = [];
+      sectionMap[turn.sectionType].push(turn.text);
+    }
+
+    const acceptedCount = session.turns.filter(t => t.accepted).length;
+
+    const project: CoWriteProject = {
+      id: `proj_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      title: name || session.topic,
+      topic: session.topic,
+      genre: session.genre,
+      bpm: session.bpm,
+      key: session.key,
+      mood: session.mood,
+      artists: session.artists || [],
+      lyrics: sectionMap,
+      acceptedLineCount: acceptedCount,
+      totalTurnCount: session.turns.length,
+      createdAt: Date.now(),
+      lastModified: Date.now(),
+      sessionPreview: this.getCompiledLyrics().slice(0, 200),
+    };
+
+    // Persist
+    const existing = this.loadProjects();
+    existing.unshift(project);
+    if (existing.length > 50) existing.length = 50; // cap
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existing));
+    this.projectsSignal.set(existing);
+    return project;
+  }
+
+  /** Load a saved project into the current session */
+  loadProject(projectId: string): CoWriteProject | null {
+    const projects = this.loadProjects();
+    const found = projects.find(p => p.id === projectId);
+    if (!found) return null;
+
+    // Rebuild a session from the project
+    const session = this.startSession({
+      topic: found.topic,
+      genre: found.genre,
+      bpm: found.bpm,
+      key: found.key,
+      mood: found.mood,
+      artists: found.artists,
+    });
+
+    // Restore accepted lines as user turns
+    for (const [section, lines] of Object.entries(found.lyrics)) {
+      for (const text of lines) {
+        this.addUserContribution(text);
+        // Auto-accept restored lines
+        const latest = this.currentSession()?.turns[this.currentSession()!.turns.length - 1];
+        if (latest) this.acceptTurn(latest.id);
+      }
+    }
+
+    return found;
+  }
+
+  /** Delete a saved project */
+  deleteProject(projectId: string): boolean {
+    const projects = this.loadProjects();
+    const filtered = projects.filter(p => p.id !== projectId);
+    if (filtered.length === projects.length) return false;
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
+    this.projectsSignal.set(filtered);
+    return true;
   }
 
   /** Get a session summary for the chatbot */
