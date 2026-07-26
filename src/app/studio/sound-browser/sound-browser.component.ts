@@ -7,6 +7,8 @@ import {
 } from '../../services/instruments.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { SmartSoundService } from '../smart-sound.service';
+import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
 
 @Component({
   selector: 'app-sound-browser',
@@ -19,13 +21,36 @@ export class SoundBrowserComponent {
   private instruments = inject(InstrumentsService);
   public musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
+  public smartSound = inject(SmartSoundService);
+  private aiMix = inject(AiMixAssistantService);
 
   searchQuery = signal('');
   selectedCategory = signal<string>('all');
   selectedTag = signal<string | null>(null);
   previewingId = signal<string | null>(null);
+  showFavs = signal(false);
+  similarToId = signal<string | null>(null);
 
   allPresets = computed(() => this.instruments.getPresets());
+
+  /** Presets that are in the smartSound favorites */
+  favoritePresetIds = computed(() => this.smartSound.favoriteIds());
+
+  /** Similar sounds (when a sound is selected) */
+  similarSounds = computed(() => {
+    const id = this.similarToId();
+    if (!id) return [];
+    return this.smartSound.findSimilar(id, 5);
+  });
+
+  /** Genre-based instrument recommendations */
+  genreRecs = computed(() => {
+    const meta = this.smartSound;
+    if (meta.activeGenre() && meta.activeGenre() !== 'all') {
+      return this.aiMix.recommendInstruments(meta.activeGenre()!);
+    }
+    return [];
+  });
 
   categories = [
     { id: 'all', label: 'All', icon: 'grid_view' },
@@ -100,7 +125,8 @@ export class SoundBrowserComponent {
   }
 
   aiSearch() {
-    // AI search integration point
+    this.smartSound.smartSearch(this.searchQuery());
+    this.searchQuery.set(this.searchQuery());
   }
 
   async bulkExport() {
@@ -115,5 +141,54 @@ export class SoundBrowserComponent {
         presetId: preset.id,
       })
     );
+  }
+
+  // ── Smart Sound Integration ────────────────────────────────
+
+  /** Toggle favorite for a preset */
+  toggleFavorite(presetId: string) {
+    this.smartSound.toggleFavorite(presetId);
+    this.smartSound.recordUsage(presetId);
+  }
+
+  /** Whether a preset is favorited */
+  isFavorite(presetId: string): boolean {
+    return this.smartSound.isFavorite(presetId);
+  }
+
+  /** Show similar presets */
+  showSimilar(presetId: string) {
+    this.similarToId.set(presetId);
+  }
+
+  /** Clear similar panel */
+  clearSimilar() {
+    this.similarToId.set(null);
+  }
+
+  /** Toggle favorites-only filter */
+  toggleFavFilter() {
+    this.showFavs.update((v) => !v);
+  }
+
+  /** Select a genre filter */
+  selectGenre(genre: string) {
+    this.smartSound.activeGenre.set(genre === 'all' ? null : genre);
+  }
+
+  /** Select a mood filter */
+  selectMood(mood: string) {
+    this.smartSound.activeMood.set(mood === 'all' ? null : mood);
+  }
+
+  /** Get recently used sounds */
+  recentIds = computed(() => this.smartSound.recentIds());
+
+  /** Select a sound from SmartSoundService by its ID (used in recent/similar templates) */
+  selectSoundById(soundId: string) {
+    const preset = this.allPresets().find((p) => p.id === soundId);
+    if (preset) {
+      this.selectPreset(preset);
+    }
   }
 }

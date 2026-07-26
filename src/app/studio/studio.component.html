@@ -133,6 +133,33 @@
     </div>
   </header>
 
+  <!-- ====================== TOPBAR CONTROLS ====================== -->
+  <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
+  <div class="comp-topbar-tools" *ngIf="!headerCollapsed()">
+    <button type="button" class="comp-tool-btn" (click)="toggleAiMixAssistant()" [class.comp-tool-active]="showAiMixAssistant()" title="AI Mix Assistant — analyze tracks &amp; get smart suggestions" aria-label="Toggle AI Mix Assistant panel">
+      <span class="material-symbols-outlined">analytics</span>
+      <span class="comp-tool-badge" *ngIf="aiMixAssistant.suggestions().length > 0">{{ aiMixAssistant.suggestions().length }}</span>
+      <span class="comp-tool-label">AI MIX</span>
+    </button>
+    <button type="button" class="comp-tool-btn" (click)="toggleSmartRecordingPanel()" [class.comp-tool-active]="showSmartRecordingPanel()" title="Recording mode — normal, punch-in/out, or comp takes" aria-label="Toggle recording mode panel">
+      <span class="material-symbols-outlined">radio_button_checked</span>
+      <span class="comp-tool-label">REC</span>
+    </button>
+    <button type="button" class="comp-tool-btn" (click)="toggleProjectMetadata()" [class.comp-tool-active]="showProjectMetadata()" title="Project metadata — genre, key, mood &amp; export" aria-label="Toggle project metadata editor">
+      <span class="material-symbols-outlined">info</span>
+      <span class="comp-tool-label">INFO</span>
+    </button>
+    <button type="button" class="comp-tool-btn" (click)="saveProject()" title="Save project (Ctrl+S)" aria-label="Save project">
+      <span class="material-symbols-outlined">save</span>
+      <span class="comp-tool-badge" *ngIf="projectWorkspace.isDirty()" title="Unsaved changes">!</span>
+      <span class="comp-tool-label">SAVE</span>
+    </button>
+    <button type="button" class="comp-tool-btn" (click)="exportProject()" title="Export project as .smuve bundle (Ctrl+E)" aria-label="Export project bundle">
+      <span class="material-symbols-outlined">file_download</span>
+      <span class="comp-tool-label">EXPORT</span>
+    </button>
+  </div>
+
   <!-- ====================== STAGE MARQUEE ====================== -->
   <div class="stage-marquee comp-stage-marquee" aria-hidden="true">
     <div class="stage-marquee-track">
@@ -401,6 +428,225 @@
     (click)="toggleMobileDrawer()"
     aria-hidden="true"
   ></div>
+
+  <!-- ====================== AI MIX PANEL (right slide) ====================== -->
+  <aside class="comp-panel comp-aimix-panel" [class.comp-panel-open]="showAiMixAssistant()" role="dialog" aria-label="AI Mix Assistant">
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">analytics</span>
+        AI MIX
+      </span>
+      <button type="button" class="comp-icon-btn" (click)="toggleAiMixAssistant()" aria-label="Close AI Mix panel">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Mix Quality Score -->
+      <div class="comp-aimix-score">
+        <div class="comp-aimix-ring" [style.background]="'conic-gradient(var(--teal-500) ' + aiMixAssistant.mixQualityScore() * 3.6 + 'deg, var(--espresso-line) 0deg)'">
+          <div class="comp-aimix-ring-inner">
+            <span class="comp-aimix-score-val">{{ aiMixAssistant.mixQualityScore() }}</span>
+          </div>
+        </div>
+        <div class="comp-aimix-score-label">{{ aiMixAssistant.mixQualityLabel() }}</div>
+      </div>
+
+      <!-- Analyze & Refresh -->
+      <button type="button" class="comp-aimix-analyze" (click)="runAiMixAnalysis()">
+        <span class="material-symbols-outlined">refresh</span>
+        Analyze All Tracks
+      </button>
+
+      <!-- Track Analyses -->
+      <div class="comp-aimix-section" *ngIf="aiMixAssistant.analyses().length > 0">
+        <span class="comp-aimix-section-title">TRACK ANALYSES</span>
+        <div class="comp-aimix-track" *ngFor="let a of aiMixAssistant.analyses()">
+          <div class="comp-aimix-track-name">{{ a.trackName }}</div>
+          <div class="comp-aimix-track-tags">
+            <span class="comp-aimix-tag" [class.comp-aimix-tag-dark]="a.frequencyProfile === 'dark'"
+                  [class.comp-aimix-tag-bright]="a.frequencyProfile === 'bright'"
+                  [class.comp-aimix-tag-balanced]="a.frequencyProfile === 'balanced'">{{ a.frequencyProfile }}</span>
+            <span class="comp-aimix-tag">{{ a.stereoWidth }}</span>
+            <span class="comp-aimix-tag">{{ a.transientContent }}</span>
+            <span class="comp-aimix-tag" [class.comp-aimix-tag-complex]="a.harmonicComplexity === 'complex'">{{ a.harmonicComplexity }}</span>
+          </div>
+          <div class="comp-aimix-track-role">
+            <span class="material-symbols-outlined">double_arrow</span>
+            {{ a.suggestedRole }}
+          </div>
+          <!-- Frequency profile bar -->
+          <div class="comp-aimix-bar">
+            <div class="comp-aimix-bar-fill" [style.width.%]="a.frequencyProfile === 'dark' ? 20 : a.frequencyProfile === 'warm' ? 35 : a.frequencyProfile === 'balanced' ? 50 : a.frequencyProfile === 'bright' ? 75 : 90"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestions -->
+      <div class="comp-aimix-section" *ngIf="aiMixAssistant.suggestions().length > 0">
+        <span class="comp-aimix-section-title">SUGGESTIONS ({{ aiMixAssistant.suggestions().length }})</span>
+        <div class="comp-aimix-suggestion" *ngFor="let s of aiMixAssistant.suggestions()"
+             [class.comp-aimix-sug-critical]="s.severity === 'critical'"
+             [class.comp-aimix-sug-rec]="s.severity === 'recommended'">
+          <div class="comp-aimix-sug-head">
+            <span class="comp-aimix-sug-icon material-symbols-outlined">
+              {{ s.type === 'eq' ? 'tune' : s.type === 'compression' ? 'compress' : s.type === 'reverb' ? 'music_note' : s.type === 'level' ? 'volume_up' : 'width' }}
+            </span>
+            <span class="comp-aimix-sug-label">{{ s.label }}</span>
+            <span class="comp-aimix-sug-sev" [class.critical]="s.severity === 'critical'">{{ s.severity }}</span>
+          </div>
+          <p class="comp-aimix-sug-desc">{{ s.description }}</p>
+          <div class="comp-aimix-sug-values">
+            <span>{{ s.parameter }}: {{ s.currentValue }} → </span>
+            <span class="comp-aimix-sug-target">{{ s.suggestedValue }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== RECORDING MODE PANEL (right slide) ====================== -->
+  <aside class="comp-panel comp-rec-panel" [class.comp-panel-open]="showSmartRecordingPanel()" role="dialog" aria-label="Recording Mode">
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        RECORDING
+      </span>
+      <button type="button" class="comp-icon-btn" (click)="toggleSmartRecordingPanel()" aria-label="Close recording panel">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Recording Mode Selector -->
+      <div class="comp-rec-modes">
+        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'normal'" (click)="setRecordingMode('normal')">
+          <span class="material-symbols-outlined">fiber_manual_record</span>
+          <span>Normal</span>
+        </button>
+        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'punch'" (click)="setRecordingMode('punch')">
+          <span class="material-symbols-outlined">first_page</span>
+          <span>Punch</span>
+        </button>
+        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'comp'" (click)="setRecordingMode('comp')">
+          <span class="material-symbols-outlined">layers</span>
+          <span>Comp</span>
+        </button>
+      </div>
+
+      <!-- Punch Controls -->
+      <div class="comp-rec-section" *ngIf="smartRecording.recordingMode() === 'punch'">
+        <span class="comp-aimix-section-title">PUNCH REGION</span>
+        <div class="comp-rec-punch-controls">
+          <div class="comp-rec-punch-row">
+            <label>In (bar):</label>
+            <input type="number" min="1" max="256" [ngModel]="smartRecording.punchInBar()" (ngModelChange)="smartRecording.setPunchIn($event || 1)" class="comp-rec-input" />
+          </div>
+          <div class="comp-rec-punch-row">
+            <label>Out (bar):</label>
+            <input type="number" min="1" max="256" [ngModel]="smartRecording.punchOutBar()" (ngModelChange)="smartRecording.setPunchOut($event || 4)" class="comp-rec-input" />
+          </div>
+          <div class="comp-rec-punch-actions">
+            <button type="button" class="comp-rec-punch-btn" [class.comp-rec-punch-armed]="smartRecording.punchArmed()" (click)="smartRecording.armPunch()">
+              {{ smartRecording.punchArmed() ? 'ARMED' : 'ARM' }}
+            </button>
+            <button type="button" class="comp-rec-punch-btn" (click)="smartRecording.clearPunchRegion()">CLEAR</button>
+          </div>
+          <div class="comp-rec-status-label" *ngIf="smartRecording.punchStatusLabel()">
+            {{ smartRecording.punchStatusLabel() }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Comp Controls -->
+      <div class="comp-rec-section" *ngIf="smartRecording.recordingMode() === 'comp'">
+        <span class="comp-aimix-section-title">COMP TAKES</span>
+        <div class="comp-rec-comp-actions">
+          <button type="button" class="comp-rec-comp-btn" (click)="smartRecording.startCompTake()">
+            <span class="material-symbols-outlined">fiber_manual_record</span>
+            Take {{ smartRecording.currentTakeNumber() }}
+          </button>
+          <button type="button" class="comp-rec-comp-btn" (click)="smartRecording.finishCompTake()">FINISH TAKE</button>
+        </div>
+        <div class="comp-rec-takes" *ngIf="smartRecording.activeCompGroupTakes().length > 0">
+          <div class="comp-rec-take" *ngFor="let t of smartRecording.activeCompGroupTakes()"
+               [class.comp-rec-take-selected]="t.isCompSelection"
+               [class.comp-rec-take-muted]="t.isMuted">
+            <span class="comp-rec-take-num">{{ t.label }}</span>
+            <span class="comp-rec-take-meta">{{ (t.durationMs / 1000).toFixed(1) }}s</span>
+            <button type="button" class="comp-rec-take-action" (click)="smartRecording.selectCompTake(smartRecording.activeCompGroupId()!, t.id)" title="Select as comp">✓</button>
+            <button type="button" class="comp-rec-take-action" (click)="smartRecording.toggleTakeMute(smartRecording.activeCompGroupId()!, t.id)" title="Mute/unmute">M</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-split toggle -->
+      <div class="comp-rec-section">
+        <label class="comp-rec-toggle">
+          <input type="checkbox" [ngModel]="smartRecording.autoSplitEnabled()" (ngModelChange)="smartRecording.autoSplitEnabled.set($event)" />
+          <span>Auto-split on silence</span>
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== PROJECT METADATA PANEL (right slide) ====================== -->
+  <aside class="comp-panel comp-meta-panel" [class.comp-panel-open]="showProjectMetadata()" role="dialog" aria-label="Project Metadata">
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">info</span>
+        PROJECT
+      </span>
+      <button type="button" class="comp-icon-btn" (click)="toggleProjectMetadata()" aria-label="Close project metadata">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <div class="comp-meta-field">
+        <label>Name</label>
+        <input type="text" class="comp-meta-input" [ngModel]="(projectWorkspace.metadata()?.name) || 'Untitled'" (ngModelChange)="projectWorkspace.updateMetadata({ name: $event })" />
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Genre</label>
+        <div class="comp-meta-chips">
+          <button *ngFor="let g of projectWorkspace.genres" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.genre === g" (click)="setProjectGenre(g)">{{ g }}</button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Mood</label>
+        <div class="comp-meta-chips">
+          <button *ngFor="let m of projectWorkspace.moods" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.mood === m" (click)="setProjectMood(m)">{{ m }}</button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Key</label>
+        <div class="comp-meta-chips">
+          <button *ngFor="let k of projectWorkspace.keys" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.key === k" (click)="setProjectKey(k)">{{ k }}</button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Auto-save</label>
+        <label class="comp-rec-toggle">
+          <input type="checkbox" [ngModel]="projectWorkspace.autoSaveEnabled()" (ngModelChange)="projectWorkspace.autoSaveEnabled.set($event)" />
+          <span>{{ projectWorkspace.autoSaveEnabled() ? 'ON' : 'OFF' }}</span>
+        </label>
+        <span class="comp-meta-hint" *ngIf="projectWorkspace.lastAutoSave() > 0">Last auto-save: {{ projectWorkspace.lastAutoSave() | date:'HH:mm:ss' }}</span>
+      </div>
+
+      <div class="comp-meta-actions">
+        <button type="button" class="comp-meta-action-btn" (click)="saveProject()">
+          <span class="material-symbols-outlined">save</span>
+          Save Project
+        </button>
+        <button type="button" class="comp-meta-action-btn" (click)="exportProject()">
+          <span class="material-symbols-outlined">file_download</span>
+          Export .smuve
+        </button>
+      </div>
+    </div>
+  </aside>
 
   <!-- ====================== AI ASSISTANT PANEL (right slide) ====================== -->
   <app-ai-assistant

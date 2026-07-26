@@ -4,15 +4,17 @@
       <div>
         <h1>Sound Matrix<small>Instruments &amp; Presets</small></h1>
       </div>
-      <button
-        type="button"
-        class="sb-ai-btn"
-        (click)="aiSearch()"
-        aria-label="AI-powered sound search"
-      >
-        <span class="material-symbols-outlined" style="font-size: 14px;">auto_awesome</span>
-        AI Search
-      </button>
+      <div class="sb-title-actions">
+        <button
+          type="button"
+          class="sb-ai-btn"
+          (click)="aiSearch()"
+          aria-label="AI-powered sound search"
+        >
+          <span class="material-symbols-outlined" style="font-size: 14px;">auto_awesome</span>
+          AI Search
+        </button>
+      </div>
     </div>
 
     <div class="sb-search">
@@ -21,9 +23,28 @@
         type="text"
         placeholder="Find an instrument or sound…"
         [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
+        (ngModelChange)="searchQuery.set($event); smartSound.searchQuery.set($event)"
         aria-label="Search sound presets"
       />
+    </div>
+
+    <!-- Smart filters: Genre, Mood, Favorites -->
+    <div class="sb-smart-filters">
+      <div class="sb-filter-chips">
+        <button type="button" class="sb-filter-chip" [class.active]="smartSound.activeGenre() === null" (click)="selectGenre('all')">ALL</button>
+        <button *ngFor="let g of ['pop','trap','house','lo-fi','neo-soul','drill','rnb','jazz']" type="button" class="sb-filter-chip" [class.active]="smartSound.activeGenre() === g" (click)="selectGenre(g)">{{ g }}</button>
+      </div>
+      <div class="sb-filter-chips">
+        <button type="button" class="sb-filter-chip" [class.active]="smartSound.activeMood() === null" (click)="selectMood('all')">MOOD: ALL</button>
+        <button *ngFor="let m of ['chill','dark','bright','energetic','dreamy','aggressive']" type="button" class="sb-filter-chip" [class.active]="smartSound.activeMood() === m" (click)="selectMood(m)">{{ m }}</button>
+      </div>
+      <div class="sb-fav-toggle">
+        <button type="button" class="sb-fav-btn" [class.active]="showFavs()" (click)="toggleFavFilter()">
+          <span class="material-symbols-outlined">{{ showFavs() ? 'star' : 'star_outline' }}</span>
+          <span>{{ showFavs() ? 'Favorites' : 'Show Favorites' }}</span>
+        </button>
+        <span class="sb-fav-count" *ngIf="smartSound.favorites().length > 0">{{ smartSound.favorites().length }} ★</span>
+      </div>
     </div>
 
     <div class="sb-cats" role="tablist" aria-label="Category">
@@ -41,7 +62,30 @@
         <span>{{ cat.label }}</span>
       </button>
     </div>
+
+    <!-- Recently used rail -->
+    <div class="sb-recent" *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()">
+      <span class="sb-recent-label">Recent</span>
+      <div class="sb-recent-chips">
+        <button *ngFor="let s of smartSound.recentSounds().slice(0, 6)" type="button" class="sb-recent-chip" (click)="selectSoundById(s.id)">{{ s.name }}</button>
+      </div>
+    </div>
   </header>
+
+  <!-- Similar sounds panel -->
+  <div class="sb-similar" *ngIf="similarSounds().length > 0" role="region" aria-label="Similar sounds">
+    <div class="sb-similar-head">
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span>AI Similar Sounds</span>
+      <button type="button" class="sb-similar-close" (click)="clearSimilar()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="sb-similar-list">
+      <button *ngFor="let s of similarSounds()" type="button" class="sb-similar-item" (click)="selectSoundById(s.id)">
+        <span class="material-symbols-outlined">graphic_eq</span>
+        {{ s.name }}
+      </button>
+    </div>
+  </div>
 
   <div
     class="sb-list"
@@ -76,11 +120,32 @@
             {{ previewingId() === preset.id ? 'stop' : 'play_arrow' }}
           </span>
         </button>
+        <!-- Favorite star -->
+        <button
+          type="button"
+          class="sb-card-fav"
+          [class.active]="isFavorite(preset.id)"
+          (click)="toggleFavorite(preset.id); $event.stopPropagation()"
+          [attr.aria-label]="isFavorite(preset.id) ? 'Remove from favorites' : 'Add to favorites'"
+          title="Toggle favorite"
+        >
+          <span class="material-symbols-outlined">{{ isFavorite(preset.id) ? 'star' : 'star_outline' }}</span>
+        </button>
       </div>
       <div class="sb-card-meta">
         <div class="sb-card-name">{{ preset.name }}</div>
         <div class="sb-card-info">{{ preset.type || 'sample' }} · {{ preset.category || 'misc' }}</div>
       </div>
+      <!-- Similar button -->
+      <button
+        type="button"
+        class="sb-card-similar"
+        (click)="showSimilar(preset.id); $event.stopPropagation()"
+        title="Find similar sounds"
+        [attr.aria-label]="'Find sounds similar to ' + preset.name"
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+      </button>
     </article>
   </div>
 
