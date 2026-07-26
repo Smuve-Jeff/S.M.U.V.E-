@@ -72,6 +72,15 @@
     </div>
 
     <div class="header-right">
+      <!-- Gamepad Status Indicator -->
+      <button
+        type="button"
+        class="room-btn gamepad-indicator"
+        [class.connected]="gamepadService.connectedGamepad() !== null"
+        title="{{ gamepadService.connectedGamepad() ? 'Controller connected: ' + gamepadService.connectedGamepad()!.id : 'No controller detected. Connect a gamepad.' }}"
+      >
+        <span class="material-symbols-outlined">{{ gamepadService.connectedGamepad() ? 'stadia_controller' : 'sync_disabled' }}</span>
+      </button>
       <button
         type="button"
         class="room-btn"

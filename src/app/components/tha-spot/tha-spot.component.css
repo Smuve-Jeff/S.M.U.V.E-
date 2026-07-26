@@ -2886,3 +2886,32 @@
   .recent-name { font-size: 0.65rem; }
   .keyboard-hint { font-size: 0.6rem; }
 }
+
+/* ── Gamepad Controller Indicator ──────────────────── */
+.gamepad-indicator {
+  transition: all 0.3s ease;
+}
+
+.gamepad-indicator .material-symbols-outlined {
+  font-size: 1.2rem;
+}
+
+.gamepad-indicator.connected {
+  color: #22c55e;
+  animation: none;
+}
+
+.gamepad-indicator.connected .material-symbols-outlined {
+  animation: gamepad-pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
+}
+
+.gamepad-indicator:not(.connected) {
+  color: #64748b;
+  opacity: 0.5;
+}
+
+@keyframes gamepad-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

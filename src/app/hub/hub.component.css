@@ -695,11 +695,25 @@
 
 /* Footer */
 .pill-action {
-  @apply px-4 py-2 rounded-full border border-white/10 bg-white/5 font-bold text-xs flex items-center gap-2 transition-all;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .pill-action:hover {
-  @apply bg-white/10 border-white/20 -translate-y-px;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 /* Responsive Overrides */
