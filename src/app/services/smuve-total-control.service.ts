@@ -8,6 +8,7 @@ import { AiService } from './ai.service';
 import { SnackbarService } from './snackbar.service';
 import { SmuveKnowledgeEngine, KnowledgeCategory } from './smuve-knowledge-engine';
 import { SongwritingAssistantService } from './songwriting-assistant.service';
+import { AiBeatGeneratorService } from './ai-beat-generator.service';
 
 export interface ControlCommand {
   domain: ControlDomain;
@@ -41,6 +42,7 @@ export class SmuveTotalControlService {
   private ai = inject(AiService);
   private knowledge = inject(SmuveKnowledgeEngine);
   private songwriting = inject(SongwritingAssistantService);
+  private beatGenerator = inject(AiBeatGeneratorService);
 
   activeCommand = signal<ControlCommand | null>(null);
   commandHistory = signal<CommandResult[]>([]);
@@ -63,6 +65,25 @@ export class SmuveTotalControlService {
   private parseCommand(input: string): ControlCommand | null {
     const text = input.toLowerCase().trim();
     
+    // Beat generation commands
+    if (text.startsWith('/beat ')) {
+      const query = text.replace('/beat ', '');
+      // Check for title: /beat drake "my song"
+      const titleMatch = query.match(/^(.+?)\s+"(.+)"$/);
+      if (titleMatch) {
+        return { domain: 'ai', action: 'beat', target: titleMatch[1], parameters: { title: titleMatch[2] }, requiresConfirmation: false };
+      }
+      return { domain: 'ai', action: 'beat', target: query, requiresConfirmation: false };
+    }
+    if (text === '/beat') {
+      return { domain: 'ai', action: 'beat', requiresConfirmation: false };
+    }
+
+    // Comping commands
+    if (text === '/comp' || text === '/comps') {
+      return { domain: 'navigation', action: 'navigate', target: 'vocal-suite', requiresConfirmation: false };
+    }
+
     // Songwriting commands
     if (text.startsWith('/write ') || text.startsWith('/song ')) {
       const prompt = text.replace(/^\/(write|song) /, '');
@@ -385,7 +406,23 @@ export class SmuveTotalControlService {
         message: `✍️ S.M.U.V.E SONGWRITING ASSISTANT\n${'═'.repeat(50)}\nTopic: "${topic}"\nStructure: ${result.structure.name}\n\nCHORD PROGRESSIONS:\n${chords}\n\nLYRICS:${sections}\n\nMELODY TIP: ${result.melodyIdeas[0]?.description || 'Start simple, build from there.'}\n${result.styleTips ? '\nSTYLE TIPS:\n' + result.styleTips.join('\n') : ''}\n\nUse /write [topic] to generate more or /write [topic] in style of [artist]`
       };
     }
-    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, upgrade [id], scan' };
+    if (cmd.action === 'beat') {
+      const style = cmd.target || 'Drake';
+      const title = cmd.parameters?.['title'];
+      const available = this.beatGenerator['styleMimic'].getAvailableArtists();
+      const availableStr = available.join(', ');
+      
+      // Check if the requested style is an available artist
+      const artistMatch = available.find(a => a.toLowerCase().includes(style.toLowerCase()));
+      const targetStyle = artistMatch || style;
+      
+      const blueprint = this.beatGenerator.generateBeatBlueprint(targetStyle, title);
+      return { 
+        success: true, 
+        message: `${blueprint}\n\nAvailable artists: ${availableStr}\n\nUse /beat [artist] or /beat [genre] e.g., /beat Drake or /beat trap`
+      };
+    }
+    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, beat, upgrade [id], scan' };
   }
 
   private handleExport(cmd: ControlCommand): CommandResult {
