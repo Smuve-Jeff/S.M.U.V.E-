@@ -1,9 +1,14 @@
 <div
-  class="tha-spot-container full-page no-scrollbar animate-enter"
+  class="tha-spot-container full-page no-scrollbar"
   [class.pluto-active]="displayMode() === 'pluto'"
   (scroll)="onContentScroll($event)"
   #contentViewport
 >
+  <!-- Cosmic Background -->
+  <div class="cosmic-bg">
+    <div class="cosmic-grid"></div>
+  </div>
+  <div class="scanlines-overlay"></div>
   <!-- Spot Header -->
   <!-- Incoming Challenge Banner -->
   <div
@@ -64,11 +69,14 @@
     *ngIf="displayMode() !== 'pluto'"
   >
     <div class="header-left">
-      <h1 class="glitch-text" data-text="THA_SPOT">THA_SPOT</h1>
-      <div class="status-badge hide-mobile">
-        <span class="status-indicator live"></span>
-        <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
-      </div>
+      <div class="spot-logo">
+      <div class="spot-logo-icon">S</div>
+      <h1 class="spot-title" data-text="THA_SPOT">THA_SPOT</h1>
+    </div>
+    <div class="status-badge hide-mobile">
+      <span class="status-indicator live"></span>
+      <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
+    </div>
     </div>
 
     <div class="header-center hide-mobile">
@@ -87,7 +95,7 @@
       <!-- Gamepad Status Indicator -->
       <button
         type="button"
-        class="room-btn gamepad-indicator"
+        class="header-btn gamepad-indicator"
         [class.connected]="gamepadService.connectedGamepad() !== null"
         title="{{ gamepadService.connectedGamepad() ? 'Controller connected: ' + gamepadService.connectedGamepad()!.id : 'No controller detected. Connect a gamepad.' }}"
       >
@@ -95,70 +103,106 @@
       </button>
       <button
         type="button"
-        class="room-btn"
+        class="header-btn"
         (click)="copyShareLink()"
         title="Share Mission Link"
       >
         <span class="material-symbols-outlined">share</span>
       </button>
-      <div class="room-selector">
+      <div class="room-selector" style="display:flex;gap:0.25rem;">
         <button
-          class="room-btn active"
+          type="button"
+          class="header-btn"
           (click)="toggleIntel()"
           [class.has-alert]="true"
         >
           <span class="material-symbols-outlined">analytics</span>
         </button>
         <button
-          class="room-btn"
+          type="button"
+          class="header-btn"
           (click)="toggleRivalHub()"
           [class.has-alert]="socialService.roomMessages().length > 0"
         >
           <span class="material-symbols-outlined">groups</span>
         </button>
       </div>
-      <div class="h-6 w-px bg-white/10 mx-2"></div>
-      <button
-        class="mode-btn"
-        [class.active]="displayMode() === 'gaming'"
-        (click)="setMode('gaming')"
-      >
-        GAMING
-      </button>
-      <button
-        type="button"
-        class="mode-btn"
-        [class.active]="displayMode() === 'pluto'"
-        (click)="setMode('pluto')"
-      >
-        PLUTO TV
-      </button>
+      <div class="mode-toggle-group">
+        <button
+          class="mode-btn"
+          [class.active]="displayMode() === 'gaming'"
+          (click)="setMode('gaming')"
+        >
+          GAMING
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          [class.active]="displayMode() === 'pluto'"
+          (click)="setMode('pluto')"
+        >
+          PLUTO TV
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="spot-main-content">
     <ng-container *ngIf="displayMode() === 'gaming'">
       <!-- Browse View -->
-      <div class="browse-view animate-enter" *ngIf="isBrowseView()">
-        <div class="hero-section glass-v42-pro">
+      <div class="browse-view" *ngIf="isBrowseView()">
+        <!-- Cinematic Hero -->
+        <div class="cinematic-hero" #heroSection>
+          <div class="hero-bg-layer">
+            <div class="hero-bg-image" [style.backgroundImage]="'url(' + (games()[0]?.image || 'assets/desktop_hub.png') + ')'"></div>
+            <div class="hero-gradient-overlay"></div>
+          </div>
           <div class="hero-content">
-            <span class="hero-tag">ELITE_FEATURED</span>
-            <h2>HIGH-FIDELITY RERUNS</h2>
-            <p>
-              Access the Absolute gaming catalog with zero-latency emulation.
+            <div class="hero-eyebrow">
+              <span class="dot"></span>
+              ELITE_FEATURED
+            </div>
+            <h1 class="hero-title">HIGH-FIDELITY RERUNS</h1>
+            <p class="hero-subtitle">
+              Access the Absolute gaming catalog with zero-latency emulation. Dive into 400+ cabinets across every era.
             </p>
             <div class="hero-actions">
-              <button class="primary-btn" (click)="setActiveRoom('arcade')">
+              <button class="hero-btn-primary" (click)="setActiveRoom('arcade')">
+                <span class="material-symbols-outlined" style="font-size:1rem;">videogame_asset</span>
                 ARCADE_FLOOR
               </button>
-              <button class="secondary-btn" (click)="setActiveRoom('neo-zone')">
+              <button class="hero-btn-secondary" (click)="setActiveRoom('neo-zone')">
+                <span class="material-symbols-outlined" style="font-size:1rem;">flash_on</span>
                 NEO_ZONE
               </button>
             </div>
           </div>
         </div>
 
-        <div class="catalog-filters-row glass-v42">
+        <!-- Stats Bar -->
+        <div class="hero-stats-bar">
+          <div class="stat-item">
+            <span class="stat-value">{{ games().length }}</span>
+            <span class="stat-label">Cabinets</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">{{ onlineUsers().length + 1 }}</span>
+            <span class="stat-label">Online</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">{{ activeEvents().length }}</span>
+            <span class="stat-label">Live Events</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">{{ favorites().length }}</span>
+            <span class="stat-label">Favorites</span>
+          </div>
+        </div>
+
+        <div class="catalog-filters-row">
           <div class="filter-group">
             <label>ROOM</label>
             <select
@@ -205,9 +249,10 @@
             </div>
             <div class="rail-content no-scrollbar">
               <div
-                class="game-card glass-v42 shadow-v42-md"
+                class="game-card"
                 *ngFor="let game of getGamesForRail(rail)"
                 (click)="onGameClick(game)"
+                [class.in-view]="true"
               >
                 <div class="card-media">
                   <img
@@ -246,23 +291,23 @@
           </div>
         </div>
 
-        <!-- Full Catalog Supplement -->
-        <!-- Recent Games Section -->
+        <!-- Full Catalog Supplement -->          <!-- Recent Games Section -->
         <div class="recent-games-section" *ngIf="recentGames().length > 0">
           <div class="section-header">
-            <h3 class="glitch-text" data-text="RECENT_CABINETS">RECENT_CABINETS</h3>
+            <div class="section-header-left">
+              <h3>RECENT_CABINETS</h3>
+              <div class="section-sub">{{ recentGames().length }} / 8</div>
+            </div>
             <div class="section-actions">
-              <span class="game-count">{{ recentGames().length }} / 8</span>
-              <button class="clear-btn mini" (click)="clearRecentGames()">CLEAR</button>
+              <button class="clear-btn" (click)="clearRecentGames()">CLEAR</button>
             </div>
           </div>
-          <div class="recent-games-strip no-scrollbar">
-            <div
-              class="recent-game-chip glass-v42"
-              *ngFor="let recent of recentGames()"
-              (click)="onGameClick(recent)"
-              title="{{ recent.name }}"
-            >
+          <div class="recent-games-strip no-scrollbar">              <div
+            class="recent-game-chip"
+            *ngFor="let recent of recentGames()"
+            (click)="onGameClick(recent)"
+            title="{{ recent.name }}"
+          >
               <img
                 [src]="recent.image || 'assets/desktop_hub.png'"
                 [alt]="recent.name"
@@ -272,46 +317,95 @@
               <span class="recent-name">{{ recent.name }}</span>
             </div>
           </div>
-        </div>
-
-        <div class="full-catalog-supplement">
-          <div class="section-header">
-            <h3 class="glitch-text" data-text="ALL_CABINETS">ALL_CABINETS</h3>
-            <p>Direct access to the Absolute library across all sectors.</p>
-          </div>
-
-          <!-- Loading Skeleton -->
-          <div class="catalog-grid" *ngIf="isLoading()">
-            <div class="game-card glass-v42 shadow-v42-md skeleton-card" *ngFor="let _ of [].constructor(12)">
-              <div class="card-media skeleton-pulse">
-                <div class="skeleton-img"></div>
+        </div>        <div class="full-catalog-supplement">
+          <div class="content-section">
+            <div class="section-header">
+              <div class="section-header-left">
+                <h3>ALL_CABINETS</h3>
+                <div class="section-sub">Direct access to the Absolute library across all sectors.</div>
               </div>
-              <div class="card-info">
-                <span class="skeleton-text skeleton-name"></span>
-                <span class="skeleton-text skeleton-genre"></span>
+            </div>
+
+            <!-- Loading Skeleton -->
+            <div class="catalog-grid" *ngIf="isLoading()">
+              <div class="game-card skeleton-card" *ngFor="let _ of [].constructor(12)">
+                <div class="card-media skeleton-pulse">
+                  <div class="skeleton-img"></div>
+                </div>
+                <div class="card-info">
+                  <span class="skeleton-text skeleton-name"></span>
+                  <span class="skeleton-text skeleton-genre"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="catalog-grid" *ngIf="!isLoading()">
+              <div
+                class="game-card"
+                *ngFor="let game of filteredGames(); let i = index"
+                (click)="onGameClick(game)"
+                [style.animationDelay]="(i * 0.05) + 's'"
+              >
+                <div class="card-media">
+                  <img
+                    [src]="game.image || 'assets/desktop_hub.png'"
+                    [alt]="game.name"
+                    loading="lazy"
+                  />
+                  <div class="card-overlay">
+                    <span class="material-symbols-outlined">play_circle</span>
+                  </div>
+                  <div
+                    class="card-badge elite"
+                    *ngIf="game.badgeIds?.includes('elite')"
+                  >
+                    ELITE
+                  </div>
+                  <div
+                    class="card-badge next-gen"
+                    *ngIf="game.badgeIds?.includes('next-gen')"
+                  >
+                    NEXT-GEN
+                  </div>
+                  <div
+                    class="card-badge modern"
+                    *ngIf="game.badgeIds?.includes('modern')"
+                  >
+                    MODERN
+                  </div>
+                </div>
+                <div class="card-info">
+                  <span class="game-name">{{ game.name }}</span>
+                  <span class="game-genre">{{ game.genre }}</span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div class="catalog-grid" *ngIf="!isLoading()">
+      <!-- Room View -->
+      <div class="room-view" *ngIf="!isBrowseView()">
+        <div class="content-section">
+          <div class="room-header" style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+            <button class="hero-btn-secondary" (click)="toggleBrowse()" style="padding:0.5rem 1rem;font-size:0.7rem;">
+              <span class="material-symbols-outlined" style="font-size:1rem;">arrow_back</span>
+              BACK TO CATALOG
+            </button>
+            <h2 style="font-size:1.3rem;font-weight:900;margin:0;letter-spacing:0.05em;">{{ getActiveRoomName() }}</h2>
+          </div>
+          <div class="catalog-grid" style="padding:0;">
             <div
-              class="game-card glass-v42 shadow-v42-md"
+              class="game-card"
               *ngFor="let game of filteredGames()"
               (click)="onGameClick(game)"
             >
               <div class="card-media">
-                <img
-                  [src]="game.image || 'assets/desktop_hub.png'"
-                  [alt]="game.name"
-                  loading="lazy"
-                />
+                <img [src]="game.image" [alt]="game.name" loading="lazy" />
                 <div class="card-overlay">
                   <span class="material-symbols-outlined">play_circle</span>
                 </div>
-                <div
-                  class="card-badge"
-                  *ngIf="game.badgeIds?.includes('elite')"
-                >
+                <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">
                   ELITE
                 </div>
                 <div
@@ -331,50 +425,6 @@
                 <span class="game-name">{{ game.name }}</span>
                 <span class="game-genre">{{ game.genre }}</span>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Room View -->
-      <div class="room-view animate-enter" *ngIf="!isBrowseView()">
-        <div class="room-header">
-          <button class="back-btn" (click)="toggleBrowse()">
-            <span class="material-symbols-outlined">arrow_back</span>
-            BACK_TO_CATALOG
-          </button>
-          <h2>{{ getActiveRoomName() }}</h2>
-        </div>
-        <div class="catalog-grid">
-          <div
-            class="game-card glass-v42 shadow-v42-md"
-            *ngFor="let game of filteredGames()"
-            (click)="onGameClick(game)"
-          >
-            <div class="card-media">
-              <img [src]="game.image" [alt]="game.name" loading="lazy" />
-              <div class="card-overlay">
-                <span class="material-symbols-outlined">play_circle</span>
-              </div>
-              <div class="card-badge" *ngIf="game.badgeIds?.includes('elite')">
-                ELITE
-              </div>
-              <div
-                class="card-badge next-gen"
-                *ngIf="game.badgeIds?.includes('next-gen')"
-              >
-                NEXT-GEN
-              </div>
-              <div
-                class="card-badge modern"
-                *ngIf="game.badgeIds?.includes('modern')"
-              >
-                MODERN
-              </div>
-            </div>
-            <div class="card-info">
-              <span class="game-name">{{ game.name }}</span>
-              <span class="game-genre">{{ game.genre }}</span>
             </div>
           </div>
         </div>
@@ -405,7 +455,7 @@
 
   <!-- Sidebar Intel Panel -->
   <aside
-    class="executive-sidebar glass-v42-pro"
+    class="executive-sidebar"
     [class.active]="showIntelPanel() && displayMode() !== 'pluto'"
   >
     <header class="sidebar-header">
@@ -435,7 +485,7 @@
 
   <!-- Rival Hub Sidebar -->
   <aside
-    class="executive-sidebar glass-v42-pro rival-hub"
+    class="rival-hub"
     [class.active]="showRivalHub() && displayMode() !== 'pluto'"
   >
     <header class="sidebar-header">
@@ -497,7 +547,7 @@
       <ng-container *ngIf="canInteract()">
         <!-- Room Chat View -->
         <div class="chat-view" *ngIf="activeHubTab() === 'room'">
-          <div class="room-info-bar glass-v42">
+          <div class="room-info-bar">
             <span>{{ getActiveRoomName() | uppercase }}</span>
             <span class="players-count"
               >{{ onlineUsers().length + 1 }} ACTIVE</span
@@ -546,7 +596,7 @@
 
         <!-- Direct Messaging View -->
         <div class="dm-view" *ngIf="activeHubTab() === 'dm'">
-          <div class="player-search glass-v42">
+          <div class="player-search">
             <span class="material-symbols-outlined">person_search</span>
             <input
               type="text"
@@ -600,7 +650,7 @@
           </div>
 
           <div
-            class="dm-user-info glass-v42"
+            class="dm-user-info"
             *ngIf="selectedDmUser() as target"
           >
             <div class="dm-user-meta">
@@ -689,7 +739,7 @@
             class="party-dashboard"
             *ngIf="socialService.currentPartyId() as partyId"
           >
-            <div class="party-header glass-v42">
+            <div class="party-header">
               <span class="party-id">SQUAD_ID: {{ partyId }}</span>
               <button
                 class="terminate-btn mini"
@@ -740,7 +790,7 @@
           </div>
           <div class="user-list">
             <div
-              class="user-item glass-v42"
+              class="user-item"
               *ngFor="let friend of socialService.friends()"
               [class.pending]="friend.status === 'pending'"
             >
@@ -832,9 +882,9 @@
             </div>
             <div class="search-results">
               <div
-                class="user-item glass-v42 mini"
-                *ngFor="let user of globalSearchResults()"
-              >
+              class="user-item"
+              *ngFor="let user of globalSearchResults()"
+            >
                 <div class="user-info">
                   <span class="user-name">{{ user.artistName }}</span>
                   <div
@@ -876,7 +926,7 @@
               <span class="thinking-dot"></span>
             </div>
           </div>
-          <div class="ai-companion-input glass-v42">
+          <div class="ai-companion-input">
             <input
               type="text"
               [ngModel]="aiCompanionInput()"
@@ -948,7 +998,7 @@
             class="stream-dashboard animate-enter"
             *ngIf="socialService.isStreaming()"
           >
-            <div class="stream-status glass-v42">
+            <div class="stream-status">
               <div class="status-indicator live pulse"></div>
               <div class="status-text">
                 LIVE ON {{ socialService.currentPlatform() | uppercase }}

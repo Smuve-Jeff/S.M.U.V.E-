@@ -215,6 +215,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private feedRefreshId?: any;
   private readonly messageHandler = (event: MessageEvent) =>
     this.onMessage(event);
+  private particleInterval?: any;
+  private cardObserver?: IntersectionObserver;
+  private heroBgInterval?: any;
+  private heroBgIndex = 0;
 
   // ── Upgrade Signals ──────────────────────────────────
   aiRecommendations = signal<Game[]>([]);
@@ -445,6 +449,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startLiveClock();
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
+    this.initParticleSystem();
+    this.initCardObserver();
+    this.startHeroBgRotation();
 
     // Handle Deep Links
     this.route.queryParamMap.subscribe((params) => {
@@ -512,6 +519,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
     if (this.hubTimeoutId) clearTimeout(this.hubTimeoutId);
+    if (this.particleInterval) clearInterval(this.particleInterval);
+    if (this.heroBgInterval) clearInterval(this.heroBgInterval);
+    this.cardObserver?.disconnect();
     window.removeEventListener('message', this.messageHandler);
   }
 
@@ -824,6 +834,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.promotions.set(feed.promotions);
         this.recommendationRails.set(feed.recommendationRails);
         this.isLoading.set(false);
+        this.refreshCardObserver();
       });
   }
 
@@ -839,6 +850,79 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       () => this.loadFeed(true),
       FEED_REFRESH_INTERVAL_MS
     );
+  }
+
+  /**
+   * Create floating particles in the cosmic background.
+   */
+  private initParticleSystem(): void {
+    const container = document.querySelector('.cosmic-bg');
+    if (!container) return;
+    for (let i = 0; i < 30; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      const size = 1 + Math.random() * 2;
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.top = 100 + Math.random() * 20 + '%';
+      particle.style.animationDuration = (15 + Math.random() * 25) + 's';
+      particle.style.animationDelay = (Math.random() * 20) + 's';
+      const colors = ['var(--neon-cyan)', 'var(--neon-purple)', 'var(--neon-pink)'];
+      particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+      container.appendChild(particle);
+    }
+  }
+
+  /**
+   * Intersection Observer for staggered card reveal animations.
+   */
+  private initCardObserver(): void {
+    if (typeof IntersectionObserver === 'undefined') return;
+    this.cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          this.cardObserver?.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    // Observe game cards after feed loads
+    setTimeout(() => {
+      document.querySelectorAll('.game-card:not(.skeleton-card)').forEach(card => {
+        this.cardObserver?.observe(card);
+      });
+    }, 500);
+  }
+
+  /**
+   * Rotate the hero background through featured games.
+   */
+  private startHeroBgRotation(): void {
+    this.heroBgInterval = setInterval(() => {
+      const games = this.games();
+      if (games.length === 0) return;
+      this.heroBgIndex = (this.heroBgIndex + 1) % Math.min(games.length, 5);
+      const bgEl = document.querySelector('.hero-bg-image') as HTMLElement;
+      if (bgEl && games[this.heroBgIndex]?.image) {
+        bgEl.style.backgroundImage = `url(${games[this.heroBgIndex].image})`;
+        bgEl.style.opacity = '0';
+        setTimeout(() => { bgEl.style.opacity = '0.25'; }, 50);
+      }
+    }, 8000);
+  }
+
+  /**
+   * Re-initialize card observer when feed reloads.
+   */
+  private refreshCardObserver(): void {
+    this.cardObserver?.disconnect();
+    setTimeout(() => {
+      document.querySelectorAll('.game-card:not(.skeleton-card)').forEach(card => {
+        this.cardObserver?.observe(card);
+      });
+    }, 300);
   }
 
   /**
