@@ -27,6 +27,18 @@
     </div>
   </div>
 
+  <!-- ── Achievement Unlock Popup ─────────────────────── -->
+  <div class="achievement-popup" *ngIf="showAchievementPopup() && lastUnlockedAchievement() as ach" [class.active]="showAchievementPopup()">
+    <div class="achievement-icon">
+      <span class="material-symbols-outlined">{{ ach.icon }}</span>
+    </div>
+    <div class="achievement-content">
+      <div class="achievement-label">ACHIEVEMENT UNLOCKED</div>
+      <div class="achievement-title">{{ ach.title }}</div>
+      <div class="achievement-desc">{{ ach.description }}</div>
+    </div>
+  </div>
+
   <!-- Incoming Voice Knock Banner -->
   <div
     class="challenge-banner glass-v42-pro"
@@ -468,6 +480,13 @@
         >
           LIVE
         </button>
+        <button
+          [class.active]="activeHubTab() === 'ai'"
+          (click)="setHubTab('ai')"
+          title="AI Companion"
+        >
+          🤖
+        </button>
       </div>
       <button class="close-intel" (click)="toggleRivalHub()">
         <span class="material-symbols-outlined">close</span>
@@ -834,6 +853,45 @@
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- AI Companion View -->
+        <div class="ai-companion-view" *ngIf="activeHubTab() === 'ai'">
+          <div class="room-info-bar glass-v42">
+            <span>🤖 S.M.U.V.E NEURAL COMPANION</span>
+          </div>
+          <div class="ai-companion-messages">
+            <div
+              class="ai-msg-bubble"
+              *ngFor="let msg of aiCompanionMessages()"
+              [class.user-msg]="msg.role === 'user'"
+            >
+              <div class="ai-msg-role">{{ msg.role === 'ai' ? 'S.M.U.V.E' : 'YOU' | uppercase }}</div>
+              <div class="ai-msg-text">{{ msg.text }}</div>
+            </div>
+            <div class="ai-thinking" *ngIf="aiCompanionThinking()">
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+            </div>
+          </div>
+          <div class="ai-companion-input glass-v42">
+            <input
+              type="text"
+              [ngModel]="aiCompanionInput()"
+              (ngModelChange)="aiCompanionInput.set($event)"
+              (keyup.enter)="sendAiCompanionMessage()"
+              placeholder="CHAT WITH NEURAL COMPANION..."
+              [disabled]="aiCompanionThinking()"
+            />
+            <button
+              class="send-btn"
+              (click)="sendAiCompanionMessage()"
+              [disabled]="!aiCompanionInput().trim() || aiCompanionThinking()"
+            >
+              <span class="material-symbols-outlined">smart_toy</span>
+            </button>
           </div>
         </div>
 
@@ -1228,7 +1286,14 @@
         <div class="hud-overlay-scanner"></div>
       </div>
       <footer class="console-footer glass-v42">
-        <div class="session-timer">ACTIVE_UPLINK_STABLE</div>
+        <div class="session-timer">
+          <span class="material-symbols-outlined" style="font-size: 0.8rem; vertical-align: middle;">timer</span>
+          <span>{{ gameSessionElapsed() | formatTime }}</span>
+        </div>
+        <div class="session-achievements" *ngIf="achievements().filter(a => a.unlocked).length as count">
+          <span class="material-symbols-outlined" style="font-size: 0.7rem; vertical-align: middle;">emoji_events</span>
+          {{ count }}/{{ achievements().length }} ACHIEVEMENTS
+        </div>
         <button class="terminate-btn" (click)="closeGame()">
           TERMINATE PROCESS
         </button>

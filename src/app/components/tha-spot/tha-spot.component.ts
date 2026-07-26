@@ -201,7 +201,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly RECENT_GAMES_KEY = 'tha_spot_recent_games';
 
   // Social & Streaming Signals
-  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
+  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party' | 'ai'>('room');
   dmTargetUserId = signal<string | null>(null);
   chatInput = signal<string>('');
 
@@ -215,6 +215,43 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private feedRefreshId?: any;
   private readonly messageHandler = (event: MessageEvent) =>
     this.onMessage(event);
+
+  // ── Upgrade Signals ──────────────────────────────────
+  aiRecommendations = signal<Game[]>([]);
+  gameSessionElapsed = signal(0);
+  gameSessionScore = signal(0);
+  private sessionTimerId: any = null;
+  private sessionStartTime = 0;
+
+  // ── Achievement System ───────────────────────────────
+  achievements = signal<Achievement[]>([
+    { id: 'first-launch', title: 'FIRST UPLINK', description: 'Launch your first game', icon: 'rocket_launch', unlocked: false, progress: 0, maxProgress: 1 },
+    { id: 'play-5', title: 'CABINET EXPLORER', description: 'Play 5 different games', icon: 'explore', unlocked: false, progress: 0, maxProgress: 5 },
+    { id: 'play-25', title: 'ARCADE VETERAN', description: 'Play 25 games total', icon: 'military_tech', unlocked: false, progress: 0, maxProgress: 25 },
+    { id: 'favorites-3', title: 'CURATED COLLECTION', description: 'Save 3 favorite games', icon: 'star', unlocked: false, progress: 0, maxProgress: 3 },
+    { id: 'multiplayer-1', title: 'RIVAL ENCOUNTER', description: 'Complete a multiplayer match', icon: 'swords', unlocked: false, progress: 0, maxProgress: 1 },
+    { id: 'challenge-5', title: 'CHALLENGE SEASON', description: 'Send 5 challenges', icon: 'sports_kabaddi', unlocked: false, progress: 0, maxProgress: 5 },
+    { id: 'session-10min', title: 'ENDURANCE RUN', description: 'Play for 10 minutes straight', icon: 'timer', unlocked: false, progress: 0, maxProgress: 600 },
+  ]);
+  lastUnlockedAchievement = signal<Achievement | null>(null);
+  showAchievementPopup = signal(false);
+  private playedGameIds = signal<Set<string>>(new Set());
+  private challengeCount = signal(0);
+  private readonly ACHIEVEMENTS_KEY = 'tha_spot_achievements';
+
+  // ── AI Companion ─────────────────────────────────────
+  aiCompanionMessages = signal<{ role: 'ai' | 'user'; text: string }[]>([
+    { role: 'ai', text: 'S.M.U.V.E Neural Uplink active. Awaiting your command.' },
+  ]);
+  aiCompanionInput = signal('');
+  aiCompanionThinking = signal(false);
+
+  // ── Sound Effects ────────────────────────────────────
+  private audioCtx: AudioContext | null = null;
+
+  // ── Spectate Mode ────────────────────────────────────
+  spectateTarget = signal<OnlineUser | null>(null);
+  showSpectateOverlay = signal(false);
 
   // Computed signals
   filteredGames = computed(() => {
@@ -281,6 +318,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   gamingDirectives = computed(() => [
     'Execute daily challenge',
     'Maintain rank',
+    'Complete session objective',
+    'Climb the leaderboard',
   ]);
 
   onlineUsers = this.socialService.onlineUsers;
@@ -348,6 +387,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
     this.loadRecentGames();
+    this.loadAchievements();
 
     effect(() => {
       const gp = this.gamepadService.connectedGamepad();
@@ -510,6 +550,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   onGameClick(game: Game) {
     this.selectedGame.set(game);
     this.gameIdToInvite.set(game.id);
+    this.playSoundEffect('select');
   }
 
   closePreview() {
@@ -517,12 +558,26 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   closeGame() {
+    // Check session duration achievement before resetting
+    if (this.sessionStartTime > 0) {
+      const elapsed = Math.floor((Date.now() - this.sessionStartTime) / 1000);
+      this.achievements.update(a => a.map(ach =>
+        ach.id === 'session-10min' ? { ...ach, progress: Math.min(ach.maxProgress, ach.progress + elapsed) } : ach
+      ));
+      this.checkAchievements();
+      this.playSoundEffect('close');
+    }
     this.inGame.set(false);
     this.currentGame.set(null);
     this.isFullscreen.set(false);
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
+    if (this.sessionTimerId) {
+      clearInterval(this.sessionTimerId);
+      this.sessionTimerId = null;
+    }
+    this.gameSessionElapsed.set(0);
   }
 
   toggleIntel() {
@@ -645,6 +700,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.currentGame.set(game);
     this.addRecentGame(game);
     this.closePreview();
+
+    // Start session timer
+    this.gameSessionScore.set(0);
+    this.gameSessionElapsed.set(0);
+    this.sessionStartTime = Date.now();
+    this.sessionTimerId = setInterval(() => {
+      this.gameSessionElapsed.set(Math.floor((Date.now() - this.sessionStartTime) / 1000));
+    }, 1000);
+
+    // Play launch sound
+    this.playSoundEffect('launch');
+
+    // Track achievement
+    this.playedGameIds.update(s => { s.add(game.id); return s; });
+    this.checkAchievements();
+
+    // Generate AI recommendation
+    this.generateAiRecommendations();
   }
 
   /**
@@ -1021,6 +1094,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleRivalHub() {
     this.showRivalHub.update((v) => !v);
+    if (!this.showRivalHub()) {
+      this.spectateTarget.set(null);
+      this.showSpectateOverlay.set(false);
+    }
   }
 
   sendChallenge(userId: string, gameId: string) {
@@ -1030,6 +1107,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.inboxService.challengePlayer(userId, gameId);
     this.snackbarService.success('CHALLENGE DISPATCHED');
+    this.challengeCount.update(c => c + 1);
+    this.checkAchievements();
+    this.playSoundEffect('challenge');
   }
 
   buildChallengeLink(gameId: string, toUserId?: string): string {
@@ -1097,6 +1177,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.incomingChallenge.set(null);
     this.snackbarService.success('CHALLENGE ACCEPTED — INITIALIZING');
+    this.playSoundEffect('challenge');
   }
 
   declineIncomingChallenge() {
@@ -1131,7 +1212,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  setHubTab(tab: 'room' | 'dm' | 'stream' | 'friends' | 'party') {
+  setHubTab(tab: 'room' | 'dm' | 'stream' | 'friends' | 'party' | 'ai') {
     this.activeHubTab.set(tab);
     if (
       tab === 'dm' &&
@@ -1265,4 +1346,256 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   endStream() {
     this.socialService.stopStream();
   }
+
+  // ── Achievement System ──────────────────────────────
+  private loadAchievements(): void {
+    try {
+      const saved = localStorage.getItem(this.ACHIEVEMENTS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Achievement[];
+        const updated = this.achievements().map(a => {
+          const found = parsed.find(p => p.id === a.id);
+          return found ? { ...a, unlocked: found.unlocked, progress: found.progress } : a;
+        });
+        this.achievements.set(updated);
+      }
+    } catch { /* ignore */ }
+  }
+
+  private saveAchievements(): void {
+    try {
+      localStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(this.achievements()));
+    } catch { /* ignore */ }
+  }
+
+  private checkAchievements(): void {
+    let newUnlock: Achievement | null = null;
+
+    this.achievements.update(a => a.map(ach => {
+      if (ach.unlocked) return ach;
+
+      let progress = ach.progress;
+      switch (ach.id) {
+        case 'first-launch':
+          progress = Math.min(1, progress + 1);
+          break;
+        case 'play-5':
+          progress = Math.min(5, this.playedGameIds().size);
+          break;
+        case 'play-25':
+          progress = Math.min(25, this.recentGames().length + this.playedGameIds().size);
+          break;
+        case 'favorites-3':
+          progress = Math.min(3, this.favorites().length);
+          break;
+        case 'multiplayer-1':
+          progress = Math.min(1, progress + 1);
+          break;
+        case 'challenge-5':
+          progress = Math.min(5, this.challengeCount());
+          break;
+        case 'session-10min':
+          // Progress tracked in closeGame()
+          break;
+      }
+
+      if (progress >= ach.maxProgress && !ach.unlocked) {
+        newUnlock = { ...ach, unlocked: true, progress: ach.maxProgress };
+        return { ...ach, unlocked: true, progress: ach.maxProgress };
+      }
+      return { ...ach, progress };
+    }));
+
+    this.saveAchievements();
+
+    if (newUnlock) {
+      this.lastUnlockedAchievement.set(newUnlock);
+      this.showAchievementPopup.set(true);
+      this.snackbarService.success(`🏆 ACHIEVEMENT UNLOCKED: ${newUnlock.title}`);
+      this.playSoundEffect('achievement');
+      setTimeout(() => this.showAchievementPopup.set(false), 4000);
+    }
+  }
+
+  // ── AI Game Recommendations ─────────────────────────
+  private generateAiRecommendations(): void {
+    const profile = this.profileService.profile();
+    const profileGenres = [profile.primaryGenre].filter(Boolean);
+    const allGames = this.games();
+    const played = this.playedGameIds();
+
+    const matching = allGames
+      .filter(g => !played.has(g.id) && g.genre && profileGenres.some(pg =>
+        g.genre!.toLowerCase().includes(pg.toLowerCase()) || pg.toLowerCase().includes(g.genre!.toLowerCase())
+      ))
+      .slice(0, 4);
+
+    if (matching.length === 0) {
+      // Fallback: recommend top-rated unplayed games
+      const fallback = allGames
+        .filter(g => !played.has(g.id))
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 4);
+      this.aiRecommendations.set(fallback);
+    } else {
+      this.aiRecommendations.set(matching);
+    }
+  }
+
+  // ── AI Companion Chat ───────────────────────────────
+  async sendAiCompanionMessage(): Promise<void> {
+    const text = this.aiCompanionInput().trim();
+    if (!text) return;
+
+    this.aiCompanionMessages.update(msgs => [...msgs, { role: 'user', text }]);
+    this.aiCompanionInput.set('');
+    this.aiCompanionThinking.set(true);
+
+    // Simulate AI thinking delay
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+
+    const aiResponses: Record<string, string[]> = {
+      default: [
+        'AFFIRMATIVE. Scanning game library for optimal missions.',
+        'Your S.M.U.V.E neural sync is strong. Ready for deployment.',
+        'I recommend calibrating your reflexes with a quick round.',
+        'Enemy patterns detected. Adjust your strategy accordingly.',
+        'Elite operators always maintain situational awareness.',
+        'The Arcade floor awaits your command.',
+        'Rival activity detected in your sector. Stay sharp.',
+        'Your track record suggests high-performance potential.',
+      ],
+      recommend: [
+        'Based on your profile, I recommend the Fighting Pit for competitive edge.',
+        'Your genre affinity suggests RPG deep runs would yield high session value.',
+        'Shooting Range cabinets show optimal match with your play style.',
+      ],
+      help: [
+        'Available commands: recommend, status, squad, leaderboard',
+        'I can assist with game recommendations, matchmaking status, and squad coordination.',
+      ],
+      status: [
+        `Systems nominal. ${this.onlineUsers().length} operatives online. Neural sync at ${this.neuralSyncScore()}%.`,
+      ],
+    };
+
+    const lower = text.toLowerCase();
+    let pool = aiResponses.default;
+    if (lower.includes('recommend') || lower.includes('suggest')) pool = aiResponses.recommend;
+    else if (lower.includes('help') || lower.includes('what')) pool = aiResponses.help;
+    else if (lower.includes('status') || lower.includes('systems')) pool = aiResponses.status;
+
+    const response = pool[Math.floor(Math.random() * pool.length)];
+
+    this.aiCompanionMessages.update(msgs => [...msgs, { role: 'ai', text: response }]);
+    this.aiCompanionThinking.set(false);
+    setTimeout(() => this.scrollToBottom(), 100);
+  }
+
+  // ── Spectate Mode ───────────────────────────────────
+  startSpectate(user: OnlineUser): void {
+    this.spectateTarget.set(user);
+    this.showSpectateOverlay.set(true);
+    this.snackbarService.info(`SPECTATING: ${user.artistName || 'RIVAL'}`);
+    this.playSoundEffect('select');
+  }
+
+  stopSpectate(): void {
+    this.spectateTarget.set(null);
+    this.showSpectateOverlay.set(false);
+  }
+
+  // ── Favorites ───────────────────────────────────────
+  toggleFavorite(gameId: string): void {
+    const current = this.favorites();
+    const updated = current.includes(gameId)
+      ? current.filter(id => id !== gameId)
+      : [...current, gameId];
+    this.favorites.set(updated);
+    this.checkAchievements();
+    try {
+      localStorage.setItem('tha_spot_favorites', JSON.stringify(updated));
+    } catch { /* ignore */ }
+  }
+
+  isFavorite(gameId: string): boolean {
+    return this.favorites().includes(gameId);
+  }
+
+  // ── Sound Effects ───────────────────────────────────
+  private playSoundEffect(type: 'select' | 'launch' | 'close' | 'challenge' | 'achievement'): void {
+    try {
+      if (!this.audioCtx) {
+        this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume();
+      }
+
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+
+      switch (type) {
+        case 'select':
+          osc.frequency.setValueAtTime(800, this.audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1200, this.audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
+          osc.start(this.audioCtx.currentTime);
+          osc.stop(this.audioCtx.currentTime + 0.15);
+          break;
+        case 'launch':
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(200, this.audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(800, this.audioCtx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.4);
+          osc.start(this.audioCtx.currentTime);
+          osc.stop(this.audioCtx.currentTime + 0.4);
+          break;
+        case 'close':
+          osc.frequency.setValueAtTime(600, this.audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(200, this.audioCtx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.06, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.2);
+          osc.start(this.audioCtx.currentTime);
+          osc.stop(this.audioCtx.currentTime + 0.2);
+          break;
+        case 'challenge':
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, this.audioCtx.currentTime);
+          osc.frequency.setValueAtTime(500, this.audioCtx.currentTime + 0.1);
+          osc.frequency.setValueAtTime(700, this.audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.35);
+          osc.start(this.audioCtx.currentTime);
+          osc.stop(this.audioCtx.currentTime + 0.35);
+          break;
+        case 'achievement':
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523, this.audioCtx.currentTime);
+          osc.frequency.setValueAtTime(659, this.audioCtx.currentTime + 0.15);
+          osc.frequency.setValueAtTime(784, this.audioCtx.currentTime + 0.3);
+          osc.frequency.setValueAtTime(1047, this.audioCtx.currentTime + 0.45);
+          gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.6);
+          osc.start(this.audioCtx.currentTime);
+          osc.stop(this.audioCtx.currentTime + 0.6);
+          break;
+      }
+    } catch { /* Audio not available — silent */ }
+  }
+}
+
+// ── Achievement Interface ─────────────────────────────
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  progress: number;
+  maxProgress: number;
 }
