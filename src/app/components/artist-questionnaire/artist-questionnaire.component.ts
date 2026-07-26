@@ -1,25 +1,22 @@
-import { Component, signal, inject, output, computed } from '@angular/core';
+import { Component, signal, inject, output, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  UserProfileService,
-  UserProfile,
-} from '../../services/user-profile.service';
+import { UserProfileService, UserProfile } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { StrategicSignals } from '../../types/profile.types';
-
-interface Question {
-  id: string;
-  type: 'select' | 'multi-select' | 'range' | 'text';
-  text: string;
-  description?: string;
-  options?: string[];
-  field: string;
-  condition?: (profile: UserProfile) => boolean;
-}
+import type { StrategicSignals } from '../../types/profile.types';
+import {
+  EnhancedArtistQuestionnaireEngine,
+  PHASES,
+  type QuestionnaireQuestion,
+  type QuestionnairePhase,
+  type PhaseInfo,
+  type PersonaSynthesis,
+  type ProfileStrengthBreakdown,
+  getGenreDeepDive,
+} from '../../services/enhanced-artist-questionnaire-engine';
 
 @Component({
   selector: 'app-artist-questionnaire',
@@ -28,502 +25,291 @@ interface Question {
   templateUrl: './artist-questionnaire.component.html',
   styleUrls: ['./artist-questionnaire.component.css'],
   animations: [
-    trigger('slideInOut', [
+    trigger('fadeSlide', [
       transition(':enter', [
-        style({ transform: 'translateY(20px)', opacity: 0 }),
-        animate(
-          '400ms ease-out',
-          style({ transform: 'translateY(0)', opacity: 1 })
-        ),
+        style({ transform: 'translateY(18px)', opacity: 0 }),
+        animate('400ms cubic-bezier(0.16, 1, 0.3, 1)', style({ transform: 'translateY(0)', opacity: 1 })),
       ]),
       transition(':leave', [
-        animate(
-          '300ms ease-in',
-          style({ transform: 'translateY(-20px)', opacity: 0 })
-        ),
+        animate('250ms ease-in', style({ transform: 'translateY(-12px)', opacity: 0 })),
+      ]),
+    ]),
+    trigger('staggerFade', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
       ]),
     ]),
   ],
 })
 export class ArtistQuestionnaireComponent {
-  neuralObservationLog = signal<string[]>([
-    'INITIALIZING_NEURAL_OBSERVATION...',
-    'WAITING_FOR_DATA_VECTORS...',
-  ]);
-
-  strategicSignals = computed<StrategicSignals>(() => {
-    const p = this.profileDraft();
-    const signals: StrategicSignals = {
-      marketReadiness: 0,
-      identityTrust: 0,
-      careerMomentum: 0,
-      technicalAuthority: 0,
-      syncViability: 0,
-      touringStability: 0,
-    };
-
-    if (p.primaryGenre) signals.marketReadiness += 20;
-    if (p.musicalJourney?.yearsInIndustry > 5) signals.marketReadiness += 10;
-    if (p.musicalJourney?.marketPosition === 'Major Ready')
-      signals.marketReadiness += 20;
-    if (p.brandVoices && p.brandVoices.length > 0)
-      signals.marketReadiness += 20;
-    if (p.strategicGoals && p.strategicGoals.length > 0)
-      signals.marketReadiness += 20;
-    if (p.website) signals.marketReadiness += 20;
-    if (p.expertise && p.expertise.marketing > 5) signals.marketReadiness += 20;
-
-    if (p.expertise) {
-      signals.technicalAuthority =
-        p.expertise.production * 5 + (p.expertise.technical_mastery || 0) * 5;
-    }
-
-    if (p.catalog && p.catalog.length > 0) signals.careerMomentum += 20;
-    if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)')
-      signals.careerMomentum += 20;
-    if (p.performancesPerYear && p.performancesPerYear !== 'None')
-      signals.careerMomentum += 20;
-    if (p.strategicGoals && p.strategicGoals.length > 2)
-      signals.careerMomentum += 20;
-
-    if (p.syncDetails?.hasStems === 'Everything Archived')
-      signals.syncViability += 25;
-    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery')
-      signals.syncViability += 50;
-
-    if (p.touringDetails?.isTourReady === 'Global Ready')
-      signals.touringStability += 40;
-    if (p.touringDetails?.hasBackline === 'Full Self-Sustained')
-      signals.touringStability += 30;
-
-    if (p.legalInfrastructure?.hasRegisteredWorks) signals.identityTrust += 30;
-    if (p.legalInfrastructure?.proAffiliation !== 'None')
-      signals.identityTrust += 30;
-
-    Object.keys(signals).forEach((key) => {
-      (signals as any)[key] = Math.min(100, (signals as any)[key]);
-    });
-    return signals;
-  });
-
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
   private uplinkService = inject(UplinkService);
+  private engine = inject(EnhancedArtistQuestionnaireEngine);
 
   close = output<void>();
   complete = output<UserProfile>();
 
-  currentStep = signal(0);
-  profileDraft = signal<UserProfile>({
-    ...this.userProfileService.profile(),
-    genreSpecificData:
-      this.userProfileService.profile().genreSpecificData || {},
-    expertise: this.userProfileService.profile().expertise,
-    strategicGoals: this.userProfileService.profile().strategicGoals || [],
-  });
-
+  // ── Core state ──────────────────────────────────────────────
+  currentPhaseIndex = signal(0);
+  currentQuestionIndex = signal(0);
+  profileDraft = signal<UserProfile>(this.deepClone(this.userProfileService.profile()));
   isAnalyzing = signal(false);
   analysisResult = signal<any>(null);
   showUplink = signal(false);
   isGlitching = signal(false);
+  showPersonaCard = signal(false);
+  completedPhases = signal<Set<QuestionnairePhase>>(new Set());
 
-  questions: Question[] = [
-    {
-      id: 'ai-persona',
-      type: 'select',
-      text: 'AI Agent Configuration.',
-      description:
-        'Which S.M.U.V.E interaction profile will best serve your current trajectory?',
-      options: ['Encouraging Mentor', 'Aggressive Manager', 'Elite Commander'],
-      field: 'settings.ai.commanderPersona',
-    },
-    {
-      id: 'educational-background',
-      type: 'select',
-      text: 'Educational Background.',
-      description: 'What is the foundation of your musical knowledge?',
-      options: [
-        'Self-Taught',
-        'Private Lessons',
-        'Music College',
-        'Masterclass Pro',
-        'Industry Mentorship',
-      ],
-      field: 'musicalJourney.educationalBackground',
-    },
-    {
-      id: 'market-position',
-      type: 'select',
-      text: 'Market Position.',
-      description:
-        'Where do you currently stand in the global music ecosystem?',
-      options: [
-        'Emerging Artist',
-        'Local Hero',
-        'Regional Contender',
-        'Major Ready',
-        'Global Icon (Legacy)',
-      ],
-      field: 'musicalJourney.marketPosition',
-    },
-    {
-      id: 'songwriting-style',
-      type: 'select',
-      text: 'Songwriting Architecture.',
-      description: 'How do you construct your lyrical and melodic frameworks?',
-      options: [
-        'Top-Down (Lyrics First)',
-        'Bottom-Up (Beat First)',
-        'Stream of Consciousness',
-        'Collaborative Jamming',
-      ],
-      field: 'musicalJourney.songwritingStyle',
-    },
-    {
-      id: 'production-philosophy',
-      type: 'select',
-      text: 'Production Philosophy.',
-      description:
-        'What is your core approach to sound design and arrangement?',
-      options: [
-        'Analog Warmth',
-        'Digital Precision',
-        'Lo-Fi Grit',
-        'Experimental Hybrid',
-      ],
-      field: 'musicalJourney.productionPhilosophy',
-    },
-    {
-      id: 'collaborative-mode',
-      type: 'select',
-      text: 'Collaborative Operating Mode.',
-      description:
-        'How do you prefer to interact with other creative entities?',
-      options: [
-        'Solo Specialist',
-        'Core Duo',
-        'Full Band',
-        'Remote Outsourcing',
-      ],
-      field: 'musicalJourney.collaborativeMode',
-    },
-    {
-      id: 'release-velocity',
-      type: 'select',
-      text: 'Release Deployment Velocity.',
-      description: 'How frequently do you intend to drop new assets?',
-      options: [
-        'Waterfall (Weekly)',
-        'Cyclic (Monthly)',
-        'Strategic (Quarterly)',
-        'Rare (Yearly)',
-      ],
-      field: 'musicalJourney.releaseVelocity',
-    },
-    {
-      id: 'success-metric',
-      type: 'select',
-      text: 'Primary Success Metric.',
-      description: 'What defines a successful deployment for your trajectory?',
-      options: [
-        'Creative Satisfaction',
-        'Algorithmic Dominance',
-        'Financial Revenue',
-        'Cultural Impact',
-      ],
-      field: 'musicalJourney.primarySuccessMetric',
-    },
-    {
-      id: 'years-industry',
-      type: 'range',
-      text: 'Industry Deployment Time.',
-      description:
-        'How many years have you been active in the musical infrastructure?',
-      field: 'musicalJourney.yearsInIndustry',
-    },
-    {
-      id: 'content-strategy',
-      type: 'select',
-      text: 'Content Ecosystem Strategy.',
-      description: 'How do you feed the social and digital algorithms?',
-      options: ['Organic Only', 'Paid Growth', 'Viral Hunt', 'Community First'],
-      field: 'musicalJourney.contentStrategy',
-    },
-    {
-      id: 'sync-readiness',
-      type: 'select',
-      text: 'Sync Infrastructure Analysis.',
-      description:
-        'Is your catalog technically prepared for high-stakes licensing?',
-      options: [
-        'Not Started',
-        'Basics Ready',
-        'Full Stem Mastery',
-        'One-Stop Qualified',
-      ],
-      field: 'syncDetails.isSyncReady',
-    },
-    {
-      id: 'genre',
-      type: 'select',
-      text: 'Identify your sonic foundation.',
-      description: 'Which primary genre defines your current trajectory?',
-      options: [
-        'Hip Hop',
-        'Electronic',
-        'Rock',
-        'R&B',
-        'Pop',
-        'Jazz',
-        'Afrobeats',
-      ],
-      field: 'primaryGenre',
-    },
-    {
-      id: 'rock-rig',
-      type: 'select',
-      text: 'Signal Chain Architecture.',
-      description: 'How do you define your electric resonance?',
-      options: [
-        'Analog Purity',
-        'Digital Modelers',
-        'Hybrid Chaos',
-        'Studio Direct',
-      ],
-      field: 'genreSpecificData.rock_rig',
-      condition: (p) => p.primaryGenre === 'Rock',
-    },
-    {
-      id: 'legal-pro',
-      type: 'select',
-      text: 'PRO Affiliation.',
-      description:
-        'Which Performance Rights Organization monitors your airplay?',
-      options: ['None', 'ASCAP', 'BMI', 'SESAC', 'PRS', 'GEMA', 'Other'],
-      field: 'legalInfrastructure.proAffiliation',
-    },
-    {
-      id: 'tour-status',
-      type: 'select',
-      text: 'Touring Infrastructure.',
-      description: 'Is your live show ready for deployment?',
-      options: ['Studio Only', 'Local Gigs', 'Regional Ready', 'Global Ready'],
-      field: 'touringDetails.isTourReady',
-    },
-    {
-      id: 'catalyst',
-      type: 'select',
-      text: 'Identify your primary Creative Catalyst.',
-      description: 'What drives the core of your artistic output?',
-      options: [
-        'Nostalgia',
-        'Technical Innovation',
-        'Cultural Commentary',
-        'Emotional Catharsis',
-        'Market Dominance',
-      ],
-      field: 'expertise.catalyst',
-    },
-    {
-      id: 'technical-barrier',
-      type: 'range',
-      text: 'Assess your Technical Mastery.',
-      description:
-        'How complex is your production chain? (1 = Minimalist, 10 = High-End Engineering)',
-      field: 'expertise.technical_mastery',
-    },
-    {
-      id: 'pipeline-focus',
-      type: 'multi-select',
-      text: 'Executive Pipeline Focus.',
-      description: 'Select up to 3 priority infrastructures to harden.',
-      options: [
-        'Merch Engine',
-        'Record Label Framework',
-        'Legal Vault Hardening',
-        'Sync Catalog Pumping',
-        'Global Touring Route',
-      ],
-      field: 'strategicGoals',
-    },
-    {
-      id: 'voice',
-      type: 'multi-select',
-      text: 'Calibrate your Brand Voice.',
-      description: 'Select up to 3 core identifiers.',
-      options: [
-        'Mysterious',
-        'Aggressive',
-        'Sophisticated',
-        'Relatable',
-        'Elite',
-        'Vulnerable',
-        'High-Energy',
-        'Cinematic',
-        'Underground',
-      ],
-      field: 'brandVoices',
-    },
-  ];
-  activeQuestions = computed(() => {
-    const draft = this.profileDraft();
-    return this.questions.filter((q) => !q.condition || q.condition(draft));
+  // ── AI Chat Log ─────────────────────────────────────────────
+  aiChatLog = signal<Array<{ type: 'observation' | 'adaptation' | 'system'; text: string }>>([
+    { type: 'system', text: 'S.M.U.V.E Neural Fine-Tune v2.0 Initialized.' },
+    { type: 'system', text: 'Awaiting artist data vectors for analysis...' },
+  ]);
+
+  // ── Computed ────────────────────────────────────────────────
+  readonly phases = PHASES;
+
+  /** Questions for the current phase, filtered by conditions */
+  currentPhaseQuestions = computed<QuestionnaireQuestion[]>(() => {
+    const phase = this.phases[this.currentPhaseIndex()];
+    return this.engine.questionsForPhase(phase.id, this.profileDraft());
   });
 
-  currentQuestion = computed(() => {
-    const step = this.currentStep();
-    return this.activeQuestions()[step];
+  /** Current question being displayed */
+  currentQuestion = computed<QuestionnaireQuestion | undefined>(() => {
+    return this.currentPhaseQuestions()[this.currentQuestionIndex()];
   });
 
-  progress = computed(() => {
-    return ((this.currentStep() + 1) / this.activeQuestions().length) * 100;
+  /** Progress across entire questionnaire */
+  totalProgress = computed(() => {
+    const allQs = this.engine.allQuestions.filter(q => !q.condition || q.condition(this.profileDraft()));
+    const answered = allQs.filter(q => this.isFieldAnswered(q.field)).length;
+    return Math.round((answered / Math.max(allQs.length, 1)) * 100);
   });
 
+  /** Phase-level progress */
+  phaseProgress = computed(() => {
+    const qs = this.currentPhaseQuestions();
+    if (qs.length === 0) return 100;
+    const answered = qs.filter(q => this.isFieldAnswered(q.field)).length;
+    return Math.round((answered / qs.length) * 100);
+  });
+
+  /** Live strength breakdown */
+  strengthBreakdown = computed<ProfileStrengthBreakdown>(() => {
+    return this.engine.calculateStrength(this.profileDraft());
+  });
+
+  /** Whether this is the last question of the last phase */
+  isLastQuestion = computed(() => {
+    const phaseQs = this.currentPhaseQuestions();
+    const isLastInPhase = this.currentQuestionIndex() >= phaseQs.length - 1;
+    const isLastPhase = this.currentPhaseIndex() >= this.phases.length - 1;
+    return isLastInPhase && isLastPhase;
+  });
+
+  /** Get options for current question (handles dynamic subgenres) */
+  getOptionsForCurrentQuestion(): any[] {
+    const q = this.currentQuestion();
+    if (!q) return [];
+    // For subgenre questions, dynamically populate from genre deep dive
+    if (q.id === 'q7') {
+      return this.subgenreOptions();
+    }
+    return q.options || [];
+  }
+
+  /** Check if a chip value is selected */
+  isChipSelected(field: string, value: string): boolean {
+    const arr = this.getValue(field);
+    return Array.isArray(arr) && arr.includes(value);
+  }
+
+  /** Get count of selected items */
+  getSelectedCount(field: string): number {
+    const arr = this.getValue(field);
+    return Array.isArray(arr) ? arr.length : 0;
+  }
+
+  /** Get numeric value for range (safe for templates) */
+  getRangeVal(field: string): number {
+    const v = this.getValue(field);
+    return typeof v === 'number' ? v : 5;
+  }
+
+  /** Genre deep dive data */
+  genreDeepDive = computed(() => getGenreDeepDive(this.profileDraft().primaryGenre || 'Hip Hop'));
+
+  /** Subgenre options from current genre */
+  subgenreOptions = computed(() => this.engine.getSubgenreOptions(this.profileDraft().primaryGenre || 'Hip Hop'));
+
+  /** Phase info for current phase */
+  currentPhaseInfo = computed<PhaseInfo>(() => this.phases[this.currentPhaseIndex()]);
+
+  /** Suggested genre icons */
+  genreIcons: Record<string, string> = {
+    'Hip Hop': '🎤', 'R&B': '🎵', 'Electronic': '⚡', 'Rock': '🎸',
+    'Pop': '🌟', 'Jazz': '🎷', 'Latin': '🕺', 'Country': '🤠',
+    'Afrobeats': '🌍', 'Classical': '🎻', 'Metal': '🤘', 'Folk': '🪕', 'Reggae': '🌴',
+  };
+
+  // ── Methods ─────────────────────────────────────────────────
+
+  /** Get current value from draft */
   getValue(field: string): any {
     const parts = field.split('.');
     let current: any = this.profileDraft();
     for (const part of parts) {
-      if (
-        !current ||
-        part === '__proto__' ||
-        part === 'constructor' ||
-        part === 'prototype'
-      )
-        return undefined;
+      if (!current || part === '__proto__' || part === 'constructor' || part === 'prototype') return undefined;
       current = current[part];
     }
     return current;
   }
 
+  /** Update a field value */
   updateValue(field: string, value: any) {
-    this.profileDraft.update((p) => {
+    this.profileDraft.update(p => {
       const updated = JSON.parse(JSON.stringify(p));
-      const observation = this.generateNeuralObservation(field, value);
-      if (observation) {
-        this.neuralObservationLog.update((logs) =>
-          [observation, ...logs].slice(0, 15)
-        );
-      }
+      const q = this.currentQuestion();
       const parts = field.split('.');
       let target: any = updated;
 
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
-        if (
-          part === '__proto__' ||
-          part === 'constructor' ||
-          part === 'prototype'
-        ) {
-          return p;
-        }
+        if (part === '__proto__' || part === 'constructor' || part === 'prototype') return p;
         if (!target[part]) target[part] = {};
         target = target[part];
       }
 
       const lastPart = parts[parts.length - 1];
-      if (
-        lastPart === '__proto__' ||
-        lastPart === 'constructor' ||
-        lastPart === 'prototype'
-      ) {
-        return p;
-      }
+      if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') return p;
 
-      const q = this.currentQuestion();
-
-      if (q && q.type === 'multi-select') {
+      if (q?.type === 'multi-select' || q?.type === 'chip-group') {
         if (!Array.isArray(target[lastPart])) target[lastPart] = [];
         if (target[lastPart].includes(value)) {
           target[lastPart] = target[lastPart].filter((v: any) => v !== value);
         } else {
-          target[lastPart] = [...target[lastPart], value].slice(-3);
+          const max = q.maxSelections || 5;
+          target[lastPart] = [...target[lastPart], value].slice(-max);
         }
+      } else if (q?.type === 'toggle') {
+        target[lastPart] = value === 'true' || value === true ? 'true' : '';
+      } else if (q?.type === 'range') {
+        target[lastPart] = Number(value);
       } else {
         target[lastPart] = value;
       }
 
       return updated;
     });
-  }
 
-  next() {
-    this.triggerGlitch();
-    this.triggerGlitch();
-    if (this.currentStep() < this.activeQuestions().length - 1) {
-      setTimeout(() => {
-        this.currentStep.update((s) => s + 1);
-      }, 100);
-    } else {
-      this.finalize();
+    // Generate AI response
+    const q = this.currentQuestion();
+    const val = this.getValue(field);
+    if (q && val !== undefined && val !== null && val !== '') {
+      const response = this.engine.generateAIQuestionResponse(q, val);
+      this.aiChatLog.update(logs => [
+        ...logs,
+        { type: 'observation' as const, text: response.observation },
+        { type: 'adaptation' as const, text: response.adaptation },
+      ].slice(-20));
     }
   }
 
+  /** Check if a field has a meaningful value */
+  isFieldAnswered(field: string): boolean {
+    const value = this.getValue(field);
+    if (value === undefined || value === null) return false;
+    if (typeof value === 'string') return value.trim() !== '' && value !== 'Unspecified';
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'boolean') return true;
+    if (typeof value === 'number') return value > 0;
+    return true;
+  }
+
+  /** Navigate to next question/phase */
+  async next() {
+    const qs = this.currentPhaseQuestions();
+    const q = this.currentQuestion();
+
+    if (q && !this.isFieldAnswered(q.field)) {
+      this.aiChatLog.update(logs => [...logs, { type: 'system', text: `⚠️ S.M.U.V.E recommends answering "${q.text}" for optimal profile calibration.` }]);
+    }
+
+    this.triggerGlitch();
+
+    if (this.currentQuestionIndex() < qs.length - 1) {
+      this.currentQuestionIndex.update(i => i + 1);
+    } else {
+      // Phase complete
+      const phaseId = this.phases[this.currentPhaseIndex()].id;
+      this.completedPhases.update(s => { s.add(phaseId); return new Set(s); });
+
+      if (this.currentPhaseIndex() < this.phases.length - 1) {
+        this.currentPhaseIndex.update(i => i + 1);
+        this.currentQuestionIndex.set(0);
+        this.aiChatLog.update(logs => [...logs, {
+          type: 'system',
+          text: `🧠 PHASE COMPLETE: ${PHASES[this.currentPhaseIndex() - 1].title} — moving to ${PHASES[this.currentPhaseIndex()].title}`,
+        }]);
+      } else {
+        // All phases complete → generate AI analysis
+        await this.finalize();
+      }
+    }
+  }
+
+  /** Navigate to previous question/phase */
   back() {
     this.triggerGlitch();
-    this.triggerGlitch();
-    if (this.currentStep() > 0) {
-      setTimeout(() => {
-        this.currentStep.update((s) => s - 1);
-      }, 100);
+    if (this.currentQuestionIndex() > 0) {
+      this.currentQuestionIndex.update(i => i - 1);
+    } else if (this.currentPhaseIndex() > 0) {
+      this.currentPhaseIndex.update(i => i - 1);
+      const prevQs = this.engine.questionsForPhase(this.phases[this.currentPhaseIndex()].id, this.profileDraft());
+      this.currentQuestionIndex.set(Math.max(0, prevQs.length - 1));
     }
   }
 
+  /** Go to a specific phase */
+  goToPhase(index: number) {
+    if (index <= this.currentPhaseIndex()) {
+      this.currentPhaseIndex.set(index);
+      this.currentQuestionIndex.set(0);
+    }
+  }
+
+  /** Finalize all phases and generate AI analysis */
   async finalize() {
     this.isAnalyzing.set(true);
     const draft = this.profileDraft();
-    const insights = await this.aiService.getQuestionnaireInsights(draft);
 
-    this.analysisResult.set({
-      healthScore: this.calculateStrategicScore(draft),
-      recommendations: insights,
-    });
+    try {
+      const analysis = await this.engine.generateAIAnalysis(draft);
+      this.analysisResult.set(analysis);
+      this.showPersonaCard.set(true);
+    } catch (e) {
+      this.aiChatLog.update(logs => [...logs, { type: 'system', text: '⚠️ AI analysis encountered an error. Using local intelligence.' }]);
+      this.analysisResult.set({
+        persona: await this.engine.synthesizePersona(draft),
+        breakdown: this.strengthBreakdown(),
+        recommendations: [],
+        insights: [],
+      });
+    }
 
     this.isAnalyzing.set(false);
   }
 
-  private triggerGlitch() {
-    this.isGlitching.set(true);
-    setTimeout(() => this.isGlitching.set(false), 200);
-  }
-
-  private generateNeuralObservation(field: string, value: any): string | null {
-    if (field.includes('musicalJourney')) {
-      const normalized = String(value ?? 'UNSPECIFIED').toUpperCase();
-      return `MAPPING_MUSICAL_JOURNEY_STATION:_${normalized}...`;
-    }
-    if (field === 'primaryGenre')
-      return `ADAPTING_NEURAL_FILTERS_FOR_${value.toUpperCase()}_TRAJECTORY...`;
-    if (field.includes('expertise'))
-      return `MAPPING_TECHNICAL_AUTHORITY_AT_LEVEL_${value}...`;
-    if (field.includes('isTourReady'))
-      return `CALIBRATING_TOURING_STABILITY_VECTORS...`;
-    if (field.includes('isSyncReady'))
-      return `ANALYZING_SYNC_VIABILITY_MARKERS...`;
-    if (field === 'brandVoices')
-      return `RECOGNIZING_BRAND_RESONANCE:_${value.toUpperCase()}...`;
-    return null;
-  }
-
-  private calculateStrategicScore(p: UserProfile): number {
-    const s = this.strategicSignals();
-    const avgSignal =
-      (s.marketReadiness +
-        s.identityTrust +
-        s.careerMomentum +
-        s.technicalAuthority +
-        s.syncViability +
-        s.touringStability) /
-      6;
-    let score = 50 + avgSignal / 2;
-    if (p.primaryGenre) score += 5;
-    return Math.round(Math.min(100, score));
-  }
-
+  /** Apply profile changes and commit */
   async applyChanges() {
     this.showUplink.set(true);
-    const completedProfile = {
-      ...this.profileDraft(),
-      strategicSignals: this.strategicSignals(),
+    const draft = this.profileDraft();
+    const completedProfile: UserProfile = {
+      ...draft,
+      strategicSignals: this.calculateStrategicSignals(draft),
       profileSetupCompleted: true,
       profileSetupCompletedAt: Date.now(),
     };
@@ -532,5 +318,46 @@ export class ArtistQuestionnaireComponent {
     if (success) {
       this.complete.emit(completedProfile);
     }
+  }
+
+  /** Calculate strategic signals from draft */
+  private calculateStrategicSignals(p: UserProfile): StrategicSignals {
+    const s: StrategicSignals = { marketReadiness: 0, identityTrust: 0, careerMomentum: 0, technicalAuthority: 0, syncViability: 0, touringStability: 0 };
+
+    if (p.primaryGenre) s.marketReadiness += 20;
+    if (p.musicalJourney?.yearsInIndustry > 5) s.marketReadiness += 10;
+    if (p.website) s.marketReadiness += 10;
+    if (p.brandVoices?.length) s.marketReadiness += 20;
+    if (p.strategicGoals?.length) s.marketReadiness += 20;
+
+    if (p.expertise) {
+      s.technicalAuthority = (p.expertise.production || 0) * 5 + (p.expertise.technical_mastery || 0) * 5;
+      if (p.expertise.songwriting) s.technicalAuthority += p.expertise.songwriting * 3;
+    }
+
+    if (p.catalog?.length) s.careerMomentum += 20;
+    if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)') s.careerMomentum += 20;
+    if (p.strategicGoals?.length > 2) s.careerMomentum += 20;
+
+    if (p.syncDetails?.hasStems === 'Everything Archived') s.syncViability += 25;
+    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery') s.syncViability += 50;
+
+    if (p.touringDetails?.isTourReady === 'Global Ready') s.touringStability += 40;
+    if (p.touringDetails?.hasBackline === 'Full Self-Sustained') s.touringStability += 30;
+
+    if (p.legalInfrastructure?.hasRegisteredWorks) s.identityTrust += 30;
+    if (p.legalInfrastructure?.proAffiliation !== 'None') s.identityTrust += 30;
+
+    Object.keys(s).forEach(k => { (s as any)[k] = Math.min(100, (s as any)[k]); });
+    return s;
+  }
+
+  private triggerGlitch() {
+    this.isGlitching.set(true);
+    setTimeout(() => this.isGlitching.set(false), 200);
+  }
+
+  private deepClone<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
   }
 }

@@ -1,393 +1,346 @@
-<div
-  class="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4 md:p-8"
->
-  <div class="scanline-overlay pointer-events-none"></div>
-  <div class="holographic-depth pointer-events-none opacity-20"></div>
-  <div
-    class="w-full h-full max-w-7xl bg-white/[0.02] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col p-8 md:p-16 relative shadow-[0_50px_100px_rgba(0,0,0,0.8)]"
-  >
-    <div class="absolute inset-0 bg-black overflow-hidden flex">
-      <!-- SIDEBAR FOR SIGNALS -->
-      <aside
-        class="hidden xl:flex flex-col w-80 space-y-6 animate-fade-in pr-8"
-        *ngIf="!analysisResult()"
-      >
-        <div class="hud-module p-6 space-y-4">
-          <h3
-            class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary opacity-50 flex items-center gap-2"
-          >
-            <span
-              class="w-2 h-2 bg-brand-primary rounded-full animate-pulse"
-            ></span>
-            Neural_Observation_Log
-          </h3>
-          <div class="space-y-3 max-h-[300px] overflow-hidden">
-            <div
-              *ngFor="let log of neuralObservationLog()"
-              class="text-[9px] font-mono text-brand-primary leading-tight opacity-80 animate-slide-up"
-            >
-              > {{ log }}
-            </div>
+<div class="eq-overlay">
+  <!-- Ambient scanline effect -->
+  <div class="eq-scanlines pointer-events-none"></div>
+  
+  <div class="eq-container" [class.glitch-active]="isGlitching()">
+    
+    <!-- ─── HEADER ──────────────────────────────────────────── -->
+    <header class="eq-header">
+      <div class="eq-header-left">
+        <div class="eq-logo-icon">
+          <span>🧬</span>
+        </div>
+        <div>
+          <h1 class="eq-title">Artist DNA Uplink</h1>
+          <p class="eq-subtitle">S.M.U.V.E Neural Fine-Tune v2.0 — Calibrating {{ profileDraft().artistName || 'New Artist' }}</p>
+        </div>
+      </div>
+      <div class="eq-header-right">
+        <div class="eq-strength-mini">
+          <div class="eq-strength-ring">
+            <svg viewBox="0 0 36 36" class="eq-ring-svg">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none" stroke="url(#strengthGrad)" stroke-width="3"
+                [attr.stroke-dasharray]="totalProgress() + ', 100'" stroke-linecap="round" />
+            </svg>
+            <svg width="0" height="0"><defs><linearGradient id="strengthGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0E7C7B"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs></svg>
+            <span class="eq-strength-pct">{{ totalProgress() }}%</span>
           </div>
         </div>
+        <button (click)="close.emit()" class="eq-close-btn" aria-label="Close questionnaire">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </header>
 
-        <div class="hud-module p-6 space-y-4">
-          <h3
-            class="text-[10px] font-black uppercase tracking-[0.3em] text-purple-500 opacity-50"
-          >
-            Strategic_Signals
-          </h3>
-          <div class="space-y-4">
-            <div
-              *ngFor="
-                let signal of [
-                  {
-                    label: 'MARKET_READINESS',
-                    val: strategicSignals().marketReadiness,
-                  },
-                  {
-                    label: 'IDENTITY_TRUST',
-                    val: strategicSignals().identityTrust,
-                  },
-                  {
-                    label: 'TECH_AUTHORITY',
-                    val: strategicSignals().technicalAuthority,
-                  },
-                  {
-                    label: 'SYNC_VIABILITY',
-                    val: strategicSignals().syncViability,
-                  },
-                  {
-                    label: 'TOUR_STABILITY',
-                    val: strategicSignals().touringStability,
-                  },
-                ]
-              "
-              class="space-y-1"
-            >
-              <div
-                class="flex justify-between text-[8px] font-black text-white/40 tracking-widest"
-              >
-                <span>{{ signal.label }}</span>
-                <span>{{ signal.val }}%</span>
-              </div>
-              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  class="h-full bg-gradient-to-r from-brand-primary to-purple-600 transition-all duration-1000"
-                  [style.width.%]="signal.val"
-                ></div>
-              </div>
+    <!-- ─── BODY ─────────────────────────────────────────────── -->
+    <div class="eq-body">
+
+      <!-- ─── LEFT: Phase Navigation ─────────────────────────── -->
+      <aside class="eq-phase-nav" *ngIf="!isAnalyzing() && !analysisResult()">
+        <div class="eq-phase-list">
+          <button *ngFor="let phase of phases; let pi = index"
+            class="eq-phase-item"
+            [class.eq-phase-active]="pi === currentPhaseIndex()"
+            [class.eq-phase-done]="completedPhases().has(phase.id)"
+            (click)="goToPhase(pi)"
+            [disabled]="pi > currentPhaseIndex()">
+            <span class="eq-phase-icon">{{ phase.icon }}</span>
+            <div class="eq-phase-info">
+              <span class="eq-phase-label">{{ phase.title }}</span>
+              <span class="eq-phase-sub">{{ phase.subtitle }}</span>
             </div>
-          </div>
+            <span class="eq-phase-check" *ngIf="completedPhases().has(phase.id)">✓</span>
+          </button>
         </div>
 
-        <div class="hud-module p-6 space-y-4">
-          <h3
-            class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary opacity-50"
-          >
-            Neural_Observation_Log
-          </h3>
-          <div class="space-y-3 max-h-[300px] overflow-hidden">
-            <div
-              *ngFor="let log of neuralObservationLog()"
-              class="text-[9px] font-mono text-emerald-400/60 flex gap-2 animate-fade-in"
-            >
-              <span class="shrink-0 text-brand-primary">>></span>
-              <span class="uppercase tracking-tighter">{{ log }}</span>
+        <!-- Strength breakdown sidebar -->
+        <div class="eq-strength-panel">
+          <div class="eq-strength-header">Profile Strength</div>
+          <div class="eq-strength-bars">
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">🎭 Identity</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().identityClarity" style="background:#0E7C7B"></div></div>
             </div>
-            <div
-              *ngIf="neuralObservationLog().length === 0"
-              class="text-[9px] font-mono text-white/20 italic uppercase tracking-tighter"
-            >
-              Awaiting data input...
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">🧬 Musical Depth</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().musicalDepth" style="background:#D97706"></div></div>
+            </div>
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">⚙️ Technical</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().technicalAbility" style="background:#7C3AED"></div></div>
+            </div>
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">💼 Business</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().businessReadiness" style="background:#10B981"></div></div>
+            </div>
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">🎨 Brand</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().brandDefinition" style="background:#EC4899"></div></div>
+            </div>
+            <div class="eq-sbar">
+              <span class="eq-sbar-lbl">🤖 AI Sync</span>
+              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().aiIntegration" style="background:#06B6D4"></div></div>
             </div>
           </div>
         </div>
       </aside>
 
-      <div
-        class="flex-1 flex flex-col items-center justify-center relative overflow-y-auto custom-scroll"
-      >
-        <header class="w-full flex justify-between items-center mb-8 shrink-0">
-          <div class="flex items-center gap-4">
-            <div
-              class="w-12 h-12 bg-brand-primary/10 border border-brand-primary/20 rounded-xl flex items-center justify-center brain-glow"
-            >
-              <i class="fas fa-dna text-brand-primary text-2xl"></i>
-            </div>
-            <div>
-              <h1
-                class="text-2xl font-black italic uppercase text-white tracking-tighter"
-              >
-                Neural Fine-Tune v2.0
-              </h1>
-              <p
-                class="text-[9px] font-bold text-brand-primary uppercase tracking-[0.3em] opacity-80"
-              >
-                S.M.U.V.E. Executive Intelligence Engine
-              </p>
-            </div>
+      <!-- ─── CENTER: Main content ───────────────────────────── -->
+      <main class="eq-main">
+
+        <!-- Loading: AI Analysis -->
+        <div *ngIf="isAnalyzing()" class="eq-loading" @fadeSlide>
+          <div class="eq-loading-spinner">
+            <div class="eq-spinner-ring"></div>
+            <div class="eq-spinner-ring eq-spinner-ring-2"></div>
+            <div class="eq-spinner-core">🧬</div>
           </div>
-          <button
-            (click)="close.emit()"
-            class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-slate-500 hover:text-white hover:border-white/30 transition-all"
-          >
-            <i class="fas fa-times text-lg"></i>
-          </button>
-        </header>
-
-        <div
-          class="w-full h-1 bg-white/5 rounded-full mb-16 overflow-hidden relative shrink-0"
-        >
-          <div
-            class="absolute inset-y-0 left-0 bg-gradient-to-r from-brand-primary via-emerald-400 to-purple-500 transition-all duration-1000 ease-out shadow-[0_0_25px_rgba(16,185,129,0.4)]"
-            [style.width.%]="progress()"
-          ></div>
-        </div>
-
-        <div
-          class="w-full flex-1 flex flex-col items-center justify-start text-center relative py-8"
-        >
-          <div
-            *ngIf="!isAnalyzing() && !analysisResult()"
-            class="w-full max-w-3xl space-y-16 animate-slide-up"
-            [class.glitch-flash]="isGlitching()"
-          >
-            <div class="space-y-6">
-              <div class="flex items-center justify-center gap-4 mb-4">
-                <div
-                  class="size-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary"
-                >
-                  <span class="material-symbols-outlined text-3xl animate-pulse"
-                    >neurology</span
-                  >
-                </div>
-                <div class="text-left">
-                  <h4
-                    class="text-[10px] font-black uppercase tracking-[0.4em] text-brand-primary"
-                  >
-                    S.M.U.V.E Meet & Greet
-                  </h4>
-                  <p
-                    class="text-[8px] font-black uppercase tracking-[0.2em] text-white opacity-40"
-                  >
-                    Fine-Tune Session Active
-                  </p>
-                </div>
-              </div>
-              <h2
-                class="text-4xl md:text-6xl font-black uppercase text-white tracking-tight leading-[0.95] italic animate-fade-in"
-              >
-                {{ currentQuestion().text }}
-              </h2>
-              <p
-                class="text-sm md:text-base text-slate-400 uppercase tracking-[0.2em] font-bold opacity-60"
-              >
-                {{ currentQuestion().description }}
-              </p>
-            </div>
-
-            <div
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full"
-              *ngIf="
-                currentQuestion().type === 'select' ||
-                currentQuestion().type === 'multi-select'
-              "
-            >
-              <button
-                *ngFor="let opt of currentQuestion().options"
-                (click)="updateValue(currentQuestion().field, opt)"
-                [class.border-brand-primary]="
-                  getValue(currentQuestion().field) === opt ||
-                  (getValue(currentQuestion().field)?.includes &&
-                    getValue(currentQuestion().field).includes(opt))
-                "
-                [class.bg-brand-primary/10]="
-                  getValue(currentQuestion().field) === opt ||
-                  (getValue(currentQuestion().field)?.includes &&
-                    getValue(currentQuestion().field).includes(opt))
-                "
-                class="p-8 protocol-card rounded-3xl text-xs md:text-sm font-black uppercase tracking-widest text-white group relative overflow-hidden"
-              >
-                <div
-                  *ngIf="
-                    getValue(currentQuestion().field) === opt ||
-                    (getValue(currentQuestion().field)?.includes &&
-                      getValue(currentQuestion().field).includes(opt))
-                  "
-                  class="absolute top-4 right-4 animate-scale-in"
-                >
-                  <i
-                    class="fas fa-check-circle text-brand-primary text-xl shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-                  ></i>
-                </div>
-                <span
-                  class="relative z-10 group-hover:scale-110 transition-transform block"
-                  >{{ opt }}</span
-                >
-              </button>
-            </div>
-
-            <div
-              *ngIf="currentQuestion().type === 'range'"
-              class="w-full max-w-xl mx-auto space-y-12 py-16"
-            >
-              <div
-                class="flex justify-between text-xs font-black uppercase text-brand-primary tracking-[0.2em]"
-              >
-                <span>Minimum Focus</span>
-                <span>Absolute Focus</span>
-              </div>
-              <div class="relative pt-10">
-                <div
-                  class="absolute -top-10 left-0 right-0 flex justify-center"
-                >
-                  <span
-                    class="text-8xl font-black italic text-brand-primary/20 tracking-tighter"
-                    >{{ getValue(currentQuestion().field) || 5 }}</span
-                  >
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  [ngModel]="getValue(currentQuestion().field) || 5"
-                  (ngModelChange)="updateValue(currentQuestion().field, $event)"
-                  class="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary hover:accent-purple-500 transition-all"
-                />
-              </div>
-            </div>
-
-            <footer
-              class="pt-20 flex justify-between items-center w-full max-w-xl mx-auto"
-            >
-              <button
-                (click)="back()"
-                [disabled]="currentStep() === 0"
-                class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white disabled:opacity-0 transition-all flex items-center gap-2"
-              >
-                <i class="fas fa-chevron-left"></i> PREVIOUS_VECTOR
-              </button>
-              <button
-                (click)="next()"
-                class="px-12 py-5 bg-white text-black text-xs font-black uppercase tracking-[0.3em] rounded-full hover:bg-brand-primary hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-brand-primary/30 flex items-center gap-3"
-              >
-                {{
-                  currentStep() === activeQuestions().length - 1
-                    ? 'FINALIZE_PROTOCOL'
-                    : 'NEXT_PROTOCOL'
-                }}
-                <i class="fas fa-chevron-right"></i>
-              </button>
-            </footer>
-          </div>
-
-          <div
-            *ngIf="isAnalyzing()"
-            class="flex flex-col items-center justify-center space-y-12 animate-fade-in py-20"
-          >
-            <div class="w-32 h-32 relative">
-              <div
-                class="absolute inset-0 border-4 border-brand-primary/10 rounded-full animate-ping [animation-duration:2s]"
-              ></div>
-              <div
-                class="absolute inset-2 border-[1px] border-brand-primary/30 rounded-full animate-spin [animation-duration:4s]"
-              ></div>
-              <div
-                class="absolute inset-4 border-[1px] border-purple-500/30 rounded-full animate-spin-reverse [animation-duration:6s]"
-              ></div>
-              <div
-                class="absolute inset-6 bg-gradient-to-br from-brand-primary to-emerald-600 rounded-full shadow-[0_0_50px_rgba(16,185,129,0.4)] flex items-center justify-center"
-              >
-                <i class="fas fa-brain text-4xl text-white animate-pulse"></i>
-              </div>
-            </div>
-            <div class="text-center space-y-4">
-              <h2
-                class="text-4xl font-black italic uppercase text-white animate-pulse tracking-tighter"
-              >
-                Analyzing Neural Vectors
-              </h2>
-              <p
-                class="text-xs font-bold text-brand-primary uppercase tracking-[0.5em] opacity-70"
-              >
-                Synthesizing Executive Market Intelligence...
-              </p>
-            </div>
-          </div>
-
-          <div
-            *ngIf="analysisResult() && !isAnalyzing()"
-            class="w-full max-w-4xl space-y-16 animate-slide-up py-10"
-          >
-            <header class="text-center space-y-4">
-              <h2
-                class="text-6xl md:text-8xl font-black italic uppercase text-white tracking-tighter leading-none mb-4"
-              >
-                <span class="text-brand-primary">{{
-                  analysisResult().healthScore
-                }}</span
-                >% STRENGTH
-              </h2>
-              <p
-                class="text-sm text-brand-primary uppercase tracking-[0.5em] font-black opacity-80"
-              >
-                Strategic Optimization Protocol Successful · All Workspaces
-                Ready
-              </p>
-            </header>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div
-                *ngFor="let rec of analysisResult().recommendations"
-                class="p-10 protocol-card rounded-[2.5rem] text-left group"
-              >
-                <div class="flex items-center gap-4 mb-6">
-                  <div
-                    class="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center"
-                  >
-                    <i class="fas fa-bolt text-brand-primary text-xl"></i>
-                  </div>
-                  <div class="flex justify-between items-start w-full">
-                    <h4
-                      class="text-sm font-black uppercase text-white tracking-[0.2em]"
-                    >
-                      {{ rec.title }}
-                    </h4>
-                    <span
-                      class="text-[8px] font-black px-2 py-1 rounded bg-red-500/10 text-red-500 border border-red-500/20 tracking-widest"
-                      *ngIf="rec.impact"
-                      >{{ rec.impact }}</span
-                    >
-                  </div>
-                </div>
-                <p
-                  class="text-xs text-slate-400 leading-relaxed uppercase font-medium tracking-wide"
-                >
-                  {{ rec.content }}
-                </p>
-              </div>
-            </div>
-            <footer class="pt-16 flex flex-col items-center space-y-8">
-              <button
-                (click)="applyChanges()"
-                class="w-full max-w-md px-12 py-8 bg-brand-primary text-black text-sm font-black uppercase tracking-[0.4em] rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-[0_30px_60px_rgba(16,185,129,0.3)] flex items-center justify-center gap-4"
-              >
-                <i class="fas fa-check-double"></i> COMMIT NEURAL REALIGNMENT
-              </button>
-              <button
-                (click)="close.emit()"
-                class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 hover:text-red-400 transition-colors border-b border-transparent hover:border-red-400/30 pb-1"
-              >
-                DISCARD TEMPORARY VECTORS
-              </button>
-            </footer>
+          <h2 class="eq-loading-title">Synthesizing Artist Intelligence</h2>
+          <p class="eq-loading-sub">S.M.U.V.E is analyzing {{ totalProgress() }}% of your profile data across 8 strategic dimensions...</p>
+          <div class="eq-loading-dots">
+            <span></span><span></span><span></span><span></span>
           </div>
         </div>
-      </div>
+
+        <!-- Results: AI Analysis Complete -->
+        <div *ngIf="analysisResult() && !isAnalyzing()" class="eq-results" @fadeSlide>
+          
+          <!-- Persona Synthesis Card -->
+          <div class="eq-persona-card" *ngIf="showPersonaCard()">
+            <div class="eq-persona-glow"></div>
+            <div class="eq-persona-header">
+              <span class="eq-persona-icon">🧬</span>
+              <div>
+                <h2 class="eq-persona-title">Artist Persona Synthesis</h2>
+                <p class="eq-persona-sub">{{ analysisResult().persona.archetype }}</p>
+              </div>
+              <div class="eq-persona-score">
+                <span class="eq-persona-score-val">{{ strengthBreakdown().overall }}%</span>
+                <span class="eq-persona-score-lbl">Strength</span>
+              </div>
+            </div>
+            <div class="eq-persona-body">
+              <div class="eq-persona-quote">
+                “{{ analysisResult().persona.productionAphorism }}”
+              </div>
+              <div class="eq-persona-detail">
+                <div class="eq-persona-prop">
+                  <span class="eq-prop-lbl">Sonic Signature</span>
+                  <span class="eq-prop-val">{{ analysisResult().persona.sonicSignature }}</span>
+                </div>
+                <div class="eq-persona-prop">
+                  <span class="eq-prop-lbl">Market Position</span>
+                  <span class="eq-prop-val">{{ analysisResult().persona.marketPosition }}</span>
+                </div>
+                <div class="eq-persona-prop">
+                  <span class="eq-prop-lbl">AI Persona Profile</span>
+                  <span class="eq-prop-val eq-persona-ai">{{ analysisResult().persona.aiPersonaProfile }}</span>
+                </div>
+                <div class="eq-persona-prop">
+                  <span class="eq-prop-lbl">Signature Tone</span>
+                  <span class="eq-prop-val">{{ analysisResult().persona.signatureTone }}</span>
+                </div>
+                <div class="eq-persona-prop" *ngIf="analysisResult().persona.suggestedGenres?.length">
+                  <span class="eq-prop-lbl">Suggested Subgenres</span>
+                  <span class="eq-prop-chips">
+                    <span *ngFor="let g of analysisResult().persona.suggestedGenres" class="eq-chip">{{ g }}</span>
+                  </span>
+                </div>
+                <div class="eq-persona-prop">
+                  <span class="eq-prop-lbl">Recommended Strategy</span>
+                  <span class="eq-prop-val">{{ analysisResult().persona.recommendedStrategy }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="eq-recs" *ngIf="analysisResult().recommendations?.length">
+            <h3 class="eq-recs-title">Strategic Recommendations</h3>
+            <div class="eq-recs-grid">
+              <div *ngFor="let rec of analysisResult().recommendations" class="eq-rec-card" @staggerFade>
+                <div class="eq-rec-header">
+                  <span class="eq-rec-icon">⚡</span>
+                  <span class="eq-rec-impact" [class.eq-impact-critical]="rec.impact === 'Critical' || rec.impact === 'Extreme'"
+                    [class.eq-impact-high]="rec.impact === 'High'">{{ rec.impact }}</span>
+                </div>
+                <h4 class="eq-rec-title">{{ rec.title }}</h4>
+                <p class="eq-rec-desc">{{ rec.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <footer class="eq-results-actions">
+            <button (click)="applyChanges()" class="eq-btn-primary">
+              <span>✓</span> COMMIT NEURAL REALIGNMENT
+            </button>
+            <button (click)="close.emit()" class="eq-btn-ghost">
+              DISCARD & EXIT
+            </button>
+          </footer>
+        </div>
+
+        <!-- ─── QUESTION FLOW ──────────────────────────────────── -->
+        <div *ngIf="!isAnalyzing() && !analysisResult()" class="eq-flow" @fadeSlide>
+
+          <!-- Phase indicator -->
+          <div class="eq-phase-indicator">
+            <span class="eq-phase-badge" [style.background]="currentPhaseInfo().color + '22'" [style.color]="currentPhaseInfo().color">
+              {{ currentPhaseInfo().icon }} {{ currentPhaseInfo().title }}
+            </span>
+            <span class="eq-phase-count">Phase {{ currentPhaseIndex() + 1 }}/{{ phases.length }}</span>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="eq-progress-bar">
+            <div class="eq-progress-fill" [style.width.%]="phaseProgress()" [style.background]="currentPhaseInfo().color"></div>
+          </div>
+
+          <!-- Question card -->
+          <div class="eq-question-card" *ngIf="currentQuestion()" @fadeSlide>
+            <div class="eq-question-text">
+              <h2 class="eq-question-title">{{ currentQuestion()!.text }}</h2>
+              <p class="eq-question-desc">{{ currentQuestion()!.description }}</p>
+            </div>
+
+            <!-- SELECT type -->
+            <div *ngIf="currentQuestion()!.type === 'select'" class="eq-options-grid">
+              <button *ngFor="let opt of currentQuestion()!.options"
+                (click)="updateValue(currentQuestion()!.field, opt.value)"
+                class="eq-option-card"
+                [class.eq-option-selected]="getValue(currentQuestion()!.field) === opt.value"
+                [style.--accent]="currentPhaseInfo().color">
+                <span class="eq-option-icon">{{ opt.icon }}</span>
+                <span class="eq-option-label">{{ opt.label }}</span>
+                <span class="eq-option-desc" *ngIf="opt.description">{{ opt.description }}</span>
+                <span class="eq-option-check" *ngIf="getValue(currentQuestion()!.field) === opt.value">✓</span>
+              </button>
+            </div>
+
+            <!-- MULTI-SELECT / CHIP-GROUP type -->
+            <div *ngIf="currentQuestion()!.type === 'multi-select' || currentQuestion()!.type === 'chip-group'" class="eq-chips-grid">
+              <button *ngFor="let opt of getOptionsForCurrentQuestion()"
+                (click)="updateValue(currentQuestion()!.field, opt.value)"
+                class="eq-chip-btn"
+                [class.eq-chip-active]="isChipSelected(currentQuestion()!.field, opt.value)"
+                [style.--accent]="currentPhaseInfo().color">
+                <span class="eq-chip-icon">{{ opt.icon || '▪️' }}</span>
+                <span class="eq-chip-label">{{ opt.label }}</span>
+              </button>
+              <div class="eq-chip-count" *ngIf="currentQuestion()!.maxSelections">
+                {{ getSelectedCount(currentQuestion()!.field) }}/{{ currentQuestion()!.maxSelections }}
+              </div>
+            </div>
+
+            <!-- TEXT type -->
+            <div *ngIf="currentQuestion()!.type === 'text'" class="eq-text-field">
+              <input type="text"
+                [ngModel]="getValue(currentQuestion()!.field)"
+                (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
+                [placeholder]="currentQuestion()!.placeholder || 'Type your answer...'"
+                class="eq-input" />
+            </div>
+
+            <!-- TEXTAREA type -->
+            <div *ngIf="currentQuestion()!.type === 'textarea'" class="eq-text-field">
+              <textarea
+                [ngModel]="getValue(currentQuestion()!.field)"
+                (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
+                [placeholder]="currentQuestion()!.placeholder || 'Share your thoughts...'"
+                class="eq-textarea" rows="4"></textarea>
+            </div>
+
+            <!-- RANGE type -->
+            <div *ngIf="currentQuestion()!.type === 'range'" class="eq-range-field">
+              <div class="eq-range-value">{{ getValue(currentQuestion()!.field) || currentQuestion()!.min || 5 }}</div>
+              <input type="range"
+                [min]="currentQuestion()!.min || 1"
+                [max]="currentQuestion()!.max || 10"
+                [ngModel]="getRangeVal(currentQuestion()!.field)"
+                (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
+                class="eq-range" />
+              <div class="eq-range-labels">
+                <span>{{ currentQuestion()!.min || 1 }}</span>
+                <span>{{ currentQuestion()!.max || 10 }}</span>
+              </div>
+            </div>
+
+            <!-- TOGGLE type -->
+            <div *ngIf="currentQuestion()!.type === 'toggle'" class="eq-toggle-field">
+              <label class="eq-toggle">
+                <input type="checkbox"
+                  [checked]="getValue(currentQuestion()!.field) === 'true' || getValue(currentQuestion()!.field) === true"
+                  (change)="updateValue(currentQuestion()!.field, $any($event.target).checked ? 'true' : '')" />
+                <span class="eq-toggle-slider"></span>
+                <span class="eq-toggle-label">{{ getValue(currentQuestion()!.field) ? '✓ Enabled' : '○ Disabled' }}</span>
+              </label>
+            </div>
+
+            <!-- Navigation -->
+            <div class="eq-nav">
+              <button (click)="back()" class="eq-nav-back" [disabled]="currentPhaseIndex() === 0 && currentQuestionIndex() === 0">
+                ← Back
+              </button>
+              <button (click)="next()" class="eq-nav-next" [style.background]="currentPhaseInfo().color">
+                {{ isLastQuestion ? '✨ Complete Profile' : 'Next →' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty state (no questions for phase) -->
+          <div *ngIf="!currentQuestion()" class="eq-empty-phase">
+            <p>All questions in this phase are answered. Ready to move forward?</p>
+            <button (click)="next()" class="eq-nav-next">Next Phase →</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- ─── RIGHT: AI Chat Console ─────────────────────────── -->
+      <aside class="eq-chat-panel" *ngIf="!isAnalyzing() && !analysisResult()">
+        <div class="eq-chat-header">
+          <span class="eq-chat-dot"></span>
+          S.M.U.V.E Neural Monitor
+        </div>
+        <div class="eq-chat-log">
+          <div *ngFor="let entry of aiChatLog()" class="eq-chat-entry"
+            [class.eq-chat-obs]="entry.type === 'observation'"
+            [class.eq-chat-adapt]="entry.type === 'adaptation'"
+            [class.eq-chat-sys]="entry.type === 'system'">
+            <span class="eq-chat-ts">{{ entry.type === 'observation' ? '🧬' : entry.type === 'adaptation' ? '⚡' : '🤖' }}</span>
+            <span class="eq-chat-msg">{{ entry.text }}</span>
+          </div>
+        </div>
+        
+        <!-- Genre Intelligence Mini Module -->
+        <div class="eq-genre-mini" *ngIf="currentPhaseInfo().id === 'genre-intelligence'">
+          <div class="eq-genre-mini-header">
+            <span>{{ genreIcons[profileDraft().primaryGenre] || '🎵' }}</span>
+            <span>{{ profileDraft().primaryGenre }} Intelligence</span>
+          </div>
+          <div class="eq-genre-mini-body">
+            <div class="eq-genre-stat">
+              <span>BPM Range</span>
+              <span>{{ genreDeepDive().recommendedBpmRange[0] }}–{{ genreDeepDive().recommendedBpmRange[1] }}</span>
+            </div>
+            <div class="eq-genre-stat">
+              <span>Subgenres</span>
+              <span>{{ genreDeepDive().subgenres.length }}</span>
+            </div>
+            <div class="eq-genre-stat">
+              <span>Sync Potential</span>
+              <span>{{ genreDeepDive().syncPotential }}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
     </div>
   </div>
-  <app-uplink-console
-    *ngIf="showUplink()"
-    (close)="close.emit()"
-  ></app-uplink-console>
+
+  <!-- Uplink Console Overlay -->
+  <app-uplink-console *ngIf="showUplink()" (close)="close.emit()"></app-uplink-console>
 </div>

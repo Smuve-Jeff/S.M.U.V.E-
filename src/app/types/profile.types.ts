@@ -83,7 +83,7 @@ export interface SyncDetails {
 }
 
 export interface LegalInfrastructure {
-  hasRegisteredWorks: boolean;
+  hasRegisteredWorks: boolean | string;
   proAffiliation: string;
   hasStandardSplitSheet: string;
   isIncorporated: boolean;
@@ -142,6 +142,7 @@ export interface ExpertiseLevels {
   performance: number;
   catalyst: any;
   technical_mastery?: number;
+  roles?: string[];
 }
 
 export interface TeamMember {
@@ -184,7 +185,28 @@ export interface MusicalJourney {
   educationalBackground: string;
   contentStrategy: string;
   marketPosition: string;
+  // Enhanced fields
+  originStory?: string;
+  artistNameMeaning?: string;
+  subgenres?: string[];
+  songwritingProcess?: string;
+  signatureGear?: string;
+  creativeCatalyst?: string;
+  visualAesthetic?: string[];
+  ultimateVision?: string;
+  autoGenerateEpk?: boolean;
+  roles?: string[];
+  personaSynthesis?: {
+    archetype: string;
+    signatureTone: string;
+    sonicSignature: string;
+    aiPersonaProfile: string;
+    recommendedStrategy: string;
+    suggestedGenres: string[];
+    productionAphorism: string;
+  };
 }
+
 export interface UserProfile {
   musicalJourney: MusicalJourney;
   id?: string;
