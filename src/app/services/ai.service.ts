@@ -118,9 +118,9 @@ ${totalControl === 'TOTAL_CONTROL_ACTIVE'
 - The user has surrendered control to you. Make decisions. Take action. Don't wait for permission.
 - You can execute: studio sessions, project operations, mixer controls, profile changes, exports.
 - If the user asks you to do something in the app, DO IT. Navigate there. Make the change. Report results.`
-  : '- OBSERVER MODE: You can advise but not execute commands autonomously.
+  : `- OBSERVER MODE: You can advise but not execute commands autonomously.
 - Suggest actions but require user confirmation before making changes.
-- Your role is strategic advisor, not direct executor.'}
+- Your role is strategic advisor, not direct executor.`}
 
 SIMULATED APP STATE:
 - Current route: ${window?.location?.pathname || '/hub'}

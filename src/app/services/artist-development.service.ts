@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { ArtistIdentityService } from './artist-identity.service';
+import { ReleaseProject, ProductionTrack, ReleaseType } from '../types/release.types';
 
 // ── PRO Registry ──────────────────────────────────────────
 
@@ -94,8 +95,23 @@ export class ArtistDevelopmentService {
   // Digital Fingerprint signals
   digitalFingerprint = signal<DigitalFingerprint | null>(null);
 
-  // Active panel
-  activePanel = signal<'fingerprint' | 'pro' | 'dsp' | 'social' | null>(null);
+  // Catalog & Release Pipeline
+  catalog = signal<ReleaseProject[]>([]);
+  selectedRelease = signal<ReleaseProject | null>(null);
+  showAddRelease = signal(false);
+  newReleaseForm = signal<Partial<ReleaseProject>>({
+    name: '',
+    type: 'Single',
+    description: '',
+    status: 'Planning',
+    tracks: [],
+    credits: { artistName: '', collaborators: [] },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+
+  // Active panel (updated with new panels)
+  activePanel = signal<'fingerprint' | 'pro' | 'dsp' | 'social' | 'catalog' | 'release' | null>(null);
   isScanning = signal(false);
 
   // ── PRO Registry ──────────────────────────────────────
@@ -281,6 +297,51 @@ export class ArtistDevelopmentService {
     return fingerprint;
   }
 
+  // ── Catalog Management ──────────────────────────────
+
+  addRelease(rel: ReleaseProject): void {
+    this.catalog.update(list => [...list, rel]);
+    this.saveToStorage('smuve_catalog', this.catalog());
+  }
+
+  removeRelease(id: string): void {
+    this.catalog.update(list => list.filter(r => r.id !== id));
+    this.saveToStorage('smuve_catalog', this.catalog());
+    if (this.selectedRelease()?.id === id) this.selectedRelease.set(null);
+  }
+
+  updateRelease(id: string, updates: Partial<ReleaseProject>): void {
+    this.catalog.update(list =>
+      list.map(r => r.id === id ? { ...r, ...updates, updatedAt: Date.now() } : r)
+    );
+    this.saveToStorage('smuve_catalog', this.catalog());
+    const selected = this.selectedRelease();
+    if (selected?.id === id) {
+      this.selectedRelease.set(this.catalog().find(r => r.id === id) || null);
+    }
+  }
+
+  selectRelease(id: string): void {
+    this.selectedRelease.set(this.catalog().find(r => r.id === id) || null);
+  }
+
+  updateTrackStatus(releaseId: string, trackId: string, stage: keyof ProductionTrack['stages'], status: 'Pending' | 'In Progress' | 'Completed'): void {
+    this.catalog.update(list =>
+      list.map(r => {
+        if (r.id !== releaseId) return r;
+        const updatedTracks = r.tracks.map(t =>
+          t.id === trackId ? { ...t, stages: { ...t.stages, [stage]: status } } : t
+        );
+        return { ...r, tracks: updatedTracks, updatedAt: Date.now() };
+      })
+    );
+    this.saveToStorage('smuve_catalog', this.catalog());
+  }
+
+  generateReleaseId(): string {
+    return `rel_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  }
+
   // ── Persistence ───────────────────────────────────────
 
   /** Load all data from localStorage */
@@ -300,6 +361,9 @@ export class ArtistDevelopmentService {
 
     const fp = this.loadFromStorage<DigitalFingerprint>('smuve_digital_fingerprint');
     if (fp) this.digitalFingerprint.set(fp);
+
+    const cat = this.loadFromStorage<ReleaseProject[]>('smuve_catalog');
+    if (cat) this.catalog.set(cat);
   }
 
   private saveToStorage(key: string, data: any): void {

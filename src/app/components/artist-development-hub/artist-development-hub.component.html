@@ -366,6 +366,199 @@
     </div>
   </div>
 
+    <!-- 5. Catalog Management (Discography) -->
+    <div class="bg-brand-surface/20 border border-white/5 rounded-3xl p-6">
+      <button (click)="setPanel('catalog')" class="flex items-center gap-3 w-full text-left mb-4">
+        <div class="size-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+          <span class="material-symbols-outlined text-cyan-400">album</span>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm font-black uppercase tracking-tight">Catalog Management</h2>
+          <p class="text-[8px] text-slate-500 uppercase tracking-widest">Discography · Releases · Track progress</p>
+        </div>
+        <span class="text-slate-600 text-xs">{{ activePanel() === 'catalog' ? '▲' : '▼' }}</span>
+      </button>
+
+      @if (activePanel() === 'catalog') {
+        <div class="space-y-3">
+          <!-- Existing releases -->
+          @if (catalog().length === 0) {
+            <div class="text-center py-6 text-slate-600">
+              <p class="text-[10px]">No releases yet. Add your first single or album to build your catalog.</p>
+            </div>
+          }
+
+          @for (rel of catalog(); track rel.id) {
+            <div class="bg-brand-dark/40 rounded-2xl p-4 cursor-pointer hover:bg-brand-dark/60 transition-all" (click)="selectRelease(rel.id)">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="material-symbols-outlined text-sm" [class]="getReleaseStatusColor(rel.status)">{{ getReleaseStatusIcon(rel.status) }}</span>
+                    <span class="text-xs font-black text-white truncate">{{ rel.name }}</span>
+                    <span class="text-[7px] px-1.5 py-0.5 rounded-full bg-brand-dark/60 text-slate-400 font-mono uppercase">{{ rel.type }}</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-[7px] text-slate-500">
+                    <span>{{ rel.tracks.length }} tracks</span>
+                    <span class="capitalize" [class]="getReleaseStatusColor(rel.status)">{{ rel.status }}</span>
+                    <span>{{ formatDate(rel.createdAt.toString()) }}</span>
+                  </div>
+                  <!-- Track progress bar -->
+                  @if (rel.tracks.length > 0) {
+                    <div class="flex gap-0.5 mt-2">
+                      @for (t of rel.tracks; track t.id) {
+                        <div class="h-1.5 flex-1 rounded-full"
+                          [class.bg-emerald-500]="t.stages.mastering === 'Completed'"
+                          [class.bg-amber-500]="t.stages.mastering === 'In Progress'"
+                          [class.bg-slate-600]="t.stages.mastering === 'Pending'"
+                          title="{{ t.title }}: {{ t.stages.mastering }}"
+                        ></div>
+                      }
+                    </div>
+                  }
+                </div>
+                <button (click)="$event.stopPropagation(); deleteRelease(rel.id)" class="text-red-400/50 hover:text-red-400 text-[8px] ml-2">✕</button>
+              </div>
+            </div>
+          }
+
+          <!-- Add Release Form -->
+          @if (!showAddRelease()) {
+            <button (click)="showAddRelease.set(true)" class="w-full py-2 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">+ Add Release</button>
+          }
+
+          @if (showAddRelease()) {
+            <div class="bg-brand-dark/40 rounded-2xl p-4 space-y-2">
+              <input [(ngModel)]="newReleaseForm().name" type="text" placeholder="Release title" class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700" />
+              <div class="grid grid-cols-2 gap-2">
+                <select [(ngModel)]="newReleaseForm().type" class="bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white">
+                  <option value="Single">Single</option>
+                  <option value="EP">EP</option>
+                  <option value="Album">Album</option>
+                  <option value="Mixtape">Mixtape</option>
+                </select>
+                <select [(ngModel)]="newReleaseForm().status" class="bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white">
+                  <option value="Planning">Planning</option>
+                  <option value="Production">Production</option>
+                  <option value="Visuals">Visuals</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Distributing">Distributing</option>
+                  <option value="Released">Released</option>
+                </select>
+              </div>
+              <input [(ngModel)]="newReleaseForm().description" type="text" placeholder="Description (optional)" class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700" />
+              <input [(ngModel)]="newReleaseForm().credits.artistName" type="text" placeholder="Artist name" class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700" />
+              <button (click)="addRelease()" class="w-full py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-500/30 transition-all">Create Release</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- 6. Release Pipeline -->
+    <div class="bg-brand-surface/20 border border-white/5 rounded-3xl p-6">
+      <button (click)="setPanel('release')" class="flex items-center gap-3 w-full text-left mb-4">
+        <div class="size-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+          <span class="material-symbols-outlined text-emerald-400">route</span>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm font-black uppercase tracking-tight">Release Pipeline</h2>
+          <p class="text-[8px] text-slate-500 uppercase tracking-widest">Track production · Artwork · Distribution</p>
+        </div>
+        <span class="text-slate-600 text-xs">{{ activePanel() === 'release' ? '▲' : '▼' }}</span>
+      </button>
+
+      @if (activePanel() === 'release') {
+        @if (selectedRelease(); as rel) {
+          <div class="space-y-3">
+            <!-- Release header -->
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h3 class="text-xs font-black text-white">{{ rel.name }}</h3>
+                <div class="flex items-center gap-2 text-[7px] text-slate-500">
+                  <span class="uppercase">{{ rel.type }}</span>
+                  <span class="px-1.5 py-0.5 rounded-full" [class]="getReleaseStatusColor(rel.status) + ' bg-brand-dark/60'">{{ rel.status }}</span>
+                </div>
+              </div>
+              <button (click)="selectedRelease.set(null)" class="text-slate-600 hover:text-slate-400 text-[8px]">✕</button>
+            </div>
+
+            <!-- Tracks pipeline -->
+            <div class="space-y-2">
+              <h4 class="text-[8px] text-slate-500 uppercase tracking-widest font-black">Tracks ({{ rel.tracks.length }})</h4>
+              @if (rel.tracks.length === 0) {
+                <div class="text-center py-4 text-slate-600">
+                  <p class="text-[8px]">No tracks added yet. Create tracks in the Studio to see them here.</p>
+                </div>
+              }
+              @for (track of rel.tracks; track track.id) {
+                <div class="bg-brand-dark/30 rounded-xl p-3">
+                  <div class="text-[9px] font-bold text-white mb-2">{{ track.title }}</div>
+                  <div class="grid grid-cols-5 gap-1">
+                    @for (stage of ['instrumental', 'lyrics', 'vocals', 'mixing', 'mastering']; track stage) {
+                      <button (click)="updateTrackStage(rel.id, track.id, stage as keyof ProductionTrack['stages'])" class="flex flex-col items-center gap-1 p-1.5 rounded-lg text-[6px] uppercase tracking-widest font-bold transition-all hover:bg-white/5"
+                        [class]="getStageColor(track.stages[stage as keyof ProductionTrack['stages']])"
+                      >
+                        <span [class.text-white]="track.stages[stage as keyof ProductionTrack['stages']] === 'Completed'"
+                              [class.text-amber-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress'"
+                              [class.text-slate-500]="track.stages[stage as keyof ProductionTrack['stages']] === 'Pending'"
+                        >{{ stage.slice(0, 4) }}</span>
+                        <span class="material-symbols-outlined text-sm"
+                          [class.text-emerald-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'Completed'"
+                          [class.text-amber-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress'"
+                          [class.text-slate-600]="track.stages[stage as keyof ProductionTrack['stages']] === 'Pending'"
+                        >
+                          {{ track.stages[stage as keyof ProductionTrack['stages']] === 'Completed' ? 'check_circle' : track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress' ? 'hourglass_top' : 'radio_button_unchecked' }}
+                        </span>
+                      </button>
+                    }
+                  </div>
+                  <div class="text-[6px] text-slate-600 mt-1 text-center">Click to cycle: Pending → In Progress → Completed</div>
+                </div>
+              }
+            </div>
+
+            <!-- Overall Pipeline Status -->
+            <div class="bg-brand-dark/30 rounded-2xl p-3">
+              <h4 class="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-2">Pipeline Status</h4>
+              <div class="grid grid-cols-6 gap-1">
+                @for (s of ['Planning', 'Production', 'Visuals', 'Admin', 'Distributing', 'Released']; track s) {
+                  <div class="flex flex-col items-center">
+                    <span class="material-symbols-outlined text-base mb-0.5"
+                      [class.text-emerald-400]="rel.status === s"
+                      [class.text-slate-600]="rel.status !== s"
+                    >{{ rel.status === s ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                    <span class="text-[5px] uppercase tracking-widest font-bold"
+                      [class.text-emerald-400]="rel.status === s"
+                      [class.text-slate-600]="rel.status !== s"
+                    >{{ s.slice(0, 4) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Credits -->
+            @if (rel.credits.artistName) {
+              <div class="bg-brand-dark/30 rounded-2xl p-3">
+                <h4 class="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1">Credits</h4>
+                <div class="text-[8px] text-slate-400">
+                  <div>Artist: <span class="text-slate-300">{{ rel.credits.artistName }}</span></div>
+                  @if (rel.credits.collaborators.length > 0) {
+                    <div>Collaborators: <span class="text-slate-300">{{ rel.credits.collaborators.join(', ') }}</span></div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="text-center py-6 text-slate-600">
+            <p class="text-[10px]">Select a release from your Catalog to view its production pipeline.</p>
+            <button (click)="setPanel('catalog')" class="mt-3 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 transition-all">Open Catalog</button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+
   <!-- Open Profile CTA -->
   <div class="mt-8 text-center">
     <button
