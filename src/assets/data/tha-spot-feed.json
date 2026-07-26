@@ -474,7 +474,7 @@
     {
       "id": "final-fantasy-ix-elite-master",
       "name": "Final Fantasy IX",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/24420-final-fantasy-ix-ps1.html",
       "genre": "RPG",
       "description": "Absolute high-fidelity RPG action. Experience Final Fantasy IX in a stabilized browser environment.",
       "tags": [
@@ -488,7 +488,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24420-final-fantasy-ix-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html"
@@ -538,7 +538,8 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://slowroads.io/",
-        "embedMode": "inline"
+        "embedMode": "inline",
+        "approvedExternalUrl": "https://slowroads.io/"
       }
     },
     {
@@ -1049,7 +1050,7 @@
     {
       "id": "super-street-fighter",
       "name": "Super Street Fighter II: The New Challengers",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/22458-super-street-fighter-ii-snes.html",
       "description": "The legendary world warrior tournament returns with the New Challengers. Master the classic combat that defined a generation.",
       "genre": "Fighting",
       "rating": 4.7,
@@ -1091,7 +1092,7 @@
         "trustNote": "Executive-grade retro combat cabinet.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22458-super-street-fighter-ii-snes.html",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.retrogames.cc"
@@ -1463,7 +1464,7 @@
     {
       "id": "rail-surfers",
       "name": "Rail Surfers",
-      "url": "https://www.gamepix.com/play/temple-run-2",
+      "url": "https://www.gamepix.com/play/rail-surfers",
       "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
       "genre": "Runner",
       "rating": 4.8,
@@ -1503,7 +1504,7 @@
         "trustNote": "Allowlisted premium runner partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/temple-run-2",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/temple-run-2",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -1806,7 +1807,7 @@
     {
       "id": "tactical-squad",
       "name": "Tactical Squad",
-      "url": "https://www.gamepix.com/play/special-strike-operations",
+      "url": "https://www.gamepix.com/play/tactical-squad",
       "description": "First-person shooting precision with high-stakes tactical deployments.",
       "genre": "Shooting",
       "rating": 4.8,
@@ -1830,7 +1831,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike-operations",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike-operations",
         "telemetryMode": "origin",
         "telemetryOrigins": [
@@ -2063,7 +2064,7 @@
     {
       "id": "retro-space-invaders",
       "name": "Retro Space Invaders",
-      "url": "https://www.gamepix.com/play/space-invaders",
+      "url": "https://www.retrogames.cc/embed/3664-space-invaders-nes.html",
       "description": "Authentic classic arcade shooter with escalating wave intensity.",
       "genre": "Classic",
       "rating": 4.5,
@@ -2084,7 +2085,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3664-space-invaders-nes.html",
         "approvedExternalUrl": "https://www.gamepix.com/play/space-invaders",
         "telemetryMode": "origin",
         "telemetryOrigins": [
@@ -2581,7 +2582,7 @@
     {
       "id": "squad-ops-ghost-protocol",
       "name": "Squad Ops: Ghost Protocol",
-      "url": "https://www.gamepix.com/play/special-strike-operations",
+      "url": "https://www.gamepix.com/play/squad-ops",
       "description": "Online tactical shooting missions built around overwatch lanes, breach timing, and squad calls.",
       "genre": "Shooting",
       "rating": 4.8,
@@ -2626,7 +2627,7 @@
         "trustNote": "Allowlisted squad-ops partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike-operations",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike-operations",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/squad-ops",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -2861,7 +2862,7 @@
     {
       "id": "doom",
       "name": "DOOM",
-      "url": "https://www.gamepix.com/play/doom",
+      "url": "https://www.retrogames.cc/embed/5540-doom-dos.html",
       "genre": "Shooting",
       "description": "The absolute foundation of tactical FPS. Brutal, fast, and legendary.",
       "availability": "Online",
@@ -2872,7 +2873,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/doom",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/5540-doom-dos.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -2897,7 +2898,7 @@
     {
       "id": "mario-classic",
       "name": "Super Mario Bros.",
-      "url": "https://www.gamepix.com/play/super-mario-bros",
+      "url": "https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html",
       "genre": "Classic",
       "description": "The definitive platformer experience. Run, jump, and save the kingdom in this high-fidelity retro emulation.",
       "availability": "Online",
@@ -2917,7 +2918,7 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/super-mario-bros",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html",
         "telemetryMode": "none",
         "embedMode": "inline",
         "controls": [
@@ -3291,7 +3292,7 @@
     {
       "id": "zelda-oot-elite",
       "name": "The Legend of Zelda: Ocarina of Time",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/18893-legend-of-zelda-ocarina-of-time-n64.html",
       "genre": "RPG",
       "description": "The masterpiece redefined. N64 RPG excellence with saved-state cloud sync support.",
       "availability": "Online",
@@ -3310,7 +3311,7 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18893-legend-of-zelda-ocarina-of-time-n64.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3330,7 +3331,7 @@
     {
       "id": "sfii-world-warrior",
       "name": "Street Fighter II: The World Warrior",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/21888-street-fighter-ii-world-warrior-snes.html",
       "genre": "Fighting",
       "description": "The foundational masterpiece of the fighting genre. Master Ryu, Ken, and Chun-Li in Elite WASM.",
       "availability": "Online",
@@ -3348,7 +3349,7 @@
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21888-street-fighter-ii-world-warrior-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -3366,7 +3367,7 @@
     {
       "id": "moto-x3m-3d",
       "name": "Moto X3M: Pool Party",
-      "url": "https://www.gamepix.com/play/moto-x3m",
+      "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
       "genre": "Racing",
       "description": "High-fidelity bike stunts with fluid 60fps physics and responsive touch zones.",
       "availability": "Online",
@@ -3381,7 +3382,7 @@
         "Action"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m-pool-party",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -3552,7 +3553,7 @@
     {
       "id": "sonic-genesis-elite",
       "name": "Sonic the Hedgehog",
-      "url": "https://www.gamepix.com/play/sonic-the-hedgehog",
+      "url": "https://www.retrogames.cc/embed/4004-sonic-the-hedgehog-genesis.html",
       "genre": "Classic",
       "description": "The Blue Blur at his best. High-speed Genesis emulation with perfect touch responsiveness.",
       "availability": "Online",
@@ -3571,7 +3572,7 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-the-hedgehog",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4004-sonic-the-hedgehog-genesis.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3629,7 +3630,7 @@
     {
       "id": "tetris-classic-elite",
       "name": "Tetris",
-      "url": "https://www.gamepix.com/play/tetris",
+      "url": "https://www.retrogames.cc/embed/3652-tetris-nes.html",
       "genre": "Puzzle",
       "description": "The definitive puzzle experience. Classic NES logic with tier-responsive input.",
       "availability": "Online",
@@ -3646,7 +3647,7 @@
         "NES"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tetris",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3652-tetris-nes.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3666,7 +3667,7 @@
     {
       "id": "castlevania-sotn-elite",
       "name": "Castlevania: Symphony of the Night",
-      "url": "https://www.gamepix.com/play/castlevania",
+      "url": "https://www.retrogames.cc/embed/26461-castlevania-symphony-of-the-night-ps1.html",
       "genre": "Action RPG",
       "description": "The definitive Gothic masterpiece. PS1 exploration with a legendary soundtrack.",
       "availability": "Online",
@@ -3684,7 +3685,7 @@
         "Music"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/castlevania",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26461-castlevania-symphony-of-the-night-ps1.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3740,7 +3741,7 @@
     {
       "id": "sf2-genesis-elite",
       "name": "Street Fighter II: Special Champion Edition",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/3577-street-fighter-ii-genesis.html",
       "genre": "Fighting",
       "description": "The foundation of competitive fighting. Genesis combat with perfect frame data.",
       "availability": "Online",
@@ -3757,7 +3758,7 @@
         "Versus"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3577-street-fighter-ii-genesis.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3777,7 +3778,7 @@
     {
       "id": "wolf3d-inline-elite",
       "name": "Wolfenstein 3D",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/36786-wolfenstein-3d-dos.html",
       "genre": "FPS",
       "description": "The grandfather of FPS. High-speed escape from Castle Wolfenstein. Fully stabilized inline execution.",
       "availability": "Online",
@@ -3794,7 +3795,7 @@
         "DOS"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/36786-wolfenstein-3d-dos.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -3814,7 +3815,7 @@
     {
       "id": "double-dragon-nes",
       "name": "Double Dragon",
-      "url": "https://www.gamepix.com/play/double-dragon",
+      "url": "https://www.retrogames.cc/embed/3633-double-dragon-nes.html",
       "genre": "Beat 'em up",
       "description": "The quintessential co-op brawler. Fight through the streets to rescue Marian in this NES classic.",
       "availability": "Online",
@@ -3833,7 +3834,7 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/double-dragon",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3633-double-dragon-nes.html",
         "telemetryMode": "none",
         "embedMode": "inline",
         "controls": [
@@ -3963,7 +3964,7 @@
     {
       "id": "final-fantasy-nes",
       "name": "Final Fantasy",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/4547-final-fantasy-nes.html",
       "genre": "RPG",
       "description": "Where the legend began. Embark on an epic quest with the Warriors of Light in this foundational RPG.",
       "availability": "Online",
@@ -3979,7 +3980,7 @@
         "Fantasy"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4547-final-fantasy-nes.html",
         "telemetryMode": "none",
         "embedMode": "inline",
         "controls": [
@@ -4217,7 +4218,7 @@
     {
       "id": "final-fantasy-vii-elite",
       "name": "Final Fantasy VII (Elite)",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/27830-final-fantasy-vii-ps1.html",
       "genre": "RPG",
       "description": "The masterpiece that defined a generation. Join Cloud in the fight against Shinra.",
       "availability": "Online",
@@ -4236,7 +4237,7 @@
         "Adventure"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27830-final-fantasy-vii-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -4254,7 +4255,7 @@
     {
       "id": "gta-san-andreas-elite",
       "name": "Grand Theft Auto: San Andreas (Elite HD)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html",
       "genre": "Action",
       "description": "Return to Los Santos in the Absolute masterpiece. High-performance, high-definition emulation.",
       "availability": "Online",
@@ -4273,7 +4274,7 @@
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -4326,7 +4327,7 @@
     {
       "id": "nba-2k1-elite",
       "name": "NBA 2K1",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.retrogames.cc/embed/22608-nba-2k1-dreamcast.html",
       "genre": "Sports",
       "description": "Experience the birth of the 2K dynasty. High-fidelity Dreamcast emulation with online-ready logic.",
       "availability": "Online",
@@ -4343,7 +4344,7 @@
         "Basketball"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22608-nba-2k1-dreamcast.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -4754,7 +4755,7 @@
     {
       "id": "sfiii-3rd-strike-elite",
       "name": "Street Fighter III: 3rd Strike",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/37896-street-fighter-iii-3rd-strike-dreamcast.html",
       "genre": "Fighting",
       "description": "The deep-run favorite of fighting game purists. Master the parry system in this pixel-perfect arcade classic.",
       "tags": [
@@ -4767,7 +4768,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/37896-street-fighter-iii-3rd-strike-dreamcast.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -4931,7 +4932,7 @@
     {
       "id": "gta-vice-city-elite",
       "name": "Grand Theft Auto: Vice City (Elite HD)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/27010-grand-theft-auto-vice-city-ps2.html",
       "genre": "Action",
       "description": "Neon-soaked 80s in Absolute high-definition. S.M.U.V.E. demands total control.",
       "tags": [
@@ -4945,7 +4946,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27010-grand-theft-auto-vice-city-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -4967,7 +4968,7 @@
     {
       "id": "ffx-elite",
       "name": "Final Fantasy X (Elite)",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
       "genre": "RPG",
       "description": "A journey through Spira to defeat Sin. This isn't for the weak of heart. Only those with Absolute resolve will survive.",
       "tags": [
@@ -4981,7 +4982,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5075,7 +5076,7 @@
     {
       "id": "gta-iii-elite",
       "name": "Grand Theft Auto III (Elite HD)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/26980-grand-theft-auto-iii-ps2.html",
       "genre": "Action",
       "description": "Liberty City in Absolute 3D. High-fidelity PS2-era execution. Dominate the streets.",
       "tags": [
@@ -5089,7 +5090,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26980-grand-theft-auto-iii-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5111,7 +5112,7 @@
     {
       "id": "spider-man-2-elite",
       "name": "Spider-Man 2 (Elite)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/27316-spider-man-2-ps2.html",
       "genre": "Action",
       "description": "Swing through Manhattan with Absolute precision. The web is yours to control. S.M.U.V.E. demands Elite agility.",
       "tags": [
@@ -5125,7 +5126,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27316-spider-man-2-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5255,7 +5256,7 @@
     {
       "id": "majoras-mask-elite",
       "name": "The Legend of Zelda: Majora's Mask",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/18892-legend-of-zelda-majoras-mask-n64.html",
       "genre": "Adventure",
       "description": "Three days to save the world. Time is a weapon. Use it with Absolute mastery or face the moon.",
       "tags": [
@@ -5269,7 +5270,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18892-legend-of-zelda-majoras-mask-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5291,7 +5292,7 @@
     {
       "id": "prince-of-persia-sands-elite",
       "name": "Prince of Persia: The Sands of Time",
-      "url": "https://dos.zone/player/?bundleUrl=https://dos.zone/games/prince-of-persia.jsdos&anonymous=1",
+      "url": "https://www.retrogames.cc/embed/27096-prince-of-persia-sands-of-time-ps2.html",
       "genre": "Adventure",
       "description": "Control the sands, control your destiny. S.M.U.V.E. values Absolute control over time.",
       "tags": [
@@ -5305,7 +5306,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https://dos.zone/games/prince-of-persia.jsdos&anonymous=1",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27096-prince-of-persia-sands-of-time-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5435,7 +5436,7 @@
     {
       "id": "donkey-kong-arcade",
       "name": "Donkey Kong (Arcade)",
-      "url": "https://www.gamepix.com/play/donkey-kong",
+      "url": "https://www.retrogames.cc/embed/3625-donkey-kong-nes.html",
       "genre": "Arcade",
       "description": "The original arcade gauntlet. Climb the girders or fall. S.M.U.V.E. respects the Absolute roots.",
       "tags": [
@@ -5449,7 +5450,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/donkey-kong",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3625-donkey-kong-nes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5579,7 +5580,7 @@
     {
       "id": "space-invaders-arcade",
       "name": "Space Invaders (Arcade)",
-      "url": "https://www.gamepix.com/play/space-invaders",
+      "url": "https://www.retrogames.cc/embed/3664-space-invaders-nes.html",
       "genre": "Arcade",
       "description": "The ultimate defensive line. Repel the invaders or perish. S.M.U.V.E. requires Absolute precision.",
       "tags": [
@@ -5593,7 +5594,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/space-invaders",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3664-space-invaders-nes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5615,7 +5616,7 @@
     {
       "id": "madden-2004-elite",
       "name": "Madden NFL 2004",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.retrogames.cc/embed/26941-madden-nfl-2004-ps2.html",
       "genre": "Sports",
       "description": "Michael Vick is a cheat code. S.M.U.V.E. demands Absolute gridiron dominance. Run the play or sit out.",
       "tags": [
@@ -5629,7 +5630,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26941-madden-nfl-2004-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5651,7 +5652,7 @@
     {
       "id": "fifa-2005-elite",
       "name": "FIFA 2005",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.retrogames.cc/embed/24614-fifa-2005-ps2.html",
       "genre": "Sports",
       "description": "First touch is everything. Control the pitch with Absolute authority. S.M.U.V.E. loves the beautiful game.",
       "tags": [
@@ -5665,7 +5666,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24614-fifa-2005-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -5937,7 +5938,7 @@
     {
       "id": "nfs-most-wanted-ps2-elite",
       "name": "Need for Speed: Most Wanted",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.retrogames.cc/embed/27105-need-for-speed-most-wanted-ps2.html",
       "genre": "Racing",
       "description": "The blacklist is waiting. Dominate the pursuits with Absolute speed. S.M.U.V.E. demands the top spot.",
       "tags": [
@@ -5951,7 +5952,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27105-need-for-speed-most-wanted-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -6153,7 +6154,7 @@
     {
       "id": "quake-3-dc-elite",
       "name": "Quake III Arena",
-      "url": "https://www.gamepix.com/play/quake",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake3.json&profile=quake3",
       "genre": "FPS",
       "description": "Pure fragging excellence. S.M.U.V.E. expects Absolute dominance in the arena. No room for the weak.",
       "tags": [
@@ -6167,7 +6168,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/quake",
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake3.json&profile=quake3",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -6477,7 +6478,7 @@
     {
       "id": "halo-2-xbox-elite",
       "name": "Halo 2",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
       "genre": "FPS",
       "description": "The Absolute sequel. Master the Dual-Wielding and finish the fight. S.M.U.V.E. demands total galactic dominance.",
       "tags": [
@@ -6492,7 +6493,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -6957,7 +6958,7 @@
     {
       "id": "need-for-speed-underground-2-elite",
       "name": "Need for Speed: Underground 2",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.retrogames.cc/embed/27264-need-for-speed-underground-2-ps2.html",
       "genre": "Racing",
       "description": "Rule the Absolute night. S.M.U.V.E. finds your performance... exceptional. Own the streets of Bayview.",
       "tags": [
@@ -6971,7 +6972,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27264-need-for-speed-underground-2-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
@@ -7087,7 +7088,7 @@
     {
       "id": "street-fighter-2-ce",
       "name": "Street Fighter II: Champion Edition",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/21891-street-fighter-ii-champion-edition-snes.html",
       "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
       "genre": "Fighting",
       "rating": 4.9,
@@ -7104,7 +7105,7 @@
       ],
       "image": "/assets/games/street-fighter-2-ce.png",
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21891-street-fighter-ii-champion-edition-snes.html",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html"
       }
@@ -7290,7 +7291,7 @@
     {
       "id": "halo-2-xbox-elite-alt",
       "name": "Halo 2 (Absolute Edition)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
       "description": "The Absolute shooter. Master the Chief. S.M.U.V.E. demands tactical superiority.",
       "genre": "FPS",
       "rating": 5,
@@ -7308,7 +7309,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
@@ -7369,7 +7370,7 @@
     {
       "id": "gta-2-elite",
       "name": "Grand Theft Auto 2 (Elite)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/28676-grand-theft-auto-2-ps1.html",
       "genre": "Action",
       "description": "Respect is everything. The Absolute top-down sequel with multi-gang loyalty systems and high-fidelity chaos.",
       "rating": 4.8,
@@ -7392,7 +7393,7 @@
       },
       "image": "/assets/games/gta2-elite.png",
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/28676-grand-theft-auto-2-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
@@ -7401,7 +7402,7 @@
     {
       "id": "gta-london-1969-elite",
       "name": "Grand Theft Auto: London 1969 (Elite)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
+      "url": "https://www.retrogames.cc/embed/28674-grand-theft-auto-london-1969-ps1.html",
       "genre": "Action",
       "description": "You're nicked! The Absolute expansion taking the chaos to the streets of London. High-fidelity mod implementation.",
       "rating": 4.7,
@@ -7424,7 +7425,7 @@
       },
       "image": "/assets/games/gta-london-elite.png",
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/28674-grand-theft-auto-london-1969-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
@@ -7433,7 +7434,7 @@
     {
       "id": "fc-24-tribute-elite",
       "name": "EA Sports FC 24",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.gamepix.com/play/ea-sports-fc-24",
       "genre": "Sports",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for EA SPORTS FC 24.",
       "rating": 4.8,
@@ -7459,13 +7460,13 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/ea-sports-fc-24"
       }
     },
     {
       "id": "madden-24-tribute-elite",
       "name": "Madden NFL 24",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.gamepix.com/play/madden-nfl-24",
       "genre": "Sports",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Madden NFL 24.",
       "rating": 4.7,
@@ -7491,13 +7492,13 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/madden-nfl-24"
       }
     },
     {
       "id": "nba-2k24-tribute-elite",
       "name": "NBA 2K24",
-      "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+      "url": "https://www.gamepix.com/play/nba-2k24",
       "genre": "Sports",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for NBA 2K24.",
       "rating": 4.6,
@@ -7523,7 +7524,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/nba-2k24"
       }
     },
     {
@@ -7606,7 +7607,7 @@
     {
       "id": "forza-horizon-5-tribute-elite",
       "name": "Forza Horizon 5",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.gamepix.com/play/forza-horizon-5",
       "genre": "Racing",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 5.",
       "rating": 5,
@@ -7632,7 +7633,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/forza-horizon-5"
       }
     },
     {
@@ -7662,7 +7663,7 @@
     {
       "id": "lol-tribute-elite",
       "name": "League of Legends",
-      "url": "/assets/games/remix-arena/remixarena.html",
+      "url": "https://www.gamepix.com/play/league-of-legends",
       "genre": "MOBA",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for League of Legends.",
       "rating": 4.9,
@@ -7688,7 +7689,7 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/remix-arena/remixarena.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/league-of-legends"
       }
     },
     {
@@ -7742,7 +7743,7 @@
     {
       "id": "forza-motorsport-tribute-elite",
       "name": "Forza Motorsport",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.gamepix.com/play/forza-motorsport",
       "genre": "Racing",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Motorsport.",
       "rating": 4.6,
@@ -7768,7 +7769,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/forza-motorsport"
       }
     },
     {
@@ -7822,7 +7823,7 @@
     {
       "id": "final-fantasy-x-elite-master",
       "name": "Final Fantasy X",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
       "genre": "RPG",
       "description": "Absolute high-fidelity RPG action. Experience Final Fantasy X in a stabilized browser environment.",
       "tags": [
@@ -7836,7 +7837,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html"
@@ -7870,7 +7871,7 @@
     {
       "id": "rocket-league-tribute-elite",
       "name": "Rocket League",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.gamepix.com/play/rocket-league",
       "genre": "Racing",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Rocket League.",
       "rating": 4.9,
@@ -7896,13 +7897,13 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/rocket-league"
       }
     },
     {
       "id": "tekken8-tribute-elite",
       "name": "Tekken 8",
-      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+      "url": "https://www.retrogames.cc/embed/47369-tekken-8-pc.html",
       "genre": "Fighting",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Tekken 8.",
       "rating": 4.9,
@@ -7928,7 +7929,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/47369-tekken-8-pc.html"
       }
     },
     {
@@ -8078,7 +8079,7 @@
     {
       "id": "forza-horizon-4-tribute-elite",
       "name": "Forza Horizon 4",
-      "url": "/assets/games/neon-drift/neon-drift.html",
+      "url": "https://www.gamepix.com/play/forza-horizon-4",
       "genre": "Racing",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Forza Horizon 4.",
       "rating": 4.9,
@@ -8104,7 +8105,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedEmbedUrl": "https://www.gamepix.com/play/forza-horizon-4"
       }
     },
     {
@@ -8230,7 +8231,7 @@
     {
       "id": "mortal-kombat-1-tribute-elite",
       "name": "Mortal Kombat 1",
-      "url": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+      "url": "https://www.retrogames.cc/embed/47368-mortal-kombat-1-pc.html",
       "genre": "Fighting",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for Mortal Kombat 1.",
       "rating": 4.8,
@@ -8256,7 +8257,7 @@
       "launchConfig": {
         "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/47368-mortal-kombat-1-pc.html"
       }
     },
     {
@@ -8310,7 +8311,7 @@
     {
       "id": "prince-of-persia-elite-master",
       "name": "Prince of Persia",
-      "url": "https://dos.zone/player/?bundleUrl=https://dos.zone/games/prince-of-persia.jsdos&anonymous=1",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fprince.json&profile=prince",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Prince of Persia in a stabilized browser environment.",
       "tags": [
@@ -8324,7 +8325,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https://dos.zone/games/prince-of-persia.jsdos&anonymous=1",
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fprince.json&profile=prince",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42790-prince-of-persia-the-sands-of-time.html"
@@ -8554,7 +8555,7 @@
     {
       "id": "double-dragon-classic-elite",
       "name": "Double Dragon (Classic)",
-      "url": "https://www.gamepix.com/play/double-dragon",
+      "url": "https://www.retrogames.cc/embed/3633-double-dragon-nes.html",
       "description": "The definitive street-brawling classic. Save Marian and dominate the Black Warriors.",
       "genre": "Beat 'em up",
       "rating": 4.9,
@@ -8584,7 +8585,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/8499-double-dragon-japan.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/double-dragon",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3633-double-dragon-nes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -8682,7 +8683,7 @@
     {
       "id": "megaman-classic-elite",
       "name": "Mega Man (Classic)",
-      "url": "https://www.gamepix.com/play/mega-man",
+      "url": "https://www.retrogames.cc/embed/4735-mega-man-2-nes.html",
       "description": "Where the Blue Bomber began. Precise platforming and legendary boss battles.",
       "genre": "Platformer",
       "rating": 4.9,
@@ -8711,7 +8712,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4735-mega-man-2-nes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -8766,7 +8767,7 @@
     {
       "id": "zelda-1-classic-elite",
       "name": "The Legend of Zelda (Classic)",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/3643-legend-of-zelda-nes.html",
       "description": "The beginning of the legend. Explore Hyrule, conquer dungeons, and save Princess Zelda.",
       "genre": "Adventure",
       "rating": 4.9,
@@ -8795,7 +8796,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3643-legend-of-zelda-nes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9008,7 +9009,7 @@
     {
       "id": "ff1-classic",
       "name": "Final Fantasy (Classic)",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/4547-final-fantasy-nes.html",
       "description": "The Absolute high-quality classic version of Final Fantasy.",
       "genre": "RPG",
       "rating": 4.9,
@@ -9035,7 +9036,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18816-final-fantasy-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4547-final-fantasy-nes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9048,7 +9049,7 @@
     {
       "id": "ff7-classic",
       "name": "Final Fantasy VII (Classic)",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/27830-final-fantasy-vii-ps1.html",
       "description": "The Absolute high-quality classic version of Final Fantasy VII.",
       "genre": "RPG",
       "rating": 4.9,
@@ -9075,7 +9076,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/40425-final-fantasy-vii-usa-disc-1.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27830-final-fantasy-vii-ps1.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9088,7 +9089,7 @@
     {
       "id": "ff10-classic",
       "name": "Final Fantasy X (Classic)",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
       "description": "The Absolute high-quality classic version of Final Fantasy X.",
       "genre": "RPG",
       "rating": 4.9,
@@ -9115,7 +9116,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9128,7 +9129,7 @@
     {
       "id": "sf2-classic",
       "name": "Street Fighter II (Classic)",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/21888-street-fighter-ii-world-warrior-snes.html",
       "description": "The Absolute high-quality classic version of Street Fighter II.",
       "genre": "Fighting",
       "rating": 4.9,
@@ -9155,7 +9156,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/19018-street-fighter-ii-the-world-warrior-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21888-street-fighter-ii-world-warrior-snes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9168,7 +9169,7 @@
     {
       "id": "sf3-classic",
       "name": "Street Fighter III (Classic)",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
+      "url": "https://www.retrogames.cc/embed/37896-street-fighter-iii-3rd-strike-dreamcast.html",
       "description": "The Absolute high-quality classic version of Street Fighter III.",
       "genre": "Fighting",
       "rating": 4.9,
@@ -9195,7 +9196,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/37896-street-fighter-iii-3rd-strike-dreamcast.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9208,7 +9209,7 @@
     {
       "id": "dd2-classic",
       "name": "Double Dragon II (Classic)",
-      "url": "https://www.gamepix.com/play/double-dragon",
+      "url": "https://www.retrogames.cc/embed/3634-double-dragon-ii-the-revenge-nes.html",
       "description": "The Absolute high-quality classic version of Double Dragon II.",
       "genre": "Beat 'em up",
       "rating": 4.9,
@@ -9235,7 +9236,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/16729-double-dragon-ii-the-revenge-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/double-dragon",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/3634-double-dragon-ii-the-revenge-nes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9288,7 +9289,7 @@
     {
       "id": "mmx-classic",
       "name": "Mega Man X (Classic)",
-      "url": "https://www.gamepix.com/play/mega-man",
+      "url": "https://www.retrogames.cc/embed/21113-mega-man-x-snes.html",
       "description": "The Absolute high-quality classic version of Mega Man X.",
       "genre": "Platformer",
       "rating": 4.9,
@@ -9315,7 +9316,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21113-mega-man-x-snes.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9328,7 +9329,7 @@
     {
       "id": "zelda-oot-classic",
       "name": "The Legend of Zelda: Ocarina of Time (Classic)",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/18893-legend-of-zelda-ocarina-of-time-n64.html",
       "description": "The Absolute high-quality classic version of Zelda: Ocarina of Time.",
       "genre": "Adventure",
       "rating": 4.9,
@@ -9355,7 +9356,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32331-legend-of-zelda-the-ocarina-of-time-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18893-legend-of-zelda-ocarina-of-time-n64.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9368,7 +9369,7 @@
     {
       "id": "sonic1-classic",
       "name": "Sonic the Hedgehog (Classic)",
-      "url": "https://www.gamepix.com/play/sonic-the-hedgehog",
+      "url": "https://www.retrogames.cc/embed/4004-sonic-the-hedgehog-genesis.html",
       "description": "The Absolute high-quality classic version of Sonic the Hedgehog.",
       "genre": "Classic",
       "rating": 4.9,
@@ -9395,7 +9396,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18847-sonic-the-hedgehog-usa-europe.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-the-hedgehog",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4004-sonic-the-hedgehog-genesis.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9408,7 +9409,7 @@
     {
       "id": "sonic2-classic",
       "name": "Sonic the Hedgehog 2 (Classic)",
-      "url": "https://www.gamepix.com/play/sonic-the-hedgehog",
+      "url": "https://www.retrogames.cc/embed/4008-sonic-the-hedgehog-2-genesis.html",
       "description": "The Absolute high-quality classic version of Sonic the Hedgehog 2.",
       "genre": "Classic",
       "rating": 4.9,
@@ -9435,7 +9436,7 @@
         "inlinePolicy": "trusted",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-the-hedgehog",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4008-sonic-the-hedgehog-2-genesis.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -9634,7 +9635,7 @@
     {
       "id": "doom-ii-elite-master",
       "name": "DOOM II",
-      "url": "https://www.gamepix.com/play/doom",
+      "url": "https://www.retrogames.cc/embed/5543-doom-ii-dos.html",
       "genre": "FPS",
       "description": "Hell on Earth. The Absolute foundation of the FPS genre, now in high-fidelity browser execution.",
       "tags": [
@@ -9649,7 +9650,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/doom",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/5543-doom-ii-dos.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/41696-doom-ii.html"
@@ -9659,7 +9660,7 @@
     {
       "id": "metal-slug-3-elite-master",
       "name": "Metal Slug 3",
-      "url": "https://www.gamepix.com/play/metal-slug",
+      "url": "https://www.retrogames.cc/embed/20773-metal-slug-3-neo-geo.html",
       "genre": "Action",
       "description": "The Absolute king of run-and-gun. High-fidelity pixel art and intense arcade combat.",
       "tags": [
@@ -9674,7 +9675,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/metal-slug",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20773-metal-slug-3-neo-geo.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/9084-metal-slug-3.html"
@@ -9709,7 +9710,7 @@
     {
       "id": "zelda-alttp-elite-master",
       "name": "The Legend of Zelda: A Link to the Past",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/4642-legend-of-zelda-a-link-to-the-past-snes.html",
       "genre": "Adventure",
       "description": "The Absolute 16-bit masterpiece. High-fidelity adventure through the Light and Dark worlds.",
       "tags": [
@@ -9725,7 +9726,7 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4642-legend-of-zelda-a-link-to-the-past-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18826-legend-of-zelda-the-a-link-to-the-past-usa.html"
@@ -9786,7 +9787,7 @@
     {
       "id": "quake-elite-master",
       "name": "Quake",
-      "url": "https://www.gamepix.com/play/quake",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake.json&profile=quake",
       "genre": "FPS",
       "description": "Absolute 3D revolution. High-fidelity Lovecraftian horror and fast-paced tactical shooting.",
       "tags": [
@@ -9801,7 +9802,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/quake",
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake.json&profile=quake",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/40600-quake.html"
@@ -9836,7 +9837,7 @@
     {
       "id": "final-fantasy-vi-elite-master",
       "name": "Final Fantasy VI",
-      "url": "https://www.gamepix.com/play/final-fantasy",
+      "url": "https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html",
       "genre": "RPG",
       "description": "Absolute cinematic RPG storytelling. High-fidelity 16-bit journey through a world of magic and machines.",
       "tags": [
@@ -9852,7 +9853,7 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18817-final-fantasy-iii-usa.html"
@@ -9862,7 +9863,7 @@
     {
       "id": "megaman-x-elite-master",
       "name": "Mega Man X",
-      "url": "https://www.gamepix.com/play/mega-man",
+      "url": "https://www.retrogames.cc/embed/21113-mega-man-x-snes.html",
       "genre": "Action",
       "description": "Absolute robot-hunting action. High-fidelity dash-and-jump combat with boss ability assimilation.",
       "tags": [
@@ -9877,7 +9878,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21113-mega-man-x-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html"
@@ -9937,7 +9938,7 @@
     {
       "id": "metal-slug-x-elite-master",
       "name": "Metal Slug X",
-      "url": "https://www.gamepix.com/play/metal-slug",
+      "url": "https://www.retrogames.cc/embed/20757-metal-slug-x-neo-geo.html",
       "genre": "Action",
       "description": "Absolute refined run-and-gun. High-fidelity boss encounters and frantic weapon variety.",
       "tags": [
@@ -9952,7 +9953,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/metal-slug",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20757-metal-slug-x-neo-geo.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html"
@@ -10038,7 +10039,7 @@
     {
       "id": "castlevania-aria-elite-master",
       "name": "Castlevania: Aria of Sorrow",
-      "url": "https://www.gamepix.com/play/castlevania",
+      "url": "https://www.retrogames.cc/embed/26480-castlevania-aria-of-sorrow-gba.html",
       "genre": "Action",
       "description": "Absolute soul-collecting adventure. High-fidelity GBA exploration through Dracula's castle.",
       "tags": [
@@ -10053,7 +10054,7 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/castlevania",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26480-castlevania-aria-of-sorrow-gba.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html"
@@ -10180,7 +10181,7 @@
     {
       "id": "castlevania-iv-elite-master",
       "name": "Castlevania IV",
-      "url": "https://www.gamepix.com/play/castlevania",
+      "url": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Castlevania IV in a stabilized browser environment.",
       "tags": [
@@ -10194,7 +10195,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/castlevania",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html"
@@ -10204,7 +10205,7 @@
     {
       "id": "mega-man-x3-elite-master",
       "name": "Mega Man X3",
-      "url": "https://www.gamepix.com/play/mega-man",
+      "url": "https://www.retrogames.cc/embed/4764-mega-man-x3-snes.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Mega Man X3 in a stabilized browser environment.",
       "tags": [
@@ -10218,7 +10219,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4764-mega-man-x3-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html"
@@ -10228,7 +10229,7 @@
     {
       "id": "kirby-super-star-elite-master",
       "name": "Kirby Super Star",
-      "url": "https://www.gamepix.com/play/kirby",
+      "url": "https://www.retrogames.cc/embed/4707-kirby-super-star-snes.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Kirby Super Star in a stabilized browser environment.",
       "tags": [
@@ -10242,7 +10243,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/kirby",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4707-kirby-super-star-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html"
@@ -10252,7 +10253,7 @@
     {
       "id": "super-mario-world-elite-master",
       "name": "Super Mario World",
-      "url": "https://www.gamepix.com/play/super-mario-bros",
+      "url": "https://www.retrogames.cc/embed/4767-super-mario-world-snes.html",
       "genre": "Classic",
       "description": "Absolute high-fidelity Classic action. Experience Super Mario World in a stabilized browser environment.",
       "tags": [
@@ -10266,7 +10267,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/super-mario-bros",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4767-super-mario-world-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18842-super-mario-world-usa.html"
@@ -10276,7 +10277,7 @@
     {
       "id": "donkey-kong-country-elite-master",
       "name": "Donkey Kong Country",
-      "url": "https://www.gamepix.com/play/donkey-kong",
+      "url": "https://www.retrogames.cc/embed/4657-donkey-kong-country-snes.html",
       "genre": "Classic",
       "description": "Absolute high-fidelity Classic action. Experience Donkey Kong Country in a stabilized browser environment.",
       "tags": [
@@ -10290,7 +10291,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/donkey-kong",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4657-donkey-kong-country-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html"
@@ -10300,7 +10301,7 @@
     {
       "id": "sonic-the-hedgehog-3-elite-master",
       "name": "Sonic the Hedgehog 3",
-      "url": "https://www.gamepix.com/play/sonic-the-hedgehog",
+      "url": "https://www.retrogames.cc/embed/4010-sonic-3-and-knuckles-genesis.html",
       "genre": "Classic",
       "description": "Absolute high-fidelity Classic action. Experience Sonic the Hedgehog 3 in a stabilized browser environment.",
       "tags": [
@@ -10314,7 +10315,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-the-hedgehog",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4010-sonic-3-and-knuckles-genesis.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18848-sonic-the-hedgehog-3-usa.html"
@@ -10396,7 +10397,7 @@
     {
       "id": "star-fox-elite-master",
       "name": "Star Fox",
-      "url": "https://www.gamepix.com/play/star-fox",
+      "url": "https://www.retrogames.cc/embed/4778-star-fox-snes.html",
       "genre": "Shooting",
       "description": "Absolute high-fidelity Shooting action. Experience Star Fox in a stabilized browser environment.",
       "tags": [
@@ -10410,7 +10411,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/star-fox",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4778-star-fox-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18836-star-fox-usa.html"
@@ -10420,7 +10421,7 @@
     {
       "id": "f-zero-elite-master",
       "name": "F-Zero",
-      "url": "https://www.gamepix.com/play/f-zero",
+      "url": "https://www.retrogames.cc/embed/20958-f-zero-snes.html",
       "genre": "Racing",
       "description": "Absolute high-fidelity Racing action. Experience F-Zero in a stabilized browser environment.",
       "tags": [
@@ -10434,7 +10435,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/f-zero",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20958-f-zero-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18815-f-zero-usa.html"
@@ -10468,7 +10469,7 @@
     {
       "id": "star-fox-64-elite-master",
       "name": "Star Fox 64",
-      "url": "https://www.gamepix.com/play/star-fox",
+      "url": "https://www.retrogames.cc/embed/18944-star-fox-64-n64.html",
       "genre": "Shooting",
       "description": "Absolute high-fidelity Shooting action. Experience Star Fox 64 in a stabilized browser environment.",
       "tags": [
@@ -10482,7 +10483,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/star-fox",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18944-star-fox-64-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32356-star-fox-64-usa.html"
@@ -10756,7 +10757,7 @@
     {
       "id": "doom-64-elite-master",
       "name": "DOOM 64",
-      "url": "https://www.gamepix.com/play/doom",
+      "url": "https://www.retrogames.cc/embed/21559-doom-64-n64.html",
       "genre": "FPS",
       "description": "Absolute high-fidelity FPS action. Experience Doom 64 in a stabilized browser environment.",
       "tags": [
@@ -10770,7 +10771,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/doom",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21559-doom-64-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32168-doom-64-usa.html"
@@ -10828,7 +10829,7 @@
     {
       "id": "quake-ii-elite-master",
       "name": "Quake II",
-      "url": "https://www.gamepix.com/play/quake",
+      "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake2.json&profile=quake2",
       "genre": "FPS",
       "description": "Absolute high-fidelity FPS action. Experience Quake II in a stabilized browser environment.",
       "tags": [
@@ -10842,7 +10843,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/quake",
+        "approvedEmbedUrl": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fquake2.json&profile=quake2",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32354-quake-ii-usa.html"
@@ -11429,7 +11430,7 @@
     {
       "id": "super-mario-kart-snes-elite",
       "name": "Super Mario Kart",
-      "url": "https://www.gamepix.com/play/super-mario-bros",
+      "url": "https://www.retrogames.cc/embed/4766-super-mario-kart-snes.html",
       "genre": "Racing",
       "description": "The game that invented kart racing. Race through Mushroom Kingdom circuits.",
       "rating": 4.7,
@@ -11447,7 +11448,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/super-mario-bros",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4766-super-mario-kart-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/43860-super-mario-kart-deluxe.html"
@@ -11461,7 +11462,7 @@
     {
       "id": "super-castlevania-iv-elite",
       "name": "Super Castlevania IV",
-      "url": "https://www.gamepix.com/play/castlevania",
+      "url": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
       "genre": "Action",
       "description": "Simon Belmont in this stunning SNES reimagining of the original Castlevania.",
       "rating": 4.7,
@@ -11479,7 +11480,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/castlevania",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/31965-super-castlevania-iv-usa.html"
@@ -11493,7 +11494,7 @@
     {
       "id": "dk-country-2-snes-elite",
       "name": "Donkey Kong Country 2",
-      "url": "https://www.gamepix.com/play/donkey-kong",
+      "url": "https://www.retrogames.cc/embed/4665-donkey-kong-country-2-snes.html",
       "genre": "Platformer",
       "description": "Diddy and Dixie Kong rescue Donkey Kong from Kaptain K. Rool.",
       "rating": 4.8,
@@ -11510,7 +11511,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/donkey-kong",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4665-donkey-kong-country-2-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32011-donkey-kong-country-2-diddys-kong-quest-usa.html"
@@ -11617,7 +11618,7 @@
     {
       "id": "super-bomberman-snes-elite",
       "name": "Super Bomberman",
-      "url": "https://www.gamepix.com/play/bomberman",
+      "url": "https://www.retrogames.cc/embed/4656-bomberman-snes.html",
       "genre": "Action",
       "description": "4-player explosive arena action. The ultimate party game on SNES.",
       "rating": 4.5,
@@ -11634,7 +11635,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/bomberman",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4656-bomberman-snes.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32131-super-bomberman-usa.html"
@@ -12200,7 +12201,7 @@
     {
       "id": "fzero-x-n64-elite",
       "name": "F-Zero X",
-      "url": "https://www.gamepix.com/play/f-zero",
+      "url": "https://www.retrogames.cc/embed/18914-f-zero-x-n64.html",
       "genre": "Racing",
       "description": "Anti-gravity racing at 60fps. Captain Falcon races 30 tracks at insane speed.",
       "rating": 4.7,
@@ -12218,7 +12219,7 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/f-zero",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18914-f-zero-x-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32221-f-zero-x-usa.html"
@@ -12263,7 +12264,7 @@
     {
       "id": "kirby-64-n64-elite",
       "name": "Kirby 64: Crystal Shards",
-      "url": "https://www.gamepix.com/play/kirby",
+      "url": "https://www.retrogames.cc/embed/18946-kirby-64-the-crystal-shards-n64.html",
       "genre": "Platformer",
       "description": "Kirby combines copy abilities for the first time in this colorful N64 adventure.",
       "rating": 4.5,
@@ -12280,7 +12281,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/kirby",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18946-kirby-64-the-crystal-shards-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32230-kirby-64-the-crystal-shards-usa.html"
@@ -12387,7 +12388,7 @@
     {
       "id": "bomberman-64-n64-elite",
       "name": "Bomberman 64",
-      "url": "https://www.gamepix.com/play/bomberman",
+      "url": "https://www.retrogames.cc/embed/18939-bomberman-64-n64.html",
       "genre": "Action",
       "description": "Bomberman goes 3D with adventure mode and explosive 4-player battles.",
       "rating": 4.4,
@@ -12403,7 +12404,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/bomberman",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18939-bomberman-64-n64.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32207-bomberman-64-usa.html"
@@ -12786,7 +12787,7 @@
     {
       "id": "mega-man-legends-ps1-elite",
       "name": "Mega Man Legends",
-      "url": "https://www.gamepix.com/play/mega-man",
+      "url": "https://www.retrogames.cc/embed/21026-mega-man-legends-ps1.html",
       "genre": "Action RPG",
       "description": "Mega Man explores ruins in this charming 3D action RPG departure.",
       "rating": 4.5,
@@ -12802,7 +12803,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21026-mega-man-legends-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42625-mega-man-legends.html"
@@ -12971,7 +12972,7 @@
     {
       "id": "zelda-la-dx-gbc-elite",
       "name": "The Legend of Zelda: Link's Awakening DX",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
+      "url": "https://www.retrogames.cc/embed/26480-legend-of-zelda-links-awakening-dx-gbc.html",
       "genre": "Adventure",
       "description": "Link washes ashore Koholint Island in this magical GBC adventure.",
       "rating": 4.8,
@@ -12988,7 +12989,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26480-legend-of-zelda-links-awakening-dx-gbc.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/20058-the-legend-of-zelda-links-awakening-dx-usa.html"
@@ -13002,7 +13003,7 @@
     {
       "id": "wario-land-gb-elite",
       "name": "Wario Land: Super Mario Land 3",
-      "url": "https://www.gamepix.com/play/super-mario-bros",
+      "url": "https://www.retrogames.cc/embed/20205-wario-land-super-mario-land-3-gb.html",
       "genre": "Platformer",
       "description": "Wario's first solo adventure - a treasure-hunting platformer.",
       "rating": 4.5,
@@ -13018,7 +13019,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/super-mario-bros",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20205-wario-land-super-mario-land-3-gb.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/20049-wario-land-super-mario-land-3-usa.html"
@@ -13032,7 +13033,7 @@
     {
       "id": "kirby-dl-gb-elite",
       "name": "Kirby's Dream Land",
-      "url": "https://www.gamepix.com/play/kirby",
+      "url": "https://www.retrogames.cc/embed/20192-kirbys-dream-land-gb.html",
       "genre": "Platformer",
       "description": "The puffball's debut. Kirby inhales enemies to defeat King Dedede.",
       "rating": 4.4,
@@ -13048,7 +13049,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/kirby",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20192-kirbys-dream-land-gb.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/20015-kirbys-dream-land-usa.html"
@@ -13062,7 +13063,7 @@
     {
       "id": "tetris-gb-elite",
       "name": "Tetris (Game Boy)",
-      "url": "https://www.gamepix.com/play/tetris",
+      "url": "https://www.retrogames.cc/embed/20196-tetris-gb.html",
       "genre": "Puzzle",
       "description": "THE Game Boy game. The version that made Tetris a worldwide phenomenon.",
       "rating": 4.9,
@@ -13080,7 +13081,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tetris",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20196-tetris-gb.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/20041-tetris-usa.html"
