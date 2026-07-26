@@ -3,6 +3,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { LoggingService } from '../services/logging.service';
 import { RecordingStatusService } from './recording-status.service';
 import { LocalStorageService } from '../services/local-storage.service';
+import { StudioRecordingEngineService } from './studio-recording-engine.service';
 
 /** A single recorded take within a comp group */
 export interface CompTake {
@@ -41,6 +42,7 @@ export class SmartRecordingService {
   private readonly logger = inject(LoggingService);
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly storage = inject(LocalStorageService);
+  private readonly recordingEngine = inject(StudioRecordingEngineService);
 
   // ── Recording mode ────────────────────────────────────────
   /** 'normal' = standard recording, 'punch' = punch-in/out, 'comp' = comp takes */
@@ -147,29 +149,38 @@ export class SmartRecordingService {
   /**
    * Called by the sequencer each bar — checks if we should start/stop punching.
    */
-  onBarTick(bar: number) {
+  async onBarTick(bar: number) {
     if (this.recordingMode() !== 'punch' || !this.punchArmed()) return;
 
     const inBar = this.punchInBar();
     const outBar = this.punchOutBar();
 
     if (inBar !== null && bar >= inBar && !this.isPunching()) {
-      // Enter punch region — start recording
+      // Enter punch region — start actual recording
       this.isPunching.set(true);
       this.recordingStatus.setRecordingSource({
         type: 'transport',
         trackId: 'punch',
         trackName: `Punch (bar ${inBar})`,
       });
-      this.logger.info(`SmartRecording: Punch IN at bar ${bar}`);
+      // Initialize recording engine if needed and start capture
+      const initialized = this.recordingEngine.isInitialized();
+      if (!initialized) {
+        await this.recordingEngine.initialize();
+      }
+      this.recordingEngine.startRecording();
+      this.audioEngine.isRecording.set(true);
+      this.logger.info(`SmartRecording: Punch IN at bar ${bar} — recording started`);
     }
 
     if (outBar !== null && bar >= outBar && this.isPunching()) {
-      // Exit punch region — stop recording
+      // Exit punch region — stop actual recording
       this.isPunching.set(false);
       this.punchArmed.set(false);
+      await this.recordingEngine.stopRecording();
+      this.audioEngine.isRecording.set(false);
       this.recordingStatus.clearRecordingSource();
-      this.logger.info(`SmartRecording: Punch OUT at bar ${bar}`);
+      this.logger.info(`SmartRecording: Punch OUT at bar ${bar} — recording saved`);
     }
   }
 

@@ -1505,3 +1505,100 @@
   mask-composite: exclude;
   pointer-events: none;
 }
+
+/* ── Toolbar KBD shortcut badges ────────────────────── */
+.comp-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 4px;
+  margin-left: 3px;
+  border-radius: 3px;
+  background: rgba(61, 53, 42, 0.08);
+  border: 1px solid rgba(61, 53, 42, 0.12);
+  font-size: 7px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--espresso-muted);
+  line-height: 1.3;
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+}
+.comp-tool-btn:hover .comp-kbd {
+  opacity: 1;
+  background: rgba(14, 124, 123, 0.12);
+  border-color: rgba(14, 124, 123, 0.25);
+  color: var(--teal-500);
+}
+
+/* ── Recording mode indicator on tool buttons ───────── */
+.comp-tool-rec { position: relative; }
+.comp-tool-rec-punch { color: var(--red, #DC2626); }
+.comp-tool-rec-comp { color: var(--amber, #D97706); }
+.comp-tool-rec.comp-tool-active .comp-tool-label {
+  color: var(--teal-500);
+}
+.comp-tool-status-pip {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--espresso-line);
+}
+.comp-tool-status-punch {
+  background: var(--red, #DC2626);
+  border-color: var(--red, #DC2626);
+  animation: comp-pulse 1s ease-in-out infinite;
+}
+.comp-tool-status-comp {
+  background: var(--amber, #D97706);
+  border-color: var(--amber, #D97706);
+  animation: comp-pulse 1.2s ease-in-out infinite;
+}
+
+/* ── Footer recording mode chip ─────────────────────── */
+.comp-footer-rec {
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.08);
+}
+.comp-footer-rec-punch {
+  border-color: var(--red, #DC2626);
+  color: var(--red, #DC2626);
+}
+.comp-footer-rec-comp {
+  border-color: var(--amber, #D97706);
+  color: var(--amber, #D97706);
+}
+
+/* ── AI Mix Spectrum Analyzer ───────────────────────── */
+.comp-aimix-spectrum {
+  padding: 0;
+  margin-bottom: 12px;
+}
+.comp-aimix-canvas {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  background: var(--espresso-bg, rgba(31, 26, 18, 0.06));
+  display: block;
+}
+.comp-aimix-spectrum-label {
+  display: block;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  text-align: center;
+  padding: 4px 0 0;
+  opacity: 0.5;
+}
+
+/* Dark mode spectrum analyzer */
+:host-context(.dark-mode) .comp-aimix-canvas {
+  background: rgba(0, 0, 0, 0.25);
+}

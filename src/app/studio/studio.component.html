@@ -136,27 +136,31 @@
   <!-- ====================== TOPBAR CONTROLS ====================== -->
   <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
   <div class="comp-topbar-tools" *ngIf="!headerCollapsed()">
-    <button type="button" class="comp-tool-btn" (click)="toggleAiMixAssistant()" [class.comp-tool-active]="showAiMixAssistant()" title="AI Mix Assistant — analyze tracks &amp; get smart suggestions" aria-label="Toggle AI Mix Assistant panel">
+    <button type="button" class="comp-tool-btn" (click)="toggleAiMixAssistant()" [class.comp-tool-active]="showAiMixAssistant()" title="AI Mix Assistant — analyze tracks &amp; get smart suggestions  ·  Ctrl+I" aria-label="Toggle AI Mix Assistant panel">
       <span class="material-symbols-outlined">analytics</span>
       <span class="comp-tool-badge" *ngIf="aiMixAssistant.suggestions().length > 0">{{ aiMixAssistant.suggestions().length }}</span>
       <span class="comp-tool-label">AI MIX</span>
+      <span class="comp-kbd">Ctrl+I</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="toggleSmartRecordingPanel()" [class.comp-tool-active]="showSmartRecordingPanel()" title="Recording mode — normal, punch-in/out, or comp takes" aria-label="Toggle recording mode panel">
+    <button type="button" class="comp-tool-btn comp-tool-rec" (click)="toggleSmartRecordingPanel()" [class.comp-tool-active]="showSmartRecordingPanel()" [class.comp-tool-rec-punch]="smartRecording.recordingMode() === 'punch'" [class.comp-tool-rec-comp]="smartRecording.recordingMode() === 'comp'" title="Recording mode — {{ smartRecording.recordingMode() | uppercase }}" aria-label="Toggle recording mode panel">
       <span class="material-symbols-outlined">radio_button_checked</span>
-      <span class="comp-tool-label">REC</span>
+      <span class="comp-tool-label">{{ smartRecording.recordingMode() | uppercase }}</span>
+      <span class="comp-tool-status-pip" [class.comp-tool-status-punch]="smartRecording.isPunching()" [class.comp-tool-status-comp]="smartRecording.isCompRecording()"></span>
     </button>
     <button type="button" class="comp-tool-btn" (click)="toggleProjectMetadata()" [class.comp-tool-active]="showProjectMetadata()" title="Project metadata — genre, key, mood &amp; export" aria-label="Toggle project metadata editor">
       <span class="material-symbols-outlined">info</span>
       <span class="comp-tool-label">INFO</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="saveProject()" title="Save project (Ctrl+S)" aria-label="Save project">
+    <button type="button" class="comp-tool-btn" (click)="saveProject()" title="Save project  ·  Ctrl+S" aria-label="Save project">
       <span class="material-symbols-outlined">save</span>
       <span class="comp-tool-badge" *ngIf="projectWorkspace.isDirty()" title="Unsaved changes">!</span>
       <span class="comp-tool-label">SAVE</span>
+      <span class="comp-kbd">Ctrl+S</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="exportProject()" title="Export project as .smuve bundle (Ctrl+E)" aria-label="Export project bundle">
+    <button type="button" class="comp-tool-btn" (click)="exportProject()" title="Export project as .smuve bundle  ·  Ctrl+E" aria-label="Export project bundle">
       <span class="material-symbols-outlined">file_download</span>
       <span class="comp-tool-label">EXPORT</span>
+      <span class="comp-kbd">Ctrl+E</span>
     </button>
   </div>
 
@@ -285,6 +289,16 @@
       <span class="comp-footer-chip" title="Playback position (1-based bar)">
         <span class="material-symbols-outlined">music_note</span>
         Bar {{ currentBar() }}
+      </span>
+      <span
+        class="comp-footer-chip comp-footer-rec"
+        *ngIf="smartRecording.recordingMode() !== 'normal'"
+        [class.comp-footer-rec-punch]="smartRecording.recordingMode() === 'punch'"
+        [class.comp-footer-rec-comp]="smartRecording.recordingMode() === 'comp'"
+        title="Recording mode"
+      >
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        {{ smartRecording.recordingMode() | uppercase }}
       </span>
       <span
         class="comp-footer-chip"
@@ -441,6 +455,12 @@
       </button>
     </header>
     <div class="comp-panel-body">
+      <!-- Spectrum Analyzer -->
+      <div class="comp-aimix-spectrum">
+        <canvas #spectrumCanvas class="comp-aimix-canvas" width="280" height="80"></canvas>
+        <span class="comp-aimix-spectrum-label">MASTER FREQUENCY SPECTRUM</span>
+      </div>
+
       <!-- Mix Quality Score -->
       <div class="comp-aimix-score">
         <div class="comp-aimix-ring" [style.background]="'conic-gradient(var(--teal-500) ' + aiMixAssistant.mixQualityScore() * 3.6 + 'deg, var(--espresso-line) 0deg)'">

@@ -1,5 +1,4 @@
-import {
-  Component,
+import { Component,
   OnInit,
   OnDestroy,
   AfterViewInit,
@@ -9,6 +8,7 @@ import {
   effect,
   untracked,
   ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -142,6 +142,10 @@ const THEME_LABEL: Record<AppTheme, string> = {
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
+  @ViewChild('spectrumCanvas', { static: false }) spectrumCanvas?: ElementRef<HTMLCanvasElement>;
+
+  /** Animation frame handle for spectrum analyzer rendering */
+  private spectrumRafId: number | null = null;
 
   // ---- Services (public for templates) ----
   public readonly audioSession = inject(AudioSessionService);
@@ -288,6 +292,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // AudioContext is resumed. Idempotent — safe to call repeatedly.
     this.audioEngine.armOnFirstUserGesture();
 
+    // ── Punch recording bar tracking ──
+    effect(() => {
+      const bar = this.currentBar();
+      try {
+        const playing =
+          typeof this.audioEngine.isPlaying === 'function'
+            ? this.audioEngine.isPlaying()
+            : false;
+        if (playing) {
+          this.smartRecording.onBarTick(bar);
+        }
+      } catch {
+        // guard against test environment mocks
+      }
+    });
+
     // ── Cross-link router ──
     effect(() => {
       const req = this.musicManager.crossLinkRequest();
@@ -360,9 +380,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     this.activeView();
+    // Start spectrum analyzer rendering when AI Mix panel is visible
+    this.startSpectrumAnalyzer();
   }
 
-  ngOnDestroy() {}
+  ngOnDestroy() {
+    this.stopSpectrumAnalyzer();
+  }
 
   // ── Theme cycle: Light → Focus → Dark → Light ─────────────────
   cycleTheme() {
@@ -601,6 +625,61 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleSoundFavorites() {
     this.haptic.light();
     this.smartSound.showFavoritesOnly.update((v) => !v);
+  }
+
+  // ── Spectrum Analyzer ──────────────────────────────────────
+
+  /** Start real-time frequency spectrum rendering from master analyser */
+  startSpectrumAnalyzer() {
+    this.stopSpectrumAnalyzer(); // avoid double-starts
+    const analyser = this.audioEngine.masterAnalyser;
+    if (!analyser) return;
+    analyser.fftSize = 128;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const render = () => {
+      const canvas = this.spectrumCanvas?.nativeElement;
+      if (!canvas) {
+        this.spectrumRafId = requestAnimationFrame(render);
+        return;
+      }
+      analyser.getByteFrequencyData(dataArray);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const barCount = bufferLength;
+      const barW = Math.max(2, Math.floor((w - barCount) / barCount));
+      const gap = Math.max(0, Math.floor((w - barCount * barW) / (barCount + 1)));
+
+      for (let i = 0; i < barCount; i++) {
+        const val = dataArray[i] / 255;
+        const barH = val * h;
+        const x = gap + i * (barW + gap);
+        const y = h - barH;
+
+        // Gradient from teal-400 → teal-500 → orange at peaks
+        const hue = 175 - val * 40; // 175=teal, 135=orange-ish
+        ctx.fillStyle = `hsl(${hue}, 70%, ${45 + val * 25}%)`;
+        ctx.fillRect(x, y, barW, barH);
+      }
+
+      this.spectrumRafId = requestAnimationFrame(render);
+    };
+
+    this.spectrumRafId = requestAnimationFrame(render);
+  }
+
+  /** Stop spectrum analyzer render loop */
+  stopSpectrumAnalyzer() {
+    if (this.spectrumRafId !== null) {
+      cancelAnimationFrame(this.spectrumRafId);
+      this.spectrumRafId = null;
+    }
   }
 
   /**
