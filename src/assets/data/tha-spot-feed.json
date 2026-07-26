@@ -3925,10 +3925,10 @@
     },
     {
       "id": "pokemon-yellow-elite",
-      "name": "Pok\u00e9mon Yellow: Special Pikachu Edition",
+      "name": "Pokémon Yellow: Special Pikachu Edition",
       "url": "https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html",
       "genre": "RPG",
-      "description": "The definitive classic Pok\u00e9mon journey with Pikachu. Elite WASM emulation with stabilized sync.",
+      "description": "The definitive classic Pokémon journey with Pikachu. Elite WASM emulation with stabilized sync.",
       "availability": "Online",
       "playersOnline": 55000,
       "rating": 5,
@@ -6404,7 +6404,7 @@
     },
     {
       "id": "ev-io-web-elite",
-      "name": "Ev.io",
+      "name": "EV.IO",
       "url": "https://ev.io/",
       "genre": "FPS",
       "description": "Halo-inspired futuristic combat. S.M.U.V.E. demands Absolute verticality and precision. Ascend or fall.",
@@ -8029,7 +8029,7 @@
     },
     {
       "id": "burnout-3-elite-master",
-      "name": "Burnout 3",
+      "name": "Burnout 3: Takedown",
       "url": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
       "genre": "Racing",
       "description": "Absolute high-fidelity Racing action. Experience Burnout 3 in a stabilized browser environment.",
@@ -9206,46 +9206,6 @@
       "image": "/assets/games/sf3-classic.png"
     },
     {
-      "id": "dd1-classic",
-      "name": "Double Dragon (Classic)",
-      "url": "https://www.gamepix.com/play/double-dragon",
-      "description": "The Absolute high-quality classic version of Double Dragon.",
-      "genre": "Beat 'em up",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Beat 'em up"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19139-double-dragon-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/double-dragon",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/dd1-classic.png"
-    },
-    {
       "id": "dd2-classic",
       "name": "Double Dragon II (Classic)",
       "url": "https://www.gamepix.com/play/double-dragon",
@@ -9284,46 +9244,6 @@
         "accentEnd": "#166534"
       },
       "image": "/assets/games/dd2-classic.png"
-    },
-    {
-      "id": "dbz-buu-classic",
-      "name": "DBZ: Buu's Fury (Classic)",
-      "url": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
-      "description": "The Absolute high-quality classic version of DBZ: Buu's Fury.",
-      "genre": "RPG",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "RPG"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/dbz-buu-classic.png"
     },
     {
       "id": "dbz-sw-classic",
@@ -9366,46 +9286,6 @@
       "image": "/assets/games/dbz-sw-classic.png"
     },
     {
-      "id": "mm1-classic",
-      "name": "Mega Man (Classic)",
-      "url": "https://www.gamepix.com/play/mega-man",
-      "description": "The Absolute high-quality classic version of Mega Man.",
-      "genre": "Platformer",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Platformer"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/mm1-classic.png"
-    },
-    {
       "id": "mmx-classic",
       "name": "Mega Man X (Classic)",
       "url": "https://www.gamepix.com/play/mega-man",
@@ -9446,48 +9326,8 @@
       "image": "/assets/games/mmx-classic.png"
     },
     {
-      "id": "zelda1-classic",
-      "name": "The Legend of Zelda (Classic)",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
-      "description": "The Absolute high-quality classic version of The Legend of Zelda.",
-      "genre": "Adventure",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Adventure"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17203-the-legend-of-zelda-usa.html",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/zelda1-classic.png"
-    },
-    {
       "id": "zelda-oot-classic",
-      "name": "Zelda: Ocarina of Time (Classic)",
+      "name": "The Legend of Zelda: Ocarina of Time (Classic)",
       "url": "https://www.gamepix.com/play/the-legend-of-zelda",
       "description": "The Absolute high-quality classic version of Zelda: Ocarina of Time.",
       "genre": "Adventure",
@@ -9726,46 +9566,6 @@
       "image": "/assets/games/tecmo-bowl-classic.png"
     },
     {
-      "id": "10-yard-fight-classic",
-      "name": "10-Yard Fight (Classic)",
-      "url": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
-      "description": "The Absolute high-quality classic version of 10-Yard Fight.",
-      "genre": "Sports",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Sports"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/10-yard-fight-classic.png"
-    },
-    {
       "id": "punch-out-classic",
       "name": "Mike Tyson's Punch-Out!! (Classic)",
       "url": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
@@ -9806,34 +9606,8 @@
       "image": "/assets/games/punch-out-classic.png"
     },
     {
-      "id": "chrono-trigger-elite-master",
-      "name": "Chrono Trigger",
-      "url": "https://www.gamepix.com/play/chrono-trigger",
-      "genre": "RPG",
-      "description": "The Absolute pinnacle of RPG design. Time-traveling excellence with multiple endings and high-fidelity combat.",
-      "tags": [
-        "RPG",
-        "Retro",
-        "SNES",
-        "Elite",
-        "Time-Travel"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic",
-        "staff-pick"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/chrono-trigger",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18804-chrono-trigger-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "pokemon-emerald-elite-master",
-      "name": "Pok\u00e9mon Emerald",
+      "name": "Pokémon Emerald",
       "url": "https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html",
       "genre": "RPG",
       "description": "The definitive Hoenn journey. High-fidelity GBA emulation with stabilized Battle Frontier protocols.",
@@ -9984,31 +9758,6 @@
       "availability": "Online"
     },
     {
-      "id": "street-fighter-3-elite-master",
-      "name": "Street Fighter III: 3rd Strike",
-      "url": "https://www.gamepix.com/play/street-fighter-2",
-      "genre": "Fighting",
-      "description": "Absolute precision fighting. High-fidelity parry mechanics and competitive arcade flow.",
-      "tags": [
-        "Fighting",
-        "Retro",
-        "Arcade",
-        "Elite",
-        "Combat"
-      ],
-      "badgeIds": [
-        "elite",
-        "tournament-live"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/street-fighter-2",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10001-street-fighter-iii-3rd-strike-fight-for-the-future-990512.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "super-metroid-elite-master",
       "name": "Super Metroid",
       "url": "https://www.gamepix.com/play/super-metroid",
@@ -10061,7 +9810,7 @@
     },
     {
       "id": "pokemon-fire-red-elite-master",
-      "name": "Pok\u00e9mon FireRed",
+      "name": "Pokémon FireRed",
       "url": "https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html",
       "genre": "RPG",
       "description": "The Absolute return to Kanto. High-fidelity GBA journey with stabilized training protocols.",
@@ -10405,29 +10154,6 @@
       "availability": "Online"
     },
     {
-      "id": "soccer-skills-pro-elite",
-      "name": "Soccer Skills World Cup",
-      "url": "https://www.gamepix.com/play/soccer-skills-world-cup",
-      "genre": "Sports",
-      "description": "Absolute tournament football. High-fidelity 3D WebGL physics and global ladder support.",
-      "tags": [
-        "Sports",
-        "Soccer",
-        "WebGL",
-        "Elite",
-        "Modern"
-      ],
-      "badgeIds": [
-        "elite",
-        "tournament-live"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-skills-world-cup",
-        "embedMode": "inline"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "contra-iii-elite-master",
       "name": "Contra III",
       "url": "https://www.gamepix.com/play/contra",
@@ -10764,30 +10490,6 @@
       "availability": "Online"
     },
     {
-      "id": "zelda-majora-mask-elite-master",
-      "name": "Zelda: Majora Mask",
-      "url": "https://www.gamepix.com/play/the-legend-of-zelda",
-      "genre": "RPG",
-      "description": "Absolute high-fidelity RPG action. Experience Zelda: Majora Mask in a stabilized browser environment.",
-      "tags": [
-        "RPG",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/the-legend-of-zelda",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32332-legend-of-zelda-the-majora-s-mask-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "banjo-kazooie-elite-master",
       "name": "Banjo-Kazooie",
       "url": "https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html",
@@ -11053,7 +10755,7 @@
     },
     {
       "id": "doom-64-elite-master",
-      "name": "Doom 64",
+      "name": "DOOM 64",
       "url": "https://www.gamepix.com/play/doom",
       "genre": "FPS",
       "description": "Absolute high-fidelity FPS action. Experience Doom 64 in a stabilized browser environment.",
@@ -11269,7 +10971,7 @@
     },
     {
       "id": "pokemon-stadium-2-elite-master",
-      "name": "Pokemon Stadium 2",
+      "name": "Pokémon Stadium 2",
       "url": "https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html",
       "genre": "Strategy",
       "description": "Absolute high-fidelity Strategy action. Experience Pokemon Stadium 2 in a stabilized browser environment.",
@@ -11293,7 +10995,7 @@
     },
     {
       "id": "tony-hawk-2-master-elite-master",
-      "name": "Tony Hawk 2 Master",
+      "name": "Tony Hawk's Pro Skater 2",
       "url": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html",
       "genre": "Sports",
       "description": "Absolute high-fidelity Sports action. Experience Tony Hawk 2 Master in a stabilized browser environment.",
@@ -11581,7 +11283,7 @@
       "name": "Wordle",
       "url": "https://www.nytimes.com/games/wordle/index.html",
       "genre": "Puzzle",
-      "description": "The global daily word phenomenon. Six attempts to find the five-letter word. Share your score streak with friends \u2014 the most culturally impactful word game since Scrabble.",
+      "description": "The global daily word phenomenon. Six attempts to find the five-letter word. Share your score streak with friends — the most culturally impactful word game since Scrabble.",
       "rating": 4.7,
       "playersOnline": 85000,
       "availability": "Online",
@@ -11757,37 +11459,6 @@
       }
     },
     {
-      "id": "mega-man-x-snes-elite",
-      "name": "Mega Man X",
-      "url": "https://www.gamepix.com/play/mega-man",
-      "genre": "Action",
-      "description": "Maverick Hunter X battles Sigma's forces in this SNES masterpiece.",
-      "rating": 4.8,
-      "playersOnline": 5400,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "SNES",
-        "Platformer",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mega-man",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32089-mega-man-x-usa.html"
-      },
-      "art": {
-        "eyebrow": "SNES Classic",
-        "accentStart": "#00bfff",
-        "accentEnd": "#003366"
-      }
-    },
-    {
       "id": "super-castlevania-iv-elite",
       "name": "Super Castlevania IV",
       "url": "https://www.gamepix.com/play/castlevania",
@@ -11909,38 +11580,6 @@
         "eyebrow": "SNES Fighter",
         "accentStart": "#ff0000",
         "accentEnd": "#cc0000"
-      }
-    },
-    {
-      "id": "ff-vi-snes-elite",
-      "name": "Final Fantasy VI",
-      "url": "https://www.gamepix.com/play/final-fantasy",
-      "genre": "RPG",
-      "description": "Often called the greatest RPG ever made. Kefka's assault is gaming's darkest hour.",
-      "rating": 4.9,
-      "playersOnline": 9800,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "SNES",
-        "Classic",
-        "JRPG",
-        "Final Fantasy"
-      ],
-      "badgeIds": [
-        "classic",
-        "featured"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/final-fantasy",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32023-final-fantasy-iii-usa.html"
-      },
-      "art": {
-        "eyebrow": "RPG Legend",
-        "accentStart": "#6633cc",
-        "accentEnd": "#1a0033"
       }
     },
     {
@@ -12311,7 +11950,7 @@
     },
     {
       "id": "pokemon-firered-gba-elite",
-      "name": "Pokemon FireRed",
+      "name": "Pokémon FireRed",
       "url": "https://www.retrogames.cc/embed/40277-pokemon-fire-red-version-usa.html",
       "genre": "RPG",
       "description": "Return to Kanto in this definitive GBA remake of Pokemon Red.",
@@ -12402,38 +12041,6 @@
         "eyebrow": "GBA Strategy",
         "accentStart": "#339933",
         "accentEnd": "#003300"
-      }
-    },
-    {
-      "id": "cv-aria-gba-elite",
-      "name": "Castlevania: Aria of Sorrow",
-      "url": "https://www.gamepix.com/play/castlevania",
-      "genre": "Action",
-      "description": "Soma Cruz absorbs enemy souls in this masterful GBA Castlevania.",
-      "rating": 4.8,
-      "playersOnline": 3800,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "GBA",
-        "Castlevania",
-        "Metroidvania",
-        "Horror"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/castlevania",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40054-castlevania-aria-of-sorrow-usa.html"
-      },
-      "art": {
-        "eyebrow": "GBA Metroidvania",
-        "accentStart": "#990000",
-        "accentEnd": "#1a0000"
       }
     },
     {
@@ -13331,7 +12938,7 @@
     },
     {
       "id": "pokemon-red-gb-elite",
-      "name": "Pokemon Red",
+      "name": "Pokémon Red",
       "url": "https://www.retrogames.cc/embed/20025-pokemon-red-version-usa.html",
       "genre": "RPG",
       "description": "Where it all began. Choose your starter and become Pokemon Champion.",
@@ -13363,7 +12970,7 @@
     },
     {
       "id": "zelda-la-dx-gbc-elite",
-      "name": "Zelda: Link's Awakening DX",
+      "name": "The Legend of Zelda: Link's Awakening DX",
       "url": "https://www.gamepix.com/play/the-legend-of-zelda",
       "genre": "Adventure",
       "description": "Link washes ashore Koholint Island in this magical GBC adventure.",
@@ -13486,7 +13093,7 @@
     },
     {
       "id": "pokemon-tcg-gbc-elite",
-      "name": "Pokemon Trading Card Game",
+      "name": "Pokémon Trading Card Game",
       "url": "https://www.retrogames.cc/embed/20030-pokemon-trading-card-game-usa.html",
       "genre": "Card Game",
       "description": "Build decks and battle Gym Leaders with Pokemon cards in this GBC gem.",
@@ -13984,39 +13591,6 @@
       }
     },
     {
-      "id": "basketball-stars-web-elite",
-      "name": "Basketball Stars",
-      "url": "https://www.gamepix.com/play/basketball-stars",
-      "genre": "Sports",
-      "description": "1v1 basketball action with real-time multiplayer. Cross up your opponent.",
-      "rating": 4.4,
-      "playersOnline": 18000,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "Basketball",
-        "Multiplayer",
-        "Web",
-        "1v1"
-      ],
-      "badgeIds": [
-        "modern"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-stars",
-        "embedMode": "inline",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      },
-      "art": {
-        "eyebrow": "Sports Arena",
-        "accentStart": "#ff6600",
-        "accentEnd": "#cc3300"
-      }
-    },
-    {
       "id": "paper-io-2-web-elite",
       "name": "Paper.io 2",
       "url": "https://www.gamepix.com/play/paper-io-2",
@@ -14253,7 +13827,7 @@
     },
     {
       "id": "moto-x3m-pool-web-elite",
-      "name": "Moto X3M Pool Party",
+      "name": "Moto X3M: Pool Party",
       "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
       "genre": "Racing",
       "description": "Stunt bike racing through pool-themed obstacle courses.",
