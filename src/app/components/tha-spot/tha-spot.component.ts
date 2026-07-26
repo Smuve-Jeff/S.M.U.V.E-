@@ -9,6 +9,7 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -191,9 +192,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   showExternalConfirm = signal<boolean>(false);
   externalTargetUrl = signal<string>('');
   externalTargetDomain = signal<string>('');
+  isFullscreen = signal<boolean>(false);
+  recentGames = signal<Game[]>([]);
+  isLoading = signal<boolean>(true);
   private currentMatchmakingId: number | null = null;
   private matchmakingTimerId: any = null;
   private latestSearchQuery: string = '';
+  private readonly RECENT_GAMES_KEY = 'tha_spot_recent_games';
 
   // Social & Streaming Signals
   activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
@@ -342,6 +347,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     });
     const savedFavs = localStorage.getItem('tha_spot_favorites');
     if (savedFavs) this.favorites.set(JSON.parse(savedFavs));
+    this.loadRecentGames();
 
     effect(() => {
       const gp = this.gamepadService.connectedGamepad();
@@ -513,6 +519,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   closeGame() {
     this.inGame.set(false);
     this.currentGame.set(null);
+    this.isFullscreen.set(false);
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
   }
 
   toggleIntel() {
@@ -633,6 +643,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     );
     this.inGame.set(true);
     this.currentGame.set(game);
+    this.addRecentGame(game);
     this.closePreview();
   }
 
@@ -727,6 +738,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private loadFeed(forceRefresh = false) {
+    this.isLoading.set(true);
     this.feedSubscription?.unsubscribe();
     this.feedSubscription = this.gameService
       .getThaSpotFeed(forceRefresh)
@@ -738,6 +750,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.socialPresence.set(feed.socialPresence);
         this.promotions.set(feed.promotions);
         this.recommendationRails.set(feed.recommendationRails);
+        this.isLoading.set(false);
       });
   }
 
@@ -1163,6 +1176,74 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         behavior: 'smooth',
       });
     }
+  }
+
+  /**
+   * Launch selected game on Enter key press (when a game is selected and not already launching).
+   */
+  @HostListener('document:keydown.enter', ['$event'])
+  onEnterKey(event: KeyboardEvent): void {
+    if (this.selectedGame() && !this.currentGame() && !this.isMatchmaking()) {
+      // Ensure we're not typing in an input
+      const tag = (event.target as HTMLElement)?.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+        event.preventDefault();
+        this.confirmLaunch();
+      }
+    }
+  }
+
+  /**
+   * Escape key closes preview or game.
+   */
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent): void {
+    if (this.currentGame()) {
+      event.preventDefault();
+      this.closeGame();
+    } else if (this.selectedGame()) {
+      event.preventDefault();
+      this.closePreview();
+    }
+  }
+
+  /**
+   * Toggle fullscreen mode for the game console.
+   */
+  toggleFullscreen(): void {
+    this.isFullscreen.update((v) => !v);
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  /**
+   * Recent games tracking — persist last 8 played games in localStorage.
+   */
+  private loadRecentGames(): void {
+    try {
+      const raw = localStorage.getItem(this.RECENT_GAMES_KEY);
+      if (raw) this.recentGames.set(JSON.parse(raw));
+    } catch { /* ignore corrupt data */ }
+  }
+
+  private addRecentGame(game: Game): void {
+    const current = this.recentGames().filter((g) => g.id !== game.id);
+    current.unshift(game);
+    if (current.length > 8) current.length = 8;
+    this.recentGames.set(current);
+    try {
+      localStorage.setItem(this.RECENT_GAMES_KEY, JSON.stringify(current));
+    } catch { /* storage full — silently ignore */ }
+  }
+
+  clearRecentGames(): void {
+    this.recentGames.set([]);
+    try {
+      localStorage.removeItem(this.RECENT_GAMES_KEY);
+    } catch { /* ignore */ }
   }
 
   addEmoji(emoji: string) {

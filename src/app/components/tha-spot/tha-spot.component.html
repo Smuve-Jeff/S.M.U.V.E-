@@ -226,13 +226,53 @@
         </div>
 
         <!-- Full Catalog Supplement -->
+        <!-- Recent Games Section -->
+        <div class="recent-games-section" *ngIf="recentGames().length > 0">
+          <div class="section-header">
+            <h3 class="glitch-text" data-text="RECENT_CABINETS">RECENT_CABINETS</h3>
+            <div class="section-actions">
+              <span class="game-count">{{ recentGames().length }} / 8</span>
+              <button class="clear-btn mini" (click)="clearRecentGames()">CLEAR</button>
+            </div>
+          </div>
+          <div class="recent-games-strip no-scrollbar">
+            <div
+              class="recent-game-chip glass-v42"
+              *ngFor="let recent of recentGames()"
+              (click)="onGameClick(recent)"
+              title="{{ recent.name }}"
+            >
+              <img
+                [src]="recent.image || 'assets/desktop_hub.png'"
+                [alt]="recent.name"
+                class="recent-thumb"
+                loading="lazy"
+              />
+              <span class="recent-name">{{ recent.name }}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="full-catalog-supplement">
           <div class="section-header">
             <h3 class="glitch-text" data-text="ALL_CABINETS">ALL_CABINETS</h3>
             <p>Direct access to the Absolute library across all sectors.</p>
           </div>
 
-          <div class="catalog-grid">
+          <!-- Loading Skeleton -->
+          <div class="catalog-grid" *ngIf="isLoading()">
+            <div class="game-card glass-v42 shadow-v42-md skeleton-card" *ngFor="let _ of [].constructor(12)">
+              <div class="card-media skeleton-pulse">
+                <div class="skeleton-img"></div>
+              </div>
+              <div class="card-info">
+                <span class="skeleton-text skeleton-name"></span>
+                <span class="skeleton-text skeleton-genre"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="catalog-grid" *ngIf="!isLoading()">
             <div
               class="game-card glass-v42 shadow-v42-md"
               *ngFor="let game of filteredGames()"
@@ -963,6 +1003,10 @@
             {{ getLaunchMode(selected) === 'external' ? 'OPENS IN NEW TAB' : 'INLINE CABINET' }}
           </span>
         </button>
+        <div class="keyboard-hint">
+          <span class="kbd">⏎ Enter</span> to launch &bull;
+          <span class="kbd">⎋ Esc</span> to close
+        </div>
         </div>
       </div>
 
@@ -1125,10 +1169,13 @@
           <span class="success">LOADED</span>
         </div>
         <div class="console-actions">
-          <button class="icon-btn" (click)="reloadGame()">
+          <button class="icon-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+            <span class="material-symbols-outlined">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
+          </button>
+          <button class="icon-btn" (click)="reloadGame()" title="Reload Game">
             <span class="material-symbols-outlined">refresh</span>
           </button>
-          <button class="icon-btn" (click)="closeGame()">
+          <button class="icon-btn" (click)="closeGame()" title="Close Game">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
