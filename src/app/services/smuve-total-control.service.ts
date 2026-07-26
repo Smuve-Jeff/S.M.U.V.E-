@@ -7,6 +7,7 @@ import { NotificationService } from './notification.service';
 import { AiService } from './ai.service';
 import { SnackbarService } from './snackbar.service';
 import { SmuveKnowledgeEngine, KnowledgeCategory } from './smuve-knowledge-engine';
+import { SongwritingAssistantService } from './songwriting-assistant.service';
 
 export interface ControlCommand {
   domain: ControlDomain;
@@ -39,6 +40,7 @@ export class SmuveTotalControlService {
   private snackbar = inject(SnackbarService);
   private ai = inject(AiService);
   private knowledge = inject(SmuveKnowledgeEngine);
+  private songwriting = inject(SongwritingAssistantService);
 
   activeCommand = signal<ControlCommand | null>(null);
   commandHistory = signal<CommandResult[]>([]);
@@ -60,6 +62,16 @@ export class SmuveTotalControlService {
 
   private parseCommand(input: string): ControlCommand | null {
     const text = input.toLowerCase().trim();
+    
+    // Songwriting commands
+    if (text.startsWith('/write ') || text.startsWith('/song ')) {
+      const prompt = text.replace(/^\/(write|song) /, '');
+      return { domain: 'ai', action: 'songwrite', target: prompt, requiresConfirmation: false };
+    }
+    if (text === '/write' || text === '/song' || text === '/songwrite') {
+      return { domain: 'ai', action: 'songwrite', requiresConfirmation: false };
+    }
+    
     
     // Navigation commands
     if (text.startsWith('/go ') || text.startsWith('/navigate ')) {
@@ -357,7 +369,23 @@ export class SmuveTotalControlService {
       const decree = this.ai.generateStrategicDecree();
       return { success: true, message: `STRATEGIC DECREE: ${decree}` };
     }
-    return { success: true, message: 'AI command center. Available: audit, status, decree, upgrade [id], scan' };
+    if (cmd.action === 'songwrite') {
+      const topic = cmd.target || 'love and loss';
+      const result = this.songwriting.generateLyrics(topic, 'pop', 'emotional');
+      const sections = result.lyrics.map(s => 
+        `\n${s.type.toUpperCase()}:${s.lines.map(l => `  ${l.text}`).join('\n')}`
+      ).join('');
+      
+      const chords = result.chordProgressions.slice(0, 2).map(c => 
+        `  • ${c.name} (${c.chords.join(' - ')}) — ${c.mood}`
+      ).join('\n');
+      
+      return { 
+        success: true, 
+        message: `✍️ S.M.U.V.E SONGWRITING ASSISTANT\n${'═'.repeat(50)}\nTopic: "${topic}"\nStructure: ${result.structure.name}\n\nCHORD PROGRESSIONS:\n${chords}\n\nLYRICS:${sections}\n\nMELODY TIP: ${result.melodyIdeas[0]?.description || 'Start simple, build from there.'}\n${result.styleTips ? '\nSTYLE TIPS:\n' + result.styleTips.join('\n') : ''}\n\nUse /write [topic] to generate more or /write [topic] in style of [artist]`
+      };
+    }
+    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, upgrade [id], scan' };
   }
 
   private handleExport(cmd: ControlCommand): CommandResult {
