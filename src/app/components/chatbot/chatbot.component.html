@@ -60,6 +60,22 @@
         }}</span>
       </button>
       <button
+        (click)="toggleTotalControl()"
+        class="p-2 rounded-xl transition-all relative"
+        [class.text-yellow-400]="profile().settings.ai.aiTotalControlEnabled"
+        [class.text-slate-600]="!profile().settings.ai.aiTotalControlEnabled"
+        [title]="
+          profile().settings.ai.aiTotalControlEnabled
+            ? 'S.M.U.V.E Total Control: ACTIVE — I own this app'
+            : 'S.M.U.V.E Total Control: Disabled'
+        "
+      >
+        <span class="material-symbols-outlined text-lg">settings_power</span>
+        @if (profile().settings.ai.aiTotalControlEnabled) {
+          <span class="absolute -top-0.5 -right-0.5 size-2 bg-yellow-400 rounded-full animate-ping"></span>
+        }
+      </button>
+      <button
         (click)="close.emit()"
         class="w-8 h-8 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all flex items-center justify-center"
       >

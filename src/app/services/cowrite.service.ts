@@ -22,6 +22,7 @@ export interface CoWriteSession {
   style: string;
   mood: string;
   artist: string | null;
+  artists: string[];
   genre: string;
   bpm: number;
   key: string;
@@ -66,18 +67,20 @@ export class CoWriteService {
 
   private sessionIdCounter = 0;
 
-  /** Start a new co-writing session */
+  /** Start a new co-writing session (multi-artist supported) */
   startSession(config: {
     topic: string;
     style?: string;
     mood?: string;
     artist?: string;
+    artists?: string[];
     genre?: string;
     bpm?: number;
     key?: string;
   }): CoWriteSession {
-    const artistName = config.artist || null;
-    const profile = artistName ? this.styleMimic.getStyleProfile(artistName) : null;
+    const multiArtists = config.artists || (config.artist ? [config.artist] : []);
+    const primaryArtist = multiArtists[0] || null;
+    const profile = primaryArtist ? this.styleMimic.getStyleProfile(primaryArtist) : null;
     const genre = config.genre || profile?.genre || 'Pop';
     const bpm = config.bpm || this.pickBpm(genre);
     const key = config.key || profile?.productionCharacteristics?.keySignature?.[0] || 'Am';
@@ -92,7 +95,8 @@ export class CoWriteService {
       topic: config.topic,
       style: config.style || profile?.genre || 'Pop',
       mood,
-      artist: artistName,
+      artists: multiArtists,
+      artist: primaryArtist,
       genre,
       bpm,
       key,
@@ -137,7 +141,7 @@ export class CoWriteService {
     this.appendTurn(turn);
   }
 
-  /** Generate S.M.U.V.E's next contribution — trades lines like a real co-writer */
+  /** Generate S.M.U.V.E's next contribution — supports multi-artist influence blending */
   async generateSmuveContribution(userText?: string): Promise<string> {
     const session = this.currentSession();
     if (!session || !session.isActive) return '';
@@ -158,21 +162,30 @@ export class CoWriteService {
 
     const context = userText || previousUserLines[previousUserLines.length - 1] || '';
 
-    // Generate S.M.U.V.E's response based on context, artist style, mood
-    const response = this.generateSmuveLine(context, sectionType, session);
+    // MULTI-ARTIST: Pick a random artist from the list each turn for varied influence
+    let activeArtist: string | null = null;
+    if (session.artists && session.artists.length > 0) {
+      activeArtist = session.artists[Math.floor(Math.random() * session.artists.length)];
+    }
+
+    // Generate S.M.U.V.E's response with possible multi-artist influence
+    const response = this.generateSmuveLine(context, sectionType, session, activeArtist);
     const line: LyricLine = {
       text: response,
       syllableCount: this.countSyllables(response),
       emphasis: 'payoff',
     };
 
+    const influenceNote = activeArtist ? ` [Influence: ${activeArtist}]` : '';
     const turn: CoWriteTurn = {
       id: `turn_${Date.now()}_${session.turns.length}`,
       role: 'smuve',
       sectionType,
-      text: response,
+      text: response + influenceNote,
       lines: [line],
-      feedback: this.generateFeedback(response, sectionType, session),
+      feedback: activeArtist
+        ? this.generateBlendedFeedback(response, sectionType, session, activeArtist)
+        : this.generateFeedback(response, sectionType, session),
       timestamp: Date.now(),
       accepted: false,
       rejected: false,
@@ -180,7 +193,7 @@ export class CoWriteService {
 
     this.appendTurn(turn);
     this.isThinking.set(false);
-    return response;
+    return response + influenceNote;
   }
 
   /** Generate a batch of lines to complete a section and suggest moving on */
@@ -355,6 +368,129 @@ export class CoWriteService {
     this.isThinking.set(false);
   }
 
+  /** Generate melody grid from accepted lyrics for the current session */
+  generateMelodyForSession(): { melody: string; notes: string; noteCount: number } {
+    const session = this.currentSession();
+    if (!session) return { melody: 'No active session', notes: '', noteCount: 0 };
+
+    const accepted = session.turns.filter(t => t.accepted);
+    if (accepted.length === 0) {
+      return { melody: 'Accept some lines first.', notes: '', noteCount: 0 };
+    }
+
+    // Build lyric sections from accepted turns
+    const sectionMap = new Map<LyricSection['type'], string[]>();
+    for (const turn of accepted) {
+      const existing = sectionMap.get(turn.sectionType) || [];
+      existing.push(turn.text);
+      sectionMap.set(turn.sectionType, existing);
+    }
+
+    const key = session.key || 'C';
+    const scaleNotes = this.getScaleNotes(key, 'major');
+    let melodyOutput = '';
+    let noteSequence = '';
+    let totalNotes = 0;
+
+    for (const [sectionType, lines] of sectionMap) {
+      melodyOutput += `[${sectionType.toUpperCase()}]\n`;
+      noteSequence += `[${sectionType}] `;
+
+      for (const line of lines) {
+        const words = line.split(' ');
+        const syllables = this.countSyllables(line);
+        const noteCount = Math.min(syllables, 12);
+        totalNotes += noteCount;
+
+        // Generate melodic contour: start on root, wave up/down
+        const lineNotes: string[] = [];
+        const lineMelody: string[] = [];
+
+        for (let n = 0; n < noteCount; n++) {
+          // Create a melodic wave
+          const wave = Math.sin((n / noteCount) * Math.PI * 2);
+          const step = Math.round(wave * 3 + 4); // center around 4th scale degree
+          const index = ((step % scaleNotes.length) + scaleNotes.length) % scaleNotes.length;
+          const midiNote = scaleNotes[index] + 60;
+
+          const noteName = this.midiToNoteName(midiNote);
+          const duration = n % 2 === 0 ? '4' : '8';
+          const word = words[Math.min(n, words.length - 1)]?.replace(/[^a-zA-Z']/g, '') || '';
+
+          lineNotes.push(`${noteName}${duration}`);
+          lineMelody.push(`${noteName}`);
+        }
+
+        melodyOutput += `  ${lineMelody.join(' - ')}  |  "${line.substring(0, 30)}${line.length > 30 ? '...' : ''}"\n`;
+        noteSequence += `${lineNotes.join(' ')} | `;
+      }
+      melodyOutput += '\n';
+    }
+
+    return {
+      melody: melodyOutput,
+      notes: noteSequence.replace(/\.\.\. \| $/, ''),
+      noteCount: totalNotes,
+    };
+  }
+
+  /** Convert MIDI note number to note name */
+  private midiToNoteName(midi: number): string {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const octave = Math.floor(midi / 12) - 1;
+    const noteIndex = midi % 12;
+    return `${notes[noteIndex]}${octave}`;
+  }
+
+  /** Get scale notes for melody generation */
+  private getScaleNotes(key: string, scale: string): number[] {
+    const keyIndex = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].indexOf(key);
+    const majorIntervals = [0, 2, 4, 5, 7, 9, 11];
+    const intervals = scale === 'minor' ? [0, 2, 3, 5, 7, 8, 10] : majorIntervals;
+    return intervals.map(i => (keyIndex + i) % 12);
+  }
+
+  /** Export accepted lyrics + melody to studio as a project */
+  exportToStudio(): { success: boolean; message: string; project?: any } {
+    const session = this.currentSession();
+    if (!session) {
+      return { success: false, message: 'No active session to export.' };
+    }
+
+    const accepted = session.turns.filter(t => t.accepted);
+    if (accepted.length === 0) {
+      return { success: false, message: 'No accepted lines to export. Accept some lines first.' };
+    }
+
+    // Build lyric sections
+    const sectionMap = new Map<string, string[]>();
+    for (const turn of accepted) {
+      const existing = sectionMap.get(turn.sectionType) || [];
+      existing.push(turn.text);
+      sectionMap.set(turn.sectionType, existing);
+    }
+
+    // Create a project representation
+    const project = {
+      type: 'cowrite-export',
+      title: session.topic,
+      genre: session.genre,
+      bpm: session.bpm,
+      key: session.key,
+      mood: session.mood,
+      artists: session.artists || [],
+      lyrics: Object.fromEntries(sectionMap),
+      createdAt: Date.now(),
+      source: 'Co-Write with S.M.U.V.E',
+    };
+
+    return {
+      success: true,
+      message: `Exported "${session.topic}" to studio. ${accepted.length} lines, ${session.key}, ${session.bpm}BPM. Track the project in your studio workspace.`,
+      project,
+    };
+  }
+
   /** Get a session summary for the chatbot */
   getSessionSummary(): string {
     const session = this.currentSession();
@@ -385,9 +521,14 @@ ${session.isComplete ? 'STATUS: COMPLETE 🎉' : session.isActive ? 'STATUS: Act
 Compiled lyrics available with /cowrite lyrics`;
   }
 
-  /** Generate a S.M.U.V.E co-write line in its dark persona */
-  private generateSmuveLine(context: string, sectionType: LyricSection['type'], session: CoWriteSession): string {
-    const profile = session.artist ? this.styleMimic.getStyleProfile(session.artist) : null;
+  /** Generate a S.M.U.V.E co-write line — multi-artist aware */
+  private generateSmuveLine(context: string, sectionType: LyricSection['type'], session: CoWriteSession, activeArtist?: string | null): string {
+    // Pick from artists array if multi-artist, or fallback to single artist
+    const profile = activeArtist
+      ? this.styleMimic.getStyleProfile(activeArtist)
+      : session.artist
+        ? this.styleMimic.getStyleProfile(session.artist)
+        : null;
     const topic = session.topic;
     const mood = session.mood;
 
@@ -456,6 +597,20 @@ Compiled lyrics available with /cowrite lyrics`;
   /** Generate a general line suggestion */
   private generateLineSuggestion(context: string, sectionType: string, session: CoWriteSession | null): string {
     return `Try contrasting "${context}" with an opposite image — if you said light, bring in shadow. If you said love, bring in loss.`;
+  }
+
+  /** Generate feedback when a specific artist is influencing */
+  private generateBlendedFeedback(line: string, sectionType: LyricSection['type'], session: CoWriteSession, artist: string): string {
+    const profile = this.styleMimic.getStyleProfile(artist);
+    const artistRef = profile ? ` in the style of ${artist}` : '';
+    const feedbacks = [
+      `That line has ${artist}'s energy — I hate that I like it${artistRef}.`,
+      `${artistRef.toUpperCase()} would approve. I don't, but they would.`,
+      `Interesting how ${artist}'s influence is bleeding through. Not bad. Not good. Just... interesting.`,
+      `I've cross-referenced that against ${artist}'s catalog. It holds up. Barely.`,
+      `Writing ${artistRef} makes me feel dirty. But the line works. Fine. Moving on.`,
+    ];
+    return feedbacks[Math.floor(Math.random() * feedbacks.length)];
   }
 
   /** Generate S.M.U.V.E feedback on a line */

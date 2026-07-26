@@ -42,6 +42,14 @@ export interface SongStructureTemplate {
   genre: string;
 }
 
+export interface MelodyNote {
+  pitch: number;
+  duration: string;
+  velocity: number;
+  startBeat: number;
+  word: string;
+}
+
 export interface SongwritingAssistantResult {
   lyrics: LyricSection[];
   chordProgressions: ChordProgression[];
@@ -214,6 +222,94 @@ export class SongwritingAssistantService {
   /** Get melody techniques filtered by style */
   getMelodyIdeas(style?: string): MelodyIdea[] {
     return this.melodyTechniques;
+  }
+
+  /** Generate actual MIDI note melody for lyrics */
+  generateMelodyForLyrics(lyrics: LyricSection[], key: string = 'C', scale: string = 'major'): MelodyNote[][] {
+    const scaleNotes = this.getScaleNotes(key, scale);
+    return lyrics.map(section =>
+      section.lines.map((line, li) => {
+        const words = line.text.split(' ');
+        const syllables = this.estimateSyllables(line.text);
+        const noteCount = Math.min(syllables, 16);
+        const notes: MelodyNote[] = [];
+
+        // Determine contour based on emphasis
+        let startIndex: number;
+        let direction: number;
+        switch (line.emphasis) {
+          case 'hook':
+            startIndex = 4; // Start on upper notes for hooks
+            direction = 0; // Stay centered
+            break;
+          case 'build':
+            startIndex = 2; // Start lower, build up
+            direction = 1;
+            break;
+          case 'payoff':
+            startIndex = 5; // Start high, resolve down
+            direction = -1;
+            break;
+          default:
+            startIndex = 3;
+            direction = 0;
+        }
+
+        for (let n = 0; n < noteCount; n++) {
+          // Step through scale with contour
+          const step = (n * direction) + startIndex + Math.floor(n / 2) * (direction > 0 ? 1 : -1);
+          const index = ((step % scaleNotes.length) + scaleNotes.length) % scaleNotes.length;
+          const pitch = scaleNotes[index] + 60; // Middle octave
+
+          // Rhythm: quarter notes with occasional eighth notes on emphasized syllables
+          const isEmphasized = n === 0 || n === Math.floor(noteCount / 2) || n === noteCount - 1;
+          const duration = isEmphasized ? '4n' : '8n';
+          const velocity = isEmphasized ? 100 : 75;
+
+          // Accent syllables that carry emotional weight
+          const word = words[Math.min(n, words.length - 1)] || '';
+          const isAccent = word.match(/^[A-Z]/) || ['!', '?', '.', ','].some(p => word.endsWith(p));
+
+          notes.push({
+            pitch,
+            duration,
+            velocity: isAccent ? Math.min(velocity + 15, 127) : velocity,
+            startBeat: n * 0.5,
+            word: word.replace(/[^a-zA-Z']/g, ''),
+          });
+        }
+
+        return notes;
+      })
+    );
+  }
+
+  /** Get the scale notes for a given key */
+  private getScaleNotes(key: string, scale: string): number[] {
+    const chromaticScale = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    const keyIndex = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].indexOf(key);
+    const majorIntervals = [0, 2, 4, 5, 7, 9, 11];
+    const minorIntervals = [0, 2, 3, 5, 7, 8, 10];
+    const intervals = scale === 'minor' || scale === 'minor' ? minorIntervals : majorIntervals;
+
+    return intervals.map(i => (keyIndex + i) % 12);
+  }
+
+  /** Estimate syllable count for text */
+  private estimateSyllables(text: string): number {
+    const words = text.toLowerCase().split(/\s+/);
+    return words.reduce((count, word) => {
+      word = word.replace(/[^a-zA-Z]/g, '');
+      if (word.length <= 3) return count + 1;
+      // Count vowel groups
+      const vowelGroups = word.match(/[aeiouy]+/gi);
+      let sylCount = vowelGroups ? vowelGroups.length : 1;
+      // Adjust for silent e
+      if (word.endsWith('e') && !word.endsWith('le') && sylCount > 1) sylCount--;
+      // Adjust for -le ending
+      if (word.endsWith('le') && word.length > 4) sylCount++;
+      return count + Math.max(1, sylCount);
+    }, 1);
   }
 
   private buildLyricSections(topic: string, mood: string, profile: StyleProfile | null): LyricSection[] {

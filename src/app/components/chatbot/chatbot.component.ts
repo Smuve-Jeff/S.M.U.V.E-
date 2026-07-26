@@ -281,6 +281,21 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
     );
   }
 
+  toggleTotalControl() {
+    const p = this.profile();
+    const aiSettings = this.resolveAiSettings(p);
+    const baseSettings = p.settings || initialProfile.settings;
+    this.userProfileService.updateProfile({
+      settings: {
+        ...baseSettings,
+        ai: {
+          ...aiSettings,
+          aiTotalControlEnabled: !aiSettings.aiTotalControlEnabled,
+        },
+      },
+    });
+  }
+
   toggleMimic() {
     const p = this.profile();
     const aiSettings = this.resolveAiSettings(p);

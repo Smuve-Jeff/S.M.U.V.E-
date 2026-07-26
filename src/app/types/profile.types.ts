@@ -25,6 +25,7 @@ export interface AppSettings {
     aiPersonaIntensityEnabled: boolean;
     autoAuditEnabled: boolean;
     aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
+    aiTotalControlEnabled: boolean;
   };
   studio: {
     defaultQuantize: string;
@@ -277,6 +278,7 @@ export const initialProfile: UserProfile = {
       aiProfanityEnabled: false,
       aiPersonaIntensityEnabled: false,
       autoAuditEnabled: false,
+      aiTotalControlEnabled: false,
       aiConversationalTier: 'Standard',
     },
     studio: {

@@ -33,11 +33,18 @@ export class CowriteStudioComponent implements OnInit {
     topic: '',
     mood: 'emotional' as string,
     artist: '' as string,
+    artists: [] as string[],
     genre: 'Pop' as string,
   });
 
   readonly moods = ['emotional', 'dark', 'uplifting', 'angry', 'dreamy', 'hopeful', 'melancholic', 'aggressive'];
   readonly artists = this.styleMimic.getAvailableArtists();
+
+  // Melody & export state
+  showMelody = signal(false);
+  melodyResult = signal<{ melody: string; notes: string; noteCount: number } | null>(null);
+
+  exportResult = signal<string | null>(null);
 
   suggestions = signal<CoWriteSuggestion[]>([]);
   sectionProgress = computed(() => {
@@ -73,14 +80,41 @@ export class CowriteStudioComponent implements OnInit {
     });
   }
 
+  toggleArtist(artist: string) {
+    this.setupConfig.update(c => {
+      const current = [...c.artists];
+      const idx = current.indexOf(artist);
+      if (idx >= 0) {
+        current.splice(idx, 1);
+      } else {
+        current.push(artist);
+      }
+      return { ...c, artists: current };
+    });
+  }
+
+  generateMelody() {
+    const result = this.cowrite.generateMelodyForSession();
+    this.melodyResult.set(result);
+    this.showMelody.set(true);
+  }
+
+  exportToStudio() {
+    const result = this.cowrite.exportToStudio();
+    this.exportResult.set(result.message);
+    setTimeout(() => this.exportResult.set(null), 5000);
+  }
+
   startSession() {
     const config = this.setupConfig();
     if (!config.topic.trim()) return;
 
+    const hasArtists = config.artists.length > 0;
     this.cowrite.startSession({
       topic: config.topic,
       mood: config.mood,
-      artist: config.artist || undefined,
+      artist: hasArtists ? config.artists[0] : undefined,
+      artists: hasArtists ? config.artists : undefined,
       genre: config.genre,
     });
 

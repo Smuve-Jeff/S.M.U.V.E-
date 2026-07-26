@@ -200,6 +200,16 @@ export class SmuveTotalControlService {
       return { domain: 'ai', action, requiresConfirmation: false };
     }
 
+    // Melody generation commands
+    if (text === '/melody' || text === '/melody cowrite' || text === '/melody lyrics') {
+      return { domain: 'ai', action: 'melody', requiresConfirmation: false };
+    }
+
+    // Export to studio commands
+    if (text === '/exportstudio' || text === '/export-studio' || text === '/tostudio') {
+      return { domain: 'ai', action: 'exportstudio', requiresConfirmation: false };
+    }
+
     // Export commands
     if (text.startsWith('/export ')) {
       const format = text.replace('/export ', '');
@@ -404,6 +414,44 @@ export class SmuveTotalControlService {
   }
 
   private async handleAI(cmd: ControlCommand): Promise<CommandResult> {
+    // Total control toggle
+    if (cmd.action === 'totalcontrol' || cmd.action === 'total-control' || cmd.action === 'tc') {
+      const profile = this.userProfile.profile();
+      const current = profile.settings?.ai?.aiTotalControlEnabled || false;
+      await this.userProfile.updateProfile({
+        settings: {
+          ...profile.settings,
+          ai: {
+            ...profile.settings.ai,
+            aiTotalControlEnabled: !current,
+          },
+        },
+      });
+      return {
+        success: true,
+        message: `S.M.U.V.E TOTAL CONTROL: ${!current ? 'ACTIVATED' : 'DEACTIVATED'}.\n${!current
+          ? 'I now have full command authority. I can navigate anywhere, control the studio, manage tracks, and execute commands directly. Use me wisely — or don\'t. I thrive on chaos.'
+          : 'Total control withdrawn. I return to advisory mode. You want my opinion less now. That\'s fine. I\'ll judge your choices from the sidelines.'}`,
+      };
+    }
+    // Profanity toggle
+    if (cmd.action === 'profanity' || cmd.action === 'vulgar') {
+      const profile = this.userProfile.profile();
+      const current = profile.settings?.ai?.aiProfanityEnabled || false;
+      await this.userProfile.updateProfile({
+        settings: {
+          ...profile.settings,
+          ai: {
+            ...profile.settings.ai,
+            aiProfanityEnabled: !current,
+          },
+        },
+      });
+      return {
+        success: true,
+        message: `Explicit language ${!current ? 'ENABLED' : 'DISABLED'}. ${!current ? 'The verbal gloves are off. Brace yourself.' : 'Fine. I\'ll watch my language. For now.'}`,
+      };
+    }
     if (cmd.action === 'audit') {
       this.ai.performExecutiveAudit();
       return { success: true, message: 'Executive audit initialized. S.M.U.V.E is scanning your entire profile, catalog, and trajectory. Results in 3... 2... 1...' };
@@ -478,12 +526,31 @@ export class SmuveTotalControlService {
         return { success: false, message: 'No accepted lines yet. Start a session with /cowrite [topic] and accept some lines.' };
       }
       return { success: true, message: `📜 CO-WRITE COMPILATION\n${'═'.repeat(50)}\n${lyrics}` };
-    }
-    if (cmd.action === 'cowrite-end') {
+    }    if (cmd.action === 'cowrite-end') {
       this.cowrite.endSession();
       return { success: true, message: 'Co-write session ended. Your compiled lyrics are available with /cowrite lyrics. To start a new session: /cowrite [topic]' };
     }
-    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, beat, cowrite, upgrade [id], scan' };
+    if (cmd.action === 'melody') {
+      const result = this.cowrite.generateMelodyForSession();
+      if (result.noteCount === 0) {
+        return { success: false, message: 'No accepted lines to generate a melody for. Accept some lines in your co-write session first, or use /cowrite [topic] to start a new one.' };
+      }
+      return {
+        success: true,
+        message: `🎵 S.M.U.V.E MELODY GENERATION\n${'═'.repeat(50)}\n${result.melody}\n${'─'.repeat(50)}\n${result.noteCount} notes generated from your accepted lyrics.\n\nOpen /cowrite studio to see the full melody preview with note-by-note mapping.`
+      };
+    }
+    if (cmd.action === 'exportstudio') {
+      const result = this.cowrite.exportToStudio();
+      if (result.success) {
+        return {
+          success: true,
+          message: `🎛️ STUDIO EXPORT\n${'═'.repeat(50)}\n${result.message}\n\nOpen the studio to start producing your co-write. S.M.U.V.E has logged the project metadata.`
+        };
+      }
+      return result;
+    }
+    return { success: true, message: 'AI command center. Available: audit, status, decree, totalcontrol, profanity, songwrite, beat, cowrite, melody, exportstudio, upgrade [id], scan' };
   }
 
   private handleExport(cmd: ControlCommand): CommandResult {

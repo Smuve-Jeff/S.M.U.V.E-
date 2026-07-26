@@ -50,17 +50,27 @@
           </div>
 
           <div>
-            <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Artist Influence (optional)</label>
-            <select
-              [ngModel]="setupConfig().artist"
-              (ngModelChange)="setupConfig.update(c => ({...c, artist: $event}))"
-              class="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-xs text-white uppercase font-bold focus:border-violet-500/50 outline-none"
-            >
-              <option value="">No influence — raw S.M.U.V.E</option>
+            <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Artist Influence (Multi-select — blend styles)</label>
+            <div class="flex flex-wrap gap-1.5 max-h-[120px] overflow-y-auto custom-scrollbar">
               @for (a of artists; track a) {
-                <option [value]="a">{{ a }}</option>
+                <button
+                  (click)="toggleArtist(a)"
+                  class="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all whitespace-nowrap"
+                  [class.bg-violet-500/30]="setupConfig().artists.includes(a)"
+                  [class.text-white]="setupConfig().artists.includes(a)"
+                  [class.border-violet-500/40]="setupConfig().artists.includes(a)"
+                  [class.border-white/10]="!setupConfig().artists.includes(a)"
+                  [class.text-slate-400]="!setupConfig().artists.includes(a)"
+                >
+                  {{ a }}
+                </button>
               }
-            </select>
+            </div>
+            @if (setupConfig().artists.length > 0) {
+              <p class="text-[7px] text-violet-400 mt-1 uppercase tracking-widest">
+                {{ setupConfig().artists.length }} selected — S.M.U.V.E will blend their styles
+              </p>
+            }
           </div>
         </div>
 
@@ -87,8 +97,25 @@
           </h2>
           <span class="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-1 rounded uppercase tracking-widest font-bold">{{ session.genre }}</span>
           <span class="text-[9px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded uppercase tracking-widest font-bold">{{ session.key }} | {{ session.bpm }} BPM</span>
+          @if (session.artists.length > 1) {
+            <span class="text-[7px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded uppercase tracking-widest font-bold" title="{{ session.artists.join(', ') }}">
+              {{ session.artists.length }} Artists
+            </span>
+          }
         </div>
         <div class="flex items-center gap-3">
+          <button
+            (click)="generateMelody()"
+            class="px-3 py-1.5 bg-violet-500/10 border border-violet-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-500/20 transition-all"
+          >
+            Melody
+          </button>
+          <button
+            (click)="exportToStudio()"
+            class="px-3 py-1.5 bg-brand-primary/10 border border-brand-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-all"
+          >
+            Export to Studio
+          </button>
           <button
             (click)="copyLyrics()"
             class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
@@ -288,6 +315,32 @@
               {{ session.isComplete ? '🎉 Song Complete!' : '→ Next Section' }}
             </button>
           </div>
+
+          <!-- Melody Preview Toggle -->
+          @if (acceptedCount() > 0) {
+            <div class="bg-brand-surface/20 border border-violet-500/20 rounded-2xl p-4 shrink-0">
+              <button
+                (click)="showMelody.set(!showMelody())"
+                class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-violet-400 mb-2"
+              >
+                <span class="material-symbols-outlined text-sm">music_note</span>
+                Melody Preview {{ showMelody() ? '▲' : '▼' }}
+              </button>
+              @if (showMelody() && melodyResult(); as mel) {
+                <div class="bg-brand-dark/30 rounded-xl p-3 overflow-y-auto max-h-[180px] custom-scrollbar">
+                  <pre class="text-[7px] text-slate-400 font-mono leading-relaxed">{{ mel.melody }}</pre>
+                  <p class="text-[8px] text-slate-500 mt-2">{{ mel.noteCount }} notes generated</p>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Export Result Toast -->
+          @if (exportResult(); as result) {
+            <div class="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-3 shrink-0 text-center">
+              <span class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">{{ result }}</span>
+            </div>
+          }
 
           <!-- Copilot Mode -->
           <div class="bg-brand-surface/20 border border-white/10 rounded-2xl p-4">
