@@ -1,0 +1,543 @@
+/* ── Artist Landing Page ──────────────────────────── */
+.artist-landing {
+  min-height: 100vh;
+  background: var(--espresso-500, #14110b);
+  color: var(--ivory-100, #f5efe0);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Header ────────────────────────────────────────── */
+.al-header {
+  position: relative;
+  padding: 60px 24px 40px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.al-header-glow {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(14, 124, 123, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.al-header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.al-artist-badge {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.al-badge-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--teal-500, #0e7c7b);
+  animation: al-pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes al-pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.6; }
+}
+
+.al-badge-initial {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--teal-400, #2ba09c);
+  z-index: 1;
+}
+
+.al-artist-name {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, var(--ivory-100, #f5efe0), var(--teal-300, #5dc4c2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.al-genre-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--teal-400, #2ba09c);
+  background: rgba(14, 124, 123, 0.12);
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.al-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.al-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ivory-300, #dcd0b5);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.al-chip-icon {
+  font-size: 12px;
+}
+
+/* ── Persona Synthesis Card ────────────────────────── */
+.al-persona-card {
+  position: relative;
+  margin: 0 16px 24px;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(14, 124, 123, 0.08), rgba(14, 124, 123, 0.02));
+  border: 1px solid rgba(14, 124, 123, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.al-persona-glow {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(14, 124, 123, 0.08), transparent);
+  pointer-events: none;
+}
+
+.al-persona-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.al-persona-header h2 {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--teal-400, #2ba09c);
+  margin: 0;
+}
+
+.al-persona-badge {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal-300, #5dc4c2);
+  background: rgba(14, 124, 123, 0.15);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.al-persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.al-persona-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.al-persona-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ivory-400, #c2b295);
+}
+
+.al-persona-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ivory-100, #f5efe0);
+}
+
+.al-persona-aphorism {
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--teal-300, #5dc4c2);
+  padding: 12px 16px;
+  background: rgba(14, 124, 123, 0.06);
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.al-aphorism-quote {
+  color: var(--teal-500, #0e7c7b);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.al-ai-persona {
+  padding: 12px;
+  background: rgba(14, 124, 123, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(14, 124, 123, 0.1);
+}
+
+.al-persona-profile-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ivory-200, #ebe3cf);
+  margin: 6px 0 0;
+}
+
+/* ── Strength Meter ─────────────────────────────────── */
+.al-strength-section {
+  padding: 0 16px 24px;
+}
+
+.al-section-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--ivory-400, #c2b295);
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
+.al-strength-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.al-strength-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.al-strength-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.al-strength-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ivory-300, #dcd0b5);
+}
+
+.al-strength-score {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--teal-400, #2ba09c);
+}
+
+.al-strength-bar-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.al-strength-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease, background 0.3s ease;
+}
+
+.al-overall-score {
+  display: flex;
+  justify-content: center;
+}
+
+.al-score-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.al-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.al-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 6;
+}
+
+.al-ring-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 220;
+  transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+}
+
+.al-score-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.al-score-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ivory-100, #f5efe0);
+  line-height: 1;
+}
+
+.al-score-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ivory-400, #c2b295);
+}
+
+/* ── Sonic Signature ────────────────────────────────── */
+.al-sound-section {
+  padding: 0 16px 24px;
+}
+
+.al-sound-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.al-sound-bar {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, rgba(14, 124, 123, 0.12), transparent);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.al-sound-tag {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal-300, #5dc4c2);
+  letter-spacing: 0.04em;
+}
+
+.al-sound-detail {
+  margin-bottom: 8px;
+}
+
+.al-detail-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ivory-400, #c2b295);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.al-detail-value {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ivory-200, #ebe3cf);
+  margin: 0;
+}
+
+/* ── Strategic Insights ─────────────────────────────── */
+.al-insights-section {
+  padding: 0 16px 24px;
+}
+
+.al-insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-insight-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.al-insight-card.al-impact-critical {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.al-insight-card.al-impact-high {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.al-insight-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.al-insight-impact {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ivory-400, #c2b295);
+}
+
+.al-impact-critical .al-insight-impact {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.al-impact-high .al-insight-impact {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.al-insight-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ivory-100, #f5efe0);
+}
+
+.al-insight-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ivory-300, #dcd0b5);
+  margin: 0;
+}
+
+/* ── Musical Journey ────────────────────────────────── */
+.al-journey-section {
+  padding: 0 16px 24px;
+}
+
+.al-journey-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.al-journey-stat {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.al-stat-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--teal-300, #5dc4c2);
+  margin-bottom: 4px;
+}
+
+.al-stat-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ivory-400, #c2b295);
+}
+
+.al-journey-influences {
+  margin-top: 8px;
+}
+
+.al-influence-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.al-influence-chip {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ivory-200, #ebe3cf);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+.al-footer {
+  padding: 32px 16px 24px;
+  text-align: center;
+}
+
+.al-footer-text {
+  font-size: 10px;
+  color: var(--ivory-400, #c2b295);
+  margin: 0 0 4px;
+  letter-spacing: 0.04em;
+}
+
+.al-footer-sub {
+  font-size: 9px;
+  color: var(--ivory-500, #9e8e76);
+  margin: 0;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (min-width: 768px) {
+  .al-header { padding: 80px 40px 48px; }
+  .al-artist-name { font-size: 44px; }
+  .al-persona-card, .al-strength-section,
+  .al-sound-section, .al-insights-section,
+  .al-journey-section { padding-left: 40px; padding-right: 40px; }
+  .al-persona-card { margin: 0 24px 24px; padding: 32px; }
+  .al-persona-grid { grid-template-columns: 1fr 1fr; }
+  .al-journey-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .artist-landing {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}

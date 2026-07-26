@@ -215,9 +215,14 @@ export const routes: Routes = [
       import('./studio/mastering-suite/mastering-suite.component').then(
         (m) => m.MasteringSuiteComponent
       ),
+  },  {
+    path: 'artist/:name',
+    loadComponent: () =>
+      import('./components/artist-landing/artist-landing.component').then(
+        (m) => m.ArtistLandingComponent
+      ),
   },
-  {
-    path: 'networking',
+  { path: 'networking',
     loadComponent: () =>
       import('./components/tha-spot/tha-spot.component').then(
         (m) => m.ThaSpotComponent

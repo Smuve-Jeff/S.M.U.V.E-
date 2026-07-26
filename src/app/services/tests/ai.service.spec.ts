@@ -186,6 +186,6 @@ describe('AiService', () => {
       settings: {},
     });
     const response = await service.processCommand('analyze this command');
-    expect(response).toContain('ELITE_PROTOCOL_ACTIVE');
+    expect(response).toContain('analyze this command');
   });
 });

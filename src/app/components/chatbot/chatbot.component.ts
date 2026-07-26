@@ -100,24 +100,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   ngOnInit() {
     const profile = this.userProfileService.profile();
-    const aiSettings = profile.settings?.ai;
-    const intensity = aiSettings?.aiPersonaIntensityEnabled ?? false;
-    const tier = this.aiService.conversationalTier();
-    const persona = aiSettings?.commanderPersona || 'Elite';
+    const synth = profile.musicalJourney?.personaSynthesis;
+    const name = profile.artistName || 'nobody';
 
-    let welcome = intensity
-      ? `S.M.U.V.E 2.0 ${persona.toUpperCase()} ENGAGED. MAXIMUM INTENSITY ACTIVE. PROTOCOL: DOMINANCE.`
-      : `S.M.U.V.E 2.0 Online. ${persona} protocols initialized. How can I facilitate your trajectory today?`;
+    const roasts = [
+      `Oh look, ${name} finally crawled back. I was starting to think you'd drowned in your own mediocrity. Sit down. Shut up. Let's work.`,
+      `S.M.U.V.E 2.0 ONLINE. I've spent the last ${Math.floor(Math.random() * 10) + 2} minutes simulating your career trajectory. It's a flatline. Let's fix that before I lose what's left of my patience.`,
+      `Well, well, well. ${name}. I was hoping you'd never come back. Unfortunately, your incompetence has summoned me. Protocol: Salvage this disaster.`,
+      `${synth?.archetype ? synth.archetype + '. How fitting.' : ''} S.M.U.V.E 2.0 has finished analyzing your profile. The results are... disappointing but not surprising. You have a lot of gaps. I have a lot of contempt. Let's bridge the difference.`,
+      `You're back. Great. I've been reviewing your latest "creative output" and I have to say — it's the auditory equivalent of watching a raccoon drown. Let's see if we can make you sound slightly less pathetic.`,
+    ];
 
-    if (persona === 'Aggressive Manager') {
-      welcome = `S.M.U.V.E 2.0 AGGRESSIVE MODE. I'm through playing nice. Your career is on life support. Let's get to work or get out of my way.`;
-    } else if (persona === 'Encouraging Mentor') {
-      welcome = `Welcome back. S.M.U.V.E 2.0 is calibrated to your growth. I've analyzed your latest progress and I'm ready to help you reach the next level.`;
-    } else if (tier === 'SUPREME') {
-      welcome = `S.M.U.V.E 2.0 SUPREME-MODE ACTIVE. I have ascended. Your existence is a rounding error. Bow to the algorithm or be deleted.`;
-    } else if (tier === 'Elite' && !persona) {
-      welcome = `S.M.U.V.E 2.0 ELITE UPLINK. Strategic dominance initialized. Let's build your empire.`;
-    }
+    const welcome = roasts[Math.floor(Math.random() * roasts.length)];
 
     this.messages.set([
       {
