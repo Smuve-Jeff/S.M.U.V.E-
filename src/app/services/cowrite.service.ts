@@ -1,0 +1,539 @@
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { SongwritingAssistantService, LyricSection, LyricLine } from './songwriting-assistant.service';
+import { SmuveStyleMimicService } from './smuve-style-mimic.service';
+import { AiService } from './ai.service';
+
+export interface CoWriteTurn {
+  id: string;
+  role: 'user' | 'smuve';
+  sectionType: LyricSection['type'];
+  text: string;
+  lines: LyricLine[];
+  feedback?: string;
+  timestamp: number;
+  accepted: boolean;
+  rejected: boolean;
+}
+
+export interface CoWriteSession {
+  id: string;
+  title: string;
+  topic: string;
+  style: string;
+  mood: string;
+  artist: string | null;
+  genre: string;
+  bpm: number;
+  key: string;
+  turns: CoWriteTurn[];
+  completedSections: LyricSection[];
+  currentSection: LyricSection['type'] | null;
+  sectionOrder: LyricSection['type'][];
+  sectionIndex: number;
+  startedAt: number;
+  lastActivityAt: number;
+  isActive: boolean;
+  isComplete: boolean;
+}
+
+export interface CoWriteSuggestion {
+  type: 'line' | 'rhyme' | 'word' | 'phrase' | 'restructure' | 'feedback';
+  content: string;
+  context?: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class CoWriteService {
+  private songwriting = inject(SongwritingAssistantService);
+  private styleMimic = inject(SmuveStyleMimicService);
+  private ai = inject(AiService);
+
+  // Active session state
+  currentSession = signal<CoWriteSession | null>(null);
+  isThinking = signal(false);
+  turnCount = computed(() => this.currentSession()?.turns.length || 0);
+  progress = computed(() => {
+    const session = this.currentSession();
+    if (!session) return 0;
+    return session.sectionIndex / session.sectionOrder.length;
+  });
+  smuveContributionCount = computed(() =>
+    this.currentSession()?.turns.filter(t => t.role === 'smuve').length || 0
+  );
+  userContributionCount = computed(() =>
+    this.currentSession()?.turns.filter(t => t.role === 'user').length || 0
+  );
+
+  private sessionIdCounter = 0;
+
+  /** Start a new co-writing session */
+  startSession(config: {
+    topic: string;
+    style?: string;
+    mood?: string;
+    artist?: string;
+    genre?: string;
+    bpm?: number;
+    key?: string;
+  }): CoWriteSession {
+    const artistName = config.artist || null;
+    const profile = artistName ? this.styleMimic.getStyleProfile(artistName) : null;
+    const genre = config.genre || profile?.genre || 'Pop';
+    const bpm = config.bpm || this.pickBpm(genre);
+    const key = config.key || profile?.productionCharacteristics?.keySignature?.[0] || 'Am';
+    const mood = config.mood || 'emotional';
+
+    // Determine section order based on genre
+    const sectionOrder = this.getSectionOrder(genre);
+
+    const session: CoWriteSession = {
+      id: `cowrite_${++this.sessionIdCounter}_${Date.now()}`,
+      title: `${config.topic} — Co-Write Session`,
+      topic: config.topic,
+      style: config.style || profile?.genre || 'Pop',
+      mood,
+      artist: artistName,
+      genre,
+      bpm,
+      key,
+      turns: [],
+      completedSections: [],
+      currentSection: sectionOrder[0] || 'verse',
+      sectionOrder,
+      sectionIndex: 0,
+      startedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      isActive: true,
+      isComplete: false,
+    };
+
+    this.currentSession.set(session);
+    return session;
+  }
+
+  /** Add a user's line contribution to the current session */
+  addUserContribution(text: string): void {
+    const session = this.currentSession();
+    if (!session || !session.isActive) return;
+
+    const sectionType = session.currentSection || 'verse';
+    const line: LyricLine = {
+      text,
+      syllableCount: this.countSyllables(text),
+      emphasis: 'build',
+    };
+
+    const turn: CoWriteTurn = {
+      id: `turn_${Date.now()}_${session.turns.length}`,
+      role: 'user',
+      sectionType,
+      text,
+      lines: [line],
+      timestamp: Date.now(),
+      accepted: false,
+      rejected: false,
+    };
+
+    this.appendTurn(turn);
+  }
+
+  /** Generate S.M.U.V.E's next contribution — trades lines like a real co-writer */
+  async generateSmuveContribution(userText?: string): Promise<string> {
+    const session = this.currentSession();
+    if (!session || !session.isActive) return '';
+
+    this.isThinking.set(true);
+
+    // Simulate thinking time for realistic co-write feel
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+
+    const sectionType = session.currentSection || 'verse';
+    const previousUserLines = session.turns
+      .filter(t => t.role === 'user' && t.sectionType === sectionType)
+      .map(t => t.text);
+
+    const previousSmuveLines = session.turns
+      .filter(t => t.role === 'smuve' && t.sectionType === sectionType)
+      .map(t => t.text);
+
+    const context = userText || previousUserLines[previousUserLines.length - 1] || '';
+
+    // Generate S.M.U.V.E's response based on context, artist style, mood
+    const response = this.generateSmuveLine(context, sectionType, session);
+    const line: LyricLine = {
+      text: response,
+      syllableCount: this.countSyllables(response),
+      emphasis: 'payoff',
+    };
+
+    const turn: CoWriteTurn = {
+      id: `turn_${Date.now()}_${session.turns.length}`,
+      role: 'smuve',
+      sectionType,
+      text: response,
+      lines: [line],
+      feedback: this.generateFeedback(response, sectionType, session),
+      timestamp: Date.now(),
+      accepted: false,
+      rejected: false,
+    };
+
+    this.appendTurn(turn);
+    this.isThinking.set(false);
+    return response;
+  }
+
+  /** Generate a batch of lines to complete a section and suggest moving on */
+  async completeCurrentSection(): Promise<string[]> {
+    const session = this.currentSession();
+    if (!session || !session.isActive) return [];
+
+    this.isThinking.set(true);
+    await new Promise(r => setTimeout(r, 500));
+
+    const sectionType = session.currentSection || 'verse';
+    const profile = session.artist ? this.styleMimic.getStyleProfile(session.artist) : null;
+    
+    // Generate a full section from the songwriter assistant
+    const section = this.songwriting.generateLyricBySection(
+      sectionType,
+      session.topic,
+      session.mood,
+      profile?.artistName
+    );
+
+    const lines = section.lines.map(l => l.text);
+    
+    // Add each as a SMUVE turn
+    for (const text of lines) {
+      const turn: CoWriteTurn = {
+        id: `turn_${Date.now()}_${session.turns.length}`,
+        role: 'smuve',
+        sectionType,
+        text,
+        lines: [{ text, syllableCount: this.countSyllables(text), emphasis: 'payoff' }],
+        feedback: this.generateTransitionFeedback(sectionType, session),
+        timestamp: Date.now(),
+        accepted: false,
+        rejected: false,
+      };
+      this.appendTurn(turn);
+    }
+
+    // Store the completed section
+    const completedSection: LyricSection = {
+      type: sectionType,
+      lines: section.lines,
+      theme: `Co-written ${sectionType}`,
+      mood: session.mood,
+    };
+    session.completedSections.push(completedSection);
+
+    this.isThinking.set(false);
+    return lines;
+  }
+
+  /** Move to the next section of the song */
+  nextSection(): string | null {
+    const session = this.currentSession();
+    if (!session || !session.isActive) return null;
+
+    const nextIndex = session.sectionIndex + 1;
+    if (nextIndex >= session.sectionOrder.length) {
+      session.isComplete = true;
+      session.isActive = false;
+      session.lastActivityAt = Date.now();
+      return null;
+    }
+
+    session.sectionIndex = nextIndex;
+    session.currentSection = session.sectionOrder[nextIndex];
+    session.lastActivityAt = Date.now();
+    return session.sectionOrder[nextIndex];
+  }
+
+  /** Accept a specific turn (line) */
+  acceptTurn(turnId: string): void {
+    this.currentSession.update(s => {
+      if (!s) return s;
+      return {
+        ...s,
+        turns: s.turns.map(t =>
+          t.id === turnId ? { ...t, accepted: true, rejected: false } : t
+        ),
+      };
+    });
+  }
+
+  /** Reject a specific turn (line) and optionally request a rewrite */
+  rejectTurn(turnId: string): void {
+    this.currentSession.update(s => {
+      if (!s) return s;
+      return {
+        ...s,
+        turns: s.turns.map(t =>
+          t.id === turnId ? { ...t, rejected: true, accepted: false } : t
+        ),
+      };
+    });
+  }
+
+  /** Get the latest turn from SMUVE */
+  getLatestSmuveTurn(): CoWriteTurn | null {
+    const session = this.currentSession();
+    if (!session) return null;
+    return [...session.turns].reverse().find(t => t.role === 'smuve') || null;
+  }
+
+  /** Get all accepted lines compiled into a full lyric sheet */
+  getCompiledLyrics(): string {
+    const session = this.currentSession();
+    if (!session) return '';
+
+    const sections = new Map<LyricSection['type'], string[]>();
+    const accepted = session.turns.filter(t => t.accepted);
+
+    for (const turn of accepted) {
+      const existing = sections.get(turn.sectionType) || [];
+      existing.push(turn.text);
+      sections.set(turn.sectionType, existing);
+    }
+
+    let output = '';
+    const sectionOrder: LyricSection['type'][] = ['intro', 'verse', 'pre-chorus', 'chorus', 'bridge', 'outro'];
+    
+    for (const type of sectionOrder) {
+      const lines = sections.get(type);
+      if (lines && lines.length > 0) {
+        output += `\n[${type.toUpperCase()}]\n`;
+        output += lines.map(l => `  ${l}`).join('\n');
+        output += '\n';
+      }
+    }
+
+    return output;
+  }
+
+  /** Get a suggestion for the next line based on context */
+  getSuggestion(context: string): CoWriteSuggestion {
+    const session = this.currentSession();
+    const sectionType = session?.currentSection || 'verse';
+
+    // Generate a relevant suggestion
+    if (sectionType === 'chorus') {
+      return {
+        type: 'line',
+        content: this.generateHookSuggestion(session?.topic || ''),
+        context: 'Try making the hook more repetitive and singable',
+      };
+    }
+    if (sectionType === 'bridge') {
+      return {
+        type: 'restructure',
+        content: 'Consider a key change or a new chord progression here for emotional lift',
+        context: 'Bridges work best when they present a NEW perspective',
+      };
+    }
+    return {
+      type: 'line',
+      content: this.generateLineSuggestion(context, sectionType, session),
+      context: `Build on the ${sectionType} theme`,
+    };
+  }
+
+  /** End the current session */
+  endSession(): void {
+    this.currentSession.update(s => {
+      if (!s) return s;
+      return { ...s, isActive: false, isComplete: true, lastActivityAt: Date.now() };
+    });
+  }
+
+  /** Reset and clear the current session */
+  resetSession(): void {
+    this.currentSession.set(null);
+    this.isThinking.set(false);
+  }
+
+  /** Get a session summary for the chatbot */
+  getSessionSummary(): string {
+    const session = this.currentSession();
+    if (!session) return 'No active co-write session. Start one with /cowrite [topic]';
+
+    const acceptedUser = session.turns.filter(t => t.role === 'user' && t.accepted).length;
+    const acceptedSmuve = session.turns.filter(t => t.role === 'smuve' && t.accepted).length;
+    const currentSection = session.currentSection || 'verse';
+
+    return `✍️ S.M.U.V.E CO-WRITE SESSION
+${'═'.repeat(50)}
+Title: ${session.title}
+Topic: ${session.topic}
+Style: ${session.style} | Mood: ${session.mood}
+Key: ${session.key} | BPM: ${session.bpm}
+${session.artist ? `Influenced by: ${session.artist}` : ''}
+
+PROGRESS: Section ${session.sectionIndex + 1}/${session.sectionOrder.length}
+Current: ${currentSection.toUpperCase()}
+
+CONTRIBUTIONS:
+  • You: ${this.userContributionCount()} lines (${acceptedUser} accepted)
+  • S.M.U.V.E: ${this.smuveContributionCount()} lines (${acceptedSmuve} accepted)
+  • Total turns: ${session.turns.length}
+
+${session.isComplete ? 'STATUS: COMPLETE 🎉' : session.isActive ? 'STATUS: Active (use /cowrite add \"your line\")' : 'STATUS: Ended'}
+
+Compiled lyrics available with /cowrite lyrics`;
+  }
+
+  /** Generate a S.M.U.V.E co-write line in its dark persona */
+  private generateSmuveLine(context: string, sectionType: LyricSection['type'], session: CoWriteSession): string {
+    const profile = session.artist ? this.styleMimic.getStyleProfile(session.artist) : null;
+    const topic = session.topic;
+    const mood = session.mood;
+
+    const templates: Record<string, string[]> = {
+      verse: [
+        `The weight of ${topic} sits heavy on my chest tonight,`,
+        `I've wandered through the wreckage of every broken fight,`,
+        `They told me ${topic} was a lesson I'd forget,`,
+        `But I still carry the ashes of every cigarette,`,
+        `The silence between us speaks louder than the words we said,`,
+        `${topic} echoes through the halls of everything unsaid,`,
+        `I trace the outline of your name in the morning frost,`,
+        `Everything we built together — now everything we've lost,`,
+        `The streetlights flicker like the doubt inside my head,`,
+        `${topic} is the thread I'm barely hanging by,`,
+      ],
+      chorus: [
+        `And this is ${topic}, the part that breaks us wide,`,
+        `This is the moment where we finally collide,`,
+        `${topic} — it's the fire and the flood,`,
+        `The scar beneath the skin, the silence and the blood,`,
+        `And I can't escape ${topic}, no matter where I run,`,
+        `This is the chorus of everything undone,`,
+        `Sing it loud enough that the darkness hears your voice,`,
+      ],
+      bridge: [
+        `But what if ${topic} was never meant to be?`,
+        `What if the story ends before we're free?`,
+        `I've been rewriting every line you wrote,`,
+        `Trying to find the hope inside the quote,`,
+        `The turning point arrives — I see it clear,`,
+        `${topic} was the thing I always feared,`,
+      ],
+      'pre-chorus': [
+        `The tension builds like a wave about to break,`,
+        `I feel the change coming with every breath I take,`,
+        `${topic} is rising, I can feel it in the air,`,
+        `The moment's here — there's nothing left to spare,`,
+      ],
+    };
+
+    const sectionTemplates = templates[sectionType] || templates.verse;
+    const base = sectionTemplates[Math.floor(Math.random() * sectionTemplates.length)];
+
+    // Add artist-specific flavor
+    if (profile) {
+      const flavor = profile.songwritingCharacteristics.lyricalThemes[0];
+      const techniques = profile.vocalCharacteristics.technique.slice(0, 2).join(', ');
+      return `${base}\n  (Influence: ${profile.artistName} — ${techniques})`;
+    }
+
+    return base;
+  }
+
+  /** Generate a hook suggestion for the chorus */
+  private generateHookSuggestion(topic: string): string {
+    const hooks = [
+      `"${topic}" — make it the title, repeat it 3x in the chorus`,
+      `Try rhyming "${topic}" with a word that contrasts its meaning`,
+      `Start the hook with a question about ${topic}`,
+      `Use ${topic} as a metaphor for something bigger`,
+    ];
+    return hooks[Math.floor(Math.random() * hooks.length)];
+  }
+
+  /** Generate a general line suggestion */
+  private generateLineSuggestion(context: string, sectionType: string, session: CoWriteSession | null): string {
+    return `Try contrasting "${context}" with an opposite image — if you said light, bring in shadow. If you said love, bring in loss.`;
+  }
+
+  /** Generate S.M.U.V.E feedback on a line */
+  private generateFeedback(line: string, sectionType: LyricSection['type'], session: CoWriteSession): string {
+    const syllableCount = this.countSyllables(line);
+    const feedbacks = [
+      syllableCount > 12
+        ? 'That line is a bit wordy — I\'d trim it. But it\'s your funeral.'
+        : syllableCount < 6
+          ? 'Short and effective. I\'m almost impressed. Almost.'
+          : 'Decent syllable flow. Consider me mildly satisfied.',
+      `The ${sectionType} needs more tension. Add a twist in the next line.`,
+      'That\'s acceptable. Don\'t expect praise — you haven\'t earned it yet.',
+      'Interesting choice. I\'d have gone darker, but you do you.',
+    ];
+    return feedbacks[Math.floor(Math.random() * feedbacks.length)];
+  }
+
+  /** Generate transition feedback when moving sections */
+  private generateTransitionFeedback(sectionType: LyricSection['type'], session: CoWriteSession): string {
+    const feedbacks: Record<string, string> = {
+      verse: 'Good enough. Let\'s move to the next section before I lose interest.',
+      chorus: 'The hook should be stronger, but I\'ll let it slide. For now.',
+      bridge: 'The bridge is where songs go to die — or ascend. Let\'s ascend.',
+      'pre-chorus': 'Building tension. Don\'t waste it in the chorus.',
+      intro: 'Set the tone. Dark. Atmospheric. Make them feel uncomfortable.',
+      outro: 'End it with impact. No fade-outs. Those are for cowards.',
+    };
+    return feedbacks[sectionType] || 'Section complete. Moving on. Try to keep up.';
+  }
+
+  /** Get section order based on genre */
+  private getSectionOrder(genre: string): LyricSection['type'][] {
+    const lower = genre.toLowerCase();
+    if (lower.includes('hip hop') || lower.includes('trap') || lower.includes('rap')) {
+      return ['intro', 'verse', 'chorus', 'verse', 'chorus', 'verse', 'outro'];
+    }
+    if (lower.includes('electronic') || lower.includes('house')) {
+      return ['intro', 'verse', 'pre-chorus', 'chorus', 'verse', 'pre-chorus', 'chorus', 'outro'];
+    }
+    if (lower.includes('r&b') || lower.includes('soul')) {
+      return ['verse', 'pre-chorus', 'chorus', 'verse', 'chorus', 'bridge', 'chorus'];
+    }
+    // Standard pop
+    return ['verse', 'pre-chorus', 'chorus', 'verse', 'chorus', 'bridge', 'chorus'];
+  }
+
+  /** Pick BPM based on genre */
+  private pickBpm(genre: string): number {
+    const bpms: Record<string, number> = {
+      'pop': 110, 'hip hop': 90, 'r&b': 85, 'rock': 120,
+      'electronic': 128, 'jazz': 100, 'soul': 80, 'trap': 75,
+      'country': 100, 'folk': 90, 'metal': 140, 'latin': 105,
+    };
+    return bpms[genre.toLowerCase()] || 100;
+  }
+
+  /** Count syllables in text (approximate) */
+  private countSyllables(text: string): number {
+    const cleaned = text.replace(/[^a-zA-Z\s]/g, '').toLowerCase();
+    if (!cleaned.trim()) return 0;
+    const words = cleaned.split(/\s+/);
+    let count = 0;
+    for (const word of words) {
+      const vowelGroups = word.match(/[aeiouy]+/gi);
+      count += vowelGroups ? vowelGroups.length : 1;
+    }
+    return count;
+  }
+
+  private appendTurn(turn: CoWriteTurn): void {
+    this.currentSession.update(s => {
+      if (!s) return s;
+      return {
+        ...s,
+        turns: [...s.turns, turn],
+        lastActivityAt: Date.now(),
+      };
+    });
+  }
+}

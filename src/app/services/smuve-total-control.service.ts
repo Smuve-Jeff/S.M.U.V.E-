@@ -9,6 +9,7 @@ import { SnackbarService } from './snackbar.service';
 import { SmuveKnowledgeEngine, KnowledgeCategory } from './smuve-knowledge-engine';
 import { SongwritingAssistantService } from './songwriting-assistant.service';
 import { AiBeatGeneratorService } from './ai-beat-generator.service';
+import { CoWriteService } from './cowrite.service';
 
 export interface ControlCommand {
   domain: ControlDomain;
@@ -43,6 +44,7 @@ export class SmuveTotalControlService {
   private knowledge = inject(SmuveKnowledgeEngine);
   private songwriting = inject(SongwritingAssistantService);
   private beatGenerator = inject(AiBeatGeneratorService);
+  private cowrite = inject(CoWriteService);
 
   activeCommand = signal<ControlCommand | null>(null);
   commandHistory = signal<CommandResult[]>([]);
@@ -65,6 +67,29 @@ export class SmuveTotalControlService {
   private parseCommand(input: string): ControlCommand | null {
     const text = input.toLowerCase().trim();
     
+    // Co-Write commands
+    if (text === '/cowrite' || text === '/cowrite help') {
+      return { domain: 'ai', action: 'cowrite-help', requiresConfirmation: false };
+    }
+    if (text.startsWith('/cowrite ')) {
+      const query = text.replace('/cowrite ', '');
+      return { domain: 'ai', action: 'cowrite', target: query, requiresConfirmation: false };
+    }
+    if (text === '/cowrite lyrics' || text === '/cowrite compile') {
+      return { domain: 'ai', action: 'cowrite-lyrics', requiresConfirmation: false };
+    }
+    if (text === '/cowrite status') {
+      return { domain: 'ai', action: 'cowrite-status', requiresConfirmation: false };
+    }
+    if (text === '/cowrite end' || text === '/cowrite stop') {
+      return { domain: 'ai', action: 'cowrite-end', requiresConfirmation: false };
+    }
+    
+    // Navigate to co-write studio
+    if (text === '/cowrite studio' || text === '/cowrite open') {
+      return { domain: 'navigation', action: 'navigate', target: 'cowrite', requiresConfirmation: false };
+    }
+
     // Beat generation commands
     if (text.startsWith('/beat ')) {
       const query = text.replace('/beat ', '');
@@ -422,7 +447,43 @@ export class SmuveTotalControlService {
         message: `${blueprint}\n\nAvailable artists: ${availableStr}\n\nUse /beat [artist] or /beat [genre] e.g., /beat Drake or /beat trap`
       };
     }
-    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, beat, upgrade [id], scan' };
+    if (cmd.action === 'cowrite-help') {
+      return { success: true, message: `✍️ S.M.U.V.E CO-WRITE COMMANDS\n${'═'.repeat(50)}\n/cowrite [topic] - Start co-write session on a topic\n/cowrite [topic] with [artist] - With artist influence\n/cowrite status - View current session status\n/cowrite lyrics - View compiled lyrics from session\n/cowrite add "your line" - Add a line to the session\n/cowrite accept - Accept SMUVE's last suggestion\n/cowrite reject - Reject and request rewrite\n/cowrite end - End current session\n/cowrite studio - Open the Co-Write Studio UI\n\nOr just type a topic and I'll start co-writing!` };
+    }
+    if (cmd.action === 'cowrite') {
+      const topic = cmd.target || 'love and loss';
+      
+      // Parse: /cowrite [topic] with [artist] or /cowrite [topic]
+      const withMatch = topic.match(/^(.+?)\s+with\s+(.+)$/i);
+      const config: any = { topic: withMatch ? withMatch[1].trim() : topic };
+      if (withMatch) {
+        const artistName = withMatch[2].trim();
+        config.artist = artistName;
+      }
+      
+      this.cowrite.startSession(config);
+      const session = this.cowrite.currentSession();
+      
+      return { 
+        success: true, 
+        message: `✍️ CO-WRITE SESSION INITIATED\n${'═'.repeat(50)}\nTopic: ${session?.topic}\nMood: ${session?.mood}\nKey: ${session?.key} | BPM: ${session?.bpm}\n${session?.artist ? `Influence: ${session.artist}` : 'Influence: None (raw S.M.U.V.E persona)'}\n\nI've started the first section. Your turn — send me a line.\n\nAvailable: /cowrite status, /cowrite lyrics, /cowrite end, /cowrite studio`
+      };
+    }
+    if (cmd.action === 'cowrite-status') {
+      return { success: true, message: this.cowrite.getSessionSummary() };
+    }
+    if (cmd.action === 'cowrite-lyrics') {
+      const lyrics = this.cowrite.getCompiledLyrics();
+      if (!lyrics) {
+        return { success: false, message: 'No accepted lines yet. Start a session with /cowrite [topic] and accept some lines.' };
+      }
+      return { success: true, message: `📜 CO-WRITE COMPILATION\n${'═'.repeat(50)}\n${lyrics}` };
+    }
+    if (cmd.action === 'cowrite-end') {
+      this.cowrite.endSession();
+      return { success: true, message: 'Co-write session ended. Your compiled lyrics are available with /cowrite lyrics. To start a new session: /cowrite [topic]' };
+    }
+    return { success: true, message: 'AI command center. Available: audit, status, decree, songwrite, beat, cowrite, upgrade [id], scan' };
   }
 
   private handleExport(cmd: ControlCommand): CommandResult {

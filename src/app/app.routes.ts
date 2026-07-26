@@ -247,6 +247,13 @@ export const routes: Routes = [
         (m) => m.ImageVideoLabComponent
       ),
   },
+  {
+    path: 'cowrite',
+    loadComponent: () =>
+      import('./components/cowrite-studio/cowrite-studio.component').then(
+        (m) => m.CowriteStudioComponent
+      ),
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];

@@ -1,0 +1,331 @@
+<div class="cowrite-container min-h-screen bg-brand-dark text-slate-100 p-6 flex flex-col">
+  <!-- SETUP WIZARD -->
+  @if (showSetup()) {
+    <div class="flex-1 flex items-center justify-center">
+      <div class="max-w-2xl w-full bg-brand-surface/20 border border-white/10 rounded-3xl p-8 md:p-12 backdrop-blur-xl space-y-8">
+        <div class="text-center">
+          <div class="size-16 rounded-full bg-violet-500/20 border border-violet-500/40 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-3xl text-violet-400">edit_note</span>
+          </div>
+          <h1 class="text-3xl font-black tracking-tight uppercase">Co-Write with S.M.U.V.E</h1>
+          <p class="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">
+            I bring the contempt. You bring the talent. Let's see who wins.
+          </p>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">What are we writing about?</label>
+            <input
+              [(ngModel)]="setupConfig().topic"
+              (keyup.enter)="startSession()"
+              type="text"
+              placeholder="e.g., heartbreak, ambition, betrayal, freedom..."
+              class="w-full bg-brand-dark border border-white/10 rounded-xl px-5 py-4 text-sm text-white placeholder:text-slate-700 focus:border-violet-500/50 outline-none transition-all"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Mood</label>
+              <select
+                [ngModel]="setupConfig().mood"
+                (ngModelChange)="setupConfig.update(c => ({...c, mood: $event}))"
+                class="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-xs text-white uppercase font-bold focus:border-violet-500/50 outline-none"
+              >
+                @for (m of moods; track m) {
+                  <option [value]="m">{{ m }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Genre</label>
+              <input
+                [(ngModel)]="setupConfig().genre"
+                type="text"
+                placeholder="Pop, Hip Hop, R&B..."
+                class="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-bold focus:border-violet-500/50 outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Artist Influence (optional)</label>
+            <select
+              [ngModel]="setupConfig().artist"
+              (ngModelChange)="setupConfig.update(c => ({...c, artist: $event}))"
+              class="w-full bg-brand-dark border border-white/10 rounded-xl px-4 py-3 text-xs text-white uppercase font-bold focus:border-violet-500/50 outline-none"
+            >
+              <option value="">No influence — raw S.M.U.V.E</option>
+              @for (a of artists; track a) {
+                <option [value]="a">{{ a }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <button
+          (click)="startSession()"
+          [disabled]="!setupConfig().topic.trim()"
+          class="w-full py-4 bg-violet-500/80 text-white font-black uppercase tracking-widest rounded-xl hover:bg-violet-500 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(168,85,247,0.2)]"
+        >
+          Start Co-Write Session
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- CO-WRITE SESSION UI -->
+  @if (showLyrics() && currentSession(); as session) {
+    <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+      <!-- Top Bar -->
+      <div class="flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-4">
+          <h2 class="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-violet-400">edit_note</span>
+            {{ session.topic }}
+          </h2>
+          <span class="text-[9px] bg-violet-500/20 text-violet-400 px-2 py-1 rounded uppercase tracking-widest font-bold">{{ session.genre }}</span>
+          <span class="text-[9px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded uppercase tracking-widest font-bold">{{ session.key }} | {{ session.bpm }} BPM</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            (click)="copyLyrics()"
+            class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+          >
+            Copy Lyrics
+          </button>
+          <button
+            (click)="cowrite.endSession(); showSetup.set(true); showLyrics.set(false)"
+            class="px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-all"
+          >
+            End Session
+          </button>
+        </div>
+      </div>
+
+      <!-- Section Progress Bar -->
+      <div class="flex gap-1 shrink-0">
+        @for (sec of getSongStructurePreview(); track sec) {
+          <div
+            class="flex-1 py-1 rounded text-[7px] font-black uppercase tracking-widest text-center transition-all"
+            [class.bg-violet-500/30]="sec.startsWith('▶')"
+            [class.bg-emerald-500/20]="sec.startsWith('✅')"
+            [class.bg-white/5]="sec.startsWith('○')"
+            [class.text-white]="sec.startsWith('▶')"
+            [class.text-emerald-400]="sec.startsWith('✅')"
+            [class.text-slate-600]="sec.startsWith('○')"
+          >
+            {{ sec }}
+          </div>
+        }
+      </div>
+
+      <div class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+        <!-- Turn Exchange (Main) -->
+        <div class="col-span-12 lg:col-span-8 flex flex-col gap-3 overflow-hidden">
+          <!-- Messages Area -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+            @for (turn of session.turns; track turn.id; let i = $index) {
+              <div
+                class="p-4 rounded-2xl border transition-all cursor-pointer"
+                [class]="getTurnVariant(turn)"
+                [class.border-violet-400]="selectedLineIndex() === i"
+                (click)="selectedLineIndex.set(i)"
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="size-8 rounded-full shrink-0 flex items-center justify-center text-xs font-black"
+                    [class.bg-violet-500/30]="turn.role === 'smuve'"
+                    [class.text-violet-300]="turn.role === 'smuve'"
+                    [class.bg-brand-primary/30]="turn.role === 'user'"
+                    [class.text-brand-primary]="turn.role === 'user'"
+                  >
+                    {{ turn.role === 'smuve' ? 'S' : 'U' }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="text-[8px] font-black uppercase tracking-widest"
+                        [class.text-violet-400]="turn.role === 'smuve'"
+                        [class.text-brand-primary]="turn.role === 'user'"
+                      >
+                        {{ turn.role === 'smuve' ? 'S.M.U.V.E' : 'You' }}
+                      </span>
+                      <span class="text-[7px] text-slate-600 font-mono">{{ formatTimestamp(turn.timestamp) }}</span>
+                      <span class="text-[7px] text-slate-600 uppercase tracking-widest">· {{ turn.sectionType }}</span>
+                      @if (turn.accepted) { <span class="text-[7px] text-emerald-400 font-black">ACCEPTED</span> }
+                      @if (turn.rejected) { <span class="text-[7px] text-red-400 font-black">REJECTED</span> }
+                    </div>
+                    <p class="text-sm font-medium leading-relaxed">{{ turn.text }}</p>
+                    @if (turn.feedback && turn.role === 'smuve') {
+                      <p class="text-[9px] text-slate-500 italic mt-2 border-l-2 border-slate-700 pl-3">"{{ turn.feedback }}"</p>
+                    }
+                  </div>
+                </div>
+
+                <!-- Accept / Reject Actions -->
+                <div class="flex gap-2 mt-3 pl-11">
+                  <button
+                    (click)="acceptTurn(turn.id); $event.stopPropagation()"
+                    [disabled]="turn.accepted"
+                    class="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all"
+                    [class.bg-emerald-500/20]="turn.accepted"
+                    [class.border-emerald-500/40]="turn.accepted"
+                    [class.text-emerald-400]="turn.accepted"
+                    [class.border-white/10]="!turn.accepted"
+                    [class.text-slate-500]="!turn.accepted"
+                    [class.hover:border-emerald-500/40]="!turn.accepted"
+                  >
+                    {{ turn.accepted ? '✓ Accepted' : 'Accept' }}
+                  </button>
+                  <button
+                    (click)="rejectTurn(turn.id); $event.stopPropagation()"
+                    [disabled]="turn.rejected"
+                    class="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10 text-slate-500 hover:border-red-500/40 hover:text-red-400 transition-all"
+                  >
+                    {{ turn.rejected ? '✗ Rejected' : 'Reject' }}
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (isThinking()) {
+              <div class="p-4 rounded-2xl border border-violet-500/30 bg-violet-900/10 animate-pulse">
+                <div class="flex items-center gap-3">
+                  <div class="size-8 rounded-full bg-violet-500/30 flex items-center justify-center">
+                    <span class="text-xs font-black text-violet-300">S</span>
+                  </div>
+                  <div class="flex gap-1">
+                    <div class="size-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="size-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="size-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                  </div>
+                  <span class="text-[9px] text-violet-400 font-black uppercase tracking-widest">S.M.U.V.E Thinking...</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Input Area -->
+          <div class="shrink-0">
+            <div class="flex gap-2">
+              <input
+                [(ngModel)]="userInput"
+                (keyup.enter)="sendUserLine()"
+                type="text"
+                placeholder="Your next line... (press Enter to send)"
+                class="flex-1 bg-brand-dark border border-white/10 rounded-xl px-5 py-4 text-sm text-white placeholder:text-slate-700 focus:border-violet-500/50 outline-none transition-all"
+              />
+              <button
+                (click)="sendUserLine()"
+                [disabled]="!userInput().trim() || isThinking()"
+                class="px-6 py-4 bg-violet-500/80 text-white font-black uppercase tracking-widest rounded-xl hover:bg-violet-500 transition-all disabled:opacity-30 text-xs"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar: Suggestions + Actions + Stats -->
+        <div class="col-span-12 lg:col-span-4 flex flex-col gap-4 overflow-hidden">
+          <!-- Session Stats -->
+          <div class="bg-brand-surface/20 border border-white/10 rounded-2xl p-4 shrink-0">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Session Stats</span>
+              <span class="text-[9px] font-mono text-violet-400">{{ acceptedCount() }} accepted</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-brand-dark/30 rounded-xl p-3">
+                <div class="text-lg font-black text-violet-400">{{ smuveContributionCount() }}</div>
+                <div class="text-[7px] text-slate-600 uppercase tracking-widest font-bold">S.M.U.V.E</div>
+              </div>
+              <div class="bg-brand-dark/30 rounded-xl p-3">
+                <div class="text-lg font-black text-brand-primary">{{ userContributionCount() }}</div>
+                <div class="text-[7px] text-slate-600 uppercase tracking-widest font-bold">You</div>
+              </div>
+              <div class="bg-brand-dark/30 rounded-xl p-3">
+                <div class="text-lg font-black text-white">{{ session.turns.length }}</div>
+                <div class="text-[7px] text-slate-600 uppercase tracking-widest font-bold">Total</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- S.M.U.V.E Suggestions -->
+          <div class="bg-brand-surface/20 border border-white/10 rounded-2xl p-4 shrink-0">
+            <h3 class="text-[9px] font-black uppercase tracking-widest text-violet-400 mb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">lightbulb</span>
+              S.M.U.V.E Suggests
+            </h3>
+            <div class="space-y-2">
+              @for (s of suggestions(); track s.content) {
+                <div
+                  (click)="applySuggestion(s)"
+                  class="text-[10px] text-slate-400 bg-brand-dark/30 p-3 rounded-xl border border-white/5 hover:border-violet-500/30 hover:text-slate-200 transition-all cursor-pointer"
+                >
+                  @if (s.context) {
+                    <span class="block text-[8px] text-violet-500 uppercase tracking-widest font-bold mb-1">{{ s.context }}</span>
+                  }
+                  {{ s.content }}
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="space-y-2 shrink-0">
+            <button
+              (click)="completeSection()"
+              class="w-full py-3 bg-amber-500/20 border border-amber-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest text-amber-400 hover:bg-amber-500/30 transition-all"
+            >
+              ✨ Complete Section (AI writes full {{ session.currentSection }})
+            </button>
+            <button
+              (click)="nextSection()"
+              [disabled]="session.isComplete"
+              class="w-full py-3 bg-violet-500/20 border border-violet-500/30 rounded-xl text-[10px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-500/30 transition-all disabled:opacity-30"
+            >
+              {{ session.isComplete ? '🎉 Song Complete!' : '→ Next Section' }}
+            </button>
+          </div>
+
+          <!-- Copilot Mode -->
+          <div class="bg-brand-surface/20 border border-white/10 rounded-2xl p-4">
+            <h3 class="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-3">S.M.U.V.E Mode</h3>
+            <div class="flex gap-2">
+              @for (mode of ['casual', 'intense', 'critic']; track mode) {
+                <button
+                  (click)="setCopilotMode(mode)"
+                  [class.bg-violet-500/30]="copilotMode() === mode"
+                  [class.text-white]="copilotMode() === mode"
+                  [class.border-violet-500/40]="copilotMode() === mode"
+                  class="flex-1 py-2 rounded-lg border border-white/10 text-[8px] font-black uppercase tracking-widest text-slate-500 hover:border-violet-500/30 transition-all"
+                >
+                  {{ mode }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Compiled Lyrics Preview -->
+          @if (acceptedCount() > 0) {
+            <div class="bg-brand-surface/20 border border-emerald-500/20 rounded-2xl p-4 flex-1 overflow-hidden min-h-[120px]">
+              <h3 class="text-[9px] font-black uppercase tracking-widest text-emerald-400 mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">lyrics</span>
+                Live Compilation
+              </h3>
+              <pre class="text-[9px] text-slate-400 font-mono leading-relaxed overflow-y-auto custom-scrollbar h-[80px]">{{ getCompiledLyrics() }}</pre>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.2); border-radius: 2px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.4); }
+</style>
