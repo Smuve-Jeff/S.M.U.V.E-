@@ -501,6 +501,23 @@
         </div>
       </div>
 
+      <!-- AI Chord Suggestions -->
+      <div class="comp-aimix-section">
+        <span class="comp-aimix-section-title">CHORD PROGRESSIONS</span>
+        <div class="comp-chord-genre-row">
+          <label class="comp-chord-genre-label">Genre</label>
+          <select class="comp-chord-genre-select" [ngModel]="chordGenre()" (ngModelChange)="chordGenre.set($event)">
+            <option *ngFor="let g of chordGenres" [value]="g">{{ g | titlecase }}</option>
+          </select>
+        </div>
+        <div class="comp-chord-progression">
+          <span class="comp-chord-chord" *ngFor="let c of chordProgression(); let i = index" (click)="applyChordToPianoRoll(c, i)" title="Apply {{ c }} to piano roll">
+            <span class="comp-chord-name">{{ c }}</span>
+            <span class="comp-chord-apply">+</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Suggestions -->
       <div class="comp-aimix-section" *ngIf="aiMixAssistant.suggestions().length > 0">
         <span class="comp-aimix-section-title">SUGGESTIONS ({{ aiMixAssistant.suggestions().length }})</span>
@@ -589,12 +606,22 @@
         <div class="comp-rec-takes" *ngIf="smartRecording.activeCompGroupTakes().length > 0">
           <div class="comp-rec-take" *ngFor="let t of smartRecording.activeCompGroupTakes()"
                [class.comp-rec-take-selected]="t.isCompSelection"
-               [class.comp-rec-take-muted]="t.isMuted">
+               [class.comp-rec-take-muted]="t.isMuted"
+               (click)="previewCompTake(t)">
             <span class="comp-rec-take-num">{{ t.label }}</span>
             <span class="comp-rec-take-meta">{{ (t.durationMs / 1000).toFixed(1) }}s</span>
-            <button type="button" class="comp-rec-take-action" (click)="smartRecording.selectCompTake(smartRecording.activeCompGroupId()!, t.id)" title="Select as comp">✓</button>
-            <button type="button" class="comp-rec-take-action" (click)="smartRecording.toggleTakeMute(smartRecording.activeCompGroupId()!, t.id)" title="Mute/unmute">M</button>
+            <!-- Playback button -->
+            <button type="button" class="comp-rec-take-play" (click)="$event.stopPropagation(); previewCompTake(t)" [class.comp-rec-take-playing]="previewingTakeId() === t.id" title="Preview take">
+              <span class="material-symbols-outlined">{{ previewingTakeId() === t.id ? 'stop' : 'play_arrow' }}</span>
+            </button>
+            <button type="button" class="comp-rec-take-action" (click)="$event.stopPropagation(); smartRecording.selectCompTake(smartRecording.activeCompGroupId()!, t.id)" title="Select as comp">✓</button>
+            <button type="button" class="comp-rec-take-action" (click)="$event.stopPropagation(); smartRecording.toggleTakeMute(smartRecording.activeCompGroupId()!, t.id)" title="Mute/unmute">M</button>
           </div>
+          <!-- Export Takes button -->
+          <button type="button" class="comp-rec-export-takes" (click)="exportCompTakes()" *ngIf="smartRecording.activeCompGroupTakes().length > 0">
+            <span class="material-symbols-outlined">file_download</span>
+            Export All Takes (WAV)
+          </button>
         </div>
       </div>
 

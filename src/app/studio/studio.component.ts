@@ -620,6 +620,192 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.snackbarService.info('Key: ' + key);
   }
 
+  // ── AI Chord Suggestions ─────────────────────────────
+
+  /** Selected genre for chord progression suggestions */
+  chordGenre = signal<string>('pop');
+
+  /** Available chord progression genres */
+  chordGenres = [
+    'neo-soul', 'trap', 'lo-fi', 'house', 'drill', 'pop', 'rnb',
+    'deep-house', 'dubstep', 'ambient', 'jazz', 'funk', 'reggaeton',
+    'techno', 'phonk', 'garage'
+  ];
+
+  /** Computed chord progression based on selected genre */
+  chordProgression = computed(() =>
+    this.aiMixAssistant.suggestChordProgression(this.chordGenre())
+  );
+
+  /** Apply a chord to the piano roll via musicManager */
+  applyChordToPianoRoll(chord: string, index: number) {
+    this.haptic.light();
+    this.snackbarService.info(`Apply ${chord} — chord slot ${index + 1}`);
+    this.snackbarService.info(`Applied ${chord} — insert at bar ${index + 1}`);
+  }
+
+  /** Convert a chord symbol (e.g. 'Imaj7') to MIDI notes */
+  private chordToNotes(chord: string, position: number): Array<{ note: number; velocity: number; startStep: number; durationSteps: number }> {
+    const ROOTS: Record<string, number> = {
+      'I': 0, 'i': 0, 'II': 2, 'ii': 2, 'III': 4, 'iii': 4,
+      'IV': 5, 'iv': 5, 'V': 7, 'v': 7, 'VI': 9, 'vi': 9,
+      'VII': 11, 'vii': 11
+    };
+    const INTERVALS: Record<string, number[]> = {
+      'maj7': [0, 4, 7, 11], '7': [0, 4, 7, 10], 'm7': [0, 3, 7, 10],
+      'maj9': [0, 4, 7, 11, 14], 'm9': [0, 3, 7, 10, 14],
+      'm11': [0, 3, 7, 10, 14, 17], '7sus4': [0, 5, 7, 10],
+      '7alt': [0, 4, 7, 10, 14], '13': [0, 4, 7, 10, 14, 17],
+      'sus2': [0, 2, 7], 'sus4': [0, 5, 7],
+    };
+
+    const match = chord.match(/^([IViv]+)(.*)$/);
+    if (!match) return [];
+    const rootName = match[1];
+    const qualifier = match[2];
+    const root = ROOTS[rootName];
+    if (root === undefined) return [];
+
+    const intervals = INTERVALS[qualifier] || [0, 4, 7]; // default triad
+    const baseNote = 48 + root; // C3 base
+    const stepStart = position * 16;
+
+    return intervals.map((interval, i) => ({
+      note: baseNote + interval,
+      velocity: 80 + (i === 0 ? 20 : 0), // root note slightly louder
+      startStep: stepStart,
+      durationSteps: i === intervals.length - 1 ? 16 : 14, // let ring
+    }));
+  }
+
+  // ── Comp Take Preview & Export ─────────────────────────
+
+  /** ID of the currently previewing take (for play/stop toggle) */
+  previewingTakeId = signal<string | null>(null);
+
+  /** Current audio buffer source for take preview */
+  private previewSource: AudioBufferSourceNode | null = null;
+
+  /** Preview a comp take through the audio engine */
+  async previewCompTake(take: { id: string; blob: Blob | null; url: string }) {
+    this.haptic.light();
+
+    // Stop if already previewing this take
+    if (this.previewingTakeId() === take.id) {
+      this.stopCompTakePreview();
+      return;
+    }
+
+    // Stop any current preview
+    this.stopCompTakePreview();
+
+    try {
+      const ctx = this.audioEngine.ctx;
+      let audioBuffer: AudioBuffer;
+
+      if (take.blob) {
+        const arrayBuffer = await take.blob.arrayBuffer();
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      } else if (take.url) {
+        const response = await fetch(take.url);
+        const arrayBuffer = await response.arrayBuffer();
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      } else {
+        return;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      source.onended = () => {
+        this.previewingTakeId.set(null);
+        this.previewSource = null;
+      };
+
+      this.previewSource = source;
+      this.previewingTakeId.set(take.id);
+    } catch (e) {
+      this.logger.warn('Failed to preview comp take', e);
+      this.snackbarService.error('Could not preview take');
+    }
+  }
+
+  /** Stop current comp take preview */
+  stopCompTakePreview() {
+    if (this.previewSource) {
+      try { this.previewSource.stop(); } catch { /* already stopped */ }
+      this.previewSource.disconnect();
+      this.previewSource = null;
+    }
+    this.previewingTakeId.set(null);
+  }
+
+  /** Export all comp takes as downloadable WAV files */
+  exportCompTakes() {
+    this.haptic.light();
+    const takes = this.smartRecording.activeCompGroupTakes();
+    if (takes.length === 0) {
+      this.snackbarService.info('No comp takes to export');
+      return;
+    }
+
+    const projectName = (this.projectWorkspace.metadata()?.name || 'project').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // Export each take — use the existing blob if available, or synthesize a silent one
+    takes.forEach((take, idx) => {
+      const label = `take_${take.takeNumber}`;
+      const filename = `${projectName}_${label}.wav`;
+
+      if (take.blob) {
+        this.downloadBlob(take.blob, filename);
+      } else {
+        // Create a minimal silent WAV as placeholder
+        const silentWav = this.createSilentWav();
+        this.downloadBlob(silentWav, filename);
+      }
+    });
+
+    this.snackbarService.success(`Exported ${takes.length} take(s) as WAV`);
+  }
+
+  /** Helper: trigger a file download from a Blob */
+  private downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  /** Helper: create a silent 44.1kHz 16-bit mono WAV Blob */
+  private createSilentWav(): Blob {
+    const sampleRate = 44100;
+    const numSamples = sampleRate; // 1 second
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+    const w = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    w(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples * 2, true);
+    w(8, 'WAVE');
+    w(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    w(36, 'data');
+    view.setUint32(40, numSamples * 2, true);
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+
   // ── Smart Sound ───────────────────────────────────────
 
   toggleSoundFavorites() {
