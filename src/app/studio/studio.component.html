@@ -162,6 +162,10 @@
       <span class="comp-tool-label">EXPORT</span>
       <span class="comp-kbd">Ctrl+E</span>
     </button>
+    <button type="button" class="comp-tool-btn" (click)="audioImport.importFiles()" title="Import audio files (.mp3, .wav)" aria-label="Import audio files">
+      <span class="material-symbols-outlined">upload_file</span>
+      <span class="comp-tool-label">IMPORT</span>
+    </button>
   </div>
 
   <!-- ====================== STAGE MARQUEE ====================== -->
@@ -516,6 +520,30 @@
             <span class="comp-chord-apply">+</span>
           </span>
         </div>
+
+        <!-- Chord Voicing Controls -->
+        <div class="comp-chord-voicing">
+          <span class="comp-aimix-section-title">VOICING</span>
+          <div class="comp-chord-voicing-row">
+            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'close'" (click)="chordVoicing.set('close')">Close</button>
+            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'open'" (click)="chordVoicing.set('open')">Open</button>
+            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'wide'" (click)="chordVoicing.set('wide')">Wide</button>
+          </div>
+          <div class="comp-chord-voicing-preview">
+            <!-- Keyboard visualization -- 2 octaves C3-C5 -->
+            <div class="comp-chord-keys" *ngIf="voicingNotes().length > 0">
+              <span *ngFor="let n of voicingNotes(); let i = index"
+                    class="comp-chord-key"
+                    [class.voicing-root]="i === 0"
+                    [class.voicing-third]="isThird(n, voicingNotes())"
+                    [class.voicing-fifth]="isFifth(n, voicingNotes())"
+                    [title]="'MIDI ' + n">
+                <span class="comp-chord-key-dot"></span>
+              </span>
+            </div>
+            <span class="comp-chord-preview-label" *ngIf="voicingNotes().length > 0">{{ chordVoicing() | titlecase }}: {{ voicingNotes().join(', ') }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Suggestions -->
@@ -700,6 +728,119 @@
     [open]="showAiAssistant()"
     (close)="showAiAssistant.set(false)"
   ></app-ai-assistant>
+
+  <!-- ====================== COMPONENT RECORDING PANEL (right slide) ====================== -->
+  <aside class="comp-panel comp-rec-src-panel" [class.comp-panel-open]="showComponentRecording()" role="dialog" aria-label="Component Recording">
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        COMP REC<br><small style="font-size:8px;opacity:0.6">{{ componentRecording.activeSource() ? (componentRecording.getConfig(componentRecording.activeSource()!)?.label) : 'Select source' }}</small>
+      </span>
+      <button type="button" class="comp-icon-btn" (click)="showComponentRecording.set(false)" aria-label="Close component recording">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <span class="comp-aimix-section-title">RECORDING SOURCE</span>
+      <div class="comp-rec-src-grid">
+        <button type="button" class="comp-rec-src-btn" *ngFor="let c of componentRecording.componentConfigs"
+                [class.active]="componentRecording.activeSource() === c.componentId"
+                (click)="selectComponentRecording(c.componentId)">
+          <span class="material-symbols-outlined">{{ c.icon }}</span>
+          <span class="comp-rec-src-label">{{ c.label }}</span>
+          <span class="comp-rec-src-badge" *ngIf="c.usesInput">🎤</span>
+        </button>
+      </div>
+
+      <!-- Recording Controls -->
+      <div class="comp-rec-section">
+        <button type="button" class="comp-meta-action-btn" [class.recording-active]="componentRecording.isRecording()" (click)="componentRecording.toggleRecording()">
+          <span class="material-symbols-outlined">{{ componentRecording.isRecording() ? 'stop' : 'fiber_manual_record' }}</span>
+          {{ componentRecording.isRecording() ? 'STOP (' + componentRecording.recordingDuration() + 's)' : 'START RECORDING' }}
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== IMPORT AUDIO PANEL (right slide) ====================== -->
+  <aside class="comp-panel comp-import-panel" [class.comp-panel-open]="showImportPanel()" role="dialog" aria-label="Audio Import">
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">upload_file</span>
+        AUDIO IMPORT
+      </span>
+      <button type="button" class="comp-icon-btn" (click)="toggleImportPanel()" aria-label="Close import panel">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Imported files list -->
+      <div class="comp-import-list" *ngIf="audioImport.importedAudio().length > 0">
+        <div class="comp-import-item" *ngFor="let a of audioImport.importedAudio()"
+             [class.selected]="audioImport.selectedAudio()?.id === a.id"
+             (click)="audioImport.selectAudio(a.id)">
+          <span class="material-symbols-outlined">audio_file</span>
+          <span class="comp-import-name">{{ a.name }}</span>
+          <span class="comp-import-meta">{{ a.duration.toFixed(1) }}s</span>
+          <button type="button" class="comp-import-remove" (click)="$event.stopPropagation(); audioImport.removeAudio(a.id)">✕</button>
+        </div>
+      </div>
+      <div *ngIf="audioImport.importedAudio().length === 0" class="comp-import-empty">
+        <span class="material-symbols-outlined" style="font-size:32px;opacity:0.3">upload_file</span>
+        <span>Tap IMPORT to add audio files</span>
+      </div>
+
+      <!-- Waveform + Editor for selected audio -->
+      <div class="comp-import-editor" *ngIf="audioImport.selectedAudio() as selAudio">
+        <span class="comp-aimix-section-title">{{ selAudio.name }}</span>
+        <div class="comp-import-waveform">
+          <canvas #importWaveformCanvas class="comp-import-canvas" width="280" height="60"></canvas>
+        </div>
+
+        <!-- Trim controls -->
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Trim Start</label>
+          <input type="range" min="0" max="0.95" step="0.01"
+                 [value]="selAudio.trimStart"
+                 (input)="audioImport.setTrimStart($event.target.value)"
+                 class="comp-import-slider" />
+          <span class="comp-import-slider-val">{{ (selAudio.trimStart * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Trim End</label>
+          <input type="range" min="0.05" max="1" step="0.01"
+                 [value]="selAudio.trimEnd"
+                 (input)="audioImport.setTrimEnd($event.target.value)"
+                 class="comp-import-slider" />
+          <span class="comp-import-slider-val">{{ (selAudio.trimEnd * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Gain</label>
+          <input type="range" min="0" max="2" step="0.05"
+                 [value]="selAudio.gain"
+                 (input)="audioImport.setGain($event.target.value)"
+                 class="comp-import-slider" />
+          <span class="comp-import-slider-val">{{ (selAudio.gain * 100).toFixed(0) }}%</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="comp-meta-actions">
+          <button type="button" class="comp-meta-action-btn" (click)="audioImport.applyEdits()">
+            <span class="material-symbols-outlined">check_circle</span>
+            Apply Edits
+          </button>
+          <button type="button" class="comp-meta-action-btn" (click)="audioImport.exportEditedAudio()">
+            <span class="material-symbols-outlined">file_download</span>
+            Export WAV
+          </button>
+          <button type="button" class="comp-meta-action-btn" (click)="audioImport.addToProject(selAudio)">
+            <span class="material-symbols-outlined">library_music</span>
+            Add to Project
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- ====================== CROSS-LINK LIVE ANNOUNCER (a11y) ====================== -->
   <div

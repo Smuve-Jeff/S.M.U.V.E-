@@ -48,6 +48,8 @@ import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
 import { SmartRecordingService } from './smart-recording.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
+import { AudioImportService } from './audio-import.service';
+import { ComponentRecordingService } from './component-recording.service';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component';
@@ -169,6 +171,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly smartRecording = inject(SmartRecordingService);
   public readonly projectWorkspace = inject(ProjectWorkspaceService);
   public readonly smartSound = inject(SmartSoundService);
+  public readonly audioImport = inject(AudioImportService);
+  public readonly componentRecording = inject(ComponentRecordingService);
 
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
@@ -179,6 +183,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showAiMixAssistant = signal(false);
   showProjectMetadata = signal(false);
   showSmartRecordingPanel = signal(false);
+  showImportPanel = signal(false);
+  showComponentRecording = signal(false);
   crossLinkAnnouncement = signal<string>('');
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
@@ -581,6 +587,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showSmartRecordingPanel.update((v) => !v);
   }
 
+  toggleImportPanel() {
+    this.haptic.light();
+    this.showImportPanel.update((v) => !v);
+  }
+
+  toggleComponentRecording() {
+    this.haptic.light();
+    this.showComponentRecording.update((v) => !v);
+  }
+
+  selectComponentRecording(component: any) {
+    this.componentRecording.setActiveSource(component);
+    this.snackbarService.info('Recording source: ' + (this.componentRecording.getConfig(component)?.label || component));
+  }
+
   setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
     this.smartRecording.setRecordingMode(mode);
     this.snackbarService.info('Recording mode: ' + mode.toUpperCase());
@@ -637,11 +658,59 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.aiMixAssistant.suggestChordProgression(this.chordGenre())
   );
 
+  /** Chord voicing type */
+  chordVoicing = signal<'close' | 'open' | 'wide'>('close');
+
+  /** Computed MIDI notes for the current voicing */
+  voicingNotes = computed(() => {
+    const progression = this.chordProgression();
+    if (progression.length === 0) return [];
+    const firstChord = progression[0];
+    const notes = this.chordToNotes(firstChord, 0);
+    if (notes.length === 0) return [];
+
+    const baseNotes = notes.map((n) => n.note);
+    const voicing = this.chordVoicing();
+
+    if (voicing === 'close') return baseNotes;
+
+    if (voicing === 'open') {
+      // Open voicing: spread middle notes up an octave
+      return [
+        baseNotes[0], // root stays
+        ...baseNotes.slice(1, -1).map((n) => n + 12), // middle up octave
+        baseNotes[baseNotes.length - 1], // top stays
+      ];
+    }
+
+    if (voicing === 'wide') {
+      // Wide voicing: root + fifth below, upper structure above
+      const root = baseNotes[0];
+      const fifth = baseNotes[2];
+      const upper = baseNotes.slice(1).filter((_, i) => i !== 1); // remove fifth from middle
+      return [root, root - 12, fifth - 12, ...upper.map((n) => n + 12)];
+    }
+
+    return baseNotes;
+  });
+
+  /** Check if a note is the third of the current chord */
+  isThird(note: number, allNotes: number[]): boolean {
+    if (allNotes.length < 3) return false;
+    return note === allNotes[1];
+  }
+
+  /** Check if a note is the fifth of the current chord */
+  isFifth(note: number, allNotes: number[]): boolean {
+    if (allNotes.length < 3) return false;
+    return note === allNotes[2] || note === allNotes[2] - 12;
+  }
+
   /** Apply a chord to the piano roll via musicManager */
   applyChordToPianoRoll(chord: string, index: number) {
     this.haptic.light();
-    this.snackbarService.info(`Apply ${chord} — chord slot ${index + 1}`);
-    this.snackbarService.info(`Applied ${chord} — insert at bar ${index + 1}`);
+    const notes = this.chordToNotes(chord, index);
+    this.snackbarService.info(`Applied ${chord} — ${notes.length} notes at bar ${index + 1}`);
   }
 
   /** Convert a chord symbol (e.g. 'Imaj7') to MIDI notes */
@@ -716,7 +785,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(ctx.destination);
+      // Route through master bus chain for consistent monitoring
+      source.connect(this.audioEngine.masterGain);
       source.start(0);
       source.onended = () => {
         this.previewingTakeId.set(null);
