@@ -44,6 +44,10 @@ import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
+import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
+import { SmartRecordingService } from './smart-recording.service';
+import { ProjectWorkspaceService } from './project-workspace.service';
+import { SmartSoundService } from './smart-sound.service';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component';
@@ -156,12 +160,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly snackbarService = inject(SnackbarService);
   private readonly logger = inject(LoggingService);
   private readonly ideasGenerator = inject(IdeasGeneratorService);
-  public readonly templateService = inject(ProjectTemplateService);    // ---- State ----
+  public readonly templateService = inject(ProjectTemplateService);
+  public readonly aiMixAssistant = inject(AiMixAssistantService);
+  public readonly smartRecording = inject(SmartRecordingService);
+  public readonly projectWorkspace = inject(ProjectWorkspaceService);
+  public readonly smartSound = inject(SmartSoundService);
+
+  // ---- State ----
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAIAssistant = false; // legacy
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
+  showAiMixAssistant = signal(false);
+  showProjectMetadata = signal(false);
+  showSmartRecordingPanel = signal(false);
   crossLinkAnnouncement = signal<string>('');
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
@@ -503,5 +516,121 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleNeuralFoundry() {
     this.haptic.light();
     this.showNeuralFoundry.update((v) => !v);
+  }
+
+  // ── AI Mix Assistant ─────────────────────────────────
+
+  toggleAiMixAssistant() {
+    this.haptic.light();
+    this.showAiMixAssistant.update((v) => !v);
+    if (this.showAiMixAssistant() && this.aiMixAssistant.analyses().length === 0) {
+      this.aiMixAssistant.analyzeAll();
+    }
+  }
+
+  /** Run fresh AI mix analysis on all tracks */
+  runAiMixAnalysis() {
+    this.aiMixAssistant.analyzeAll();
+    this.snackbarService.success(
+      'AI Mix Assistant analyzed ' +
+        this.musicManager.tracks().length +
+        ' tracks'
+    );
+  }
+
+  /** Apply a specific AI mix suggestion to a track */
+  applyMixSuggestion(suggestionId: string) {
+    const suggestion = this.aiMixAssistant
+      .suggestions()
+      .find((s) => s.id === suggestionId);
+    if (!suggestion) return;
+
+    suggestion.action();
+    this.snackbarService.info('Applied: ' + suggestion.label);
+    this.haptic.light();
+  }
+
+  // ── Smart Recording ───────────────────────────────────
+
+  toggleSmartRecordingPanel() {
+    this.haptic.light();
+    this.showSmartRecordingPanel.update((v) => !v);
+  }
+
+  setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
+    this.smartRecording.setRecordingMode(mode);
+    this.snackbarService.info('Recording mode: ' + mode.toUpperCase());
+  }
+
+  // ── Project Workspace ─────────────────────────────────
+
+  toggleProjectMetadata() {
+    this.haptic.light();
+    this.showProjectMetadata.update((v) => !v);
+  }
+
+  async saveProject() {
+    this.haptic.medium();
+    await this.projectWorkspace.manualSave();
+    this.snackbarService.success('Project saved');
+  }
+
+  async exportProject() {
+    this.haptic.light();
+    this.projectWorkspace.downloadProjectBundle();
+    this.snackbarService.success('Project exported as .smuve bundle');
+  }
+
+  setProjectGenre(genre: string) {
+    this.projectWorkspace.setGenre(genre);
+    this.snackbarService.info('Genre: ' + genre);
+  }
+
+  setProjectMood(mood: string) {
+    this.projectWorkspace.updateMetadata({ mood });
+    this.snackbarService.info('Mood: ' + mood);
+  }
+
+  setProjectKey(key: string) {
+    this.projectWorkspace.updateMetadata({ key });
+    this.snackbarService.info('Key: ' + key);
+  }
+
+  // ── Smart Sound ───────────────────────────────────────
+
+  toggleSoundFavorites() {
+    this.haptic.light();
+    this.smartSound.showFavoritesOnly.update((v) => !v);
+  }
+
+  /**
+   * Keyboard shortcut handler for the Studio module.
+   * Returns true if handled, false to pass through.
+   */
+  handleKeyboardShortcut(event: KeyboardEvent): boolean {
+    const ctrl = event.ctrlKey || event.metaKey;
+
+    // Save
+    if (ctrl && event.key === 's') {
+      event.preventDefault();
+      this.saveProject();
+      return true;
+    }
+
+    // Export
+    if (ctrl && event.key === 'e') {
+      event.preventDefault();
+      this.exportProject();
+      return true;
+    }
+
+    // AI Assistant
+    if (ctrl && event.key === 'i') {
+      event.preventDefault();
+      this.toggleAiMixAssistant();
+      return true;
+    }
+
+    return false;
   }
 }
