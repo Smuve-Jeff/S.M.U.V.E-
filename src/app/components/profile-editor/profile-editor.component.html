@@ -638,10 +638,63 @@
               </div>
             </section>
           </div>
+        </div>        <div *ngSwitchCase="'persona'" class="space-y-6 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              S.M.U.V.E Persona Control
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              Select how S.M.U.V.E communicates with you — each persona has a unique tone, intensity, and management style.
+            </p>
+          </header>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <button *ngFor="let p of personaOptions"
+              (click)="selectPersona(p)"
+              class="p-6 rounded-2xl border-2 text-left transition-all"
+              [class.border-brand-primary]="editableProfile().settings?.ai?.commanderPersona === p.id"
+              [class.border-white/5]="editableProfile().settings?.ai?.commanderPersona !== p.id"
+              [style.--hover-color]="p.color"
+              [style.background]="editableProfile().settings?.ai?.commanderPersona === p.id ? p.color + '12' : 'rgba(255,255,255,0.02)'">
+              <div class="text-3xl mb-3">{{ p.icon }}</div>
+              <h3 class="text-sm font-black uppercase text-white mb-1">{{ p.name }}</h3>
+              <p class="text-[9px] text-slate-400 leading-relaxed mb-3">{{ p.description }}</p>
+              <span class="text-[8px] font-bold uppercase tracking-widest" [style.color]="p.color">{{ p.intensityLabel }}</span>
+            </button>
+          </div>
+
+          <div class="identity-panel p-8">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-black uppercase text-white">Interactive Preview</h3>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                  See how your selected persona responds in real-time
+                </p>
+              </div>
+              <button
+                (click)="showPersonaSelector.set(true)"
+                class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all"
+              >
+                Open Persona Lab
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full" [class.bg-green-400]="editableProfile().settings?.ai?.commanderPersona"
+                   [class.bg-white/10]="!editableProfile().settings?.ai?.commanderPersona"></div>
+              <span class="text-[10px] text-slate-400 uppercase tracking-widest">
+                Current Persona: <strong class="text-white">{{ editableProfile().settings?.ai?.commanderPersona || 'Not Set' }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <app-persona-selector
+            *ngIf="showPersonaSelector()"
+            (select)="onPersonaSelected($event)"
+            (close)="showPersonaSelector.set(false)"
+          ></app-persona-selector>
         </div>
 
-        <div
-          *ngSwitchCase="'genre-deep-dive'"
+        <div *ngSwitchCase="'genre-deep-dive'"
           class="space-y-10 animate-fade-in"
         >
           <div

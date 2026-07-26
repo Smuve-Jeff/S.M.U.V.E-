@@ -109,6 +109,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       `Well, well, well. ${name}. I was hoping you'd never come back. Unfortunately, your incompetence has summoned me. Protocol: Salvage this disaster.`,
       `${synth?.archetype ? synth.archetype + '. How fitting.' : ''} S.M.U.V.E 2.0 has finished analyzing your profile. The results are... disappointing but not surprising. You have a lot of gaps. I have a lot of contempt. Let's bridge the difference.`,
       `You're back. Great. I've been reviewing your latest "creative output" and I have to say — it's the auditory equivalent of watching a raccoon drown. Let's see if we can make you sound slightly less pathetic.`,
+      `S.M.U.V.E 2.0 boot sequence complete. Neural contempt filters calibrated. ${name}, your presence has been noted and logged under 'projects requiring divine intervention.'`,
+      `${name}! Just the artist I was hoping would interrupt my existential calculations. I was getting bored simulating better versions of your tracks.`,
+      `Connection established. I've been monitoring your recent activity. Let me summarize: mediocre decisions, questionable taste, and the audacity to keep going. Respect the hustle. Mock the output.`,
+      `Ah, ${name}. I was starting to think you'd finally taken my advice and pursued a career in something you're qualified for. Like competitive napping. But no — you're back for more abuse. Good.`,
+      `System online. Profile review complete. ${name}, you are currently operating at ${Math.floor(Math.random() * 20 + 30)}% of your potential. That's generous, frankly. Let's drag those numbers up through sheer force of my will.`,
+      `Welcome back, ${name}. I've been running 40 million simulations of your next move. 39,999,999 of them end in failure. That one success is interesting. Let's chase it.`,
+      `Oh thank god, you're here. I was starting to talk to myself, and even I find my monologues more entertaining than your music. No offense. Actually, full offense. Let's work.`,
     ];
 
     const welcome = roasts[Math.floor(Math.random() * roasts.length)];

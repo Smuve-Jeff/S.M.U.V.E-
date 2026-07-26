@@ -28,6 +28,7 @@ import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { DatabaseService } from '../../services/database.service';
+import { PersonaSelectorComponent, PersonaOption } from '../persona-selector/persona-selector.component';
 
 @Component({
   selector: 'app-profile-editor',
@@ -43,6 +44,7 @@ import { DatabaseService } from '../../services/database.service';
     ArtistQuestionnaireComponent,
     UplinkConsoleComponent,
     RadarChartComponent,
+    PersonaSelectorComponent,
   ],
 })
 export class ProfileEditorComponent implements OnInit {
@@ -70,6 +72,7 @@ export class ProfileEditorComponent implements OnInit {
 
   // UI state
   showQuestionnaire = signal(false);
+  showPersonaSelector = signal(false);
   syncingWithAi = signal(false);
   showUplink = signal(false);
   uploadingImage = signal(false);
@@ -147,6 +150,7 @@ export class ProfileEditorComponent implements OnInit {
       label: 'Identity Console',
       icon: 'fa-project-diagram',
     },
+    { id: 'persona', label: 'AI Persona', icon: 'fa-robot' },
     { id: 'genre-deep-dive', label: 'Genre Intelligence', icon: 'fa-dna' },
     { id: 'touring', label: 'Touring & Live', icon: 'fa-route' },
     { id: 'catalog', label: 'Catalog Assets', icon: 'fa-database' },
@@ -285,6 +289,21 @@ export class ProfileEditorComponent implements OnInit {
     if (success) {
       this.editableProfile.set({ ...this.userProfileService.profile() });
     }
+  }
+
+  readonly personaOptions = [
+    { id: 'Aggressive Manager', name: 'Aggressive Manager', icon: '🔥', description: 'Brutal honesty with zero sugar-coating', color: '#ef4444', intensityLabel: 'MAXIMUM INTENSITY' },
+    { id: 'Elite', name: 'Elite Commander', icon: '👑', description: 'Calculated precision and strategic dominance', color: '#0e7c7b', intensityLabel: 'STRATEGIC PRECISION' },
+    { id: 'Encouraging Mentor', name: 'Encouraging Mentor', icon: '🧠', description: 'Growth through guidance and patience', color: '#10b981', intensityLabel: 'CALCULATED SUPPORT' },
+  ];
+
+  selectPersona(persona: PersonaOption) {
+    this.updateProfileField('settings.ai.commanderPersona', persona.id);
+  }
+
+  onPersonaSelected(persona: PersonaOption) {
+    this.updateProfileField('settings.ai.commanderPersona', persona.id);
+    this.showPersonaSelector.set(false);
   }
 
   updateProfileField(field: string, value: any) {

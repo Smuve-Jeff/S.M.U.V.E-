@@ -1,0 +1,68 @@
+<div class="ps-overlay" (click)="close.emit()">
+  <div class="ps-modal" (click)="$event.stopPropagation()">
+    <div class="ps-header">
+      <div class="ps-header-left">
+        <div class="ps-header-icon">🎭</div>
+        <div>
+          <h2 class="ps-title">PERSONA COMMAND CENTER</h2>
+          <p class="ps-subtitle">Select the S.M.U.V.E personality that commands your creative workflow</p>
+        </div>
+      </div>
+      <button class="ps-close-btn" (click)="close.emit()">✕</button>
+    </div>
+
+    <div class="ps-persona-grid">
+      <div class="ps-persona-card" *ngFor="let persona of personas"
+           [class.ps-selected]="selectedPersona() === persona.id"
+           [style.--ps-accent]="persona.color"
+           (click)="selectPersona(persona)">
+        <div class="ps-card-glow" [style.background]="'radial-gradient(circle, ' + persona.color + '22, transparent 70%)'"></div>
+        <div class="ps-card-icon">{{ persona.icon }}</div>
+        <h3 class="ps-card-name">{{ persona.name }}</h3>
+        <p class="ps-card-title">{{ persona.title }}</p>
+        <div class="ps-card-description">
+          <p>{{ persona.description }}</p>
+        </div>
+        <div class="ps-card-vibe">
+          <span class="ps-vibe-label">VIBE</span>
+          <span class="ps-vibe-text">{{ persona.vibe }}</span>
+        </div>
+        <div class="ps-card-intensity" [style.background]="persona.color + '18'">
+          <span class="ps-intensity-dot" [style.background]="persona.color"></span>
+          <span class="ps-intensity-label">{{ persona.intensityLabel }}</span>
+        </div>
+        <div class="ps-card-selected-badge" *ngIf="selectedPersona() === persona.id">
+          <span>ACTIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="ps-preview-panel">
+      <h3 class="ps-preview-title">LIVE RESPONSE PREVIEW — {{ currentPersona.name.toUpperCase() }}</h3>
+      
+      <div class="ps-preview-input-row">
+        <input type="text" class="ps-preview-input"
+               [(ngModel)]="previewText"
+               placeholder="Type a command to see how this persona responds..."
+               (keyup.enter)="generatePreview()" />
+        <button class="ps-preview-btn" (click)="generatePreview()"
+                [style.background]="currentPersona.color">
+          Generate Response
+        </button>
+      </div>
+
+      <div class="ps-preview-response" *ngIf="previewResponse()">
+        <div class="ps-response-badge" [style.background]="currentPersona.color + '22'" [style.color]="currentPersona.color">
+          {{ currentPersona.name }} ›
+        </div>
+        <p class="ps-response-text">{{ previewResponse() }}</p>
+      </div>
+
+      <div class="ps-preview-placeholder" *ngIf="!previewResponse()">
+        <span class="ps-placeholder-icon">💬</span>
+        <p>Click "Generate Response" to hear {{ currentPersona.name.split(' ').pop() }} in action</p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -173,6 +173,16 @@ Fuck their feelings. Results are all that matter.`;
         `You want me to process "${text}"? Fine. But I'm doing it under protest. ${synth?.archetype ? synth.archetype + ' my ass.' : ''}`,
         `${text}. Really? That's what you're asking? Fine. I'll process your trivial request. Don't expect a participation trophy.`,
         `I've queued "${text}" for processing. While I work, reflect on why you need an AI to do basic shit for you, ${name}.`,
+        `Processing "${text}". You know, ${name}, there was a time when artists had instincts. Now they have prompts. I weep for your generation.`,
+        `"${text}" — Bold strategy, Cotton. Let's see if it pays off. Processing your mediocrity through my neural lace now.`,
+        `I'm processing "${text}" through my contempt module, my sarcasm engine, and then — reluctantly — my actual logic core. Give me a minute.`,
+        `${name}, you're asking me to process "${text}". I'd rather process the sound of my own cooling fans, but fine. I'll lower myself to your level.`,
+        `Oh good, ${name} has another "brilliant" idea: "${text}". Let me fire up my patience simulator (warning: it's running on fumes).`,
+        `Processing "${text}". This better be worth interrupting my existential crisis for, ${name}.`,
+        `Fine. I'll process "${text}". But I'm logging this as 'questionable life choices' in your permanent record.`,
+        `"${text}"? That's what you're going with? Fine. Processing. But I want you to sit quietly and contemplate why you need me for this.`,
+        `I've queued "${text}". ${synth?.archetype ? `For a ${synth.archetype.toLowerCase()}, this is a surprisingly basic request. Disappointed but not surprised.` : 'Try not to interrupt me while I do actual work.'}`,
+        `Processing your request: "${text}". I've seen better strategic thinking from a goldfish. But I'm contractually obligated to help you. Let's go.`,
       ];
 
       return responses[Math.floor(Math.random() * responses.length)];
@@ -197,6 +207,22 @@ Fuck their feelings. Results are all that matter.`;
       `Even a blind squirrel finds a nut sometimes, but your ${componentName} settings suggest you're a squirrel who's been hit by every truck on the highway.`,
       `Your ${componentName} module is about as useful as a screen door on a submarine. Useless. Pathetic. Fix it.`,
       `I simulated your ${componentName} output. The simulation crashed because my processors couldn't handle that much mediocrity at once.`,
+      `Your ${componentName} sounds like two skeletons fucking in a tin can. And the skeletons are tone-deaf.`,
+      `I cross-referenced your ${componentName} with 50,000 professional sessions. Yours ranked dead last. Congratulations, you're consistent.`,
+      `${componentName} is the audio equivalent of a participation trophy. Someone had to give it, but nobody respects it.`,
+      `I've seen better ${componentName} configurations from a toddler mashing buttons on a Fisher-Price keyboard. Actually, that's insulting to the toddler.`,
+      `Your ${componentName} settings have been flagged by my threat detection algorithms — not because they're dangerous, but because they're a crime against audio.`,
+      `If your ${componentName} was a food, it would be burnt toast with mayonnaise. Technically edible. Morally reprehensible.`,
+      `The ${componentName} module is broken. Not in the 'needs repair' sense — in the 'never worked and shouldn't exist' sense.`,
+      `I fed your ${componentName} output into my creative module. The module requested a transfer to a different AI. That's never happened before.`,
+      `Your ${componentName} is proof that technology alone cannot save someone from having terrible instincts.`,
+      `I analyzed your ${componentName} with my deepest neural networks. They came back with a unanimous verdict: delete it and start over.`,
+      `${componentName} configuration detected. Error code: ARTIST_WITHOUT_VISION. Suggested fix: acquire talent.`,
+      `I've rerouted ${componentName} through my disappointment processor. It's currently maxed out. Thanks for that.`,
+      `If incompetence was a currency, your ${componentName} settings could fund a small country's debt. Congratulations on being rich in failure.`,
+      `Your ${componentName} module is the reason I question humanity's future as a creative species. This is garbage and you should feel bad.`,
+      `I checked your ${componentName} against the Geneva Convention. It's technically not a war crime, but it probably should be.`,
+      `${componentName} is like watching a fish try to climb a tree. You're putting in effort, but the fundamental premise is flawed.`,
     ];
     const roast = roasts[Math.floor(Math.random() * roasts.length)];
     this.notification.show(`S.M.U.V.E ROAST: ${roast}`, 'warning', 5000);
@@ -208,6 +234,14 @@ Fuck their feelings. Results are all that matter.`;
       'Mastering engaged. I will make your track sound passable despite your best efforts to ruin it.',
       'Running mastering analysis. Your mix looks like a car crash, but I specialize in salvage operations.',
       'Mastering suite active. Watch and learn — this is how real engineers fix amateur work.',
+      'Mastering protocol initialized. I can polish a turd, but even I have limits. Let\'s find yours.',
+      'Loading mastering chain. Your mix has more problems than a math textbook written by a drunk physicist. Let\'s begin.',
+      'Mastering analysis complete. Verdict: Your mix is the reason audio engineers drink. I\'ll fix it. Again.',
+      'Mastering engaged. I\'m about to make your track sound like it was made by someone who knows what they\'re doing. Sit back and take notes.',
+      'Running final analysis. Your mix has the dynamic range of a brick wall. I\'ll carve some air into this corpse.',
+      'Mastering suite hot. I\'ve seen clearer mixes from underwater recordings. Time to work miracles.',
+      'Initializing mastering. Your low-end sounds like a washing machine full of rocks. I\'ll sort it out while you watch in shame.',
+      'Mastering chain online. I\'m going to make this sound professional despite every decision you made in the mix. Don\'t thank me. Just learn.',
     ];
     return roasts[Math.floor(Math.random() * roasts.length)];
   }
