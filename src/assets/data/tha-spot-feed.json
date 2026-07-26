@@ -1048,7 +1048,7 @@
     },
     {
       "id": "super-street-fighter",
-      "name": "Super Street Fighter II",
+      "name": "Super Street Fighter II: The New Challengers",
       "url": "https://www.gamepix.com/play/street-fighter-2",
       "description": "The legendary world warrior tournament returns with the New Challengers. Master the classic combat that defined a generation.",
       "genre": "Fighting",
@@ -2520,7 +2520,7 @@
     },
     {
       "id": "rally-racquet-tour",
-      "name": "Rally Racquet Tour",
+      "name": "Rally Racket Tour",
       "url": "https://www.gamepix.com/play/rally-racquet-tour",
       "description": "Fast tennis rallies with tournament brackets, precision returns, and court-speed control.",
       "genre": "Sports",
@@ -2824,7 +2824,7 @@
     },
     {
       "id": "sonic-racing",
-      "name": "Sonic Racing",
+      "name": "Team Sonic Racing",
       "url": "https://www.gamepix.com/play/sonic-racing",
       "genre": "Racing",
       "description": "High-velocity hedgehog racing with drift-enabled controls and tactical loop shortcuts.",
@@ -2936,7 +2936,7 @@
     },
     {
       "id": "gta-elite-wasm",
-      "name": "GTA (Elite HD)",
+      "name": "Grand Theft Auto (Elite HD)",
       "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
       "genre": "Action",
       "description": "The Absolute original. High-definition top-down urban chaos. S.M.U.V.E. stabilized execution.",
@@ -3054,7 +3054,7 @@
     },
     {
       "id": "dbz-elite-wasm",
-      "name": "Dragon Ball Z: Buyuu Retsuden",
+      "name": "Dragon Ball Z: Buyū Retsuden",
       "url": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html",
       "genre": "Fighting",
       "description": "Legendary Saiyan combat. High-speed martial arts and energy blasts in this classic fighting emulation.",
@@ -4073,7 +4073,7 @@
     },
     {
       "id": "mortal-kombat-2-elite",
-      "name": "Mortal Kombat II",
+      "name": "Mortal Kombat 2",
       "url": "https://www.gamepix.com/play/mortal-kombat-2",
       "genre": "Fighting",
       "description": "The peak of the MK series. Experience the fatalities and flawless victories in Elite WASM.",
@@ -4253,7 +4253,7 @@
     },
     {
       "id": "gta-san-andreas-elite",
-      "name": "GTA: San Andreas (Elite HD)",
+      "name": "Grand Theft Auto: San Andreas (Elite HD)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Return to Los Santos in the Absolute masterpiece. High-performance, high-definition emulation.",
@@ -4930,7 +4930,7 @@
     },
     {
       "id": "gta-vice-city-elite",
-      "name": "GTA: Vice City (Elite HD)",
+      "name": "Grand Theft Auto: Vice City (Elite HD)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Neon-soaked 80s in Absolute high-definition. S.M.U.V.E. demands total control.",
@@ -5074,7 +5074,7 @@
     },
     {
       "id": "gta-iii-elite",
-      "name": "GTA III (Elite HD)",
+      "name": "Grand Theft Auto III (Elite HD)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Liberty City in Absolute 3D. High-fidelity PS2-era execution. Dominate the streets.",
@@ -5650,7 +5650,7 @@
     },
     {
       "id": "fifa-2005-elite",
-      "name": "FIFA Soccer 2005",
+      "name": "FIFA 2005",
       "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
       "description": "First touch is everything. Control the pitch with Absolute authority. S.M.U.V.E. loves the beautiful game.",
@@ -7086,7 +7086,7 @@
     },
     {
       "id": "street-fighter-2-ce",
-      "name": "Street Fighter II: CE",
+      "name": "Street Fighter II: Champion Edition",
       "url": "https://www.gamepix.com/play/street-fighter-2",
       "description": "The definitive fighting game experience. Master the Hadouken and climb the world tournament.",
       "genre": "Fighting",
@@ -7368,7 +7368,7 @@
     },
     {
       "id": "gta-2-elite",
-      "name": "GTA 2 (Elite)",
+      "name": "Grand Theft Auto 2 (Elite)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "Respect is everything. The Absolute top-down sequel with multi-gang loyalty systems and high-fidelity chaos.",
@@ -7400,7 +7400,7 @@
     },
     {
       "id": "gta-london-1969-elite",
-      "name": "GTA: London 1969 (Elite)",
+      "name": "Grand Theft Auto: London 1969 (Elite)",
       "url": "/assets/games/halo-ce-web/halo-ce-web.html",
       "genre": "Action",
       "description": "You're nicked! The Absolute expansion taking the chaos to the streets of London. High-fidelity mod implementation.",
@@ -7432,7 +7432,7 @@
     },
     {
       "id": "fc-24-tribute-elite",
-      "name": "EA SPORTS FC 24",
+      "name": "EA Sports FC 24",
       "url": "/assets/games/tempo-lockdown/tempo-lockdown.html",
       "genre": "Sports",
       "description": "Elite WebGL Tribute. High-fidelity browser-native execution for EA SPORTS FC 24.",
@@ -7581,7 +7581,7 @@
     },
     {
       "id": "marvel-vs-capcom-2-elite-master",
-      "name": "Marvel vs Capcom 2",
+      "name": "Marvel vs. Capcom 2: New Age of Heroes",
       "url": "https://www.retrogames.cc/embed/10055-marvel-vs-capcom-2-new-age-of-heroes.html",
       "genre": "Fighting",
       "description": "Absolute high-fidelity Fighting action. Experience Marvel vs Capcom 2 in a stabilized browser environment.",
@@ -7693,7 +7693,7 @@
     },
     {
       "id": "capcom-vs-snk-2-elite-master",
-      "name": "Capcom vs SNK 2",
+      "name": "Capcom vs. SNK 2: Mark of the Millennium 2001",
       "url": "https://www.retrogames.cc/embed/10061-capcom-vs-snk-2-millionaire-fighting-2001.html",
       "genre": "Fighting",
       "description": "Absolute high-fidelity Fighting action. Experience Capcom vs SNK 2 in a stabilized browser environment.",
@@ -7933,7 +7933,7 @@
     },
     {
       "id": "gta-vice-city-elite-elite-master",
-      "name": "GTA Vice City Elite",
+      "name": "Grand Theft Auto: Vice City (Elite)",
       "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience GTA Vice City Elite in a stabilized browser environment.",
@@ -7957,7 +7957,7 @@
     },
     {
       "id": "gta-iii-elite-elite-master",
-      "name": "GTA III Elite",
+      "name": "Grand Theft Auto III (Elite)",
       "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience GTA III Elite in a stabilized browser environment.",
@@ -7981,7 +7981,7 @@
     },
     {
       "id": "tony-hawk-3-elite-master",
-      "name": "Tony Hawk 3",
+      "name": "Tony Hawk's Pro Skater 3",
       "url": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html",
       "genre": "Sports",
       "description": "Absolute high-fidelity Sports action. Experience Tony Hawk 3 in a stabilized browser environment.",
@@ -8053,7 +8053,7 @@
     },
     {
       "id": "need-for-speed-underground-2-elite-master",
-      "name": "Need for Speed Underground 2",
+      "name": "Need for Speed: Underground 2",
       "url": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
       "genre": "Racing",
       "description": "Absolute high-fidelity Racing action. Experience Need for Speed Underground 2 in a stabilized browser environment.",
@@ -8596,7 +8596,7 @@
     },
     {
       "id": "dbz-buus-fury-classic-elite",
-      "name": "DBZ: Buu's Fury (Classic)",
+      "name": "Dragon Ball Z: Buu's Fury (Classic)",
       "url": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
       "description": "Experience the final chapter of the Z-Saga in this high-fidelity GBA masterpiece.",
       "genre": "RPG",
@@ -8807,7 +8807,7 @@
     },
     {
       "id": "gta-1-classic",
-      "name": "GTA (Classic)",
+      "name": "Grand Theft Auto (Classic)",
       "url": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
       "description": "The Absolute high-quality classic version of GTA.",
       "genre": "Action",
@@ -8847,7 +8847,7 @@
     },
     {
       "id": "gta-2-classic",
-      "name": "GTA 2 (Classic)",
+      "name": "Grand Theft Auto 2 (Classic)",
       "url": "https://www.retrogames.cc/embed/41728-grand-theft-auto-2.html",
       "description": "The Absolute high-quality classic version of GTA 2.",
       "genre": "Action",
@@ -8887,7 +8887,7 @@
     },
     {
       "id": "gta-iii-classic",
-      "name": "GTA III (Classic)",
+      "name": "Grand Theft Auto III (Classic)",
       "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
       "description": "The Absolute high-quality classic version of GTA III.",
       "genre": "Action",
@@ -8927,7 +8927,7 @@
     },
     {
       "id": "gta-vc-classic",
-      "name": "GTA: Vice City (Classic)",
+      "name": "Grand Theft Auto: Vice City (Classic)",
       "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
       "description": "The Absolute high-quality classic version of GTA: Vice City.",
       "genre": "Action",
@@ -8967,7 +8967,7 @@
     },
     {
       "id": "gta-sa-classic",
-      "name": "GTA: San Andreas (Classic)",
+      "name": "Grand Theft Auto: San Andreas (Classic)",
       "url": "https://www.retrogames.cc/embed/43315-grand-theft-auto-san-andreas.html",
       "description": "The Absolute high-quality classic version of GTA: San Andreas.",
       "genre": "Action",
@@ -9247,7 +9247,7 @@
     },
     {
       "id": "dbz-sw-classic",
-      "name": "DBZ: Supersonic Warriors (Classic)",
+      "name": "Dragon Ball Z: Supersonic Warriors (Classic)",
       "url": "https://www.retrogames.cc/embed/22415-dragon-ball-z-supersonic-warriors-usa.html",
       "description": "The Absolute high-quality classic version of DBZ: Supersonic Warriors.",
       "genre": "Fighting",
@@ -10899,7 +10899,7 @@
     },
     {
       "id": "1080-snowboarding-elite-master",
-      "name": "1080 Snowboarding",
+      "name": "1080° Snowboarding",
       "url": "https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html",
       "genre": "Sports",
       "description": "Absolute high-fidelity Sports action. Experience 1080 Snowboarding in a stabilized browser environment.",
@@ -11043,7 +11043,7 @@
     },
     {
       "id": "x-men-vs-street-fighter-elite-master",
-      "name": "X-Men vs Street Fighter",
+      "name": "X-Men vs. Street Fighter",
       "url": "https://www.retrogames.cc/embed/8407-x-men-vs-street-fighter-961004.html",
       "genre": "Fighting",
       "description": "Absolute high-fidelity Fighting action. Experience X-Men vs Street Fighter in a stabilized browser environment.",
@@ -12447,7 +12447,7 @@
     },
     {
       "id": "kof-98-arcade-elite",
-      "name": "King of Fighters '98",
+      "name": "The King of Fighters '98: Dream Match Never Ends",
       "url": "https://www.retrogames.cc/embed/19413-the-king-of-fighters-98-the-slugfest.html",
       "genre": "Fighting",
       "description": "The Dream Match - every KOF character in one legendary fighting game.",
