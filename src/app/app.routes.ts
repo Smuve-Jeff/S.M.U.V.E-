@@ -254,6 +254,18 @@ export const routes: Routes = [
         (m) => m.CowriteStudioComponent
       ),
   },
+  {
+    path: 'artist-development',
+    loadComponent: () =>
+      import('./components/artist-development-hub/artist-development-hub.component').then(
+        (m) => m.ArtistDevelopmentHubComponent
+      ),
+  },
+  {
+    path: 'dev-hub',
+    redirectTo: 'artist-development',
+    pathMatch: 'full',
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
