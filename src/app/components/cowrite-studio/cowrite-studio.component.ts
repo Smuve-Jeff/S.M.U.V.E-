@@ -139,7 +139,23 @@ export class CowriteStudioComponent implements OnInit {
     this.showPianoRoll.set(false);
   }
 
-  // ── Auto-Harmony ───────────────────────────────────────
+  // ── MIDI Export ────────────────────────────────────────
+
+  exportMidi() {
+    this.cowrite.exportMidi(this.melodyNotes(), this.harmonyNotes(), this.currentSession()?.bpm || 120);
+  }
+
+  // ── Audio Preview ──────────────────────────────────────
+
+  isPlayingAudio() {
+    return this.cowrite.isPlayingAudio();
+  }
+
+  toggleAudioPreview() {
+    this.cowrite.playAudioPreview(this.melodyNotes(), this.harmonyNotes(), this.currentSession()?.bpm || 120);
+  }
+
+  // ── Auto-Harmony & Chord Voicing ───────────────────────
 
   generateHarmony() {
     const harm = this.cowrite.generateAutoHarmony(
@@ -160,6 +176,30 @@ export class CowriteStudioComponent implements OnInit {
       }
       return [...current, type] as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>;
     });
+  }
+
+  // Chord Voicing specific state
+  voicingInversion = signal(0);
+  voicingSpread = signal<'close' | 'open' | 'wide'>('close');
+  voicingOctaveShift = signal(0);
+
+  applyChordVoicing() {
+    const configs = this.harmonyTypeOptions().map(t => ({
+      type: t as '3rd' | '5th' | '7th' | 'octave' | 'unison' | 'chord',
+      enabled: true,
+      inversion: this.voicingInversion(),
+      octaveShift: this.voicingOctaveShift(),
+      spread: this.voicingSpread(),
+    }));
+
+    const result = this.cowrite.generateChordVoicings(
+      this.melodyNotes(),
+      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison' | 'chord'>,
+      configs,
+      this.currentSession()?.key || 'C'
+    );
+    this.melodyNotes.set(result.melody);
+    this.harmonyNotes.set(result.harmony);
   }
 
   // ── Project Manager ────────────────────────────────────
