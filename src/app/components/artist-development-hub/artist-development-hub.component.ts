@@ -201,7 +201,7 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     return colors[stage] || 'bg-slate-700';
   }
 
-  updateTrackStage(releaseId: string, trackId: string, stage: keyof ProductionTrack['stages']) {
+  updateTrackStage(releaseId: string, trackId: string, stage: string) {
     const statuses: ('Pending' | 'In Progress' | 'Completed')[] = ['Pending', 'In Progress', 'Completed'];
     const track = this.selectedRelease()?.tracks.find(t => t.id === trackId);
     if (!track) return;

@@ -130,6 +130,11 @@ export class MusicManagerService {
    * The `timestamp` lets observers dedupe / detect newly emitted
    * requests without comparing deep object identity.
    */
+  /** Public accessor for the current project name — used by AiService */
+  get projectName(): string {
+    return this.projectService.currentProject()?.name || 'Untitled';
+  }
+
   crossLinkRequest = signal<{
     view: 'piano-roll';
     trackId: string;

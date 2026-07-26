@@ -495,19 +495,19 @@
                   <div class="text-[9px] font-bold text-white mb-2">{{ track.title }}</div>
                   <div class="grid grid-cols-5 gap-1">
                     @for (stage of ['instrumental', 'lyrics', 'vocals', 'mixing', 'mastering']; track stage) {
-                      <button (click)="updateTrackStage(rel.id, track.id, stage as keyof ProductionTrack['stages'])" class="flex flex-col items-center gap-1 p-1.5 rounded-lg text-[6px] uppercase tracking-widest font-bold transition-all hover:bg-white/5"
-                        [class]="getStageColor(track.stages[stage as keyof ProductionTrack['stages']])"
+                      <button (click)="updateTrackStage(rel.id, track.id, stage)" class="flex flex-col items-center gap-1 p-1.5 rounded-lg text-[6px] uppercase tracking-widest font-bold transition-all hover:bg-white/5"
+                        [class]="getStageColor(track.stages[stage])"
                       >
-                        <span [class.text-white]="track.stages[stage as keyof ProductionTrack['stages']] === 'Completed'"
-                              [class.text-amber-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress'"
-                              [class.text-slate-500]="track.stages[stage as keyof ProductionTrack['stages']] === 'Pending'"
+                        <span [class.text-white]="track.stages[stage] === 'Completed'"
+                              [class.text-amber-400]="track.stages[stage] === 'In Progress'"
+                              [class.text-slate-500]="track.stages[stage] === 'Pending'"
                         >{{ stage.slice(0, 4) }}</span>
                         <span class="material-symbols-outlined text-sm"
-                          [class.text-emerald-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'Completed'"
-                          [class.text-amber-400]="track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress'"
-                          [class.text-slate-600]="track.stages[stage as keyof ProductionTrack['stages']] === 'Pending'"
+                          [class.text-emerald-400]="track.stages[stage] === 'Completed'"
+                          [class.text-amber-400]="track.stages[stage] === 'In Progress'"
+                          [class.text-slate-600]="track.stages[stage] === 'Pending'"
                         >
-                          {{ track.stages[stage as keyof ProductionTrack['stages']] === 'Completed' ? 'check_circle' : track.stages[stage as keyof ProductionTrack['stages']] === 'In Progress' ? 'hourglass_top' : 'radio_button_unchecked' }}
+                          {{ track.stages[stage] === 'Completed' ? 'check_circle' : track.stages[stage] === 'In Progress' ? 'hourglass_top' : 'radio_button_unchecked' }}
                         </span>
                       </button>
                     }
@@ -568,4 +568,3 @@
       Open Profile Editor → Complete Your Artist Identity
     </button>
   </div>
-</div>

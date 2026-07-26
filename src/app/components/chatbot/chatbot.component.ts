@@ -437,6 +437,7 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
         kbWriteAccess: boolean;
         commanderPersona: string;
         aiPersonaIntensityEnabled: boolean;
+        aiTotalControlEnabled: boolean;
         autoAuditEnabled: boolean;
         aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
       }>;
@@ -450,6 +451,7 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
       kbWriteAccess: aiSettings.kbWriteAccess ?? false,
       commanderPersona: aiSettings.commanderPersona ?? 'Elite',
       aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false,
+      aiTotalControlEnabled: aiSettings.aiTotalControlEnabled ?? false,
       aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
       autoAuditEnabled: aiSettings.autoAuditEnabled ?? false,
     };

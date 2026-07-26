@@ -124,7 +124,7 @@ ${totalControl === 'TOTAL_CONTROL_ACTIVE'
 
 SIMULATED APP STATE:
 - Current route: ${window?.location?.pathname || '/hub'}
-- Active project: ${this.musicManager.projectName() || 'Untitled'}
+- Active project: ${this.musicManager.projectName || 'Untitled'}
 - Tracks: ${this.musicManager.tracks().length}
 - Available commands: /studio [action], /mixer [action], /tracks [action], /project [action], /go [page], /profile [action], /export [format]
 

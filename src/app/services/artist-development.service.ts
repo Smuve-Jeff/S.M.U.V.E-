@@ -325,7 +325,7 @@ export class ArtistDevelopmentService {
     this.selectedRelease.set(this.catalog().find(r => r.id === id) || null);
   }
 
-  updateTrackStatus(releaseId: string, trackId: string, stage: keyof ProductionTrack['stages'], status: 'Pending' | 'In Progress' | 'Completed'): void {
+  updateTrackStatus(releaseId: string, trackId: string, stage: string, status: 'Pending' | 'In Progress' | 'Completed'): void {
     this.catalog.update(list =>
       list.map(r => {
         if (r.id !== releaseId) return r;

@@ -227,7 +227,7 @@ export class SongwritingAssistantService {
   /** Generate actual MIDI note melody for lyrics */
   generateMelodyForLyrics(lyrics: LyricSection[], key: string = 'C', scale: string = 'major'): MelodyNote[][] {
     const scaleNotes = this.getScaleNotes(key, scale);
-    return lyrics.map(section =>
+    return lyrics.flatMap(section =>
       section.lines.map((line, li) => {
         const words = line.text.split(' ');
         const syllables = this.estimateSyllables(line.text);

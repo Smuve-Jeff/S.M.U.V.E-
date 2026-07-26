@@ -94,6 +94,7 @@ export class CowriteStudioComponent implements OnInit {
       topic: '',
       mood: 'emotional',
       artist: '',
+      artists: [] as string[],
       genre: 'Pop',
     });
     // Load saved projects from localStorage on init

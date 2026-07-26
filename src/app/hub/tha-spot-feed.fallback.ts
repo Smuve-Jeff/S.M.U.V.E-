@@ -8475,7 +8475,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
       },
     },
-    },
     // ── Multiplayer & Co-op Arcade (New Additions) ──
     {
       id: 'smash-karts-multiplayer',
@@ -9232,7 +9231,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: '8 Ball Pool',
       url: 'https://www.miniclip.com/games/8-ball-pool',
       genre: 'Sports',
-      description: 'The world's most played pool game. Online multiplayer billiards with ranked play, tournaments, and chat.',
+      description: 'The world\'s most played pool game. Online multiplayer billiards with ranked play, tournaments, and chat.',
       rating: 4.8,
       playersOnline: 52000,
       availability: 'Online',
@@ -9511,7 +9510,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 2,
       sessionObjectives: ['Complete a co-op mission', 'Extract successfully'],
-      controlHints: ['Communicate breach points', 'Cover your teammates' reloads'],
+      controlHints: ['Communicate breach points', 'Cover your teammates\' reloads'],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
