@@ -152,6 +152,7 @@ export class AudioEngineService {
   private midiOutputs: any[] = [];
   public midiClockEnabled = signal(true);
   private djTracks = new Map<number, any>();
+  private workletNode: AudioWorkletNode | null = null;
 
   constructor() {
     this.deckA = this.createDeck('A');
@@ -210,6 +211,7 @@ export class AudioEngineService {
     // Device labels stay empty until the user grants permission, but deviceId entries are still
     // useful for setSinkId targeting and the empty-state hint check (`outputDevices().length === 0`).
     this.refreshOutputDevices();
+    this.initWorklet();
     // Track AudioContext.state reactively so the contextState signal stays in sync
     // with engine lifecycle transitions (suspended ↔ running ↔ closed).
     this.ctx.onstatechange = this._ctxStateHandler;
@@ -264,10 +266,16 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.countInRemainingSteps = this.stepsPerBeat() * 4;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(
-      () => this.scheduler(),
-      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
-    );
+    
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'SET_TEMPO', payload: this.tempo() });
+      this.workletNode.port.postMessage({ type: 'START' });
+    } else {
+      this.schedulerHandle = setInterval(
+        () => this.scheduler(),
+        AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+      );
+    }
   }
 
   start() {
@@ -276,15 +284,24 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.sendMidiStart();
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(
-      () => this.scheduler(),
-      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
-    );
+    
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'SET_TEMPO', payload: this.tempo() });
+      this.workletNode.port.postMessage({ type: 'START' });
+    } else {
+      this.schedulerHandle = setInterval(
+        () => this.scheduler(),
+        AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+      );
+    }
   }
 
   stop() {
     this.isPlaying.set(false);
     this.sendMidiStop();
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'STOP' });
+    }
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -294,6 +311,22 @@ export class AudioEngineService {
     this.visualStep.set(0);
     this.stopDeck('A');
     this.stopDeck('B');
+  }
+
+  private async initWorklet() {
+    try {
+      await this.ctx.audioWorklet.addModule('assets/audio-processor.worklet.js');
+      this.workletNode = new AudioWorkletNode(this.ctx, 'smuve-audio-processor');
+      this.workletNode.port.onmessage = (event) => {
+        if (event.data.type === 'TICK') {
+          const { step, time, duration } = event.data.payload;
+          this.handleTick(step, time, duration);
+        }
+      };
+      this.workletNode.port.postMessage({ type: 'SET_TEMPO', payload: this.tempo() });
+    } catch (err) {
+      console.warn('AudioWorklet load failed, falling back to setInterval', err);
+    }
   }
 
   private async initMidiOut() {
@@ -322,44 +355,53 @@ export class AudioEngineService {
     this.sendMidiToAll([0xfc]);
   }
 
+  private handleTick(step: number, time: number, stepDuration: number) {
+    if (this.isCountIn()) {
+      if (step % this.stepsPerBeat() === 0) {
+        this.playMetronomeClick(time, step === 0, true);
+      }
+      this.countInRemainingSteps--;
+      if (this.countInRemainingSteps <= 0) {
+        this.isCountIn.set(false);
+        this.onCountInComplete?.();
+        // Reset step in worklet if possible, else handle here
+        if (this.workletNode) this.workletNode.port.postMessage({ type: 'RESET_STEP' });
+        else this.currentStep = 0;
+      }
+      return;
+    }
+
+    const loopedStep = step % this.loopLengthSteps();
+    
+    this.onScheduleStep?.(loopedStep, time, stepDuration);
+    
+    if (this.metronomeEnabled() && loopedStep % this.stepsPerBeat() === 0) {
+      this.playMetronomeClick(time, loopedStep % (this.stepsPerBeat() * 4) === 0);
+    }
+    
+    const visualDelay = (time - this.ctx.currentTime) * 1000;
+    setTimeout(
+      () => {
+        this.visualStep.set(loopedStep);
+        this.currentBeat.set(loopedStep / this.stepsPerBeat());
+      },
+      Math.max(0, visualDelay)
+    );
+  }
+
   private scheduler() {
     const stepDuration = 60 / this.tempo() / this.stepsPerBeat();
     while (
       this.nextNoteTime <
       this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
     ) {
-      const step = this.currentStep;
-      if (this.isCountIn()) {
-        if (step % this.stepsPerBeat() === 0) {
-          this.playMetronomeClick(this.nextNoteTime, step === 0, true);
-        }
-        this.nextNoteTime += stepDuration;
-        this.currentStep++;
-        this.countInRemainingSteps--;
-        if (this.countInRemainingSteps <= 0) {
-          this.isCountIn.set(false);
-          this.currentStep = 0;
-          this.onCountInComplete?.();
-        }
-        continue;
-      }
-      this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
-      if (this.metronomeEnabled() && step % this.stepsPerBeat() === 0) {
-        this.playMetronomeClick(
-          this.nextNoteTime,
-          step % (this.stepsPerBeat() * 4) === 0
-        );
-      }
-      const visualDelay = (this.nextNoteTime - this.ctx.currentTime) * 1000;
-      setTimeout(
-        () => {
-          this.visualStep.set(step);
-          this.currentBeat.set(step / this.stepsPerBeat());
-        },
-        Math.max(0, visualDelay)
-      );
+      this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       this.nextNoteTime += stepDuration;
-      this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+      if (!this.isCountIn()) {
+        this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+      } else {
+        this.currentStep++;
+      }
     }
   }
 
@@ -566,7 +608,7 @@ export class AudioEngineService {
    * Uses bandlimited wavetables for saw/square when antialias is enabled,
    * otherwise falls back to native oscillator types.
    */
-  private createAntialiasedOscillator(ctx: AudioContext, type: string, freq: number): OscillatorNode {
+  private createAntialiasedOscillator(ctx: AudioContext, type: string, freq: number, time: number): OscillatorNode {
     const osc = ctx.createOscillator();
     if (this.antialiasEnabled() && (type === 'sawtooth' || type === 'square')) {
       // Bandlimited wavetable via oversampled harmonic synthesis
@@ -591,7 +633,7 @@ export class AudioEngineService {
     } else {
       osc.type = (type as OscillatorType) || 'sine';
     }
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.setValueAtTime(freq, time);
     return osc;
   }
 
@@ -607,7 +649,7 @@ export class AudioEngineService {
     sendB: number,
     params: any
   ) {
-    const osc = this.createAntialiasedOscillator(this.ctx, params.type || 'sine', freq);
+    const osc = this.createAntialiasedOscillator(this.ctx, params.type || 'sine', freq, time);
     const panner = this.ctx.createStereoPanner();
     const vca = this.ctx.createGain();
     panner.pan.setValueAtTime(pan, time);

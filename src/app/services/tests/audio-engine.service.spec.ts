@@ -60,6 +60,7 @@ describe('AudioEngineService', () => {
       stop: jest.fn(),
       type: 'lowpass',
       frequencyBinCount: 1024,
+      setPeriodicWave: jest.fn(),
     });
 
     compressorNode = createMockNode();
@@ -67,6 +68,7 @@ describe('AudioEngineService', () => {
     mockAudioContext = {
       createGain: jest.fn().mockImplementation(createMockNode),
       createOscillator: jest.fn().mockImplementation(createMockNode),
+      createPeriodicWave: jest.fn().mockReturnValue({}),
       createDynamicsCompressor: jest.fn().mockReturnValue(compressorNode),
       createDelay: jest.fn().mockImplementation(createMockNode),
       createBiquadFilter: jest.fn().mockImplementation(createMockNode),
@@ -195,6 +197,7 @@ describe('AudioEngineService', () => {
 
   it('should shape synth notes and capture midi when recording', () => {
     service.isRecording.set(true);
+    service.antialiasEnabled.set(false);
     service.recorder.pendingMidi = [];
 
     service.playSynth(1.25, 440, 0.5, 2, -0.25, {
