@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AiService, UpgradeRecommendation } from '../services/ai.service';
 
@@ -14,6 +14,20 @@ export class NeuralFoundryComponent {
 
   availableUpgrades = this.orchestrator.availableUpgrades;
   isProcessing = this.orchestrator.isProcessing;
+  activeCategory = signal<string>('All');
+
+  /** Extract unique upgrade types for filter chips */
+  upgradeCategories = computed(() => {
+    const types = new Set(this.availableUpgrades().map((u) => u.type));
+    return ['All', ...Array.from(types)];
+  });
+
+  /** Filtered upgrades based on active category */
+  filteredUpgrades = computed(() => {
+    const cat = this.activeCategory();
+    if (cat === 'All') return this.availableUpgrades();
+    return this.availableUpgrades().filter((u) => u.type === cat);
+  });
 
   unlock(upgrade: UpgradeRecommendation) {
     if (upgrade.state === ('locked' as any)) {

@@ -4,9 +4,22 @@
     <p>Available Neural Upgrades</p>
   </header>
 
+  <!-- Category Filter Chips -->
+  <div class="foundry-filters" *ngIf="upgradeCategories.length > 1">
+    <button
+      *ngFor="let cat of upgradeCategories"
+      type="button"
+      class="filter-chip"
+      [class.is-active]="activeCategory() === cat"
+      (click)="activeCategory.set(cat)"
+    >
+      {{ cat }}
+    </button>
+  </div>
+
   <div class="upgrades-list">
     <div
-      *ngFor="let upgrade of availableUpgrades()"
+      *ngFor="let upgrade of filteredUpgrades()"
       class="upgrade-card"
       [class.unlocked]="upgrade.state === 'unlocked'"
     >
@@ -20,6 +33,16 @@
         <p class="upgrade-rationale">
           <strong>Rationale:</strong> {{ upgrade.rationale }}
         </p>
+        <!-- Progress toward unlock -->
+        <div class="upgrade-progress" *ngIf="upgrade.state !== 'unlocked'">
+          <div class="progress-bar-track">
+            <div
+              class="progress-bar-fill"
+              [style.width.%]="upgrade.unlockProgress || 0"
+              [style.background]="'linear-gradient(90deg, #00e5ff, #ff007f)'"
+            ></div>
+          </div>
+        </div>
       </div>
 
       <div class="card-footer">
@@ -41,7 +64,7 @@
         </button>
       </div>
     </div>
-    <div *ngIf="availableUpgrades().length === 0" class="no-upgrades">
+    <div *ngIf="filteredUpgrades().length === 0" class="no-upgrades">
       <p>All available Neural Upgrades have been unlocked.</p>
     </div>
   </div>

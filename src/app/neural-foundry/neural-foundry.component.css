@@ -1,113 +1,296 @@
 :host {
-  --foundry-bg: #101010;
-  --foundry-surface: #1a1a1a;
-  --foundry-border: #3a3a3a;
-  --foundry-text: #e0e0e0;
-  --foundry-text-dark: #888;
-  --foundry-primary: #00aaff;
-  --foundry-unlocked: #00ffaa;
+  --foundry-bg: #07060d;
+  --foundry-surface: rgba(255,255,255,0.04);
+  --foundry-border: rgba(255,255,255,0.08);
+  --foundry-text: #faf9ff;
+  --foundry-text-dim: rgba(250,249,255,0.5);
+  --foundry-cyan: #00e5ff;
+  --foundry-magenta: #ff007f;
+  --foundry-amber: #ffb800;
+  --foundry-unlocked: #00e5ff;
 }
 
 .foundry-container {
-  background-color: var(--foundry-bg);
+  background: linear-gradient(160deg, #07060d, #0d0c1a, #07060d);
   color: var(--foundry-text);
   padding: 2rem;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
 }
 
 .foundry-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .foundry-header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--foundry-primary);
-  text-shadow: 0 0 10px var(--foundry-primary);
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(120deg, #00e5ff, #faf9ff, #ffb800);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: foundry-shimmer 5s ease-in-out infinite;
 }
 
+.foundry-header p {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--foundry-text-dim);
+  margin-top: 0.5rem;
+}
+
+@keyframes foundry-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Category filter chips */
+.foundry-filters {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--foundry-text-dim);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.filter-chip:hover {
+  border-color: rgba(0,229,255,0.3);
+  color: var(--foundry-cyan);
+  background: rgba(0,229,255,0.06);
+}
+
+.filter-chip.is-active {
+  background: var(--foundry-cyan);
+  color: #07060d;
+  border-color: var(--foundry-cyan);
+  box-shadow: 0 0 20px rgba(0,229,255,0.3);
+}
+
+/* Upgrades grid */
 .upgrades-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
 }
 
 .upgrade-card {
-  background-color: var(--foundry-surface);
-  border: 1px solid var(--foundry-border);
-  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.upgrade-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--foundry-cyan), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.upgrade-card:hover::before {
+  opacity: 1;
 }
 
 .upgrade-card:hover {
-  border-color: var(--foundry-primary);
-  box-shadow: 0 0 15px rgba(0, 170, 255, 0.3);
+  border-color: rgba(0,229,255,0.25);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 30px rgba(0,229,255,0.08);
 }
 
 .upgrade-card.unlocked {
-  border-color: var(--foundry-unlocked);
+  border-color: rgba(0,229,255,0.3);
+}
+
+.upgrade-card.unlocked::before {
+  background: linear-gradient(90deg, transparent, var(--foundry-amber), transparent);
+  opacity: 1;
+}
+
+.card-header {
+  margin-bottom: 0.75rem;
 }
 
 .card-header .upgrade-type {
-  font-size: 0.8rem;
-  color: var(--foundry-text-dark);
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: rgba(0,229,255,0.1);
+  color: var(--foundry-cyan);
+  border: 1px solid rgba(0,229,255,0.2);
+  margin-bottom: 0.5rem;
+}
+
+.upgrade-card.unlocked .upgrade-type {
+  background: rgba(255,184,0,0.1);
+  color: var(--foundry-amber);
+  border-color: rgba(255,184,0,0.2);
 }
 
 .card-header .upgrade-title {
-  font-size: 1.5rem;
-  margin-top: 0.5rem;
-  color: var(--foundry-primary);
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--foundry-text);
+}
+
+.card-body {
+  flex: 1;
 }
 
 .card-body .upgrade-description {
-  margin: 1rem 0;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--foundry-text-dim);
 }
 
 .card-body .upgrade-rationale {
+  font-size: 0.78rem;
   font-style: italic;
-  color: var(--foundry-text-dark);
+  color: rgba(250,249,255,0.35);
+  line-height: 1.4;
+}
+
+.card-body .upgrade-rationale strong {
+  color: var(--foundry-cyan);
+  font-weight: 800;
+}
+
+/* Progress bar */
+.upgrade-progress {
+  margin: 1rem 0;
+}
+
+.progress-bar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
 }
 
 .card-footer {
   margin-top: auto;
   padding-top: 1rem;
-  border-top: 1px solid var(--foundry-border);
+  border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.upgrade-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .upgrade-meta span {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--foundry-text-dim);
+}
+
+.upgrade-meta span strong {
+  color: rgba(250,249,255,0.7);
 }
 
 .unlock-button {
-  background-color: var(--foundry-primary);
-  color: var(--foundry-bg);
-  border: none;
-  padding: 0.8rem 1.2rem;
-  border-radius: 4px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--foundry-cyan);
+  background: rgba(0,229,255,0.1);
+  color: var(--foundry-cyan);
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.unlock-button:hover:not(:disabled) {
+  background: var(--foundry-cyan);
+  color: #07060d;
+  box-shadow: 0 0 25px rgba(0,229,255,0.3);
 }
 
 .unlock-button:disabled {
-  background-color: var(--foundry-border);
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .upgrade-card.unlocked .unlock-button {
-  background-color: var(--foundry-unlocked);
+  background: rgba(0,229,255,0.06);
+  border-color: rgba(0,229,255,0.2);
+  color: var(--foundry-cyan);
+  cursor: default;
 }
 
 .no-upgrades {
   text-align: center;
-  padding: 2rem;
-  color: var(--foundry-text-dark);
+  padding: 3rem;
+  color: var(--foundry-text-dim);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .foundry-container { padding: 1.25rem; }
+  .foundry-header h1 { font-size: 1.6rem; }
+  .upgrades-list { grid-template-columns: 1fr; }
+  .upgrade-card { padding: 1.25rem; border-radius: 14px; }
+}
+
+@media (max-width: 480px) {
+  .foundry-container { padding: 1rem; }
+  .foundry-header h1 { font-size: 1.4rem; }
+  .card-footer { flex-direction: column; align-items: stretch; }
+  .unlock-button { text-align: center; }
 }

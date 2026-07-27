@@ -154,10 +154,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     for (let i = 0; i < bufferLength; i++) {
       const barHeight = (dataArray[i] / 255) * height;
       const gradient = this.ctx2d.createLinearGradient(0, height, 0, 0);
-      gradient.addColorStop(0, '#0d0d0d');
-      gradient.addColorStop(0.2, '#ec5b13');
-      gradient.addColorStop(0.6, '#a855f7');
-      gradient.addColorStop(1, '#10b981');
+      gradient.addColorStop(0, '#07060d');
+      gradient.addColorStop(0.25, '#ff007f');
+      gradient.addColorStop(0.55, '#8b5cf6');
+      gradient.addColorStop(1, '#00e5ff');
 
       this.ctx2d.fillStyle = gradient;
       this.ctx2d.fillRect(x, height - barHeight, barWidth, barHeight);
