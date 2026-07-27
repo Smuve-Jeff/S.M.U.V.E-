@@ -1654,6 +1654,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.isMultiplayerGame(game);
   }
 
+  // ── Ready-Up ──────────────────────────────────────────
+  toggleReady(): void {
+    this.matchmaking.toggleReady();
+    this.playSoundEffect('select');
+  }
+
+  // ── Lobby Invite ──────────────────────────────────────
+  copyLobbyInviteLink(): void {
+    this.matchmaking.copyLobbyInviteLink();
+    this.playSoundEffect('select');
+  }
+
+  async shareLobbyInvite(): Promise<void> {
+    await this.matchmaking.shareLobbyInvite();
+  }
+
   // ── Sound Effects ───────────────────────────────────
   private playSoundEffect(type: 'select' | 'launch' | 'close' | 'challenge' | 'achievement'): void {
     try {

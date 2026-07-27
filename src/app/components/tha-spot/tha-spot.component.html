@@ -837,14 +837,90 @@
               {{ lobby.gameName | uppercase }}
             </div>
 
-            <div class="party-members">
-              <div class="member-chip" *ngFor="let pId of lobby.playerIds">
-                <span [style.color]="pId === matchmaking.playerId() ? '#00e5ff' : 'inherit'">
-                  {{ pId === matchmaking.playerId() ? (matchmaking.playerName() | uppercase) + ' (YOU)' : 'PLAYER_' + (pId.slice(0,6) | uppercase) }}
+            <!-- ── Lobby Invite Sharing ─────────────────── -->
+            <div class="lobby-invite-section">
+              <div class="lobby-invite-label">INVITE SQUAD</div>
+              <div class="lobby-invite-row">
+                <input
+                  type="text"
+                  class="lobby-invite-link-input"
+                  [value]="matchmaking.lobbyInviteLink()"
+                  readonly
+                  (click)="$any($event.target).select()"
+                />
+                <button class="lobby-invite-btn" (click)="copyLobbyInviteLink()" title="Copy invite link">
+                  <span class="material-symbols-outlined" style="font-size:0.75rem;">content_copy</span>
+                </button>
+                <button class="lobby-invite-btn" (click)="shareLobbyInvite()" title="Share via device">
+                  <span class="material-symbols-outlined" style="font-size:0.75rem;">share</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── Player Ready-Up System ────────────────── -->
+            <div class="ready-up-section">
+              <div class="ready-up-header">
+                <span class="ready-up-label">READY CHECK</span>
+                <span class="ready-up-count" [class.all-ready]="matchmaking.isAllReady()">
+                  {{ matchmaking.readyCount() }}/{{ lobby.playerIds.length }}
+                  <span *ngIf="matchmaking.isAllReady()"> ✅ ALL READY!</span>
                 </span>
               </div>
-              <div *ngIf="lobby.playerIds.length < lobby.maxPlayers" class="member-chip" style="opacity:0.3;border-style:dashed;">
-                WAITING...
+              <div class="ready-up-players">
+                <div
+                  class="ready-player-chip"
+                  *ngFor="let pId of lobby.playerIds"
+                  [class.ready]="matchmaking.readyPlayers().has(pId)"
+                  [class.is-you]="pId === matchmaking.playerId()"
+                >
+                  <span class="ready-player-avatar">{{
+                    pId === matchmaking.playerId()
+                      ? (matchmaking.playerName()?.substring(0, 2)?.toUpperCase() || 'ME')
+                      : (pId.substring(0, 2).toUpperCase())
+                  }}</span>
+                  <span class="ready-player-name">{{
+                    pId === matchmaking.playerId()
+                      ? (matchmaking.playerName() | uppercase) + ' (YOU)'
+                      : 'PLAYER_' + (pId.slice(0, 6) | uppercase)
+                  }}</span>
+                  <span class="ready-check-icon">
+                    <span *ngIf="matchmaking.readyPlayers().has(pId)" style="color:#10b981;">✓</span>
+                    <span *ngIf="!matchmaking.readyPlayers().has(pId)" style="opacity:0.3;">◌</span>
+                  </span>
+                </div>
+              </div>
+              <!-- Current player ready toggle -->
+              <button
+                class="ready-toggle-btn"
+                [class.is-ready]="matchmaking.isReady()"
+                (click)="toggleReady()"
+              >
+                <span class="material-symbols-outlined" style="font-size:0.9rem;">{{
+                  matchmaking.isReady() ? 'check_circle' : 'radio_button_unchecked'
+                }}</span>
+                {{ matchmaking.isReady() ? 'READY — CLICK TO UNREADY' : 'CLICK WHEN READY' }}
+              </button>
+            </div>
+
+            <!-- ── Pending Challenges Inbox ──────────────── -->
+            <div class="lobby-challenges-section" *ngIf="matchmaking.pendingLobbyChallenges().length > 0">
+              <div class="lobby-challenges-label">INCOMING CHALLENGES</div>
+              <div
+                class="lobby-challenge-item"
+                *ngFor="let chal of matchmaking.pendingLobbyChallenges()"
+              >
+                <div class="lobby-challenge-info">
+                  <span class="lobby-challenge-from">{{ chal.fromName | uppercase }}</span>
+                  <span class="lobby-challenge-game">{{ chal.gameName | uppercase }}</span>
+                </div>
+                <div class="lobby-challenge-actions">
+                  <button class="lobby-challenge-accept" (click)="matchmaking.acceptChallenge(chal.id)">
+                    ACCEPT
+                  </button>
+                  <button class="lobby-challenge-reject" (click)="matchmaking.rejectChallenge(chal.id)">
+                    ✕
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -874,13 +950,14 @@
               </div>
             </div>
 
-            <!-- Launch game from lobby -->
+            <!-- Launch game from lobby (all-ready visual boost) -->
             <button
               class="launch-btn mini"
+              [class.all-ready-launch]="matchmaking.isAllReady()"
               (click)="matchmaking.launchGameFromParty(lobby.gameId)"
               style="width:100%;margin-top:0.5rem;"
             >
-              LAUNCH GAME
+              {{ matchmaking.isAllReady() ? '🚀 ALL READY — LAUNCH GAME' : 'LAUNCH GAME' }}
             </button>
           </div>
 

@@ -107,6 +107,17 @@ export class MatchmakingService implements OnDestroy {
   readonly partyMembers = signal<PartyMember[]>([]);
   readonly matchFound = signal<{ opponentId: string; gameId: string } | null>(null);
 
+  // ── Ready-Up System ──
+  readonly readyPlayers = signal<Set<string>>(new Set());
+  readonly isReady = signal(false);
+  readonly isAllReady = computed(() => {
+    const lobby = this.myLobby();
+    if (!lobby || lobby.playerIds.length < 2) return false;
+    if (this.readyPlayers().size !== lobby.playerIds.length) return false;
+    return true;
+  });
+  readonly readyCount = computed(() => this.readyPlayers().size);
+
   readonly playerId = computed(() => this.profile.profile().id || 'local-player');
   readonly playerName = computed(() => this.profile.profile().artistName || 'Unknown Player');
 
@@ -220,6 +231,9 @@ export class MatchmakingService implements OnDestroy {
         this.myLobby.set(updated);
         this.updateLobbyInState(updated);
       }
+      // Reset ready state when a new player joins
+      this.isReady.set(false);
+      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(data.userId); return ns; });
     });
 
     this.socket.on('user_left_party', (data: { userId: string }) => {
@@ -230,6 +244,21 @@ export class MatchmakingService implements OnDestroy {
         this.myLobby.set(updated);
         this.updateLobbyInState(updated);
       }
+      // Remove departed player from ready set
+      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(data.userId); return ns; });
+    });
+
+    // ── Ready-Up Events ──
+    this.socket.on('player_ready', (data: { userId: string; partyId: string }) => {
+      this.setPlayerReady(data.userId, true);
+    });
+
+    this.socket.on('player_unready', (data: { userId: string; partyId: string }) => {
+      this.setPlayerReady(data.userId, false);
+    });
+
+    this.socket.on('all_players_ready', (data: { partyId: string; gameId: string }) => {
+      this.notify.show(`All players ready for ${data.gameId} — launch now!`, 'success');
     });
 
     this.socket.on('party_launch_game', (data: { partyId: string; gameId: string }) => {
@@ -333,8 +362,85 @@ export class MatchmakingService implements OnDestroy {
 
   cancelMyLobby(): void {
     const lobby = this.myLobby();
-    if (lobby) this.leaveLobby(lobby.id);
+    if (lobby) {
+      this.readyPlayers.set(new Set());
+      this.isReady.set(false);
+      this.leaveLobby(lobby.id);
+    }
   }
+
+  // ── Ready-Up System ──
+
+  toggleReady(): void {
+    const lobby = this.myLobby();
+    if (!lobby) return;
+    this.haptic.light();
+    const next = !this.isReady();
+    this.isReady.set(next);
+    if (next) {
+      this.readyPlayers.update(s => { const ns = new Set(s); ns.add(this.playerId()); return ns; });
+      this.socket?.emit('player_ready', { partyId: lobby.id });
+    } else {
+      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(this.playerId()); return ns; });
+      this.socket?.emit('player_unready', { partyId: lobby.id });
+    }
+  }
+
+  /** Called by socket event when another player toggles ready */
+  setPlayerReady(playerId: string, ready: boolean): void {
+    this.readyPlayers.update(s => {
+      const ns = new Set(s);
+      if (ready) ns.add(playerId); else ns.delete(playerId);
+      return ns;
+    });
+    if (playerId === this.playerId()) {
+      this.isReady.set(ready);
+    }
+  }
+
+  // ── Lobby Invite Sharing ──
+
+  readonly lobbyInviteLink = computed(() => {
+    const lobby = this.myLobby();
+    if (!lobby) return '';
+    const baseUrl = window.location.origin + '/tha-spot';
+    const params = new URLSearchParams();
+    params.set('partyId', lobby.id);
+    params.set('gameId', lobby.gameId);
+    params.set('mission', lobby.gameName);
+    return `${baseUrl}?${params.toString()}`;
+  });
+
+  copyLobbyInviteLink(): boolean {
+    const link = this.lobbyInviteLink();
+    if (!link) return false;
+    try {
+      navigator.clipboard.writeText(link);
+      this.notify.show('LOBBY INVITE LINK COPIED', 'success');
+      return true;
+    } catch {
+      this.notify.show('FAILED TO COPY LINK', 'warning');
+      return false;
+    }
+  }
+
+  async shareLobbyInvite(): Promise<void> {
+    const link = this.lobbyInviteLink();
+    const lobby = this.myLobby();
+    if (!link || !lobby) return;
+    const text = `🎮 Join my ${lobby.gameName} co-op lobby on S.M.U.V.E.! ${link}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'S.M.U.V.E. Co-Op Lobby', text, url: link });
+        return;
+      } catch { /* fall through */ }
+    }
+    this.copyLobbyInviteLink();
+  }
+
+  pendingLobbyChallenges = computed(() =>
+    this.myChallenges().filter(c => c.status === 'pending')
+  );
 
   launchGameFromParty(gameId: string): void {
     const lobby = this.myLobby();
