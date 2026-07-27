@@ -1122,11 +1122,33 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       event.source !== this.gameIframe.nativeElement.contentWindow
     )
       return;
+
+    // ── Game State Sync: forward state from iframe to lobby ──
+    if (event.data?.type === 'GAME_STATE_UPDATE') {
+      this.matchmaking.broadcastGameState({
+        score: event.data.data?.score,
+        progress: event.data.data?.progress,
+        level: event.data.data?.level,
+        alive: event.data.data?.alive,
+        position: event.data.data?.position,
+        custom: event.data.data?.custom,
+      });
+      // Also record as replay snapshot
+      this.matchmaking.recordGameSnapshot(event.data.data || {}, event.data.data?.label);
+      return;
+    }
+
+    // ── Legacy: GAME_OVER event ──
     if (event.data?.type === 'GAME_OVER') {
       this.profileService.recordGameResult(active.id, {
         ...this.buildSessionContext(active),
         score: event.data.data?.score,
       });
+      // Final snapshot before closing
+      this.matchmaking.recordGameSnapshot(
+        { ...event.data.data, event: 'GAME_OVER' },
+        'Game Over'
+      );
       this.closeGame();
     }
   }

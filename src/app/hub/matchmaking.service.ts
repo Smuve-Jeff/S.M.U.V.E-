@@ -45,6 +45,30 @@ export interface LobbyChatMessage {
   timestamp: number;
 }
 
+export interface GameStateSnapshot {
+  id: string;
+  lobbyId: string;
+  gameId: string;
+  timestamp: number;
+  recordedBy: string;
+  state: Record<string, any>;
+  label?: string;
+}
+
+export interface GameStateUpdate {
+  lobbyId: string;
+  gameId: string;
+  playerId: string;
+  playerName: string;
+  score?: number;
+  progress?: number;
+  level?: string;
+  alive?: boolean;
+  position?: { x: number; y: number };
+  custom?: Record<string, any>;
+  timestamp: number;
+}
+
 export interface CoOpLobby {
   id: string;
   hostId: string;
@@ -141,6 +165,17 @@ export class MatchmakingService implements OnDestroy {
   // ── Persistent Lobby Chat ──
   readonly lobbyChatMessages = signal<LobbyChatMessage[]>([]);
   private readonly LOBBY_CHAT_PREFIX = 'smuve_lobby_chat_';
+
+  // ── Lobby Replay Recording ──
+  readonly lobbyReplaySnapshots = signal<GameStateSnapshot[]>([]);
+  readonly isReplaying = signal(false);
+  readonly replayCurrentIndex = signal(0);
+  private replayTimerId: any = null;
+  private readonly REPLAY_PREFIX = 'smuve_lobby_replay_';
+
+  // ── Game State Sync ──
+  readonly gameStateUpdates = signal<GameStateUpdate[]>([]);
+  readonly latestGameState = signal<Record<string, GameStateUpdate>>({});
 
   // ── Spectator Mode ──
   readonly isSpectating = signal(false);
@@ -348,6 +383,24 @@ export class MatchmakingService implements OnDestroy {
           return [...m, msg];
         });
         this.saveLobbyChatHistory(msg.lobbyId);
+      }
+    });
+
+    // ── Game State Sync Events ──
+    this.socket.on('game_state_update', (update: GameStateUpdate) => {
+      this.gameStateUpdates.update(u => [...u.slice(-100), update]);
+      this.latestGameState.update(s => ({
+        ...s,
+        [update.playerId]: update,
+      }));
+    });
+
+    // ── Replay Recording Events ──
+    this.socket.on('replay_snapshot', (snapshot: GameStateSnapshot) => {
+      const lobby = this.myLobby();
+      if (lobby && snapshot.lobbyId === lobby.id) {
+        this.lobbyReplaySnapshots.update(s => [...s, snapshot]);
+        this.saveReplayHistory(lobby.id);
       }
     });
   }
@@ -707,6 +760,123 @@ export class MatchmakingService implements OnDestroy {
   // Wire chat loading into lobby join / create
   private initLobbyChat(lobbyId: string): void {
     this.loadLobbyChatHistory(lobbyId);
+  }
+
+  // ── Lobby Replay Recording ──
+
+  /** Record a game state snapshot for the current lobby */
+  recordGameSnapshot(state: Record<string, any>, label?: string): void {
+    const lobby = this.myLobby();
+    if (!lobby) return;
+    const snapshot: GameStateSnapshot = {
+      id: `snap-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      lobbyId: lobby.id,
+      gameId: lobby.gameId,
+      timestamp: Date.now(),
+      recordedBy: this.playerName(),
+      state,
+      label,
+    };
+    this.lobbyReplaySnapshots.update(s => [...s, snapshot]);
+    this.saveReplayHistory(lobby.id);
+    // Broadcast to lobby peers
+    this.socket?.emit('replay_snapshot', snapshot);
+  }
+
+  /** Load replay history from localStorage for a given lobby */
+  private loadReplayHistory(lobbyId: string): void {
+    try {
+      const raw = localStorage.getItem(this.REPLAY_PREFIX + lobbyId);
+      if (raw) {
+        const snaps: GameStateSnapshot[] = JSON.parse(raw);
+        this.lobbyReplaySnapshots.set(snaps.slice(-200));
+        return;
+      }
+    } catch { /* ignore */ }
+    this.lobbyReplaySnapshots.set([]);
+  }
+
+  /** Persist replay snapshots to localStorage */
+  private saveReplayHistory(lobbyId: string): void {
+    try {
+      const snaps = this.lobbyReplaySnapshots();
+      localStorage.setItem(
+        this.REPLAY_PREFIX + lobbyId,
+        JSON.stringify(snaps.slice(-200))
+      );
+    } catch { /* storage full */ }
+  }
+
+  /** Start replay playback from snapshots */
+  startReplay(lobbyId: string): void {
+    this.loadReplayHistory(lobbyId);
+    const snaps = this.lobbyReplaySnapshots();
+    if (snaps.length === 0) {
+      this.notify.show('No replay data available for this lobby', 'warning');
+      return;
+    }
+    this.isReplaying.set(true);
+    this.replayCurrentIndex.set(0);
+    this.notify.show(`Replaying ${snaps.length} snapshots`, 'info');
+
+    // Auto-advance replay frames
+    this.replayTimerId = setInterval(() => {
+      const idx = this.replayCurrentIndex();
+      if (idx >= snaps.length - 1) {
+        this.stopReplay();
+        return;
+      }
+      this.replayCurrentIndex.set(idx + 1);
+    }, 500);
+  }
+
+  /** Stop replay playback */
+  stopReplay(): void {
+    this.isReplaying.set(false);
+    this.replayCurrentIndex.set(0);
+    if (this.replayTimerId) {
+      clearInterval(this.replayTimerId);
+      this.replayTimerId = null;
+    }
+  }
+
+  /** Computed: current replay frame state */
+  readonly currentReplayFrame = computed(() => {
+    if (!this.isReplaying()) return null;
+    const snaps = this.lobbyReplaySnapshots();
+    const idx = this.replayCurrentIndex();
+    return snaps[idx] || null;
+  });
+
+  // ── Game State Sync ──
+
+  /** Broadcast game state from an iframe to the lobby via Socket.io */
+  broadcastGameState(state: {
+    score?: number;
+    progress?: number;
+    level?: string;
+    alive?: boolean;
+    position?: { x: number; y: number };
+    custom?: Record<string, any>;
+  }): void {
+    const lobby = this.myLobby();
+    if (!lobby) return;
+    const update: GameStateUpdate = {
+      lobbyId: lobby.id,
+      gameId: lobby.gameId,
+      playerId: this.playerId(),
+      playerName: this.playerName(),
+      ...state,
+      timestamp: Date.now(),
+    };
+    // Add to local state
+    this.gameStateUpdates.update(u => [...u.slice(-100), update]);
+    this.latestGameState.update(s => ({
+      ...s,
+      [this.playerId()]: update,
+    }));
+    // Broadcast to lobby
+    this.socket?.emit('game_state_update', update);
   }
 
   // ── Spectator Mode ──
