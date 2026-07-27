@@ -17,6 +17,7 @@ export class PeerNetworkingService {
   isKnocking = signal(false);
   knockFromUserId = signal<string | null>(null);
   micPermissionDenied = signal(false);
+  isMuted = signal(false);
 
   async startCall(toUserId: string) {
     this.callState.set('calling');
@@ -189,6 +190,12 @@ export class PeerNetworkingService {
     };
   }
 
+  toggleMute(): void {
+    const next = !this.isMuted();
+    this.isMuted.set(next);
+    this.localStream?.getAudioTracks().forEach(t => { t.enabled = !next; });
+  }
+
   endCall() {
     this.peerConnection?.close();
     this.peerConnection = undefined;
@@ -201,6 +208,7 @@ export class PeerNetworkingService {
     this.knockFromUserId.set(null);
     this.callState.set('idle');
     this.micPermissionDenied.set(false);
+    this.isMuted.set(false);
     this.targetUserId = null;
   }
 }

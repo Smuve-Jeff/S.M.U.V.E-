@@ -1660,6 +1660,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.playSoundEffect('select');
   }
 
+  startLobbyCountdown(): void {
+    this.matchmaking.startCountdown();
+  }
+
+  cancelLobbyCountdown(): void {
+    this.matchmaking.cancelCountdown();
+  }
+
+  // ── Lobby Voice Chat ───────────────────────────────────
+  toggleLobbyMute(): void {
+    this.peerService.toggleMute();
+  }
+
+  startLobbyVoiceCall(playerId: string): void {
+    this.peerService.startCall(playerId);
+  }
+
   // ── Lobby Invite ──────────────────────────────────────
   copyLobbyInviteLink(): void {
     this.matchmaking.copyLobbyInviteLink();

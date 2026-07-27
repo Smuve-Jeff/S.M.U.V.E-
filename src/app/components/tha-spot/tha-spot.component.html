@@ -900,6 +900,56 @@
                 }}</span>
                 {{ matchmaking.isReady() ? 'READY — CLICK TO UNREADY' : 'CLICK WHEN READY' }}
               </button>
+
+              <!-- ── Auto-Launch Countdown Timer ────────── -->
+              <div class="countdown-overlay" *ngIf="matchmaking.countdownActive()">
+                <div class="countdown-ring">
+                  <svg viewBox="0 0 80 80" class="countdown-svg">
+                    <circle cx="40" cy="40" r="34" class="countdown-track" />
+                    <circle cx="40" cy="40" r="34" class="countdown-fill"
+                      [style.strokeDashoffset.px]="213.6 * (1 - matchmaking.countdownSeconds() / 5)"
+                    />
+                  </svg>
+                  <span class="countdown-number">{{ matchmaking.countdownSeconds() }}</span>
+                </div>
+                <span class="countdown-label">LAUNCHING IN...</span>
+                <button class="countdown-cancel" (click)="cancelLobbyCountdown()">
+                  CANCEL
+                </button>
+              </div>
+            </div>
+
+            <!-- ── Lobby Voice Controls ──────────────────── -->
+            <div class="lobby-voice-section" *ngIf="lobby.playerIds.length > 1">
+              <div class="lobby-voice-label">VOICE UPLINK</div>
+              <div class="lobby-voice-controls">
+                <span class="lobby-voice-status" *ngIf="!peerService.isCallActive()" style="color:rgba(255,255,255,0.3);">
+                  <span class="material-symbols-outlined" style="font-size:0.65rem;">mic_off</span>
+                  IDLE
+                </span>
+                <span class="lobby-voice-status live" *ngIf="peerService.isCallActive()" style="color:#10b981;">
+                  <span class="material-symbols-outlined" style="font-size:0.65rem;animation:status-pulse 1.5s ease-in-out infinite;">mic</span>
+                  CONNECTED
+                </span>
+                <button
+                  class="lobby-voice-mute-btn"
+                  *ngIf="peerService.isCallActive()"
+                  [class.muted]="peerService.isMuted()"
+                  (click)="toggleLobbyMute()"
+                >
+                  <span class="material-symbols-outlined" style="font-size:0.7rem;">{{
+                    peerService.isMuted() ? 'mic_off' : 'mic'
+                  }}</span>
+                  {{ peerService.isMuted() ? 'UNMUTE' : 'MUTE' }}
+                </button>
+                <button
+                  class="lobby-voice-end-btn"
+                  *ngIf="peerService.isCallActive()"
+                  (click)="peerService.endCall()"
+                >
+                  <span class="material-symbols-outlined" style="font-size:0.7rem;">call_end</span>
+                </button>
+              </div>
             </div>
 
             <!-- ── Pending Challenges Inbox ──────────────── -->
@@ -950,14 +1000,25 @@
               </div>
             </div>
 
+            <!-- Host auto-launch / countdown start button -->
+            <button
+              *ngIf="matchmaking.isAllReady() && matchmaking.isHost() && !matchmaking.countdownActive()"
+              class="launch-btn mini all-ready-launch"
+              (click)="startLobbyCountdown()"
+              style="width:100%;margin-top:0.5rem;"
+            >
+              🚀 ALL READY — START COUNTDOWN
+            </button>
+
             <!-- Launch game from lobby (all-ready visual boost) -->
             <button
+              *ngIf="!matchmaking.isAllReady() || !matchmaking.isHost() || matchmaking.countdownActive()"
               class="launch-btn mini"
-              [class.all-ready-launch]="matchmaking.isAllReady()"
+              [class.all-ready-launch]="matchmaking.isAllReady() && !matchmaking.countdownActive()"
               (click)="matchmaking.launchGameFromParty(lobby.gameId)"
               style="width:100%;margin-top:0.5rem;"
             >
-              {{ matchmaking.isAllReady() ? '🚀 ALL READY — LAUNCH GAME' : 'LAUNCH GAME' }}
+              {{ matchmaking.isAllReady() && !matchmaking.countdownActive() ? 'WAITING FOR HOST TO LAUNCH' : 'LAUNCH GAME' }}
             </button>
           </div>
 

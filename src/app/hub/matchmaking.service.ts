@@ -118,6 +118,17 @@ export class MatchmakingService implements OnDestroy {
   });
   readonly readyCount = computed(() => this.readyPlayers().size);
 
+  // ── Auto-Launch Countdown ──
+  readonly countdownSeconds = signal(0);
+  readonly countdownActive = signal(false);
+  private countdownTimerId: any = null;
+
+  // ── Host detection ──
+  readonly isHost = computed(() => {
+    const lobby = this.myLobby();
+    return lobby ? lobby.hostId === this.playerId() : false;
+  });
+
   readonly playerId = computed(() => this.profile.profile().id || 'local-player');
   readonly playerName = computed(() => this.profile.profile().artistName || 'Unknown Player');
 
@@ -240,12 +251,46 @@ export class MatchmakingService implements OnDestroy {
       this.partyMembers.update((m) => m.filter((p) => p.userId !== data.userId));
       const lobby = this.myLobby();
       if (lobby) {
-        const updated = { ...lobby, playerIds: lobby.playerIds.filter((id) => id !== data.userId) };
+        // Host transfer: if host left, promote next player
+        let newHostId = lobby.hostId;
+        let newHostName = lobby.hostName;
+        if (data.userId === lobby.hostId) {
+          const remaining = lobby.playerIds.filter((id) => id !== data.userId);
+          if (remaining.length > 0) {
+            newHostId = remaining[0];
+            newHostName = newHostId === this.playerId() ? this.playerName() : ('PLAYER_' + newHostId.slice(0, 6));
+            if (newHostId === this.playerId()) {
+              this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
+              this.haptic.medium();
+            }
+          }
+        }
+        const updated = {
+          ...lobby,
+          hostId: newHostId,
+          hostName: newHostName,
+          playerIds: lobby.playerIds.filter((id) => id !== data.userId),
+        };
         this.myLobby.set(updated);
         this.updateLobbyInState(updated);
       }
-      // Remove departed player from ready set
+      // Remove departed player from ready set & cancel countdown
       this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(data.userId); return ns; });
+      this.cancelCountdown();
+    });
+
+    // ── Host Transfer Event ──
+    this.socket.on('host_transferred', (data: { partyId: string; newHostId: string; newHostName: string }) => {
+      const lobby = this.myLobby();
+      if (lobby && lobby.id === data.partyId) {
+        const updated = { ...lobby, hostId: data.newHostId, hostName: data.newHostName };
+        this.myLobby.set(updated);
+        this.updateLobbyInState(updated);
+        if (data.newHostId === this.playerId()) {
+          this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
+          this.haptic.medium();
+        }
+      }
     });
 
     // ── Ready-Up Events ──
@@ -361,6 +406,7 @@ export class MatchmakingService implements OnDestroy {
   }
 
   cancelMyLobby(): void {
+    this.cancelCountdown();
     const lobby = this.myLobby();
     if (lobby) {
       this.readyPlayers.set(new Set());
@@ -383,6 +429,39 @@ export class MatchmakingService implements OnDestroy {
     } else {
       this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(this.playerId()); return ns; });
       this.socket?.emit('player_unready', { partyId: lobby.id });
+      // Cancel countdown if someone un-readies
+      this.cancelCountdown();
+    }
+  }
+
+  // ── Auto-Launch Countdown ──
+
+  startCountdown(): void {
+    if (this.countdownActive()) return;
+    this.countdownActive.set(true);
+    this.countdownSeconds.set(5);
+    this.haptic.medium();
+    this.countdownTimerId = setInterval(() => {
+      const current = this.countdownSeconds();
+      if (current <= 1) {
+        this.cancelCountdown();
+        const lobby = this.myLobby();
+        if (lobby) {
+          this.launchGameFromParty(lobby.gameId);
+        }
+        return;
+      }
+      this.countdownSeconds.set(current - 1);
+      this.haptic.light();
+    }, 1000);
+  }
+
+  cancelCountdown(): void {
+    this.countdownActive.set(false);
+    this.countdownSeconds.set(0);
+    if (this.countdownTimerId) {
+      clearInterval(this.countdownTimerId);
+      this.countdownTimerId = null;
     }
   }
 
