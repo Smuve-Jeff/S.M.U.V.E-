@@ -160,7 +160,7 @@ if (typeof Blob !== 'undefined' && typeof (Blob.prototype as any).arrayBuffer !=
 
 
 // Polyfill MediaStream for JSDOM
-try { new (globalThis as any).MediaStream?.(); } catch {
+if (typeof (globalThis as any).MediaStream !== 'function') {
   (globalThis as any).MediaStream = class MockMediaStream {
     private _tracks: any[] = [];
     getTracks() { return [...this._tracks]; }
@@ -175,7 +175,7 @@ try { new (globalThis as any).MediaStream?.(); } catch {
 }
 
 // Polyfill MediaStreamTrack for JSDOM
-try { new (globalThis as any).MediaStreamTrack?.(); } catch {
+if (typeof (globalThis as any).MediaStreamTrack !== 'function') {
   (globalThis as any).MediaStreamTrack = class MockMediaStreamTrack {
     kind = 'audio';
     id = 'mock-track';
