@@ -101,7 +101,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   ]);
 
   lufsIntegrated = this.audioEngine.outputLufs;
-  truePeak = this.audioEngine.outputPeak;
+  truePeak = this.audioEngine.outputLevelDb;
   lra = signal(6.2);
   correlation = signal(0.82); // This could be wired to a real phase correlation node if added
   targetLufs = signal(-14);

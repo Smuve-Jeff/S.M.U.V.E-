@@ -8,6 +8,7 @@ describe('AudioEngineService', () => {
   let service: AudioEngineService;
   let mockAudioContext: any;
   let compressorNode: any;
+  let limiterNode: any;
 
   beforeEach(() => {
     const createMockNode = () => ({
@@ -60,16 +61,22 @@ describe('AudioEngineService', () => {
       stop: jest.fn(),
       type: 'lowpass',
       frequencyBinCount: 1024,
+      fftSize: 1024,
+      getFloatTimeDomainData: jest.fn(),
       setPeriodicWave: jest.fn(),
     });
 
     compressorNode = createMockNode();
+    limiterNode = createMockNode();
 
     mockAudioContext = {
       createGain: jest.fn().mockImplementation(createMockNode),
       createOscillator: jest.fn().mockImplementation(createMockNode),
       createPeriodicWave: jest.fn().mockReturnValue({}),
-      createDynamicsCompressor: jest.fn().mockReturnValue(compressorNode),
+      createDynamicsCompressor: jest
+        .fn()
+        .mockReturnValueOnce(compressorNode)
+        .mockReturnValueOnce(limiterNode),
       createDelay: jest.fn().mockImplementation(createMockNode),
       createBiquadFilter: jest.fn().mockImplementation(createMockNode),
       createAnalyser: jest.fn().mockImplementation(createMockNode),
@@ -151,6 +158,38 @@ describe('AudioEngineService', () => {
     const deckB = service.getDeck('B');
     expect(deckA.filter.frequency.value).toBe(20000);
     expect(deckB.filter.frequency.value).toBe(20000);
+  });
+
+  it('should apply deck playback rate when starting playback', () => {
+    const buffer = { duration: 120 } as AudioBuffer;
+
+    service.loadDeck('A', buffer);
+    service.setDeckRate('A', 1.25);
+    service.playDeck('A');
+
+    const source =
+      mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    expect(source.playbackRate.setValueAtTime).toHaveBeenCalledWith(1.25, 0);
+    expect(source.start).toHaveBeenCalledWith(0, 0);
+  });
+
+  it('should update an active deck source rate without losing position', () => {
+    const buffer = { duration: 120 } as AudioBuffer;
+
+    service.loadDeck('A', buffer);
+    service.playDeck('A');
+    mockAudioContext.currentTime = 2;
+
+    service.setDeckRate('A', 1.5);
+
+    const deck = service.getDeck('A');
+    expect(deck.rate).toBe(1.5);
+    expect(deck.pauseOffset).toBe(2);
+    expect(deck.startTime).toBe(2);
+    expect(deck.source?.playbackRate.setValueAtTime).toHaveBeenCalledWith(
+      1.5,
+      2
+    );
   });
 
   it('should bypass saturation when amount is zero', () => {
@@ -339,9 +378,20 @@ describe('AudioEngineService', () => {
 
   it('should expose mastering targets and apply safe ceiling', () => {
     service.setMasteringTargets({ lufs: -13, truePeak: -0.2 });
+    service.setMasteringTargets({ truePeak: -0.4 });
+
     const targets = service.getMasteringTargets();
     expect(targets.lufs).toBe(-13);
-    expect(targets.truePeak).toBe(-0.2);
-    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalled();
+    expect(targets.truePeak).toBe(-0.4);
+    expect(limiterNode.threshold.setTargetAtTime).toHaveBeenCalledWith(
+      -0.2,
+      0,
+      0.05
+    );
+    expect(limiterNode.threshold.setTargetAtTime).toHaveBeenCalledWith(
+      -0.4,
+      0,
+      0.05
+    );
   });
 });

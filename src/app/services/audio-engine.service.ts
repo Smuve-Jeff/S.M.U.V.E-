@@ -588,6 +588,7 @@ export class AudioEngineService {
 
     const source = this.ctx.createBufferSource();
     source.buffer = deck.buffer;
+    source.playbackRate.setValueAtTime(deck.rate, this.ctx.currentTime);
     source.connect(deck.eqLow);
 
     const when = Math.max(0, deck.pauseOffset);
@@ -670,7 +671,15 @@ export class AudioEngineService {
   }
   setDeckRate(id: DeckId, rate: number, sync: boolean = false) {
     const deck = this.getDeck(id);
-    if (deck) deck.rate = rate;
+    if (!deck) return;
+
+    if (deck.isPlaying && deck.source && deck.buffer) {
+      deck.pauseOffset = this.getDeckPosition(deck);
+      deck.startTime = this.ctx.currentTime;
+      deck.source.playbackRate.setValueAtTime(rate, this.ctx.currentTime);
+    }
+
+    deck.rate = rate;
   }
   setDeckLoop(id: DeckId, enabled: boolean) {
     const deck = this.getDeck(id);
@@ -1169,14 +1178,14 @@ export class AudioEngineService {
   calculatePlaybackRate(bpm: number) {
     return this.tempo() / bpm;
   }
-  setMasteringTargets(targets: { lufs: number; truePeak: number }) {
-    this.masteringTargets = { ...targets };
-    // Apply a safe ceiling through the limiter/compressor chain
-    this.compressor.threshold.setTargetAtTime(
-      targets.lufs,
-      this.ctx.currentTime,
-      0.05
-    );
+  setMasteringTargets(targets: Partial<{ lufs: number; truePeak: number }>) {
+    this.masteringTargets = { ...this.masteringTargets, ...targets };
+    if (targets.lufs !== undefined) {
+      this.currentLufs.set(targets.lufs);
+    }
+    if (this.masteringTargets.truePeak !== undefined) {
+      this.configureLimiter({ ceiling: this.masteringTargets.truePeak });
+    }
   }
   getMasteringTargets() {
     return { ...this.masteringTargets };
@@ -1272,14 +1281,23 @@ export class AudioEngineService {
 
   configureLimiter(p: any) {
     if (!this.limiter) return;
-    if (p?.threshold !== undefined)
+    const threshold = p?.ceiling ?? p?.threshold;
+    if (threshold !== undefined)
       this.limiter.threshold.setTargetAtTime(
-        p.threshold,
+        threshold,
         this.ctx.currentTime,
         0.05
       );
     if (p?.ratio !== undefined)
       this.limiter.ratio.setTargetAtTime(p.ratio, this.ctx.currentTime, 0.05);
+    if (p?.attack !== undefined)
+      this.limiter.attack.setTargetAtTime(p.attack, this.ctx.currentTime, 0.05);
+    if (p?.release !== undefined)
+      this.limiter.release.setTargetAtTime(
+        p.release,
+        this.ctx.currentTime,
+        0.05
+      );
   }
 
   syncDecks(m: DeckId, s: DeckId) {}
@@ -1423,10 +1441,12 @@ export class AudioEngineService {
   };
 
   private _meteringBuffer = new Float32Array(1024);
+  private _lufsBuffer = new Float32Array(1024);
   private _meteringRAF: number | null = null;
   private startOutputMetering(): void {
     if (typeof window === 'undefined') return;
     this._meteringBuffer = new Float32Array(this.masterAnalyser.fftSize);
+    this._lufsBuffer = new Float32Array(this.lufsAnalyzer.fftSize);
     const FRAME_MS = 50;
     let last = 0;
     const tick = (now: number) => {
@@ -1453,15 +1473,14 @@ export class AudioEngineService {
       const rms = Math.sqrt(sumSq / this._meteringBuffer.length);
       this.outputPeak.set(Math.min(1.5, peak));
       this.outputRms.set(Math.min(1.5, rms));
-
       // LUFS from K-weighted Analyser
-      const lufsData = new Float32Array(this.lufsAnalyzer.fftSize);
-      this.lufsAnalyzer.getFloatTimeDomainData(lufsData);
+      // LUFS from K-weighted Analyser
+      this.lufsAnalyzer.getFloatTimeDomainData(this._lufsBuffer);
       let lufsSumSq = 0;
-      for (let i = 0; i < lufsData.length; i++) {
-        lufsSumSq += lufsData[i] * lufsData[i];
+      for (let i = 0; i < this._lufsBuffer.length; i++) {
+        lufsSumSq += this._lufsBuffer[i] * this._lufsBuffer[i];
       }
-      const lufsMs = lufsSumSq / lufsData.length;
+      const lufsMs = lufsSumSq / this._lufsBuffer.length;
       const lufs = 10 * Math.log10(lufsMs + 1e-10) - 0.691;
       this.outputLufs.set(Math.max(-70, lufs));
 
