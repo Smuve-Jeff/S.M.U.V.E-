@@ -474,7 +474,7 @@
     {
       "id": "final-fantasy-ix-elite-master",
       "name": "Final Fantasy IX",
-      "url": "https://www.retrogames.cc/embed/24420-final-fantasy-ix-ps1.html",
+      "url": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
       "genre": "RPG",
       "description": "Absolute high-fidelity RPG action. Experience Final Fantasy IX in a stabilized browser environment.",
       "tags": [
@@ -488,7 +488,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24420-final-fantasy-ix-ps1.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html"
@@ -2958,14 +2958,14 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
         "trustNote": "Elite open-world WASM protocol verified.",
-        "approvedExternalUrl": "",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41727-grand-theft-auto.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -4309,13 +4309,13 @@
         "Football"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": ""
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41885-madden-nfl-2000-usa.html"
       },
       "art": {
         "eyebrow": "EA Sports Elite",
@@ -4680,43 +4680,6 @@
       "image": "/assets/games/thps4-elite.png"
     },
     {
-      "id": "supreme-of-war-elite",
-      "name": "God of War (Elite)",
-      "url": "https://www.retrogames.cc/embed/43325-supreme-of-war.html",
-      "genre": "Action",
-      "description": "The birth of a legend. Kratos takes on the forces of Olympus in an epic tale of vengeance and brutality.",
-      "tags": [
-        "Action",
-        "Retro",
-        "PS2",
-        "WASM",
-        "High-Perf"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43325-supreme-of-war.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/43325-supreme-of-war.html"
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/supreme-of-war-elite.png"
-    },
-    {
       "id": "soulcalibur-2-elite",
       "name": "SoulCalibur II (Elite)",
       "url": "https://www.retrogames.cc/embed/41221-soulcalibur-ii-usa.html",
@@ -4895,41 +4858,6 @@
       "image": "/assets/games/gt2-elite.png"
     },
     {
-      "id": "silent-hill-elite",
-      "name": "Silent Hill (Elite)",
-      "url": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html",
-      "genre": "Horror",
-      "description": "Psychological horror at its finest. Harry Mason searches for his daughter in the fog-shrouded town.",
-      "tags": [
-        "Horror",
-        "Retro",
-        "PS1"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41247-silent-hill-usa.html"
-      },
-      "availability": "Online",
-      "playersOnline": 7200,
-      "rating": 5,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/silent-hill-elite.png"
-    },
-    {
       "id": "gta-vice-city-elite",
       "name": "Grand Theft Auto: Vice City (Elite HD)",
       "url": "https://www.retrogames.cc/embed/27010-grand-theft-auto-vice-city-ps2.html",
@@ -5054,14 +4982,14 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": ""
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41226-burnout-3-takedown-usa.html"
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -5923,7 +5851,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41253-deus-ex-the-conspiracy-usa.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 5700,
@@ -6222,42 +6150,6 @@
         "accentEnd": "#3d2b1f"
       },
       "image": "/assets/games/unreal-tournament-dc-elite.png"
-    },
-    {
-      "id": "timesplitters-2-ps2-elite",
-      "name": "TimeSplitters 2",
-      "url": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html",
-      "genre": "FPS",
-      "description": "Shoot through time. S.M.U.V.E. values Absolute efficiency across all eras. Elite gunplay only.",
-      "tags": [
-        "FPS",
-        "Action",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41249-timesplitters-2-usa.html"
-      },
-      "availability": "Online",
-      "playersOnline": 6500,
-      "rating": 5,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/timesplitters-2-ps2-elite.png"
     },
     {
       "id": "moh-frontline-ps2-elite",
@@ -6587,119 +6479,6 @@
       "image": "/assets/games/ninja-gaiden-xbox-elite.png"
     },
     {
-      "id": "fable-xbox-elite",
-      "name": "Fable: The Lost Chapters",
-      "url": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
-      "genre": "RPG",
-      "description": "For every choice, a consequence. S.M.U.V.E. judges your legacy. Become the Absolute Hero or a hollow myth.",
-      "tags": [
-        "Xbox",
-        "RPG",
-        "Fantasy",
-        "Retro",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41224-fable-the-lost-chapters-usa.html"
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/fable-xbox-elite.png"
-    },
-    {
-      "id": "splinter-cell-ct-xbox-elite",
-      "name": "Splinter Cell: Chaos Theory",
-      "url": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
-      "genre": "Action",
-      "description": "Shadow is your Absolute weapon. S.M.U.V.E. rewards the silent executioner. Infiltrate or fail.",
-      "tags": [
-        "Xbox",
-        "Stealth",
-        "Action",
-        "Retro",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41225-tom-clancy-s-splinter-cell-chaos-theory-usa.html"
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/splinter-cell-ct-xbox-elite.png"
-    },
-    {
-      "id": "gow2-ps2-elite",
-      "name": "God of War II (Elite)",
-      "url": "https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html",
-      "genre": "Action",
-      "description": "Defy the Fates themselves. Kratos seeks Absolute vengeance. S.M.U.V.E. commands the destruction of Olympus.",
-      "tags": [
-        "PS2",
-        "Action",
-        "God of War",
-        "Retro",
-        "Elite",
-        "WASM",
-        "High-Perf"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42779-supreme-of-war-ii.html"
-      },
-      "availability": "Online",
-      "playersOnline": 12000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "S.M.U.V.E Elite",
-        "accentStart": "#af25f4",
-        "accentEnd": "#3d2b1f"
-      },
-      "image": "/assets/games/gow2-ps2-elite.png"
-    },
-    {
       "id": "ratchet-uy-ps2-elite",
       "name": "Ratchet & Clank: Up Your Arsenal",
       "url": "https://www.retrogames.cc/embed/42780-ratchet-clank-up-your-arsenal.html",
@@ -6920,42 +6699,6 @@
       "image": "/assets/games/def-jam-ffny-elite.png"
     },
     {
-      "id": "tekken-tag-elite",
-      "name": "Tekken Tag Tournament",
-      "url": "https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html",
-      "genre": "Fighting",
-      "description": "Double the Absolute pressure. S.M.U.V.E. demands perfect tag execution. No room for error in the pit.",
-      "tags": [
-        "PS2",
-        "Fighting",
-        "Elite",
-        "Arcade"
-      ],
-      "badgeIds": [
-        "elite",
-        "trending"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "controls": [
-          "Standard Keyboard",
-          "Gamepad Support"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42787-tekken-tag-tournament.html"
-      },
-      "availability": "Online",
-      "playersOnline": 18000,
-      "rating": 4.9,
-      "art": {
-        "eyebrow": "Namco Elite",
-        "accentStart": "#fbbf24",
-        "accentEnd": "#78350f"
-      },
-      "image": "/assets/games/tekken-tag-elite.png"
-    },
-    {
       "id": "need-for-speed-underground-2-elite",
       "name": "Need for Speed: Underground 2",
       "url": "https://www.retrogames.cc/embed/27264-need-for-speed-underground-2-ps2.html",
@@ -7107,7 +6850,7 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21891-street-fighter-ii-champion-edition-snes.html",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21891-street-fighter-ii-champion-edition-snes.html"
       }
     },
     {
@@ -7286,59 +7029,6 @@
         "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html"
-      }
-    },
-    {
-      "id": "halo-2-xbox-elite-alt",
-      "name": "Halo 2 (Absolute Edition)",
-      "url": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
-      "description": "The Absolute shooter. Master the Chief. S.M.U.V.E. demands tactical superiority.",
-      "genre": "FPS",
-      "rating": 5,
-      "playersOnline": 30000,
-      "availability": "Online",
-      "tags": [
-        "FPS",
-        "Multiplayer",
-        "Xbox",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite",
-        "featured"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": ""
-      }
-    },
-    {
-      "id": "re4-ps2-elite",
-      "name": "Resident Evil 4 (Elite)",
-      "url": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
-      "description": "Absolute survival horror. S.M.U.V.E. demands high-stakes precision.",
-      "genre": "Survival Horror",
-      "rating": 5,
-      "playersOnline": 12000,
-      "availability": "Online",
-      "tags": [
-        "Horror",
-        "Adventure",
-        "PS2",
-        "Elite"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41252-resident-evil-4-usa.html"
       }
     },
     {
@@ -7797,30 +7487,6 @@
       "availability": "Online"
     },
     {
-      "id": "silent-hill-2-elite-master",
-      "name": "Silent Hill 2",
-      "url": "https://www.retrogames.cc/embed/42775-silent-hill-2.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience Silent Hill 2 in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42775-silent-hill-2.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42775-silent-hill-2.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "final-fantasy-x-elite-master",
       "name": "Final Fantasy X",
       "url": "https://www.retrogames.cc/embed/27092-final-fantasy-x-ps2.html",
@@ -7841,30 +7507,6 @@
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42778-final-fantasy-x.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "kingdom-hearts-elite-master",
-      "name": "Kingdom Hearts",
-      "url": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html",
-      "genre": "RPG",
-      "description": "Absolute high-fidelity RPG action. Experience Kingdom Hearts in a stabilized browser environment.",
-      "tags": [
-        "RPG",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42779-kingdom-hearts.html"
       },
       "availability": "Online"
     },
@@ -7933,54 +7575,6 @@
       }
     },
     {
-      "id": "gta-vice-city-elite-elite-master",
-      "name": "Grand Theft Auto: Vice City (Elite)",
-      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience GTA Vice City Elite in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "gta-iii-elite-elite-master",
-      "name": "Grand Theft Auto III (Elite)",
-      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience GTA III Elite in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "tony-hawk-3-elite-master",
       "name": "Tony Hawk's Pro Skater 3",
       "url": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html",
@@ -8001,78 +7595,6 @@
         "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "ssx-tricky-elite-master",
-      "name": "SSX Tricky",
-      "url": "https://www.retrogames.cc/embed/42780-ssx-tricky.html",
-      "genre": "Sports",
-      "description": "Absolute high-fidelity Sports action. Experience SSX Tricky in a stabilized browser environment.",
-      "tags": [
-        "Sports",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42780-ssx-tricky.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42780-ssx-tricky.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "burnout-3-elite-master",
-      "name": "Burnout 3: Takedown",
-      "url": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
-      "genre": "Racing",
-      "description": "Absolute high-fidelity Racing action. Experience Burnout 3 in a stabilized browser environment.",
-      "tags": [
-        "Racing",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42781-burnout-3-takedown.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "need-for-speed-underground-2-elite-master",
-      "name": "Need for Speed: Underground 2",
-      "url": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
-      "genre": "Racing",
-      "description": "Absolute high-fidelity Racing action. Experience Need for Speed Underground 2 in a stabilized browser environment.",
-      "tags": [
-        "Racing",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42782-need-for-speed-underground-2.html"
       },
       "availability": "Online"
     },
@@ -8109,30 +7631,6 @@
       }
     },
     {
-      "id": "ratchet-and-clank-elite-master",
-      "name": "Ratchet and Clank",
-      "url": "https://www.retrogames.cc/embed/42783-ratchet-clank.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience Ratchet and Clank in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42783-ratchet-clank.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42783-ratchet-clank.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "jak-and-daxter-elite-master",
       "name": "Jak and Daxter",
       "url": "https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html",
@@ -8153,78 +7651,6 @@
         "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "sly-cooper-elite-master",
-      "name": "Sly Cooper",
-      "url": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience Sly Cooper in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42785-sly-cooper-and-the-thievius-raccoonus.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "god-of-war-elite-elite-master",
-      "name": "God of War Elite",
-      "url": "https://www.retrogames.cc/embed/42786-god-of-war.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience God of War Elite in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42786-god-of-war.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42786-god-of-war.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "devil-may-cry-3-elite-master",
-      "name": "Devil May Cry 3",
-      "url": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience Devil May Cry 3 in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42787-devil-may-cry-3-dante-s-awakening.html"
       },
       "availability": "Online"
     },
@@ -8261,56 +7687,8 @@
       }
     },
     {
-      "id": "okami-elite-master",
-      "name": "\u014ckami",
-      "url": "https://www.retrogames.cc/embed/42788-okami.html",
-      "genre": "Adventure",
-      "description": "Absolute high-fidelity Adventure action. Experience Okami in a stabilized browser environment.",
-      "tags": [
-        "Adventure",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42788-okami.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42788-okami.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "shadow-of-the-colossus-elite-master",
-      "name": "Shadow of the Colossus",
-      "url": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html",
-      "genre": "Adventure",
-      "description": "Absolute high-fidelity Adventure action. Experience Shadow of the Colossus in a stabilized browser environment.",
-      "tags": [
-        "Adventure",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42789-shadow-of-the-colossus.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "prince-of-persia-elite-master",
-      "name": "Prince of Persia",
+      "name": "Prince of Persia (DOS Classic)",
       "url": "https://dos.zone/player/?bundleUrl=https%3A%2F%2Fdos.zone%2Fz%2Fprince.json&profile=prince",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Prince of Persia in a stabilized browser environment.",
@@ -8353,30 +7731,6 @@
         "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "star-wars-kotor-elite-master",
-      "name": "Star Wars: Knights of the Old Republic",
-      "url": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html",
-      "genre": "RPG",
-      "description": "Absolute high-fidelity RPG action. Experience Star Wars: KOTOR in a stabilized browser environment.",
-      "tags": [
-        "RPG",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42792-star-wars-knights-of-the-old-republic.html"
       },
       "availability": "Online"
     },
@@ -8723,48 +8077,6 @@
       "image": "/assets/games/mega-man.png"
     },
     {
-      "id": "punch-out-classic-elite",
-      "name": "Mike Tyson's Punch-Out!!",
-      "url": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
-      "description": "The Absolute boxing challenge. Rise through the ranks to face the Iron Mike.",
-      "genre": "Sports",
-      "rating": 4.9,
-      "playersOnline": 950,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "NES",
-        "Sports",
-        "Elite"
-      ],
-      "badgeIds": [
-        "elite",
-        "staff-pick"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17355-mike-tyson-s-punch-out-usa.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#dc2626",
-        "accentEnd": "#991b1b"
-      },
-      "image": "/assets/games/punch-out.png"
-    },
-    {
       "id": "zelda-1-classic-elite",
       "name": "The Legend of Zelda (Classic)",
       "url": "https://www.retrogames.cc/embed/3643-legend-of-zelda-nes.html",
@@ -8885,86 +8197,6 @@
         "accentEnd": "#166534"
       },
       "image": "/assets/games/gta-2-classic.png"
-    },
-    {
-      "id": "gta-iii-classic",
-      "name": "Grand Theft Auto III (Classic)",
-      "url": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
-      "description": "The Absolute high-quality classic version of GTA III.",
-      "genre": "Action",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Action"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41222-grand-theft-auto-iii-usa.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/gta-iii-classic.png"
-    },
-    {
-      "id": "gta-vc-classic",
-      "name": "Grand Theft Auto: Vice City (Classic)",
-      "url": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
-      "description": "The Absolute high-quality classic version of GTA: Vice City.",
-      "genre": "Action",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Action"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-grand-theft-auto-vice-city-usa.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/gta-vc-classic.png"
     },
     {
       "id": "gta-sa-classic",
@@ -9487,46 +8719,6 @@
       "image": "/assets/games/madden-2004-classic.png"
     },
     {
-      "id": "nba-2k1-classic",
-      "name": "NBA 2K1 (Classic)",
-      "url": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
-      "description": "The Absolute high-quality classic version of NBA 2K1.",
-      "genre": "Sports",
-      "rating": 4.9,
-      "playersOnline": 500,
-      "availability": "Online",
-      "tags": [
-        "Classic",
-        "Retro",
-        "Elite",
-        "Sports"
-      ],
-      "badgeIds": [
-        "elite"
-      ],
-      "launchConfig": {
-        "difficulty": "Elite",
-        "controls": [
-          "Gamepad",
-          "Keyboard"
-        ],
-        "modes": [
-          "Solo"
-        ],
-        "inlinePolicy": "trusted",
-        "embedMode": "external-only",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41223-nba-2k1-usa.html",
-        "secure_mode": "wasm"
-      },
-      "art": {
-        "eyebrow": "Classic Elite",
-        "accentStart": "#4ade80",
-        "accentEnd": "#166534"
-      },
-      "image": "/assets/games/nba-2k1-classic.png"
-    },
-    {
       "id": "tecmo-bowl-classic",
       "name": "Tecmo Bowl (Classic)",
       "url": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html",
@@ -10039,7 +9231,7 @@
     {
       "id": "castlevania-aria-elite-master",
       "name": "Castlevania: Aria of Sorrow",
-      "url": "https://www.retrogames.cc/embed/26480-castlevania-aria-of-sorrow-gba.html",
+      "url": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html",
       "genre": "Action",
       "description": "Absolute soul-collecting adventure. High-fidelity GBA exploration through Dracula's castle.",
       "tags": [
@@ -10054,7 +9246,7 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26480-castlevania-aria-of-sorrow-gba.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html"
@@ -10180,7 +9372,7 @@
     },
     {
       "id": "castlevania-iv-elite-master",
-      "name": "Castlevania IV",
+      "name": "Super Castlevania IV",
       "url": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
       "genre": "Action",
       "description": "Absolute high-fidelity Action action. Experience Castlevania IV in a stabilized browser environment.",
@@ -10775,30 +9967,6 @@
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32168-doom-64-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
-      "id": "goldeneye-007-elite-elite-master",
-      "name": "GoldenEye 007 Elite",
-      "url": "https://www.gamepix.com/play/goldeneye-007",
-      "genre": "FPS",
-      "description": "Absolute high-fidelity FPS action. Experience GoldenEye 007 Elite in a stabilized browser environment.",
-      "tags": [
-        "FPS",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/goldeneye-007",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html"
       },
       "availability": "Online"
     },
@@ -11460,38 +10628,6 @@
       }
     },
     {
-      "id": "super-castlevania-iv-elite",
-      "name": "Super Castlevania IV",
-      "url": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
-      "genre": "Action",
-      "description": "Simon Belmont in this stunning SNES reimagining of the original Castlevania.",
-      "rating": 4.7,
-      "playersOnline": 3800,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "SNES",
-        "Platformer",
-        "Horror",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4647-super-castlevania-iv-snes.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/31965-super-castlevania-iv-usa.html"
-      },
-      "art": {
-        "eyebrow": "SNES Classic",
-        "accentStart": "#8b0000",
-        "accentEnd": "#1a1a1a"
-      }
-    },
-    {
       "id": "dk-country-2-snes-elite",
       "name": "Donkey Kong Country 2",
       "url": "https://www.retrogames.cc/embed/4665-donkey-kong-country-2-snes.html",
@@ -11618,7 +10754,7 @@
     {
       "id": "super-bomberman-snes-elite",
       "name": "Super Bomberman",
-      "url": "https://www.retrogames.cc/embed/4656-bomberman-snes.html",
+      "url": "https://www.retrogames.cc/embed/32131-super-bomberman-usa.html",
       "genre": "Action",
       "description": "4-player explosive arena action. The ultimate party game on SNES.",
       "rating": 4.5,
@@ -11635,7 +10771,7 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4656-bomberman-snes.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32131-super-bomberman-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32131-super-bomberman-usa.html"
@@ -11644,67 +10780,6 @@
         "eyebrow": "Party Classic",
         "accentStart": "#ff9900",
         "accentEnd": "#cc6600"
-      }
-    },
-    {
-      "id": "sor2-genesis-elite",
-      "name": "Streets of Rage 2",
-      "url": "https://www.retrogames.cc/embed/29049-streets-of-rage-2-usa.html",
-      "genre": "Beat 'em up",
-      "description": "The greatest beat-em-up ever made. Axel, Blaze, Skate, and Max vs Mr. X.",
-      "rating": 4.8,
-      "playersOnline": 6800,
-      "availability": "Online",
-      "tags": [
-        "Beat 'em up",
-        "Genesis",
-        "Classic",
-        "Co-op"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/29049-streets-of-rage-2-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29049-streets-of-rage-2-usa.html"
-      },
-      "art": {
-        "eyebrow": "Genesis Classic",
-        "accentStart": "#0066ff",
-        "accentEnd": "#000066"
-      }
-    },
-    {
-      "id": "golden-axe-genesis-elite",
-      "name": "Golden Axe",
-      "url": "https://www.retrogames.cc/embed/29014-golden-axe-w-world.html",
-      "genre": "Beat 'em up",
-      "description": "Ride dragons and wield magic in this legendary Sega fantasy beat-em-up.",
-      "rating": 4.5,
-      "playersOnline": 3400,
-      "availability": "Online",
-      "tags": [
-        "Beat 'em up",
-        "Genesis",
-        "Fantasy",
-        "Co-op"
-      ],
-      "badgeIds": [
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/29014-golden-axe-w-world.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29014-golden-axe-w-world.html"
-      },
-      "art": {
-        "eyebrow": "Genesis Classic",
-        "accentStart": "#cc9900",
-        "accentEnd": "#333300"
       }
     },
     {
@@ -11950,38 +11025,6 @@
       }
     },
     {
-      "id": "pokemon-firered-gba-elite",
-      "name": "Pok\u00e9mon FireRed",
-      "url": "https://www.retrogames.cc/embed/40277-pokemon-fire-red-version-usa.html",
-      "genre": "RPG",
-      "description": "Return to Kanto in this definitive GBA remake of Pokemon Red.",
-      "rating": 4.8,
-      "playersOnline": 18000,
-      "availability": "Online",
-      "tags": [
-        "RPG",
-        "GBA",
-        "Pokemon",
-        "Classic",
-        "JRPG"
-      ],
-      "badgeIds": [
-        "classic",
-        "featured"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40277-pokemon-fire-red-version-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40277-pokemon-fire-red-version-usa.html"
-      },
-      "art": {
-        "eyebrow": "Pokemon Classic",
-        "accentStart": "#ff3333",
-        "accentEnd": "#cc0000"
-      }
-    },
-    {
       "id": "metroid-fusion-gba-elite",
       "name": "Metroid Fusion",
       "url": "https://www.gamepix.com/play/metroid",
@@ -12167,38 +11210,6 @@
       }
     },
     {
-      "id": "banjo-kazooie-n64-elite",
-      "name": "Banjo-Kazooie",
-      "url": "https://www.retrogames.cc/embed/32203-banjo-kazooie-usa.html",
-      "genre": "Platformer",
-      "description": "A bear and bird collect jiggies in Rare's 3D platforming masterpiece.",
-      "rating": 4.8,
-      "playersOnline": 6200,
-      "availability": "Online",
-      "tags": [
-        "Platformer",
-        "N64",
-        "Rare",
-        "3D",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32203-banjo-kazooie-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32203-banjo-kazooie-usa.html"
-      },
-      "art": {
-        "eyebrow": "N64 Classic",
-        "accentStart": "#ff9900",
-        "accentEnd": "#663300"
-      }
-    },
-    {
       "id": "fzero-x-n64-elite",
       "name": "F-Zero X",
       "url": "https://www.retrogames.cc/embed/18914-f-zero-x-n64.html",
@@ -12290,69 +11301,6 @@
         "eyebrow": "N64 Cute",
         "accentStart": "#ff66cc",
         "accentEnd": "#cc0066"
-      }
-    },
-    {
-      "id": "perfect-dark-n64-elite",
-      "name": "Perfect Dark",
-      "url": "https://www.retrogames.cc/embed/32241-perfect-dark-usa.html",
-      "genre": "FPS",
-      "description": "Joanna Dark's sci-fi espionage shooter. The spiritual successor to GoldenEye.",
-      "rating": 4.6,
-      "playersOnline": 4200,
-      "availability": "Online",
-      "tags": [
-        "FPS",
-        "N64",
-        "Rare",
-        "Sci-Fi",
-        "Classic"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32241-perfect-dark-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32241-perfect-dark-usa.html"
-      },
-      "art": {
-        "eyebrow": "N64 Shooter",
-        "accentStart": "#003366",
-        "accentEnd": "#000033"
-      }
-    },
-    {
-      "id": "mario-tennis-n64-elite",
-      "name": "Mario Tennis",
-      "url": "https://www.retrogames.cc/embed/32236-mario-tennis-usa.html",
-      "genre": "Sports",
-      "description": "Camelot's ace tennis game with Mario characters and power shots.",
-      "rating": 4.5,
-      "playersOnline": 2800,
-      "availability": "Online",
-      "tags": [
-        "Sports",
-        "N64",
-        "Mario",
-        "Tennis",
-        "Multiplayer"
-      ],
-      "badgeIds": [
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32236-mario-tennis-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32236-mario-tennis-usa.html"
-      },
-      "art": {
-        "eyebrow": "N64 Sports",
-        "accentStart": "#00cc66",
-        "accentEnd": "#006633"
       }
     },
     {
@@ -12755,36 +11703,6 @@
       }
     },
     {
-      "id": "medievil-ps1-elite",
-      "name": "MediEvil",
-      "url": "https://www.retrogames.cc/embed/42628-medievil.html",
-      "genre": "Action",
-      "description": "Sir Daniel Fortesque rises from the grave in this gothic PS1 action-adventure.",
-      "rating": 4.5,
-      "playersOnline": 3200,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "PS1",
-        "Gothic",
-        "Adventure"
-      ],
-      "badgeIds": [
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42628-medievil.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42628-medievil.html"
-      },
-      "art": {
-        "eyebrow": "PS1 Gothic",
-        "accentStart": "#336633",
-        "accentEnd": "#003300"
-      }
-    },
-    {
       "id": "mega-man-legends-ps1-elite",
       "name": "Mega Man Legends",
       "url": "https://www.retrogames.cc/embed/21026-mega-man-legends-ps1.html",
@@ -12843,38 +11761,6 @@
         "eyebrow": "PS1 Adventure",
         "accentStart": "#0099cc",
         "accentEnd": "#003344"
-      }
-    },
-    {
-      "id": "silent-hill-ps1-elite",
-      "name": "Silent Hill",
-      "url": "https://www.retrogames.cc/embed/42641-silent-hill.html",
-      "genre": "Horror",
-      "description": "Harry Mason searches for his daughter in the fog-drenched nightmare of Silent Hill.",
-      "rating": 4.8,
-      "playersOnline": 6800,
-      "availability": "Online",
-      "tags": [
-        "Horror",
-        "PS1",
-        "Survival Horror",
-        "Classic",
-        "Psychological"
-      ],
-      "badgeIds": [
-        "classic",
-        "featured"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42641-silent-hill.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42641-silent-hill.html"
-      },
-      "art": {
-        "eyebrow": "PS1 Horror",
-        "accentStart": "#660000",
-        "accentEnd": "#1a0000"
       }
     },
     {
@@ -12972,7 +11858,7 @@
     {
       "id": "zelda-la-dx-gbc-elite",
       "name": "The Legend of Zelda: Link's Awakening DX",
-      "url": "https://www.retrogames.cc/embed/26480-legend-of-zelda-links-awakening-dx-gbc.html",
+      "url": "https://www.retrogames.cc/embed/20058-the-legend-of-zelda-links-awakening-dx-usa.html",
       "genre": "Adventure",
       "description": "Link washes ashore Koholint Island in this magical GBC adventure.",
       "rating": 4.8,
@@ -12989,7 +11875,7 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26480-legend-of-zelda-links-awakening-dx-gbc.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/20058-the-legend-of-zelda-links-awakening-dx-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/20058-the-legend-of-zelda-links-awakening-dx-usa.html"
@@ -13274,38 +12160,6 @@
       }
     },
     {
-      "id": "ducktales-nes-elite",
-      "name": "DuckTales",
-      "url": "https://www.retrogames.cc/embed/17905-ducktales-usa.html",
-      "genre": "Platformer",
-      "description": "Scrooge McDuck pogo-sticks through the moon in Capcom's NES masterpiece.",
-      "rating": 4.7,
-      "playersOnline": 5400,
-      "availability": "Online",
-      "tags": [
-        "Platformer",
-        "NES",
-        "Capcom",
-        "Classic",
-        "Disney"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17905-ducktales-usa.html",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17905-ducktales-usa.html"
-      },
-      "art": {
-        "eyebrow": "NES Classic",
-        "accentStart": "#ff9900",
-        "accentEnd": "#cc6600"
-      }
-    },
-    {
       "id": "ninja-gaiden-nes-elite",
       "name": "Ninja Gaiden",
       "url": "https://www.retrogames.cc/embed/17950-ninja-gaiden-usa.html",
@@ -13368,11 +12222,11 @@
       }
     },
     {
-      "id": "punch-out-nes-elite",
-      "name": "Mike Tyson's Punch-Out!!",
+      "id": "punch-out-nes-classic",
+      "name": "Punch-Out!!",
       "url": "https://www.retrogames.cc/embed/17960-punch-out-usa.html",
       "genre": "Sports",
-      "description": "Little Mac fights his way to the top in Nintendo's legendary boxing game.",
+      "description": "The legendary boxing game that defined NES competitive sports gaming. Rise through the ranks and challenge the World Circuit champion.",
       "rating": 4.8,
       "playersOnline": 6200,
       "availability": "Online",
@@ -13824,39 +12678,6 @@
         "eyebrow": "Tactical FPS",
         "accentStart": "#336633",
         "accentEnd": "#003300"
-      }
-    },
-    {
-      "id": "moto-x3m-pool-web-elite",
-      "name": "Moto X3M: Pool Party",
-      "url": "https://www.gamepix.com/play/moto-x3m-pool-party",
-      "genre": "Racing",
-      "description": "Stunt bike racing through pool-themed obstacle courses.",
-      "rating": 4.3,
-      "playersOnline": 16000,
-      "availability": "Online",
-      "tags": [
-        "Racing",
-        "Stunts",
-        "Web",
-        "Motorcycle",
-        "Physics"
-      ],
-      "badgeIds": [
-        "modern"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m-pool-party",
-        "embedMode": "inline",
-        "telemetryMode": "origin",
-        "telemetryOrigins": [
-          "https://www.gamepix.com"
-        ]
-      },
-      "art": {
-        "eyebrow": "Stunt Racing",
-        "accentStart": "#0099ff",
-        "accentEnd": "#0066cc"
       }
     },
     {

@@ -1,124 +1,159 @@
+"""
+audit_retrogames.py — READ-ONLY catalog integrity audit for Tha Spot feed.
+
+This script reports potential issues in tha-spot-feed.json without modifying it.
+It does NOT perform automatic URL substitutions or fuzzy title matching, because
+those operations have historically introduced incorrect game-to-URL mappings
+(e.g. mapping one title's retrogames.cc ID to a completely different game).
+
+To fix issues found by this script, edit tha-spot-feed.json manually with
+exact, verified URL-to-title mappings.
+
+Usage:
+    python scripts/audit_retrogames.py
+    python scripts/audit_retrogames.py --fail-on-issues   # exit 1 if issues found
+"""
+
 import json
 import re
+import sys
 
-with open('src/assets/data/tha-spot-feed.json') as f:
+FEED_PATH = 'src/assets/data/tha-spot-feed.json'
+
+with open(FEED_PATH) as f:
     data = json.load(f)
 
 games = data['games']
+issues = []
 
-# Verified embeddable alternatives (GamePix URLs that are known or highly likely to exist)
-VERIFIED_MAP = {
-    "pac-man": "https://www.gamepix.com/play/pac-man",
-    "super mario bros.": "https://www.gamepix.com/play/super-mario-bros",
-    "super mario": "https://www.gamepix.com/play/super-mario-bros",
-    "sonic the hedgehog": "https://www.gamepix.com/play/sonic-the-hedgehog",
-    "sonic the hedgehog 2": "https://www.gamepix.com/play/sonic-the-hedgehog-2",
-    "tetris": "https://www.gamepix.com/play/tetris",
-    "galaga": "https://www.gamepix.com/play/galaga",
-    "space invaders": "https://www.gamepix.com/play/space-invaders",
-    "donkey kong": "https://www.gamepix.com/play/donkey-kong",
-    "frogger": "https://www.gamepix.com/play/frogger",
-    "asteroids": "https://www.gamepix.com/play/asteroids",
-    "arkanoid": "https://www.gamepix.com/play/arkanoid",
-    "breakout": "https://www.gamepix.com/play/breakout",
-    "pong": "https://www.gamepix.com/play/pong",
-    "snake": "https://www.gamepix.com/play/snake",
-    "street fighter ii": "https://www.gamepix.com/play/street-fighter-2",
-    "street fighter 2": "https://www.gamepix.com/play/street-fighter-2",
-    "mortal kombat": "https://www.gamepix.com/play/mortal-kombat",
-    "mortal kombat ii": "https://www.gamepix.com/play/mortal-kombat-2",
-    "mortal kombat 2": "https://www.gamepix.com/play/mortal-kombat-2",
-    "tekken 3": "https://www.gamepix.com/play/tekken-3",
-    "double dragon": "https://www.gamepix.com/play/double-dragon",
-    "mega man": "https://www.gamepix.com/play/mega-man",
-    "mega man 2": "https://www.gamepix.com/play/mega-man-2",
-    "castlevania": "https://www.gamepix.com/play/castlevania",
-    "metroid": "https://www.gamepix.com/play/metroid",
-    "super metroid": "https://www.gamepix.com/play/super-metroid",
-    "contra": "https://www.gamepix.com/play/contra",
-    "gradius": "https://www.gamepix.com/play/gradius",
-    "metal slug": "https://www.gamepix.com/play/metal-slug",
-    "metal slug 2": "https://www.gamepix.com/play/metal-slug-2",
-    "bomberman": "https://www.gamepix.com/play/bomberman",
-    "bubble bobble": "https://www.gamepix.com/play/bubble-bobble",
-    "chess": "https://www.gamepix.com/play/chess-classic",
-    "solitaire": "https://www.gamepix.com/play/solitaire-classic",
-    "mahjong": "https://www.gamepix.com/play/mahjong-classic",
-    "dr mario": "https://www.gamepix.com/play/dr-mario",
-    "final fantasy": "https://www.gamepix.com/play/final-fantasy",
-    "final fantasy vii": "https://www.gamepix.com/play/final-fantasy-vii",
-    "the legend of zelda": "https://www.gamepix.com/play/the-legend-of-zelda",
-    "zelda": "https://www.gamepix.com/play/the-legend-of-zelda",
-    "chrono trigger": "https://www.gamepix.com/play/chrono-trigger",
-    "pokemon yellow": "https://www.gamepix.com/play/pokemon-yellow",
-    "mario kart 64": "https://www.gamepix.com/play/mario-kart-64",
-    "crash team racing": "https://www.gamepix.com/play/crash-team-racing",
-    "f-zero": "https://www.gamepix.com/play/f-zero",
-    "nba jam": "https://www.gamepix.com/play/nba-jam",
-    "doom": "https://www.gamepix.com/play/doom",
-    "goldeneye 007": "https://www.gamepix.com/play/goldeneye-007",
-    "wolfenstein 3d": "https://www.gamepix.com/play/wolfenstein-3d",
-    "duke nukem 3d": "https://www.gamepix.com/play/duke-nukem-3d",
-    "quake": "https://www.gamepix.com/play/quake",
-    "kirby": "https://www.gamepix.com/play/kirby",
-    "star fox": "https://www.gamepix.com/play/star-fox",
-    "excitebike": "https://www.gamepix.com/play/excitebike",
-    "ice climber": "https://www.gamepix.com/play/ice-climber",
-    "duck hunt": "https://www.gamepix.com/play/duck-hunt",
-    "kid icarus": "https://www.gamepix.com/play/kid-icarus",
-    "balloon fight": "https://www.gamepix.com/play/balloon-fight",
+
+def extract_retro_id(url: str) -> str | None:
+    """Extract the numeric ID from a retrogames.cc embed URL."""
+    m = re.search(r'/embed/(\d+)-', url)
+    return m.group(1) if m else None
+
+
+def extract_retro_slug(url: str) -> str | None:
+    """Extract the game-name slug from a retrogames.cc embed URL."""
+    m = re.search(r'/embed/\d+-(.+)\.html', url)
+    return m.group(1) if m else None
+
+
+# ── 1. Duplicate game IDs ───────────────────────────────────────────────────
+id_map: dict[str, list[int]] = {}
+for i, g in enumerate(games):
+    gid = g.get('id', '')
+    id_map.setdefault(gid, []).append(i)
+
+for gid, indices in id_map.items():
+    if len(indices) > 1:
+        names = [games[i]['name'] for i in indices]
+        issues.append(
+            f"DUPLICATE_ID: id='{gid}' appears at indices {indices} "
+            f"(names: {names})"
+        )
+
+# ── 2. Duplicate game names ──────────────────────────────────────────────────
+name_map: dict[str, list[int]] = {}
+for i, g in enumerate(games):
+    name_map.setdefault(g.get('name', ''), []).append(i)
+
+for name, indices in name_map.items():
+    if len(indices) > 1:
+        issues.append(
+            f"DUPLICATE_NAME: '{name}' appears at indices {indices}"
+        )
+
+# ── 3. Same retrogames.cc numeric ID assigned to different game entries ──────
+retro_id_to_entries: dict[str, list[tuple[int, str, str]]] = {}
+
+for i, g in enumerate(games):
+    lc = g.get('launchConfig', {})
+    for url in [
+        g.get('url', ''),
+        lc.get('approvedEmbedUrl', ''),
+        lc.get('approvedExternalUrl', ''),
+    ]:
+        if url and 'retrogames.cc' in url:
+            rid = extract_retro_id(url)
+            if rid:
+                retro_id_to_entries.setdefault(rid, []).append((i, g['name'], url))
+
+for rid, entries in retro_id_to_entries.items():
+    # Collapse to unique (index, name) pairs
+    seen: dict[int, str] = {}
+    for idx, name, url in entries:
+        seen.setdefault(idx, name)
+    unique_pairs = list(seen.items())
+    unique_names = {n for _, n in unique_pairs}
+    if len(unique_names) > 1:
+        detail = '; '.join(f"[{i}] {n}" for i, n in unique_pairs)
+        issues.append(
+            f"RETRO_ID_CONFLICT: retrogames.cc ID {rid} appears under "
+            f"different game names: {detail}"
+        )
+
+# ── 4. URL slug does not plausibly match game name ───────────────────────────
+IGNORED_SLUG_TOKENS = {
+    'usa', 'europe', 'japan', 'world', 'ntsc', 'pal', 'nes', 'snes', 'n64',
+    'gba', 'gbc', 'gb', 'ps1', 'ps2', 'ps3', 'xbox', 'gc', 'genesis',
+    'mega', 'drive', 'dreamcast', 'arcade', 'rev', 'disc', 'the', 'a', 'an',
+    'and', 'of', 'in', 'to', 'v1', 'v2',
 }
 
-def normalize(name):
-    return re.sub(r'[^a-z0-9]', '', name.lower())
 
-norm_map = {normalize(k): v for k, v in VERIFIED_MAP.items()}
+def slug_core_words(slug: str) -> set[str]:
+    """Return meaningful words from a retrogames.cc slug."""
+    return {w for w in slug.split('-') if w and w not in IGNORED_SLUG_TOKENS and not w.isdigit()}
 
-reverted = 0
-replaced = 0
-externalized = 0
 
-for g in games:
-    lc = g.setdefault('launchConfig', {})
-    current_url = lc.get('approvedEmbedUrl') or g.get('url', '')
-    original_url = lc.get('approvedExternalUrl') or current_url
-    
-    # Revert any previous gamepix replacement back to retrogames.cc if external URL is retrogames.cc
-    if 'retrogames.cc' in (original_url or '') and 'gamepix.com' in current_url:
-        current_url = original_url
-        lc['approvedEmbedUrl'] = original_url
-        g['url'] = original_url
-        reverted += 1
-    
-    # Now process retrogames.cc entries
-    if 'retrogames.cc' not in current_url:
-        continue
-    
-    name = g['name']
-    norm_name = normalize(name)
-    new_url = norm_map.get(norm_name)
-    
-    if not new_url:
-        for k, v in norm_map.items():
-            if k in norm_name or norm_name in k:
-                new_url = v
-                break
-    
-    if new_url:
-        lc['approvedEmbedUrl'] = new_url
-        lc['approvedExternalUrl'] = current_url
-        lc['embedMode'] = 'inline'
-        g['url'] = new_url
-        replaced += 1
-    else:
-        lc['approvedExternalUrl'] = current_url
-        lc['approvedEmbedUrl'] = current_url
-        lc['embedMode'] = 'external-only'
-        externalized += 1
+def name_core_words(name: str) -> set[str]:
+    """Return meaningful lower-case words from a game name."""
+    tokens = re.sub(r"[^a-z0-9 ]", ' ', name.lower()).split()
+    return {w for w in tokens if w not in IGNORED_SLUG_TOKENS and not w.isdigit() and len(w) > 1}
 
-with open('src/assets/data/tha-spot-feed.json', 'w') as f:
-    json.dump(data, f, indent=2)
 
-print(f'Reverted previous gamepix replacements: {reverted}')
-print(f'Replaced with verified embeddable alternatives: {replaced}')
-print(f'Marked as external-only: {externalized}')
+for i, g in enumerate(games):
+    lc = g.get('launchConfig', {})
+    name = g.get('name', '')
+    for url in [
+        g.get('url', ''),
+        lc.get('approvedEmbedUrl', ''),
+        lc.get('approvedExternalUrl', ''),
+    ]:
+        if not url or 'retrogames.cc' not in url:
+            continue
+        slug = extract_retro_slug(url)
+        if not slug:
+            continue
+        slug_words = slug_core_words(slug)
+        name_words = name_core_words(name)
+        # Flag if there is zero word overlap between slug and game name
+        if slug_words and name_words and not (slug_words & name_words):
+            issues.append(
+                f"SLUG_MISMATCH: [{i}] '{name}' — URL slug '{slug}' shares "
+                f"no words with game name (slug_words={slug_words}, "
+                f"name_words={name_words}) | url={url}"
+            )
+            break  # one report per entry is enough
+
+# ── 5. Missing launchConfig URLs ─────────────────────────────────────────────
+for i, g in enumerate(games):
+    lc = g.get('launchConfig', {})
+    embed = lc.get('approvedEmbedUrl', '')
+    ext = lc.get('approvedExternalUrl', '')
+    if not embed and not ext:
+        issues.append(
+            f"NO_URL: [{i}] '{g.get('name')}' has no approvedEmbedUrl or "
+            f"approvedExternalUrl in launchConfig"
+        )
+
+# ── Summary ──────────────────────────────────────────────────────────────────
+print(f"Audited {len(games)} games in {FEED_PATH}")
+print(f"Issues found: {len(issues)}\n")
+
+for issue in issues:
+    print(f"  {issue}")
+
+if '--fail-on-issues' in sys.argv and issues:
+    sys.exit(1)
