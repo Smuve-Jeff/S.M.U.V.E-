@@ -24,6 +24,14 @@ export interface TrackNote {
   params?: any;
   probability?: number;
   isSlide?: boolean;
+  /** Pro Precision: micro-timing offset in steps (±0.5 = half-step swing) */
+  microOffset?: number;
+  /** Pro Precision: pitch bend in semitones (±12 = one octave) */
+  pitchBend?: number;
+  /** Pro Precision: articulation style */
+  articulation?: 'normal' | 'staccato' | 'legato' | 'portamento' | 'pizzicato' | 'accent';
+  /** Pro Precision: note pan override (-1..1) */
+  notePan?: number;
 }
 
 export interface FxSlot {
@@ -1458,23 +1466,38 @@ export class MusicManagerService {
             .filter((n) => Math.floor(n.step) === step % 64)
             .forEach((n) => {
               if (
-                n.probability === undefined ||
-                Math.random() < n.probability
-              ) {
-                const freq = 440 * Math.pow(2, (n.midi - 69) / 12);
-                this.engine.triggerAttack(
-                  t.id,
-                  freq,
-                  swungTime,
-                  n.velocity,
-                  n.length * duration,
-                  t.gain,
-                  t.pan,
-                  0,
-                  0,
-                  t.synthParams
-                );
+                n.probability !== undefined &&
+                Math.random() >= n.probability
+              ) return; // Skip based on probability
+
+              const microTime = swungTime + (n.microOffset ?? 0) * duration;
+              const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
+              const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
+
+              // Articulation-driven length multiplier
+              let lengthMul = 1.0;
+              switch (n.articulation) {
+                case 'staccato': lengthMul = 0.25; break;
+                case 'legato': lengthMul = 1.1; break;
+                case 'portamento': lengthMul = 1.0; break;
+                case 'pizzicato': lengthMul = 0.15; break;
+                case 'accent': lengthMul = 0.5; break;
               }
+
+              const notePan = n.notePan ?? t.pan;
+
+              this.engine.triggerAttack(
+                t.id,
+                freq,
+                microTime,
+                n.velocity,
+                n.length * duration * lengthMul,
+                t.gain,
+                notePan,
+                0,
+                0,
+                t.synthParams
+              );
             });
 
           if (clip.type === 'audio' && stepInBar === 0 && bar === clip.start) {

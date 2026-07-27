@@ -95,6 +95,50 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     return Number((first?.probability ?? 1.0).toFixed(2));
   });
 
+  // ── Pro: Precision Editing Fields ────────────────────────────
+  selectedNoteMicroOffset = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return 0;
+    const first = track.notes.find((n) => ids.has(n.id));
+    return Number((first?.microOffset ?? 0).toFixed(3));
+  });
+
+  selectedNotePitchBend = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return 0;
+    const first = track.notes.find((n) => ids.has(n.id));
+    return Number((first?.pitchBend ?? 0).toFixed(2));
+  });
+
+  selectedNoteArticulation = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return 'normal';
+    const first = track.notes.find((n) => ids.has(n.id));
+    return first?.articulation ?? 'normal';
+  });
+
+  selectedNoteLength = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return 1;
+    const first = track.notes.find((n) => ids.has(n.id));
+    return first?.length ?? 1;
+  });
+
+  articulationOptions = [
+    { label: 'Normal', value: 'normal' as const },
+    { label: 'Staccato', value: 'staccato' as const },
+    { label: 'Legato', value: 'legato' as const },
+    { label: 'Portamento', value: 'portamento' as const },
+    { label: 'Pizzicato', value: 'pizzicato' as const },
+    { label: 'Accent', value: 'accent' as const },
+  ];
+
+  showPrecisionPanel = signal(false);
+
   /** Cross-link target range — null when none active. */
   highlightedRange = computed(() =>
     this.musicManager.crossLinkRequest()?.noteRange ?? null
@@ -246,6 +290,41 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
     ids.forEach((id) => this.musicManager.updateNote(track.id, id, { probability: value }));
+  }
+
+  // ── Pro: Precision editing setters ────────────────────────
+  setSelectedMicroOffset(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { microOffset: Number(value.toFixed(3)) }));
+  }
+
+  setSelectedPitchBend(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { pitchBend: Number(value.toFixed(2)) }));
+  }
+
+  setSelectedArticulation(value: string) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { articulation: value as any }));
+    this.haptic.light();
+  }
+
+  setSelectedLength(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
+    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { length: Math.max(0.125, value) }));
+  }
+
+  togglePrecisionPanel() {
+    this.showPrecisionPanel.update(v => !v);
+    this.haptic.light();
   }
 
   // ---- Coordinate helpers ----

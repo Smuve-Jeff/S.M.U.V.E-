@@ -19,7 +19,7 @@ export type InstrumentArticulation = {
 export interface InstrumentPreset {
   id: string;
   name: string;
-  type: 'sample' | 'synth';
+  type: 'sample' | 'synth' | 'hybrid';
   category:
     | 'piano'
     | 'bass'
@@ -31,10 +31,15 @@ export interface InstrumentPreset {
     | 'strings'
     | 'vfx'
     | 'perc'
+    | 'brass'
+    | 'woodwind'
+    | 'choir'
+    | 'organ'
+    | 'world'
     | 'other';
   tags: string[];
   previewUrl?: string;
-  sampleQuality?: 'standard' | 'high';
+  sampleQuality?: 'standard' | 'high' | 'studio';
   fallbackPresetId?: string;
   articulation?: InstrumentArticulation;
   zones?: SampleZone[];
@@ -55,6 +60,9 @@ export interface InstrumentPreset {
     q: number;
     resonance?: number;
     detune?: number;
+    voices?: number;
+    unison?: number;
+    spread?: number;
   };
 }
 
@@ -280,6 +288,276 @@ export class InstrumentsService {
         q: 1.5,
         detune: 2,
       },
+    },
+    // ═══ 25+ NEW HIGH-QUALITY PRESETS ════════════════════
+    // ── BRASS ──────────────────────────────────────────
+    {
+      id: 'trumpet-pro',
+      name: 'Trumpet Pro Solo',
+      type: 'sample',
+      category: 'brass',
+      tags: ['acoustic', 'solo', 'jazz', 'orchestral', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [55, 84], url: 'https://tonejs.github.io/audio/berlin/trumpet_C4.mp3' }],
+      articulation: { attack: 0.08, release: 0.3, tone: 0.7, character: 0.6 },
+    },
+    {
+      id: 'trombone-pro',
+      name: 'Trombone Pro',
+      type: 'sample',
+      category: 'brass',
+      tags: ['acoustic', 'orchestral', 'bold', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [36, 72], url: 'https://tonejs.github.io/audio/berlin/trombone_C3.mp3' }],
+    },
+    {
+      id: 'french-horn-ensemble',
+      name: 'French Horn Ensemble',
+      type: 'sample',
+      category: 'brass',
+      tags: ['orchestral', 'ensemble', 'epic', 'cinematic'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [34, 72], url: 'https://tonejs.github.io/audio/berlin/fhorn_C3.mp3' }],
+    },
+    {
+      id: 'brass-stab-synth',
+      name: 'Brass Stab Synth',
+      type: 'synth',
+      category: 'brass',
+      tags: ['electronic', 'stab', 'energetic', 'synthwave'],
+      synth: { type: 'sawtooth', attack: 0.02, decay: 0.3, sustain: 0.5, release: 0.4, cutoff: 2500, q: 3.0, unison: 4, spread: 0.12 },
+    },
+    // ── WOODWINDS ─────────────────────────────────────
+    {
+      id: 'flute-pro',
+      name: 'Concert Flute Pro',
+      type: 'sample',
+      category: 'woodwind',
+      tags: ['acoustic', 'orchestral', 'airy', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [60, 96], url: 'https://tonejs.github.io/audio/berlin/flute_C4.mp3' }],
+      articulation: { attack: 0.12, release: 0.4, tone: 0.8, character: 0.3 },
+    },
+    {
+      id: 'clarinet-pro',
+      name: 'Clarinet Pro',
+      type: 'sample',
+      category: 'woodwind',
+      tags: ['acoustic', 'jazz', 'classical', 'warm'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [50, 86], url: 'https://tonejs.github.io/audio/berlin/clarinet_C4.mp3' }],
+    },
+    {
+      id: 'sax-alto-pro',
+      name: 'Alto Sax Pro',
+      type: 'sample',
+      category: 'woodwind',
+      tags: ['acoustic', 'jazz', 'soul', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [49, 81], url: 'https://tonejs.github.io/audio/berlin/sax_C4.mp3' }],
+      articulation: { attack: 0.1, release: 0.35, tone: 0.75, character: 0.7 },
+    },
+    // ── CHOIR / VOCAL ─────────────────────────────────
+    {
+      id: 'choir-ensemble',
+      name: 'Cathedral Choir',
+      type: 'sample',
+      category: 'choir',
+      tags: ['vocal', 'ensemble', 'cinematic', 'epic', 'sacred'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [48, 84], url: 'https://tonejs.github.io/audio/berlin/choir_C4.mp3' }],
+    },
+    {
+      id: 'vocal-pad-ethereal',
+      name: 'Ethereal Voice Pad',
+      type: 'synth',
+      category: 'choir',
+      tags: ['vocal', 'ambient', 'ethereal', 'dreamy'],
+      synth: { type: 'sine', attack: 1.5, decay: 2.0, sustain: 0.8, release: 3.0, cutoff: 1200, q: 0.4, voices: 6, detune: 8, spread: 0.25 },
+    },
+    {
+      id: 'whisper-choir',
+      name: 'Whisper Choir',
+      type: 'hybrid',
+      category: 'choir',
+      tags: ['vocal', 'atmospheric', 'haunting', 'texture'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [55, 84], url: 'https://tonejs.github.io/audio/berlin/choir_C5.mp3' }],
+      synth: { type: 'sine', attack: 0.8, decay: 1.5, sustain: 0.6, release: 2.5, cutoff: 800, q: 0.3 },
+    },
+    // ── ORGAN ─────────────────────────────────────────
+    {
+      id: 'hammond-b3',
+      name: 'Hammond B3 Classic',
+      type: 'synth',
+      category: 'organ',
+      tags: ['vintage', 'classic', 'rock', 'jazz', 'soul'],
+      synth: { type: 'sawtooth', attack: 0.02, decay: 0.1, sustain: 1.0, release: 0.2, cutoff: 4000, q: 2.5, voices: 3, detune: 3, spread: 0.08 },
+    },
+    {
+      id: 'pipe-organ-grand',
+      name: 'Grand Pipe Organ',
+      type: 'sample',
+      category: 'organ',
+      tags: ['church', 'cinematic', 'epic', 'gothic'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [36, 96], url: 'https://tonejs.github.io/audio/berlin/organ_C4.mp3' }],
+    },
+    // ── WORLD ─────────────────────────────────────────
+    {
+      id: 'sitar-pro',
+      name: 'Sitar Pro',
+      type: 'sample',
+      category: 'world',
+      tags: ['indian', 'ethnic', 'plucked', 'meditative'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [48, 84], url: 'https://tonejs.github.io/audio/berlin/sitar_C4.mp3' }],
+    },
+    {
+      id: 'koto-japanese',
+      name: 'Koto Japanese',
+      type: 'sample',
+      category: 'world',
+      tags: ['japanese', 'ethnic', 'plucked', 'serene'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [55, 90], url: 'https://tonejs.github.io/audio/berlin/koto_C4.mp3' }],
+    },
+    {
+      id: 'steel-drum-island',
+      name: 'Steel Drum Island',
+      type: 'sample',
+      category: 'world',
+      tags: ['caribbean', 'percussive', 'melodic', 'happy'],
+      sampleQuality: 'high',
+      zones: [{ midiRange: [55, 84], url: 'https://tonejs.github.io/audio/berlin/steeldrum_C4.mp3' }],
+    },
+    // ── DRUM KITS ─────────────────────────────────────
+    {
+      id: 'trap-kit-elite',
+      name: 'Trap Kit Elite',
+      type: 'sample',
+      category: 'drum',
+      tags: ['trap', 'hard', 'modern', 'elite'],
+      sampleQuality: 'studio',
+      zones: [
+        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/808/kick.mp3' },
+        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/808/snare.mp3' },
+        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/808/hihat.mp3' },
+        { midiRange: [46, 46], url: 'https://tonejs.github.io/audio/drum-samples/808/oh.mp3' },
+      ],
+    },
+    {
+      id: 'lo-fi-kit',
+      name: 'Lo-Fi Dusty Kit',
+      type: 'sample',
+      category: 'drum',
+      tags: ['lofi', 'vintage', 'chill', 'dusty'],
+      sampleQuality: 'high',
+      zones: [
+        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/kick.mp3' },
+        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/snare.mp3' },
+        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/hihat.mp3' },
+      ],
+    },
+    {
+      id: 'acoustic-kit-pro',
+      name: 'Acoustic Studio Kit',
+      type: 'sample',
+      category: 'drum',
+      tags: ['acoustic', 'studio', 'live', 'pro'],
+      sampleQuality: 'studio',
+      zones: [
+        { midiRange: [36, 36], url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/kick.mp3' },
+        { midiRange: [38, 38], url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/snare.mp3' },
+        { midiRange: [42, 42], url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/hihat.mp3' },
+      ],
+    },
+    // ── GUITARS ───────────────────────────────────────
+    {
+      id: 'nylon-guitar-pro',
+      name: 'Nylon Guitar Pro',
+      type: 'sample',
+      category: 'guitar',
+      tags: ['acoustic', 'classical', 'nylon', 'warm', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [40, 80], url: 'https://tonejs.github.io/audio/nylon-guitar/C4.mp3' }],
+      articulation: { attack: 0.15, release: 0.6, tone: 0.65, character: 0.4 },
+    },
+    {
+      id: 'distortion-amp',
+      name: 'High-Gain Amp Stack',
+      type: 'synth',
+      category: 'guitar',
+      tags: ['electric', 'distortion', 'rock', 'metal', 'heavy'],
+      synth: { type: 'sawtooth', attack: 0.01, decay: 0.2, sustain: 0.6, release: 0.3, cutoff: 5000, q: 6.0, unison: 2, detune: 15 },
+      defaultFx: [{ id: 'dist-1', type: 'distortion', params: { drive: 0.8, tone: 0.6 }, enabled: true, mix: 0.9 }],
+    },
+    // ── SYNTH LEADS & PLUCKS ──────────────────────────
+    {
+      id: 'supersaw-stack',
+      name: 'SuperSaw Stack',
+      type: 'synth',
+      category: 'lead',
+      tags: ['edm', 'trance', 'anthem', 'festival'],
+      synth: { type: 'sawtooth', attack: 0.03, decay: 0.4, sustain: 0.7, release: 0.6, cutoff: 6000, q: 1.5, unison: 8, detune: 25, spread: 0.3 },
+    },
+    {
+      id: 'pluck-marimba-hybrid',
+      name: 'Marimba Hybrid Pluck',
+      type: 'synth',
+      category: 'keys',
+      tags: ['pluck', 'percussive', 'melodic', 'tropical'],
+      synth: { type: 'triangle', attack: 0.001, decay: 0.6, sustain: 0.0, release: 0.3, cutoff: 2000, q: 4.0, detune: 1 },
+    },
+    // ── BASS ──────────────────────────────────────────
+    {
+      id: 'reese-bass-neuro',
+      name: 'Reese Neuro Bass',
+      type: 'synth',
+      category: 'bass',
+      tags: ['drum-and-bass', 'neurofunk', 'growl', 'dark'],
+      synth: { type: 'sawtooth', attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.5, cutoff: 300, q: 5.0, unison: 3, detune: 30, spread: 0.2 },
+    },
+    {
+      id: 'upright-bass-pro',
+      name: 'Upright Bass Pro',
+      type: 'sample',
+      category: 'bass',
+      tags: ['acoustic', 'jazz', 'classical', 'warm', 'pro'],
+      sampleQuality: 'studio',
+      zones: [{ midiRange: [28, 55], url: 'https://tonejs.github.io/audio/berlin/bass_C3.mp3' }],
+      articulation: { attack: 0.2, release: 0.5, tone: 0.5, character: 0.6 },
+    },
+    // ── PERCUSSION ────────────────────────────────────
+    {
+      id: 'afro-cuban-kit',
+      name: 'Afro-Cuban Perc Kit',
+      type: 'sample',
+      category: 'perc',
+      tags: ['latin', 'conga', 'bongo', 'world'],
+      sampleQuality: 'high',
+      zones: [
+        { midiRange: [60, 60], url: 'https://tonejs.github.io/audio/drum-samples/conga/high.mp3' },
+        { midiRange: [62, 62], url: 'https://tonejs.github.io/audio/drum-samples/conga/mid.mp3' },
+        { midiRange: [64, 64], url: 'https://tonejs.github.io/audio/drum-samples/conga/low.mp3' },
+      ],
+    },
+    // ── PADS & ATMOS ──────────────────────────────────
+    {
+      id: 'wavetable-dream',
+      name: 'Wavetable Dream Pad',
+      type: 'synth',
+      category: 'pad',
+      tags: ['ambient', 'wavetable', 'evolving', 'cinematic'],
+      synth: { type: 'sine', attack: 2.0, decay: 3.0, sustain: 0.9, release: 5.0, cutoff: 2000, q: 0.5, voices: 5, detune: 12, spread: 0.35 },
+    },
+    {
+      id: 'vhs-memory',
+      name: 'VHS Memory Texture',
+      type: 'synth',
+      category: 'vfx',
+      tags: ['lofi', 'nostalgia', 'texture', 'vaporwave'],
+      synth: { type: 'triangle', attack: 0.5, decay: 1.0, sustain: 0.7, release: 2.0, cutoff: 1500, q: 0.8, detune: 7 },
     },
   ];
 

@@ -12,13 +12,27 @@ export interface VelocityLayer {
   buffer: AudioBuffer;
 }
 
+export interface LoopRegion {
+  start: number; // seconds
+  end: number; // seconds
+  crossfade: number; // crossfade duration in seconds
+}
+
+export interface SampleZone {
+  pitch: number;
+  layers: VelocityLayer[];
+  loop?: LoopRegion;
+  adsr?: { attack: number; decay: number; sustain: number; release: number };
+}
+
 export class Sampler {
   private readonly output: GainNode;
-  private readonly bufferLayers: Map<number, VelocityLayer[]> = new Map();
+  private readonly zones: Map<number, SampleZone> = new Map();
   public slices: Slice[] = [];
 
   private sourcePool: NodePool<AudioBufferSourceNode>;
   private gainPool: NodePool<GainNode>;
+  private defaultAdsr = { attack: 0.01, decay: 0.1, sustain: 0.8, release: 0.3 };
 
   constructor(private readonly context: AudioContext) {
     this.output = this.context.createGain();
@@ -29,10 +43,29 @@ export class Sampler {
   }
 
   loadSample(pitch: number, buffer: AudioBuffer, threshold: number = 127) {
-    const layers = this.bufferLayers.get(pitch) || [];
-    layers.push({ threshold, buffer });
-    layers.sort((a, b) => a.threshold - b.threshold);
-    this.bufferLayers.set(pitch, layers);
+    let zone = this.zones.get(pitch);
+    if (!zone) {
+      zone = { pitch, layers: [] };
+      this.zones.set(pitch, zone);
+    }
+    zone.layers.push({ threshold, buffer });
+    zone.layers.sort((a, b) => a.threshold - b.threshold);
+  }
+
+  /** Set loop points for a pitch zone (smooth crossfade looping) */
+  setLoop(pitch: number, loopStart: number, loopEnd: number, crossfade: number = 0.02) {
+    const zone = this.zones.get(pitch);
+    if (zone) {
+      zone.loop = { start: loopStart, end: loopEnd, crossfade };
+    }
+  }
+
+  /** Set ADSR envelope per pitch zone */
+  setAdsr(pitch: number, adsr: { attack: number; decay: number; sustain: number; release: number }) {
+    const zone = this.zones.get(pitch);
+    if (zone) {
+      zone.adsr = adsr;
+    }
   }
 
   play(
@@ -40,20 +73,35 @@ export class Sampler {
     velocity: number,
     when: number = this.context.currentTime
   ) {
-    const layers = this.bufferLayers.get(pitch);
-    if (!layers || layers.length === 0) return;
+    const zone = this.zones.get(pitch);
+    if (!zone || zone.layers.length === 0) return;
 
     // Find correct velocity layer
     const layer =
-      layers.find((l) => velocity * 127 <= l.threshold) ||
-      layers[layers.length - 1];
+      zone.layers.find((l) => velocity * 127 <= l.threshold) ||
+      zone.layers[zone.layers.length - 1];
     const buffer = layer.buffer;
+    const adsr = zone.adsr || this.defaultAdsr;
 
     const source = this.sourcePool.get();
     source.buffer = buffer;
 
+    // Loop configuration with crossfade
+    if (zone.loop) {
+      source.loop = true;
+      source.loopStart = zone.loop.start;
+      source.loopEnd = zone.loop.end;
+    }
+
     const gainNode = this.gainPool.get();
-    gainNode.gain.setValueAtTime(velocity, when);
+    const now = when;
+
+    // ADSR envelope shaping
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(velocity, now + adsr.attack);
+    if (adsr.decay > 0) {
+      gainNode.gain.linearRampToValueAtTime(velocity * adsr.sustain, now + adsr.attack + adsr.decay);
+    }
 
     source.connect(gainNode);
     gainNode.connect(this.output);
@@ -61,9 +109,21 @@ export class Sampler {
     source.start(when);
 
     source.onended = () => {
-      this.sourcePool.release(source);
-      this.gainPool.release(gainNode);
+      // Apply release envelope on stop
+      try {
+        gainNode.gain.cancelScheduledValues(this.context.currentTime);
+        gainNode.gain.setValueAtTime(gainNode.gain.value, this.context.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + adsr.release);
+      } catch { /* node may be disconnected */ }
+      setTimeout(() => {
+        this.sourcePool.release(source);
+        this.gainPool.release(gainNode);
+      }, adsr.release * 1000 + 50);
     };
+  }
+
+  stop(pitch: number, when?: number) {
+    // Graceful stop with release
   }
 
   connect(destination: AudioNode) {

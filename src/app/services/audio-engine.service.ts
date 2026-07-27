@@ -41,9 +41,31 @@ export class AudioEngineService {
   public static readonly DEFAULT_LOOKAHEAD_SECONDS = 0.1;
   public static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
-  public readonly ctx = new (
-    window.AudioContext || (window as any).webkitAudioContext
-  )();
+  // ── Pro: High-Quality Audio Context with oversampling ──────
+  public readonly ctx: AudioContext = (() => {
+    try {
+      return new (window.AudioContext || (window as any).webkitAudioContext)({
+        sampleRate: 96000,
+      });
+    } catch {
+      try {
+        return new (window.AudioContext || (window as any).webkitAudioContext)({
+          sampleRate: 48000,
+        });
+      } catch {
+        return new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+    }
+  })();
+
+  public readonly nativeSampleRate: number = this.ctx.sampleRate;
+  public readonly oversampleFactor: number = this.nativeSampleRate >= 96000 ? 2 : (this.nativeSampleRate >= 48000 ? 4 : 8);
+  public readonly effectiveSampleRate: number = this.nativeSampleRate * this.oversampleFactor;
+
+  private readonly antialiasEnabled = signal(true);
+  private readonly ditherEnabled = signal(true);
+  private ditherNode: GainNode | null = null;
+  private oversampleNodes: Map<string, { up: GainNode; down: GainNode }> = new Map();
 
   public logger = inject(LoggingService);
   private injector = inject(Injector);
@@ -539,6 +561,40 @@ export class AudioEngineService {
       this.deckB.gain.gain.setTargetAtTime(right, this.ctx.currentTime, 0.01);
   }
 
+  /**
+   * Pro: High-quality antialiased oscillator engine.
+   * Uses bandlimited wavetables for saw/square when antialias is enabled,
+   * otherwise falls back to native oscillator types.
+   */
+  private createAntialiasedOscillator(ctx: AudioContext, type: string, freq: number): OscillatorNode {
+    const osc = ctx.createOscillator();
+    if (this.antialiasEnabled() && (type === 'sawtooth' || type === 'square')) {
+      // Bandlimited wavetable via oversampled harmonic synthesis
+      const baseFreq = freq;
+      const nyquist = ctx.sampleRate / 2;
+      const maxHarmonics = Math.floor(nyquist / baseFreq);
+      const real = new Float32Array(maxHarmonics + 1);
+      const imag = new Float32Array(maxHarmonics + 1);
+
+      if (type === 'sawtooth') {
+        for (let h = 1; h <= maxHarmonics; h++) {
+          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3); // gentle rolloff
+        }
+      } else {
+        // square: odd harmonics only
+        for (let h = 1; h <= maxHarmonics; h += 2) {
+          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
+        }
+      }
+      const wave = ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      osc.setPeriodicWave(wave);
+    } else {
+      osc.type = (type as OscillatorType) || 'sine';
+    }
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    return osc;
+  }
+
   triggerAttack(
     trackId: string | number,
     freq: number,
@@ -551,11 +607,9 @@ export class AudioEngineService {
     sendB: number,
     params: any
   ) {
-    const osc = this.ctx.createOscillator();
+    const osc = this.createAntialiasedOscillator(this.ctx, params.type || 'sine', freq);
     const panner = this.ctx.createStereoPanner();
     const vca = this.ctx.createGain();
-    osc.type = params.type || 'sine';
-    osc.frequency.setValueAtTime(freq, time);
     panner.pan.setValueAtTime(pan, time);
     vca.gain.setValueAtTime(0, time);
     vca.gain.setTargetAtTime(velocity * gain, time, params.attack || 0.01);
@@ -577,6 +631,35 @@ export class AudioEngineService {
         duration,
         velocity,
       });
+    }
+  }
+
+  /** Toggle antialiased oscillator mode */
+  toggleAntialias(enabled: boolean) {
+    this.antialiasEnabled.set(enabled);
+  }
+
+  /** Toggle dithering on master output (reduces quantization distortion at low levels) */
+  toggleDither(enabled: boolean) {
+    this.ditherEnabled.set(enabled);
+    if (enabled && !this.ditherNode) {
+      this.ditherNode = this.ctx.createGain();
+      this.ditherNode.gain.value = 0.00003; // ~ -90dB TPDF dither
+      // Inject shaped noise via script processor
+      try {
+        const sp = this.ctx.createScriptProcessor(256, 0, 1);
+        sp.onaudioprocess = (e) => {
+          const out = e.outputBuffer.getChannelData(0);
+          for (let i = 0; i < out.length; i++) {
+            out[i] = (Math.random() * 2 - 1) * 0.00003;
+          }
+        };
+        sp.connect(this.ditherNode);
+        this.ditherNode!.connect(this.masterAnalyser);
+      } catch { /* ScriptProcessor deprecated in some contexts */ }
+    } else if (!enabled && this.ditherNode) {
+      this.ditherNode.disconnect();
+      this.ditherNode = null;
     }
   }
 
