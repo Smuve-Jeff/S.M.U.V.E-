@@ -1,4 +1,15 @@
-import { Component, input, output, signal, computed, effect, ElementRef, viewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  input,
+  output,
+  signal,
+  computed,
+  effect,
+  ElementRef,
+  viewChild,
+  AfterViewInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PianoRollNote } from '../../services/cowrite.service';
 
@@ -11,21 +22,32 @@ import { PianoRollNote } from '../../services/cowrite.service';
       <!-- Toolbar -->
       <div class="flex items-center justify-between mb-3 shrink-0">
         <div class="flex items-center gap-3">
-          <h3 class="text-[10px] font-black uppercase tracking-widest text-violet-400">Piano Roll</h3>
+          <h3
+            class="text-[10px] font-black uppercase tracking-widest text-violet-400"
+          >
+            Piano Roll
+          </h3>
           <span class="text-[8px] text-slate-500 font-mono">
-            {{ melodyNotes().length }} melody · {{ harmonyNotes().length }} harmony · {{ totalBeats() }} beats
+            {{ melodyNotes().length }} melody ·
+            {{ harmonyNotes().length }} harmony · {{ totalBeats() }} beats
           </span>
         </div>
         <div class="flex items-center gap-2">
           <button
             (click)="zoomIn()"
             class="px-2 py-1 bg-white/5 border border-white/10 rounded text-[8px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
-          >+</button>
-          <span class="text-[8px] text-slate-500 font-mono w-8 text-center">{{ zoomLevel() }}x</span>
+          >
+            +
+          </button>
+          <span class="text-[8px] text-slate-500 font-mono w-8 text-center"
+            >{{ zoomLevel() }}x</span
+          >
           <button
             (click)="zoomOut()"
             class="px-2 py-1 bg-white/5 border border-white/10 rounded text-[8px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
-          >−</button>
+          >
+            −
+          </button>
           <button
             (click)="togglePlayback()"
             class="px-3 py-1 rounded text-[8px] font-black uppercase tracking-widest transition-all"
@@ -43,14 +65,19 @@ import { PianoRollNote } from '../../services/cowrite.service';
       </div>
 
       <!-- Legend -->
-      <div class="flex items-center gap-4 mb-2 shrink-0 text-[7px] uppercase tracking-widest font-bold">
+      <div
+        class="flex items-center gap-4 mb-2 shrink-0 text-[7px] uppercase tracking-widest font-bold"
+      >
         <div class="flex items-center gap-1.5">
           <div class="size-2.5 rounded-sm bg-violet-400"></div>
           <span class="text-slate-500">Melody</span>
         </div>
         @for (h of harmonyTypes(); track h) {
           <div class="flex items-center gap-1.5">
-            <div class="size-2.5 rounded-sm" [style.background]="harmonyColor(h)"></div>
+            <div
+              class="size-2.5 rounded-sm"
+              [style.background]="harmonyColor(h)"
+            ></div>
             <span class="text-slate-500">{{ h }}</span>
           </div>
         }
@@ -61,7 +88,9 @@ import { PianoRollNote } from '../../services/cowrite.service';
       </div>
 
       <!-- Canvas Piano Roll Grid -->
-      <div class="piano-roll-scroll overflow-auto custom-scrollbar flex-1 border border-white/5 rounded-xl bg-brand-dark/50">
+      <div
+        class="piano-roll-scroll overflow-auto custom-scrollbar flex-1 border border-white/5 rounded-xl bg-brand-dark/50"
+      >
         <canvas
           #pianoCanvas
           class="block"
@@ -72,7 +101,10 @@ import { PianoRollNote } from '../../services/cowrite.service';
       <!-- Controls Row -->
       <div class="flex items-center gap-3 mt-2 shrink-0">
         <div class="flex items-center gap-2">
-          <span class="text-[7px] text-slate-600 uppercase tracking-widest font-bold">Velocity:</span>
+          <span
+            class="text-[7px] text-slate-600 uppercase tracking-widest font-bold"
+            >Velocity:</span
+          >
           <input
             type="range"
             min="20"
@@ -81,11 +113,18 @@ import { PianoRollNote } from '../../services/cowrite.service';
             (input)="selectedVelocity.set(+$any($event.target).value)"
             class="w-20 h-1 accent-violet-500"
           />
-          <span class="text-[8px] text-slate-400 font-mono w-8">{{ selectedVelocity() }}</span>
+          <span class="text-[8px] text-slate-400 font-mono w-8">{{
+            selectedVelocity()
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-[7px] text-slate-600 uppercase tracking-widest font-bold">Grid:</span>
-          <span class="text-[8px] text-slate-400 font-mono">{{ gridResolution() }}</span>
+          <span
+            class="text-[7px] text-slate-600 uppercase tracking-widest font-bold"
+            >Grid:</span
+          >
+          <span class="text-[8px] text-slate-400 font-mono">{{
+            gridResolution()
+          }}</span>
         </div>
         <button
           (click)="resetView()"
@@ -97,22 +136,37 @@ import { PianoRollNote } from '../../services/cowrite.service';
 
       <!-- Note Info Popup -->
       @if (selectedNote(); as note) {
-        <div class="mt-2 p-3 bg-brand-dark border border-violet-500/20 rounded-xl shrink-0">
+        <div
+          class="mt-2 p-3 bg-brand-dark border border-violet-500/20 rounded-xl shrink-0"
+        >
           <div class="flex items-center justify-between mb-1">
-            <span class="text-[9px] font-black uppercase tracking-widest text-violet-400">{{ note.noteName }}</span>
-            <span class="text-[7px] text-slate-500 font-mono">MIDI {{ note.pitch }}</span>
+            <span
+              class="text-[9px] font-black uppercase tracking-widest text-violet-400"
+              >{{ note.noteName }}</span
+            >
+            <span class="text-[7px] text-slate-500 font-mono"
+              >MIDI {{ note.pitch }}</span
+            >
           </div>
           <div class="grid grid-cols-3 gap-2 text-[8px]">
             <div>
-              <span class="text-slate-600 uppercase tracking-widest block">Beat</span>
-              <span class="text-slate-300 font-mono">{{ note.startBeat.toFixed(1) }}</span>
+              <span class="text-slate-600 uppercase tracking-widest block"
+                >Beat</span
+              >
+              <span class="text-slate-300 font-mono">{{
+                note.startBeat.toFixed(1)
+              }}</span>
             </div>
             <div>
-              <span class="text-slate-600 uppercase tracking-widest block">Type</span>
+              <span class="text-slate-600 uppercase tracking-widest block"
+                >Type</span
+              >
               <span class="text-slate-300">{{ note.type }}</span>
             </div>
             <div>
-              <span class="text-slate-600 uppercase tracking-widest block">Word</span>
+              <span class="text-slate-600 uppercase tracking-widest block"
+                >Word</span
+              >
               <span class="text-slate-300">{{ note.word || '—' }}</span>
             </div>
           </div>
@@ -120,18 +174,32 @@ import { PianoRollNote } from '../../services/cowrite.service';
       }
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .piano-roll-container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.2); border-radius: 2px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.4); }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .piano-roll-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(168, 85, 247, 0.2);
+        border-radius: 2px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(168, 85, 247, 0.4);
+      }
+    `,
+  ],
 })
 export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
   melodyNotes = input<PianoRollNote[]>([]);
@@ -151,18 +219,36 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
   totalBeats = computed(() => {
     const allNotes = [...this.melodyNotes(), ...this.harmonyNotes()];
     if (allNotes.length === 0) return 16;
-    return Math.max(16, Math.ceil(Math.max(...allNotes.map(n => n.startBeat + n.duration)) / 4) * 4);
+    return Math.max(
+      16,
+      Math.ceil(
+        Math.max(...allNotes.map((n) => n.startBeat + n.duration)) / 4
+      ) * 4
+    );
   });
 
   readonly NOTE_COLORS: Record<string, string> = {
     '3rd': '#10b981',
     '5th': '#f59e0b',
     '7th': '#ef4444',
-    'octave': '#8b5cf6',
-    'unison': '#6b7280',
+    octave: '#8b5cf6',
+    unison: '#6b7280',
   };
 
-  readonly NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  readonly NOTE_NAMES = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
+  ];
 
   harmonyColor(type: string): string {
     return this.NOTE_COLORS[type] || '#a855f7';
@@ -210,8 +296,8 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
     const playhead = this.playheadPosition();
 
     // Determine note range
-    const minPitch = Math.min(...allNotes.map(n => n.pitch));
-    const maxPitch = Math.max(...allNotes.map(n => n.pitch));
+    const minPitch = Math.min(...allNotes.map((n) => n.pitch));
+    const maxPitch = Math.max(...allNotes.map((n) => n.pitch));
     const pitchRange = Math.max(7, maxPitch - minPitch + 3);
     const numRows = pitchRange;
 
@@ -233,10 +319,12 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
     // Draw grid
     for (let beat = 0; beat < beats; beat++) {
       const x = KEY_W + beat * CELL_W;
-      ctx.fillStyle = beat % 4 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.015)';
+      ctx.fillStyle =
+        beat % 4 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.015)';
       ctx.fillRect(x, 0, CELL_W, canvasH);
 
-      ctx.strokeStyle = beat % 4 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
+      ctx.strokeStyle =
+        beat % 4 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -261,7 +349,9 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
       ctx.fillStyle = isBlackKey ? 'rgba(30,41,59,0.4)' : 'rgba(30,41,59,0.2)';
       ctx.fillRect(0, y, KEY_W - 1, CELL_H - 1);
 
-      ctx.fillStyle = isBlackKey ? 'rgba(148,163,184,0.3)' : 'rgba(148,163,184,0.5)';
+      ctx.fillStyle = isBlackKey
+        ? 'rgba(148,163,184,0.3)'
+        : 'rgba(148,163,184,0.5)';
       ctx.font = '7px monospace';
       ctx.fillText(noteName, 2, y + CELL_H - 4);
     }
@@ -300,7 +390,11 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
 
       const color = harmonyColorMap[note.harmonyType || '3rd'] || '#6b7280';
       const alpha = note.velocity / 127;
-      ctx.fillStyle = color + Math.round(alpha * 180).toString(16).padStart(2, '0');
+      ctx.fillStyle =
+        color +
+        Math.round(alpha * 180)
+          .toString(16)
+          .padStart(2, '0');
       ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = color + '66';
       ctx.lineWidth = 1;
@@ -342,16 +436,16 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
     const PADDING = 8;
 
     const allNotes = [...this.melodyNotes(), ...this.harmonyNotes()];
-    const maxPitch = Math.max(...allNotes.map(n => n.pitch));
+    const maxPitch = Math.max(...allNotes.map((n) => n.pitch));
 
     const beat = (x - KEY_W) / CELL_W;
     const row = Math.floor((y - PADDING) / CELL_H);
     const pitch = maxPitch - row;
 
     // Find the nearest note
-    const clicked = allNotes.find(n =>
-      Math.abs(n.pitch - pitch) <= 1 &&
-      Math.abs(n.startBeat - beat) < 0.5
+    const clicked = allNotes.find(
+      (n) =>
+        Math.abs(n.pitch - pitch) <= 1 && Math.abs(n.startBeat - beat) < 0.5
     );
 
     this.selectedNote.set(clicked || null);
@@ -380,7 +474,7 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
     this.lastFrameTime = now;
 
     const beatsPerSecond = 2; // 120 BPM
-    this.playheadPosition.update(p => p + dt * beatsPerSecond);
+    this.playheadPosition.update((p) => p + dt * beatsPerSecond);
 
     if (this.playheadPosition() > this.totalBeats()) {
       this.playheadPosition.set(0);
@@ -402,12 +496,12 @@ export class MelodyPianoRollComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomIn() {
-    this.zoomLevel.update(z => Math.min(4, z + 0.5));
+    this.zoomLevel.update((z) => Math.min(4, z + 0.5));
     setTimeout(() => this.drawCanvas());
   }
 
   zoomOut() {
-    this.zoomLevel.update(z => Math.max(0.5, z - 0.5));
+    this.zoomLevel.update((z) => Math.max(0.5, z - 0.5));
     setTimeout(() => this.drawCanvas());
   }
 

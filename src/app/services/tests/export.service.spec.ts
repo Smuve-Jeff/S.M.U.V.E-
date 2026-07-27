@@ -16,7 +16,11 @@ describe('ExportService', () => {
       state: 'running',
       destination: {} as any,
       createGain: jest.fn().mockReturnValue({
-        gain: { value: 0, setTargetAtTime: jest.fn(), setValueAtTime: jest.fn() },
+        gain: {
+          value: 0,
+          setTargetAtTime: jest.fn(),
+          setValueAtTime: jest.fn(),
+        },
         connect: jest.fn(),
       }),
       createBuffer: jest.fn().mockReturnValue({

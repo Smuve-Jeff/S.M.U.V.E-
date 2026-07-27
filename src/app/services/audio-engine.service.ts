@@ -1,5 +1,12 @@
 import { LoggingService } from './logging.service';
-import { Injectable, signal, inject, Injector, untracked, computed } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  inject,
+  Injector,
+  untracked,
+  computed,
+} from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
@@ -53,19 +60,24 @@ export class AudioEngineService {
           sampleRate: 48000,
         });
       } catch {
-        return new (window.AudioContext || (window as any).webkitAudioContext)();
+        return new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
     }
   })();
 
   public readonly nativeSampleRate: number = this.ctx.sampleRate;
-  public readonly oversampleFactor: number = this.nativeSampleRate >= 96000 ? 2 : (this.nativeSampleRate >= 48000 ? 4 : 8);
-  public readonly effectiveSampleRate: number = this.nativeSampleRate * this.oversampleFactor;
+  public readonly oversampleFactor: number =
+    this.nativeSampleRate >= 96000 ? 2 : this.nativeSampleRate >= 48000 ? 4 : 8;
+  public readonly effectiveSampleRate: number =
+    this.nativeSampleRate * this.oversampleFactor;
 
   private readonly antialiasEnabled = signal(true);
   private readonly ditherEnabled = signal(true);
   private ditherNode: GainNode | null = null;
-  private oversampleNodes: Map<string, { up: GainNode; down: GainNode }> = new Map();
+  private oversampleNodes: Map<string, { up: GainNode; down: GainNode }> =
+    new Map();
 
   public logger = inject(LoggingService);
   private injector = inject(Injector);
@@ -79,7 +91,7 @@ export class AudioEngineService {
   public compressor = this.ctx.createDynamicsCompressor();
   public saturationNode = this.ctx.createWaveShaper();
   public limiter = this.ctx.createDynamicsCompressor();
-  
+
   // ── Pro: Quantum Spectral Mastering & Metering Nodes ────────
   public quantumSaturation = this.ctx.createWaveShaper();
   public spectralExciter = this.ctx.createBiquadFilter();
@@ -87,7 +99,7 @@ export class AudioEngineService {
   public lufsFilter1 = this.ctx.createBiquadFilter(); // K-weighting Stage 1
   public lufsFilter2 = this.ctx.createBiquadFilter(); // K-weighting Stage 2
   public lufsAnalyzer = this.ctx.createAnalyser();
-  
+
   public masterAnalyser = this.ctx.createAnalyser();
   public masterEQ = this.ctx.createBiquadFilter();
   public masterShelf = this.ctx.createBiquadFilter();
@@ -97,9 +109,12 @@ export class AudioEngineService {
 
   public readonly sendAReturn = this.ctx.createGain();
   public readonly sendBReturn = this.ctx.createGain();
-  
+
   // ── Pro: DAW Routing & Bus Logic ────────────────────────────
-  public auxBuses = new Map<string, { gain: GainNode, analyser: AnalyserNode }>();
+  public auxBuses = new Map<
+    string,
+    { gain: GainNode; analyser: AnalyserNode }
+  >();
   private trackSendAGains = new Map<string, GainNode>();
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
@@ -112,12 +127,12 @@ export class AudioEngineService {
   public isPlaying = signal(false);
   public isRecording = signal(false);
   public isCountIn = signal(false);
-  
+
   // ── Pro: S.M.U.V.E.-MODE & Quantum State ────────────────────
   public smuveModeActive = signal(false);
   public quantumModeActive = signal(false);
   public currentLufs = signal(-14.0);
-  
+
   public outputMode = signal<'speakers' | 'headphones'>('speakers');
   public performanceTier = signal<'ultra' | 'performance'>('ultra');
   public sidechainEnabled = signal(false);
@@ -152,11 +167,12 @@ export class AudioEngineService {
   private midiOutputs: any[] = [];
   public midiClockEnabled = signal(true);
   private djTracks = new Map<number, any>();
+  private workletNode: AudioWorkletNode | null = null;
 
   constructor() {
     this.deckA = this.createDeck('A');
     this.deckB = this.createDeck('B');
-    
+
     // ── Enhanced Mastering Chain (Ardour Inspired) ─────────────
     this.masterGain.connect(this.compressor);
     this.compressor.connect(this.saturationNode);
@@ -167,18 +183,18 @@ export class AudioEngineService {
     this.limiter.connect(this.masterEQ);
     this.masterEQ.connect(this.masterShelf);
     this.masterShelf.connect(this.masterWidener);
-    
+
     // Metering Chain (K-Weighting for LUFS)
     this.masterWidener.connect(this.lufsFilter1);
     this.lufsFilter1.connect(this.lufsFilter2);
     this.lufsFilter2.connect(this.lufsAnalyzer);
     this.lufsAnalyzer.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
-    
+
     this.reverbWet.connect(this.masterGain);
     this.sendAReturn.connect(this.masterGain);
     this.sendBReturn.connect(this.masterGain);
-    
+
     // K-Weighting Filter Setup (ITU-R BS.1770-4)
     this.lufsFilter1.type = 'highshelf';
     this.lufsFilter1.frequency.value = 1500;
@@ -191,18 +207,18 @@ export class AudioEngineService {
     this.limiter.ratio.setValueAtTime(20, this.ctx.currentTime);
     this.limiter.attack.setValueAtTime(0.001, this.ctx.currentTime);
     this.limiter.release.setValueAtTime(0.05, this.ctx.currentTime);
-    
+
     this.masterEQ.type = 'lowpass';
     this.masterEQ.frequency.value = 20000;
     this.masterShelf.type = 'highshelf';
     this.masterShelf.frequency.value = 5000;
-    
+
     // Quantum Defaults
     this.spectralExciter.type = 'highshelf';
     this.spectralExciter.frequency.value = 8000;
     this.spectralExciter.gain.value = 0;
     this.subAtomicEnhancer.gain.value = 1;
-    
+
     this.setSoftClip(0.1);
     this.setQuantumSaturation(0.0);
     this.initMidiOut();
@@ -210,6 +226,7 @@ export class AudioEngineService {
     // Device labels stay empty until the user grants permission, but deviceId entries are still
     // useful for setSinkId targeting and the empty-state hint check (`outputDevices().length === 0`).
     this.refreshOutputDevices();
+    this.initWorklet();
     // Track AudioContext.state reactively so the contextState signal stays in sync
     // with engine lifecycle transitions (suspended ↔ running ↔ closed).
     this.ctx.onstatechange = this._ctxStateHandler;
@@ -223,7 +240,7 @@ export class AudioEngineService {
     const curve = new Float32Array(n);
     for (let i = 0; i < n; i++) {
       const x = (i * 2) / n - 1;
-      curve[i] = (Math.PI + amount) * x / (Math.PI + amount * Math.abs(x));
+      curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
     }
     this.quantumSaturation.curve = amount === 0 ? null : curve;
   }
@@ -231,11 +248,21 @@ export class AudioEngineService {
   toggleSmuveMode(active: boolean) {
     this.smuveModeActive.set(active);
     if (active) {
-      this.configureCompressor({ threshold: -18, ratio: 4, attack: 0.01, release: 0.1 });
+      this.configureCompressor({
+        threshold: -18,
+        ratio: 4,
+        attack: 0.01,
+        release: 0.1,
+      });
       this.configureLimiter({ threshold: -0.5, ratio: 20 });
       this.setSaturation(0.2);
     } else {
-      this.configureCompressor({ threshold: -12, ratio: 2, attack: 0.02, release: 0.2 });
+      this.configureCompressor({
+        threshold: -12,
+        ratio: 2,
+        attack: 0.02,
+        release: 0.2,
+      });
       this.setSaturation(0.1);
     }
   }
@@ -245,11 +272,19 @@ export class AudioEngineService {
     if (active) {
       this.setQuantumSaturation(0.5);
       this.spectralExciter.gain.setTargetAtTime(3, this.ctx.currentTime, 0.1);
-      this.subAtomicEnhancer.gain.setTargetAtTime(1.1, this.ctx.currentTime, 0.1);
+      this.subAtomicEnhancer.gain.setTargetAtTime(
+        1.1,
+        this.ctx.currentTime,
+        0.1
+      );
     } else {
       this.setQuantumSaturation(0);
       this.spectralExciter.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
-      this.subAtomicEnhancer.gain.setTargetAtTime(1.0, this.ctx.currentTime, 0.1);
+      this.subAtomicEnhancer.gain.setTargetAtTime(
+        1.0,
+        this.ctx.currentTime,
+        0.1
+      );
     }
   }
 
@@ -264,10 +299,19 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.countInRemainingSteps = this.stepsPerBeat() * 4;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(
-      () => this.scheduler(),
-      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
-    );
+
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({
+        type: 'SET_TEMPO',
+        payload: this.tempo(),
+      });
+      this.workletNode.port.postMessage({ type: 'START' });
+    } else {
+      this.schedulerHandle = setInterval(
+        () => this.scheduler(),
+        AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+      );
+    }
   }
 
   start() {
@@ -276,15 +320,27 @@ export class AudioEngineService {
     this.isPlaying.set(true);
     this.sendMidiStart();
     this.nextNoteTime = this.ctx.currentTime + 0.05;
-    this.schedulerHandle = setInterval(
-      () => this.scheduler(),
-      AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
-    );
+
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({
+        type: 'SET_TEMPO',
+        payload: this.tempo(),
+      });
+      this.workletNode.port.postMessage({ type: 'START' });
+    } else {
+      this.schedulerHandle = setInterval(
+        () => this.scheduler(),
+        AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS
+      );
+    }
   }
 
   stop() {
     this.isPlaying.set(false);
     this.sendMidiStop();
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'STOP' });
+    }
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
       this.schedulerHandle = null;
@@ -294,6 +350,33 @@ export class AudioEngineService {
     this.visualStep.set(0);
     this.stopDeck('A');
     this.stopDeck('B');
+  }
+
+  private async initWorklet() {
+    try {
+      await this.ctx.audioWorklet.addModule(
+        'assets/audio-processor.worklet.js'
+      );
+      this.workletNode = new AudioWorkletNode(
+        this.ctx,
+        'smuve-audio-processor'
+      );
+      this.workletNode.port.onmessage = (event) => {
+        if (event.data.type === 'TICK') {
+          const { step, time, duration } = event.data.payload;
+          this.handleTick(step, time, duration);
+        }
+      };
+      this.workletNode.port.postMessage({
+        type: 'SET_TEMPO',
+        payload: this.tempo(),
+      });
+    } catch (err) {
+      console.warn(
+        'AudioWorklet load failed, falling back to setInterval',
+        err
+      );
+    }
   }
 
   private async initMidiOut() {
@@ -322,44 +405,57 @@ export class AudioEngineService {
     this.sendMidiToAll([0xfc]);
   }
 
+  private handleTick(step: number, time: number, stepDuration: number) {
+    if (this.isCountIn()) {
+      if (step % this.stepsPerBeat() === 0) {
+        this.playMetronomeClick(time, step === 0, true);
+      }
+      this.countInRemainingSteps--;
+      if (this.countInRemainingSteps <= 0) {
+        this.isCountIn.set(false);
+        this.onCountInComplete?.();
+        // Reset step in worklet if possible, else handle here
+        if (this.workletNode)
+          this.workletNode.port.postMessage({ type: 'RESET_STEP' });
+        else this.currentStep = 0;
+      }
+      return;
+    }
+
+    const loopedStep = step % this.loopLengthSteps();
+
+    this.onScheduleStep?.(loopedStep, time, stepDuration);
+
+    if (this.metronomeEnabled() && loopedStep % this.stepsPerBeat() === 0) {
+      this.playMetronomeClick(
+        time,
+        loopedStep % (this.stepsPerBeat() * 4) === 0
+      );
+    }
+
+    const visualDelay = (time - this.ctx.currentTime) * 1000;
+    setTimeout(
+      () => {
+        this.visualStep.set(loopedStep);
+        this.currentBeat.set(loopedStep / this.stepsPerBeat());
+      },
+      Math.max(0, visualDelay)
+    );
+  }
+
   private scheduler() {
     const stepDuration = 60 / this.tempo() / this.stepsPerBeat();
     while (
       this.nextNoteTime <
       this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
     ) {
-      const step = this.currentStep;
-      if (this.isCountIn()) {
-        if (step % this.stepsPerBeat() === 0) {
-          this.playMetronomeClick(this.nextNoteTime, step === 0, true);
-        }
-        this.nextNoteTime += stepDuration;
-        this.currentStep++;
-        this.countInRemainingSteps--;
-        if (this.countInRemainingSteps <= 0) {
-          this.isCountIn.set(false);
-          this.currentStep = 0;
-          this.onCountInComplete?.();
-        }
-        continue;
-      }
-      this.onScheduleStep?.(step, this.nextNoteTime, stepDuration);
-      if (this.metronomeEnabled() && step % this.stepsPerBeat() === 0) {
-        this.playMetronomeClick(
-          this.nextNoteTime,
-          step % (this.stepsPerBeat() * 4) === 0
-        );
-      }
-      const visualDelay = (this.nextNoteTime - this.ctx.currentTime) * 1000;
-      setTimeout(
-        () => {
-          this.visualStep.set(step);
-          this.currentBeat.set(step / this.stepsPerBeat());
-        },
-        Math.max(0, visualDelay)
-      );
+      this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       this.nextNoteTime += stepDuration;
-      this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+      if (!this.isCountIn()) {
+        this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+      } else {
+        this.currentStep++;
+      }
     }
   }
 
@@ -566,7 +662,12 @@ export class AudioEngineService {
    * Uses bandlimited wavetables for saw/square when antialias is enabled,
    * otherwise falls back to native oscillator types.
    */
-  private createAntialiasedOscillator(ctx: AudioContext, type: string, freq: number): OscillatorNode {
+  private createAntialiasedOscillator(
+    ctx: AudioContext,
+    type: string,
+    freq: number,
+    time: number
+  ): OscillatorNode {
     const osc = ctx.createOscillator();
     if (this.antialiasEnabled() && (type === 'sawtooth' || type === 'square')) {
       // Bandlimited wavetable via oversampled harmonic synthesis
@@ -586,12 +687,14 @@ export class AudioEngineService {
           imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
         }
       }
-      const wave = ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+      const wave = ctx.createPeriodicWave(real, imag, {
+        disableNormalization: false,
+      });
       osc.setPeriodicWave(wave);
     } else {
       osc.type = (type as OscillatorType) || 'sine';
     }
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.setValueAtTime(freq, time);
     return osc;
   }
 
@@ -607,7 +710,12 @@ export class AudioEngineService {
     sendB: number,
     params: any
   ) {
-    const osc = this.createAntialiasedOscillator(this.ctx, params.type || 'sine', freq);
+    const osc = this.createAntialiasedOscillator(
+      this.ctx,
+      params.type || 'sine',
+      freq,
+      time
+    );
     const panner = this.ctx.createStereoPanner();
     const vca = this.ctx.createGain();
     panner.pan.setValueAtTime(pan, time);
@@ -656,7 +764,9 @@ export class AudioEngineService {
         };
         sp.connect(this.ditherNode);
         this.ditherNode!.connect(this.masterAnalyser);
-      } catch { /* ScriptProcessor deprecated in some contexts */ }
+      } catch {
+        /* ScriptProcessor deprecated in some contexts */
+      }
     } else if (!enabled && this.ditherNode) {
       this.ditherNode.disconnect();
       this.ditherNode = null;
@@ -694,23 +804,23 @@ export class AudioEngineService {
       const width = this.ctx.createStereoPanner(); // Stereo Width / Pan
       const fader = this.ctx.createGain(); // Post-fader Gain
       const output = this.ctx.createGain(); // Final Track Out
-      
+
       phase.connect(width);
       width.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
-      
+
       this.trackPhaseNodes.set(id, phase);
       this.trackWidthNodes.set(id, width);
       this.trackFaderGains.set(id, fader);
       this.trackOutputs.set(id, output);
-      
+
       const sA = this.ctx.createGain();
       sA.gain.value = 0;
       fader.connect(sA);
       sA.connect(this.sendAReturn);
       this.trackSendAGains.set(id, sA);
-      
+
       const sB = this.ctx.createGain();
       sB.gain.value = 0;
       fader.connect(sB);
@@ -723,17 +833,21 @@ export class AudioEngineService {
   updateTrack(id: string | number, patch: any) {
     const idStr = id.toString();
     this.getTrackOutput(idStr); // Ensure nodes exist
-    
+
     const fader = this.trackFaderGains.get(idStr);
     const phase = this.trackPhaseNodes.get(idStr);
     const width = this.trackWidthNodes.get(idStr);
-    
+
     if (patch.gain !== undefined && fader)
       fader.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
-    
+
     if (patch.phaseInvert !== undefined && phase)
-      phase.gain.setTargetAtTime(patch.phaseInvert ? -1 : 1, this.ctx.currentTime, 0.01);
-      
+      phase.gain.setTargetAtTime(
+        patch.phaseInvert ? -1 : 1,
+        this.ctx.currentTime,
+        0.01
+      );
+
     if (patch.pan !== undefined && width)
       width.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
 
@@ -745,7 +859,7 @@ export class AudioEngineService {
       this.trackSendBGains
         .get(idStr)
         ?.gain.setTargetAtTime(patch.sendB, this.ctx.currentTime, 0.05);
-        
+
     this.tracksMap.set(idStr, {
       ...(this.tracksMap.get(idStr) || {}),
       ...patch,
@@ -846,7 +960,10 @@ export class AudioEngineService {
   getSidechainRouting() {
     const routes: { triggerTrackId: string; targetTrackIds: string[] }[] = [];
     this.sidechainMatrix.forEach((targets, trigger) => {
-      routes.push({ triggerTrackId: trigger, targetTrackIds: Array.from(targets) });
+      routes.push({
+        triggerTrackId: trigger,
+        targetTrackIds: Array.from(targets),
+      });
     });
     return routes;
   }
@@ -882,7 +999,7 @@ export class AudioEngineService {
       trackSends = new Map<string, GainNode>();
       this.trackAuxSends.set(trackId, trackSends);
     }
-    
+
     let sendNode = trackSends.get(auxId);
     if (!sendNode) {
       sendNode = this.ctx.createGain();
@@ -894,7 +1011,7 @@ export class AudioEngineService {
         trackSends.set(auxId, sendNode);
       }
     }
-    
+
     if (sendNode) {
       sendNode.gain.setTargetAtTime(level, this.ctx.currentTime, 0.05);
     }
@@ -904,16 +1021,23 @@ export class AudioEngineService {
   autoOptimizeLimiter(targetLufs: number) {
     const current = this.outputLufs();
     if (current < -60) return; // No audio
-    
+
     const delta = targetLufs - current;
     if (Math.abs(delta) < 0.2) return; // Within tolerance
-    
+
     const currentThreshold = this.limiter.threshold.value;
     // Gentle adjustment towards target
     const step = delta > 0 ? -0.5 : 0.5;
-    const nextThreshold = Math.max(-30, Math.min(-0.1, currentThreshold + step));
-    
-    this.limiter.threshold.setTargetAtTime(nextThreshold, this.ctx.currentTime, 1.0);
+    const nextThreshold = Math.max(
+      -30,
+      Math.min(-0.1, currentThreshold + step)
+    );
+
+    this.limiter.threshold.setTargetAtTime(
+      nextThreshold,
+      this.ctx.currentTime,
+      1.0
+    );
     this.currentLufs.set(current); // Update reported LUFS signal
   }
 
@@ -954,11 +1078,7 @@ export class AudioEngineService {
         0.05
       );
     if (p?.ratio !== undefined)
-      this.limiter.ratio.setTargetAtTime(
-        p.ratio,
-        this.ctx.currentTime,
-        0.05
-      );
+      this.limiter.ratio.setTargetAtTime(p.ratio, this.ctx.currentTime, 0.05);
   }
 
   syncDecks(m: DeckId, s: DeckId) {}
@@ -975,24 +1095,30 @@ export class AudioEngineService {
   readonly outputPeak = signal<number>(0);
   readonly outputRms = signal<number>(0);
   readonly outputLufs = signal<number>(-70);
-  
+
   readonly outputLevelDb = computed(() => {
     const p = Math.max(this.outputPeak(), 1e-6);
     return 20 * Math.log10(p);
   });
-  
+
   readonly autoAdjustEnabled = signal<boolean>(true);
   readonly monitorBlend = signal<number>(0.5);
-  readonly outputProfile = signal<'flat' | 'speakers-bright' | 'headphones-flat' | 'auto'>('auto');
+  readonly outputProfile = signal<
+    'flat' | 'speakers-bright' | 'headphones-flat' | 'auto'
+  >('auto');
 
   // ── Pro: Output Device & Engine Session State ──────────
   readonly outputProfileLabel = computed(() => {
     switch (this.outputProfile()) {
-      case 'flat': return 'Flat';
-      case 'speakers-bright': return 'Speakers · Bright';
-      case 'headphones-flat': return 'Headphones · Flat';
+      case 'flat':
+        return 'Flat';
+      case 'speakers-bright':
+        return 'Speakers · Bright';
+      case 'headphones-flat':
+        return 'Headphones · Flat';
       case 'auto':
-      default: return 'Auto';
+      default:
+        return 'Auto';
     }
   });
 
@@ -1007,12 +1133,12 @@ export class AudioEngineService {
       this.resume();
       this.userGestureSeen.set(true);
       // Clean up peer listeners safely
-      ['click', 'touchstart', 'keydown'].forEach(e =>
+      ['click', 'touchstart', 'keydown'].forEach((e) =>
         body.removeEventListener(e, onGesture, { capture: true })
       );
     };
 
-    ['click', 'touchstart', 'keydown'].forEach(e =>
+    ['click', 'touchstart', 'keydown'].forEach((e) =>
       body.addEventListener(e, onGesture, { once: true, capture: true })
     );
   }
@@ -1020,10 +1146,15 @@ export class AudioEngineService {
   readonly selectedOutputDeviceId = signal<string>('');
   readonly outputDevices = signal<MediaDeviceInfo[]>([]);
   readonly outputDeviceName = signal<string>('System Default');
-  readonly externalOutputActive = computed(() => this.selectedOutputDeviceId() !== '');
+  readonly externalOutputActive = computed(
+    () => this.selectedOutputDeviceId() !== ''
+  );
 
   supportsSinkId(): boolean {
-    return typeof HTMLAudioElement !== 'undefined' && 'setSinkId' in HTMLAudioElement.prototype;
+    return (
+      typeof HTMLAudioElement !== 'undefined' &&
+      'setSinkId' in HTMLAudioElement.prototype
+    );
   }
 
   async setOutputDevice(deviceId: string): Promise<boolean> {
@@ -1039,8 +1170,14 @@ export class AudioEngineService {
       // Update friendly name
       if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const target = devices.find(d => d.kind === 'audiooutput' && d.deviceId === deviceId);
-        this.outputDeviceName.set(deviceId === '' ? 'System Default' : (target?.label || 'External Output'));
+        const target = devices.find(
+          (d) => d.kind === 'audiooutput' && d.deviceId === deviceId
+        );
+        this.outputDeviceName.set(
+          deviceId === ''
+            ? 'System Default'
+            : target?.label || 'External Output'
+        );
       }
       return true;
     } catch {
@@ -1052,12 +1189,16 @@ export class AudioEngineService {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+      const audioOutputs = devices.filter((d) => d.kind === 'audiooutput');
       // Surface the full enumeration so the transport-bar dropdown can list every sink.
       this.outputDevices.set(audioOutputs);
-      const match = audioOutputs.find(d => d.deviceId === this.selectedOutputDeviceId());
+      const match = audioOutputs.find(
+        (d) => d.deviceId === this.selectedOutputDeviceId()
+      );
       if (match?.label) {
-        this.outputDeviceName.set(this.selectedOutputDeviceId() === '' ? 'System Default' : match.label);
+        this.outputDeviceName.set(
+          this.selectedOutputDeviceId() === '' ? 'System Default' : match.label
+        );
       }
     } catch {
       /* enumeration blocked (e.g. insecure context) — keep current name */
@@ -1085,7 +1226,7 @@ export class AudioEngineService {
   private startOutputMetering(): void {
     if (typeof window === 'undefined') return;
     this._meteringBuffer = new Float32Array(this.masterAnalyser.fftSize);
-    const FRAME_MS = 50; 
+    const FRAME_MS = 50;
     let last = 0;
     const tick = (now: number) => {
       if (this.ctx.state !== 'running') {

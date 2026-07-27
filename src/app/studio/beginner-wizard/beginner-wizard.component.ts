@@ -52,7 +52,9 @@ export interface WizardStep {
           type="button"
           class="wizard-card"
           [class.wizard-card-done]="isStepDone(step.id)"
-          [class.wizard-card-active]="!isStepDone(step.id) && i === nextStepIndex()"
+          [class.wizard-card-active]="
+            !isStepDone(step.id) && i === nextStepIndex()
+          "
           [style.--card-accent]="step.accentColor"
           (click)="onStepClick(step)"
         >
@@ -130,14 +132,19 @@ export interface WizardStep {
       }
 
       @keyframes wizardBounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
       }
 
       .wizard-hero-title {
         font-size: 1.75rem;
         font-weight: 900;
-        color: var(--espresso-text, #F1F5FF);
+        color: var(--espresso-text, #f1f5ff);
         letter-spacing: -0.02em;
         margin: 0 0 0.5rem;
       }
@@ -145,7 +152,7 @@ export interface WizardStep {
       .wizard-hero-sub {
         font-size: 0.95rem;
         font-weight: 500;
-        color: var(--espresso-muted, #94A3C8);
+        color: var(--espresso-muted, #94a3c8);
         margin: 0 0 1.25rem;
         line-height: 1.4;
       }
@@ -154,7 +161,7 @@ export interface WizardStep {
         width: 100%;
         max-width: 320px;
         height: 8px;
-        background: var(--ivory-line, rgba(180,200,255,0.08));
+        background: var(--ivory-line, rgba(180, 200, 255, 0.08));
         border-radius: 99px;
         margin: 0 auto 0.5rem;
         overflow: hidden;
@@ -162,7 +169,11 @@ export interface WizardStep {
 
       .wizard-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--teal-500, #0E7C7B), var(--teal-400, #2BA09C));
+        background: linear-gradient(
+          90deg,
+          var(--teal-500, #0e7c7b),
+          var(--teal-400, #2ba09c)
+        );
         border-radius: 99px;
         transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
@@ -170,7 +181,7 @@ export interface WizardStep {
       .wizard-progress-label {
         font-size: 0.7rem;
         font-weight: 700;
-        color: var(--espresso-muted, #94A3C8);
+        color: var(--espresso-muted, #94a3c8);
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
@@ -203,8 +214,8 @@ export interface WizardStep {
         align-items: flex-start;
         gap: 0.75rem;
         padding: 1.25rem;
-        background: var(--ivory-panel, #14192E);
-        border: 2px solid var(--ivory-line, rgba(180,200,255,0.08));
+        background: var(--ivory-panel, #14192e);
+        border: 2px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
         border-radius: 16px;
         cursor: pointer;
         text-align: left;
@@ -236,7 +247,12 @@ export interface WizardStep {
         transform: translateY(-2px);
         box-shadow:
           0 8px 24px rgba(0, 0, 0, 0.15),
-          0 0 0 1px color-mix(in srgb, var(--card-accent, var(--teal-500)) 20%, transparent);
+          0 0 0 1px
+            color-mix(
+              in srgb,
+              var(--card-accent, var(--teal-500)) 20%,
+              transparent
+            );
       }
 
       .wizard-card:hover::before,
@@ -246,11 +262,11 @@ export interface WizardStep {
 
       .wizard-card-done {
         opacity: 0.7;
-        border-color: var(--teal-600, #0A5F5E);
+        border-color: var(--teal-600, #0a5f5e);
       }
 
       .wizard-card-done::before {
-        background: var(--teal-600, #0A5F5E);
+        background: var(--teal-600, #0a5f5e);
         opacity: 1;
       }
 
@@ -271,7 +287,7 @@ export interface WizardStep {
       }
 
       .wizard-card-done .wizard-card-step-badge {
-        background: var(--teal-600, #0A5F5E);
+        background: var(--teal-600, #0a5f5e);
       }
 
       .wizard-check {
@@ -290,7 +306,7 @@ export interface WizardStep {
       .wizard-card-title {
         font-size: 1rem;
         font-weight: 800;
-        color: var(--espresso-text, #F1F5FF);
+        color: var(--espresso-text, #f1f5ff);
         margin: 0 0 0.25rem;
       }
 
@@ -304,7 +320,7 @@ export interface WizardStep {
       .wizard-card-desc {
         font-size: 0.8rem;
         font-weight: 400;
-        color: var(--espresso-muted, #94A3C8);
+        color: var(--espresso-muted, #94a3c8);
         margin: 0;
         line-height: 1.4;
       }
@@ -315,7 +331,7 @@ export interface WizardStep {
         gap: 0.35rem;
         font-size: 0.7rem;
         font-weight: 500;
-        color: var(--espresso-muted, #94A3C8);
+        color: var(--espresso-muted, #94a3c8);
         background: rgba(255, 255, 255, 0.03);
         padding: 0.5rem 0.65rem;
         border-radius: 8px;
@@ -338,7 +354,7 @@ export interface WizardStep {
       }
 
       .wizard-card-done .wizard-card-cta {
-        color: var(--teal-600, #0A5F5E);
+        color: var(--teal-600, #0a5f5e);
       }
 
       /* ── Footer ────────────────────────────── */
@@ -350,7 +366,11 @@ export interface WizardStep {
         display: flex;
         gap: 0.75rem;
         padding: 1rem;
-        background: linear-gradient(180deg, transparent 0%, var(--ivory-deep, #06091A) 30%);
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          var(--ivory-deep, #06091a) 30%
+        );
         z-index: 50;
       }
 
@@ -375,22 +395,22 @@ export interface WizardStep {
       }
 
       .wizard-footer-pro {
-        background: var(--teal-500, #0E7C7B);
+        background: var(--teal-500, #0e7c7b);
         color: #fff;
       }
 
       .wizard-footer-pro:hover {
-        background: var(--teal-600, #0A5F5E);
+        background: var(--teal-600, #0a5f5e);
       }
 
       .wizard-footer-reset {
-        background: var(--ivory-panel, #14192E);
-        color: var(--espresso-muted, #94A3C8);
-        border: 1px solid var(--ivory-line, rgba(180,200,255,0.08));
+        background: var(--ivory-panel, #14192e);
+        color: var(--espresso-muted, #94a3c8);
+        border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
       }
 
       .wizard-footer-reset:hover {
-        border-color: var(--espresso-muted, #94A3C8);
+        border-color: var(--espresso-muted, #94a3c8);
       }
 
       /* ── Mobile adjustments ────────────────── */
@@ -427,7 +447,7 @@ export class BeginnerWizardComponent {
       title: 'Record Your Voice',
       subtitle: 'Step 1 — Capture your sound',
       description:
-        'Hit the big record button and sing, rap, or speak. It\'s that easy! You can always redo it.',
+        "Hit the big record button and sing, rap, or speak. It's that easy! You can always redo it.",
       targetView: 'audio-recorder',
       accentColor: '#E11D48',
       tip: 'Find a quiet spot and hold your phone about 6 inches from your mouth.',
@@ -451,7 +471,7 @@ export class BeginnerWizardComponent {
       title: 'Add a Melody',
       subtitle: 'Step 3 — Play some notes',
       description:
-        'Use the piano keys to add chords or a melody. Don\'t worry about wrong notes — just experiment!',
+        "Use the piano keys to add chords or a melody. Don't worry about wrong notes — just experiment!",
       targetView: 'piano-roll',
       accentColor: '#8B5CF6',
       tip: 'Try pressing only the white keys. They all sound good together in C major!',

@@ -1,4 +1,10 @@
-<div class="comp-shell" [class.comp-compact]="uiService.isCompactMobile()" [class.comp-header-collapsed]="headerCollapsed()" [class.comp-footer-collapsed]="footerCollapsed()" [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'">
+<div
+  class="comp-shell"
+  [class.comp-compact]="uiService.isCompactMobile()"
+  [class.comp-header-collapsed]="headerCollapsed()"
+  [class.comp-footer-collapsed]="footerCollapsed()"
+  [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
+>
   <!-- ====================== TOP TRANSPORT ====================== -->
   <header class="comp-topbar" role="banner">
     <div class="comp-topbar-left">
@@ -27,9 +33,17 @@
             : 'Click to HIDE top bar &amp; maximize canvas'
         "
       >
-        <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
+        <span class="material-symbols-outlined">{{
+          headerCollapsed() ? 'expand_more' : 'expand_less'
+        }}</span>
       </button>
-      <div class="comp-brand led-strip" (click)="newProject()" tabindex="0" role="button" [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'">
+      <div
+        class="comp-brand led-strip"
+        (click)="newProject()"
+        tabindex="0"
+        role="button"
+        [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'"
+      >
         <div class="comp-brand-mark" aria-hidden="true">
           <span class="comp-brand-pulse"></span>
         </div>
@@ -44,7 +58,10 @@
 
     <div class="comp-topbar-right">
       <!-- Stage status pip -->
-      <span class="comp-now-performing" aria-label="Studio session is live and ready to play">
+      <span
+        class="comp-now-performing"
+        aria-label="Studio session is live and ready to play"
+      >
         <span>●</span>
         <span>NOW PERFORMING</span>
       </span>
@@ -52,7 +69,11 @@
       <!-- External hardware badge — visible only when an external device
            (audio interface, MIDI keyboard, gamepad) is connected. -->
       <span
-        *ngIf="hardware?.status?.()?.audioInterfaceConnected || hardware?.status?.()?.midiDevicesConnected > 0 || hardware?.status?.()?.gamepadConnected"
+        *ngIf="
+          hardware?.status?.()?.audioInterfaceConnected ||
+          hardware?.status?.()?.midiDevicesConnected > 0 ||
+          hardware?.status?.()?.gamepadConnected
+        "
         class="comp-hw-badge led-strip"
         [attr.aria-label]="hardware ? hardware.connectedDevicesBadge() : ''"
         [title]="hardware ? hardware.connectedDevicesBadge() : ''"
@@ -81,11 +102,23 @@
         class="comp-icon-btn comp-beginner-toggle"
         [class.comp-beginner-active]="isBeginnerMode()"
         (click)="toggleBeginnerMode()"
-        [attr.aria-label]="isBeginnerMode() ? 'Switch to Pro mode — full studio controls' : 'Switch to Beginner mode — guided experience with tips'"
-        [attr.title]="isBeginnerMode() ? 'Beginner Mode ON · click for Pro' : 'Pro Mode · click for Beginner'"
+        [attr.aria-label]="
+          isBeginnerMode()
+            ? 'Switch to Pro mode — full studio controls'
+            : 'Switch to Beginner mode — guided experience with tips'
+        "
+        [attr.title]="
+          isBeginnerMode()
+            ? 'Beginner Mode ON · click for Pro'
+            : 'Pro Mode · click for Beginner'
+        "
       >
-        <span class="material-symbols-outlined">{{ isBeginnerMode() ? 'school' : 'auto_awesome' }}</span>
-        <span class="comp-theme-chip" aria-hidden="true">{{ isBeginnerMode() ? 'LEARN' : 'PRO' }}</span>
+        <span class="material-symbols-outlined">{{
+          isBeginnerMode() ? 'school' : 'auto_awesome'
+        }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          isBeginnerMode() ? 'LEARN' : 'PRO'
+        }}</span>
       </button>
 
       <!-- Theme cycle button (Light → Focus → Dark) -->
@@ -93,12 +126,18 @@
         type="button"
         class="comp-icon-btn"
         (click)="cycleTheme()"
-        [attr.aria-label]="'Switch theme — currently ' + currentThemeLabel() + ' mode · click to advance'"
+        [attr.aria-label]="
+          'Switch theme — currently ' +
+          currentThemeLabel() +
+          ' mode · click to advance'
+        "
         [attr.data-current-theme]="themeMode()"
         title="Switch theme · currently: {{ currentThemeLabel() }}"
       >
         <span class="material-symbols-outlined">{{ nextThemeIcon() }}</span>
-        <span class="comp-theme-chip" aria-hidden="true">{{ currentThemeLabel() }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          currentThemeLabel()
+        }}</span>
       </button>
       <button
         type="button"
@@ -138,7 +177,11 @@
             : 'Open AI Assistant chat — get mixing, sound design &amp; strategy help'
         "
         [attr.aria-expanded]="showAiAssistant()"
-        [attr.title]="showAiAssistant() ? 'AI Assistant · click to close' : 'Open AI Assistant · mixing &amp; strategy'"
+        [attr.title]="
+          showAiAssistant()
+            ? 'AI Assistant · click to close'
+            : 'Open AI Assistant · mixing &amp; strategy'
+        "
       >
         <span class="material-symbols-outlined">auto_awesome</span>
         <span class="comp-ai-pip" aria-hidden="true"></span>
@@ -149,33 +192,89 @@
   <!-- ====================== TOPBAR CONTROLS ====================== -->
   <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
   <div class="comp-topbar-tools" *ngIf="!headerCollapsed()">
-    <button type="button" class="comp-tool-btn" (click)="toggleAiMixAssistant()" [class.comp-tool-active]="showAiMixAssistant()" title="AI Mix Assistant — analyze tracks &amp; get smart suggestions  ·  Ctrl+I" aria-label="Toggle AI Mix Assistant panel">
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleAiMixAssistant()"
+      [class.comp-tool-active]="showAiMixAssistant()"
+      title="AI Mix Assistant — analyze tracks &amp; get smart suggestions  ·  Ctrl+I"
+      aria-label="Toggle AI Mix Assistant panel"
+    >
       <span class="material-symbols-outlined">analytics</span>
-      <span class="comp-tool-badge" *ngIf="aiMixAssistant.suggestions().length > 0">{{ aiMixAssistant.suggestions().length }}</span>
+      <span
+        class="comp-tool-badge"
+        *ngIf="aiMixAssistant.suggestions().length > 0"
+        >{{ aiMixAssistant.suggestions().length }}</span
+      >
       <span class="comp-tool-label">AI MIX</span>
       <span class="comp-kbd">Ctrl+I</span>
     </button>
-    <button type="button" class="comp-tool-btn comp-tool-rec" (click)="toggleSmartRecordingPanel()" [class.comp-tool-active]="showSmartRecordingPanel()" [class.comp-tool-rec-punch]="smartRecording.recordingMode() === 'punch'" [class.comp-tool-rec-comp]="smartRecording.recordingMode() === 'comp'" title="Recording mode — {{ smartRecording.recordingMode() | uppercase }}" aria-label="Toggle recording mode panel">
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-rec"
+      (click)="toggleSmartRecordingPanel()"
+      [class.comp-tool-active]="showSmartRecordingPanel()"
+      [class.comp-tool-rec-punch]="smartRecording.recordingMode() === 'punch'"
+      [class.comp-tool-rec-comp]="smartRecording.recordingMode() === 'comp'"
+      title="Recording mode — {{ smartRecording.recordingMode() | uppercase }}"
+      aria-label="Toggle recording mode panel"
+    >
       <span class="material-symbols-outlined">radio_button_checked</span>
-      <span class="comp-tool-label">{{ smartRecording.recordingMode() | uppercase }}</span>
-      <span class="comp-tool-status-pip" [class.comp-tool-status-punch]="smartRecording.isPunching()" [class.comp-tool-status-comp]="smartRecording.isCompRecording()"></span>
+      <span class="comp-tool-label">{{
+        smartRecording.recordingMode() | uppercase
+      }}</span>
+      <span
+        class="comp-tool-status-pip"
+        [class.comp-tool-status-punch]="smartRecording.isPunching()"
+        [class.comp-tool-status-comp]="smartRecording.isCompRecording()"
+      ></span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="toggleProjectMetadata()" [class.comp-tool-active]="showProjectMetadata()" title="Project metadata — genre, key, mood &amp; export" aria-label="Toggle project metadata editor">
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleProjectMetadata()"
+      [class.comp-tool-active]="showProjectMetadata()"
+      title="Project metadata — genre, key, mood &amp; export"
+      aria-label="Toggle project metadata editor"
+    >
       <span class="material-symbols-outlined">info</span>
       <span class="comp-tool-label">INFO</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="saveProject()" title="Save project  ·  Ctrl+S" aria-label="Save project">
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="saveProject()"
+      title="Save project  ·  Ctrl+S"
+      aria-label="Save project"
+    >
       <span class="material-symbols-outlined">save</span>
-      <span class="comp-tool-badge" *ngIf="projectWorkspace.isDirty()" title="Unsaved changes">!</span>
+      <span
+        class="comp-tool-badge"
+        *ngIf="projectWorkspace.isDirty()"
+        title="Unsaved changes"
+        >!</span
+      >
       <span class="comp-tool-label">SAVE</span>
       <span class="comp-kbd">Ctrl+S</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="exportProject()" title="Export project as .smuve bundle  ·  Ctrl+E" aria-label="Export project bundle">
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="exportProject()"
+      title="Export project as .smuve bundle  ·  Ctrl+E"
+      aria-label="Export project bundle"
+    >
       <span class="material-symbols-outlined">file_download</span>
       <span class="comp-tool-label">EXPORT</span>
       <span class="comp-kbd">Ctrl+E</span>
     </button>
-    <button type="button" class="comp-tool-btn" (click)="audioImport.importFiles()" title="Import audio files (.mp3, .wav)" aria-label="Import audio files">
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="audioImport.importFiles()"
+      title="Import audio files (.mp3, .wav)"
+      aria-label="Import audio files"
+    >
       <span class="material-symbols-outlined">upload_file</span>
       <span class="comp-tool-label">IMPORT</span>
     </button>
@@ -207,7 +306,11 @@
   <!-- ====================== MAIN WORKSPACE ====================== -->
   <main class="comp-main" role="main">
     <!-- Desktop view rail (FL Studio side rail pattern) -->
-    <nav class="comp-rail" [class.comp-rail-collapsed]="railCollapsed()" aria-label="Studio view selector">
+    <nav
+      class="comp-rail"
+      [class.comp-rail-collapsed]="railCollapsed()"
+      aria-label="Studio view selector"
+    >
       <!-- Home navigation button -->
       <button
         type="button"
@@ -236,10 +339,16 @@
         type="button"
         class="comp-rail-item"
         (click)="toggleRail()"
-        [attr.aria-label]="railCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        [attr.aria-label]="
+          railCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'
+        "
       >
-        <span class="material-symbols-outlined">{{ railCollapsed() ? 'chevron_right' : 'chevron_left' }}</span>
-        <span class="comp-rail-label">{{ railCollapsed() ? 'Expand' : 'Collapse' }}</span>
+        <span class="material-symbols-outlined">{{
+          railCollapsed() ? 'chevron_right' : 'chevron_left'
+        }}</span>
+        <span class="comp-rail-label">{{
+          railCollapsed() ? 'Expand' : 'Collapse'
+        }}</span>
       </button>
     </nav>
 
@@ -301,7 +410,9 @@
         <app-synthesizer [clip]="null"></app-synthesizer>
       </div>
       <div class="comp-view" *ngSwitchCase="'chord-editor'">
-        <app-chord-editor (navigateToPianoRoll)="setActiveView('piano-roll')"></app-chord-editor>
+        <app-chord-editor
+          (navigateToPianoRoll)="setActiveView('piano-roll')"
+        ></app-chord-editor>
       </div>
       <div class="comp-view" *ngSwitchDefault>
         <app-arrangement-view></app-arrangement-view>
@@ -316,13 +427,26 @@
         type="button"
         class="comp-icon-btn comp-footer-toggle"
         (click)="toggleFooter()"
-        [attr.aria-label]="footerCollapsed() ? 'Show bottom status bar' : 'Hide bottom status bar · maximize workspace'"
+        [attr.aria-label]="
+          footerCollapsed()
+            ? 'Show bottom status bar'
+            : 'Hide bottom status bar · maximize workspace'
+        "
         [attr.aria-pressed]="footerCollapsed()"
-        [attr.title]="footerCollapsed() ? 'Click to SHOW bottom status bar' : 'Click to HIDE bottom status bar &amp; maximize canvas'"
+        [attr.title]="
+          footerCollapsed()
+            ? 'Click to SHOW bottom status bar'
+            : 'Click to HIDE bottom status bar &amp; maximize canvas'
+        "
       >
-        <span class="material-symbols-outlined">{{ footerCollapsed() ? 'expand_less' : 'expand_more' }}</span>
+        <span class="material-symbols-outlined">{{
+          footerCollapsed() ? 'expand_less' : 'expand_more'
+        }}</span>
       </button>
-      <span class="comp-footer-brand" aria-label="Smuve Jeff Presents — S.M.U.V.E. 2.0 footer branding">
+      <span
+        class="comp-footer-brand"
+        aria-label="Smuve Jeff Presents — S.M.U.V.E. 2.0 footer branding"
+      >
         <span class="comp-footer-mark">©</span>
         <span class="comp-footer-brand-name">Smuve Jeff</span>
         <span class="comp-footer-brand-byline">Presents</span>
@@ -345,7 +469,9 @@
       <span
         class="comp-footer-chip comp-footer-rec"
         *ngIf="smartRecording.recordingMode() !== 'normal'"
-        [class.comp-footer-rec-punch]="smartRecording.recordingMode() === 'punch'"
+        [class.comp-footer-rec-punch]="
+          smartRecording.recordingMode() === 'punch'
+        "
         [class.comp-footer-rec-comp]="smartRecording.recordingMode() === 'comp'"
         title="Recording mode"
       >
@@ -376,25 +502,50 @@
         type="button"
         class="comp-icon-btn hidden md:grid"
         (click)="toggleRail()"
-        [attr.aria-label]="railCollapsed() ? 'Expand view sidebar' : 'Collapse view sidebar · see more canvas'"
-        [attr.title]="railCollapsed() ? 'Click to EXPAND view sidebar' : 'Click to COLLAPSE view sidebar &amp; see more canvas'"
+        [attr.aria-label]="
+          railCollapsed()
+            ? 'Expand view sidebar'
+            : 'Collapse view sidebar · see more canvas'
+        "
+        [attr.title]="
+          railCollapsed()
+            ? 'Click to EXPAND view sidebar'
+            : 'Click to COLLAPSE view sidebar &amp; see more canvas'
+        "
       >
-        <span class="material-symbols-outlined">{{ railCollapsed() ? 'dock_to_right' : 'dock_to_left' }}</span>
+        <span class="material-symbols-outlined">{{
+          railCollapsed() ? 'dock_to_right' : 'dock_to_left'
+        }}</span>
       </button>
       <button
         type="button"
         class="comp-icon-btn hidden md:grid"
         (click)="toggleHeader()"
-        [attr.aria-label]="headerCollapsed() ? 'Show top bar with transport controls' : 'Hide top bar · maximize canvas'"
-        [attr.title]="headerCollapsed() ? 'Click to SHOW top bar' : 'Click to HIDE top bar &amp; maximize canvas'"
+        [attr.aria-label]="
+          headerCollapsed()
+            ? 'Show top bar with transport controls'
+            : 'Hide top bar · maximize canvas'
+        "
+        [attr.title]="
+          headerCollapsed()
+            ? 'Click to SHOW top bar'
+            : 'Click to HIDE top bar &amp; maximize canvas'
+        "
       >
-        <span class="material-symbols-outlined">{{ headerCollapsed() ? 'expand_more' : 'expand_less' }}</span>
+        <span class="material-symbols-outlined">{{
+          headerCollapsed() ? 'expand_more' : 'expand_less'
+        }}</span>
       </button>
     </div>
   </footer>
 
   <!-- ====================== BOTTOM TAB BAR (Mobile FL pattern) ====================== -->
-  <nav class="comp-bottombar" *ngIf="uiService.isCompactMobile()" role="tablist" aria-label="Studio modules">
+  <nav
+    class="comp-bottombar"
+    *ngIf="uiService.isCompactMobile()"
+    role="tablist"
+    aria-label="Studio modules"
+  >
     <button
       *ngFor="let item of bottomNavItems()"
       type="button"
@@ -427,7 +578,11 @@
       role="tab"
       class="comp-tab comp-tab-more"
       (click)="toggleMobileDrawer()"
-      [attr.aria-label]="'Open full navigation (' + (allStudioViews().length - bottomNavItems().length) + ' more)'"
+      [attr.aria-label]="
+        'Open full navigation (' +
+        (allStudioViews().length - bottomNavItems().length) +
+        ' more)'
+      "
       [attr.aria-expanded]="mobileDrawerOpen()"
     >
       <span class="material-symbols-outlined">more_horiz</span>
@@ -482,8 +637,12 @@
         class="comp-drawer-item"
         [class.comp-drawer-active]="isBeginnerMode()"
       >
-        <span class="material-symbols-outlined">{{ isBeginnerMode() ? 'school' : 'auto_awesome' }}</span>
-        <span>{{ isBeginnerMode() ? 'Beginner Mode (ON)' : 'Switch to Beginner Mode' }}</span>
+        <span class="material-symbols-outlined">{{
+          isBeginnerMode() ? 'school' : 'auto_awesome'
+        }}</span>
+        <span>{{
+          isBeginnerMode() ? 'Beginner Mode (ON)' : 'Switch to Beginner Mode'
+        }}</span>
       </button>
 
       <!-- Home button in mobile drawer -->
@@ -497,15 +656,27 @@
 
       <!-- 3-way theme picker in drawer (more explicit than cycle) -->
       <button
-        *ngFor="let t of ['light','focus','dark']"
+        *ngFor="let t of ['light', 'focus', 'dark']"
         (click)="themeMode.set(t)"
         class="comp-drawer-item"
         [class.comp-drawer-active]="themeMode() === t"
       >
         <span class="material-symbols-outlined">
-          {{ t === 'light' ? 'light_mode' : t === 'focus' ? 'filter_drama' : 'dark_mode' }}
+          {{
+            t === 'light'
+              ? 'light_mode'
+              : t === 'focus'
+                ? 'filter_drama'
+                : 'dark_mode'
+          }}
         </span>
-        <span>{{ t === 'light' ? 'Light Mode' : t === 'focus' ? 'Focus Mode' : 'Dark Mode' }}</span>
+        <span>{{
+          t === 'light'
+            ? 'Light Mode'
+            : t === 'focus'
+              ? 'Focus Mode'
+              : 'Dark Mode'
+        }}</span>
       </button>
     </nav>
     <div class="comp-drawer-footer">
@@ -527,51 +698,99 @@
   ></div>
 
   <!-- ====================== AI MIX PANEL (right slide) ====================== -->
-  <aside class="comp-panel comp-aimix-panel" [class.comp-panel-open]="showAiMixAssistant()" role="dialog" aria-label="AI Mix Assistant">
+  <aside
+    class="comp-panel comp-aimix-panel"
+    [class.comp-panel-open]="showAiMixAssistant()"
+    role="dialog"
+    aria-label="AI Mix Assistant"
+  >
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">analytics</span>
         AI MIX
       </span>
-      <button type="button" class="comp-icon-btn" (click)="toggleAiMixAssistant()" aria-label="Close AI Mix panel">
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleAiMixAssistant()"
+        aria-label="Close AI Mix panel"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
     <div class="comp-panel-body">
       <!-- Spectrum Analyzer -->
       <div class="comp-aimix-spectrum">
-        <canvas #spectrumCanvas class="comp-aimix-canvas" width="280" height="80"></canvas>
+        <canvas
+          #spectrumCanvas
+          class="comp-aimix-canvas"
+          width="280"
+          height="80"
+        ></canvas>
         <span class="comp-aimix-spectrum-label">MASTER FREQUENCY SPECTRUM</span>
       </div>
 
       <!-- Mix Quality Score -->
       <div class="comp-aimix-score">
-        <div class="comp-aimix-ring" [style.background]="'conic-gradient(var(--teal-500) ' + aiMixAssistant.mixQualityScore() * 3.6 + 'deg, var(--espresso-line) 0deg)'">
+        <div
+          class="comp-aimix-ring"
+          [style.background]="
+            'conic-gradient(var(--teal-500) ' +
+            aiMixAssistant.mixQualityScore() * 3.6 +
+            'deg, var(--espresso-line) 0deg)'
+          "
+        >
           <div class="comp-aimix-ring-inner">
-            <span class="comp-aimix-score-val">{{ aiMixAssistant.mixQualityScore() }}</span>
+            <span class="comp-aimix-score-val">{{
+              aiMixAssistant.mixQualityScore()
+            }}</span>
           </div>
         </div>
-        <div class="comp-aimix-score-label">{{ aiMixAssistant.mixQualityLabel() }}</div>
+        <div class="comp-aimix-score-label">
+          {{ aiMixAssistant.mixQualityLabel() }}
+        </div>
       </div>
 
       <!-- Analyze & Refresh -->
-      <button type="button" class="comp-aimix-analyze" (click)="runAiMixAnalysis()">
+      <button
+        type="button"
+        class="comp-aimix-analyze"
+        (click)="runAiMixAnalysis()"
+      >
         <span class="material-symbols-outlined">refresh</span>
         Analyze All Tracks
       </button>
 
       <!-- Track Analyses -->
-      <div class="comp-aimix-section" *ngIf="aiMixAssistant.analyses().length > 0">
+      <div
+        class="comp-aimix-section"
+        *ngIf="aiMixAssistant.analyses().length > 0"
+      >
         <span class="comp-aimix-section-title">TRACK ANALYSES</span>
-        <div class="comp-aimix-track" *ngFor="let a of aiMixAssistant.analyses()">
+        <div
+          class="comp-aimix-track"
+          *ngFor="let a of aiMixAssistant.analyses()"
+        >
           <div class="comp-aimix-track-name">{{ a.trackName }}</div>
           <div class="comp-aimix-track-tags">
-            <span class="comp-aimix-tag" [class.comp-aimix-tag-dark]="a.frequencyProfile === 'dark'"
-                  [class.comp-aimix-tag-bright]="a.frequencyProfile === 'bright'"
-                  [class.comp-aimix-tag-balanced]="a.frequencyProfile === 'balanced'">{{ a.frequencyProfile }}</span>
+            <span
+              class="comp-aimix-tag"
+              [class.comp-aimix-tag-dark]="a.frequencyProfile === 'dark'"
+              [class.comp-aimix-tag-bright]="a.frequencyProfile === 'bright'"
+              [class.comp-aimix-tag-balanced]="
+                a.frequencyProfile === 'balanced'
+              "
+              >{{ a.frequencyProfile }}</span
+            >
             <span class="comp-aimix-tag">{{ a.stereoWidth }}</span>
             <span class="comp-aimix-tag">{{ a.transientContent }}</span>
-            <span class="comp-aimix-tag" [class.comp-aimix-tag-complex]="a.harmonicComplexity === 'complex'">{{ a.harmonicComplexity }}</span>
+            <span
+              class="comp-aimix-tag"
+              [class.comp-aimix-tag-complex]="
+                a.harmonicComplexity === 'complex'
+              "
+              >{{ a.harmonicComplexity }}</span
+            >
           </div>
           <div class="comp-aimix-track-role">
             <span class="material-symbols-outlined">double_arrow</span>
@@ -579,7 +798,20 @@
           </div>
           <!-- Frequency profile bar -->
           <div class="comp-aimix-bar">
-            <div class="comp-aimix-bar-fill" [style.width.%]="a.frequencyProfile === 'dark' ? 20 : a.frequencyProfile === 'warm' ? 35 : a.frequencyProfile === 'balanced' ? 50 : a.frequencyProfile === 'bright' ? 75 : 90"></div>
+            <div
+              class="comp-aimix-bar-fill"
+              [style.width.%]="
+                a.frequencyProfile === 'dark'
+                  ? 20
+                  : a.frequencyProfile === 'warm'
+                    ? 35
+                    : a.frequencyProfile === 'balanced'
+                      ? 50
+                      : a.frequencyProfile === 'bright'
+                        ? 75
+                        : 90
+              "
+            ></div>
           </div>
         </div>
       </div>
@@ -589,12 +821,23 @@
         <span class="comp-aimix-section-title">CHORD PROGRESSIONS</span>
         <div class="comp-chord-genre-row">
           <label class="comp-chord-genre-label">Genre</label>
-          <select class="comp-chord-genre-select" [ngModel]="chordGenre()" (ngModelChange)="chordGenre.set($event)">
-            <option *ngFor="let g of chordGenres" [value]="g">{{ g | titlecase }}</option>
+          <select
+            class="comp-chord-genre-select"
+            [ngModel]="chordGenre()"
+            (ngModelChange)="chordGenre.set($event)"
+          >
+            <option *ngFor="let g of chordGenres" [value]="g">
+              {{ g | titlecase }}
+            </option>
           </select>
         </div>
         <div class="comp-chord-progression">
-          <span class="comp-chord-chord" *ngFor="let c of chordProgression(); let i = index" (click)="applyChordToPianoRoll(c, i)" title="Apply {{ c }} to piano roll">
+          <span
+            class="comp-chord-chord"
+            *ngFor="let c of chordProgression(); let i = index"
+            (click)="applyChordToPianoRoll(c, i)"
+            title="Apply {{ c }} to piano roll"
+          >
             <span class="comp-chord-name">{{ c }}</span>
             <span class="comp-chord-apply">+</span>
           </span>
@@ -604,39 +847,89 @@
         <div class="comp-chord-voicing">
           <span class="comp-aimix-section-title">VOICING</span>
           <div class="comp-chord-voicing-row">
-            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'close'" (click)="chordVoicing.set('close')">Close</button>
-            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'open'" (click)="chordVoicing.set('open')">Open</button>
-            <button type="button" class="comp-chord-voicing-btn" [class.active]="chordVoicing() === 'wide'" (click)="chordVoicing.set('wide')">Wide</button>
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'close'"
+              (click)="chordVoicing.set('close')"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'open'"
+              (click)="chordVoicing.set('open')"
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'wide'"
+              (click)="chordVoicing.set('wide')"
+            >
+              Wide
+            </button>
           </div>
           <div class="comp-chord-voicing-preview">
             <!-- Keyboard visualization -- 2 octaves C3-C5 -->
             <div class="comp-chord-keys" *ngIf="voicingNotes().length > 0">
-              <span *ngFor="let n of voicingNotes(); let i = index"
-                    class="comp-chord-key"
-                    [class.voicing-root]="i === 0"
-                    [class.voicing-third]="isThird(n, voicingNotes())"
-                    [class.voicing-fifth]="isFifth(n, voicingNotes())"
-                    [title]="'MIDI ' + n">
+              <span
+                *ngFor="let n of voicingNotes(); let i = index"
+                class="comp-chord-key"
+                [class.voicing-root]="i === 0"
+                [class.voicing-third]="isThird(n, voicingNotes())"
+                [class.voicing-fifth]="isFifth(n, voicingNotes())"
+                [title]="'MIDI ' + n"
+              >
                 <span class="comp-chord-key-dot"></span>
               </span>
             </div>
-            <span class="comp-chord-preview-label" *ngIf="voicingNotes().length > 0">{{ chordVoicing() | titlecase }}: {{ voicingNotes().join(', ') }}</span>
+            <span
+              class="comp-chord-preview-label"
+              *ngIf="voicingNotes().length > 0"
+              >{{ chordVoicing() | titlecase }}:
+              {{ voicingNotes().join(', ') }}</span
+            >
           </div>
         </div>
       </div>
 
       <!-- Suggestions -->
-      <div class="comp-aimix-section" *ngIf="aiMixAssistant.suggestions().length > 0">
-        <span class="comp-aimix-section-title">SUGGESTIONS ({{ aiMixAssistant.suggestions().length }})</span>
-        <div class="comp-aimix-suggestion" *ngFor="let s of aiMixAssistant.suggestions()"
-             [class.comp-aimix-sug-critical]="s.severity === 'critical'"
-             [class.comp-aimix-sug-rec]="s.severity === 'recommended'">
+      <div
+        class="comp-aimix-section"
+        *ngIf="aiMixAssistant.suggestions().length > 0"
+      >
+        <span class="comp-aimix-section-title"
+          >SUGGESTIONS ({{ aiMixAssistant.suggestions().length }})</span
+        >
+        <div
+          class="comp-aimix-suggestion"
+          *ngFor="let s of aiMixAssistant.suggestions()"
+          [class.comp-aimix-sug-critical]="s.severity === 'critical'"
+          [class.comp-aimix-sug-rec]="s.severity === 'recommended'"
+        >
           <div class="comp-aimix-sug-head">
             <span class="comp-aimix-sug-icon material-symbols-outlined">
-              {{ s.type === 'eq' ? 'tune' : s.type === 'compression' ? 'compress' : s.type === 'reverb' ? 'music_note' : s.type === 'level' ? 'volume_up' : 'width' }}
+              {{
+                s.type === 'eq'
+                  ? 'tune'
+                  : s.type === 'compression'
+                    ? 'compress'
+                    : s.type === 'reverb'
+                      ? 'music_note'
+                      : s.type === 'level'
+                        ? 'volume_up'
+                        : 'width'
+              }}
             </span>
             <span class="comp-aimix-sug-label">{{ s.label }}</span>
-            <span class="comp-aimix-sug-sev" [class.critical]="s.severity === 'critical'">{{ s.severity }}</span>
+            <span
+              class="comp-aimix-sug-sev"
+              [class.critical]="s.severity === 'critical'"
+              >{{ s.severity }}</span
+            >
           </div>
           <p class="comp-aimix-sug-desc">{{ s.description }}</p>
           <div class="comp-aimix-sug-values">
@@ -649,83 +942,205 @@
   </aside>
 
   <!-- ====================== RECORDING MODE PANEL (right slide) ====================== -->
-  <aside class="comp-panel comp-rec-panel" [class.comp-panel-open]="showSmartRecordingPanel()" role="dialog" aria-label="Recording Mode">
+  <aside
+    class="comp-panel comp-rec-panel"
+    [class.comp-panel-open]="showSmartRecordingPanel()"
+    role="dialog"
+    aria-label="Recording Mode"
+  >
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">radio_button_checked</span>
         RECORDING
       </span>
-      <button type="button" class="comp-icon-btn" (click)="toggleSmartRecordingPanel()" aria-label="Close recording panel">
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleSmartRecordingPanel()"
+        aria-label="Close recording panel"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
     <div class="comp-panel-body">
       <!-- Recording Mode Selector -->
       <div class="comp-rec-modes">
-        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'normal'" (click)="setRecordingMode('normal')">
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'normal'
+          "
+          (click)="setRecordingMode('normal')"
+        >
           <span class="material-symbols-outlined">fiber_manual_record</span>
           <span>Normal</span>
         </button>
-        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'punch'" (click)="setRecordingMode('punch')">
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'punch'
+          "
+          (click)="setRecordingMode('punch')"
+        >
           <span class="material-symbols-outlined">first_page</span>
           <span>Punch</span>
         </button>
-        <button type="button" class="comp-rec-mode" [class.comp-rec-mode-active]="smartRecording.recordingMode() === 'comp'" (click)="setRecordingMode('comp')">
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'comp'
+          "
+          (click)="setRecordingMode('comp')"
+        >
           <span class="material-symbols-outlined">layers</span>
           <span>Comp</span>
         </button>
       </div>
 
       <!-- Punch Controls -->
-      <div class="comp-rec-section" *ngIf="smartRecording.recordingMode() === 'punch'">
+      <div
+        class="comp-rec-section"
+        *ngIf="smartRecording.recordingMode() === 'punch'"
+      >
         <span class="comp-aimix-section-title">PUNCH REGION</span>
         <div class="comp-rec-punch-controls">
           <div class="comp-rec-punch-row">
             <label>In (bar):</label>
-            <input type="number" min="1" max="256" [ngModel]="smartRecording.punchInBar()" (ngModelChange)="smartRecording.setPunchIn($event || 1)" class="comp-rec-input" />
+            <input
+              type="number"
+              min="1"
+              max="256"
+              [ngModel]="smartRecording.punchInBar()"
+              (ngModelChange)="smartRecording.setPunchIn($event || 1)"
+              class="comp-rec-input"
+            />
           </div>
           <div class="comp-rec-punch-row">
             <label>Out (bar):</label>
-            <input type="number" min="1" max="256" [ngModel]="smartRecording.punchOutBar()" (ngModelChange)="smartRecording.setPunchOut($event || 4)" class="comp-rec-input" />
+            <input
+              type="number"
+              min="1"
+              max="256"
+              [ngModel]="smartRecording.punchOutBar()"
+              (ngModelChange)="smartRecording.setPunchOut($event || 4)"
+              class="comp-rec-input"
+            />
           </div>
           <div class="comp-rec-punch-actions">
-            <button type="button" class="comp-rec-punch-btn" [class.comp-rec-punch-armed]="smartRecording.punchArmed()" (click)="smartRecording.armPunch()">
+            <button
+              type="button"
+              class="comp-rec-punch-btn"
+              [class.comp-rec-punch-armed]="smartRecording.punchArmed()"
+              (click)="smartRecording.armPunch()"
+            >
               {{ smartRecording.punchArmed() ? 'ARMED' : 'ARM' }}
             </button>
-            <button type="button" class="comp-rec-punch-btn" (click)="smartRecording.clearPunchRegion()">CLEAR</button>
+            <button
+              type="button"
+              class="comp-rec-punch-btn"
+              (click)="smartRecording.clearPunchRegion()"
+            >
+              CLEAR
+            </button>
           </div>
-          <div class="comp-rec-status-label" *ngIf="smartRecording.punchStatusLabel()">
+          <div
+            class="comp-rec-status-label"
+            *ngIf="smartRecording.punchStatusLabel()"
+          >
             {{ smartRecording.punchStatusLabel() }}
           </div>
         </div>
       </div>
 
       <!-- Comp Controls -->
-      <div class="comp-rec-section" *ngIf="smartRecording.recordingMode() === 'comp'">
+      <div
+        class="comp-rec-section"
+        *ngIf="smartRecording.recordingMode() === 'comp'"
+      >
         <span class="comp-aimix-section-title">COMP TAKES</span>
         <div class="comp-rec-comp-actions">
-          <button type="button" class="comp-rec-comp-btn" (click)="smartRecording.startCompTake()">
+          <button
+            type="button"
+            class="comp-rec-comp-btn"
+            (click)="smartRecording.startCompTake()"
+          >
             <span class="material-symbols-outlined">fiber_manual_record</span>
             Take {{ smartRecording.currentTakeNumber() }}
           </button>
-          <button type="button" class="comp-rec-comp-btn" (click)="smartRecording.finishCompTake()">FINISH TAKE</button>
+          <button
+            type="button"
+            class="comp-rec-comp-btn"
+            (click)="smartRecording.finishCompTake()"
+          >
+            FINISH TAKE
+          </button>
         </div>
-        <div class="comp-rec-takes" *ngIf="smartRecording.activeCompGroupTakes().length > 0">
-          <div class="comp-rec-take" *ngFor="let t of smartRecording.activeCompGroupTakes()"
-               [class.comp-rec-take-selected]="t.isCompSelection"
-               [class.comp-rec-take-muted]="t.isMuted"
-               (click)="previewCompTake(t)">
+        <div
+          class="comp-rec-takes"
+          *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+        >
+          <div
+            class="comp-rec-take"
+            *ngFor="let t of smartRecording.activeCompGroupTakes()"
+            [class.comp-rec-take-selected]="t.isCompSelection"
+            [class.comp-rec-take-muted]="t.isMuted"
+            (click)="previewCompTake(t)"
+          >
             <span class="comp-rec-take-num">{{ t.label }}</span>
-            <span class="comp-rec-take-meta">{{ (t.durationMs / 1000).toFixed(1) }}s</span>
+            <span class="comp-rec-take-meta"
+              >{{ (t.durationMs / 1000).toFixed(1) }}s</span
+            >
             <!-- Playback button -->
-            <button type="button" class="comp-rec-take-play" (click)="$event.stopPropagation(); previewCompTake(t)" [class.comp-rec-take-playing]="previewingTakeId() === t.id" title="Preview take">
-              <span class="material-symbols-outlined">{{ previewingTakeId() === t.id ? 'stop' : 'play_arrow' }}</span>
+            <button
+              type="button"
+              class="comp-rec-take-play"
+              (click)="$event.stopPropagation(); previewCompTake(t)"
+              [class.comp-rec-take-playing]="previewingTakeId() === t.id"
+              title="Preview take"
+            >
+              <span class="material-symbols-outlined">{{
+                previewingTakeId() === t.id ? 'stop' : 'play_arrow'
+              }}</span>
             </button>
-            <button type="button" class="comp-rec-take-action" (click)="$event.stopPropagation(); smartRecording.selectCompTake(smartRecording.activeCompGroupId()!, t.id)" title="Select as comp">✓</button>
-            <button type="button" class="comp-rec-take-action" (click)="$event.stopPropagation(); smartRecording.toggleTakeMute(smartRecording.activeCompGroupId()!, t.id)" title="Mute/unmute">M</button>
+            <button
+              type="button"
+              class="comp-rec-take-action"
+              (click)="
+                $event.stopPropagation();
+                smartRecording.selectCompTake(
+                  smartRecording.activeCompGroupId()!,
+                  t.id
+                )
+              "
+              title="Select as comp"
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              class="comp-rec-take-action"
+              (click)="
+                $event.stopPropagation();
+                smartRecording.toggleTakeMute(
+                  smartRecording.activeCompGroupId()!,
+                  t.id
+                )
+              "
+              title="Mute/unmute"
+            >
+              M
+            </button>
           </div>
           <!-- Export Takes button -->
-          <button type="button" class="comp-rec-export-takes" (click)="exportCompTakes()" *ngIf="smartRecording.activeCompGroupTakes().length > 0">
+          <button
+            type="button"
+            class="comp-rec-export-takes"
+            (click)="exportCompTakes()"
+            *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+          >
             <span class="material-symbols-outlined">file_download</span>
             Export All Takes (WAV)
           </button>
@@ -735,7 +1150,11 @@
       <!-- Auto-split toggle -->
       <div class="comp-rec-section">
         <label class="comp-rec-toggle">
-          <input type="checkbox" [ngModel]="smartRecording.autoSplitEnabled()" (ngModelChange)="smartRecording.autoSplitEnabled.set($event)" />
+          <input
+            type="checkbox"
+            [ngModel]="smartRecording.autoSplitEnabled()"
+            (ngModelChange)="smartRecording.autoSplitEnabled.set($event)"
+          />
           <span>Auto-split on silence</span>
         </label>
       </div>
@@ -743,58 +1162,112 @@
   </aside>
 
   <!-- ====================== PROJECT METADATA PANEL (right slide) ====================== -->
-  <aside class="comp-panel comp-meta-panel" [class.comp-panel-open]="showProjectMetadata()" role="dialog" aria-label="Project Metadata">
+  <aside
+    class="comp-panel comp-meta-panel"
+    [class.comp-panel-open]="showProjectMetadata()"
+    role="dialog"
+    aria-label="Project Metadata"
+  >
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">info</span>
         PROJECT
       </span>
-      <button type="button" class="comp-icon-btn" (click)="toggleProjectMetadata()" aria-label="Close project metadata">
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleProjectMetadata()"
+        aria-label="Close project metadata"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
     <div class="comp-panel-body">
       <div class="comp-meta-field">
         <label>Name</label>
-        <input type="text" class="comp-meta-input" [ngModel]="(projectWorkspace.metadata()?.name) || 'Untitled'" (ngModelChange)="projectWorkspace.updateMetadata({ name: $event })" />
+        <input
+          type="text"
+          class="comp-meta-input"
+          [ngModel]="projectWorkspace.metadata()?.name || 'Untitled'"
+          (ngModelChange)="projectWorkspace.updateMetadata({ name: $event })"
+        />
       </div>
 
       <div class="comp-meta-field">
         <label>Genre</label>
         <div class="comp-meta-chips">
-          <button *ngFor="let g of projectWorkspace.genres" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.genre === g" (click)="setProjectGenre(g)">{{ g }}</button>
+          <button
+            *ngFor="let g of projectWorkspace.genres"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.genre === g"
+            (click)="setProjectGenre(g)"
+          >
+            {{ g }}
+          </button>
         </div>
       </div>
 
       <div class="comp-meta-field">
         <label>Mood</label>
         <div class="comp-meta-chips">
-          <button *ngFor="let m of projectWorkspace.moods" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.mood === m" (click)="setProjectMood(m)">{{ m }}</button>
+          <button
+            *ngFor="let m of projectWorkspace.moods"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.mood === m"
+            (click)="setProjectMood(m)"
+          >
+            {{ m }}
+          </button>
         </div>
       </div>
 
       <div class="comp-meta-field">
         <label>Key</label>
         <div class="comp-meta-chips">
-          <button *ngFor="let k of projectWorkspace.keys" type="button" class="comp-meta-chip" [class.active]="projectWorkspace.metadata()?.key === k" (click)="setProjectKey(k)">{{ k }}</button>
+          <button
+            *ngFor="let k of projectWorkspace.keys"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.key === k"
+            (click)="setProjectKey(k)"
+          >
+            {{ k }}
+          </button>
         </div>
       </div>
 
       <div class="comp-meta-field">
         <label>Auto-save</label>
         <label class="comp-rec-toggle">
-          <input type="checkbox" [ngModel]="projectWorkspace.autoSaveEnabled()" (ngModelChange)="projectWorkspace.autoSaveEnabled.set($event)" />
+          <input
+            type="checkbox"
+            [ngModel]="projectWorkspace.autoSaveEnabled()"
+            (ngModelChange)="projectWorkspace.autoSaveEnabled.set($event)"
+          />
           <span>{{ projectWorkspace.autoSaveEnabled() ? 'ON' : 'OFF' }}</span>
         </label>
-        <span class="comp-meta-hint" *ngIf="projectWorkspace.lastAutoSave() > 0">Last auto-save: {{ projectWorkspace.lastAutoSave() | date:'HH:mm:ss' }}</span>
+        <span class="comp-meta-hint" *ngIf="projectWorkspace.lastAutoSave() > 0"
+          >Last auto-save:
+          {{ projectWorkspace.lastAutoSave() | date: 'HH:mm:ss' }}</span
+        >
       </div>
 
       <div class="comp-meta-actions">
-        <button type="button" class="comp-meta-action-btn" (click)="saveProject()">
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          (click)="saveProject()"
+        >
           <span class="material-symbols-outlined">save</span>
           Save Project
         </button>
-        <button type="button" class="comp-meta-action-btn" (click)="exportProject()">
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          (click)="exportProject()"
+        >
           <span class="material-symbols-outlined">file_download</span>
           Export .smuve
         </button>
@@ -809,22 +1282,41 @@
   ></app-ai-assistant>
 
   <!-- ====================== COMPONENT RECORDING PANEL (right slide) ====================== -->
-  <aside class="comp-panel comp-rec-src-panel" [class.comp-panel-open]="showComponentRecording()" role="dialog" aria-label="Component Recording">
+  <aside
+    class="comp-panel comp-rec-src-panel"
+    [class.comp-panel-open]="showComponentRecording()"
+    role="dialog"
+    aria-label="Component Recording"
+  >
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">radio_button_checked</span>
-        COMP REC<br><small style="font-size:8px;opacity:0.6">{{ componentRecording.activeSource() ? (componentRecording.getConfig(componentRecording.activeSource()!)?.label) : 'Select source' }}</small>
+        COMP REC<br /><small style="font-size: 8px; opacity: 0.6">{{
+          componentRecording.activeSource()
+            ? componentRecording.getConfig(componentRecording.activeSource()!)
+                ?.label
+            : 'Select source'
+        }}</small>
       </span>
-      <button type="button" class="comp-icon-btn" (click)="showComponentRecording.set(false)" aria-label="Close component recording">
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="showComponentRecording.set(false)"
+        aria-label="Close component recording"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
     <div class="comp-panel-body">
       <span class="comp-aimix-section-title">RECORDING SOURCE</span>
       <div class="comp-rec-src-grid">
-        <button type="button" class="comp-rec-src-btn" *ngFor="let c of componentRecording.componentConfigs"
-                [class.active]="componentRecording.activeSource() === c.componentId"
-                (click)="selectComponentRecording(c.componentId)">
+        <button
+          type="button"
+          class="comp-rec-src-btn"
+          *ngFor="let c of componentRecording.componentConfigs"
+          [class.active]="componentRecording.activeSource() === c.componentId"
+          (click)="selectComponentRecording(c.componentId)"
+        >
           <span class="material-symbols-outlined">{{ c.icon }}</span>
           <span class="comp-rec-src-label">{{ c.label }}</span>
           <span class="comp-rec-src-badge" *ngIf="c.usesInput">🎤</span>
@@ -833,86 +1325,167 @@
 
       <!-- Recording Controls -->
       <div class="comp-rec-section">
-        <button type="button" class="comp-meta-action-btn" [class.recording-active]="componentRecording.isRecording()" (click)="componentRecording.toggleRecording()">
-          <span class="material-symbols-outlined">{{ componentRecording.isRecording() ? 'stop' : 'fiber_manual_record' }}</span>
-          {{ componentRecording.isRecording() ? 'STOP (' + componentRecording.recordingDuration() + 's)' : 'START RECORDING' }}
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          [class.recording-active]="componentRecording.isRecording()"
+          (click)="componentRecording.toggleRecording()"
+        >
+          <span class="material-symbols-outlined">{{
+            componentRecording.isRecording() ? 'stop' : 'fiber_manual_record'
+          }}</span>
+          {{
+            componentRecording.isRecording()
+              ? 'STOP (' + componentRecording.recordingDuration() + 's)'
+              : 'START RECORDING'
+          }}
         </button>
       </div>
     </div>
   </aside>
 
   <!-- ====================== IMPORT AUDIO PANEL (right slide) ====================== -->
-  <aside class="comp-panel comp-import-panel" [class.comp-panel-open]="showImportPanel()" role="dialog" aria-label="Audio Import">
+  <aside
+    class="comp-panel comp-import-panel"
+    [class.comp-panel-open]="showImportPanel()"
+    role="dialog"
+    aria-label="Audio Import"
+  >
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">upload_file</span>
         AUDIO IMPORT
       </span>
-      <button type="button" class="comp-icon-btn" (click)="toggleImportPanel()" aria-label="Close import panel">
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleImportPanel()"
+        aria-label="Close import panel"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
     <div class="comp-panel-body">
       <!-- Imported files list -->
-      <div class="comp-import-list" *ngIf="audioImport.importedAudio().length > 0">
-        <div class="comp-import-item" *ngFor="let a of audioImport.importedAudio()"
-             [class.selected]="audioImport.selectedAudio()?.id === a.id"
-             (click)="audioImport.selectAudio(a.id)">
+      <div
+        class="comp-import-list"
+        *ngIf="audioImport.importedAudio().length > 0"
+      >
+        <div
+          class="comp-import-item"
+          *ngFor="let a of audioImport.importedAudio()"
+          [class.selected]="audioImport.selectedAudio()?.id === a.id"
+          (click)="audioImport.selectAudio(a.id)"
+        >
           <span class="material-symbols-outlined">audio_file</span>
           <span class="comp-import-name">{{ a.name }}</span>
           <span class="comp-import-meta">{{ a.duration.toFixed(1) }}s</span>
-          <button type="button" class="comp-import-remove" (click)="$event.stopPropagation(); audioImport.removeAudio(a.id)">✕</button>
+          <button
+            type="button"
+            class="comp-import-remove"
+            (click)="$event.stopPropagation(); audioImport.removeAudio(a.id)"
+          >
+            ✕
+          </button>
         </div>
       </div>
-      <div *ngIf="audioImport.importedAudio().length === 0" class="comp-import-empty">
-        <span class="material-symbols-outlined" style="font-size:32px;opacity:0.3">upload_file</span>
+      <div
+        *ngIf="audioImport.importedAudio().length === 0"
+        class="comp-import-empty"
+      >
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 32px; opacity: 0.3"
+          >upload_file</span
+        >
         <span>Tap IMPORT to add audio files</span>
       </div>
 
       <!-- Waveform + Editor for selected audio -->
-      <div class="comp-import-editor" *ngIf="audioImport.selectedAudio() as selAudio">
+      <div
+        class="comp-import-editor"
+        *ngIf="audioImport.selectedAudio() as selAudio"
+      >
         <span class="comp-aimix-section-title">{{ selAudio.name }}</span>
         <div class="comp-import-waveform">
-          <canvas #importWaveformCanvas class="comp-import-canvas" width="280" height="60"></canvas>
+          <canvas
+            #importWaveformCanvas
+            class="comp-import-canvas"
+            width="280"
+            height="60"
+          ></canvas>
         </div>
 
         <!-- Trim controls -->
         <div class="comp-import-slider-row">
           <label class="comp-import-slider-label">Trim Start</label>
-          <input type="range" min="0" max="0.95" step="0.01"
-                 [value]="selAudio.trimStart"
-                 (input)="audioImport.setTrimStart($event.target.value)"
-                 class="comp-import-slider" />
-          <span class="comp-import-slider-val">{{ (selAudio.trimStart * 100).toFixed(0) }}%</span>
+          <input
+            type="range"
+            min="0"
+            max="0.95"
+            step="0.01"
+            [value]="selAudio.trimStart"
+            (input)="audioImport.setTrimStart($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.trimStart * 100).toFixed(0) }}%</span
+          >
         </div>
         <div class="comp-import-slider-row">
           <label class="comp-import-slider-label">Trim End</label>
-          <input type="range" min="0.05" max="1" step="0.01"
-                 [value]="selAudio.trimEnd"
-                 (input)="audioImport.setTrimEnd($event.target.value)"
-                 class="comp-import-slider" />
-          <span class="comp-import-slider-val">{{ (selAudio.trimEnd * 100).toFixed(0) }}%</span>
+          <input
+            type="range"
+            min="0.05"
+            max="1"
+            step="0.01"
+            [value]="selAudio.trimEnd"
+            (input)="audioImport.setTrimEnd($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.trimEnd * 100).toFixed(0) }}%</span
+          >
         </div>
         <div class="comp-import-slider-row">
           <label class="comp-import-slider-label">Gain</label>
-          <input type="range" min="0" max="2" step="0.05"
-                 [value]="selAudio.gain"
-                 (input)="audioImport.setGain($event.target.value)"
-                 class="comp-import-slider" />
-          <span class="comp-import-slider-val">{{ (selAudio.gain * 100).toFixed(0) }}%</span>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            [value]="selAudio.gain"
+            (input)="audioImport.setGain($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.gain * 100).toFixed(0) }}%</span
+          >
         </div>
 
         <!-- Actions -->
         <div class="comp-meta-actions">
-          <button type="button" class="comp-meta-action-btn" (click)="audioImport.applyEdits()">
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.applyEdits()"
+          >
             <span class="material-symbols-outlined">check_circle</span>
             Apply Edits
           </button>
-          <button type="button" class="comp-meta-action-btn" (click)="audioImport.exportEditedAudio()">
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.exportEditedAudio()"
+          >
             <span class="material-symbols-outlined">file_download</span>
             Export WAV
           </button>
-          <button type="button" class="comp-meta-action-btn" (click)="audioImport.addToProject(selAudio)">
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.addToProject(selAudio)"
+          >
             <span class="material-symbols-outlined">library_music</span>
             Add to Project
           </button>

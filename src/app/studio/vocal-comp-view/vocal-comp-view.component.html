@@ -2,23 +2,33 @@
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
     <div class="flex items-center gap-4">
-      <h2 class="text-xl font-black tracking-tight uppercase flex items-center gap-3">
-        <span class="material-symbols-outlined text-vocal-primary">content_copy</span>
+      <h2
+        class="text-xl font-black tracking-tight uppercase flex items-center gap-3"
+      >
+        <span class="material-symbols-outlined text-vocal-primary"
+          >content_copy</span
+        >
         VOCAL COMPING
       </h2>
-      <span class="text-[9px] bg-vocal-primary/20 text-vocal-primary px-2 py-1 rounded uppercase tracking-widest font-bold">
+      <span
+        class="text-[9px] bg-vocal-primary/20 text-vocal-primary px-2 py-1 rounded uppercase tracking-widest font-bold"
+      >
         {{ takeCount() }} {{ takeCount() === 1 ? 'TAKE' : 'TAKES' }}
       </span>
     </div>
     <div class="flex items-center gap-3">
-      <button (click)="createNewGroup()"
-        class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-fl-border rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-vocal-primary/20 transition-all">
+      <button
+        (click)="createNewGroup()"
+        class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-fl-border rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-vocal-primary/20 transition-all"
+      >
         <span class="material-symbols-outlined text-sm">add</span>
         New Group
       </button>
-      <button (click)="toggleCompare()"
+      <button
+        (click)="toggleCompare()"
         [class.bg-vocal-primary]="compareMode() !== 'off'"
-        class="flex items-center gap-2 px-4 py-2 border border-fl-border rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-vocal-primary/20 transition-all">
+        class="flex items-center gap-2 px-4 py-2 border border-fl-border rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-vocal-primary/20 transition-all"
+      >
         <span class="material-symbols-outlined text-sm">compare_arrows</span>
         A/B
       </button>
@@ -29,8 +39,13 @@
     <!-- Left Panel: Comp Groups -->
     <div class="col-span-12 lg:col-span-3 space-y-3">
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-sm text-slate-500">folder</span>
-        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Comp Groups</span>
+        <span class="material-symbols-outlined text-sm text-slate-500"
+          >folder</span
+        >
+        <span
+          class="text-[10px] font-black uppercase tracking-widest text-slate-500"
+          >Comp Groups</span
+        >
       </div>
       <input
         [(ngModel)]="searchQuery"
@@ -46,19 +61,26 @@
             class="bg-vocal-titanium/40 border border-fl-border rounded-xl p-4 cursor-pointer hover:border-vocal-primary/50 transition-all group"
           >
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-black uppercase tracking-tight">{{ group.sectionLabel }}</span>
-              <button (click)="deleteGroup(group.id); $event.stopPropagation()"
+              <span class="text-xs font-black uppercase tracking-tight">{{
+                group.sectionLabel
+              }}</span>
+              <button
+                (click)="deleteGroup(group.id); $event.stopPropagation()"
                 class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all"
               >
                 <span class="material-symbols-outlined text-sm">close</span>
               </button>
             </div>
-            <div class="flex items-center justify-between text-[9px] text-slate-500">
+            <div
+              class="flex items-center justify-between text-[9px] text-slate-500"
+            >
               <span>{{ group.trackName }}</span>
               <span>{{ group.takes.length }} takes</span>
             </div>
-            @if (group.takes.filter(t => t.isCompSelection).length > 0) {
-              <div class="mt-2 text-[8px] font-bold text-vocal-primary uppercase tracking-widest">
+            @if (group.takes.filter((t) => t.isCompSelection).length > 0) {
+              <div
+                class="mt-2 text-[8px] font-bold text-vocal-primary uppercase tracking-widest"
+              >
                 ★ COMP SELECTED
               </div>
             }
@@ -66,9 +88,14 @@
         }
         @if (filteredGroups().length === 0) {
           <div class="text-center py-12 text-slate-600">
-            <span class="material-symbols-outlined text-3xl block mb-2">content_copy</span>
+            <span class="material-symbols-outlined text-3xl block mb-2"
+              >content_copy</span
+            >
             <span class="text-[10px] font-bold uppercase">No comp groups</span>
-            <button (click)="createNewGroup()" class="block mx-auto mt-4 text-[9px] text-vocal-primary hover:underline">
+            <button
+              (click)="createNewGroup()"
+              class="block mx-auto mt-4 text-[9px] text-vocal-primary hover:underline"
+            >
               Create one to start comping
             </button>
           </div>
@@ -82,17 +109,29 @@
         <!-- Group Header -->
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-vocal-primary">album</span>
-            <span class="text-sm font-black uppercase">{{ group.sectionLabel }}</span>
+            <span class="material-symbols-outlined text-vocal-primary"
+              >album</span
+            >
+            <span class="text-sm font-black uppercase">{{
+              group.sectionLabel
+            }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button (click)="exportComp()" [disabled]="isExporting()"
-              class="flex items-center gap-2 px-3 py-1.5 bg-vocal-primary/20 text-vocal-primary border border-vocal-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-vocal-primary/40 transition-all disabled:opacity-30">
-              <span class="material-symbols-outlined text-xs">file_download</span>
+            <button
+              (click)="exportComp()"
+              [disabled]="isExporting()"
+              class="flex items-center gap-2 px-3 py-1.5 bg-vocal-primary/20 text-vocal-primary border border-vocal-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-vocal-primary/40 transition-all disabled:opacity-30"
+            >
+              <span class="material-symbols-outlined text-xs"
+                >file_download</span
+              >
               Export Comp
             </button>
-            <button (click)="exportAllTakes()" [disabled]="isExporting()"
-              class="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-fl-border rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-30">
+            <button
+              (click)="exportAllTakes()"
+              [disabled]="isExporting()"
+              class="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-fl-border rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-30"
+            >
               <span class="material-symbols-outlined text-xs">archive</span>
               Export All
             </button>
@@ -100,11 +139,19 @@
         </div>
 
         <!-- Take Cards -->
-        <div class="space-y-3 max-h-[65vh] overflow-y-auto custom-scrollbar pr-2">
-          @for (take of group.takes; track take.id; let i = $index, first = $first) {
+        <div
+          class="space-y-3 max-h-[65vh] overflow-y-auto custom-scrollbar pr-2"
+        >
+          @for (
+            take of group.takes;
+            track take.id;
+            let i = $index, first = $first
+          ) {
             <div
               [class.border-vocal-primary]="take.isCompSelection"
-              [class.border-fl-blue]="compareMode() === 'a-b' && take.id === abReferenceTakeId()"
+              [class.border-fl-blue]="
+                compareMode() === 'a-b' && take.id === abReferenceTakeId()
+              "
               [class.opacity-50]="take.isMuted"
               class="bg-vocal-titanium/30 border border-fl-border rounded-2xl p-4 transition-all hover:border-white/20"
             >
@@ -122,39 +169,58 @@
                 <!-- Take Info -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-3">
-                    <span class="text-xs font-bold uppercase truncate">{{ take.label }}</span>
-                    <span class="text-[9px] text-slate-500 font-mono">{{ formatDuration(take.durationMs) }}</span>
+                    <span class="text-xs font-bold uppercase truncate">{{
+                      take.label
+                    }}</span>
+                    <span class="text-[9px] text-slate-500 font-mono">{{
+                      formatDuration(take.durationMs)
+                    }}</span>
                     @if (take.isCompSelection) {
-                      <span class="text-[8px] bg-vocal-primary text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">COMP</span>
+                      <span
+                        class="text-[8px] bg-vocal-primary text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest"
+                        >COMP</span
+                      >
                     }
-                    @if (compareMode() === 'a-b' && take.id === abReferenceTakeId()) {
-                      <span class="text-[8px] bg-fl-blue text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest">REF</span>
+                    @if (
+                      compareMode() === 'a-b' && take.id === abReferenceTakeId()
+                    ) {
+                      <span
+                        class="text-[8px] bg-fl-blue text-white px-1.5 py-0.5 rounded font-black uppercase tracking-widest"
+                        >REF</span
+                      >
                     }
                   </div>
                   <!-- Waveform Placeholder -->
-                  <div class="mt-2 h-8 bg-vocal-oled rounded-lg overflow-hidden relative">
+                  <div
+                    class="mt-2 h-8 bg-vocal-oled rounded-lg overflow-hidden relative"
+                  >
                     <div class="absolute inset-0 flex items-end px-1 gap-[1px]">
                       @for (bar of generateWaveformBars(); track bar) {
                         <div
                           class="flex-1 rounded-t-sm transition-all duration-200"
                           [style.background]="getTakeColor(take.takeNumber)"
                           [style.opacity]="0.3 + bar * 0.7"
-                          [style.height]="(bar * 100) + '%'"
+                          [style.height]="bar * 100 + '%'"
                         ></div>
                       }
                     </div>
                   </div>
                   <!-- Peak Levels -->
                   <div class="flex gap-4 mt-1">
-                    <span class="text-[8px] text-slate-600 font-mono">L: {{ take.peakDbL.toFixed(1) }}dB</span>
-                    <span class="text-[8px] text-slate-600 font-mono">R: {{ take.peakDbR.toFixed(1) }}dB</span>
+                    <span class="text-[8px] text-slate-600 font-mono"
+                      >L: {{ take.peakDbL.toFixed(1) }}dB</span
+                    >
+                    <span class="text-[8px] text-slate-600 font-mono"
+                      >R: {{ take.peakDbR.toFixed(1) }}dB</span
+                    >
                   </div>
                 </div>
 
                 <!-- Take Actions -->
                 <div class="flex flex-col gap-2">
                   <!-- Play -->
-                  <button (click)="playTake(take.id)"
+                  <button
+                    (click)="playTake(take.id)"
                     [class.bg-vocal-primary]="playingTakeId() === take.id"
                     class="size-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
                   >
@@ -163,16 +229,24 @@
                     </span>
                   </button>
                   <!-- Select as Comp -->
-                  <button (click)="selectTake(take.id)"
+                  <button
+                    (click)="selectTake(take.id)"
                     [class.text-vocal-primary]="take.isCompSelection"
                     [class.bg-vocal-primary/20]="take.isCompSelection"
                     class="size-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all text-slate-400"
-                    [title]="take.isCompSelection ? 'Current comp selection' : 'Select as comp'"
+                    [title]="
+                      take.isCompSelection
+                        ? 'Current comp selection'
+                        : 'Select as comp'
+                    "
                   >
-                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span class="material-symbols-outlined text-sm"
+                      >check_circle</span
+                    >
                   </button>
                   <!-- Mute -->
-                  <button (click)="toggleMute(group.id, take.id)"
+                  <button
+                    (click)="toggleMute(group.id, take.id)"
                     [class.text-amber-400]="take.isMuted"
                     class="size-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all text-slate-400"
                   >
@@ -182,18 +256,24 @@
                   </button>
                   <!-- Set as A/B Ref -->
                   @if (compareMode() === 'a-b') {
-                    <button (click)="setReferenceTake(take.id)"
+                    <button
+                      (click)="setReferenceTake(take.id)"
                       class="size-8 rounded-full bg-fl-blue/20 flex items-center justify-center hover:bg-fl-blue/40 transition-all text-fl-blue"
                       title="Set as reference"
                     >
-                      <span class="material-symbols-outlined text-sm">compare</span>
+                      <span class="material-symbols-outlined text-sm"
+                        >compare</span
+                      >
                     </button>
                   }
                   <!-- Delete -->
-                  <button (click)="deleteTake(group.id, take.id)"
+                  <button
+                    (click)="deleteTake(group.id, take.id)"
                     class="size-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500/20 transition-all text-slate-400 hover:text-red-400"
                   >
-                    <span class="material-symbols-outlined text-sm">delete</span>
+                    <span class="material-symbols-outlined text-sm"
+                      >delete</span
+                    >
                   </button>
                 </div>
               </div>
@@ -201,17 +281,29 @@
           }
           @if (group.takes.length === 0) {
             <div class="text-center py-16 text-slate-600">
-              <span class="material-symbols-outlined text-4xl block mb-3">mic</span>
-              <span class="text-[10px] font-bold uppercase">No takes recorded</span>
-              <p class="text-[9px] text-slate-600 mt-2">Record takes in the vocal suite, then come here to comp them</p>
+              <span class="material-symbols-outlined text-4xl block mb-3"
+                >mic</span
+              >
+              <span class="text-[10px] font-bold uppercase"
+                >No takes recorded</span
+              >
+              <p class="text-[9px] text-slate-600 mt-2">
+                Record takes in the vocal suite, then come here to comp them
+              </p>
             </div>
           }
         </div>
       } @else {
         <div class="text-center py-24 text-slate-600">
-          <span class="material-symbols-outlined text-5xl block mb-4">content_copy</span>
-          <span class="text-sm font-black uppercase tracking-wider">Select a comp group</span>
-          <p class="text-[10px] text-slate-600 mt-2">Choose a group from the left panel or create a new one</p>
+          <span class="material-symbols-outlined text-5xl block mb-4"
+            >content_copy</span
+          >
+          <span class="text-sm font-black uppercase tracking-wider"
+            >Select a comp group</span
+          >
+          <p class="text-[10px] text-slate-600 mt-2">
+            Choose a group from the left panel or create a new one
+          </p>
         </div>
       }
     </div>
@@ -220,31 +312,46 @@
     <div class="col-span-12 lg:col-span-3 space-y-4">
       @if (selectedGroup(); as group) {
         <!-- Comp Selection Summary -->
-        <div class="bg-vocal-titanium/40 border border-fl-border rounded-2xl p-5">
-          <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2">
+        <div
+          class="bg-vocal-titanium/40 border border-fl-border rounded-2xl p-5"
+        >
+          <h3
+            class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-2"
+          >
             <span class="material-symbols-outlined text-sm">checklist</span>
             Comp Assembly
           </h3>
-          
+
           @if (compTake(); as take) {
-            <div class="flex items-center gap-3 p-3 bg-vocal-primary/10 rounded-xl border border-vocal-primary/20">
-              <div class="size-10 rounded-full bg-vocal-primary/20 flex items-center justify-center text-vocal-primary font-black">
+            <div
+              class="flex items-center gap-3 p-3 bg-vocal-primary/10 rounded-xl border border-vocal-primary/20"
+            >
+              <div
+                class="size-10 rounded-full bg-vocal-primary/20 flex items-center justify-center text-vocal-primary font-black"
+              >
                 {{ take.takeNumber }}
               </div>
               <div>
                 <div class="text-xs font-bold">{{ take.label }}</div>
-                <div class="text-[9px] text-slate-500 font-mono">{{ formatDuration(take.durationMs) }}</div>
+                <div class="text-[9px] text-slate-500 font-mono">
+                  {{ formatDuration(take.durationMs) }}
+                </div>
               </div>
             </div>
-            <button (click)="playTake(take.id)"
+            <button
+              (click)="playTake(take.id)"
               class="w-full mt-3 py-2 bg-vocal-primary/20 border border-vocal-primary/30 rounded-lg text-[10px] font-black uppercase tracking-widest text-vocal-primary hover:bg-vocal-primary/40 transition-all"
             >
               {{ playingTakeId() === take.id ? '■ STOP' : '▶ PLAY COMP' }}
             </button>
           } @else {
             <div class="text-center py-6 text-slate-600">
-              <span class="text-[9px] font-bold uppercase">No comp selected</span>
-              <p class="text-[8px] mt-1">Click the checkmark on a take to select it</p>
+              <span class="text-[9px] font-bold uppercase"
+                >No comp selected</span
+              >
+              <p class="text-[8px] mt-1">
+                Click the checkmark on a take to select it
+              </p>
             </div>
           }
 
@@ -256,11 +363,15 @@
             </div>
             <div class="flex justify-between text-[9px]">
               <span class="text-slate-500">Muted</span>
-              <span class="font-bold text-amber-400">{{ group.takes.filter(t => t.isMuted).length }}</span>
+              <span class="font-bold text-amber-400">{{
+                group.takes.filter((t) => t.isMuted).length
+              }}</span>
             </div>
             <div class="flex justify-between text-[9px]">
               <span class="text-slate-500">Created</span>
-              <span class="font-bold font-mono">{{ group.createdAt | date:'shortTime' }}</span>
+              <span class="font-bold font-mono">{{
+                group.createdAt | date: 'shortTime'
+              }}</span>
             </div>
           </div>
         </div>
@@ -268,15 +379,31 @@
         <!-- Compare Mode Info -->
         @if (compareMode() !== 'off') {
           <div class="bg-fl-blue/10 border border-fl-blue/30 rounded-2xl p-5">
-            <h3 class="text-[10px] font-black uppercase tracking-widest text-fl-blue mb-3 flex items-center gap-2">
-              <span class="material-symbols-outlined text-sm">compare_arrows</span>
+            <h3
+              class="text-[10px] font-black uppercase tracking-widest text-fl-blue mb-3 flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm"
+                >compare_arrows</span
+              >
               A/B Comparison
             </h3>
             @if (compareMode() === 'a-b') {
               <div class="text-[9px] text-slate-400 leading-relaxed">
-                <p>Click the <span class="text-fl-blue font-bold">compare</span> icon on a take to set it as reference.</p>
-                <p class="mt-2">Takes highlighted in <span class="text-vocal-primary font-bold">purple</span> are your comp selections.</p>
-                <p class="mt-4 text-[8px] text-slate-500 uppercase tracking-widest font-bold">Tip: Mute all other takes to A/B just the reference vs comp</p>
+                <p>
+                  Click the
+                  <span class="text-fl-blue font-bold">compare</span> icon on a
+                  take to set it as reference.
+                </p>
+                <p class="mt-2">
+                  Takes highlighted in
+                  <span class="text-vocal-primary font-bold">purple</span> are
+                  your comp selections.
+                </p>
+                <p
+                  class="mt-4 text-[8px] text-slate-500 uppercase tracking-widest font-bold"
+                >
+                  Tip: Mute all other takes to A/B just the reference vs comp
+                </p>
               </div>
             }
           </div>
@@ -290,11 +417,20 @@
 
 <!-- Styles inlined for component isolation -->
 <style>
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.2); border-radius: 2px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168,85,247,0.4); }
-  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.2);
+    border-radius: 2px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 85, 247, 0.4);
+  }
+
   .comp-container {
     min-height: 100%;
   }

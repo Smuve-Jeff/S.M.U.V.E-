@@ -10,8 +10,19 @@ import { Game } from './game';
 
 // ── Matchmaking Types (same shape as server-side payloads) ──
 
-export type LobbyStatus = 'idle' | 'searching' | 'matched' | 'ready' | 'in-progress' | 'cancelled';
-export type ChallengeStatus = 'pending' | 'accepted' | 'rejected' | 'expired' | 'cancelled';
+export type LobbyStatus =
+  | 'idle'
+  | 'searching'
+  | 'matched'
+  | 'ready'
+  | 'in-progress'
+  | 'cancelled';
+export type ChallengeStatus =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'expired'
+  | 'cancelled';
 
 export interface ServerChallenge {
   id: number;
@@ -145,9 +156,13 @@ export class MatchmakingService implements OnDestroy {
   readonly myChallenges = signal<PlayerChallenge[]>([]);
   readonly outgoingChallenges = signal<PlayerChallenge[]>([]);
   readonly isSearching = signal(false);
-  readonly onlineUsers = signal<{ userId: string; artistName?: string; online: boolean }[]>([]);
+  readonly onlineUsers = signal<
+    { userId: string; artistName?: string; online: boolean }[]
+  >([]);
   readonly partyMembers = signal<PartyMember[]>([]);
-  readonly matchFound = signal<{ opponentId: string; gameId: string } | null>(null);
+  readonly matchFound = signal<{ opponentId: string; gameId: string } | null>(
+    null
+  );
 
   // ── Ready-Up System ──
   readonly readyPlayers = signal<Set<string>>(new Set());
@@ -190,13 +205,17 @@ export class MatchmakingService implements OnDestroy {
   readonly isSpectating = signal(false);
   readonly spectateTargetLobby = signal<CoOpLobby | null>(null);
   readonly inProgressLobbies = computed(() =>
-    this.activeLobbies().filter(l => l.status === 'in-progress')
+    this.activeLobbies().filter((l) => l.status === 'in-progress')
   );
   readonly spectatorReactions = signal<SpectatorReaction[]>([]);
   readonly spectatorChatMessages = signal<LobbyChatMessage[]>([]);
 
-  readonly playerId = computed(() => this.profile.profile().id || 'local-player');
-  readonly playerName = computed(() => this.profile.profile().artistName || 'Unknown Player');
+  readonly playerId = computed(
+    () => this.profile.profile().id || 'local-player'
+  );
+  readonly playerName = computed(
+    () => this.profile.profile().artistName || 'Unknown Player'
+  );
 
   constructor() {
     this.connectSocket();
@@ -212,7 +231,9 @@ export class MatchmakingService implements OnDestroy {
   private connectSocket(): void {
     const token = this.tokenService.jwtToken();
     if (!token) {
-      console.warn('[Matchmaking] No auth token available — Socket.io will reject connection');
+      console.warn(
+        '[Matchmaking] No auth token available — Socket.io will reject connection'
+      );
       return;
     }
 
@@ -253,34 +274,56 @@ export class MatchmakingService implements OnDestroy {
     this.socket.on('challenge_inbox_sync', (challenges: ServerChallenge[]) => {
       const mapped = challenges.map(serverToClientChallenge);
       this.myChallenges.set(mapped.filter((c) => c.toId === this.playerId()));
-      this.outgoingChallenges.set(mapped.filter((c) => c.fromId === this.playerId()));
+      this.outgoingChallenges.set(
+        mapped.filter((c) => c.fromId === this.playerId())
+      );
     });
 
     this.socket.on('incoming_challenge', (sc: ServerChallenge) => {
       const challenge = serverToClientChallenge(sc);
       this.myChallenges.update((c) => [...c, challenge]);
       this.haptic.medium();
-      this.notify.show(`${challenge.fromName} challenges you to ${challenge.gameId}!`, 'info');
+      this.notify.show(
+        `${challenge.fromName} challenges you to ${challenge.gameId}!`,
+        'info'
+      );
     });
 
-    this.socket.on('challenge_response', (data: { id: number; responderId: string; gameId: string; status: string; timestamp: number }) => {
-      const mappedStatus = data.status as ChallengeStatus;
-      this.outgoingChallenges.update((c) =>
-        c.map((ch) => ch.id === `chal-${data.id}` ? { ...ch, status: mappedStatus } : ch)
-      );
-      if (mappedStatus === 'accepted') {
-        this.notify.show(`Challenge accepted — lobby ready for ${data.gameId}`, 'success');
-      } else if (mappedStatus === 'rejected') {
-        this.notify.show(`Challenge declined`, 'warning');
+    this.socket.on(
+      'challenge_response',
+      (data: {
+        id: number;
+        responderId: string;
+        gameId: string;
+        status: string;
+        timestamp: number;
+      }) => {
+        const mappedStatus = data.status as ChallengeStatus;
+        this.outgoingChallenges.update((c) =>
+          c.map((ch) =>
+            ch.id === `chal-${data.id}` ? { ...ch, status: mappedStatus } : ch
+          )
+        );
+        if (mappedStatus === 'accepted') {
+          this.notify.show(
+            `Challenge accepted — lobby ready for ${data.gameId}`,
+            'success'
+          );
+        } else if (mappedStatus === 'rejected') {
+          this.notify.show(`Challenge declined`, 'warning');
+        }
       }
-    });
+    );
 
     this.socket.on('challenge_persisted', (sc: ServerChallenge) => {
       // Server confirmed persistence — update local ID
       const challenge = serverToClientChallenge(sc);
       this.outgoingChallenges.update((c) =>
-        c.map((ch) => ch.fromId === sc.fromUserId && !ch.id.startsWith('chal-')
-          ? challenge : ch)
+        c.map((ch) =>
+          ch.fromId === sc.fromUserId && !ch.id.startsWith('chal-')
+            ? challenge
+            : ch
+        )
       );
     });
 
@@ -294,28 +337,51 @@ export class MatchmakingService implements OnDestroy {
       this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
     });
 
-    this.socket.on('party_invite', (data: { fromUserId: string; fromUserName: string; partyId: string; gameId: string }) => {
-      this.notify.show(`${data.fromUserName} invited you to join a ${data.gameId} lobby`, 'info');
-    });
-
-    this.socket.on('user_joined_party', (data: { userId: string; artistName: string }) => {
-      this.partyMembers.update((m) => {
-        if (m.find((p) => p.userId === data.userId)) return m;
-        return [...m, { userId: data.userId, artistName: data.artistName }];
-      });
-      const lobby = this.myLobby();
-      if (lobby) {
-        const updated = { ...lobby, playerIds: [...new Set([...lobby.playerIds, data.userId])] };
-        this.myLobby.set(updated);
-        this.updateLobbyInState(updated);
+    this.socket.on(
+      'party_invite',
+      (data: {
+        fromUserId: string;
+        fromUserName: string;
+        partyId: string;
+        gameId: string;
+      }) => {
+        this.notify.show(
+          `${data.fromUserName} invited you to join a ${data.gameId} lobby`,
+          'info'
+        );
       }
-      // Reset ready state when a new player joins
-      this.isReady.set(false);
-      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(data.userId); return ns; });
-    });
+    );
+
+    this.socket.on(
+      'user_joined_party',
+      (data: { userId: string; artistName: string }) => {
+        this.partyMembers.update((m) => {
+          if (m.find((p) => p.userId === data.userId)) return m;
+          return [...m, { userId: data.userId, artistName: data.artistName }];
+        });
+        const lobby = this.myLobby();
+        if (lobby) {
+          const updated = {
+            ...lobby,
+            playerIds: [...new Set([...lobby.playerIds, data.userId])],
+          };
+          this.myLobby.set(updated);
+          this.updateLobbyInState(updated);
+        }
+        // Reset ready state when a new player joins
+        this.isReady.set(false);
+        this.readyPlayers.update((s) => {
+          const ns = new Set(s);
+          ns.delete(data.userId);
+          return ns;
+        });
+      }
+    );
 
     this.socket.on('user_left_party', (data: { userId: string }) => {
-      this.partyMembers.update((m) => m.filter((p) => p.userId !== data.userId));
+      this.partyMembers.update((m) =>
+        m.filter((p) => p.userId !== data.userId)
+      );
       const lobby = this.myLobby();
       if (lobby) {
         // Host transfer: if host left, promote next player
@@ -325,7 +391,10 @@ export class MatchmakingService implements OnDestroy {
           const remaining = lobby.playerIds.filter((id) => id !== data.userId);
           if (remaining.length > 0) {
             newHostId = remaining[0];
-            newHostName = newHostId === this.playerId() ? this.playerName() : ('PLAYER_' + newHostId.slice(0, 6));
+            newHostName =
+              newHostId === this.playerId()
+                ? this.playerName()
+                : 'PLAYER_' + newHostId.slice(0, 6);
             if (newHostId === this.playerId()) {
               this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
               this.haptic.medium();
@@ -342,55 +411,90 @@ export class MatchmakingService implements OnDestroy {
         this.updateLobbyInState(updated);
       }
       // Remove departed player from ready set & cancel countdown
-      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(data.userId); return ns; });
+      this.readyPlayers.update((s) => {
+        const ns = new Set(s);
+        ns.delete(data.userId);
+        return ns;
+      });
       this.cancelCountdown();
     });
 
     // ── Host Transfer Event ──
-    this.socket.on('host_transferred', (data: { partyId: string; newHostId: string; newHostName: string }) => {
-      const lobby = this.myLobby();
-      if (lobby && lobby.id === data.partyId) {
-        const updated = { ...lobby, hostId: data.newHostId, hostName: data.newHostName };
-        this.myLobby.set(updated);
-        this.updateLobbyInState(updated);
-        if (data.newHostId === this.playerId()) {
-          this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
-          this.haptic.medium();
+    this.socket.on(
+      'host_transferred',
+      (data: { partyId: string; newHostId: string; newHostName: string }) => {
+        const lobby = this.myLobby();
+        if (lobby && lobby.id === data.partyId) {
+          const updated = {
+            ...lobby,
+            hostId: data.newHostId,
+            hostName: data.newHostName,
+          };
+          this.myLobby.set(updated);
+          this.updateLobbyInState(updated);
+          if (data.newHostId === this.playerId()) {
+            this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
+            this.haptic.medium();
+          }
         }
       }
-    });
+    );
 
     // ── Ready-Up Events ──
-    this.socket.on('player_ready', (data: { userId: string; partyId: string }) => {
-      this.setPlayerReady(data.userId, true);
-    });
+    this.socket.on(
+      'player_ready',
+      (data: { userId: string; partyId: string }) => {
+        this.setPlayerReady(data.userId, true);
+      }
+    );
 
-    this.socket.on('player_unready', (data: { userId: string; partyId: string }) => {
-      this.setPlayerReady(data.userId, false);
-    });
+    this.socket.on(
+      'player_unready',
+      (data: { userId: string; partyId: string }) => {
+        this.setPlayerReady(data.userId, false);
+      }
+    );
 
-    this.socket.on('all_players_ready', (data: { partyId: string; gameId: string }) => {
-      this.notify.show(`All players ready for ${data.gameId} — launch now!`, 'success');
-    });
+    this.socket.on(
+      'all_players_ready',
+      (data: { partyId: string; gameId: string }) => {
+        this.notify.show(
+          `All players ready for ${data.gameId} — launch now!`,
+          'success'
+        );
+      }
+    );
 
-    this.socket.on('party_launch_game', (data: { partyId: string; gameId: string }) => {
-      this.notify.show(`Party leader launched ${data.gameId} — joining now!`, 'success');
-      // Navigation to the game is handled by the Tha Spot component
-    });
+    this.socket.on(
+      'party_launch_game',
+      (data: { partyId: string; gameId: string }) => {
+        this.notify.show(
+          `Party leader launched ${data.gameId} — joining now!`,
+          'success'
+        );
+        // Navigation to the game is handled by the Tha Spot component
+      }
+    );
 
-    this.socket.on('match_found', (data: { opponentId: string; gameId: string }) => {
-      this.matchFound.set(data);
-      this.isSearching.set(false);
-      this.haptic.medium();
-      this.notify.show(`Match found! Opponent ready for ${data.gameId}`, 'success');
-    });
+    this.socket.on(
+      'match_found',
+      (data: { opponentId: string; gameId: string }) => {
+        this.matchFound.set(data);
+        this.isSearching.set(false);
+        this.haptic.medium();
+        this.notify.show(
+          `Match found! Opponent ready for ${data.gameId}`,
+          'success'
+        );
+      }
+    );
 
     // ── Lobby Chat Events ──
     this.socket.on('lobby_chat_message', (msg: LobbyChatMessage) => {
       const lobby = this.myLobby();
       if (lobby && msg.lobbyId === lobby.id) {
-        this.lobbyChatMessages.update(m => {
-          if (m.find(existing => existing.id === msg.id)) return m;
+        this.lobbyChatMessages.update((m) => {
+          if (m.find((existing) => existing.id === msg.id)) return m;
           return [...m, msg];
         });
         this.saveLobbyChatHistory(msg.lobbyId);
@@ -399,8 +503,8 @@ export class MatchmakingService implements OnDestroy {
 
     // ── Game State Sync Events ──
     this.socket.on('game_state_update', (update: GameStateUpdate) => {
-      this.gameStateUpdates.update(u => [...u.slice(-100), update]);
-      this.latestGameState.update(s => ({
+      this.gameStateUpdates.update((u) => [...u.slice(-100), update]);
+      this.latestGameState.update((s) => ({
         ...s,
         [update.playerId]: update,
       }));
@@ -410,30 +514,32 @@ export class MatchmakingService implements OnDestroy {
     this.socket.on('replay_snapshot', (snapshot: GameStateSnapshot) => {
       const lobby = this.myLobby();
       if (lobby && snapshot.lobbyId === lobby.id) {
-        this.lobbyReplaySnapshots.update(s => [...s, snapshot]);
+        this.lobbyReplaySnapshots.update((s) => [...s, snapshot]);
         this.saveReplayHistory(lobby.id);
       }
     });
 
     // ── Spectator reaction events (emoji from spectators of in-progress lobbies) ──
     this.socket.on('spectator_reaction', (r: SpectatorReaction) => {
-      this.spectatorReactions.update(list => {
+      this.spectatorReactions.update((list) => {
         // De-dupe by reaction id
-        if (list.find(x => x.id === r.id)) return list;
+        if (list.find((x) => x.id === r.id)) return list;
         const next = [...list, r];
         // Trim oldest past 50
         return next.slice(-50);
       });
       // Auto-clear after 4s for UI flash
       setTimeout(() => {
-        this.spectatorReactions.update(list => list.filter(x => x.id !== r.id));
+        this.spectatorReactions.update((list) =>
+          list.filter((x) => x.id !== r.id)
+        );
       }, 4000);
     });
 
     // ── Spectator chat messages (live chat in spectator overlay) ──
     this.socket.on('spectator_chat_message', (msg: LobbyChatMessage) => {
-      this.spectatorChatMessages.update(list => {
-        if (list.find(x => x.id === msg.id)) return list;
+      this.spectatorChatMessages.update((list) => {
+        if (list.find((x) => x.id === msg.id)) return list;
         return [...list, msg].slice(-100);
       });
     });
@@ -510,7 +616,8 @@ export class MatchmakingService implements OnDestroy {
     const updated: CoOpLobby = {
       ...lobby,
       playerIds: [...new Set([...lobby.playerIds, this.playerId()])],
-      status: lobby.playerIds.length + 1 >= lobby.maxPlayers ? 'ready' : 'searching',
+      status:
+        lobby.playerIds.length + 1 >= lobby.maxPlayers ? 'ready' : 'searching',
     };
     this.updateLobbyInState(updated);
     this.initLobbyChat(lobbyId);
@@ -546,10 +653,18 @@ export class MatchmakingService implements OnDestroy {
     const next = !this.isReady();
     this.isReady.set(next);
     if (next) {
-      this.readyPlayers.update(s => { const ns = new Set(s); ns.add(this.playerId()); return ns; });
+      this.readyPlayers.update((s) => {
+        const ns = new Set(s);
+        ns.add(this.playerId());
+        return ns;
+      });
       this.socket?.emit('player_ready', { partyId: lobby.id });
     } else {
-      this.readyPlayers.update(s => { const ns = new Set(s); ns.delete(this.playerId()); return ns; });
+      this.readyPlayers.update((s) => {
+        const ns = new Set(s);
+        ns.delete(this.playerId());
+        return ns;
+      });
       this.socket?.emit('player_unready', { partyId: lobby.id });
       // Cancel countdown if someone un-readies
       this.cancelCountdown();
@@ -589,9 +704,10 @@ export class MatchmakingService implements OnDestroy {
 
   /** Called by socket event when another player toggles ready */
   setPlayerReady(playerId: string, ready: boolean): void {
-    this.readyPlayers.update(s => {
+    this.readyPlayers.update((s) => {
       const ns = new Set(s);
-      if (ready) ns.add(playerId); else ns.delete(playerId);
+      if (ready) ns.add(playerId);
+      else ns.delete(playerId);
       return ns;
     });
     if (playerId === this.playerId()) {
@@ -632,15 +748,21 @@ export class MatchmakingService implements OnDestroy {
     const text = `🎮 Join my ${lobby.gameName} co-op lobby on S.M.U.V.E.! ${link}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'S.M.U.V.E. Co-Op Lobby', text, url: link });
+        await navigator.share({
+          title: 'S.M.U.V.E. Co-Op Lobby',
+          text,
+          url: link,
+        });
         return;
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
     this.copyLobbyInviteLink();
   }
 
   pendingLobbyChallenges = computed(() =>
-    this.myChallenges().filter(c => c.status === 'pending')
+    this.myChallenges().filter((c) => c.status === 'pending')
   );
 
   launchGameFromParty(gameId: string): void {
@@ -651,7 +773,10 @@ export class MatchmakingService implements OnDestroy {
     this.myLobby.set(updated);
     this.updateLobbyInState(updated);
     // ── Auto-record: record initial snapshot on game launch ──
-    this.recordGameSnapshot({ event: 'GAME_LAUNCH', gameId, playerCount: lobby.playerIds.length }, 'Game Launch');
+    this.recordGameSnapshot(
+      { event: 'GAME_LAUNCH', gameId, playerCount: lobby.playerIds.length },
+      'Game Launch'
+    );
     this.socket?.emit('party_launch_game', { partyId: lobby.id, gameId });
     this.socket?.emit('party_started', { partyId: lobby.id, gameId });
   }
@@ -662,11 +787,14 @@ export class MatchmakingService implements OnDestroy {
     toUserId: string,
     toName: string,
     gameId: string,
-    message = 'Challenge accepted! Let\'s battle!'
+    message = "Challenge accepted! Let's battle!"
   ): PlayerChallenge {
     this.haptic.light();
     if (!this.socket?.connected) {
-      this.notify.show('Connection lost — challenge may not deliver', 'warning');
+      this.notify.show(
+        'Connection lost — challenge may not deliver',
+        'warning'
+      );
     }
     this.socket?.emit('challenge_player', {
       toUserId,
@@ -693,18 +821,28 @@ export class MatchmakingService implements OnDestroy {
 
   acceptChallenge(challengeId: string): void {
     this.haptic.medium();
-    const numericId = challengeId.startsWith('chal-') ? challengeId.slice(5) : challengeId;
+    const numericId = challengeId.startsWith('chal-')
+      ? challengeId.slice(5)
+      : challengeId;
     const token = this.tokenService.jwtToken();
     if (!token) return;
 
     this.http
-      .post(`${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`, { status: 'accepted' }, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .post(
+        `${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`,
+        { status: 'accepted' },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       .subscribe({
         next: () => {
           this.myChallenges.update((c) =>
-            c.map((ch) => ch.id === challengeId ? { ...ch, status: 'accepted' as ChallengeStatus } : ch)
+            c.map((ch) =>
+              ch.id === challengeId
+                ? { ...ch, status: 'accepted' as ChallengeStatus }
+                : ch
+            )
           );
           this.notify.show('Challenge accepted — connecting...', 'success');
         },
@@ -717,18 +855,28 @@ export class MatchmakingService implements OnDestroy {
 
   rejectChallenge(challengeId: string): void {
     this.haptic.light();
-    const numericId = challengeId.startsWith('chal-') ? challengeId.slice(5) : challengeId;
+    const numericId = challengeId.startsWith('chal-')
+      ? challengeId.slice(5)
+      : challengeId;
     const token = this.tokenService.jwtToken();
     if (!token) return;
 
     this.http
-      .post(`${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`, { status: 'declined' }, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .post(
+        `${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`,
+        { status: 'declined' },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       .subscribe({
         next: () => {
           this.myChallenges.update((c) =>
-            c.map((ch) => ch.id === challengeId ? { ...ch, status: 'rejected' as ChallengeStatus } : ch)
+            c.map((ch) =>
+              ch.id === challengeId
+                ? { ...ch, status: 'rejected' as ChallengeStatus }
+                : ch
+            )
           );
           this.notify.show('Challenge declined', 'info');
         },
@@ -765,7 +913,7 @@ export class MatchmakingService implements OnDestroy {
       text: text.trim(),
       timestamp: Date.now(),
     };
-    this.lobbyChatMessages.update(m => [...m, msg]);
+    this.lobbyChatMessages.update((m) => [...m, msg]);
     this.saveLobbyChatHistory(lobby.id);
     // Also emit via socket for live sync
     this.socket?.emit('lobby_chat_message', msg);
@@ -779,7 +927,9 @@ export class MatchmakingService implements OnDestroy {
         this.lobbyChatMessages.set(msgs.slice(-50)); // Keep last 50
         return;
       }
-    } catch { /* ignore corrupt data */ }
+    } catch {
+      /* ignore corrupt data */
+    }
     this.lobbyChatMessages.set([]);
   }
 
@@ -790,7 +940,9 @@ export class MatchmakingService implements OnDestroy {
         this.LOBBY_CHAT_PREFIX + lobbyId,
         JSON.stringify(msgs.slice(-50))
       );
-    } catch { /* storage full */ }
+    } catch {
+      /* storage full */
+    }
   }
 
   // Wire chat loading into lobby join / create
@@ -813,10 +965,12 @@ export class MatchmakingService implements OnDestroy {
       timestamp: Date.now(),
     };
     // Locally flash + emit
-    this.spectatorReactions.update(list => [...list, r].slice(-50));
+    this.spectatorReactions.update((list) => [...list, r].slice(-50));
     this.socket?.emit('spectator_reaction', r);
     setTimeout(() => {
-      this.spectatorReactions.update(list => list.filter(x => x.id !== r.id));
+      this.spectatorReactions.update((list) =>
+        list.filter((x) => x.id !== r.id)
+      );
     }, 4000);
     this.haptic.light();
   }
@@ -825,14 +979,15 @@ export class MatchmakingService implements OnDestroy {
   sendSpectatorChat(lobbyId: string, text: string): void {
     if (!this.isSpectating() || !lobbyId || !text.trim()) return;
     const msg: LobbyChatMessage = {
-      id: 'spec-msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      id:
+        'spec-msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
       lobbyId,
       fromUserId: this.playerId(),
       fromUserName: this.playerName(),
       text: text.trim(),
       timestamp: Date.now(),
     };
-    this.spectatorChatMessages.update(list => [...list, msg].slice(-100));
+    this.spectatorChatMessages.update((list) => [...list, msg].slice(-100));
     this.socket?.emit('spectator_chat_message', msg);
   }
 
@@ -849,7 +1004,7 @@ export class MatchmakingService implements OnDestroy {
       state,
       label,
     };
-    this.lobbyReplaySnapshots.update(s => [...s, snapshot]);
+    this.lobbyReplaySnapshots.update((s) => [...s, snapshot]);
     this.saveReplayHistory(lobby.id);
     // Broadcast to lobby peers
     this.socket?.emit('replay_snapshot', snapshot);
@@ -864,7 +1019,9 @@ export class MatchmakingService implements OnDestroy {
         this.lobbyReplaySnapshots.set(snaps.slice(-200));
         return;
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     this.lobbyReplaySnapshots.set([]);
   }
 
@@ -876,7 +1033,9 @@ export class MatchmakingService implements OnDestroy {
         this.REPLAY_PREFIX + lobbyId,
         JSON.stringify(snaps.slice(-200))
       );
-    } catch { /* storage full */ }
+    } catch {
+      /* storage full */
+    }
   }
 
   /** Start replay playback from snapshots */
@@ -942,8 +1101,8 @@ export class MatchmakingService implements OnDestroy {
       timestamp: Date.now(),
     };
     // Add to local state
-    this.gameStateUpdates.update(u => [...u.slice(-100), update]);
-    this.latestGameState.update(s => ({
+    this.gameStateUpdates.update((u) => [...u.slice(-100), update]);
+    this.latestGameState.update((s) => ({
       ...s,
       [this.playerId()]: update,
     }));
@@ -954,7 +1113,7 @@ export class MatchmakingService implements OnDestroy {
   // ── Spectator Mode ──
 
   startSpectateLobby(lobbyId: string): void {
-    const lobby = this.activeLobbies().find(l => l.id === lobbyId);
+    const lobby = this.activeLobbies().find((l) => l.id === lobbyId);
     if (!lobby || lobby.status !== 'in-progress') {
       this.notify.show('Lobby is not currently playing', 'warning');
       return;
@@ -987,7 +1146,9 @@ export class MatchmakingService implements OnDestroy {
   }
 
   getLobbyPlayerCount(lobbyId: string): number {
-    return this.activeLobbies().find((l) => l.id === lobbyId)?.playerIds.length ?? 0;
+    return (
+      this.activeLobbies().find((l) => l.id === lobbyId)?.playerIds.length ?? 0
+    );
   }
 
   // ── Helpers ──
@@ -1018,7 +1179,9 @@ export class MatchmakingService implements OnDestroy {
   }
 
   private removeLobbyFromState(lobbyId: string): void {
-    this.activeLobbies.update((lobbies) => lobbies.filter((l) => l.id !== lobbyId));
+    this.activeLobbies.update((lobbies) =>
+      lobbies.filter((l) => l.id !== lobbyId)
+    );
     if (this.myLobby()?.id === lobbyId) {
       this.myLobby.set(null);
     }

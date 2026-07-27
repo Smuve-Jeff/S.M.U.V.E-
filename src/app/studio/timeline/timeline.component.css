@@ -20,7 +20,11 @@
   align-items: stretch;
   height: 100%;
   position: relative;
-  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--ivory-paper) 0%,
+    var(--ivory-panel) 100%
+  );
 }
 
 .timeline-tick {
@@ -56,7 +60,9 @@
   bottom: 0;
   width: 2px;
   background: var(--neon-amber);
-  box-shadow: 0 0 10px var(--neon-amber-glow), 0 0 20px rgba(255, 182, 39, 0.20);
+  box-shadow:
+    0 0 10px var(--neon-amber-glow),
+    0 0 20px rgba(255, 182, 39, 0.2);
   pointer-events: none;
   z-index: 10;
   transition: left 0.06s linear;
@@ -75,7 +81,7 @@
 
 /* ---------- DARK MODE ---------- */
 :host-context(.dark-mode) .timeline-ruler {
-  background: linear-gradient(180deg, #0A0F22 0%, #06091A 100%);
+  background: linear-gradient(180deg, #0a0f22 0%, #06091a 100%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 

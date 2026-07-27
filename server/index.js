@@ -238,9 +238,9 @@ const setupSocketIO = (server) => {
   });
 
   // Module-level reference so REST endpoints can broadcast via Socket.io
-let appIO = null;
+  let appIO = null;
 
-// In-memory state for real-time social features
+  // In-memory state for real-time social features
   const presence = new Map(); // userId -> { socketId, metadata }
   const rooms = new Map(); // roomId -> Set<userId>
   const parties = new Map(); // partyId -> { leaderId, members: [{userId, artistName}], gameId }
@@ -427,7 +427,11 @@ let appIO = null;
             toUserId,
             '🎮 Game Challenge',
             `${fromUserName} challenged you to ${gameId}`,
-            JSON.stringify({ challengeId: record.id, fromUserId: userId, gameId }),
+            JSON.stringify({
+              challengeId: record.id,
+              fromUserId: userId,
+              gameId,
+            }),
           ]
         );
         if (isOnline) {
@@ -576,7 +580,10 @@ let appIO = null;
       if (!partyId || !gameId) return;
       const party = parties.get(partyId);
       if (!party || party.leaderId !== userId) return;
-      io.to(getPartyRoom(partyId)).emit('party_launch_game', { partyId, gameId });
+      io.to(getPartyRoom(partyId)).emit('party_launch_game', {
+        partyId,
+        gameId,
+      });
     });
 
     socket.on('send_party_message', (data = {}) => {
@@ -1035,8 +1042,7 @@ app.get(
          WHERE status = 'pending' AND to_user_id = $1 AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
         [userId]
       );
-      let query =
-        `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status,
+      let query = `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status,
                 EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
          FROM game_challenges
          WHERE (to_user_id = $1 OR from_user_id = $1)`;
@@ -1093,9 +1099,7 @@ app.post(
       const updated = rows[0];
       // Notify the challenger via socket if online
       if (appIO) {
-        appIO
-          .to(updated.from_user_id)
-        .emit('challenge_response', {
+        appIO.to(updated.from_user_id).emit('challenge_response', {
           id: Number(updated.id),
           responderId: userId,
           gameId: updated.game_id,
@@ -1103,7 +1107,10 @@ app.post(
           timestamp: Number(updated.timestamp),
         });
       }
-      res.json({ success: true, challenge: { ...updated, id: Number(updated.id) } });
+      res.json({
+        success: true,
+        challenge: { ...updated, id: Number(updated.id) },
+      });
     } catch (err) {
       console.error('Respond challenge error:', err);
       res.status(500).json({ error: 'Failed to respond to challenge.' });

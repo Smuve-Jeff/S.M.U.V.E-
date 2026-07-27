@@ -10,12 +10,16 @@
     <input
       type="range"
       class="perf-velo-slider"
-      min="0.1" max="1" step="0.05"
+      min="0.1"
+      max="1"
+      step="0.05"
       [value]="activeVelocity()"
-      (input)="setVelocity(+($any($event.target).value))"
+      (input)="setVelocity(+$any($event.target).value)"
       aria-label="Pad velocity"
     />
-    <span class="perf-velo-readout">{{ (activeVelocity() * 100).toFixed(0) }}%</span>
+    <span class="perf-velo-readout"
+      >{{ (activeVelocity() * 100).toFixed(0) }}%</span
+    >
   </div>
 
   <!-- PAD GRID -->
@@ -28,7 +32,7 @@
         loop: pad.type === 'loop',
         'one-shot': pad.type === 'one-shot',
         active: pad.isPlaying,
-        'is-longpressed': longPressPadId() === pad.id
+        'is-longpressed': longPressPadId() === pad.id,
       }"
       [style.--velo-scale]="activeVelocity()"
       (pointerdown)="onPointerDown(pad, $event)"
@@ -36,7 +40,12 @@
       (pointerleave)="onPointerUp(pad, $event)"
       (contextmenu)="onContextMenu(pad); $event.preventDefault()"
       [attr.aria-pressed]="pad.isPlaying"
-      [attr.aria-label]="pad.name + ' — ' + (pad.type === 'loop' ? 'Loop' : 'One-shot') + (pad.isPlaying ? ' — playing' : '')"
+      [attr.aria-label]="
+        pad.name +
+        ' — ' +
+        (pad.type === 'loop' ? 'Loop' : 'One-shot') +
+        (pad.isPlaying ? ' — playing' : '')
+      "
       role="gridcell"
     >
       <div class="pad-name">{{ pad.name || 'PAD' }}</div>
@@ -46,10 +55,18 @@
       <!-- Long-press context menu -->
       @if (longPressPadId() === pad.id) {
         <div class="pad-context-menu" (click)="$event.stopPropagation()">
-          <button type="button" class="pad-ctx-btn" (click)="triggerPad(pad); dismissLongPress()">
+          <button
+            type="button"
+            class="pad-ctx-btn"
+            (click)="triggerPad(pad); dismissLongPress()"
+          >
             ▶ Play
           </button>
-          <button type="button" class="pad-ctx-btn" (click)="dismissLongPress()">
+          <button
+            type="button"
+            class="pad-ctx-btn"
+            (click)="dismissLongPress()"
+          >
             ✕ Close
           </button>
         </div>

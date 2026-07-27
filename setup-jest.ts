@@ -148,7 +148,10 @@ if (typeof window !== 'undefined') {
 }
 
 // Polyfill Blob.arrayBuffer() for JSDOM (not implemented in older versions)
-if (typeof Blob !== 'undefined' && typeof (Blob.prototype as any).arrayBuffer !== 'function') {
+if (
+  typeof Blob !== 'undefined' &&
+  typeof (Blob.prototype as any).arrayBuffer !== 'function'
+) {
   (Blob.prototype as any).arrayBuffer = function () {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -158,24 +161,35 @@ if (typeof Blob !== 'undefined' && typeof (Blob.prototype as any).arrayBuffer !=
   };
 }
 
-
 // Polyfill MediaStream for JSDOM
-try { new (globalThis as any).MediaStream?.(); } catch {
+if (typeof (globalThis as any).MediaStream !== 'function') {
   (globalThis as any).MediaStream = class MockMediaStream {
     private _tracks: any[] = [];
-    getTracks() { return [...this._tracks]; }
-    getAudioTracks() { return this._tracks.filter((t: any) => t.kind === 'audio'); }
-    getVideoTracks() { return this._tracks.filter((t: any) => t.kind === 'video'); }
-    addTrack(t: any) { this._tracks.push(t); }
-    removeTrack(t: any) { this._tracks = this._tracks.filter((tr: any) => tr !== t); }
-    getTrackById() { return null; }
+    getTracks() {
+      return [...this._tracks];
+    }
+    getAudioTracks() {
+      return this._tracks.filter((t: any) => t.kind === 'audio');
+    }
+    getVideoTracks() {
+      return this._tracks.filter((t: any) => t.kind === 'video');
+    }
+    addTrack(t: any) {
+      this._tracks.push(t);
+    }
+    removeTrack(t: any) {
+      this._tracks = this._tracks.filter((tr: any) => tr !== t);
+    }
+    getTrackById() {
+      return null;
+    }
     active = true;
     id = 'mock-stream';
   };
 }
 
 // Polyfill MediaStreamTrack for JSDOM
-try { new (globalThis as any).MediaStreamTrack?.(); } catch {
+if (typeof (globalThis as any).MediaStreamTrack !== 'function') {
   (globalThis as any).MediaStreamTrack = class MockMediaStreamTrack {
     kind = 'audio';
     id = 'mock-track';
@@ -184,7 +198,9 @@ try { new (globalThis as any).MediaStreamTrack?.(); } catch {
     muted = false;
     readyState = 'live';
     stop() {}
-    clone() { return this; }
+    clone() {
+      return this;
+    }
   };
 }
 

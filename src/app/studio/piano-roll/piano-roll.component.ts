@@ -44,7 +44,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   editMode = signal<'draw' | 'select' | 'erase' | 'chord'>('draw');
 
   // ── Chord Stamp Tool ──────────────────────────────────────
-  selectedChordType = signal<'major' | 'minor' | 'min7' | 'maj7' | 'dom7' | 'sus4' | 'dim'>('minor');
+  selectedChordType = signal<
+    'major' | 'minor' | 'min7' | 'maj7' | 'dom7' | 'sus4' | 'dim'
+  >('minor');
   chordTypes = [
     { label: 'Maj', value: 'major' as const, intervals: [0, 4, 7] },
     { label: 'Min', value: 'minor' as const, intervals: [0, 3, 7] },
@@ -55,18 +57,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     { label: 'dim', value: 'dim' as const, intervals: [0, 3, 6] },
   ];
   getChordIntervals(): number[] {
-    return this.chordTypes.find(c => c.value === this.selectedChordType())?.intervals ?? [0, 3, 7];
+    return (
+      this.chordTypes.find((c) => c.value === this.selectedChordType())
+        ?.intervals ?? [0, 3, 7]
+    );
   }
 
   // ── Ghost Notes (from other tracks) ───────────────────────
   ghostNotes = computed(() => {
     const selectedId = this.selectedTrack()?.id;
-    return this.musicManager.tracks()
-      .filter(t => t.id !== selectedId)
-      .flatMap(t => t.notes);
+    return this.musicManager
+      .tracks()
+      .filter((t) => t.id !== selectedId)
+      .flatMap((t) => t.notes);
   });
 
-  ghostNoteSet = computed(() => new Set(this.ghostNotes().map(n => n.id)));
+  ghostNoteSet = computed(() => new Set(this.ghostNotes().map((n) => n.id)));
   isGhost(note: TrackNote): boolean {
     return this.ghostNoteSet().has(note.id);
   }
@@ -168,8 +174,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   showPrecisionPanel = signal(false);
 
   /** Cross-link target range — null when none active. */
-  highlightedRange = computed(() =>
-    this.musicManager.crossLinkRequest()?.noteRange ?? null
+  highlightedRange = computed(
+    () => this.musicManager.crossLinkRequest()?.noteRange ?? null
   );
   highlightedNoteIds = computed(() => {
     const r = this.highlightedRange();
@@ -227,13 +233,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     try {
       const c = (this.musicManager as any).editorZoomLevel;
       if (typeof c === 'function') void c();
-    } catch { /* harmless */ }
+    } catch {
+      /* harmless */
+    }
   }
 
   ngAfterViewInit() {
     // Default vertical scroll to mid-keyboard view.
     if (this.scrollContainer) {
-      const top = (96) * this.rowHeight() - 200;
+      const top = 96 * this.rowHeight() - 200;
       this.scrollContainer.nativeElement.scrollTop = Math.max(0, top);
     }
     // If we mounted with an active cross-link (e.g. user navigated
@@ -251,14 +259,29 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     this.haptic.light();
   }
 
-  setKey(key: string) { this.selectedKey.set(key); this.haptic.light(); }
-  setScale(scale: string) { this.selectedScale.set(scale); this.haptic.light(); }
-  toggleScaleLock() { this.scaleLockEnabled.update(v => !v); this.haptic.light(); }
+  setKey(key: string) {
+    this.selectedKey.set(key);
+    this.haptic.light();
+  }
+  setScale(scale: string) {
+    this.selectedScale.set(scale);
+    this.haptic.light();
+  }
+  toggleScaleLock() {
+    this.scaleLockEnabled.update((v) => !v);
+    this.haptic.light();
+  }
 
   zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
 
-  zoomIn() { this.zoomLevel.update(v => Math.min(3.0, v + 0.25)); this.haptic.light(); }
-  zoomOut() { this.zoomLevel.update(v => Math.max(0.25, v - 0.25)); this.haptic.light(); }
+  zoomIn() {
+    this.zoomLevel.update((v) => Math.min(3.0, v + 0.25));
+    this.haptic.light();
+  }
+  zoomOut() {
+    this.zoomLevel.update((v) => Math.max(0.25, v - 0.25));
+    this.haptic.light();
+  }
 
   /**
    * Recalculate the piano-roll viewport so the entire sequence plus a
@@ -267,32 +290,53 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
    * a public no-op-safe method even when the canvas hasn't rendered yet.
    */
   fitToPage(): void {
-    const totalSteps = this.musicManager
-      .tracks()
-      .reduce((max, track: any) => {
+    const totalSteps =
+      this.musicManager.tracks().reduce((max, track: any) => {
         const length = (track.notes ?? []).reduce(
-          (m: number, n: any) => Math.max(m, (n.start ?? 0) + (n.duration ?? 0)),
+          (m: number, n: any) =>
+            Math.max(m, (n.start ?? 0) + (n.duration ?? 0)),
           0
         );
         return Math.max(max, length);
       }, 0) + 16;
-    const targetZoom = Math.max(0.25, Math.min(3, 96 / Math.max(1, totalSteps)));
+    const targetZoom = Math.max(
+      0.25,
+      Math.min(3, 96 / Math.max(1, totalSteps))
+    );
     this.zoomLevel.set(targetZoom);
   }
 
-  expandGrid() { this.gridSteps.update(v => Math.min(256, v + 16)); }
+  expandGrid() {
+    this.gridSteps.update((v) => Math.min(256, v + 16));
+  }
 
   beatLabels = computed(() => {
     const cw = this.cellWidth();
     const steps = this.gridSteps();
     const labels: { label: string; pos: number }[] = [];
     for (let i = 0; i < steps; i += 4) {
-      labels.push({ label: String(Math.floor(i / 16) + 1) + '.' + ((i % 16) / 4 + 1), pos: i * cw });
+      labels.push({
+        label: String(Math.floor(i / 16) + 1) + '.' + ((i % 16) / 4 + 1),
+        pos: i * cw,
+      });
     }
     return labels;
   });
 
-  keyOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  keyOptions = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B',
+  ];
   scaleOptions = [
     { label: 'Major', value: 'major' },
     { label: 'Minor', value: 'minor' },
@@ -310,14 +354,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { velocity: value }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, { velocity: value })
+    );
   }
 
   setSelectedProbability(value: number) {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { probability: value }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, { probability: value })
+    );
   }
 
   // ── Pro: Precision editing setters ────────────────────────
@@ -325,21 +373,31 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { microOffset: Number(value.toFixed(3)) }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, {
+        microOffset: Number(value.toFixed(3)),
+      })
+    );
   }
 
   setSelectedPitchBend(value: number) {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { pitchBend: Number(value.toFixed(2)) }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, {
+        pitchBend: Number(value.toFixed(2)),
+      })
+    );
   }
 
   setSelectedArticulation(value: string) {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { articulation: value as any }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, { articulation: value as any })
+    );
     this.haptic.light();
   }
 
@@ -347,11 +405,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const track = this.selectedTrack();
     if (!track) return;
     const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) => this.musicManager.updateNote(track.id, id, { length: Math.max(0.125, value) }));
+    ids.forEach((id) =>
+      this.musicManager.updateNote(track.id, id, {
+        length: Math.max(0.125, value),
+      })
+    );
   }
 
   togglePrecisionPanel() {
-    this.showPrecisionPanel.update(v => !v);
+    this.showPrecisionPanel.update((v) => !v);
     this.haptic.light();
   }
 
@@ -385,8 +447,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   onVelocityScroll(event: Event) {
     if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollLeft =
-        (event.target as HTMLElement).scrollLeft;
+      this.scrollContainer.nativeElement.scrollLeft = (
+        event.target as HTMLElement
+      ).scrollLeft;
     }
   }
 
@@ -428,7 +491,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     }
     if (event.touches.length === 2) {
       this.lastPinchZoom = this.touchGestures.zoomLevel();
-      try { this.touchGestures.handlePinch(event); } catch { /* swallow */ }
+      try {
+        this.touchGestures.handlePinch(event);
+      } catch {
+        /* swallow */
+      }
     }
   }
 
@@ -443,7 +510,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
           this.haptic.preset('tick');
           this.lastPinchZoom = newZoom;
         }
-      } catch { /* swallow */ }
+      } catch {
+        /* swallow */
+      }
     }
     if (event.touches.length === 1 && this.editMode() === 'draw') {
       const dx = event.touches[0].clientX - this.touchStartX;
@@ -457,7 +526,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   onGridTouchEnd(event: TouchEvent) {
     // Single-finger tap = draw note with velocity from Y-position
-    if (event.changedTouches.length === 1 && !this.isSwiping && this.editMode() === 'draw') {
+    if (
+      event.changedTouches.length === 1 &&
+      !this.isSwiping &&
+      this.editMode() === 'draw'
+    ) {
       const touch = event.changedTouches[0];
       const container = this.scrollContainer?.nativeElement;
       if (!container) return;
@@ -500,7 +573,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
         const noteMidi = midi + interval;
         if (noteMidi >= 0 && noteMidi <= 127) {
           this.musicManager.addNoteToTrack(track.id, {
-            id: 'chord-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+            id:
+              'chord-' +
+              Date.now() +
+              '-' +
+              idx +
+              '-' +
+              Math.floor(Math.random() * 1000),
             midi: noteMidi,
             step: snappedStep,
             length: this.lengthFromSnap(),
@@ -523,21 +602,31 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   private applySnap(step: number): number {
     switch (this.snap()) {
-      case '1/4': return Math.round(step / 4) * 4;
-      case '1/8': return Math.round(step / 2) * 2;
-      case '1/16': return step;
-      case '1/32': return step; // half steps represented finer in audio engine
-      default: return step;
+      case '1/4':
+        return Math.round(step / 4) * 4;
+      case '1/8':
+        return Math.round(step / 2) * 2;
+      case '1/16':
+        return step;
+      case '1/32':
+        return step; // half steps represented finer in audio engine
+      default:
+        return step;
     }
   }
 
   private lengthFromSnap(): number {
     switch (this.snap()) {
-      case '1/4': return 4;
-      case '1/8': return 2;
-      case '1/16': return 1;
-      case '1/32': return 0.5;
-      default: return 1;
+      case '1/4':
+        return 4;
+      case '1/8':
+        return 2;
+      case '1/16':
+        return 1;
+      case '1/32':
+        return 0.5;
+      default:
+        return 1;
     }
   }
 
@@ -563,7 +652,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
     const originalPositions = new Map<string, { step: number; midi: number }>();
     this.selectedNoteIds().forEach((id) => {
-      const n = this.musicManager.selectedTrack()?.notes.find((nn) => nn.id === id);
+      const n = this.musicManager
+        .selectedTrack()
+        ?.notes.find((nn) => nn.id === id);
       if (n) originalPositions.set(id, { step: n.step, midi: n.midi });
     });
     this.draggingNotes = {
@@ -600,7 +691,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   onVelocityPointerDown(event: PointerEvent) {
     this.dismissCrossLink();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX - rect.left + (event.currentTarget as HTMLElement).scrollLeft;
+    const x =
+      event.clientX -
+      rect.left +
+      (event.currentTarget as HTMLElement).scrollLeft;
     const y = event.clientY - rect.top;
     const step = Math.max(0, Math.floor(x / this.cellWidth()));
     const velocity = Math.max(0.1, Math.min(1.5, 1 - y / 60));

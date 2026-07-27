@@ -1,4 +1,5 @@
-import { Component,
+import {
+  Component,
   OnInit,
   OnDestroy,
   AfterViewInit,
@@ -152,7 +153,8 @@ const THEME_LABEL: Record<AppTheme, string> = {
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
-  @ViewChild('spectrumCanvas', { static: false }) spectrumCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('spectrumCanvas', { static: false })
+  spectrumCanvas?: ElementRef<HTMLCanvasElement>;
 
   /** Animation frame handle for spectrum analyzer rendering */
   private spectrumRafId: number | null = null;
@@ -213,10 +215,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.haptic.light();
     this.isBeginnerMode.update((v) => !v);
     try {
-      localStorage.setItem('smuve_beginner_mode', String(this.isBeginnerMode()));
+      localStorage.setItem(
+        'smuve_beginner_mode',
+        String(this.isBeginnerMode())
+      );
     } catch {}
     this.snackbarService.info(
-      this.isBeginnerMode() ? 'Beginner Mode ON — simplified controls with tips' : 'Pro Mode ON — full studio controls'
+      this.isBeginnerMode()
+        ? 'Beginner Mode ON — simplified controls with tips'
+        : 'Pro Mode ON — full studio controls'
     );
   }
 
@@ -237,16 +244,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       case 'house':
         // Auto-apply house drum style and set tempo
         this.audioEngine.tempo.set(124);
-        this.snackbarService.info('Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!');
+        this.snackbarService.info(
+          'Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!'
+        );
         break;
       case 'c-major-beginner':
         // Set a beginner-friendly tempo and notify
         this.audioEngine.tempo.set(100);
-        this.snackbarService.info('Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!');
+        this.snackbarService.info(
+          'Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!'
+        );
         break;
       case 'lofi-85':
         this.audioEngine.tempo.set(85);
-        this.snackbarService.info('Beginner preset loaded: Lo-Fi vibe at 85 BPM');
+        this.snackbarService.info(
+          'Beginner preset loaded: Lo-Fi vibe at 85 BPM'
+        );
         break;
       default:
         this.snackbarService.info('Preset loaded — explore and have fun!');
@@ -353,7 +366,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const theme = this.themeMode();
       try {
         localStorage.setItem(THEME_STORAGE_KEY, theme);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       document.body.classList.remove('light-mode', 'focus-mode', 'dark-mode');
       document.body.classList.add(theme + '-mode');
     });
@@ -386,9 +401,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.lastConsumedCrossLinkTimestamp = req.timestamp;
       untracked(() => {
         const trackName =
-          this.musicManager
-            .tracks()
-            .find((t) => t.id === req.trackId)?.name || 'selected track';
+          this.musicManager.tracks().find((t) => t.id === req.trackId)?.name ||
+          'selected track';
         if (this.activeView() !== req.view) {
           this.setActiveView(req.view);
         }
@@ -510,7 +524,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     navigator.clipboard
       .writeText(url)
-      .then(() => this.snackbarService.success('Studio link copied to clipboard'))
+      .then(() =>
+        this.snackbarService.success('Studio link copied to clipboard')
+      )
       .catch(() => this.snackbarService.error('Could not copy link'));
   }
 
@@ -618,7 +634,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleAiMixAssistant() {
     this.haptic.light();
     this.showAiMixAssistant.update((v) => !v);
-    if (this.showAiMixAssistant() && this.aiMixAssistant.analyses().length === 0) {
+    if (
+      this.showAiMixAssistant() &&
+      this.aiMixAssistant.analyses().length === 0
+    ) {
       this.aiMixAssistant.analyzeAll();
     }
   }
@@ -664,7 +683,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   selectComponentRecording(component: any) {
     this.componentRecording.setActiveSource(component);
-    this.snackbarService.info('Recording source: ' + (this.componentRecording.getConfig(component)?.label || component));
+    this.snackbarService.info(
+      'Recording source: ' +
+        (this.componentRecording.getConfig(component)?.label || component)
+    );
   }
 
   setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
@@ -713,9 +735,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Available chord progression genres */
   chordGenres = [
-    'neo-soul', 'trap', 'lo-fi', 'house', 'drill', 'pop', 'rnb',
-    'deep-house', 'dubstep', 'ambient', 'jazz', 'funk', 'reggaeton',
-    'techno', 'phonk', 'garage'
+    'neo-soul',
+    'trap',
+    'lo-fi',
+    'house',
+    'drill',
+    'pop',
+    'rnb',
+    'deep-house',
+    'dubstep',
+    'ambient',
+    'jazz',
+    'funk',
+    'reggaeton',
+    'techno',
+    'phonk',
+    'garage',
   ];
 
   /** Computed chord progression based on selected genre */
@@ -775,22 +810,49 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   applyChordToPianoRoll(chord: string, index: number) {
     this.haptic.light();
     const notes = this.chordToNotes(chord, index);
-    this.snackbarService.info(`Applied ${chord} — ${notes.length} notes at bar ${index + 1}`);
+    this.snackbarService.info(
+      `Applied ${chord} — ${notes.length} notes at bar ${index + 1}`
+    );
   }
 
   /** Convert a chord symbol (e.g. 'Imaj7') to MIDI notes */
-  private chordToNotes(chord: string, position: number): Array<{ note: number; velocity: number; startStep: number; durationSteps: number }> {
+  private chordToNotes(
+    chord: string,
+    position: number
+  ): Array<{
+    note: number;
+    velocity: number;
+    startStep: number;
+    durationSteps: number;
+  }> {
     const ROOTS: Record<string, number> = {
-      'I': 0, 'i': 0, 'II': 2, 'ii': 2, 'III': 4, 'iii': 4,
-      'IV': 5, 'iv': 5, 'V': 7, 'v': 7, 'VI': 9, 'vi': 9,
-      'VII': 11, 'vii': 11
+      I: 0,
+      i: 0,
+      II: 2,
+      ii: 2,
+      III: 4,
+      iii: 4,
+      IV: 5,
+      iv: 5,
+      V: 7,
+      v: 7,
+      VI: 9,
+      vi: 9,
+      VII: 11,
+      vii: 11,
     };
     const INTERVALS: Record<string, number[]> = {
-      'maj7': [0, 4, 7, 11], '7': [0, 4, 7, 10], 'm7': [0, 3, 7, 10],
-      'maj9': [0, 4, 7, 11, 14], 'm9': [0, 3, 7, 10, 14],
-      'm11': [0, 3, 7, 10, 14, 17], '7sus4': [0, 5, 7, 10],
-      '7alt': [0, 4, 7, 10, 14], '13': [0, 4, 7, 10, 14, 17],
-      'sus2': [0, 2, 7], 'sus4': [0, 5, 7],
+      maj7: [0, 4, 7, 11],
+      '7': [0, 4, 7, 10],
+      m7: [0, 3, 7, 10],
+      maj9: [0, 4, 7, 11, 14],
+      m9: [0, 3, 7, 10, 14],
+      m11: [0, 3, 7, 10, 14, 17],
+      '7sus4': [0, 5, 7, 10],
+      '7alt': [0, 4, 7, 10, 14],
+      '13': [0, 4, 7, 10, 14, 17],
+      sus2: [0, 2, 7],
+      sus4: [0, 5, 7],
     };
 
     const match = chord.match(/^([IViv]+)(.*)$/);
@@ -869,7 +931,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Stop current comp take preview */
   stopCompTakePreview() {
     if (this.previewSource) {
-      try { this.previewSource.stop(); } catch { /* already stopped */ }
+      try {
+        this.previewSource.stop();
+      } catch {
+        /* already stopped */
+      }
       this.previewSource.disconnect();
       this.previewSource = null;
     }
@@ -885,7 +951,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    const projectName = (this.projectWorkspace.metadata()?.name || 'project').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const projectName = (
+      this.projectWorkspace.metadata()?.name || 'project'
+    ).replace(/[^a-zA-Z0-9_-]/g, '_');
 
     // Export each take — use the existing blob if available, or synthesize a silent one
     takes.forEach((take, idx) => {
@@ -923,7 +991,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
     const w = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
     };
     w(0, 'RIFF');
     view.setUint32(4, 36 + numSamples * 2, true);
@@ -955,8 +1024,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.haptic.light();
     try {
       const bpm = this.audioEngine.tempo();
-      const projectName =
-        (this.projectWorkspace.metadata()?.name || 'S_M_U_V_E_Project').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const projectName = (
+        this.projectWorkspace.metadata()?.name || 'S_M_U_V_E_Project'
+      ).replace(/[^a-zA-Z0-9_-]/g, '_');
 
       // Convert music manager tracks to MidiTrackData
       const midiTracks: MidiTrackData[] = [];
@@ -979,9 +1049,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           const ticksPerStep = ticksPerBeat / 4; // 16th note = 120 ticks
           return {
             note: n.midi,
-            velocity: Math.max(1, Math.min(127, Math.round((n.velocity ?? 0.8) * 127))),
-            startTick: Math.round(n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep),
-            durationTicks: Math.max(1, Math.round((n.length ?? 1) * ticksPerStep)),
+            velocity: Math.max(
+              1,
+              Math.min(127, Math.round((n.velocity ?? 0.8) * 127))
+            ),
+            startTick: Math.round(
+              n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep
+            ),
+            durationTicks: Math.max(
+              1,
+              Math.round((n.length ?? 1) * ticksPerStep)
+            ),
             channel: 0,
           };
         });
@@ -994,13 +1072,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       });
 
       // Generate the .mid file
-      const arrayBuffer = MidiWriter.toArrayBuffer(midiTracks, bpm, projectName);
+      const arrayBuffer = MidiWriter.toArrayBuffer(
+        midiTracks,
+        bpm,
+        projectName
+      );
       const blob = new Blob([arrayBuffer], { type: 'audio/midi' });
       this.downloadBlob(blob, `${projectName}.mid`);
-      this.snackbarService.success(`MIDI exported — ${midiTracks.length} track(s)`);
+      this.snackbarService.success(
+        `MIDI exported — ${midiTracks.length} track(s)`
+      );
     } catch (e) {
       this.logger.warn('MIDI export failed', e);
-      this.snackbarService.error('MIDI export failed. Check browser console for details.');
+      this.snackbarService.error(
+        'MIDI export failed. Check browser console for details.'
+      );
     }
   }
 
@@ -1031,7 +1117,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
       const barCount = bufferLength;
       const barW = Math.max(2, Math.floor((w - barCount) / barCount));
-      const gap = Math.max(0, Math.floor((w - barCount * barW) / (barCount + 1)));
+      const gap = Math.max(
+        0,
+        Math.floor((w - barCount * barW) / (barCount + 1))
+      );
 
       for (let i = 0; i < barCount; i++) {
         const val = dataArray[i] / 255;

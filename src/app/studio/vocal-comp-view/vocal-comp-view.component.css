@@ -25,8 +25,13 @@
 
 /* Animate comp selection pulse */
 @keyframes compPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(168, 85, 247, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0);
+  }
 }
 
 .comp-selected {

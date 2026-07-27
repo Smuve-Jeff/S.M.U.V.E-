@@ -19,7 +19,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: linear-gradient(180deg, var(--ivory-panel) 0%, var(--ivory-deep) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--ivory-panel) 0%,
+    var(--ivory-deep) 100%
+  );
   border-bottom: 1px solid var(--espresso-line);
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -74,15 +78,23 @@
   justify-content: center;
   gap: 4px;
   white-space: nowrap;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
 }
 .mini-btn:hover {
   background: var(--teal-50);
   color: var(--teal-500);
   border-color: var(--teal-500);
 }
-.mini-btn:active { transform: scale(0.95); }
-.mini-btn:disabled { opacity: 0.35; pointer-events: none; }
+.mini-btn:active {
+  transform: scale(0.95);
+}
+.mini-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
 .mini-btn.active-mute {
   background: var(--orange);
   color: white;
@@ -124,7 +136,9 @@
   justify-content: center;
   transition: all 0.12s;
 }
-.m-btn:hover { border-color: var(--teal-500); }
+.m-btn:hover {
+  border-color: var(--teal-500);
+}
 .m-btn.rec.active {
   background: var(--record);
   color: white;
@@ -157,16 +171,26 @@
   justify-content: center;
   transition: all 0.12s;
 }
-.tool-btn:hover { background: var(--teal-50); color: var(--teal-500); }
+.tool-btn:hover {
+  background: var(--teal-50);
+  color: var(--teal-500);
+}
 .tool-btn.active {
   background: var(--teal-500);
   color: white;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.3) inset;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
 }
 
 /* ── Tool blade/glue visual cues ──────────────────────────── */
-.playlist-container.tool-blade { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text y="14" font-size="14">✂</text></svg>') 0 14, col-resize; }
-.playlist-container.tool-glue { cursor: cell; }
+.playlist-container.tool-blade {
+  cursor:
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text y="14" font-size="14">✂</text></svg>')
+      0 14,
+    col-resize;
+}
+.playlist-container.tool-glue {
+  cursor: cell;
+}
 
 /* ── Header actions area ──────────────────────────────────── */
 .header-actions {
@@ -228,7 +252,9 @@
   transition: background 0.12s;
   position: relative;
 }
-.track-header:hover { background: var(--teal-50); }
+.track-header:hover {
+  background: var(--teal-50);
+}
 .track-header.selected {
   background: var(--teal-100);
   box-shadow: inset 3px 0 0 var(--teal-500);
@@ -302,7 +328,11 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(14, 124, 123, 0.03) 0%, transparent 6%);
+  background: linear-gradient(
+    180deg,
+    rgba(14, 124, 123, 0.03) 0%,
+    transparent 6%
+  );
   z-index: 1;
 }
 
@@ -335,10 +365,14 @@
   flex-direction: column;
   overflow: hidden;
   user-select: none;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
   z-index: 1;
 }
-.clip-item:hover { z-index: 3; }
+.clip-item:hover {
+  z-index: 3;
+}
 .clip-item.selected-clip {
   box-shadow: 0 0 0 2px var(--orange);
   z-index: 2;
@@ -346,7 +380,9 @@
 .clip-item.is-crosslinked {
   outline: 2px solid var(--teal-500);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--teal-soft-glow), var(--shadow-ivory-lg);
+  box-shadow:
+    0 0 0 4px var(--teal-soft-glow),
+    var(--shadow-ivory-lg);
   z-index: 3;
 }
 
@@ -355,8 +391,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 2px 6px;
-  background: rgba(0,0,0,0.08);
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .clip-title {
@@ -428,7 +464,9 @@
   transition: opacity 0.15s;
   cursor: pointer;
 }
-.take-row:hover { opacity: 1; }
+.take-row:hover {
+  opacity: 1;
+}
 
 .take-clip {
   display: flex;
@@ -454,7 +492,9 @@
   bottom: 0;
   width: 2px;
   background: white;
-  box-shadow: 0 0 12px rgba(14, 124, 123, 0.6), 0 0 2px rgba(14, 124, 123, 0.8);
+  box-shadow:
+    0 0 12px rgba(14, 124, 123, 0.6),
+    0 0 2px rgba(14, 124, 123, 0.8);
   pointer-events: none;
   z-index: 10;
 }
@@ -462,21 +502,23 @@
 /* ── Dark mode overrides ──────────────────────────────────── */
 :host-context(.dark-mode) .grid-canvas {
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
 :host-context(.dark-mode) .playlist-header {
-  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  background: linear-gradient(180deg, #0a0f22 0%, #000208 100%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 :host-context(.dark-mode) .track-headers {
-  background: #0A0F22;
+  background: #0a0f22;
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 :host-context(.dark-mode) .track-header {
   border-bottom-color: rgba(255, 255, 255, 0.04);
 }
-:host-context(.dark-mode) .track-header:hover { background: var(--teal-50); }
+:host-context(.dark-mode) .track-header:hover {
+  background: var(--teal-50);
+}
 :host-context(.dark-mode) .track-header.selected {
   background: var(--teal-100);
   box-shadow: inset 3px 0 0 var(--teal-500);
@@ -484,12 +526,14 @@
 :host-context(.dark-mode) .lane-row {
   border-bottom-color: rgba(255, 255, 255, 0.04);
 }
-:host-context(.dark-mode) .lane-row:hover { background: rgba(102, 240, 255, 0.06); }
+:host-context(.dark-mode) .lane-row:hover {
+  background: rgba(102, 240, 255, 0.06);
+}
 :host-context(.dark-mode) .clip-item {
   background: rgba(102, 240, 255, 0.08);
 }
 :host-context(.dark-mode) .clip-header {
-  background: rgba(0, 0, 0, 0.40);
+  background: rgba(0, 0, 0, 0.4);
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 :host-context(.dark-mode) .take-clip {
@@ -499,18 +543,18 @@
   background: #000208;
 }
 :host-context(.dark-mode) .time-ruler {
-  background: #0A0F22;
+  background: #0a0f22;
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 :host-context(.dark-mode) .ruler-bar {
   color: var(--teal-500);
 }
 :host-context(.dark-mode) .mini-btn {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.08);
 }
 :host-context(.dark-mode) .tab-btn {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.08);
 }
 :host-context(.dark-mode) .tool-btn {
@@ -523,17 +567,41 @@
     padding: 4px 8px;
     gap: 4px;
   }
-  .tab-btn { padding: 3px 8px; font-size: 8px; }
-  .track-headers { width: 108px; }
-  .track-name { font-size: 9px; }
-  .mini-btn { height: 26px; padding: 0 6px; font-size: 8px; min-width: 28px; }
-  .tool-btn { height: 26px; min-width: 26px; }
-  .lane-row { min-height: 42px; }
-  .clip-title { font-size: 8px; }
+  .tab-btn {
+    padding: 3px 8px;
+    font-size: 8px;
+  }
+  .track-headers {
+    width: 108px;
+  }
+  .track-name {
+    font-size: 9px;
+  }
+  .mini-btn {
+    height: 26px;
+    padding: 0 6px;
+    font-size: 8px;
+    min-width: 28px;
+  }
+  .tool-btn {
+    height: 26px;
+    min-width: 26px;
+  }
+  .lane-row {
+    min-height: 42px;
+  }
+  .clip-title {
+    font-size: 8px;
+  }
 
   /* Larger touch targets for transport buttons */
-  .m-btn { min-width: 36px; min-height: 36px; }
-  .tab-btn { min-height: 32px; }
+  .m-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .tab-btn {
+    min-height: 32px;
+  }
 
   /* Stem splitter modal: full-width on mobile */
   .stem-modal-card {
@@ -544,11 +612,28 @@
 }
 
 @media (max-width: 480px) {
-  .track-headers { width: 88px; }
-  .playlist-header { padding: 3px 6px; }
-  .mini-btn { height: 24px; padding: 0 4px; font-size: 7px; min-width: 24px; }
-  .m-btn { height: 28px; min-width: 28px; min-height: 28px; }
-  .tab-btn { padding: 2px 6px; font-size: 7px; min-height: 28px; }
+  .track-headers {
+    width: 88px;
+  }
+  .playlist-header {
+    padding: 3px 6px;
+  }
+  .mini-btn {
+    height: 24px;
+    padding: 0 4px;
+    font-size: 7px;
+    min-width: 24px;
+  }
+  .m-btn {
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  .tab-btn {
+    padding: 2px 6px;
+    font-size: 7px;
+    min-height: 28px;
+  }
 }
 
 /* ── Focus-visible ─────────────────────────────────────────── */

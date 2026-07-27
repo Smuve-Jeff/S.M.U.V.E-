@@ -73,7 +73,11 @@ export class IdeasGeneratorService {
 
   private neoSoul(): IdeaRecipe {
     const baseE = 52; // E3
-    const notesForChord = (rootMidi: number, intervals: number[], step: number) =>
+    const notesForChord = (
+      rootMidi: number,
+      intervals: number[],
+      step: number
+    ) =>
       intervals.map((iv) => ({
         midi: rootMidi + iv,
         step,
@@ -92,8 +96,8 @@ export class IdeasGeneratorService {
           name: 'Velvet Rhodes',
           instrumentId: 'grand-piano',
           notes: [
-            ...notesForChord(baseE - 12, [0, 4, 7, 11], 0),   // ii7 (Em7)
-            ...notesForChord(baseE - 12, [0, 4, 7, 11], 8),   // ghost octave
+            ...notesForChord(baseE - 12, [0, 4, 7, 11], 0), // ii7 (Em7)
+            ...notesForChord(baseE - 12, [0, 4, 7, 11], 8), // ghost octave
             ...notesForChord(baseE - 12 + 5, [0, 4, 7, 10], 16), // V7 (B7)
             ...notesForChord(baseE - 12 + 5, [11, 14], 24),
             ...notesForChord(baseE - 12 + 9, [0, 4, 7, 11], 32), // Imaj7 (Amaj7)
@@ -181,7 +185,7 @@ export class IdeasGeneratorService {
           name: 'Sub Commander',
           instrumentId: 'sub-commander',
           notes: [
-            { midi: 29, step: 0, length: 16, velocity: 0.95 },  // F1
+            { midi: 29, step: 0, length: 16, velocity: 0.95 }, // F1
             { midi: 29, step: 8, length: 4, velocity: 0.75 },
             { midi: 36, step: 16, length: 16, velocity: 0.95 }, // Db2 (VI)
             { midi: 36, step: 24, length: 4, velocity: 0.75 },
@@ -198,7 +202,10 @@ export class IdeasGeneratorService {
           drum: {
             kick: [0, 6, 24, 30, 32, 38, 48, 56],
             snare: [12, 28, 44, 60],
-            hat: [2, 4, 6, 8, 10, 12, 14, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 54, 56, 58, 60, 62],
+            hat: [
+              2, 4, 6, 8, 10, 12, 14, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40,
+              42, 44, 46, 54, 56, 58, 60, 62,
+            ],
             swing: 0.18,
           },
         },
@@ -378,7 +385,10 @@ export class IdeasGeneratorService {
           drum: {
             kick: [0, 6, 16, 24, 32, 40, 48, 56],
             snare: [12, 28, 44, 60],
-            hat: [2, 4, 6, 8, 10, 12, 14, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 54, 56, 58, 60, 62],
+            hat: [
+              2, 4, 6, 8, 10, 12, 14, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40,
+              42, 44, 46, 54, 56, 58, 60, 62,
+            ],
             swing: 0.22,
           },
         },

@@ -2,9 +2,18 @@
   <!-- HEADER -->
   <header class="pr-header" role="banner">
     <div class="pr-header-left">
-      <span class="material-symbols-outlined" style="color: var(--teal-500);">piano</span>
-      <div class="pr-track-pill" *ngIf="selectedTrack() as track" [attr.aria-label]="'Editing track ' + track.name">
-        <span class="pr-track-dot" [style.background-color]="track.color"></span>
+      <span class="material-symbols-outlined" style="color: var(--teal-500)"
+        >piano</span
+      >
+      <div
+        class="pr-track-pill"
+        *ngIf="selectedTrack() as track"
+        [attr.aria-label]="'Editing track ' + track.name"
+      >
+        <span
+          class="pr-track-dot"
+          [style.background-color]="track.color"
+        ></span>
         <span>{{ track.name }}</span>
       </div>
       <span
@@ -20,11 +29,23 @@
     <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
       <!-- Zoom controls -->
       <div class="pr-zoom-group">
-        <button type="button" class="pr-tool pr-tool-sm" (click)="zoomOut()" title="Zoom out" aria-label="Zoom out grid">
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="zoomOut()"
+          title="Zoom out"
+          aria-label="Zoom out grid"
+        >
           <span class="material-symbols-outlined">zoom_out</span>
         </button>
         <span class="pr-zoom-readout">{{ zoomPercent() }}%</span>
-        <button type="button" class="pr-tool pr-tool-sm" (click)="zoomIn()" title="Zoom in" aria-label="Zoom in grid">
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="zoomIn()"
+          title="Zoom in"
+          aria-label="Zoom in grid"
+        >
           <span class="material-symbols-outlined">zoom_in</span>
         </button>
       </div>
@@ -90,7 +111,12 @@
   <!-- KEY / SCALE SELECTOR BAR -->
   <div class="pr-key-scale-bar" role="group" aria-label="Key and scale">
     <span class="pr-ks-label">Key</span>
-    <select class="pr-ks-select" [ngModel]="selectedKey()" (ngModelChange)="setKey($event)" aria-label="Root key">
+    <select
+      class="pr-ks-select"
+      [ngModel]="selectedKey()"
+      (ngModelChange)="setKey($event)"
+      aria-label="Root key"
+    >
       <option *ngFor="let k of keyOptions" [value]="k">{{ k }}</option>
     </select>
     <span class="pr-ks-label">Scale</span>
@@ -101,14 +127,27 @@
         class="pr-scale-chip"
         [class.active]="selectedScale() === s.value"
         (click)="setScale(s.value)"
-      >{{ s.label }}</button>
+      >
+        {{ s.label }}
+      </button>
     </div>
     <label class="pr-scale-lock">
-      <input type="checkbox" [ngModel]="scaleLockEnabled()" (ngModelChange)="toggleScaleLock()" />
+      <input
+        type="checkbox"
+        [ngModel]="scaleLockEnabled()"
+        (ngModelChange)="toggleScaleLock()"
+      />
       <span>Lock</span>
     </label>
     <span class="pr-grid-steps">Steps: {{ gridSteps() }}</span>
-    <button type="button" class="pr-expand-btn" (click)="expandGrid()" title="Add 16 more steps">+16</button>
+    <button
+      type="button"
+      class="pr-expand-btn"
+      (click)="expandGrid()"
+      title="Add 16 more steps"
+    >
+      +16
+    </button>
   </div>
 
   <!-- MAIN CANVAS ROW -->
@@ -148,7 +187,12 @@
       >
         <!-- beat labels row -->
         <div class="pr-beat-labels">
-          <span *ngFor="let b of beatLabels()" class="pr-beat-label" [style.left.px]="b.pos">{{ b.label }}</span>
+          <span
+            *ngFor="let b of beatLabels()"
+            class="pr-beat-label"
+            [style.left.px]="b.pos"
+            >{{ b.label }}</span
+          >
         </div>
         <!-- rows -->
         <div
@@ -182,14 +226,10 @@
           [style.width.px]="note.length * cellWidth()"
           [style.height.px]="rowHeight()"
           (pointerdown)="onNotePointerDown($event, note)"
-        >
-        </div>
+        ></div>
 
         <!-- playhead -->
-        <div
-          class="pr-playhead"
-          [style.left.px]="playheadPx()"
-        ></div>
+        <div class="pr-playhead" [style.left.px]="playheadPx()"></div>
       </div>
     </div>
 
@@ -221,7 +261,12 @@
     <!-- Right inspector -->
     <div class="pr-inspector" *ngIf="selectionCount() > 0">
       <!-- Toggle precision panel -->
-      <button type="button" class="pr-inspector-toggle" (click)="togglePrecisionPanel()" [class.active]="showPrecisionPanel()">
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="togglePrecisionPanel()"
+        [class.active]="showPrecisionPanel()"
+      >
         <span class="material-symbols-outlined">tune</span>
         <span>Precision</span>
       </button>
@@ -239,7 +284,9 @@
       </div>
       <div class="pr-inspector-pill">
         <div class="pr-inspector-pill-label">Prob.</div>
-        <div class="pr-inspector-pill-value">{{ selectedNoteProbability() }}</div>
+        <div class="pr-inspector-pill-value">
+          {{ selectedNoteProbability() }}
+        </div>
         <input
           type="range"
           min="0"
@@ -253,7 +300,10 @@
       <ng-container *ngIf="showPrecisionPanel()">
         <div class="pr-inspector-pill pr-precision-pill">
           <div class="pr-inspector-pill-label">Micro-Offset</div>
-          <div class="pr-inspector-pill-value">{{ selectedNoteMicroOffset() > 0 ? '+' : '' }}{{ (selectedNoteMicroOffset() * 100).toFixed(0) }}%</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNoteMicroOffset() > 0 ? '+' : ''
+            }}{{ (selectedNoteMicroOffset() * 100).toFixed(0) }}%
+          </div>
           <input
             type="range"
             min="-0.5"
@@ -265,7 +315,10 @@
         </div>
         <div class="pr-inspector-pill pr-precision-pill">
           <div class="pr-inspector-pill-label">Pitch Bend (st)</div>
-          <div class="pr-inspector-pill-value">{{ selectedNotePitchBend() > 0 ? '+' : '' }}{{ selectedNotePitchBend().toFixed(1) }}</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNotePitchBend() > 0 ? '+' : ''
+            }}{{ selectedNotePitchBend().toFixed(1) }}
+          </div>
           <input
             type="range"
             min="-12"
@@ -277,7 +330,9 @@
         </div>
         <div class="pr-inspector-pill pr-precision-pill">
           <div class="pr-inspector-pill-label">Length</div>
-          <div class="pr-inspector-pill-value">{{ selectedNoteLength().toFixed(2) }}</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNoteLength().toFixed(2) }}
+          </div>
           <input
             type="range"
             min="0.125"
@@ -296,7 +351,9 @@
               class="pr-art-chip"
               [class.active]="selectedNoteArticulation() === a.value"
               (click)="setSelectedArticulation(a.value)"
-            >{{ a.label }}</button>
+            >
+              {{ a.label }}
+            </button>
           </div>
         </div>
       </ng-container>

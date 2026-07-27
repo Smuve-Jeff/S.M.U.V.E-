@@ -4,13 +4,18 @@
       <span class="material-symbols-outlined spg-title-icon">grid_on</span>
       <div>
         <h2 class="spg-h2">Performance Pads</h2>
-        <p class="spg-sub">MPC-style 4×4 instrument bank — tap to audition, long-press to reassign.</p>
+        <p class="spg-sub">
+          MPC-style 4×4 instrument bank — tap to audition, long-press to
+          reassign.
+        </p>
       </div>
     </div>
     <div class="spg-actions">
       <div class="spg-kpi">
         <span class="spg-kpi-label">ARMED</span>
-        <span class="spg-kpi-value">{{ armedCount() }} / {{ pads().length }}</span>
+        <span class="spg-kpi-value"
+          >{{ armedCount() }} / {{ pads().length }}</span
+        >
       </div>
       <button type="button" class="spg-clear-btn" (click)="clearAll()">
         <span class="material-symbols-outlined">refresh</span>
@@ -30,7 +35,9 @@
       [style.--pad-color]="pad.color"
       (contextmenu)="openReassign(pad.index); $event.preventDefault()"
       role="gridcell"
-      [attr.aria-label]="pad.label + (pad.presetId ? '' : ' — empty pad (long-press to assign)')"
+      [attr.aria-label]="
+        pad.label + (pad.presetId ? '' : ' — empty pad (long-press to assign)')
+      "
     >
       <app-sound-pad
         [name]="pad.label"
@@ -43,7 +50,8 @@
         *ngIf="reassignIndex() === pad.index"
         class="spg-cell-arrow"
         aria-hidden="true"
-      >▼</span>
+        >▼</span
+      >
 
       <!-- Preset picker overlay -->
       <div
@@ -53,7 +61,9 @@
         role="listbox"
       >
         <div class="spg-cell-picker-head">
-          <span class="spg-cell-picker-title">Assign Pad {{ pad.index + 1 }}</span>
+          <span class="spg-cell-picker-title"
+            >Assign Pad {{ pad.index + 1 }}</span
+          >
           <button
             type="button"
             class="spg-cell-picker-close"
@@ -70,7 +80,9 @@
               class="spg-cell-picker-item"
               (click)="reassign(pad.index, preset.id)"
             >
-              <span class="material-symbols-outlined">{{ preset.icon || 'music_note' }}</span>
+              <span class="material-symbols-outlined">{{
+                preset.icon || 'music_note'
+              }}</span>
               <span class="spg-cell-picker-text">
                 <strong>{{ preset.name }}</strong>
                 <small>{{ preset.category }}</small>
@@ -85,7 +97,9 @@
   <footer class="spg-foot">
     <div class="spg-hint">
       <span class="material-symbols-outlined">touch_app</span>
-      <span>Tap = trigger · Long-press / right-click = reassign instrument</span>
+      <span
+        >Tap = trigger · Long-press / right-click = reassign instrument</span
+      >
     </div>
   </footer>
 </section>

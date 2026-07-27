@@ -109,10 +109,12 @@ export default {
         },
         tealGlow: {
           '0%, 100%': {
-            boxShadow: '0 0 0 0 rgba(14,124,123,0.6), 0 0 18px rgba(14,124,123,0.4)',
+            boxShadow:
+              '0 0 0 0 rgba(14,124,123,0.6), 0 0 18px rgba(14,124,123,0.4)',
           },
           '50%': {
-            boxShadow: '0 0 0 8px rgba(14,124,123,0), 0 0 28px rgba(14,124,123,0.7)',
+            boxShadow:
+              '0 0 0 8px rgba(14,124,123,0), 0 0 28px rgba(14,124,123,0.7)',
           },
         },
       },
@@ -121,8 +123,10 @@ export default {
         'ivory-md': '0 2px 6px rgba(61,53,42,0.14)',
         'ivory-lg': '0 8px 22px rgba(61,53,42,0.18)',
         'ivory-xl': '0 16px 40px rgba(61,53,42,0.24)',
-        'teal-glow': '0 0 0 2px rgba(14,124,123,0.25), 0 0 16px rgba(14,124,123,0.45)',
-        'teal-soft': '0 0 0 1px rgba(14,124,123,0.30), 0 2px 8px rgba(14,124,123,0.20)',
+        'teal-glow':
+          '0 0 0 2px rgba(14,124,123,0.25), 0 0 16px rgba(14,124,123,0.45)',
+        'teal-soft':
+          '0 0 0 1px rgba(14,124,123,0.30), 0 2px 8px rgba(14,124,123,0.20)',
         'inset-warm': 'inset 0 2px 6px rgba(61,53,42,0.20)',
         'v42-sm': '0 1px 3px 0 rgba(61,53,42,0.10)',
         'v42-md': '0 4px 10px rgba(61,53,42,0.14)',

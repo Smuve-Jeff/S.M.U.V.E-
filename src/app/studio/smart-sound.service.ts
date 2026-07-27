@@ -11,12 +11,12 @@ export interface SoundPack {
   genre: string;
   mood: string;
   presetCount: number;
-  presets: string[];  // instrument preset IDs included
-  icon: string;        // material icon name
-  color: string;       // hex color for the pack card
+  presets: string[]; // instrument preset IDs included
+  icon: string; // material icon name
+  color: string; // hex color for the pack card
   installed: boolean;
   installedAt?: number;
-  size: string;        // e.g. "2.4 MB"
+  size: string; // e.g. "2.4 MB"
 }
 
 export interface SoundEntry {
@@ -62,9 +62,51 @@ export class SmartSoundService {
   /** Last search timestamp — triggers UI updates */
   lastSearchAt = signal<number>(0);
 
-  genres = ['all', 'neo-soul', 'trap', 'lo-fi', 'house', 'drill', 'pop', 'rnb', 'jazz', 'funk', 'ambient', 'techno', 'dnb', 'garage'];
-  moods = ['all', 'dark', 'bright', 'chill', 'energetic', 'melancholic', 'aggressive', 'dreamy', 'funky', 'ambient'];
-  keys = ['all', 'C', 'Cm', 'D', 'Dm', 'E', 'Em', 'F', 'Fm', 'G', 'Gm', 'A', 'Am', 'B', 'Bm'];
+  genres = [
+    'all',
+    'neo-soul',
+    'trap',
+    'lo-fi',
+    'house',
+    'drill',
+    'pop',
+    'rnb',
+    'jazz',
+    'funk',
+    'ambient',
+    'techno',
+    'dnb',
+    'garage',
+  ];
+  moods = [
+    'all',
+    'dark',
+    'bright',
+    'chill',
+    'energetic',
+    'melancholic',
+    'aggressive',
+    'dreamy',
+    'funky',
+    'ambient',
+  ];
+  keys = [
+    'all',
+    'C',
+    'Cm',
+    'D',
+    'Dm',
+    'E',
+    'Em',
+    'F',
+    'Fm',
+    'G',
+    'Gm',
+    'A',
+    'Am',
+    'B',
+    'Bm',
+  ];
 
   /** Filtered and sorted presets */
   filteredSounds = computed(() => {
@@ -143,7 +185,9 @@ export class SmartSoundService {
 
   /** Available curated sound packs (not yet installed) */
   availablePacks = computed(() =>
-    this.curatedPacks().filter((p) => !this.installedPacks().some((ip) => ip.id === p.id))
+    this.curatedPacks().filter(
+      (p) => !this.installedPacks().some((ip) => ip.id === p.id)
+    )
   );
 
   /** All curated packs (the full catalog) */
@@ -151,11 +195,21 @@ export class SmartSoundService {
     {
       id: 'pack-trap-essentials',
       name: 'Trap Essentials',
-      description: '808s, hi-hats, dark leads, and sub basses for modern trap production.',
+      description:
+        '808s, hi-hats, dark leads, and sub basses for modern trap production.',
       genre: 'trap',
       mood: 'dark',
       presetCount: 8,
-      presets: ['trap-808-elite', 'sub-commander', 'analog-warmth', 'cyber-stab', 'reese-bass-neuro', 'trap-kit-elite', 'supersaw-stack', 'whisper-choir'],
+      presets: [
+        'trap-808-elite',
+        'sub-commander',
+        'analog-warmth',
+        'cyber-stab',
+        'reese-bass-neuro',
+        'trap-kit-elite',
+        'supersaw-stack',
+        'whisper-choir',
+      ],
       icon: 'bolt',
       color: '#7C3AED',
       installed: false,
@@ -164,11 +218,20 @@ export class SmartSoundService {
     {
       id: 'pack-lo-fi-chill',
       name: 'Lo-Fi Chill Study',
-      description: 'Dusty drums, warm keys, vinyl textures. Perfect for lo-fi hip-hop and chill beats.',
+      description:
+        'Dusty drums, warm keys, vinyl textures. Perfect for lo-fi hip-hop and chill beats.',
       genre: 'lo-fi',
       mood: 'chill',
       presetCount: 7,
-      presets: ['lo-fi-kit', 'neon-shimmer', 'ethereal-wind', 'vhs-memory', 'wavetable-dream', 'nylon-guitar-pro', 'vocal-pad-ethereal'],
+      presets: [
+        'lo-fi-kit',
+        'neon-shimmer',
+        'ethereal-wind',
+        'vhs-memory',
+        'wavetable-dream',
+        'nylon-guitar-pro',
+        'vocal-pad-ethereal',
+      ],
       icon: 'cloud',
       color: '#D97706',
       installed: false,
@@ -177,11 +240,23 @@ export class SmartSoundService {
     {
       id: 'pack-orchestral-cinema',
       name: 'Orchestral Cinema',
-      description: 'Full orchestral palette: strings, brass, woodwinds, choir, and cinematic percussion.',
+      description:
+        'Full orchestral palette: strings, brass, woodwinds, choir, and cinematic percussion.',
       genre: 'ambient',
       mood: 'dreamy',
       presetCount: 10,
-      presets: ['chamber-strings-elite', 'solo-violin-elite', 'trumpet-pro', 'trombone-pro', 'french-horn-ensemble', 'flute-pro', 'clarinet-pro', 'choir-ensemble', 'pipe-organ-grand', 'afro-cuban-kit'],
+      presets: [
+        'chamber-strings-elite',
+        'solo-violin-elite',
+        'trumpet-pro',
+        'trombone-pro',
+        'french-horn-ensemble',
+        'flute-pro',
+        'clarinet-pro',
+        'choir-ensemble',
+        'pipe-organ-grand',
+        'afro-cuban-kit',
+      ],
       icon: 'theaters',
       color: '#0891B2',
       installed: false,
@@ -190,11 +265,19 @@ export class SmartSoundService {
     {
       id: 'pack-world-fusion',
       name: 'World Fusion',
-      description: 'Ethnic instruments from around the globe — sitar, koto, steel drums, and more.',
+      description:
+        'Ethnic instruments from around the globe — sitar, koto, steel drums, and more.',
       genre: 'jazz',
       mood: 'bright',
       presetCount: 6,
-      presets: ['sitar-pro', 'koto-japanese', 'steel-drum-island', 'afro-cuban-kit', 'upright-bass-pro', 'sax-alto-pro'],
+      presets: [
+        'sitar-pro',
+        'koto-japanese',
+        'steel-drum-island',
+        'afro-cuban-kit',
+        'upright-bass-pro',
+        'sax-alto-pro',
+      ],
       icon: 'public',
       color: '#10B981',
       installed: false,
@@ -203,11 +286,20 @@ export class SmartSoundService {
     {
       id: 'pack-edm-anthem',
       name: 'EDM Anthem',
-      description: 'Festival-ready supersaws, plucks, sidechain basses, and big room drums.',
+      description:
+        'Festival-ready supersaws, plucks, sidechain basses, and big room drums.',
       genre: 'house',
       mood: 'energetic',
       presetCount: 7,
-      presets: ['supersaw-stack', 'pluck-marimba-hybrid', 'brass-stab-synth', 'neon-shimmer', 'deep-orbit', 'acoustic-kit-pro', 'hammond-b3'],
+      presets: [
+        'supersaw-stack',
+        'pluck-marimba-hybrid',
+        'brass-stab-synth',
+        'neon-shimmer',
+        'deep-orbit',
+        'acoustic-kit-pro',
+        'hammond-b3',
+      ],
       icon: 'festival',
       color: '#F43F5E',
       installed: false,
@@ -299,7 +391,8 @@ export class SmartSoundService {
         if (s.key === target.key) score += 2;
 
         // BPM proximity (within 10%)
-        const bpmDiff = Math.abs(s.bpm - target.bpm) / Math.max(s.bpm, target.bpm);
+        const bpmDiff =
+          Math.abs(s.bpm - target.bpm) / Math.max(s.bpm, target.bpm);
         if (bpmDiff < 0.1) score += 2;
 
         return { sound: s, score };
@@ -386,7 +479,9 @@ export class SmartSoundService {
   /** Get presets from installed packs (for filtering) */
   installedPackPresets = computed(() => {
     const ids = new Set<string>();
-    this.installedPacks().forEach((p) => p.presets.forEach((id) => ids.add(id)));
+    this.installedPacks().forEach((p) =>
+      p.presets.forEach((id) => ids.add(id))
+    );
     return ids;
   });
 
@@ -396,13 +491,17 @@ export class SmartSoundService {
       if (data && Array.isArray(data)) {
         this.installedPacks.set(data as SoundPack[]);
       }
-    } catch { /* first run */ }
+    } catch {
+      /* first run */
+    }
   }
 
   private async persistInstalledPacks() {
     try {
       await this.storage.saveItem('sound_prefs', this.installedPacks());
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
   }
 
   // ── Persistence ─────────────────────────────────────────
@@ -458,18 +557,186 @@ export class SmartSoundService {
 
     // Default sound library
     this.sounds.set([
-      { id: 'synth_lead', name: 'Cyber-Lead', category: 'lead', type: 'synth', tags: ['bright', 'lead', 'synth'], genre: 'trap', mood: 'dark', key: 'C', bpm: 140, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'synth_pad', name: 'Galactic Pad', category: 'pad', type: 'synth', tags: ['ambient', 'pad', 'synth', 'chill'], genre: 'ambient', mood: 'dreamy', key: 'F', bpm: 80, rating: 5, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'bass_808', name: '808 Sub', category: 'bass', type: 'drum', tags: ['808', 'bass', 'sub', 'trap'], genre: 'trap', mood: 'dark', key: 'E', bpm: 140, rating: 5, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'drum_kick', name: 'Rumble Kick', category: 'drum', type: 'drum', tags: ['kick', 'drum', '808', 'accent'], genre: 'pop', mood: 'energetic', key: 'C', bpm: 120, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'drum_snare', name: 'Glitch Snare', category: 'drum', type: 'sample', tags: ['snare', 'drum', 'gritty', 'trap'], genre: 'drill', mood: 'aggressive', key: 'D', bpm: 142, rating: 3, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'drum_hat', name: 'Cyber-Hat', category: 'drum', type: 'sample', tags: ['hat', 'hihat', 'drum', 'bright'], genre: 'house', mood: 'energetic', key: 'C', bpm: 124, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'grand-piano', name: 'Grand Piano', category: 'keys', type: 'preset', tags: ['piano', 'keys', 'acoustic', 'classic'], genre: 'jazz', mood: 'chill', key: 'C', bpm: 90, rating: 5, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'p-bass-elite', name: 'P-Bass Elite', category: 'bass', type: 'preset', tags: ['bass', 'funk', 'slap', 'groove'], genre: 'funk', mood: 'funky', key: 'E', bpm: 100, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'sub-commander', name: 'Sub Commander', category: 'bass', type: 'synth', tags: ['bass', 'sub', '808', 'deep', 'trap'], genre: 'trap', mood: 'dark', key: 'A', bpm: 140, rating: 5, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'strat-elite-clean', name: 'Strat Elite Clean', category: 'keys', type: 'preset', tags: ['guitar', 'clean', 'pop', 'bright'], genre: 'pop', mood: 'bright', key: 'G', bpm: 120, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'trap-808-elite', name: 'Trap 808 Elite', category: 'drum', type: 'drum', tags: ['808', 'trap', 'drums', 'beats'], genre: 'trap', mood: 'aggressive', key: 'D', bpm: 140, rating: 5, favoritedAt: null, lastUsedAt: null, useCount: 0 },
-      { id: 'cyber-stab', name: 'Cyber Stab', category: 'lead', type: 'synth', tags: ['stab', 'lead', 'house', 'bright'], genre: 'house', mood: 'energetic', key: 'C', bpm: 124, rating: 4, favoritedAt: null, lastUsedAt: null, useCount: 0 },
+      {
+        id: 'synth_lead',
+        name: 'Cyber-Lead',
+        category: 'lead',
+        type: 'synth',
+        tags: ['bright', 'lead', 'synth'],
+        genre: 'trap',
+        mood: 'dark',
+        key: 'C',
+        bpm: 140,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'synth_pad',
+        name: 'Galactic Pad',
+        category: 'pad',
+        type: 'synth',
+        tags: ['ambient', 'pad', 'synth', 'chill'],
+        genre: 'ambient',
+        mood: 'dreamy',
+        key: 'F',
+        bpm: 80,
+        rating: 5,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'bass_808',
+        name: '808 Sub',
+        category: 'bass',
+        type: 'drum',
+        tags: ['808', 'bass', 'sub', 'trap'],
+        genre: 'trap',
+        mood: 'dark',
+        key: 'E',
+        bpm: 140,
+        rating: 5,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'drum_kick',
+        name: 'Rumble Kick',
+        category: 'drum',
+        type: 'drum',
+        tags: ['kick', 'drum', '808', 'accent'],
+        genre: 'pop',
+        mood: 'energetic',
+        key: 'C',
+        bpm: 120,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'drum_snare',
+        name: 'Glitch Snare',
+        category: 'drum',
+        type: 'sample',
+        tags: ['snare', 'drum', 'gritty', 'trap'],
+        genre: 'drill',
+        mood: 'aggressive',
+        key: 'D',
+        bpm: 142,
+        rating: 3,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'drum_hat',
+        name: 'Cyber-Hat',
+        category: 'drum',
+        type: 'sample',
+        tags: ['hat', 'hihat', 'drum', 'bright'],
+        genre: 'house',
+        mood: 'energetic',
+        key: 'C',
+        bpm: 124,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'grand-piano',
+        name: 'Grand Piano',
+        category: 'keys',
+        type: 'preset',
+        tags: ['piano', 'keys', 'acoustic', 'classic'],
+        genre: 'jazz',
+        mood: 'chill',
+        key: 'C',
+        bpm: 90,
+        rating: 5,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'p-bass-elite',
+        name: 'P-Bass Elite',
+        category: 'bass',
+        type: 'preset',
+        tags: ['bass', 'funk', 'slap', 'groove'],
+        genre: 'funk',
+        mood: 'funky',
+        key: 'E',
+        bpm: 100,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'sub-commander',
+        name: 'Sub Commander',
+        category: 'bass',
+        type: 'synth',
+        tags: ['bass', 'sub', '808', 'deep', 'trap'],
+        genre: 'trap',
+        mood: 'dark',
+        key: 'A',
+        bpm: 140,
+        rating: 5,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'strat-elite-clean',
+        name: 'Strat Elite Clean',
+        category: 'keys',
+        type: 'preset',
+        tags: ['guitar', 'clean', 'pop', 'bright'],
+        genre: 'pop',
+        mood: 'bright',
+        key: 'G',
+        bpm: 120,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'trap-808-elite',
+        name: 'Trap 808 Elite',
+        category: 'drum',
+        type: 'drum',
+        tags: ['808', 'trap', 'drums', 'beats'],
+        genre: 'trap',
+        mood: 'aggressive',
+        key: 'D',
+        bpm: 140,
+        rating: 5,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
+      {
+        id: 'cyber-stab',
+        name: 'Cyber Stab',
+        category: 'lead',
+        type: 'synth',
+        tags: ['stab', 'lead', 'house', 'bright'],
+        genre: 'house',
+        mood: 'energetic',
+        key: 'C',
+        bpm: 124,
+        rating: 4,
+        favoritedAt: null,
+        lastUsedAt: null,
+        useCount: 0,
+      },
     ]);
   }
 }

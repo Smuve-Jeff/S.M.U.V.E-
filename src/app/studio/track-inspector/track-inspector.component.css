@@ -29,7 +29,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 900;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   color: var(--espresso-text);
 }
 .ti-header small {
@@ -48,14 +48,22 @@
   border-radius: 999px;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   height: 28px;
 }
-.ti-pill:hover { background: var(--teal-100); border-color: var(--teal-500); color: var(--teal-700); }
-.ti-pill.active { background: var(--teal-500); color: white; border-color: var(--teal-500); }
+.ti-pill:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+}
+.ti-pill.active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+}
 
 .ti-body {
   flex: 1 1 auto;
@@ -146,11 +154,17 @@
   border-radius: 50%;
   top: 2px;
   left: 2px;
-  transition: left 0.2s, background 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition:
+    left 0.2s,
+    background 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
-.ti-fx-row .toggle.on { background: var(--teal-500); }
-.ti-fx-row .toggle.on::before { left: 14px; }
+.ti-fx-row .toggle.on {
+  background: var(--teal-500);
+}
+.ti-fx-row .toggle.on::before {
+  left: 14px;
+}
 
 .ti-ai-chip {
   display: inline-flex;
@@ -181,9 +195,21 @@
   padding: 40px;
   gap: 14px;
 }
-.ti-empty .material-symbols-outlined { font-size: 48px; opacity: 0.4; }
-.ti-empty h2 { font-size: 12px; font-weight: 900; letter-spacing: 0.18em; margin: 0; }
-.ti-empty p { font-size: 11px; line-height: 1.5; margin: 0; }
+.ti-empty .material-symbols-outlined {
+  font-size: 48px;
+  opacity: 0.4;
+}
+.ti-empty h2 {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  margin: 0;
+}
+.ti-empty p {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+}
 
 .ti-row {
   display: grid;

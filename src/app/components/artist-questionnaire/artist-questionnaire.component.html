@@ -1,9 +1,8 @@
 <div class="eq-overlay">
   <!-- Ambient scanline effect -->
   <div class="eq-scanlines pointer-events-none"></div>
-  
+
   <div class="eq-container" [class.glitch-active]="isGlitching()">
-    
     <!-- ─── HEADER ──────────────────────────────────────────── -->
     <header class="eq-header">
       <div class="eq-header-left">
@@ -12,47 +11,86 @@
         </div>
         <div>
           <h1 class="eq-title">Artist DNA Uplink</h1>
-          <p class="eq-subtitle">S.M.U.V.E Neural Fine-Tune v2.0 — Calibrating {{ profileDraft().artistName || 'New Artist' }}</p>
+          <p class="eq-subtitle">
+            S.M.U.V.E Neural Fine-Tune v2.0 — Calibrating
+            {{ profileDraft().artistName || 'New Artist' }}
+          </p>
         </div>
       </div>
       <div class="eq-header-right">
         <div class="eq-strength-mini">
           <div class="eq-strength-ring">
             <svg viewBox="0 0 36 36" class="eq-ring-svg">
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none" stroke="url(#strengthGrad)" stroke-width="3"
-                [attr.stroke-dasharray]="totalProgress() + ', 100'" stroke-linecap="round" />
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="rgba(255,255,255,0.06)"
+                stroke-width="3"
+              />
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="url(#strengthGrad)"
+                stroke-width="3"
+                [attr.stroke-dasharray]="totalProgress() + ', 100'"
+                stroke-linecap="round"
+              />
             </svg>
-            <svg width="0" height="0"><defs><linearGradient id="strengthGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0E7C7B"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs></svg>
+            <svg width="0" height="0">
+              <defs>
+                <linearGradient
+                  id="strengthGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stop-color="#0E7C7B" />
+                  <stop offset="100%" stop-color="#06B6D4" />
+                </linearGradient>
+              </defs>
+            </svg>
             <span class="eq-strength-pct">{{ totalProgress() }}%</span>
           </div>
         </div>
-        <button (click)="close.emit()" class="eq-close-btn" aria-label="Close questionnaire">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <button
+          (click)="close.emit()"
+          class="eq-close-btn"
+          aria-label="Close questionnaire"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M4 4l8 8M12 4l-8 8"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
         </button>
       </div>
     </header>
 
     <!-- ─── BODY ─────────────────────────────────────────────── -->
     <div class="eq-body">
-
       <!-- ─── LEFT: Phase Navigation ─────────────────────────── -->
       <aside class="eq-phase-nav" *ngIf="!isAnalyzing() && !analysisResult()">
         <div class="eq-phase-list">
-          <button *ngFor="let phase of phases; let pi = index"
+          <button
+            *ngFor="let phase of phases; let pi = index"
             class="eq-phase-item"
             [class.eq-phase-active]="pi === currentPhaseIndex()"
             [class.eq-phase-done]="completedPhases().has(phase.id)"
             (click)="goToPhase(pi)"
-            [disabled]="pi > currentPhaseIndex()">
+            [disabled]="pi > currentPhaseIndex()"
+          >
             <span class="eq-phase-icon">{{ phase.icon }}</span>
             <div class="eq-phase-info">
               <span class="eq-phase-label">{{ phase.title }}</span>
               <span class="eq-phase-sub">{{ phase.subtitle }}</span>
             </div>
-            <span class="eq-phase-check" *ngIf="completedPhases().has(phase.id)">✓</span>
+            <span class="eq-phase-check" *ngIf="completedPhases().has(phase.id)"
+              >✓</span
+            >
           </button>
         </div>
 
@@ -62,27 +100,63 @@
           <div class="eq-strength-bars">
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">🎭 Identity</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().identityClarity" style="background:#0E7C7B"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().identityClarity"
+                  style="background: #0e7c7b"
+                ></div>
+              </div>
             </div>
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">🧬 Musical Depth</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().musicalDepth" style="background:#D97706"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().musicalDepth"
+                  style="background: #d97706"
+                ></div>
+              </div>
             </div>
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">⚙️ Technical</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().technicalAbility" style="background:#7C3AED"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().technicalAbility"
+                  style="background: #7c3aed"
+                ></div>
+              </div>
             </div>
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">💼 Business</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().businessReadiness" style="background:#10B981"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().businessReadiness"
+                  style="background: #10b981"
+                ></div>
+              </div>
             </div>
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">🎨 Brand</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().brandDefinition" style="background:#EC4899"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().brandDefinition"
+                  style="background: #ec4899"
+                ></div>
+              </div>
             </div>
             <div class="eq-sbar">
               <span class="eq-sbar-lbl">🤖 AI Sync</span>
-              <div class="eq-sbar-track"><div class="eq-sbar-fill" [style.width.%]="strengthBreakdown().aiIntegration" style="background:#06B6D4"></div></div>
+              <div class="eq-sbar-track">
+                <div
+                  class="eq-sbar-fill"
+                  [style.width.%]="strengthBreakdown().aiIntegration"
+                  style="background: #06b6d4"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
@@ -90,7 +164,6 @@
 
       <!-- ─── CENTER: Main content ───────────────────────────── -->
       <main class="eq-main">
-
         <!-- Loading: AI Analysis -->
         <div *ngIf="isAnalyzing()" class="eq-loading" @fadeSlide>
           <div class="eq-loading-spinner">
@@ -99,15 +172,21 @@
             <div class="eq-spinner-core">🧬</div>
           </div>
           <h2 class="eq-loading-title">Synthesizing Artist Intelligence</h2>
-          <p class="eq-loading-sub">S.M.U.V.E is analyzing {{ totalProgress() }}% of your profile data across 8 strategic dimensions...</p>
+          <p class="eq-loading-sub">
+            S.M.U.V.E is analyzing {{ totalProgress() }}% of your profile data
+            across 8 strategic dimensions...
+          </p>
           <div class="eq-loading-dots">
             <span></span><span></span><span></span><span></span>
           </div>
         </div>
 
         <!-- Results: AI Analysis Complete -->
-        <div *ngIf="analysisResult() && !isAnalyzing()" class="eq-results" @fadeSlide>
-          
+        <div
+          *ngIf="analysisResult() && !isAnalyzing()"
+          class="eq-results"
+          @fadeSlide
+        >
           <!-- Persona Synthesis Card -->
           <div class="eq-persona-card" *ngIf="showPersonaCard()">
             <div class="eq-persona-glow"></div>
@@ -115,10 +194,14 @@
               <span class="eq-persona-icon">🧬</span>
               <div>
                 <h2 class="eq-persona-title">Artist Persona Synthesis</h2>
-                <p class="eq-persona-sub">{{ analysisResult().persona.archetype }}</p>
+                <p class="eq-persona-sub">
+                  {{ analysisResult().persona.archetype }}
+                </p>
               </div>
               <div class="eq-persona-score">
-                <span class="eq-persona-score-val">{{ strengthBreakdown().overall }}%</span>
+                <span class="eq-persona-score-val"
+                  >{{ strengthBreakdown().overall }}%</span
+                >
                 <span class="eq-persona-score-lbl">Strength</span>
               </div>
             </div>
@@ -129,29 +212,46 @@
               <div class="eq-persona-detail">
                 <div class="eq-persona-prop">
                   <span class="eq-prop-lbl">Sonic Signature</span>
-                  <span class="eq-prop-val">{{ analysisResult().persona.sonicSignature }}</span>
+                  <span class="eq-prop-val">{{
+                    analysisResult().persona.sonicSignature
+                  }}</span>
                 </div>
                 <div class="eq-persona-prop">
                   <span class="eq-prop-lbl">Market Position</span>
-                  <span class="eq-prop-val">{{ analysisResult().persona.marketPosition }}</span>
+                  <span class="eq-prop-val">{{
+                    analysisResult().persona.marketPosition
+                  }}</span>
                 </div>
                 <div class="eq-persona-prop">
                   <span class="eq-prop-lbl">AI Persona Profile</span>
-                  <span class="eq-prop-val eq-persona-ai">{{ analysisResult().persona.aiPersonaProfile }}</span>
+                  <span class="eq-prop-val eq-persona-ai">{{
+                    analysisResult().persona.aiPersonaProfile
+                  }}</span>
                 </div>
                 <div class="eq-persona-prop">
                   <span class="eq-prop-lbl">Signature Tone</span>
-                  <span class="eq-prop-val">{{ analysisResult().persona.signatureTone }}</span>
+                  <span class="eq-prop-val">{{
+                    analysisResult().persona.signatureTone
+                  }}</span>
                 </div>
-                <div class="eq-persona-prop" *ngIf="analysisResult().persona.suggestedGenres?.length">
+                <div
+                  class="eq-persona-prop"
+                  *ngIf="analysisResult().persona.suggestedGenres?.length"
+                >
                   <span class="eq-prop-lbl">Suggested Subgenres</span>
                   <span class="eq-prop-chips">
-                    <span *ngFor="let g of analysisResult().persona.suggestedGenres" class="eq-chip">{{ g }}</span>
+                    <span
+                      *ngFor="let g of analysisResult().persona.suggestedGenres"
+                      class="eq-chip"
+                      >{{ g }}</span
+                    >
                   </span>
                 </div>
                 <div class="eq-persona-prop">
                   <span class="eq-prop-lbl">Recommended Strategy</span>
-                  <span class="eq-prop-val">{{ analysisResult().persona.recommendedStrategy }}</span>
+                  <span class="eq-prop-val">{{
+                    analysisResult().persona.recommendedStrategy
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -161,11 +261,21 @@
           <div class="eq-recs" *ngIf="analysisResult().recommendations?.length">
             <h3 class="eq-recs-title">Strategic Recommendations</h3>
             <div class="eq-recs-grid">
-              <div *ngFor="let rec of analysisResult().recommendations" class="eq-rec-card" @staggerFade>
+              <div
+                *ngFor="let rec of analysisResult().recommendations"
+                class="eq-rec-card"
+                @staggerFade
+              >
                 <div class="eq-rec-header">
                   <span class="eq-rec-icon">⚡</span>
-                  <span class="eq-rec-impact" [class.eq-impact-critical]="rec.impact === 'Critical' || rec.impact === 'Extreme'"
-                    [class.eq-impact-high]="rec.impact === 'High'">{{ rec.impact }}</span>
+                  <span
+                    class="eq-rec-impact"
+                    [class.eq-impact-critical]="
+                      rec.impact === 'Critical' || rec.impact === 'Extreme'
+                    "
+                    [class.eq-impact-high]="rec.impact === 'High'"
+                    >{{ rec.impact }}</span
+                  >
                 </div>
                 <h4 class="eq-rec-title">{{ rec.title }}</h4>
                 <p class="eq-rec-desc">{{ rec.content }}</p>
@@ -185,84 +295,152 @@
         </div>
 
         <!-- ─── QUESTION FLOW ──────────────────────────────────── -->
-        <div *ngIf="!isAnalyzing() && !analysisResult()" class="eq-flow" @fadeSlide>
-
+        <div
+          *ngIf="!isAnalyzing() && !analysisResult()"
+          class="eq-flow"
+          @fadeSlide
+        >
           <!-- Phase indicator -->
           <div class="eq-phase-indicator">
-            <span class="eq-phase-badge" [style.background]="currentPhaseInfo().color + '22'" [style.color]="currentPhaseInfo().color">
+            <span
+              class="eq-phase-badge"
+              [style.background]="currentPhaseInfo().color + '22'"
+              [style.color]="currentPhaseInfo().color"
+            >
               {{ currentPhaseInfo().icon }} {{ currentPhaseInfo().title }}
             </span>
-            <span class="eq-phase-count">Phase {{ currentPhaseIndex() + 1 }}/{{ phases.length }}</span>
+            <span class="eq-phase-count"
+              >Phase {{ currentPhaseIndex() + 1 }}/{{ phases.length }}</span
+            >
           </div>
 
           <!-- Progress bar -->
           <div class="eq-progress-bar">
-            <div class="eq-progress-fill" [style.width.%]="phaseProgress()" [style.background]="currentPhaseInfo().color"></div>
+            <div
+              class="eq-progress-fill"
+              [style.width.%]="phaseProgress()"
+              [style.background]="currentPhaseInfo().color"
+            ></div>
           </div>
 
           <!-- Question card -->
           <div class="eq-question-card" *ngIf="currentQuestion()" @fadeSlide>
             <div class="eq-question-text">
               <h2 class="eq-question-title">{{ currentQuestion()!.text }}</h2>
-              <p class="eq-question-desc">{{ currentQuestion()!.description }}</p>
+              <p class="eq-question-desc">
+                {{ currentQuestion()!.description }}
+              </p>
             </div>
 
             <!-- SELECT type -->
-            <div *ngIf="currentQuestion()!.type === 'select'" class="eq-options-grid">
-              <button *ngFor="let opt of currentQuestion()!.options"
+            <div
+              *ngIf="currentQuestion()!.type === 'select'"
+              class="eq-options-grid"
+            >
+              <button
+                *ngFor="let opt of currentQuestion()!.options"
                 (click)="updateValue(currentQuestion()!.field, opt.value)"
                 class="eq-option-card"
-                [class.eq-option-selected]="getValue(currentQuestion()!.field) === opt.value"
-                [style.--accent]="currentPhaseInfo().color">
+                [class.eq-option-selected]="
+                  getValue(currentQuestion()!.field) === opt.value
+                "
+                [style.--accent]="currentPhaseInfo().color"
+              >
                 <span class="eq-option-icon">{{ opt.icon }}</span>
                 <span class="eq-option-label">{{ opt.label }}</span>
-                <span class="eq-option-desc" *ngIf="opt.description">{{ opt.description }}</span>
-                <span class="eq-option-check" *ngIf="getValue(currentQuestion()!.field) === opt.value">✓</span>
+                <span class="eq-option-desc" *ngIf="opt.description">{{
+                  opt.description
+                }}</span>
+                <span
+                  class="eq-option-check"
+                  *ngIf="getValue(currentQuestion()!.field) === opt.value"
+                  >✓</span
+                >
               </button>
             </div>
 
             <!-- MULTI-SELECT / CHIP-GROUP type -->
-            <div *ngIf="currentQuestion()!.type === 'multi-select' || currentQuestion()!.type === 'chip-group'" class="eq-chips-grid">
-              <button *ngFor="let opt of getOptionsForCurrentQuestion()"
+            <div
+              *ngIf="
+                currentQuestion()!.type === 'multi-select' ||
+                currentQuestion()!.type === 'chip-group'
+              "
+              class="eq-chips-grid"
+            >
+              <button
+                *ngFor="let opt of getOptionsForCurrentQuestion()"
                 (click)="updateValue(currentQuestion()!.field, opt.value)"
                 class="eq-chip-btn"
-                [class.eq-chip-active]="isChipSelected(currentQuestion()!.field, opt.value)"
-                [style.--accent]="currentPhaseInfo().color">
+                [class.eq-chip-active]="
+                  isChipSelected(currentQuestion()!.field, opt.value)
+                "
+                [style.--accent]="currentPhaseInfo().color"
+              >
                 <span class="eq-chip-icon">{{ opt.icon || '▪️' }}</span>
                 <span class="eq-chip-label">{{ opt.label }}</span>
               </button>
-              <div class="eq-chip-count" *ngIf="currentQuestion()!.maxSelections">
-                {{ getSelectedCount(currentQuestion()!.field) }}/{{ currentQuestion()!.maxSelections }}
+              <div
+                class="eq-chip-count"
+                *ngIf="currentQuestion()!.maxSelections"
+              >
+                {{ getSelectedCount(currentQuestion()!.field) }}/{{
+                  currentQuestion()!.maxSelections
+                }}
               </div>
             </div>
 
             <!-- TEXT type -->
-            <div *ngIf="currentQuestion()!.type === 'text'" class="eq-text-field">
-              <input type="text"
+            <div
+              *ngIf="currentQuestion()!.type === 'text'"
+              class="eq-text-field"
+            >
+              <input
+                type="text"
                 [ngModel]="getValue(currentQuestion()!.field)"
                 (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
-                [placeholder]="currentQuestion()!.placeholder || 'Type your answer...'"
-                class="eq-input" />
+                [placeholder]="
+                  currentQuestion()!.placeholder || 'Type your answer...'
+                "
+                class="eq-input"
+              />
             </div>
 
             <!-- TEXTAREA type -->
-            <div *ngIf="currentQuestion()!.type === 'textarea'" class="eq-text-field">
+            <div
+              *ngIf="currentQuestion()!.type === 'textarea'"
+              class="eq-text-field"
+            >
               <textarea
                 [ngModel]="getValue(currentQuestion()!.field)"
                 (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
-                [placeholder]="currentQuestion()!.placeholder || 'Share your thoughts...'"
-                class="eq-textarea" rows="4"></textarea>
+                [placeholder]="
+                  currentQuestion()!.placeholder || 'Share your thoughts...'
+                "
+                class="eq-textarea"
+                rows="4"
+              ></textarea>
             </div>
 
             <!-- RANGE type -->
-            <div *ngIf="currentQuestion()!.type === 'range'" class="eq-range-field">
-              <div class="eq-range-value">{{ getValue(currentQuestion()!.field) || currentQuestion()!.min || 5 }}</div>
-              <input type="range"
+            <div
+              *ngIf="currentQuestion()!.type === 'range'"
+              class="eq-range-field"
+            >
+              <div class="eq-range-value">
+                {{
+                  getValue(currentQuestion()!.field) ||
+                    currentQuestion()!.min ||
+                    5
+                }}
+              </div>
+              <input
+                type="range"
                 [min]="currentQuestion()!.min || 1"
                 [max]="currentQuestion()!.max || 10"
                 [ngModel]="getRangeVal(currentQuestion()!.field)"
                 (ngModelChange)="updateValue(currentQuestion()!.field, $event)"
-                class="eq-range" />
+                class="eq-range"
+              />
               <div class="eq-range-labels">
                 <span>{{ currentQuestion()!.min || 1 }}</span>
                 <span>{{ currentQuestion()!.max || 10 }}</span>
@@ -270,22 +448,49 @@
             </div>
 
             <!-- TOGGLE type -->
-            <div *ngIf="currentQuestion()!.type === 'toggle'" class="eq-toggle-field">
+            <div
+              *ngIf="currentQuestion()!.type === 'toggle'"
+              class="eq-toggle-field"
+            >
               <label class="eq-toggle">
-                <input type="checkbox"
-                  [checked]="getValue(currentQuestion()!.field) === 'true' || getValue(currentQuestion()!.field) === true"
-                  (change)="updateValue(currentQuestion()!.field, $any($event.target).checked ? 'true' : '')" />
+                <input
+                  type="checkbox"
+                  [checked]="
+                    getValue(currentQuestion()!.field) === 'true' ||
+                    getValue(currentQuestion()!.field) === true
+                  "
+                  (change)="
+                    updateValue(
+                      currentQuestion()!.field,
+                      $any($event.target).checked ? 'true' : ''
+                    )
+                  "
+                />
                 <span class="eq-toggle-slider"></span>
-                <span class="eq-toggle-label">{{ getValue(currentQuestion()!.field) ? '✓ Enabled' : '○ Disabled' }}</span>
+                <span class="eq-toggle-label">{{
+                  getValue(currentQuestion()!.field)
+                    ? '✓ Enabled'
+                    : '○ Disabled'
+                }}</span>
               </label>
             </div>
 
             <!-- Navigation -->
             <div class="eq-nav">
-              <button (click)="back()" class="eq-nav-back" [disabled]="currentPhaseIndex() === 0 && currentQuestionIndex() === 0">
+              <button
+                (click)="back()"
+                class="eq-nav-back"
+                [disabled]="
+                  currentPhaseIndex() === 0 && currentQuestionIndex() === 0
+                "
+              >
                 ← Back
               </button>
-              <button (click)="next()" class="eq-nav-next" [style.background]="currentPhaseInfo().color">
+              <button
+                (click)="next()"
+                class="eq-nav-next"
+                [style.background]="currentPhaseInfo().color"
+              >
                 {{ isLastQuestion ? '✨ Complete Profile' : 'Next →' }}
               </button>
             </div>
@@ -293,7 +498,9 @@
 
           <!-- Empty state (no questions for phase) -->
           <div *ngIf="!currentQuestion()" class="eq-empty-phase">
-            <p>All questions in this phase are answered. Ready to move forward?</p>
+            <p>
+              All questions in this phase are answered. Ready to move forward?
+            </p>
             <button (click)="next()" class="eq-nav-next">Next Phase →</button>
           </div>
         </div>
@@ -306,17 +513,29 @@
           S.M.U.V.E Neural Monitor
         </div>
         <div class="eq-chat-log">
-          <div *ngFor="let entry of aiChatLog()" class="eq-chat-entry"
+          <div
+            *ngFor="let entry of aiChatLog()"
+            class="eq-chat-entry"
             [class.eq-chat-obs]="entry.type === 'observation'"
             [class.eq-chat-adapt]="entry.type === 'adaptation'"
-            [class.eq-chat-sys]="entry.type === 'system'">
-            <span class="eq-chat-ts">{{ entry.type === 'observation' ? '🧬' : entry.type === 'adaptation' ? '⚡' : '🤖' }}</span>
+            [class.eq-chat-sys]="entry.type === 'system'"
+          >
+            <span class="eq-chat-ts">{{
+              entry.type === 'observation'
+                ? '🧬'
+                : entry.type === 'adaptation'
+                  ? '⚡'
+                  : '🤖'
+            }}</span>
             <span class="eq-chat-msg">{{ entry.text }}</span>
           </div>
         </div>
-        
+
         <!-- Genre Intelligence Mini Module -->
-        <div class="eq-genre-mini" *ngIf="currentPhaseInfo().id === 'genre-intelligence'">
+        <div
+          class="eq-genre-mini"
+          *ngIf="currentPhaseInfo().id === 'genre-intelligence'"
+        >
           <div class="eq-genre-mini-header">
             <span>{{ genreIcons[profileDraft().primaryGenre] || '🎵' }}</span>
             <span>{{ profileDraft().primaryGenre }} Intelligence</span>
@@ -324,7 +543,11 @@
           <div class="eq-genre-mini-body">
             <div class="eq-genre-stat">
               <span>BPM Range</span>
-              <span>{{ genreDeepDive().recommendedBpmRange[0] }}–{{ genreDeepDive().recommendedBpmRange[1] }}</span>
+              <span
+                >{{ genreDeepDive().recommendedBpmRange[0] }}–{{
+                  genreDeepDive().recommendedBpmRange[1]
+                }}</span
+              >
             </div>
             <div class="eq-genre-stat">
               <span>Subgenres</span>
@@ -337,10 +560,12 @@
           </div>
         </div>
       </aside>
-
     </div>
   </div>
 
   <!-- Uplink Console Overlay -->
-  <app-uplink-console *ngIf="showUplink()" (close)="close.emit()"></app-uplink-console>
+  <app-uplink-console
+    *ngIf="showUplink()"
+    (close)="close.emit()"
+  ></app-uplink-console>
 </div>

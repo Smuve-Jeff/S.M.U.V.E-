@@ -128,13 +128,20 @@
           BOUNCE
         </button>
         <button
-          (click)="crossLinkToPianoRoll(findFirstSelectedTrack()!, findFirstSelectedClip()!)"
+          (click)="
+            crossLinkToPianoRoll(
+              findFirstSelectedTrack()!,
+              findFirstSelectedClip()!
+            )
+          "
           class="mini-btn tactile-v42 executive-glass av-pr-btn"
           title="Open in Piano Roll"
           aria-label="Open selected clip in Piano Roll editor"
           [disabled]="!findFirstSelectedClip()"
         >
-          <span class="material-symbols-outlined text-[10px]">arrow_outward</span>
+          <span class="material-symbols-outlined text-[10px]"
+            >arrow_outward</span
+          >
           PR
         </button>
       </div>
@@ -155,7 +162,10 @@
       <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
         + TRACK
       </button>
-      <button (click)="openStemSplit()" class="mini-btn tactile-v42 executive-glass stem-btn">
+      <button
+        (click)="openStemSplit()"
+        class="mini-btn tactile-v42 executive-glass stem-btn"
+      >
         🎚 STEM SPLIT
       </button>
     </div>
@@ -282,7 +292,9 @@
               "
               [style.border-color]="clip.color || track.color || '#af25f4'"
               (pointerdown)="onClipPointerDown($event, track.id, clip)"
-              (dblclick)="crossLinkToPianoRoll(track, clip); $event.stopPropagation()"
+              (dblclick)="
+                crossLinkToPianoRoll(track, clip); $event.stopPropagation()
+              "
             >
               <div
                 class="clip-header flex justify-between items-center px-1 py-0.5"
@@ -301,7 +313,9 @@
                 class="av-clip-edit-pr"
                 title="Open this clip in Piano Roll"
                 aria-label="Open this clip in Piano Roll editor"
-                (click)="crossLinkToPianoRoll(track, clip); $event.stopPropagation()"
+                (click)="
+                  crossLinkToPianoRoll(track, clip); $event.stopPropagation()
+                "
               >
                 <span class="material-symbols-outlined">arrow_outward</span>
               </button>
@@ -356,10 +370,19 @@
 <!-- ─────────────────────────────────────────────────────────────
      STEM SPLITTER MODAL (fixed overlay outside the playlist)
      ───────────────────────────────────────────────────────────── -->
-<div class="stem-modal-root" *ngIf="stemOpen()" role="dialog" aria-label="Stem Splitter">
+<div
+  class="stem-modal-root"
+  *ngIf="stemOpen()"
+  role="dialog"
+  aria-label="Stem Splitter"
+>
   <div class="stem-modal-backdrop" (click)="closeStemSplit()"></div>
   <div class="stem-modal-card">
-    <button class="stem-modal-close" (click)="closeStemSplit()" aria-label="Close">
+    <button
+      class="stem-modal-close"
+      (click)="closeStemSplit()"
+      aria-label="Close"
+    >
       <span class="material-symbols-outlined">close</span>
     </button>
     <header class="stem-modal-head">
@@ -388,17 +411,34 @@
       <div class="stem-progress" *ngIf="stemBusy() || stemProgress() > 0">
         <div class="stem-progress-bar" [style.width.%]="stemProgress()"></div>
         <span class="stem-progress-text">
-          {{ stemProgress() < 50 ? 'Decoding ·' : stemProgress() < 100 ? 'Spectral Decomposition ·' : 'Stems Ready' }}
+          {{
+            stemProgress() < 50
+              ? 'Decoding ·'
+              : stemProgress() < 100
+                ? 'Spectral Decomposition ·'
+                : 'Stems Ready'
+          }}
           {{ stemProgress() }}%
         </span>
       </div>
 
       <div class="stem-results" *ngIf="stemStems() as stems">
-        <div class="stem-card" *ngFor="let s of [{key:'vocals',label:'🎤 Vocals'},{key:'drums',label:'🥁 Drums'},{key:'bass',label:'🎸 Bass'},{key:'instrumental',label:'🎹 Instrumental'},{key:'other',label:'🎺 Other'}]">
+        <div
+          class="stem-card"
+          *ngFor="
+            let s of [
+              { key: 'vocals', label: '🎤 Vocals' },
+              { key: 'drums', label: '🥁 Drums' },
+              { key: 'bass', label: '🎸 Bass' },
+              { key: 'instrumental', label: '🎹 Instrumental' },
+              { key: 'other', label: '🎺 Other' },
+            ]
+          "
+        >
           <div class="stem-card-glyph">{{ s.label.split(' ')[0] }}</div>
           <div class="stem-card-name">{{ s.label.split(' ')[1] }}</div>
           <div class="stem-card-meta">
-            {{ (stems[s.key]?.duration ?? 0) | number:'1.1-1' }}s
+            {{ stems[s.key]?.duration ?? 0 | number: '1.1-1' }}s
           </div>
         </div>
         <button

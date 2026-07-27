@@ -1,7 +1,13 @@
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CoWriteService, CoWriteTurn, CoWriteSuggestion, CoWriteProject, PianoRollNote } from '../../services/cowrite.service';
+import {
+  CoWriteService,
+  CoWriteTurn,
+  CoWriteSuggestion,
+  CoWriteProject,
+  PianoRollNote,
+} from '../../services/cowrite.service';
 import { SongwritingAssistantService } from '../../services/songwriting-assistant.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
 import { AiService } from '../../services/ai.service';
@@ -38,13 +44,26 @@ export class CowriteStudioComponent implements OnInit {
     genre: 'Pop' as string,
   });
 
-  readonly moods = ['emotional', 'dark', 'uplifting', 'angry', 'dreamy', 'hopeful', 'melancholic', 'aggressive'];
+  readonly moods = [
+    'emotional',
+    'dark',
+    'uplifting',
+    'angry',
+    'dreamy',
+    'hopeful',
+    'melancholic',
+    'aggressive',
+  ];
   readonly artists = this.styleMimic.getAvailableArtists();
 
   // ── Melody & Piano Roll state ──────────────────────────
   showPianoRoll = signal(false);
   showMelody = signal(false);
-  melodyResult = signal<{ melody: string; notes: string; noteCount: number } | null>(null);
+  melodyResult = signal<{
+    melody: string;
+    notes: string;
+    noteCount: number;
+  } | null>(null);
   melodyNotes = signal<PianoRollNote[]>([]);
   harmonyNotes = signal<PianoRollNote[]>([]);
   harmonyTypes = signal<string[]>(['3rd', '5th']);
@@ -58,7 +77,9 @@ export class CowriteStudioComponent implements OnInit {
 
   // ── Auto-Harmony state ─────────────────────────────────
   showHarmony = signal(false);
-  harmonyTypeOptions = signal<Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>>(['3rd', '5th']);
+  harmonyTypeOptions = signal<
+    Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>
+  >(['3rd', '5th']);
 
   exportResult = signal<string | null>(null);
 
@@ -73,8 +94,8 @@ export class CowriteStudioComponent implements OnInit {
     };
   });
 
-  acceptedCount = computed(() =>
-    this.currentSession()?.turns.filter(t => t.accepted).length || 0
+  acceptedCount = computed(
+    () => this.currentSession()?.turns.filter((t) => t.accepted).length || 0
   );
 
   // ── Computed for piano roll ────────────────────────────
@@ -84,7 +105,12 @@ export class CowriteStudioComponent implements OnInit {
     const session = this.currentSession();
     if (!session) return [];
     return session.sectionOrder.map((s, i) => {
-      const prefix = i < session.sectionIndex ? '✅' : i === session.sectionIndex ? '▶' : '○';
+      const prefix =
+        i < session.sectionIndex
+          ? '✅'
+          : i === session.sectionIndex
+            ? '▶'
+            : '○';
       return `${prefix} ${s.toUpperCase()}`;
     });
   }
@@ -102,7 +128,7 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   toggleArtist(artist: string) {
-    this.setupConfig.update(c => {
+    this.setupConfig.update((c) => {
       const current = [...c.artists];
       const idx = current.indexOf(artist);
       if (idx >= 0) {
@@ -128,7 +154,9 @@ export class CowriteStudioComponent implements OnInit {
 
     // Generate melody notes for piano roll
     const harm = this.cowrite.generateAutoHarmony(
-      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>,
+      this.harmonyTypeOptions() as Array<
+        '3rd' | '5th' | '7th' | 'octave' | 'unison'
+      >,
       this.currentSession()?.key || 'C'
     );
     this.melodyNotes.set(harm.melody);
@@ -143,7 +171,11 @@ export class CowriteStudioComponent implements OnInit {
   // ── MIDI Export ────────────────────────────────────────
 
   exportMidi() {
-    this.cowrite.exportMidi(this.melodyNotes(), this.harmonyNotes(), this.currentSession()?.bpm || 120);
+    this.cowrite.exportMidi(
+      this.melodyNotes(),
+      this.harmonyNotes(),
+      this.currentSession()?.bpm || 120
+    );
   }
 
   // ── Audio Preview ──────────────────────────────────────
@@ -153,14 +185,20 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   toggleAudioPreview() {
-    this.cowrite.playAudioPreview(this.melodyNotes(), this.harmonyNotes(), this.currentSession()?.bpm || 120);
+    this.cowrite.playAudioPreview(
+      this.melodyNotes(),
+      this.harmonyNotes(),
+      this.currentSession()?.bpm || 120
+    );
   }
 
   // ── Auto-Harmony & Chord Voicing ───────────────────────
 
   generateHarmony() {
     const harm = this.cowrite.generateAutoHarmony(
-      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>,
+      this.harmonyTypeOptions() as Array<
+        '3rd' | '5th' | '7th' | 'octave' | 'unison'
+      >,
       this.currentSession()?.key || 'C'
     );
     this.melodyNotes.set(harm.melody);
@@ -170,12 +208,16 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   toggleHarmonyType(type: '3rd' | '5th' | '7th' | 'octave' | 'unison') {
-    this.harmonyTypeOptions.update(current => {
+    this.harmonyTypeOptions.update((current) => {
       const idx = current.indexOf(type);
       if (idx >= 0) {
-        return current.filter(t => t !== type) as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>;
+        return current.filter((t) => t !== type) as Array<
+          '3rd' | '5th' | '7th' | 'octave' | 'unison'
+        >;
       }
-      return [...current, type] as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison'>;
+      return [...current, type] as Array<
+        '3rd' | '5th' | '7th' | 'octave' | 'unison'
+      >;
     });
   }
 
@@ -185,7 +227,7 @@ export class CowriteStudioComponent implements OnInit {
   voicingOctaveShift = signal(0);
 
   applyChordVoicing() {
-    const configs = this.harmonyTypeOptions().map(t => ({
+    const configs = this.harmonyTypeOptions().map((t) => ({
       type: t as '3rd' | '5th' | '7th' | 'octave' | 'unison' | 'chord',
       enabled: true,
       inversion: this.voicingInversion(),
@@ -195,7 +237,9 @@ export class CowriteStudioComponent implements OnInit {
 
     const result = this.cowrite.generateChordVoicings(
       this.melodyNotes(),
-      this.harmonyTypeOptions() as Array<'3rd' | '5th' | '7th' | 'octave' | 'unison' | 'chord'>,
+      this.harmonyTypeOptions() as Array<
+        '3rd' | '5th' | '7th' | 'octave' | 'unison' | 'chord'
+      >,
       configs,
       this.currentSession()?.key || 'C'
     );
@@ -219,7 +263,7 @@ export class CowriteStudioComponent implements OnInit {
     const name = this.projectNameInput().trim() || undefined;
     const project = this.cowrite.saveProject(name);
     if (project) {
-      this.savedProjectsList.update(list => [project, ...list]);
+      this.savedProjectsList.update((list) => [project, ...list]);
       this.saveConfirm.set(`Project "${project.title}" saved successfully.`);
       this.projectNameInput.set('');
       setTimeout(() => this.saveConfirm.set(null), 3000);
@@ -245,7 +289,9 @@ export class CowriteStudioComponent implements OnInit {
 
   deleteProject(projectId: string) {
     this.cowrite.deleteProject(projectId);
-    this.savedProjectsList.update(list => list.filter(p => p.id !== projectId));
+    this.savedProjectsList.update((list) =>
+      list.filter((p) => p.id !== projectId)
+    );
   }
 
   exportToStudio() {
@@ -301,11 +347,14 @@ export class CowriteStudioComponent implements OnInit {
     if (next) {
       await this.cowrite.generateSmuveContribution(`Opening ${next}`);
     } else {
-      this.suggestions.set([{
-        type: 'feedback',
-        content: 'Session complete! Use /cowrite lyrics to view your compiled song, or start a new session with /cowrite [topic]',
-        context: 'Your co-write with S.M.U.V.E has finished',
-      }]);
+      this.suggestions.set([
+        {
+          type: 'feedback',
+          content:
+            'Session complete! Use /cowrite lyrics to view your compiled song, or start a new session with /cowrite [topic]',
+          context: 'Your co-write with S.M.U.V.E has finished',
+        },
+      ]);
     }
   }
 
@@ -336,7 +385,10 @@ export class CowriteStudioComponent implements OnInit {
   }
 
   formatTimestamp(ts: number): string {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(ts).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   getTurnVariant(turn: CoWriteTurn): string {

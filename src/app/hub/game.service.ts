@@ -180,7 +180,6 @@ function normalizeRecommendationRail(
   };
 }
 
-
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
   // Defense-in-depth: normalize first, then auto-repair any cabinet URL mismatches.
   // This catches both curated JSON feeds and corruption that creeps into the
@@ -248,10 +247,7 @@ export function validateAndRepairGame(game: Game): Game {
   const urlFolder = urlFolderMatch[1];
   for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
     const value: any = (repaired.launchConfig as any)[key];
-    if (
-      typeof value === 'string' &&
-      value.startsWith('/assets/games/')
-    ) {
+    if (typeof value === 'string' && value.startsWith('/assets/games/')) {
       const valueFolderMatch = value.match(/^\/assets\/games\/([^/]+)\//);
       if (valueFolderMatch && valueFolderMatch[1] !== urlFolder) {
         // Repair: redirect to the correct cabinet folder
@@ -295,7 +291,8 @@ export class GameService {
    * outside the approved scope.
    */
   buildIframeAllowAttr(game?: Game): string {
-    const base = 'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
+    const base =
+      'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
     if (!game) return base;
     const tags = (game.tags || []).map((t) => t.toLowerCase());
     if (tags.includes('multiplayer') || tags.includes('versus')) {

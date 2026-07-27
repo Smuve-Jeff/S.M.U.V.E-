@@ -7,7 +7,7 @@
 :host {
   display: block;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-deep, #06091a);
   color: var(--espresso-text);
   overflow: hidden;
 }
@@ -16,7 +16,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-deep, #06091a);
   overflow: hidden;
 }
 
@@ -26,7 +26,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(180deg, var(--ivory-panel) 0%, var(--ivory-deep) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--ivory-panel) 0%,
+    var(--ivory-deep) 100%
+  );
   border-bottom: 1px solid var(--ivory-line);
   flex-shrink: 0;
   gap: 12px;
@@ -87,7 +91,9 @@
   color: var(--teal-500);
 }
 
-.sv-action-btn:active { transform: scale(0.96); }
+.sv-action-btn:active {
+  transform: scale(0.96);
+}
 
 /* ---------- MAIN BODY ---------- */
 .sv-body {
@@ -157,7 +163,9 @@
   position: relative;
 }
 
-.sv-scene-item:hover { background: var(--teal-50); }
+.sv-scene-item:hover {
+  background: var(--teal-50);
+}
 
 .sv-scene-item.is-active {
   background: var(--teal-100);
@@ -199,7 +207,9 @@
   transition: opacity 0.15s;
 }
 
-.sv-scene-item:hover .sv-scene-play { opacity: 1; }
+.sv-scene-item:hover .sv-scene-play {
+  opacity: 1;
+}
 
 /* ---------- CLIP GRID (track columns) ---------- */
 .sv-clip-grid {
@@ -342,7 +352,11 @@
 }
 
 .sv-clip-slot.is-filled {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--teal-500) 25%, var(--ivory-paper)) 0%, var(--ivory-paper) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--teal-500) 25%, var(--ivory-paper)) 0%,
+    var(--ivory-paper) 100%
+  );
   border-color: var(--teal-500);
 }
 
@@ -353,8 +367,15 @@
 }
 
 @keyframes svSlotPulse {
-  0%, 100% { box-shadow: 0 0 8px var(--neon-amber-glow); }
-  50% { box-shadow: 0 0 20px var(--neon-amber-glow), 0 0 4px var(--neon-amber); }
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--neon-amber-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 20px var(--neon-amber-glow),
+      0 0 4px var(--neon-amber);
+  }
 }
 
 .sv-clip-slot.is-empty {
@@ -362,7 +383,9 @@
   opacity: 0.45;
 }
 
-.sv-clip-slot.is-empty:hover { opacity: 0.8; }
+.sv-clip-slot.is-empty:hover {
+  opacity: 0.8;
+}
 
 .sv-clip-slot-name {
   font-size: 10px;
@@ -399,21 +422,23 @@
 }
 
 .sv-clip-slot:hover .sv-clip-slot-play,
-.sv-clip-slot.is-filled .sv-clip-slot-play { opacity: 1; }
+.sv-clip-slot.is-filled .sv-clip-slot-play {
+  opacity: 1;
+}
 
 /* ---------- DARK MODE ---------- */
 :host-context(.dark-mode) .sv-header {
-  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  background: linear-gradient(180deg, #0a0f22 0%, #000208 100%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .sv-action-btn {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.08);
 }
 
 :host-context(.dark-mode) .sv-scene-rail {
-  background: #0A0F22;
+  background: #0a0f22;
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -426,21 +451,25 @@
 }
 
 :host-context(.dark-mode) .sv-clip-slot {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .sv-clip-slot.is-filled {
-  background: linear-gradient(180deg, rgba(102, 240, 255, 0.14) 0%, #0A0F22 100%);
-  border-color: rgba(102, 240, 255, 0.30);
+  background: linear-gradient(
+    180deg,
+    rgba(102, 240, 255, 0.14) 0%,
+    #0a0f22 100%
+  );
+  border-color: rgba(102, 240, 255, 0.3);
 }
 
 :host-context(.dark-mode) .sv-track-headers {
-  background: #0A0F22;
+  background: #0a0f22;
 }
 
 :host-context(.dark-mode) .sv-track-header {
-  background: #0A0F22;
+  background: #0a0f22;
 }
 
 /* ---------- SESSION PRESETS ────────────────────────── */
@@ -489,8 +518,14 @@
 }
 
 @keyframes svPresetSlideIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .sv-preset-empty {
@@ -530,7 +565,9 @@
   background: color-mix(in srgb, var(--teal-500) 12%, transparent);
 }
 
-.sv-preset-icon { font-size: 14px; }
+.sv-preset-icon {
+  font-size: 14px;
+}
 
 .sv-preset-name {
   font-weight: 700;
@@ -599,7 +636,9 @@
 }
 
 .sv-clip-slot:hover .sv-clip-auto-toggle,
-.sv-clip-auto-toggle.is-active { opacity: 1; }
+.sv-clip-auto-toggle.is-active {
+  opacity: 1;
+}
 
 .sv-clip-auto-toggle.is-active {
   background: var(--teal-500);
@@ -616,8 +655,14 @@
 }
 
 @keyframes svAutoSlideIn {
-  from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 300px; }
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+  }
 }
 
 .sv-auto-editor-header {
@@ -838,37 +883,73 @@
 
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
-  .sv-scene-rail { width: 96px; }
-  .sv-scene-label { width: 96px; }
-  .sv-track-header { flex: 0 0 120px; }
-  .sv-clip-slot { flex: 0 0 120px; height: 60px; }
-  .sv-clip-slot-name { font-size: 9px; }
+  .sv-scene-rail {
+    width: 96px;
+  }
+  .sv-scene-label {
+    width: 96px;
+  }
+  .sv-track-header {
+    flex: 0 0 120px;
+  }
+  .sv-clip-slot {
+    flex: 0 0 120px;
+    height: 60px;
+  }
+  .sv-clip-slot-name {
+    font-size: 9px;
+  }
 }
 
 @media (max-width: 480px) {
-  .sv-scene-rail { width: 72px; }
-  .sv-scene-label { width: 72px; padding: 4px 8px; }
-  .sv-scene-label-num { font-size: 12px; }
-  .sv-scene-label-name { display: none; }
-  .sv-track-header { flex: 0 0 100px; }
-  .sv-clip-slot { flex: 0 0 100px; height: 52px; }
+  .sv-scene-rail {
+    width: 72px;
+  }
+  .sv-scene-label {
+    width: 72px;
+    padding: 4px 8px;
+  }
+  .sv-scene-label-num {
+    font-size: 12px;
+  }
+  .sv-scene-label-name {
+    display: none;
+  }
+  .sv-track-header {
+    flex: 0 0 100px;
+  }
+  .sv-clip-slot {
+    flex: 0 0 100px;
+    height: 52px;
+  }
 }
 
 /* ---------- DRAG-TO-TRACK DROP HIGHLIGHT ---------- */
 .sv-track-header {
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .sv-track-header-dragover {
-  background: color-mix(in srgb, var(--teal-500) 20%, var(--ivory-paper)) !important;
+  background: color-mix(
+    in srgb,
+    var(--teal-500) 20%,
+    var(--ivory-paper)
+  ) !important;
   border-color: var(--teal-500) !important;
-  box-shadow: 0 0 16px var(--teal-soft-glow), inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 40%, transparent);
+  box-shadow:
+    0 0 16px var(--teal-soft-glow),
+    inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 40%, transparent);
 }
 
 /* ── CLIP SLOT DRAG HIGHLIGHT ─────────────────────── */
 .sv-clip-slot-dragover {
   border-color: var(--teal-500) !important;
-  box-shadow: 0 0 14px var(--teal-soft-glow), inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 35%, transparent) !important;
+  box-shadow:
+    0 0 14px var(--teal-soft-glow),
+    inset 0 0 0 2px color-mix(in srgb, var(--teal-500) 35%, transparent) !important;
   border-style: solid !important;
 }
 
@@ -900,7 +981,11 @@
 
 /* Animate velocity bar when playing */
 .sv-clip-slot.is-playing .sv-clip-velocity-fill {
-  background: linear-gradient(90deg, var(--neon-amber) 0%, var(--teal-300) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--neon-amber) 0%,
+    var(--teal-300) 100%
+  );
   box-shadow: 0 0 6px var(--teal-soft-glow);
 }
 

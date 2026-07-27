@@ -16,6 +16,7 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.json",
             "polyfills": ["src/polyfills.ts"],
+            "allowedCommonJsDependencies": ["automation-events"],
             "assets": ["src/assets", "src/manifest.webmanifest"],
             "styles": [
               "src/styles.css",

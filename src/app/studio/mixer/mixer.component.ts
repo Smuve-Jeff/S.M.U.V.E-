@@ -22,7 +22,9 @@ import { Clip } from '../instrument.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { RecordingStatusService } from '../recording-status.service';
 
-interface MeterReadings { [trackId: string]: number; }
+interface MeterReadings {
+  [trackId: string]: number;
+}
 
 @Component({
   selector: 'app-mixer',
@@ -88,7 +90,11 @@ export class MixerComponent implements OnInit, OnDestroy {
           analyser.fftSize = 64;
           const out = this.audioSession.engine.getTrackOutput(track.id);
           if (out) {
-            try { out.connect(analyser); } catch { /* already connected */ }
+            try {
+              out.connect(analyser);
+            } catch {
+              /* already connected */
+            }
           }
           this.analyserMap.set(track.id, analyser);
         }
@@ -115,9 +121,7 @@ export class MixerComponent implements OnInit, OnDestroy {
         }
       }
       const masterLvl = this.masterLevel();
-      this.masterPeakHold.update((v) =>
-        Math.max(masterLvl, v - 0.015)
-      );
+      this.masterPeakHold.update((v) => Math.max(masterLvl, v - 0.015));
 
       // Phase correlation (simplified): use correlation of recent samples
       // between L and R channels of master output
@@ -145,7 +149,7 @@ export class MixerComponent implements OnInit, OnDestroy {
         ? data.reduce((a, b) => a + b, 0) / data.length
         : 128;
       // Smoothly chase 0.7 default with light drift for visual feel
-      const drift = (Math.sin(performance.now() / 800) * 0.15);
+      const drift = Math.sin(performance.now() / 800) * 0.15;
       return Math.max(
         -1,
         Math.min(1, 0.7 + drift - Math.abs((avg - 128) / 800))
@@ -184,7 +188,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   faderBottomPct(id: string): number {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return 0;
-    return Math.max(0, Math.min(1.5, t.gain)) / 1.5 * 100;
+    return (Math.max(0, Math.min(1.5, t.gain)) / 1.5) * 100;
   }
   masterFaderBottom(): number {
     return this.masterVolume();
@@ -446,7 +450,9 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   toggleMasterMute(): void {
     this.masterMuted.update((v) => !v);
-    this.audioSession.updateMasterVolume(this.masterMuted() ? 0 : (this.masterVolume() || 80));
+    this.audioSession.updateMasterVolume(
+      this.masterMuted() ? 0 : this.masterVolume() || 80
+    );
   }
   resetMaster(): void {
     this.masterMuted.set(false);

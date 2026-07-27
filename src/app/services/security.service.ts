@@ -40,16 +40,28 @@ export class SecurityService {
       blockedUntil: 0,
     };
     if (entry.blockedUntil > now) {
-      return { allowed: false, remainingAttempts: 0, blockedUntil: entry.blockedUntil };
+      return {
+        allowed: false,
+        remainingAttempts: 0,
+        blockedUntil: entry.blockedUntil,
+      };
     }
     entry.attempts += 1;
     if (entry.attempts > this.maxAttempts) {
       entry.blockedUntil = now + this.blockDurationMs;
       this.rateLimitMap.set(k, entry);
-      return { allowed: false, remainingAttempts: 0, blockedUntil: entry.blockedUntil };
+      return {
+        allowed: false,
+        remainingAttempts: 0,
+        blockedUntil: entry.blockedUntil,
+      };
     }
     this.rateLimitMap.set(k, entry);
-    return { allowed: true, remainingAttempts: this.maxAttempts - entry.attempts + 1, blockedUntil: 0 };
+    return {
+      allowed: true,
+      remainingAttempts: this.maxAttempts - entry.attempts + 1,
+      blockedUntil: 0,
+    };
   }
   clearRateLimit(k: string) {
     this.rateLimitMap.delete(k);

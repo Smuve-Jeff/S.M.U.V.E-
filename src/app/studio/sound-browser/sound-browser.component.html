@@ -11,7 +11,9 @@
           (click)="aiSearch()"
           aria-label="AI-powered sound search"
         >
-          <span class="material-symbols-outlined" style="font-size: 14px;">auto_awesome</span>
+          <span class="material-symbols-outlined" style="font-size: 14px"
+            >auto_awesome</span
+          >
           AI Search
         </button>
       </div>
@@ -23,7 +25,9 @@
         type="text"
         placeholder="Find an instrument or sound…"
         [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event); smartSound.searchQuery.set($event)"
+        (ngModelChange)="
+          searchQuery.set($event); smartSound.searchQuery.set($event)
+        "
         aria-label="Search sound presets"
       />
     </div>
@@ -31,22 +35,96 @@
     <!-- Smart filters: Genre, Mood, Favorites -->
     <div class="sb-smart-filters">
       <div class="sb-filter-chips">
-        <button type="button" class="sb-filter-chip" [class.active]="smartSound.activeGenre() === null" (click)="selectGenre('all')">ALL</button>
-        <button *ngFor="let g of ['pop','trap','house','lo-fi','neo-soul','drill','rnb','jazz']" type="button" class="sb-filter-chip" [class.active]="smartSound.activeGenre() === g" (click)="selectGenre(g)">{{ g }}</button>
+        <button
+          type="button"
+          class="sb-filter-chip"
+          [class.active]="smartSound.activeGenre() === null"
+          (click)="selectGenre('all')"
+        >
+          ALL
+        </button>
+        <button
+          *ngFor="
+            let g of [
+              'pop',
+              'trap',
+              'house',
+              'lo-fi',
+              'neo-soul',
+              'drill',
+              'rnb',
+              'jazz',
+            ]
+          "
+          type="button"
+          class="sb-filter-chip"
+          [class.active]="smartSound.activeGenre() === g"
+          (click)="selectGenre(g)"
+        >
+          {{ g }}
+        </button>
       </div>
       <div class="sb-filter-chips">
-        <button type="button" class="sb-filter-chip" [class.active]="smartSound.activeMood() === null" (click)="selectMood('all')">MOOD: ALL</button>
-        <button *ngFor="let m of ['chill','dark','bright','energetic','dreamy','aggressive']" type="button" class="sb-filter-chip" [class.active]="smartSound.activeMood() === m" (click)="selectMood(m)">{{ m }}</button>
+        <button
+          type="button"
+          class="sb-filter-chip"
+          [class.active]="smartSound.activeMood() === null"
+          (click)="selectMood('all')"
+        >
+          MOOD: ALL
+        </button>
+        <button
+          *ngFor="
+            let m of [
+              'chill',
+              'dark',
+              'bright',
+              'energetic',
+              'dreamy',
+              'aggressive',
+            ]
+          "
+          type="button"
+          class="sb-filter-chip"
+          [class.active]="smartSound.activeMood() === m"
+          (click)="selectMood(m)"
+        >
+          {{ m }}
+        </button>
       </div>
       <div class="sb-fav-toggle">
-        <button type="button" class="sb-fav-btn" [class.active]="showFavs()" (click)="toggleFavFilter()">
-          <span class="material-symbols-outlined">{{ showFavs() ? 'star' : 'star_outline' }}</span>
+        <button
+          type="button"
+          class="sb-fav-btn"
+          [class.active]="showFavs()"
+          (click)="toggleFavFilter()"
+        >
+          <span class="material-symbols-outlined">{{
+            showFavs() ? 'star' : 'star_outline'
+          }}</span>
           <span>{{ showFavs() ? 'Favorites' : 'Show Favorites' }}</span>
         </button>
-        <span class="sb-fav-count" *ngIf="smartSound.favorites().length > 0">{{ smartSound.favorites().length }} ★</span>
-        <button type="button" class="sb-pack-filter-btn" [class.active]="showOnlyInstalledPacks()" (click)="showOnlyInstalledPacks.set(!showOnlyInstalledPacks())" [disabled]="smartSound.installedPacks().length === 0" [title]="smartSound.installedPacks().length === 0 ? 'Install a sound pack to enable' : 'Show only installed pack presets'">
-          <span class="material-symbols-outlined">{{ showOnlyInstalledPacks() ? 'library_music' : 'library_music' }}</span>
-          <span>{{ showOnlyInstalledPacks() ? 'Installed Only' : 'Installed Packs' }}</span>
+        <span class="sb-fav-count" *ngIf="smartSound.favorites().length > 0"
+          >{{ smartSound.favorites().length }} ★</span
+        >
+        <button
+          type="button"
+          class="sb-pack-filter-btn"
+          [class.active]="showOnlyInstalledPacks()"
+          (click)="showOnlyInstalledPacks.set(!showOnlyInstalledPacks())"
+          [disabled]="smartSound.installedPacks().length === 0"
+          [title]="
+            smartSound.installedPacks().length === 0
+              ? 'Install a sound pack to enable'
+              : 'Show only installed pack presets'
+          "
+        >
+          <span class="material-symbols-outlined">{{
+            showOnlyInstalledPacks() ? 'library_music' : 'library_music'
+          }}</span>
+          <span>{{
+            showOnlyInstalledPacks() ? 'Installed Only' : 'Installed Packs'
+          }}</span>
         </button>
       </div>
     </div>
@@ -74,7 +152,9 @@
           <span class="material-symbols-outlined">package_2</span>
           Sound Packs
         </span>
-        <span class="sb-packs-count">{{ smartSound.curatedPacks().length }} packs</span>
+        <span class="sb-packs-count"
+          >{{ smartSound.curatedPacks().length }} packs</span
+        >
       </div>
       <!-- Installed packs -->
       <div class="sb-packs-rail" *ngIf="smartSound.installedPacks().length > 0">
@@ -86,10 +166,23 @@
             [style.borderColor]="pack.color"
             [title]="pack.description"
           >
-            <span class="material-symbols-outlined" [style.color]="pack.color">{{ pack.icon }}</span>
+            <span
+              class="material-symbols-outlined"
+              [style.color]="pack.color"
+              >{{ pack.icon }}</span
+            >
             <span class="sb-pack-chip-name">{{ pack.name }}</span>
-            <span class="sb-pack-chip-count">{{ pack.presetCount }} sounds</span>
-            <button type="button" class="sb-pack-remove" (click)="smartSound.uninstallPack(pack.id); $event.stopPropagation()" title="Uninstall pack">
+            <span class="sb-pack-chip-count"
+              >{{ pack.presetCount }} sounds</span
+            >
+            <button
+              type="button"
+              class="sb-pack-remove"
+              (click)="
+                smartSound.uninstallPack(pack.id); $event.stopPropagation()
+              "
+              title="Uninstall pack"
+            >
               <span class="material-symbols-outlined">close</span>
             </button>
           </div>
@@ -114,15 +207,32 @@
             </span>
             <div class="sb-pack-chip-body">
               <span class="sb-pack-chip-name">{{ pack.name }}</span>
-              <span class="sb-pack-chip-meta">{{ pack.presetCount }} sounds · {{ pack.size }}</span>
-              <div class="sb-pack-progress" *ngIf="smartSound.installingPack()?.id === pack.id">
-                <div class="sb-pack-progress-bar" [style.width.%]="smartSound.installingPack()!.progress"></div>
-                <span class="sb-pack-progress-label">{{ smartSound.installingPack()!.progress }}%</span>
+              <span class="sb-pack-chip-meta"
+                >{{ pack.presetCount }} sounds · {{ pack.size }}</span
+              >
+              <div
+                class="sb-pack-progress"
+                *ngIf="smartSound.installingPack()?.id === pack.id"
+              >
+                <div
+                  class="sb-pack-progress-bar"
+                  [style.width.%]="smartSound.installingPack()!.progress"
+                ></div>
+                <span class="sb-pack-progress-label"
+                  >{{ smartSound.installingPack()!.progress }}%</span
+                >
               </div>
             </div>
             <span class="sb-pack-chip-install">
-              <span *ngIf="smartSound.installingPack()?.id !== pack.id" class="material-symbols-outlined">download</span>
-              <span *ngIf="smartSound.installingPack()?.id === pack.id" class="sb-pack-spinner"></span>
+              <span
+                *ngIf="smartSound.installingPack()?.id !== pack.id"
+                class="material-symbols-outlined"
+                >download</span
+              >
+              <span
+                *ngIf="smartSound.installingPack()?.id === pack.id"
+                class="sb-pack-spinner"
+              ></span>
             </span>
           </button>
         </div>
@@ -130,23 +240,45 @@
     </div>
 
     <!-- Recently used rail -->
-    <div class="sb-recent" *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()">
+    <div
+      class="sb-recent"
+      *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()"
+    >
       <span class="sb-recent-label">Recent</span>
       <div class="sb-recent-chips">
-        <button *ngFor="let s of smartSound.recentSounds().slice(0, 6)" type="button" class="sb-recent-chip" (click)="selectSoundById(s.id)">{{ s.name }}</button>
+        <button
+          *ngFor="let s of smartSound.recentSounds().slice(0, 6)"
+          type="button"
+          class="sb-recent-chip"
+          (click)="selectSoundById(s.id)"
+        >
+          {{ s.name }}
+        </button>
       </div>
     </div>
   </header>
 
   <!-- Similar sounds panel -->
-  <div class="sb-similar" *ngIf="similarSounds().length > 0" role="region" aria-label="Similar sounds">
+  <div
+    class="sb-similar"
+    *ngIf="similarSounds().length > 0"
+    role="region"
+    aria-label="Similar sounds"
+  >
     <div class="sb-similar-head">
       <span class="material-symbols-outlined">auto_awesome</span>
       <span>AI Similar Sounds</span>
-      <button type="button" class="sb-similar-close" (click)="clearSimilar()"><span class="material-symbols-outlined">close</span></button>
+      <button type="button" class="sb-similar-close" (click)="clearSimilar()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
     <div class="sb-similar-list">
-      <button *ngFor="let s of similarSounds()" type="button" class="sb-similar-item" (click)="selectSoundById(s.id)">
+      <button
+        *ngFor="let s of similarSounds()"
+        type="button"
+        class="sb-similar-item"
+        (click)="selectSoundById(s.id)"
+      >
         <span class="material-symbols-outlined">graphic_eq</span>
         {{ s.name }}
       </button>
@@ -168,7 +300,9 @@
       (dragstart)="onDragStart($event, preset)"
       tabindex="0"
       (keyup)="$event.key === 'Enter' && selectPreset(preset)"
-      [attr.aria-label]="'Preset: ' + preset.name + ', type ' + (preset.type || 'sample')"
+      [attr.aria-label]="
+        'Preset: ' + preset.name + ', type ' + (preset.type || 'sample')
+      "
     >
       <div class="sb-card-thumb">
         <span class="material-symbols-outlined">
@@ -192,15 +326,21 @@
           class="sb-card-fav"
           [class.active]="isFavorite(preset.id)"
           (click)="toggleFavorite(preset.id); $event.stopPropagation()"
-          [attr.aria-label]="isFavorite(preset.id) ? 'Remove from favorites' : 'Add to favorites'"
+          [attr.aria-label]="
+            isFavorite(preset.id) ? 'Remove from favorites' : 'Add to favorites'
+          "
           title="Toggle favorite"
         >
-          <span class="material-symbols-outlined">{{ isFavorite(preset.id) ? 'star' : 'star_outline' }}</span>
+          <span class="material-symbols-outlined">{{
+            isFavorite(preset.id) ? 'star' : 'star_outline'
+          }}</span>
         </button>
       </div>
       <div class="sb-card-meta">
         <div class="sb-card-name">{{ preset.name }}</div>
-        <div class="sb-card-info">{{ preset.type || 'sample' }} · {{ preset.category || 'misc' }}</div>
+        <div class="sb-card-info">
+          {{ preset.type || 'sample' }} · {{ preset.category || 'misc' }}
+        </div>
       </div>
       <!-- Similar button -->
       <button

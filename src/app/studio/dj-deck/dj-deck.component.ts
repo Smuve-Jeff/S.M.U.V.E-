@@ -727,7 +727,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recording.set(true);
     this.startRecordingTimer();
     this.sessionNotice.set('Recording live mix...');
-    this.recordingStatus.setRecordingSource({ type: 'dj-deck', deckId: 'master' });
+    this.recordingStatus.setRecordingSource({
+      type: 'dj-deck',
+      deckId: 'master',
+    });
 
     recorder.onerror = () => {
       this.sessionNotice.set('Recording failed to complete.');

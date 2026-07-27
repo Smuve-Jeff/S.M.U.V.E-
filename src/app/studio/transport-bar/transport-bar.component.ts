@@ -1,11 +1,21 @@
-import { Component, inject, signal, computed, effect, untracked } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  effect,
+  untracked,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { ExportService } from '../../services/export.service';
 import { RecordingStatusService } from '../recording-status.service';
-import { IdeasGeneratorService, IdeaRecipe } from '../../services/ideas-generator.service';
+import {
+  IdeasGeneratorService,
+  IdeaRecipe,
+} from '../../services/ideas-generator.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ProjectService } from '../../services/project.service';
@@ -160,7 +170,10 @@ export class TransportBarComponent {
     this.audioSession.updateMasterVolume(v);
   }
   nudgeTempo(delta: number): void {
-    const clamped = Math.min(300, Math.max(20, this.audioEngine.tempo() + delta));
+    const clamped = Math.min(
+      300,
+      Math.max(20, this.audioEngine.tempo() + delta)
+    );
     this.audioEngine.tempo.set(clamped);
   }
   setTempo(bpm: number): void {
@@ -306,7 +319,12 @@ export class TransportBarComponent {
     const dt = Date.now() - this.swipeStartTime;
 
     // Horizontal swipe, fast enough, long enough
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 400 && dt > 50) {
+    if (
+      Math.abs(dx) > 60 &&
+      Math.abs(dx) > Math.abs(dy) * 1.5 &&
+      dt < 400 &&
+      dt > 50
+    ) {
       if (dx < 0) {
         // Swipe left = undo
         this.undo();
@@ -339,10 +357,7 @@ export class TransportBarComponent {
       const env = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-      osc.frequency.linearRampToValueAtTime(
-        783.99,
-        ctx.currentTime + 0.35
-      ); // sweep up to G5
+      osc.frequency.linearRampToValueAtTime(783.99, ctx.currentTime + 0.35); // sweep up to G5
       env.gain.setValueAtTime(0, ctx.currentTime);
       env.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.04);
       env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);

@@ -89,7 +89,8 @@ export class HardwareService {
       const devices = this.micService.availableDevices();
 
       const interfaces = devices.filter(
-        (d) => d.type === 'interface' || d.capabilities?.includes('usb-interface')
+        (d) =>
+          d.type === 'interface' || d.capabilities?.includes('usb-interface')
       );
       const isConnected = interfaces.length > 0;
       const name = isConnected ? interfaces[0].label : null;

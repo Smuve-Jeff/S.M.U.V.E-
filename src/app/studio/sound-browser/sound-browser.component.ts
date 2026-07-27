@@ -85,7 +85,8 @@ export class SoundBrowserComponent {
 
       const matchesCat = cat === 'all' || p.category === cat;
       const matchesTag = !tag || p.tags?.includes(tag);
-      const matchesInstalled = !this.showOnlyInstalledPacks() || installedIds.has(p.id);
+      const matchesInstalled =
+        !this.showOnlyInstalledPacks() || installedIds.has(p.id);
 
       return matchesSearch && matchesCat && matchesTag && matchesInstalled;
     });

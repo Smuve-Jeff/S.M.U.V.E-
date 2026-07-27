@@ -99,8 +99,8 @@ export class SmartRecordingService {
     return 'PUNCH ARMED';
   });
 
-  hasPunchRegion = computed(() =>
-    this.punchInBar() !== null && this.punchOutBar() !== null
+  hasPunchRegion = computed(
+    () => this.punchInBar() !== null && this.punchOutBar() !== null
   );
 
   // ── Recording mode controls ───────────────────────────────
@@ -170,7 +170,9 @@ export class SmartRecordingService {
       }
       this.recordingEngine.startRecording();
       this.audioEngine.isRecording.set(true);
-      this.logger.info(`SmartRecording: Punch IN at bar ${bar} — recording started`);
+      this.logger.info(
+        `SmartRecording: Punch IN at bar ${bar} — recording started`
+      );
     }
 
     if (outBar !== null && bar >= outBar && this.isPunching()) {
@@ -180,13 +182,19 @@ export class SmartRecordingService {
       await this.recordingEngine.stopRecording();
       this.audioEngine.isRecording.set(false);
       this.recordingStatus.clearRecordingSource();
-      this.logger.info(`SmartRecording: Punch OUT at bar ${bar} — recording saved`);
+      this.logger.info(
+        `SmartRecording: Punch OUT at bar ${bar} — recording saved`
+      );
     }
   }
 
   // ── Comp recording controls ───────────────────────────────
 
-  startNewCompGroup(trackId?: string, trackName?: string, sectionLabel?: string) {
+  startNewCompGroup(
+    trackId?: string,
+    trackName?: string,
+    sectionLabel?: string
+  ) {
     const group: CompGroup = {
       id: `comp_${Date.now()}`,
       trackId: trackId || 'comp-track',
@@ -199,7 +207,9 @@ export class SmartRecordingService {
     this.compGroups.update((groups) => [...groups, group]);
     this.activeCompGroupId.set(group.id);
     this.currentTakeNumber.set(1);
-    this.logger.info(`SmartRecording: New comp group "${sectionLabel}" created`);
+    this.logger.info(
+      `SmartRecording: New comp group "${sectionLabel}" created`
+    );
   }
 
   /** Start recording a new take in the active comp group */
@@ -316,9 +326,7 @@ export class SmartRecordingService {
 
   /** Delete an entire comp group */
   deleteCompGroup(groupId: string) {
-    this.compGroups.update((groups) =>
-      groups.filter((g) => g.id !== groupId)
-    );
+    this.compGroups.update((groups) => groups.filter((g) => g.id !== groupId));
     if (this.activeCompGroupId() === groupId) {
       this.activeCompGroupId.set(null);
     }
@@ -358,9 +366,15 @@ export class SmartRecordingService {
         if (inSilence && i - silenceStart >= minSilenceSamples) {
           // This is a real silence gap — mark boundary
           const prevBoundary = boundaries[boundaries.length - 1];
-          if (!prevBoundary || silenceStart - prevBoundary.endSample > sampleRate * 0.1) {
+          if (
+            !prevBoundary ||
+            silenceStart - prevBoundary.endSample > sampleRate * 0.1
+          ) {
             boundaries.push({
-              startSample: Math.max(0, silenceStart - Math.floor(sampleRate * 0.01)),
+              startSample: Math.max(
+                0,
+                silenceStart - Math.floor(sampleRate * 0.01)
+              ),
               endSample: i + Math.floor(sampleRate * 0.01),
             });
           }
@@ -376,10 +390,13 @@ export class SmartRecordingService {
 
   private async synthesizeSilentWav(durationMs: number): Promise<Blob> {
     const sampleRate = 48000;
-    const numSamples = Math.max(1, Math.floor((durationMs / 1000) * sampleRate));
+    const numSamples = Math.max(
+      1,
+      Math.floor((durationMs / 1000) * sampleRate)
+    );
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
-    
+
     const writeStr = (offset: number, str: string) => {
       for (let i = 0; i < str.length; i++) {
         view.setUint8(offset + i, str.charCodeAt(i));

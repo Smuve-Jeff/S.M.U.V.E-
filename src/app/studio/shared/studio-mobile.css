@@ -6,7 +6,7 @@
 
 /* ── Universal touch feedback & highlight prevention ── */
 button,
-[role="button"],
+[role='button'],
 .touch-target {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -60,7 +60,7 @@ button {
 
   /* Hide native scrollbars in horizontal rails */
   .rail-scroll::-webkit-scrollbar,
-  [class*="-chip"]:not(:focus-visible)::-webkit-scrollbar {
+  [class*='-chip']:not(:focus-visible)::-webkit-scrollbar {
     display: none;
   }
 
@@ -96,7 +96,7 @@ button {
   position: relative;
 }
 .hit-area-extended::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: -10px;
   pointer-events: auto;

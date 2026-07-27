@@ -29,7 +29,13 @@ export interface TrackNote {
   /** Pro Precision: pitch bend in semitones (±12 = one octave) */
   pitchBend?: number;
   /** Pro Precision: articulation style */
-  articulation?: 'normal' | 'staccato' | 'legato' | 'portamento' | 'pizzicato' | 'accent';
+  articulation?:
+    | 'normal'
+    | 'staccato'
+    | 'legato'
+    | 'portamento'
+    | 'pizzicato'
+    | 'accent';
   /** Pro Precision: note pan override (-1..1) */
   notePan?: number;
 }
@@ -446,9 +452,7 @@ export class MusicManagerService {
             x.id === trackId
               ? {
                   ...x,
-                  notes: x.notes.map((n) =>
-                    n.id === noteId ? prev : n
-                  ),
+                  notes: x.notes.map((n) => (n.id === noteId ? prev : n)),
                 }
               : x
           )
@@ -516,7 +520,10 @@ export class MusicManagerService {
         this.tracks.update((ts) =>
           ts.map((t) =>
             t.id === trackId
-              ? { ...t, notes: [...t.notes, ...stamped.map((n) => this.clone(n))] }
+              ? {
+                  ...t,
+                  notes: [...t.notes, ...stamped.map((n) => this.clone(n))],
+                }
               : t
           )
         );
@@ -603,9 +610,7 @@ export class MusicManagerService {
       () => {
         this.tracks.update((ts) =>
           ts.map((x) =>
-            x.id === id
-              ? { ...x, gain: newGain, volume: newGain }
-              : x
+            x.id === id ? { ...x, gain: newGain, volume: newGain } : x
           )
         );
         this.engine.updateTrack(id, { gain: newGain });
@@ -793,9 +798,7 @@ export class MusicManagerService {
             x.id === trackId
               ? {
                   ...x,
-                  clips: x.clips.map((c) =>
-                    c.id === clipId ? prev : c
-                  ),
+                  clips: x.clips.map((c) => (c.id === clipId ? prev : c)),
                 }
               : x
           )
@@ -854,11 +857,7 @@ export class MusicManagerService {
             if (x.id !== trackId) return x;
             return {
               ...x,
-              clips: [
-                ...x.clips.filter((c) => c.id !== clipId),
-                first,
-                second,
-              ],
+              clips: [...x.clips.filter((c) => c.id !== clipId), first, second],
             };
           })
         );
@@ -870,9 +869,7 @@ export class MusicManagerService {
               ? {
                   ...x,
                   clips: [
-                    ...x.clips.filter(
-                      (c) => c.id !== secondId
-                    ),
+                    ...x.clips.filter((c) => c.id !== secondId),
                     original,
                   ],
                 }
@@ -1043,7 +1040,9 @@ export class MusicManagerService {
       () => {
         this.tracks.update((ts) =>
           ts.map((t) =>
-            t.id === trackId ? { ...t, activePatternSlotId: t.activePatternSlotId } : t
+            t.id === trackId
+              ? { ...t, activePatternSlotId: t.activePatternSlotId }
+              : t
           )
         );
       }
@@ -1187,7 +1186,8 @@ export class MusicManagerService {
           : t
       )
     );
-  }  recallPatternSlot(id: string, slotId: string) {
+  }
+  recallPatternSlot(id: string, slotId: string) {
     this.tracks.update((ts) =>
       ts.map((t) => {
         if (t.id !== id) return t;
@@ -1325,7 +1325,9 @@ export class MusicManagerService {
     const id = rt.instrumentId.includes('drum')
       ? MusicManagerService.DRUM_TRACK_ID
       : 'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const preset = this.instruments.getPresets().find((p) => p.id === rt.instrumentId);
+    const preset = this.instruments
+      .getPresets()
+      .find((p) => p.id === rt.instrumentId);
     return {
       id,
       name: rt.name,
@@ -1415,7 +1417,12 @@ export class MusicManagerService {
       track.id = trackId;
       track.type = 'audio';
       newTracks.push(track);
-      builtRefs.push({ trackId, clipId, name: labels[key] ?? key, buffer: buf });
+      builtRefs.push({
+        trackId,
+        clipId,
+        name: labels[key] ?? key,
+        buffer: buf,
+      });
     });
 
     const restore = () => {
@@ -1434,7 +1441,12 @@ export class MusicManagerService {
             id: r.clipId,
             name: r.name,
             start: 0,
-            length: Math.max(1, builtRefs[0] ? Math.ceil(builtRefs[0].buffer.duration / (60 / 124 / 4)) : 4),
+            length: Math.max(
+              1,
+              builtRefs[0]
+                ? Math.ceil(builtRefs[0].buffer.duration / (60 / 124 / 4))
+                : 4
+            ),
             type: 'audio',
             audioRefId: r.clipId,
           } as any);
@@ -1449,10 +1461,18 @@ export class MusicManagerService {
    * Add a single recorded audio take as a new track in the arrangement.
    * Called by the Audio Recorder's "Export to Arrangement" button.
    */
-  addAudioTrack(opts: { id: string; name: string; color: string; buffer: AudioBuffer; offset: number }): void {
+  addAudioTrack(opts: {
+    id: string;
+    name: string;
+    color: string;
+    buffer: AudioBuffer;
+    offset: number;
+  }): void {
     const trackId = opts.id || 'audio_' + Date.now();
     const clipId = 'clip_' + Date.now();
-    const barsAtBpm = Math.ceil(opts.buffer.duration / (60 / this.engine.tempo() / 4));
+    const barsAtBpm = Math.ceil(
+      opts.buffer.duration / (60 / this.engine.tempo() / 4)
+    );
 
     const track: TrackModel = {
       id: trackId,
@@ -1464,14 +1484,16 @@ export class MusicManagerService {
       volume: 0.8,
       gain: 0.8,
       pan: 0,
-      clips: [{
-        id: clipId,
-        name: opts.name,
-        start: opts.offset || 0,
-        length: Math.max(1, barsAtBpm),
-        type: 'audio',
-        audioRefId: clipId,
-      } as any],
+      clips: [
+        {
+          id: clipId,
+          name: opts.name,
+          start: opts.offset || 0,
+          length: Math.max(1, barsAtBpm),
+          type: 'audio',
+          audioRefId: clipId,
+        } as any,
+      ],
       notes: [],
       steps: new Array(64).fill(false),
       fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
@@ -1486,7 +1508,7 @@ export class MusicManagerService {
 
     // Cache the AudioBuffer so it survives undo/redo (JSON strips buffers)
     this.stemAudioCache.set(clipId, opts.buffer);
-    this.tracks.update(ts => [...ts, track]);
+    this.tracks.update((ts) => [...ts, track]);
     this.selectedTrackId.set(trackId);
   }
 
@@ -1510,10 +1532,8 @@ export class MusicManagerService {
           t.notes
             .filter((n) => Math.floor(n.step) === step % 64)
             .forEach((n) => {
-              if (
-                n.probability !== undefined &&
-                Math.random() >= n.probability
-              ) return; // Skip based on probability
+              if (n.probability !== undefined && Math.random() >= n.probability)
+                return; // Skip based on probability
 
               const microTime = swungTime + (n.microOffset ?? 0) * duration;
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
@@ -1522,11 +1542,21 @@ export class MusicManagerService {
               // Articulation-driven length multiplier
               let lengthMul = 1.0;
               switch (n.articulation) {
-                case 'staccato': lengthMul = 0.25; break;
-                case 'legato': lengthMul = 1.1; break;
-                case 'portamento': lengthMul = 1.0; break;
-                case 'pizzicato': lengthMul = 0.15; break;
-                case 'accent': lengthMul = 0.5; break;
+                case 'staccato':
+                  lengthMul = 0.25;
+                  break;
+                case 'legato':
+                  lengthMul = 1.1;
+                  break;
+                case 'portamento':
+                  lengthMul = 1.0;
+                  break;
+                case 'pizzicato':
+                  lengthMul = 0.15;
+                  break;
+                case 'accent':
+                  lengthMul = 0.5;
+                  break;
               }
 
               const notePan = n.notePan ?? t.pan;

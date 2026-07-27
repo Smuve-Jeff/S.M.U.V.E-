@@ -65,7 +65,10 @@
 
   <!-- Content -->
   <main class="inbox-main">
-    <div class="empty-state glass-v42" *ngIf="filteredChallenges().length === 0">
+    <div
+      class="empty-state glass-v42"
+      *ngIf="filteredChallenges().length === 0"
+    >
       <span class="material-symbols-outlined empty-icon">inbox</span>
       <h3>
         {{
@@ -78,9 +81,7 @@
                 : 'INBOX IS CLEAR'
         }}
       </h3>
-      <p>
-        Challenge another artist from the Rival Hub to populate your inbox.
-      </p>
+      <p>Challenge another artist from the Rival Hub to populate your inbox.</p>
     </div>
 
     <article
@@ -90,7 +91,9 @@
       [class.outgoing]="!isIncoming(c)"
       [class.status-pending]="c.status === 'pending'"
       [class.status-accepted]="c.status === 'accepted'"
-      [class.status-declined]="c.status === 'declined' || c.status === 'expired'"
+      [class.status-declined]="
+        c.status === 'declined' || c.status === 'expired'
+      "
     >
       <div class="card-badge-strip">
         <span class="status-pill status-{{ c.status }}">{{
@@ -130,7 +133,10 @@
           DECLINE
         </button>
       </div>
-      <div class="card-actions" *ngIf="c.status === 'accepted' && isIncoming(c)">
+      <div
+        class="card-actions"
+        *ngIf="c.status === 'accepted' && isIncoming(c)"
+      >
         <button
           class="action-btn play-btn"
           routerLink="/tha-spot"

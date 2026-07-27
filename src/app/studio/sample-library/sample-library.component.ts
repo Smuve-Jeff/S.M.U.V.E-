@@ -1,10 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  computed,
-  OnInit,
-} from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioRecorderService } from '../audio-recorder.service';
@@ -38,29 +32,167 @@ export class SampleLibraryComponent implements OnInit {
   selectedCategory = signal<string>('all');
   selectedTag = signal<string | null>(null);
 
-  private rawSamples: Array<{ id: string; name: string; category: string; tags: string[]; icon: string }> = [
-    { id: 'kick',       name: '808 KICK',    category: 'drum', tags: ['808', 'kick', 'boom'],       icon: 'graphic_eq' },
-    { id: 'snare',      name: 'SNARE 909',   category: 'drum', tags: ['snare', 'crisp'],            icon: 'graphic_eq' },
-    { id: 'clap',       name: 'CLAP TIGHT',  category: 'drum', tags: ['clap', 'tight'],             icon: 'graphic_eq' },
-    { id: 'hat',        name: 'HH CLOSED',   category: 'drum', tags: ['hat', 'closed'],              icon: 'graphic_eq' },
-    { id: 'crash',      name: 'CRASH METAL', category: 'drum', tags: ['crash', 'metal'],             icon: 'graphic_eq' },
-    { id: 'percussion', name: 'PERC LOOP',   category: 'drum', tags: ['perc', 'loop'],               icon: 'graphic_eq' },
-    { id: 'live-kick',  name: 'LIVE KICK',   category: 'drum', tags: ['live', 'kick'],               icon: 'mic_external_on' },
-    { id: 'live-vocal', name: 'LIVE VOCAL',  category: 'vox',  tags: ['live', 'vocal'],              icon: 'mic' },
-    { id: 'bass-sub',   name: 'SUB BASS',    category: 'bass', tags: ['bass', 'sub'],                icon: 'waves' },
-    { id: 'bass-reese', name: 'REESE BASS',  category: 'bass', tags: ['bass', 'reese'],              icon: 'waves' },
-    { id: 'keys-rhodes',name: 'RHODES PIANO',category: 'keys', tags: ['keys', 'piano', 'rhodes'],    icon: 'piano' },
-    { id: 'keys-wurli', name: 'WURLITZER',   category: 'keys', tags: ['keys', 'electric'],           icon: 'piano' },
-    { id: 'lead-saw',   name: 'SAW LEAD',    category: 'lead', tags: ['lead', 'saw'],                icon: 'graphic_eq' },
-    { id: 'lead-pluck', name: 'PLUCK SYNTH', category: 'lead', tags: ['lead', 'pluck'],              icon: 'graphic_eq' },
-    { id: 'pad-glass',  name: 'GLASS PAD',   category: 'pad',  tags: ['pad', 'glass'],               icon: 'layers' },
-    { id: 'pad-strings',name: 'STRINGS PAD', category: 'pad',  tags: ['pad', 'strings'],             icon: 'layers' },
-    { id: 'fx-riser',   name: 'RISER FX',    category: 'vfx',  tags: ['fx', 'riser'],                icon: 'auto_awesome' },
-    { id: 'fx-impact',  name: 'IMPACT FX',   category: 'vfx',  tags: ['fx', 'impact'],               icon: 'auto_awesome' },
-    { id: 'fx-down',    name: 'DOWNLIFTER',  category: 'vfx',  tags: ['fx', 'downlifter'],           icon: 'auto_awesome' },
-    { id: 'loop-trap',  name: 'TRAP LOOP',   category: 'loop', tags: ['loop', 'trap'],               icon: 'loop' },
-    { id: 'loop-rnb',   name: 'R&B LOOP',    category: 'loop', tags: ['loop', 'rnb'],                icon: 'loop' },
-    { id: 'loop-house', name: 'HOUSE LOOP',  category: 'loop', tags: ['loop', 'house'],              icon: 'loop' },
+  private rawSamples: Array<{
+    id: string;
+    name: string;
+    category: string;
+    tags: string[];
+    icon: string;
+  }> = [
+    {
+      id: 'kick',
+      name: '808 KICK',
+      category: 'drum',
+      tags: ['808', 'kick', 'boom'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'snare',
+      name: 'SNARE 909',
+      category: 'drum',
+      tags: ['snare', 'crisp'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'clap',
+      name: 'CLAP TIGHT',
+      category: 'drum',
+      tags: ['clap', 'tight'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'hat',
+      name: 'HH CLOSED',
+      category: 'drum',
+      tags: ['hat', 'closed'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'crash',
+      name: 'CRASH METAL',
+      category: 'drum',
+      tags: ['crash', 'metal'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'percussion',
+      name: 'PERC LOOP',
+      category: 'drum',
+      tags: ['perc', 'loop'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'live-kick',
+      name: 'LIVE KICK',
+      category: 'drum',
+      tags: ['live', 'kick'],
+      icon: 'mic_external_on',
+    },
+    {
+      id: 'live-vocal',
+      name: 'LIVE VOCAL',
+      category: 'vox',
+      tags: ['live', 'vocal'],
+      icon: 'mic',
+    },
+    {
+      id: 'bass-sub',
+      name: 'SUB BASS',
+      category: 'bass',
+      tags: ['bass', 'sub'],
+      icon: 'waves',
+    },
+    {
+      id: 'bass-reese',
+      name: 'REESE BASS',
+      category: 'bass',
+      tags: ['bass', 'reese'],
+      icon: 'waves',
+    },
+    {
+      id: 'keys-rhodes',
+      name: 'RHODES PIANO',
+      category: 'keys',
+      tags: ['keys', 'piano', 'rhodes'],
+      icon: 'piano',
+    },
+    {
+      id: 'keys-wurli',
+      name: 'WURLITZER',
+      category: 'keys',
+      tags: ['keys', 'electric'],
+      icon: 'piano',
+    },
+    {
+      id: 'lead-saw',
+      name: 'SAW LEAD',
+      category: 'lead',
+      tags: ['lead', 'saw'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'lead-pluck',
+      name: 'PLUCK SYNTH',
+      category: 'lead',
+      tags: ['lead', 'pluck'],
+      icon: 'graphic_eq',
+    },
+    {
+      id: 'pad-glass',
+      name: 'GLASS PAD',
+      category: 'pad',
+      tags: ['pad', 'glass'],
+      icon: 'layers',
+    },
+    {
+      id: 'pad-strings',
+      name: 'STRINGS PAD',
+      category: 'pad',
+      tags: ['pad', 'strings'],
+      icon: 'layers',
+    },
+    {
+      id: 'fx-riser',
+      name: 'RISER FX',
+      category: 'vfx',
+      tags: ['fx', 'riser'],
+      icon: 'auto_awesome',
+    },
+    {
+      id: 'fx-impact',
+      name: 'IMPACT FX',
+      category: 'vfx',
+      tags: ['fx', 'impact'],
+      icon: 'auto_awesome',
+    },
+    {
+      id: 'fx-down',
+      name: 'DOWNLIFTER',
+      category: 'vfx',
+      tags: ['fx', 'downlifter'],
+      icon: 'auto_awesome',
+    },
+    {
+      id: 'loop-trap',
+      name: 'TRAP LOOP',
+      category: 'loop',
+      tags: ['loop', 'trap'],
+      icon: 'loop',
+    },
+    {
+      id: 'loop-rnb',
+      name: 'R&B LOOP',
+      category: 'loop',
+      tags: ['loop', 'rnb'],
+      icon: 'loop',
+    },
+    {
+      id: 'loop-house',
+      name: 'HOUSE LOOP',
+      category: 'loop',
+      tags: ['loop', 'house'],
+      icon: 'loop',
+    },
   ];
 
   categories = computed<LibraryCategory[]>(() => {
@@ -70,15 +202,55 @@ export class SampleLibraryComponent implements OnInit {
       counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
     }
     return [
-      { id: 'all',    label: 'All',     icon: 'grid_view',   count: counts.get('all') ?? 0 },
-      { id: 'drum',   label: 'Drums',   icon: 'drum',        count: counts.get('drum') ?? 0 },
-      { id: 'bass',   label: 'Bass',    icon: 'waves',       count: counts.get('bass') ?? 0 },
-      { id: 'keys',   label: 'Keys',    icon: 'piano',       count: counts.get('keys') ?? 0 },
-      { id: 'lead',   label: 'Leads',   icon: 'graphic_eq',  count: counts.get('lead') ?? 0 },
-      { id: 'pad',    label: 'Pads',    icon: 'layers',      count: counts.get('pad')  ?? 0 },
-      { id: 'vox',    label: 'Vox',     icon: 'mic',         count: counts.get('vox')  ?? 0 },
-      { id: 'vfx',    label: 'FX',      icon: 'auto_awesome',count: counts.get('vfx')  ?? 0 },
-      { id: 'loop',   label: 'Loops',   icon: 'loop',        count: counts.get('loop') ?? 0 },
+      {
+        id: 'all',
+        label: 'All',
+        icon: 'grid_view',
+        count: counts.get('all') ?? 0,
+      },
+      {
+        id: 'drum',
+        label: 'Drums',
+        icon: 'drum',
+        count: counts.get('drum') ?? 0,
+      },
+      {
+        id: 'bass',
+        label: 'Bass',
+        icon: 'waves',
+        count: counts.get('bass') ?? 0,
+      },
+      {
+        id: 'keys',
+        label: 'Keys',
+        icon: 'piano',
+        count: counts.get('keys') ?? 0,
+      },
+      {
+        id: 'lead',
+        label: 'Leads',
+        icon: 'graphic_eq',
+        count: counts.get('lead') ?? 0,
+      },
+      {
+        id: 'pad',
+        label: 'Pads',
+        icon: 'layers',
+        count: counts.get('pad') ?? 0,
+      },
+      { id: 'vox', label: 'Vox', icon: 'mic', count: counts.get('vox') ?? 0 },
+      {
+        id: 'vfx',
+        label: 'FX',
+        icon: 'auto_awesome',
+        count: counts.get('vfx') ?? 0,
+      },
+      {
+        id: 'loop',
+        label: 'Loops',
+        icon: 'loop',
+        count: counts.get('loop') ?? 0,
+      },
     ];
   });
 
@@ -108,12 +280,16 @@ export class SampleLibraryComponent implements OnInit {
   // ── Drag-to-track ────────────────────────────────────
   onDragStart(event: DragEvent, sampleId: string, name: string): void {
     this.dragSampleId.set(sampleId);
-    event.dataTransfer?.setData('application/smuve-sample', JSON.stringify({ id: sampleId, name }));
+    event.dataTransfer?.setData(
+      'application/smuve-sample',
+      JSON.stringify({ id: sampleId, name })
+    );
     event.dataTransfer!.effectAllowed = 'copy';
     if (event.dataTransfer?.setDragImage) {
       const el = document.createElement('div');
       el.textContent = name;
-      el.style.cssText = 'position:fixed;top:-100px;padding:8px 14px;background:var(--teal-500);color:#fff;border-radius:8px;font-size:11px;font-weight:800;pointer-events:none';
+      el.style.cssText =
+        'position:fixed;top:-100px;padding:8px 14px;background:var(--teal-500);color:#fff;border-radius:8px;font-size:11px;font-weight:800;pointer-events:none';
       document.body.appendChild(el);
       event.dataTransfer.setDragImage(el, 0, 0);
       setTimeout(() => el.remove(), 0);

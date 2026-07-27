@@ -2,21 +2,47 @@ import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ArtistDevelopmentService, ProRegistration, WorkRegistration, DspAnalytics, SocialAccount, DigitalFingerprint } from '../../services/artist-development.service';
-import { ReleaseProject, ProductionTrack, ReleaseType } from '../../types/release.types';
+import {
+  ArtistDevelopmentService,
+  ProRegistration,
+  WorkRegistration,
+  DspAnalytics,
+  SocialAccount,
+  DigitalFingerprint,
+} from '../../services/artist-development.service';
+import {
+  ReleaseProject,
+  ProductionTrack,
+  ReleaseType,
+} from '../../types/release.types';
 
 @Component({
   selector: 'app-artist-development-hub',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './artist-development-hub.component.html',
-  styles: [`
-    :host { display: block; background: #020617; min-height: 100vh; }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.2); border-radius: 2px; }
-    .score-ring { transition: stroke-dashoffset 1s ease; }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+        background: #020617;
+        min-height: 100vh;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(168, 85, 247, 0.2);
+        border-radius: 2px;
+      }
+      .score-ring {
+        transition: stroke-dashoffset 1s ease;
+      }
+    `,
+  ],
 })
 export class ArtistDevelopmentHubComponent implements OnInit {
   private dev = inject(ArtistDevelopmentService);
@@ -34,7 +60,10 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   // PRO form
   proForm = signal<Partial<ProRegistration>>({ organization: 'BMI' as any });
   showProForm = signal(false);
-  workForm = signal<Partial<WorkRegistration>>({ role: 'Writer' as any, sharePercentage: 100 });
+  workForm = signal<Partial<WorkRegistration>>({
+    role: 'Writer' as any,
+    sharePercentage: 100,
+  });
   showWorkForm = signal(false);
 
   // Social form
@@ -45,7 +74,9 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   readonly SOCIAL_PLATFORMS = this.dev.SOCIAL_PLATFORMS;
 
   // Computed
-  platformCount = computed(() => this.socialAccounts().filter(a => a.connected).length);
+  platformCount = computed(
+    () => this.socialAccounts().filter((a) => a.connected).length
+  );
   totalStreams = computed(() => this.dspAnalytics()?.totalStreams || 0);
   totalFollowers = computed(() => this.dspAnalytics()?.totalFollowers || 0);
   trustScore = computed(() => this.digitalFingerprint()?.trustScore || 0);
@@ -62,14 +93,24 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   showAddRelease = this.dev.showAddRelease;
   newReleaseForm = this.dev.newReleaseForm;
 
-  readonly organizationOptions = ['BMI', 'ASCAP', 'SESAC', 'SOCAN', 'PRS', 'GEMA', 'Other'] as const;
+  readonly organizationOptions = [
+    'BMI',
+    'ASCAP',
+    'SESAC',
+    'SOCAN',
+    'PRS',
+    'GEMA',
+    'Other',
+  ] as const;
 
   ngOnInit() {
     this.dev.loadAll();
     if (!this.dspAnalytics()) this.dev.generateDspAnalytics();
   }
 
-  setPanel(panel: 'fingerprint' | 'pro' | 'dsp' | 'social' | 'catalog' | 'release') {
+  setPanel(
+    panel: 'fingerprint' | 'pro' | 'dsp' | 'social' | 'catalog' | 'release'
+  ) {
     this.activePanel.set(this.activePanel() === panel ? null : panel);
   }
 
@@ -85,7 +126,8 @@ export class ArtistDevelopmentHubComponent implements OnInit {
       caeNumber: form.caeNumber || '',
       publisher: form.publisher || '',
       publisherIpi: form.publisherIpi || '',
-      registrationDate: form.registrationDate || new Date().toISOString().split('T')[0],
+      registrationDate:
+        form.registrationDate || new Date().toISOString().split('T')[0],
       status: form.status || 'active',
       territories: form.territories || ['Worldwide'],
     });
@@ -101,11 +143,14 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     const form = this.workForm();
     if (!form.title) return;
     this.dev.addWorkRegistration({
-      iswc: form.iswc || `T-${Math.random().toString(36).slice(2, 11).toUpperCase()}`,
+      iswc:
+        form.iswc ||
+        `T-${Math.random().toString(36).slice(2, 11).toUpperCase()}`,
       title: form.title || '',
-      role: form.role as any || 'Writer',
+      role: (form.role as any) || 'Writer',
       sharePercentage: form.sharePercentage || 100,
-      registrationDate: form.registrationDate || new Date().toISOString().split('T')[0],
+      registrationDate:
+        form.registrationDate || new Date().toISOString().split('T')[0],
       registeredWith: form.registeredWith || ['BMI'],
     });
     this.showWorkForm.set(false);
@@ -118,7 +163,12 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     const handle = this.socialHandleInput().trim();
     const url = this.socialUrlInput().trim();
     if (!handle) return;
-    this.dev.connectSocialAccount(index, handle, url || `https://${this.socialAccounts()[index].platform.toLowerCase().replace(/ /g, '')}.com/${handle}`);
+    this.dev.connectSocialAccount(
+      index,
+      handle,
+      url ||
+        `https://${this.socialAccounts()[index].platform.toLowerCase().replace(/ /g, '')}.com/${handle}`
+    );
     this.socialHandleInput.set('');
     this.socialUrlInput.set('');
     this.editingSocialIndex.set(null);
@@ -154,7 +204,16 @@ export class ArtistDevelopmentHubComponent implements OnInit {
       visualsUrl: form.visualsUrl || '',
     });
     this.showAddRelease.set(false);
-    this.newReleaseForm.set({ name: '', type: 'Single', description: '', status: 'Planning', tracks: [], credits: { artistName: '', collaborators: [] }, createdAt: Date.now(), updatedAt: Date.now() });
+    this.newReleaseForm.set({
+      name: '',
+      type: 'Single',
+      description: '',
+      status: 'Planning',
+      tracks: [],
+      credits: { artistName: '', collaborators: [] },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
   }
 
   selectRelease(id: string) {
@@ -170,40 +229,44 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   getReleaseStatusIcon(status: string): string {
     const icons: Record<string, string> = {
-      'Planning': 'edit_note',
-      'Production': 'music_note',
-      'Visuals': 'image',
-      'Admin': 'description',
-      'Distributing': 'cloud_upload',
-      'Released': 'check_circle',
+      Planning: 'edit_note',
+      Production: 'music_note',
+      Visuals: 'image',
+      Admin: 'description',
+      Distributing: 'cloud_upload',
+      Released: 'check_circle',
     };
     return icons[status] || 'help_outline';
   }
 
   getReleaseStatusColor(status: string): string {
     const colors: Record<string, string> = {
-      'Planning': 'text-amber-400',
-      'Production': 'text-brand-primary',
-      'Visuals': 'text-violet-400',
-      'Admin': 'text-slate-400',
-      'Distributing': 'text-cyan-400',
-      'Released': 'text-emerald-400',
+      Planning: 'text-amber-400',
+      Production: 'text-brand-primary',
+      Visuals: 'text-violet-400',
+      Admin: 'text-slate-400',
+      Distributing: 'text-cyan-400',
+      Released: 'text-emerald-400',
     };
     return colors[status] || 'text-slate-500';
   }
 
   getStageColor(stage: string): string {
     const colors: Record<string, string> = {
-      'Completed': 'bg-emerald-500',
+      Completed: 'bg-emerald-500',
       'In Progress': 'bg-amber-500',
-      'Pending': 'bg-slate-600',
+      Pending: 'bg-slate-600',
     };
     return colors[stage] || 'bg-slate-700';
   }
 
   updateTrackStage(releaseId: string, trackId: string, stage: string) {
-    const statuses: ('Pending' | 'In Progress' | 'Completed')[] = ['Pending', 'In Progress', 'Completed'];
-    const track = this.selectedRelease()?.tracks.find(t => t.id === trackId);
+    const statuses: ('Pending' | 'In Progress' | 'Completed')[] = [
+      'Pending',
+      'In Progress',
+      'Completed',
+    ];
+    const track = this.selectedRelease()?.tracks.find((t) => t.id === trackId);
     if (!track) return;
     const currentIdx = statuses.indexOf(track.stages[stage]);
     const nextStatus = statuses[(currentIdx + 1) % statuses.length];
@@ -234,7 +297,11 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   formatDate(d: string): string {
     if (!d || d === 'N/A') return 'N/A';
-    try { return new Date(d).toLocaleDateString(); } catch { return d; }
+    try {
+      return new Date(d).toLocaleDateString();
+    } catch {
+      return d;
+    }
   }
 
   // Expose Math for template usage

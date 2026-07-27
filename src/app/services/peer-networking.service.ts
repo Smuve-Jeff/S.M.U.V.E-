@@ -13,7 +13,9 @@ export class PeerNetworkingService {
 
   remoteStream = signal<MediaStream | null>(null);
   isCallActive = signal(false);
-  callState = signal<'idle' | 'calling' | 'ringing' | 'connected' | 'failed'>('idle');
+  callState = signal<'idle' | 'calling' | 'ringing' | 'connected' | 'failed'>(
+    'idle'
+  );
   isKnocking = signal(false);
   knockFromUserId = signal<string | null>(null);
   micPermissionDenied = signal(false);
@@ -45,7 +47,10 @@ export class PeerNetworkingService {
         await this.peerConnection!.setLocalDescription(offer);
         this.social.sendVoiceSignal(fromUserId, { offer });
       } catch (err) {
-        console.error('[Peer] Failed to create offer after knock accepted', err);
+        console.error(
+          '[Peer] Failed to create offer after knock accepted',
+          err
+        );
         this.callState.set('failed');
       }
       return;
@@ -103,7 +108,9 @@ export class PeerNetworkingService {
   private async flushPendingCandidates() {
     for (const candidate of this.pendingCandidates) {
       try {
-        await this.peerConnection?.addIceCandidate(new RTCIceCandidate(candidate));
+        await this.peerConnection?.addIceCandidate(
+          new RTCIceCandidate(candidate)
+        );
       } catch (err) {
         console.warn('[Peer] Failed to add queued ICE candidate', err);
       }
@@ -156,7 +163,11 @@ export class PeerNetworkingService {
       const state = this.peerConnection?.connectionState;
       if (state === 'connected') {
         this.callState.set('connected');
-      } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+      } else if (
+        state === 'disconnected' ||
+        state === 'failed' ||
+        state === 'closed'
+      ) {
         this.callState.set('failed');
         // Auto-cleanup on failure
         if (state === 'failed' || state === 'closed') {
@@ -219,7 +230,9 @@ export class PeerNetworkingService {
   toggleMute(): void {
     const next = !this.isMuted();
     this.isMuted.set(next);
-    this.localStream?.getAudioTracks().forEach(t => { t.enabled = !next; });
+    this.localStream?.getAudioTracks().forEach((t) => {
+      t.enabled = !next;
+    });
     if (next) this.voiceActivityLevel.set(0);
   }
 
@@ -229,7 +242,10 @@ export class PeerNetworkingService {
   }
 
   endCall() {
-    if (this.activityInterval) { clearInterval(this.activityInterval); this.activityInterval = null; }
+    if (this.activityInterval) {
+      clearInterval(this.activityInterval);
+      this.activityInterval = null;
+    }
     this.analyserNode = null;
     this.voiceActivityLevel.set(0);
     this.peerConnection?.close();

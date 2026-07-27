@@ -9,16 +9,17 @@ import { signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+import {
+  createMockHapticService,
+  createMockAudioSession,
+  createMockAudioEngine,
+} from '../../testing/mocks/hardware.mock';
+
 describe('DrumMachineComponent', () => {
   let component: DrumMachineComponent;
   let fixture: ComponentFixture<DrumMachineComponent>;
 
-  const mockAudioSession = {
-    isPlaying: signal(false),
-    isRecording: signal(false),
-    togglePlay: jest.fn(),
-    toggleRecord: jest.fn(),
-  };
+  const mockAudioSession = createMockAudioSession();
 
   const mockMusicManager = {
     tracks: signal([
@@ -52,19 +53,8 @@ describe('DrumMachineComponent', () => {
     }),
   };
 
-  const mockAudioEngine = {
-    tempo: signal(124),
-    visualStep: signal(0),
-    ctx: { currentTime: 0, decodeAudioData: jest.fn() },
-    triggerAttack: jest.fn(),
-    triggerSampler: jest.fn(),
-  };
-
-  const mockHaptic = {
-    light: jest.fn(),
-    medium: jest.fn(),
-    impact: jest.fn(),
-  };
+  const mockAudioEngine = createMockAudioEngine();
+  const mockHaptic = createMockHapticService();
 
   const mockAiService = {
     generateStrategicDecree: jest.fn(),

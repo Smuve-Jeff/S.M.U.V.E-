@@ -6,10 +6,15 @@
 <section class="arv-shell" aria-label="Audio recorder view">
   <header class="arv-header">
     <div class="arv-title">
-      <span class="material-symbols-outlined arv-title-icon">mic_external_on</span>
+      <span class="material-symbols-outlined arv-title-icon"
+        >mic_external_on</span
+      >
       <div>
         <h2 class="arv-h2">Live Capture</h2>
-        <p class="arv-sub">Record microphone or instrument input. Tag-stamped takes save straight to your takes folder.</p>
+        <p class="arv-sub">
+          Record microphone or instrument input. Tag-stamped takes save straight
+          to your takes folder.
+        </p>
       </div>
     </div>
     <div class="arv-kpis" role="status">
@@ -22,15 +27,33 @@
   <div class="arv-meter-strip" aria-label="Input level">
     <div class="arv-meter-channel">
       <span class="arv-meter-label">IN L</span>
-      <div class="arv-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" [attr.aria-valuenow]="inputLevel()">
-        <div class="arv-meter-fill arv-meter-fill-l" [style.width.%]="levelToPct(inputLevel())"></div>
+      <div
+        class="arv-meter-bar"
+        role="meter"
+        aria-valuemin="-60"
+        aria-valuemax="0"
+        [attr.aria-valuenow]="inputLevel()"
+      >
+        <div
+          class="arv-meter-fill arv-meter-fill-l"
+          [style.width.%]="levelToPct(inputLevel())"
+        ></div>
       </div>
       <span class="arv-meter-db">{{ inputLevel() }} dB</span>
     </div>
     <div class="arv-meter-channel">
       <span class="arv-meter-label">IN R</span>
-      <div class="arv-meter-bar" role="meter" aria-valuemin="-60" aria-valuemax="0" [attr.aria-valuenow]="inputLevel()">
-        <div class="arv-meter-fill arv-meter-fill-r" [style.width.%]="levelToPct(inputLevel())"></div>
+      <div
+        class="arv-meter-bar"
+        role="meter"
+        aria-valuemin="-60"
+        aria-valuemax="0"
+        [attr.aria-valuenow]="inputLevel()"
+      >
+        <div
+          class="arv-meter-fill arv-meter-fill-r"
+          [style.width.%]="levelToPct(inputLevel())"
+        ></div>
       </div>
       <span class="arv-meter-db">{{ inputLevel() }} dB</span>
     </div>
@@ -42,7 +65,12 @@
   <!-- WAVEFORM VISUALIZER (during recording) -->
   @if (isRecording()) {
     <div class="arv-waveform" aria-hidden="true">
-      <canvas #waveformCanvas class="arv-waveform-canvas" width="800" height="80"></canvas>
+      <canvas
+        #waveformCanvas
+        class="arv-waveform-canvas"
+        width="800"
+        height="80"
+      ></canvas>
     </div>
   }
 
@@ -80,7 +108,10 @@
     </div>
 
     <!-- Monitoring & Noise Gate Controls -->
-    <div class="arv-controls-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+    <div
+      class="arv-controls-row"
+      style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px"
+    >
       <button
         type="button"
         class="arv-control-btn"
@@ -88,9 +119,27 @@
         (click)="toggleMonitoring()"
         [attr.aria-pressed]="monitoringEnabled()"
         aria-label="Toggle live monitoring - hear yourself while recording"
-        style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--espresso-muted); min-height: 40px; transition: all 0.15s;"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          cursor: pointer;
+          border: 1px solid var(--ivory-line);
+          background: var(--ivory-paper);
+          color: var(--espresso-muted);
+          min-height: 40px;
+          transition: all 0.15s;
+        "
       >
-        <span class="material-symbols-outlined" style="font-size: 16px;">{{ monitoringEnabled() ? 'hearing' : 'hearing_disabled' }}</span>
+        <span class="material-symbols-outlined" style="font-size: 16px">{{
+          monitoringEnabled() ? 'hearing' : 'hearing_disabled'
+        }}</span>
         {{ monitoringEnabled() ? 'MONITOR ON' : 'MONITOR' }}
       </button>
       <button
@@ -100,13 +149,45 @@
         (click)="toggleNoiseGate()"
         [attr.aria-pressed]="noiseGateEnabled()"
         aria-label="Toggle noise gate - filter out background noise"
-        style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--espresso-muted); min-height: 40px; transition: all 0.15s;"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          cursor: pointer;
+          border: 1px solid var(--ivory-line);
+          background: var(--ivory-paper);
+          color: var(--espresso-muted);
+          min-height: 40px;
+          transition: all 0.15s;
+        "
       >
-        <span class="material-symbols-outlined" style="font-size: 16px;">noise_aware</span>
+        <span class="material-symbols-outlined" style="font-size: 16px"
+          >noise_aware</span
+        >
         {{ noiseGateEnabled() ? 'GATE ON' : 'NOISE GATE' }}
       </button>
-      <div *ngIf="noiseGateEnabled()" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--ivory-paper); border: 1px solid var(--ivory-line);">
-        <span style="font-size: 9px; font-weight: 700; color: var(--espresso-muted);">THRESH</span>
+      <div
+        *ngIf="noiseGateEnabled()"
+        style="
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 8px;
+          background: var(--ivory-paper);
+          border: 1px solid var(--ivory-line);
+        "
+      >
+        <span
+          style="font-size: 9px; font-weight: 700; color: var(--espresso-muted)"
+          >THRESH</span
+        >
         <input
           type="range"
           min="-80"
@@ -114,10 +195,20 @@
           step="1"
           [ngModel]="noiseGateThreshold()"
           (ngModelChange)="setNoiseGateThreshold($event)"
-          style="width: 80px; accent-color: var(--teal-500);"
-          [attr.aria-label]="'Noise gate threshold ' + noiseGateThreshold() + ' dB'"
+          style="width: 80px; accent-color: var(--teal-500)"
+          [attr.aria-label]="
+            'Noise gate threshold ' + noiseGateThreshold() + ' dB'
+          "
         />
-        <span style="font-size: 9px; font-weight: 800; color: var(--teal-500); font-family: var(--font-mono);">{{ noiseGateThreshold() }}dB</span>
+        <span
+          style="
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--teal-500);
+            font-family: var(--font-mono);
+          "
+          >{{ noiseGateThreshold() }}dB</span
+        >
       </div>
     </div>
   </div>
@@ -128,7 +219,10 @@
       <span class="material-symbols-outlined">mic_off</span>
       <div class="arv-banner-text">
         <strong>Microphone access blocked.</strong>
-        <small>Enable mic permission in your browser settings, then tap REC again.</small>
+        <small
+          >Enable mic permission in your browser settings, then tap REC
+          again.</small
+        >
       </div>
     </div>
   </div>
@@ -137,7 +231,11 @@
   <div class="arv-bank">
     <header class="arv-bank-head">
       <span class="arv-bank-title">Recording Bank</span>
-      <span class="arv-bank-count">{{ recordings().length }} take{{ recordings().length === 1 ? '' : 's' }}</span>
+      <span class="arv-bank-count"
+        >{{ recordings().length }} take{{
+          recordings().length === 1 ? '' : 's'
+        }}</span
+      >
     </header>
 
     <ul class="arv-list" *ngIf="recordings().length; else empty">
@@ -147,8 +245,17 @@
         </div>
         <div class="arv-row-main">
           <!-- Renameable name -->
-          <div *ngIf="renamingId() !== rec.id" class="arv-row-name" (dblclick)="startRename(rec)">{{ rec.name }}</div>
-          <div *ngIf="renamingId() === rec.id" style="display: flex; gap: 4px; align-items: center;">
+          <div
+            *ngIf="renamingId() !== rec.id"
+            class="arv-row-name"
+            (dblclick)="startRename(rec)"
+          >
+            {{ rec.name }}
+          </div>
+          <div
+            *ngIf="renamingId() === rec.id"
+            style="display: flex; gap: 4px; align-items: center"
+          >
             <input
               type="text"
               [ngModel]="renameValue()"
@@ -156,12 +263,35 @@
               (keydown.enter)="confirmRename()"
               (keydown.escape)="cancelRename()"
               class="arv-rename-input"
-              style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--teal-500); background: var(--ivory-deep); color: var(--espresso-text); font-size: 12px; font-weight: 700; width: 120px;"
+              style="
+                padding: 4px 8px;
+                border-radius: 6px;
+                border: 1px solid var(--teal-500);
+                background: var(--ivory-deep);
+                color: var(--espresso-text);
+                font-size: 12px;
+                font-weight: 700;
+                width: 120px;
+              "
               autofocus
             />
-            <button type="button" (click)="confirmRename()" style="background: none; border: none; color: var(--teal-500); cursor: pointer; font-size: 14px;">✓</button>
+            <button
+              type="button"
+              (click)="confirmRename()"
+              style="
+                background: none;
+                border: none;
+                color: var(--teal-500);
+                cursor: pointer;
+                font-size: 14px;
+              "
+            >
+              ✓
+            </button>
           </div>
-          <div class="arv-row-meta">{{ formatRecordedAt(rec.timestamp) }} · double-click name to rename</div>
+          <div class="arv-row-meta">
+            {{ formatRecordedAt(rec.timestamp) }} · double-click name to rename
+          </div>
         </div>
         <audio
           *ngIf="rec.url"
@@ -177,9 +307,23 @@
           (click)="exportToArrangement(rec)"
           [attr.aria-label]="'Export ' + rec.name + ' to arrangement'"
           title="Add to arrangement as audio track"
-          style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--teal-500); cursor: pointer; transition: all 0.15s;"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--ivory-line);
+            background: var(--ivory-paper);
+            color: var(--teal-500);
+            cursor: pointer;
+            transition: all 0.15s;
+          "
         >
-          <span class="material-symbols-outlined" style="font-size: 18px;">library_music</span>
+          <span class="material-symbols-outlined" style="font-size: 18px"
+            >library_music</span
+          >
         </button>
         <button
           type="button"
@@ -194,18 +338,32 @@
 
     <ng-template #empty>
       <div class="arv-empty">
-        <span class="material-symbols-outlined" aria-hidden="true">mic_none</span>
-        <p>No takes yet. Tap <strong>REC</strong> when you're ready to capture.</p>
+        <span class="material-symbols-outlined" aria-hidden="true"
+          >mic_none</span
+        >
+        <p>
+          No takes yet. Tap <strong>REC</strong> when you're ready to capture.
+        </p>
       </div>
     </ng-template>
   </div>
 
   <!-- ════════════ PRO: TAKE MANAGER (multi-take comping) ════════════ -->
-  <section class="arv-takes-manager" *ngIf="recordings().length > 0 || takes().length > 0" aria-label="Take manager">
+  <section
+    class="arv-takes-manager"
+    *ngIf="recordings().length > 0 || takes().length > 0"
+    aria-label="Take manager"
+  >
     <div class="arv-takes-header">
-      <span class="material-symbols-outlined" style="color: var(--teal-500);">layers</span>
+      <span class="material-symbols-outlined" style="color: var(--teal-500)"
+        >layers</span
+      >
       <h3 class="arv-takes-title">Take Manager</h3>
-      <span class="arv-takes-count">{{ takes().length }} active take{{ takes().length === 1 ? '' : 's' }}</span>
+      <span class="arv-takes-count"
+        >{{ takes().length }} active take{{
+          takes().length === 1 ? '' : 's'
+        }}</span
+      >
       <div class="arv-takes-controls">
         <button
           type="button"
@@ -243,7 +401,9 @@
           [attr.aria-label]="'Activate take ' + (i + 1)"
           [title]="t.isActive ? 'Active take' : 'Click to activate'"
         >
-          <span class="material-symbols-outlined">{{ t.isActive ? 'radio_button_checked' : 'radio_button_unchecked' }}</span>
+          <span class="material-symbols-outlined">{{
+            t.isActive ? 'radio_button_checked' : 'radio_button_unchecked'
+          }}</span>
         </button>
         <div class="arv-take-meta">
           <span class="arv-take-name">{{ t.name }}</span>
@@ -257,7 +417,9 @@
           [attr.aria-label]="(takeMuted()[t.id] ? 'Unmute ' : 'Mute ') + t.name"
           [title]="takeMuted()[t.id] ? 'Unmute' : 'Mute'"
         >
-          <span class="material-symbols-outlined">{{ takeMuted()[t.id] ? 'volume_off' : 'volume_up' }}</span>
+          <span class="material-symbols-outlined">{{
+            takeMuted()[t.id] ? 'volume_off' : 'volume_up'
+          }}</span>
         </button>
         <button
           type="button"
@@ -274,7 +436,10 @@
     <ng-template #noTakes>
       <div class="arv-takes-empty">
         <span class="material-symbols-outlined">mic_none</span>
-        <p>Tap <strong>Promote Take</strong> to add multi-take comping for this session.</p>
+        <p>
+          Tap <strong>Promote Take</strong> to add multi-take comping for this
+          session.
+        </p>
       </div>
     </ng-template>
   </section>
@@ -283,7 +448,10 @@
   <footer class="arv-foot">
     <div class="arv-hint">
       <span class="material-symbols-outlined">tips_and_updates</span>
-      <span>Tap once to start, tap again to stop. Recordings persist offline automatically.</span>
+      <span
+        >Tap once to start, tap again to stop. Recordings persist offline
+        automatically.</span
+      >
     </div>
   </footer>
 </section>

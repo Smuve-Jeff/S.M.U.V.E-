@@ -16,26 +16,26 @@ import { HapticService } from './haptic.service';
  */
 
 export type MissionType =
-  | 'play_count'      // launch N games (any)
-  | 'win_count'       // complete N games with a 'win' outcome
-  | 'genre_explore'   // play a game from a specific genre
-  | 'favorite_count'  // favorite N games
+  | 'play_count' // launch N games (any)
+  | 'win_count' // complete N games with a 'win' outcome
+  | 'genre_explore' // play a game from a specific genre
+  | 'favorite_count' // favorite N games
   | 'session_minutes' // spend N minutes playing
-  | 'multiplayer'     // join N multiplayer/cabinet/cabinet rooms
-  | 'challenge_send'  // send N rival challenges
-  | 'high_score';     // beat previous high score on a game
+  | 'multiplayer' // join N multiplayer/cabinet/cabinet rooms
+  | 'challenge_send' // send N rival challenges
+  | 'high_score'; // beat previous high score on a game
 
 export interface DailyMission {
   id: string;
   title: string;
   description: string;
-  glyph: string;            // emoji / icon hint
+  glyph: string; // emoji / icon hint
   type: MissionType;
-  target: number;           // progress target
-  progress: number;         // current progress
-  rewardXp: number;         // awarded XP (decorative — totals surface in UI)
-  rewardBadge: string;      // badge symbol awarded
-  progressLabel: string;    // e.g. "2 / 5"
+  target: number; // progress target
+  progress: number; // current progress
+  rewardXp: number; // awarded XP (decorative — totals surface in UI)
+  rewardBadge: string; // badge symbol awarded
+  progressLabel: string; // e.g. "2 / 5"
   /** Optional sub-target (genre name, game id, etc.) */
   hint?: string;
   expiresAt: number;
@@ -43,7 +43,7 @@ export interface DailyMission {
 }
 
 interface DailyMissionsState {
-  dateKey: string;            // 'YYYY-MM-DD' of roll-over
+  dateKey: string; // 'YYYY-MM-DD' of roll-over
   missions: DailyMission[];
   totalCompletedToday: number;
 }
@@ -58,7 +58,10 @@ const STORAGE_KEY = 'smuve_daily_missions_v1';
 const STREAK_KEY = 'smuve_daily_mission_streak_v1';
 
 // 8-mission pool (deterministic pick by date => 3 missions per day = 56 unique daily sets)
-const MISSION_POOL: Omit<DailyMission, 'id' | 'progress' | 'progressLabel' | 'expiresAt' | 'claimed'>[] = [
+const MISSION_POOL: Omit<
+  DailyMission,
+  'id' | 'progress' | 'progressLabel' | 'expiresAt' | 'claimed'
+>[] = [
   {
     title: 'Game On',
     description: 'Launch any 3 games today',
@@ -145,13 +148,14 @@ function pickThree(seed: string): typeof MISSION_POOL {
   // Simple deterministic shuffle by date string
   const indices = Array.from({ length: MISSION_POOL.length }, (_, i) => i);
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  for (let i = 0; i < seed.length; i++)
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
   for (let i = indices.length - 1; i > 0; i--) {
     h = ((h << 5) - h + seed.charCodeAt(i % seed.length)) | 0;
     const j = Math.abs(h) % (i + 1);
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-  return indices.slice(0, 3).map(i => MISSION_POOL[i]);
+  return indices.slice(0, 3).map((i) => MISSION_POOL[i]);
 }
 
 @Injectable({ providedIn: 'root' })
@@ -161,11 +165,18 @@ export class DailyMissionsService {
 
   // ── Signals ──
   readonly missions = signal<DailyMission[]>([]);
-  readonly streak = signal<StreakState>({ streak: 0, bestStreak: 0, lastCompletedDate: null });
-  readonly totalCompletedToday = computed(() =>
-    this.missions().filter(m => m.progress >= m.target && m.claimed).length
+  readonly streak = signal<StreakState>({
+    streak: 0,
+    bestStreak: 0,
+    lastCompletedDate: null,
+  });
+  readonly totalCompletedToday = computed(
+    () =>
+      this.missions().filter((m) => m.progress >= m.target && m.claimed).length
   );
-  readonly allComplete = computed(() => this.missions().length > 0 && this.missions().every(m => m.claimed));
+  readonly allComplete = computed(
+    () => this.missions().length > 0 && this.missions().every((m) => m.claimed)
+  );
 
   constructor() {
     this.refreshIfNewDay();
@@ -175,7 +186,7 @@ export class DailyMissionsService {
   recordProgress(type: MissionType, delta = 1, hint?: string): void {
     this.refreshIfNewDay();
     let dirty = false;
-    const updated = this.missions().map(m => {
+    const updated = this.missions().map((m) => {
       if (m.type !== type) return m;
       // hint filter: if mission has a hint and event hint doesn't match, skip
       if (m.hint && hint && m.hint !== hint) return m;
@@ -187,10 +198,13 @@ export class DailyMissionsService {
     this.missions.set(updated);
     this.persist();
     // Detect newly reached completion
-    updated.forEach(m => {
-      const before = this.missions().find(x => x.id === m.id);
+    updated.forEach((m) => {
+      const before = this.missions().find((x) => x.id === m.id);
       if (before && before.progress < before.target && m.progress >= m.target) {
-        this.notify.show(`🎯 Mission ready: ${m.title} — claim your reward!`, 'success');
+        this.notify.show(
+          `🎯 Mission ready: ${m.title} — claim your reward!`,
+          'success'
+        );
         this.haptic.medium();
       }
     });
@@ -203,16 +217,19 @@ export class DailyMissionsService {
   }
 
   claimReward(missionId: string): boolean {
-    const mission = this.missions().find(m => m.id === missionId);
+    const mission = this.missions().find((m) => m.id === missionId);
     if (!mission) return false;
     if (mission.claimed) return false;
     if (mission.progress < mission.target) return false;
-    const updated = this.missions().map(m =>
+    const updated = this.missions().map((m) =>
       m.id === missionId ? { ...m, claimed: true } : m
     );
     this.missions.set(updated);
     this.persist();
-    this.notify.show(`🎁 +${mission.rewardXp} XP · Badge ${mission.rewardBadge} unlocked`, 'success');
+    this.notify.show(
+      `🎁 +${mission.rewardXp} XP · Badge ${mission.rewardBadge} unlocked`,
+      'success'
+    );
     this.haptic.heavy();
     this.updateStreak();
     return true;
@@ -223,7 +240,7 @@ export class DailyMissionsService {
     const ms = this.missions();
     return {
       total: ms.length,
-      done: ms.filter(m => m.claimed).length,
+      done: ms.filter((m) => m.claimed).length,
       streak: this.streak().streak,
       best: this.streak().bestStreak,
     };
@@ -255,7 +272,7 @@ export class DailyMissionsService {
   }
 
   private updateStreak(): void {
-    const all = this.missions().every(m => m.claimed);
+    const all = this.missions().every((m) => m.claimed);
     if (!all) return;
     const today = dateKey();
     const cur = this.streak();
@@ -269,7 +286,9 @@ export class DailyMissionsService {
       lastCompletedDate: today,
     };
     this.streak.set(ns);
-    try { localStorage.setItem(STREAK_KEY, JSON.stringify(ns)); } catch {}
+    try {
+      localStorage.setItem(STREAK_KEY, JSON.stringify(ns));
+    } catch {}
     this.notify.show(`🔥 ${newStreak}-day streak · keep it going!`, 'success');
   }
 
@@ -281,15 +300,25 @@ export class DailyMissionsService {
 
   private loadState(): DailyMissionsState | null {
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      const raw =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem(STORAGE_KEY)
+          : null;
       return raw ? (JSON.parse(raw) as DailyMissionsState) : null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   }
 
   private loadStreak(): StreakState {
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STREAK_KEY) : null;
-      return raw ? JSON.parse(raw) : { streak: 0, bestStreak: 0, lastCompletedDate: null };
+      const raw =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem(STREAK_KEY)
+          : null;
+      return raw
+        ? JSON.parse(raw)
+        : { streak: 0, bestStreak: 0, lastCompletedDate: null };
     } catch {
       return { streak: 0, bestStreak: 0, lastCompletedDate: null };
     }

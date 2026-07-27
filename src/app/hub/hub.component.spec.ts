@@ -161,13 +161,13 @@ describe('HubComponent', () => {
     expect(component.homeBackdropMedia).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Production Suite',
-          title: 'Studio performance view',
+          label: 'The Booth',
+          title: 'Studio live view',
           layoutClass: 'panel-studio',
         }),
         expect.objectContaining({
-          label: 'Executive Layout',
-          title: 'Command surface overview',
+          label: 'Label Desk',
+          title: 'Executive command surface',
           layoutClass: 'panel-command',
         }),
       ])
@@ -195,11 +195,11 @@ describe('HubComponent', () => {
 
     // Check for specialized modules by looking for unique text or material icons
     const text = nativeElement.textContent || '';
-    expect(text).toContain('Roster Intelligence Brief');
-    expect(text).toContain('Tour Trajectory');
-    expect(text).toContain('Tha Spot');
-    expect(text).toContain('CinemaEngine');
-    expect(text).toContain('The Stage');
+    expect(text).toContain('Roster Status');
+    expect(text).toContain('Chart Trajectory');
+    expect(text).toContain('After Hours');
+    expect(text).toContain('Visual Suite');
+    expect(text).toContain('The Booth');
 
     // Check for upload button (pill-action)
     expect(nativeElement.querySelector('.pill-action')).not.toBeNull();

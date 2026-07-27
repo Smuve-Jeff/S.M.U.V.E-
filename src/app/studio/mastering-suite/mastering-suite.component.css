@@ -7,7 +7,7 @@
 :host {
   display: block;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-deep, #06091a);
   color: var(--espresso-text);
   font-family: var(--font-sans);
   overflow: auto;
@@ -213,7 +213,13 @@
 
 .ms-output-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--neon-mint) 0%, var(--teal-500) 70%, var(--neon-amber) 90%, var(--record) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--neon-mint) 0%,
+    var(--teal-500) 70%,
+    var(--neon-amber) 90%,
+    var(--record) 100%
+  );
   border-radius: 5px;
   transition: width 0.06s ease;
 }
@@ -249,22 +255,22 @@
 }
 
 :host-context(.dark-mode) .ms-preset-chip {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .ms-control-block {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .ms-spectrum {
-  background: #06091A;
+  background: #06091a;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .ms-output-meter {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -278,11 +284,26 @@
 
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
-  .mastering-suite-container { padding: 1rem; gap: 1rem; }
-  .ms-controls { grid-template-columns: 1fr; }
-  .ms-spectrum { min-height: 120px; }
-  canvas { height: 120px !important; }
+  .mastering-suite-container {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .ms-controls {
+    grid-template-columns: 1fr;
+  }
+  .ms-spectrum {
+    min-height: 120px;
+  }
+  canvas {
+    height: 120px !important;
+  }
 
-  :host input[type='range'] { min-height: 44px; }
-  :host button { min-height: 44px; padding-left: 1.25rem; padding-right: 1.25rem; }
+  :host input[type='range'] {
+    min-height: 44px;
+  }
+  :host button {
+    min-height: 44px;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
 }

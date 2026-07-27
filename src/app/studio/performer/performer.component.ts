@@ -1,4 +1,11 @@
-import { Component, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AudioSessionService } from '../audio-session.service';
@@ -142,9 +149,11 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.midiSubs.add(
       this.midiService.performerCC.subscribe((ev) => {
         // Check custom performer CC mappings first
-        const customMap = this.midiService.performerCCMap().find(
-          (m) => m.controller === ev.controller && m.channel === ev.channel
-        );
+        const customMap = this.midiService
+          .performerCCMap()
+          .find(
+            (m) => m.controller === ev.controller && m.channel === ev.channel
+          );
         const target = customMap?.target ?? this.defaultCCTarget(ev.controller);
         this.applyCCTarget(target, ev.value);
       })
@@ -317,8 +326,14 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   private updatePadXY(event: PointerEvent, padEl: HTMLElement): void {
     const rect = padEl.getBoundingClientRect();
-    const safeRect = { w: Math.max(1, rect.width), h: Math.max(1, rect.height) };
-    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / safeRect.w));
+    const safeRect = {
+      w: Math.max(1, rect.width),
+      h: Math.max(1, rect.height),
+    };
+    const x = Math.max(
+      0,
+      Math.min(1, (event.clientX - rect.left) / safeRect.w)
+    );
     const yRaw = (event.clientY - rect.top) / safeRect.h;
     // Y on-screen = (clientY - top) / h → 0 at top, 1 at bottom.
     // Map to engine Y: top of pad = 1 (max), bottom = 0 (min). Invert.
@@ -481,18 +496,29 @@ export class PerformerComponent implements OnDestroy, OnInit {
   // ── MIDI CC routing helpers ──────────────────────────
   private defaultCCTarget(controller: number): string {
     switch (controller) {
-      case 1: return 'modulation';
-      case 7: return 'volume';
-      case 10: return 'pan';
-      default: return 'none';
+      case 1:
+        return 'modulation';
+      case 7:
+        return 'volume';
+      case 10:
+        return 'pan';
+      default:
+        return 'none';
     }
   }
 
   private applyCCTarget(target: string, value: number): void {
     switch (target) {
-      case 'modulation': this.modWheel.set(value); this.liveEngine.setModWheel(value); break;
-      case 'volume': this.updateTrackVolume(value * 100); break;
-      case 'pan': this.updateTrackPan((value - 0.5) * 200); break;
+      case 'modulation':
+        this.modWheel.set(value);
+        this.liveEngine.setModWheel(value);
+        break;
+      case 'volume':
+        this.updateTrackVolume(value * 100);
+        break;
+      case 'pan':
+        this.updateTrackPan((value - 0.5) * 200);
+        break;
     }
   }
 
@@ -507,7 +533,9 @@ export class PerformerComponent implements OnDestroy, OnInit {
   }
 
   getCCMappingLabel(target: string): string {
-    const mapping = this.midiService.performerCCMap().find((m) => m.target === target);
+    const mapping = this.midiService
+      .performerCCMap()
+      .find((m) => m.target === target);
     return mapping ? `CH${mapping.channel} CC${mapping.controller}` : '—';
   }
 
@@ -517,7 +545,9 @@ export class PerformerComponent implements OnDestroy, OnInit {
   }
 
   deletePerformerMapping(target: string): void {
-    this.midiService.performerCCMap.update((m) => m.filter((x) => x.target !== target));
+    this.midiService.performerCCMap.update((m) =>
+      m.filter((x) => x.target !== target)
+    );
     // Persist immediately
     if ((this.midiService as any).savePerformerCCMappings) {
       (this.midiService as any).savePerformerCCMappings();
@@ -534,14 +564,22 @@ export class PerformerComponent implements OnDestroy, OnInit {
   /** MIDI log helper */
   logTypeIcon(type: string): string {
     switch (type) {
-      case 'note_on': return '♪';
-      case 'note_off': return '♩';
-      case 'cc': return '🎛';
-      case 'clock': return '⏱';
-      case 'start': return '▶';
-      case 'stop': return '⏹';
-      case 'continue': return '⏩';
-      default: return '•';
+      case 'note_on':
+        return '♪';
+      case 'note_off':
+        return '♩';
+      case 'cc':
+        return '🎛';
+      case 'clock':
+        return '⏱';
+      case 'start':
+        return '▶';
+      case 'stop':
+        return '⏹';
+      case 'continue':
+        return '⏩';
+      default:
+        return '•';
     }
   }
 

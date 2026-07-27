@@ -21,16 +21,23 @@
       </div>
       <div class="perf-notebook" aria-live="polite">
         @if (midiService.connectedDevices().length) {
-          <button type="button" class="notebook-label midi-indicator"
-                  [class.midi-active]="midiService.midiActivityPulse()"
-                  (click)="toggleMidiPanel()"
-                  [attr.aria-expanded]="midiPanelOpen()"
-                  title="MIDI devices: {{ midiService.connectedDevices().join(', ') }}">
+          <button
+            type="button"
+            class="notebook-label midi-indicator"
+            [class.midi-active]="midiService.midiActivityPulse()"
+            (click)="toggleMidiPanel()"
+            [attr.aria-expanded]="midiPanelOpen()"
+            title="MIDI devices: {{
+              midiService.connectedDevices().join(', ')
+            }}"
+          >
             🎹 MIDI
           </button>
         }
         <span class="notebook-stream">
-          <span *ngFor="let note of performanceLog()" class="notebook-note">{{ note }}</span>
+          <span *ngFor="let note of performanceLog()" class="notebook-note">{{
+            note
+          }}</span>
         </span>
       </div>
     </div>
@@ -78,54 +85,113 @@
 
   <!-- ───────── MIDI DEVICE PICKER PANEL ───────── -->
   @if (midiPanelOpen() && midiService.connectedDevices().length) {
-    <div class="midi-picker-panel" role="region" aria-label="MIDI device picker">
+    <div
+      class="midi-picker-panel"
+      role="region"
+      aria-label="MIDI device picker"
+    >
       <div class="midi-picker-head">
         <span class="midi-picker-title">MIDI Devices</span>
-        <span class="midi-picker-activity" [class.is-pulsing]="midiService.midiActivityPulse()">●</span>
+        <span
+          class="midi-picker-activity"
+          [class.is-pulsing]="midiService.midiActivityPulse()"
+          >●</span
+        >
       </div>
       <div class="midi-picker-list">
-        <div *ngFor="let device of midiService.connectedDevices()" class="midi-picker-row">
+        <div
+          *ngFor="let device of midiService.connectedDevices()"
+          class="midi-picker-row"
+        >
           <span class="midi-picker-name">{{ device }}</span>
-          <button type="button" class="midi-picker-toggle"
-                  [class.is-on]="isDeviceEnabled(device)"
-                  (click)="toggleDevice(device)"
-                  [attr.aria-label]="(isDeviceEnabled(device) ? 'Disable' : 'Enable') + ' ' + device">
+          <button
+            type="button"
+            class="midi-picker-toggle"
+            [class.is-on]="isDeviceEnabled(device)"
+            (click)="toggleDevice(device)"
+            [attr.aria-label]="
+              (isDeviceEnabled(device) ? 'Disable' : 'Enable') + ' ' + device
+            "
+          >
             {{ isDeviceEnabled(device) ? 'ON' : 'OFF' }}
           </button>
         </div>
       </div>
-      <button type="button" class="midi-picker-close" (click)="midiPanelOpen.set(false)" aria-label="Close MIDI panel">✕</button>
+      <button
+        type="button"
+        class="midi-picker-close"
+        (click)="midiPanelOpen.set(false)"
+        aria-label="Close MIDI panel"
+      >
+        ✕
+      </button>
       <!-- MIDI clock controls -->
       <div class="midi-clock-strip">
         <label class="midi-clock-label">MIDI Clock</label>
-        <button type="button" class="midi-clock-btn" [class.is-active]="midiService.clockEnabled()" (click)="toggleClock()">
+        <button
+          type="button"
+          class="midi-clock-btn"
+          [class.is-active]="midiService.clockEnabled()"
+          (click)="toggleClock()"
+        >
           {{ midiService.clockEnabled() ? '⏹ STOP' : '▶ START' }}
         </button>
         <div class="midi-clock-bpm">
-          <input type="range" min="40" max="300" step="1" [value]="midiService.clockBpm()" (input)="midiService.setClockBpm(+($any($event.target).value))"
-                 aria-label="Clock BPM" class="midi-clock-slider" />
-          <span class="midi-clock-readout">{{ midiService.clockBpm() }} BPM</span>
+          <input
+            type="range"
+            min="40"
+            max="300"
+            step="1"
+            [value]="midiService.clockBpm()"
+            (input)="midiService.setClockBpm(+$any($event.target).value)"
+            aria-label="Clock BPM"
+            class="midi-clock-slider"
+          />
+          <span class="midi-clock-readout"
+            >{{ midiService.clockBpm() }} BPM</span
+          >
         </div>
       </div>
       <!-- Mapping editor toggle -->
-      <button type="button" class="midi-picker-edit-btn" (click)="toggleMappingEditor()">
+      <button
+        type="button"
+        class="midi-picker-edit-btn"
+        (click)="toggleMappingEditor()"
+      >
         {{ midiMappingEditorOpen() ? '✕ Close Editor' : '✎ Edit CC Mappings' }}
       </button>
       <!-- Slave sync toggle -->
-      <div class="midi-clock-strip" style="margin-top:4px">
+      <div class="midi-clock-strip" style="margin-top: 4px">
         <label class="midi-clock-label">Slave Sync</label>
-        <button type="button" class="midi-clock-btn" [class.is-active]="midiService.slaveSyncEnabled()" (click)="midiService.toggleSlaveSync()">
+        <button
+          type="button"
+          class="midi-clock-btn"
+          [class.is-active]="midiService.slaveSyncEnabled()"
+          (click)="midiService.toggleSlaveSync()"
+        >
           {{ midiService.slaveSyncEnabled() ? '⏱ ON' : '⏱ OFF' }}
         </button>
         @if (midiService.slaveSyncEnabled()) {
-          <span class="midi-clock-readout" style="font-size:10px">{{ midiService.slaveBpm() }} BPM</span>
-          <span [style.color]="midiService.slaveTransportRunning() ? 'var(--teal-500)' : 'var(--record)'">
+          <span class="midi-clock-readout" style="font-size: 10px"
+            >{{ midiService.slaveBpm() }} BPM</span
+          >
+          <span
+            [style.color]="
+              midiService.slaveTransportRunning()
+                ? 'var(--teal-500)'
+                : 'var(--record)'
+            "
+          >
             {{ midiService.slaveTransportRunning() ? '▶' : '⏸' }}
           </span>
         }
       </div>
       <!-- Activity log toggle -->
-      <button type="button" class="midi-picker-edit-btn" (click)="midiLogOpen.update(v => !v)">
+      <button
+        type="button"
+        class="midi-picker-edit-btn"
+        (click)="midiLogOpen.update((v) => !v)"
+      >
         {{ midiLogOpen() ? '✕ Close Log' : '📋 MIDI Activity Log' }}
       </button>
 
@@ -135,36 +201,65 @@
         <div class="midi-thru-body">
           <div class="midi-clock-strip">
             <label class="midi-clock-label">Active</label>
-            <button type="button" class="midi-clock-btn" [class.is-active]="midiService.thruEnabled()" (click)="midiService.thruEnabled.update(v => !v)">
+            <button
+              type="button"
+              class="midi-clock-btn"
+              [class.is-active]="midiService.thruEnabled()"
+              (click)="midiService.thruEnabled.update((v) => !v)"
+            >
               {{ midiService.thruEnabled() ? 'ON' : 'OFF' }}
             </button>
           </div>
           @if (midiService.thruEnabled()) {
-            <div class="midi-clock-strip" style="margin-top:4px;">
+            <div class="midi-clock-strip" style="margin-top: 4px">
               <label class="midi-clock-label">Source</label>
-              <select class="midi-thru-select" [value]="midiService.thruInputIndex()" (change)="midiService.thruInputIndex.set(+$any($event.target).value)">
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruInputIndex()"
+                (change)="
+                  midiService.thruInputIndex.set(+$any($event.target).value)
+                "
+              >
                 <option value="0">All Inputs</option>
-                @for (name of midiService.midiInputNames(); track name; let i = $index) {
+                @for (
+                  name of midiService.midiInputNames();
+                  track name;
+                  let i = $index
+                ) {
                   <option [value]="i + 1">{{ name }}</option>
                 }
               </select>
             </div>
-            <div class="midi-clock-strip" style="margin-top:4px;">
+            <div class="midi-clock-strip" style="margin-top: 4px">
               <label class="midi-clock-label">Filter</label>
-              <select class="midi-thru-select" [value]="midiService.thruFilter()" (change)="midiService.thruFilter.set($any($event.target).value)">
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruFilter()"
+                (change)="midiService.thruFilter.set($any($event.target).value)"
+              >
                 <option value="all">All Messages</option>
                 <option value="notes">Notes Only</option>
                 <option value="cc">CC Only</option>
                 <option value="clock">Clock Only</option>
               </select>
             </div>
-            <div class="midi-clock-strip" style="margin-top:4px;">
+            <div class="midi-clock-strip" style="margin-top: 4px">
               <label class="midi-clock-label">Output</label>
-              <select class="midi-thru-select" [value]="midiService.thruOutputIndex()" (change)="midiService.thruOutputIndex.set(+$any($event.target).value)">
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruOutputIndex()"
+                (change)="
+                  midiService.thruOutputIndex.set(+$any($event.target).value)
+                "
+              >
                 @if (midiService.midiOutputNames().length === 0) {
                   <option value="0">No Outputs</option>
                 }
-                @for (name of midiService.midiOutputNames(); track name; let i = $index) {
+                @for (
+                  name of midiService.midiOutputNames();
+                  track name;
+                  let i = $index
+                ) {
                   <option [value]="i">{{ name }}</option>
                 }
               </select>
@@ -180,24 +275,49 @@
     <div class="midi-activity-log">
       <div class="midi-log-head">
         <span class="midi-mapping-title">MIDI Activity</span>
-        <button type="button" class="midi-mapping-clear-all" (click)="midiService.clearMidiLog()">Clear</button>
+        <button
+          type="button"
+          class="midi-mapping-clear-all"
+          (click)="midiService.clearMidiLog()"
+        >
+          Clear
+        </button>
       </div>
       <div class="midi-log-stream">
         @if (midiService.midiLog().length === 0) {
           <div class="midi-log-empty">Waiting for MIDI messages…</div>
         }
         @for (entry of midiService.midiLog(); track entry.id) {
-          <div class="midi-log-row" [class.midi-log-clock]="entry.type === 'clock'">
+          <div
+            class="midi-log-row"
+            [class.midi-log-clock]="entry.type === 'clock'"
+          >
             <span class="midi-log-icon">{{ logTypeIcon(entry.type) }}</span>
-            <span class="midi-log-type">{{ entry.type === 'note_on' ? 'ON' : entry.type === 'note_off' ? 'OFF' : entry.type.toUpperCase() }}</span>
-            @if (entry.channel > 0 || (entry.type !== 'clock' && entry.type !== 'start' && entry.type !== 'stop' && entry.type !== 'continue')) {
+            <span class="midi-log-type">{{
+              entry.type === 'note_on'
+                ? 'ON'
+                : entry.type === 'note_off'
+                  ? 'OFF'
+                  : entry.type.toUpperCase()
+            }}</span>
+            @if (
+              entry.channel > 0 ||
+              (entry.type !== 'clock' &&
+                entry.type !== 'start' &&
+                entry.type !== 'stop' &&
+                entry.type !== 'continue')
+            ) {
               <span class="midi-log-ch">CH{{ entry.channel }}</span>
             }
             @if (entry.type === 'note_on' || entry.type === 'note_off') {
-              <span class="midi-log-val">#{{ entry.number }} v{{ entry.value }}</span>
+              <span class="midi-log-val"
+                >#{{ entry.number }} v{{ entry.value }}</span
+              >
             }
             @if (entry.type === 'cc') {
-              <span class="midi-log-val">CC{{ entry.number }} = {{ entry.value }}</span>
+              <span class="midi-log-val"
+                >CC{{ entry.number }} = {{ entry.value }}</span
+              >
             }
           </div>
         }
@@ -210,11 +330,20 @@
     <div class="midi-mapping-editor">
       <div class="midi-mapping-editor-head">
         <span class="midi-mapping-title">Performer CC Mappings</span>
-        <button type="button" class="midi-mapping-clear-all" (click)="clearAllPerformerMappings()">Clear All</button>
+        <button
+          type="button"
+          class="midi-mapping-clear-all"
+          (click)="clearAllPerformerMappings()"
+        >
+          Clear All
+        </button>
       </div>
       @if (midiService.performerCCMap().length === 0) {
         <div class="midi-mapping-empty">
-          <p>No custom CC mappings. Click 🎯 on Modulation, Volume, or Pan to learn.</p>
+          <p>
+            No custom CC mappings. Click 🎯 on Modulation, Volume, or Pan to
+            learn.
+          </p>
         </div>
       }
       @if (midiService.performerCCMap().length > 0) {
@@ -230,7 +359,14 @@
               <span class="midi-mapping-target">{{ mapping.target }}</span>
               <span class="midi-mapping-detail">{{ mapping.channel }}</span>
               <span class="midi-mapping-detail">{{ mapping.controller }}</span>
-              <button type="button" class="midi-mapping-delete" (click)="deletePerformerMapping(mapping.target)" aria-label="Delete mapping for {{ mapping.target }}">✕</button>
+              <button
+                type="button"
+                class="midi-mapping-delete"
+                (click)="deletePerformerMapping(mapping.target)"
+                aria-label="Delete mapping for {{ mapping.target }}"
+              >
+                ✕
+              </button>
             </div>
           }
         </div>
@@ -259,43 +395,105 @@
     </div>
 
     <div class="rack-cell rack-knobs">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        <app-knob label="VOL" [min]="0" [max]="150"
-                  [value]="track.gain * 100"
-                  (valueChange)="updateTrackVolume($event)"></app-knob>
-        <div style="display:flex;align-items:center;gap:4px">
-          <button type="button" class="midi-learn-btn"
-                  [class.is-learning]="midiService.performerLearnTarget() === 'volume'"
-                  (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'volume' ? cancelLearn() : startLearn('volume')">🎯</button>
-          <span class="midi-learn-mapping">{{ getCCMappingLabel('volume') }}</span>
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        "
+      >
+        <app-knob
+          label="VOL"
+          [min]="0"
+          [max]="150"
+          [value]="track.gain * 100"
+          (valueChange)="updateTrackVolume($event)"
+        ></app-knob>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            type="button"
+            class="midi-learn-btn"
+            [class.is-learning]="
+              midiService.performerLearnTarget() === 'volume'
+            "
+            (click)="
+              midiService.performerLearnActive() &&
+              midiService.performerLearnTarget() === 'volume'
+                ? cancelLearn()
+                : startLearn('volume')
+            "
+          >
+            🎯
+          </button>
+          <span class="midi-learn-mapping">{{
+            getCCMappingLabel('volume')
+          }}</span>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-        <app-knob label="PAN" [min]="-100" [max]="100"
-                  [value]="track.pan * 100"
-                  (valueChange)="updateTrackPan($event)"></app-knob>
-        <div style="display:flex;align-items:center;gap:4px">
-          <button type="button" class="midi-learn-btn"
-                  [class.is-learning]="midiService.performerLearnTarget() === 'pan'"
-                  (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'pan' ? cancelLearn() : startLearn('pan')">🎯</button>
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        "
+      >
+        <app-knob
+          label="PAN"
+          [min]="-100"
+          [max]="100"
+          [value]="track.pan * 100"
+          (valueChange)="updateTrackPan($event)"
+        ></app-knob>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            type="button"
+            class="midi-learn-btn"
+            [class.is-learning]="midiService.performerLearnTarget() === 'pan'"
+            (click)="
+              midiService.performerLearnActive() &&
+              midiService.performerLearnTarget() === 'pan'
+                ? cancelLearn()
+                : startLearn('pan')
+            "
+          >
+            🎯
+          </button>
           <span class="midi-learn-mapping">{{ getCCMappingLabel('pan') }}</span>
         </div>
       </div>
     </div>
 
     <div class="rack-cell rack-craft">
-      <app-knob label="CUT" [min]="20" [max]="20000"
-                [value]="20000"
-                (valueChange)="liveEngine.updateParameter('cutoff', $event)"></app-knob>
-      <app-knob label="RES" [min]="0" [max]="20"
-                [value]="1"
-                (valueChange)="liveEngine.updateParameter('resonance', $event)"></app-knob>
-      <app-knob label="ATK" [min]="0.001" [max]="2"
-                [value]="0.01"
-                (valueChange)="liveEngine.updateParameter('attack', $event)"></app-knob>
-      <app-knob label="REL" [min]="0.01" [max]="5"
-                [value]="0.5"
-                (valueChange)="liveEngine.updateParameter('release', $event)"></app-knob>
+      <app-knob
+        label="CUT"
+        [min]="20"
+        [max]="20000"
+        [value]="20000"
+        (valueChange)="liveEngine.updateParameter('cutoff', $event)"
+      ></app-knob>
+      <app-knob
+        label="RES"
+        [min]="0"
+        [max]="20"
+        [value]="1"
+        (valueChange)="liveEngine.updateParameter('resonance', $event)"
+      ></app-knob>
+      <app-knob
+        label="ATK"
+        [min]="0.001"
+        [max]="2"
+        [value]="0.01"
+        (valueChange)="liveEngine.updateParameter('attack', $event)"
+      ></app-knob>
+      <app-knob
+        label="REL"
+        [min]="0.01"
+        [max]="5"
+        [value]="0.5"
+        (valueChange)="liveEngine.updateParameter('release', $event)"
+      ></app-knob>
     </div>
 
     <div class="rack-cell rack-modes">
@@ -349,53 +547,81 @@
       <div class="meter-pane">
         <div class="meter-led-row">
           <span class="meter-label">IN&nbsp;L</span>
-          <span class="meter-readout">{{ perfRecording.liveInputDbL() | number:'1.0-0' }} dB</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveInputDbL() | number: '1.0-0' }} dB</span
+          >
         </div>
-        <div class="meter-bar" role="meter"
-             [attr.aria-valuemin]="-60"
-             [attr.aria-valuemax]="0"
-             [attr.aria-valuenow]="perfRecording.liveInputDbL() | number:'1.0-0'">
-          <div class="meter-fill in-l"
-               [style.width.%]="dbToPct(perfRecording.liveInputDbL())"></div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveInputDbL() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill in-l"
+            [style.width.%]="dbToPct(perfRecording.liveInputDbL())"
+          ></div>
         </div>
       </div>
       <div class="meter-pane">
         <div class="meter-led-row">
           <span class="meter-label">IN&nbsp;R</span>
-          <span class="meter-readout">{{ perfRecording.liveInputDbR() | number:'1.0-0' }} dB</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveInputDbR() | number: '1.0-0' }} dB</span
+          >
         </div>
-        <div class="meter-bar" role="meter"
-             [attr.aria-valuemin]="-60"
-             [attr.aria-valuemax]="0"
-             [attr.aria-valuenow]="perfRecording.liveInputDbR() | number:'1.0-0'">
-          <div class="meter-fill in-r"
-               [style.width.%]="dbToPct(perfRecording.liveInputDbR())"></div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveInputDbR() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill in-r"
+            [style.width.%]="dbToPct(perfRecording.liveInputDbR())"
+          ></div>
         </div>
       </div>
       <div class="meter-pane">
         <div class="meter-led-row">
           <span class="meter-label">OUT&nbsp;L</span>
-          <span class="meter-readout">{{ perfRecording.liveOutputDbL() | number:'1.0-0' }} dB</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveOutputDbL() | number: '1.0-0' }} dB</span
+          >
         </div>
-        <div class="meter-bar" role="meter"
-             [attr.aria-valuemin]="-60"
-             [attr.aria-valuemax]="0"
-             [attr.aria-valuenow]="perfRecording.liveOutputDbL() | number:'1.0-0'">
-          <div class="meter-fill out-l"
-               [style.width.%]="dbToPct(perfRecording.liveOutputDbL())"></div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveOutputDbL() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill out-l"
+            [style.width.%]="dbToPct(perfRecording.liveOutputDbL())"
+          ></div>
         </div>
       </div>
       <div class="meter-pane">
         <div class="meter-led-row">
           <span class="meter-label">OUT&nbsp;R</span>
-          <span class="meter-readout">{{ perfRecording.liveOutputDbR() | number:'1.0-0' }} dB</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveOutputDbR() | number: '1.0-0' }} dB</span
+          >
         </div>
-        <div class="meter-bar" role="meter"
-             [attr.aria-valuemin]="-60"
-             [attr.aria-valuemax]="0"
-             [attr.aria-valuenow]="perfRecording.liveOutputDbR() | number:'1.0-0'">
-          <div class="meter-fill out-r"
-               [style.width.%]="dbToPct(perfRecording.liveOutputDbR())"></div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveOutputDbR() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill out-r"
+            [style.width.%]="dbToPct(perfRecording.liveOutputDbR())"
+          ></div>
         </div>
       </div>
     </div>
@@ -407,15 +633,26 @@
         class="rec-arm-btn"
         [class.is-armed]="perfRecording.isArmed()"
         [class.is-rec]="perfRecording.isRecording()"
-        [attr.aria-pressed]="perfRecording.isArmed() || perfRecording.isRecording()"
+        [attr.aria-pressed]="
+          perfRecording.isArmed() || perfRecording.isRecording()
+        "
         (click)="toggleArm()"
         aria-label="Arm recording"
       >
         <span class="rec-dot"></span>
         <span class="rec-text">
-          <ng-container *ngIf="perfRecording.isRecording()">RECORDING · Take {{ perfRecording.armedTakeNumber() }}</ng-container>
-          <ng-container *ngIf="!perfRecording.isRecording() && perfRecording.isArmed()">ARMED · Take {{ perfRecording.armedTakeNumber() }}</ng-container>
-          <ng-container *ngIf="!perfRecording.isRecording() && !perfRecording.isArmed()">ARM Take {{ perfRecording.armedTakeNumber() }}</ng-container>
+          <ng-container *ngIf="perfRecording.isRecording()"
+            >RECORDING · Take
+            {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
+          <ng-container
+            *ngIf="!perfRecording.isRecording() && perfRecording.isArmed()"
+            >ARMED · Take {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
+          <ng-container
+            *ngIf="!perfRecording.isRecording() && !perfRecording.isArmed()"
+            >ARM Take {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
         </span>
       </button>
       <div class="rec-toggles">
@@ -476,32 +713,57 @@
           <input
             type="range"
             class="xb-slider xb-pitch"
-            min="-1" max="1" step="0.01"
+            min="-1"
+            max="1"
+            step="0.01"
             [value]="pitchBend()"
             (input)="onPitchBend($event)"
             aria-label="Pitch bend"
           />
-          <div class="xb-readout">{{ pitchBend() | number:'1.2-2' }}</div>
+          <div class="xb-readout">{{ pitchBend() | number: '1.2-2' }}</div>
         </div>
         <div class="xb-strip">
-          <label class="xb-label">Modulation
-            <button type="button" class="midi-learn-btn"
-                    [class.is-learning]="midiService.performerLearnTarget() === 'modulation'"
-                    (click)="midiService.performerLearnActive() && midiService.performerLearnTarget() === 'modulation' ? cancelLearn() : startLearn('modulation')"
-                    [title]="midiService.performerLearnTarget() === 'modulation' ? 'Listening... press any CC' : 'MIDI Learn: map a controller to Modulation'">
-              {{ midiService.performerLearnTarget() === 'modulation' ? '🎯' : '🎯' }}
+          <label class="xb-label"
+            >Modulation
+            <button
+              type="button"
+              class="midi-learn-btn"
+              [class.is-learning]="
+                midiService.performerLearnTarget() === 'modulation'
+              "
+              (click)="
+                midiService.performerLearnActive() &&
+                midiService.performerLearnTarget() === 'modulation'
+                  ? cancelLearn()
+                  : startLearn('modulation')
+              "
+              [title]="
+                midiService.performerLearnTarget() === 'modulation'
+                  ? 'Listening... press any CC'
+                  : 'MIDI Learn: map a controller to Modulation'
+              "
+            >
+              {{
+                midiService.performerLearnTarget() === 'modulation'
+                  ? '🎯'
+                  : '🎯'
+              }}
             </button>
-            <span class="midi-learn-mapping">{{ getCCMappingLabel('modulation') }}</span>
+            <span class="midi-learn-mapping">{{
+              getCCMappingLabel('modulation')
+            }}</span>
           </label>
           <input
             type="range"
             class="xb-slider xb-mod"
-            min="0" max="1" step="0.01"
+            min="0"
+            max="1"
+            step="0.01"
             [value]="modWheel()"
             (input)="onModWheel($event)"
             aria-label="Modulation wheel"
           />
-          <div class="xb-readout">{{ modWheel() | number:'1.2-2' }}</div>
+          <div class="xb-readout">{{ modWheel() | number: '1.2-2' }}</div>
         </div>
         <div class="xb-strip">
           <label class="xb-label">
@@ -511,7 +773,9 @@
           <input
             type="range"
             class="xb-slider xb-velocity"
-            min="0" max="127" step="1"
+            min="0"
+            max="127"
+            step="1"
             [value]="velocity()"
             (input)="onVelocity($event)"
             aria-label="Note velocity (MIDI 0-127)"
@@ -521,9 +785,25 @@
         <div class="xb-strip">
           <label class="xb-label">Octave</label>
           <div class="octave-cluster">
-            <button type="button" class="oct-btn" (click)="nudgeOctave(-1)" aria-label="Octave down">−</button>
-            <span class="octave-readout">{{ octave() > 0 ? '+' + octave() : octave() }}</span>
-            <button type="button" class="oct-btn" (click)="nudgeOctave(1)" aria-label="Octave up">+</button>
+            <button
+              type="button"
+              class="oct-btn"
+              (click)="nudgeOctave(-1)"
+              aria-label="Octave down"
+            >
+              −
+            </button>
+            <span class="octave-readout">{{
+              octave() > 0 ? '+' + octave() : octave()
+            }}</span>
+            <button
+              type="button"
+              class="oct-btn"
+              (click)="nudgeOctave(1)"
+              aria-label="Octave up"
+            >
+              +
+            </button>
           </div>
         </div>
       </div>
@@ -582,32 +862,52 @@
         (pointerleave)="onPadUp($event, xyPad)"
         role="slider"
         aria-label="FX Macro XY pad"
-        [attr.aria-valuetext]="fxMacros.activeMacro().name + ' · X=' + fxMacros.currentValues().xLabel + ', Y=' + fxMacros.currentValues().yLabel"
+        [attr.aria-valuetext]="
+          fxMacros.activeMacro().name +
+          ' · X=' +
+          fxMacros.currentValues().xLabel +
+          ', Y=' +
+          fxMacros.currentValues().yLabel
+        "
       >
         <!-- Crosshair guide lines -->
         <div class="xy-cross xy-cross-v"></div>
         <div class="xy-cross xy-cross-h"></div>
         <!-- Corner HUD labels (from current macro's target specs) -->
         <div class="xy-corner xy-corner-tl">
-          <span class="xy-corner-label">{{ fxMacros.activeMacro().xTarget.label }}</span>
-          <span class="xy-corner-value">{{ fxMacros.currentValues().xLabel }}</span>
+          <span class="xy-corner-label">{{
+            fxMacros.activeMacro().xTarget.label
+          }}</span>
+          <span class="xy-corner-value">{{
+            fxMacros.currentValues().xLabel
+          }}</span>
         </div>
         <div class="xy-corner xy-corner-tr">
-          <span class="xy-corner-label">{{ fxMacros.activeMacro().yTarget.label }}</span>
-          <span class="xy-corner-value">{{ fxMacros.currentValues().yLabel }}</span>
+          <span class="xy-corner-label">{{
+            fxMacros.activeMacro().yTarget.label
+          }}</span>
+          <span class="xy-corner-value">{{
+            fxMacros.currentValues().yLabel
+          }}</span>
         </div>
         <div class="xy-corner xy-corner-bl">
-          <span class="xy-corner-glyph">{{ fxMacros.activeMacro().glyph }}</span>
+          <span class="xy-corner-glyph">{{
+            fxMacros.activeMacro().glyph
+          }}</span>
           <span class="xy-corner-name">{{ fxMacros.activeMacro().name }}</span>
         </div>
         <div class="xy-corner xy-corner-br">
-          <span class="xy-corner-status">{{ fxMacros.engaged() ? 'ENGAGED' : 'OPEN' }}</span>
+          <span class="xy-corner-status">{{
+            fxMacros.engaged() ? 'ENGAGED' : 'OPEN'
+          }}</span>
           <button
             type="button"
             class="xy-corner-reset"
             (click)="fxMacros.reset(); $event.stopPropagation()"
             aria-label="Reset macro to center"
-          >RESET</button>
+          >
+            RESET
+          </button>
         </div>
         <!-- Position dot -->
         <div
@@ -623,8 +923,9 @@
       <p class="macro-hint">
         Drag with one finger to modulate
         <strong>{{ fxMacros.activeMacro().xTarget.label }}</strong>
-        and <strong>{{ fxMacros.activeMacro().yTarget.label }}</strong> simultaneously.
-        {{ fxMacros.activeMacro().description }}.
+        and
+        <strong>{{ fxMacros.activeMacro().yTarget.label }}</strong>
+        simultaneously. {{ fxMacros.activeMacro().description }}.
       </p>
     </div>
 
@@ -659,7 +960,8 @@
         <span class="tc-count">{{ perfRecording.takeCount() }} recorded</span>
       </div>
       <p class="tc-help" *ngIf="perfRecording.takeCount() === 0">
-        Arm a take number, hit record, capture multiple comps. Select a take to inspect or export.
+        Arm a take number, hit record, capture multiple comps. Select a take to
+        inspect or export.
       </p>
     </div>
     <div class="tc-list" role="listbox" aria-label="Take list">
@@ -684,20 +986,33 @@
             title="Comping"
             [class.is-on]="take.isComping"
             [attr.aria-pressed]="take.isComping"
-            (click)="perfRecording.setComping(take.id, !take.isComping); $event.stopPropagation()"
-          >★</button>
+            (click)="
+              perfRecording.setComping(take.id, !take.isComping);
+              $event.stopPropagation()
+            "
+          >
+            ★
+          </button>
           <button
             type="button"
             class="tc-mini"
             title="Export"
-            (click)="perfRecording.exportTake(take.id, 'wav'); $event.stopPropagation()"
-          >↧</button>
+            (click)="
+              perfRecording.exportTake(take.id, 'wav'); $event.stopPropagation()
+            "
+          >
+            ↧
+          </button>
           <button
             type="button"
             class="tc-mini tc-mini-danger"
             title="Delete take"
-            (click)="perfRecording.deleteTake(take.id); $event.stopPropagation()"
-          >✕</button>
+            (click)="
+              perfRecording.deleteTake(take.id); $event.stopPropagation()
+            "
+          >
+            ✕
+          </button>
         </div>
       </button>
       <div class="tc-empty" *ngIf="perfRecording.takeCount() === 0">

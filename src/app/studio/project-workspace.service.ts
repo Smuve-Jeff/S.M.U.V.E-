@@ -50,17 +50,80 @@ export class ProjectWorkspaceService {
   versionCount = signal(0);
 
   /** Available genre templates */
-  genres = ['pop', 'trap', 'house', 'lo-fi', 'neo-soul', 'drill', 'rnb', 'jazz', 'funk', 'ambient', 'techno', 'dnb', 'garage', 'reggaeton'];
+  genres = [
+    'pop',
+    'trap',
+    'house',
+    'lo-fi',
+    'neo-soul',
+    'drill',
+    'rnb',
+    'jazz',
+    'funk',
+    'ambient',
+    'techno',
+    'dnb',
+    'garage',
+    'reggaeton',
+  ];
   /** Available keys (Western) */
-  keys = ['C', 'Cm', 'C#', 'C#m', 'D', 'Dm', 'Eb', 'Ebm', 'E', 'Em', 'F', 'Fm', 'F#', 'F#m', 'G', 'Gm', 'Ab', 'Abm', 'A', 'Am', 'Bb', 'Bbm', 'B', 'Bm'];
+  keys = [
+    'C',
+    'Cm',
+    'C#',
+    'C#m',
+    'D',
+    'Dm',
+    'Eb',
+    'Ebm',
+    'E',
+    'Em',
+    'F',
+    'Fm',
+    'F#',
+    'F#m',
+    'G',
+    'Gm',
+    'Ab',
+    'Abm',
+    'A',
+    'Am',
+    'Bb',
+    'Bbm',
+    'B',
+    'Bm',
+  ];
   /** Available moods */
-  moods = ['dark', 'bright', 'chill', 'energetic', 'melancholic', 'aggressive', 'dreamy', 'funky', 'ambient', 'uplifting', 'mysterious', 'romantic'];
+  moods = [
+    'dark',
+    'bright',
+    'chill',
+    'energetic',
+    'melancholic',
+    'aggressive',
+    'dreamy',
+    'funky',
+    'ambient',
+    'uplifting',
+    'mysterious',
+    'romantic',
+  ];
   /** Common tempo profiles per genre */
   genreBpmMap: Record<string, number> = {
-    'pop': 120, 'trap': 140, 'house': 124, 'lo-fi': 78,
-    'neo-soul': 92, 'drill': 142, 'rnb': 90, 'jazz': 110,
-    'funk': 100, 'ambient': 70, 'techno': 128, 'dnb': 174,
-    'garage': 130, 'reggaeton': 100,
+    pop: 120,
+    trap: 140,
+    house: 124,
+    'lo-fi': 78,
+    'neo-soul': 92,
+    drill: 142,
+    rnb: 90,
+    jazz: 110,
+    funk: 100,
+    ambient: 70,
+    techno: 128,
+    dnb: 174,
+    garage: 130,
+    reggaeton: 100,
   };
 
   /** Auto-save timer ref */
@@ -69,9 +132,6 @@ export class ProjectWorkspaceService {
   constructor() {
     this.initializeMetadata();
     this.startAutoSave();
-
-    // Watch for dirty state changes
-    this.musicManager.tracks;
   }
 
   // ── Project Metadata ───────────────────────────────────
@@ -126,10 +186,18 @@ export class ProjectWorkspaceService {
   setGenre(genre: string) {
     const bpm = this.genreBpmMap[genre];
     const moodMap: Record<string, string> = {
-      'trap': 'dark', 'lo-fi': 'chill', 'house': 'energetic',
-      'neo-soul': 'dreamy', 'drill': 'aggressive', 'pop': 'bright',
-      'rnb': 'chill', 'jazz': 'chill', 'funk': 'funky',
-      'ambient': 'dreamy', 'techno': 'dark', 'dnb': 'aggressive',
+      trap: 'dark',
+      'lo-fi': 'chill',
+      house: 'energetic',
+      'neo-soul': 'dreamy',
+      drill: 'aggressive',
+      pop: 'bright',
+      rnb: 'chill',
+      jazz: 'chill',
+      funk: 'funky',
+      ambient: 'dreamy',
+      techno: 'dark',
+      dnb: 'aggressive',
     };
     this.updateMetadata({
       genre,
@@ -157,11 +225,16 @@ export class ProjectWorkspaceService {
   async autoSave() {
     try {
       const snapshot = this.createSnapshot();
-      await this.storage.saveItem('autosave', `autosave_${snapshot.metadata.id}`);
+      await this.storage.saveItem(
+        'autosave',
+        `autosave_${snapshot.metadata.id}`
+      );
       this.lastAutoSave.set(Date.now());
       this.isDirty.set(false);
       this.versionCount.update((v) => v + 1);
-      this.logger.info('ProjectWorkspace: Auto-saved ' + snapshot.metadata.name);
+      this.logger.info(
+        'ProjectWorkspace: Auto-saved ' + snapshot.metadata.name
+      );
 
       // Keep last 5 versions
       await this.pruneOldVersions(snapshot.metadata.id, 5);
@@ -186,7 +259,10 @@ export class ProjectWorkspaceService {
 
   async loadProject(projectId: string): Promise<ProjectBundle | null> {
     try {
-      const bundle = await this.storage.getItem('projects', `project_${projectId}`);
+      const bundle = await this.storage.getItem(
+        'projects',
+        `project_${projectId}`
+      );
       if (bundle) {
         this.restoreFromSnapshot(bundle as ProjectBundle);
         return bundle as ProjectBundle;
@@ -221,7 +297,9 @@ export class ProjectWorkspaceService {
     if (!meta) return;
 
     const bundle = this.createSnapshot();
-    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -233,19 +311,20 @@ export class ProjectWorkspaceService {
   // ── Snapshot ───────────────────────────────────────────
 
   createSnapshot(): ProjectBundle {
-    const meta = this.metadata() || this.createNewMetadata() || {
-      id: `proj_${Date.now()}`,
-      name: 'Untitled',
-      bpm: 120,
-      key: 'C',
-      genre: 'pop',
-      mood: 'energetic',
-      tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      lastOpenedAt: Date.now(),
-      version: 1,
-    };
+    const meta = this.metadata() ||
+      this.createNewMetadata() || {
+        id: `proj_${Date.now()}`,
+        name: 'Untitled',
+        bpm: 120,
+        key: 'C',
+        genre: 'pop',
+        mood: 'energetic',
+        tags: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        lastOpenedAt: Date.now(),
+        version: 1,
+      };
 
     return {
       metadata: meta,

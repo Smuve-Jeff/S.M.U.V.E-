@@ -32,7 +32,12 @@ export class Sampler {
 
   private sourcePool: NodePool<AudioBufferSourceNode>;
   private gainPool: NodePool<GainNode>;
-  private defaultAdsr = { attack: 0.01, decay: 0.1, sustain: 0.8, release: 0.3 };
+  private defaultAdsr = {
+    attack: 0.01,
+    decay: 0.1,
+    sustain: 0.8,
+    release: 0.3,
+  };
 
   constructor(private readonly context: AudioContext) {
     this.output = this.context.createGain();
@@ -53,7 +58,12 @@ export class Sampler {
   }
 
   /** Set loop points for a pitch zone (smooth crossfade looping) */
-  setLoop(pitch: number, loopStart: number, loopEnd: number, crossfade: number = 0.02) {
+  setLoop(
+    pitch: number,
+    loopStart: number,
+    loopEnd: number,
+    crossfade: number = 0.02
+  ) {
     const zone = this.zones.get(pitch);
     if (zone) {
       zone.loop = { start: loopStart, end: loopEnd, crossfade };
@@ -61,7 +71,10 @@ export class Sampler {
   }
 
   /** Set ADSR envelope per pitch zone */
-  setAdsr(pitch: number, adsr: { attack: number; decay: number; sustain: number; release: number }) {
+  setAdsr(
+    pitch: number,
+    adsr: { attack: number; decay: number; sustain: number; release: number }
+  ) {
     const zone = this.zones.get(pitch);
     if (zone) {
       zone.adsr = adsr;
@@ -100,7 +113,10 @@ export class Sampler {
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(velocity, now + adsr.attack);
     if (adsr.decay > 0) {
-      gainNode.gain.linearRampToValueAtTime(velocity * adsr.sustain, now + adsr.attack + adsr.decay);
+      gainNode.gain.linearRampToValueAtTime(
+        velocity * adsr.sustain,
+        now + adsr.attack + adsr.decay
+      );
     }
 
     source.connect(gainNode);
@@ -112,13 +128,24 @@ export class Sampler {
       // Apply release envelope on stop
       try {
         gainNode.gain.cancelScheduledValues(this.context.currentTime);
-        gainNode.gain.setValueAtTime(gainNode.gain.value, this.context.currentTime);
-        gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + adsr.release);
-      } catch { /* node may be disconnected */ }
-      setTimeout(() => {
-        this.sourcePool.release(source);
-        this.gainPool.release(gainNode);
-      }, adsr.release * 1000 + 50);
+        gainNode.gain.setValueAtTime(
+          gainNode.gain.value,
+          this.context.currentTime
+        );
+        gainNode.gain.linearRampToValueAtTime(
+          0,
+          this.context.currentTime + adsr.release
+        );
+      } catch {
+        /* node may be disconnected */
+      }
+      setTimeout(
+        () => {
+          this.sourcePool.release(source);
+          this.gainPool.release(gainNode);
+        },
+        adsr.release * 1000 + 50
+      );
     };
   }
 

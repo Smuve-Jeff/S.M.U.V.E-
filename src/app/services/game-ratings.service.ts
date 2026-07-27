@@ -97,7 +97,12 @@ export class GameRatingsService {
   /**
    * Signal a pending post-play rating prompt. Called from game-close site.
    */
-  promptRating(gameId: string, gameName: string, lastScore?: number, sessionMs?: number): void {
+  promptRating(
+    gameId: string,
+    gameName: string,
+    lastScore?: number,
+    sessionMs?: number
+  ): void {
     this.pendingRating.set({ gameId, gameName, lastScore, sessionMs });
   }
 
@@ -110,10 +115,13 @@ export class GameRatingsService {
    * Record a play session (always — even if user skips rating).
    * Returns updated stats.
    */
-  recordPlay(gameId: string, opts: {
-    result?: PlayResult;
-    score?: number;
-  } = {}): GameStats {
+  recordPlay(
+    gameId: string,
+    opts: {
+      result?: PlayResult;
+      score?: number;
+    } = {}
+  ): GameStats {
     const now = Date.now();
     const cur = this.allStats()[gameId] ?? emptyStats(gameId, now);
     const next: GameStats = {
@@ -136,7 +144,13 @@ export class GameRatingsService {
   /**
    * Submit a rating + comment for a game. Updates stats ratingAvg/ratingCount.
    */
-  rateGame(gameId: string, rating: Rating, comment?: string, result?: PlayResult, score?: number): GameRating {
+  rateGame(
+    gameId: string,
+    rating: Rating,
+    comment?: string,
+    result?: PlayResult,
+    score?: number
+  ): GameRating {
     const r: GameRating = {
       gameId,
       rating,
@@ -145,10 +159,10 @@ export class GameRatingsService {
       score,
       createdAt: Date.now(),
     };
-    this.allRatings.update(list => [...list, r]);
+    this.allRatings.update((list) => [...list, r]);
     const cur = this.allStats()[gameId] ?? emptyStats(gameId);
     const newCount = cur.ratingCount + 1;
-    const newAvg = ((cur.ratingAvg * cur.ratingCount) + rating) / newCount;
+    const newAvg = (cur.ratingAvg * cur.ratingCount + rating) / newCount;
     const map = {
       ...this.allStats(),
       [gameId]: {
@@ -178,7 +192,7 @@ export class GameRatingsService {
 
   /** History of ratings for a single game. */
   ratingsFor(gameId: string): GameRating[] {
-    return this.allRatings().filter(r => r.gameId === gameId);
+    return this.allRatings().filter((r) => r.gameId === gameId);
   }
 
   winRate(gameId: string): number {
@@ -198,17 +212,22 @@ export class GameRatingsService {
   resetAll(): void {
     this.allRatings.set([]);
     this.allStats.set({});
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
   }
 
   private load(): void {
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      const raw =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem(STORAGE_KEY)
+          : null;
       if (!raw) return;
       const parsed = JSON.parse(raw) as RatingsStore;
-      this.allRatings.set(parsed.ratingsByGame
-        ? Object.values(parsed.ratingsByGame).flat()
-        : []);
+      this.allRatings.set(
+        parsed.ratingsByGame ? Object.values(parsed.ratingsByGame).flat() : []
+      );
       this.allStats.set(parsed.statsByGame ?? {});
     } catch {}
   }
@@ -216,7 +235,7 @@ export class GameRatingsService {
   private persist(): void {
     try {
       const ratingsByGame: Record<string, GameRating[]> = {};
-      this.allRatings().forEach(r => {
+      this.allRatings().forEach((r) => {
         (ratingsByGame[r.gameId] ||= []).push(r);
       });
       const store: RatingsStore = {

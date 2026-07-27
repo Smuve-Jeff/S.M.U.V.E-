@@ -95,12 +95,16 @@ export class OfflineSyncService {
 
     // Local-first: persist to IndexedDB instantly so UI never stalls
     if (this.localSaveEnabled()) {
-      await this.localStorage.saveItem('offline_local_cache', {
-        id: item.id,
-        endpoint: item.endpoint,
-        payload: item.payload,
-        savedAt: Date.now(),
-      }, 24 * 60 * 60 * 1000); // 24h TTL
+      await this.localStorage.saveItem(
+        'offline_local_cache',
+        {
+          id: item.id,
+          endpoint: item.endpoint,
+          payload: item.payload,
+          savedAt: Date.now(),
+        },
+        24 * 60 * 60 * 1000
+      ); // 24h TTL
       this.lastLocalSaveAt.set(Date.now());
     }
 
@@ -121,12 +125,20 @@ export class OfflineSyncService {
    * Save data directly to local cache without queuing for sync.
    * Used for instant offline-first project saves.
    */
-  async saveLocal(key: string, data: any, ttlMs = 7 * 24 * 60 * 60 * 1000): Promise<void> {
-    await this.localStorage.saveItem('offline_local_cache', {
-      id: key,
-      payload: data,
-      savedAt: Date.now(),
-    }, ttlMs);
+  async saveLocal(
+    key: string,
+    data: any,
+    ttlMs = 7 * 24 * 60 * 60 * 1000
+  ): Promise<void> {
+    await this.localStorage.saveItem(
+      'offline_local_cache',
+      {
+        id: key,
+        payload: data,
+        savedAt: Date.now(),
+      },
+      ttlMs
+    );
     this.lastLocalSaveAt.set(Date.now());
   }
 
