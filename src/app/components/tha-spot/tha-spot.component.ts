@@ -1677,6 +1677,31 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.peerService.startCall(playerId);
   }
 
+  /** Whether the current user is actively speaking (for voice activity indicator) */
+  get isVoiceActive(): boolean {
+    return this.peerService.voiceActivityLevel() > 15;
+  }
+
+  /** Voice activity level 0-100 for CSS variable binding */
+  get voiceActivityPct(): number {
+    return this.peerService.voiceActivityLevel();
+  }
+
+  // ── Persistent Lobby Chat ──────────────────────────────
+
+  sendLobbyChat(text: string): void {
+    this.matchmaking.sendLobbyChatMessage(text);
+  }
+
+  // ── Spectator Mode ─────────────────────────────────────
+  startSpectateLobby(lobbyId: string): void {
+    this.matchmaking.startSpectateLobby(lobbyId);
+  }
+
+  stopSpectateLobby(): void {
+    this.matchmaking.stopSpectateLobby();
+  }
+
   // ── Lobby Invite ──────────────────────────────────────
   copyLobbyInviteLink(): void {
     this.matchmaking.copyLobbyInviteLink();

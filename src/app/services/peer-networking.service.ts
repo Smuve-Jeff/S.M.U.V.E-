@@ -18,6 +18,10 @@ export class PeerNetworkingService {
   knockFromUserId = signal<string | null>(null);
   micPermissionDenied = signal(false);
   isMuted = signal(false);
+  voiceActivityLevel = signal(0);
+
+  private analyserNode: AnalyserNode | null = null;
+  private activityInterval: any = null;
 
   async startCall(toUserId: string) {
     this.callState.set('calling');
@@ -177,6 +181,28 @@ export class PeerNetworkingService {
       this.peerConnection?.addTrack(track, this.localStream!);
     });
 
+    // ── Voice Activity Analyser ──
+    try {
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(this.localStream!);
+      this.analyserNode = audioCtx.createAnalyser();
+      this.analyserNode.fftSize = 256;
+      source.connect(this.analyserNode);
+
+      // Poll analyser for volume levels
+      const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+      this.activityInterval = setInterval(() => {
+        if (!this.analyserNode) return;
+        this.analyserNode.getByteFrequencyData(dataArray);
+        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+        // Normalize to 0-100 (typical mic peaks around 60-80)
+        const level = Math.min(100, Math.round((avg / 80) * 100));
+        this.voiceActivityLevel.set(this.isMuted() ? 0 : level);
+      }, 100);
+    } catch {
+      // Analyser not available — voice activity stays at 0
+    }
+
     this.peerConnection.ontrack = (event) => {
       this.remoteStream.set(event.streams[0]);
     };
@@ -194,9 +220,18 @@ export class PeerNetworkingService {
     const next = !this.isMuted();
     this.isMuted.set(next);
     this.localStream?.getAudioTracks().forEach(t => { t.enabled = !next; });
+    if (next) this.voiceActivityLevel.set(0);
+  }
+
+  /** Whether the current user is actively speaking (level > threshold) */
+  get isSpeaking(): boolean {
+    return this.voiceActivityLevel() > 15;
   }
 
   endCall() {
+    if (this.activityInterval) { clearInterval(this.activityInterval); this.activityInterval = null; }
+    this.analyserNode = null;
+    this.voiceActivityLevel.set(0);
     this.peerConnection?.close();
     this.peerConnection = undefined;
     this.localStream?.getTracks().forEach((t) => t.stop());

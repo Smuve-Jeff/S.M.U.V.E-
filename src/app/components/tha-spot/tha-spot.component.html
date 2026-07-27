@@ -341,6 +341,15 @@
                 </div>
               </div>
               <button
+                *ngIf="lb.status === 'in-progress'"
+                class="lobby-join-btn spectate"
+                (click)="startSpectateLobby(lb.id)"
+                style="background:linear-gradient(135deg, rgba(0,229,255,0.6), rgba(139,92,246,0.7));"
+              >
+                👁 SPECTATE
+              </button>
+              <button
+                *ngIf="lb.status !== 'in-progress'"
                 class="lobby-join-btn"
                 (click)="matchmaking.joinLobby(lb.id)"
                 [disabled]="lb.playerIds.length >= lb.maxPlayers"
@@ -888,7 +897,13 @@
                     <span *ngIf="!matchmaking.readyPlayers().has(pId)" style="opacity:0.3;">◌</span>
                   </span>
                 </div>
+              </div>                  <!-- Voice activity indicator (self) -->
+              <div class="voice-activity-indicator" *ngIf="peerService.isCallActive()" [class.speaking]="isVoiceActive">
+                <span class="material-symbols-outlined" style="font-size:0.7rem;">{{
+                  isVoiceActive ? 'mic' : 'mic_off'
+                }}</span>
               </div>
+
               <!-- Current player ready toggle -->
               <button
                 class="ready-toggle-btn"
@@ -974,15 +989,15 @@
               </div>
             </div>
 
-            <!-- In-Lobby Chat -->
+            <!-- In-Lobby Chat (persistent, localStorage-backed) -->
             <div class="lobby-chat-section" *ngIf="lobby.playerIds.length > 0">
               <div class="lobby-chat-messages" #lobbyChatScroll style="max-height:140px;overflow-y:auto;margin-bottom:0.5rem;">
-                <div class="lobby-chat-msg" *ngFor="let msg of socialService.roomMessages()">
+                <div class="lobby-chat-msg" *ngFor="let msg of matchmaking.lobbyChatMessages()">
                   <span class="lobby-chat-user">{{ msg.fromUserName || 'PLAYER' | uppercase }}</span>
-                  <span class="lobby-chat-text">{{ msg.message }}</span>
+                  <span class="lobby-chat-text">{{ msg.text }}</span>
                 </div>
-                <div class="lobby-chat-empty" *ngIf="socialService.roomMessages().length === 0" style="font-size:0.6rem;opacity:0.4;text-align:center;padding:0.5rem;">
-                  Squad chat — coordinate before launch
+                <div class="lobby-chat-empty" *ngIf="matchmaking.lobbyChatMessages().length === 0" style="font-size:0.6rem;opacity:0.4;text-align:center;padding:0.5rem;">
+                  Squad chat — messages persist here
                 </div>
               </div>
               <div class="lobby-chat-input-row">
@@ -992,9 +1007,9 @@
                   placeholder="Squad message..."
                   [ngModel]="chatInput()"
                   (ngModelChange)="chatInput.set($event)"
-                  (keyup.enter)="handleChatSubmit()"
+                  (keyup.enter)="sendLobbyChat(chatInput()); chatInput.set('')"
                 />
-                <button class="lobby-chat-send" (click)="handleChatSubmit()">
+                <button class="lobby-chat-send" (click)="sendLobbyChat(chatInput()); chatInput.set('')">
                   <span class="material-symbols-outlined" style="font-size:0.8rem;">send</span>
                 </button>
               </div>
@@ -1009,6 +1024,21 @@
             >
               🚀 ALL READY — START COUNTDOWN
             </button>
+
+            <!-- ── Spectator Overlay ───────────────────────── -->
+            <div class="spectator-overlay" *ngIf="matchmaking.isSpectating() && matchmaking.spectateTargetLobby() as specLobby">
+              <div class="spectator-header">
+                <span class="material-symbols-outlined" style="color:var(--neon-cyan);animation:status-pulse 1.5s ease-in-out infinite;font-size:0.9rem;">visibility</span>
+                <span class="spectator-label">SPECTATING: {{ specLobby.gameName | uppercase }}</span>
+              </div>
+              <div class="spectator-info">
+                <span>{{ specLobby.playerIds.length }} players in session</span>
+                <span style="opacity:0.5;">Host: {{ specLobby.hostName }}</span>
+              </div>
+              <button class="spectator-stop-btn" (click)="stopSpectateLobby()">
+                STOP SPECTATING
+              </button>
+            </div>
 
             <!-- Launch game from lobby (all-ready visual boost) -->
             <button

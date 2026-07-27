@@ -36,6 +36,15 @@ export interface ServerParty {
   gameId?: string;
 }
 
+export interface LobbyChatMessage {
+  id: string;
+  lobbyId: string;
+  fromUserId: string;
+  fromUserName: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface CoOpLobby {
   id: string;
   hostId: string;
@@ -128,6 +137,17 @@ export class MatchmakingService implements OnDestroy {
     const lobby = this.myLobby();
     return lobby ? lobby.hostId === this.playerId() : false;
   });
+
+  // ── Persistent Lobby Chat ──
+  readonly lobbyChatMessages = signal<LobbyChatMessage[]>([]);
+  private readonly LOBBY_CHAT_PREFIX = 'smuve_lobby_chat_';
+
+  // ── Spectator Mode ──
+  readonly isSpectating = signal(false);
+  readonly spectateTargetLobby = signal<CoOpLobby | null>(null);
+  readonly inProgressLobbies = computed(() =>
+    this.activeLobbies().filter(l => l.status === 'in-progress')
+  );
 
   readonly playerId = computed(() => this.profile.profile().id || 'local-player');
   readonly playerName = computed(() => this.profile.profile().artistName || 'Unknown Player');
@@ -224,6 +244,7 @@ export class MatchmakingService implements OnDestroy {
       this.activeLobbies.update((l) => [...l, lobby]);
       this.partyMembers.set(data.members);
       this.isSearching.set(true);
+      this.initLobbyChat(lobby.id);
       this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
     });
 
@@ -317,6 +338,18 @@ export class MatchmakingService implements OnDestroy {
       this.haptic.medium();
       this.notify.show(`Match found! Opponent ready for ${data.gameId}`, 'success');
     });
+
+    // ── Lobby Chat Events ──
+    this.socket.on('lobby_chat_message', (msg: LobbyChatMessage) => {
+      const lobby = this.myLobby();
+      if (lobby && msg.lobbyId === lobby.id) {
+        this.lobbyChatMessages.update(m => {
+          if (m.find(existing => existing.id === msg.id)) return m;
+          return [...m, msg];
+        });
+        this.saveLobbyChatHistory(msg.lobbyId);
+      }
+    });
   }
 
   // ── Lobby Operations (backed by Socket.io parties) ──
@@ -362,6 +395,7 @@ export class MatchmakingService implements OnDestroy {
     this.myLobby.set(lobby);
     this.activeLobbies.update((l) => [...l, lobby]);
     this.isSearching.set(true);
+    this.initLobbyChat(lobby.id);
     this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
     return lobby;
   }
@@ -392,6 +426,7 @@ export class MatchmakingService implements OnDestroy {
       status: lobby.playerIds.length + 1 >= lobby.maxPlayers ? 'ready' : 'searching',
     };
     this.updateLobbyInState(updated);
+    this.initLobbyChat(lobbyId);
     return updated;
   }
 
@@ -524,7 +559,12 @@ export class MatchmakingService implements OnDestroy {
   launchGameFromParty(gameId: string): void {
     const lobby = this.myLobby();
     if (!lobby) return;
+    // Move lobby to in-progress for spectator discovery
+    const updated: CoOpLobby = { ...lobby, status: 'in-progress' };
+    this.myLobby.set(updated);
+    this.updateLobbyInState(updated);
     this.socket?.emit('party_launch_game', { partyId: lobby.id, gameId });
+    this.socket?.emit('party_started', { partyId: lobby.id, gameId });
   }
 
   // ── Challenge Operations (backed by Socket.io + REST) ──
@@ -621,6 +661,75 @@ export class MatchmakingService implements OnDestroy {
   cancelMatchQueue(gameId: string): void {
     this.isSearching.set(false);
     this.socket?.emit('cancel_match', { gameId });
+  }
+
+  // ── Persistent Lobby Chat ──
+
+  sendLobbyChatMessage(text: string): void {
+    const lobby = this.myLobby();
+    if (!lobby || !text.trim()) return;
+    const msg: LobbyChatMessage = {
+      id: `lobby-msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      lobbyId: lobby.id,
+      fromUserId: this.playerId(),
+      fromUserName: this.playerName(),
+      text: text.trim(),
+      timestamp: Date.now(),
+    };
+    this.lobbyChatMessages.update(m => [...m, msg]);
+    this.saveLobbyChatHistory(lobby.id);
+    // Also emit via socket for live sync
+    this.socket?.emit('lobby_chat_message', msg);
+  }
+
+  private loadLobbyChatHistory(lobbyId: string): void {
+    try {
+      const raw = localStorage.getItem(this.LOBBY_CHAT_PREFIX + lobbyId);
+      if (raw) {
+        const msgs: LobbyChatMessage[] = JSON.parse(raw);
+        this.lobbyChatMessages.set(msgs.slice(-50)); // Keep last 50
+        return;
+      }
+    } catch { /* ignore corrupt data */ }
+    this.lobbyChatMessages.set([]);
+  }
+
+  private saveLobbyChatHistory(lobbyId: string): void {
+    try {
+      const msgs = this.lobbyChatMessages();
+      localStorage.setItem(
+        this.LOBBY_CHAT_PREFIX + lobbyId,
+        JSON.stringify(msgs.slice(-50))
+      );
+    } catch { /* storage full */ }
+  }
+
+  // Wire chat loading into lobby join / create
+  private initLobbyChat(lobbyId: string): void {
+    this.loadLobbyChatHistory(lobbyId);
+  }
+
+  // ── Spectator Mode ──
+
+  startSpectateLobby(lobbyId: string): void {
+    const lobby = this.activeLobbies().find(l => l.id === lobbyId);
+    if (!lobby || lobby.status !== 'in-progress') {
+      this.notify.show('Lobby is not currently playing', 'warning');
+      return;
+    }
+    this.isSpectating.set(true);
+    this.spectateTargetLobby.set(lobby);
+    this.socket?.emit('spectate_lobby', { partyId: lobbyId });
+    this.notify.show(`Spectating ${lobby.gameName} lobby`, 'info');
+  }
+
+  stopSpectateLobby(): void {
+    const lobby = this.spectateTargetLobby();
+    if (lobby) {
+      this.socket?.emit('stop_spectating', { partyId: lobby.id });
+    }
+    this.isSpectating.set(false);
+    this.spectateTargetLobby.set(null);
   }
 
   // ── Discovery ──

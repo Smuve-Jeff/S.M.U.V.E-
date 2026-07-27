@@ -1090,6 +1090,92 @@
 .lobby-voice-end-btn:hover {
   background: rgba(239, 68, 68, 0.2);
 }
+
+/* ── Voice Activity Indicator ─────────────────────── */
+.voice-activity-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.15s ease;
+}
+.voice-activity-indicator.speaking {
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+  animation: voice-pulse 0.3s ease-in-out infinite alternate;
+}
+@keyframes voice-pulse {
+  0% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.2); }
+  100% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.4); }
+}
+
+/* ── Spectator Overlay ────────────────────────────── */
+.spectator-overlay {
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(139, 92, 246, 0.06));
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  animation: spectate-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes spectate-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.spectator-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.spectator-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neon-cyan);
+}
+.spectator-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.5rem;
+}
+.spectator-stop-btn {
+  width: 100%;
+  padding: 0.3rem;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  font-size: 0.5rem;
+  font-weight: 800;
+  font-family: var(--elite-font);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+}
+.spectator-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ── Spectate Button on Lobby Cards ───────────────── */
+.lobby-join-btn.spectate {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.6), rgba(139, 92, 246, 0.7)) !important;
+  color: #fff !important;
+}
+.lobby-join-btn.spectate:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.8), rgba(139, 92, 246, 0.9)) !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3) !important;
+}
 /* ── Animations ────────────────────────────────────── */
 .animate-enter { animation:enter-up 0.6s cubic-bezier(0.16,1,0.3,1) both; }
 @keyframes enter-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
