@@ -1633,6 +1633,27 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.favorites().includes(gameId);
   }
 
+  // ── Quick-Lobby (one-click from game card) ───────────
+  /** Creates a co-op lobby directly from a game card without opening preview. */
+  quickCreateLobby(gameId: string, event?: MouseEvent): void {
+    if (event) { event.stopPropagation(); }
+    if (!gameId || gameId === 'all') {
+      this.snackbarService.info('SELECT A MULTIPLAYER GAME FIRST');
+      return;
+    }
+    const lobby = this.matchmaking.createLobby(gameId);
+    this.snackbarService.success(`LOBBY CREATED: ${lobby.gameName.toUpperCase()}`);
+    this.playSoundEffect('select');
+    // Switch to party tab to show the lobby
+    this.setHubTab('party');
+    if (!this.showRivalHub()) this.toggleRivalHub();
+  }
+
+  // ── Is multiplayer helper for template ───────────────
+  isMultiplayer(game: Game): boolean {
+    return this.isMultiplayerGame(game);
+  }
+
   // ── Sound Effects ───────────────────────────────────
   private playSoundEffect(type: 'select' | 'launch' | 'close' | 'challenge' | 'achievement'): void {
     try {

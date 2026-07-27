@@ -263,6 +263,16 @@
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
+                  <!-- Quick-lobby button for multiplayer games -->
+                  <button
+                    class="card-quick-lobby"
+                    *ngIf="isMultiplayer(game)"
+                    (click)="quickCreateLobby(game.id, $event)"
+                    title="Create co-op lobby instantly"
+                  >
+                    <span class="material-symbols-outlined">groups</span>
+                    +LOBBY
+                  </button>
                   <div
                     class="card-badge"
                     *ngIf="game.badgeIds?.includes('elite')"
@@ -806,6 +816,22 @@
               </button>
             </div>
 
+            <!-- Matchmaking Queue Status Bar -->
+            <div class="matchmaking-queue-bar" *ngIf="matchmaking.isSearching()">
+              <span class="queue-icon material-symbols-outlined">radar</span>
+              <span class="queue-text">SEARCHING FOR PLAYERS...</span>
+              <span class="queue-dots">
+                <span class="queue-dot"></span>
+                <span class="queue-dot"></span>
+                <span class="queue-dot"></span>
+              </span>
+              <button class="queue-cancel" (click)="matchmaking.cancelMatchQueue(lobby.gameId)">CANCEL</button>
+            </div>
+            <div class="matchmaking-queue-bar matched" *ngIf="matchmaking.matchFound() as found">
+              <span class="queue-icon material-symbols-outlined">check_circle</span>
+              <span class="queue-text">MATCH FOUND! {{ found.gameId | uppercase }}</span>
+            </div>
+
             <div class="lobby-game-chip" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.5rem;border:1px solid rgba(0,229,255,0.2);border-radius:999px;font-size:0.6rem;margin-bottom:0.5rem;">
               <span class="material-symbols-outlined" style="font-size:0.7rem;">stadia_controller</span>
               {{ lobby.gameName | uppercase }}
@@ -819,6 +845,32 @@
               </div>
               <div *ngIf="lobby.playerIds.length < lobby.maxPlayers" class="member-chip" style="opacity:0.3;border-style:dashed;">
                 WAITING...
+              </div>
+            </div>
+
+            <!-- In-Lobby Chat -->
+            <div class="lobby-chat-section" *ngIf="lobby.playerIds.length > 0">
+              <div class="lobby-chat-messages" #lobbyChatScroll style="max-height:140px;overflow-y:auto;margin-bottom:0.5rem;">
+                <div class="lobby-chat-msg" *ngFor="let msg of socialService.roomMessages()">
+                  <span class="lobby-chat-user">{{ msg.fromUserName || 'PLAYER' | uppercase }}</span>
+                  <span class="lobby-chat-text">{{ msg.message }}</span>
+                </div>
+                <div class="lobby-chat-empty" *ngIf="socialService.roomMessages().length === 0" style="font-size:0.6rem;opacity:0.4;text-align:center;padding:0.5rem;">
+                  Squad chat — coordinate before launch
+                </div>
+              </div>
+              <div class="lobby-chat-input-row">
+                <input
+                  type="text"
+                  class="lobby-chat-input"
+                  placeholder="Squad message..."
+                  [ngModel]="chatInput()"
+                  (ngModelChange)="chatInput.set($event)"
+                  (keyup.enter)="handleChatSubmit()"
+                />
+                <button class="lobby-chat-send" (click)="handleChatSubmit()">
+                  <span class="material-symbols-outlined" style="font-size:0.8rem;">send</span>
+                </button>
               </div>
             </div>
 
