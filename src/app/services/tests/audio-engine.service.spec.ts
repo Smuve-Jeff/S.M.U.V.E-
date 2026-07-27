@@ -75,6 +75,8 @@ describe('AudioEngineService', () => {
       createAnalyser: jest.fn().mockImplementation(createMockNode),
       createConvolver: jest.fn().mockImplementation(createMockNode),
       createStereoPanner: jest.fn().mockImplementation(createMockNode),
+      createChannelSplitter: jest.fn().mockImplementation(createMockNode),
+      createChannelMerger: jest.fn().mockImplementation(createMockNode),
       createWaveShaper: jest.fn().mockImplementation(createMockNode),
       createBufferSource: jest.fn().mockImplementation(createMockNode),
       createBuffer: jest.fn().mockReturnValue({

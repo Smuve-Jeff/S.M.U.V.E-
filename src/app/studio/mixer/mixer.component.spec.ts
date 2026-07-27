@@ -28,6 +28,7 @@ describe('MixerComponent', () => {
         }),
       },
       outputLufs: signal(-14),
+      outputPeak: signal(0),
       getTrackOutput: () => ({ connect: () => {} }),
     },
   };

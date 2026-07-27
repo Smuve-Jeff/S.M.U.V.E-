@@ -200,7 +200,7 @@ export class AudioEngineService {
     this.masterWidener.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
 
-    // Metering tap: keep the LUFS chain in parallel so metering reads the true program path.
+    // Metering tap: keep the LUFS chain in parallel so metering reads the same pre-analysis program signal.
     this.masterWidener.connect(this.lufsFilter1);
     this.lufsFilter1.connect(this.lufsFilter2);
     this.lufsFilter2.connect(this.lufsAnalyzer);
@@ -500,7 +500,8 @@ export class AudioEngineService {
   private getDeckPosition(deck: DeckChannel): number {
     if (!deck.buffer) return 0;
     const elapsed = Math.max(0, this.ctx.currentTime - deck.startTime);
-    const position = (deck.pauseOffset + elapsed * deck.rate) % deck.buffer.duration;
+    const position =
+      (deck.pauseOffset + elapsed * deck.rate) % deck.buffer.duration;
     return Math.max(0, position);
   }
 
@@ -628,10 +629,16 @@ export class AudioEngineService {
   }
   getDeckProgress(id: DeckId) {
     const deck = this.getDeck(id);
-    if (!deck) return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    if (!deck)
+      return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
     const duration = deck.buffer?.duration || 0;
     const position = this.getDeckPosition(deck);
-    return { position, duration, isPlaying: deck.isPlaying, slipPosition: position };
+    return {
+      position,
+      duration,
+      isPlaying: deck.isPlaying,
+      slipPosition: position,
+    };
   }
   getDeckLevel(id: DeckId) {
     const deck = this.getDeck(id);
@@ -951,8 +958,8 @@ export class AudioEngineService {
       splitter.connect(leftToRight, 0);
       splitter.connect(rightToRight, 1);
       leftToLeft.connect(merger, 0, 0);
-      rightToLeft.connect(merger, 0, 1);
-      leftToRight.connect(merger, 0, 0);
+      rightToLeft.connect(merger, 0, 0);
+      leftToRight.connect(merger, 0, 1);
       rightToRight.connect(merger, 0, 1);
       merger.connect(fader);
       fader.connect(output);
@@ -1010,16 +1017,32 @@ export class AudioEngineService {
       pan.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
 
     if (patch.stereoWidth !== undefined && width) {
+      // Defensive clamp keeps the width matrix stable even if callers bypass the manager layer.
       const normalized = Math.max(-1, Math.min(1, patch.stereoWidth));
-      const widthAmount = (normalized + 1) / 2;
-      const leftToLeft = 0.5 + widthAmount * 0.5;
-      const rightToLeft = 0.5 - widthAmount * 0.5;
-      const leftToRight = 0.5 - widthAmount * 0.5;
-      const rightToRight = 0.5 + widthAmount * 0.5;
-      width.leftToLeft.gain.setTargetAtTime(leftToLeft, this.ctx.currentTime, 0.05);
-      width.rightToLeft.gain.setTargetAtTime(rightToLeft, this.ctx.currentTime, 0.05);
-      width.leftToRight.gain.setTargetAtTime(leftToRight, this.ctx.currentTime, 0.05);
-      width.rightToRight.gain.setTargetAtTime(rightToRight, this.ctx.currentTime, 0.05);
+      const leftChannelLeftGain = 0.5 + normalized * 0.5;
+      const rightChannelLeftGain = 0.5 - normalized * 0.5;
+      const leftChannelRightGain = 0.5 - normalized * 0.5;
+      const rightChannelRightGain = 0.5 + normalized * 0.5;
+      width.leftToLeft.gain.setTargetAtTime(
+        leftChannelLeftGain,
+        this.ctx.currentTime,
+        0.05
+      );
+      width.rightToLeft.gain.setTargetAtTime(
+        rightChannelLeftGain,
+        this.ctx.currentTime,
+        0.05
+      );
+      width.leftToRight.gain.setTargetAtTime(
+        leftChannelRightGain,
+        this.ctx.currentTime,
+        0.05
+      );
+      width.rightToRight.gain.setTargetAtTime(
+        rightChannelRightGain,
+        this.ctx.currentTime,
+        0.05
+      );
     }
 
     if (patch.sendA !== undefined)
@@ -1077,6 +1100,11 @@ export class AudioEngineService {
   getContext() {
     return this.ctx;
   }
+
+  private initializeTrackNodesIfNeeded(trackId: string) {
+    this.getTrackOutput(trackId);
+  }
+
   getMasterAnalyser() {
     return this.masterAnalyser;
   }
@@ -1165,7 +1193,7 @@ export class AudioEngineService {
   }
 
   setTrackAuxSend(trackId: string, auxId: string, level: number) {
-    this.getTrackOutput(trackId);
+    this.initializeTrackNodesIfNeeded(trackId);
 
     let trackSends = this.trackAuxSends.get(trackId);
     if (!trackSends) {
