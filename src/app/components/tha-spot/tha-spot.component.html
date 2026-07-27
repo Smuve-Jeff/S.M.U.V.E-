@@ -291,7 +291,57 @@
           </div>
         </div>
 
-        <!-- Full Catalog Supplement -->          <!-- Recent Games Section -->
+        <!-- Full Catalog Supplement -->          <!-- 🟢 Live Co-Op Lobbies ── Real-time Socket.io lobby discoverability -->
+        <div class="live-lobbies-rail" *ngIf="matchmaking.activeLobbies().length > 0">
+          <div class="section-header">
+            <div class="section-header-left">
+              <h3>
+                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;color:#10b981;">groups</span>
+                LIVE LOBBIES
+                <span style="font-size:0.55rem;color:rgba(16,185,129,0.7);font-weight:700;margin-left:0.5rem;vertical-align:middle;">
+                  {{ matchmaking.connected() ? '🟢 LIVE' : '🔴 OFFLINE' }}
+                </span>
+              </h3>
+              <div class="section-sub">{{ matchmaking.activeLobbies().length }} open lobbies — join a squad and play together</div>
+            </div>
+          </div>
+          <div class="live-lobbies-strip no-scrollbar">
+            <div
+              class="lobby-card glass-v42"
+              *ngFor="let lb of matchmaking.activeLobbies()"
+            >
+              <div class="lobby-card-header">
+                <span class="lobby-game-icon material-symbols-outlined">stadia_controller</span>
+                <span class="lobby-game-name">{{ lb.gameName | uppercase }}</span>
+              </div>
+              <div class="lobby-card-body">
+                <div class="lobby-host">
+                  <span class="lobby-host-avatar">{{ lb.hostName?.substring(0, 2)?.toUpperCase() || '??' }}</span>
+                  <span class="lobby-host-name">{{ lb.hostName }}</span>
+                  <span class="lobby-host-tag">HOST</span>
+                </div>
+                <div class="lobby-meta">
+                  <span class="lobby-players">
+                    <span class="material-symbols-outlined" style="font-size:0.65rem;">person</span>
+                    {{ lb.playerIds.length }}/{{ lb.maxPlayers }}
+                  </span>
+                  <span class="lobby-status-badge" [class.lobby-ready]="lb.status === 'ready'" [class.lobby-searching]="lb.status === 'searching'">
+                    {{ lb.status === 'ready' ? 'READY' : 'WAITING' }}
+                  </span>
+                </div>
+              </div>
+              <button
+                class="lobby-join-btn"
+                (click)="matchmaking.joinLobby(lb.id)"
+                [disabled]="lb.playerIds.length >= lb.maxPlayers"
+              >
+                {{ lb.playerIds.length >= lb.maxPlayers ? 'FULL' : 'JOIN' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Games Section -->
         <div class="recent-games-section" *ngIf="recentGames().length > 0">
           <div class="section-header">
             <div class="section-header-left">

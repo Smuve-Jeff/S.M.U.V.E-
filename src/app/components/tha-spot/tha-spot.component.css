@@ -191,8 +191,9 @@
 .console-telemetry { font-family:'Geist Mono',monospace; font-size:0.55rem; letter-spacing:0.08em; color:rgba(255,255,255,0.3); }
 .console-telemetry .success { color:var(--success-green); text-shadow:0 0 5px rgba(34,197,94,0.3); }
 .console-actions { display:flex; gap:0.25rem; }
-.console-body { flex:1; position:relative; overflow:hidden; }
-.game-frame { width:100%; height:100%; border:none; filter:contrast(1.05) brightness(1.05); }
+.console-body { flex:1; position:relative; overflow:hidden; min-height:0; }
+.game-frame { width:100%; height:100%; border:none; filter:contrast(1.05) brightness(1.05); position:absolute; inset:0; }
+.iframe-glitch-wrapper { position:absolute; inset:0; width:100%; height:100%; }
 .icon-btn { width:32px; height:32px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s ease; }
 .icon-btn:hover { background:rgba(255,255,255,0.05); color:#f1f5f9; }
 .icon-btn:disabled { opacity:0.4; cursor:not-allowed; }
@@ -256,11 +257,14 @@
 .online-indicator { position:absolute; bottom:-1px; right:-1px; width:10px; height:10px; background:var(--success-green); border:2px solid rgba(5,8,15,1); border-radius:50%; box-shadow:0 0 6px rgba(34,197,94,0.4); }
 .online-indicator.in-game { background:var(--neon-purple); box-shadow:0 0 6px rgba(var(--neon-purple-rgb),0.4); }
 
-/* ── Pluto TV ──────────────────────────────────────── */
-.pluto-standalone-experience { position:fixed !important; inset:0 !important; z-index:10000 !important; background:#000 !important; }
-.pluto-standalone-frame { width:100%; height:100%; border:none; }
-.exit-pluto-btn { position:absolute; top:16px; left:16px; z-index:10001; display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem; border-radius:20px; font-weight:800; font-size:0.7rem; letter-spacing:0.05em; color:rgba(255,255,255,0.5); border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.5); backdrop-filter:blur(10px); cursor:pointer; transition:all 0.3s ease; font-family:var(--elite-font); }
+/* ── Pluto TV (full-page standalone) ──────────────── */
+.pluto-standalone-experience { position:fixed !important; inset:0 !important; z-index:10000 !important; background:#000 !important; width:100vw !important; height:100vh !important; height:100dvh !important; display:block !important; }
+.pluto-standalone-frame { width:100% !important; height:100% !important; border:none !important; display:block !important; position:absolute !important; inset:0 !important; }
+/* The iframe-glitch-wrapper must fill its parent so the iframe (width:100% / height:100%) gets a real viewport */
+.full-standalone > .iframe-glitch-wrapper { position:absolute !important; inset:0 !important; width:100% !important; height:100% !important; display:block !important; }
+.exit-pluto-btn { position:fixed !important; top:18px; left:18px; z-index:10001; display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem; border-radius:20px; font-weight:800; font-size:0.7rem; letter-spacing:0.05em; color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:all 0.3s ease; font-family:var(--elite-font); }
 .exit-pluto-btn:hover { color:#f1f5f9; border-color:rgba(var(--neon-cyan-rgb),0.3); background:rgba(var(--neon-cyan-rgb),0.1); }
+@media (display-mode: fullscreen) { .pluto-standalone-experience { width:100% !important; height:100% !important; } }
 
 /* ── Matchmaking Overlay ───────────────────────────── */
 .matchmaking-overlay { position:fixed; inset:0; z-index:5000; display:flex; align-items:center; justify-content:center; background:rgba(5,8,15,0.9); backdrop-filter:blur(15px); }
@@ -285,6 +289,170 @@
 /* ── AI Companion ──────────────────────────────────── */
 .ai-msg-text { background:rgba(var(--neon-purple-rgb),0.06); padding:0.5rem 0.75rem; border-radius:8px; border-bottom-left-radius:2px; font-size:0.7rem; line-height:1.4; color:rgba(255,255,255,0.7); border:1px solid rgba(var(--neon-purple-rgb),0.08); }
 .user-msg .ai-msg-text { background:rgba(var(--neon-cyan-rgb),0.08); border-bottom-left-radius:8px; border-bottom-right-radius:2px; border-color:rgba(var(--neon-cyan-rgb),0.1); }
+
+/* ── Live Lobbies Rail ──────────────────────────── */
+.live-lobbies-rail {
+  padding: 1.5rem 3rem;
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.02) 0%, transparent 100%);
+}
+.live-lobbies-strip {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scroll-snap-type: x mandatory;
+}
+.live-lobbies-strip::-webkit-scrollbar { height: 2px; }
+.live-lobbies-strip::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.15); border-radius: 1px; }
+
+.lobby-card {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
+  padding: 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+}
+.lobby-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.04);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.06);
+  transform: translateY(-3px);
+}
+
+.lobby-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.lobby-game-icon {
+  font-size: 1rem;
+  color: var(--neon-cyan);
+}
+.lobby-game-name {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #f1f5f9;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lobby-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lobby-host {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lobby-host-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  color: #000;
+  font-size: 0.5rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lobby-host-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lobby-host-tag {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(var(--neon-cyan-rgb), 0.1);
+  color: var(--neon-cyan);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.lobby-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lobby-players {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+.lobby-status-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lobby-status-badge.lobby-ready {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--success-green);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+.lobby-status-badge.lobby-searching {
+  background: rgba(var(--neon-gold-rgb), 0.1);
+  color: var(--neon-gold);
+  border: 1px solid rgba(var(--neon-gold-rgb), 0.15);
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.lobby-join-btn {
+  width: 100%;
+  padding: 0.45rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.9));
+  color: #fff;
+  font-family: var(--elite-font);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.25s ease;
+}
+.lobby-join-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 1));
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+  transform: translateY(-1px);
+}
+.lobby-join-btn:active:not(:disabled) { transform: scale(0.96); }
+.lobby-join-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Lobby rail responsive ──────────────────────── */
+@media (max-width: 768px) {
+  .live-lobbies-rail { padding: 1rem; }
+  .lobby-card { flex: 0 0 200px; }
+}
 
 /* ── Back to Top ───────────────────────────────────── */
 .back-to-top-btn { position:fixed; bottom:24px; right:24px; width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:1000; opacity:0; visibility:hidden; transform:translateY(15px); transition:all 0.4s cubic-bezier(0.16,1,0.3,1); cursor:pointer; border:none; background:rgba(var(--neon-cyan-rgb),0.1); border:1px solid rgba(var(--neon-cyan-rgb),0.15); color:var(--neon-cyan); }

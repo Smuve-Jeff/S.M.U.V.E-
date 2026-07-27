@@ -239,6 +239,9 @@
   color: var(--espresso-muted);
 }
 
+/* Hidden rail items (views that shouldn't appear in the sidebar) */
+.comp-rail-hidden { display: none !important; }
+
 /* ---------- STAGE MARQUEE (concert visual) ---------- */
 .comp-stage-marquee {
   margin: 0;
@@ -273,6 +276,12 @@
 
 /* ---------- MOBILE COMPACT MODE — RAIL HIDDEN ---------- */
 .comp-shell.comp-compact .comp-rail { display: none; }
+
+/* ── Panel backdrop dark mode ── */
+:host-context(.dark-mode) .comp-panel-backdrop,
+.dark-mode .comp-panel-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
 
 /* ---------- BOTTOM TAB BAR (Mobile) ---------- */
 .comp-bottombar {
@@ -981,7 +990,19 @@
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(61, 53, 42, 0.15);
 }
-.comp-panel-open { transform: translateX(0); }
+.comp-panel.comp-panel-open { transform: translateX(0); }
+
+/* Panel backdrop scrim (shared for all slide-in panels) */
+.comp-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 26, 18, 0.35);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 75;
+  animation: comp-fade-in 0.2s ease;
+}
+@keyframes comp-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 .comp-panel-header {
   display: flex;
