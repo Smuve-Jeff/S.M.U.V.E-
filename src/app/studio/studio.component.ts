@@ -55,6 +55,7 @@ import { SynthesizerComponent } from './synthesizer/synthesizer.component';
 import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component';
 import { AudioRecorderViewComponent } from './audio-recorder-view/audio-recorder-view.component';
 import { SampleLibraryComponent } from './sample-library/sample-library.component';
+import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.component';
 
 type StudioView =
   | 'arrangement'
@@ -137,6 +138,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     SoundPadGridComponent,
     AudioRecorderViewComponent,
     SampleLibraryComponent,
+    BeginnerWizardComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -194,6 +196,36 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
+
+  // ── Beginner Mode ─────────────────────────────────────
+  /** Persisted beginner mode — true by default for new users. */
+  isBeginnerMode = signal<boolean>(
+    localStorage.getItem('smuve_beginner_mode') !== 'false'
+  );
+
+  toggleBeginnerMode() {
+    this.haptic.light();
+    this.isBeginnerMode.update((v) => !v);
+    try {
+      localStorage.setItem('smuve_beginner_mode', String(this.isBeginnerMode()));
+    } catch {}
+    this.snackbarService.info(
+      this.isBeginnerMode() ? 'Beginner Mode ON — simplified controls with tips' : 'Pro Mode ON — full studio controls'
+    );
+  }
+
+  /** Navigate to a view from the beginner wizard */
+  onWizardNavigate(view: string) {
+    if (isStudioView(view)) {
+      this.setActiveView(view);
+    }
+  }
+
+  /** Navigate back to the Hub home page */
+  navigateHome() {
+    this.haptic.light();
+    this.router.navigate(['/hub']);
+  }
 
   /**
    * 3-way theme model — replaces the old binary isDarkMode.

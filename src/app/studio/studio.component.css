@@ -2205,3 +2205,62 @@
   .comp-drawer { transition: none !important; }
   .comp-panel { transition: none !important; }
 }
+
+/* ═══ HOME NAVIGATION BUTTON ═══════════════════════════════ */
+.comp-rail-home {
+  border-bottom: 2px solid var(--teal-500, #0E7C7B);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+}
+
+.comp-rail-home .material-symbols-outlined {
+  color: var(--teal-500, #0E7C7B);
+}
+
+.comp-rail-home:hover {
+  background: color-mix(in srgb, var(--teal-500) 10%, transparent);
+}
+
+/* ═══ BEGINNER / PRO TOGGLE ═══════════════════════════════ */
+.comp-beginner-toggle {
+  position: relative;
+}
+
+.comp-beginner-toggle .comp-theme-chip {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.comp-beginner-active {
+  background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+  color: #fff !important;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.comp-beginner-active .comp-theme-chip {
+  color: #fff;
+}
+
+/* ═══ BEGINNER WIZARD VIEW ════════════════════════════════ */
+.comp-beginner-view {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ═══ MOBILE HOME TAB ═════════════════════════════════════ */
+.comp-tab-home {
+  border-right: 1px solid var(--ivory-line, rgba(180,200,255,0.08));
+}
+
+.comp-tab-home .material-symbols-outlined {
+  color: var(--teal-500, #0E7C7B);
+}
+
+/* ═══ MOBILE RESPONSIVE ADJUSTMENTS ═══════════════════════ */
+@media (max-width: 768px) {
+  .comp-beginner-toggle .comp-theme-chip {
+    display: none;
+  }
+}

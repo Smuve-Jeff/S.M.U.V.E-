@@ -1,32 +1,83 @@
 <!--
-  Neural Synth v4 — Professional synthesizer interface
-  Oscillator · Filter · Amplitude Envelope · LFO · Effects
-  Ivory + Teal DAW theme, mobile-responsive
+  Neural Synth v5 — Mobile-First Synthesizer
+  Beginner Mode with tooltips · Visual waveform & ADSR canvas
+  Swipeable tabs on mobile · Expanded grid on desktop
 -->
 <div class="synth-container">
   <!-- HEADER -->
   <header class="synth-header">
     <div class="synth-header-left">
-      <span class="synth-title">Neural Synth v4</span>
-      <span class="synth-patch-name">{{ activePatch()?.name ?? 'INIT PATCH' }}</span>
+      <span class="synth-title">Neural Synth v5</span>
+      <span class="synth-patch-name">{{ activePatch()?.name ?? 'INIT' }}</span>
+      <span class="synth-patch-desc" *ngIf="isBeginner() && activePatch()">
+        {{ activePatch()!.description }}
+      </span>
     </div>
-    <div class="synth-patch-browser">
+    <div class="synth-header-right">
+      <!-- Beginner / Pro toggle -->
       <button
-        *ngFor="let patch of patches"
         type="button"
-        class="synth-patch-btn"
-        [class.is-active]="activePatchId() === patch.id"
-        (click)="loadPatch(patch.id)"
+        class="synth-mode-toggle"
+        [class.is-beginner]="isBeginner()"
+        (click)="toggleBeginner()"
+        [attr.aria-label]="isBeginner() ? 'Switch to Pro mode — show all controls' : 'Switch to Beginner mode — simplified controls with tips'"
       >
-        {{ patch.name }}
+        <span class="material-symbols-outlined">{{ isBeginner() ? 'school' : 'auto_awesome' }}</span>
+        <span>{{ isBeginner() ? 'BEGINNER' : 'PRO' }}</span>
       </button>
     </div>
   </header>
 
+  <!-- PATCH BROWSER (horizontal scroll) -->
+  <div class="synth-patch-rail">
+    <button
+      *ngFor="let patch of patches"
+      type="button"
+      class="synth-patch-btn"
+      [class.is-active]="activePatchId() === patch.id"
+      (click)="loadPatch(patch.id)"
+      [attr.aria-label]="'Load ' + patch.name + ' preset'"
+    >
+      <span class="synth-patch-btn-name">{{ patch.name }}</span>
+      <span class="synth-patch-btn-tip" *ngIf="isBeginner()">{{ patch.beginnerTip }}</span>
+    </button>
+  </div>
+
+  <!-- MOBILE TABS (visible < 768px only) -->
+  <nav class="synth-mobile-tabs" role="tablist" aria-label="Synthesizer sections">
+    <button
+      *ngFor="let tab of mobileTabs"
+      type="button"
+      role="tab"
+      class="synth-mtab"
+      [class.synth-mtab-active]="activeTab() === tab.key"
+      (click)="setTab(tab.key)"
+      [attr.aria-selected]="activeTab() === tab.key"
+    >
+      <span class="material-symbols-outlined">{{ tab.icon }}</span>
+      <span class="synth-mtab-label">{{ tab.label }}</span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT (scrollable) -->
   <div class="synth-content no-scrollbar">
-    <!-- OSCILLATOR -->
-    <div class="synth-section oscillator-section">
-      <div class="section-title">Oscillator</div>
+
+    <!-- ════════ OSCILLATOR SECTION ════════ -->
+    <div
+      class="synth-section oscillator-section"
+      [class.synth-section-hidden-mobile]="activeTab() !== 'osc'"
+    >
+      <div class="section-header">
+        <span class="section-title">Oscillator</span>
+        <span class="section-hint" *ngIf="isBeginner()">The basic shape of your sound</span>
+      </div>
+
+      <!-- Waveform canvas visualization -->
+      <div class="synth-canvas-wrap">
+        <canvas #waveformCanvas class="synth-canvas" width="320" height="80"></canvas>
+      </div>
+
+      <!-- Wave selector -->
       <div class="wave-selector">
         <button
           *ngFor="let type of ['sine', 'square', 'sawtooth', 'triangle']"
@@ -34,41 +85,89 @@
           (click)="updateSynthParam('oscillator', type)"
           [class.active]="synthParams.oscillator === type"
           class="wave-btn"
+          [attr.aria-label]="'Select ' + type + ' waveform'"
         >
-          {{ type }}
+          <span class="wave-btn-name">{{ type }}</span>
+          <span class="wave-btn-desc" *ngIf="isBeginner()">{{ oscDescriptions[type] }}</span>
         </button>
       </div>
-      <div class="knob-row">
-        <div class="knob-container">
-          <span class="knob-label">Cutoff</span>
-          <span class="knob-value">{{ synthParams.cutoff }} Hz</span>
-          <input
-            type="range"
-            min="20" max="15000" step="1"
-            [ngModel]="synthParams.cutoff"
-            (ngModelChange)="updateSynthParam('cutoff', $event)"
-            aria-label="Filter cutoff frequency"
-          />
+
+      <!-- Brightness (Cutoff) -->
+      <div class="param-group">
+        <div class="param-header" (click)="showTooltip('cutoff')">
+          <span class="param-label">
+            <span class="param-icon" *ngIf="isBeginner()">🔆</span>
+            {{ isBeginner() ? tooltips['cutoff'].label : 'Cutoff' }}
+          </span>
+          <span class="param-value">{{ formatHz(synthParams.cutoff) }}</span>
+          <span class="param-help-icon" *ngIf="isBeginner()">?</span>
         </div>
-        <div class="knob-container">
-          <span class="knob-label">Resonance</span>
-          <span class="knob-value">{{ synthParams.q.toFixed(1) }}</span>
-          <input
-            type="range"
-            min="0" max="20" step="0.1"
-            [ngModel]="synthParams.q"
-            (ngModelChange)="updateSynthParam('q', $event)"
-            aria-label="Filter resonance"
-          />
+        <div class="param-tip" *ngIf="activeTooltip() === 'cutoff' && isBeginner()">
+          {{ tooltips['cutoff'].plain }}
         </div>
+        <input
+          type="range"
+          class="synth-slider"
+          min="20" max="15000" step="1"
+          [ngModel]="synthParams.cutoff"
+          (ngModelChange)="updateSynthParam('cutoff', $event)"
+          aria-label="Filter cutoff frequency"
+        />
+      </div>
+
+      <!-- Sharpness (Resonance) -->
+      <div class="param-group">
+        <div class="param-header" (click)="showTooltip('q')">
+          <span class="param-label">
+            <span class="param-icon" *ngIf="isBeginner()">🎯</span>
+            {{ isBeginner() ? tooltips['q'].label : 'Resonance' }}
+          </span>
+          <span class="param-value">{{ synthParams.q.toFixed(1) }}</span>
+          <span class="param-help-icon" *ngIf="isBeginner()">?</span>
+        </div>
+        <div class="param-tip" *ngIf="activeTooltip() === 'q' && isBeginner()">
+          {{ tooltips['q'].plain }}
+        </div>
+        <input
+          type="range"
+          class="synth-slider"
+          min="0" max="20" step="0.1"
+          [ngModel]="synthParams.q"
+          (ngModelChange)="updateSynthParam('q', $event)"
+          aria-label="Filter resonance"
+        />
       </div>
     </div>
 
-    <!-- AMPLITUDE ENVELOPE -->
-    <div class="synth-section envelope-section">
-      <div class="section-title">Amplitude Envelope</div>
+    <!-- ════════ ENVELOPE SECTION ════════ -->
+    <div
+      class="synth-section envelope-section"
+      [class.synth-section-hidden-mobile]="activeTab() !== 'env'"
+    >
+      <div class="section-header">
+        <span class="section-title">Amplitude Envelope</span>
+        <span class="section-hint" *ngIf="isBeginner()">Controls how your sound fades in and out</span>
+      </div>
+
+      <!-- ADSR canvas visualization -->
+      <div class="synth-canvas-wrap">
+        <canvas #adsrCanvas class="synth-canvas" width="320" height="80"></canvas>
+      </div>
+
       <div class="adsr-grid">
         <div *ngFor="let stage of adStages" class="adsr-fader">
+          <!-- Tooltip trigger in beginner mode -->
+          <div class="adsr-fader-header" (click)="showTooltip(stage.key)" *ngIf="isBeginner()">
+            <span class="param-icon">{{ stage.icon }}</span>
+            <span class="adsr-label">{{ stage.abbr }}</span>
+            <span class="param-help-icon">?</span>
+          </div>
+          <span class="adsr-label" *ngIf="!isBeginner()">{{ stage.abbr }}</span>
+
+          <div class="param-tip" *ngIf="activeTooltip() === stage.key && isBeginner()">
+            {{ tooltips[stage.key].plain }}
+          </div>
+
           <div class="fader-well">
             <div
               class="fader-fill"
@@ -78,6 +177,7 @@
           <input
             type="range"
             orient="vertical"
+            class="synth-slider synth-slider-v"
             [min]="0"
             [max]="stage.key === 'sustain' ? 1 : 2"
             step="0.01"
@@ -85,14 +185,24 @@
             (ngModelChange)="updateSynthParam(stage.key, $event)"
             [attr.aria-label]="stage.label"
           />
-          <span class="adsr-label">{{ stage.abbr }}</span>
+          <span class="adsr-val">
+            {{ stage.key === 'sustain' ? (synthParams.sustain * 100).toFixed(0) + '%' : synthParams[stage.key].toFixed(2) + 's' }}
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- LFO -->
-    <div class="synth-section lfo-section">
-      <div class="section-title">LFO</div>
+    <!-- ════════ FILTER SECTION (LFO) ════════ -->
+    <div
+      class="synth-section lfo-section"
+      [class.synth-section-hidden-mobile]="activeTab() !== 'filter'"
+    >
+      <div class="section-header">
+        <span class="section-title">Filter Modulation (LFO)</span>
+        <span class="section-hint" *ngIf="isBeginner()">Makes your sound wobble or pulse automatically</span>
+      </div>
+
+      <!-- LFO wave selector -->
       <div class="lfo-wave-select">
         <button
           *ngFor="let w of lfoWaves"
@@ -100,68 +210,149 @@
           class="lfo-wave-btn"
           [class.is-active]="lfoParams.wave === w.value"
           (click)="updateLfoParam('wave', w.value)"
-          [attr.aria-label]="w.label"
-        >{{ w.icon }}</button>
+          [attr.aria-label]="w.label + ' LFO waveform'"
+        >
+          <span class="lfo-wave-icon">{{ w.icon }}</span>
+          <span class="lfo-wave-label" *ngIf="isBeginner()">{{ w.label }}</span>
+        </button>
       </div>
-      <select
-        class="lfo-target-select"
-        [ngModel]="lfoParams.target"
-        (ngModelChange)="updateLfoParam('target', $event)"
-        aria-label="LFO modulation target"
-      >
-        <option value="cutoff">→ Filter Cutoff</option>
-        <option value="pitch">→ Osc Pitch</option>
-        <option value="volume">→ Volume</option>
-        <option value="pan">→ Pan</option>
-      </select>
+
+      <!-- LFO target -->
+      <div class="param-group">
+        <span class="param-label">
+          <span class="param-icon" *ngIf="isBeginner()">🎯</span>
+          {{ isBeginner() ? 'Wobble Target' : 'Target' }}
+        </span>
+        <select
+          class="synth-select"
+          [ngModel]="lfoParams.target"
+          (ngModelChange)="updateLfoParam('target', $event)"
+          aria-label="LFO modulation target"
+        >
+          <option value="cutoff">{{ isBeginner() ? '→ Make brightness wobble' : '→ Filter Cutoff' }}</option>
+          <option value="pitch">{{ isBeginner() ? '→ Make pitch wobble (vibrato)' : '→ Osc Pitch' }}</option>
+          <option value="volume">{{ isBeginner() ? '→ Make volume pulse (tremolo)' : '→ Volume' }}</option>
+          <option value="pan">{{ isBeginner() ? '→ Move sound left & right' : '→ Pan' }}</option>
+        </select>
+      </div>
+
+      <!-- Rate & Depth -->
       <div class="knob-row">
-        <div class="knob-container">
-          <span class="knob-label">Rate</span>
-          <span class="knob-value">{{ lfoParams.rate.toFixed(1) }} Hz</span>
-          <input type="range" min="0.1" max="32" step="0.1"
-                 [ngModel]="lfoParams.rate"
-                 (ngModelChange)="updateLfoParam('rate', $event)"
-                 aria-label="LFO rate" />
+        <div class="param-group">
+          <div class="param-header" (click)="showTooltip('lfoRate')">
+            <span class="param-label">
+              <span class="param-icon" *ngIf="isBeginner()">⏱️</span>
+              {{ isBeginner() ? 'Wobble Speed' : 'Rate' }}
+            </span>
+            <span class="param-value">{{ lfoParams.rate.toFixed(1) }} Hz</span>
+            <span class="param-help-icon" *ngIf="isBeginner()">?</span>
+          </div>
+          <div class="param-tip" *ngIf="activeTooltip() === 'lfoRate' && isBeginner()">
+            How fast the wobble goes. Low = slow lazy wobble, High = fast flutter.
+          </div>
+          <input
+            type="range"
+            class="synth-slider"
+            min="0.1" max="32" step="0.1"
+            [ngModel]="lfoParams.rate"
+            (ngModelChange)="updateLfoParam('rate', $event)"
+            aria-label="LFO rate"
+          />
         </div>
-        <div class="knob-container">
-          <span class="knob-label">Depth</span>
-          <span class="knob-value">{{ (lfoParams.depth * 100).toFixed(0) }}%</span>
-          <input type="range" min="0" max="1" step="0.01"
-                 [ngModel]="lfoParams.depth"
-                 (ngModelChange)="updateLfoParam('depth', $event)"
-                 aria-label="LFO depth" />
+        <div class="param-group">
+          <div class="param-header" (click)="showTooltip('lfoDepth')">
+            <span class="param-label">
+              <span class="param-icon" *ngIf="isBeginner()">📊</span>
+              {{ isBeginner() ? 'Wobble Amount' : 'Depth' }}
+            </span>
+            <span class="param-value">{{ (lfoParams.depth * 100).toFixed(0) }}%</span>
+            <span class="param-help-icon" *ngIf="isBeginner()">?</span>
+          </div>
+          <div class="param-tip" *ngIf="activeTooltip() === 'lfoDepth' && isBeginner()">
+            How dramatic the wobble is. 0% = no wobble, 100% = maximum wobble.
+          </div>
+          <input
+            type="range"
+            class="synth-slider"
+            min="0" max="1" step="0.01"
+            [ngModel]="lfoParams.depth"
+            (ngModelChange)="updateLfoParam('depth', $event)"
+            aria-label="LFO depth"
+          />
         </div>
       </div>
     </div>
 
-    <!-- EFFECTS -->
-    <div class="synth-section effects-section">
-      <div class="section-title">Effects</div>
-      <div class="knob-container" style="margin-bottom: 0.75rem">
-        <span class="knob-label">Drive</span>
-        <span class="knob-value">{{ (synthParams.distortion * 100).toFixed(0) }}%</span>
+    <!-- ════════ EFFECTS SECTION ════════ -->
+    <div
+      class="synth-section effects-section"
+      [class.synth-section-hidden-mobile]="activeTab() !== 'fx'"
+    >
+      <div class="section-header">
+        <span class="section-title">Effects</span>
+        <span class="section-hint" *ngIf="isBeginner()">Add character and power to your sound</span>
+      </div>
+
+      <!-- Drive -->
+      <div class="param-group">
+        <div class="param-header" (click)="showTooltip('distortion')">
+          <span class="param-label">
+            <span class="param-icon" *ngIf="isBeginner()">🔥</span>
+            {{ isBeginner() ? tooltips['distortion'].label : 'Drive' }}
+          </span>
+          <span class="param-value">{{ (synthParams.distortion * 100).toFixed(0) }}%</span>
+          <span class="param-help-icon" *ngIf="isBeginner()">?</span>
+        </div>
+        <div class="param-tip" *ngIf="activeTooltip() === 'distortion' && isBeginner()">
+          {{ tooltips['distortion'].plain }}
+        </div>
         <input
-          type="range" min="0" max="1" step="0.01"
+          type="range"
+          class="synth-slider"
+          min="0" max="1" step="0.01"
           [ngModel]="synthParams.distortion"
           (ngModelChange)="updateSynthParam('distortion', $event)"
           aria-label="Saturation drive"
         />
       </div>
-      <div
-        class="sub-osc-toggle"
-        [class.is-active]="synthParams.subOsc"
-        (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
-        role="switch"
-        [attr.aria-checked]="synthParams.subOsc"
-      >
-        <span class="sub-osc-dot"></span>
-        SUB OSC
+
+      <!-- Sub Oscillator toggle -->
+      <div class="sub-osc-group">
+        <div
+          class="sub-osc-toggle"
+          [class.is-active]="synthParams.subOsc"
+          (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
+          role="switch"
+          [attr.aria-checked]="synthParams.subOsc"
+          (click)="showTooltip('subOsc')"
+        >
+          <span class="sub-osc-dot"></span>
+          <span class="sub-osc-text">
+            {{ isBeginner() ? tooltips['subOsc'].label : 'SUB OSC' }}
+          </span>
+        </div>
+        <div class="param-tip" *ngIf="activeTooltip() === 'subOsc' && isBeginner() && synthParams.subOsc">
+          {{ tooltips['subOsc'].plain }}
+        </div>
       </div>
-      <div class="knob-container" style="margin-top: 0.5rem">
-        <span class="knob-label">Sub Gain</span>
-        <span class="knob-value">{{ (synthParams.subGain * 100).toFixed(0) }}%</span>
+
+      <!-- Sub Gain -->
+      <div class="param-group" *ngIf="synthParams.subOsc">
+        <div class="param-header" (click)="showTooltip('subGain')">
+          <span class="param-label">
+            <span class="param-icon" *ngIf="isBeginner()">🔊</span>
+            {{ isBeginner() ? tooltips['subGain'].label : 'Sub Gain' }}
+          </span>
+          <span class="param-value">{{ (synthParams.subGain * 100).toFixed(0) }}%</span>
+          <span class="param-help-icon" *ngIf="isBeginner()">?</span>
+        </div>
+        <div class="param-tip" *ngIf="activeTooltip() === 'subGain' && isBeginner()">
+          {{ tooltips['subGain'].plain }}
+        </div>
         <input
-          type="range" min="0" max="1" step="0.01"
+          type="range"
+          class="synth-slider"
+          min="0" max="1" step="0.01"
           [ngModel]="synthParams.subGain"
           (ngModelChange)="updateSynthParam('subGain', $event)"
           aria-label="Sub oscillator gain"

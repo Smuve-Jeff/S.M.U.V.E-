@@ -75,6 +75,19 @@
         <span>TAP TO ARM AUDIO</span>
       </button>
 
+      <!-- Beginner / Pro mode toggle -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-beginner-toggle"
+        [class.comp-beginner-active]="isBeginnerMode()"
+        (click)="toggleBeginnerMode()"
+        [attr.aria-label]="isBeginnerMode() ? 'Switch to Pro mode — full studio controls' : 'Switch to Beginner mode — guided experience with tips'"
+        [attr.title]="isBeginnerMode() ? 'Beginner Mode ON · click for Pro' : 'Pro Mode · click for Beginner'"
+      >
+        <span class="material-symbols-outlined">{{ isBeginnerMode() ? 'school' : 'auto_awesome' }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{ isBeginnerMode() ? 'LEARN' : 'PRO' }}</span>
+      </button>
+
       <!-- Theme cycle button (Light → Focus → Dark) -->
       <button
         type="button"
@@ -184,6 +197,17 @@
   <main class="comp-main" role="main">
     <!-- Desktop view rail (FL Studio side rail pattern) -->
     <nav class="comp-rail" [class.comp-rail-collapsed]="railCollapsed()" aria-label="Studio view selector">
+      <!-- Home navigation button -->
+      <button
+        type="button"
+        class="comp-rail-item comp-rail-home"
+        (click)="navigateHome()"
+        aria-label="Return to Home Hub"
+        title="Go back to the main hub"
+      >
+        <span class="material-symbols-outlined">home</span>
+        <span class="comp-rail-label">Home</span>
+      </button>
       <button
         *ngFor="let item of allStudioViews()"
         type="button"
@@ -210,9 +234,18 @@
 
     <!-- Active view canvas -->
     <section class="comp-canvas" [ngSwitch]="activeView()">
-      <div class="comp-view" *ngSwitchCase="'arrangement'">
-        <app-arrangement-view></app-arrangement-view>
-      </div>
+      <!-- Arrangement / Beginner Wizard (toggled by mode) -->
+      <ng-container *ngSwitchCase="'arrangement'">
+        <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
+          <app-beginner-wizard
+            (navigateToView)="onWizardNavigate($event)"
+            (switchToPro)="toggleBeginnerMode()"
+          ></app-beginner-wizard>
+        </div>
+        <div class="comp-view" *ngIf="!isBeginnerMode()">
+          <app-arrangement-view></app-arrangement-view>
+        </div>
+      </ng-container>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">
         <app-piano-roll></app-piano-roll>
       </div>
@@ -361,6 +394,18 @@
       <span class="comp-tab-label">{{ item.label }}</span>
       <span class="comp-tab-indicator" aria-hidden="true"></span>
     </button>
+    <!-- Home tab (mobile) -->
+    <button
+      type="button"
+      role="tab"
+      class="comp-tab comp-tab-home"
+      (click)="navigateHome()"
+      aria-label="Return to Home Hub"
+    >
+      <span class="material-symbols-outlined">home</span>
+      <span class="comp-tab-label">Home</span>
+      <span class="comp-tab-indicator" aria-hidden="true"></span>
+    </button>
     <!-- "+" overflow button opens the full mobile drawer with all 10 views -->
     <button
       type="button"
@@ -414,6 +459,25 @@
       >
         <span class="material-symbols-outlined">volume_up</span>
         <span>🔊 ARM AUDIO</span>
+      </button>
+
+      <!-- Beginner / Pro toggle in mobile drawer -->
+      <button
+        (click)="toggleBeginnerMode(); toggleMobileDrawer()"
+        class="comp-drawer-item"
+        [class.comp-drawer-active]="isBeginnerMode()"
+      >
+        <span class="material-symbols-outlined">{{ isBeginnerMode() ? 'school' : 'auto_awesome' }}</span>
+        <span>{{ isBeginnerMode() ? 'Beginner Mode (ON)' : 'Switch to Beginner Mode' }}</span>
+      </button>
+
+      <!-- Home button in mobile drawer -->
+      <button
+        (click)="navigateHome(); toggleMobileDrawer()"
+        class="comp-drawer-item"
+      >
+        <span class="material-symbols-outlined">home</span>
+        <span>Back to Home Hub</span>
       </button>
 
       <!-- 3-way theme picker in drawer (more explicit than cycle) -->
