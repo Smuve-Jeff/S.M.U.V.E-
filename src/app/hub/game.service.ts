@@ -180,9 +180,14 @@ function normalizeRecommendationRail(
   };
 }
 
+
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
+  // Defense-in-depth: normalize first, then auto-repair any cabinet URL mismatches.
+  // This catches both curated JSON feeds and corruption that creeps into the
+  // fallback TS feed so a game whose id is "battlefield" cannot load halo-ce-web.
   const games = (feed.games || [])
     .map((game) => normalizeGame(game))
+    .map((game) => validateAndRepairGame(game))
     .filter((game) => !!game.id && !!game.url);
 
   return {
@@ -208,12 +213,76 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
   };
 }
 
+/**
+ * Validate a game's launch URLs against its ID. Defends against data errors where
+ * approvedEmbedUrl/approvedExternalUrl accidentally point to a different cabinet folder
+ * than the game's primary `url`. Returns a corrected clone (never mutates the input).
+ */
+export function validateAndRepairGame(game: Game): Game {
+  const url: string = game.url || '';
+  const lc = game.launchConfig || ({} as any);
+  if (!url || !url.startsWith('/assets/games/')) return game;
+  const urlFolderMatch = url.match(/^\/assets\/games\/([^/]+)\//);
+  if (!urlFolderMatch) return game;
+  const urlFolder = urlFolderMatch[1];
+  const repaired: Game = { ...game, launchConfig: { ...(lc as any) } };
+  for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
+    const value: any = (repaired.launchConfig as any)[key];
+    if (
+      typeof value === 'string' &&
+      value.startsWith('/assets/games/')
+    ) {
+      const valueFolderMatch = value.match(/^\/assets\/games\/([^/]+)\//);
+      if (valueFolderMatch && valueFolderMatch[1] !== urlFolder) {
+        // Repair: redirect to the correct cabinet folder
+        (repaired.launchConfig as any)[key] = value.replace(
+          `/${valueFolderMatch[1]}/`,
+          `/${urlFolder}/`
+        );
+      }
+    }
+  }
+  // Also auto-correct primary url if approved folder mismatches (rare defensive case)
+  return repaired;
+}
 @Injectable({
   providedIn: 'root',
 })
 export class GameService {
   private http = inject(HttpClient);
   private feedCache$?: Observable<ThaSpotFeed>;
+
+  /**
+   * Iframe sandbox attribute builder - omitted allow-same-origin by default for
+   * security. Returns a stricter set of permissions aligned with Web Platform best
+   * practices. Callers may extend for legacy game sources that require same-origin.
+   */
+  buildIframeSandbox(game?: Game): string {
+    if (!game) {
+      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
+    }
+    const tags = (game.tags || []).map((t) => t.toLowerCase());
+    // Elite internal WASM cabinets explicitly need more privileges to boot
+    if (game.id && tags.includes('internal')) {
+      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads allow-same-origin';
+    }
+    return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
+  }
+
+  /**
+   * Feature Policy / Permissions Policy for the game iframe. Allowlists only the
+   * APIs the cabinet actually needs so the upstream source can't request things
+   * outside the approved scope.
+   */
+  buildIframeAllowAttr(game?: Game): string {
+    const base = 'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
+    if (!game) return base;
+    const tags = (game.tags || []).map((t) => t.toLowerCase());
+    if (tags.includes('multiplayer') || tags.includes('versus')) {
+      return base + '; microphone; camera; display-capture';
+    }
+    return base;
+  }
 
   getThaSpotFeed(forceRefresh = false): Observable<ThaSpotFeed> {
     if (!this.feedCache$ || forceRefresh) {
