@@ -14,6 +14,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
+import { MidiWriter, MidiTrackData } from './midi-writer.util';
+
 import { AudioSessionService } from './audio-session.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { HardwareService } from '../services/hardware.service';
@@ -56,6 +58,7 @@ import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component
 import { AudioRecorderViewComponent } from './audio-recorder-view/audio-recorder-view.component';
 import { SampleLibraryComponent } from './sample-library/sample-library.component';
 import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.component';
+import { ChordEditorComponent } from './chord-editor/chord-editor.component';
 
 type StudioView =
   | 'arrangement'
@@ -73,7 +76,8 @@ type StudioView =
   | 'sample-library'
   | 'sound-browser'
   | 'sound-pad'
-  | 'synthesizer';
+  | 'synthesizer'
+  | 'chord-editor';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
@@ -93,6 +97,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'sound-browser',
   'sound-pad',
   'synthesizer',
+  'chord-editor',
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
@@ -139,6 +144,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     AudioRecorderViewComponent,
     SampleLibraryComponent,
     BeginnerWizardComponent,
+    ChordEditorComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -221,6 +227,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /** Navigate from wizard with a preset auto-load */
+  onWizardLaunchWithPreset(payload: { view: string; preset: string }) {
+    if (isStudioView(payload.view)) {
+      this.setActiveView(payload.view);
+    }
+    // Auto-configure based on the preset type
+    switch (payload.preset) {
+      case 'house':
+        // Auto-apply house drum style and set tempo
+        this.audioEngine.tempo.set(124);
+        this.snackbarService.info('Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!');
+        break;
+      case 'c-major-beginner':
+        // Set a beginner-friendly tempo and notify
+        this.audioEngine.tempo.set(100);
+        this.snackbarService.info('Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!');
+        break;
+      case 'lofi-85':
+        this.audioEngine.tempo.set(85);
+        this.snackbarService.info('Beginner preset loaded: Lo-Fi vibe at 85 BPM');
+        break;
+      default:
+        this.snackbarService.info('Preset loaded — explore and have fun!');
+    }
+  }
+
   /** Navigate back to the Hub home page */
   navigateHome() {
     this.haptic.light();
@@ -288,6 +320,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'sound-browser', label: 'Sound Browser', icon: 'queue_music' },
     { id: 'sound-pad', label: 'Sound Pad', icon: 'grid_on' },
     { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },
+    { id: 'chord-editor', label: 'Chords', icon: 'music_note' },
     { id: 'sample-library', label: 'Sample Library', icon: 'library_music' },
     { id: 'audio-recorder', label: 'Recorder', icon: 'mic_external_on' },
     {
@@ -913,6 +946,62 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleSoundFavorites() {
     this.haptic.light();
     this.smartSound.showFavoritesOnly.update((v) => !v);
+  }
+
+  // ── MIDI Export (.mid) ───────────────────────────────────────
+
+  /** Export all MIDI tracks as a Standard MIDI File (.mid) download */
+  exportMidi() {
+    this.haptic.light();
+    try {
+      const bpm = this.audioEngine.tempo();
+      const projectName =
+        (this.projectWorkspace.metadata()?.name || 'S_M_U_V_E_Project').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      // Convert music manager tracks to MidiTrackData
+      const midiTracks: MidiTrackData[] = [];
+      const tracks = this.musicManager.tracks();
+
+      tracks.forEach((track) => {
+        if (track.type === 'audio' || track.type === 'bus') return; // Skip audio/bus
+        if (track.notes.length === 0) {
+          // Still include an empty track so arrangement is preserved
+          midiTracks.push({
+            name: track.name || 'Untitled',
+            notes: [],
+            program: undefined,
+          });
+          return;
+        }
+
+        const midiNotes = track.notes.map((n) => {
+          const ticksPerBeat = 480;
+          const ticksPerStep = ticksPerBeat / 4; // 16th note = 120 ticks
+          return {
+            note: n.midi,
+            velocity: Math.max(1, Math.min(127, Math.round((n.velocity ?? 0.8) * 127))),
+            startTick: Math.round(n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep),
+            durationTicks: Math.max(1, Math.round((n.length ?? 1) * ticksPerStep)),
+            channel: 0,
+          };
+        });
+
+        midiTracks.push({
+          name: track.name || 'Untitled',
+          notes: midiNotes,
+          program: undefined,
+        });
+      });
+
+      // Generate the .mid file
+      const arrayBuffer = MidiWriter.toArrayBuffer(midiTracks, bpm, projectName);
+      const blob = new Blob([arrayBuffer], { type: 'audio/midi' });
+      this.downloadBlob(blob, `${projectName}.mid`);
+      this.snackbarService.success(`MIDI exported — ${midiTracks.length} track(s)`);
+    } catch (e) {
+      this.logger.warn('MIDI export failed', e);
+      this.snackbarService.error('MIDI export failed. Check browser console for details.');
+    }
   }
 
   // ── Spectrum Analyzer ──────────────────────────────────────

@@ -179,6 +179,17 @@
       <span class="material-symbols-outlined">upload_file</span>
       <span class="comp-tool-label">IMPORT</span>
     </button>
+    <!-- MIDI Export -->
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-midi"
+      (click)="exportMidi()"
+      title="Export all MIDI tracks as Standard MIDI File (.mid)"
+      aria-label="Export MIDI file"
+    >
+      <span class="material-symbols-outlined">piano</span>
+      <span class="comp-tool-label">MIDI</span>
+    </button>
   </div>
 
   <!-- ====================== STAGE MARQUEE ====================== -->
@@ -239,6 +250,7 @@
         <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
           <app-beginner-wizard
             (navigateToView)="onWizardNavigate($event)"
+            (launchWithPreset)="onWizardLaunchWithPreset($event)"
             (switchToPro)="toggleBeginnerMode()"
           ></app-beginner-wizard>
         </div>
@@ -287,6 +299,9 @@
       </div>
       <div class="comp-view" *ngSwitchCase="'synthesizer'">
         <app-synthesizer [clip]="null"></app-synthesizer>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'chord-editor'">
+        <app-chord-editor (navigateToPianoRoll)="setActiveView('piano-roll')"></app-chord-editor>
       </div>
       <div class="comp-view" *ngSwitchDefault>
         <app-arrangement-view></app-arrangement-view>
