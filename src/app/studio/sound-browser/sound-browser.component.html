@@ -63,6 +63,61 @@
       </button>
     </div>
 
+    <!-- ═══ SOUND PACKS SECTION ══════════════════════════ -->
+    <div class="sb-packs-section" *ngIf="!searchQuery()">
+      <div class="sb-packs-header">
+        <span class="sb-packs-title">
+          <span class="material-symbols-outlined">package_2</span>
+          Sound Packs
+        </span>
+        <span class="sb-packs-count">{{ smartSound.curatedPacks().length }} packs</span>
+      </div>
+      <!-- Installed packs -->
+      <div class="sb-packs-rail" *ngIf="smartSound.installedPacks().length > 0">
+        <span class="sb-packs-subtitle">Installed</span>
+        <div class="sb-pack-chips">
+          <div
+            *ngFor="let pack of smartSound.installedPacks()"
+            class="sb-pack-chip installed"
+            [style.borderColor]="pack.color"
+            [title]="pack.description"
+          >
+            <span class="material-symbols-outlined" [style.color]="pack.color">{{ pack.icon }}</span>
+            <span class="sb-pack-chip-name">{{ pack.name }}</span>
+            <span class="sb-pack-chip-count">{{ pack.presetCount }} sounds</span>
+            <button type="button" class="sb-pack-remove" (click)="smartSound.uninstallPack(pack.id); $event.stopPropagation()" title="Uninstall pack">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Available packs -->
+      <div class="sb-packs-rail" *ngIf="smartSound.availablePacks().length > 0">
+        <span class="sb-packs-subtitle">Available</span>
+        <div class="sb-pack-chips">
+          <button
+            *ngFor="let pack of smartSound.availablePacks()"
+            type="button"
+            class="sb-pack-chip"
+            [style.borderColor]="pack.color"
+            (click)="smartSound.installPack(pack.id)"
+            [title]="pack.description"
+          >
+            <span class="sb-pack-chip-icon" [style.background]="pack.color">
+              <span class="material-symbols-outlined">{{ pack.icon }}</span>
+            </span>
+            <div class="sb-pack-chip-body">
+              <span class="sb-pack-chip-name">{{ pack.name }}</span>
+              <span class="sb-pack-chip-meta">{{ pack.presetCount }} sounds · {{ pack.size }}</span>
+            </div>
+            <span class="sb-pack-chip-install">
+              <span class="material-symbols-outlined">download</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Recently used rail -->
     <div class="sb-recent" *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()">
       <span class="sb-recent-label">Recent</span>

@@ -3,6 +3,22 @@ import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';
 
 /** A sound preset or sample that can be tagged/searched */
+/** A curated sound pack that bundles instrument presets by genre/style */
+export interface SoundPack {
+  id: string;
+  name: string;
+  description: string;
+  genre: string;
+  mood: string;
+  presetCount: number;
+  presets: string[];  // instrument preset IDs included
+  icon: string;        // material icon name
+  color: string;       // hex color for the pack card
+  installed: boolean;
+  installedAt?: number;
+  size: string;        // e.g. "2.4 MB"
+}
+
 export interface SoundEntry {
   id: string;
   name: string;
@@ -122,10 +138,88 @@ export class SmartSoundService {
     return Array.from(tags).sort();
   });
 
+  /** Installed sound packs */
+  installedPacks = signal<SoundPack[]>([]);
+
+  /** Available curated sound packs (not yet installed) */
+  availablePacks = computed(() =>
+    this.curatedPacks().filter((p) => !this.installedPacks().some((ip) => ip.id === p.id))
+  );
+
+  /** All curated packs (the full catalog) */
+  curatedPacks = signal<SoundPack[]>([
+    {
+      id: 'pack-trap-essentials',
+      name: 'Trap Essentials',
+      description: '808s, hi-hats, dark leads, and sub basses for modern trap production.',
+      genre: 'trap',
+      mood: 'dark',
+      presetCount: 8,
+      presets: ['trap-808-elite', 'sub-commander', 'analog-warmth', 'cyber-stab', 'reese-bass-neuro', 'trap-kit-elite', 'supersaw-stack', 'whisper-choir'],
+      icon: 'bolt',
+      color: '#7C3AED',
+      installed: false,
+      size: '3.1 MB',
+    },
+    {
+      id: 'pack-lo-fi-chill',
+      name: 'Lo-Fi Chill Study',
+      description: 'Dusty drums, warm keys, vinyl textures. Perfect for lo-fi hip-hop and chill beats.',
+      genre: 'lo-fi',
+      mood: 'chill',
+      presetCount: 7,
+      presets: ['lo-fi-kit', 'neon-shimmer', 'ethereal-wind', 'vhs-memory', 'wavetable-dream', 'nylon-guitar-pro', 'vocal-pad-ethereal'],
+      icon: 'cloud',
+      color: '#D97706',
+      installed: false,
+      size: '2.7 MB',
+    },
+    {
+      id: 'pack-orchestral-cinema',
+      name: 'Orchestral Cinema',
+      description: 'Full orchestral palette: strings, brass, woodwinds, choir, and cinematic percussion.',
+      genre: 'ambient',
+      mood: 'dreamy',
+      presetCount: 10,
+      presets: ['chamber-strings-elite', 'solo-violin-elite', 'trumpet-pro', 'trombone-pro', 'french-horn-ensemble', 'flute-pro', 'clarinet-pro', 'choir-ensemble', 'pipe-organ-grand', 'afro-cuban-kit'],
+      icon: 'theaters',
+      color: '#0891B2',
+      installed: false,
+      size: '8.4 MB',
+    },
+    {
+      id: 'pack-world-fusion',
+      name: 'World Fusion',
+      description: 'Ethnic instruments from around the globe — sitar, koto, steel drums, and more.',
+      genre: 'jazz',
+      mood: 'bright',
+      presetCount: 6,
+      presets: ['sitar-pro', 'koto-japanese', 'steel-drum-island', 'afro-cuban-kit', 'upright-bass-pro', 'sax-alto-pro'],
+      icon: 'public',
+      color: '#10B981',
+      installed: false,
+      size: '4.6 MB',
+    },
+    {
+      id: 'pack-edm-anthem',
+      name: 'EDM Anthem',
+      description: 'Festival-ready supersaws, plucks, sidechain basses, and big room drums.',
+      genre: 'house',
+      mood: 'energetic',
+      presetCount: 7,
+      presets: ['supersaw-stack', 'pluck-marimba-hybrid', 'brass-stab-synth', 'neon-shimmer', 'deep-orbit', 'acoustic-kit-pro', 'hammond-b3'],
+      icon: 'festival',
+      color: '#F43F5E',
+      installed: false,
+      size: '3.9 MB',
+    },
+  ]);
+
   constructor() {
     this.loadFavorites();
     this.loadRecent();
     this.loadSounds();
+    this.loadInstalledPacks();
   }
 
   // ── Favorites ───────────────────────────────────────────
@@ -241,6 +335,53 @@ export class SmartSoundService {
     });
 
     return broadResults.length > 0 ? broadResults : direct;
+  }
+
+  // ── Sound Pack Management ────────────────────────────
+
+  /** Install a curated sound pack */
+  installPack(packId: string) {
+    const pack = this.curatedPacks().find((p) => p.id === packId);
+    if (!pack) return;
+    this.installedPacks.update((packs) => {
+      if (packs.some((p) => p.id === packId)) return packs;
+      return [...packs, { ...pack, installed: true, installedAt: Date.now() }];
+    });
+    this.persistInstalledPacks();
+    this.logger.info('Installed sound pack: ' + pack.name);
+  }
+
+  /** Uninstall a sound pack (removes from installed list) */
+  uninstallPack(packId: string) {
+    this.installedPacks.update((packs) => packs.filter((p) => p.id !== packId));
+    this.persistInstalledPacks();
+  }
+
+  /** Check if a pack is installed */
+  isPackInstalled(packId: string): boolean {
+    return this.installedPacks().some((p) => p.id === packId);
+  }
+
+  /** Get presets from installed packs (for filtering) */
+  installedPackPresets = computed(() => {
+    const ids = new Set<string>();
+    this.installedPacks().forEach((p) => p.presets.forEach((id) => ids.add(id)));
+    return ids;
+  });
+
+  private async loadInstalledPacks() {
+    try {
+      const data = await this.storage.getItem('sound_prefs', 'installed_packs');
+      if (data && Array.isArray(data)) {
+        this.installedPacks.set(data as SoundPack[]);
+      }
+    } catch { /* first run */ }
+  }
+
+  private async persistInstalledPacks() {
+    try {
+      await this.storage.saveItem('sound_prefs', this.installedPacks());
+    } catch { /* best-effort */ }
   }
 
   // ── Persistence ─────────────────────────────────────────

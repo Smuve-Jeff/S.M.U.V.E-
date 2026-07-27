@@ -565,3 +565,99 @@
   50% { opacity: 0.6; }
   100% { opacity: 0; transform: translateX(8px); }
 }
+
+/* ═══════════════════════════════════════════════════════
+   PRECISION EDITING PANEL — Inspector Right Rail
+   ═══════════════════════════════════════════════════════ */
+
+.pr-inspector-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s;
+}
+.pr-inspector-toggle:hover {
+  background: var(--teal-100);
+  color: var(--teal-700);
+  border-color: var(--teal-500);
+}
+.pr-inspector-toggle.active {
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  border-color: var(--teal-500);
+}
+.pr-inspector-toggle .material-symbols-outlined { font-size: 14px; }
+
+.pr-precision-pill {
+  border-left: 2px solid var(--teal-500) !important;
+  padding-left: 8px !important;
+}
+
+.pr-precision-art {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  border-left: 2px solid var(--orange) !important;
+  padding-left: 8px !important;
+}
+
+.pr-articulation-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.pr-art-chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pr-art-chip:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+}
+.pr-art-chip.active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+}
+
+/* ── Mobile: inspector full-width on narrow screens ── */
+@media (max-width: 768px) {
+  .pr-inspector {
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--espresso-line);
+    flex-shrink: 0;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .pr-canvas-row {
+    flex-direction: column;
+  }
+  .pr-keys { display: none; }
+  .pr-grid { flex: 1 1 auto; min-height: 200px; }
+  .pr-velocity { display: none; }
+}
