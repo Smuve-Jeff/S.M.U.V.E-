@@ -463,8 +463,8 @@
             [attr.aria-label]="'Key ' + key.name"
             (pointerdown)="onKeyDown(key.midi, $event)"
             (pointerup)="onKeyUp(key.midi, $event)"
-            (pointerleave)="onKeyUp(key.midi, $event)"
-            (pointerenter)="onKeyDown(key.midi, $event)"
+            (pointercancel)="onKeyUp(key.midi, $event)"
+            (lostpointercapture)="onKeyUp(key.midi, $event)"
           >
             <span class="kb-legend">{{ key.name }}</span>
           </button>
@@ -530,8 +530,8 @@
           [attr.aria-label]="'Pad ' + (i + 1)"
           (pointerdown)="onPadPointerDown($event, pad.midi)"
           (pointerup)="onPadPointerUp($event, pad.midi)"
-          (pointerleave)="onPadPointerUp($event, pad.midi)"
-          (pointerenter)="onPadPointerDown($event, pad.midi)"
+          (pointercancel)="onPadPointerUp($event, pad.midi)"
+          (lostpointercapture)="onPadPointerUp($event, pad.midi)"
         >
           <span class="pad-led" aria-hidden="true"></span>
           <span class="pad-label">{{ pad.name }}</span>

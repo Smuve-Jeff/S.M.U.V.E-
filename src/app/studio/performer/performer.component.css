@@ -1004,7 +1004,6 @@
   .performer-shell { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   .perf-header { padding: 6px 8px; }
   .layout-switcher button { padding: 4px 8px; font-size: 8px; }
-  .track-headers { width: 80px; }
   .kb-key.is-white { width: 40px; }
   .kb-key.is-black { width: 30px; margin: 0 -15px; }
   .perf-pad { min-height: 50px; }
@@ -1717,4 +1716,20 @@
   font-family: var(--font-mono);
   cursor: pointer;
   min-height: 24px;
+}
+
+/* Accessibility — honor reduced-motion preference across all animations */
+@media (prefers-reduced-motion: reduce) {
+  .rec-arm-btn.is-rec,
+  .midi-learn-btn.is-learning,
+  .xy-dot-ring,
+  .midi-picker-panel,
+  .midi-mapping-editor,
+  .midi-activity-log,
+  .midi-log-row,
+  .meter-fill,
+  .spectrum-bar {
+    animation: none !important;
+    transition: none !important;
+  }
 }

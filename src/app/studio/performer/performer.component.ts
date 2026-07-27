@@ -46,7 +46,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
   layout = signal<'keyboard' | 'pads' | 'matrix' | 'macros'>('keyboard');
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
-  velocity = 0.8;
+  velocity = signal(0.8);
   octave = signal(0);
   activeKeys = signal<Set<number>>(new Set());
   availableInstruments = signal<InstrumentPreset[]>([]);
@@ -61,6 +61,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
   spectrumData = signal<number[]>(new Array(64).fill(0));
   performanceLog = signal<string[]>([]);
   private visualizerFrame: number | null = null;
+  private lastVisualizerUpdate = 0;
+  private static readonly VISUALIZER_FRAME_BUDGET_MS = 33; // ~30fps cap
 
   private readonly activePointers = new Map<number, number>();
 
@@ -197,17 +199,24 @@ export class PerformerComponent implements OnDestroy, OnInit {
   }
 
   private startVisualizer() {
-    const update = () => {
-      const analyser = this.musicManager.engine.masterAnalyser;
-      if (analyser) {
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        const downsampled = [];
-        const step = Math.floor(data.length / 64);
-        for (let i = 0; i < 64; i++) {
-          downsampled.push(data[i * step] / 255);
+    const update = (timestamp: number) => {
+      // Throttle to ~30 fps — saves CPU/battery on mobile without visible difference in a 64-bar strip
+      if (
+        timestamp - this.lastVisualizerUpdate >=
+        PerformerComponent.VISUALIZER_FRAME_BUDGET_MS
+      ) {
+        const analyser = this.musicManager.engine.masterAnalyser;
+        if (analyser) {
+          const data = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(data);
+          const downsampled: number[] = [];
+          const step = Math.max(1, Math.floor(data.length / 64));
+          for (let i = 0; i < 64; i++) {
+            downsampled.push(data[i * step] / 255);
+          }
+          this.spectrumData.set(downsampled);
         }
-        this.spectrumData.set(downsampled);
+        this.lastVisualizerUpdate = timestamp;
       }
       this.visualizerFrame = requestAnimationFrame(update);
     };
@@ -354,15 +363,15 @@ export class PerformerComponent implements OnDestroy, OnInit {
     }
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
-    this.liveEngine.triggerNoteStart(actualMidi, this.velocity);
+    this.liveEngine.triggerNoteStart(actualMidi, this.velocity());
     this.haptic.light();
 
     if (this.audioSession.isRecording()) {
-      this.musicManager.recordLiveNote(actualMidi, this.velocity);
+      this.musicManager.recordLiveNote(actualMidi, this.velocity());
     }
 
     // Tag MIDI to current take if we're capturing.
-    this.perfRecording.recordMidi(actualMidi, this.velocity);
+    this.perfRecording.recordMidi(actualMidi, this.velocity());
 
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
