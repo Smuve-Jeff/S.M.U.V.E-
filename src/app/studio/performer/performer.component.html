@@ -504,6 +504,21 @@
           <div class="xb-readout">{{ modWheel() | number:'1.2-2' }}</div>
         </div>
         <div class="xb-strip">
+          <label class="xb-label">
+            Velocity
+            <span class="vel-tag">{{ velocityLevelLabel() }}</span>
+          </label>
+          <input
+            type="range"
+            class="xb-slider xb-velocity"
+            min="0" max="127" step="1"
+            [value]="velocity()"
+            (input)="onVelocity($event)"
+            aria-label="Note velocity (MIDI 0-127)"
+          />
+          <div class="xb-readout">{{ velocity() }}</div>
+        </div>
+        <div class="xb-strip">
           <label class="xb-label">Octave</label>
           <div class="octave-cluster">
             <button type="button" class="oct-btn" (click)="nudgeOctave(-1)" aria-label="Octave down">−</button>

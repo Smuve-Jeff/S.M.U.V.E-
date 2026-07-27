@@ -614,6 +614,9 @@
 .xb-slider.xb-mod::-webkit-slider-runnable-track {
   background: var(--teal-500);
 }
+.xb-slider.xb-velocity::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #6BD968 0%, var(--teal-500) 35%, var(--orange) 75%, var(--record) 100%);
+}
 .xb-slider::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
@@ -636,6 +639,23 @@
 }
 
 /* Octave cluster */
+.vel-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--teal-500);
+  background: var(--ivory-deep);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  min-width: 28px;
+  text-align: center;
+  border: 1px solid var(--teal-soft-glow);
+  font-variant-numeric: tabular-nums;
+}
+
 .octave-cluster {
   display: flex;
   align-items: center;
