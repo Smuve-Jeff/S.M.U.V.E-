@@ -11,7 +11,7 @@
           <p
             class="text-[10px] font-black uppercase tracking-tighter text-primary"
           >
-            PARALLAX RECORDS // A&amp;R SCANNING
+            CITY PULSE // LIVE SCANNING
           </p>
           <p class="text-xs font-bold">
             {{ aiService.currentProcessStep() }} ({{
@@ -38,7 +38,7 @@
           <p
             class="text-[10px] font-black uppercase tracking-tighter text-accent"
           >
-            LABEL DECREE // SIGN THIS
+            THE LABEL // URGENT DIRECTIVE
           </p>
           <p class="text-xs italic truncate">
             "{{ aiService.strategicDecrees()[0] }}"
@@ -51,7 +51,7 @@
     </div>
   }
 
-  <!-- Background Reactive Layer -->
+  <!-- Background Reactive Layers -->
   <div class="hub-ambient-glow"></div>
   <div class="hub-party-lights"></div>
   <div class="hub-laser-beams"></div>
@@ -77,15 +77,17 @@
   </div>
 
   <div class="hub-container animate-enter">
-    <!-- Marquee strip — record-label banner -->
+    <!-- Marquee strip — nightlife banner -->
     <div class="stage-marquee mb-4" aria-hidden="true">
       <div class="stage-marquee-track">
-        <span>★ PARALLAX RECORDS ★ UNSIGNED &amp; INDEPENDENT ★</span>
-        <span>★ NOW SPINNING: SIGNING WAVE 2.0 ★ TOP 40 RADAR ACTIVE ★</span>
-        <span>★ LABEL ROSTER OPEN ★ STUDIO TIME BOOKABLE ★ PRESS PULSE LIVE ★</span>
-        <span>★ PARALLAX RECORDS ★ UNSIGNED &amp; INDEPENDENT ★</span>
-        <span>★ NOW SPINNING: SIGNING WAVE 2.0 ★ TOP 40 RADAR ACTIVE ★</span>
-        <span>★ LABEL ROSTER OPEN ★ STUDIO TIME BOOKABLE ★ PRESS PULSE LIVE ★</span>
+        <span>✦ SMUVE JEFF PRESENTS ✦ THE LABEL ✦ EST. MMXXVI ✦</span>
+        <span>✦ NOW SIGNING ✦ STUDIO LIVE ✦ CITY NEVER SLEEPS ✦</span>
+        <span>✦ INDEPENDENT ✦ UNSIGNED HEAT ✦ STREET CERTIFIED ✦</span>
+        <span>✦ PRESS PULSE ACTIVE ✦ DROP INCOMING ✦ LIGHTS ON ✦</span>
+        <span>✦ SMUVE JEFF PRESENTS ✦ THE LABEL ✦ EST. MMXXVI ✦</span>
+        <span>✦ NOW SIGNING ✦ STUDIO LIVE ✦ CITY NEVER SLEEPS ✦</span>
+        <span>✦ INDEPENDENT ✦ UNSIGNED HEAT ✦ STREET CERTIFIED ✦</span>
+        <span>✦ PRESS PULSE ACTIVE ✦ DROP INCOMING ✦ LIGHTS ON ✦</span>
       </div>
     </div>
 
@@ -93,33 +95,34 @@
     <header class="hub-header">
       <div class="header-left">
         <p class="brand-eyebrow glimmer-text">
-          PARALLAX RECORDS // INDEPENDENT LABEL
+          SMUVE JEFF RECORDS // INDEPENDENT. UNSIGNED. LIMITLESS.
         </p>
         <h1 class="header-title glimmer-text">
           WELCOME TO THE ROSTER,
-          {{ profileService.profile().artistName }} — STAGE AWAITS.
+          {{ profileService.profile().artistName }} — THE CITY IS LISTENING.
         </h1>
       </div>
       <div class="header-right">
         <div class="executive-stat">
-          <span class="stat-label">Chart Position</span>
-          <span class="stat-value text-primary"
-            >#{{
-              profileService.profile().knowledgeBase.strategicHealthScore
-            }}</span
+          <span class="stat-label">Billboard Watch</span>
+          <span class="stat-value" style="color: var(--neon-cyan)"
+            >#{{ profileService.profile().knowledgeBase.strategicHealthScore }}</span
           >
         </div>
         <div class="executive-stat">
-          <span class="stat-label">Catalog Depth</span>
-          <span class="stat-value text-accent">{{
+          <span class="stat-label">Catalog Heat</span>
+          <span class="stat-value" style="color: var(--neon-magenta)">{{
             profileService.profile().catalog.length
           }}</span>
-          <span class="stat-label">Roster Access</span>
-          <span class="stat-value text-accent">OPEN</span>
+        </div>
+        <div class="executive-stat">
+          <span class="stat-label">Studio Access</span>
+          <span class="stat-value" style="color: var(--amber-gold)">24/7</span>
         </div>
       </div>
     </header>
 
+    <!-- First-Signing Path (Onboarding) -->
     <section
       *ngIf="onboarding.shouldShow()"
       class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8 led-strip"
@@ -138,23 +141,24 @@
           >
             Get signed, get in the booth, get heard tonight
           </h2>
-          <p class="text-sm text-slate-400 leading-relaxed mt-3">
+          <p class="text-sm opacity-60 leading-relaxed mt-3" style="color: var(--silver-dim)">
             Finish your artist profile, lock your sound, and jump straight to the
-            studio floor. We'll keep your session synced and your next move
-            queued.
+            studio floor. The city is listening — make your move.
           </p>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
           <button
             (click)="continueOnboarding()"
-            class="px-5 py-3 rounded-2xl bg-brand-primary text-black text-[11px] font-black uppercase tracking-[0.2em]"
+            class="px-5 py-3 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px]"
+            style="background: var(--neon-cyan); color: var(--city-midnight)"
           >
             Lock It In
           </button>
           <button
             (click)="resumeWorkspace()"
-            class="px-5 py-3 rounded-2xl border border-white/10 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+            class="px-5 py-3 rounded-2xl border font-black uppercase tracking-[0.2em] text-[11px] text-white"
+            style="border-color: rgba(255,255,255,0.12)"
           >
             Back to the Booth
           </button>
@@ -163,8 +167,9 @@
 
       <div class="mt-6 h-2 rounded-full bg-white/5 overflow-hidden">
         <div
-          class="h-full bg-gradient-to-r from-brand-primary via-emerald-400 to-sky-400"
+          class="h-full"
           [style.width.%]="onboarding.progress()"
+          style="background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta), var(--amber-gold))"
         ></div>
       </div>
 
@@ -180,9 +185,9 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <div
-                class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400"
+                class="text-[10px] font-black uppercase tracking-[0.25em] opacity-50"
               >
-                {{ step.complete ? 'Signed Off' : 'Next Drop' }}
+                {{ step.complete ? 'Locked In' : 'Next Move' }}
               </div>
               <h3 class="text-sm font-black uppercase text-white mt-2">
                 {{ step.title }}
@@ -195,13 +200,14 @@
               {{ step.complete ? 'check_circle' : 'arrow_forward' }}
             </span>
           </div>
-          <p class="text-xs text-slate-400 leading-relaxed mt-3">
+          <p class="text-xs leading-relaxed mt-3" style="color: var(--silver-dim)">
             {{ step.description }}
           </p>
           <button
             *ngIf="!step.complete"
             (click)="openOnboardingStep(step)"
-            class="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary"
+            class="mt-4 text-[10px] font-black uppercase tracking-[0.2em]"
+            style="color: var(--neon-cyan)"
             [attr.aria-label]="'Continue onboarding: ' + step.cta"
           >
             {{ step.cta }}
@@ -210,96 +216,100 @@
       </div>
     </section>
 
-    <!-- Bento Grid Layout -->
+    <!-- Security Alert Banner -->
     @if (securityService.getSecurityAudit().score < 80) {
       <div
-        class="col-span-full mb-6 glass-v42 border-l-4 border-brand-danger p-6 animate-enter"
+        class="col-span-full mb-6 border-l-4 p-6 animate-enter"
+        style="background: rgba(10,9,25,0.7); backdrop-filter: blur(16px); border-color: #ef4444; border-radius: 16px"
         (click)="uiService.navigateToView('profile')"
       >
         <div class="flex items-center gap-6">
           <div
-            class="w-12 h-12 rounded-full bg-brand-danger/10 flex items-center justify-center text-brand-danger"
+            class="w-12 h-12 rounded-full flex items-center justify-center"
+            style="background: rgba(239,68,68,0.12); color: #ef4444"
           >
             <span class="material-symbols-outlined text-3xl">gpp_maybe</span>
           </div>
           <div class="flex-1">
             <h3
-              class="text-sm font-black uppercase tracking-widest text-brand-danger"
+              class="text-sm font-black uppercase tracking-widest"
+              style="color: #ef4444"
             >
-              Roster Security Deficit
+              Identity Check Required
             </h3>
-            <p class="text-xs text-silver-dim mt-1 font-bold">
-              Your artist identity is at risk.
+            <p class="text-xs mt-1 font-bold" style="color: var(--silver-dim)">
+              Secure your roster spot.
               {{ securityService.getSecurityAudit().alerts[0] }}
             </p>
           </div>
           <button
-            class="btn-elegant btn-elegant-danger h-10 px-6 text-[10px] font-black uppercase tracking-widest"
+            class="h-10 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl border"
+            style="color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06)"
           >
-            Verify Identity
+            Verify Now
           </button>
         </div>
       </div>
     }
 
+    <!-- ── Bento Grid ────────────────────────────────── -->
     <div class="bento-grid">
-      <!-- Module 1: Top 40 Radar (2x2) -->
+      <!-- Module 1: City Pulse / Nightlife Intel (2x2) -->
       <div
-        class="bento-item bento-2x2 bento-card glass-v42 audit-module"
+        class="bento-item bento-2x2 bento-card audit-module"
         (click)="uiService.navigateToView('knowledge-base')"
       >
         <div class="card-overlay"></div>
         <div class="card-content">
           <div class="flex justify-between items-start mb-6">
-            <div class="card-icon-box bg-primary/20 text-primary">
-              <span class="material-symbols-outlined"
-                >trending_up</span
-              >
+            <div class="card-icon-box" style="background: rgba(0,229,255,0.14); color: var(--neon-cyan)">
+              <span class="material-symbols-outlined">trending_up</span>
             </div>
-            <span class="pill pill-live">TOP 40 RADAR ON</span>
+            <span class="pill pill-live">CITY PULSE ON</span>
           </div>
           <h2 class="card-heading glimmer-text">
-            Roster Intelligence Brief
+            The Label Desk
           </h2>
           <p class="card-subtext mb-8">
-            Live scanning of street buzz, fan signal, and chart momentum for
-            the label.
+            Live scanning of street buzz, streaming signals, and chart momentum
+            across every borough.
           </p>
 
           <!-- Mobile Explicit Directives -->
           <div class="mt-6 lg:hidden space-y-3">
             <p
-              class="text-[9px] font-black uppercase tracking-widest text-accent"
+              class="text-[9px] font-black uppercase tracking-widest"
+              style="color: var(--neon-magenta)"
             >
-              Open Label Slot — Up Next
+              Open Slot — Up Next
             </p>
             @for (
               task of aiService.getDynamicChecklist().slice(0, 2);
               track task.id
             ) {
-              <div
-                class="directive-item bg-white/5 border border-white/10 rounded-lg p-3 flex gap-3"
-              >
-                <span class="material-symbols-outlined text-sm text-accent"
+              <div class="directive-item flex gap-3">
+                <span class="material-symbols-outlined text-sm" style="color: var(--neon-magenta)"
                   >bolt</span
                 >
                 <div class="flex-1">
                   <p class="text-[10px] font-bold uppercase">
                     {{ task.label }}
                   </p>
-                  <p class="text-[9px] opacity-60 leading-tight">
+                  <p class="text-[9px] opacity-50 leading-tight">
                     {{ task.description }}
                   </p>
                 </div>
               </div>
             }
           </div>
+
           <div class="audit-scores space-y-4">
             <div class="score-row">
-              <span class="score-label">Sonic Cohesion</span>
+              <span class="score-label">Sonic Impact</span>
               <div class="score-bar-track">
                 <div
-                  class="score-bar-fill bg-primary"
+                  class="score-bar-fill"
+                  style="background: var(--neon-cyan)"
                   [style.width.%]="85"
                 ></div>
               </div>
@@ -308,7 +318,8 @@
               <span class="score-label">Chart Trajectory</span>
               <div class="score-bar-track">
                 <div
-                  class="score-bar-fill bg-accent"
+                  class="score-bar-fill"
+                  style="background: var(--neon-magenta)"
                   [style.width.%]="72"
                 ></div>
               </div>
@@ -318,15 +329,17 @@
           <div class="mt-8">
             <div class="mb-4 space-y-2">
               <div
-                class="text-[8px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"
+                class="text-[8px] font-black uppercase tracking-widest flex items-center gap-2 opacity-50"
               >
                 <span
-                  class="w-1 h-1 rounded-full bg-emerald-500 animate-ping"
+                  class="w-1.5 h-1.5 rounded-full animate-ping"
+                  style="background: var(--neon-cyan)"
                 ></span>
-                Label Pulse — Live Floor
+                City Pulse — Live Feed
               </div>
               <div
-                class="h-10 overflow-hidden relative bg-black/20 rounded-lg border border-white/5"
+                class="h-10 overflow-hidden relative rounded-lg border"
+                style="background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.04)"
               >
                 <div
                   class="absolute inset-0 flex flex-col transition-all duration-1000"
@@ -340,7 +353,8 @@
                 >
                   <div
                     *ngFor="let pulse of globalStudioPulse()"
-                    class="h-full flex items-center px-3 text-[9px] font-bold text-white/70 italic truncate"
+                    class="h-full flex items-center px-3 text-[9px] font-bold italic truncate"
+                    style="color: rgba(250,249,255,0.7)"
                   >
                     {{ pulse }}
                   </div>
@@ -348,11 +362,11 @@
               </div>
             </div>
             <div class="note-ticker">
-              <div class="note-bar bg-primary"></div>
+              <div class="note-bar" style="background: var(--neon-cyan)"></div>
               <p class="note-text text-sm">
                 "{{
                   aiService.strategicDecrees()[0] ||
-                    'The roster is listening — drop your next move.'
+                    'The city is listening — make your next move count.'
                 }}"
               </p>
             </div>
@@ -362,7 +376,7 @@
 
       <!-- Module 2: Now Spinning (2x1 Wide) -->
       <div
-        class="bento-item bento-2x1 bento-card glass-v42 interactive-playback playback-module"
+        class="bento-item bento-2x1 bento-card interactive-playback playback-module"
       >
         <div class="card-content flex items-center gap-6">
           <div
@@ -370,7 +384,7 @@
             [class.spinning]="playerService.isPlaying()"
           >
             <div class="vinyl-outer"></div>
-            <div class="vinyl-label bg-accent overflow-hidden">
+            <div class="vinyl-label overflow-hidden" style="background: var(--neon-magenta)">
               <img
                 *ngIf="profileService.profile().avatarImage"
                 [src]="profileService.profile().avatarImage"
@@ -379,12 +393,14 @@
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="eyebrow text-accent glimmer-text">A-Side // Now Spinning</p>
+            <p class="eyebrow glimmer-text" style="color: var(--neon-magenta); font-size: 0.6rem; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase">
+              On the Deck // Now Spinning
+            </p>
             <h3 class="truncate text-xl font-black glimmer-text">
               {{ playerService.currentTrack()?.title }}
             </h3>
-            <p class="text-sm opacity-60">
-              by {{ playerService.currentTrack()?.artist }}
+            <p class="text-sm opacity-50">
+              {{ playerService.currentTrack()?.artist }}
             </p>
 
             <div class="mt-4 flex items-center gap-4">
@@ -406,7 +422,7 @@
           </div>
           <div class="audio-waves flex items-end gap-1 h-12">
             @for (v of visualizerData().slice(0, 8); track $index) {
-              <div class="wave-bar bg-primary" [style.height.%]="v"></div>
+              <div class="wave-bar" style="background: var(--neon-magenta)" [style.height.%]="v"></div>
             }
           </div>
         </div>
@@ -414,14 +430,14 @@
 
       <!-- Module 3: Career Trajectory (1x2 Tall) -->
       <div
-        class="bento-item bento-1x2 bento-card glass-v42 career-module"
+        class="bento-item bento-1x2 bento-card career-module"
         (click)="uiService.navigateToView('career')"
       >
         <div class="card-content h-full flex flex-col">
-          <div class="card-icon-box bg-secondary/20 text-secondary mb-4">
+          <div class="card-icon-box mb-4" style="background: rgba(255,184,0,0.14); color: var(--amber-gold)">
             <span class="material-symbols-outlined">insights</span>
           </div>
-          <h2 class="card-heading glimmer-text">Tour Trajectory</h2>
+          <h2 class="card-heading glimmer-text">The Climb</h2>
           <div class="flex-1 mt-6 space-y-6">
             <div class="progress-circle-container">
               <div class="level-badge">
@@ -433,40 +449,22 @@
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
                 <path
-                  class="circle text-secondary"
+                  class="circle"
+                  style="stroke: var(--amber-gold)"
                   [attr.stroke-dasharray]="getCareerFocusProgress() + ', 100'"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
               </svg>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-60">
-                Active Focus
-              </p>
+              <p class="text-xs uppercase tracking-widest opacity-45">Active Focus</p>
               <p class="font-bold text-sm">
-                {{
-                  profileService.profile().careerGoals[0] ||
-                    'Lock the next drop'
-                }}
+                {{ profileService.profile().careerGoals[0] || 'Lock the next drop' }}
               </p>
-              <div class="level-badge">ON TOUR</div>
-              <svg viewBox="0 0 36 36" class="circular-chart">
-                <path
-                  class="circle-bg"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  class="circle text-secondary"
-                  stroke-dasharray="100, 100"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-60">
-                Roster Status
-              </p>
-              <p class="font-bold text-sm">Every booth is unlocked and lit.</p>
+              <p class="text-xs uppercase tracking-widest opacity-45">Roster Status</p>
+              <p class="font-bold text-sm" style="color: var(--amber-gold)">Every booth is unlocked. The city is yours.</p>
             </div>
             <div class="space-y-2">
               <div class="achievement-pill">
@@ -476,13 +474,10 @@
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">tune</span>
                 <span>{{ profileService.profile().primaryGenre }}</span>
-                <span>Genre locked</span>
               </div>
               <div class="achievement-pill">
                 <span class="material-symbols-outlined text-xs">apps</span>
-                <span
-                  >Booth, visuals, strategy, and release tools all open</span
-                >
+                <span>Booth, visuals, strategy — all open</span>
               </div>
             </div>
           </div>
@@ -492,91 +487,91 @@
         </div>
       </div>
 
-      <!-- Module 4: Tha Spot (1x1) -->
+      <!-- Module 4: Tha Spot / After Hours (1x1) -->
       <div
-        class="bento-item bento-1x1 bento-card glass-v42 club-module"
+        class="bento-item bento-1x1 bento-card club-module"
         (click)="uiService.navigateToView('tha-spot')"
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <div class="club-pulse"></div>
-          <span class="material-symbols-outlined text-4xl mb-2 text-primary"
+          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--neon-cyan)"
             >sports_esports</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            Tha Spot
+            After Hours
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Open Mic</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">The Floor</p>
         </div>
       </div>
 
-      <!-- Module 5: Video Engine (1x1) -->
+      <!-- Module 5: Visual Suite / Cinema (1x1) -->
       <div
-        class="bento-item bento-1x1 bento-card glass-v42 cinema-module"
+        class="bento-item bento-1x1 bento-card cinema-module"
         (click)="uiService.navigateToView('image-video-lab')"
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <div class="cinema-scan"></div>
-          <span class="material-symbols-outlined text-4xl mb-2 text-accent"
+          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--neon-magenta)"
             >movie</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            CinemaEngine
+            Visual Suite
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Press Visuals</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Press Visuals</p>
         </div>
       </div>
 
-      <!-- Module 6: Studio DAW (1x1) -->
+      <!-- Module 6: The Booth / Studio (1x1) -->
       <div
-        class="bento-item bento-1x1 bento-card glass-v42 studio-module"
+        class="bento-item bento-1x1 bento-card studio-module"
         (click)="uiService.navigateToView('studio')"
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
-          <span class="material-symbols-outlined text-4xl mb-2 text-white"
+          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--amber-gold)"
             >graphic_eq</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            The Stage
+            The Booth
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Cut the Record</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Cut the Record</p>
         </div>
       </div>
 
-      <!-- Module 7: Market Intel (1x1) -->
+      <!-- Module 7: Street Team / Press Desk (1x1) -->
       <div
-        class="bento-item bento-1x1 bento-card glass-v42 intel-module"
+        class="bento-item bento-1x1 bento-card intel-module"
         (click)="uiService.navigateToView('strategy')"
       >
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
-          <span class="material-symbols-outlined text-4xl mb-2 text-secondary"
+          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--electric-violet)"
             >campaign</span
           >
           <h3
             class="font-black text-sm uppercase tracking-tighter glimmer-text"
           >
-            Press Desk
+            Street Team
           </h3>
-          <p class="text-[10px] opacity-60 uppercase">Campaigns</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Campaigns</p>
         </div>
       </div>
     </div>
 
     <!-- Secondary Bottom Actions -->
-    <div class="hub-footer flex flex-wrap gap-4 mt-8">
+    <div class="hub-footer">
       <button class="pill-action" (click)="playerService.loadExternalTrack()">
         <span class="material-symbols-outlined text-base">cloud_upload</span>
         Submit Demo
@@ -589,9 +584,9 @@
         Booth Config
       </button>
       <div class="flex-1"></div>
-      <p class="elegant-footer-text text-[10px]">
-        Parallax Records
-        <span class="flourish">&middot; independently signed &middot; est. mmxxvi</span>
+      <p class="elegant-footer-text">
+        &copy; Smuve Jeff Presents
+        <span class="flourish">&middot; est. mmxxvi &middot; the label</span>
       </p>
     </div>
   </div>

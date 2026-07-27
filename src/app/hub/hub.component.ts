@@ -77,74 +77,65 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private pulseInterval: ReturnType<typeof setInterval> | null = null;
 
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
-  labelStats = [
-    {
-      label: 'Roster Ready',
-      value: '12',
-      foot: 'Active talent under management',
-    },
-    { label: 'Pipeline', value: '5', foot: 'Releases in mastering' },
-    { label: 'Momentum', value: '+18%', foot: 'Month over month growth' },
-  ];
   broadcastDuration = 320;
   marketPulse = [
-    'Streaming spike – West Coast',
-    'Vinyl preorders up 12%',
-    'Sync request: indie film',
+    'Streaming surge — East Side',
+    'Club rotation up 24% this week',
+    'Sync request: major placement',
   ];
   featureSpotlights: LandingFeature[] = [
     {
       route: 'studio',
       category: 'Production',
-      title: 'Studio, DJ deck, and mix control',
+      title: 'The Booth — full studio & deck control',
       description:
-        'Build records with the browser DAW, effects chain, mastering controls, and live playback routing.',
-      points: ['Channel rack and sequencing', 'Mixer and mastering suite'],
+        'Produce records in the browser DAW with effects, mastering, and live routing. The booth is lit 24/7.',
+      points: ['Channel rack & sequencing', 'Mixer & mastering suite'],
       icon: 'tune',
     },
     {
       route: 'piano-roll',
       category: 'Composition',
-      title: 'Piano roll and arrangement editing',
+      title: 'Piano roll & precision arrangement',
       description:
-        'Compose melodies, edit timing, and shape arrangements with the dedicated note editor.',
-      points: ['88-key note editing', 'Arrangement-aware workflow'],
+        'Compose melodies with surgical precision. Edit timing, velocity, and shape arrangements note by note.',
+      points: ['88-key note editor', 'Arrangement-aware workflow'],
       icon: 'piano',
     },
     {
       route: 'vocal-suite',
       category: 'Recording',
-      title: 'Capture takes in the vocal suite',
+      title: 'Vocal suite — capture the moment',
       description:
-        'Track microphone input, monitor vocal chains, and work with recording-focused tools in one place.',
-      points: ['Microphone interface', 'Waveform-driven recording view'],
+        'Track live mic input with pro vocal chains. Multi-take comping, waveform editing, and monitoring in one place.',
+      points: ['Live microphone interface', 'Multi-take recording & comping'],
       icon: 'mic',
     },
     {
       route: 'image-video-lab',
       category: 'Visuals',
-      title: 'Produce visuals with CinemaEngine',
+      title: 'Visual Suite — cinema-grade press assets',
       description:
-        'Create cover art, visual concepts, and multi-track video timelines tuned for multiple delivery formats.',
-      points: ['Image and video lab', 'Preset-based export workflows'],
+        'Create cover art, visualizers, and multi-track video timelines tuned for every platform and format.',
+      points: ['Image & video production lab', 'Preset export workflows'],
       icon: 'movie',
     },
     {
       route: 'strategy',
       category: 'Strategy',
-      title: 'Plan campaigns with the Intel Lab',
+      title: 'Street Team — campaign & intel command',
       description:
-        'Review market signals, executive briefs, and career planning surfaces backed by the AI strategy layer.',
-      points: ['Campaign and outreach tabs', 'Career and business planning'],
+        'Review market signals, executive briefs, and career planning backed by the AI strategy engine.',
+      points: ['Campaign & outreach center', 'Career & business planning'],
       icon: 'analytics',
     },
     {
       route: 'tha-spot',
       category: 'Community',
-      title: 'Drop into Tha Spot',
+      title: 'After Hours — the gaming floor',
       description:
-        'Move from production into the social gaming floor for matchmaking, reputation, and community sessions.',
-      points: ['Arcade discovery hub', 'Networked community energy'],
+        'Step off the stage and onto the floor. Matchmaking, arcade cabinets, and community sessions running all night.',
+      points: ['450+ game arcade', 'Co-op matchmaking & lobbies'],
       icon: 'sports_esports',
     },
   ];
@@ -152,55 +143,55 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       route: 'profile',
       label: '01',
-      title: 'Set the artist identity',
+      title: 'Build the artist identity',
       description:
-        'Start with the profile flow so the rest of the platform reflects the right genre, goals, and audience.',
+        'Lock in your sound, genre, and goals so every module reflects who you are and where you are headed.',
     },
     {
       route: 'studio',
       label: '02',
       title: 'Produce the record',
       description:
-        'Move into the studio, piano roll, and vocal suite to shape the release from rough idea to finished mix.',
+        'Move into the booth. Piano roll, vocal suite, and full studio — shape the release from idea to finished mix.',
     },
     {
       route: 'image-video-lab',
       label: '03',
       title: 'Build the campaign package',
       description:
-        'Pair visuals, lyrics, strategy, and business planning around the same release before launch.',
+        'Pair press visuals, strategy, and business planning around the release before it drops.',
     },
     {
       route: 'release-pipeline',
       label: '04',
-      title: 'Launch and track momentum',
+      title: 'Launch & track the momentum',
       description:
-        'Use the release pipeline, analytics, and project views to manage rollout readiness and follow-through.',
+        'Use the release pipeline, analytics, and project views to manage rollout and watch the numbers climb.',
     },
   ];
   homeBackdropMedia: HomeBackdropMedia[] = [
     {
       src: 'assets/hub/home-backdrop-studio.png',
-      label: 'Production Suite',
-      title: 'Studio performance view',
+      label: 'The Booth',
+      title: 'Studio live view',
       layoutClass: 'panel-studio',
     },
     {
       src: 'assets/hub/home-backdrop-command.png',
-      label: 'Executive Layout',
-      title: 'Command surface overview',
+      label: 'Label Desk',
+      title: 'Executive command surface',
       layoutClass: 'panel-command',
     },
     {
       src: 'assets/hub/home-backdrop-intel.png',
-      label: 'Intel Brief',
+      label: 'City Pulse',
       title: 'Strategy signal board',
       layoutClass: 'panel-intel',
     },
     {
       src: 'assets/hub/home-backdrop-cinema.png',
-      label: 'Cinema Engine',
-      title: 'Mobile visual direction',
+      label: 'Visual Suite',
+      title: 'Cinema-grade press visuals',
       layoutClass: 'panel-cinema',
     },
   ];
@@ -208,18 +199,18 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       shortcut: 'Ctrl + K',
       title: 'Command Palette',
-      description: 'Jump to major modules and quick actions from anywhere.',
+      description: 'Jump to any module or quick action from anywhere in the label.',
     },
     {
       shortcut: '?',
-      title: 'Interaction Guide',
-      description: 'Open contextual tips for the current view and controls.',
+      title: 'Quick Reference',
+      description: 'Contextual tips for the current view — shortcuts, gestures, controls.',
     },
     {
       shortcut: 'Themes',
-      title: 'Visual Modes',
+      title: 'City Modes',
       description:
-        'Swap theme, scanlines, and performance settings from the shell.',
+        'Switch visual themes, scanlines, and performance settings on the fly.',
     },
   ];
 
@@ -237,7 +228,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor() {}
 
   private animFrame: number | null = null;
-  visualizerData = signal<number[]>(new Array(24).fill(20));
+  visualizerData = signal<number[]>(new Array(24).fill(15));
   currentBeat = this.audioEngine.currentBeat;
   globalStudioPulse = computed(() => {
     const pulse = [];
