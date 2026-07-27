@@ -616,6 +616,8 @@ export class MatchmakingService implements OnDestroy {
     const updated: CoOpLobby = { ...lobby, status: 'in-progress' };
     this.myLobby.set(updated);
     this.updateLobbyInState(updated);
+    // ── Auto-record: record initial snapshot on game launch ──
+    this.recordGameSnapshot({ event: 'GAME_LAUNCH', gameId, playerCount: lobby.playerIds.length }, 'Game Launch');
     this.socket?.emit('party_launch_game', { partyId: lobby.id, gameId });
     this.socket?.emit('party_started', { partyId: lobby.id, gameId });
   }

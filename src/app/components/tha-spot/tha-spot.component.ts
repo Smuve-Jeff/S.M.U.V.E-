@@ -1724,6 +1724,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.matchmaking.stopSpectateLobby();
   }
 
+  // ── Replay Viewer ──────────────────────────────────────
+  startReplayViewer(): void {
+    const lobby = this.matchmaking.myLobby();
+    if (lobby) {
+      this.matchmaking.startReplay(lobby.id);
+    }
+  }
+
+  stopReplayViewer(): void {
+    this.matchmaking.stopReplay();
+  }
+
   // ── Lobby Invite ──────────────────────────────────────
   copyLobbyInviteLink(): void {
     this.matchmaking.copyLobbyInviteLink();

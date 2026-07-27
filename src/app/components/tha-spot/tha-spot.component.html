@@ -1040,7 +1040,118 @@
               </button>
             </div>
 
-            <!-- Launch game from lobby (all-ready visual boost) -->
+            
+            <!-- ═══════════ REPLAY VIEWER ────────────────────── -->
+            <div class="replay-viewer-section" *ngIf="matchmaking.lobbyReplaySnapshots().length > 0 || matchmaking.isReplaying()">
+              <div class="replay-viewer-header">
+                <span class="replay-viewer-label">
+                  <span class="material-symbols-outlined" style="font-size:0.7rem;">replay</span>
+                  SESSION REPLAY
+                </span>
+                <span class="replay-viewer-count">{{
+                  matchmaking.lobbyReplaySnapshots().length
+                }} snapshots</span>
+              </div>
+
+              <!-- Replay controls -->
+              <div class="replay-controls" *ngIf="!matchmaking.isReplaying() && matchmaking.lobbyReplaySnapshots().length > 0">
+                <button class="replay-play-btn" (click)="startReplayViewer()">
+                  <span class="material-symbols-outlined" style="font-size:0.8rem;">play_circle</span>
+                  PLAY REPLAY
+                </button>
+              </div>
+
+              <!-- Active replay playback -->
+              <div class="replay-active" *ngIf="matchmaking.isReplaying()">
+                <div class="replay-timeline">
+                  <div class="replay-timeline-track">
+                    <div
+                      class="replay-timeline-fill"
+                      [style.width.%]="(matchmaking.replayCurrentIndex() / (matchmaking.lobbyReplaySnapshots().length || 1)) * 100"
+                    ></div>
+                    <div
+                      class="replay-timeline-scrubber"
+                      [style.left.%]="(matchmaking.replayCurrentIndex() / (matchmaking.lobbyReplaySnapshots().length || 1)) * 100"
+                    ></div>
+                  </div>
+                  <span class="replay-frame-label">Frame {{
+                    matchmaking.replayCurrentIndex() + 1
+                  }} / {{ matchmaking.lobbyReplaySnapshots().length }}</span>
+                </div>
+
+                <!-- Current frame data -->
+                <div class="replay-frame-data" *ngIf="matchmaking.currentReplayFrame() as frame">
+                  <div class="replay-frame-row" *ngIf="frame.label">
+                    <span class="replay-frame-key">EVENT</span>
+                    <span class="replay-frame-val">{{ frame.label }}</span>
+                  </div>
+                  <div class="replay-frame-row" *ngIf="frame.state?.score !== undefined">
+                    <span class="replay-frame-key">SCORE</span>
+                    <span class="replay-frame-val">{{ frame.state.score }}</span>
+                  </div>
+                  <div class="replay-frame-row" *ngIf="frame.state?.level">
+                    <span class="replay-frame-key">LEVEL</span>
+                    <span class="replay-frame-val">{{ frame.state.level }}</span>
+                  </div>
+                  <div class="replay-frame-row" *ngIf="frame.state?.progress !== undefined">
+                    <span class="replay-frame-key">PROGRESS</span>
+                    <span class="replay-frame-val">{{ frame.state.progress }}%</span>
+                  </div>
+                  <div class="replay-frame-row" *ngIf="frame.recordedBy">
+                    <span class="replay-frame-key">RECORDED BY</span>
+                    <span class="replay-frame-val">{{ frame.recordedBy }}</span>
+                  </div>
+                </div>
+
+                <div class="replay-actions">
+                  <button class="replay-stop-btn" (click)="stopReplayViewer()">
+                    <span class="material-symbols-outlined" style="font-size:0.7rem;">stop</span>
+                    STOP
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ═══════════ LIVE GAME STATE ────────────────────── -->
+            <div class="live-game-state-section" *ngIf="matchmaking.latestGameState() | keyvalue as states">
+              <div class="live-state-header" *ngIf="(matchmaking.latestGameState() | keyvalue)?.length">
+                <span class="live-state-label">
+                  <span class="material-symbols-outlined" style="font-size:0.7rem;color:#10b981;animation:status-pulse 1.5s infinite;">sensors</span>
+                  LIVE GAME STATE
+                </span>
+              </div>
+              <div class="live-state-players">
+                <div
+                  class="live-state-player"
+                  *ngFor="let entry of matchmaking.latestGameState() | keyvalue"
+                >
+                  <div class="live-state-player-header">
+                    <span class="live-state-player-name">{{
+                      entry.value.playerName | uppercase
+                    }}</span>
+                    <span
+                      class="live-state-alive"
+                      [class.dead]="entry.value.alive === false"
+                    >
+                      {{ entry.value.alive !== false ? '● LIVE' : '● DEAD' }}
+                    </span>
+                  </div>
+                  <div class="live-state-stats">
+                    <span *ngIf="entry.value.score !== undefined" class="live-state-stat">
+                      🏆 {{ entry.value.score }}
+                    </span>
+                    <span *ngIf="entry.value.level" class="live-state-stat">
+                      🗺 {{ entry.value.level }}
+                    </span>
+                    <span *ngIf="entry.value.progress !== undefined" class="live-state-stat">
+                      📊 {{ entry.value.progress }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+<!-- Launch game from lobby (all-ready visual boost) -->
             <button
               *ngIf="!matchmaking.isAllReady() || !matchmaking.isHost() || matchmaking.countdownActive()"
               class="launch-btn mini"
