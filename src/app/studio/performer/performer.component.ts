@@ -348,6 +348,10 @@ export class PerformerComponent implements OnDestroy, OnInit {
       }
       this.activePointers.set(event.pointerId, midi);
     }
+    // CRITICAL: Resume AudioContext if suspended (browser autoplay policy)
+    if (this.liveEngine['audioEngine']?.ctx?.state === 'suspended') {
+      this.liveEngine['audioEngine'].resume();
+    }
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
     this.liveEngine.triggerNoteStart(actualMidi, this.velocity);
@@ -373,6 +377,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   onKeyUp(midi: number, event?: PointerEvent) {
     const actualMidi = midi + this.octave() * 12;
+    // Always release note, even if AudioContext was suspended
     this.liveEngine.triggerNoteEnd(actualMidi);
 
     this.activeKeys.update((keys) => {
@@ -380,6 +385,10 @@ export class PerformerComponent implements OnDestroy, OnInit {
       next.delete(midi);
       return next;
     });
+    // Release pointer tracking
+    if (event && event.pointerType === 'touch') {
+      this.activePointers.delete(event.pointerId);
+    }
   }
 
   onPadPointerDown(event: PointerEvent, midi: number) {

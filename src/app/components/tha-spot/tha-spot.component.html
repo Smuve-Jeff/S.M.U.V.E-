@@ -722,59 +722,104 @@
           </div>
         </div>
 
-        <!-- Party View -->
+        <!-- Co-Op Matchmaking & Party View (Socket.io backed) -->
         <div class="party-view" *ngIf="activeHubTab() === 'party'">
-          <div class="party-controls" *ngIf="!socialService.currentPartyId()">
-            <h4>SQUAD_FORMATION</h4>
-            <p>Form a strike team to engage in cooperative missions.</p>
+          <!-- No lobby active: create new -->
+          <div class="party-controls" *ngIf="!matchmaking.myLobby()">
+            <h4>CO-OP MATCHMAKING</h4>
+            <p style="font-size:0.7rem;opacity:0.7;margin:0.25rem 0 0.75rem;">
+              {{ matchmaking.connected() ? '🟢 SOCKET.IO CONNECTED' : '🔴 OFFLINE — LOCAL MODE' }}
+            </p>
+            <div *ngIf="gameIdToInvite() !== 'all' && gameIdToInvite()" style="margin-bottom:0.75rem;">
+              <span style="font-size:0.65rem;opacity:0.5;">SELECTED GAME:</span>
+              <span style="font-size:0.7rem;font-weight:800;color:var(--neon-cyan);display:block;">{{ gameIdToInvite() | uppercase }}</span>
+            </div>
             <button
               class="launch-btn mini"
-              (click)="socialService.createParty('global')"
+              (click)="matchmaking.createLobby(gameIdToInvite() || 'global')"
+              [disabled]="!gameIdToInvite() || gameIdToInvite() === 'all'"
+              style="width:100%;"
             >
-              INITIALIZE_SQUAD
+              {{ gameIdToInvite() && gameIdToInvite() !== 'all' ? 'CREATE LOBBY FOR ' + (gameIdToInvite() | uppercase) : 'SELECT A GAME FIRST' }}
             </button>
           </div>
 
-          <div
-            class="party-dashboard"
-            *ngIf="socialService.currentPartyId() as partyId"
-          >
+          <!-- Active Lobby Dashboard -->
+          <div class="party-dashboard" *ngIf="matchmaking.myLobby() as lobby">
             <div class="party-header">
-              <span class="party-id">SQUAD_ID: {{ partyId }}</span>
-              <button
-                class="terminate-btn mini"
-                (click)="socialService.leaveParty()"
-              >
-                ABANDON
+              <span class="party-id">LOBBY: {{ lobby.id.slice(0, 12) }}...</span>
+              <span class="lobby-status" [style.color]="lobby.status === 'ready' ? '#10b981' : '#00e5ff'" style="font-size:0.6rem;text-transform:uppercase;font-weight:800;">
+                {{ lobby.status | uppercase }}
+              </span>
+              <button class="terminate-btn mini" (click)="matchmaking.cancelMyLobby()">
+                DISBAND
               </button>
             </div>
 
+            <div class="lobby-game-chip" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.5rem;border:1px solid rgba(0,229,255,0.2);border-radius:999px;font-size:0.6rem;margin-bottom:0.5rem;">
+              <span class="material-symbols-outlined" style="font-size:0.7rem;">stadia_controller</span>
+              {{ lobby.gameName | uppercase }}
+            </div>
+
             <div class="party-members">
-              <div
-                class="member-chip"
-                *ngFor="let member of socialService.partyMembers()"
-              >
-                {{ member.artistName }}
+              <div class="member-chip" *ngFor="let pId of lobby.playerIds">
+                <span [style.color]="pId === matchmaking.playerId() ? '#00e5ff' : 'inherit'">
+                  {{ pId === matchmaking.playerId() ? (matchmaking.playerName() | uppercase) + ' (YOU)' : 'PLAYER_' + (pId.slice(0,6) | uppercase) }}
+                </span>
+              </div>
+              <div *ngIf="lobby.playerIds.length < lobby.maxPlayers" class="member-chip" style="opacity:0.3;border-style:dashed;">
+                WAITING...
               </div>
             </div>
 
-            <div class="party-chat">
-              <div class="party-invites" style="margin-top: 1rem">
-                <h6>INVITE OPERATIVES</h6>
-                <div class="user-list mini">
-                  <div
-                    class="user-item glass-v42 mini"
-                    *ngFor="let friend of socialService.friends()"
-                  >
-                    <span class="user-name">{{ friend.artistName }}</span>
-                    <button
-                      class="action-btn mini"
-                      (click)="socialService.inviteToParty(friend.userId)"
-                    >
-                      INVITE
-                    </button>
-                  </div>
-                </div>
+            <!-- Launch game from lobby -->
+            <button
+              class="launch-btn mini"
+              (click)="matchmaking.launchGameFromParty(lobby.gameId)"
+              style="width:100%;margin-top:0.5rem;"
+            >
+              LAUNCH GAME
+            </button>
+          </div>
+
+          <!-- Open Lobbies (joinable) -->
+          <div class="open-lobbies-section" *ngIf="matchmaking.activeLobbies().length > 0" style="margin-top:0.75rem;">
+            <h6 style="font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0.5;margin:0 0 0.5rem;">OPEN LOBBIES</h6>
+            <div
+              class="user-item glass-v42 mini"
+              *ngFor="let lb of matchmaking.activeLobbies()"
+              style="justify-content:space-between;cursor:pointer;"
+            >
+              <div>
+                <span class="user-name" style="font-size:0.65rem;">{{ lb.gameName }}</span>
+                <span style="font-size:0.55rem;opacity:0.5;display:block;">Host: {{ lb.hostName }} · {{ lb.playerIds.length }}/{{ lb.maxPlayers }}</span>
+              </div>
+              <button
+                class="action-btn mini"
+                (click)="matchmaking.joinLobby(lb.id)"
+                [disabled]="lb.playerIds.length >= lb.maxPlayers"
+              >
+                JOIN
+              </button>
+            </div>
+          </div>
+
+          <!-- Online Users for invites -->
+          <div class="party-invites" style="margin-top:1rem;">
+            <h6>INVITE OPERATIVES</h6>
+            <div class="user-list mini">
+              <div
+                class="user-item glass-v42 mini"
+                *ngFor="let friend of socialService.friends()"
+              >
+                <span class="user-name">{{ friend.artistName }}</span>
+                <button
+                  class="action-btn mini"
+                  (click)="sendChallenge(friend.userId, gameIdToInvite() || '')"
+                  [disabled]="!gameIdToInvite() || gameIdToInvite() === 'all'"
+                >
+                  CHALLENGE
+                </button>
               </div>
             </div>
           </div>

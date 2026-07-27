@@ -33,6 +33,7 @@ import {
 import { ChallengeInboxService } from '../../services/challenge-inbox.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { MatchmakingService, CoOpLobby } from '../../hub/matchmaking.service';
 import { ActivatedRoute } from '@angular/router';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
@@ -117,6 +118,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public socialService = inject(SocialNetworkingService);
   public inboxService = inject(ChallengeInboxService);
   public peerService = inject(PeerNetworkingService);
+  public matchmaking = inject(MatchmakingService);
   private snackbarService = inject(SnackbarService);
 
   // Signals
@@ -600,7 +602,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   cancelMatchmaking() {
     const game = this.selectedGame();
-    if (game) this.socialService.cancelMatch(game.id);
+    if (game) this.matchmaking.cancelMatchQueue(game.id);
     this.isMatchmaking.set(false);
     this.currentMatchmakingId = null;
   }
@@ -649,7 +651,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.matchmakingProgress.set(0);
       this.matchmakingElapsed.set(0);
       this.showBotOption.set(false);
-      this.socialService.queueForMatch(game.id);
+      this.matchmaking.queueForMatch(game.id);
 
       // Visual progress timer
       const startTime = Date.now();
@@ -751,7 +753,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   engageAiBot() {
     const game = this.selectedGame();
-    if (game) this.socialService.cancelMatch(game.id);
+    if (game) this.matchmaking.cancelMatchQueue(game.id);
     this.showBotOption.set(false);
     this.isMatchmaking.set(false);
     // Proceed to launch the game in solo mode
@@ -776,6 +778,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   onGameIframeLoad() {
     this.gameLoadStage.set('ready');
     this.gameLoadError.set(false);
+    // After load, force-apply sandbox policy in case the upstream resource requested
+    // a permissions upgrade via feature policy (defense-in-depth).
+    const iframe = this.gameIframe?.nativeElement;
+    if (iframe) {
+      try { iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame())); } catch {}
+      try { iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame())); } catch {}
+    }
   }
 
   /**
@@ -784,6 +793,24 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   onGameIframeError() {
     this.gameLoadError.set(true);
     this.gameLoadStage.set('idle');
+  }
+
+  /**
+   * Strong iframe sandbox policy driven by GameService.buildIframeSandbox.
+   * 'internal' cabinets (our own WASM files) keep allow-same-origin for boot.
+   * External trusted partners get a strict sandbox without same-origin so the
+   * iframe cannot read our cookies/storage.
+   */
+  getSandboxAttr(game: Game | null): string {
+    return this.gameService.buildIframeSandbox(game || undefined);
+  }
+
+  /**
+   * Permissions Policy attribute aligned with the selected cabinet's tags.
+   * Multiplayer cabinets unlock microphone/camera; everything else stays strict.
+   */
+  getIframeAllowAttr(game: Game | null): string {
+    return this.gameService.buildIframeAllowAttr(game || undefined);
   }
 
   reloadGame() {
