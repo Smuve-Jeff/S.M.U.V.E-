@@ -200,7 +200,9 @@ export class AudioEngineService {
     this.masterWidener.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
 
-    // Metering tap: keep the LUFS chain in parallel so metering reads the same pre-analysis program signal.
+    // Metering tap: split a parallel branch after the widener so LUFS analysis
+    // measures the same audible program material without routing K-weighted EQ
+    // back into the destination path.
     this.masterWidener.connect(this.lufsFilter1);
     this.lufsFilter1.connect(this.lufsFilter2);
     this.lufsFilter2.connect(this.lufsAnalyzer);
@@ -1026,7 +1028,9 @@ export class AudioEngineService {
       pan.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
 
     if (patch.stereoWidth !== undefined && width) {
-      // Defensive clamp keeps the width matrix stable even if callers bypass the manager layer.
+      // Clamp width first, then use a simple crossfeed matrix where +1 keeps
+      // channels discrete, 0 sums toward mono, and negative values invert the
+      // side balance by swapping more energy across the stereo field.
       const normalized = Math.max(-1, Math.min(1, patch.stereoWidth));
       const leftChannelLeftGain = 0.5 + normalized * 0.5;
       const rightChannelLeftGain = 0.5 - normalized * 0.5;
@@ -1469,7 +1473,6 @@ export class AudioEngineService {
       const rms = Math.sqrt(sumSq / this._meteringBuffer.length);
       this.outputPeak.set(Math.min(1.5, peak));
       this.outputRms.set(Math.min(1.5, rms));
-      // LUFS from K-weighted Analyser
       // LUFS from K-weighted Analyser
       this.lufsAnalyzer.getFloatTimeDomainData(this._lufsBuffer);
       let lufsSumSq = 0;
