@@ -78,6 +78,48 @@
         <span class="arv-meta-value">WEBM / OPUS</span>
       </div>
     </div>
+
+    <!-- Monitoring & Noise Gate Controls -->
+    <div class="arv-controls-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+      <button
+        type="button"
+        class="arv-control-btn"
+        [class.arv-control-active]="monitoringEnabled()"
+        (click)="toggleMonitoring()"
+        [attr.aria-pressed]="monitoringEnabled()"
+        aria-label="Toggle live monitoring - hear yourself while recording"
+        style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--espresso-muted); min-height: 40px; transition: all 0.15s;"
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px;">{{ monitoringEnabled() ? 'hearing' : 'hearing_disabled' }}</span>
+        {{ monitoringEnabled() ? 'MONITOR ON' : 'MONITOR' }}
+      </button>
+      <button
+        type="button"
+        class="arv-control-btn"
+        [class.arv-control-active]="noiseGateEnabled()"
+        (click)="toggleNoiseGate()"
+        [attr.aria-pressed]="noiseGateEnabled()"
+        aria-label="Toggle noise gate - filter out background noise"
+        style="display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--espresso-muted); min-height: 40px; transition: all 0.15s;"
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px;">noise_aware</span>
+        {{ noiseGateEnabled() ? 'GATE ON' : 'NOISE GATE' }}
+      </button>
+      <div *ngIf="noiseGateEnabled()" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--ivory-paper); border: 1px solid var(--ivory-line);">
+        <span style="font-size: 9px; font-weight: 700; color: var(--espresso-muted);">THRESH</span>
+        <input
+          type="range"
+          min="-80"
+          max="-20"
+          step="1"
+          [ngModel]="noiseGateThreshold()"
+          (ngModelChange)="setNoiseGateThreshold($event)"
+          style="width: 80px; accent-color: var(--teal-500);"
+          [attr.aria-label]="'Noise gate threshold ' + noiseGateThreshold() + ' dB'"
+        />
+        <span style="font-size: 9px; font-weight: 800; color: var(--teal-500); font-family: var(--font-mono);">{{ noiseGateThreshold() }}dB</span>
+      </div>
+    </div>
   </div>
 
   <!-- PERMISSIONS / ERROR -->
@@ -104,8 +146,22 @@
           <span class="material-symbols-outlined">audio_file</span>
         </div>
         <div class="arv-row-main">
-          <div class="arv-row-name">{{ rec.name }}</div>
-          <div class="arv-row-meta">{{ formatRecordedAt(rec.timestamp) }}</div>
+          <!-- Renameable name -->
+          <div *ngIf="renamingId() !== rec.id" class="arv-row-name" (dblclick)="startRename(rec)">{{ rec.name }}</div>
+          <div *ngIf="renamingId() === rec.id" style="display: flex; gap: 4px; align-items: center;">
+            <input
+              type="text"
+              [ngModel]="renameValue()"
+              (ngModelChange)="renameValue.set($event)"
+              (keydown.enter)="confirmRename()"
+              (keydown.escape)="cancelRename()"
+              class="arv-rename-input"
+              style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--teal-500); background: var(--ivory-deep); color: var(--espresso-text); font-size: 12px; font-weight: 700; width: 120px;"
+              autofocus
+            />
+            <button type="button" (click)="confirmRename()" style="background: none; border: none; color: var(--teal-500); cursor: pointer; font-size: 14px;">✓</button>
+          </div>
+          <div class="arv-row-meta">{{ formatRecordedAt(rec.timestamp) }} · double-click name to rename</div>
         </div>
         <audio
           *ngIf="rec.url"
@@ -114,6 +170,17 @@
           class="arv-row-audio"
           preload="none"
         ></audio>
+        <!-- Export to Arrangement -->
+        <button
+          type="button"
+          class="arv-row-action"
+          (click)="exportToArrangement(rec)"
+          [attr.aria-label]="'Export ' + rec.name + ' to arrangement'"
+          title="Add to arrangement as audio track"
+          style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--ivory-line); background: var(--ivory-paper); color: var(--teal-500); cursor: pointer; transition: all 0.15s;"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px;">library_music</span>
+        </button>
         <button
           type="button"
           class="arv-row-del"
@@ -132,6 +199,85 @@
       </div>
     </ng-template>
   </div>
+
+  <!-- ════════════ PRO: TAKE MANAGER (multi-take comping) ════════════ -->
+  <section class="arv-takes-manager" *ngIf="recordings().length > 0 || takes().length > 0" aria-label="Take manager">
+    <div class="arv-takes-header">
+      <span class="material-symbols-outlined" style="color: var(--teal-500);">layers</span>
+      <h3 class="arv-takes-title">Take Manager</h3>
+      <span class="arv-takes-count">{{ takes().length }} active take{{ takes().length === 1 ? '' : 's' }}</span>
+      <div class="arv-takes-controls">
+        <button
+          type="button"
+          class="arv-takes-promote"
+          (click)="promoteToTake()"
+          [disabled]="recordings().length === 0"
+          title="Promote the most recent recording as Take N+1"
+        >
+          <span class="material-symbols-outlined">add</span> Promote Take
+        </button>
+        <button
+          type="button"
+          class="arv-takes-clear"
+          (click)="clearAllTakes()"
+          [disabled]="takes().length === 0"
+          title="Remove all takes"
+        >
+          <span class="material-symbols-outlined">delete_sweep</span> Clear All
+        </button>
+      </div>
+    </div>
+
+    <ul class="arv-takes-list" *ngIf="takes().length > 0; else noTakes">
+      <li
+        *ngFor="let t of takes(); let i = index"
+        class="arv-take-row"
+        [class.arv-take-row-active]="t.isActive"
+        [class.arv-take-row-muted]="takeMuted()[t.id]"
+      >
+        <button
+          type="button"
+          class="arv-take-select-dot"
+          (click)="selectTake(t.id)"
+          [attr.aria-pressed]="t.isActive"
+          [attr.aria-label]="'Activate take ' + (i + 1)"
+          [title]="t.isActive ? 'Active take' : 'Click to activate'"
+        >
+          <span class="material-symbols-outlined">{{ t.isActive ? 'radio_button_checked' : 'radio_button_unchecked' }}</span>
+        </button>
+        <div class="arv-take-meta">
+          <span class="arv-take-name">{{ t.name }}</span>
+          <span class="arv-take-age">{{ formatTakeAge(t.createdAt) }}</span>
+        </div>
+        <button
+          type="button"
+          class="arv-take-mute"
+          (click)="toggleTakeMute(t.id)"
+          [attr.aria-pressed]="!!takeMuted()[t.id]"
+          [attr.aria-label]="(takeMuted()[t.id] ? 'Unmute ' : 'Mute ') + t.name"
+          [title]="takeMuted()[t.id] ? 'Unmute' : 'Mute'"
+        >
+          <span class="material-symbols-outlined">{{ takeMuted()[t.id] ? 'volume_off' : 'volume_up' }}</span>
+        </button>
+        <button
+          type="button"
+          class="arv-take-remove"
+          (click)="removeTake(t.id)"
+          [attr.aria-label]="'Remove ' + t.name"
+          title="Remove take"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </li>
+    </ul>
+
+    <ng-template #noTakes>
+      <div class="arv-takes-empty">
+        <span class="material-symbols-outlined">mic_none</span>
+        <p>Tap <strong>Promote Take</strong> to add multi-take comping for this session.</p>
+      </div>
+    </ng-template>
+  </section>
 
   <!-- QUICK HINTS -->
   <footer class="arv-foot">

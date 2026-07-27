@@ -32,6 +32,146 @@
     </div>
   </div>
 
+  <!-- ════════════ DAILY OPS PANEL (rival-hub sidebar tab) ════════════ -->
+  <ng-container *ngIf="rivalHubOpen() && hubTab() === 'ops'">
+    <div class="daily-ops-panel">
+      <div class="daily-ops-header">
+        <span class="daily-ops-glyph">⚡</span>
+        <div class="daily-ops-title-block">
+          <h3 class="daily-ops-title">DAILY OPS</h3>
+          <p class="daily-ops-sub">Streak: <span class="streak-num">{{ dailyMissions.streak().streak }}</span> day{{ dailyMissions.streak().streak === 1 ? '' : 's' }} · Best {{ dailyMissions.streak().bestStreak }}</p>
+        </div>
+      </div>
+      <div class="mission-grid">
+        <div
+          *ngFor="let m of dailyMissions.missions(); trackBy: trackByMissionId"
+          class="mission-card"
+          [class.mission-card-claimed]="m.claimed"
+          [class.mission-card-ready]="m.progress >= m.target && !m.claimed"
+        >
+          <div class="mission-card-glyph">{{ m.glyph }}</div>
+          <div class="mission-card-name">{{ m.title }}</div>
+          <div class="mission-card-desc">{{ m.description }}</div>
+          <div class="mission-progress-shell">
+            <div class="mission-progress-bar" [style.width.%]="(m.progress / m.target) * 100"></div>
+          </div>
+          <div class="mission-progress-meta">{{ m.progressLabel }} · +{{ m.rewardXp }} XP</div>
+          <div class="mission-claim-row">
+            <button
+              *ngIf="m.claimed"
+              class="mission-claim-btn is-claimed"
+              disabled
+              aria-label="Reward claimed"
+            >✅ {{ m.rewardBadge }}</button>
+            <button
+              *ngIf="!m.claimed"
+              class="mission-claim-btn"
+              [disabled]="m.progress < m.target"
+              (click)="claimMission(m.id)"
+              [attr.aria-label]="'Claim reward for ' + m.title"
+            >CLAIM</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ════════════ POST-PLAY RATING MODAL ════════════ -->
+  <div *ngIf="gameRatings.pendingRating() as pending" class="rating-modal-wrap" role="dialog" aria-label="Rate this game">
+    <div class="rating-backdrop" (click)="dismissRating()"></div>
+    <div class="rating-modal-card glass-v42">
+      <button class="rating-close" type="button" (click)="dismissRating()" aria-label="Dismiss rating">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <header class="rating-modal-head">
+        <span class="rating-glyph">⭐</span>
+        <h3 class="rating-title">RATE THIS RUN</h3>
+      </header>
+      <div class="rating-game-row">
+        <div class="rating-game-name">{{ pending.gameName }}</div>
+        <div class="rating-game-meta" *ngIf="pending.sessionMs as ms">
+          Session: {{ (ms / 60000) | number: '1.0-1' }} min
+          <span *ngIf="pending.lastScore"> · Score: {{ pending.lastScore }}</span>
+        </div>
+      </div>
+      <!-- Star row -->
+      <div class="rating-stars-row" role="radiogroup" aria-label="Star rating">
+        <button
+          *ngFor="let s of [1,2,3,4,5]"
+          type="button"
+          class="rating-star-btn"
+          data-rating-value="{{s}}"
+          (click)="submitRating(s, '', null)"
+          [attr.aria-label]="s + ' star' + (s === 1 ? '' : 's')"
+        >★</button>
+      </div>
+      <!-- Result quick row -->
+      <div class="rating-result-row">
+        <button class="rating-result-btn win" type="button" (click)="submitRating(4, '', 'win')">🏆 WIN</button>
+        <button class="rating-result-btn loss" type="button" (click)="submitRating(3, '', 'loss')">💀 LOSS</button>
+        <button class="rating-result-btn draw" type="button" (click)="submitRating(3, '', 'draw')">🤝 DRAW</button>
+        <button class="rating-result-btn skip" type="button" (click)="dismissRating()">⏭ SKIP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ SPECTATOR REACTIONS OVERLAY ════════════ -->
+  <div *ngIf="matchmaking.isSpectating()" class="spectator-rail" aria-label="Spectator reactions">
+    <div class="spectator-bubbles">
+      <span
+        *ngFor="let r of matchmaking.spectatorReactions(); trackBy: trackByReactionId"
+        class="spectator-bubble"
+        [attr.data-emoji]="r.emoji"
+        [attr.aria-label]="r.fromUserName + ' reacted ' + r.emoji"
+      >{{ r.emoji }}</span>
+    </div>
+    <div class="spectator-picker" role="group" aria-label="Send reaction">
+      <button
+        *ngFor="let e of spectatorEmojiPalette"
+        type="button"
+        class="spectator-emoji-btn"
+        (click)="fireSpectatorReaction(e)"
+        [attr.aria-label]="'Send ' + e"
+      >{{ e }}</button>
+    </div>
+    <button class="spectator-stop" type="button" (click)="stopSpectate()" aria-label="Stop spectating">
+      <span class="material-symbols-outlined">close</span> STOP SPECTATING
+    </button>
+  </div>
+
+  <!-- ════════════ SPECTATOR CHAT DRAWER ════════════ -->
+  <div *ngIf="matchmaking.isSpectating()" class="spectator-chat-drawer" aria-label="Spectator chat">
+    <div class="spec-chat-header">
+      <span class="material-symbols-outlined">chat</span>
+      <span class="spec-chat-title">SPECTATOR CHAT</span>
+    </div>
+    <div class="spec-chat-list">
+      <div *ngFor="let m of matchmaking.spectatorChatMessages()" class="spec-chat-line">
+        <span class="spec-chat-name">{{ m.fromUserName }}:</span>
+        <span class="spec-chat-text">{{ m.text }}</span>
+      </div>
+      <div *ngIf="matchmaking.spectatorChatMessages().length === 0" class="spec-chat-empty">
+        No messages yet. Cheer them on!
+      </div>
+    </div>
+    <div class="spec-chat-input-row">
+      <input
+        type="text"
+        placeholder="Cheer, react, comment…"
+        [ngModel]="spectatorChatInput()"
+        (ngModelChange)="spectatorChatInput.set($event)"
+        (keydown.enter)="sendSpectatorChatNow()"
+        class="spec-chat-input"
+        aria-label="Spectator chat input"
+      />
+      <button class="spec-chat-send" type="button" (click)="sendSpectatorChatNow()" aria-label="Send message">
+        <span class="material-symbols-outlined">send</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════════ SPECTATE BUTTON on Live Lobbies Rail ════════════ -->
+
   <!-- ── Achievement Unlock Popup ─────────────────────── -->
   <div class="achievement-popup" *ngIf="showAchievementPopup() && lastUnlockedAchievement() as ach" [class.active]="showAchievementPopup()">
     <div class="achievement-icon">

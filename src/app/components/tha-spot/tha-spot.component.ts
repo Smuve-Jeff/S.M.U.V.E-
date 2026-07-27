@@ -33,8 +33,10 @@ import {
 import { ChallengeInboxService } from '../../services/challenge-inbox.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
-import { MatchmakingService, CoOpLobby } from '../../hub/matchmaking.service';
+import { MatchmakingService, CoOpLobby, SpectatorReaction, LobbyChatMessage } from '../../hub/matchmaking.service';
 import { ActivatedRoute } from '@angular/router';
+import { DailyMissionsService, DailyMission } from '../../services/daily-missions.service';
+import { GameRatingsService, Rating, PlayResult } from '../../services/game-ratings.service';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -120,6 +122,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public peerService = inject(PeerNetworkingService);
   public matchmaking = inject(MatchmakingService);
   private snackbarService = inject(SnackbarService);
+  public dailyMissions = inject(DailyMissionsService);
+  public gameRatings = inject(GameRatingsService);
 
   // Signals
   displayMode = signal<'gaming' | 'pluto'>('gaming');
@@ -196,6 +200,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   externalTargetDomain = signal<string>('');
   isFullscreen = signal<boolean>(false);
   recentGames = signal<Game[]>([]);
+
+  // ── Hub navigation (rival hub sidebar tabs) ──────────
+  // 'rooms' | 'online' | 'rivals' | 'ops'
+  hubTab = signal<'rooms' | 'online' | 'rivals' | 'ops'>('rooms');
+  readonly rivalHubOpen = signal<boolean>(false);
   isLoading = signal<boolean>(true);
   private currentMatchmakingId: number | null = null;
   private matchmakingTimerId: any = null;

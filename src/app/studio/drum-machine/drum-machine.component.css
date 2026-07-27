@@ -438,3 +438,114 @@
   .dm-pads { grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .dm-step-row { grid-template-columns: 80px repeat(16, 1fr); }
 }
+
+/* ════════════════════════════════════════════════════════════
+   DRUM KIT SWAP — Kit chips + Take slot row
+   ════════════════════════════════════════════════════════════ */
+.dm-kit-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2), transparent);
+  border-bottom: 1px solid var(--ivory-line);
+  flex-wrap: wrap;
+}
+.dm-kit-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--espresso-muted);
+  text-transform: uppercase;
+  margin-right: 0.25rem;
+}
+.dm-kit-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--ivory-line);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--espresso-300);
+  font-family: var(--elite-font);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+.dm-kit-chip:hover {
+  border-color: var(--teal-400);
+  background: rgba(43, 160, 156, 0.08);
+  transform: translateY(-1px);
+}
+.dm-kit-chip.active {
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: #fff;
+  border-color: var(--teal-500);
+  box-shadow: 0 0 12px rgba(14, 124, 123, 0.35);
+}
+.dm-kit-chip .kit-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.dm-kit-chip.active .kit-dot { background: var(--neon-gold); opacity: 1; box-shadow: 0 0 6px var(--neon-gold); }
+.dm-kit-chip .material-symbols-outlined { font-size: 0.85rem; }
+
+.dm-takes-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 213, 79, 0.05);
+  border-bottom: 1px solid rgba(255, 213, 79, 0.15);
+  flex-wrap: wrap;
+}
+.dm-takes-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--neon-amber);
+  text-transform: uppercase;
+  margin-right: 0.25rem;
+}
+.dm-take-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 213, 79, 0.25);
+  background: rgba(255, 213, 79, 0.06);
+  color: var(--neon-amber);
+  font-family: var(--elite-font);
+  font-size: 0.6rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dm-take-chip:hover {
+  background: rgba(255, 213, 79, 0.15);
+  border-color: rgba(255, 213, 79, 0.5);
+}
+.dm-take-chip.active {
+  background: linear-gradient(135deg, var(--neon-amber), #c2410c);
+  color: #fff;
+  border-color: var(--neon-amber);
+  box-shadow: 0 0 10px rgba(255, 167, 38, 0.4);
+}
+.dm-take-chip .material-symbols-outlined { font-size: 0.7rem; }
+.dm-take-chip-delete {
+  cursor: pointer;
+  font-size: 0.7rem;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+.dm-take-chip-delete:hover { opacity: 1; color: var(--neon-pink); }

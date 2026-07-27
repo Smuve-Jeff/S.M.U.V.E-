@@ -545,6 +545,123 @@
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
   40% { transform: scale(1); opacity: 1; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   DAILY OPS PANEL — DailyMissionsService UI
+   ════════════════════════════════════════════════════════════ */
+.daily-ops-panel { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.5rem; }
+.daily-ops-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid var(--glass-border); }
+.daily-ops-title { font-size: 0.65rem; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: var(--neon-cyan); display: flex; align-items: center; gap: 0.4rem; }
+.daily-ops-title .material-symbols-outlined { font-size: 0.9rem; }
+.daily-ops-streak { font-size: 0.55rem; font-weight: 800; letter-spacing: 0.1em; padding: 0.15rem 0.5rem; border-radius: 6px; background: rgba(255, 213, 79, 0.08); border: 1px solid rgba(255, 213, 79, 0.2); color: var(--neon-gold); text-transform: uppercase; }
+.daily-ops-streak.fired { background: rgba(255, 26, 107, 0.1); border-color: rgba(255, 26, 107, 0.25); color: var(--neon-pink); }
+
+.mission-card { padding: 0.7rem; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s ease; position: relative; overflow: hidden; }
+.mission-card:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(0, 229, 255, 0.2); }
+.mission-card.done { border-color: rgba(34, 197, 94, 0.3); background: rgba(34, 197, 94, 0.04); }
+.mission-card.claimed { border-color: rgba(255, 213, 79, 0.3); background: rgba(255, 213, 79, 0.04); }
+.mission-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.03), transparent); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+.mission-card:hover::before { opacity: 1; }
+
+.mission-card-head { display: flex; align-items: center; gap: 0.55rem; }
+.mission-glyph { font-size: 1.4rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(0, 229, 255, 0.08); border: 1px solid rgba(0, 229, 255, 0.15); flex-shrink: 0; }
+.mission-card.done .mission-glyph { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.3); }
+.mission-info { flex: 1; min-width: 0; }
+.mission-name { font-size: 0.72rem; font-weight: 900; color: #f1f5f9; letter-spacing: 0.04em; margin-bottom: 0.15rem; text-transform: uppercase; }
+.mission-desc { font-size: 0.55rem; color: rgba(255, 255, 255, 0.4); line-height: 1.35; }
+.mission-reward { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.mission-xp { font-size: 0.55rem; font-weight: 800; color: var(--neon-gold); letter-spacing: 0.05em; }
+.mission-badge { font-size: 1rem; }
+
+.mission-progress-row { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; }
+.mission-progress-bar { flex: 1; height: 5px; background: rgba(255, 255, 255, 0.04); border-radius: 3px; overflow: hidden; position: relative; }
+.mission-progress-fill { height: 100%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); border-radius: 3px; box-shadow: 0 0 8px rgba(0, 229, 255, 0.4); transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.mission-card.done .mission-progress-fill { background: linear-gradient(90deg, var(--success-green), var(--neon-cyan)); box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
+.mission-progress-label { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; font-weight: 800; color: rgba(255, 255, 255, 0.5); letter-spacing: 0.05em; min-width: 36px; text-align: right; }
+
+.mission-action-btn { width: 100%; padding: 0.4rem; border-radius: 8px; border: 1px solid rgba(0, 229, 255, 0.2); background: rgba(0, 229, 255, 0.08); color: var(--neon-cyan); font-family: var(--elite-font); font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
+.mission-action-btn:hover:not(:disabled) { background: rgba(0, 229, 255, 0.15); border-color: rgba(0, 229, 255, 0.35); transform: translateY(-1px); box-shadow: 0 0 12px rgba(0, 229, 255, 0.2); }
+.mission-action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.mission-action-btn .material-symbols-outlined { font-size: 0.8rem; }
+.mission-card.done .mission-action-btn { background: linear-gradient(135deg, var(--neon-gold), #ffa726); color: #000; border-color: rgba(255, 213, 79, 0.4); }
+.mission-card.done .mission-action-btn:hover { box-shadow: 0 0 16px rgba(255, 213, 79, 0.4); }
+.mission-card.claimed .mission-action-btn { background: rgba(34, 197, 94, 0.1); color: var(--success-green); border-color: rgba(34, 197, 94, 0.3); }
+
+/* ════════════════════════════════════════════════════════════
+   POST-PLAY RATING MODAL — GameRatingsService
+   ════════════════════════════════════════════════════════════ */
+.post-play-modal-backdrop { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in 0.3s ease; }
+.post-play-modal { width: 90vw; max-width: 480px; padding: 1.5rem; border-radius: 20px; background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(5, 8, 15, 0.98)); border: 1px solid var(--glass-border-active); box-shadow: var(--shadow-deep), 0 0 30px rgba(var(--neon-cyan-rgb), 0.15); display: flex; flex-direction: column; gap: 1rem; }
+.post-play-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding: 0.75rem; border-radius: 12px; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); }
+.post-play-stat { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.5rem; border-radius: 8px; background: rgba(255, 255, 255, 0.02); }
+.post-play-stat .stat-num { font-size: 1.4rem; font-weight: 900; color: var(--neon-cyan); text-shadow: 0 0 12px rgba(0, 229, 255, 0.3); font-family: 'Geist Mono', monospace; }
+.post-play-stat.win .stat-num { color: var(--success-green); text-shadow: 0 0 12px rgba(34, 197, 94, 0.3); }
+.post-play-stat.loss .stat-num { color: var(--neon-pink); text-shadow: 0 0 12px rgba(255, 26, 107, 0.3); }
+.post-play-stat .stat-label { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
+
+.outcome-row { display: flex; gap: 0.5rem; justify-content: center; }
+.outcome-btn { flex: 1; padding: 0.6rem; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.03); color: rgba(255, 255, 255, 0.5); font-family: var(--elite-font); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; transition: all 0.25s ease; display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
+.outcome-btn.active.win { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: var(--success-green); box-shadow: 0 0 12px rgba(34, 197, 94, 0.2); }
+.outcome-btn.active.loss { background: rgba(255, 26, 107, 0.15); border-color: rgba(255, 26, 107, 0.4); color: var(--neon-pink); box-shadow: 0 0 12px rgba(255, 26, 107, 0.2); }
+.outcome-btn.active.draw { background: rgba(255, 213, 79, 0.15); border-color: rgba(255, 213, 79, 0.4); color: var(--neon-gold); box-shadow: 0 0 12px rgba(255, 213, 79, 0.2); }
+
+.rating-section { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.5rem; border-radius: 12px; background: rgba(0, 229, 255, 0.04); border: 1px solid rgba(0, 229, 255, 0.1); }
+.rating-label { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.15em; color: var(--neon-cyan); text-transform: uppercase; }
+.star-row { display: flex; gap: 0.5rem; justify-content: center; }
+.star-btn { background: none; border: none; cursor: pointer; padding: 0.25rem; transition: all 0.2s ease; }
+.star-btn .star-icon { font-size: 1.6rem; color: rgba(255, 255, 255, 0.2); transition: all 0.2s ease; font-variation-settings: 'FILL' 0; }
+.star-btn.filled .star-icon, .star-btn:hover .star-icon { color: var(--neon-gold); font-variation-settings: 'FILL' 1; filter: drop-shadow(0 0 6px rgba(255, 213, 79, 0.4)); }
+.star-btn:active { transform: scale(0.9); }
+
+.comment-input { width: 100%; padding: 0.6rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); color: #f1f5f9; font-family: var(--elite-font); font-size: 0.7rem; resize: none; outline: none; transition: border-color 0.2s; min-height: 60px; }
+.comment-input:focus { border-color: rgba(0, 229, 255, 0.35); }
+
+.post-play-actions { display: flex; gap: 0.5rem; }
+.post-play-actions .primary-btn, .post-play-actions .skip-btn { flex: 1; padding: 0.7rem; border-radius: 10px; font-family: var(--elite-font); font-size: 0.7rem; font-weight: 900; letter-spacing: 0.1em; cursor: pointer; text-transform: uppercase; border: none; transition: all 0.2s; }
+.post-play-actions .primary-btn { background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); color: #000; box-shadow: 0 0 16px rgba(0, 229, 255, 0.2); }
+.post-play-actions .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(0, 229, 255, 0.4); }
+.post-play-actions .skip-btn { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.5); border: 1px solid var(--glass-border); }
+.post-play-actions .skip-btn:hover { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.7); }
+
+/* ════════════════════════════════════════════════════════════
+   SPECTATOR REACTIONS — floating emoji bubbles + chat
+   ════════════════════════════════════════════════════════════ */
+.spectator-reactions-layer { position: absolute; inset: 0; pointer-events: none; z-index: 9; overflow: hidden; }
+.spectator-emoji { position: absolute; bottom: 12%; font-size: 2rem; pointer-events: none; animation: emoji-float 4s ease-out forwards; filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4)); }
+@keyframes emoji-float {
+  0% { transform: translateY(0) scale(0.4); opacity: 0; }
+  15% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+  60% { transform: translateY(-180px) scale(1); opacity: 1; }
+  100% { transform: translateY(-340px) scale(0.6); opacity: 0; }
+}
+
+.reaction-bar { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); display: flex; gap: 0.35rem; padding: 0.4rem; border-radius: 30px; background: rgba(5, 8, 15, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease; }
+.reaction-bar.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.reaction-bar:not(.visible) { transform: translateX(-50%) translateY(20px); }
+.reaction-btn { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(255, 255, 255, 0.03); color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; transition: all 0.15s ease; }
+.reaction-btn:hover { background: rgba(0, 229, 255, 0.15); border-color: rgba(0, 229, 255, 0.4); color: var(--neon-cyan); transform: scale(1.15) translateY(-2px); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); }
+.reaction-btn:active { transform: scale(0.92); }
+
+.spectator-chat-drawer { position: absolute; right: 12px; bottom: 60px; width: 280px; max-height: 50%; display: flex; flex-direction: column; border-radius: 12px; background: rgba(5, 8, 15, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border-active); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.6); z-index: 11; transform: translateX(120%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.spectator-chat-drawer.open { transform: translateX(0); }
+.spectator-chat-head { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
+.spectator-chat-title { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; color: var(--neon-cyan); display: flex; align-items: center; gap: 0.35rem; }
+.spectator-chat-title .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-green); box-shadow: 0 0 6px var(--success-green); animation: status-pulse 1.5s ease-in-out infinite; }
+.spectator-chat-msgs { flex: 1; overflow-y: auto; padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; min-height: 60px; }
+.spectator-chat-msgs::-webkit-scrollbar { width: 3px; }
+.spectator-chat-msgs::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.2); border-radius: 2px; }
+.spectator-msg { font-size: 0.6rem; line-height: 1.3; padding: 0.3rem 0.5rem; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.04); }
+.spectator-msg .user { font-weight: 800; color: var(--neon-cyan); margin-right: 0.35rem; font-size: 0.55rem; letter-spacing: 0.05em; }
+.spectator-msg .text { color: rgba(255, 255, 255, 0.7); }
+.spectator-chat-input-row { display: flex; gap: 0.35rem; padding: 0.5rem; border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+.spectator-chat-input { flex: 1; padding: 0.4rem 0.6rem; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); color: #f1f5f9; font-family: var(--elite-font); font-size: 0.65rem; outline: none; }
+.spectator-chat-input:focus { border-color: rgba(0, 229, 255, 0.3); }
+.spectator-chat-send { width: 30px; height: 30px; border-radius: 6px; background: rgba(0, 229, 255, 0.15); border: 1px solid rgba(0, 229, 255, 0.25); color: var(--neon-cyan); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.spectator-chat-send:hover { background: rgba(0, 229, 255, 0.25); }
+
+.spectator-toggle-btn { position: absolute; right: 12px; bottom: 12px; width: 40px; height: 40px; border-radius: 50%; background: rgba(5, 8, 15, 0.85); border: 1px solid var(--glass-border-active); color: var(--neon-cyan); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; transition: all 0.25s ease; backdrop-filter: blur(10px); }
+.spectator-toggle-btn:hover { background: rgba(0, 229, 255, 0.15); box-shadow: 0 0 12px rgba(0, 229, 255, 0.3); transform: scale(1.08); }
+.spectator-toggle-btn .material-symbols-outlined { font-size: 1.2rem; }
 .queue-cancel {
   background: rgba(var(--neon-pink-rgb), 0.1);
   border: 1px solid rgba(var(--neon-pink-rgb), 0.2);
