@@ -1,15 +1,16 @@
 :host {
   display: block;
-  height: 100vh; /* fallback for browsers without dvh support */
-  height: 100dvh; /* dynamic viewport height – accounts for Android address-bar */
+  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  background-color: #07060d;
+  color: #faf9ff;
 }
 
 .app-shell {
   height: 100%;
+  background: linear-gradient(160deg, #07060d, #0d0c1a, #07060d);
 }
 
 .sidebar {
@@ -17,6 +18,8 @@
   z-index: 1000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  background: linear-gradient(180deg, rgba(13, 12, 26, 0.95), rgba(7, 6, 13, 0.98));
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Backdrop overlay for mobile sidebar */
@@ -26,16 +29,16 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   z-index: 999;
   transition: opacity 0.3s ease;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .app-content {
   position: relative;
-  background-color: var(--color-bg);
+  background-color: #07060d;
 }
 
 .full-page {
@@ -59,7 +62,7 @@
 .shell-icon-button:focus-visible,
 .mobile-nav-button:focus-visible,
 .nav-item:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid #00e5ff;
   outline-offset: 2px;
 }
 
@@ -74,7 +77,7 @@
   font-weight: 800;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--color-text-dim);
+  color: rgba(250, 249, 255, 0.45);
 }
 
 .shell-appearance-value {
@@ -83,20 +86,17 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-text);
+  color: #faf9ff;
 }
 
 .shell-appearance-detail {
   margin-top: 0.15rem;
   font-size: 0.62rem;
   line-height: 1.35;
-  color: var(--color-text-dim);
+  color: rgba(250, 249, 255, 0.45);
 }
 
-/* Mobile bottom navigation bar – fixed so it stays on screen when the
-   Android address bar appears / disappears or the virtual keyboard opens */
-
-/* Mobile footer container - holds both branding and nav */
+/* ── Mobile footer container ───────────────────────── */
 .mobile-footer-container {
   position: fixed;
   bottom: 0;
@@ -107,7 +107,6 @@
   flex-direction: column;
 }
 
-/* Mobile footer branding strip */
 .mobile-footer-branding {
   display: flex;
   align-items: center;
@@ -122,12 +121,13 @@
   padding-left: var(--mobile-edge-padding, 16px);
   padding-right: var(--mobile-edge-padding, 16px);
   padding-top: 8px;
-  /* Respect Android / iOS safe-area (notch / navigation gestures) */
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: stretch;
   justify-content: space-between;
   gap: clamp(4px, 1.8vw, 12px);
+  background: linear-gradient(180deg, rgba(13, 12, 26, 0.92), rgba(7, 6, 13, 0.98));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .mobile-nav-button {
@@ -174,13 +174,12 @@
   overscroll-behavior: contain;
 }
 
-/* Mobile scroll smooth behavior for better visual control */
 .mobile-scroll-smooth {
   scroll-behavior: smooth;
   scroll-snap-type: y proximity;
 }
 
-/* Transitions */
+/* ── Transitions ───────────────────────────────────── */
 .sidebar,
 .app-top-bar,
 .app-content,
@@ -188,16 +187,10 @@ footer {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tablet breakpoint: Better layout for tablet landscape/portrait */
+/* ── Tablet ────────────────────────────────────────── */
 @media (max-width: 1024px) and (min-width: 769px) {
-  .sidebar {
-    width: 240px !important;
-  }
-
-  .app-top-bar {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
+  .sidebar { width: 240px !important; }
+  .app-top-bar { padding-left: 1.5rem; padding-right: 1.5rem; }
 }
 
 @media (max-width: 1024px) {
@@ -205,38 +198,21 @@ footer {
     transform: translateX(-100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
   .sidebar.w-full {
     width: min(22rem, calc(100vw - 1rem));
     max-width: calc(100vw - 1rem);
-  }
-
-  .sidebar.w-full {
     transform: translateX(0);
   }
-
-  /* Push the main-content area up so nothing hides behind the fixed nav bar.
-       The mobile nav uses --mobile-nav-height plus any safe-area bottom inset.
-       Added extra 20px for the branding footer strip */
   .mobile-content-offset {
     padding-bottom: calc(
       var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
     );
   }
-
-  .mobile-nav-button:active {
-    transform: scale(0.95);
-  }
-
+  .mobile-nav-button:active { transform: scale(0.95); }
   .mobile-nav-bar .material-symbols-outlined {
     font-size: 24px;
-    font-variation-settings:
-      'FILL' 0,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 24;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }
-
   .mobile-nav-bar span {
     font-size: 10px;
     letter-spacing: 0.12em;
@@ -244,55 +220,24 @@ footer {
   }
 }
 
-/* Small phone optimizations */
 @media (max-width: 640px) {
   .mobile-content-offset {
     padding-bottom: calc(
       var(--mobile-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 36px
     );
   }
-
-  .app-top-bar {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
-  .mobile-nav-button {
-    min-height: 52px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .mobile-footer-branding {
-    padding: 3px 12px;
-    min-height: 18px;
-  }
+  .app-top-bar { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .mobile-nav-button { min-height: 52px; padding-left: 8px; padding-right: 8px; }
+  .mobile-footer-branding { padding: 3px 12px; min-height: 18px; }
 }
 
 @media (max-width: 480px) {
-  .mobile-nav-bar {
-    padding-left: 12px;
-    padding-right: 12px;
-    gap: 4px;
-  }
-
-  .mobile-nav-button {
-    max-width: none;
-    min-height: 44px;
-    padding: 6px 4px;
-  }
-
-  .mobile-nav-button span:last-child {
-    font-size: 9px;
-    letter-spacing: 0.08em;
-  }
-
-  .mobile-footer-branding {
-    padding: 2px 10px;
-  }
+  .mobile-nav-bar { padding-left: 12px; padding-right: 12px; gap: 4px; }
+  .mobile-nav-button { max-width: none; min-height: 44px; padding: 6px 4px; }
+  .mobile-nav-button span:last-child { font-size: 9px; letter-spacing: 0.08em; }
+  .mobile-footer-branding { padding: 2px 10px; }
 }
 
-/* Final refinement for content area height */
 .app-content {
   height: calc(100vh - 64px);
   height: calc(100dvh - 64px);
@@ -305,22 +250,18 @@ footer {
   }
 }
 
-/* Ensure no elements overflow on mobile */
 .content-scroll-container > * {
   max-width: 100vw;
   overflow-x: hidden;
 }
 
-/* Fix feature-grid alignment on small screens */
 @media (max-width: 640px) {
-  .feature-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .feature-grid { grid-template-columns: 1fr !important; }
 }
 
 .auth-page {
   z-index: 5000 !important;
-  background-color: #020617 !important;
+  background-color: #07060d !important;
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
@@ -328,14 +269,13 @@ footer {
   height: 100dvh !important;
 }
 
-/* Ensure nothing covers the auth page */
 .auth-page router-outlet {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-/* ── Elegant Footer Branding ────────────────────────────────── */
+/* ── Elegant Footer Branding — City Nightlife ───────── */
 .app-footer-brand {
   display: inline-flex;
   align-items: baseline;
@@ -351,7 +291,7 @@ footer {
   display: inline-block;
   width: 18px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--teal-500), transparent);
+  background: linear-gradient(90deg, transparent, #00e5ff, transparent);
   opacity: 0.5;
   align-self: center;
   margin-right: 4px;
@@ -362,7 +302,7 @@ footer {
   font-family: 'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman', serif;
   font-size: 13px;
   font-weight: 400;
-  color: var(--teal-500);
+  color: #00e5ff;
   line-height: 1;
   opacity: 0.85;
   transition: opacity 0.3s ease;
@@ -373,7 +313,7 @@ footer {
   font-size: 13px;
   font-weight: 600;
   font-style: italic;
-  color: var(--espresso-text);
+  color: #faf9ff;
   letter-spacing: 0.04em;
   line-height: 1;
   transition: color 0.3s ease;
@@ -385,29 +325,16 @@ footer {
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.25em;
-  color: var(--espresso-muted);
+  color: rgba(250, 249, 255, 0.5);
   opacity: 0.65;
   line-height: 1;
 }
 
-.app-footer-brand:hover .app-footer-brand-mark {
-  opacity: 1;
-}
-
-.app-footer-brand:hover .app-footer-brand-name {
-  color: var(--teal-500);
-}
-
-.app-footer-brand:hover::before {
-  width: 28px;
-  opacity: 0.8;
-}
+.app-footer-brand:hover .app-footer-brand-mark { opacity: 1; }
+.app-footer-brand:hover .app-footer-brand-name { color: #00e5ff; }
+.app-footer-brand:hover::before { width: 28px; opacity: 0.8; }
 
 @media (max-width: 768px) {
-  .app-footer-brand .app-footer-brand-byline {
-    display: none;
-  }
-  .app-footer-brand::before {
-    width: 12px;
-  }
+  .app-footer-brand .app-footer-brand-byline { display: none; }
+  .app-footer-brand::before { width: 12px; }
 }
