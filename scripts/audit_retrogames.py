@@ -28,8 +28,14 @@ issues = []
 
 
 def extract_retro_id(url: str) -> str | None:
-    """Extract the numeric ID from a retrogames.cc embed URL."""
-    m = re.search(r'/embed/(\d+)-', url)
+    """Extract the numeric ID from a retrogames.cc embed URL.
+
+    retrogames.cc embed URLs have the canonical form:
+        https://www.retrogames.cc/embed/{id}-{slug}.html
+    We match the first numeric segment that immediately follows '/embed/' to
+    avoid false positives from any other numeric segments in the slug.
+    """
+    m = re.search(r'/embed/(\d+)-[^/]+\.html', url)
     return m.group(1) if m else None
 
 
@@ -110,7 +116,7 @@ def slug_core_words(slug: str) -> set[str]:
 def name_core_words(name: str) -> set[str]:
     """Return meaningful lower-case words from a game name."""
     tokens = re.sub(r"[^a-z0-9 ]", ' ', name.lower()).split()
-    return {w for w in tokens if w not in IGNORED_SLUG_TOKENS and not w.isdigit() and len(w) > 1}
+    return {w for w in tokens if w and w not in IGNORED_SLUG_TOKENS and not w.isdigit() and len(w) > 1}
 
 
 for i, g in enumerate(games):

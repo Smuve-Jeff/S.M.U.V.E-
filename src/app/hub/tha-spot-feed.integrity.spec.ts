@@ -44,7 +44,7 @@ const NOISE_TOKENS = new Set([
 
 function slugCoreWords(slug: string): Set<string> {
   return new Set(
-    slug.split('-').filter((w) => w.length > 1 && !NOISE_TOKENS.has(w) && !/^\d+$/.test(w))
+    slug.split('-').filter((w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w))
   );
 }
 
@@ -61,7 +61,7 @@ function nameCoreWords(name: string): Set<string> {
     .toLowerCase()
     .replace(/[^a-z0-9 ]/g, ' ');        // strip remaining punctuation
   const tokens = normalized.split(/\s+/);
-  return new Set(tokens.filter((w) => w.length > 1 && !NOISE_TOKENS.has(w) && !/^\d+$/.test(w)));
+  return new Set(tokens.filter((w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w)));
 }
 
 describe('Tha Spot feed integrity', () => {
