@@ -41,7 +41,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   @Output() close = new EventEmitter<void>();
 
-  editMode = signal<'draw' | 'select' | 'erase'>('draw');
+  editMode = signal<'draw' | 'select' | 'erase' | 'chord'>('draw');
+
+  // ── Chord Stamp Tool ──────────────────────────────────────
+  selectedChordType = signal<'major' | 'minor' | 'min7' | 'maj7' | 'dom7' | 'sus4' | 'dim'>('minor');
+  chordTypes = [
+    { label: 'Maj', value: 'major' as const, intervals: [0, 4, 7] },
+    { label: 'Min', value: 'minor' as const, intervals: [0, 3, 7] },
+    { label: 'm7', value: 'min7' as const, intervals: [0, 3, 7, 10] },
+    { label: 'M7', value: 'maj7' as const, intervals: [0, 4, 7, 11] },
+    { label: '7', value: 'dom7' as const, intervals: [0, 4, 7, 10] },
+    { label: 'sus4', value: 'sus4' as const, intervals: [0, 5, 7] },
+    { label: 'dim', value: 'dim' as const, intervals: [0, 3, 6] },
+  ];
+  getChordIntervals(): number[] {
+    return this.chordTypes.find(c => c.value === this.selectedChordType())?.intervals ?? [0, 3, 7];
+  }
+
+  // ── Ghost Notes (from other tracks) ───────────────────────
+  ghostNotes = computed(() => {
+    const selectedId = this.selectedTrack()?.id;
+    return this.musicManager.tracks()
+      .filter(t => t.id !== selectedId)
+      .flatMap(t => t.notes);
+  });
+
+  ghostNoteSet = computed(() => new Set(this.ghostNotes().map(n => n.id)));
+  isGhost(note: TrackNote): boolean {
+    return this.ghostNoteSet().has(note.id);
+  }
   snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
   zoomLevel = signal(1.0);
   gridSteps = signal(64);
@@ -218,7 +246,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     }
   }
 
-  setEditMode(mode: 'draw' | 'select' | 'erase') {
+  setEditMode(mode: 'draw' | 'select' | 'erase' | 'chord') {
     this.editMode.set(mode);
     this.haptic.light();
   }
@@ -465,14 +493,32 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const track = this.selectedTrack();
     if (!track) return;
     const snappedStep = this.applySnap(step);
-    this.musicManager.addNoteToTrack(track.id, {
-      id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-      midi,
-      step: snappedStep,
-      length: this.lengthFromSnap(),
-      velocity: 0.8,
-    });
-    this.haptic.light();
+    if (this.editMode() === 'chord') {
+      // Chord stamp: place all intervals at once
+      const intervals = this.getChordIntervals();
+      intervals.forEach((interval, idx) => {
+        const noteMidi = midi + interval;
+        if (noteMidi >= 0 && noteMidi <= 127) {
+          this.musicManager.addNoteToTrack(track.id, {
+            id: 'chord-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+            midi: noteMidi,
+            step: snappedStep,
+            length: this.lengthFromSnap(),
+            velocity: idx === 0 ? 0.9 : 0.75, // root slightly louder
+          });
+        }
+      });
+      this.haptic.medium();
+    } else {
+      this.musicManager.addNoteToTrack(track.id, {
+        id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        midi,
+        step: snappedStep,
+        length: this.lengthFromSnap(),
+        velocity: 0.8,
+      });
+      this.haptic.light();
+    }
   }
 
   private applySnap(step: number): number {
@@ -581,6 +627,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     if (ev.key === 'd' || ev.key === 'D') this.setEditMode('draw');
     if (ev.key === 's' || ev.key === 'S') this.setEditMode('select');
     if (ev.key === 'e' || ev.key === 'E') this.setEditMode('erase');
+    if (ev.key === 'c' || ev.key === 'C') this.setEditMode('chord');
   }
 
   humanizeNotes() {

@@ -18,6 +18,8 @@ import {
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { MusicManagerService } from '../../services/music-manager.service';
 
 interface RecordingListEntry {
   id: string;
@@ -59,6 +61,103 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
   /** Live state bindings from service */
   isRecording = this.recorder.isRecording;
   recordingCount = computed(() => this.recordings().length);
+
+  // ── Monitoring & Noise Gate ────────────────────────────
+  monitoringEnabled = signal(false);
+  noiseGateThreshold = signal(-50); // dB
+  noiseGateEnabled = signal(false);
+  private micSourceNode: MediaStreamAudioSourceNode | null = null;
+  private monitorGainNode: GainNode | null = null;
+
+  toggleMonitoring(): void {
+    this.haptic.light();
+    this.monitoringEnabled.update(v => !v);
+    if (this.monitoringEnabled() && this.currentStream && this.audioContext) {
+      try {
+        this.micSourceNode = this.audioContext.createMediaStreamSource(this.currentStream);
+        this.monitorGainNode = this.audioContext.createGain();
+        this.monitorGainNode.gain.value = 1.0;
+        this.micSourceNode.connect(this.monitorGainNode);
+        this.monitorGainNode.connect(this.audioContext.destination);
+      } catch (err) {
+        this.logger.warn('Could not enable monitoring', err);
+        this.monitoringEnabled.set(false);
+      }
+    } else if (this.micSourceNode && this.monitorGainNode) {
+      try {
+        this.micSourceNode.disconnect(this.monitorGainNode);
+        this.monitorGainNode.disconnect();
+      } catch { /* already disconnected */ }
+      this.micSourceNode = null;
+      this.monitorGainNode = null;
+    }
+    this.snackbar.info(this.monitoringEnabled() ? 'Monitoring ON — hear yourself live' : 'Monitoring OFF');
+  }
+
+  toggleNoiseGate(): void {
+    this.haptic.light();
+    this.noiseGateEnabled.update(v => !v);
+    this.snackbar.info(this.noiseGateEnabled() ? `Noise gate ON (threshold: ${this.noiseGateThreshold()} dB)` : 'Noise gate OFF');
+  }
+
+  setNoiseGateThreshold(value: number): void {
+    this.noiseGateThreshold.set(Math.max(-80, Math.min(-20, value)));
+  }
+
+  // ── Export to Arrangement ───────────────────────────────
+  /** Add a recorded take as an audio track in the mixer/arrangement */
+  async exportToArrangement(rec: RecordingListEntry): Promise<void> {
+    this.haptic.medium();
+    try {
+      // Fetch the recording blob and decode it
+      if (!rec.url) {
+        this.snackbar.error('Recording has no audio data to export');
+        return;
+      }
+      const response = await fetch(rec.url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      // Create a new audio track in the music manager
+      const trackName = rec.name || `Take ${rec.id.slice(-4)}`;
+      this.musicManager.addAudioTrack({
+        id: 'audio_' + Date.now(),
+        name: trackName,
+        color: '#E11D48',
+        buffer: audioBuffer,
+        offset: 0,
+      });
+      this.snackbar.success(`"${trackName}" added to arrangement`);
+    } catch (err) {
+      this.logger.error('Failed to export recording to arrangement', err);
+      this.snackbar.error('Could not export — try re-recording');
+    }
+  }
+
+  // ── Take Naming ─────────────────────────────────────────
+  renamingId = signal<string | null>(null);
+  renameValue = signal('');
+
+  startRename(rec: RecordingListEntry): void {
+    this.renamingId.set(rec.id);
+    this.renameValue.set(rec.name);
+  }
+
+  confirmRename(): void {
+    const id = this.renamingId();
+    if (!id) return;
+    this.recordings.update(list =>
+      list.map(r => r.id === id ? { ...r, name: this.renameValue() || r.name } : r)
+    );
+    this.renamingId.set(null);
+    this.haptic.light();
+  }
+
+  cancelRename(): void {
+    this.renamingId.set(null);
+  }
+
+  private audioEngine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService);
 
   ngOnInit(): void {
     this.loadOfflineRecordings();

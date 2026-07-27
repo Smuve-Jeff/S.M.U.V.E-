@@ -1445,6 +1445,51 @@ export class MusicManagerService {
     });
   }
 
+  /**
+   * Add a single recorded audio take as a new track in the arrangement.
+   * Called by the Audio Recorder's "Export to Arrangement" button.
+   */
+  addAudioTrack(opts: { id: string; name: string; color: string; buffer: AudioBuffer; offset: number }): void {
+    const trackId = opts.id || 'audio_' + Date.now();
+    const clipId = 'clip_' + Date.now();
+    const barsAtBpm = Math.ceil(opts.buffer.duration / (60 / this.engine.tempo() / 4));
+
+    const track: TrackModel = {
+      id: trackId,
+      name: opts.name || 'Audio Take',
+      type: 'audio',
+      instrumentId: 'sampler-elite',
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [{
+        id: clipId,
+        name: opts.name,
+        start: opts.offset || 0,
+        length: Math.max(1, barsAtBpm),
+        type: 'audio',
+        audioRefId: clipId,
+      } as any],
+      notes: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      sendA: 0,
+      sendB: 0,
+      color: opts.color || '#E11D48',
+      synthParams: { type: 'sine' },
+      effects: [],
+      patternSlots: this.createDefaultSlots(),
+      activePatternSlotId: 'slot-0',
+    };
+
+    // Cache the AudioBuffer so it survives undo/redo (JSON strips buffers)
+    this.stemAudioCache.set(clipId, opts.buffer);
+    this.tracks.update(ts => [...ts, track]);
+    this.selectedTrackId.set(trackId);
+  }
+
   // ── Playback engine stepper ───────────────────────────────────────
 
   playStep(step: number, time: number, duration: number) {
