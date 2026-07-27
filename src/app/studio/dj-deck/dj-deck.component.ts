@@ -14,7 +14,6 @@ import {
   HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { KnobComponent } from '../shared/knob/knob.component';
 import { AppTheme, Stems } from '../../services/user-context.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { ExportService } from '../../services/export.service';
@@ -70,7 +69,7 @@ const LOOP_PRESET_BEAT_MAX = 32;
   styleUrl: './dj-deck.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent],
+  imports: [CommonModule, FormsModule],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   samplerCategory = signal<'drums' | 'fx' | 'vocals'>('drums');

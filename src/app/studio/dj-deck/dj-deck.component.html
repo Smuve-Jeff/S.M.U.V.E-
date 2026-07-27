@@ -1,334 +1,286 @@
-<div class="dj-3d-stage" [class.flat-view]="isFlatView()">
-  <!-- Top Bar / Global Controls -->
-  <div class="dj-top-bar wood-panel">
-    <div class="logo dj-graffiti-title font-black">
-      SMUVE <span class="neon-accent-secondary">3D</span>
-    </div>
-    <div class="session-notice" [class.active]="sessionNotice()">
-      {{ sessionNotice() }}
-    </div>
+<!-- ═══════════════════════════════════════════════════════════
+     S.M.U.V.E DJ Booth 2.0 — Studio Slate & Tactical LED
+     Inspired by djay (Algoriddim), edjing Mix, Cross DJ Pro.
+     4-region adaptive workspace.
+   ═══════════════════════════════════════════════════════════ -->
+<div class="dj-stage" [class.flat-view]="isFlatView()">
 
-    <!-- Module-Level Transport -->
-    <div class="module-transport glass-v42">
-      <div class="btn-group flex gap-1">
-        <button class="m-btn tactile-v42" (click)="deckService.togglePlay('A')">
-          <span class="material-symbols-outlined text-sm">
-            {{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}
-          </span>
-        </button>
-        <button class="m-btn tactile-v42" (click)="toggleRecording()">
-          <span
-            class="material-symbols-outlined text-sm"
-            [class.text-red-500]="recording()"
-            >fiber_manual_record</span
-          >
-        </button>
-        <button class="m-btn tactile-v42" (click)="loadTrackFor('A')">
-          <span class="material-symbols-outlined text-sm">upload</span>
-        </button>
+  <!-- ═══ REGION 1: TOP BAR ═══════════════════════════════════ -->
+  <div class="dj-top-bar">
+    <div class="dj-brand">
+      <div class="dj-brand-mark" style="font-size: 11px;">DJ</div>
+      <div class="dj-brand-text">
+        <span class="brand-name">SMUVE BOOTH</span>
+        <span class="brand-sub">Tactical LED</span>
       </div>
     </div>
 
-    <div class="global-actions">
+    <div class="dj-top-spacer"></div>
+
+    <div class="dj-session-pill" [class.is-active]="recording()">
+      <span class="material-symbols-outlined">graphic_eq</span>
+      <span>{{ sessionNotice() }}</span>
+    </div>
+
+    <div class="dj-btn-group">
       <button
-        (click)="saveSessionSnapshot()"
-        class="tactile-v42"
-        title="Save Session"
+        class="dj-icon-btn"
+        (click)="deckService.togglePlay('A')"
+        title="Toggle Deck A"
       >
-        <span class="material-symbols-outlined">save</span>
+        <span class="material-symbols-outlined">
+          {{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}
+        </span>
       </button>
       <button
-        (click)="exportSessionSnapshot()"
-        class="tactile-v42"
-        title="Export JSON"
+        class="dj-icon-btn"
+        [class.is-recording]="recording()"
+        (click)="toggleRecording()"
+        title="Record Mix"
       >
+        <span class="material-symbols-outlined">fiber_manual_record</span>
+      </button>
+      <button class="dj-icon-btn" (click)="loadTrackFor('A')" title="Load Deck A">
+        <span class="material-symbols-outlined">library_music</span>
+      </button>
+    </div>
+
+    <div class="dj-btn-group">
+      <button class="dj-icon-btn" (click)="saveSessionSnapshot()" title="Save Session">
+        <span class="material-symbols-outlined">download</span>
+      </button>
+      <button class="dj-icon-btn" (click)="exportSessionSnapshot()" title="Export JSON">
         <span class="material-symbols-outlined">ios_share</span>
       </button>
       <button
-        class="tactile-v42"
+        class="dj-icon-btn"
         (click)="isFlatView.set(!isFlatView())"
-        [title]="isFlatView() ? '3D View' : 'Flat View'"
+        [title]="isFlatView() ? '3D view' : 'Flat view'"
       >
-        <span class="material-symbols-outlined">{{
-          isFlatView() ? '3d_rotation' : 'view_stream'
-        }}</span>
+        <span class="material-symbols-outlined">
+          {{ isFlatView() ? 'view_in_ar' : 'density_medium' }}
+        </span>
       </button>
     </div>
   </div>
 
-  <div
-    class="dj-console-3d"
-    [class.is-scratching]="isScratchingA() || isScratchingB()"
-  >
-    <!-- Left Deck (A) -->
-    <div class="deck-section deck-left" id="deck-a">
-      <!-- DiscDj-style top cue strip — 4 prominent pads -->
-      <div class="cue-strip" role="group" aria-label="Deck A hot cues">
+  <!-- ═══ REGION 2: WAVEFORM BRIDGE ═══════════════════════════ -->
+  <div class="dj-wave-bridge">
+    <div class="dj-wave-channel deck-a">
+      <div class="wave-meta">
+        <span class="label">DECK A</span>
+        <span>{{ deckService.deckA().track?.name || 'No Track' }}</span>
+        <span class="bpm-mono">{{ deckATempo() | number: '1.0-1' }} BPM</span>
+      </div>
+      <canvas #waveformA></canvas>
+      <div class="wave-timecode">{{ recordingDurationLabel() }}</div>
+    </div>
+    <div class="dj-wave-channel deck-b">
+      <div class="wave-meta">
+        <span class="bpm-mono">{{ deckBTempo() | number: '1.0-1' }} BPM</span>
+        <span>{{ deckService.deckB().track?.name || 'No Track' }}</span>
+        <span class="label">DECK B</span>
+      </div>
+      <canvas #waveformB></canvas>
+      <div class="wave-timecode">{{ recordingDurationLabel() }}</div>
+    </div>
+  </div>
+
+  <!-- ═══ REGION 3: DECKS (3-column: A | Mixer | B) ═══════════ -->
+  <div class="dj-decks-region">
+
+    <!-- ─── Deck A ─────────────────────────────────────── -->
+    <div class="dj-deck deck-a" id="deck-a">
+      <!-- Header (deck ID + actions) -->
+      <div class="dj-deck-header">
+        <div class="dj-deck-id">
+          <div class="deck-letter">A</div>
+          <div class="deck-track-name">
+            {{ deckService.deckA().track?.name || 'No Track Loaded' }}
+          </div>
+        </div>
+        <div class="dj-deck-actions">
+          <div class="dj-deck-bpm-display">
+            <div class="dj-bpm-keylock-toggle"
+                 [class.is-on]="deckService.deckA().keyLock"
+                 (click)="toggleKeyLock('A')">
+              KEY LOCK
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top cue strip — 4 hot cue pads (Rectangular, edge-lit) -->
+      <div class="dj-cue-strip" role="group" aria-label="Deck A hot cues">
         <button
+          *ngFor="let i of [0, 1, 2, 3]"
           type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('A', 0)"
-          [class.is-fired]="deckService.deckA().hotCues[0] !== null && rotationA() > 0"
-          [style.--cue-color]="'var(--color-hotcue-0)'"
-          (click)="handlePadPress('A', 0)"
-          (contextmenu)="clearPad('A', 0, $event)"
-          [attr.aria-label]="'Deck A cue 1'">
-          <span class="cue-index">CUE&nbsp;1</span>
-          <span class="cue-name">{{ deckService.deckA().hotCues[0] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('A', 1)"
-          [style.--cue-color]="'var(--color-hotcue-1)'"
-          (click)="handlePadPress('A', 1)"
-          (contextmenu)="clearPad('A', 1, $event)"
-          [attr.aria-label]="'Deck A cue 2'">
-          <span class="cue-index">CUE&nbsp;2</span>
-          <span class="cue-name">{{ deckService.deckA().hotCues[1] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('A', 2)"
-          [style.--cue-color]="'var(--color-hotcue-2)'"
-          (click)="handlePadPress('A', 2)"
-          (contextmenu)="clearPad('A', 2, $event)"
-          [attr.aria-label]="'Deck A cue 3'">
-          <span class="cue-index">CUE&nbsp;3</span>
-          <span class="cue-name">{{ deckService.deckA().hotCues[2] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('A', 3)"
-          [style.--cue-color]="'var(--color-hotcue-3)'"
-          (click)="handlePadPress('A', 3)"
-          (contextmenu)="clearPad('A', 3, $event)"
-          [attr.aria-label]="'Deck A cue 4'">
-          <span class="cue-index">CUE&nbsp;4</span>
-          <span class="cue-name">{{ deckService.deckA().hotCues[3] !== null ? '◉' : '◯' }}</span>
+          class="dj-cue-pad"
+          [class.is-set]="isCuePadSet('A', i)"
+          [class.is-fired]="isCuePadSet('A', i) && deckService.deckA().isPlaying"
+          [style.--cue-color]="'var(--dj-cue-' + i + ')'"
+          (click)="handlePadPress('A', i)"
+          (contextmenu)="clearPad('A', i, $event)"
+          [attr.aria-label]="'Deck A cue ' + (i + 1)"
+        >
+          <span class="cue-index">CUE {{ i + 1 }}</span>
+          <span class="cue-glyph">{{ isCuePadSet('A', i) ? '●' : '○' }}</span>
         </button>
       </div>
 
-      <!-- Loop length preset chips -->
-      <div class="loop-presets" role="group" aria-label="Loop length presets">
+      <!-- Loop preset chip rail -->
+      <div class="dj-loop-presets" role="group" aria-label="Deck A loops">
         <button
           *ngFor="let preset of loopLengthPresets"
           type="button"
-          class="loop-preset-chip"
+          class="dj-loop-chip"
           [class.is-active]="deckService.deckA().loop && deckService.deckA().isPlaying"
           (click)="setLoopLengthPreset('A', preset.beats)"
-          [attr.aria-label]="'Loop ' + preset.label + ' beats'">
+        >
           {{ preset.label }}
         </button>
       </div>
 
-      <!-- Pitch bend buttons flanking pitch slider -->
-      <div class="pitch-control">
-        <button
-          type="button"
-          class="bend-btn"
-          (click)="nudgePitch('A', 'down')"
-          aria-label="Deck A pitch down"
-          title="Pitch down −1%">−</button>
-        <div class="pitch-fader-container">
-          <div class="fader-track">
-            <input
-              type="range"
-              min="0.9"
-              max="1.1"
-              step="0.001"
-              [value]="deckService.deckA().playbackRate"
-              (input)="setPlaybackRate('A', $any($event.target).value)"
-            />
-          </div>
-          <label>PITCH {{ pitchAPercentage() }}</label>
-        </div>
-        <button
-          type="button"
-          class="bend-btn"
-          (click)="nudgePitch('A', 'up')"
-          aria-label="Deck A pitch up"
-          title="Pitch up +1%">+</button>
-      </div>
-
-      <div class="deck-plinth">
+      <!-- Platter area -->
+      <div class="dj-platter-area">
         <div
-          class="platter-container"
-          [class.scratching]="isScratchingA()"
+          class="dj-platter"
+          [class.is-scratching]="isScratchingA()"
           (mousedown)="onPlatterDown('A', $event)"
           (touchstart)="onPlatterDown('A', $event)"
         >
-          <div class="platter-base"></div>
+          <div class="dj-platter-outer-ring"></div>
+          <div class="dj-platter-strobe-dot"></div>
           <div
-            class="platter-vinyl"
+            class="dj-platter-vinyl"
             [style.transform]="'rotate(' + rotationA() + 'deg)'"
           >
-            <div class="vinyl-grooves"></div>
-            <div class="vinyl-label">
+            <div class="dj-platter-label">
               <img
                 [src]="deckService.deckA().vinylImageUrl"
                 *ngIf="deckService.deckA().vinylImageUrl"
+                alt=""
               />
               <div class="label-text">
-                {{ deckService.deckA().track?.name || 'SMUVE' }}
+                <span class="initials">
+                  {{ (deckService.deckA().track?.name || 'SMUVE').slice(0, 2) | uppercase }}
+                </span>
               </div>
             </div>
-            <div class="platter-strobe"></div>
           </div>
-          <div class="platter-spindle"></div>
-          <div class="scrub-feedback">
-            <div
-              class="scrub-meter"
-              [style.transform]="'scaleX(' + scratchVelocityA() + ')'"
-            ></div>
-          </div>
-        </div>
-
-        <div class="deck-controls-surface">
-          <div class="deck-status-strip">
-            <div class="deck-bpm-prominent">
-              BPM {{ deckATempo() | number: '1.0-1' }}
-            </div>
-            <button
-              class="btn-xs tactile-v42"
-              [class.active]="deckService.deckA().keyLock"
-              (click)="toggleKeyLock('A')"
-            >
-              KEY LOCK
-            </button>
-            <button class="btn-xs tactile-v42" (click)="tapBpm('A')">
-              TAP
-            </button>
-          </div>
-          <div class="pitch-fader-container">
-            <div class="fader-track">
-              <input
-                type="range"
-                min="0.9"
-                max="1.1"
-                step="0.001"
-                [value]="deckService.deckA().playbackRate"
-                (input)="setPlaybackRate('A', $any($event.target).value)"
-              />
-            </div>
-            <label>PITCH {{ pitchAPercentage() }}</label>
-          </div>
-
-          <div class="deck-main-buttons">
-            <button
-              class="btn-cue tactile-v42"
-              [class.active]="isCuePadSet('A', 0)"
-              (click)="toggleCue('A')"
-            >
-              CUE
-            </button>
-            <button
-              class="btn-play tactile-v42"
-              [class.active]="deckService.deckA().isPlaying"
-              (click)="deckService.togglePlay('A')"
-            >
-              <span class="material-symbols-outlined">{{
-                deckService.deckA().isPlaying ? 'pause' : 'play_arrow'
-              }}</span>
-            </button>
-          </div>
+          <div class="dj-platter-spindle"></div>
+          <div class="dj-platter-scrub"
+               [style.opacity]="isScratchingA() ? 1 : 0"></div>
         </div>
       </div>
 
-      <!-- Deck A Visualizers -->
-      <div class="deck-visuals">
-        <canvas #waveformA class="waveform-canvas"></canvas>
-        <div class="level-meter">
-          <canvas #meterA></canvas>
+      <!-- Pitch row -->
+      <div class="dj-pitch-row">
+        <button
+          type="button"
+          class="dj-pitch-bend-btn"
+          (click)="nudgePitch('A', 'down')"
+          aria-label="Pitch down"
+          title="−1%"
+        >−</button>
+        <div class="dj-pitch-track">
+          <div class="dj-pitch-readout">{{ pitchAPercentage() }}</div>
+          <input
+            type="range"
+            min="0.9"
+            max="1.1"
+            step="0.001"
+            [value]="deckService.deckA().playbackRate"
+            (input)="setPlaybackRate('A', $any($event.target).value)"
+          />
         </div>
+        <button
+          type="button"
+          class="dj-pitch-bend-btn"
+          (click)="nudgePitch('A', 'up')"
+          aria-label="Pitch up"
+          title="+1%"
+        >+</button>
+      </div>
+
+      <!-- Transport row (Cue / Play / Sync) -->
+      <div class="dj-transport-row">
+        <button
+          class="dj-transport-btn"
+          [class.is-cue-holding]="isCuePadSet('A', 0)"
+          (click)="toggleCue('A')"
+        >
+          <span class="material-symbols-outlined">stop_circle</span>
+          <span>CUE</span>
+        </button>
+        <button
+          class="dj-play-btn deck-a"
+          [class.is-playing]="deckService.deckA().isPlaying"
+          (click)="deckService.togglePlay('A')"
+        >
+          <span class="material-symbols-outlined">
+            {{ deckService.deckA().isPlaying ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button
+          class="dj-transport-btn"
+          [class.is-sync-armed]="deckService.deckA().isPlaying"
+          (click)="syncDeck('A')"
+        >
+          <span class="material-symbols-outlined">sync</span>
+          <span>SYNC</span>
+        </button>
+      </div>
+
+      <!-- Channel level meter (compact, inline) -->
+      <div class="dj-channel-vu">
+        <div
+          *ngFor="let i of [0,1,2,3,4,5,6,7]"
+          class="vu-segment"
+          [class.is-active-a]="getDeckLevel('A') > i * 0.125"
+        ></div>
       </div>
     </div>
 
-    <!-- Center Mixer -->
-    <div class="mixer-section">
-      <div class="mixer-chassis">
-        <div class="mixer-channel">
-          <app-knob
-            label="GAIN"
-            [min]="0"
-            [max]="1.5"
-            [step]="0.01"
-            [value]="deckService.deckA().gain"
-            (valueChange)="setGain('A', $event)"
-          ></app-knob>
+    <!-- ─── Center Mixer Column ───────────────────────── -->
+    <div class="dj-mixer">
 
-          <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqHigh"
-              (valueChange)="updateEq('A', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqMid"
-              (valueChange)="updateEq('A', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckA().eqLow"
-              (valueChange)="updateEq('A', 'low', $event)"
-            ></app-knob>
-          </div>
-          <div class="eq-quick-buttons">
-            <button
-              class="btn-xs tactile-v42"
+      <!-- Channel A strip -->
+      <div class="dj-channel-strip deck-a">
+        <div class="channel-label">A</div>
+        <div class="dj-eq-knob-row">
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob hi-cut"
+              [class.is-cut]="deckService.deckA().eqHigh < 0.4"
+              [class.deck-a]="true"
               (click)="setQuickEq('A', 'high')"
-            >
-              HI CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('A', 'mid')">
-              MID CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('A', 'low')">
-              LOW CUT
-            </button>
+              title="Hi cut"
+            >HI</div>
           </div>
-          <div class="precision-eq">
-            <label>10-BAND EQ</label>
-            <div class="precision-eq-bars">
-              <input
-                *ngFor="let value of precisionEqA(); let i = index"
-                type="range"
-                min="0"
-                max="2"
-                step="0.01"
-                [value]="value"
-                (input)="setPrecisionEqBand('A', i, $any($event.target).value)"
-              />
-            </div>
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob mid-cut"
+              [class.is-cut]="deckService.deckA().eqMid < 0.4"
+              [class.deck-a]="true"
+              (click)="setQuickEq('A', 'mid')"
+              title="Mid cut"
+            >MID</div>
           </div>
-          <div class="bass-boost">
-            <label>BASS BOOST</label>
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob low-cut"
+              [class.is-cut]="deckService.deckA().eqLow < 0.4"
+              [class.deck-a]="true"
+              (click)="setQuickEq('A', 'low')"
+              title="Low cut"
+            >LOW</div>
+          </div>
+        </div>
+        <div class="dj-channel-fader">
+          <div class="dj-channel-fader-track">
             <input
               type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              [value]="deckService.deckA().bassBoost"
-              (input)="setBassBoost('A', $any($event.target).value)"
-            />
-          </div>
-
-          <div class="channel-fader-elite mt-6">
-            <input
-              type="range"
-              orient="vertical"
               min="0"
               max="1.2"
               step="0.01"
@@ -337,53 +289,48 @@
             />
           </div>
         </div>
+        <!-- 10-band advanced EQ (sliders) -->
+        <div class="dj-mixer-eq-advanced">
+          <input
+            *ngFor="let v of precisionEqA(); let i = index"
+            type="range"
+            min="0"
+            max="2"
+            step="0.01"
+            [value]="v"
+            (input)="setPrecisionEqBand('A', i, $any($event.target).value)"
+          />
+        </div>
+      </div>
 
-        <div class="mixer-center">
-          <div class="dj-utility-btns mb-4">
-            <button
-              class="btn-sm tactile-v42"
-              [class.active]="deckService.automixEnabled()"
-              (click)="toggleAutomix()"
-            >
-              AUTOMIX
-            </button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('A')">
-              SYNC A
-            </button>
-            <button class="btn-sm tactile-v42" (click)="syncDeck('B')">
-              SYNC B
-            </button>
-          </div>
-          <div class="sync-status">
-            <div>SYNC Δ {{ getSyncDelta() }} BPM</div>
-            <div>{{ getCrossfaderStatus() }}</div>
-          </div>
-          <div class="master-section-elite">
-            <label class="neon-text-xs">MASTER</label>
-            <div class="master-vu">
-              <div
-                class="vu-bar"
-                [style.height.%]="getDeckLevel('A') * 100"
-              ></div>
-              <div
-                class="vu-bar"
-                [style.height.%]="getDeckLevel('B') * 100"
-              ></div>
-            </div>
-            <app-knob
-              [min]="0"
-              [max]="1.2"
-              [step]="0.01"
-              [value]="masterVolume()"
-              (valueChange)="setMasterVolume($event)"
-            ></app-knob>
-          </div>
+      <!-- Center utility + master VU + crossfader -->
+      <div class="dj-mixer-center">
+        <div class="dj-utility-row">
+          <button
+            class="dj-utility-btn"
+            [class.is-on]="deckService.automixEnabled()"
+            (click)="toggleAutomix()"
+          >AUTOMIX</button>
+          <button class="dj-utility-btn" (click)="syncDeck('A')">SYNC A</button>
+          <button class="dj-utility-btn" (click)="syncDeck('B')">SYNC B</button>
+        </div>
 
-          <div class="crossfader-container-elite mt-8">
-            <div class="crossfade-balance-labels">
-              <span>A {{ crossfadeMixA() }}%</span>
-              <span>B {{ crossfadeMixB() }}%</span>
-            </div>
+        <div class="dj-sync-state">
+          <span>Δ {{ getSyncDelta() }} BPM</span>
+          <span class="delta">{{ getCrossfaderStatus() }}</span>
+        </div>
+
+        <div class="dj-master-vu">
+          <div class="vu-bar" [style.height.%]="getDeckLevel('A') * 100"></div>
+          <div class="vu-bar" [style.height.%]="getDeckLevel('B') * 100"></div>
+        </div>
+
+        <div class="dj-crossfader-area">
+          <div class="dj-crossfader-labels">
+            <span class="label-a">{{ crossfadeMixA() }}% A</span>
+            <span class="label-b">B {{ crossfadeMixB() }}%</span>
+          </div>
+          <div class="dj-crossfader-track">
             <input
               type="range"
               min="-1"
@@ -395,86 +342,49 @@
           </div>
         </div>
 
-        <div class="mixer-channel">
-          <app-knob
-            label="GAIN"
-            [min]="0"
-            [max]="1.5"
-            [step]="0.01"
-            [value]="deckService.deckB().gain"
-            (valueChange)="setGain('B', $event)"
-          ></app-knob>
+        <div class="dj-utility-row">
+          <button class="dj-utility-btn" (click)="setMasterVolume(0.6)">−</button>
+          <button class="dj-utility-btn" (click)="setMasterVolume(0.85)">MID</button>
+          <button class="dj-utility-btn" (click)="setMasterVolume(1.0)">+</button>
+        </div>
+      </div>
 
-          <div class="eq-knobs-elite mt-4">
-            <app-knob
-              label="HI"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqHigh"
-              (valueChange)="updateEq('B', 'high', $event)"
-            ></app-knob>
-            <app-knob
-              label="MID"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqMid"
-              (valueChange)="updateEq('B', 'mid', $event)"
-            ></app-knob>
-            <app-knob
-              label="LOW"
-              [min]="0"
-              [max]="2"
-              [step]="0.01"
-              [value]="deckService.deckB().eqLow"
-              (valueChange)="updateEq('B', 'low', $event)"
-            ></app-knob>
-          </div>
-          <div class="eq-quick-buttons">
-            <button
-              class="btn-xs tactile-v42"
+      <!-- Channel B strip -->
+      <div class="dj-channel-strip deck-b">
+        <div class="channel-label">B</div>
+        <div class="dj-eq-knob-row">
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob hi-cut"
+              [class.is-cut]="deckService.deckB().eqHigh < 0.4"
+              [class.deck-b]="true"
               (click)="setQuickEq('B', 'high')"
-            >
-              HI CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'mid')">
-              MID CUT
-            </button>
-            <button class="btn-xs tactile-v42" (click)="setQuickEq('B', 'low')">
-              LOW CUT
-            </button>
+              title="Hi cut"
+            >HI</div>
           </div>
-          <div class="precision-eq">
-            <label>10-BAND EQ</label>
-            <div class="precision-eq-bars">
-              <input
-                *ngFor="let value of precisionEqB(); let i = index"
-                type="range"
-                min="0"
-                max="2"
-                step="0.01"
-                [value]="value"
-                (input)="setPrecisionEqBand('B', i, $any($event.target).value)"
-              />
-            </div>
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob mid-cut"
+              [class.is-cut]="deckService.deckB().eqMid < 0.4"
+              [class.deck-b]="true"
+              (click)="setQuickEq('B', 'mid')"
+              title="Mid cut"
+            >MID</div>
           </div>
-          <div class="bass-boost">
-            <label>BASS BOOST</label>
+          <div class="dj-eq-mini">
+            <div
+              class="dj-eq-mini-knob low-cut"
+              [class.is-cut]="deckService.deckB().eqLow < 0.4"
+              [class.deck-b]="true"
+              (click)="setQuickEq('B', 'low')"
+              title="Low cut"
+            >LOW</div>
+          </div>
+        </div>
+        <div class="dj-channel-fader">
+          <div class="dj-channel-fader-track">
             <input
               type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              [value]="deckService.deckB().bassBoost"
-              (input)="setBassBoost('B', $any($event.target).value)"
-            />
-          </div>
-
-          <div class="channel-fader-elite mt-6">
-            <input
-              type="range"
-              orient="vertical"
               min="0"
               max="1.2"
               step="0.01"
@@ -483,260 +393,207 @@
             />
           </div>
         </div>
+        <div class="dj-mixer-eq-advanced">
+          <input
+            *ngFor="let v of precisionEqB(); let i = index"
+            type="range"
+            min="0"
+            max="2"
+            step="0.01"
+            [value]="v"
+            (input)="setPrecisionEqBand('B', i, $any($event.target).value)"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- Right Deck (B) -->
-    <div class="deck-section deck-right" id="deck-b">
-      <!-- DiscDj-style top cue strip — 4 prominent pads -->
-      <div class="cue-strip" role="group" aria-label="Deck B hot cues">
+    <!-- ─── Deck B ─────────────────────────────────────── -->
+    <div class="dj-deck deck-b" id="deck-b">
+
+      <div class="dj-deck-header">
+        <div class="dj-deck-id">
+          <div class="deck-letter">B</div>
+          <div class="deck-track-name">
+            {{ deckService.deckB().track?.name || 'No Track Loaded' }}
+          </div>
+        </div>
+        <div class="dj-deck-actions">
+          <div class="dj-deck-bpm-display">
+            <div class="dj-bpm-keylock-toggle"
+                 [class.is-on]="deckService.deckB().keyLock"
+                 (click)="toggleKeyLock('B')">
+              KEY LOCK
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top cue strip — 4 hot cue pads -->
+      <div class="dj-cue-strip" role="group" aria-label="Deck B hot cues">
         <button
+          *ngFor="let i of [0, 1, 2, 3]"
           type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('B', 0)"
-          [style.--cue-color]="'var(--color-hotcue-4)'"
-          (click)="handlePadPress('B', 0)"
-          (contextmenu)="clearPad('B', 0, $event)"
-          [attr.aria-label]="'Deck B cue 1'">
-          <span class="cue-index">CUE&nbsp;1</span>
-          <span class="cue-name">{{ deckService.deckB().hotCues[0] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('B', 1)"
-          [style.--cue-color]="'var(--color-hotcue-5)'"
-          (click)="handlePadPress('B', 1)"
-          (contextmenu)="clearPad('B', 1, $event)"
-          [attr.aria-label]="'Deck B cue 2'">
-          <span class="cue-index">CUE&nbsp;2</span>
-          <span class="cue-name">{{ deckService.deckB().hotCues[1] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('B', 2)"
-          [style.--cue-color]="'var(--color-hotcue-6)'"
-          (click)="handlePadPress('B', 2)"
-          (contextmenu)="clearPad('B', 2, $event)"
-          [attr.aria-label]="'Deck B cue 3'">
-          <span class="cue-index">CUE&nbsp;3</span>
-          <span class="cue-name">{{ deckService.deckB().hotCues[2] !== null ? '◉' : '◯' }}</span>
-        </button>
-        <button
-          type="button"
-          class="cue-pad"
-          [class.is-set]="isCuePadSet('B', 3)"
-          [style.--cue-color]="'var(--color-hotcue-7)'"
-          (click)="handlePadPress('B', 3)"
-          (contextmenu)="clearPad('B', 3, $event)"
-          [attr.aria-label]="'Deck B cue 4'">
-          <span class="cue-index">CUE&nbsp;4</span>
-          <span class="cue-name">{{ deckService.deckB().hotCues[3] !== null ? '◉' : '◯' }}</span>
+          class="dj-cue-pad"
+          [class.is-set]="isCuePadSet('B', i)"
+          [class.is-fired]="isCuePadSet('B', i) && deckService.deckB().isPlaying"
+          [style.--cue-color]="'var(--dj-cue-' + (i + 4) + ')'"
+          (click)="handlePadPress('B', i)"
+          (contextmenu)="clearPad('B', i, $event)"
+          [attr.aria-label]="'Deck B cue ' + (i + 1)"
+        >
+          <span class="cue-index">CUE {{ i + 1 }}</span>
+          <span class="cue-glyph">{{ isCuePadSet('B', i) ? '●' : '○' }}</span>
         </button>
       </div>
 
-      <!-- Loop length preset chips -->
-      <div class="loop-presets" role="group" aria-label="Loop length presets">
+      <!-- Loop preset chip rail -->
+      <div class="dj-loop-presets" role="group" aria-label="Deck B loops">
         <button
           *ngFor="let preset of loopLengthPresets"
           type="button"
-          class="loop-preset-chip"
+          class="dj-loop-chip"
           [class.is-active]="deckService.deckB().loop && deckService.deckB().isPlaying"
           (click)="setLoopLengthPreset('B', preset.beats)"
-          [attr.aria-label]="'Loop ' + preset.label + ' beats'">
+        >
           {{ preset.label }}
         </button>
       </div>
 
-      <!-- Pitch bend buttons flanking pitch slider -->
-      <div class="pitch-control">
-        <button
-          type="button"
-          class="bend-btn"
-          (click)="nudgePitch('B', 'down')"
-          aria-label="Deck B pitch down"
-          title="Pitch down −1%">−</button>
-        <div class="pitch-fader-container">
-          <div class="fader-track">
-            <input
-              type="range"
-              min="0.9"
-              max="1.1"
-              step="0.001"
-              [value]="deckService.deckB().playbackRate"
-              (input)="setPlaybackRate('B', $any($event.target).value)"
-            />
-          </div>
-          <label>PITCH {{ pitchBPercentage() }}</label>
-        </div>
-        <button
-          type="button"
-          class="bend-btn"
-          (click)="nudgePitch('B', 'up')"
-          aria-label="Deck B pitch up"
-          title="Pitch up +1%">+</button>
-      </div>
-
-      <div class="deck-plinth">
+      <!-- Platter -->
+      <div class="dj-platter-area">
         <div
-          class="platter-container"
-          [class.scratching]="isScratchingB()"
+          class="dj-platter"
+          [class.is-scratching]="isScratchingB()"
           (mousedown)="onPlatterDown('B', $event)"
           (touchstart)="onPlatterDown('B', $event)"
         >
-          <div class="platter-base"></div>
+          <div class="dj-platter-outer-ring"></div>
+          <div class="dj-platter-strobe-dot"></div>
           <div
-            class="platter-vinyl"
+            class="dj-platter-vinyl"
             [style.transform]="'rotate(' + rotationB() + 'deg)'"
           >
-            <div class="vinyl-grooves"></div>
-            <div class="vinyl-label">
+            <div class="dj-platter-label">
               <img
                 [src]="deckService.deckB().vinylImageUrl"
                 *ngIf="deckService.deckB().vinylImageUrl"
+                alt=""
               />
               <div class="label-text">
-                {{ deckService.deckB().track?.name || 'SMUVE' }}
+                <span class="initials">
+                  {{ (deckService.deckB().track?.name || 'SMUVE').slice(0, 2) | uppercase }}
+                </span>
               </div>
             </div>
-            <div class="platter-strobe"></div>
           </div>
-          <div class="platter-spindle"></div>
-          <div class="scrub-feedback">
-            <div
-              class="scrub-meter"
-              [style.transform]="'scaleX(' + scratchVelocityB() + ')'"
-            ></div>
-          </div>
-        </div>
-
-        <div class="deck-controls-surface">
-          <div class="deck-status-strip">
-            <div class="deck-bpm-prominent">
-              BPM {{ deckBTempo() | number: '1.0-1' }}
-            </div>
-            <button
-              class="btn-xs tactile-v42"
-              [class.active]="deckService.deckB().keyLock"
-              (click)="toggleKeyLock('B')"
-            >
-              KEY LOCK
-            </button>
-            <button class="btn-xs tactile-v42" (click)="tapBpm('B')">
-              TAP
-            </button>
-          </div>
-          <div class="pitch-fader-container">
-            <div class="fader-track">
-              <input
-                type="range"
-                min="0.9"
-                max="1.1"
-                step="0.001"
-                [value]="deckService.deckB().playbackRate"
-                (input)="setPlaybackRate('B', $any($event.target).value)"
-              />
-            </div>
-            <label>PITCH {{ pitchBPercentage() }}</label>
-          </div>
-
-          <div class="deck-main-buttons">
-            <button
-              class="btn-cue tactile-v42"
-              [class.active]="isCuePadSet('B', 0)"
-              (click)="toggleCue('B')"
-            >
-              CUE
-            </button>
-            <button
-              class="btn-play tactile-v42"
-              [class.active]="deckService.deckB().isPlaying"
-              (click)="deckService.togglePlay('B')"
-            >
-              <span class="material-symbols-outlined">{{
-                deckService.deckB().isPlaying ? 'pause' : 'play_arrow'
-              }}</span>
-            </button>
-          </div>
+          <div class="dj-platter-spindle"></div>
+          <div class="dj-platter-scrub"
+               [style.opacity]="isScratchingB() ? 1 : 0"></div>
         </div>
       </div>
 
-      <!-- Deck B Visualizers -->
-      <div class="deck-visuals">
-        <canvas #waveformB class="waveform-canvas"></canvas>
-        <div class="level-meter">
-          <canvas #meterB></canvas>
+      <!-- Pitch row -->
+      <div class="dj-pitch-row">
+        <button
+          type="button"
+          class="dj-pitch-bend-btn"
+          (click)="nudgePitch('B', 'down')"
+          aria-label="Pitch down"
+          title="−1%"
+        >−</button>
+        <div class="dj-pitch-track">
+          <div class="dj-pitch-readout">{{ pitchBPercentage() }}</div>
+          <input
+            type="range"
+            min="0.9"
+            max="1.1"
+            step="0.001"
+            [value]="deckService.deckB().playbackRate"
+            (input)="setPlaybackRate('B', $any($event.target).value)"
+          />
         </div>
+        <button
+          type="button"
+          class="dj-pitch-bend-btn"
+          (click)="nudgePitch('B', 'up')"
+          aria-label="Pitch up"
+          title="+1%"
+        >+</button>
+      </div>
+
+      <!-- Transport row -->
+      <div class="dj-transport-row">
+        <button
+          class="dj-transport-btn"
+          [class.is-cue-holding]="isCuePadSet('B', 0)"
+          (click)="toggleCue('B')"
+        >
+          <span class="material-symbols-outlined">stop_circle</span>
+          <span>CUE</span>
+        </button>
+        <button
+          class="dj-play-btn deck-b"
+          [class.is-playing]="deckService.deckB().isPlaying"
+          (click)="deckService.togglePlay('B')"
+        >
+          <span class="material-symbols-outlined">
+            {{ deckService.deckB().isPlaying ? 'pause' : 'play_arrow' }}
+          </span>
+        </button>
+        <button
+          class="dj-transport-btn"
+          [class.is-sync-armed]="deckService.deckB().isPlaying"
+          (click)="syncDeck('B')"
+        >
+          <span class="material-symbols-outlined">sync</span>
+          <span>SYNC</span>
+        </button>
+      </div>
+
+      <div class="dj-channel-vu">
+        <div
+          *ngFor="let i of [0,1,2,3,4,5,6,7]"
+          class="vu-segment"
+          [class.is-active-b]="getDeckLevel('B') > i * 0.125"
+        ></div>
       </div>
     </div>
   </div>
 
-  <!-- Performance Pads Section -->
-  <div class="performance-section">
-    <div class="fx-performance-panel glass-v42 mb-4 p-4">
-      <div class="fx-header flex justify-between items-center mb-2">
-        <span class="neon-text-xs">ADVANCED PERFORMANCE FX</span>
-        <div class="fx-selectors flex gap-2">
-          <button
-            *ngFor="let fx of fxModes"
-            class="btn-xs"
-            [class.active]="fxMode() === fx.id"
-            (click)="fxMode.set(fx.id)"
-          >
-            {{ fx.label }}
-          </button>
-        </div>
-      </div>
-      <div class="fx-grid flex gap-8">
-        <div class="fx-control-deck">
-          <label class="text-[10px] opacity-50">DECK A FX</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            [value]="deckService.deckA().fxAmount"
-            (input)="setFxAmount('A', $any($event.target).value)"
-          />
-        </div>
-        <div class="fx-control-deck">
-          <label class="text-[10px] opacity-50">DECK B FX</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            [value]="deckService.deckB().fxAmount"
-            (input)="setFxAmount('B', $any($event.target).value)"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="performance-tabs">
-      <button
-        [class.active]="performanceMode() === 'cue'"
-        (click)="performanceMode.set('cue')"
-      >
-        HOT CUES
-      </button>
-      <button
-        [class.active]="performanceMode() === 'roll'"
-        (click)="performanceMode.set('roll')"
-      >
-        ROLL
-      </button>
-      <div class="sampler-tab-group flex items-center">
+  <!-- ═══ REGION 4: PERFORMANCE BED (PADS + FX) ═════════════ -->
+  <div class="dj-perf-bed">
+    <div class="dj-perf-bed-header">
+      <div class="dj-perf-tabs">
         <button
-          [class.active]="performanceMode() === 'sampler'"
+          class="dj-perf-tab"
+          [class.is-active]="performanceMode() === 'cue'"
+          (click)="performanceMode.set('cue')"
+        >
+          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">bookmark</span>
+          HOT CUES
+        </button>
+        <button
+          class="dj-perf-tab"
+          [class.is-active]="performanceMode() === 'roll'"
+          (click)="performanceMode.set('roll')"
+        >
+          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">loop</span>
+          ROLL
+        </button>
+        <button
+          class="dj-perf-tab"
+          [class.is-active]="performanceMode() === 'sampler'"
           (click)="performanceMode.set('sampler')"
         >
+          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">music_note</span>
           SAMPLER
         </button>
+      </div>
+
+      <div class="dj-perf-mode-selectors">
         <select
           *ngIf="performanceMode() === 'sampler'"
-          class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]"
+          class="dj-perf-select"
           [ngModel]="samplerCategory()"
           (ngModelChange)="setSamplerCategory($event)"
         >
@@ -746,7 +603,7 @@
         </select>
         <select
           *ngIf="performanceMode() === 'sampler'"
-          class="sampler-cat-select ml-2 bg-transparent border-none text-[10px]"
+          class="dj-perf-select"
           [ngModel]="activeSamplePack()"
           (ngModelChange)="activeSamplePack.set($event)"
         >
@@ -757,43 +614,86 @@
       </div>
     </div>
 
-    <div class="pad-tactile-v42s-grid-container">
-      <div class="pad-tactile-v42s-deck">
-        <div class="pad-tactile-v42s-grid">
-          <button
-            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
-            class="pad tactile-v42"
-            [class.active]="
-              isCuePadSet('A', i) ||
-              isRollPadActive('A', i) ||
-              isSamplerPadActive('A', i)
-            "
-            (mousedown)="handlePadDown('A', i, $event)"
-            (mouseup)="handlePadRelease('A', i)"
-            (click)="handlePadPress('A', i)"
-            (contextmenu)="clearPad('A', i, $event)"
-          >
-            {{ getPadLabel(i) }}
-          </button>
-        </div>
+    <!-- Pad grids (4×2 per deck = industrial 4×2 layout) -->
+    <div class="dj-pad-grid-row">
+      <div class="dj-pad-grid deck-a">
+        <button
+          *ngFor="let i of [0, 1, 2, 3]"
+          type="button"
+          class="dj-pad-tile"
+          [class.is-set]="isCuePadSet('A', i) || isSamplerPadSet('A', i)"
+          [class.is-fired]="isRollPadActive('A', i) || isSamplerPadActive('A', i)"
+          [style.--pad-color]="
+            performanceMode() === 'cue' ? 'var(--dj-cue-' + i + ')' :
+            performanceMode() === 'roll' ? 'var(--dj-a-base)' :
+            'var(--dj-a-base)'
+          "
+          (mousedown)="handlePadDown('A', i, $event)"
+          (mouseup)="handlePadRelease('A', i)"
+          (click)="handlePadPress('A', i)"
+          (contextmenu)="clearPad('A', i, $event)"
+        >
+          <span class="pad-num">{{ i + 1 }}</span>
+          <span>{{ getPadLabel(i) }}</span>
+        </button>
       </div>
-      <div class="pad-tactile-v42s-deck">
-        <div class="pad-tactile-v42s-grid">
-          <button
-            *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
-            class="pad tactile-v42"
-            [class.active]="
-              isCuePadSet('B', i) ||
-              isRollPadActive('B', i) ||
-              isSamplerPadActive('B', i)
-            "
-            (mousedown)="handlePadDown('B', i, $event)"
-            (mouseup)="handlePadRelease('B', i)"
-            (click)="handlePadPress('B', i)"
-            (contextmenu)="clearPad('B', i, $event)"
-          >
-            {{ getPadLabel(i) }}
-          </button>
+      <div class="dj-pad-grid deck-b">
+        <button
+          *ngFor="let i of [0, 1, 2, 3]"
+          type="button"
+          class="dj-pad-tile"
+          [class.is-set]="isCuePadSet('B', i) || isSamplerPadSet('B', i)"
+          [class.is-fired]="isRollPadActive('B', i) || isSamplerPadActive('B', i)"
+          [style.--pad-color]="
+            performanceMode() === 'cue' ? 'var(--dj-cue-' + (i + 4) + ')' :
+            performanceMode() === 'roll' ? 'var(--dj-b-base)' :
+            'var(--dj-b-base)'
+          "
+          (mousedown)="handlePadDown('B', i, $event)"
+          (mouseup)="handlePadRelease('B', i)"
+          (click)="handlePadPress('B', i)"
+          (contextmenu)="clearPad('B', i, $event)"
+        >
+          <span class="pad-num">{{ i + 5 }}</span>
+          <span>{{ getPadLabel(i) }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FX bar -->
+    <div class="dj-fx-bar">
+      <div class="dj-fx-modes">
+        <button
+          *ngFor="let fx of fxModes"
+          class="dj-fx-mode"
+          [class.is-active]="fxMode() === fx.id"
+          (click)="fxMode.set(fx.id)"
+        >
+          {{ fx.label }}
+        </button>
+      </div>
+      <div class="dj-fx-knobs">
+        <div class="dj-fx-knob-panel deck-a">
+          <label>DECK A FX</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="deckService.deckA().fxAmount"
+            (input)="setFxAmount('A', $any($event.target).value)"
+          />
+        </div>
+        <div class="dj-fx-knob-panel deck-b">
+          <label>DECK B FX</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="deckService.deckB().fxAmount"
+            (input)="setFxAmount('B', $any($event.target).value)"
+          />
         </div>
       </div>
     </div>
