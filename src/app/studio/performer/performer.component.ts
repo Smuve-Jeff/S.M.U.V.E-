@@ -20,6 +20,14 @@ import { FxMacrosService } from '../../services/fx-macros.service';
 import { DjMidiService } from '../../services/dj-midi.service';
 import { Subscription } from 'rxjs';
 
+/** Coerce an unknown value (e.g. slider input) into a finite number, falling
+ * back to `fallback` for null/NaN/Infinity inputs. Defined as a module-level
+ * helper so it can be reused by any future strip/slider binding without `this` plumbing. */
+function toFiniteNumber(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 @Component({
   selector: 'app-performer',
   standalone: true,
@@ -46,7 +54,9 @@ export class PerformerComponent implements OnDestroy, OnInit {
   layout = signal<'keyboard' | 'pads' | 'matrix' | 'macros'>('keyboard');
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
-  velocity = signal(0.8);
+  /** Note-on velocity in MIDI units (0–127). Standard default is 100.
+   * Button-pressed velocity is normalized to 0–1 when handed to the live engine. */
+  velocity = signal(100);
   octave = signal(0);
   activeKeys = signal<Set<number>>(new Set());
   availableInstruments = signal<InstrumentPreset[]>([]);
@@ -363,15 +373,16 @@ export class PerformerComponent implements OnDestroy, OnInit {
     }
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
-    this.liveEngine.triggerNoteStart(actualMidi, this.velocity());
+    const velocity01 = this.velocity01();
+    this.liveEngine.triggerNoteStart(actualMidi, velocity01);
     this.haptic.light();
 
     if (this.audioSession.isRecording()) {
-      this.musicManager.recordLiveNote(actualMidi, this.velocity());
+      this.musicManager.recordLiveNote(actualMidi, velocity01);
     }
 
     // Tag MIDI to current take if we're capturing.
-    this.perfRecording.recordMidi(actualMidi, this.velocity());
+    this.perfRecording.recordMidi(actualMidi, velocity01);
 
     this.activeKeys.update((keys) => {
       const next = new Set(keys);
@@ -421,6 +432,42 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.modWheel.set(val);
     this.liveEngine.setModWheel(val);
   }
+
+  /** Velocity slider in the keyboard expression strip — 0–127 MIDI units.
+   * Internally clamps and stores as an integer; passed downstream as 0–1. */
+  onVelocity(event: any) {
+    const raw = event?.target?.value;
+    const numeric = toFiniteNumber(raw, 100);
+    const clamped = Math.max(0, Math.min(127, Math.round(numeric)));
+    this.velocity.set(clamped);
+  }
+
+  /** Coerce an unknown value (e.g. slider input) into a finite number, falling
+   * back to `fallback` for null/NaN/Infinity inputs. Defined as a free function
+   * so it can be reused by any future strip/slider binding without `this` plumbing. */
+  toFiniteNumber(value: unknown, fallback: number): number {
+    return toFiniteNumber(value, fallback);
+  }
+
+  /** Convert internal MIDI velocity (0–127) to a normalized 0–1 value the
+   * audio engine consumes for triggerAttackRelease / triggerAttack. */
+  velocity01(): number {
+    return this.velocity() / 127;
+  }
+
+  /** Map MIDI velocity (0–127) onto a standard musical dynamic marking (pianissimo → fortissimo)
+   * so the slider label reads musically rather than as a raw integer. */
+  velocityLevelLabel = computed(() => {
+    const v = this.velocity();
+    if (v < 16) return 'ppp';
+    if (v < 32) return 'pp';
+    if (v < 48) return 'p';
+    if (v < 64) return 'mp';
+    if (v < 80) return 'mf';
+    if (v < 96) return 'f';
+    if (v < 112) return 'ff';
+    return 'fff';
+  });
 
   launchScene(scene: PerformerScene) {
     this.musicManager.launchScene(scene.id);
