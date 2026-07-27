@@ -12,7 +12,7 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
       const { type, payload } = event.data;
       if (type === 'START') {
         this.isPlaying = true;
-        this.nextNoteTime = currentTime;
+        this.nextNoteTime = globalThis.currentTime;
       } else if (type === 'STOP') {
         this.isPlaying = false;
         this.currentStep = 0;
@@ -27,7 +27,7 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
   process(inputs, outputs, parameters) {
     if (this.isPlaying) {
       const stepDuration = 60 / this.tempo / this.stepsPerBeat;
-      while (this.nextNoteTime < currentTime + this.lookahead) {
+      while (this.nextNoteTime < globalThis.currentTime + this.lookahead) {
         this.port.postMessage({
           type: 'TICK',
           payload: {
