@@ -596,8 +596,8 @@
         "inlinePolicy": "trusted",
         "trustNote": "Hybrid internal cabinet with live bracket telemetry.",
         "embedMode": "inline",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedExternalUrl": "/assets/games/battlefield/battlefield.html",
+        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html",
         "telemetryMode": "origin",
         "secure_mode": "wasm"
       },
@@ -2958,14 +2958,14 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedEmbedUrl": "",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
         "trustNote": "Elite open-world WASM protocol verified.",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedExternalUrl": "",
         "secure_mode": "wasm"
       },
       "art": {
@@ -3802,7 +3802,7 @@
           "Standard Keyboard"
         ],
         "trustNote": "Elite DOS evacuation protocol verified.",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
+        "approvedExternalUrl": "",
         "secure_mode": "wasm"
       },
       "art": {
@@ -3926,10 +3926,10 @@
     },
     {
       "id": "pokemon-yellow-elite",
-      "name": "Pokémon Yellow: Special Pikachu Edition",
+      "name": "Pok\u00e9mon Yellow: Special Pikachu Edition",
       "url": "https://www.retrogames.cc/embed/21262-pokemon-yellow-version-special-pikachu-edition-usa-europe.html",
       "genre": "RPG",
-      "description": "The definitive classic Pokémon journey with Pikachu. Elite WASM emulation with stabilized sync.",
+      "description": "The definitive classic Pok\u00e9mon journey with Pikachu. Elite WASM emulation with stabilized sync.",
       "availability": "Online",
       "playersOnline": 55000,
       "rating": 5,
@@ -4280,7 +4280,7 @@
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       },
       "art": {
         "eyebrow": "Rockstar Elite",
@@ -4309,13 +4309,13 @@
         "Football"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedEmbedUrl": "",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedExternalUrl": ""
       },
       "art": {
         "eyebrow": "EA Sports Elite",
@@ -4350,7 +4350,7 @@
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedExternalUrl": ""
       },
       "art": {
         "eyebrow": "SEGA Elite",
@@ -4953,7 +4953,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 18000,
@@ -5054,14 +5054,14 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedEmbedUrl": "",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -5097,7 +5097,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 7000,
@@ -5133,7 +5133,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 6200,
@@ -5399,7 +5399,7 @@
     },
     {
       "id": "okami-elite",
-      "name": "Ōkami",
+      "name": "\u014ckami",
       "url": "https://www.retrogames.cc/embed/41254-okami-usa.html",
       "genre": "Adventure",
       "description": "Paint your way to victory. The Celestial Brush is your weapon. S.M.U.V.E. demands Absolute artistry.",
@@ -5637,7 +5637,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 6500,
@@ -5673,7 +5673,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 6600,
@@ -5959,7 +5959,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 7700,
@@ -6500,7 +6500,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -6979,7 +6979,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html"
+        "approvedExternalUrl": ""
       },
       "availability": "Online",
       "playersOnline": 22000,
@@ -7158,7 +7158,7 @@
       "launchConfig": {
         "approvedExternalUrl": "https://www.arenaofvalor.com/",
         "embedMode": "inline",
-        "approvedEmbedUrl": "/assets/games/battlefield/battlefield.html"
+        "approvedEmbedUrl": ""
       }
     },
     {
@@ -7312,7 +7312,7 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23128-halo-2-xbox.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       }
     },
     {
@@ -7396,7 +7396,7 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28676-grand-theft-auto-2-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       }
     },
     {
@@ -7428,7 +7428,7 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28674-grand-theft-auto-london-1969-ps1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
+        "approvedExternalUrl": ""
       }
     },
     {
@@ -7458,7 +7458,7 @@
       },
       "image": "/assets/games/fc24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/ea-sports-fc-24"
       }
@@ -7490,7 +7490,7 @@
       },
       "image": "/assets/games/madden24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/madden-nfl-24"
       }
@@ -7522,7 +7522,7 @@
       },
       "image": "/assets/games/nba2k24-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tempo-lockdown/tempo-lockdown.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/nba-2k24"
       }
@@ -7631,7 +7631,7 @@
       },
       "image": "/assets/games/forza5-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/forza-horizon-5"
       }
@@ -7767,7 +7767,7 @@
       },
       "image": "/assets/games/forza-ms-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/forza-motorsport"
       }
@@ -7895,7 +7895,7 @@
       },
       "image": "/assets/games/rocket-league-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/rocket-league"
       }
@@ -7927,7 +7927,7 @@
       },
       "image": "/assets/games/tekken8-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/47369-tekken-8-pc.html"
       }
@@ -8103,7 +8103,7 @@
       },
       "image": "/assets/games/forza4-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/neon-drift/neon-drift.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.gamepix.com/play/forza-horizon-4"
       }
@@ -8255,14 +8255,14 @@
       },
       "image": "/assets/games/mk1-elite.png",
       "launchConfig": {
-        "approvedExternalUrl": "/assets/games/tekken-4-tribute/tekken-4-tribute.html",
+        "approvedExternalUrl": "",
         "embedMode": "inline",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/47368-mortal-kombat-1-pc.html"
       }
     },
     {
       "id": "okami-elite-master",
-      "name": "Ōkami",
+      "name": "\u014ckami",
       "url": "https://www.retrogames.cc/embed/42788-okami.html",
       "genre": "Adventure",
       "description": "Absolute high-fidelity Adventure action. Experience Okami in a stabilized browser environment.",
@@ -9608,7 +9608,7 @@
     },
     {
       "id": "pokemon-emerald-elite-master",
-      "name": "Pokémon Emerald",
+      "name": "Pok\u00e9mon Emerald",
       "url": "https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html",
       "genre": "RPG",
       "description": "The definitive Hoenn journey. High-fidelity GBA emulation with stabilized Battle Frontier protocols.",
@@ -9811,7 +9811,7 @@
     },
     {
       "id": "pokemon-fire-red-elite-master",
-      "name": "Pokémon FireRed",
+      "name": "Pok\u00e9mon FireRed",
       "url": "https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html",
       "genre": "RPG",
       "description": "The Absolute return to Kanto. High-fidelity GBA journey with stabilized training protocols.",
@@ -10900,7 +10900,7 @@
     },
     {
       "id": "1080-snowboarding-elite-master",
-      "name": "1080° Snowboarding",
+      "name": "1080\u00b0 Snowboarding",
       "url": "https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html",
       "genre": "Sports",
       "description": "Absolute high-fidelity Sports action. Experience 1080 Snowboarding in a stabilized browser environment.",
@@ -10972,7 +10972,7 @@
     },
     {
       "id": "pokemon-stadium-2-elite-master",
-      "name": "Pokémon Stadium 2",
+      "name": "Pok\u00e9mon Stadium 2",
       "url": "https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html",
       "genre": "Strategy",
       "description": "Absolute high-fidelity Strategy action. Experience Pokemon Stadium 2 in a stabilized browser environment.",
@@ -11284,7 +11284,7 @@
       "name": "Wordle",
       "url": "https://www.nytimes.com/games/wordle/index.html",
       "genre": "Puzzle",
-      "description": "The global daily word phenomenon. Six attempts to find the five-letter word. Share your score streak with friends — the most culturally impactful word game since Scrabble.",
+      "description": "The global daily word phenomenon. Six attempts to find the five-letter word. Share your score streak with friends \u2014 the most culturally impactful word game since Scrabble.",
       "rating": 4.7,
       "playersOnline": 85000,
       "availability": "Online",
@@ -11951,7 +11951,7 @@
     },
     {
       "id": "pokemon-firered-gba-elite",
-      "name": "Pokémon FireRed",
+      "name": "Pok\u00e9mon FireRed",
       "url": "https://www.retrogames.cc/embed/40277-pokemon-fire-red-version-usa.html",
       "genre": "RPG",
       "description": "Return to Kanto in this definitive GBA remake of Pokemon Red.",
@@ -12939,7 +12939,7 @@
     },
     {
       "id": "pokemon-red-gb-elite",
-      "name": "Pokémon Red",
+      "name": "Pok\u00e9mon Red",
       "url": "https://www.retrogames.cc/embed/20025-pokemon-red-version-usa.html",
       "genre": "RPG",
       "description": "Where it all began. Choose your starter and become Pokemon Champion.",
@@ -13094,7 +13094,7 @@
     },
     {
       "id": "pokemon-tcg-gbc-elite",
-      "name": "Pokémon Trading Card Game",
+      "name": "Pok\u00e9mon Trading Card Game",
       "url": "https://www.retrogames.cc/embed/20030-pokemon-trading-card-game-usa.html",
       "genre": "Card Game",
       "description": "Build decks and battle Gym Leaders with Pokemon cards in this GBC gem.",

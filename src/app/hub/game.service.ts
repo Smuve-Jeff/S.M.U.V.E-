@@ -221,11 +221,31 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
 export function validateAndRepairGame(game: Game): Game {
   const url: string = game.url || '';
   const lc = game.launchConfig || ({} as any);
-  if (!url || !url.startsWith('/assets/games/')) return game;
-  const urlFolderMatch = url.match(/^\/assets\/games\/([^/]+)\//);
-  if (!urlFolderMatch) return game;
-  const urlFolder = urlFolderMatch[1];
   const repaired: Game = { ...game, launchConfig: { ...(lc as any) } };
+
+  // ── Strip empty approved URLs that were intentionally blanked by the fix script ──
+  for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
+    const val = (repaired.launchConfig as any)[key];
+    if (typeof val === 'string' && val.trim() === '') {
+      delete (repaired.launchConfig as any)[key];
+    }
+  }
+
+  // ── Internal cabinet validation ──
+  if (!url || !url.startsWith('/assets/games/')) {
+    // External game: ensure approved URLs that ARE set are valid (not pointing to internal cabinets)
+    for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
+      const val = (repaired.launchConfig as any)[key];
+      if (typeof val === 'string' && val.startsWith('/assets/games/')) {
+        // External game with internal cabinet fallback = wrong -> strip it
+        delete (repaired.launchConfig as any)[key];
+      }
+    }
+    return repaired;
+  }
+  const urlFolderMatch = url.match(/^\/assets\/games\/([^/]+)\//);
+  if (!urlFolderMatch) return repaired;
+  const urlFolder = urlFolderMatch[1];
   for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
     const value: any = (repaired.launchConfig as any)[key];
     if (
