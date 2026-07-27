@@ -68,10 +68,14 @@ export class SoundBrowserComponent {
     return Array.from(tags).sort();
   });
 
+  /** Filter the preset grid to only show instruments from installed sound packs */
+  showOnlyInstalledPacks = signal(false);
+
   presets = computed(() => {
     const query = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
     const tag = this.selectedTag();
+    const installedIds = this.smartSound.installedPackPresets();
 
     return this.allPresets().filter((p) => {
       const matchesSearch =
@@ -81,8 +85,9 @@ export class SoundBrowserComponent {
 
       const matchesCat = cat === 'all' || p.category === cat;
       const matchesTag = !tag || p.tags?.includes(tag);
+      const matchesInstalled = !this.showOnlyInstalledPacks() || installedIds.has(p.id);
 
-      return matchesSearch && matchesCat && matchesTag;
+      return matchesSearch && matchesCat && matchesTag && matchesInstalled;
     });
   });
 

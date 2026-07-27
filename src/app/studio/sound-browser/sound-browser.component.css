@@ -616,3 +616,94 @@
   .sb-pack-chip { min-width: 150px; padding: 6px 10px; }
   .sb-pack-chip-icon { width: 28px; height: 28px; border-radius: 8px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   SOUND PACK DOWNLOAD PROGRESS + INSTALLED FILTER CHIP
+   ═══════════════════════════════════════════════════════ */
+
+.sb-pack-chip.installing {
+  pointer-events: none;
+  opacity: 0.95;
+  background: linear-gradient(135deg, rgba(14,124,123,0.08), var(--ivory-panel));
+  border-style: solid;
+  border-width: 2px;
+}
+
+.sb-pack-progress {
+  margin-top: 4px;
+  height: 6px;
+  background: var(--ivory-deep);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sb-pack-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500), var(--teal-300));
+  border-radius: 3px;
+  transition: width 0.15s ease-out;
+  animation: sb-pack-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes sb-pack-shimmer {
+  0%, 100% { box-shadow: 0 0 4px rgba(14,124,123,0.3); }
+  50% { box-shadow: 0 0 12px rgba(14,124,123,0.7); }
+}
+
+.sb-pack-progress-label {
+  position: absolute;
+  right: 4px;
+  top: -16px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--teal-500);
+}
+
+.sb-pack-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: sb-pack-spin 0.6s linear infinite;
+}
+
+@keyframes sb-pack-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sb-pack-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--espresso-line);
+  background: transparent;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sb-pack-filter-btn:hover {
+  background: rgba(14,124,123,0.06);
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.sb-pack-filter-btn.active {
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  border-color: var(--teal-500);
+}
+.sb-pack-filter-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.sb-pack-filter-btn .material-symbols-outlined { font-size: 12px; }

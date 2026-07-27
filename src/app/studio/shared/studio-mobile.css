@@ -1,0 +1,109 @@
+/* ============================================================
+   STUDIO MOBILE UX BASE — Shared by all Studio sub-components
+   Apply patterns: touch targets, safe-area, overflow, z-index,
+   tap highlight, pinch-zoom safe interactions.
+   ============================================================ */
+
+/* ── Universal touch feedback & highlight prevention ── */
+button,
+[role="button"],
+.touch-target {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ── Touch-action: none for canvas / drag surfaces ── */
+canvas,
+.xy-pad,
+.drag-surface,
+.fader-rail,
+.knob-surface,
+.crossfader-surface {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Safe-area for notched phones ── */
+.safe-area-pad-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-mb-16 {
+  margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Minimum 44px touch targets (Apple HIG / Material) ── */
+button {
+  min-height: 32px;
+}
+
+/* Compact mobile: enforce 44px targets on critical controls */
+@media (max-width: 768px) {
+  button.touch-critical,
+  .fab,
+  .rec-arm-btn,
+  .play-pause,
+  .stop-btn,
+  .record-trigger {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Vertical scroll containers: momentum scroll on iOS */
+  .scroll-touch,
+  overflow-auto,
+  overflow-y-auto,
+  overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide native scrollbars in horizontal rails */
+  .rail-scroll::-webkit-scrollbar,
+  [class*="-chip"]:not(:focus-visible)::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Z-index layering for floating panels in mobile */
+  .floating-panel {
+    z-index: 50;
+  }
+
+  /* Panels take full width with edge-spacing on mobile */
+  .mobile-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* ── Landscape orientation: split horizontally better ── */
+@media (max-width: 900px) and (orientation: landscape) {
+  .landscape-collapse {
+    display: none;
+  }
+
+  .landscape-compact {
+    padding: 4px 8px !important;
+    gap: 4px !important;
+  }
+}
+
+/* ── Larger hit areas without changing visual size ── */
+.hit-area-extended {
+  position: relative;
+}
+.hit-area-extended::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+/* ── Pinch zoom disable on Studio workspace ── */
+.no-pinch-zoom {
+  touch-action: pan-x pan-y;
+}

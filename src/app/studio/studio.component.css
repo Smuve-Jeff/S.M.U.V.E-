@@ -3,6 +3,9 @@
    Inspired by FL Studio Mobile + Logic Pro panel layout
    =========================================================== */
 
+/* ── Shared mobile UX base — applies to all sub-components ── */
+@import url('./shared/studio-mobile.css');
+
 :host {
   display: block;
   height: 100dvh;

@@ -616,3 +616,54 @@
   color: var(--teal-300);
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════
+   MIXER — Mobile Touch Safety & Touch-Target Fixes
+   Built by Studio Mobile UX Audit
+   ═══════════════════════════════════════════════════════ */
+
+.mix-fader-grip,
+.mix-pan-grip,
+.mix-fader-area,
+.mix-pan-track {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mix-fader-area {
+  /* Expand hit area for thumb dragging on small screens */
+  width: 44px !important;
+}
+
+@media (max-width: 768px) {
+  .mix-strip {
+    width: 72px;
+  }
+  .mix-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* Strips overflow horizontally — keep one-and-a-half visible for swiping */
+  .mix-strips-track {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  /* Selected strip pops more dramatically */
+  .mix-strip-selected {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 480px) {
+  .mix-strip {
+    width: 64px;
+  }
+  .mix-strip-name {
+    font-size: 9px;
+  }
+  .mix-strip-body {
+    padding: 6px 4px;
+    gap: 4px;
+  }
+}

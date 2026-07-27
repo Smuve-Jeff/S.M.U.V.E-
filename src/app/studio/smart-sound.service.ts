@@ -339,14 +339,35 @@ export class SmartSoundService {
 
   // ── Sound Pack Management ────────────────────────────
 
-  /** Install a curated sound pack */
-  installPack(packId: string) {
+  /** Pack currently being installed (with progress 0-100) */
+  installingPack = signal<{ id: string; progress: number } | null>(null);
+
+  /** Install a curated sound pack with simulated download progress */
+  async installPack(packId: string) {
     const pack = this.curatedPacks().find((p) => p.id === packId);
     if (!pack) return;
-    this.installedPacks.update((packs) => {
-      if (packs.some((p) => p.id === packId)) return packs;
-      return [...packs, { ...pack, installed: true, installedAt: Date.now() }];
-    });
+    if (this.installedPacks().some((p) => p.id === packId)) return;
+    if (this.installingPack()?.id === packId) return;
+
+    this.installingPack.set({ id: packId, progress: 0 });
+
+    // Simulate download progress (real implementation would fetch manifest + samples)
+    const totalDuration = 800; // ms per percent
+    for (let p = 0; p <= 100; p += 5) {
+      await new Promise((r) => setTimeout(r, totalDuration / 20));
+      this.installingPack.set({ id: packId, progress: p });
+    }
+
+    this.installPackInternal(pack);
+    this.installingPack.set(null);
+  }
+
+  /** Internal: register the install (no async) */
+  private installPackInternal(pack: SoundPack) {
+    this.installedPacks.update((packs) => [
+      ...packs,
+      { ...pack, installed: true, installedAt: Date.now() },
+    ]);
     this.persistInstalledPacks();
     this.logger.info('Installed sound pack: ' + pack.name);
   }

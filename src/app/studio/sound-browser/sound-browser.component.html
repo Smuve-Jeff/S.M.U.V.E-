@@ -44,6 +44,10 @@
           <span>{{ showFavs() ? 'Favorites' : 'Show Favorites' }}</span>
         </button>
         <span class="sb-fav-count" *ngIf="smartSound.favorites().length > 0">{{ smartSound.favorites().length }} ★</span>
+        <button type="button" class="sb-pack-filter-btn" [class.active]="showOnlyInstalledPacks()" (click)="showOnlyInstalledPacks.set(!showOnlyInstalledPacks())" [disabled]="smartSound.installedPacks().length === 0" [title]="smartSound.installedPacks().length === 0 ? 'Install a sound pack to enable' : 'Show only installed pack presets'">
+          <span class="material-symbols-outlined">{{ showOnlyInstalledPacks() ? 'library_music' : 'library_music' }}</span>
+          <span>{{ showOnlyInstalledPacks() ? 'Installed Only' : 'Installed Packs' }}</span>
+        </button>
       </div>
     </div>
 
@@ -100,7 +104,9 @@
             type="button"
             class="sb-pack-chip"
             [style.borderColor]="pack.color"
+            [class.installing]="smartSound.installingPack()?.id === pack.id"
             (click)="smartSound.installPack(pack.id)"
+            [disabled]="smartSound.installingPack()?.id === pack.id"
             [title]="pack.description"
           >
             <span class="sb-pack-chip-icon" [style.background]="pack.color">
@@ -109,9 +115,14 @@
             <div class="sb-pack-chip-body">
               <span class="sb-pack-chip-name">{{ pack.name }}</span>
               <span class="sb-pack-chip-meta">{{ pack.presetCount }} sounds · {{ pack.size }}</span>
+              <div class="sb-pack-progress" *ngIf="smartSound.installingPack()?.id === pack.id">
+                <div class="sb-pack-progress-bar" [style.width.%]="smartSound.installingPack()!.progress"></div>
+                <span class="sb-pack-progress-label">{{ smartSound.installingPack()!.progress }}%</span>
+              </div>
             </div>
             <span class="sb-pack-chip-install">
-              <span class="material-symbols-outlined">download</span>
+              <span *ngIf="smartSound.installingPack()?.id !== pack.id" class="material-symbols-outlined">download</span>
+              <span *ngIf="smartSound.installingPack()?.id === pack.id" class="sb-pack-spinner"></span>
             </span>
           </button>
         </div>
