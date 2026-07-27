@@ -188,6 +188,70 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
     return Math.round(((db + 60) / 60) * 100);
   }
 
+  // ── Pro: Take Manager — multi-take comping ────────────────────────
+  /** List of takes for the current arming session. */
+  takes = signal<{ id: string; name: string; createdAt: number; isActive: boolean; durationSec: number }[]>([]);
+  /** Muting state per take (false = audible). */
+  takeMuted = signal<Record<string, boolean>>({});
+
+  /** Promote this recording into a new take slot. */
+  promoteToTake(): void {
+    this.haptic.heavy();
+    const takeId = 'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    const lastRecording = this.recordings()[this.recordings().length - 1];
+    if (!lastRecording) {
+      this.snackbar.error('Record something first to promote a take');
+      return;
+    }
+    const num = this.takes().length + 1;
+    this.takes.update(list => list.map(t => ({ ...t, isActive: false })).concat([{
+      id: takeId,
+      name: `Take ${num}`,
+      createdAt: Date.now(),
+      isActive: true,
+      durationSec: lastRecording.durationSec || 0,
+    }]));
+    // Unmute prior takes by default (comping)
+    this.snackbar.success(`Take ${num} armed · ${this.takes().length} takes available`);
+  }
+
+  selectTake(takeId: string): void {
+    this.haptic.light();
+    this.takes.update(list => list.map(t => ({ ...t, isActive: t.id === takeId })));
+  }
+
+  toggleTakeMute(takeId: string): void {
+    this.takeMuted.update(m => ({ ...m, [takeId]: !m[takeId] }));
+    this.haptic.light();
+  }
+
+  removeTake(takeId: string): void {
+    this.takes.update(list => list.filter(t => t.id !== takeId));
+    this.takeMuted.update(m => { const n = { ...m }; delete n[takeId]; return n; });
+    this.haptic.medium();
+  }
+
+  clearAllTakes(): void {
+    if (this.takes().length === 0) return;
+    const ok = !!this.recordings().length; // simple confirmation
+    if (!ok) {
+      this.snackbar.error('No recordings to clear');
+      return;
+    }
+    this.takes.set([]);
+    this.takeMuted.set({});
+    this.haptic.heavy();
+    this.snackbar.info('All takes cleared');
+  }
+
+  formatTakeAge(created: number): string {
+    const ageMs = Date.now() - created;
+    const sec = Math.floor(ageMs / 1000);
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    return `${min}m ago`;
+  }
+
   // ── Toggle record on/off ────────────────────────────────
   async toggleRecord(): Promise<void> {
     this.haptic.medium();

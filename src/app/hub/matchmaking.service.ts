@@ -55,6 +55,15 @@ export interface GameStateSnapshot {
   label?: string;
 }
 
+export interface SpectatorReaction {
+  id: string;
+  lobbyId: string;
+  fromUserId: string;
+  fromUserName: string;
+  emoji: string;
+  timestamp: number;
+}
+
 export interface GameStateUpdate {
   lobbyId: string;
   gameId: string;
@@ -183,6 +192,8 @@ export class MatchmakingService implements OnDestroy {
   readonly inProgressLobbies = computed(() =>
     this.activeLobbies().filter(l => l.status === 'in-progress')
   );
+  readonly spectatorReactions = signal<SpectatorReaction[]>([]);
+  readonly spectatorChatMessages = signal<LobbyChatMessage[]>([]);
 
   readonly playerId = computed(() => this.profile.profile().id || 'local-player');
   readonly playerName = computed(() => this.profile.profile().artistName || 'Unknown Player');
@@ -402,6 +413,29 @@ export class MatchmakingService implements OnDestroy {
         this.lobbyReplaySnapshots.update(s => [...s, snapshot]);
         this.saveReplayHistory(lobby.id);
       }
+    });
+
+    // ── Spectator reaction events (emoji from spectators of in-progress lobbies) ──
+    this.socket.on('spectator_reaction', (r: SpectatorReaction) => {
+      this.spectatorReactions.update(list => {
+        // De-dupe by reaction id
+        if (list.find(x => x.id === r.id)) return list;
+        const next = [...list, r];
+        // Trim oldest past 50
+        return next.slice(-50);
+      });
+      // Auto-clear after 4s for UI flash
+      setTimeout(() => {
+        this.spectatorReactions.update(list => list.filter(x => x.id !== r.id));
+      }, 4000);
+    });
+
+    // ── Spectator chat messages (live chat in spectator overlay) ──
+    this.socket.on('spectator_chat_message', (msg: LobbyChatMessage) => {
+      this.spectatorChatMessages.update(list => {
+        if (list.find(x => x.id === msg.id)) return list;
+        return [...list, msg].slice(-100);
+      });
     });
   }
 
@@ -764,7 +798,43 @@ export class MatchmakingService implements OnDestroy {
     this.loadLobbyChatHistory(lobbyId);
   }
 
-  // ── Lobby Replay Recording ──
+  // ── Spectator reactions (spectator overlays / live lobbies) ──
+
+  /** Fire an emoji reaction while spectating an in-progress lobby. */
+  sendSpectatorReaction(lobbyId: string, emoji: string): void {
+    if (!this.isSpectating()) return;
+    if (!lobbyId || !emoji) return;
+    const r: SpectatorReaction = {
+      id: 'react-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      lobbyId,
+      fromUserId: this.playerId(),
+      fromUserName: this.playerName(),
+      emoji,
+      timestamp: Date.now(),
+    };
+    // Locally flash + emit
+    this.spectatorReactions.update(list => [...list, r].slice(-50));
+    this.socket?.emit('spectator_reaction', r);
+    setTimeout(() => {
+      this.spectatorReactions.update(list => list.filter(x => x.id !== r.id));
+    }, 4000);
+    this.haptic.light();
+  }
+
+  /** Send a chat message as a spectator. */
+  sendSpectatorChat(lobbyId: string, text: string): void {
+    if (!this.isSpectating() || !lobbyId || !text.trim()) return;
+    const msg: LobbyChatMessage = {
+      id: 'spec-msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      lobbyId,
+      fromUserId: this.playerId(),
+      fromUserName: this.playerName(),
+      text: text.trim(),
+      timestamp: Date.now(),
+    };
+    this.spectatorChatMessages.update(list => [...list, msg].slice(-100));
+    this.socket?.emit('spectator_chat_message', msg);
+  }
 
   /** Record a game state snapshot for the current lobby */
   recordGameSnapshot(state: Record<string, any>, label?: string): void {
