@@ -238,7 +238,7 @@
             class="mix-msr-btn mix-phase-btn"
             [class.on]="track.phaseInvert"
             (click)="togglePhase(track.id); $event.stopPropagation()"
-            [attr.aria-pressed]="!!track.phaseInvert ? 'true' : 'false'"
+            [attr.aria-pressed]="track.phaseInvert ? 'true' : 'false'"
             [attr.aria-label]="'Invert phase on ' + track.name"
             title="Phase Invert (Ø)"
           >

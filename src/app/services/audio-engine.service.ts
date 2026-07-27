@@ -1110,10 +1110,6 @@ export class AudioEngineService {
     return this.ctx;
   }
 
-  private initializeTrackNodesIfNeeded(trackId: string) {
-    this.getTrackOutput(trackId);
-  }
-
   getMasterAnalyser() {
     return this.masterAnalyser;
   }
@@ -1202,7 +1198,7 @@ export class AudioEngineService {
   }
 
   setTrackAuxSend(trackId: string, auxId: string, level: number) {
-    this.initializeTrackNodesIfNeeded(trackId);
+    this.getTrackOutput(trackId);
 
     let trackSends = this.trackAuxSends.get(trackId);
     if (!trackSends) {
@@ -1281,10 +1277,10 @@ export class AudioEngineService {
 
   configureLimiter(p: any) {
     if (!this.limiter) return;
-    const threshold = p?.ceiling ?? p?.threshold;
-    if (threshold !== undefined)
+    const ceilingOrThreshold = p?.ceiling ?? p?.threshold;
+    if (ceilingOrThreshold !== undefined)
       this.limiter.threshold.setTargetAtTime(
-        threshold,
+        ceilingOrThreshold,
         this.ctx.currentTime,
         0.05
       );
@@ -1441,7 +1437,7 @@ export class AudioEngineService {
   };
 
   private _meteringBuffer = new Float32Array(1024);
-  private _lufsBuffer = new Float32Array(1024);
+  private _lufsBuffer = new Float32Array(0);
   private _meteringRAF: number | null = null;
   private startOutputMetering(): void {
     if (typeof window === 'undefined') return;
