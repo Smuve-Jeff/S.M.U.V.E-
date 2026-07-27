@@ -1,4 +1,10 @@
-import { Component, Input, Output, EventEmitter, HostBinding } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  HostBinding,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({

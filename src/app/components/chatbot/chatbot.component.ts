@@ -175,12 +175,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         if (styleGuide) {
           content = styleGuide;
         } else {
-          const available = this.styleMimicService.getAvailableArtists().join(', ');
+          const available = this.styleMimicService
+            .getAvailableArtists()
+            .join(', ');
           content = `Style profile not found for "${artist}". Available artists: ${available}. Or try: /mimic [artist]`;
         }
       }
       // Route knowledge queries
-      else if (text.toLowerCase().startsWith('teach me ') || text.toLowerCase().startsWith('learn ')) {
+      else if (
+        text.toLowerCase().startsWith('teach me ') ||
+        text.toLowerCase().startsWith('learn ')
+      ) {
         const topic = text.replace(/^(teach me|learn) /i, '').trim();
         const results = this.knowledgeEngine.search(topic);
         if (results.length > 0) {

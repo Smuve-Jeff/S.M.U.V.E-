@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  signal,
+  computed,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -51,10 +58,10 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
         ? all
         : all.filter(
             (c) =>
-              c.status === tab &&
-              (c.toUserId === me || c.fromUserId === me)
+              c.status === tab && (c.toUserId === me || c.fromUserId === me)
           );
-    if (tab === 'all') return mine.filter((c) => c.toUserId === me || c.fromUserId === me);
+    if (tab === 'all')
+      return mine.filter((c) => c.toUserId === me || c.fromUserId === me);
     return mine.sort((a, b) => b.timestamp - a.timestamp);
   });
 

@@ -88,7 +88,11 @@ export class HistoryService {
   }
 
   /** Legacy alias for specs that push plain action objects. */
-  pushAction(action: { description: string; undo: () => void; redo: () => void }): void {
+  pushAction(action: {
+    description: string;
+    undo: () => void;
+    redo: () => void;
+  }): void {
     this.past.push({
       name: action.description,
       execute: action.redo,
@@ -113,7 +117,9 @@ export class HistoryService {
 
   /** Legacy getter for the next redo action name. */
   getRedoDescription(): string | null {
-    return this.future.length > 0 ? this.future[this.future.length - 1].name : null;
+    return this.future.length > 0
+      ? this.future[this.future.length - 1].name
+      : null;
   }
 
   execute(command: Command): void {

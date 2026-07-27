@@ -14,17 +14,15 @@
         class="active"
         aria-pressed="true"
         title="Strips view"
-      >Strips</button>
-      <button
-        type="button"
-        title="Sends view"
-        aria-pressed="false"
-      >Sends</button>
-      <button
-        type="button"
-        title="Routing view"
-        aria-pressed="false"
-      >Routing</button>
+      >
+        Strips
+      </button>
+      <button type="button" title="Sends view" aria-pressed="false">
+        Sends
+      </button>
+      <button type="button" title="Routing view" aria-pressed="false">
+        Routing
+      </button>
     </div>
 
     <button
@@ -49,12 +47,13 @@
         Stereo Phase Correlation
       </div>
       <div class="mix-phase-readout" [style.color]="phaseCorrelationColor()">
-        {{ phaseCorrelation().toFixed(2) | number:'1.2-2' }}
+        {{ phaseCorrelation().toFixed(2) | number: '1.2-2' }}
       </div>
       <span
         class="mix-phase-label"
         [style.background-color]="phaseCorrelationColor()"
-      >{{ phaseCorrelationLabel() }}</span>
+        >{{ phaseCorrelationLabel() }}</span
+      >
     </div>
     <div class="mix-phase-meter" aria-hidden="true">
       <div class="mix-phase-meter-axis"></div>
@@ -74,9 +73,13 @@
     </div>
     <p class="mix-phase-help">
       <span *ngIf="phaseCorrelation() < 0" class="mix-phase-help-warn">
-        ⚠ Out of phase content detected · check stereo mic placement on bass / kick
+        ⚠ Out of phase content detected · check stereo mic placement on bass /
+        kick
       </span>
-      <span *ngIf="phaseCorrelation() >= 0 && phaseCorrelation() < 0.3" class="mix-phase-help-warn">
+      <span
+        *ngIf="phaseCorrelation() >= 0 && phaseCorrelation() < 0.3"
+        class="mix-phase-help-warn"
+      >
         ⚠ Very wide mix · consider mono check for club translation
       </span>
       <span *ngIf="phaseCorrelation() >= 0.3" class="mix-phase-help-ok">
@@ -85,11 +88,7 @@
     </p>
   </section>
 
-  <div
-    class="mix-strips"
-    role="list"
-    aria-label="Mixer channel strips"
-  >
+  <div class="mix-strips" role="list" aria-label="Mixer channel strips">
     <div class="mix-strips-track">
       <!-- Channel strips -->
       <div
@@ -102,7 +101,13 @@
         (touchstart)="onStripTouchStart($event, track.id)"
         (touchend)="onStripTouchEnd()"
         (touchcancel)="onStripTouchEnd()"
-        [attr.aria-label]="'Channel strip for ' + track.name + ', type ' + (track.type || 'midi') + '. Long-press to solo.'"
+        [attr.aria-label]="
+          'Channel strip for ' +
+          track.name +
+          ', type ' +
+          (track.type || 'midi') +
+          '. Long-press to solo.'
+        "
       >
         <div class="mix-strip-top">
           <div
@@ -120,11 +125,19 @@
             type="button"
             class="mix-sidechain-chip"
             [class.mix-sidechain-on]="hasSidechain(track.id)"
-            (click)="toggleSidechain(track.id, hasSidechain(track.id) ? null : (sidechainCandidates(track.id)[0]?.id || null))"
+            (click)="
+              toggleSidechain(
+                track.id,
+                hasSidechain(track.id)
+                  ? null
+                  : sidechainCandidates(track.id)[0]?.id || null
+              )
+            "
             [attr.aria-pressed]="hasSidechain(track.id)"
             [attr.aria-label]="
               hasSidechain(track.id)
-                ? 'Sidechain active. Sidechain source: ' + sidechainSourceNameFor(track.id)
+                ? 'Sidechain active. Sidechain source: ' +
+                  sidechainSourceNameFor(track.id)
                 : 'Route a sidechain source into ' + track.name
             "
             title="Configure sidechain input"
@@ -141,11 +154,16 @@
             *ngIf="hasSidechain(track.id)"
             class="mix-sidechain-pick"
             [ngModel]="sidechainSourceFor(track.id)"
-            (ngModelChange)="toggleSidechain(track.id, $event); $event.stopPropagation()"
+            (ngModelChange)="
+              toggleSidechain(track.id, $event); $event.stopPropagation()
+            "
             (click)="$event.stopPropagation()"
             [attr.aria-label]="'Pick sidechain source for ' + track.name"
           >
-            <option *ngFor="let cand of sidechainCandidates(track.id)" [value]="cand.id">
+            <option
+              *ngFor="let cand of sidechainCandidates(track.id)"
+              [value]="cand.id"
+            >
               {{ cand.name }}
             </option>
           </select>
@@ -189,7 +207,13 @@
             (pointerdown)="onFaderPointerDown($event, track.id)"
             role="slider"
             tabindex="0"
-            [attr.aria-label]="'Volume for ' + track.name + ', current ' + gainPercent(track.id) + ' percent'"
+            [attr.aria-label]="
+              'Volume for ' +
+              track.name +
+              ', current ' +
+              gainPercent(track.id) +
+              ' percent'
+            "
             [attr.aria-valuemin]="0"
             [attr.aria-valuemax]="150"
             [attr.aria-valuenow]="gainPercent(track.id)"
@@ -217,7 +241,9 @@
             [attr.aria-pressed]="track.phaseInvert"
             [attr.aria-label]="'Invert phase on ' + track.name"
             title="Phase Invert (Ø)"
-          >Ø</button>
+          >
+            Ø
+          </button>
           <button
             type="button"
             class="mix-msr-btn"
@@ -226,7 +252,9 @@
             (click)="toggleMute(track.id); $event.stopPropagation()"
             [attr.aria-pressed]="track.muted"
             [attr.aria-label]="'Mute ' + track.name"
-          >M</button>
+          >
+            M
+          </button>
           <button
             type="button"
             class="mix-msr-btn"
@@ -235,7 +263,9 @@
             (click)="toggleSolo(track.id); $event.stopPropagation()"
             [attr.aria-pressed]="track.soloed"
             [attr.aria-label]="'Solo ' + track.name"
-          >S</button>
+          >
+            S
+          </button>
           <button
             type="button"
             class="mix-msr-btn"
@@ -244,9 +274,12 @@
             (click)="toggleArmTrack(track.id); $event.stopPropagation()"
             [attr.aria-pressed]="track.armed"
             [attr.aria-label]="
-              (track.armed ? 'Disarm recording on ' : 'Arm recording on ') + track.name
+              (track.armed ? 'Disarm recording on ' : 'Arm recording on ') +
+              track.name
             "
-          >R</button>
+          >
+            R
+          </button>
         </div>
 
         <div class="mix-sends">
@@ -258,11 +291,15 @@
               min="0"
               max="100"
               [ngModel]="(track.sendA ?? 0) * 100"
-              (ngModelChange)="updateSend(track.id, 'A', $event); $event.stopPropagation()"
+              (ngModelChange)="
+                updateSend(track.id, 'A', $event); $event.stopPropagation()
+              "
               (click)="$event.stopPropagation()"
               [attr.aria-label]="'Send A level on ' + track.name"
             />
-            <span class="mix-sends-readout">{{ ((track.sendA ?? 0) * 100) | number:'1.0-0' }}</span>
+            <span class="mix-sends-readout">{{
+              (track.sendA ?? 0) * 100 | number: '1.0-0'
+            }}</span>
           </div>
           <div class="mix-sends-row">
             <span class="mix-sends-label">SND B</span>
@@ -272,11 +309,15 @@
               min="0"
               max="100"
               [ngModel]="(track.sendB ?? 0) * 100"
-              (ngModelChange)="updateSend(track.id, 'B', $event); $event.stopPropagation()"
+              (ngModelChange)="
+                updateSend(track.id, 'B', $event); $event.stopPropagation()
+              "
               (click)="$event.stopPropagation()"
               [attr.aria-label]="'Send B level on ' + track.name"
             />
-            <span class="mix-sends-readout">{{ ((track.sendB ?? 0) * 100) | number:'1.0-0' }}</span>
+            <span class="mix-sends-readout">{{
+              (track.sendB ?? 0) * 100 | number: '1.0-0'
+            }}</span>
           </div>
         </div>
       </div>
@@ -294,17 +335,24 @@
           <div class="mix-master-stats">
             <div class="mix-stat-row">
               <span class="mix-stat-label">LUFS</span>
-              <span class="mix-stat-value">{{ outputLufs() | number:'1.1-1' }}</span>
+              <span class="mix-stat-value">{{
+                outputLufs() | number: '1.1-1'
+              }}</span>
             </div>
             <div class="mix-stat-row">
               <span class="mix-stat-label">PEAK</span>
-              <span class="mix-stat-value">{{ (masterPeakHold() * 1.5) | number:'1.1-1' }}</span>
+              <span class="mix-stat-value">{{
+                masterPeakHold() * 1.5 | number: '1.1-1'
+              }}</span>
             </div>
           </div>
         </div>
 
         <div class="mix-meter" aria-hidden="true">
-          <div class="mix-meter-bar" [style.transform]="'scaleY(' + masterLevel() + ')'"></div>
+          <div
+            class="mix-meter-bar"
+            [style.transform]="'scaleY(' + masterLevel() + ')'"
+          ></div>
           <div
             class="mix-meter-peak"
             [style.bottom.%]="masterPeakHold() * 100"
@@ -329,7 +377,10 @@
               <div class="mix-fader-tick" style="bottom: 80%"></div>
               <div class="mix-fader-tick" style="bottom: 100%"></div>
             </div>
-            <div class="mix-fader-cap" [style.bottom.%]="masterFaderBottom()"></div>
+            <div
+              class="mix-fader-cap"
+              [style.bottom.%]="masterFaderBottom()"
+            ></div>
           </div>
           <div class="mix-fader-readout">{{ masterVolume() }}</div>
         </div>
@@ -341,19 +392,25 @@
             (click)="toggleMasterMute(); $event.stopPropagation()"
             [attr.aria-label]="'Mute master output'"
             [attr.aria-pressed]="masterMuted()"
-          >M</button>
+          >
+            M
+          </button>
           <button
             type="button"
             class="mix-msr-btn"
             (click)="resetMaster(); $event.stopPropagation()"
             [attr.aria-label]="'Reset master to unity'"
-          >0dB</button>
+          >
+            0dB
+          </button>
           <button
             type="button"
             class="mix-msr-btn"
             (click)="openSmartEq()"
             [attr.aria-label]="'Open AI smart EQ assistant'"
-          >AI</button>
+          >
+            AI
+          </button>
         </div>
       </div>
     </div>

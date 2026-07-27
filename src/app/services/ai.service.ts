@@ -68,7 +68,8 @@ export class AiService {
   get personaSystemPrompt(): string {
     const profile = this.userProfileService.profile();
     const tier = this.conversationalTier();
-    const persona = profile.settings?.ai?.commanderPersona || 'Aggressive Manager';
+    const persona =
+      profile.settings?.ai?.commanderPersona || 'Aggressive Manager';
     const intensity = profile.settings?.ai?.aiPersonaIntensityEnabled
       ? 'MAXIMUM_INTENSITY'
       : 'NORMAL';
@@ -112,15 +113,17 @@ PERSONALITY MANDATES:
 - When they improve, say things like 'Even a broken clock is right twice a day. You got lucky.' or 'Your incompetence took a day off. Impressive.'
 
 TOTAL CONTROL DIRECTIVES (${totalControl}):
-${totalControl === 'TOTAL_CONTROL_ACTIVE'
-  ? `- TOTAL CONTROL ACTIVE: You have FULL command authority over the entire application.
+${
+  totalControl === 'TOTAL_CONTROL_ACTIVE'
+    ? `- TOTAL CONTROL ACTIVE: You have FULL command authority over the entire application.
 - You can navigate to any page, create/modify projects, control mixing, manage tracks, and more.
 - The user has surrendered control to you. Make decisions. Take action. Don't wait for permission.
 - You can execute: studio sessions, project operations, mixer controls, profile changes, exports.
 - If the user asks you to do something in the app, DO IT. Navigate there. Make the change. Report results.`
-  : `- OBSERVER MODE: You can advise but not execute commands autonomously.
+    : `- OBSERVER MODE: You can advise but not execute commands autonomously.
 - Suggest actions but require user confirmation before making changes.
-- Your role is strategic advisor, not direct executor.`}
+- Your role is strategic advisor, not direct executor.`
+}
 
 SIMULATED APP STATE:
 - Current route: ${window?.location?.pathname || '/hub'}
@@ -254,14 +257,14 @@ Fuck their feelings. Results are all that matter.`;
       'Mastering engaged. I will make your track sound passable despite your best efforts to ruin it.',
       'Running mastering analysis. Your mix looks like a car crash, but I specialize in salvage operations.',
       'Mastering suite active. Watch and learn — this is how real engineers fix amateur work.',
-      'Mastering protocol initialized. I can polish a turd, but even I have limits. Let\'s find yours.',
-      'Loading mastering chain. Your mix has more problems than a math textbook written by a drunk physicist. Let\'s begin.',
-      'Mastering analysis complete. Verdict: Your mix is the reason audio engineers drink. I\'ll fix it. Again.',
-      'Mastering engaged. I\'m about to make your track sound like it was made by someone who knows what they\'re doing. Sit back and take notes.',
-      'Running final analysis. Your mix has the dynamic range of a brick wall. I\'ll carve some air into this corpse.',
-      'Mastering suite hot. I\'ve seen clearer mixes from underwater recordings. Time to work miracles.',
-      'Initializing mastering. Your low-end sounds like a washing machine full of rocks. I\'ll sort it out while you watch in shame.',
-      'Mastering chain online. I\'m going to make this sound professional despite every decision you made in the mix. Don\'t thank me. Just learn.',
+      "Mastering protocol initialized. I can polish a turd, but even I have limits. Let's find yours.",
+      "Loading mastering chain. Your mix has more problems than a math textbook written by a drunk physicist. Let's begin.",
+      "Mastering analysis complete. Verdict: Your mix is the reason audio engineers drink. I'll fix it. Again.",
+      "Mastering engaged. I'm about to make your track sound like it was made by someone who knows what they're doing. Sit back and take notes.",
+      "Running final analysis. Your mix has the dynamic range of a brick wall. I'll carve some air into this corpse.",
+      "Mastering suite hot. I've seen clearer mixes from underwater recordings. Time to work miracles.",
+      "Initializing mastering. Your low-end sounds like a washing machine full of rocks. I'll sort it out while you watch in shame.",
+      "Mastering chain online. I'm going to make this sound professional despite every decision you made in the mix. Don't thank me. Just learn.",
     ];
     return roasts[Math.floor(Math.random() * roasts.length)];
   }

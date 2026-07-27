@@ -158,7 +158,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     },
     {
       id: 'lofi',
-      label: "Lo-Fi",
+      label: 'Lo-Fi',
       emoji: '☕',
       // Soft swing-friendly pattern with ghosts and ride
       patterns: {
@@ -199,14 +199,62 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       glyph: '🔊',
       hint: 'Hip-hop · long-tail 808s · warm sub',
       params: {
-        36: { decay: 0.55, cutoff: 800,  resonance: 2.5, saturation: 0.4, compression: 0.2 }, // kick long
-        38: { decay: 0.30, cutoff: 6000, resonance: 1.5, saturation: 0.3, compression: 0.4 }, // snare punch
-        39: { decay: 0.20, cutoff: 4500, resonance: 1.0, saturation: 0.5, compression: 0.3 }, // clap sharp
-        42: { decay: 0.08, cutoff: 9000, resonance: 0.5, saturation: 0.1, compression: 0.2 },
-        46: { decay: 0.25, cutoff: 7500, resonance: 0.5, saturation: 0.1, compression: 0.1 },
-        41: { decay: 0.40, cutoff: 3500, resonance: 2.0, saturation: 0.3, compression: 0.1 },
-        43: { decay: 0.30, cutoff: 4000, resonance: 2.0, saturation: 0.3, compression: 0.1 },
-        49: { decay: 0.35, cutoff: 12000, resonance: 1.0, saturation: 0.2, compression: 0.0 },
+        36: {
+          decay: 0.55,
+          cutoff: 800,
+          resonance: 2.5,
+          saturation: 0.4,
+          compression: 0.2,
+        }, // kick long
+        38: {
+          decay: 0.3,
+          cutoff: 6000,
+          resonance: 1.5,
+          saturation: 0.3,
+          compression: 0.4,
+        }, // snare punch
+        39: {
+          decay: 0.2,
+          cutoff: 4500,
+          resonance: 1.0,
+          saturation: 0.5,
+          compression: 0.3,
+        }, // clap sharp
+        42: {
+          decay: 0.08,
+          cutoff: 9000,
+          resonance: 0.5,
+          saturation: 0.1,
+          compression: 0.2,
+        },
+        46: {
+          decay: 0.25,
+          cutoff: 7500,
+          resonance: 0.5,
+          saturation: 0.1,
+          compression: 0.1,
+        },
+        41: {
+          decay: 0.4,
+          cutoff: 3500,
+          resonance: 2.0,
+          saturation: 0.3,
+          compression: 0.1,
+        },
+        43: {
+          decay: 0.3,
+          cutoff: 4000,
+          resonance: 2.0,
+          saturation: 0.3,
+          compression: 0.1,
+        },
+        49: {
+          decay: 0.35,
+          cutoff: 12000,
+          resonance: 1.0,
+          saturation: 0.2,
+          compression: 0.0,
+        },
       },
     },
     {
@@ -215,30 +263,126 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       glyph: '⚡',
       hint: 'House/techno · punchy · bright attack',
       params: {
-        36: { decay: 0.30, cutoff: 1200, resonance: 1.8, saturation: 0.2, compression: 0.3 },
-        38: { decay: 0.20, cutoff: 8000, resonance: 1.0, saturation: 0.4, compression: 0.5 },
-        39: { decay: 0.18, cutoff: 5500, resonance: 1.2, saturation: 0.4, compression: 0.4 },
-        42: { decay: 0.05, cutoff: 11000, resonance: 0.2, saturation: 0.05, compression: 0.1 },
-        46: { decay: 0.30, cutoff: 9500, resonance: 0.3, saturation: 0.1, compression: 0.1 },
-        41: { decay: 0.25, cutoff: 5000, resonance: 1.5, saturation: 0.2, compression: 0.1 },
-        43: { decay: 0.20, cutoff: 5500, resonance: 1.5, saturation: 0.2, compression: 0.1 },
-        49: { decay: 0.40, cutoff: 14000, resonance: 0.8, saturation: 0.1, compression: 0.0 },
+        36: {
+          decay: 0.3,
+          cutoff: 1200,
+          resonance: 1.8,
+          saturation: 0.2,
+          compression: 0.3,
+        },
+        38: {
+          decay: 0.2,
+          cutoff: 8000,
+          resonance: 1.0,
+          saturation: 0.4,
+          compression: 0.5,
+        },
+        39: {
+          decay: 0.18,
+          cutoff: 5500,
+          resonance: 1.2,
+          saturation: 0.4,
+          compression: 0.4,
+        },
+        42: {
+          decay: 0.05,
+          cutoff: 11000,
+          resonance: 0.2,
+          saturation: 0.05,
+          compression: 0.1,
+        },
+        46: {
+          decay: 0.3,
+          cutoff: 9500,
+          resonance: 0.3,
+          saturation: 0.1,
+          compression: 0.1,
+        },
+        41: {
+          decay: 0.25,
+          cutoff: 5000,
+          resonance: 1.5,
+          saturation: 0.2,
+          compression: 0.1,
+        },
+        43: {
+          decay: 0.2,
+          cutoff: 5500,
+          resonance: 1.5,
+          saturation: 0.2,
+          compression: 0.1,
+        },
+        49: {
+          decay: 0.4,
+          cutoff: 14000,
+          resonance: 0.8,
+          saturation: 0.1,
+          compression: 0.0,
+        },
       },
     },
     {
       id: 'linn',
       label: 'LinnDrum',
       glyph: '🎹',
-      hint: "80s pop · tight · realistic samples feel",
+      hint: '80s pop · tight · realistic samples feel',
       params: {
-        36: { decay: 0.18, cutoff: 2000, resonance: 1.0, saturation: 0.1, compression: 0.4 },
-        38: { decay: 0.15, cutoff: 7000, resonance: 0.8, saturation: 0.2, compression: 0.5 },
-        39: { decay: 0.12, cutoff: 6000, resonance: 0.8, saturation: 0.2, compression: 0.4 },
-        42: { decay: 0.04, cutoff: 10000, resonance: 0.2, saturation: 0.05, compression: 0.2 },
-        46: { decay: 0.18, cutoff: 8500, resonance: 0.3, saturation: 0.1, compression: 0.2 },
-        41: { decay: 0.20, cutoff: 4500, resonance: 1.0, saturation: 0.1, compression: 0.2 },
-        43: { decay: 0.18, cutoff: 5000, resonance: 1.0, saturation: 0.1, compression: 0.2 },
-        49: { decay: 0.35, cutoff: 13000, resonance: 0.7, saturation: 0.1, compression: 0.1 },
+        36: {
+          decay: 0.18,
+          cutoff: 2000,
+          resonance: 1.0,
+          saturation: 0.1,
+          compression: 0.4,
+        },
+        38: {
+          decay: 0.15,
+          cutoff: 7000,
+          resonance: 0.8,
+          saturation: 0.2,
+          compression: 0.5,
+        },
+        39: {
+          decay: 0.12,
+          cutoff: 6000,
+          resonance: 0.8,
+          saturation: 0.2,
+          compression: 0.4,
+        },
+        42: {
+          decay: 0.04,
+          cutoff: 10000,
+          resonance: 0.2,
+          saturation: 0.05,
+          compression: 0.2,
+        },
+        46: {
+          decay: 0.18,
+          cutoff: 8500,
+          resonance: 0.3,
+          saturation: 0.1,
+          compression: 0.2,
+        },
+        41: {
+          decay: 0.2,
+          cutoff: 4500,
+          resonance: 1.0,
+          saturation: 0.1,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.18,
+          cutoff: 5000,
+          resonance: 1.0,
+          saturation: 0.1,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.35,
+          cutoff: 13000,
+          resonance: 0.7,
+          saturation: 0.1,
+          compression: 0.1,
+        },
       },
     },
     {
@@ -247,14 +391,62 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       glyph: '🥁',
       hint: 'Boom-bap · gritty · bit-crushed warmth',
       params: {
-        36: { decay: 0.40, cutoff: 600, resonance: 3.0, saturation: 0.8, compression: 0.6 },
-        38: { decay: 0.22, cutoff: 4500, resonance: 2.5, saturation: 0.7, compression: 0.6 },
-        39: { decay: 0.20, cutoff: 3800, resonance: 2.0, saturation: 0.6, compression: 0.5 },
-        42: { decay: 0.06, cutoff: 8000, resonance: 1.5, saturation: 0.5, compression: 0.3 },
-        46: { decay: 0.25, cutoff: 7000, resonance: 1.5, saturation: 0.4, compression: 0.3 },
-        41: { decay: 0.35, cutoff: 3000, resonance: 2.5, saturation: 0.5, compression: 0.2 },
-        43: { decay: 0.30, cutoff: 3500, resonance: 2.5, saturation: 0.5, compression: 0.2 },
-        49: { decay: 0.30, cutoff: 11000, resonance: 1.5, saturation: 0.3, compression: 0.1 },
+        36: {
+          decay: 0.4,
+          cutoff: 600,
+          resonance: 3.0,
+          saturation: 0.8,
+          compression: 0.6,
+        },
+        38: {
+          decay: 0.22,
+          cutoff: 4500,
+          resonance: 2.5,
+          saturation: 0.7,
+          compression: 0.6,
+        },
+        39: {
+          decay: 0.2,
+          cutoff: 3800,
+          resonance: 2.0,
+          saturation: 0.6,
+          compression: 0.5,
+        },
+        42: {
+          decay: 0.06,
+          cutoff: 8000,
+          resonance: 1.5,
+          saturation: 0.5,
+          compression: 0.3,
+        },
+        46: {
+          decay: 0.25,
+          cutoff: 7000,
+          resonance: 1.5,
+          saturation: 0.4,
+          compression: 0.3,
+        },
+        41: {
+          decay: 0.35,
+          cutoff: 3000,
+          resonance: 2.5,
+          saturation: 0.5,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.3,
+          cutoff: 3500,
+          resonance: 2.5,
+          saturation: 0.5,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.3,
+          cutoff: 11000,
+          resonance: 1.5,
+          saturation: 0.3,
+          compression: 0.1,
+        },
       },
     },
     {
@@ -263,14 +455,62 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       glyph: '🎶',
       hint: 'Live kit · natural · room ambience',
       params: {
-        36: { decay: 0.28, cutoff: 3000, resonance: 0.8, saturation: 0.05, compression: 0.3 },
-        38: { decay: 0.18, cutoff: 9000, resonance: 0.5, saturation: 0.1, compression: 0.4 },
-        39: { decay: 0.15, cutoff: 8500, resonance: 0.4, saturation: 0.1, compression: 0.3 },
-        42: { decay: 0.03, cutoff: 14000, resonance: 0.1, saturation: 0.0, compression: 0.1 },
-        46: { decay: 0.20, cutoff: 12000, resonance: 0.2, saturation: 0.0, compression: 0.1 },
-        41: { decay: 0.30, cutoff: 5500, resonance: 0.8, saturation: 0.05, compression: 0.2 },
-        43: { decay: 0.25, cutoff: 6500, resonance: 0.8, saturation: 0.05, compression: 0.2 },
-        49: { decay: 0.45, cutoff: 16000, resonance: 0.3, saturation: 0.05, compression: 0.1 },
+        36: {
+          decay: 0.28,
+          cutoff: 3000,
+          resonance: 0.8,
+          saturation: 0.05,
+          compression: 0.3,
+        },
+        38: {
+          decay: 0.18,
+          cutoff: 9000,
+          resonance: 0.5,
+          saturation: 0.1,
+          compression: 0.4,
+        },
+        39: {
+          decay: 0.15,
+          cutoff: 8500,
+          resonance: 0.4,
+          saturation: 0.1,
+          compression: 0.3,
+        },
+        42: {
+          decay: 0.03,
+          cutoff: 14000,
+          resonance: 0.1,
+          saturation: 0.0,
+          compression: 0.1,
+        },
+        46: {
+          decay: 0.2,
+          cutoff: 12000,
+          resonance: 0.2,
+          saturation: 0.0,
+          compression: 0.1,
+        },
+        41: {
+          decay: 0.3,
+          cutoff: 5500,
+          resonance: 0.8,
+          saturation: 0.05,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.25,
+          cutoff: 6500,
+          resonance: 0.8,
+          saturation: 0.05,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.45,
+          cutoff: 16000,
+          resonance: 0.3,
+          saturation: 0.05,
+          compression: 0.1,
+        },
       },
     },
     {
@@ -279,14 +519,62 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       glyph: '☕',
       hint: 'Dusty · warm · nostalgic',
       params: {
-        36: { decay: 0.45, cutoff: 500, resonance: 3.5, saturation: 0.6, compression: 0.5 },
-        38: { decay: 0.25, cutoff: 4000, resonance: 1.5, saturation: 0.5, compression: 0.5 },
-        39: { decay: 0.20, cutoff: 3500, resonance: 1.2, saturation: 0.4, compression: 0.4 },
-        42: { decay: 0.06, cutoff: 7000, resonance: 1.0, saturation: 0.3, compression: 0.3 },
-        46: { decay: 0.30, cutoff: 6500, resonance: 0.8, saturation: 0.3, compression: 0.3 },
-        41: { decay: 0.40, cutoff: 2500, resonance: 1.5, saturation: 0.3, compression: 0.2 },
-        43: { decay: 0.35, cutoff: 3000, resonance: 1.5, saturation: 0.3, compression: 0.2 },
-        49: { decay: 0.40, cutoff: 8000, resonance: 1.0, saturation: 0.3, compression: 0.1 },
+        36: {
+          decay: 0.45,
+          cutoff: 500,
+          resonance: 3.5,
+          saturation: 0.6,
+          compression: 0.5,
+        },
+        38: {
+          decay: 0.25,
+          cutoff: 4000,
+          resonance: 1.5,
+          saturation: 0.5,
+          compression: 0.5,
+        },
+        39: {
+          decay: 0.2,
+          cutoff: 3500,
+          resonance: 1.2,
+          saturation: 0.4,
+          compression: 0.4,
+        },
+        42: {
+          decay: 0.06,
+          cutoff: 7000,
+          resonance: 1.0,
+          saturation: 0.3,
+          compression: 0.3,
+        },
+        46: {
+          decay: 0.3,
+          cutoff: 6500,
+          resonance: 0.8,
+          saturation: 0.3,
+          compression: 0.3,
+        },
+        41: {
+          decay: 0.4,
+          cutoff: 2500,
+          resonance: 1.5,
+          saturation: 0.3,
+          compression: 0.2,
+        },
+        43: {
+          decay: 0.35,
+          cutoff: 3000,
+          resonance: 1.5,
+          saturation: 0.3,
+          compression: 0.2,
+        },
+        49: {
+          decay: 0.4,
+          cutoff: 8000,
+          resonance: 1.0,
+          saturation: 0.3,
+          compression: 0.1,
+        },
       },
     },
   ];
@@ -296,7 +584,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   /** Active take id currently selected in the recorder. */
   activeTakeId = signal<string | null>(null);
   /** Take slots persisted per drum pattern (advanced comping). */
-  takeSlots = signal<{ patternSignature: string; kits: string[]; takes: { id: string; createdAt: number; kitId: string }[] }>({
+  takeSlots = signal<{
+    patternSignature: string;
+    kits: string[];
+    takes: { id: string; createdAt: number; kitId: string }[];
+  }>({
     patternSignature: 'default',
     kits: [],
     takes: [],
@@ -530,9 +822,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     }
     steps.forEach((s) => this.toggleStep(pad.id, s, style.velocity));
     this.haptic.medium();
-    this.snack.success(
-      `${pad.name} · ${style.label} recipe loaded`
-    );
+    this.snack.success(`${pad.name} · ${style.label} recipe loaded`);
   }
 
   clearCurrentPad() {
@@ -658,10 +948,14 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   // ── Pro: Take Manager API ─────────────────────────────────────
   /** Create a new take with the current kit. Stores the take slot. */
   createTake(): string {
-    const id = 'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-    this.takeSlots.update(s => ({
+    const id =
+      'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    this.takeSlots.update((s) => ({
       ...s,
-      takes: [...s.takes, { id, createdAt: Date.now(), kitId: this.selectedKitId() }],
+      takes: [
+        ...s.takes,
+        { id, createdAt: Date.now(), kitId: this.selectedKitId() },
+      ],
     }));
     this.activeTakeId.set(id);
     this.haptic.heavy();
@@ -679,7 +973,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   removeTake(id: string): void {
-    this.takeSlots.update(s => ({ ...s, takes: s.takes.filter(t => t.id !== id) }));
+    this.takeSlots.update((s) => ({
+      ...s,
+      takes: s.takes.filter((t) => t.id !== id),
+    }));
     if (this.activeTakeId() === id) {
       this.activeTakeId.set(this.takeSlots().takes[0]?.id ?? null);
     }
@@ -696,7 +993,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const pad = this.selectedPad();
     if (!track || !pad) return;
     const actualStep = this.resolveStepIdx(stepIdx);
-    const note = track.notes.find(n => n.midi === pad.midi && n.step === actualStep);
+    const note = track.notes.find(
+      (n) => n.midi === pad.midi && n.step === actualStep
+    );
     if (note) {
       if (this.graphTarget() === 'velocity') {
         this.musicManager.updateNote(track.id, note.id, { velocity: value });
@@ -727,17 +1026,24 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!track || !pad) return;
     this.haptic.heavy();
     // Clear existing last-bar hits for this pad
-    const existing = track.notes.filter(n => n.midi === pad.midi && n.step >= 48);
-    this.musicManager.removeNotes(track.id, existing.map(n => n.id));
+    const existing = track.notes.filter(
+      (n) => n.midi === pad.midi && n.step >= 48
+    );
+    this.musicManager.removeNotes(
+      track.id,
+      existing.map((n) => n.id)
+    );
     // Generate a snare/hi-hat fill with increasing density
     for (let s = 48; s < 64; s++) {
       const density = (s - 48) / 16; // 0→1 increasing
       const hitChance = 0.3 + density * 0.5;
       if (Math.random() < hitChance) {
-        const vel = 0.6 + density * 0.35 + (Math.random() * 0.1);
+        const vel = 0.6 + density * 0.35 + Math.random() * 0.1;
         this.musicManager.addNoteToTrack(track.id, {
           id: 'fill_' + Date.now() + Math.random(),
-          midi: pad.midi, step: s, length: 1,
+          midi: pad.midi,
+          step: s,
+          length: 1,
           velocity: Math.min(1, vel),
           probability: 1.0,
           params: { ...pad.params, sampleBuffer: pad.sampleBuffer },
@@ -752,26 +1058,35 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const track = this.getDrumTrack();
     if (!track) return;
     this.haptic.medium();
-    track.notes.forEach(n => {
+    track.notes.forEach((n) => {
       if (Math.random() < 0.2) {
         // Toggle some hits off
         this.musicManager.removeNotes(track.id, [n.id]);
       } else if (Math.random() < 0.15) {
         // Nudge velocity
         this.musicManager.updateNote(track.id, n.id, {
-          velocity: Math.max(0.1, Math.min(1, n.velocity + (Math.random() - 0.5) * 0.3)),
+          velocity: Math.max(
+            0.1,
+            Math.min(1, n.velocity + (Math.random() - 0.5) * 0.3)
+          ),
         });
       }
     });
     // Add a few new random hits
-    this.pads().forEach(p => {
+    this.pads().forEach((p) => {
       for (let i = 0; i < 3; i++) {
         const s = Math.floor(Math.random() * 64);
-        const exists = track.notes.find(n => n.midi === p.midi && n.step === s);
+        const exists = track.notes.find(
+          (n) => n.midi === p.midi && n.step === s
+        );
         if (!exists && Math.random() > 0.6) {
           this.musicManager.addNoteToTrack(track.id, {
             id: 'var_' + Date.now() + Math.random(),
-            midi: p.midi, step: s, length: 1, velocity: 0.5 + Math.random() * 0.4, probability: 0.8,
+            midi: p.midi,
+            step: s,
+            length: 1,
+            velocity: 0.5 + Math.random() * 0.4,
+            probability: 0.8,
             params: { ...p.params, sampleBuffer: p.sampleBuffer },
           });
         }

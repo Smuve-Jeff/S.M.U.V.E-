@@ -3,7 +3,11 @@
   min-height: 100vh;
   background: var(--espresso-500, #14110b);
   color: var(--ivory-100, #f5efe0);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   overflow-x: hidden;
 }
 
@@ -22,7 +26,11 @@
   transform: translateX(-50%);
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(14, 124, 123, 0.15) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(14, 124, 123, 0.15) 0%,
+    transparent 70%
+  );
   pointer-events: none;
 }
 
@@ -50,8 +58,15 @@
 }
 
 @keyframes al-pulse-ring {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.6; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.6;
+  }
 }
 
 .al-badge-initial {
@@ -66,7 +81,11 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
-  background: linear-gradient(135deg, var(--ivory-100, #f5efe0), var(--teal-300, #5dc4c2));
+  background: linear-gradient(
+    135deg,
+    var(--ivory-100, #f5efe0),
+    var(--teal-300, #5dc4c2)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -114,7 +133,11 @@
   position: relative;
   margin: 0 16px 24px;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(14, 124, 123, 0.08), rgba(14, 124, 123, 0.02));
+  background: linear-gradient(
+    135deg,
+    rgba(14, 124, 123, 0.08),
+    rgba(14, 124, 123, 0.02)
+  );
   border: 1px solid rgba(14, 124, 123, 0.2);
   border-radius: 16px;
   overflow: hidden;
@@ -272,7 +295,9 @@
 .al-strength-bar-fill {
   height: 100%;
   border-radius: 4px;
-  transition: width 0.6s ease, background 0.3s ease;
+  transition:
+    width 0.6s ease,
+    background 0.3s ease;
 }
 
 .al-overall-score {
@@ -303,7 +328,9 @@
   stroke-width: 6;
   stroke-linecap: round;
   stroke-dasharray: 220;
-  transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+  transition:
+    stroke-dashoffset 1s ease,
+    stroke 0.5s ease;
 }
 
 .al-score-center {
@@ -567,8 +594,13 @@
 }
 
 @keyframes al-pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* ── Featured Track Player ────────────────────────── */
@@ -595,19 +627,32 @@
 .al-wave-bar {
   flex: 1;
   height: 100%;
-  background: linear-gradient(to top, rgba(14, 124, 123, 0.3), rgba(14, 124, 123, 0.6));
+  background: linear-gradient(
+    to top,
+    rgba(14, 124, 123, 0.3),
+    rgba(14, 124, 123, 0.6)
+  );
   border-radius: 2px 2px 0 0;
   animation: al-wave-pulse 1.5s ease-in-out infinite;
   animation-delay: calc(var(--i, 0) * 0.05s);
 }
 
 .al-wave-bar:nth-child(odd) {
-  background: linear-gradient(to top, rgba(14, 124, 123, 0.15), rgba(14, 124, 123, 0.35));
+  background: linear-gradient(
+    to top,
+    rgba(14, 124, 123, 0.15),
+    rgba(14, 124, 123, 0.35)
+  );
 }
 
 @keyframes al-wave-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .al-track-info {
@@ -775,14 +820,30 @@
 
 /* ── Responsive ─────────────────────────────────────── */
 @media (min-width: 768px) {
-  .al-header { padding: 80px 40px 48px; }
-  .al-artist-name { font-size: 44px; }
-  .al-persona-card, .al-strength-section,
-  .al-sound-section, .al-insights-section,
-  .al-journey-section { padding-left: 40px; padding-right: 40px; }
-  .al-persona-card { margin: 0 24px 24px; padding: 32px; }
-  .al-persona-grid { grid-template-columns: 1fr 1fr; }
-  .al-journey-grid { grid-template-columns: repeat(4, 1fr); }
+  .al-header {
+    padding: 80px 40px 48px;
+  }
+  .al-artist-name {
+    font-size: 44px;
+  }
+  .al-persona-card,
+  .al-strength-section,
+  .al-sound-section,
+  .al-insights-section,
+  .al-journey-section {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .al-persona-card {
+    margin: 0 24px 24px;
+    padding: 32px;
+  }
+  .al-persona-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .al-journey-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {

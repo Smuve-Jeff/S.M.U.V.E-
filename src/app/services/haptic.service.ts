@@ -42,55 +42,112 @@ export class HapticService {
     if (typeof navigator === 'undefined' || !navigator.vibrate) return;
     try {
       const scaled = Array.isArray(pattern)
-        ? pattern.map((v, i) => i % 2 === 0 ? Math.round(v * this.intensity()) : v)
+        ? pattern.map((v, i) =>
+            i % 2 === 0 ? Math.round(v * this.intensity()) : v
+          )
         : Math.round(pattern * this.intensity());
       navigator.vibrate(scaled);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
 
   // ── Basic impacts ─────────────────────────────────────
 
   impact(style: 'light' | 'medium' | 'heavy') {
     switch (style) {
-      case 'light':  return this.light();
-      case 'medium': return this.medium();
-      case 'heavy':  return this.heavy();
+      case 'light':
+        return this.light();
+      case 'medium':
+        return this.medium();
+      case 'heavy':
+        return this.heavy();
     }
   }
 
-  light()  { this.vibrate(8); }
-  medium() { this.vibrate(18); }
-  heavy()  { this.vibrate(35); }
+  light() {
+    this.vibrate(8);
+  }
+  medium() {
+    this.vibrate(18);
+  }
+  heavy() {
+    this.vibrate(35);
+  }
 
   // ── Status feedback ───────────────────────────────────
 
-  success() { this.vibrate([8, 25, 8]); }
-  warning() { this.vibrate([18, 40, 18]); }
-  error()   { this.vibrate([40, 80, 40, 80, 40]); }
+  success() {
+    this.vibrate([8, 25, 8]);
+  }
+  warning() {
+    this.vibrate([18, 40, 18]);
+  }
+  error() {
+    this.vibrate([40, 80, 40, 80, 40]);
+  }
 
   // ── Musical presets ───────────────────────────────────
 
   preset(name: HapticPreset) {
     switch (name) {
-      case 'snap':         this.vibrate(4); break;
-      case 'detent':       this.vibrate([3, 8, 3]); break;
-      case 'tick':         this.vibrate(2); break;
-      case 'faderUnity':   this.vibrate([6, 12, 6]); break;
-      case 'faderZero':    this.vibrate([4, 10, 4, 10, 4]); break;
-      case 'noteOn':       this.vibrate(6); break;
-      case 'noteOff':      this.vibrate(3); break;
-      case 'knobLimit':    this.vibrate([2, 6, 2, 6, 2]); break;
-      case 'recordArm':    this.vibrate([15, 30, 15, 30, 30]); break;
-      case 'loopMarker':   this.vibrate([8, 15, 12]); break;
-      case 'grooveShuffle':this.vibrate([3, 30, 6]); break;
-      case 'beatAccent':   this.vibrate(10); break;
-      case 'beatGhost':    this.vibrate(2); break;
-      case 'undo':         this.vibrate([5, 20, 10]); break;
-      case 'redo':         this.vibrate([10, 20, 5]); break;
-      case 'soloFlash':    this.vibrate([8, 15, 8]); break;
-      case 'muteFlash':    this.vibrate([12, 8]); break;
-      case 'pitchBend':    this.vibrate(3); break;
-      case 'velocityHit':  this.vibrate([4, 6, 8]); break;
+      case 'snap':
+        this.vibrate(4);
+        break;
+      case 'detent':
+        this.vibrate([3, 8, 3]);
+        break;
+      case 'tick':
+        this.vibrate(2);
+        break;
+      case 'faderUnity':
+        this.vibrate([6, 12, 6]);
+        break;
+      case 'faderZero':
+        this.vibrate([4, 10, 4, 10, 4]);
+        break;
+      case 'noteOn':
+        this.vibrate(6);
+        break;
+      case 'noteOff':
+        this.vibrate(3);
+        break;
+      case 'knobLimit':
+        this.vibrate([2, 6, 2, 6, 2]);
+        break;
+      case 'recordArm':
+        this.vibrate([15, 30, 15, 30, 30]);
+        break;
+      case 'loopMarker':
+        this.vibrate([8, 15, 12]);
+        break;
+      case 'grooveShuffle':
+        this.vibrate([3, 30, 6]);
+        break;
+      case 'beatAccent':
+        this.vibrate(10);
+        break;
+      case 'beatGhost':
+        this.vibrate(2);
+        break;
+      case 'undo':
+        this.vibrate([5, 20, 10]);
+        break;
+      case 'redo':
+        this.vibrate([10, 20, 5]);
+        break;
+      case 'soloFlash':
+        this.vibrate([8, 15, 8]);
+        break;
+      case 'muteFlash':
+        this.vibrate([12, 8]);
+        break;
+      case 'pitchBend':
+        this.vibrate(3);
+        break;
+      case 'velocityHit':
+        this.vibrate([4, 6, 8]);
+        break;
     }
   }
 
@@ -180,6 +237,8 @@ export class HapticService {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + durationMs / 1000 + 0.01);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
 }

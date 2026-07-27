@@ -39,7 +39,12 @@
         <span class="daily-ops-glyph">⚡</span>
         <div class="daily-ops-title-block">
           <h3 class="daily-ops-title">DAILY OPS</h3>
-          <p class="daily-ops-sub">Streak: <span class="streak-num">{{ dailyMissions.streak().streak }}</span> day{{ dailyMissions.streak().streak === 1 ? '' : 's' }} · Best {{ dailyMissions.streak().bestStreak }}</p>
+          <p class="daily-ops-sub">
+            Streak:
+            <span class="streak-num">{{ dailyMissions.streak().streak }}</span>
+            day{{ dailyMissions.streak().streak === 1 ? '' : 's' }} · Best
+            {{ dailyMissions.streak().bestStreak }}
+          </p>
         </div>
       </div>
       <div class="mission-grid">
@@ -53,23 +58,32 @@
           <div class="mission-card-name">{{ m.title }}</div>
           <div class="mission-card-desc">{{ m.description }}</div>
           <div class="mission-progress-shell">
-            <div class="mission-progress-bar" [style.width.%]="(m.progress / m.target) * 100"></div>
+            <div
+              class="mission-progress-bar"
+              [style.width.%]="(m.progress / m.target) * 100"
+            ></div>
           </div>
-          <div class="mission-progress-meta">{{ m.progressLabel }} · +{{ m.rewardXp }} XP</div>
+          <div class="mission-progress-meta">
+            {{ m.progressLabel }} · +{{ m.rewardXp }} XP
+          </div>
           <div class="mission-claim-row">
             <button
               *ngIf="m.claimed"
               class="mission-claim-btn is-claimed"
               disabled
               aria-label="Reward claimed"
-            >✅ {{ m.rewardBadge }}</button>
+            >
+              ✅ {{ m.rewardBadge }}
+            </button>
             <button
               *ngIf="!m.claimed"
               class="mission-claim-btn"
               [disabled]="m.progress < m.target"
               (click)="claimMission(m.id)"
               [attr.aria-label]="'Claim reward for ' + m.title"
-            >CLAIM</button>
+            >
+              CLAIM
+            </button>
           </div>
         </div>
       </div>
@@ -77,10 +91,20 @@
   </ng-container>
 
   <!-- ════════════ POST-PLAY RATING MODAL ════════════ -->
-  <div *ngIf="gameRatings.pendingRating() as pending" class="rating-modal-wrap" role="dialog" aria-label="Rate this game">
+  <div
+    *ngIf="gameRatings.pendingRating() as pending"
+    class="rating-modal-wrap"
+    role="dialog"
+    aria-label="Rate this game"
+  >
     <div class="rating-backdrop" (click)="dismissRating()"></div>
     <div class="rating-modal-card glass-v42">
-      <button class="rating-close" type="button" (click)="dismissRating()" aria-label="Dismiss rating">
+      <button
+        class="rating-close"
+        type="button"
+        (click)="dismissRating()"
+        aria-label="Dismiss rating"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
       <header class="rating-modal-head">
@@ -90,40 +114,76 @@
       <div class="rating-game-row">
         <div class="rating-game-name">{{ pending.gameName }}</div>
         <div class="rating-game-meta" *ngIf="pending.sessionMs as ms">
-          Session: {{ (ms / 60000) | number: '1.0-1' }} min
-          <span *ngIf="pending.lastScore"> · Score: {{ pending.lastScore }}</span>
+          Session: {{ ms / 60000 | number: '1.0-1' }} min
+          <span *ngIf="pending.lastScore">
+            · Score: {{ pending.lastScore }}</span
+          >
         </div>
       </div>
       <!-- Star row -->
       <div class="rating-stars-row" role="radiogroup" aria-label="Star rating">
         <button
-          *ngFor="let s of [1,2,3,4,5]"
+          *ngFor="let s of [1, 2, 3, 4, 5]"
           type="button"
           class="rating-star-btn"
-          data-rating-value="{{s}}"
+          data-rating-value="{{ s }}"
           (click)="submitRating(s, '', null)"
           [attr.aria-label]="s + ' star' + (s === 1 ? '' : 's')"
-        >★</button>
+        >
+          ★
+        </button>
       </div>
       <!-- Result quick row -->
       <div class="rating-result-row">
-        <button class="rating-result-btn win" type="button" (click)="submitRating(4, '', 'win')">🏆 WIN</button>
-        <button class="rating-result-btn loss" type="button" (click)="submitRating(3, '', 'loss')">💀 LOSS</button>
-        <button class="rating-result-btn draw" type="button" (click)="submitRating(3, '', 'draw')">🤝 DRAW</button>
-        <button class="rating-result-btn skip" type="button" (click)="dismissRating()">⏭ SKIP</button>
+        <button
+          class="rating-result-btn win"
+          type="button"
+          (click)="submitRating(4, '', 'win')"
+        >
+          🏆 WIN
+        </button>
+        <button
+          class="rating-result-btn loss"
+          type="button"
+          (click)="submitRating(3, '', 'loss')"
+        >
+          💀 LOSS
+        </button>
+        <button
+          class="rating-result-btn draw"
+          type="button"
+          (click)="submitRating(3, '', 'draw')"
+        >
+          🤝 DRAW
+        </button>
+        <button
+          class="rating-result-btn skip"
+          type="button"
+          (click)="dismissRating()"
+        >
+          ⏭ SKIP
+        </button>
       </div>
     </div>
   </div>
 
   <!-- ════════════ SPECTATOR REACTIONS OVERLAY ════════════ -->
-  <div *ngIf="matchmaking.isSpectating()" class="spectator-rail" aria-label="Spectator reactions">
+  <div
+    *ngIf="matchmaking.isSpectating()"
+    class="spectator-rail"
+    aria-label="Spectator reactions"
+  >
     <div class="spectator-bubbles">
       <span
-        *ngFor="let r of matchmaking.spectatorReactions(); trackBy: trackByReactionId"
+        *ngFor="
+          let r of matchmaking.spectatorReactions();
+          trackBy: trackByReactionId
+        "
         class="spectator-bubble"
         [attr.data-emoji]="r.emoji"
         [attr.aria-label]="r.fromUserName + ' reacted ' + r.emoji"
-      >{{ r.emoji }}</span>
+        >{{ r.emoji }}</span
+      >
     </div>
     <div class="spectator-picker" role="group" aria-label="Send reaction">
       <button
@@ -132,25 +192,42 @@
         class="spectator-emoji-btn"
         (click)="fireSpectatorReaction(e)"
         [attr.aria-label]="'Send ' + e"
-      >{{ e }}</button>
+      >
+        {{ e }}
+      </button>
     </div>
-    <button class="spectator-stop" type="button" (click)="stopSpectate()" aria-label="Stop spectating">
+    <button
+      class="spectator-stop"
+      type="button"
+      (click)="stopSpectate()"
+      aria-label="Stop spectating"
+    >
       <span class="material-symbols-outlined">close</span> STOP SPECTATING
     </button>
   </div>
 
   <!-- ════════════ SPECTATOR CHAT DRAWER ════════════ -->
-  <div *ngIf="matchmaking.isSpectating()" class="spectator-chat-drawer" aria-label="Spectator chat">
+  <div
+    *ngIf="matchmaking.isSpectating()"
+    class="spectator-chat-drawer"
+    aria-label="Spectator chat"
+  >
     <div class="spec-chat-header">
       <span class="material-symbols-outlined">chat</span>
       <span class="spec-chat-title">SPECTATOR CHAT</span>
     </div>
     <div class="spec-chat-list">
-      <div *ngFor="let m of matchmaking.spectatorChatMessages()" class="spec-chat-line">
+      <div
+        *ngFor="let m of matchmaking.spectatorChatMessages()"
+        class="spec-chat-line"
+      >
         <span class="spec-chat-name">{{ m.fromUserName }}:</span>
         <span class="spec-chat-text">{{ m.text }}</span>
       </div>
-      <div *ngIf="matchmaking.spectatorChatMessages().length === 0" class="spec-chat-empty">
+      <div
+        *ngIf="matchmaking.spectatorChatMessages().length === 0"
+        class="spec-chat-empty"
+      >
         No messages yet. Cheer them on!
       </div>
     </div>
@@ -164,7 +241,12 @@
         class="spec-chat-input"
         aria-label="Spectator chat input"
       />
-      <button class="spec-chat-send" type="button" (click)="sendSpectatorChatNow()" aria-label="Send message">
+      <button
+        class="spec-chat-send"
+        type="button"
+        (click)="sendSpectatorChatNow()"
+        aria-label="Send message"
+      >
         <span class="material-symbols-outlined">send</span>
       </button>
     </div>
@@ -173,7 +255,11 @@
   <!-- ════════════ SPECTATE BUTTON on Live Lobbies Rail ════════════ -->
 
   <!-- ── Achievement Unlock Popup ─────────────────────── -->
-  <div class="achievement-popup" *ngIf="showAchievementPopup() && lastUnlockedAchievement() as ach" [class.active]="showAchievementPopup()">
+  <div
+    class="achievement-popup"
+    *ngIf="showAchievementPopup() && lastUnlockedAchievement() as ach"
+    [class.active]="showAchievementPopup()"
+  >
     <div class="achievement-icon">
       <span class="material-symbols-outlined">{{ ach.icon }}</span>
     </div>
@@ -188,14 +274,28 @@
   <div
     class="challenge-banner glass-v42-pro"
     *ngIf="isKnocking()"
-    style="border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);"
+    style="
+      border-color: rgba(16, 185, 129, 0.4);
+      background: linear-gradient(
+        135deg,
+        rgba(16, 185, 129, 0.2) 0%,
+        rgba(59, 130, 246, 0.2) 100%
+      );
+    "
   >
     <div class="challenge-info">
-      <span class="material-symbols-outlined" style="color: #10b981;">call</span>
+      <span class="material-symbols-outlined" style="color: #10b981">call</span>
       <span>INCOMING VOICE UPLINK REQUEST</span>
     </div>
     <div class="challenge-actions">
-      <button class="action-btn" (click)="peerService.acceptKnock()" style="background: rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5);">
+      <button
+        class="action-btn"
+        (click)="peerService.acceptKnock()"
+        style="
+          background: rgba(16, 185, 129, 0.3);
+          border-color: rgba(16, 185, 129, 0.5);
+        "
+      >
         ACCEPT
       </button>
       <button class="action-btn danger" (click)="peerService.declineKnock()">
@@ -210,13 +310,13 @@
   >
     <div class="header-left">
       <div class="spot-logo">
-      <div class="spot-logo-icon">S</div>
-      <h1 class="spot-title" data-text="THA_SPOT">THA_SPOT</h1>
-    </div>
-    <div class="status-badge hide-mobile">
-      <span class="status-indicator live"></span>
-      <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
-    </div>
+        <div class="spot-logo-icon">S</div>
+        <h1 class="spot-title" data-text="THA_SPOT">THA_SPOT</h1>
+      </div>
+      <div class="status-badge hide-mobile">
+        <span class="status-indicator live"></span>
+        <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
+      </div>
     </div>
 
     <div class="header-center hide-mobile">
@@ -237,9 +337,17 @@
         type="button"
         class="header-btn gamepad-indicator"
         [class.connected]="gamepadService.connectedGamepad() !== null"
-        title="{{ gamepadService.connectedGamepad() ? 'Controller connected: ' + gamepadService.connectedGamepad()!.id : 'No controller detected. Connect a gamepad.' }}"
+        title="{{
+          gamepadService.connectedGamepad()
+            ? 'Controller connected: ' + gamepadService.connectedGamepad()!.id
+            : 'No controller detected. Connect a gamepad.'
+        }}"
       >
-        <span class="material-symbols-outlined">{{ gamepadService.connectedGamepad() ? 'stadia_controller' : 'sync_disabled' }}</span>
+        <span class="material-symbols-outlined">{{
+          gamepadService.connectedGamepad()
+            ? 'stadia_controller'
+            : 'sync_disabled'
+        }}</span>
       </button>
       <button
         type="button"
@@ -249,7 +357,7 @@
       >
         <span class="material-symbols-outlined">share</span>
       </button>
-      <div class="room-selector" style="display:flex;gap:0.25rem;">
+      <div class="room-selector" style="display: flex; gap: 0.25rem">
         <button
           type="button"
           class="header-btn"
@@ -294,7 +402,12 @@
         <!-- Cinematic Hero -->
         <div class="cinematic-hero" #heroSection>
           <div class="hero-bg-layer">
-            <div class="hero-bg-image" [style.backgroundImage]="'url(' + (games()[0]?.image || 'assets/desktop_hub.png') + ')'"></div>
+            <div
+              class="hero-bg-image"
+              [style.backgroundImage]="
+                'url(' + (games()[0]?.image || 'assets/desktop_hub.png') + ')'
+              "
+            ></div>
             <div class="hero-gradient-overlay"></div>
           </div>
           <div class="hero-content">
@@ -304,15 +417,26 @@
             </div>
             <h1 class="hero-title">HIGH-FIDELITY RERUNS</h1>
             <p class="hero-subtitle">
-              Access the Absolute gaming catalog with zero-latency emulation. Dive into 400+ cabinets across every era.
+              Access the Absolute gaming catalog with zero-latency emulation.
+              Dive into 400+ cabinets across every era.
             </p>
             <div class="hero-actions">
-              <button class="hero-btn-primary" (click)="setActiveRoom('arcade')">
-                <span class="material-symbols-outlined" style="font-size:1rem;">videogame_asset</span>
+              <button
+                class="hero-btn-primary"
+                (click)="setActiveRoom('arcade')"
+              >
+                <span class="material-symbols-outlined" style="font-size: 1rem"
+                  >videogame_asset</span
+                >
                 ARCADE_FLOOR
               </button>
-              <button class="hero-btn-secondary" (click)="setActiveRoom('neo-zone')">
-                <span class="material-symbols-outlined" style="font-size:1rem;">flash_on</span>
+              <button
+                class="hero-btn-secondary"
+                (click)="setActiveRoom('neo-zone')"
+              >
+                <span class="material-symbols-outlined" style="font-size: 1rem"
+                  >flash_on</span
+                >
                 NEO_ZONE
               </button>
             </div>
@@ -441,18 +565,41 @@
           </div>
         </div>
 
-        <!-- Full Catalog Supplement -->          <!-- 🟢 Live Co-Op Lobbies ── Real-time Socket.io lobby discoverability -->
-        <div class="live-lobbies-rail" *ngIf="matchmaking.activeLobbies().length > 0">
+        <!-- Full Catalog Supplement -->
+        <!-- 🟢 Live Co-Op Lobbies ── Real-time Socket.io lobby discoverability -->
+        <div
+          class="live-lobbies-rail"
+          *ngIf="matchmaking.activeLobbies().length > 0"
+        >
           <div class="section-header">
             <div class="section-header-left">
               <h3>
-                <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle;color:#10b981;">groups</span>
+                <span
+                  class="material-symbols-outlined"
+                  style="
+                    font-size: 1rem;
+                    vertical-align: middle;
+                    color: #10b981;
+                  "
+                  >groups</span
+                >
                 LIVE LOBBIES
-                <span style="font-size:0.55rem;color:rgba(16,185,129,0.7);font-weight:700;margin-left:0.5rem;vertical-align:middle;">
+                <span
+                  style="
+                    font-size: 0.55rem;
+                    color: rgba(16, 185, 129, 0.7);
+                    font-weight: 700;
+                    margin-left: 0.5rem;
+                    vertical-align: middle;
+                  "
+                >
                   {{ matchmaking.connected() ? '🟢 LIVE' : '🔴 OFFLINE' }}
                 </span>
               </h3>
-              <div class="section-sub">{{ matchmaking.activeLobbies().length }} open lobbies — join a squad and play together</div>
+              <div class="section-sub">
+                {{ matchmaking.activeLobbies().length }} open lobbies — join a
+                squad and play together
+              </div>
             </div>
           </div>
           <div class="live-lobbies-strip no-scrollbar">
@@ -461,21 +608,35 @@
               *ngFor="let lb of matchmaking.activeLobbies()"
             >
               <div class="lobby-card-header">
-                <span class="lobby-game-icon material-symbols-outlined">stadia_controller</span>
-                <span class="lobby-game-name">{{ lb.gameName | uppercase }}</span>
+                <span class="lobby-game-icon material-symbols-outlined"
+                  >stadia_controller</span
+                >
+                <span class="lobby-game-name">{{
+                  lb.gameName | uppercase
+                }}</span>
               </div>
               <div class="lobby-card-body">
                 <div class="lobby-host">
-                  <span class="lobby-host-avatar">{{ lb.hostName?.substring(0, 2)?.toUpperCase() || '??' }}</span>
+                  <span class="lobby-host-avatar">{{
+                    lb.hostName?.substring(0, 2)?.toUpperCase() || '??'
+                  }}</span>
                   <span class="lobby-host-name">{{ lb.hostName }}</span>
                   <span class="lobby-host-tag">HOST</span>
                 </div>
                 <div class="lobby-meta">
                   <span class="lobby-players">
-                    <span class="material-symbols-outlined" style="font-size:0.65rem;">person</span>
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 0.65rem"
+                      >person</span
+                    >
                     {{ lb.playerIds.length }}/{{ lb.maxPlayers }}
                   </span>
-                  <span class="lobby-status-badge" [class.lobby-ready]="lb.status === 'ready'" [class.lobby-searching]="lb.status === 'searching'">
+                  <span
+                    class="lobby-status-badge"
+                    [class.lobby-ready]="lb.status === 'ready'"
+                    [class.lobby-searching]="lb.status === 'searching'"
+                  >
                     {{ lb.status === 'ready' ? 'READY' : 'WAITING' }}
                   </span>
                 </div>
@@ -484,7 +645,13 @@
                 *ngIf="lb.status === 'in-progress'"
                 class="lobby-join-btn spectate"
                 (click)="startSpectateLobby(lb.id)"
-                style="background:linear-gradient(135deg, rgba(0,229,255,0.6), rgba(139,92,246,0.7));"
+                style="
+                  background: linear-gradient(
+                    135deg,
+                    rgba(0, 229, 255, 0.6),
+                    rgba(139, 92, 246, 0.7)
+                  );
+                "
               >
                 👁 SPECTATE
               </button>
@@ -508,15 +675,18 @@
               <div class="section-sub">{{ recentGames().length }} / 8</div>
             </div>
             <div class="section-actions">
-              <button class="clear-btn" (click)="clearRecentGames()">CLEAR</button>
+              <button class="clear-btn" (click)="clearRecentGames()">
+                CLEAR
+              </button>
             </div>
           </div>
-          <div class="recent-games-strip no-scrollbar">              <div
-            class="recent-game-chip"
-            *ngFor="let recent of recentGames()"
-            (click)="onGameClick(recent)"
-            title="{{ recent.name }}"
-          >
+          <div class="recent-games-strip no-scrollbar">
+            <div
+              class="recent-game-chip"
+              *ngFor="let recent of recentGames()"
+              (click)="onGameClick(recent)"
+              title="{{ recent.name }}"
+            >
               <img
                 [src]="recent.image || 'assets/desktop_hub.png'"
                 [alt]="recent.name"
@@ -526,18 +696,24 @@
               <span class="recent-name">{{ recent.name }}</span>
             </div>
           </div>
-        </div>        <div class="full-catalog-supplement">
+        </div>
+        <div class="full-catalog-supplement">
           <div class="content-section">
             <div class="section-header">
               <div class="section-header-left">
                 <h3>ALL_CABINETS</h3>
-                <div class="section-sub">Direct access to the Absolute library across all sectors.</div>
+                <div class="section-sub">
+                  Direct access to the Absolute library across all sectors.
+                </div>
               </div>
             </div>
 
             <!-- Loading Skeleton -->
             <div class="catalog-grid" *ngIf="isLoading()">
-              <div class="game-card skeleton-card" *ngFor="let _ of [].constructor(12)">
+              <div
+                class="game-card skeleton-card"
+                *ngFor="let _ of [].constructor(12)"
+              >
                 <div class="card-media skeleton-pulse">
                   <div class="skeleton-img"></div>
                 </div>
@@ -553,7 +729,7 @@
                 class="game-card"
                 *ngFor="let game of filteredGames(); let i = index"
                 (click)="onGameClick(game)"
-                [style.animationDelay]="(i * 0.05) + 's'"
+                [style.animationDelay]="i * 0.05 + 's'"
               >
                 <div class="card-media">
                   <img
@@ -596,14 +772,37 @@
       <!-- Room View -->
       <div class="room-view" *ngIf="!isBrowseView()">
         <div class="content-section">
-          <div class="room-header" style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
-            <button class="hero-btn-secondary" (click)="toggleBrowse()" style="padding:0.5rem 1rem;font-size:0.7rem;">
-              <span class="material-symbols-outlined" style="font-size:1rem;">arrow_back</span>
+          <div
+            class="room-header"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 1rem;
+              margin-bottom: 1.5rem;
+            "
+          >
+            <button
+              class="hero-btn-secondary"
+              (click)="toggleBrowse()"
+              style="padding: 0.5rem 1rem; font-size: 0.7rem"
+            >
+              <span class="material-symbols-outlined" style="font-size: 1rem"
+                >arrow_back</span
+              >
               BACK TO CATALOG
             </button>
-            <h2 style="font-size:1.3rem;font-weight:900;margin:0;letter-spacing:0.05em;">{{ getActiveRoomName() }}</h2>
+            <h2
+              style="
+                font-size: 1.3rem;
+                font-weight: 900;
+                margin: 0;
+                letter-spacing: 0.05em;
+              "
+            >
+              {{ getActiveRoomName() }}
+            </h2>
           </div>
-          <div class="catalog-grid" style="padding:0;">
+          <div class="catalog-grid" style="padding: 0">
             <div
               class="game-card"
               *ngFor="let game of filteredGames()"
@@ -614,7 +813,10 @@
                 <div class="card-overlay">
                   <span class="material-symbols-outlined">play_circle</span>
                 </div>
-                <div class="card-badge elite" *ngIf="game.badgeIds?.includes('elite')">
+                <div
+                  class="card-badge elite"
+                  *ngIf="game.badgeIds?.includes('elite')"
+                >
                   ELITE
                 </div>
                 <div
@@ -840,28 +1042,70 @@
           <div
             *ngIf="isCallActive()"
             class="voice-call-status glass-v42"
-            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.08);"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              padding: 0.5rem 0.75rem;
+              margin-bottom: 0.5rem;
+              border-radius: 8px;
+              border: 1px solid rgba(16, 185, 129, 0.3);
+              background: rgba(16, 185, 129, 0.08);
+            "
           >
-            <span class="material-symbols-outlined" style="color: #10b981; font-size: 1rem; animation: pulse 1.5s infinite;">call</span>
-            <span style="font-size: 0.7rem; color: #10b981; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">VOICE UPLINK ACTIVE</span>
-            <button class="icon-btn mini" (click)="endVoiceChat()" style="margin-left: auto; color: #ef4444;">
-              <span class="material-symbols-outlined" style="font-size: 0.9rem;">call_end</span>
+            <span
+              class="material-symbols-outlined"
+              style="
+                color: #10b981;
+                font-size: 1rem;
+                animation: pulse 1.5s infinite;
+              "
+              >call</span
+            >
+            <span
+              style="
+                font-size: 0.7rem;
+                color: #10b981;
+                font-weight: 700;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+              "
+              >VOICE UPLINK ACTIVE</span
+            >
+            <button
+              class="icon-btn mini"
+              (click)="endVoiceChat()"
+              style="margin-left: auto; color: #ef4444"
+            >
+              <span class="material-symbols-outlined" style="font-size: 0.9rem"
+                >call_end</span
+              >
             </button>
           </div>
 
           <!-- Mic Permission Warning -->
           <div
             *ngIf="peerService.micPermissionDenied()"
-            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); font-size: 0.7rem; color: #ef4444;"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+              padding: 0.5rem 0.75rem;
+              margin-bottom: 0.5rem;
+              border-radius: 8px;
+              border: 1px solid rgba(239, 68, 68, 0.3);
+              background: rgba(239, 68, 68, 0.08);
+              font-size: 0.7rem;
+              color: #ef4444;
+            "
           >
-            <span class="material-symbols-outlined" style="font-size: 1rem;">mic_off</span>
+            <span class="material-symbols-outlined" style="font-size: 1rem"
+              >mic_off</span
+            >
             MICROPHONE ACCESS DENIED — CHECK BROWSER PERMISSIONS
           </div>
 
-          <div
-            class="dm-user-info"
-            *ngIf="selectedDmUser() as target"
-          >
+          <div class="dm-user-info" *ngIf="selectedDmUser() as target">
             <div class="dm-user-meta">
               <span class="dm-target-name">{{
                 target.artistName || 'OPERATIVE'
@@ -882,7 +1126,7 @@
                 (click)="endVoiceChat()"
                 title="End Voice Uplink"
                 *ngIf="isCallActive()"
-                style="color: #10b981; animation: pulse 1.5s infinite;"
+                style="color: #10b981; animation: pulse 1.5s infinite"
               >
                 <span class="material-symbols-outlined">call_end</span>
               </button>
@@ -896,7 +1140,9 @@
               </button>
               <button
                 class="icon-btn mini"
-                (click)="shareChallengeLink(gameIdToInvite() || '', target.userId)"
+                (click)="
+                  shareChallengeLink(gameIdToInvite() || '', target.userId)
+                "
                 title="Share Challenge Link"
                 [disabled]="!gameIdToInvite()"
               >
@@ -904,7 +1150,9 @@
               </button>
               <button
                 class="icon-btn mini"
-                (click)="shareChallengeViaSms(gameIdToInvite() || '', target.userId)"
+                (click)="
+                  shareChallengeViaSms(gameIdToInvite() || '', target.userId)
+                "
                 title="Text Challenge Link"
                 [disabled]="!gameIdToInvite()"
               >
@@ -936,37 +1184,76 @@
           <!-- No lobby active: create new -->
           <div class="party-controls" *ngIf="!matchmaking.myLobby()">
             <h4>CO-OP MATCHMAKING</h4>
-            <p style="font-size:0.7rem;opacity:0.7;margin:0.25rem 0 0.75rem;">
-              {{ matchmaking.connected() ? '🟢 SOCKET.IO CONNECTED' : '🔴 OFFLINE — LOCAL MODE' }}
+            <p
+              style="font-size: 0.7rem; opacity: 0.7; margin: 0.25rem 0 0.75rem"
+            >
+              {{
+                matchmaking.connected()
+                  ? '🟢 SOCKET.IO CONNECTED'
+                  : '🔴 OFFLINE — LOCAL MODE'
+              }}
             </p>
-            <div *ngIf="gameIdToInvite() !== 'all' && gameIdToInvite()" style="margin-bottom:0.75rem;">
-              <span style="font-size:0.65rem;opacity:0.5;">SELECTED GAME:</span>
-              <span style="font-size:0.7rem;font-weight:800;color:var(--neon-cyan);display:block;">{{ gameIdToInvite() | uppercase }}</span>
+            <div
+              *ngIf="gameIdToInvite() !== 'all' && gameIdToInvite()"
+              style="margin-bottom: 0.75rem"
+            >
+              <span style="font-size: 0.65rem; opacity: 0.5"
+                >SELECTED GAME:</span
+              >
+              <span
+                style="
+                  font-size: 0.7rem;
+                  font-weight: 800;
+                  color: var(--neon-cyan);
+                  display: block;
+                "
+                >{{ gameIdToInvite() | uppercase }}</span
+              >
             </div>
             <button
               class="launch-btn mini"
               (click)="matchmaking.createLobby(gameIdToInvite() || 'global')"
               [disabled]="!gameIdToInvite() || gameIdToInvite() === 'all'"
-              style="width:100%;"
+              style="width: 100%"
             >
-              {{ gameIdToInvite() && gameIdToInvite() !== 'all' ? 'CREATE LOBBY FOR ' + (gameIdToInvite() | uppercase) : 'SELECT A GAME FIRST' }}
+              {{
+                gameIdToInvite() && gameIdToInvite() !== 'all'
+                  ? 'CREATE LOBBY FOR ' + (gameIdToInvite() | uppercase)
+                  : 'SELECT A GAME FIRST'
+              }}
             </button>
           </div>
 
           <!-- Active Lobby Dashboard -->
           <div class="party-dashboard" *ngIf="matchmaking.myLobby() as lobby">
             <div class="party-header">
-              <span class="party-id">LOBBY: {{ lobby.id.slice(0, 12) }}...</span>
-              <span class="lobby-status" [style.color]="lobby.status === 'ready' ? '#10b981' : '#00e5ff'" style="font-size:0.6rem;text-transform:uppercase;font-weight:800;">
+              <span class="party-id"
+                >LOBBY: {{ lobby.id.slice(0, 12) }}...</span
+              >
+              <span
+                class="lobby-status"
+                [style.color]="lobby.status === 'ready' ? '#10b981' : '#00e5ff'"
+                style="
+                  font-size: 0.6rem;
+                  text-transform: uppercase;
+                  font-weight: 800;
+                "
+              >
                 {{ lobby.status | uppercase }}
               </span>
-              <button class="terminate-btn mini" (click)="matchmaking.cancelMyLobby()">
+              <button
+                class="terminate-btn mini"
+                (click)="matchmaking.cancelMyLobby()"
+              >
                 DISBAND
               </button>
             </div>
 
             <!-- Matchmaking Queue Status Bar -->
-            <div class="matchmaking-queue-bar" *ngIf="matchmaking.isSearching()">
+            <div
+              class="matchmaking-queue-bar"
+              *ngIf="matchmaking.isSearching()"
+            >
               <span class="queue-icon material-symbols-outlined">radar</span>
               <span class="queue-text">SEARCHING FOR PLAYERS...</span>
               <span class="queue-dots">
@@ -974,15 +1261,41 @@
                 <span class="queue-dot"></span>
                 <span class="queue-dot"></span>
               </span>
-              <button class="queue-cancel" (click)="matchmaking.cancelMatchQueue(lobby.gameId)">CANCEL</button>
+              <button
+                class="queue-cancel"
+                (click)="matchmaking.cancelMatchQueue(lobby.gameId)"
+              >
+                CANCEL
+              </button>
             </div>
-            <div class="matchmaking-queue-bar matched" *ngIf="matchmaking.matchFound() as found">
-              <span class="queue-icon material-symbols-outlined">check_circle</span>
-              <span class="queue-text">MATCH FOUND! {{ found.gameId | uppercase }}</span>
+            <div
+              class="matchmaking-queue-bar matched"
+              *ngIf="matchmaking.matchFound() as found"
+            >
+              <span class="queue-icon material-symbols-outlined"
+                >check_circle</span
+              >
+              <span class="queue-text"
+                >MATCH FOUND! {{ found.gameId | uppercase }}</span
+              >
             </div>
 
-            <div class="lobby-game-chip" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.25rem 0.5rem;border:1px solid rgba(0,229,255,0.2);border-radius:999px;font-size:0.6rem;margin-bottom:0.5rem;">
-              <span class="material-symbols-outlined" style="font-size:0.7rem;">stadia_controller</span>
+            <div
+              class="lobby-game-chip"
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                padding: 0.25rem 0.5rem;
+                border: 1px solid rgba(0, 229, 255, 0.2);
+                border-radius: 999px;
+                font-size: 0.6rem;
+                margin-bottom: 0.5rem;
+              "
+            >
+              <span class="material-symbols-outlined" style="font-size: 0.7rem"
+                >stadia_controller</span
+              >
               {{ lobby.gameName | uppercase }}
             </div>
 
@@ -997,11 +1310,27 @@
                   readonly
                   (click)="$any($event.target).select()"
                 />
-                <button class="lobby-invite-btn" (click)="copyLobbyInviteLink()" title="Copy invite link">
-                  <span class="material-symbols-outlined" style="font-size:0.75rem;">content_copy</span>
+                <button
+                  class="lobby-invite-btn"
+                  (click)="copyLobbyInviteLink()"
+                  title="Copy invite link"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.75rem"
+                    >content_copy</span
+                  >
                 </button>
-                <button class="lobby-invite-btn" (click)="shareLobbyInvite()" title="Share via device">
-                  <span class="material-symbols-outlined" style="font-size:0.75rem;">share</span>
+                <button
+                  class="lobby-invite-btn"
+                  (click)="shareLobbyInvite()"
+                  title="Share via device"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.75rem"
+                    >share</span
+                  >
                 </button>
               </div>
             </div>
@@ -1010,7 +1339,10 @@
             <div class="ready-up-section">
               <div class="ready-up-header">
                 <span class="ready-up-label">READY CHECK</span>
-                <span class="ready-up-count" [class.all-ready]="matchmaking.isAllReady()">
+                <span
+                  class="ready-up-count"
+                  [class.all-ready]="matchmaking.isAllReady()"
+                >
                   {{ matchmaking.readyCount() }}/{{ lobby.playerIds.length }}
                   <span *ngIf="matchmaking.isAllReady()"> ✅ ALL READY!</span>
                 </span>
@@ -1024,8 +1356,11 @@
                 >
                   <span class="ready-player-avatar">{{
                     pId === matchmaking.playerId()
-                      ? (matchmaking.playerName()?.substring(0, 2)?.toUpperCase() || 'ME')
-                      : (pId.substring(0, 2).toUpperCase())
+                      ? matchmaking
+                          .playerName()
+                          ?.substring(0, 2)
+                          ?.toUpperCase() || 'ME'
+                      : pId.substring(0, 2).toUpperCase()
                   }}</span>
                   <span class="ready-player-name">{{
                     pId === matchmaking.playerId()
@@ -1033,15 +1368,30 @@
                       : 'PLAYER_' + (pId.slice(0, 6) | uppercase)
                   }}</span>
                   <span class="ready-check-icon">
-                    <span *ngIf="matchmaking.readyPlayers().has(pId)" style="color:#10b981;">✓</span>
-                    <span *ngIf="!matchmaking.readyPlayers().has(pId)" style="opacity:0.3;">◌</span>
+                    <span
+                      *ngIf="matchmaking.readyPlayers().has(pId)"
+                      style="color: #10b981"
+                      >✓</span
+                    >
+                    <span
+                      *ngIf="!matchmaking.readyPlayers().has(pId)"
+                      style="opacity: 0.3"
+                      >◌</span
+                    >
                   </span>
                 </div>
-              </div>                  <!-- Voice activity indicator (self) -->
-              <div class="voice-activity-indicator" *ngIf="peerService.isCallActive()" [class.speaking]="isVoiceActive">
-                <span class="material-symbols-outlined" style="font-size:0.7rem;">{{
-                  isVoiceActive ? 'mic' : 'mic_off'
-                }}</span>
+              </div>
+              <!-- Voice activity indicator (self) -->
+              <div
+                class="voice-activity-indicator"
+                *ngIf="peerService.isCallActive()"
+                [class.speaking]="isVoiceActive"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 0.7rem"
+                  >{{ isVoiceActive ? 'mic' : 'mic_off' }}</span
+                >
               </div>
 
               <!-- Current player ready toggle -->
@@ -1050,25 +1400,49 @@
                 [class.is-ready]="matchmaking.isReady()"
                 (click)="toggleReady()"
               >
-                <span class="material-symbols-outlined" style="font-size:0.9rem;">{{
-                  matchmaking.isReady() ? 'check_circle' : 'radio_button_unchecked'
-                }}</span>
-                {{ matchmaking.isReady() ? 'READY — CLICK TO UNREADY' : 'CLICK WHEN READY' }}
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 0.9rem"
+                  >{{
+                    matchmaking.isReady()
+                      ? 'check_circle'
+                      : 'radio_button_unchecked'
+                  }}</span
+                >
+                {{
+                  matchmaking.isReady()
+                    ? 'READY — CLICK TO UNREADY'
+                    : 'CLICK WHEN READY'
+                }}
               </button>
 
               <!-- ── Auto-Launch Countdown Timer ────────── -->
-              <div class="countdown-overlay" *ngIf="matchmaking.countdownActive()">
+              <div
+                class="countdown-overlay"
+                *ngIf="matchmaking.countdownActive()"
+              >
                 <div class="countdown-ring">
                   <svg viewBox="0 0 80 80" class="countdown-svg">
                     <circle cx="40" cy="40" r="34" class="countdown-track" />
-                    <circle cx="40" cy="40" r="34" class="countdown-fill"
-                      [style.strokeDashoffset.px]="213.6 * (1 - matchmaking.countdownSeconds() / 5)"
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="34"
+                      class="countdown-fill"
+                      [style.strokeDashoffset.px]="
+                        213.6 * (1 - matchmaking.countdownSeconds() / 5)
+                      "
                     />
                   </svg>
-                  <span class="countdown-number">{{ matchmaking.countdownSeconds() }}</span>
+                  <span class="countdown-number">{{
+                    matchmaking.countdownSeconds()
+                  }}</span>
                 </div>
                 <span class="countdown-label">LAUNCHING IN...</span>
-                <button class="countdown-cancel" (click)="cancelLobbyCountdown()">
+                <button
+                  class="countdown-cancel"
+                  (click)="cancelLobbyCountdown()"
+                >
                   CANCEL
                 </button>
               </div>
@@ -1078,12 +1452,31 @@
             <div class="lobby-voice-section" *ngIf="lobby.playerIds.length > 1">
               <div class="lobby-voice-label">VOICE UPLINK</div>
               <div class="lobby-voice-controls">
-                <span class="lobby-voice-status" *ngIf="!peerService.isCallActive()" style="color:rgba(255,255,255,0.3);">
-                  <span class="material-symbols-outlined" style="font-size:0.65rem;">mic_off</span>
+                <span
+                  class="lobby-voice-status"
+                  *ngIf="!peerService.isCallActive()"
+                  style="color: rgba(255, 255, 255, 0.3)"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.65rem"
+                    >mic_off</span
+                  >
                   IDLE
                 </span>
-                <span class="lobby-voice-status live" *ngIf="peerService.isCallActive()" style="color:#10b981;">
-                  <span class="material-symbols-outlined" style="font-size:0.65rem;animation:status-pulse 1.5s ease-in-out infinite;">mic</span>
+                <span
+                  class="lobby-voice-status live"
+                  *ngIf="peerService.isCallActive()"
+                  style="color: #10b981"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="
+                      font-size: 0.65rem;
+                      animation: status-pulse 1.5s ease-in-out infinite;
+                    "
+                    >mic</span
+                  >
                   CONNECTED
                 </span>
                 <button
@@ -1092,9 +1485,11 @@
                   [class.muted]="peerService.isMuted()"
                   (click)="toggleLobbyMute()"
                 >
-                  <span class="material-symbols-outlined" style="font-size:0.7rem;">{{
-                    peerService.isMuted() ? 'mic_off' : 'mic'
-                  }}</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.7rem"
+                    >{{ peerService.isMuted() ? 'mic_off' : 'mic' }}</span
+                  >
                   {{ peerService.isMuted() ? 'UNMUTE' : 'MUTE' }}
                 </button>
                 <button
@@ -1102,27 +1497,44 @@
                   *ngIf="peerService.isCallActive()"
                   (click)="peerService.endCall()"
                 >
-                  <span class="material-symbols-outlined" style="font-size:0.7rem;">call_end</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.7rem"
+                    >call_end</span
+                  >
                 </button>
               </div>
             </div>
 
             <!-- ── Pending Challenges Inbox ──────────────── -->
-            <div class="lobby-challenges-section" *ngIf="matchmaking.pendingLobbyChallenges().length > 0">
+            <div
+              class="lobby-challenges-section"
+              *ngIf="matchmaking.pendingLobbyChallenges().length > 0"
+            >
               <div class="lobby-challenges-label">INCOMING CHALLENGES</div>
               <div
                 class="lobby-challenge-item"
                 *ngFor="let chal of matchmaking.pendingLobbyChallenges()"
               >
                 <div class="lobby-challenge-info">
-                  <span class="lobby-challenge-from">{{ chal.fromName | uppercase }}</span>
-                  <span class="lobby-challenge-game">{{ chal.gameName | uppercase }}</span>
+                  <span class="lobby-challenge-from">{{
+                    chal.fromName | uppercase
+                  }}</span>
+                  <span class="lobby-challenge-game">{{
+                    chal.gameName | uppercase
+                  }}</span>
                 </div>
                 <div class="lobby-challenge-actions">
-                  <button class="lobby-challenge-accept" (click)="matchmaking.acceptChallenge(chal.id)">
+                  <button
+                    class="lobby-challenge-accept"
+                    (click)="matchmaking.acceptChallenge(chal.id)"
+                  >
                     ACCEPT
                   </button>
-                  <button class="lobby-challenge-reject" (click)="matchmaking.rejectChallenge(chal.id)">
+                  <button
+                    class="lobby-challenge-reject"
+                    (click)="matchmaking.rejectChallenge(chal.id)"
+                  >
                     ✕
                   </button>
                 </div>
@@ -1131,12 +1543,34 @@
 
             <!-- In-Lobby Chat (persistent, localStorage-backed) -->
             <div class="lobby-chat-section" *ngIf="lobby.playerIds.length > 0">
-              <div class="lobby-chat-messages" #lobbyChatScroll style="max-height:140px;overflow-y:auto;margin-bottom:0.5rem;">
-                <div class="lobby-chat-msg" *ngFor="let msg of matchmaking.lobbyChatMessages()">
-                  <span class="lobby-chat-user">{{ msg.fromUserName || 'PLAYER' | uppercase }}</span>
+              <div
+                class="lobby-chat-messages"
+                #lobbyChatScroll
+                style="
+                  max-height: 140px;
+                  overflow-y: auto;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                <div
+                  class="lobby-chat-msg"
+                  *ngFor="let msg of matchmaking.lobbyChatMessages()"
+                >
+                  <span class="lobby-chat-user">{{
+                    msg.fromUserName || 'PLAYER' | uppercase
+                  }}</span>
                   <span class="lobby-chat-text">{{ msg.text }}</span>
                 </div>
-                <div class="lobby-chat-empty" *ngIf="matchmaking.lobbyChatMessages().length === 0" style="font-size:0.6rem;opacity:0.4;text-align:center;padding:0.5rem;">
+                <div
+                  class="lobby-chat-empty"
+                  *ngIf="matchmaking.lobbyChatMessages().length === 0"
+                  style="
+                    font-size: 0.6rem;
+                    opacity: 0.4;
+                    text-align: center;
+                    padding: 0.5rem;
+                  "
+                >
                   Squad chat — messages persist here
                 </div>
               </div>
@@ -1149,54 +1583,103 @@
                   (ngModelChange)="chatInput.set($event)"
                   (keyup.enter)="sendLobbyChat(chatInput()); chatInput.set('')"
                 />
-                <button class="lobby-chat-send" (click)="sendLobbyChat(chatInput()); chatInput.set('')">
-                  <span class="material-symbols-outlined" style="font-size:0.8rem;">send</span>
+                <button
+                  class="lobby-chat-send"
+                  (click)="sendLobbyChat(chatInput()); chatInput.set('')"
+                >
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.8rem"
+                    >send</span
+                  >
                 </button>
               </div>
             </div>
 
             <!-- Host auto-launch / countdown start button -->
             <button
-              *ngIf="matchmaking.isAllReady() && matchmaking.isHost() && !matchmaking.countdownActive()"
+              *ngIf="
+                matchmaking.isAllReady() &&
+                matchmaking.isHost() &&
+                !matchmaking.countdownActive()
+              "
               class="launch-btn mini all-ready-launch"
               (click)="startLobbyCountdown()"
-              style="width:100%;margin-top:0.5rem;"
+              style="width: 100%; margin-top: 0.5rem"
             >
               🚀 ALL READY — START COUNTDOWN
             </button>
 
             <!-- ── Spectator Overlay ───────────────────────── -->
-            <div class="spectator-overlay" *ngIf="matchmaking.isSpectating() && matchmaking.spectateTargetLobby() as specLobby">
+            <div
+              class="spectator-overlay"
+              *ngIf="
+                matchmaking.isSpectating() &&
+                matchmaking.spectateTargetLobby() as specLobby
+              "
+            >
               <div class="spectator-header">
-                <span class="material-symbols-outlined" style="color:var(--neon-cyan);animation:status-pulse 1.5s ease-in-out infinite;font-size:0.9rem;">visibility</span>
-                <span class="spectator-label">SPECTATING: {{ specLobby.gameName | uppercase }}</span>
+                <span
+                  class="material-symbols-outlined"
+                  style="
+                    color: var(--neon-cyan);
+                    animation: status-pulse 1.5s ease-in-out infinite;
+                    font-size: 0.9rem;
+                  "
+                  >visibility</span
+                >
+                <span class="spectator-label"
+                  >SPECTATING: {{ specLobby.gameName | uppercase }}</span
+                >
               </div>
               <div class="spectator-info">
                 <span>{{ specLobby.playerIds.length }} players in session</span>
-                <span style="opacity:0.5;">Host: {{ specLobby.hostName }}</span>
+                <span style="opacity: 0.5">Host: {{ specLobby.hostName }}</span>
               </div>
               <button class="spectator-stop-btn" (click)="stopSpectateLobby()">
                 STOP SPECTATING
               </button>
             </div>
 
-            
             <!-- ═══════════ REPLAY VIEWER ────────────────────── -->
-            <div class="replay-viewer-section" *ngIf="matchmaking.lobbyReplaySnapshots().length > 0 || matchmaking.isReplaying()">
+            <div
+              class="replay-viewer-section"
+              *ngIf="
+                matchmaking.lobbyReplaySnapshots().length > 0 ||
+                matchmaking.isReplaying()
+              "
+            >
               <div class="replay-viewer-header">
                 <span class="replay-viewer-label">
-                  <span class="material-symbols-outlined" style="font-size:0.7rem;">replay</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.7rem"
+                    >replay</span
+                  >
                   SESSION REPLAY
                 </span>
-                <span class="replay-viewer-count">{{
-                  matchmaking.lobbyReplaySnapshots().length
-                }} snapshots</span>
+                <span class="replay-viewer-count"
+                  >{{
+                    matchmaking.lobbyReplaySnapshots().length
+                  }}
+                  snapshots</span
+                >
               </div>
 
               <!-- Replay controls -->
-              <div class="replay-controls" *ngIf="!matchmaking.isReplaying() && matchmaking.lobbyReplaySnapshots().length > 0">
+              <div
+                class="replay-controls"
+                *ngIf="
+                  !matchmaking.isReplaying() &&
+                  matchmaking.lobbyReplaySnapshots().length > 0
+                "
+              >
                 <button class="replay-play-btn" (click)="startReplayViewer()">
-                  <span class="material-symbols-outlined" style="font-size:0.8rem;">play_circle</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="font-size: 0.8rem"
+                    >play_circle</span
+                  >
                   PLAY REPLAY
                 </button>
               </div>
@@ -1207,35 +1690,59 @@
                   <div class="replay-timeline-track">
                     <div
                       class="replay-timeline-fill"
-                      [style.width.%]="(matchmaking.replayCurrentIndex() / (matchmaking.lobbyReplaySnapshots().length || 1)) * 100"
+                      [style.width.%]="
+                        (matchmaking.replayCurrentIndex() /
+                          (matchmaking.lobbyReplaySnapshots().length || 1)) *
+                        100
+                      "
                     ></div>
                     <div
                       class="replay-timeline-scrubber"
-                      [style.left.%]="(matchmaking.replayCurrentIndex() / (matchmaking.lobbyReplaySnapshots().length || 1)) * 100"
+                      [style.left.%]="
+                        (matchmaking.replayCurrentIndex() /
+                          (matchmaking.lobbyReplaySnapshots().length || 1)) *
+                        100
+                      "
                     ></div>
                   </div>
-                  <span class="replay-frame-label">Frame {{
-                    matchmaking.replayCurrentIndex() + 1
-                  }} / {{ matchmaking.lobbyReplaySnapshots().length }}</span>
+                  <span class="replay-frame-label"
+                    >Frame {{ matchmaking.replayCurrentIndex() + 1 }} /
+                    {{ matchmaking.lobbyReplaySnapshots().length }}</span
+                  >
                 </div>
 
                 <!-- Current frame data -->
-                <div class="replay-frame-data" *ngIf="matchmaking.currentReplayFrame() as frame">
+                <div
+                  class="replay-frame-data"
+                  *ngIf="matchmaking.currentReplayFrame() as frame"
+                >
                   <div class="replay-frame-row" *ngIf="frame.label">
                     <span class="replay-frame-key">EVENT</span>
                     <span class="replay-frame-val">{{ frame.label }}</span>
                   </div>
-                  <div class="replay-frame-row" *ngIf="frame.state?.score !== undefined">
+                  <div
+                    class="replay-frame-row"
+                    *ngIf="frame.state?.score !== undefined"
+                  >
                     <span class="replay-frame-key">SCORE</span>
-                    <span class="replay-frame-val">{{ frame.state.score }}</span>
+                    <span class="replay-frame-val">{{
+                      frame.state.score
+                    }}</span>
                   </div>
                   <div class="replay-frame-row" *ngIf="frame.state?.level">
                     <span class="replay-frame-key">LEVEL</span>
-                    <span class="replay-frame-val">{{ frame.state.level }}</span>
+                    <span class="replay-frame-val">{{
+                      frame.state.level
+                    }}</span>
                   </div>
-                  <div class="replay-frame-row" *ngIf="frame.state?.progress !== undefined">
+                  <div
+                    class="replay-frame-row"
+                    *ngIf="frame.state?.progress !== undefined"
+                  >
                     <span class="replay-frame-key">PROGRESS</span>
-                    <span class="replay-frame-val">{{ frame.state.progress }}%</span>
+                    <span class="replay-frame-val"
+                      >{{ frame.state.progress }}%</span
+                    >
                   </div>
                   <div class="replay-frame-row" *ngIf="frame.recordedBy">
                     <span class="replay-frame-key">RECORDED BY</span>
@@ -1245,7 +1752,11 @@
 
                 <div class="replay-actions">
                   <button class="replay-stop-btn" (click)="stopReplayViewer()">
-                    <span class="material-symbols-outlined" style="font-size:0.7rem;">stop</span>
+                    <span
+                      class="material-symbols-outlined"
+                      style="font-size: 0.7rem"
+                      >stop</span
+                    >
                     STOP
                   </button>
                 </div>
@@ -1253,10 +1764,24 @@
             </div>
 
             <!-- ═══════════ LIVE GAME STATE ────────────────────── -->
-            <div class="live-game-state-section" *ngIf="matchmaking.latestGameState() | keyvalue as states">
-              <div class="live-state-header" *ngIf="(matchmaking.latestGameState() | keyvalue)?.length">
+            <div
+              class="live-game-state-section"
+              *ngIf="matchmaking.latestGameState() | keyvalue as states"
+            >
+              <div
+                class="live-state-header"
+                *ngIf="(matchmaking.latestGameState() | keyvalue)?.length"
+              >
                 <span class="live-state-label">
-                  <span class="material-symbols-outlined" style="font-size:0.7rem;color:#10b981;animation:status-pulse 1.5s infinite;">sensors</span>
+                  <span
+                    class="material-symbols-outlined"
+                    style="
+                      font-size: 0.7rem;
+                      color: #10b981;
+                      animation: status-pulse 1.5s infinite;
+                    "
+                    >sensors</span
+                  >
                   LIVE GAME STATE
                 </span>
               </div>
@@ -1277,13 +1802,19 @@
                     </span>
                   </div>
                   <div class="live-state-stats">
-                    <span *ngIf="entry.value.score !== undefined" class="live-state-stat">
+                    <span
+                      *ngIf="entry.value.score !== undefined"
+                      class="live-state-stat"
+                    >
                       🏆 {{ entry.value.score }}
                     </span>
                     <span *ngIf="entry.value.level" class="live-state-stat">
                       🗺 {{ entry.value.level }}
                     </span>
-                    <span *ngIf="entry.value.progress !== undefined" class="live-state-stat">
+                    <span
+                      *ngIf="entry.value.progress !== undefined"
+                      class="live-state-stat"
+                    >
                       📊 {{ entry.value.progress }}%
                     </span>
                   </div>
@@ -1291,29 +1822,59 @@
               </div>
             </div>
 
-<!-- Launch game from lobby (all-ready visual boost) -->
+            <!-- Launch game from lobby (all-ready visual boost) -->
             <button
-              *ngIf="!matchmaking.isAllReady() || !matchmaking.isHost() || matchmaking.countdownActive()"
+              *ngIf="
+                !matchmaking.isAllReady() ||
+                !matchmaking.isHost() ||
+                matchmaking.countdownActive()
+              "
               class="launch-btn mini"
-              [class.all-ready-launch]="matchmaking.isAllReady() && !matchmaking.countdownActive()"
+              [class.all-ready-launch]="
+                matchmaking.isAllReady() && !matchmaking.countdownActive()
+              "
               (click)="matchmaking.launchGameFromParty(lobby.gameId)"
-              style="width:100%;margin-top:0.5rem;"
+              style="width: 100%; margin-top: 0.5rem"
             >
-              {{ matchmaking.isAllReady() && !matchmaking.countdownActive() ? 'WAITING FOR HOST TO LAUNCH' : 'LAUNCH GAME' }}
+              {{
+                matchmaking.isAllReady() && !matchmaking.countdownActive()
+                  ? 'WAITING FOR HOST TO LAUNCH'
+                  : 'LAUNCH GAME'
+              }}
             </button>
           </div>
 
           <!-- Open Lobbies (joinable) -->
-          <div class="open-lobbies-section" *ngIf="matchmaking.activeLobbies().length > 0" style="margin-top:0.75rem;">
-            <h6 style="font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0.5;margin:0 0 0.5rem;">OPEN LOBBIES</h6>
+          <div
+            class="open-lobbies-section"
+            *ngIf="matchmaking.activeLobbies().length > 0"
+            style="margin-top: 0.75rem"
+          >
+            <h6
+              style="
+                font-size: 0.6rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                opacity: 0.5;
+                margin: 0 0 0.5rem;
+              "
+            >
+              OPEN LOBBIES
+            </h6>
             <div
               class="user-item glass-v42 mini"
               *ngFor="let lb of matchmaking.activeLobbies()"
-              style="justify-content:space-between;cursor:pointer;"
+              style="justify-content: space-between; cursor: pointer"
             >
               <div>
-                <span class="user-name" style="font-size:0.65rem;">{{ lb.gameName }}</span>
-                <span style="font-size:0.55rem;opacity:0.5;display:block;">Host: {{ lb.hostName }} · {{ lb.playerIds.length }}/{{ lb.maxPlayers }}</span>
+                <span class="user-name" style="font-size: 0.65rem">{{
+                  lb.gameName
+                }}</span>
+                <span style="font-size: 0.55rem; opacity: 0.5; display: block"
+                  >Host: {{ lb.hostName }} · {{ lb.playerIds.length }}/{{
+                    lb.maxPlayers
+                  }}</span
+                >
               </div>
               <button
                 class="action-btn mini"
@@ -1326,7 +1887,7 @@
           </div>
 
           <!-- Online Users for invites -->
-          <div class="party-invites" style="margin-top:1rem;">
+          <div class="party-invites" style="margin-top: 1rem">
             <h6>INVITE OPERATIVES</h6>
             <div class="user-list mini">
               <div
@@ -1447,10 +2008,7 @@
               />
             </div>
             <div class="search-results">
-              <div
-              class="user-item"
-              *ngFor="let user of globalSearchResults()"
-            >
+              <div class="user-item" *ngFor="let user of globalSearchResults()">
                 <div class="user-info">
                   <span class="user-name">{{ user.artistName }}</span>
                   <div
@@ -1483,7 +2041,9 @@
               *ngFor="let msg of aiCompanionMessages()"
               [class.user-msg]="msg.role === 'user'"
             >
-              <div class="ai-msg-role">{{ msg.role === 'ai' ? 'S.M.U.V.E' : 'YOU' | uppercase }}</div>
+              <div class="ai-msg-role">
+                {{ msg.role === 'ai' ? 'S.M.U.V.E' : ('YOU' | uppercase) }}
+              </div>
               <div class="ai-msg-text">{{ msg.text }}</div>
             </div>
             <div class="ai-thinking" *ngIf="aiCompanionThinking()">
@@ -1672,24 +2232,28 @@
         </div>
 
         <div class="mission-primary-action-centered">
-        <button
-          class="launch-btn-ultra"
-          (click)="confirmLaunch()"
-          [disabled]="isMatchmaking() || isWasmLoading()"
-        >
-          <div class="btn-aura"></div>
-          <span class="material-symbols-outlined btn-icon-giant"
-            >play_circle</span
+          <button
+            class="launch-btn-ultra"
+            (click)="confirmLaunch()"
+            [disabled]="isMatchmaking() || isWasmLoading()"
           >
-          <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
-          <span class="btn-subtext-status">
-            {{ getLaunchMode(selected) === 'external' ? 'OPENS IN NEW TAB' : 'INLINE CABINET' }}
-          </span>
-        </button>
-        <div class="keyboard-hint">
-          <span class="kbd">⏎ Enter</span> to launch &bull;
-          <span class="kbd">⎋ Esc</span> to close
-        </div>
+            <div class="btn-aura"></div>
+            <span class="material-symbols-outlined btn-icon-giant"
+              >play_circle</span
+            >
+            <span class="btn-text-main">{{ launchActionLabel(selected) }}</span>
+            <span class="btn-subtext-status">
+              {{
+                getLaunchMode(selected) === 'external'
+                  ? 'OPENS IN NEW TAB'
+                  : 'INLINE CABINET'
+              }}
+            </span>
+          </button>
+          <div class="keyboard-hint">
+            <span class="kbd">⏎ Enter</span> to launch &bull;
+            <span class="kbd">⎋ Esc</span> to close
+          </div>
         </div>
       </div>
 
@@ -1705,7 +2269,12 @@
           <div class="meta-tag">
             <span class="m-label">RATING:</span> {{ selected.rating }}
           </div>
-          <div class="meta-tag" *ngIf="selected.multiplayerType && selected.multiplayerType !== 'None'">
+          <div
+            class="meta-tag"
+            *ngIf="
+              selected.multiplayerType && selected.multiplayerType !== 'None'
+            "
+          >
             <span class="m-label">MODE:</span> {{ selected.multiplayerType }}
           </div>
           <div class="meta-tag" *ngIf="selected.availability">
@@ -1715,32 +2284,61 @@
       </div>
 
       <!-- Session Objectives -->
-      <div *ngIf="selected.sessionObjectives?.length" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+      <div
+        *ngIf="selected.sessionObjectives?.length"
+        class="mission-info-footer glass-v42"
+        style="margin-top: 0.5rem"
+      >
         <div class="info-cluster">
           <label>SESSION OBJECTIVES</label>
-          <div *ngFor="let obj of selected.sessionObjectives" style="font-size: 0.7rem; color: rgba(255,255,255,0.7); padding: 0.15rem 0;">
-            <span style="color: #00e5ff;">▸</span> {{ obj }}
+          <div
+            *ngFor="let obj of selected.sessionObjectives"
+            style="
+              font-size: 0.7rem;
+              color: rgba(255, 255, 255, 0.7);
+              padding: 0.15rem 0;
+            "
+          >
+            <span style="color: #00e5ff">▸</span> {{ obj }}
           </div>
         </div>
       </div>
 
       <!-- AI Briefing -->
-      <div *ngIf="selected.aiBriefing" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+      <div
+        *ngIf="selected.aiBriefing"
+        class="mission-info-footer glass-v42"
+        style="margin-top: 0.5rem"
+      >
         <div class="info-cluster">
           <label>AI INTEL BRIEFING</label>
-          <p style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">{{ selected.aiBriefing }}</p>
+          <p style="font-size: 0.7rem; color: rgba(255, 255, 255, 0.6)">
+            {{ selected.aiBriefing }}
+          </p>
         </div>
       </div>
 
       <!-- Controls Hint -->
-      <div *ngIf="selected.controlHints?.length" class="mission-info-footer glass-v42" style="margin-top: 0.5rem;">
+      <div
+        *ngIf="selected.controlHints?.length"
+        class="mission-info-footer glass-v42"
+        style="margin-top: 0.5rem"
+      >
         <div class="info-cluster">
           <label>CONTROLS</label>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-            <span *ngFor="let hint of selected.controlHints" style="
-              font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px;
-              border: 1px solid rgba(0,229,255,0.25); background: rgba(0,229,255,0.06); color: rgba(255,255,255,0.7);
-            ">{{ hint }}</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem">
+            <span
+              *ngFor="let hint of selected.controlHints"
+              style="
+                font-size: 0.65rem;
+                padding: 0.2rem 0.5rem;
+                border-radius: 4px;
+                border: 1px solid rgba(0, 229, 255, 0.25);
+                background: rgba(0, 229, 255, 0.06);
+                color: rgba(255, 255, 255, 0.7);
+              "
+              >{{ hint }}</span
+            >
           </div>
         </div>
       </div>
@@ -1759,68 +2357,150 @@
       <div class="scanner-line"></div>
       <div class="loader-brand">S.M.U.V.E. MATCHMAKING</div>
       <div class="loader-status">{{ matchmakingStatus() }}</div>
-      <div *ngIf="matchmakingElapsed() > 0" style="font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 0.25rem;">
+      <div
+        *ngIf="matchmakingElapsed() > 0"
+        style="
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 0.25rem;
+        "
+      >
         {{ matchmakingElapsed() }}s elapsed
       </div>
       <div class="loader-progress">
-        <div class="progress-fill animate-pulse" [style.width.%]="matchmakingProgress()"></div>
+        <div
+          class="progress-fill animate-pulse"
+          [style.width.%]="matchmakingProgress()"
+        ></div>
       </div>
       <!-- Bot option (shown after timeout, replaces confirm() dialog) -->
-      <div *ngIf="showBotOption()" style="margin-top: 1rem; text-align: center;">
-        <p style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 0.75rem;">
+      <div *ngIf="showBotOption()" style="margin-top: 1rem; text-align: center">
+        <p
+          style="
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.75rem;
+          "
+        >
           NO ONLINE RIVALS DETECTED. ENGAGE AI BOT FOR SOLO PRACTICE?
         </p>
-        <div style="display: flex; gap: 0.75rem; justify-content: center;">
-          <button class="launch-btn mini" (click)="engageAiBot()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+        <div style="display: flex; gap: 0.75rem; justify-content: center">
+          <button
+            class="launch-btn mini"
+            (click)="engageAiBot()"
+            style="font-size: 0.7rem; padding: 0.5rem 1rem"
+          >
             ENGAGE AI BOT
           </button>
-          <button class="terminate-btn mini" (click)="cancelMatchmaking()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+          <button
+            class="terminate-btn mini"
+            (click)="cancelMatchmaking()"
+            style="font-size: 0.7rem; padding: 0.5rem 1rem"
+          >
             CANCEL
           </button>
         </div>
       </div>
-      <button *ngIf="!showBotOption()" class="terminate-btn" (click)="cancelMatchmaking()">
+      <button
+        *ngIf="!showBotOption()"
+        class="terminate-btn"
+        (click)="cancelMatchmaking()"
+      >
         CANCEL MATCHMAKING
       </button>
     </div>
   </div>
 
   <!-- Multi-Stage Game Loading Overlay -->
-  <div class="matchmaking-overlay" *ngIf="gameLoadStage() !== 'idle' && gameLoadStage() !== 'ready' && !currentGame()">
+  <div
+    class="matchmaking-overlay"
+    *ngIf="
+      gameLoadStage() !== 'idle' &&
+      gameLoadStage() !== 'ready' &&
+      !currentGame()
+    "
+  >
     <div class="loader-content glass-v42-pro">
       <div class="scanner-line"></div>
       <div class="loader-brand">S.M.U.V.E. UPLINK</div>
       <div class="loader-status">
-        <span *ngIf="gameLoadStage() === 'initializing'">INITIALIZING ENVIRONMENT...</span>
-        <span *ngIf="gameLoadStage() === 'connecting'">ESTABLISHING SECURE CONNECTION...</span>
-        <span *ngIf="gameLoadStage() === 'loading'">LOADING GAME ASSETS...</span>
+        <span *ngIf="gameLoadStage() === 'initializing'"
+          >INITIALIZING ENVIRONMENT...</span
+        >
+        <span *ngIf="gameLoadStage() === 'connecting'"
+          >ESTABLISHING SECURE CONNECTION...</span
+        >
+        <span *ngIf="gameLoadStage() === 'loading'"
+          >LOADING GAME ASSETS...</span
+        >
       </div>
       <div class="loader-progress">
-        <div class="progress-fill animate-pulse"
-          [style.width.%]="gameLoadStage() === 'initializing' ? 25 : gameLoadStage() === 'connecting' ? 55 : 85">
-        </div>
+        <div
+          class="progress-fill animate-pulse"
+          [style.width.%]="
+            gameLoadStage() === 'initializing'
+              ? 25
+              : gameLoadStage() === 'connecting'
+                ? 55
+                : 85
+          "
+        ></div>
       </div>
     </div>
   </div>
 
   <!-- External URL Confirmation Modal -->
   <div class="matchmaking-overlay" *ngIf="showExternalConfirm()">
-    <div class="loader-content glass-v42-pro" style="max-width: 420px;">
+    <div class="loader-content glass-v42-pro" style="max-width: 420px">
       <div class="scanner-line"></div>
-      <div class="loader-brand" style="font-size: 1.1rem;">EXTERNAL DEPLOYMENT</div>
-      <div style="margin: 1rem 0; text-align: center;">
-        <p style="font-size: 0.8rem; color: rgba(255,255,255,0.8); margin-bottom: 0.5rem;">
+      <div class="loader-brand" style="font-size: 1.1rem">
+        EXTERNAL DEPLOYMENT
+      </div>
+      <div style="margin: 1rem 0; text-align: center">
+        <p
+          style="
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 0.5rem;
+          "
+        >
           You are leaving the S.M.U.V.E. secure environment.
         </p>
-        <p style="font-size: 0.9rem; font-weight: 800; color: #00e5ff; letter-spacing: 0.05em; padding: 0.5rem 1rem; border: 1px solid rgba(0,229,255,0.3); border-radius: 8px; background: rgba(0,229,255,0.05);">
+        <p
+          style="
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #00e5ff;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 229, 255, 0.05);
+          "
+        >
           {{ externalTargetDomain() }}
         </p>
       </div>
-      <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem;">
-        <button class="launch-btn mini" (click)="confirmExternalLaunch()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+      <div
+        style="
+          display: flex;
+          gap: 0.75rem;
+          justify-content: center;
+          margin-top: 1rem;
+        "
+      >
+        <button
+          class="launch-btn mini"
+          (click)="confirmExternalLaunch()"
+          style="font-size: 0.7rem; padding: 0.5rem 1rem"
+        >
           DEPLOY
         </button>
-        <button class="terminate-btn mini" (click)="cancelExternalLaunch()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+        <button
+          class="terminate-btn mini"
+          (click)="cancelExternalLaunch()"
+          style="font-size: 0.7rem; padding: 0.5rem 1rem"
+        >
           ABORT
         </button>
       </div>
@@ -1852,8 +2532,14 @@
           <span class="success">LOADED</span>
         </div>
         <div class="console-actions">
-          <button class="icon-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
-            <span class="material-symbols-outlined">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
+          <button
+            class="icon-btn"
+            (click)="toggleFullscreen()"
+            title="Toggle Fullscreen"
+          >
+            <span class="material-symbols-outlined">{{
+              isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
+            }}</span>
           </button>
           <button class="icon-btn" (click)="reloadGame()" title="Reload Game">
             <span class="material-symbols-outlined">refresh</span>
@@ -1868,31 +2554,74 @@
         <div class="hud-decorative-line right"></div>
         <div class="iframe-glitch-wrapper">
           <!-- Game iframe — sandbox without allow-same-origin to prevent parent DOM access -->
-        <iframe
-          *ngIf="currentSafeUrl() && !gameLoadError()"
-          [src]="currentSafeUrl()"
-          #gameIframe
-          class="game-frame"
-          [attr.sandbox]="getSandboxAttr(currentGame())"
-          allowfullscreen
-          (load)="onGameIframeLoad()"
-        ></iframe>
+          <iframe
+            *ngIf="currentSafeUrl() && !gameLoadError()"
+            [src]="currentSafeUrl()"
+            #gameIframe
+            class="game-frame"
+            [attr.sandbox]="getSandboxAttr(currentGame())"
+            allowfullscreen
+            (load)="onGameIframeLoad()"
+          ></iframe>
           <!-- Error fallback UI -->
-          <div *ngIf="gameLoadError()" class="game-load-error" style="
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100%; gap: 1rem; text-align: center; padding: 2rem;
-            background: linear-gradient(180deg, rgba(6,9,26,0.95), rgba(20,17,11,0.95));
-          ">
-            <span class="material-symbols-outlined" style="font-size: 3rem; color: #ff1a4d;">cloud_off</span>
-            <div style="font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #fff;">SIGNAL LOST</div>
-            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); max-width: 300px;">
-              The game server could not be reached. This may be a temporary network issue or the game source may be unavailable.
+          <div
+            *ngIf="gameLoadError()"
+            class="game-load-error"
+            style="
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              gap: 1rem;
+              text-align: center;
+              padding: 2rem;
+              background: linear-gradient(
+                180deg,
+                rgba(6, 9, 26, 0.95),
+                rgba(20, 17, 11, 0.95)
+              );
+            "
+          >
+            <span
+              class="material-symbols-outlined"
+              style="font-size: 3rem; color: #ff1a4d"
+              >cloud_off</span
+            >
+            <div
+              style="
+                font-size: 1rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #fff;
+              "
+            >
+              SIGNAL LOST
             </div>
-            <div style="display: flex; gap: 0.75rem;">
-              <button class="launch-btn mini" (click)="reloadGame(); gameLoadError.set(false);" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+            <div
+              style="
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.6);
+                max-width: 300px;
+              "
+            >
+              The game server could not be reached. This may be a temporary
+              network issue or the game source may be unavailable.
+            </div>
+            <div style="display: flex; gap: 0.75rem">
+              <button
+                class="launch-btn mini"
+                (click)="reloadGame(); gameLoadError.set(false)"
+                style="font-size: 0.7rem; padding: 0.5rem 1rem"
+              >
                 RETRY CONNECTION
               </button>
-              <button class="terminate-btn mini" (click)="closeGame()" style="font-size: 0.7rem; padding: 0.5rem 1rem;">
+              <button
+                class="terminate-btn mini"
+                (click)="closeGame()"
+                style="font-size: 0.7rem; padding: 0.5rem 1rem"
+              >
                 TERMINATE
               </button>
             </div>
@@ -1903,11 +2632,22 @@
       </div>
       <footer class="console-footer glass-v42">
         <div class="session-timer">
-          <span class="material-symbols-outlined" style="font-size: 0.8rem; vertical-align: middle;">timer</span>
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 0.8rem; vertical-align: middle"
+            >timer</span
+          >
           <span>{{ gameSessionElapsed() | formatTime }}</span>
         </div>
-        <div class="session-achievements" *ngIf="achievements().filter(a => a.unlocked).length as count">
-          <span class="material-symbols-outlined" style="font-size: 0.7rem; vertical-align: middle;">emoji_events</span>
+        <div
+          class="session-achievements"
+          *ngIf="achievements().filter((a) => a.unlocked).length as count"
+        >
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 0.7rem; vertical-align: middle"
+            >emoji_events</span
+          >
           {{ count }}/{{ achievements().length }} ACHIEVEMENTS
         </div>
         <button class="terminate-btn" (click)="closeGame()">
@@ -1928,8 +2668,4 @@
   </button>
 </div>
 
-<audio
-  #remoteAudio
-  autoplay
-  *ngIf="peerService.remoteStream()"
-></audio>
+<audio #remoteAudio autoplay *ngIf="peerService.remoteStream()"></audio>

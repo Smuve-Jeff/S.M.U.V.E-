@@ -4,7 +4,7 @@ import { StudioRecordingEngineService } from './studio-recording-engine.service'
 import { LoggingService } from '../services/logging.service';
 import { SnackbarService } from '../services/snackbar.service';
 
-export type RecordableComponent = 
+export type RecordableComponent =
   | 'arrangement'
   | 'drum-machine'
   | 'sampler'
@@ -43,13 +43,55 @@ export class ComponentRecordingService {
 
   /** Available recordable components with their configs */
   readonly componentConfigs: ComponentRecordingConfig[] = [
-    { componentId: 'arrangement', label: 'Arrangement', icon: 'view_quilt', supportsMidi: true, usesInput: false },
-    { componentId: 'drum-machine', label: 'Drum Machine', icon: 'grid_view', supportsMidi: true, usesInput: false },
-    { componentId: 'sampler', label: 'Sampler', icon: 'library_music', supportsMidi: false, usesInput: true },
-    { componentId: 'vocal-suite', label: 'Vocal Suite', icon: 'mic', supportsMidi: false, usesInput: true },
-    { componentId: 'audio-recorder', label: 'Audio Recorder', icon: 'mic_external_on', supportsMidi: false, usesInput: true },
-    { componentId: 'performer', label: 'Performer', icon: 'interpreter_mode', supportsMidi: true, usesInput: true },
-    { componentId: 'mixer', label: 'Mixer', icon: 'tune', supportsMidi: false, usesInput: true },
+    {
+      componentId: 'arrangement',
+      label: 'Arrangement',
+      icon: 'view_quilt',
+      supportsMidi: true,
+      usesInput: false,
+    },
+    {
+      componentId: 'drum-machine',
+      label: 'Drum Machine',
+      icon: 'grid_view',
+      supportsMidi: true,
+      usesInput: false,
+    },
+    {
+      componentId: 'sampler',
+      label: 'Sampler',
+      icon: 'library_music',
+      supportsMidi: false,
+      usesInput: true,
+    },
+    {
+      componentId: 'vocal-suite',
+      label: 'Vocal Suite',
+      icon: 'mic',
+      supportsMidi: false,
+      usesInput: true,
+    },
+    {
+      componentId: 'audio-recorder',
+      label: 'Audio Recorder',
+      icon: 'mic_external_on',
+      supportsMidi: false,
+      usesInput: true,
+    },
+    {
+      componentId: 'performer',
+      label: 'Performer',
+      icon: 'interpreter_mode',
+      supportsMidi: true,
+      usesInput: true,
+    },
+    {
+      componentId: 'mixer',
+      label: 'Mixer',
+      icon: 'tune',
+      supportsMidi: false,
+      usesInput: true,
+    },
   ];
 
   /** Get config for a specific component */
@@ -121,7 +163,9 @@ export class ComponentRecordingService {
 
     this.isRecording.set(false);
     this.audioEngine.isRecording.set(false);
-    this.snackbar.success(`Recording finished (${this.formatDuration(this.recordingDuration())})`);
+    this.snackbar.success(
+      `Recording finished (${this.formatDuration(this.recordingDuration())})`
+    );
   }
 
   /** Toggle recording on/off */

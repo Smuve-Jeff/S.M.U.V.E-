@@ -60,7 +60,11 @@ function noteOn(channel: number, note: number, velocity: number): number[] {
 }
 
 /** Note Off: status 0x80 + channel */
-function noteOff(channel: number, note: number, velocity: number = 64): number[] {
+function noteOff(
+  channel: number,
+  note: number,
+  velocity: number = 64
+): number[] {
   return [0x80 | (channel & 0x0f), note & 0x7f, velocity & 0x7f];
 }
 
@@ -70,7 +74,11 @@ function programChange(channel: number, program: number): number[] {
 }
 
 /** Controller Change: status 0xB0 + channel */
-function controllerChange(channel: number, controller: number, value: number): number[] {
+function controllerChange(
+  channel: number,
+  controller: number,
+  value: number
+): number[] {
   return [0xb0 | (channel & 0x0f), controller & 0x7f, value & 0x7f];
 }
 
@@ -103,21 +111,28 @@ function metaInstrumentName(name: string): number[] {
 function metaTempo(bpm: number): number[] {
   const micros = Math.floor(60_000_000 / Math.max(1, bpm));
   return [
-    0xff, 0x51, 0x03,
+    0xff,
+    0x51,
+    0x03,
     (micros >> 16) & 0xff,
     (micros >> 8) & 0xff,
     micros & 0xff,
   ];
 }
 
-function metaTimeSignature(numerator: number, denominatorPowerOf2: number = 2): number[] {
+function metaTimeSignature(
+  numerator: number,
+  denominatorPowerOf2: number = 2
+): number[] {
   // denominatorPowerOf2: 2 = quarter note (since 2^2=4)
   return [
-    0xff, 0x58, 0x04,
+    0xff,
+    0x58,
+    0x04,
     numerator & 0xff,
     denominatorPowerOf2 & 0xff,
-    24,  // MIDI clocks per metronome click
-    8,   // 32nd notes per quarter note
+    24, // MIDI clocks per metronome click
+    8, // 32nd notes per quarter note
   ];
 }
 
@@ -135,7 +150,7 @@ function buildTrackEvents(
   name: string,
   notes: MidiNoteEvent[],
   channel: number,
-  program?: number,
+  program?: number
 ): number[] {
   const events: number[] = [];
 
@@ -168,7 +183,12 @@ function buildTrackEvents(
 
   for (const n of sorted) {
     if (n.velocity > 0) {
-      timeline.push({ tick: n.startTick, type: 'on', note: n.note, velocity: n.velocity });
+      timeline.push({
+        tick: n.startTick,
+        type: 'on',
+        note: n.note,
+        velocity: n.velocity,
+      });
     }
     const endTick = n.startTick + Math.max(1, n.durationTicks);
     timeline.push({ tick: endTick, type: 'off', note: n.note, velocity: 64 });
@@ -205,7 +225,10 @@ function buildTrackEvents(
 /**
  * Build the conductor track (Track 0) with tempo, time signature, sequence name.
  */
-function buildConductorTrackEvents(sequenceName: string, bpm: number): number[] {
+function buildConductorTrackEvents(
+  sequenceName: string,
+  bpm: number
+): number[] {
   const events: number[] = [];
 
   // Delta 0 + sequence name
@@ -241,7 +264,7 @@ export class MidiWriter {
   static toArrayBuffer(
     tracks: MidiTrackData[],
     bpm: number = 120,
-    sequenceName: string = 'S.M.U.V.E Project',
+    sequenceName: string = 'S.M.U.V.E Project'
   ): ArrayBuffer {
     const numTracks = tracks.length + 1; // +1 for conductor track
     const format = 1;
@@ -254,7 +277,12 @@ export class MidiWriter {
     const trackChunks: Uint8Array[] = [condTrack];
     tracks.forEach((track, idx) => {
       const channel = idx % 16; // wrap around if > 15 tracks
-      const evts = buildTrackEvents(track.name, track.notes, channel, track.program);
+      const evts = buildTrackEvents(
+        track.name,
+        track.notes,
+        channel,
+        track.program
+      );
       trackChunks.push(buildTrackChunkBytes(evts));
     });
 
@@ -262,7 +290,8 @@ export class MidiWriter {
     const header = buildHeaderBytes(format, numTracks, TICKS_PER_BEAT);
 
     // Concatenate everything
-    const totalLength = header.length + trackChunks.reduce((s, c) => s + c.length, 0);
+    const totalLength =
+      header.length + trackChunks.reduce((s, c) => s + c.length, 0);
     const result = new Uint8Array(totalLength);
     let offset = 0;
     result.set(header, offset);
@@ -278,7 +307,11 @@ export class MidiWriter {
   /**
    * Convert ticks-per-beat to actual time in seconds for a given BPM.
    */
-  static tickToSeconds(tick: number, bpm: number, ticksPerBeat: number = TICKS_PER_BEAT): number {
+  static tickToSeconds(
+    tick: number,
+    bpm: number,
+    ticksPerBeat: number = TICKS_PER_BEAT
+  ): number {
     const beatsPerSecond = bpm / 60;
     const ticksPerSecond = beatsPerSecond * ticksPerBeat;
     return tick / ticksPerSecond;
@@ -287,14 +320,18 @@ export class MidiWriter {
 
 // ─── Binary builders ─────────────────────────────────────────
 
-function buildHeaderBytes(format: number, numTracks: number, division: number): Uint8Array {
+function buildHeaderBytes(
+  format: number,
+  numTracks: number,
+  division: number
+): Uint8Array {
   const buf = new ArrayBuffer(14);
   const view = new DataView(buf);
   view.setUint32(0, 0x4d546864); // "MThd"
-  view.setUint32(4, 6);          // Header length = 6
-  view.setUint16(8, format);     // Format (0 or 1)
+  view.setUint32(4, 6); // Header length = 6
+  view.setUint16(8, format); // Format (0 or 1)
   view.setUint16(10, numTracks); // Number of tracks
-  view.setUint16(12, division);  // Ticks per quarter note
+  view.setUint16(12, division); // Ticks per quarter note
   return new Uint8Array(buf);
 }
 

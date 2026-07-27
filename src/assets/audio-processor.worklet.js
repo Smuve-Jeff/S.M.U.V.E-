@@ -1,3 +1,4 @@
+/* global currentTime */
 class SmuveAudioProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -33,8 +34,8 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
           payload: {
             step: this.currentStep,
             time: this.nextNoteTime,
-            duration: stepDuration
-          }
+            duration: stepDuration,
+          },
         });
         this.nextNoteTime += stepDuration;
         this.currentStep++;
@@ -45,4 +46,3 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('smuve-audio-processor', SmuveAudioProcessor);
-

@@ -5,19 +5,26 @@
     <div class="al-header-content">
       <div class="al-artist-badge">
         <div class="al-badge-ring"></div>
-        <span class="al-badge-initial">{{ (artistName() || profile().artistName || '?').charAt(0).toUpperCase() }}</span>
+        <span class="al-badge-initial">{{
+          (artistName() || profile().artistName || '?').charAt(0).toUpperCase()
+        }}</span>
       </div>
-      <h1 class="al-artist-name">{{ artistName() || profile().artistName || 'Unknown Artist' }}</h1>
+      <h1 class="al-artist-name">
+        {{ artistName() || profile().artistName || 'Unknown Artist' }}
+      </h1>
       <p class="al-genre-tag">{{ profile().primaryGenre }}</p>
       <div class="al-header-meta">
         <span class="al-meta-chip" *ngIf="personaSynthesis()?.archetype">
-          <span class="al-chip-icon">⚔️</span> {{ personaSynthesis()?.archetype }}
+          <span class="al-chip-icon">⚔️</span>
+          {{ personaSynthesis()?.archetype }}
         </span>
         <span class="al-meta-chip">
-          <span class="al-chip-icon">📍</span> {{ journey()?.marketPosition || 'Independent' }}
+          <span class="al-chip-icon">📍</span>
+          {{ journey()?.marketPosition || 'Independent' }}
         </span>
         <span class="al-meta-chip">
-          <span class="al-chip-icon">🎯</span> {{ journey()?.primarySuccessMetric || 'Creative Satisfaction' }}
+          <span class="al-chip-icon">🎯</span>
+          {{ journey()?.primarySuccessMetric || 'Creative Satisfaction' }}
         </span>
       </div>
     </div>
@@ -33,19 +40,27 @@
     <div class="al-persona-grid">
       <div class="al-persona-item">
         <span class="al-persona-label">Archetype</span>
-        <span class="al-persona-value">{{ personaSynthesis()?.archetype }}</span>
+        <span class="al-persona-value">{{
+          personaSynthesis()?.archetype
+        }}</span>
       </div>
       <div class="al-persona-item">
         <span class="al-persona-label">Signature Tone</span>
-        <span class="al-persona-value">{{ personaSynthesis()?.signatureTone }}</span>
+        <span class="al-persona-value">{{
+          personaSynthesis()?.signatureTone
+        }}</span>
       </div>
       <div class="al-persona-item">
         <span class="al-persona-label">Sonic Signature</span>
-        <span class="al-persona-value">{{ personaSynthesis()?.sonicSignature }}</span>
+        <span class="al-persona-value">{{
+          personaSynthesis()?.sonicSignature
+        }}</span>
       </div>
       <div class="al-persona-item">
         <span class="al-persona-label">Strategy</span>
-        <span class="al-persona-value">{{ personaSynthesis()?.recommendedStrategy }}</span>
+        <span class="al-persona-value">{{
+          personaSynthesis()?.recommendedStrategy
+        }}</span>
       </div>
     </div>
     <div class="al-persona-aphorism">
@@ -55,7 +70,9 @@
     </div>
     <div class="al-ai-persona" *ngIf="personaSynthesis()?.aiPersonaProfile">
       <span class="al-persona-label">S.M.U.V.E Persona Profile</span>
-      <p class="al-persona-profile-text">{{ personaSynthesis()?.aiPersonaProfile }}</p>
+      <p class="al-persona-profile-text">
+        {{ personaSynthesis()?.aiPersonaProfile }}
+      </p>
     </div>
   </section>
 
@@ -63,14 +80,20 @@
   <section class="al-strength-section">
     <h2 class="al-section-title">ARTIST PROFILE STRENGTH</h2>
     <div class="al-strength-grid">
-      <div class="al-strength-item" *ngFor="let dimension of strengthDimensions()">
+      <div
+        class="al-strength-item"
+        *ngFor="let dimension of strengthDimensions()"
+      >
         <div class="al-strength-header">
           <span class="al-strength-label">{{ dimension.label }}</span>
           <span class="al-strength-score">{{ dimension.score }}%</span>
         </div>
         <div class="al-strength-bar-track">
-          <div class="al-strength-bar-fill" [style.width.%]="dimension.score"
-               [style.background]="getStrengthColor(dimension.score)"></div>
+          <div
+            class="al-strength-bar-fill"
+            [style.width.%]="dimension.score"
+            [style.background]="getStrengthColor(dimension.score)"
+          ></div>
         </div>
       </div>
     </div>
@@ -78,9 +101,16 @@
       <div class="al-score-ring">
         <svg viewBox="0 0 120 120" class="al-ring-svg">
           <circle cx="60" cy="60" r="52" class="al-ring-bg" />
-          <circle cx="60" cy="60" r="52" class="al-ring-fill"
-                  [style.stroke-dashoffset]="220 - (220 * strengthMeter().overall / 100)"
-                  [style.stroke]="getStrengthColor(strengthMeter().overall)" />
+          <circle
+            cx="60"
+            cy="60"
+            r="52"
+            class="al-ring-fill"
+            [style.stroke-dashoffset]="
+              220 - (220 * strengthMeter().overall) / 100
+            "
+            [style.stroke]="getStrengthColor(strengthMeter().overall)"
+          />
         </svg>
         <div class="al-score-center">
           <span class="al-score-num">{{ strengthMeter().overall }}</span>
@@ -95,7 +125,9 @@
     <h2 class="al-section-title">SONIC SIGNATURE</h2>
     <div class="al-sound-card">
       <div class="al-sound-bar">
-        <span class="al-sound-tag">{{ personaSynthesis()?.sonicSignature }}</span>
+        <span class="al-sound-tag">{{
+          personaSynthesis()?.sonicSignature
+        }}</span>
       </div>
       <div class="al-sound-detail" *ngIf="journey()?.signatureGear">
         <span class="al-detail-label">Signature Gear</span>
@@ -112,9 +144,12 @@
   <section class="al-insights-section" *ngIf="strategicInsights().length">
     <h2 class="al-section-title">STRATEGIC DIRECTIVES</h2>
     <div class="al-insights-list">
-      <div class="al-insight-card" *ngFor="let insight of strategicInsights()"
-           [class.al-impact-critical]="insight.impact === 'Critical'"
-           [class.al-impact-high]="insight.impact === 'High'">
+      <div
+        class="al-insight-card"
+        *ngFor="let insight of strategicInsights()"
+        [class.al-impact-critical]="insight.impact === 'Critical'"
+        [class.al-impact-high]="insight.impact === 'High'"
+      >
         <div class="al-insight-header">
           <span class="al-insight-impact">{{ insight.impact }}</span>
           <span class="al-insight-title">{{ insight.title }}</span>
@@ -130,7 +165,9 @@
     <div class="al-bio-card">
       <div class="al-bio-avatar">
         <div class="al-bio-avatar-ring"></div>
-        <span class="al-bio-avatar-letter">{{ (profile().artistName || '?').charAt(0).toUpperCase() }}</span>
+        <span class="al-bio-avatar-letter">{{
+          (profile().artistName || '?').charAt(0).toUpperCase()
+        }}</span>
       </div>
       <p class="al-bio-text">{{ aiBio() }}</p>
       <div class="al-bio-badge">
@@ -145,22 +182,40 @@
     <h2 class="al-section-title">FEATURED RELEASE</h2>
     <div class="al-track-card">
       <div class="al-track-waveform">
-        <div class="al-wave-bar" *ngFor="let h of [0.3,0.4,0.6,0.5,0.7,0.8,0.5,0.9,0.7,0.6,0.4,0.3,0.5,0.7,0.6,0.8,0.9,0.7,0.5,0.6,0.4,0.3]"></div>
+        <div
+          class="al-wave-bar"
+          *ngFor="
+            let h of [
+              0.3, 0.4, 0.6, 0.5, 0.7, 0.8, 0.5, 0.9, 0.7, 0.6, 0.4, 0.3, 0.5,
+              0.7, 0.6, 0.8, 0.9, 0.7, 0.5, 0.6, 0.4, 0.3,
+            ]
+          "
+        ></div>
       </div>
       <div class="al-track-info">
         <div class="al-track-meta">
-          <span class="al-track-title">{{ featuredTrack()?.title || 'Untitled' }}</span>
-          <span class="al-track-genre" *ngIf="featuredTrack()?.genre">{{ featuredTrack()?.genre }}</span>
+          <span class="al-track-title">{{
+            featuredTrack()?.title || 'Untitled'
+          }}</span>
+          <span class="al-track-genre" *ngIf="featuredTrack()?.genre">{{
+            featuredTrack()?.genre
+          }}</span>
         </div>
         <div class="al-track-controls">
-          <button class="al-play-btn" (click)="$event.preventDefault()" title="Play preview">
+          <button
+            class="al-play-btn"
+            (click)="$event.preventDefault()"
+            title="Play preview"
+          >
             <span class="al-play-icon">▶</span>
           </button>
           <div class="al-track-progress">
             <div class="al-progress-track">
               <div class="al-progress-fill"></div>
             </div>
-            <span class="al-track-duration">{{ featuredTrack()?.duration ? (featuredTrack()?.duration + 's') : '—' }}</span>
+            <span class="al-track-duration">{{
+              featuredTrack()?.duration ? featuredTrack()?.duration + 's' : '—'
+            }}</span>
           </div>
         </div>
       </div>
@@ -171,36 +226,96 @@
   <section class="al-social-section">
     <h2 class="al-section-title">FIND ME ON</h2>
     <div class="al-social-grid">
-      <a *ngIf="socialLinks().spotify" class="al-social-btn" [style.--social-color]="'#1DB954'" href="#" target="_blank" title="Spotify">
+      <a
+        *ngIf="socialLinks().spotify"
+        class="al-social-btn"
+        [style.--social-color]="'#1DB954'"
+        href="#"
+        target="_blank"
+        title="Spotify"
+      >
         <span class="al-social-icon">🟢</span>
         <span class="al-social-label">Spotify</span>
       </a>
-      <a *ngIf="socialLinks().apple" class="al-social-btn" [style.--social-color]="'#FA243C'" href="#" target="_blank" title="Apple Music">
+      <a
+        *ngIf="socialLinks().apple"
+        class="al-social-btn"
+        [style.--social-color]="'#FA243C'"
+        href="#"
+        target="_blank"
+        title="Apple Music"
+      >
         <span class="al-social-icon">🍎</span>
         <span class="al-social-label">Apple Music</span>
       </a>
-      <a *ngIf="socialLinks().soundcloud" class="al-social-btn" [style.--social-color]="'#FF7700'" href="#" target="_blank" title="SoundCloud">
+      <a
+        *ngIf="socialLinks().soundcloud"
+        class="al-social-btn"
+        [style.--social-color]="'#FF7700'"
+        href="#"
+        target="_blank"
+        title="SoundCloud"
+      >
         <span class="al-social-icon">☁️</span>
         <span class="al-social-label">SoundCloud</span>
       </a>
-      <a *ngIf="socialLinks().youtube" class="al-social-btn" [style.--social-color]="'#FF0000'" href="#" target="_blank" title="YouTube">
+      <a
+        *ngIf="socialLinks().youtube"
+        class="al-social-btn"
+        [style.--social-color]="'#FF0000'"
+        href="#"
+        target="_blank"
+        title="YouTube"
+      >
         <span class="al-social-icon">▶️</span>
         <span class="al-social-label">YouTube</span>
       </a>
-      <a *ngIf="socialLinks().tiktok" class="al-social-btn" [style.--social-color]="'#000000'" href="#" target="_blank" title="TikTok">
+      <a
+        *ngIf="socialLinks().tiktok"
+        class="al-social-btn"
+        [style.--social-color]="'#000000'"
+        href="#"
+        target="_blank"
+        title="TikTok"
+      >
         <span class="al-social-icon">🎵</span>
         <span class="al-social-label">TikTok</span>
       </a>
-      <a *ngIf="socialLinks().instagram" class="al-social-btn" [style.--social-color]="'#E4405F'" href="#" target="_blank" title="Instagram">
+      <a
+        *ngIf="socialLinks().instagram"
+        class="al-social-btn"
+        [style.--social-color]="'#E4405F'"
+        href="#"
+        target="_blank"
+        title="Instagram"
+      >
         <span class="al-social-icon">📸</span>
         <span class="al-social-label">Instagram</span>
       </a>
-      <a *ngIf="socialLinks().website" class="al-social-btn" [style.--social-color]="'#0E7C7B'" [href]="profile().website" target="_blank" title="Website">
+      <a
+        *ngIf="socialLinks().website"
+        class="al-social-btn"
+        [style.--social-color]="'#0E7C7B'"
+        [href]="profile().website"
+        target="_blank"
+        title="Website"
+      >
         <span class="al-social-icon">🌐</span>
         <span class="al-social-label">Website</span>
       </a>
     </div>
-    <div class="al-social-empty" *ngIf="!socialLinks().spotify && !socialLinks().apple && !socialLinks().soundcloud && !socialLinks().youtube && !socialLinks().tiktok && !socialLinks().instagram && !socialLinks().website">
+    <div
+      class="al-social-empty"
+      *ngIf="
+        !socialLinks().spotify &&
+        !socialLinks().apple &&
+        !socialLinks().soundcloud &&
+        !socialLinks().youtube &&
+        !socialLinks().tiktok &&
+        !socialLinks().instagram &&
+        !socialLinks().website
+      "
+    >
       <p>Connect streaming services in your profile to display them here</p>
     </div>
   </section>
@@ -214,29 +329,44 @@
         <span class="al-stat-label">Years Active</span>
       </div>
       <div class="al-journey-stat">
-        <span class="al-stat-value">{{ journey()?.songwritingStyle || '—' }}</span>
+        <span class="al-stat-value">{{
+          journey()?.songwritingStyle || '—'
+        }}</span>
         <span class="al-stat-label">Songwriting Style</span>
       </div>
       <div class="al-journey-stat">
-        <span class="al-stat-value">{{ journey()?.productionPhilosophy || '—' }}</span>
+        <span class="al-stat-value">{{
+          journey()?.productionPhilosophy || '—'
+        }}</span>
         <span class="al-stat-label">Production</span>
       </div>
       <div class="al-journey-stat">
-        <span class="al-stat-value">{{ journey()?.releaseVelocity || '—' }}</span>
+        <span class="al-stat-value">{{
+          journey()?.releaseVelocity || '—'
+        }}</span>
         <span class="al-stat-label">Release Velocity</span>
       </div>
     </div>
-    <div class="al-journey-influences" *ngIf="journey()?.musicalInfluences?.length">
+    <div
+      class="al-journey-influences"
+      *ngIf="journey()?.musicalInfluences?.length"
+    >
       <span class="al-detail-label">Influences</span>
       <div class="al-influence-chips">
-        <span class="al-influence-chip" *ngFor="let infl of journey()?.musicalInfluences">{{ infl }}</span>
+        <span
+          class="al-influence-chip"
+          *ngFor="let infl of journey()?.musicalInfluences"
+          >{{ infl }}</span
+        >
       </div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="al-footer">
-    <p class="al-footer-text">Powered by S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise</p>
+    <p class="al-footer-text">
+      Powered by S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise
+    </p>
     <p class="al-footer-sub">© Smuve Jeff Presents</p>
   </footer>
 </div>

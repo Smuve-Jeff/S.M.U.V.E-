@@ -4,7 +4,10 @@
       <span class="material-symbols-outlined sl-title-icon">library_music</span>
       <div>
         <h2 class="sl-h2">Sample Library</h2>
-        <p class="sl-sub">Tag-stamped drum kits, bass patches, keys, and FX — usable across any set.</p>
+        <p class="sl-sub">
+          Tag-stamped drum kits, bass patches, keys, and FX — usable across any
+          set.
+        </p>
       </div>
     </div>
     <label class="sl-search" role="search">
@@ -29,7 +32,9 @@
       (click)="selectedCategory.set(cat.id)"
       [attr.aria-pressed]="selectedCategory() === cat.id"
     >
-      <span class="material-symbols-outlined" aria-hidden="true">{{ cat.icon }}</span>
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        cat.icon
+      }}</span>
       <span class="sl-cat-label">{{ cat.label }}</span>
       <span class="sl-cat-count">{{ cat.count }}</span>
     </button>
@@ -49,7 +54,9 @@
       (dblclick)="previewSample(sample.id)"
       tabindex="0"
       role="listitem"
-      [attr.aria-label]="'Sample ' + sample.name + ', category ' + sample.category"
+      [attr.aria-label]="
+        'Sample ' + sample.name + ', category ' + sample.category
+      "
       (keydown.enter)="loadSample(sample.id)"
       (keydown.space)="previewSample(sample.id); $event.preventDefault()"
     >
@@ -94,6 +101,8 @@
   </div>
 
   <footer class="sl-foot" *ngIf="filteredSamples().length === 0">
-    <p>No samples match those filters. Try clearing search or switching category.</p>
+    <p>
+      No samples match those filters. Try clearing search or switching category.
+    </p>
   </footer>
 </section>

@@ -56,7 +56,8 @@ export class AutomationService {
       this.lanes.update((list2) => [
         ...list2,
         {
-          id: 'lane_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+          id:
+            'lane_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
           trackId,
           param,
           keyframes: [],
@@ -85,15 +86,11 @@ export class AutomationService {
       name: 'Add Keyframe',
       execute: () =>
         this.lanes.update((list) =>
-          list.map((l) =>
-            l.id === lane.id ? { ...l, keyframes: after } : l
-          )
+          list.map((l) => (l.id === lane.id ? { ...l, keyframes: after } : l))
         ),
       undo: () =>
         this.lanes.update((list) =>
-          list.map((l) =>
-            l.id === lane.id ? { ...l, keyframes: before } : l
-          )
+          list.map((l) => (l.id === lane.id ? { ...l, keyframes: before } : l))
         ),
     });
     return id;
@@ -108,15 +105,11 @@ export class AutomationService {
       name: 'Remove Keyframe',
       execute: () =>
         this.lanes.update((list) =>
-          list.map((l) =>
-            l.id === laneId ? { ...l, keyframes: after } : l
-          )
+          list.map((l) => (l.id === laneId ? { ...l, keyframes: after } : l))
         ),
       undo: () =>
         this.lanes.update((list) =>
-          list.map((l) =>
-            l.id === laneId ? { ...l, keyframes: before } : l
-          )
+          list.map((l) => (l.id === laneId ? { ...l, keyframes: before } : l))
         ),
     });
   }

@@ -79,7 +79,10 @@ describe('DjDeckComponent', () => {
       }),
       setDeckFilter: jest.fn().mockImplementation((id, freq) => {
         const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
-        target.update((d: typeof initialDeckState) => ({ ...d, filterFreq: freq }));
+        target.update((d: typeof initialDeckState) => ({
+          ...d,
+          filterFreq: freq,
+        }));
       }),
       setDeckGain: jest.fn().mockImplementation((id, gain) => {
         const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
@@ -96,11 +99,17 @@ describe('DjDeckComponent', () => {
       automixEnabled: jest.fn().mockReturnValue(false),
       setPlaybackRate: jest.fn().mockImplementation((id, rate) => {
         const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
-        target.update((d: typeof initialDeckState) => ({ ...d, playbackRate: rate }));
+        target.update((d: typeof initialDeckState) => ({
+          ...d,
+          playbackRate: rate,
+        }));
       }),
       setKeyLock: jest.fn().mockImplementation((id, enabled) => {
         const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
-        target.update((d: typeof initialDeckState) => ({ ...d, keyLock: enabled }));
+        target.update((d: typeof initialDeckState) => ({
+          ...d,
+          keyLock: enabled,
+        }));
       }),
       setBassBoost: jest.fn(),
     };
@@ -473,7 +482,12 @@ describe('DjDeckComponent', () => {
     }));
 
     component.updateEq('A', 'high', 5);
-    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 2, 1.1, 0.9);
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith(
+      'A',
+      2,
+      1.1,
+      0.9
+    );
 
     component.updateEq('A', 'low', -2);
     expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 2, 1.1, 0);
@@ -483,10 +497,10 @@ describe('DjDeckComponent', () => {
     component.setStemGain('A', 'vocals', {
       target: { valueAsNumber: 5 },
     } as unknown as Event);
-    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith(
-      'A',
-      { stem: 'vocals', gain: 2 }
-    );
+    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith('A', {
+      stem: 'vocals',
+      gain: 2,
+    });
 
     component.setStemGain('A', 'unknown-stem', {
       target: { valueAsNumber: 0.5 },
@@ -496,10 +510,10 @@ describe('DjDeckComponent', () => {
     component.setStemGain('A', 'vocals', {
       target: null,
     } as unknown as Event);
-    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith(
-      'A',
-      { stem: 'vocals', gain: 0 }
-    );
+    expect(mockDeckService.onStemGainChange).toHaveBeenLastCalledWith('A', {
+      stem: 'vocals',
+      gain: 0,
+    });
   });
 
   it('rejects invalid sampler categories without changing state', () => {

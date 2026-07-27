@@ -33,10 +33,22 @@ import {
 import { ChallengeInboxService } from '../../services/challenge-inbox.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
-import { MatchmakingService, CoOpLobby, SpectatorReaction, LobbyChatMessage } from '../../hub/matchmaking.service';
+import {
+  MatchmakingService,
+  CoOpLobby,
+  SpectatorReaction,
+  LobbyChatMessage,
+} from '../../hub/matchmaking.service';
 import { ActivatedRoute } from '@angular/router';
-import { DailyMissionsService, DailyMission } from '../../services/daily-missions.service';
-import { GameRatingsService, Rating, PlayResult } from '../../services/game-ratings.service';
+import {
+  DailyMissionsService,
+  DailyMission,
+} from '../../services/daily-missions.service';
+import {
+  GameRatingsService,
+  Rating,
+  PlayResult,
+} from '../../services/game-ratings.service';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -47,66 +59,78 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   imports: [CommonModule, FormsModule],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
-  styles: [`
-    .challenge-banner {
-      position: fixed;
-      top: 72px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 110;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem 1.25rem;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(225, 29, 72, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
-      border: 1px solid rgba(225, 29, 72, 0.4);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      animation: slideDown 0.4s ease-out;
-    }
-    .challenge-banner .challenge-info {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #fff;
-    }
-    .challenge-banner .challenge-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .challenge-banner .action-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .challenge-banner .action-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    .challenge-banner .action-btn.danger {
-      background: rgba(225, 29, 72, 0.3);
-      border-color: rgba(225, 29, 72, 0.5);
-    }
-    .challenge-banner .action-btn.danger:hover {
-      background: rgba(225, 29, 72, 0.5);
-    }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-    .icon-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  `],
+  styles: [
+    `
+      .challenge-banner {
+        position: fixed;
+        top: 72px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(225, 29, 72, 0.2) 0%,
+          rgba(139, 92, 246, 0.2) 100%
+        );
+        border: 1px solid rgba(225, 29, 72, 0.4);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        animation: slideDown 0.4s ease-out;
+      }
+      .challenge-banner .challenge-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #fff;
+      }
+      .challenge-banner .challenge-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .challenge-banner .action-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .challenge-banner .action-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .challenge-banner .action-btn.danger {
+        background: rgba(225, 29, 72, 0.3);
+        border-color: rgba(225, 29, 72, 0.5);
+      }
+      .challenge-banner .action-btn.danger:hover {
+        background: rgba(225, 29, 72, 0.5);
+      }
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+      .icon-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    `,
+  ],
 })
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
@@ -212,7 +236,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly RECENT_GAMES_KEY = 'tha_spot_recent_games';
 
   // Social & Streaming Signals
-  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party' | 'ai'>('room');
+  activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party' | 'ai'>(
+    'room'
+  );
   dmTargetUserId = signal<string | null>(null);
   chatInput = signal<string>('');
 
@@ -240,13 +266,69 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ── Achievement System ───────────────────────────────
   achievements = signal<Achievement[]>([
-    { id: 'first-launch', title: 'FIRST UPLINK', description: 'Launch your first game', icon: 'rocket_launch', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'play-5', title: 'CABINET EXPLORER', description: 'Play 5 different games', icon: 'explore', unlocked: false, progress: 0, maxProgress: 5 },
-    { id: 'play-25', title: 'ARCADE VETERAN', description: 'Play 25 games total', icon: 'military_tech', unlocked: false, progress: 0, maxProgress: 25 },
-    { id: 'favorites-3', title: 'CURATED COLLECTION', description: 'Save 3 favorite games', icon: 'star', unlocked: false, progress: 0, maxProgress: 3 },
-    { id: 'multiplayer-1', title: 'RIVAL ENCOUNTER', description: 'Complete a multiplayer match', icon: 'swords', unlocked: false, progress: 0, maxProgress: 1 },
-    { id: 'challenge-5', title: 'CHALLENGE SEASON', description: 'Send 5 challenges', icon: 'sports_kabaddi', unlocked: false, progress: 0, maxProgress: 5 },
-    { id: 'session-10min', title: 'ENDURANCE RUN', description: 'Play for 10 minutes straight', icon: 'timer', unlocked: false, progress: 0, maxProgress: 600 },
+    {
+      id: 'first-launch',
+      title: 'FIRST UPLINK',
+      description: 'Launch your first game',
+      icon: 'rocket_launch',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 1,
+    },
+    {
+      id: 'play-5',
+      title: 'CABINET EXPLORER',
+      description: 'Play 5 different games',
+      icon: 'explore',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 5,
+    },
+    {
+      id: 'play-25',
+      title: 'ARCADE VETERAN',
+      description: 'Play 25 games total',
+      icon: 'military_tech',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 25,
+    },
+    {
+      id: 'favorites-3',
+      title: 'CURATED COLLECTION',
+      description: 'Save 3 favorite games',
+      icon: 'star',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 3,
+    },
+    {
+      id: 'multiplayer-1',
+      title: 'RIVAL ENCOUNTER',
+      description: 'Complete a multiplayer match',
+      icon: 'swords',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 1,
+    },
+    {
+      id: 'challenge-5',
+      title: 'CHALLENGE SEASON',
+      description: 'Send 5 challenges',
+      icon: 'sports_kabaddi',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 5,
+    },
+    {
+      id: 'session-10min',
+      title: 'ENDURANCE RUN',
+      description: 'Play for 10 minutes straight',
+      icon: 'timer',
+      unlocked: false,
+      progress: 0,
+      maxProgress: 600,
+    },
   ]);
   lastUnlockedAchievement = signal<Achievement | null>(null);
   showAchievementPopup = signal(false);
@@ -256,7 +338,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ── AI Companion ─────────────────────────────────────
   aiCompanionMessages = signal<{ role: 'ai' | 'user'; text: string }[]>([
-    { role: 'ai', text: 'S.M.U.V.E Neural Uplink active. Awaiting your command.' },
+    {
+      role: 'ai',
+      text: 'S.M.U.V.E Neural Uplink active. Awaiting your command.',
+    },
   ]);
   aiCompanionInput = signal('');
   aiCompanionThinking = signal(false);
@@ -388,7 +473,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isCallActive = this.peerService.isCallActive;
   inGame = signal(false);
   gameIdToInvite = signal<string | null>(null);
-  incomingChallenge = signal<{ fromUserId: string; fromUserName?: string; gameId: string; timestamp: number } | null>(null);
+  incomingChallenge = signal<{
+    fromUserId: string;
+    fromUserName?: string;
+    gameId: string;
+    timestamp: number;
+  } | null>(null);
 
   statusEffect = effect(() => {
     const inGame = this.inGame();
@@ -582,9 +672,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // Check session duration achievement before resetting
     if (this.sessionStartTime > 0) {
       const elapsed = Math.floor((Date.now() - this.sessionStartTime) / 1000);
-      this.achievements.update(a => a.map(ach =>
-        ach.id === 'session-10min' ? { ...ach, progress: Math.min(ach.maxProgress, ach.progress + elapsed) } : ach
-      ));
+      this.achievements.update((a) =>
+        a.map((ach) =>
+          ach.id === 'session-10min'
+            ? {
+                ...ach,
+                progress: Math.min(ach.maxProgress, ach.progress + elapsed),
+              }
+            : ach
+        )
+      );
       this.checkAchievements();
       this.playSoundEffect('close');
     }
@@ -616,7 +713,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.currentMatchmakingId = null;
   }
 
-  async  /**
+  async; /**
    * Main game launch entry point. Handles:
    *  - External-only games: shows domain confirmation before opening
    *  - Inline games: URL validation → multiplayer matchmaking → multi-stage loading → iframe
@@ -629,7 +726,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // --- External / blocked games: open in a new tab with confirmation ---
     if (launchMode === 'external') {
-      const url = game.launchConfig?.approvedExternalUrl || game.launchConfig?.approvedEmbedUrl || game.url;
+      const url =
+        game.launchConfig?.approvedExternalUrl ||
+        game.launchConfig?.approvedEmbedUrl ||
+        game.url;
       try {
         const domain = new URL(url, window.location.origin).hostname;
         this.externalTargetDomain.set(domain);
@@ -647,7 +747,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const safeUrl = this.getSafeUrl(game);
     if (!safeUrl) {
       this.gameLoadError.set(true);
-      this.snackbarService.error('SECURITY: This game source is not on the trusted allowlist.');
+      this.snackbarService.error(
+        'SECURITY: This game source is not on the trusted allowlist.'
+      );
       return;
     }
 
@@ -727,14 +829,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.gameSessionElapsed.set(0);
     this.sessionStartTime = Date.now();
     this.sessionTimerId = setInterval(() => {
-      this.gameSessionElapsed.set(Math.floor((Date.now() - this.sessionStartTime) / 1000));
+      this.gameSessionElapsed.set(
+        Math.floor((Date.now() - this.sessionStartTime) / 1000)
+      );
     }, 1000);
 
     // Play launch sound
     this.playSoundEffect('launch');
 
     // Track achievement
-    this.playedGameIds.update(s => { s.add(game.id); return s; });
+    this.playedGameIds.update((s) => {
+      s.add(game.id);
+      return s;
+    });
     this.checkAchievements();
 
     // Generate AI recommendation
@@ -773,7 +880,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.gameLoadStage.set('ready');
       if (game) {
-        this.profileService.recordGameLaunch(game.id, this.buildSessionContext(game));
+        this.profileService.recordGameLaunch(
+          game.id,
+          this.buildSessionContext(game)
+        );
         this.inGame.set(true);
         this.currentGame.set(game);
         this.closePreview();
@@ -791,8 +901,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // a permissions upgrade via feature policy (defense-in-depth).
     const iframe = this.gameIframe?.nativeElement;
     if (iframe) {
-      try { iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame())); } catch {}
-      try { iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame())); } catch {}
+      try {
+        iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+      } catch {}
+      try {
+        iframe.setAttribute(
+          'allow',
+          this.getIframeAllowAttr(this.currentGame())
+        );
+      } catch {}
     }
   }
 
@@ -902,10 +1019,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       particle.style.height = size + 'px';
       particle.style.left = Math.random() * 100 + '%';
       particle.style.top = 100 + Math.random() * 20 + '%';
-      particle.style.animationDuration = (15 + Math.random() * 25) + 's';
-      particle.style.animationDelay = (Math.random() * 20) + 's';
-      const colors = ['var(--neon-cyan)', 'var(--neon-purple)', 'var(--neon-pink)'];
-      particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+      particle.style.animationDuration = 15 + Math.random() * 25 + 's';
+      particle.style.animationDelay = Math.random() * 20 + 's';
+      const colors = [
+        'var(--neon-cyan)',
+        'var(--neon-purple)',
+        'var(--neon-pink)',
+      ];
+      particle.style.background =
+        colors[Math.floor(Math.random() * colors.length)];
       container.appendChild(particle);
     }
   }
@@ -915,20 +1037,25 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private initCardObserver(): void {
     if (typeof IntersectionObserver === 'undefined') return;
-    this.cardObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-view');
-          this.cardObserver?.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    this.cardObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            this.cardObserver?.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
 
     // Observe game cards after feed loads
     setTimeout(() => {
-      document.querySelectorAll('.game-card:not(.skeleton-card)').forEach(card => {
-        this.cardObserver?.observe(card);
-      });
+      document
+        .querySelectorAll('.game-card:not(.skeleton-card)')
+        .forEach((card) => {
+          this.cardObserver?.observe(card);
+        });
     }, 500);
   }
 
@@ -944,7 +1071,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       if (bgEl && games[this.heroBgIndex]?.image) {
         bgEl.style.backgroundImage = `url(${games[this.heroBgIndex].image})`;
         bgEl.style.opacity = '0';
-        setTimeout(() => { bgEl.style.opacity = '0.25'; }, 50);
+        setTimeout(() => {
+          bgEl.style.opacity = '0.25';
+        }, 50);
       }
     }, 8000);
   }
@@ -955,9 +1084,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private refreshCardObserver(): void {
     this.cardObserver?.disconnect();
     setTimeout(() => {
-      document.querySelectorAll('.game-card:not(.skeleton-card)').forEach(card => {
-        this.cardObserver?.observe(card);
-      });
+      document
+        .querySelectorAll('.game-card:not(.skeleton-card)')
+        .forEach((card) => {
+          this.cardObserver?.observe(card);
+        });
     }, 300);
   }
 
@@ -1044,7 +1175,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private isTrustedEmbedUrl(url: string): boolean {
     if (!url) return false;
     // Internal asset paths are always safe (same origin)
-    if (url.startsWith('/') || url.startsWith('assets/') || url.startsWith('./')) {
+    if (
+      url.startsWith('/') ||
+      url.startsWith('assets/') ||
+      url.startsWith('./')
+    ) {
       return !url.startsWith('//'); // Block protocol-relative URLs
     }
     try {
@@ -1066,7 +1201,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private isEmbedBlockedUrl(url: string): boolean {
     if (!url) return true;
-    if (url.startsWith('/') || url.startsWith('assets/') || url.startsWith('./')) {
+    if (
+      url.startsWith('/') ||
+      url.startsWith('assets/') ||
+      url.startsWith('./')
+    ) {
       return false;
     }
     try {
@@ -1143,7 +1282,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         custom: event.data.data?.custom,
       });
       // Also record as replay snapshot
-      this.matchmaking.recordGameSnapshot(event.data.data || {}, event.data.data?.label);
+      this.matchmaking.recordGameSnapshot(
+        event.data.data || {},
+        event.data.data?.label
+      );
       return;
     }
 
@@ -1249,7 +1391,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.inboxService.challengePlayer(userId, gameId);
     this.snackbarService.success('CHALLENGE DISPATCHED');
-    this.challengeCount.update(c => c + 1);
+    this.challengeCount.update((c) => c + 1);
     this.checkAchievements();
     this.playSoundEffect('challenge');
   }
@@ -1270,7 +1412,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info('SELECT A GAME CABINET FIRST');
       return;
     }
-    const game = this.games().find((g) => g.id === gameId) || this.selectedGame();
+    const game =
+      this.games().find((g) => g.id === gameId) || this.selectedGame();
     const gameName = game?.name || gameId;
     const link = this.buildChallengeLink(gameId, toUserId);
     const text = `🎮 Challenge me to ${gameName} on S.M.U.V.E.! ${link}`;
@@ -1303,10 +1446,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info('SELECT A GAME CABINET FIRST');
       return;
     }
-    const game = this.games().find((g) => g.id === gameId) || this.selectedGame();
+    const game =
+      this.games().find((g) => g.id === gameId) || this.selectedGame();
     const gameName = game?.name || gameId;
     const link = this.buildChallengeLink(gameId, toUserId);
-    const body = encodeURIComponent(`🎮 Challenge me to ${gameName} on S.M.U.V.E.! ${link}`);
+    const body = encodeURIComponent(
+      `🎮 Challenge me to ${gameName} on S.M.U.V.E.! ${link}`
+    );
     window.location.href = `sms:?body=${body}`;
   }
 
@@ -1449,7 +1595,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       const raw = localStorage.getItem(this.RECENT_GAMES_KEY);
       if (raw) this.recentGames.set(JSON.parse(raw));
-    } catch { /* ignore corrupt data */ }
+    } catch {
+      /* ignore corrupt data */
+    }
   }
 
   private addRecentGame(game: Game): void {
@@ -1459,14 +1607,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recentGames.set(current);
     try {
       localStorage.setItem(this.RECENT_GAMES_KEY, JSON.stringify(current));
-    } catch { /* storage full — silently ignore */ }
+    } catch {
+      /* storage full — silently ignore */
+    }
   }
 
   clearRecentGames(): void {
     this.recentGames.set([]);
     try {
       localStorage.removeItem(this.RECENT_GAMES_KEY);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   addEmoji(emoji: string) {
@@ -1495,65 +1647,81 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       const saved = localStorage.getItem(this.ACHIEVEMENTS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Achievement[];
-        const updated = this.achievements().map(a => {
-          const found = parsed.find(p => p.id === a.id);
-          return found ? { ...a, unlocked: found.unlocked, progress: found.progress } : a;
+        const updated = this.achievements().map((a) => {
+          const found = parsed.find((p) => p.id === a.id);
+          return found
+            ? { ...a, unlocked: found.unlocked, progress: found.progress }
+            : a;
         });
         this.achievements.set(updated);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   private saveAchievements(): void {
     try {
-      localStorage.setItem(this.ACHIEVEMENTS_KEY, JSON.stringify(this.achievements()));
-    } catch { /* ignore */ }
+      localStorage.setItem(
+        this.ACHIEVEMENTS_KEY,
+        JSON.stringify(this.achievements())
+      );
+    } catch {
+      /* ignore */
+    }
   }
 
   private checkAchievements(): void {
     let newUnlock: Achievement | null = null;
 
-    this.achievements.update(a => a.map(ach => {
-      if (ach.unlocked) return ach;
+    this.achievements.update((a) =>
+      a.map((ach) => {
+        if (ach.unlocked) return ach;
 
-      let progress = ach.progress;
-      switch (ach.id) {
-        case 'first-launch':
-          progress = Math.min(1, progress + 1);
-          break;
-        case 'play-5':
-          progress = Math.min(5, this.playedGameIds().size);
-          break;
-        case 'play-25':
-          progress = Math.min(25, this.recentGames().length + this.playedGameIds().size);
-          break;
-        case 'favorites-3':
-          progress = Math.min(3, this.favorites().length);
-          break;
-        case 'multiplayer-1':
-          progress = Math.min(1, progress + 1);
-          break;
-        case 'challenge-5':
-          progress = Math.min(5, this.challengeCount());
-          break;
-        case 'session-10min':
-          // Progress tracked in closeGame()
-          break;
-      }
+        let progress = ach.progress;
+        switch (ach.id) {
+          case 'first-launch':
+            progress = Math.min(1, progress + 1);
+            break;
+          case 'play-5':
+            progress = Math.min(5, this.playedGameIds().size);
+            break;
+          case 'play-25':
+            progress = Math.min(
+              25,
+              this.recentGames().length + this.playedGameIds().size
+            );
+            break;
+          case 'favorites-3':
+            progress = Math.min(3, this.favorites().length);
+            break;
+          case 'multiplayer-1':
+            progress = Math.min(1, progress + 1);
+            break;
+          case 'challenge-5':
+            progress = Math.min(5, this.challengeCount());
+            break;
+          case 'session-10min':
+            // Progress tracked in closeGame()
+            break;
+        }
 
-      if (progress >= ach.maxProgress && !ach.unlocked) {
-        newUnlock = { ...ach, unlocked: true, progress: ach.maxProgress };
-        return { ...ach, unlocked: true, progress: ach.maxProgress };
-      }
-      return { ...ach, progress };
-    }));
+        if (progress >= ach.maxProgress && !ach.unlocked) {
+          newUnlock = { ...ach, unlocked: true, progress: ach.maxProgress };
+          return { ...ach, unlocked: true, progress: ach.maxProgress };
+        }
+        return { ...ach, progress };
+      })
+    );
 
     this.saveAchievements();
 
     if (newUnlock) {
       this.lastUnlockedAchievement.set(newUnlock);
       this.showAchievementPopup.set(true);
-      this.snackbarService.success(`🏆 ACHIEVEMENT UNLOCKED: ${newUnlock.title}`);
+      this.snackbarService.success(
+        `🏆 ACHIEVEMENT UNLOCKED: ${newUnlock.title}`
+      );
       this.playSoundEffect('achievement');
       setTimeout(() => this.showAchievementPopup.set(false), 4000);
     }
@@ -1567,15 +1735,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const played = this.playedGameIds();
 
     const matching = allGames
-      .filter(g => !played.has(g.id) && g.genre && profileGenres.some(pg =>
-        g.genre!.toLowerCase().includes(pg.toLowerCase()) || pg.toLowerCase().includes(g.genre!.toLowerCase())
-      ))
+      .filter(
+        (g) =>
+          !played.has(g.id) &&
+          g.genre &&
+          profileGenres.some(
+            (pg) =>
+              g.genre!.toLowerCase().includes(pg.toLowerCase()) ||
+              pg.toLowerCase().includes(g.genre!.toLowerCase())
+          )
+      )
       .slice(0, 4);
 
     if (matching.length === 0) {
       // Fallback: recommend top-rated unplayed games
       const fallback = allGames
-        .filter(g => !played.has(g.id))
+        .filter((g) => !played.has(g.id))
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 4);
       this.aiRecommendations.set(fallback);
@@ -1589,12 +1764,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     const text = this.aiCompanionInput().trim();
     if (!text) return;
 
-    this.aiCompanionMessages.update(msgs => [...msgs, { role: 'user', text }]);
+    this.aiCompanionMessages.update((msgs) => [
+      ...msgs,
+      { role: 'user', text },
+    ]);
     this.aiCompanionInput.set('');
     this.aiCompanionThinking.set(true);
 
     // Simulate AI thinking delay
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+    await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200));
 
     const aiResponses: Record<string, string[]> = {
       default: [
@@ -1623,13 +1801,19 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const lower = text.toLowerCase();
     let pool = aiResponses.default;
-    if (lower.includes('recommend') || lower.includes('suggest')) pool = aiResponses.recommend;
-    else if (lower.includes('help') || lower.includes('what')) pool = aiResponses.help;
-    else if (lower.includes('status') || lower.includes('systems')) pool = aiResponses.status;
+    if (lower.includes('recommend') || lower.includes('suggest'))
+      pool = aiResponses.recommend;
+    else if (lower.includes('help') || lower.includes('what'))
+      pool = aiResponses.help;
+    else if (lower.includes('status') || lower.includes('systems'))
+      pool = aiResponses.status;
 
     const response = pool[Math.floor(Math.random() * pool.length)];
 
-    this.aiCompanionMessages.update(msgs => [...msgs, { role: 'ai', text: response }]);
+    this.aiCompanionMessages.update((msgs) => [
+      ...msgs,
+      { role: 'ai', text: response },
+    ]);
     this.aiCompanionThinking.set(false);
     setTimeout(() => this.scrollToBottom(), 100);
   }
@@ -1651,13 +1835,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleFavorite(gameId: string): void {
     const current = this.favorites();
     const updated = current.includes(gameId)
-      ? current.filter(id => id !== gameId)
+      ? current.filter((id) => id !== gameId)
       : [...current, gameId];
     this.favorites.set(updated);
     this.checkAchievements();
     try {
       localStorage.setItem('tha_spot_favorites', JSON.stringify(updated));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   isFavorite(gameId: string): boolean {
@@ -1667,13 +1853,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   // ── Quick-Lobby (one-click from game card) ───────────
   /** Creates a co-op lobby directly from a game card without opening preview. */
   quickCreateLobby(gameId: string, event?: MouseEvent): void {
-    if (event) { event.stopPropagation(); }
+    if (event) {
+      event.stopPropagation();
+    }
     if (!gameId || gameId === 'all') {
       this.snackbarService.info('SELECT A MULTIPLAYER GAME FIRST');
       return;
     }
     const lobby = this.matchmaking.createLobby(gameId);
-    this.snackbarService.success(`LOBBY CREATED: ${lobby.gameName.toUpperCase()}`);
+    this.snackbarService.success(
+      `LOBBY CREATED: ${lobby.gameName.toUpperCase()}`
+    );
     this.playSoundEffect('select');
     // Switch to party tab to show the lobby
     this.setHubTab('party');
@@ -1756,10 +1946,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // ── Sound Effects ───────────────────────────────────
-  private playSoundEffect(type: 'select' | 'launch' | 'close' | 'challenge' | 'achievement'): void {
+  private playSoundEffect(
+    type: 'select' | 'launch' | 'close' | 'challenge' | 'achievement'
+  ): void {
     try {
       if (!this.audioCtx) {
-        this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        this.audioCtx = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
       if (this.audioCtx.state === 'suspended') {
         this.audioCtx.resume();
@@ -1773,26 +1967,44 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       switch (type) {
         case 'select':
           osc.frequency.setValueAtTime(800, this.audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(1200, this.audioCtx.currentTime + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(
+            1200,
+            this.audioCtx.currentTime + 0.1
+          );
           gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.15);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            this.audioCtx.currentTime + 0.15
+          );
           osc.start(this.audioCtx.currentTime);
           osc.stop(this.audioCtx.currentTime + 0.15);
           break;
         case 'launch':
           osc.type = 'square';
           osc.frequency.setValueAtTime(200, this.audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(800, this.audioCtx.currentTime + 0.3);
+          osc.frequency.exponentialRampToValueAtTime(
+            800,
+            this.audioCtx.currentTime + 0.3
+          );
           gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.4);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            this.audioCtx.currentTime + 0.4
+          );
           osc.start(this.audioCtx.currentTime);
           osc.stop(this.audioCtx.currentTime + 0.4);
           break;
         case 'close':
           osc.frequency.setValueAtTime(600, this.audioCtx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(200, this.audioCtx.currentTime + 0.15);
+          osc.frequency.exponentialRampToValueAtTime(
+            200,
+            this.audioCtx.currentTime + 0.15
+          );
           gain.gain.setValueAtTime(0.06, this.audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.2);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            this.audioCtx.currentTime + 0.2
+          );
           osc.start(this.audioCtx.currentTime);
           osc.stop(this.audioCtx.currentTime + 0.2);
           break;
@@ -1802,7 +2014,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           osc.frequency.setValueAtTime(500, this.audioCtx.currentTime + 0.1);
           osc.frequency.setValueAtTime(700, this.audioCtx.currentTime + 0.2);
           gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.35);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            this.audioCtx.currentTime + 0.35
+          );
           osc.start(this.audioCtx.currentTime);
           osc.stop(this.audioCtx.currentTime + 0.35);
           break;
@@ -1813,12 +2028,17 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           osc.frequency.setValueAtTime(784, this.audioCtx.currentTime + 0.3);
           osc.frequency.setValueAtTime(1047, this.audioCtx.currentTime + 0.45);
           gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.6);
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            this.audioCtx.currentTime + 0.6
+          );
           osc.start(this.audioCtx.currentTime);
           osc.stop(this.audioCtx.currentTime + 0.6);
           break;
       }
-    } catch { /* Audio not available — silent */ }
+    } catch {
+      /* Audio not available — silent */
+    }
   }
 }
 

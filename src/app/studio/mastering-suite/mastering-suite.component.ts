@@ -58,11 +58,46 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   @ViewChild('spectrogram') spectrogramRef!: ElementRef<HTMLCanvasElement>;
 
   bands = signal<MasteringBand[]>([
-    { id: 1, name: 'SUB',  range: '20Hz - 120Hz',   gain: -1.2, threshold: -12.4, ratio: 4.1 },
-    { id: 2, name: 'LOW',  range: '120Hz - 500Hz', gain: -0.5, threshold: -8.1,  ratio: 2.5 },
-    { id: 3, name: 'MID',  range: '500Hz - 2.5kHz', gain: 0,    threshold: -2.4, ratio: 1.8 },
-    { id: 4, name: 'HIGH', range: '2.5kHz - 10kHz', gain: 0.8, threshold: -4.2, ratio: 2.1 },
-    { id: 5, name: 'AIR',  range: '10kHz - 22kHz',  gain: 1.5, threshold: -1.2, ratio: 1.5 },
+    {
+      id: 1,
+      name: 'SUB',
+      range: '20Hz - 120Hz',
+      gain: -1.2,
+      threshold: -12.4,
+      ratio: 4.1,
+    },
+    {
+      id: 2,
+      name: 'LOW',
+      range: '120Hz - 500Hz',
+      gain: -0.5,
+      threshold: -8.1,
+      ratio: 2.5,
+    },
+    {
+      id: 3,
+      name: 'MID',
+      range: '500Hz - 2.5kHz',
+      gain: 0,
+      threshold: -2.4,
+      ratio: 1.8,
+    },
+    {
+      id: 4,
+      name: 'HIGH',
+      range: '2.5kHz - 10kHz',
+      gain: 0.8,
+      threshold: -4.2,
+      ratio: 2.1,
+    },
+    {
+      id: 5,
+      name: 'AIR',
+      range: '10kHz - 22kHz',
+      gain: 1.5,
+      threshold: -1.2,
+      ratio: 1.5,
+    },
   ]);
 
   lufsIntegrated = this.audioEngine.outputLufs;
@@ -90,7 +125,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       bandDelta: { 1: -0.6, 2: -0.3, 3: 0, 4: +0.4, 5: +0.6 },
       ratio: 2.5,
       threshold: -8,
-      roastNote: 'Streaming mastered · soft ceiling, plenty of headroom for codec transcoding',
+      roastNote:
+        'Streaming mastered · soft ceiling, plenty of headroom for codec transcoding',
     },
     {
       id: 'club',
@@ -103,7 +139,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       bandDelta: { 1: +1.0, 2: 0, 3: -0.4, 4: +0.8, 5: +1.2 },
       ratio: 6,
       threshold: -6,
-      roastNote: 'Club mastered · -9 LUFS, tight driver-grade limiting, hits like a wall',
+      roastNote:
+        'Club mastered · -9 LUFS, tight driver-grade limiting, hits like a wall',
     },
     {
       id: 'vinyl',
@@ -116,7 +153,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       bandDelta: { 1: -0.2, 2: +0.3, 3: +0.1, 4: -0.4, 5: -0.8 },
       ratio: 1.8,
       threshold: -10,
-      roastNote: 'Vinyl warmed · gentle compression, soft highs, pre-cut headroom',
+      roastNote:
+        'Vinyl warmed · gentle compression, soft highs, pre-cut headroom',
     },
     {
       id: 'broadcast',
@@ -129,7 +167,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       bandDelta: { 1: -0.4, 2: 0, 3: +0.5, 4: -0.2, 5: -0.6 },
       ratio: 3,
       threshold: -8,
-      roastNote: 'Broadcast ready · -23 LUFS broadcast standard, dialog-preserving EQ',
+      roastNote:
+        'Broadcast ready · -23 LUFS broadcast standard, dialog-preserving EQ',
     },
     {
       id: 'mastered',
@@ -142,7 +181,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       bandDelta: { 1: +0.8, 2: +0.2, 3: 0, 4: +1.0, 5: +1.4 },
       ratio: 8,
       threshold: -4,
-      roastNote: 'Mastered hot · -8 LUFS, brick-wall limiting, competitive loudness',
+      roastNote:
+        'Mastered hot · -8 LUFS, brick-wall limiting, competitive loudness',
     },
   ];
 

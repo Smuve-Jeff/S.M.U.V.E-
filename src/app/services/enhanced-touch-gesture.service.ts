@@ -138,10 +138,9 @@ export class EnhancedTouchGestureService {
         t2.clientX - t1.clientX,
         t2.clientY - t1.clientY
       );
-      this.lastPinchAngle = Math.atan2(
-        t2.clientY - t1.clientY,
-        t2.clientX - t1.clientX
-      ) * (180 / Math.PI);
+      this.lastPinchAngle =
+        Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) *
+        (180 / Math.PI);
       this.lastPinchCenterX = (t1.clientX + t2.clientX) / 2;
       this.lastPinchCenterY = (t1.clientY + t2.clientY) / 2;
       this.lastPinchDistance = this.twoFingerStartDistance;
@@ -255,13 +254,14 @@ export class EnhancedTouchGestureService {
     if (this.lastPinchDistance > 0) {
       const scale = distance / this.lastPinchDistance;
       const dt = Math.max(1, now - this.lastPinchTime);
-      const velocity = Math.abs(scale - 1) / dt * 1000;
+      const velocity = (Math.abs(scale - 1) / dt) * 1000;
 
       // Apply dead zone to avoid jitter
       if (Math.abs(scale - 1) > this.pinchDeadZone) {
-        const sensitivity = this.gestureMode() === 'precision'
-          ? this.precisionModeSensitivity
-          : 1.0;
+        const sensitivity =
+          this.gestureMode() === 'precision'
+            ? this.precisionModeSensitivity
+            : 1.0;
 
         // Horizontal zoom
         this.adjustZoom((scale - 1) * 0.6 * sensitivity);
@@ -355,8 +355,8 @@ export class EnhancedTouchGestureService {
       vx += (recent[i].x - recent[i - 1].x) / dt;
       vy += (recent[i].y - recent[i - 1].y) / dt;
     }
-    vx /= (recent.length - 1);
-    vy /= (recent.length - 1);
+    vx /= recent.length - 1;
+    vy /= recent.length - 1;
 
     this.momentumVx = vx * 16; // Convert to px/frame
     this.momentumVy = vy * 16;
@@ -366,8 +366,8 @@ export class EnhancedTouchGestureService {
       this.momentumVx *= this.momentumFriction;
       this.momentumVy *= this.momentumFriction;
 
-      this.scrollOffsetX.update(v => v + this.momentumVx);
-      this.scrollOffsetY.update(v => v + this.momentumVy);
+      this.scrollOffsetX.update((v) => v + this.momentumVx);
+      this.scrollOffsetY.update((v) => v + this.momentumVy);
 
       if (Math.abs(this.momentumVx) > 0.1 || Math.abs(this.momentumVy) > 0.1) {
         this.momentumRAF = requestAnimationFrame(animate);
@@ -393,7 +393,7 @@ export class EnhancedTouchGestureService {
   // ── Velocity tracking ─────────────────────────────────
 
   private pushVelocityPoint(x: number, y: number) {
-    this.velocityHistory.update(history => {
+    this.velocityHistory.update((history) => {
       const next = [...history, { x, y, timestamp: Date.now(), force: 0 }];
       // Keep last 12 points for smooth velocity calculation
       return next.length > 12 ? next.slice(-12) : next;

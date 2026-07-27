@@ -167,12 +167,16 @@ import { HapticService } from '../../../services/haptic.service';
 
       /* Fine mode indicator */
       .knob-wrapper.fine-mode .knob-face {
-        border-color: var(--neon-violet, #8B5CF6);
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 4px 10px rgba(0, 0, 0, 0.5);
+        border-color: var(--neon-violet, #8b5cf6);
+        box-shadow:
+          0 0 20px rgba(139, 92, 246, 0.4),
+          0 4px 10px rgba(0, 0, 0, 0.5);
       }
       .knob-wrapper.fine-mode .knob-indicator {
-        background: var(--neon-violet, #8B5CF6);
-        box-shadow: 0 0 10px var(--neon-violet, #8B5CF6), 0 0 20px rgba(139, 92, 246, 0.4);
+        background: var(--neon-violet, #8b5cf6);
+        box-shadow:
+          0 0 10px var(--neon-violet, #8b5cf6),
+          0 0 20px rgba(139, 92, 246, 0.4);
       }
 
       /* Limit flash */
@@ -180,8 +184,13 @@ import { HapticService } from '../../../services/haptic.service';
         animation: knob-limit-flash 0.3s ease-out;
       }
       @keyframes knob-limit-flash {
-        0% { border-color: #ff4d4d; box-shadow: 0 0 16px rgba(255, 77, 77, 0.5); }
-        100% { border-color: rgba(255, 255, 255, 0.05); }
+        0% {
+          border-color: #ff4d4d;
+          box-shadow: 0 0 16px rgba(255, 77, 77, 0.5);
+        }
+        100% {
+          border-color: rgba(255, 255, 255, 0.05);
+        }
       }
     `,
   ],
@@ -250,7 +259,9 @@ export class KnobComponent implements OnInit, OnChanges {
   startDrag(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
     const isTouch = event instanceof TouchEvent;
-    const point = isTouch ? (event as TouchEvent).touches[0] : event as MouseEvent;
+    const point = isTouch
+      ? (event as TouchEvent).touches[0]
+      : (event as MouseEvent);
     this.startY = point.clientY;
     this.startValue = this.value;
     this.prevValue = this.value;
@@ -266,7 +277,9 @@ export class KnobComponent implements OnInit, OnChanges {
     // Multi-tap detection for double-tap reset
     this.tapCount++;
     if (this.tapTimer) clearTimeout(this.tapTimer);
-    this.tapTimer = setTimeout(() => { this.tapCount = 0; }, 350);
+    this.tapTimer = setTimeout(() => {
+      this.tapCount = 0;
+    }, 350);
     if (this.tapCount >= 2) {
       this.resetToDefault();
       this.tapCount = 0;
@@ -283,7 +296,9 @@ export class KnobComponent implements OnInit, OnChanges {
     if (!this.isDragging) return;
 
     const isTouch = event instanceof TouchEvent;
-    const point = isTouch ? (event as TouchEvent).touches[0] : event as MouseEvent;
+    const point = isTouch
+      ? (event as TouchEvent).touches[0]
+      : (event as MouseEvent);
     const currentY = point.clientY;
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
@@ -294,9 +309,7 @@ export class KnobComponent implements OnInit, OnChanges {
       this.isFineMode() ||
       (event instanceof MouseEvent && event.shiftKey) ||
       (isTouch && (event as TouchEvent).touches.length > 1);
-    const sensitivity = isFine
-      ? (isMobile ? 1200 : 800)
-      : (isMobile ? 300 : 180);
+    const sensitivity = isFine ? (isMobile ? 1200 : 800) : isMobile ? 300 : 180;
 
     // Track drag velocity for velocity-sensitive throw
     const now = Date.now();
@@ -318,7 +331,10 @@ export class KnobComponent implements OnInit, OnChanges {
       this.checkDetents();
 
       // Limit haptic
-      if ((newValue === this.min || newValue === this.max) && !this.isAtLimit()) {
+      if (
+        (newValue === this.min || newValue === this.max) &&
+        !this.isAtLimit()
+      ) {
         this.isAtLimit.set(true);
         this.haptic.preset('knobLimit');
       } else if (newValue !== this.min && newValue !== this.max) {

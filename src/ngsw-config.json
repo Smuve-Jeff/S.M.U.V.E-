@@ -20,10 +20,7 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": [
-          "/assets/**",
-          "!/assets/data/**"
-        ]
+        "files": ["/assets/**", "!/assets/data/**"]
       }
     },
     {
@@ -40,11 +37,7 @@
   "dataGroups": [
     {
       "name": "api-quick-cache",
-      "urls": [
-        "/api/profile/**",
-        "/api/projects/**",
-        "/api/templates/**"
-      ],
+      "urls": ["/api/profile/**", "/api/projects/**", "/api/templates/**"],
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 50,
@@ -53,11 +46,7 @@
     },
     {
       "name": "audio-cache",
-      "urls": [
-        "/api/sounds/**",
-        "/api/samples/**",
-        "/api/presets/**"
-      ],
+      "urls": ["/api/sounds/**", "/api/samples/**", "/api/presets/**"],
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 200,
@@ -66,9 +55,7 @@
     },
     {
       "name": "ai-api",
-      "urls": [
-        "/api/ai/**"
-      ],
+      "urls": ["/api/ai/**"],
       "cacheConfig": {
         "strategy": "freshness",
         "maxSize": 10,

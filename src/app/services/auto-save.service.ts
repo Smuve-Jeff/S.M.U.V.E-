@@ -140,16 +140,23 @@ export class AutoSaveService {
       this.lastError.set('Cloud sync queued. Changes are safe locally.');
       // Queue for offline sync instead of losing the save
       try {
-        await this.offlineSync.queueOperation('UPDATE', '/api/projects/' + projectId, {
-          projectId,
-          projectTitle,
-          projectData,
-          userId,
-        });
+        await this.offlineSync.queueOperation(
+          'UPDATE',
+          '/api/projects/' + projectId,
+          {
+            projectId,
+            projectTitle,
+            projectData,
+            userId,
+          }
+        );
       } catch {
         // Silent — local save already succeeded
       }
-      this.logger.error('AutoSaveService: Cloud sync failed, queued for retry', error);
+      this.logger.error(
+        'AutoSaveService: Cloud sync failed, queued for retry',
+        error
+      );
     } finally {
       this.isSaving.set(false);
     }

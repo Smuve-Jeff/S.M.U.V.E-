@@ -14,7 +14,7 @@
 
   <!-- Meta footer -->
   <div class="wr-meta" *ngIf="duration > 0">
-    <span>{{ (duration * progress) | number:'1.2-2' }}s</span>
-    <span>{{ duration | number:'1.2-2' }}s</span>
+    <span>{{ duration * progress | number: '1.2-2' }}s</span>
+    <span>{{ duration | number: '1.2-2' }}s</span>
   </div>
 </div>

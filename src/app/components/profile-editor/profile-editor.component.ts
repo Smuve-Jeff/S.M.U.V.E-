@@ -28,7 +28,10 @@ import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { DatabaseService } from '../../services/database.service';
-import { PersonaSelectorComponent, PersonaOption } from '../persona-selector/persona-selector.component';
+import {
+  PersonaSelectorComponent,
+  PersonaOption,
+} from '../persona-selector/persona-selector.component';
 
 @Component({
   selector: 'app-profile-editor',
@@ -292,9 +295,30 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   readonly personaOptions = [
-    { id: 'Aggressive Manager', name: 'Aggressive Manager', icon: '🔥', description: 'Brutal honesty with zero sugar-coating', color: '#ef4444', intensityLabel: 'MAXIMUM INTENSITY' },
-    { id: 'Elite', name: 'Elite Commander', icon: '👑', description: 'Calculated precision and strategic dominance', color: '#0e7c7b', intensityLabel: 'STRATEGIC PRECISION' },
-    { id: 'Encouraging Mentor', name: 'Encouraging Mentor', icon: '🧠', description: 'Growth through guidance and patience', color: '#10b981', intensityLabel: 'CALCULATED SUPPORT' },
+    {
+      id: 'Aggressive Manager',
+      name: 'Aggressive Manager',
+      icon: '🔥',
+      description: 'Brutal honesty with zero sugar-coating',
+      color: '#ef4444',
+      intensityLabel: 'MAXIMUM INTENSITY',
+    },
+    {
+      id: 'Elite',
+      name: 'Elite Commander',
+      icon: '👑',
+      description: 'Calculated precision and strategic dominance',
+      color: '#0e7c7b',
+      intensityLabel: 'STRATEGIC PRECISION',
+    },
+    {
+      id: 'Encouraging Mentor',
+      name: 'Encouraging Mentor',
+      icon: '🧠',
+      description: 'Growth through guidance and patience',
+      color: '#10b981',
+      intensityLabel: 'CALCULATED SUPPORT',
+    },
   ];
 
   selectPersona(persona: PersonaOption) {

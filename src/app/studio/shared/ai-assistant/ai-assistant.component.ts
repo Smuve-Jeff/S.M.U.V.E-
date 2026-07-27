@@ -133,7 +133,7 @@ export class AiAssistantComponent implements AfterViewInit {
             this.musicManager.strumTrack(id);
             return 'Strum timing applied.';
           },
-        },
+        }
       );
     }
 
@@ -156,8 +156,9 @@ export class AiAssistantComponent implements AfterViewInit {
           description: 'Generate a fill at end of pattern',
           icon: 'auto_awesome',
           contexts: ['drum-machine'],
-          run: () => 'Switch to bar 4 and press EVOLVE — focus changes will appear there.',
-        },
+          run: () =>
+            'Switch to bar 4 and press EVOLVE — focus changes will appear there.',
+        }
       );
     }
 
@@ -182,7 +183,7 @@ export class AiAssistantComponent implements AfterViewInit {
           icon: 'multitrack_audio',
           contexts: ['mastering'],
           run: () => 'LUFS target set to -14 (Spotify/Apple). Limiter engaged.',
-        },
+        }
       );
     }
 
@@ -252,9 +253,12 @@ export class AiAssistantComponent implements AfterViewInit {
         contexts: ['*'],
         run: () => {
           const advice = this.ai.getSmartMixAdvice(this.musicManager.tracks());
-          return advice || 'Tracks look balanced. Try a long decay reverb on the lead.';
+          return (
+            advice ||
+            'Tracks look balanced. Try a long decay reverb on the lead.'
+          );
         },
-      },
+      }
     );
 
     return actions;
@@ -288,10 +292,7 @@ export class AiAssistantComponent implements AfterViewInit {
     const text = this.userInput().trim();
     if (!text) return;
     this.haptic.light();
-    this.messages.update((m) => [
-      ...m,
-      { role: 'user', text, ts: Date.now() },
-    ]);
+    this.messages.update((m) => [...m, { role: 'user', text, ts: Date.now() }]);
     this.userInput.set('');
     this.isThinking.set(true);
     setTimeout(() => this.scrollDown(), 0);

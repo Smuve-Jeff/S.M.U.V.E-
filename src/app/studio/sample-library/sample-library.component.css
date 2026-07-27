@@ -3,8 +3,16 @@
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(circle at 0% 0%, rgba(52, 245, 197, 0.10) 0%, transparent 55%),
-    radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(
+      circle at 0% 0%,
+      rgba(52, 245, 197, 0.1) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      rgba(139, 92, 246, 0.1) 0%,
+      transparent 55%
+    ),
     var(--ivory-deep);
   color: var(--espresso-text);
   font-family: var(--font-sans);
@@ -117,7 +125,9 @@
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.06em;
-  transition: border-color 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
   white-space: nowrap;
 }
 
@@ -132,12 +142,12 @@
 
 .sl-cat-active {
   background: var(--teal-700);
-  color: #0B0E1F;
+  color: #0b0e1f;
   border-color: var(--teal-300);
 }
 
 .sl-cat-active .material-symbols-outlined {
-  color: #0B0E1F;
+  color: #0b0e1f;
 }
 
 .sl-cat-count {
@@ -145,7 +155,7 @@
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* ── Sample grid ────────────────────────────────────────── */
@@ -165,13 +175,16 @@
   border: 1px solid var(--ivory-line);
   border-radius: 12px;
   cursor: pointer;
-  transition: transform 120ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 120ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .sl-card:hover {
   transform: translateY(-2px);
   border-color: var(--teal-500);
-  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.20);
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.2);
 }
 
 .sl-card-previewing {
@@ -230,7 +243,7 @@
 
 .sl-tag-active {
   background: var(--teal-700);
-  color: #0B0E1F;
+  color: #0b0e1f;
   border-color: var(--teal-300);
 }
 
@@ -250,7 +263,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 120ms ease, border-color 120ms ease;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
 }
 
 .sl-icon-btn:hover {
@@ -260,12 +275,12 @@
 
 .sl-icon-btn-primary {
   background: var(--teal-700);
-  color: #0B0E1F;
+  color: #0b0e1f;
   border-color: var(--teal-300);
 }
 
 .sl-icon-btn-primary .material-symbols-outlined {
-  color: #0B0E1F;
+  color: #0b0e1f;
 }
 
 .sl-icon-btn .material-symbols-outlined {
@@ -274,10 +289,20 @@
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 700px) {
-  .sl-shell { padding: 16px 12px calc(100px + env(safe-area-inset-bottom, 0px)); }
-  .sl-cat-label { display: none; }
-  .sl-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .sl-card { padding: 10px; gap: 8px; }
+  .sl-shell {
+    padding: 16px 12px calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+  .sl-cat-label {
+    display: none;
+  }
+  .sl-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .sl-card {
+    padding: 10px;
+    gap: 8px;
+  }
 }
 
 /* ── Foot ───────────────────────────────────────────────── */
@@ -291,7 +316,9 @@
 /* ---------- DRAG-TO-TRACK VISUAL ---------- */
 .sl-card {
   cursor: grab;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .sl-card:active {

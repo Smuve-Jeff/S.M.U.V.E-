@@ -96,10 +96,7 @@
         [attr.aria-pressed]="selectedPadId() === pad.id"
         role="gridcell"
       >
-        <div
-          class="dm-pad-led"
-          [class.off]="!isStepPlaying(pad)"
-        ></div>
+        <div class="dm-pad-led" [class.off]="!isStepPlaying(pad)"></div>
         <span class="dm-pad-name">{{ pad.name }}</span>
         <span class="dm-pad-tier">{{ pad.type }}</span>
       </button>
@@ -131,27 +128,49 @@
           (click)="selectPad(pad.id)"
         >
           <div class="dm-step-row-label">
-            <div class="dm-step-row-label-dot" [style.background-color]="pad.color"></div>
+            <div
+              class="dm-step-row-label-dot"
+              [style.background-color]="pad.color"
+            ></div>
             <div class="dm-step-row-label-name">{{ pad.name }}</div>
           </div>
           <button
-            *ngFor="let s of [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]"
+            *ngFor="
+              let s of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            "
             type="button"
             class="dm-step"
-            [class.on]="getPadStep(pad.id, currentBar()*16 + s).active"
+            [class.on]="getPadStep(pad.id, currentBar() * 16 + s).active"
             [class.beat-end]="s === 3 || s === 7 || s === 11"
             [class.bar-end]="s === 15"
-            [class.current]="isGlobalStep(currentBar()*16 + s)"
-            [style.height.%]="getPadStep(pad.id, currentBar()*16 + s).active ? 100 : null"
-            [attr.aria-label]="'Step ' + (s + 1) + ' on ' + pad.name + (getPadStep(pad.id, currentBar()*16 + s).active ? ', active' : ', empty')"
-            (click)="toggleStep(pad.id, currentBar()*16 + s); $event.stopPropagation()"
+            [class.current]="isGlobalStep(currentBar() * 16 + s)"
+            [style.height.%]="
+              getPadStep(pad.id, currentBar() * 16 + s).active ? 100 : null
+            "
+            [attr.aria-label]="
+              'Step ' +
+              (s + 1) +
+              ' on ' +
+              pad.name +
+              (getPadStep(pad.id, currentBar() * 16 + s).active
+                ? ', active'
+                : ', empty')
+            "
+            (click)="
+              toggleStep(pad.id, currentBar() * 16 + s);
+              $event.stopPropagation()
+            "
           ></button>
         </div>
       </div>
     </div>
 
     <!-- Inspector (knobs + macros) -->
-    <aside class="dm-inspector" *ngIf="selectedPad() as pad" aria-label="Pad inspector">
+    <aside
+      class="dm-inspector"
+      *ngIf="selectedPad() as pad"
+      aria-label="Pad inspector"
+    >
       <div class="dm-inspector-title">Pad · {{ pad.name }}</div>
 
       <div class="dm-knob-row">
@@ -188,103 +207,131 @@
       <div class="dm-macro-row">
         <button type="button" class="dm-macro" (click)="clearCurrentPad()">
           <span>Clear Pad</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">delete_sweep</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >delete_sweep</span
+          >
         </button>
         <button type="button" class="dm-macro" (click)="doublePattern()">
           <span>Double Pattern</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">repeat_one</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >repeat_one</span
+          >
         </button>
         <button type="button" class="dm-macro" (click)="humanize()">
           <span>Humanize</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">fluorescent</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >fluorescent</span
+          >
         </button>
         <button type="button" class="dm-macro" (click)="generateFill()">
           <span>Fill (Bar 4)</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">waterfall_chart</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >waterfall_chart</span
+          >
         </button>
         <button type="button" class="dm-macro" (click)="generateVariation()">
           <span>Variation</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">shuffle</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >shuffle</span
+          >
         </button>
-        <button type="button" class="dm-macro warn" (click)="generateEuclidean(5)">
+        <button
+          type="button"
+          class="dm-macro warn"
+          (click)="generateEuclidean(5)"
+        >
           <span>Euclidean 5/16</span>
-          <span class="material-symbols-outlined" style="font-size: 16px;">auto_awesome</span>
+          <span class="material-symbols-outlined" style="font-size: 16px"
+            >auto_awesome</span
+          >
         </button>
       </div>
 
       <!-- ═══ Pro: Drum Kit Swap (TR-808 / TR-909 / LinnDrum / SP-1200 / Acoustic / Lo-Fi) ═══ -->
-  <section class="dm-kit-bar" aria-label="Drum kit selector">
-    <div class="dm-kit-bar-label">
-      <span class="material-symbols-outlined">graphic_eq</span>
-      Drum Kit
-    </div>
-    <div class="dm-kit-chips" role="group">
-      <button
-        *ngFor="let kit of drumKits"
-        type="button"
-        class="dm-kit-chip"
-        [class.dm-kit-chip-active]="selectedKitId() === kit.id"
-        (click)="applyKit(kit.id)"
-        [attr.aria-pressed]="selectedKitId() === kit.id"
-        [attr.aria-label]="'Switch to ' + kit.label + ' kit: ' + kit.hint"
-        [title]="kit.hint"
-      >
-        <span class="dm-kit-chip-glyph">{{ kit.glyph }}</span>
-        <span class="dm-kit-chip-label">{{ kit.label }}</span>
-      </button>
-    </div>
-  </section>
+      <section class="dm-kit-bar" aria-label="Drum kit selector">
+        <div class="dm-kit-bar-label">
+          <span class="material-symbols-outlined">graphic_eq</span>
+          Drum Kit
+        </div>
+        <div class="dm-kit-chips" role="group">
+          <button
+            *ngFor="let kit of drumKits"
+            type="button"
+            class="dm-kit-chip"
+            [class.dm-kit-chip-active]="selectedKitId() === kit.id"
+            (click)="applyKit(kit.id)"
+            [attr.aria-pressed]="selectedKitId() === kit.id"
+            [attr.aria-label]="'Switch to ' + kit.label + ' kit: ' + kit.hint"
+            [title]="kit.hint"
+          >
+            <span class="dm-kit-chip-glyph">{{ kit.glyph }}</span>
+            <span class="dm-kit-chip-label">{{ kit.label }}</span>
+          </button>
+        </div>
+      </section>
 
-  <!-- ═══ Pro: Drum Kit Take Manager (comping per kit) ═══ -->
-  <section class="dm-takes-bar" aria-label="Drum take manager">
-    <div class="dm-takes-bar-label">
-      <span class="material-symbols-outlined">layers</span>
-      Takes
-      <button
-        type="button"
-        class="dm-takes-new-btn"
-        (click)="createTake()"
-        aria-label="Create a new take with the current kit"
-      >
-        <span class="material-symbols-outlined">add</span> New Take
-      </button>
-    </div>
-    <div class="dm-takes-empty" *ngIf="takeSlots().takes.length === 0">
-      No takes yet. Hit “New Take” to capture variation #1.
-    </div>
-    <div class="dm-takes-chips" *ngIf="takeSlots().takes.length > 0" role="list">
-      <div
-        *ngFor="let t of takeSlots().takes; let i = index"
-        class="dm-take-chip"
-        [class.dm-take-chip-active]="activeTakeId() === t.id"
-        role="listitem"
-      >
-        <button
-          type="button"
-          class="dm-take-chip-load"
-          (click)="selectTake(t.id)"
-          [attr.aria-label]="'Load take ' + (i + 1) + ' with ' + t.kitId + ' kit'"
+      <!-- ═══ Pro: Drum Kit Take Manager (comping per kit) ═══ -->
+      <section class="dm-takes-bar" aria-label="Drum take manager">
+        <div class="dm-takes-bar-label">
+          <span class="material-symbols-outlined">layers</span>
+          Takes
+          <button
+            type="button"
+            class="dm-takes-new-btn"
+            (click)="createTake()"
+            aria-label="Create a new take with the current kit"
+          >
+            <span class="material-symbols-outlined">add</span> New Take
+          </button>
+        </div>
+        <div class="dm-takes-empty" *ngIf="takeSlots().takes.length === 0">
+          No takes yet. Hit “New Take” to capture variation #1.
+        </div>
+        <div
+          class="dm-takes-chips"
+          *ngIf="takeSlots().takes.length > 0"
+          role="list"
         >
-          #{{ i + 1 }} · {{ t.kitId }}
-        </button>
-        <button
-          type="button"
-          class="dm-take-chip-remove"
-          (click)="removeTake(t.id)"
-          aria-label="Delete take"
-        >×</button>
-      </div>
-    </div>
-  </section>
+          <div
+            *ngFor="let t of takeSlots().takes; let i = index"
+            class="dm-take-chip"
+            [class.dm-take-chip-active]="activeTakeId() === t.id"
+            role="listitem"
+          >
+            <button
+              type="button"
+              class="dm-take-chip-load"
+              (click)="selectTake(t.id)"
+              [attr.aria-label]="
+                'Load take ' + (i + 1) + ' with ' + t.kitId + ' kit'
+              "
+            >
+              #{{ i + 1 }} · {{ t.kitId }}
+            </button>
+            <button
+              type="button"
+              class="dm-take-chip-remove"
+              (click)="removeTake(t.id)"
+              aria-label="Delete take"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </section>
 
-  <!-- Pro: Per-pad AI Generate -->
+      <!-- Pro: Per-pad AI Generate -->
       <button
         type="button"
         class="dm-ai-generate"
         (click)="generateForSelectedPad()"
-        title="Replace {{ pad.name }} hits with {{ selectedDrumStyle().label }} recipe"
+        title="Replace {{ pad.name }} hits with {{
+          selectedDrumStyle().label
+        }} recipe"
       >
-        <span class="dm-ai-generate-emoji">{{ selectedDrumStyle().emoji }}</span>
+        <span class="dm-ai-generate-emoji">{{
+          selectedDrumStyle().emoji
+        }}</span>
         <span class="dm-ai-generate-label">
           Generate {{ pad.name }} · {{ selectedDrumStyle().label }}
         </span>
@@ -303,20 +350,82 @@
       </button>
 
       <div>
-        <div class="dm-inspector-title" style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-          <span>{{ graphTarget() === 'velocity' ? 'Velocity' : 'Probability' }}</span>
-          <div class="dm-strip-toggles" style="display: flex; gap: 2px;">
-            <button type="button" class="dm-strip-toggle" [class.active]="graphTarget() === 'velocity'" (click)="graphTarget.set('velocity'); $event.stopPropagation()" style="padding: 2px 8px; border-radius: 4px; font-size: 8px; font-weight: 800; background: var(--ivory-paper); border: 1px solid var(--ivory-line); color: var(--espresso-muted); cursor: pointer;">VEL</button>
-            <button type="button" class="dm-strip-toggle" [class.active]="graphTarget() === 'probability'" (click)="graphTarget.set('probability'); $event.stopPropagation()" style="padding: 2px 8px; border-radius: 4px; font-size: 8px; font-weight: 800; background: var(--ivory-paper); border: 1px solid var(--ivory-line); color: var(--espresso-muted); cursor: pointer;">PROB</button>
+        <div
+          class="dm-inspector-title"
+          style="
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
+          <span>{{
+            graphTarget() === 'velocity' ? 'Velocity' : 'Probability'
+          }}</span>
+          <div class="dm-strip-toggles" style="display: flex; gap: 2px">
+            <button
+              type="button"
+              class="dm-strip-toggle"
+              [class.active]="graphTarget() === 'velocity'"
+              (click)="graphTarget.set('velocity'); $event.stopPropagation()"
+              style="
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 8px;
+                font-weight: 800;
+                background: var(--ivory-paper);
+                border: 1px solid var(--ivory-line);
+                color: var(--espresso-muted);
+                cursor: pointer;
+              "
+            >
+              VEL
+            </button>
+            <button
+              type="button"
+              class="dm-strip-toggle"
+              [class.active]="graphTarget() === 'probability'"
+              (click)="graphTarget.set('probability'); $event.stopPropagation()"
+              style="
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 8px;
+                font-weight: 800;
+                background: var(--ivory-paper);
+                border: 1px solid var(--ivory-line);
+                color: var(--espresso-muted);
+                cursor: pointer;
+              "
+            >
+              PROB
+            </button>
           </div>
         </div>
-        <div class="dm-vel-strip" (pointerdown)="setStepGraphValue($event)" (pointermove)="onGraphPointerMove($event)">
+        <div
+          class="dm-vel-strip"
+          (pointerdown)="setStepGraphValue($event)"
+          (pointermove)="onGraphPointerMove($event)"
+        >
           <div
             *ngFor="let step of selectedPadSteps(); let i = index"
             class="dm-vel-bar"
-            [style.height.%]="(graphTarget() === 'velocity' ? step.velocity : step.probability) * 100"
-            [style.opacity]="(graphTarget() === 'velocity' ? step.velocity : step.probability) > 0.05 ? 1 : 0.2"
-            [style.background]="graphTarget() === 'probability' && step.probability < 0.5 ? 'var(--record, #E11D48)' : ''"
+            [style.height.%]="
+              (graphTarget() === 'velocity'
+                ? step.velocity
+                : step.probability) * 100
+            "
+            [style.opacity]="
+              (graphTarget() === 'velocity'
+                ? step.velocity
+                : step.probability) > 0.05
+                ? 1
+                : 0.2
+            "
+            [style.background]="
+              graphTarget() === 'probability' && step.probability < 0.5
+                ? 'var(--record, #E11D48)'
+                : ''
+            "
           ></div>
         </div>
       </div>

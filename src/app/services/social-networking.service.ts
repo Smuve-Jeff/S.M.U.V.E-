@@ -124,7 +124,9 @@ export class SocialNetworkingService {
         try {
           const inbox = this.injector.get(ChallengeInboxService, null);
           if (inbox) inbox.bindSocket(sock);
-        } catch (_) { /* noop */ }
+        } catch (_) {
+          /* noop */
+        }
       }
     });
   }

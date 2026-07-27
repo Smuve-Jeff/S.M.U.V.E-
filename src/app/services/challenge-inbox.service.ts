@@ -76,7 +76,8 @@ export class ChallengeInboxService {
   mergeNotifications(records: AppNotification[]) {
     if (!records?.length) return;
     const byId = new Map<number, AppNotification>();
-    for (const existing of this.notifications()) byId.set(existing.id, existing);
+    for (const existing of this.notifications())
+      byId.set(existing.id, existing);
     for (const incoming of records) byId.set(incoming.id, incoming);
     const merged = Array.from(byId.values()).sort(
       (a, b) => b.timestamp - a.timestamp
@@ -103,7 +104,10 @@ export class ChallengeInboxService {
     }
   }
 
-  async respondToChallenge(challengeId: number, status: 'accepted' | 'declined') {
+  async respondToChallenge(
+    challengeId: number,
+    status: 'accepted' | 'declined'
+  ) {
     const userId = this.currentUserId();
     if (!userId) return;
     try {
@@ -118,7 +122,11 @@ export class ChallengeInboxService {
       this.challenges.update((list) =>
         list.map((c) =>
           c.id === challengeId
-            ? { ...c, status, timestamp: res?.challenge?.timestamp || Date.now() }
+            ? {
+                ...c,
+                status,
+                timestamp: res?.challenge?.timestamp || Date.now(),
+              }
             : c
         )
       );
@@ -135,7 +143,10 @@ export class ChallengeInboxService {
       const records = await firstValueFrom(
         this.http.get<AppNotification[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/notifications`,
-          { params: { unreadOnly: String(unreadOnly) }, headers: this.authHeaders() }
+          {
+            params: { unreadOnly: String(unreadOnly) },
+            headers: this.authHeaders(),
+          }
         )
       );
       this.mergeNotifications(records);
@@ -206,7 +217,10 @@ export class ChallengeInboxService {
       );
     } catch (e) {
       // Silent fallback — socket path is primary. Log for debugging.
-      console.warn('[ChallengeInbox] REST challenge persist failed (socket primary):', e);
+      console.warn(
+        '[ChallengeInbox] REST challenge persist failed (socket primary):',
+        e
+      );
     }
   }
 

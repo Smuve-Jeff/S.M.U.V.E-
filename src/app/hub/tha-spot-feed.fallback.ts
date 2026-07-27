@@ -3251,8 +3251,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         controls: ['WASD to move', 'J/K/L to attack'],
         telemetryMode: 'origin',
-        approvedEmbedUrl:
-          '',
+        approvedEmbedUrl: '',
         secure_mode: 'wasm',
       },
       art: {
@@ -5972,11 +5971,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       image: '/assets/games/tekken8-elite.png',
       launchConfig: {
-        approvedExternalUrl:
-          '',
+        approvedExternalUrl: '',
         embedMode: 'inline',
-        approvedEmbedUrl:
-          '',
+        approvedEmbedUrl: '',
       },
     },
     {
@@ -6198,11 +6195,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       image: '/assets/games/mk1-elite.png',
       launchConfig: {
-        approvedExternalUrl:
-          '',
+        approvedExternalUrl: '',
         embedMode: 'inline',
-        approvedEmbedUrl:
-          '',
+        approvedEmbedUrl: '',
       },
     },
     {
@@ -8481,7 +8476,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Smash Karts',
       url: 'https://poki.com/en/g/smash-karts',
       genre: 'Racing',
-      description: 'Online kart combat arena with real-time multiplayer battles, powerups, and arena-based mayhem.',
+      description:
+        'Online kart combat arena with real-time multiplayer battles, powerups, and arena-based mayhem.',
       rating: 4.7,
       playersOnline: 18500,
       availability: 'Online',
@@ -8511,7 +8507,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Basketball Stars',
       url: 'https://poki.com/en/g/basketball-stars',
       genre: 'Sports',
-      description: 'Head-to-head basketball showdown with online matchmaking, stylish moves, and high-score competition.',
+      description:
+        'Head-to-head basketball showdown with online matchmaking, stylish moves, and high-score competition.',
       rating: 4.6,
       playersOnline: 22000,
       availability: 'Online',
@@ -8541,7 +8538,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Football Legends',
       url: 'https://poki.com/en/g/football-legends',
       genre: 'Sports',
-      description: '2-player soccer showdown with legendary players. Quick matches, fast breaks, and tournament energy.',
+      description:
+        '2-player soccer showdown with legendary players. Quick matches, fast breaks, and tournament energy.',
       rating: 4.8,
       playersOnline: 31000,
       availability: 'Online',
@@ -8571,7 +8569,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'BasketBros',
       url: 'https://www.crazygames.com/game/basketbros',
       genre: 'Sports',
-      description: 'Fast-paced 1v1 basketball with physics-based shots, special moves, and online ranked play.',
+      description:
+        'Fast-paced 1v1 basketball with physics-based shots, special moves, and online ranked play.',
       rating: 4.7,
       playersOnline: 15600,
       availability: 'Online',
@@ -8580,7 +8579,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a ranked match', 'Land a perfect 3-pointer'],
-      controlHints: ['Time your jump for blocks', 'Use bank shots for accuracy'],
+      controlHints: [
+        'Time your jump for blocks',
+        'Use bank shots for accuracy',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8601,7 +8603,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Volley Random',
       url: 'https://www.crazygames.com/game/volley-random',
       genre: 'Sports',
-      description: 'Chaotic 2-player volleyball with random physics. Dive, spike, and laugh your way to victory.',
+      description:
+        'Chaotic 2-player volleyball with random physics. Dive, spike, and laugh your way to victory.',
       rating: 4.5,
       playersOnline: 8900,
       availability: 'Online',
@@ -8610,7 +8613,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win 3 rallies in a row', 'Land a clean spike'],
-      controlHints: ['Anticipate the ball trajectory', 'Position before the serve'],
+      controlHints: [
+        'Anticipate the ball trajectory',
+        'Position before the serve',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8631,7 +8637,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Battle Golf',
       url: 'https://poki.com/en/g/battle-golf',
       genre: 'Sports',
-      description: 'Simultaneous turn-based golf battle. Outdrive, outchip, and outputt your rival in real-time.',
+      description:
+        'Simultaneous turn-based golf battle. Outdrive, outchip, and outputt your rival in real-time.',
       rating: 4.6,
       playersOnline: 7200,
       availability: 'Online',
@@ -8661,7 +8668,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Rooftop Snipers 2P',
       url: 'https://poki.com/en/g/rooftop-snipers',
       genre: 'Fighting',
-      description: '2-player rooftop shooting duel. Physics-based sniping with ragdoll chaos and instant rematches.',
+      description:
+        '2-player rooftop shooting duel. Physics-based sniping with ragdoll chaos and instant rematches.',
       rating: 4.7,
       playersOnline: 14000,
       availability: 'Online',
@@ -8691,7 +8699,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Ragdoll Hit',
       url: 'https://poki.com/en/g/ragdoll-hit',
       genre: 'Fighting',
-      description: 'Physics-based 2-player fighting. Launch your opponent off the platform using explosive weapons.',
+      description:
+        'Physics-based 2-player fighting. Launch your opponent off the platform using explosive weapons.',
       rating: 4.6,
       playersOnline: 11200,
       availability: 'Online',
@@ -8699,7 +8708,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['trending'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Knock opponent off 5 times', 'Win a sudden death round'],
+      sessionObjectives: [
+        'Knock opponent off 5 times',
+        'Win a sudden death round',
+      ],
       controlHints: ['Use heavy weapons for knockback', 'Stay center platform'],
       launchConfig: {
         inlinePolicy: 'trusted',
@@ -8721,7 +8733,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Temple of Boom',
       url: 'https://poki.com/en/g/temple-of-boom',
       genre: 'Shooting',
-      description: 'Co-op and PvP platform shooting for up to 4 players. Defend the temple or compete for glory.',
+      description:
+        'Co-op and PvP platform shooting for up to 4 players. Defend the temple or compete for glory.',
       rating: 4.5,
       playersOnline: 6800,
       availability: 'Online',
@@ -8751,7 +8764,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Getaway Shootout',
       url: 'https://poki.com/en/g/getaway-shootout',
       genre: 'Arcade',
-      description: 'Up to 4-player chaotic battle royale. Race to the getaway vehicle through explosive obstacle courses.',
+      description:
+        'Up to 4-player chaotic battle royale. Race to the getaway vehicle through explosive obstacle courses.',
       rating: 4.8,
       playersOnline: 23000,
       availability: 'Online',
@@ -8781,7 +8795,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'House of Hazards',
       url: 'https://poki.com/en/g/house-of-hazards',
       genre: 'Arcade',
-      description: 'Party game mayhem for up to 4 players. Navigate a house filled with deadly traps and sabotage rivals.',
+      description:
+        'Party game mayhem for up to 4 players. Navigate a house filled with deadly traps and sabotage rivals.',
       rating: 4.7,
       playersOnline: 19000,
       availability: 'Online',
@@ -8790,7 +8805,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['trending'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Survive 5 room hazards', 'Sabotage an opponent'],
-      controlHints: ['Watch for trap patterns', 'Time your movements carefully'],
+      controlHints: [
+        'Watch for trap patterns',
+        'Time your movements carefully',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8811,7 +8829,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Tube Jumpers',
       url: 'https://poki.com/en/g/tube-jumpers',
       genre: 'Arcade',
-      description: 'Multiplayer party jumper for up to 4 players. Jump through tubes, avoid obstacles, outlast your friends.',
+      description:
+        'Multiplayer party jumper for up to 4 players. Jump through tubes, avoid obstacles, outlast your friends.',
       rating: 4.5,
       playersOnline: 8500,
       availability: 'Online',
@@ -8841,7 +8860,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'RocketGoal.io',
       url: 'https://www.crazygames.com/game/rocketgoal-io',
       genre: 'Sports',
-      description: 'Rocket League-style car soccer with online multiplayer. Boost, flip, and score in arena-based matches.',
+      description:
+        'Rocket League-style car soccer with online multiplayer. Boost, flip, and score in arena-based matches.',
       rating: 4.8,
       playersOnline: 12500,
       availability: 'Online',
@@ -8871,7 +8891,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: '2 Player City Racing',
       url: 'https://poki.com/en/g/2-player-city-racing-2',
       genre: 'Racing',
-      description: 'Split-screen city street racing for 2 players. Drift through urban circuits and be first to the finish.',
+      description:
+        'Split-screen city street racing for 2 players. Drift through urban circuits and be first to the finish.',
       rating: 4.5,
       playersOnline: 7800,
       availability: 'Online',
@@ -8880,7 +8901,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a race', 'Drift through 3 corners'],
-      controlHints: ['Brake before tight turns', 'Draft behind opponents for speed'],
+      controlHints: [
+        'Brake before tight turns',
+        'Draft behind opponents for speed',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8901,7 +8925,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Fireboy and Watergirl',
       url: 'https://poki.com/en/g/fireboy-and-watergirl-forest-temple',
       genre: 'Puzzle',
-      description: 'Classic 2-player co-op puzzle platformer. Work together to navigate elemental temples and collect gems.',
+      description:
+        'Classic 2-player co-op puzzle platformer. Work together to navigate elemental temples and collect gems.',
       rating: 4.9,
       playersOnline: 28000,
       availability: 'Online',
@@ -8909,13 +8934,21 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['classic', 'staff-pick'],
       queueEstimateMinutes: 0,
-      sessionObjectives: ['Clear a temple floor', 'Collect all gems in a level'],
-      controlHints: ['Coordinate button presses', 'One character activates switches for the other'],
+      sessionObjectives: [
+        'Clear a temple floor',
+        'Collect all gems in a level',
+      ],
+      controlHints: [
+        'Coordinate button presses',
+        'One character activates switches for the other',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
-        approvedEmbedUrl: 'https://poki.com/en/g/fireboy-and-watergirl-forest-temple',
-        approvedExternalUrl: 'https://poki.com/en/g/fireboy-and-watergirl-forest-temple',
+        approvedEmbedUrl:
+          'https://poki.com/en/g/fireboy-and-watergirl-forest-temple',
+        approvedExternalUrl:
+          'https://poki.com/en/g/fireboy-and-watergirl-forest-temple',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://poki.com'],
       },
@@ -8931,7 +8964,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Duo Survival',
       url: 'https://poki.com/en/g/duo-survival',
       genre: 'Puzzle',
-      description: '2-player co-op survival puzzle. Work as a team to overcome obstacles, solve puzzles, and escape dangers.',
+      description:
+        '2-player co-op survival puzzle. Work as a team to overcome obstacles, solve puzzles, and escape dangers.',
       rating: 4.5,
       playersOnline: 6200,
       availability: 'Online',
@@ -8939,8 +8973,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Complete a co-op level', 'Solve 3 puzzles without failing'],
-      controlHints: ['Communication is key', 'One player distracts while the other advances'],
+      sessionObjectives: [
+        'Complete a co-op level',
+        'Solve 3 puzzles without failing',
+      ],
+      controlHints: [
+        'Communication is key',
+        'One player distracts while the other advances',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8961,7 +9001,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Blumgi Slime',
       url: 'https://poki.com/en/g/blumgi-slime',
       genre: 'Platformer',
-      description: '2-player slime platforming race. Stretch, bounce, and race through colorful obstacle courses.',
+      description:
+        '2-player slime platforming race. Stretch, bounce, and race through colorful obstacle courses.',
       rating: 4.6,
       playersOnline: 9500,
       availability: 'Online',
@@ -8970,7 +9011,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['trending'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a race', 'Complete a course without falling'],
-      controlHints: ['Stretch before releasing for distance', 'Aim for bounce pads'],
+      controlHints: [
+        'Stretch before releasing for distance',
+        'Aim for bounce pads',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -8991,7 +9035,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Stickman Climb 2',
       url: 'https://poki.com/en/g/stickman-climb-2',
       genre: 'Platformer',
-      description: '2-player physics climbing race. Swing, grab, and climb your way to the top before your opponent.',
+      description:
+        '2-player physics climbing race. Swing, grab, and climb your way to the top before your opponent.',
       rating: 4.7,
       playersOnline: 13500,
       availability: 'Online',
@@ -9000,7 +9045,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Reach the summit first', 'Pull off 3 clean swings'],
-      controlHints: ['Swing for momentum before releasing', 'Grab ledges from below'],
+      controlHints: [
+        'Swing for momentum before releasing',
+        'Grab ledges from below',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9021,7 +9069,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Ping Pong Go!',
       url: 'https://poki.com/en/g/ping-pong-go',
       genre: 'Sports',
-      description: 'Fast-paced table tennis with online multiplayer. Spin, smash, and rally your way to victory.',
+      description:
+        'Fast-paced table tennis with online multiplayer. Spin, smash, and rally your way to victory.',
       rating: 4.5,
       playersOnline: 10500,
       availability: 'Online',
@@ -9030,7 +9079,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a match', 'Land 3 smashes'],
-      controlHints: ['Angle your shots', 'Use spin to throw off opponent timing'],
+      controlHints: [
+        'Angle your shots',
+        'Use spin to throw off opponent timing',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9051,7 +9103,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Battleship War',
       url: 'https://poki.com/en/g/battleship-war',
       genre: 'Strategy',
-      description: 'Classic naval combat reimagined with online multiplayer. Deploy your fleet and sink enemy ships.',
+      description:
+        'Classic naval combat reimagined with online multiplayer. Deploy your fleet and sink enemy ships.',
       rating: 4.5,
       playersOnline: 5800,
       availability: 'Online',
@@ -9060,7 +9113,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['classic'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Sink 3 enemy ships', 'Win a match'],
-      controlHints: ['Spread your ships out', 'Track missed shots for patterns'],
+      controlHints: [
+        'Spread your ships out',
+        'Track missed shots for patterns',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9081,7 +9137,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Master Chess',
       url: 'https://www.gamepix.com/play/master-chess-multiplayer',
       genre: 'Strategy',
-      description: 'Online chess multiplayer with ranked matchmaking. Challenge opponents in classic timed matches.',
+      description:
+        'Online chess multiplayer with ranked matchmaking. Challenge opponents in classic timed matches.',
       rating: 4.8,
       playersOnline: 16000,
       availability: 'Online',
@@ -9089,13 +9146,21 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['classic', 'staff-pick'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Win a ranked match', 'Execute a checkmate in under 20 moves'],
-      controlHints: ['Control the center early', 'Develop your pieces before attacking'],
+      sessionObjectives: [
+        'Win a ranked match',
+        'Execute a checkmate in under 20 moves',
+      ],
+      controlHints: [
+        'Control the center early',
+        'Develop your pieces before attacking',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/master-chess-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/master-chess-multiplayer',
+        approvedEmbedUrl:
+          'https://www.gamepix.com/play/master-chess-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/master-chess-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9111,7 +9176,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Master Checkers',
       url: 'https://www.gamepix.com/play/master-checkers-multiplayer',
       genre: 'Strategy',
-      description: 'Online checkers multiplayer. Classic draughts with ranked play, timers, and competitive ladders.',
+      description:
+        'Online checkers multiplayer. Classic draughts with ranked play, timers, and competitive ladders.',
       rating: 4.5,
       playersOnline: 7200,
       availability: 'Online',
@@ -9124,8 +9190,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/master-checkers-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/master-checkers-multiplayer',
+        approvedEmbedUrl:
+          'https://www.gamepix.com/play/master-checkers-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/master-checkers-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9141,7 +9209,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Domino Online',
       url: 'https://www.gamepix.com/play/domino-online-multiplayer',
       genre: 'Strategy',
-      description: 'Online dominoes with multiplayer matchmaking. Classic block and draw gameplay.',
+      description:
+        'Online dominoes with multiplayer matchmaking. Classic block and draw gameplay.',
       rating: 4.4,
       playersOnline: 4500,
       availability: 'Online',
@@ -9150,12 +9219,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['classic'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a round', 'Score 100 points'],
-      controlHints: ['Play doubles strategically', 'Count tiles to predict opponent moves'],
+      controlHints: [
+        'Play doubles strategically',
+        'Count tiles to predict opponent moves',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/domino-online-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/domino-online-multiplayer',
+        approvedEmbedUrl:
+          'https://www.gamepix.com/play/domino-online-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/domino-online-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9171,7 +9245,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Last Card',
       url: 'https://www.gamepix.com/play/last-card-multiplayer',
       genre: 'Strategy',
-      description: 'UNO-style card game with online multiplayer. Match colors, play action cards, be the first to empty your hand.',
+      description:
+        'UNO-style card game with online multiplayer. Match colors, play action cards, be the first to empty your hand.',
       rating: 4.6,
       playersOnline: 12000,
       availability: 'Online',
@@ -9180,12 +9255,16 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['trending'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Win a round', 'Play 3 action cards in one turn'],
-      controlHints: ['Save skip cards for opponents with few cards', 'Change color to disrupt opponents'],
+      controlHints: [
+        'Save skip cards for opponents with few cards',
+        'Change color to disrupt opponents',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/last-card-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/last-card-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/last-card-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9201,7 +9280,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Connect 4 Multiplayer',
       url: 'https://www.gamepix.com/play/straight-4-multiplayer',
       genre: 'Strategy',
-      description: 'Online Connect 4 with ranked matchmaking. Drop discs and line up 4 to win in this classic strategy game.',
+      description:
+        'Online Connect 4 with ranked matchmaking. Drop discs and line up 4 to win in this classic strategy game.',
       rating: 4.5,
       playersOnline: 6300,
       availability: 'Online',
@@ -9209,13 +9289,20 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['classic'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Win a match', 'Win without opponent getting 3 in a row'],
-      controlHints: ['Control the center column', 'Block opponent threats before building your own'],
+      sessionObjectives: [
+        'Win a match',
+        'Win without opponent getting 3 in a row',
+      ],
+      controlHints: [
+        'Control the center column',
+        'Block opponent threats before building your own',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.gamepix.com/play/straight-4-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/straight-4-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/straight-4-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9231,7 +9318,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: '8 Ball Pool',
       url: 'https://www.miniclip.com/games/8-ball-pool',
       genre: 'Sports',
-      description: 'The world\'s most played pool game. Online multiplayer billiards with ranked play, tournaments, and chat.',
+      description:
+        "The world's most played pool game. Online multiplayer billiards with ranked play, tournaments, and chat.",
       rating: 4.8,
       playersOnline: 52000,
       availability: 'Online',
@@ -9239,8 +9327,14 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['trending', 'tournament-live'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Win a ranked match', 'Pocket 3 balls in a single turn'],
-      controlHints: ['Line up your shot carefully', 'Use spin to position for next shot'],
+      sessionObjectives: [
+        'Win a ranked match',
+        'Pocket 3 balls in a single turn',
+      ],
+      controlHints: [
+        'Line up your shot carefully',
+        'Use spin to position for next shot',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9261,7 +9355,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Bowling Hero',
       url: 'https://www.gamepix.com/play/bowling-hero-multiplayer',
       genre: 'Sports',
-      description: 'Online bowling multiplayer with competitive leagues. Perfect your hook, earn strikes, and climb the leaderboard.',
+      description:
+        'Online bowling multiplayer with competitive leagues. Perfect your hook, earn strikes, and climb the leaderboard.',
       rating: 4.5,
       playersOnline: 8900,
       availability: 'Online',
@@ -9270,12 +9365,17 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Score a strike', 'Win a 10-frame match'],
-      controlHints: ['Aim for the pocket between pins 1 and 3', 'Adjust spin for splits'],
+      controlHints: [
+        'Aim for the pocket between pins 1 and 3',
+        'Adjust spin for splits',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/bowling-hero-multiplayer',
-        approvedExternalUrl: 'https://www.gamepix.com/play/bowling-hero-multiplayer',
+        approvedEmbedUrl:
+          'https://www.gamepix.com/play/bowling-hero-multiplayer',
+        approvedExternalUrl:
+          'https://www.gamepix.com/play/bowling-hero-multiplayer',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
       },
@@ -9291,7 +9391,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Tic Tac Toe Master',
       url: 'https://www.crazygames.com/t/tic-tac-toe',
       genre: 'Strategy',
-      description: 'Classic Tic Tac Toe with online multiplayer. Quick matches, ranked play, and minimalist design.',
+      description:
+        'Classic Tic Tac Toe with online multiplayer. Quick matches, ranked play, and minimalist design.',
       rating: 4.3,
       playersOnline: 11000,
       availability: 'Online',
@@ -9321,7 +9422,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Krunker.io',
       url: 'https://krunker.io/',
       genre: 'FPS',
-      description: 'Fast-paced browser FPS with online multiplayer. Class-based combat, custom lobbies, and competitive ranked play.',
+      description:
+        'Fast-paced browser FPS with online multiplayer. Class-based combat, custom lobbies, and competitive ranked play.',
       rating: 4.7,
       playersOnline: 45000,
       availability: 'Online',
@@ -9330,7 +9432,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['trending', 'tournament-live'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Get 10 eliminations', 'Win a free-for-all match'],
-      controlHints: ['Slide for speed boosts', 'Aim for headshots for quick kills'],
+      controlHints: [
+        'Slide for speed boosts',
+        'Aim for headshots for quick kills',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9351,7 +9456,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: '1v1.LOL',
       url: 'https://1v1.lol/',
       genre: 'FPS',
-      description: 'Build-and-shoot battle royale with online multiplayer. Edit structures and outplay opponents in real-time.',
+      description:
+        'Build-and-shoot battle royale with online multiplayer. Edit structures and outplay opponents in real-time.',
       rating: 4.7,
       playersOnline: 38000,
       availability: 'Online',
@@ -9360,7 +9466,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured', 'trending'],
       queueEstimateMinutes: 2,
       sessionObjectives: ['Win a 1v1 match', 'Land 5 eliminations'],
-      controlHints: ['Build ramps for high ground', 'Edit quickly for surprise attacks'],
+      controlHints: [
+        'Build ramps for high ground',
+        'Edit quickly for surprise attacks',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9381,7 +9490,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Slither.io',
       url: 'https://slither.io/',
       genre: 'Arcade',
-      description: 'Massive online snake battle. Compete against hundreds of players in real-time arena combat.',
+      description:
+        'Massive online snake battle. Compete against hundreds of players in real-time arena combat.',
       rating: 4.6,
       playersOnline: 55000,
       availability: 'Online',
@@ -9390,7 +9500,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['trending'],
       queueEstimateMinutes: 0,
       sessionObjectives: ['Reach top 10', 'Eliminate 3 opponents'],
-      controlHints: ['Circle around smaller snakes', 'Boost to cut off opponents'],
+      controlHints: [
+        'Circle around smaller snakes',
+        'Boost to cut off opponents',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9411,7 +9524,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Agar.io',
       url: 'https://agar.io/',
       genre: 'Arcade',
-      description: 'Massively multiplayer cell-eating arena. Consume, grow, and dominate in real-time against players worldwide.',
+      description:
+        'Massively multiplayer cell-eating arena. Consume, grow, and dominate in real-time against players worldwide.',
       rating: 4.5,
       playersOnline: 62000,
       availability: 'Online',
@@ -9420,7 +9534,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['classic'],
       queueEstimateMinutes: 0,
       sessionObjectives: ['Reach top 5', 'Split and consume 5 opponents'],
-      controlHints: ['Stay near edges when small', 'Split strategically to catch larger cells'],
+      controlHints: [
+        'Stay near edges when small',
+        'Split strategically to catch larger cells',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9441,7 +9558,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Venge.io',
       url: 'https://venge.io/',
       genre: 'FPS',
-      description: 'Competitive online FPS with loadout customization. Arena combat with fast respawns and ranked progression.',
+      description:
+        'Competitive online FPS with loadout customization. Arena combat with fast respawns and ranked progression.',
       rating: 4.7,
       playersOnline: 8900,
       availability: 'Online',
@@ -9471,7 +9589,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Robinson Crusoe Co-op',
       url: 'https://poki.com/en/g/robinson-crusoe',
       genre: 'Adventure',
-      description: 'Co-op survival adventure. Work together to build shelter, find food, and explore a mysterious island.',
+      description:
+        'Co-op survival adventure. Work together to build shelter, find food, and explore a mysterious island.',
       rating: 4.5,
       playersOnline: 5500,
       availability: 'Online',
@@ -9480,7 +9599,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Build a shelter', 'Explore 3 island areas'],
-      controlHints: ['Divide tasks between players', 'Gather resources during daylight'],
+      controlHints: [
+        'Divide tasks between players',
+        'Gather resources during daylight',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9501,7 +9623,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Tactical Squad Update',
       url: 'https://www.gamepix.com/play/tactical-squad',
       genre: 'Shooting',
-      description: 'Squad-based tactical shooter with online co-op. Coordinate with your team to breach, clear, and extract.',
+      description:
+        'Squad-based tactical shooter with online co-op. Coordinate with your team to breach, clear, and extract.',
       rating: 4.6,
       playersOnline: 7800,
       availability: 'Online',
@@ -9510,7 +9633,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured'],
       queueEstimateMinutes: 2,
       sessionObjectives: ['Complete a co-op mission', 'Extract successfully'],
-      controlHints: ['Communicate breach points', 'Cover your teammates\' reloads'],
+      controlHints: [
+        'Communicate breach points',
+        "Cover your teammates' reloads",
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9531,7 +9657,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Zombie Idle Defense',
       url: 'https://www.gamepix.com/play/zombie-idle-defense',
       genre: 'Shooting',
-      description: 'Co-op zombie survival defense. Team up to build defenses, upgrade weapons, and survive endless hordes.',
+      description:
+        'Co-op zombie survival defense. Team up to build defenses, upgrade weapons, and survive endless hordes.',
       rating: 4.6,
       playersOnline: 9200,
       availability: 'Online',
@@ -9561,7 +9688,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Tower Defense Co-op',
       url: 'https://www.gamepix.com/play/tower-defense',
       genre: 'Strategy',
-      description: 'Co-op tower defense. Build defensive towers together and strategically stop waves of incoming enemies.',
+      description:
+        'Co-op tower defense. Build defensive towers together and strategically stop waves of incoming enemies.',
       rating: 4.6,
       playersOnline: 6800,
       availability: 'Online',
@@ -9570,7 +9698,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Survive 15 waves', 'Build 10 towers'],
-      controlHints: ['Specialize in different tower types', 'Coordinate upgrades timing'],
+      controlHints: [
+        'Specialize in different tower types',
+        'Coordinate upgrades timing',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9591,7 +9722,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Dungeon Fury',
       url: 'https://www.gamepix.com/play/dungeon-fury',
       genre: 'RPG',
-      description: 'Co-op dungeon crawler. Fight through hordes of monsters, collect loot, and defeat epic bosses together.',
+      description:
+        'Co-op dungeon crawler. Fight through hordes of monsters, collect loot, and defeat epic bosses together.',
       rating: 4.5,
       playersOnline: 5400,
       availability: 'Online',
@@ -9621,7 +9753,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Ragdoll Archers',
       url: 'https://poki.com/en/g/ragdoll-archers',
       genre: 'Fighting',
-      description: 'Physics-based 2-player archery duel. Master your aim, account for wind, and eliminate your opponent.',
+      description:
+        'Physics-based 2-player archery duel. Master your aim, account for wind, and eliminate your opponent.',
       rating: 4.6,
       playersOnline: 8200,
       availability: 'Online',
@@ -9651,7 +9784,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Moto X3M 3D',
       url: 'https://poki.com/en/g/moto-x3m-3',
       genre: 'Racing',
-      description: '3D stunt bike racing with multiplayer time trials. Flip, twist, and race against ghost opponents.',
+      description:
+        '3D stunt bike racing with multiplayer time trials. Flip, twist, and race against ghost opponents.',
       rating: 4.7,
       playersOnline: 11200,
       availability: 'Online',
@@ -9660,7 +9794,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured', 'trending'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Beat a rival time', 'Land 3 perfect stunts'],
-      controlHints: ['Lean forward for speed', 'Rotate mid-air for clean landings'],
+      controlHints: [
+        'Lean forward for speed',
+        'Rotate mid-air for clean landings',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9681,7 +9818,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Idle Gun Co-op',
       url: 'https://www.gamepix.com/play/idle-gun',
       genre: 'Shooting',
-      description: 'Co-op idle shooter. Team up to upgrade weapons, unlock new gear, and mow down endless enemy waves.',
+      description:
+        'Co-op idle shooter. Team up to upgrade weapons, unlock new gear, and mow down endless enemy waves.',
       rating: 4.3,
       playersOnline: 4800,
       availability: 'Online',
@@ -9690,7 +9828,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       queueEstimateMinutes: 1,
       sessionObjectives: ['Reach wave 20', 'Unlock 5 weapon upgrades'],
-      controlHints: ['Specialize in different weapon trees', 'Time active abilities together'],
+      controlHints: [
+        'Specialize in different weapon trees',
+        'Time active abilities together',
+      ],
       launchConfig: {
         inlinePolicy: 'trusted',
         embedMode: 'inline',
@@ -9712,7 +9853,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       name: 'Beat Saber Battle',
       url: 'https://poki.com/en/g/fnf-vs-whitty',
       genre: 'Rhythm',
-      description: 'Multiplayer rhythm battle. Time your moves to the beat and outscore your rival in musical combat.',
+      description:
+        'Multiplayer rhythm battle. Time your moves to the beat and outscore your rival in musical combat.',
       rating: 4.6,
       playersOnline: 14000,
       availability: 'Online',
@@ -9720,7 +9862,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       badgeIds: ['trending', 'featured'],
       queueEstimateMinutes: 1,
-      sessionObjectives: ['Win a rhythm battle', 'Maintain a 95% accuracy streak'],
+      sessionObjectives: [
+        'Win a rhythm battle',
+        'Maintain a 95% accuracy streak',
+      ],
       controlHints: ['Follow the beat pattern', 'Watch for tempo changes'],
       launchConfig: {
         inlinePolicy: 'trusted',
@@ -9737,7 +9882,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       image: '/assets/games/multiplayer-default.png',
     },
-
   ],
   recommendationRails: [
     {

@@ -18,7 +18,10 @@ import { HistoryService } from '../../services/history.service';
 import { HapticService } from '../../services/haptic.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { StudioTrack, StudioClip } from '../../types/studio.types';
-import { StemSeparationService, Stems } from '../../services/stem-separation.service';
+import {
+  StemSeparationService,
+  Stems,
+} from '../../services/stem-separation.service';
 import { SnackbarService } from '../../services/snackbar.service';
 
 @Component({
@@ -164,11 +167,9 @@ export class ArrangementViewComponent {
     const ids = this.selectedClipIds();
     if (ids.size === 0) {
       const id = this.musicManager.selectedTrackId();
-      return id ? this.tracks().find((t) => t.id === id) ?? null : null;
+      return id ? (this.tracks().find((t) => t.id === id) ?? null) : null;
     }
-    return (
-      this.findClipOwner(ids.values().next().value ?? '')?.track ?? null
-    );
+    return this.findClipOwner(ids.values().next().value ?? '')?.track ?? null;
   }
   findFirstSelectedClip(): StudioClip | null {
     const ids = this.selectedClipIds();
@@ -249,7 +250,9 @@ export class ArrangementViewComponent {
     if (!req.noteRange) return false;
     const startStep = (clip.start || 0) * 16;
     const endStep = ((clip.start || 0) + (clip.length || 4)) * 16;
-    return startStep <= req.noteRange.endStep && endStep >= req.noteRange.startStep;
+    return (
+      startStep <= req.noteRange.endStep && endStep >= req.noteRange.startStep
+    );
   }
 
   aiVariation() {
@@ -324,7 +327,9 @@ export class ArrangementViewComponent {
       this.snackbar.show('🎚 Stem Split · 4 stems ready');
     } catch (err: any) {
       console.error('Stem split failed', err);
-      this.snackbar.show('🎚 Stem Split failed: ' + (err?.message ?? 'unknown'));
+      this.snackbar.show(
+        '🎚 Stem Split failed: ' + (err?.message ?? 'unknown')
+      );
     } finally {
       this.stemBusy.set(false);
       // Reset file input so the same file can be re-uploaded.

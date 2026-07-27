@@ -63,12 +63,16 @@
           (click)="runAction(a)"
           [attr.aria-label]="'Run ' + a.label + ': ' + a.description"
         >
-          <span class="material-symbols-outlined ai-chip-icon">{{ a.icon }}</span>
+          <span class="material-symbols-outlined ai-chip-icon">{{
+            a.icon
+          }}</span>
           <div class="ai-chip-text">
             <p class="ai-chip-label">{{ a.label }}</p>
             <p class="ai-chip-desc">{{ a.description }}</p>
           </div>
-          <span class="material-symbols-outlined ai-chip-arrow">arrow_forward</span>
+          <span class="material-symbols-outlined ai-chip-arrow"
+            >arrow_forward</span
+          >
         </button>
       </li>
     </ul>
@@ -77,7 +81,11 @@
   <!-- ============ CHAT ============ -->
   <div class="ai-body ai-chat" *ngIf="tab() === 'chat'" role="tabpanel">
     <div class="ai-chat-scroll no-scrollbar" #chatScroll>
-      <div *ngFor="let m of messages()" class="ai-msg" [class.ai-msg-user]="m.role === 'user'">
+      <div
+        *ngFor="let m of messages()"
+        class="ai-msg"
+        [class.ai-msg-user]="m.role === 'user'"
+      >
         <span class="ai-msg-role" *ngIf="m.role === 'assistant'">
           <span class="material-symbols-outlined">auto_awesome</span>
         </span>
@@ -88,7 +96,10 @@
         Composing…
       </div>
     </div>
-    <form class="ai-input-row" (submit)="$event.preventDefault(); sendMessage()">
+    <form
+      class="ai-input-row"
+      (submit)="$event.preventDefault(); sendMessage()"
+    >
       <input
         type="text"
         class="ai-input"

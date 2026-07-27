@@ -30,7 +30,13 @@
         [class.disabled]="!slot.enabled"
         (click)="activeSlot.set(i + 1)"
         [attr.aria-pressed]="activeSlot() === i + 1"
-        [attr.aria-label]="'Effect ' + (i + 1) + ': ' + slot.type + (slot.enabled ? ' · enabled' : ' · disabled')"
+        [attr.aria-label]="
+          'Effect ' +
+          (i + 1) +
+          ': ' +
+          slot.type +
+          (slot.enabled ? ' · enabled' : ' · disabled')
+        "
       >
         <span
           class="er-slot-status"
@@ -44,7 +50,9 @@
           class="er-slot-toggle"
           [class.enabled]="slot.enabled"
           (click)="toggleFx(slot.id); $event.stopPropagation()"
-          [attr.aria-label]="slot.enabled ? 'Disable ' + slot.type : 'Enable ' + slot.type"
+          [attr.aria-label]="
+            slot.enabled ? 'Disable ' + slot.type : 'Enable ' + slot.type
+          "
         >
           <span class="material-symbols-outlined">
             {{ slot.enabled ? 'power_settings_new' : 'power_off' }}
@@ -57,7 +65,11 @@
         class="er-add-slot"
         aria-label="Add new effect slot"
       >
-        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span>
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 16px; vertical-align: middle"
+          >add</span
+        >
         Add Effect
       </button>
     </nav>
@@ -94,80 +106,201 @@
             <!-- Reverb -->
             <ng-container *ngSwitchCase="'Reverb'">
               <div class="er-knob-cell">
-                <app-knob label="Decay" [min]="0.1" [max]="10" [value]="2.5" step="0.1" unit="s"></app-knob>
+                <app-knob
+                  label="Decay"
+                  [min]="0.1"
+                  [max]="10"
+                  [value]="2.5"
+                  step="0.1"
+                  unit="s"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Size" [min]="0" [max]="100" [value]="50" unit="%"></app-knob>
+                <app-knob
+                  label="Size"
+                  [min]="0"
+                  [max]="100"
+                  [value]="50"
+                  unit="%"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Pre-Delay" [min]="0" [max]="200" [value]="20" unit="ms"></app-knob>
+                <app-knob
+                  label="Pre-Delay"
+                  [min]="0"
+                  [max]="200"
+                  [value]="20"
+                  unit="ms"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Damping" [min]="0" [max]="100" [value]="30" unit="%"></app-knob>
+                <app-knob
+                  label="Damping"
+                  [min]="0"
+                  [max]="100"
+                  [value]="30"
+                  unit="%"
+                ></app-knob>
               </div>
             </ng-container>
 
             <!-- Delay -->
             <ng-container *ngSwitchCase="'Delay'">
               <div class="er-knob-cell">
-                <app-knob label="Time" [min]="0" [max]="2000" [value]="250" unit="ms"></app-knob>
+                <app-knob
+                  label="Time"
+                  [min]="0"
+                  [max]="2000"
+                  [value]="250"
+                  unit="ms"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Feedback" [min]="0" [max]="100" [value]="40" unit="%"></app-knob>
+                <app-knob
+                  label="Feedback"
+                  [min]="0"
+                  [max]="100"
+                  [value]="40"
+                  unit="%"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Ping Pong" [min]="0" [max]="100" [value]="0" unit="%"></app-knob>
+                <app-knob
+                  label="Ping Pong"
+                  [min]="0"
+                  [max]="100"
+                  [value]="0"
+                  unit="%"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Filter" [min]="200" [max]="18000" [value]="8000" unit="Hz"></app-knob>
+                <app-knob
+                  label="Filter"
+                  [min]="200"
+                  [max]="18000"
+                  [value]="8000"
+                  unit="Hz"
+                ></app-knob>
               </div>
             </ng-container>
 
             <!-- Compressor -->
             <ng-container *ngSwitchCase="'Compressor'">
               <div class="er-knob-cell">
-                <app-knob label="Threshold" [min]="-60" [max]="0" [value]="-24" unit="dB"></app-knob>
+                <app-knob
+                  label="Threshold"
+                  [min]="-60"
+                  [max]="0"
+                  [value]="-24"
+                  unit="dB"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Ratio" [min]="1" [max]="20" [value]="4" step="0.5"></app-knob>
+                <app-knob
+                  label="Ratio"
+                  [min]="1"
+                  [max]="20"
+                  [value]="4"
+                  step="0.5"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Attack" [min]="0.1" [max]="100" [value]="10" unit="ms"></app-knob>
+                <app-knob
+                  label="Attack"
+                  [min]="0.1"
+                  [max]="100"
+                  [value]="10"
+                  unit="ms"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Release" [min]="10" [max]="1000" [value]="100" unit="ms"></app-knob>
+                <app-knob
+                  label="Release"
+                  [min]="10"
+                  [max]="1000"
+                  [value]="100"
+                  unit="ms"
+                ></app-knob>
               </div>
             </ng-container>
 
             <!-- EQ -->
             <ng-container *ngSwitchCase="'EQ'">
               <div class="er-knob-cell">
-                <app-knob label="Low Gain" [min]="-12" [max]="12" [value]="0" unit="dB"></app-knob>
+                <app-knob
+                  label="Low Gain"
+                  [min]="-12"
+                  [max]="12"
+                  [value]="0"
+                  unit="dB"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Mid Gain" [min]="-12" [max]="12" [value]="0" unit="dB"></app-knob>
+                <app-knob
+                  label="Mid Gain"
+                  [min]="-12"
+                  [max]="12"
+                  [value]="0"
+                  unit="dB"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="High Gain" [min]="-12" [max]="12" [value]="0" unit="dB"></app-knob>
+                <app-knob
+                  label="High Gain"
+                  [min]="-12"
+                  [max]="12"
+                  [value]="0"
+                  unit="dB"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Mid Freq" [min]="200" [max]="8000" [value]="1500" unit="Hz"></app-knob>
+                <app-knob
+                  label="Mid Freq"
+                  [min]="200"
+                  [max]="8000"
+                  [value]="1500"
+                  unit="Hz"
+                ></app-knob>
               </div>
             </ng-container>
 
             <!-- Default: generic params -->
             <ng-container *ngSwitchDefault>
               <div class="er-knob-cell">
-                <app-knob label="Rate" [min]="0" [max]="100" [value]="50" unit="%"></app-knob>
+                <app-knob
+                  label="Rate"
+                  [min]="0"
+                  [max]="100"
+                  [value]="50"
+                  unit="%"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Depth" [min]="0" [max]="100" [value]="50" unit="%"></app-knob>
+                <app-knob
+                  label="Depth"
+                  [min]="0"
+                  [max]="100"
+                  [value]="50"
+                  unit="%"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Tone" [min]="200" [max]="12000" [value]="4000" unit="Hz"></app-knob>
+                <app-knob
+                  label="Tone"
+                  [min]="200"
+                  [max]="12000"
+                  [value]="4000"
+                  unit="Hz"
+                ></app-knob>
               </div>
               <div class="er-knob-cell">
-                <app-knob label="Level" [min]="0" [max]="100" [value]="80" unit="%"></app-knob>
+                <app-knob
+                  label="Level"
+                  [min]="0"
+                  [max]="100"
+                  [value]="80"
+                  unit="%"
+                ></app-knob>
               </div>
             </ng-container>
           </ng-container>

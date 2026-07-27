@@ -115,7 +115,9 @@
 .er-slot.active {
   background: var(--teal-100);
   border-color: var(--teal-500);
-  box-shadow: 0 0 0 1px var(--teal-500), 0 0 18px var(--teal-soft-glow);
+  box-shadow:
+    0 0 0 1px var(--teal-500),
+    0 0 18px var(--teal-soft-glow);
 }
 
 .er-slot-status {
@@ -387,21 +389,21 @@
 
 /* ── Dark mode ─────────────────────────────────────────────── */
 :host-context(.dark-mode) .er-header {
-  background: #14110B;
+  background: #14110b;
 }
 
 :host-context(.dark-mode) .er-slots {
-  background: #14110B;
+  background: #14110b;
   border-right-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .er-slot {
-  background: #1A1712;
+  background: #1a1712;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .er-slot:hover {
-  background: rgba(93, 196, 194, 0.10);
+  background: rgba(93, 196, 194, 0.1);
 }
 
 :host-context(.dark-mode) .er-slot.active {
@@ -410,16 +412,16 @@
 }
 
 :host-context(.dark-mode) .er-params {
-  background: #14110B;
+  background: #14110b;
 }
 
 :host-context(.dark-mode) .er-knob-cell {
-  background: #1A1712;
+  background: #1a1712;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .er-master {
-  background: #1A1712;
+  background: #1a1712;
 }
 
 /* ── Focus-visible ─────────────────────────────────────────── */

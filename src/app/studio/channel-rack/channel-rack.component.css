@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--ivory-deep, #06091A);
+  background: var(--ivory-deep, #06091a);
   color: var(--espresso-text);
   font-family: var(--font-sans);
   overflow: hidden;
@@ -23,7 +23,11 @@
 
 .rack-header {
   height: 48px;
-  background: linear-gradient(180deg, var(--ivory-panel) 0%, var(--ivory-deep) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--ivory-panel) 0%,
+    var(--ivory-deep) 100%
+  );
   display: flex;
   align-items: center;
   padding: 0 14px;
@@ -76,7 +80,9 @@
 .channel-item.selected {
   background: var(--teal-100);
   border-color: var(--teal-500);
-  box-shadow: 0 0 0 1px var(--teal-500), 0 0 18px var(--teal-soft-glow);
+  box-shadow:
+    0 0 0 1px var(--teal-500),
+    0 0 18px var(--teal-soft-glow);
   z-index: 1;
 }
 
@@ -213,17 +219,22 @@
 }
 
 /* Scrollbar */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* ---------- DARK MODE ---------- */
 :host-context(.dark-mode) .rack-header {
-  background: linear-gradient(180deg, #0A0F22 0%, #000208 100%);
+  background: linear-gradient(180deg, #0a0f22 0%, #000208 100%);
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 :host-context(.dark-mode) .channel-item {
-  background: #0A0F22;
+  background: #0a0f22;
   border-bottom-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -234,11 +245,13 @@
 :host-context(.dark-mode) .channel-item.selected {
   background: rgba(102, 240, 255, 0.12);
   border-color: var(--teal-500);
-  box-shadow: 0 0 0 1px var(--teal-500), 0 0 22px var(--teal-glow);
+  box-shadow:
+    0 0 0 1px var(--teal-500),
+    0 0 22px var(--teal-glow);
 }
 
 :host-context(.dark-mode) .channel-ctrl-btn {
-  background: #06091A;
+  background: #06091a;
   border-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -248,7 +261,7 @@
 }
 
 :host-context(.dark-mode) .step-pad {
-  background: #0A0F22;
+  background: #0a0f22;
   border-color: rgba(255, 255, 255, 0.06);
 }
 
@@ -257,8 +270,14 @@
 }
 
 @media (max-width: 768px) {
-  .channel-item { padding: 6px 8px; min-height: 56px; }
-  .step-pad { max-width: 24px; max-height: 24px; }
+  .channel-item {
+    padding: 6px 8px;
+    min-height: 56px;
+  }
+  .step-pad {
+    max-width: 24px;
+    max-height: 24px;
+  }
 
   /* Show touch-optimized faders on mobile instead of hiding */
   .rack-fader-pro {
@@ -278,9 +297,16 @@
 }
 
 @media (max-width: 480px) {
-  .channel-item { padding: 6px 6px; gap: 4px; }
-  .channel-name { font-size: 9px; }
-  .rack-fader-pro { height: 5px; }
+  .channel-item {
+    padding: 6px 6px;
+    gap: 4px;
+  }
+  .channel-name {
+    font-size: 9px;
+  }
+  .rack-fader-pro {
+    height: 5px;
+  }
   .rack-fader-pro::-webkit-slider-thumb {
     width: 20px;
     height: 20px;

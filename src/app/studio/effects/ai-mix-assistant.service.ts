@@ -1,11 +1,21 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { MusicManagerService, TrackModel } from '../../services/music-manager.service';
+import {
+  MusicManagerService,
+  TrackModel,
+} from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { IdeasGeneratorService } from '../../services/ideas-generator.service';
 
 export interface MixSuggestion {
   id: string;
-  type: 'eq' | 'compression' | 'reverb' | 'level' | 'pan' | 'saturation' | 'width';
+  type:
+    | 'eq'
+    | 'compression'
+    | 'reverb'
+    | 'level'
+    | 'pan'
+    | 'saturation'
+    | 'width';
   trackId: string;
   label: string;
   description: string;
@@ -94,7 +104,11 @@ export class AiMixAssistantService {
   /**
    * Analyze a single track based on its instrument type, position in mix, etc.
    */
-  analyzeTrack(track: TrackModel, index: number, totalTracks: number): TrackAnalysis {
+  analyzeTrack(
+    track: TrackModel,
+    index: number,
+    totalTracks: number
+  ): TrackAnalysis {
     const instType = this.inferInstrumentType(track);
     const freqProfile = this.inferFrequencyProfile(instType, index);
     const stereoWidth = this.inferStereoWidth(instType);
@@ -107,7 +121,8 @@ export class AiMixAssistantService {
       trackName: track.name || instType,
       instrumentType: instType,
       estimatedLoudness: -6 - index * 2 + Math.random() * 4,
-      estimatedDynamicRange: instType === 'drums' ? 18 : instType === 'vocal' ? 14 : 10,
+      estimatedDynamicRange:
+        instType === 'drums' ? 18 : instType === 'vocal' ? 14 : 10,
       frequencyProfile: freqProfile,
       stereoWidth: stereoWidth,
       transientContent: transientContent,
@@ -119,12 +134,18 @@ export class AiMixAssistantService {
   /**
    * Generate actionable mix suggestions from a track analysis.
    */
-  private generateSuggestions(analysis: TrackAnalysis, track: TrackModel): MixSuggestion[] {
+  private generateSuggestions(
+    analysis: TrackAnalysis,
+    track: TrackModel
+  ): MixSuggestion[] {
     const result: MixSuggestion[] = [];
     const ti = track.id;
 
     // EQ suggestions based on frequency profile
-    if (analysis.frequencyProfile === 'dark' || analysis.frequencyProfile === 'warm') {
+    if (
+      analysis.frequencyProfile === 'dark' ||
+      analysis.frequencyProfile === 'warm'
+    ) {
       result.push({
         id: `eq-hi-${ti}`,
         type: 'eq',
@@ -139,7 +160,10 @@ export class AiMixAssistantService {
       });
     }
 
-    if (analysis.frequencyProfile === 'harsh' || analysis.frequencyProfile === 'bright') {
+    if (
+      analysis.frequencyProfile === 'harsh' ||
+      analysis.frequencyProfile === 'bright'
+    ) {
       result.push({
         id: `eq-lo-${ti}`,
         type: 'eq',
@@ -155,7 +179,10 @@ export class AiMixAssistantService {
     }
 
     // Stereo width suggestions
-    if (analysis.stereoWidth === 'mono' && this.isWideInstrument(analysis.instrumentType)) {
+    if (
+      analysis.stereoWidth === 'mono' &&
+      this.isWideInstrument(analysis.instrumentType)
+    ) {
       result.push({
         id: `width-${ti}`,
         type: 'width',
@@ -171,7 +198,10 @@ export class AiMixAssistantService {
     }
 
     // Dynamic range / compression suggestions
-    if (analysis.transientContent === 'high' && analysis.instrumentType !== 'drums') {
+    if (
+      analysis.transientContent === 'high' &&
+      analysis.instrumentType !== 'drums'
+    ) {
       result.push({
         id: `comp-${ti}`,
         type: 'compression',
@@ -187,7 +217,10 @@ export class AiMixAssistantService {
     }
 
     // Reverb suggestions based on role
-    if (analysis.suggestedRole === 'pad' || analysis.suggestedRole === 'atmosphere') {
+    if (
+      analysis.suggestedRole === 'pad' ||
+      analysis.suggestedRole === 'atmosphere'
+    ) {
       result.push({
         id: `verb-${ti}`,
         type: 'reverb',
@@ -204,8 +237,15 @@ export class AiMixAssistantService {
 
     // Level suggestions based on role priority
     const priorityMap: Record<string, number> = {
-      kick: 0, snare: 1, bass: 2, vocal: 3,
-      lead: 4, chords: 5, pad: 6, fx: 7, fill: 8,
+      kick: 0,
+      snare: 1,
+      bass: 2,
+      vocal: 3,
+      lead: 4,
+      chords: 5,
+      pad: 6,
+      fx: 7,
+      fill: 8,
     };
     const trackPriority = priorityMap[analysis.instrumentType] ?? 5;
     if (trackPriority > 5 && analysis.estimatedLoudness > -8) {
@@ -312,11 +352,26 @@ export class AiMixAssistantService {
    */
   recommendInstruments(genre: string): string[] {
     const recs: Record<string, string[]> = {
-      'neo-soul': ['grand-piano', 'p-bass-elite', 'trap-808-elite', 'strat-elite-clean'],
+      'neo-soul': [
+        'grand-piano',
+        'p-bass-elite',
+        'trap-808-elite',
+        'strat-elite-clean',
+      ],
       trap: ['sub-commander', 'trap-808-elite', 'cyber-stab', 'synth-lead'],
-      'lo-fi': ['grand-piano', 'p-bass-elite', 'trap-808-elite', 'vinyl-crackle'],
+      'lo-fi': [
+        'grand-piano',
+        'p-bass-elite',
+        'trap-808-elite',
+        'vinyl-crackle',
+      ],
       house: ['cyber-stab', 'sub-commander', 'trap-808-elite', 'synth-pad'],
-      pop: ['strat-elite-clean', 'p-bass-elite', 'grand-piano', 'trap-808-elite'],
+      pop: [
+        'strat-elite-clean',
+        'p-bass-elite',
+        'grand-piano',
+        'trap-808-elite',
+      ],
       rnb: ['grand-piano', 'p-bass-elite', 'trap-808-elite', 'synth-pad'],
     };
     return recs[genre] || ['grand-piano', 'p-bass-elite', 'trap-808-elite'];
@@ -330,21 +385,41 @@ export class AiMixAssistantService {
 
     if (name.includes('kick') || inst.includes('kick')) return 'kick';
     if (name.includes('snare') || inst.includes('snare')) return 'snare';
-    if (name.includes('bass') || inst.includes('bass') || inst.includes('sub')) return 'bass';
-    if (name.includes('vocal') || name.includes('voice') || name.includes('mic')) return 'vocal';
+    if (name.includes('bass') || inst.includes('bass') || inst.includes('sub'))
+      return 'bass';
+    if (
+      name.includes('vocal') ||
+      name.includes('voice') ||
+      name.includes('mic')
+    )
+      return 'vocal';
     if (name.includes('pad') || inst.includes('pad')) return 'pad';
     if (name.includes('lead') || inst.includes('lead')) return 'lead';
-    if (name.includes('drum') || inst.includes('drum') || inst.includes('808')) return 'drums';
+    if (name.includes('drum') || inst.includes('drum') || inst.includes('808'))
+      return 'drums';
     if (name.includes('fx') || name.includes('effect')) return 'fx';
-    if (name.includes('hat') || name.includes('hi-hat') || name.includes('cymbal')) return 'percussion';
-    if (name.includes('piano') || name.includes('key') || name.includes('organ')) return 'chords';
+    if (
+      name.includes('hat') ||
+      name.includes('hi-hat') ||
+      name.includes('cymbal')
+    )
+      return 'percussion';
+    if (
+      name.includes('piano') ||
+      name.includes('key') ||
+      name.includes('organ')
+    )
+      return 'chords';
     if (name.includes('guitar') || name.includes('strat')) return 'melodic';
     if (name.includes('synth') || name.includes('stab')) return 'synth';
 
     return 'instrument';
   }
 
-  private inferFrequencyProfile(instType: string, index: number): TrackAnalysis['frequencyProfile'] {
+  private inferFrequencyProfile(
+    instType: string,
+    index: number
+  ): TrackAnalysis['frequencyProfile'] {
     const lowTypes = ['kick', 'bass', 'sub', '808', 'tom'];
     const brightTypes = ['hi-hat', 'cymbal', 'lead', 'fx', 'percussion'];
     if (lowTypes.includes(instType)) return 'dark';
@@ -370,7 +445,9 @@ export class AiMixAssistantService {
     return 'moderate';
   }
 
-  private inferHarmonics(instType: string): TrackAnalysis['harmonicComplexity'] {
+  private inferHarmonics(
+    instType: string
+  ): TrackAnalysis['harmonicComplexity'] {
     const complexTypes = ['pad', 'synth', 'organ', 'vocal'];
     const simpleTypes = ['kick', 'snare', 'bass', 'percussion'];
     if (complexTypes.includes(instType)) return 'complex';
@@ -382,7 +459,11 @@ export class AiMixAssistantService {
     return ['pad', 'synth', 'fx', 'organ', 'chords'].includes(instType);
   }
 
-  private getSuggestedRole(instType: string, index: number, total: number): string {
+  private getSuggestedRole(
+    instType: string,
+    index: number,
+    total: number
+  ): string {
     if (instType === 'kick' || instType === 'snare') return 'rhythm';
     if (instType === 'bass') return 'foundation';
     if (instType === 'vocal' || instType === 'lead') return 'focus';

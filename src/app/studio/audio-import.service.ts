@@ -50,7 +50,9 @@ export class AudioImportService {
   async importFiles(): Promise<void> {
     this.isLoading.set(true);
     try {
-      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav,.ogg,.flac,.aiff,.m4a');
+      const files = await this.fileLoader.pickLocalFiles(
+        '.mp3,.wav,.ogg,.flac,.aiff,.m4a'
+      );
       if (files.length === 0) {
         this.isLoading.set(false);
         return;
@@ -116,13 +118,17 @@ export class AudioImportService {
   /** Update trim start (normalized 0-1) */
   setTrimStart(value: number | string) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
-    this.updateCurrentAudio({ trimStart: Math.max(0, Math.min(num, this.selectedAudio()?.trimEnd ?? 1)) });
+    this.updateCurrentAudio({
+      trimStart: Math.max(0, Math.min(num, this.selectedAudio()?.trimEnd ?? 1)),
+    });
   }
 
   /** Update trim end (normalized 0-1) */
   setTrimEnd(value: number | string) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
-    this.updateCurrentAudio({ trimEnd: Math.max(this.selectedAudio()?.trimStart ?? 0, Math.min(num, 1)) });
+    this.updateCurrentAudio({
+      trimEnd: Math.max(this.selectedAudio()?.trimStart ?? 0, Math.min(num, 1)),
+    });
   }
 
   /** Set gain multiplier */
@@ -219,7 +225,11 @@ export class AudioImportService {
   }
 
   /** Render waveform onto a canvas */
-  renderWaveform(canvas: HTMLCanvasElement, waveform: number[], color: string = '#0E7C7B') {
+  renderWaveform(
+    canvas: HTMLCanvasElement,
+    waveform: number[],
+    color: string = '#0E7C7B'
+  ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const w = canvas.width;
@@ -251,7 +261,11 @@ export class AudioImportService {
   }
 
   /** Trim region highlight on waveform canvas */
-  renderTrimRegion(canvas: HTMLCanvasElement, audio: ImportedAudio, waveform: number[]) {
+  renderTrimRegion(
+    canvas: HTMLCanvasElement,
+    audio: ImportedAudio,
+    waveform: number[]
+  ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const w = canvas.width;
@@ -327,7 +341,8 @@ export class AudioImportService {
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
     const w = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
     };
     w(0, 'RIFF');
     view.setUint32(4, 36 + numSamples * 2, true);
@@ -344,7 +359,7 @@ export class AudioImportService {
     view.setUint32(40, numSamples * 2, true);
     for (let i = 0; i < numSamples; i++) {
       const s = Math.max(-1, Math.min(1, interleaved[i]));
-      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
     return new Blob([buffer], { type: 'audio/wav' });
   }

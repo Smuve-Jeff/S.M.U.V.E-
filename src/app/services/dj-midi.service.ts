@@ -125,7 +125,12 @@ export class DjMidiService {
   readonly performerCC = new Subject<MidiCCEvent>();
 
   /** Last received MIDI message for debugging */
-  lastMidiMessage = signal<{ type: string; channel: number; number: number; value: number } | null>(null);
+  lastMidiMessage = signal<{
+    type: string;
+    channel: number;
+    number: number;
+    value: number;
+  } | null>(null);
 
   /** Default mappings — always active unless overridden */
   private readonly DEFAULT_MAPPINGS: MidiMapping[] = [
@@ -218,10 +223,12 @@ export class DjMidiService {
     for (let o = outputs.next(); o && !o.done; o = outputs.next()) {
       this.midiOutputDevices.push(o.value);
     }
-    this.midiOutputs.set(this.midiOutputDevices.map((o) => o.name || 'MIDI Output'));
+    this.midiOutputs.set(
+      this.midiOutputDevices.map((o) => o.name || 'MIDI Output')
+    );
 
     // Send MIDI Start (0xFA)
-    this.sendMidiMessage(0xFA);
+    this.sendMidiMessage(0xfa);
 
     // Calculate clock interval: 60000 / (BPM * 24) ms per tick
     this.updateClockInterval();
@@ -235,7 +242,7 @@ export class DjMidiService {
       this.clockInterval = null;
     }
     // Send MIDI Stop (0xFC)
-    this.sendMidiMessage(0xFC);
+    this.sendMidiMessage(0xfc);
   }
 
   setClockBpm(bpm: number): void {
@@ -247,7 +254,9 @@ export class DjMidiService {
   }
 
   setClockOutput(index: number): void {
-    this.clockOutputIndex.set(Math.max(0, Math.min(this.midiOutputDevices.length - 1, index)));
+    this.clockOutputIndex.set(
+      Math.max(0, Math.min(this.midiOutputDevices.length - 1, index))
+    );
   }
 
   private updateClockInterval(): void {
@@ -258,7 +267,7 @@ export class DjMidiService {
     const intervalMs = 60000 / (this.clockBpm() * this.CLOCK_PPQN);
     this.clockInterval = setInterval(() => {
       if (!this.clockEnabled()) return;
-      this.sendMidiMessage(0xF8);
+      this.sendMidiMessage(0xf8);
       this.midiActivityPulse.set(true);
       setTimeout(() => this.midiActivityPulse.set(false), 20);
     }, intervalMs);
@@ -275,7 +284,7 @@ export class DjMidiService {
 
   /** Send MIDI Continue (0xFB) after pause */
   sendContinue(): void {
-    this.sendMidiMessage(0xFB);
+    this.sendMidiMessage(0xfb);
   }
 
   // ── MIDI Slave Sync ──────────────────────────────────
@@ -318,7 +327,9 @@ export class DjMidiService {
   startPerformerLearn(target: string) {
     this.performerLearnActive.set(true);
     this.performerLearnTarget.set(target);
-    this.logger.info(`Performer MIDI Learn: waiting for CC input for "${target}"`);
+    this.logger.info(
+      `Performer MIDI Learn: waiting for CC input for "${target}"`
+    );
   }
 
   cancelPerformerLearn() {
@@ -328,7 +339,10 @@ export class DjMidiService {
 
   private savePerformerCCMappings() {
     try {
-      localStorage.setItem('smuve_performer_cc_mappings', JSON.stringify(this.performerCCMap()));
+      localStorage.setItem(
+        'smuve_performer_cc_mappings',
+        JSON.stringify(this.performerCCMap())
+      );
     } catch {}
   }
 
@@ -342,12 +356,20 @@ export class DjMidiService {
     } catch {}
   }
   startLearn(action: string, deck: 'A' | 'B' | null = null) {
-    this.learnState.set({ active: true, targetAction: action, targetDeck: deck });
+    this.learnState.set({
+      active: true,
+      targetAction: action,
+      targetDeck: deck,
+    });
     this.logger.info(`MIDI Learn: waiting for input for "${action}"`);
   }
 
   cancelLearn() {
-    this.learnState.set({ active: false, targetAction: null, targetDeck: null });
+    this.learnState.set({
+      active: false,
+      targetAction: null,
+      targetDeck: null,
+    });
   }
 
   clearMappings() {
@@ -363,7 +385,10 @@ export class DjMidiService {
 
   private saveCustomMappings() {
     try {
-      localStorage.setItem('smuve_midi_mappings', JSON.stringify(this.mappings()));
+      localStorage.setItem(
+        'smuve_midi_mappings',
+        JSON.stringify(this.mappings())
+      );
     } catch {}
   }
 
@@ -387,7 +412,9 @@ export class DjMidiService {
       this.midiOutputDeviceList.push(o.value);
       this.midiOutputDevicesList.push(o.value);
     }
-    this.midiOutputNames.set(this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output'));
+    this.midiOutputNames.set(
+      this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output')
+    );
   }
 
   // ── Message Handler ──────────────────────────────────
@@ -397,9 +424,12 @@ export class DjMidiService {
     const channel = status & 0xf;
 
     // ── Detect MIDI System Real-Time messages (Clock, Start, Stop, Continue) ──
-    if (status >= 0xF8) {
+    if (status >= 0xf8) {
       // Forward real-time messages if thru is enabled
-      if (this.thruEnabled() && (this.thruFilter() === 'all' || this.thruFilter() === 'clock')) {
+      if (
+        this.thruEnabled() &&
+        (this.thruFilter() === 'all' || this.thruFilter() === 'clock')
+      ) {
         this.forwardThru(status);
       }
       this.handleRealTime(status);
@@ -407,7 +437,14 @@ export class DjMidiService {
     }
 
     this.lastMidiMessage.set({
-      type: cmd === 9 ? 'note_on' : cmd === 8 ? 'note_off' : cmd === 11 ? 'cc' : 'other',
+      type:
+        cmd === 9
+          ? 'note_on'
+          : cmd === 8
+            ? 'note_off'
+            : cmd === 11
+              ? 'cc'
+              : 'other',
       channel,
       number: data1,
       value: data2,
@@ -425,7 +462,8 @@ export class DjMidiService {
       const sourceMatch =
         this.thruInputIndex() === 0 || // index 0 = all inputs
         (this.midiInputDevices.indexOf(message.target) >= 0 &&
-          this.midiInputDevices.indexOf(message.target) + 1 === this.thruInputIndex());
+          this.midiInputDevices.indexOf(message.target) + 1 ===
+            this.thruInputIndex());
 
       if (sourceMatch) {
         const filterPass =
@@ -440,7 +478,11 @@ export class DjMidiService {
     }
 
     // Performer MIDI Learn: capture CC input
-    if (this.performerLearnActive() && cmd === 11 && this.performerLearnTarget()) {
+    if (
+      this.performerLearnActive() &&
+      cmd === 11 &&
+      this.performerLearnTarget()
+    ) {
       const newCC: PerformerCCMapping = {
         controller: data1,
         channel,
@@ -451,7 +493,9 @@ export class DjMidiService {
         return [...filtered, newCC];
       });
       this.savePerformerCCMappings();
-      this.logger.info(`Performer CC Learned: ${newCC.target} → CH${channel} CC${data1}`);
+      this.logger.info(
+        `Performer CC Learned: ${newCC.target} → CH${channel} CC${data1}`
+      );
       this.cancelPerformerLearn();
       return;
     }
@@ -470,12 +514,15 @@ export class DjMidiService {
         this.mappings.update((m) => {
           // Remove existing mapping for same action+deck
           const filtered = m.filter(
-            (x) => !(x.action === newMapping.action && x.deck === newMapping.deck)
+            (x) =>
+              !(x.action === newMapping.action && x.deck === newMapping.deck)
           );
           return [...filtered, newMapping];
         });
         this.saveCustomMappings();
-        this.logger.info(`MIDI Learned: ${learn.targetAction} → CH${channel} ${newMapping.type.toUpperCase()} ${data1}`);
+        this.logger.info(
+          `MIDI Learned: ${learn.targetAction} → CH${channel} ${newMapping.type.toUpperCase()} ${data1}`
+        );
         this.cancelLearn();
         return;
       }
@@ -483,7 +530,11 @@ export class DjMidiService {
 
     // Always forward note events for the Performer regardless of DJ mappings
     if (cmd === 9 && data2 > 0) {
-      this.performerNoteOn.next({ note: data1, velocity: data2 / 127, channel });
+      this.performerNoteOn.next({
+        note: data1,
+        velocity: data2 / 127,
+        channel,
+      });
     } else if (cmd === 8 || (cmd === 9 && data2 === 0)) {
       this.performerNoteOff.next({ note: data1, velocity: 0, channel });
     } else if (cmd === 11) {
@@ -516,7 +567,7 @@ export class DjMidiService {
   /** Handle MIDI System Real-Time messages for Slave Sync */
   private handleRealTime(status: number): void {
     switch (status) {
-      case 0xF8: // Timing Clock
+      case 0xf8: // Timing Clock
         this.midiActivityPulse.set(true);
         setTimeout(() => this.midiActivityPulse.set(false), 20);
         this.pushMidiLog('clock', 0, 0, 0);
@@ -531,15 +582,20 @@ export class DjMidiService {
             }
             // Derive BPM: average interval → ms per tick → BPM = 60000 / (avgInterval * 24)
             if (this.clockIntervals.length >= 4) {
-              const avgInterval = this.clockIntervals.reduce((a, b) => a + b, 0) / this.clockIntervals.length;
-              const bpm = Math.max(40, Math.min(300, Math.round(60000 / (avgInterval * 24))));
+              const avgInterval =
+                this.clockIntervals.reduce((a, b) => a + b, 0) /
+                this.clockIntervals.length;
+              const bpm = Math.max(
+                40,
+                Math.min(300, Math.round(60000 / (avgInterval * 24)))
+              );
               this.slaveBpm.set(bpm);
             }
           }
           this.lastClockTime = now;
         }
         break;
-      case 0xFA: // Start
+      case 0xfa: // Start
         this.pushMidiLog('start', 0, 0, 0);
         if (this.slaveSyncEnabled()) {
           this.slaveTransportRunning.set(true);
@@ -547,14 +603,14 @@ export class DjMidiService {
           this.clockIntervals = [];
         }
         break;
-      case 0xFB: // Continue
+      case 0xfb: // Continue
         this.pushMidiLog('continue', 0, 0, 0);
         if (this.slaveSyncEnabled()) {
           this.slaveTransportRunning.set(true);
           this.lastClockTime = performance.now();
         }
         break;
-      case 0xFC: // Stop
+      case 0xfc: // Stop
         this.pushMidiLog('stop', 0, 0, 0);
         if (this.slaveSyncEnabled()) {
           this.slaveTransportRunning.set(false);
@@ -565,7 +621,12 @@ export class DjMidiService {
   }
 
   /** Push to the activity log, capped at MIDI_LOG_MAX */
-  private pushMidiLog(type: string, channel: number, number: number, value: number): void {
+  private pushMidiLog(
+    type: string,
+    channel: number,
+    number: number,
+    value: number
+  ): void {
     this.midiLog.update((log) => {
       const entry: MidiLogEntry = {
         id: ++this.logIdCounter,
@@ -581,7 +642,11 @@ export class DjMidiService {
     });
   }
 
-  private findMapping(type: 'cc' | 'note', channel: number, number: number): MidiMapping | undefined {
+  private findMapping(
+    type: 'cc' | 'note',
+    channel: number,
+    number: number
+  ): MidiMapping | undefined {
     // Custom mappings override defaults
     const custom = this.mappings().find(
       (m) => m.type === type && m.channel === channel && m.number === number
@@ -598,19 +663,45 @@ export class DjMidiService {
 
     const deck = mapping.deck;
     switch (mapping.action) {
-      case 'play': this.deckService.togglePlay(deck); break;
-      case 'cue': this.deckService.toggleCue(deck); break;
-      case 'sync': this.deckService.autoSync(deck); break;
-      case 'loop_toggle': this.deckService.toggleLoop(deck); break;
-      case 'slip_toggle': this.deckService.toggleSlip(deck); break;
-      case 'hotcue_0': this.deckService.jumpToHotCue(deck, 0); break;
-      case 'hotcue_1': this.deckService.jumpToHotCue(deck, 1); break;
-      case 'hotcue_2': this.deckService.jumpToHotCue(deck, 2); break;
-      case 'hotcue_3': this.deckService.jumpToHotCue(deck, 3); break;
-      case 'hotcue_4': this.deckService.jumpToHotCue(deck, 4); break;
-      case 'hotcue_5': this.deckService.jumpToHotCue(deck, 5); break;
-      case 'hotcue_6': this.deckService.jumpToHotCue(deck, 6); break;
-      case 'hotcue_7': this.deckService.jumpToHotCue(deck, 7); break;
+      case 'play':
+        this.deckService.togglePlay(deck);
+        break;
+      case 'cue':
+        this.deckService.toggleCue(deck);
+        break;
+      case 'sync':
+        this.deckService.autoSync(deck);
+        break;
+      case 'loop_toggle':
+        this.deckService.toggleLoop(deck);
+        break;
+      case 'slip_toggle':
+        this.deckService.toggleSlip(deck);
+        break;
+      case 'hotcue_0':
+        this.deckService.jumpToHotCue(deck, 0);
+        break;
+      case 'hotcue_1':
+        this.deckService.jumpToHotCue(deck, 1);
+        break;
+      case 'hotcue_2':
+        this.deckService.jumpToHotCue(deck, 2);
+        break;
+      case 'hotcue_3':
+        this.deckService.jumpToHotCue(deck, 3);
+        break;
+      case 'hotcue_4':
+        this.deckService.jumpToHotCue(deck, 4);
+        break;
+      case 'hotcue_5':
+        this.deckService.jumpToHotCue(deck, 5);
+        break;
+      case 'hotcue_6':
+        this.deckService.jumpToHotCue(deck, 6);
+        break;
+      case 'hotcue_7':
+        this.deckService.jumpToHotCue(deck, 7);
+        break;
     }
   }
 
@@ -635,9 +726,12 @@ export class DjMidiService {
         break;
       case 'pitch': {
         const pitch = 0.9 + normalized * 0.2; // 0.9 to 1.1
-        const current = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
-        if (deck === 'A') this.deckService.deckA.update((d) => ({ ...d, playbackRate: pitch }));
-        else this.deckService.deckB.update((d) => ({ ...d, playbackRate: pitch }));
+        const current =
+          deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+        if (deck === 'A')
+          this.deckService.deckA.update((d) => ({ ...d, playbackRate: pitch }));
+        else
+          this.deckService.deckB.update((d) => ({ ...d, playbackRate: pitch }));
         break;
       }
       case 'filter':
@@ -659,7 +753,8 @@ export class DjMidiService {
   }
 
   private updateEq(deck: 'A' | 'B', type: 'high' | 'mid' | 'low', val: number) {
-    const state = deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const state =
+      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
     let { eqHigh, eqMid, eqLow } = state;
     if (type === 'high') eqHigh = val;
     if (type === 'mid') eqMid = val;

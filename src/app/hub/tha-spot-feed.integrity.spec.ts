@@ -24,27 +24,62 @@ function extractRetroSlug(url: string): string | null {
  */
 function normalizeGameName(name: string): string {
   return name
-    .normalize('NFD')                          // decompose unicode (Ō → O + combining macron)
-    .replace(/[\u0300-\u036f]/g, '')           // strip diacritics
+    .normalize('NFD') // decompose unicode (Ō → O + combining macron)
+    .replace(/[\u0300-\u036f]/g, '') // strip diacritics
     .toLowerCase()
-    .replace(/\s*:.*$/, '')                    // strip subtitle after ":"
-    .replace(/\s*\(?(classic|elite|elite hd|elite edition|absolute edition|hd|arcade|original|remix|remastered|deluxe)\)?/g, '')
-    .replace(/^retro\s+/, '')                  // strip leading "retro" prefix
+    .replace(/\s*:.*$/, '') // strip subtitle after ":"
+    .replace(
+      /\s*\(?(classic|elite|elite hd|elite edition|absolute edition|hd|arcade|original|remix|remastered|deluxe)\)?/g,
+      ''
+    )
+    .replace(/^retro\s+/, '') // strip leading "retro" prefix
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 /** Lower-case words from a slug, excluding platform/region noise tokens. */
 const NOISE_TOKENS = new Set([
-  'usa', 'europe', 'japan', 'world', 'ntsc', 'pal', 'nes', 'snes', 'n64',
-  'gba', 'gbc', 'gb', 'ps1', 'ps2', 'ps3', 'xbox', 'gc', 'genesis', 'mega',
-  'drive', 'dreamcast', 'arcade', 'rev', 'disc', 'version', 'the', 'a', 'an',
-  'and', 'of', 'in', 'to',
+  'usa',
+  'europe',
+  'japan',
+  'world',
+  'ntsc',
+  'pal',
+  'nes',
+  'snes',
+  'n64',
+  'gba',
+  'gbc',
+  'gb',
+  'ps1',
+  'ps2',
+  'ps3',
+  'xbox',
+  'gc',
+  'genesis',
+  'mega',
+  'drive',
+  'dreamcast',
+  'arcade',
+  'rev',
+  'disc',
+  'version',
+  'the',
+  'a',
+  'an',
+  'and',
+  'of',
+  'in',
+  'to',
 ]);
 
 function slugCoreWords(slug: string): Set<string> {
   return new Set(
-    slug.split('-').filter((w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w))
+    slug
+      .split('-')
+      .filter(
+        (w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w)
+      )
   );
 }
 
@@ -56,12 +91,16 @@ function slugCoreWords(slug: string): Set<string> {
 function nameCoreWords(name: string): Set<string> {
   const normalized = name
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')     // strip diacritics: Ōkami → Okami, Pokémon → Pokemon
+    .replace(/[\u0300-\u036f]/g, '') // strip diacritics: Ōkami → Okami, Pokémon → Pokemon
     .replace(/([a-z])([A-Z])/g, '$1 $2') // split camelCase: FireRed → Fire Red
     .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, ' ');        // strip remaining punctuation
+    .replace(/[^a-z0-9 ]/g, ' '); // strip remaining punctuation
   const tokens = normalized.split(/\s+/);
-  return new Set(tokens.filter((w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w)));
+  return new Set(
+    tokens.filter(
+      (w) => w && !NOISE_TOKENS.has(w) && w.length > 1 && !/^\d+$/.test(w)
+    )
+  );
 }
 
 describe('Tha Spot feed integrity', () => {
@@ -148,7 +187,9 @@ describe('Tha Spot feed integrity', () => {
       const name = game.name ?? '';
       nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
     }
-    const duplicates = [...nameCounts.entries()].filter(([, count]) => count > 1);
+    const duplicates = [...nameCounts.entries()].filter(
+      ([, count]) => count > 1
+    );
     expect(duplicates).toHaveLength(0);
   });
 
@@ -166,7 +207,11 @@ describe('Tha Spot feed integrity', () => {
 
     for (const game of games) {
       const lc = game.launchConfig ?? {};
-      for (const url of [game.url, lc.approvedEmbedUrl, lc.approvedExternalUrl]) {
+      for (const url of [
+        game.url,
+        lc.approvedEmbedUrl,
+        lc.approvedExternalUrl,
+      ]) {
         if (!url || !url.includes('retrogames.cc')) continue;
         const match = url.match(/\/embed\/(\d+)-/);
         if (!match) continue;
@@ -182,7 +227,9 @@ describe('Tha Spot feed integrity', () => {
     const conflicts: string[] = [];
     for (const [retroId, normalizedNames] of retroIdToNames) {
       if (normalizedNames.size > 1) {
-        conflicts.push(`ID ${retroId}: normalized names [${[...normalizedNames].join(', ')}]`);
+        conflicts.push(
+          `ID ${retroId}: normalized names [${[...normalizedNames].join(', ')}]`
+        );
       }
     }
 
@@ -202,7 +249,11 @@ describe('Tha Spot feed integrity', () => {
       const name = game.name ?? '';
       const nameWords = nameCoreWords(name);
 
-      for (const url of [game.url, lc.approvedEmbedUrl, lc.approvedExternalUrl]) {
+      for (const url of [
+        game.url,
+        lc.approvedEmbedUrl,
+        lc.approvedExternalUrl,
+      ]) {
         if (!url || !url.includes('retrogames.cc')) continue;
         const slug = extractRetroSlug(url);
         if (!slug) continue;
@@ -210,7 +261,9 @@ describe('Tha Spot feed integrity', () => {
         if (slugWords.size > 0 && nameWords.size > 0) {
           // Check for word overlap, including substring containment for compound words
           const overlap = [...slugWords].some((sw) =>
-            [...nameWords].some((nw) => sw === nw || sw.includes(nw) || nw.includes(sw))
+            [...nameWords].some(
+              (nw) => sw === nw || sw.includes(nw) || nw.includes(sw)
+            )
           );
           if (!overlap) {
             mismatches.push(`"${name}" — slug "${slug}" (url: ${url})`);

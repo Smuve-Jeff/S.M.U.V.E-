@@ -68,10 +68,20 @@ describe('PerformerComponent', () => {
             setInstrument: jest.fn(),
           },
         },
-        { provide: AudioSessionService, useValue: { isPlaying: signal(false), isRecording: signal(false), micChannels: signal([]) } },
+        {
+          provide: AudioSessionService,
+          useValue: {
+            isPlaying: signal(false),
+            isRecording: signal(false),
+            micChannels: signal([]),
+          },
+        },
         { provide: AudioEngineService, useValue: { ctx: { currentTime: 0 } } },
         { provide: LiveEngineService, useValue: mockLiveEngine },
-        { provide: HapticService, useValue: { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() } },
+        {
+          provide: HapticService,
+          useValue: { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() },
+        },
         { provide: InstrumentsService, useValue: { getPresets: () => [] } },
         {
           provide: DjMidiService,
@@ -129,13 +139,25 @@ describe('PerformerComponent', () => {
             liveOutputDbR: signal(-60),
           },
         },
-        { provide: RecordingStatusService, useValue: { clearRecordingSource: jest.fn(), setRecordingSource: jest.fn() } },
+        {
+          provide: RecordingStatusService,
+          useValue: {
+            clearRecordingSource: jest.fn(),
+            setRecordingSource: jest.fn(),
+          },
+        },
         {
           provide: FxMacrosService,
           useValue: {
             presets: [],
             activeMacroId: signal(null),
-            activeMacro: () => ({ name: 'Test', glyph: '🎛', description: '', xTarget: { label: 'X' }, yTarget: { label: 'Y' } }),
+            activeMacro: () => ({
+              name: 'Test',
+              glyph: '🎛',
+              description: '',
+              xTarget: { label: 'X' },
+              yTarget: { label: 'Y' },
+            }),
             engage: jest.fn(),
             release: jest.fn(),
             setXY: jest.fn(),

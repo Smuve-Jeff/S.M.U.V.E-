@@ -199,12 +199,14 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     {
       shortcut: 'Ctrl + K',
       title: 'Command Palette',
-      description: 'Jump to any module or quick action from anywhere in the label.',
+      description:
+        'Jump to any module or quick action from anywhere in the label.',
     },
     {
       shortcut: '?',
       title: 'Quick Reference',
-      description: 'Contextual tips for the current view — shortcuts, gestures, controls.',
+      description:
+        'Contextual tips for the current view — shortcuts, gestures, controls.',
     },
     {
       shortcut: 'Themes',

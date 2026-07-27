@@ -4,11 +4,10 @@
      4-region adaptive workspace.
    ═══════════════════════════════════════════════════════════ -->
 <div class="dj-stage" [class.flat-view]="isFlatView()">
-
   <!-- ═══ REGION 1: TOP BAR ═══════════════════════════════════ -->
   <div class="dj-top-bar">
     <div class="dj-brand">
-      <div class="dj-brand-mark" style="font-size: 11px;">DJ</div>
+      <div class="dj-brand-mark" style="font-size: 11px">DJ</div>
       <div class="dj-brand-text">
         <span class="brand-name">SMUVE BOOTH</span>
         <span class="brand-sub">Tactical LED</span>
@@ -40,16 +39,28 @@
       >
         <span class="material-symbols-outlined">fiber_manual_record</span>
       </button>
-      <button class="dj-icon-btn" (click)="loadTrackFor('A')" title="Load Deck A">
+      <button
+        class="dj-icon-btn"
+        (click)="loadTrackFor('A')"
+        title="Load Deck A"
+      >
         <span class="material-symbols-outlined">library_music</span>
       </button>
     </div>
 
     <div class="dj-btn-group">
-      <button class="dj-icon-btn" (click)="saveSessionSnapshot()" title="Save Session">
+      <button
+        class="dj-icon-btn"
+        (click)="saveSessionSnapshot()"
+        title="Save Session"
+      >
         <span class="material-symbols-outlined">download</span>
       </button>
-      <button class="dj-icon-btn" (click)="exportSessionSnapshot()" title="Export JSON">
+      <button
+        class="dj-icon-btn"
+        (click)="exportSessionSnapshot()"
+        title="Export JSON"
+      >
         <span class="material-symbols-outlined">ios_share</span>
       </button>
       <button
@@ -88,7 +99,6 @@
 
   <!-- ═══ REGION 3: DECKS (3-column: A | Mixer | B) ═══════════ -->
   <div class="dj-decks-region">
-
     <!-- ─── Deck A ─────────────────────────────────────── -->
     <div class="dj-deck deck-a" id="deck-a">
       <!-- Header (deck ID + actions) -->
@@ -101,9 +111,11 @@
         </div>
         <div class="dj-deck-actions">
           <div class="dj-deck-bpm-display">
-            <div class="dj-bpm-keylock-toggle"
-                 [class.is-on]="deckService.deckA().keyLock"
-                 (click)="toggleKeyLock('A')">
+            <div
+              class="dj-bpm-keylock-toggle"
+              [class.is-on]="deckService.deckA().keyLock"
+              (click)="toggleKeyLock('A')"
+            >
               KEY LOCK
             </div>
           </div>
@@ -117,7 +129,9 @@
           type="button"
           class="dj-cue-pad"
           [class.is-set]="isCuePadSet('A', i)"
-          [class.is-fired]="isCuePadSet('A', i) && deckService.deckA().isPlaying"
+          [class.is-fired]="
+            isCuePadSet('A', i) && deckService.deckA().isPlaying
+          "
           [style.--cue-color]="'var(--dj-cue-' + i + ')'"
           (click)="handlePadPress('A', i)"
           (contextmenu)="clearPad('A', i, $event)"
@@ -134,7 +148,9 @@
           *ngFor="let preset of loopLengthPresets"
           type="button"
           class="dj-loop-chip"
-          [class.is-active]="deckService.deckA().loop && deckService.deckA().isPlaying"
+          [class.is-active]="
+            deckService.deckA().loop && deckService.deckA().isPlaying
+          "
           (click)="setLoopLengthPreset('A', preset.beats)"
         >
           {{ preset.label }}
@@ -163,14 +179,19 @@
               />
               <div class="label-text">
                 <span class="initials">
-                  {{ (deckService.deckA().track?.name || 'SMUVE').slice(0, 2) | uppercase }}
+                  {{
+                    (deckService.deckA().track?.name || 'SMUVE').slice(0, 2)
+                      | uppercase
+                  }}
                 </span>
               </div>
             </div>
           </div>
           <div class="dj-platter-spindle"></div>
-          <div class="dj-platter-scrub"
-               [style.opacity]="isScratchingA() ? 1 : 0"></div>
+          <div
+            class="dj-platter-scrub"
+            [style.opacity]="isScratchingA() ? 1 : 0"
+          ></div>
         </div>
       </div>
 
@@ -182,7 +203,9 @@
           (click)="nudgePitch('A', 'down')"
           aria-label="Pitch down"
           title="−1%"
-        >−</button>
+        >
+          −
+        </button>
         <div class="dj-pitch-track">
           <div class="dj-pitch-readout">{{ pitchAPercentage() }}</div>
           <input
@@ -200,7 +223,9 @@
           (click)="nudgePitch('A', 'up')"
           aria-label="Pitch up"
           title="+1%"
-        >+</button>
+        >
+          +
+        </button>
       </div>
 
       <!-- Transport row (Cue / Play / Sync) -->
@@ -235,7 +260,7 @@
       <!-- Channel level meter (compact, inline) -->
       <div class="dj-channel-vu">
         <div
-          *ngFor="let i of [0,1,2,3,4,5,6,7]"
+          *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
           class="vu-segment"
           [class.is-active-a]="getDeckLevel('A') > i * 0.125"
         ></div>
@@ -244,7 +269,6 @@
 
     <!-- ─── Center Mixer Column ───────────────────────── -->
     <div class="dj-mixer">
-
       <!-- Channel A strip -->
       <div class="dj-channel-strip deck-a">
         <div class="channel-label">A</div>
@@ -256,7 +280,9 @@
               [class.deck-a]="true"
               (click)="setQuickEq('A', 'high')"
               title="Hi cut"
-            >HI</div>
+            >
+              HI
+            </div>
           </div>
           <div class="dj-eq-mini">
             <div
@@ -265,7 +291,9 @@
               [class.deck-a]="true"
               (click)="setQuickEq('A', 'mid')"
               title="Mid cut"
-            >MID</div>
+            >
+              MID
+            </div>
           </div>
           <div class="dj-eq-mini">
             <div
@@ -274,7 +302,9 @@
               [class.deck-a]="true"
               (click)="setQuickEq('A', 'low')"
               title="Low cut"
-            >LOW</div>
+            >
+              LOW
+            </div>
           </div>
         </div>
         <div class="dj-channel-fader">
@@ -310,7 +340,9 @@
             class="dj-utility-btn"
             [class.is-on]="deckService.automixEnabled()"
             (click)="toggleAutomix()"
-          >AUTOMIX</button>
+          >
+            AUTOMIX
+          </button>
           <button class="dj-utility-btn" (click)="syncDeck('A')">SYNC A</button>
           <button class="dj-utility-btn" (click)="syncDeck('B')">SYNC B</button>
         </div>
@@ -343,9 +375,15 @@
         </div>
 
         <div class="dj-utility-row">
-          <button class="dj-utility-btn" (click)="setMasterVolume(0.6)">−</button>
-          <button class="dj-utility-btn" (click)="setMasterVolume(0.85)">MID</button>
-          <button class="dj-utility-btn" (click)="setMasterVolume(1.0)">+</button>
+          <button class="dj-utility-btn" (click)="setMasterVolume(0.6)">
+            −
+          </button>
+          <button class="dj-utility-btn" (click)="setMasterVolume(0.85)">
+            MID
+          </button>
+          <button class="dj-utility-btn" (click)="setMasterVolume(1.0)">
+            +
+          </button>
         </div>
       </div>
 
@@ -360,7 +398,9 @@
               [class.deck-b]="true"
               (click)="setQuickEq('B', 'high')"
               title="Hi cut"
-            >HI</div>
+            >
+              HI
+            </div>
           </div>
           <div class="dj-eq-mini">
             <div
@@ -369,7 +409,9 @@
               [class.deck-b]="true"
               (click)="setQuickEq('B', 'mid')"
               title="Mid cut"
-            >MID</div>
+            >
+              MID
+            </div>
           </div>
           <div class="dj-eq-mini">
             <div
@@ -378,7 +420,9 @@
               [class.deck-b]="true"
               (click)="setQuickEq('B', 'low')"
               title="Low cut"
-            >LOW</div>
+            >
+              LOW
+            </div>
           </div>
         </div>
         <div class="dj-channel-fader">
@@ -409,7 +453,6 @@
 
     <!-- ─── Deck B ─────────────────────────────────────── -->
     <div class="dj-deck deck-b" id="deck-b">
-
       <div class="dj-deck-header">
         <div class="dj-deck-id">
           <div class="deck-letter">B</div>
@@ -419,9 +462,11 @@
         </div>
         <div class="dj-deck-actions">
           <div class="dj-deck-bpm-display">
-            <div class="dj-bpm-keylock-toggle"
-                 [class.is-on]="deckService.deckB().keyLock"
-                 (click)="toggleKeyLock('B')">
+            <div
+              class="dj-bpm-keylock-toggle"
+              [class.is-on]="deckService.deckB().keyLock"
+              (click)="toggleKeyLock('B')"
+            >
               KEY LOCK
             </div>
           </div>
@@ -435,7 +480,9 @@
           type="button"
           class="dj-cue-pad"
           [class.is-set]="isCuePadSet('B', i)"
-          [class.is-fired]="isCuePadSet('B', i) && deckService.deckB().isPlaying"
+          [class.is-fired]="
+            isCuePadSet('B', i) && deckService.deckB().isPlaying
+          "
           [style.--cue-color]="'var(--dj-cue-' + (i + 4) + ')'"
           (click)="handlePadPress('B', i)"
           (contextmenu)="clearPad('B', i, $event)"
@@ -452,7 +499,9 @@
           *ngFor="let preset of loopLengthPresets"
           type="button"
           class="dj-loop-chip"
-          [class.is-active]="deckService.deckB().loop && deckService.deckB().isPlaying"
+          [class.is-active]="
+            deckService.deckB().loop && deckService.deckB().isPlaying
+          "
           (click)="setLoopLengthPreset('B', preset.beats)"
         >
           {{ preset.label }}
@@ -481,14 +530,19 @@
               />
               <div class="label-text">
                 <span class="initials">
-                  {{ (deckService.deckB().track?.name || 'SMUVE').slice(0, 2) | uppercase }}
+                  {{
+                    (deckService.deckB().track?.name || 'SMUVE').slice(0, 2)
+                      | uppercase
+                  }}
                 </span>
               </div>
             </div>
           </div>
           <div class="dj-platter-spindle"></div>
-          <div class="dj-platter-scrub"
-               [style.opacity]="isScratchingB() ? 1 : 0"></div>
+          <div
+            class="dj-platter-scrub"
+            [style.opacity]="isScratchingB() ? 1 : 0"
+          ></div>
         </div>
       </div>
 
@@ -500,7 +554,9 @@
           (click)="nudgePitch('B', 'down')"
           aria-label="Pitch down"
           title="−1%"
-        >−</button>
+        >
+          −
+        </button>
         <div class="dj-pitch-track">
           <div class="dj-pitch-readout">{{ pitchBPercentage() }}</div>
           <input
@@ -518,7 +574,9 @@
           (click)="nudgePitch('B', 'up')"
           aria-label="Pitch up"
           title="+1%"
-        >+</button>
+        >
+          +
+        </button>
       </div>
 
       <!-- Transport row -->
@@ -552,7 +610,7 @@
 
       <div class="dj-channel-vu">
         <div
-          *ngFor="let i of [0,1,2,3,4,5,6,7]"
+          *ngFor="let i of [0, 1, 2, 3, 4, 5, 6, 7]"
           class="vu-segment"
           [class.is-active-b]="getDeckLevel('B') > i * 0.125"
         ></div>
@@ -569,7 +627,11 @@
           [class.is-active]="performanceMode() === 'cue'"
           (click)="performanceMode.set('cue')"
         >
-          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">bookmark</span>
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 14px; vertical-align: middle"
+            >bookmark</span
+          >
           HOT CUES
         </button>
         <button
@@ -577,7 +639,11 @@
           [class.is-active]="performanceMode() === 'roll'"
           (click)="performanceMode.set('roll')"
         >
-          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">loop</span>
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 14px; vertical-align: middle"
+            >loop</span
+          >
           ROLL
         </button>
         <button
@@ -585,7 +651,11 @@
           [class.is-active]="performanceMode() === 'sampler'"
           (click)="performanceMode.set('sampler')"
         >
-          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">music_note</span>
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 14px; vertical-align: middle"
+            >music_note</span
+          >
           SAMPLER
         </button>
       </div>
@@ -622,11 +692,15 @@
           type="button"
           class="dj-pad-tile"
           [class.is-set]="isCuePadSet('A', i) || isSamplerPadSet('A', i)"
-          [class.is-fired]="isRollPadActive('A', i) || isSamplerPadActive('A', i)"
+          [class.is-fired]="
+            isRollPadActive('A', i) || isSamplerPadActive('A', i)
+          "
           [style.--pad-color]="
-            performanceMode() === 'cue' ? 'var(--dj-cue-' + i + ')' :
-            performanceMode() === 'roll' ? 'var(--dj-a-base)' :
-            'var(--dj-a-base)'
+            performanceMode() === 'cue'
+              ? 'var(--dj-cue-' + i + ')'
+              : performanceMode() === 'roll'
+                ? 'var(--dj-a-base)'
+                : 'var(--dj-a-base)'
           "
           (mousedown)="handlePadDown('A', i, $event)"
           (mouseup)="handlePadRelease('A', i)"
@@ -643,11 +717,15 @@
           type="button"
           class="dj-pad-tile"
           [class.is-set]="isCuePadSet('B', i) || isSamplerPadSet('B', i)"
-          [class.is-fired]="isRollPadActive('B', i) || isSamplerPadActive('B', i)"
+          [class.is-fired]="
+            isRollPadActive('B', i) || isSamplerPadActive('B', i)
+          "
           [style.--pad-color]="
-            performanceMode() === 'cue' ? 'var(--dj-cue-' + (i + 4) + ')' :
-            performanceMode() === 'roll' ? 'var(--dj-b-base)' :
-            'var(--dj-b-base)'
+            performanceMode() === 'cue'
+              ? 'var(--dj-cue-' + (i + 4) + ')'
+              : performanceMode() === 'roll'
+                ? 'var(--dj-b-base)'
+                : 'var(--dj-b-base)'
           "
           (mousedown)="handlePadDown('B', i, $event)"
           (mouseup)="handlePadRelease('B', i)"

@@ -9,7 +9,11 @@ import { signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { createMockHapticService, createMockAudioSession, createMockAudioEngine } from '../../testing/mocks/hardware.mock';
+import {
+  createMockHapticService,
+  createMockAudioSession,
+  createMockAudioEngine,
+} from '../../testing/mocks/hardware.mock';
 
 describe('DrumMachineComponent', () => {
   let component: DrumMachineComponent;

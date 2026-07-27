@@ -11,10 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  AudioRecorderService,
-  RecordingItem,
-} from '../audio-recorder.service';
+import { AudioRecorderService, RecordingItem } from '../audio-recorder.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
@@ -36,13 +33,16 @@ interface RecordingListEntry {
   templateUrl: './audio-recorder-view.component.html',
   styleUrls: ['./audio-recorder-view.component.css'],
 })
-export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewInit {
+export class AudioRecorderViewComponent
+  implements OnInit, OnDestroy, AfterViewInit
+{
   public recorder = inject(AudioRecorderService);
   private haptic = inject(HapticService);
   private snackbar = inject(SnackbarService);
   private logger = inject(LoggingService);
 
-  @ViewChild('waveformCanvas') waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('waveformCanvas')
+  waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
 
   /** UI state */
   recordings = signal<RecordingListEntry[]>([]);
@@ -71,10 +71,12 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
 
   toggleMonitoring(): void {
     this.haptic.light();
-    this.monitoringEnabled.update(v => !v);
+    this.monitoringEnabled.update((v) => !v);
     if (this.monitoringEnabled() && this.currentStream && this.audioContext) {
       try {
-        this.micSourceNode = this.audioContext.createMediaStreamSource(this.currentStream);
+        this.micSourceNode = this.audioContext.createMediaStreamSource(
+          this.currentStream
+        );
         this.monitorGainNode = this.audioContext.createGain();
         this.monitorGainNode.gain.value = 1.0;
         this.micSourceNode.connect(this.monitorGainNode);
@@ -87,17 +89,27 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
       try {
         this.micSourceNode.disconnect(this.monitorGainNode);
         this.monitorGainNode.disconnect();
-      } catch { /* already disconnected */ }
+      } catch {
+        /* already disconnected */
+      }
       this.micSourceNode = null;
       this.monitorGainNode = null;
     }
-    this.snackbar.info(this.monitoringEnabled() ? 'Monitoring ON — hear yourself live' : 'Monitoring OFF');
+    this.snackbar.info(
+      this.monitoringEnabled()
+        ? 'Monitoring ON — hear yourself live'
+        : 'Monitoring OFF'
+    );
   }
 
   toggleNoiseGate(): void {
     this.haptic.light();
-    this.noiseGateEnabled.update(v => !v);
-    this.snackbar.info(this.noiseGateEnabled() ? `Noise gate ON (threshold: ${this.noiseGateThreshold()} dB)` : 'Noise gate OFF');
+    this.noiseGateEnabled.update((v) => !v);
+    this.snackbar.info(
+      this.noiseGateEnabled()
+        ? `Noise gate ON (threshold: ${this.noiseGateThreshold()} dB)`
+        : 'Noise gate OFF'
+    );
   }
 
   setNoiseGateThreshold(value: number): void {
@@ -116,7 +128,8 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
       }
       const response = await fetch(rec.url);
       const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      const audioBuffer =
+        await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
       // Create a new audio track in the music manager
       const trackName = rec.name || `Take ${rec.id.slice(-4)}`;
       this.musicManager.addAudioTrack({
@@ -145,8 +158,10 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
   confirmRename(): void {
     const id = this.renamingId();
     if (!id) return;
-    this.recordings.update(list =>
-      list.map(r => r.id === id ? { ...r, name: this.renameValue() || r.name } : r)
+    this.recordings.update((list) =>
+      list.map((r) =>
+        r.id === id ? { ...r, name: this.renameValue() || r.name } : r
+      )
     );
     this.renamingId.set(null);
     this.haptic.light();
@@ -190,44 +205,67 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
 
   // ── Pro: Take Manager — multi-take comping ────────────────────────
   /** List of takes for the current arming session. */
-  takes = signal<{ id: string; name: string; createdAt: number; isActive: boolean; durationSec: number }[]>([]);
+  takes = signal<
+    {
+      id: string;
+      name: string;
+      createdAt: number;
+      isActive: boolean;
+      durationSec: number;
+    }[]
+  >([]);
   /** Muting state per take (false = audible). */
   takeMuted = signal<Record<string, boolean>>({});
 
   /** Promote this recording into a new take slot. */
   promoteToTake(): void {
     this.haptic.heavy();
-    const takeId = 'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    const takeId =
+      'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
     const lastRecording = this.recordings()[this.recordings().length - 1];
     if (!lastRecording) {
       this.snackbar.error('Record something first to promote a take');
       return;
     }
     const num = this.takes().length + 1;
-    this.takes.update(list => list.map(t => ({ ...t, isActive: false })).concat([{
-      id: takeId,
-      name: `Take ${num}`,
-      createdAt: Date.now(),
-      isActive: true,
-      durationSec: lastRecording.durationSec || 0,
-    }]));
+    this.takes.update((list) =>
+      list
+        .map((t) => ({ ...t, isActive: false }))
+        .concat([
+          {
+            id: takeId,
+            name: `Take ${num}`,
+            createdAt: Date.now(),
+            isActive: true,
+            durationSec: lastRecording.durationSec || 0,
+          },
+        ])
+    );
     // Unmute prior takes by default (comping)
-    this.snackbar.success(`Take ${num} armed · ${this.takes().length} takes available`);
+    this.snackbar.success(
+      `Take ${num} armed · ${this.takes().length} takes available`
+    );
   }
 
   selectTake(takeId: string): void {
     this.haptic.light();
-    this.takes.update(list => list.map(t => ({ ...t, isActive: t.id === takeId })));
+    this.takes.update((list) =>
+      list.map((t) => ({ ...t, isActive: t.id === takeId }))
+    );
   }
 
   toggleTakeMute(takeId: string): void {
-    this.takeMuted.update(m => ({ ...m, [takeId]: !m[takeId] }));
+    this.takeMuted.update((m) => ({ ...m, [takeId]: !m[takeId] }));
     this.haptic.light();
   }
 
   removeTake(takeId: string): void {
-    this.takes.update(list => list.filter(t => t.id !== takeId));
-    this.takeMuted.update(m => { const n = { ...m }; delete n[takeId]; return n; });
+    this.takes.update((list) => list.filter((t) => t.id !== takeId));
+    this.takeMuted.update((m) => {
+      const n = { ...m };
+      delete n[takeId];
+      return n;
+    });
     this.haptic.medium();
   }
 
@@ -318,7 +356,8 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
         this.analyserNode.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
         // Map 0-255 to -60..0 dB roughly
-        const db = avg === 0 ? -60 : Math.round((20 * Math.log10(avg / 255)) * 10) / 10;
+        const db =
+          avg === 0 ? -60 : Math.round(20 * Math.log10(avg / 255) * 10) / 10;
         this.inputLevel.set(Math.max(-60, Math.min(0, db)));
       }, 60);
     } catch (err) {
@@ -408,8 +447,12 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
 
   // ── Recording bank ──────────────────────────────────────
   formatTime(sec: number): string {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    const m = Math.floor(sec / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = Math.floor(sec % 60)
+      .toString()
+      .padStart(2, '0');
     return `${m}:${s}`;
   }
 
@@ -427,7 +470,8 @@ export class AudioRecorderViewComponent implements OnInit, OnDestroy, AfterViewI
 
   private async loadOfflineRecordings(): Promise<void> {
     try {
-      const items = (await this.recorder.getOfflineRecordings()) as RecordingItem[];
+      const items =
+        (await this.recorder.getOfflineRecordings()) as RecordingItem[];
       const built: RecordingListEntry[] = (items || []).map((it) => ({
         id: it.id,
         name: it.name || `Recording`,

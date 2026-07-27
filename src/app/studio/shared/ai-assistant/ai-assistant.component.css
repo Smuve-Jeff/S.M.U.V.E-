@@ -92,8 +92,9 @@
   place-items: center;
   -webkit-tap-highlight-color: transparent;
 }
-.ai-close:hover, .ai-close:focus-visible {
-  background: rgba(14, 124, 123, 0.10);
+.ai-close:hover,
+.ai-close:focus-visible {
+  background: rgba(14, 124, 123, 0.1);
   color: var(--teal-500);
 }
 
@@ -124,13 +125,19 @@
   -webkit-tap-highlight-color: transparent;
   transition: background 0.15s;
 }
-.ai-tab:hover { background: rgba(14, 124, 123, 0.08); }
+.ai-tab:hover {
+  background: rgba(14, 124, 123, 0.08);
+}
 .ai-tab.ai-tab-active {
   background: var(--teal-500);
   color: white;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 2px 8px rgba(14, 124, 123, 0.30);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 2px 8px rgba(14, 124, 123, 0.3);
 }
-.ai-tab .material-symbols-outlined { font-size: 16px; }
+.ai-tab .material-symbols-outlined {
+  font-size: 16px;
+}
 
 .ai-body {
   flex: 1 1 auto;
@@ -173,7 +180,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.ai-chip:hover, .ai-chip:focus-visible {
+.ai-chip:hover,
+.ai-chip:focus-visible {
   border-color: var(--teal-500);
   background: var(--teal-50);
   transform: translateX(2px);
@@ -271,8 +279,13 @@
 }
 
 @keyframes ai-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .ai-input-row {
@@ -297,7 +310,8 @@
   -webkit-appearance: none;
 }
 
-.ai-input:focus-visible, .ai-input:focus {
+.ai-input:focus-visible,
+.ai-input:focus {
   border-color: var(--teal-500);
   box-shadow: 0 0 0 3px var(--teal-soft-glow);
 }
@@ -313,15 +327,26 @@
   display: grid;
   place-items: center;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 2px 8px rgba(14, 124, 123, 0.30);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 2px 8px rgba(14, 124, 123, 0.3);
 }
 .ai-send:disabled {
   background: var(--espresso-muted);
   cursor: not-allowed;
   box-shadow: none;
 }
-.ai-send:not(:disabled):hover, .ai-send:not(:disabled):focus-visible { background: var(--teal-700); }
+.ai-send:not(:disabled):hover,
+.ai-send:not(:disabled):focus-visible {
+  background: var(--teal-700);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-shell, .ai-send, .ai-chip, .ai-tab, .ai-msg { transition: none !important; }
+  .ai-shell,
+  .ai-send,
+  .ai-chip,
+  .ai-tab,
+  .ai-msg {
+    transition: none !important;
+  }
 }

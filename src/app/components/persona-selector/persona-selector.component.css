@@ -12,8 +12,12 @@
 }
 
 @keyframes ps-fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .ps-modal {
@@ -26,12 +30,18 @@
   padding: 32px;
   animation: ps-slideUp 0.3s ease;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.06) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
 
 @keyframes ps-slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ── Header ─────────────────────────────────────────── */
@@ -120,7 +130,9 @@
 .ps-persona-card.ps-selected {
   border-color: var(--ps-accent, #0e7c7b);
   background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 0 0 2px var(--ps-accent, #0e7c7b), 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 0 2px var(--ps-accent, #0e7c7b),
+    0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .ps-card-glow {
@@ -322,7 +334,13 @@
 
 /* ── Responsive ────────────────────────────────────── */
 @media (max-width: 768px) {
-  .ps-modal { padding: 20px; }
-  .ps-persona-grid { grid-template-columns: 1fr; }
-  .ps-preview-input-row { flex-direction: column; }
+  .ps-modal {
+    padding: 20px;
+  }
+  .ps-persona-grid {
+    grid-template-columns: 1fr;
+  }
+  .ps-preview-input-row {
+    flex-direction: column;
+  }
 }

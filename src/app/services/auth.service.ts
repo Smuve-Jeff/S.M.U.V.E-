@@ -156,11 +156,13 @@ export class AuthService {
     };
 
     this.userStore.setUser(user);
-    
+
     // ARCHITECTURAL NOTE: Mock token used for local session persistence.
     // In production/integrated flow, this token MUST be returned by the backend
     // after validating credentials through the Cloudflare Worker.
-    const tempToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' + btoa(JSON.stringify({ sub: user.id, role: user.role }));
+    const tempToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+      btoa(JSON.stringify({ sub: user.id, role: user.role }));
     this.tokenService.setToken(tempToken);
 
     const sessionStr =

@@ -1,9 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
@@ -61,11 +56,11 @@ export class SessionViewComponent {
 
   // ── Scenes ───────────────────────────────────────────
   scenes = signal<SessionScene[]>([
-    { id: 'intro',   name: 'Intro',    color: '#0E7C7B', index: 0 },
-    { id: 'verse',   name: 'Verse',    color: '#2BA09C', index: 1 },
-    { id: 'chorus',  name: 'Chorus',   color: '#5DC4C2', index: 2 },
-    { id: 'bridge',  name: 'Bridge',   color: '#8B5CF6', index: 3 },
-    { id: 'outro',   name: 'Outro',    color: '#FF1A8C', index: 4 },
+    { id: 'intro', name: 'Intro', color: '#0E7C7B', index: 0 },
+    { id: 'verse', name: 'Verse', color: '#2BA09C', index: 1 },
+    { id: 'chorus', name: 'Chorus', color: '#5DC4C2', index: 2 },
+    { id: 'bridge', name: 'Bridge', color: '#8B5CF6', index: 3 },
+    { id: 'outro', name: 'Outro', color: '#FF1A8C', index: 4 },
   ]);
 
   activeSceneId = signal<string | null>(null);
@@ -73,25 +68,145 @@ export class SessionViewComponent {
   // ── Clip slots ───────────────────────────────────────
   clips = signal<SessionClip[]>([
     // Row: Intro
-    { id: 'c1',  name: 'Kick Loop',   trackId: 't1', sceneId: 'intro',  isPlaying: false, color: '#FFB627', duration: '4 bars' },
-    { id: 'c2',  name: 'Bass Line',   trackId: 't2', sceneId: 'intro',  isPlaying: false, color: '#00E5FF', duration: '8 bars' },
-    { id: 'c3',  name: 'Pad Swell',   trackId: 't3', sceneId: 'intro',  isPlaying: false, color: '#A5F8FF', duration: '8 bars' },
+    {
+      id: 'c1',
+      name: 'Kick Loop',
+      trackId: 't1',
+      sceneId: 'intro',
+      isPlaying: false,
+      color: '#FFB627',
+      duration: '4 bars',
+    },
+    {
+      id: 'c2',
+      name: 'Bass Line',
+      trackId: 't2',
+      sceneId: 'intro',
+      isPlaying: false,
+      color: '#00E5FF',
+      duration: '8 bars',
+    },
+    {
+      id: 'c3',
+      name: 'Pad Swell',
+      trackId: 't3',
+      sceneId: 'intro',
+      isPlaying: false,
+      color: '#A5F8FF',
+      duration: '8 bars',
+    },
     // Row: Verse
-    { id: 'c4',  name: 'Kick Loop',   trackId: 't1', sceneId: 'verse',  isPlaying: false, color: '#FFB627', duration: '4 bars' },
-    { id: 'c5',  name: 'Snare Roll',  trackId: 't4', sceneId: 'verse',  isPlaying: false, color: '#FF8A3D', duration: '2 bars' },
-    { id: 'c6',  name: 'Bass Line',   trackId: 't2', sceneId: 'verse',  isPlaying: false, color: '#00E5FF', duration: '8 bars' },
-    { id: 'c7',  name: 'Vocal Chops', trackId: 't5', sceneId: 'verse',  isPlaying: false, color: '#EC4899', duration: '4 bars' },
+    {
+      id: 'c4',
+      name: 'Kick Loop',
+      trackId: 't1',
+      sceneId: 'verse',
+      isPlaying: false,
+      color: '#FFB627',
+      duration: '4 bars',
+    },
+    {
+      id: 'c5',
+      name: 'Snare Roll',
+      trackId: 't4',
+      sceneId: 'verse',
+      isPlaying: false,
+      color: '#FF8A3D',
+      duration: '2 bars',
+    },
+    {
+      id: 'c6',
+      name: 'Bass Line',
+      trackId: 't2',
+      sceneId: 'verse',
+      isPlaying: false,
+      color: '#00E5FF',
+      duration: '8 bars',
+    },
+    {
+      id: 'c7',
+      name: 'Vocal Chops',
+      trackId: 't5',
+      sceneId: 'verse',
+      isPlaying: false,
+      color: '#EC4899',
+      duration: '4 bars',
+    },
     // Row: Chorus
-    { id: 'c8',  name: 'Full Beat',   trackId: 't1', sceneId: 'chorus', isPlaying: false, color: '#FFB627', duration: '8 bars' },
-    { id: 'c9',  name: 'Bass Drop',   trackId: 't2', sceneId: 'chorus', isPlaying: false, color: '#00E5FF', duration: '8 bars' },
-    { id: 'c10', name: 'Lead Synth',  trackId: 't6', sceneId: 'chorus', isPlaying: false, color: '#FF1A4D', duration: '8 bars' },
-    { id: 'c11', name: 'FX Rise',     trackId: 't7', sceneId: 'chorus', isPlaying: false, color: '#8B5CF6', duration: '1 bar' },
+    {
+      id: 'c8',
+      name: 'Full Beat',
+      trackId: 't1',
+      sceneId: 'chorus',
+      isPlaying: false,
+      color: '#FFB627',
+      duration: '8 bars',
+    },
+    {
+      id: 'c9',
+      name: 'Bass Drop',
+      trackId: 't2',
+      sceneId: 'chorus',
+      isPlaying: false,
+      color: '#00E5FF',
+      duration: '8 bars',
+    },
+    {
+      id: 'c10',
+      name: 'Lead Synth',
+      trackId: 't6',
+      sceneId: 'chorus',
+      isPlaying: false,
+      color: '#FF1A4D',
+      duration: '8 bars',
+    },
+    {
+      id: 'c11',
+      name: 'FX Rise',
+      trackId: 't7',
+      sceneId: 'chorus',
+      isPlaying: false,
+      color: '#8B5CF6',
+      duration: '1 bar',
+    },
     // Row: Bridge
-    { id: 'c12', name: 'Ambient Pad', trackId: 't3', sceneId: 'bridge', isPlaying: false, color: '#A5F8FF', duration: '8 bars' },
-    { id: 'c13', name: 'FX Wash',     trackId: 't7', sceneId: 'bridge', isPlaying: false, color: '#8B5CF6', duration: '4 bars' },
+    {
+      id: 'c12',
+      name: 'Ambient Pad',
+      trackId: 't3',
+      sceneId: 'bridge',
+      isPlaying: false,
+      color: '#A5F8FF',
+      duration: '8 bars',
+    },
+    {
+      id: 'c13',
+      name: 'FX Wash',
+      trackId: 't7',
+      sceneId: 'bridge',
+      isPlaying: false,
+      color: '#8B5CF6',
+      duration: '4 bars',
+    },
     // Row: Outro
-    { id: 'c14', name: 'Fade Loop',   trackId: 't1', sceneId: 'outro',  isPlaying: false, color: '#FFB627', duration: '8 bars' },
-    { id: 'c15', name: 'End Pad',     trackId: 't3', sceneId: 'outro',  isPlaying: false, color: '#A5F8FF', duration: '16 bars' },
+    {
+      id: 'c14',
+      name: 'Fade Loop',
+      trackId: 't1',
+      sceneId: 'outro',
+      isPlaying: false,
+      color: '#FFB627',
+      duration: '8 bars',
+    },
+    {
+      id: 'c15',
+      name: 'End Pad',
+      trackId: 't3',
+      sceneId: 'outro',
+      isPlaying: false,
+      color: '#A5F8FF',
+      duration: '16 bars',
+    },
   ]);
 
   // ── Tracks (derived from music manager) ─────────────
@@ -147,7 +262,9 @@ export class SessionViewComponent {
     const clampedVel = Math.max(0, Math.min(1, velocity));
     this.clips.update((list) =>
       list.map((c) =>
-        c.id === clip.id ? { ...c, isPlaying: !c.isPlaying, velocity: clampedVel } : c
+        c.id === clip.id
+          ? { ...c, isPlaying: !c.isPlaying, velocity: clampedVel }
+          : c
       )
     );
     this.scheduleAutoSave();
@@ -170,9 +287,7 @@ export class SessionViewComponent {
       // Ensure clip has automation array
       this.clips.update((list) =>
         list.map((c) =>
-          c.id === clipId && !c.automation
-            ? { ...c, automation: [] }
-            : c
+          c.id === clipId && !c.automation ? { ...c, automation: [] } : c
         )
       );
     }
@@ -184,8 +299,14 @@ export class SessionViewComponent {
   addAutomationPoint(clipId: string): void {
     const clip = this.clips().find((c) => c.id === clipId);
     if (!clip) return;
-    const points = clip.automation?.filter((a) => a.target === this.automationEditTarget()) ?? [];
-    const nextPos = points.length > 0 ? Math.round((points[points.length - 1].position + 1) * 10) / 10 : 0;
+    const points =
+      clip.automation?.filter(
+        (a) => a.target === this.automationEditTarget()
+      ) ?? [];
+    const nextPos =
+      points.length > 0
+        ? Math.round((points[points.length - 1].position + 1) * 10) / 10
+        : 0;
     const newPoint: AutomationPoint = {
       position: nextPos,
       value: 0.5,
@@ -201,10 +322,16 @@ export class SessionViewComponent {
     );
     this.haptic.light();
     this.scheduleAutoSave();
-    this.snackbar.info(`Automation point added at ${nextPos} bars (${this.defaultCurveType()})`);
+    this.snackbar.info(
+      `Automation point added at ${nextPos} bars (${this.defaultCurveType()})`
+    );
   }
 
-  updateAutomationCurve(clipId: string, pointIdx: number, curve: AutomationCurveType): void {
+  updateAutomationCurve(
+    clipId: string,
+    pointIdx: number,
+    curve: AutomationCurveType
+  ): void {
     this.clips.update((list) =>
       list.map((c) =>
         c.id === clipId && c.automation
@@ -223,9 +350,12 @@ export class SessionViewComponent {
   /** Visual icon for curve type */
   curveIcon(curve?: AutomationCurveType): string {
     switch (curve) {
-      case 'exponential': return '↗';
-      case 'step': return '⏐';
-      default: return '╱';
+      case 'exponential':
+        return '↗';
+      case 'step':
+        return '⏐';
+      default:
+        return '╱';
     }
   }
 
@@ -242,7 +372,11 @@ export class SessionViewComponent {
     this.scheduleAutoSave();
   }
 
-  updateAutomationValue(clipId: string, pointIdx: number, newValue: number): void {
+  updateAutomationValue(
+    clipId: string,
+    pointIdx: number,
+    newValue: number
+  ): void {
     const clamped = Math.max(0, Math.min(1, Math.round(newValue * 100) / 100));
     this.clips.update((list) =>
       list.map((c) =>
@@ -259,7 +393,11 @@ export class SessionViewComponent {
     this.scheduleAutoSave();
   }
 
-  updateAutomationPosition(clipId: string, pointIdx: number, newPos: number): void {
+  updateAutomationPosition(
+    clipId: string,
+    pointIdx: number,
+    newPos: number
+  ): void {
     const clamped = Math.max(0, Math.round(newPos * 10) / 10);
     this.clips.update((list) =>
       list.map((c) =>
@@ -278,7 +416,14 @@ export class SessionViewComponent {
   addScene(): void {
     this.haptic.light();
     const idx = this.scenes().length;
-    const colors = ['#0E7C7B', '#2BA09C', '#8B5CF6', '#FF1A8C', '#FFB627', '#00E5FF'];
+    const colors = [
+      '#0E7C7B',
+      '#2BA09C',
+      '#8B5CF6',
+      '#FF1A8C',
+      '#FFB627',
+      '#00E5FF',
+    ];
     this.scenes.update((list) => [
       ...list,
       {
@@ -364,7 +509,9 @@ export class SessionViewComponent {
   }
 
   // ── Session Presets (Save/Load) ──────────────────────
-  savedPresets = signal<Array<{ name: string; scenes: SessionScene[]; clips: SessionClip[] }>>([]);
+  savedPresets = signal<
+    Array<{ name: string; scenes: SessionScene[]; clips: SessionClip[] }>
+  >([]);
   presetNameInput = signal('');
   presetLoadOpen = signal(false);
 
@@ -380,12 +527,17 @@ export class SessionViewComponent {
 
   private savePresetList(): void {
     try {
-      localStorage.setItem('smuve_session_presets', JSON.stringify(this.savedPresets()));
+      localStorage.setItem(
+        'smuve_session_presets',
+        JSON.stringify(this.savedPresets())
+      );
     } catch {}
   }
 
   savePreset(): void {
-    const name = this.presetNameInput().trim() || `Preset ${this.savedPresets().length + 1}`;
+    const name =
+      this.presetNameInput().trim() ||
+      `Preset ${this.savedPresets().length + 1}`;
     const preset = {
       name,
       scenes: this.scenes().map((s) => ({ ...s })),
@@ -435,12 +587,25 @@ export class SessionViewComponent {
     this.autoSaveTimer = setTimeout(() => {
       try {
         const data = {
-          scenes: this.scenes().map((s) => ({ id: s.id, name: s.name, color: s.color, index: s.index })),
+          scenes: this.scenes().map((s) => ({
+            id: s.id,
+            name: s.name,
+            color: s.color,
+            index: s.index,
+          })),
           clips: this.clips().map((c) => ({
-            id: c.id, name: c.name, trackId: c.trackId, sceneId: c.sceneId,
-            color: c.color, duration: c.duration, velocity: c.velocity,
+            id: c.id,
+            name: c.name,
+            trackId: c.trackId,
+            sceneId: c.sceneId,
+            color: c.color,
+            duration: c.duration,
+            velocity: c.velocity,
             automation: c.automation?.map((a) => ({
-              position: a.position, value: a.value, target: a.target, curveType: a.curveType,
+              position: a.position,
+              value: a.value,
+              target: a.target,
+              curveType: a.curveType,
             })),
           })),
           savedAt: Date.now(),
@@ -462,16 +627,27 @@ export class SessionViewComponent {
         localStorage.removeItem(this.AUTO_SAVE_KEY);
         return false;
       }
-      this.scenes.set(data.scenes.map((s: any, i: number) => ({
-        id: s.id, name: s.name, color: s.color, index: i,
-      })));
-      this.clips.set(data.clips.map((c: any) => ({
-        ...c,
-        isPlaying: false,
-        automation: c.automation?.map((a: any) => ({
-          position: a.position, value: a.value, target: a.target, curveType: a.curveType || 'linear',
-        })) || [],
-      })));
+      this.scenes.set(
+        data.scenes.map((s: any, i: number) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          index: i,
+        }))
+      );
+      this.clips.set(
+        data.clips.map((c: any) => ({
+          ...c,
+          isPlaying: false,
+          automation:
+            c.automation?.map((a: any) => ({
+              position: a.position,
+              value: a.value,
+              target: a.target,
+              curveType: a.curveType || 'linear',
+            })) || [],
+        }))
+      );
       this.snackbar.info('Session restored from auto-save');
       return true;
     } catch {
@@ -580,5 +756,6 @@ export class SessionViewComponent {
   trackByScene = (_i: number, s: SessionScene) => s.id;
   trackByClip = (_i: number, c: SessionClip) => c.id;
   trackByTrackId = (_i: number, t: { id: string }) => t.id;
-  trackByPoint = (_i: number, p: AutomationPoint) => `${p.target}-${p.position}-${p.curveType || 'linear'}`;
+  trackByPoint = (_i: number, p: AutomationPoint) =>
+    `${p.target}-${p.position}-${p.curveType || 'linear'}`;
 }

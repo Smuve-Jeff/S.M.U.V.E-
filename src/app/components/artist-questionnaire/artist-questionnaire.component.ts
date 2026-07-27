@@ -1,7 +1,17 @@
-import { Component, signal, inject, output, computed, effect } from '@angular/core';
+import {
+  Component,
+  signal,
+  inject,
+  output,
+  computed,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { UserProfileService, UserProfile } from '../../services/user-profile.service';
+import {
+  UserProfileService,
+  UserProfile,
+} from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
@@ -28,16 +38,25 @@ import {
     trigger('fadeSlide', [
       transition(':enter', [
         style({ transform: 'translateY(18px)', opacity: 0 }),
-        animate('400ms cubic-bezier(0.16, 1, 0.3, 1)', style({ transform: 'translateY(0)', opacity: 1 })),
+        animate(
+          '400ms cubic-bezier(0.16, 1, 0.3, 1)',
+          style({ transform: 'translateY(0)', opacity: 1 })
+        ),
       ]),
       transition(':leave', [
-        animate('250ms ease-in', style({ transform: 'translateY(-12px)', opacity: 0 })),
+        animate(
+          '250ms ease-in',
+          style({ transform: 'translateY(-12px)', opacity: 0 })
+        ),
       ]),
     ]),
     trigger('staggerFade', [
       transition(':enter', [
         style({ opacity: 0, transform: 'translateY(10px)' }),
-        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+        animate(
+          '300ms ease-out',
+          style({ opacity: 1, transform: 'translateY(0)' })
+        ),
       ]),
     ]),
   ],
@@ -54,7 +73,9 @@ export class ArtistQuestionnaireComponent {
   // ── Core state ──────────────────────────────────────────────
   currentPhaseIndex = signal(0);
   currentQuestionIndex = signal(0);
-  profileDraft = signal<UserProfile>(this.deepClone(this.userProfileService.profile()));
+  profileDraft = signal<UserProfile>(
+    this.deepClone(this.userProfileService.profile())
+  );
   isAnalyzing = signal(false);
   analysisResult = signal<any>(null);
   showUplink = signal(false);
@@ -63,7 +84,9 @@ export class ArtistQuestionnaireComponent {
   completedPhases = signal<Set<QuestionnairePhase>>(new Set());
 
   // ── AI Chat Log ─────────────────────────────────────────────
-  aiChatLog = signal<Array<{ type: 'observation' | 'adaptation' | 'system'; text: string }>>([
+  aiChatLog = signal<
+    Array<{ type: 'observation' | 'adaptation' | 'system'; text: string }>
+  >([
     { type: 'system', text: 'S.M.U.V.E Neural Fine-Tune v2.0 Initialized.' },
     { type: 'system', text: 'Awaiting artist data vectors for analysis...' },
   ]);
@@ -84,8 +107,10 @@ export class ArtistQuestionnaireComponent {
 
   /** Progress across entire questionnaire */
   totalProgress = computed(() => {
-    const allQs = this.engine.allQuestions.filter(q => !q.condition || q.condition(this.profileDraft()));
-    const answered = allQs.filter(q => this.isFieldAnswered(q.field)).length;
+    const allQs = this.engine.allQuestions.filter(
+      (q) => !q.condition || q.condition(this.profileDraft())
+    );
+    const answered = allQs.filter((q) => this.isFieldAnswered(q.field)).length;
     return Math.round((answered / Math.max(allQs.length, 1)) * 100);
   });
 
@@ -93,7 +118,7 @@ export class ArtistQuestionnaireComponent {
   phaseProgress = computed(() => {
     const qs = this.currentPhaseQuestions();
     if (qs.length === 0) return 100;
-    const answered = qs.filter(q => this.isFieldAnswered(q.field)).length;
+    const answered = qs.filter((q) => this.isFieldAnswered(q.field)).length;
     return Math.round((answered / qs.length) * 100);
   });
 
@@ -140,19 +165,37 @@ export class ArtistQuestionnaireComponent {
   }
 
   /** Genre deep dive data */
-  genreDeepDive = computed(() => getGenreDeepDive(this.profileDraft().primaryGenre || 'Hip Hop'));
+  genreDeepDive = computed(() =>
+    getGenreDeepDive(this.profileDraft().primaryGenre || 'Hip Hop')
+  );
 
   /** Subgenre options from current genre */
-  subgenreOptions = computed(() => this.engine.getSubgenreOptions(this.profileDraft().primaryGenre || 'Hip Hop'));
+  subgenreOptions = computed(() =>
+    this.engine.getSubgenreOptions(
+      this.profileDraft().primaryGenre || 'Hip Hop'
+    )
+  );
 
   /** Phase info for current phase */
-  currentPhaseInfo = computed<PhaseInfo>(() => this.phases[this.currentPhaseIndex()]);
+  currentPhaseInfo = computed<PhaseInfo>(
+    () => this.phases[this.currentPhaseIndex()]
+  );
 
   /** Suggested genre icons */
   genreIcons: Record<string, string> = {
-    'Hip Hop': '🎤', 'R&B': '🎵', 'Electronic': '⚡', 'Rock': '🎸',
-    'Pop': '🌟', 'Jazz': '🎷', 'Latin': '🕺', 'Country': '🤠',
-    'Afrobeats': '🌍', 'Classical': '🎻', 'Metal': '🤘', 'Folk': '🪕', 'Reggae': '🌴',
+    'Hip Hop': '🎤',
+    'R&B': '🎵',
+    Electronic: '⚡',
+    Rock: '🎸',
+    Pop: '🌟',
+    Jazz: '🎷',
+    Latin: '🕺',
+    Country: '🤠',
+    Afrobeats: '🌍',
+    Classical: '🎻',
+    Metal: '🤘',
+    Folk: '🪕',
+    Reggae: '🌴',
   };
 
   // ── Methods ─────────────────────────────────────────────────
@@ -162,7 +205,13 @@ export class ArtistQuestionnaireComponent {
     const parts = field.split('.');
     let current: any = this.profileDraft();
     for (const part of parts) {
-      if (!current || part === '__proto__' || part === 'constructor' || part === 'prototype') return undefined;
+      if (
+        !current ||
+        part === '__proto__' ||
+        part === 'constructor' ||
+        part === 'prototype'
+      )
+        return undefined;
       current = current[part];
     }
     return current;
@@ -170,7 +219,7 @@ export class ArtistQuestionnaireComponent {
 
   /** Update a field value */
   updateValue(field: string, value: any) {
-    this.profileDraft.update(p => {
+    this.profileDraft.update((p) => {
       const updated = JSON.parse(JSON.stringify(p));
       const q = this.currentQuestion();
       const parts = field.split('.');
@@ -178,13 +227,23 @@ export class ArtistQuestionnaireComponent {
 
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') return p;
+        if (
+          part === '__proto__' ||
+          part === 'constructor' ||
+          part === 'prototype'
+        )
+          return p;
         if (!target[part]) target[part] = {};
         target = target[part];
       }
 
       const lastPart = parts[parts.length - 1];
-      if (lastPart === '__proto__' || lastPart === 'constructor' || lastPart === 'prototype') return p;
+      if (
+        lastPart === '__proto__' ||
+        lastPart === 'constructor' ||
+        lastPart === 'prototype'
+      )
+        return p;
 
       if (q?.type === 'multi-select' || q?.type === 'chip-group') {
         if (!Array.isArray(target[lastPart])) target[lastPart] = [];
@@ -210,11 +269,13 @@ export class ArtistQuestionnaireComponent {
     const val = this.getValue(field);
     if (q && val !== undefined && val !== null && val !== '') {
       const response = this.engine.generateAIQuestionResponse(q, val);
-      this.aiChatLog.update(logs => [
-        ...logs,
-        { type: 'observation' as const, text: response.observation },
-        { type: 'adaptation' as const, text: response.adaptation },
-      ].slice(-20));
+      this.aiChatLog.update((logs) =>
+        [
+          ...logs,
+          { type: 'observation' as const, text: response.observation },
+          { type: 'adaptation' as const, text: response.adaptation },
+        ].slice(-20)
+      );
     }
   }
 
@@ -222,7 +283,8 @@ export class ArtistQuestionnaireComponent {
   isFieldAnswered(field: string): boolean {
     const value = this.getValue(field);
     if (value === undefined || value === null) return false;
-    if (typeof value === 'string') return value.trim() !== '' && value !== 'Unspecified';
+    if (typeof value === 'string')
+      return value.trim() !== '' && value !== 'Unspecified';
     if (Array.isArray(value)) return value.length > 0;
     if (typeof value === 'boolean') return true;
     if (typeof value === 'number') return value > 0;
@@ -235,25 +297,37 @@ export class ArtistQuestionnaireComponent {
     const q = this.currentQuestion();
 
     if (q && !this.isFieldAnswered(q.field)) {
-      this.aiChatLog.update(logs => [...logs, { type: 'system', text: `⚠️ S.M.U.V.E recommends answering "${q.text}" for optimal profile calibration.` }]);
+      this.aiChatLog.update((logs) => [
+        ...logs,
+        {
+          type: 'system',
+          text: `⚠️ S.M.U.V.E recommends answering "${q.text}" for optimal profile calibration.`,
+        },
+      ]);
     }
 
     this.triggerGlitch();
 
     if (this.currentQuestionIndex() < qs.length - 1) {
-      this.currentQuestionIndex.update(i => i + 1);
+      this.currentQuestionIndex.update((i) => i + 1);
     } else {
       // Phase complete
       const phaseId = this.phases[this.currentPhaseIndex()].id;
-      this.completedPhases.update(s => { s.add(phaseId); return new Set(s); });
+      this.completedPhases.update((s) => {
+        s.add(phaseId);
+        return new Set(s);
+      });
 
       if (this.currentPhaseIndex() < this.phases.length - 1) {
-        this.currentPhaseIndex.update(i => i + 1);
+        this.currentPhaseIndex.update((i) => i + 1);
         this.currentQuestionIndex.set(0);
-        this.aiChatLog.update(logs => [...logs, {
-          type: 'system',
-          text: `🧠 PHASE COMPLETE: ${PHASES[this.currentPhaseIndex() - 1].title} — moving to ${PHASES[this.currentPhaseIndex()].title}`,
-        }]);
+        this.aiChatLog.update((logs) => [
+          ...logs,
+          {
+            type: 'system',
+            text: `🧠 PHASE COMPLETE: ${PHASES[this.currentPhaseIndex() - 1].title} — moving to ${PHASES[this.currentPhaseIndex()].title}`,
+          },
+        ]);
       } else {
         // All phases complete → generate AI analysis
         await this.finalize();
@@ -265,10 +339,13 @@ export class ArtistQuestionnaireComponent {
   back() {
     this.triggerGlitch();
     if (this.currentQuestionIndex() > 0) {
-      this.currentQuestionIndex.update(i => i - 1);
+      this.currentQuestionIndex.update((i) => i - 1);
     } else if (this.currentPhaseIndex() > 0) {
-      this.currentPhaseIndex.update(i => i - 1);
-      const prevQs = this.engine.questionsForPhase(this.phases[this.currentPhaseIndex()].id, this.profileDraft());
+      this.currentPhaseIndex.update((i) => i - 1);
+      const prevQs = this.engine.questionsForPhase(
+        this.phases[this.currentPhaseIndex()].id,
+        this.profileDraft()
+      );
       this.currentQuestionIndex.set(Math.max(0, prevQs.length - 1));
     }
   }
@@ -291,7 +368,13 @@ export class ArtistQuestionnaireComponent {
       this.analysisResult.set(analysis);
       this.showPersonaCard.set(true);
     } catch (e) {
-      this.aiChatLog.update(logs => [...logs, { type: 'system', text: '⚠️ AI analysis encountered an error. Using local intelligence.' }]);
+      this.aiChatLog.update((logs) => [
+        ...logs,
+        {
+          type: 'system',
+          text: '⚠️ AI analysis encountered an error. Using local intelligence.',
+        },
+      ]);
       this.analysisResult.set({
         persona: await this.engine.synthesizePersona(draft),
         breakdown: this.strengthBreakdown(),
@@ -322,7 +405,14 @@ export class ArtistQuestionnaireComponent {
 
   /** Calculate strategic signals from draft */
   private calculateStrategicSignals(p: UserProfile): StrategicSignals {
-    const s: StrategicSignals = { marketReadiness: 0, identityTrust: 0, careerMomentum: 0, technicalAuthority: 0, syncViability: 0, touringStability: 0 };
+    const s: StrategicSignals = {
+      marketReadiness: 0,
+      identityTrust: 0,
+      careerMomentum: 0,
+      technicalAuthority: 0,
+      syncViability: 0,
+      touringStability: 0,
+    };
 
     if (p.primaryGenre) s.marketReadiness += 20;
     if (p.musicalJourney?.yearsInIndustry > 5) s.marketReadiness += 10;
@@ -331,24 +421,34 @@ export class ArtistQuestionnaireComponent {
     if (p.strategicGoals?.length) s.marketReadiness += 20;
 
     if (p.expertise) {
-      s.technicalAuthority = (p.expertise.production || 0) * 5 + (p.expertise.technical_mastery || 0) * 5;
-      if (p.expertise.songwriting) s.technicalAuthority += p.expertise.songwriting * 3;
+      s.technicalAuthority =
+        (p.expertise.production || 0) * 5 +
+        (p.expertise.technical_mastery || 0) * 5;
+      if (p.expertise.songwriting)
+        s.technicalAuthority += p.expertise.songwriting * 3;
     }
 
     if (p.catalog?.length) s.careerMomentum += 20;
-    if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)') s.careerMomentum += 20;
+    if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)')
+      s.careerMomentum += 20;
     if (p.strategicGoals?.length > 2) s.careerMomentum += 20;
 
-    if (p.syncDetails?.hasStems === 'Everything Archived') s.syncViability += 25;
-    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery') s.syncViability += 50;
+    if (p.syncDetails?.hasStems === 'Everything Archived')
+      s.syncViability += 25;
+    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery')
+      s.syncViability += 50;
 
-    if (p.touringDetails?.isTourReady === 'Global Ready') s.touringStability += 40;
-    if (p.touringDetails?.hasBackline === 'Full Self-Sustained') s.touringStability += 30;
+    if (p.touringDetails?.isTourReady === 'Global Ready')
+      s.touringStability += 40;
+    if (p.touringDetails?.hasBackline === 'Full Self-Sustained')
+      s.touringStability += 30;
 
     if (p.legalInfrastructure?.hasRegisteredWorks) s.identityTrust += 30;
     if (p.legalInfrastructure?.proAffiliation !== 'None') s.identityTrust += 30;
 
-    Object.keys(s).forEach(k => { (s as any)[k] = Math.min(100, (s as any)[k]); });
+    Object.keys(s).forEach((k) => {
+      (s as any)[k] = Math.min(100, (s as any)[k]);
+    });
     return s;
   }
 

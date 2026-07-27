@@ -66,7 +66,9 @@ export class PerformanceRecordingService implements OnDestroy {
   phantomPowerEnabled = signal(false); // +48V (cosmetic toggle for condenser mic hints)
 
   /** Real-time derived — for UI pulse on record */
-  meterFlash = computed(() => Math.max(this.liveInputDbL(), this.liveInputDbR()));
+  meterFlash = computed(() =>
+    Math.max(this.liveInputDbL(), this.liveInputDbR())
+  );
 
   selectedTake = computed(() => {
     const id = this.selectedTakeId();
@@ -187,7 +189,10 @@ export class PerformanceRecordingService implements OnDestroy {
     });
   }
 
-  async finishTake(trackId?: string, trackName?: string): Promise<PerformanceTake | null> {
+  async finishTake(
+    trackId?: string,
+    trackName?: string
+  ): Promise<PerformanceTake | null> {
     if (!this.isRecording()) return null;
     const durationMs = performance.now() - this.startTimestampMs;
     const takeNumber = this.armedTakeNumber();
@@ -262,7 +267,10 @@ export class PerformanceRecordingService implements OnDestroy {
   private async synthesizeWavStub(durationMs: number): Promise<Blob> {
     // A 0.1s silent WAV stub. Replace with real worklet data in production.
     const sampleRate = 48000;
-    const numSamples = Math.max(1, Math.floor((durationMs / 1000) * sampleRate));
+    const numSamples = Math.max(
+      1,
+      Math.floor((durationMs / 1000) * sampleRate)
+    );
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
     view.setUint8(0, 'R'.charCodeAt(0));

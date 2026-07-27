@@ -1,9 +1,4 @@
-import {
-  Component,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SoundPadComponent } from '../sound-pad/sound-pad.component';
 import {
@@ -39,22 +34,118 @@ export class SoundPadGridComponent {
 
   // ── Pad bank ─────────────────────────────────────────────
   pads = signal<PadSlot[]>([
-    { index: 0, label: 'KICK',    presetId: 'kick',    color: '#FFB627', active: false },
-    { index: 1, label: 'SNARE',   presetId: 'snare',   color: '#FF8A3D', active: false },
-    { index: 2, label: 'HAT',     presetId: 'hat',     color: '#FF1A8C', active: false },
-    { index: 3, label: 'CLAP',    presetId: 'clap',    color: '#8B5CF6', active: false },
-    { index: 4, label: 'BASS',    presetId: 'bass',    color: '#00E5FF', active: false },
-    { index: 5, label: 'KEY',     presetId: 'keys',    color: '#34F5C5', active: false },
-    { index: 6, label: 'LEAD',    presetId: 'lead',    color: '#FF1A4D', active: false },
-    { index: 7, label: 'PAD',     presetId: 'pad',     color: '#A5F8FF', active: false },
-    { index: 8, label: 'VOX',     presetId: 'vox',     color: '#FFB627', active: false },
-    { index: 9, label: 'PERC',    presetId: 'percussion', color: '#FF1A8C', active: false },
-    { index: 10, label: 'FX 1',   presetId: 'fx-impact',  color: '#8B5CF6', active: false },
-    { index: 11, label: 'FX 2',   presetId: 'fx-riser',   color: '#34F5C5', active: false },
-    { index: 12, label: 'LOOP 1', presetId: 'loop-rnb',   color: '#00E5FF', active: false },
-    { index: 13, label: 'LOOP 2', presetId: 'loop-trap',  color: '#FFB627', active: false },
-    { index: 14, label: '808',    presetId: '808-kick',   color: '#FF1A4D', active: false },
-    { index: 15, label: 'CRASH',  presetId: 'crash',      color: '#A5F8FF', active: false },
+    {
+      index: 0,
+      label: 'KICK',
+      presetId: 'kick',
+      color: '#FFB627',
+      active: false,
+    },
+    {
+      index: 1,
+      label: 'SNARE',
+      presetId: 'snare',
+      color: '#FF8A3D',
+      active: false,
+    },
+    {
+      index: 2,
+      label: 'HAT',
+      presetId: 'hat',
+      color: '#FF1A8C',
+      active: false,
+    },
+    {
+      index: 3,
+      label: 'CLAP',
+      presetId: 'clap',
+      color: '#8B5CF6',
+      active: false,
+    },
+    {
+      index: 4,
+      label: 'BASS',
+      presetId: 'bass',
+      color: '#00E5FF',
+      active: false,
+    },
+    {
+      index: 5,
+      label: 'KEY',
+      presetId: 'keys',
+      color: '#34F5C5',
+      active: false,
+    },
+    {
+      index: 6,
+      label: 'LEAD',
+      presetId: 'lead',
+      color: '#FF1A4D',
+      active: false,
+    },
+    {
+      index: 7,
+      label: 'PAD',
+      presetId: 'pad',
+      color: '#A5F8FF',
+      active: false,
+    },
+    {
+      index: 8,
+      label: 'VOX',
+      presetId: 'vox',
+      color: '#FFB627',
+      active: false,
+    },
+    {
+      index: 9,
+      label: 'PERC',
+      presetId: 'percussion',
+      color: '#FF1A8C',
+      active: false,
+    },
+    {
+      index: 10,
+      label: 'FX 1',
+      presetId: 'fx-impact',
+      color: '#8B5CF6',
+      active: false,
+    },
+    {
+      index: 11,
+      label: 'FX 2',
+      presetId: 'fx-riser',
+      color: '#34F5C5',
+      active: false,
+    },
+    {
+      index: 12,
+      label: 'LOOP 1',
+      presetId: 'loop-rnb',
+      color: '#00E5FF',
+      active: false,
+    },
+    {
+      index: 13,
+      label: 'LOOP 2',
+      presetId: 'loop-trap',
+      color: '#FFB627',
+      active: false,
+    },
+    {
+      index: 14,
+      label: '808',
+      presetId: '808-kick',
+      color: '#FF1A4D',
+      active: false,
+    },
+    {
+      index: 15,
+      label: 'CRASH',
+      presetId: 'crash',
+      color: '#A5F8FF',
+      active: false,
+    },
   ]);
 
   // ── Reassign form ────────────────────────────────────────
@@ -82,9 +173,7 @@ export class SoundPadGridComponent {
     );
     setTimeout(() => {
       this.pads.update((list) =>
-        list.map((p) =>
-          p.index === index ? { ...p, active: false } : p
-        )
+        list.map((p) => (p.index === index ? { ...p, active: false } : p))
       );
     }, 250);
 

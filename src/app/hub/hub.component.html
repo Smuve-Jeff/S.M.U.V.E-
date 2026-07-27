@@ -106,7 +106,9 @@
         <div class="executive-stat">
           <span class="stat-label">Billboard Watch</span>
           <span class="stat-value" style="color: var(--neon-cyan)"
-            >#{{ profileService.profile().knowledgeBase.strategicHealthScore }}</span
+            >#{{
+              profileService.profile().knowledgeBase.strategicHealthScore
+            }}</span
           >
         </div>
         <div class="executive-stat">
@@ -141,9 +143,12 @@
           >
             Get signed, get in the booth, get heard tonight
           </h2>
-          <p class="text-sm opacity-60 leading-relaxed mt-3" style="color: var(--silver-dim)">
-            Finish your artist profile, lock your sound, and jump straight to the
-            studio floor. The city is listening — make your move.
+          <p
+            class="text-sm opacity-60 leading-relaxed mt-3"
+            style="color: var(--silver-dim)"
+          >
+            Finish your artist profile, lock your sound, and jump straight to
+            the studio floor. The city is listening — make your move.
           </p>
         </div>
 
@@ -158,7 +163,7 @@
           <button
             (click)="resumeWorkspace()"
             class="px-5 py-3 rounded-2xl border font-black uppercase tracking-[0.2em] text-[11px] text-white"
-            style="border-color: rgba(255,255,255,0.12)"
+            style="border-color: rgba(255, 255, 255, 0.12)"
           >
             Back to the Booth
           </button>
@@ -169,7 +174,14 @@
         <div
           class="h-full"
           [style.width.%]="onboarding.progress()"
-          style="background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta), var(--amber-gold))"
+          style="
+            background: linear-gradient(
+              90deg,
+              var(--neon-cyan),
+              var(--neon-magenta),
+              var(--amber-gold)
+            );
+          "
         ></div>
       </div>
 
@@ -200,7 +212,10 @@
               {{ step.complete ? 'check_circle' : 'arrow_forward' }}
             </span>
           </div>
-          <p class="text-xs leading-relaxed mt-3" style="color: var(--silver-dim)">
+          <p
+            class="text-xs leading-relaxed mt-3"
+            style="color: var(--silver-dim)"
+          >
             {{ step.description }}
           </p>
           <button
@@ -220,13 +235,18 @@
     @if (securityService.getSecurityAudit().score < 80) {
       <div
         class="col-span-full mb-6 border-l-4 p-6 animate-enter"
-        style="background: rgba(10,9,25,0.7); backdrop-filter: blur(16px); border-color: #ef4444; border-radius: 16px"
+        style="
+          background: rgba(10, 9, 25, 0.7);
+          backdrop-filter: blur(16px);
+          border-color: #ef4444;
+          border-radius: 16px;
+        "
         (click)="uiService.navigateToView('profile')"
       >
         <div class="flex items-center gap-6">
           <div
             class="w-12 h-12 rounded-full flex items-center justify-center"
-            style="background: rgba(239,68,68,0.12); color: #ef4444"
+            style="background: rgba(239, 68, 68, 0.12); color: #ef4444"
           >
             <span class="material-symbols-outlined text-3xl">gpp_maybe</span>
           </div>
@@ -244,7 +264,11 @@
           </div>
           <button
             class="h-10 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl border"
-            style="color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06)"
+            style="
+              color: #ef4444;
+              border-color: rgba(239, 68, 68, 0.3);
+              background: rgba(239, 68, 68, 0.06);
+            "
           >
             Verify Now
           </button>
@@ -262,14 +286,18 @@
         <div class="card-overlay"></div>
         <div class="card-content">
           <div class="flex justify-between items-start mb-6">
-            <div class="card-icon-box" style="background: rgba(0,229,255,0.14); color: var(--neon-cyan)">
+            <div
+              class="card-icon-box"
+              style="
+                background: rgba(0, 229, 255, 0.14);
+                color: var(--neon-cyan);
+              "
+            >
               <span class="material-symbols-outlined">trending_up</span>
             </div>
             <span class="pill pill-live">CITY PULSE ON</span>
           </div>
-          <h2 class="card-heading glimmer-text">
-            The Label Desk
-          </h2>
+          <h2 class="card-heading glimmer-text">The Label Desk</h2>
           <p class="card-subtext mb-8">
             Live scanning of street buzz, streaming signals, and chart momentum
             across every borough.
@@ -288,7 +316,9 @@
               track task.id
             ) {
               <div class="directive-item flex gap-3">
-                <span class="material-symbols-outlined text-sm" style="color: var(--neon-magenta)"
+                <span
+                  class="material-symbols-outlined text-sm"
+                  style="color: var(--neon-magenta)"
                   >bolt</span
                 >
                 <div class="flex-1">
@@ -339,7 +369,10 @@
               </div>
               <div
                 class="h-10 overflow-hidden relative rounded-lg border"
-                style="background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.04)"
+                style="
+                  background: rgba(0, 0, 0, 0.25);
+                  border-color: rgba(255, 255, 255, 0.04);
+                "
               >
                 <div
                   class="absolute inset-0 flex flex-col transition-all duration-1000"
@@ -354,7 +387,7 @@
                   <div
                     *ngFor="let pulse of globalStudioPulse()"
                     class="h-full flex items-center px-3 text-[9px] font-bold italic truncate"
-                    style="color: rgba(250,249,255,0.7)"
+                    style="color: rgba(250, 249, 255, 0.7)"
                   >
                     {{ pulse }}
                   </div>
@@ -384,7 +417,10 @@
             [class.spinning]="playerService.isPlaying()"
           >
             <div class="vinyl-outer"></div>
-            <div class="vinyl-label overflow-hidden" style="background: var(--neon-magenta)">
+            <div
+              class="vinyl-label overflow-hidden"
+              style="background: var(--neon-magenta)"
+            >
               <img
                 *ngIf="profileService.profile().avatarImage"
                 [src]="profileService.profile().avatarImage"
@@ -393,7 +429,16 @@
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="eyebrow glimmer-text" style="color: var(--neon-magenta); font-size: 0.6rem; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase">
+            <p
+              class="eyebrow glimmer-text"
+              style="
+                color: var(--neon-magenta);
+                font-size: 0.6rem;
+                font-weight: 800;
+                letter-spacing: 0.25em;
+                text-transform: uppercase;
+              "
+            >
               On the Deck // Now Spinning
             </p>
             <h3 class="truncate text-xl font-black glimmer-text">
@@ -422,7 +467,11 @@
           </div>
           <div class="audio-waves flex items-end gap-1 h-12">
             @for (v of visualizerData().slice(0, 8); track $index) {
-              <div class="wave-bar" style="background: var(--neon-magenta)" [style.height.%]="v"></div>
+              <div
+                class="wave-bar"
+                style="background: var(--neon-magenta)"
+                [style.height.%]="v"
+              ></div>
             }
           </div>
         </div>
@@ -434,7 +483,13 @@
         (click)="uiService.navigateToView('career')"
       >
         <div class="card-content h-full flex flex-col">
-          <div class="card-icon-box mb-4" style="background: rgba(255,184,0,0.14); color: var(--amber-gold)">
+          <div
+            class="card-icon-box mb-4"
+            style="
+              background: rgba(255, 184, 0, 0.14);
+              color: var(--amber-gold);
+            "
+          >
             <span class="material-symbols-outlined">insights</span>
           </div>
           <h2 class="card-heading glimmer-text">The Climb</h2>
@@ -457,14 +512,23 @@
               </svg>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-45">Active Focus</p>
+              <p class="text-xs uppercase tracking-widest opacity-45">
+                Active Focus
+              </p>
               <p class="font-bold text-sm">
-                {{ profileService.profile().careerGoals[0] || 'Lock the next drop' }}
+                {{
+                  profileService.profile().careerGoals[0] ||
+                    'Lock the next drop'
+                }}
               </p>
             </div>
             <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-45">Roster Status</p>
-              <p class="font-bold text-sm" style="color: var(--amber-gold)">Every booth is unlocked. The city is yours.</p>
+              <p class="text-xs uppercase tracking-widest opacity-45">
+                Roster Status
+              </p>
+              <p class="font-bold text-sm" style="color: var(--amber-gold)">
+                Every booth is unlocked. The city is yours.
+              </p>
             </div>
             <div class="space-y-2">
               <div class="achievement-pill">
@@ -496,7 +560,9 @@
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <div class="club-pulse"></div>
-          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--neon-cyan)"
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--neon-cyan)"
             >sports_esports</span
           >
           <h3
@@ -504,7 +570,9 @@
           >
             After Hours
           </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">The Floor</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            The Floor
+          </p>
         </div>
       </div>
 
@@ -517,7 +585,9 @@
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
           <div class="cinema-scan"></div>
-          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--neon-magenta)"
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--neon-magenta)"
             >movie</span
           >
           <h3
@@ -525,7 +595,9 @@
           >
             Visual Suite
           </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Press Visuals</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            Press Visuals
+          </p>
         </div>
       </div>
 
@@ -537,7 +609,9 @@
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
-          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--amber-gold)"
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--amber-gold)"
             >graphic_eq</span
           >
           <h3
@@ -545,7 +619,9 @@
           >
             The Booth
           </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Cut the Record</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            Cut the Record
+          </p>
         </div>
       </div>
 
@@ -557,7 +633,9 @@
         <div
           class="card-content flex flex-col items-center justify-center text-center h-full"
         >
-          <span class="material-symbols-outlined text-4xl mb-2" style="color: var(--electric-violet)"
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--electric-violet)"
             >campaign</span
           >
           <h3
@@ -565,7 +643,9 @@
           >
             Street Team
           </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">Campaigns</p>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            Campaigns
+          </p>
         </div>
       </div>
     </div>
