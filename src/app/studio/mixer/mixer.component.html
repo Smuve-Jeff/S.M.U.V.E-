@@ -238,7 +238,7 @@
             class="mix-msr-btn mix-phase-btn"
             [class.on]="track.phaseInvert"
             (click)="togglePhase(track.id); $event.stopPropagation()"
-            [attr.aria-pressed]="track.phaseInvert"
+            [attr.aria-pressed]="track.phaseInvert ? 'true' : 'false'"
             [attr.aria-label]="'Invert phase on ' + track.name"
             title="Phase Invert (Ø)"
           >
@@ -342,7 +342,7 @@
             <div class="mix-stat-row">
               <span class="mix-stat-label">PEAK</span>
               <span class="mix-stat-value">{{
-                masterPeakHold() * 1.5 | number: '1.1-1'
+                outputPeak() | number: '1.1-1'
               }}</span>
             </div>
           </div>

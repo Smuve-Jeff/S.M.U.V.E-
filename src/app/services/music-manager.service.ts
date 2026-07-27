@@ -652,21 +652,46 @@ export class MusicManagerService {
   togglePhase(id: string) {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return;
-    const inverted = !t.phaseInvert;
-    this.tracks.update((ts) =>
-      ts.map((x) => (x.id === id ? { ...x, phaseInvert: inverted } : x))
+    const wasInverted = !!t.phaseInvert;
+    const inverted = !wasInverted;
+    this.runCommand(
+      (inverted ? 'Invert Phase · ' : 'Restore Phase · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, phaseInvert: inverted } : x))
+        );
+        this.engine.updateTrack(id, { phaseInvert: inverted });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, phaseInvert: wasInverted } : x))
+        );
+        this.engine.updateTrack(id, { phaseInvert: wasInverted });
+      }
     );
-    this.engine.updateTrack(id, { phaseInvert: inverted });
   }
 
   updateStereoWidth(id: string, val: number) {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return;
-    const width = Math.max(-1, Math.min(1, val / 100));
-    this.tracks.update((ts) =>
-      ts.map((x) => (x.id === id ? { ...x, stereoWidth: width } : x))
+    const oldWidth = t.stereoWidth ?? 0;
+    const newWidth = Math.max(-1, Math.min(1, val / 100));
+    this.runMerge(
+      'stereoWidth:' + id,
+      'Set Stereo Width · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, stereoWidth: newWidth } : x))
+        );
+        this.engine.updateTrack(id, { stereoWidth: newWidth });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, stereoWidth: oldWidth } : x))
+        );
+        this.engine.updateTrack(id, { stereoWidth: oldWidth });
+      }
     );
-    this.engine.updateTrack(id, { pan: width }); // Reusing pan node for simple implementation
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {

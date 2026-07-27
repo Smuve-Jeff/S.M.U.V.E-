@@ -234,10 +234,6 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       }))
     );
 
-    // Update live meters to reflect new LUFS target
-    this.lufsIntegrated.set(preset.targetLufs);
-    this.truePeak.set(preset.safeCeiling);
-
     this.masteringRoast.set(preset.roastNote);
     this.smartAssistSuggestion.set(
       `${preset.emoji} ${preset.label} preset applied · target ${preset.targetLufs} LUFS`

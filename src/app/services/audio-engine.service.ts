@@ -16,6 +16,7 @@ export type DeckId = 'A' | 'B';
 interface DeckChannel {
   id: DeckId;
   buffer: AudioBuffer | null;
+  source: AudioBufferSourceNode | null;
   sources: { [K in keyof Stems]?: AudioBufferSourceNode | null };
   gains: { [K in keyof Stems]: GainNode };
   eqLow: BiquadFilterNode;
@@ -38,6 +39,16 @@ interface DeckChannel {
   slipStartTime: number;
   slipStartOffset: number;
   hotCues: (number | null)[];
+}
+
+interface TrackWidthProcessor {
+  pan: StereoPannerNode;
+  leftToLeft: GainNode;
+  rightToLeft: GainNode;
+  leftToRight: GainNode;
+  rightToRight: GainNode;
+  splitter: ChannelSplitterNode;
+  merger: ChannelMergerNode;
 }
 
 @Injectable({
@@ -119,7 +130,8 @@ export class AudioEngineService {
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
   private trackPhaseNodes = new Map<string, GainNode>();
-  private trackWidthNodes = new Map<string, StereoPannerNode>();
+  private trackPanNodes = new Map<string, StereoPannerNode>();
+  private trackWidthProcessors = new Map<string, TrackWidthProcessor>();
   private trackFaderGains = new Map<string, GainNode>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
 
@@ -184,12 +196,14 @@ export class AudioEngineService {
     this.masterEQ.connect(this.masterShelf);
     this.masterShelf.connect(this.masterWidener);
 
-    // Metering Chain (K-Weighting for LUFS)
+    // Audible path: send the unfiltered master stream to the output.
+    this.masterWidener.connect(this.masterAnalyser);
+    this.masterAnalyser.connect(this.ctx.destination);
+
+    // Metering tap: keep the LUFS chain in parallel so metering reads the true program path.
     this.masterWidener.connect(this.lufsFilter1);
     this.lufsFilter1.connect(this.lufsFilter2);
     this.lufsFilter2.connect(this.lufsAnalyzer);
-    this.lufsAnalyzer.connect(this.masterAnalyser);
-    this.masterAnalyser.connect(this.ctx.destination);
 
     this.reverbWet.connect(this.masterGain);
     this.sendAReturn.connect(this.masterGain);
@@ -263,6 +277,7 @@ export class AudioEngineService {
         attack: 0.02,
         release: 0.2,
       });
+      this.configureLimiter({ threshold: -0.1, ratio: 20 });
       this.setSaturation(0.1);
     }
   }
@@ -482,6 +497,13 @@ export class AudioEngineService {
     return 4;
   }
 
+  private getDeckPosition(deck: DeckChannel): number {
+    if (!deck.buffer) return 0;
+    const elapsed = Math.max(0, this.ctx.currentTime - deck.startTime);
+    const position = (deck.pauseOffset + elapsed * deck.rate) % deck.buffer.duration;
+    return Math.max(0, position);
+  }
+
   private createDeck(id: DeckId): DeckChannel {
     const gains: any = {};
     ['drums', 'bass', 'other', 'vocals'].forEach((s) => {
@@ -491,6 +513,7 @@ export class AudioEngineService {
     const deck: DeckChannel = {
       id,
       buffer: null,
+      source: null,
       sources: {},
       gains,
       eqLow: this.ctx.createBiquadFilter(),
@@ -522,6 +545,15 @@ export class AudioEngineService {
     deck.eqHigh.frequency.value = 4000;
     deck.filter.type = 'lowpass';
     deck.filter.frequency.value = 20000;
+
+    deck.eqLow.connect(deck.eqMid);
+    deck.eqMid.connect(deck.eqHigh);
+    deck.eqHigh.connect(deck.filter);
+    deck.filter.connect(deck.pan);
+    deck.pan.connect(deck.gain);
+    deck.gain.connect(this.masterGain);
+    deck.gain.connect(deck.analyser);
+
     return deck;
   }
 
@@ -532,34 +564,98 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     if (!deck) return;
     deck.isPlaying = false;
-    Object.values(deck.sources).forEach((s) => {
-      if (s) {
-        try {
-          s.stop();
-        } catch (e) {}
-      }
-    });
+    if (deck.source) {
+      try {
+        deck.source.stop();
+      } catch (e) {}
+      deck.source.disconnect();
+    }
+    deck.source = null;
     deck.sources = {};
   }
   playDeck(id: DeckId) {
     const deck = this.getDeck(id);
-    if (deck) deck.isPlaying = true;
+    if (!deck || !deck.buffer) return;
+
+    this.resume();
+    if (deck.source) {
+      try {
+        deck.source.stop();
+      } catch (e) {}
+      deck.source.disconnect();
+    }
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = deck.buffer;
+    source.connect(deck.eqLow);
+
+    const when = Math.max(0, deck.pauseOffset);
+    source.start(0, when);
+    deck.source = source;
+    deck.startTime = this.ctx.currentTime;
+    deck.pauseOffset = when;
+    deck.isPlaying = true;
   }
   pauseDeck(id: DeckId) {
     const deck = this.getDeck(id);
-    if (deck) deck.isPlaying = false;
+    if (!deck) return;
+    if (deck.source) {
+      try {
+        deck.source.stop();
+      } catch (e) {}
+      deck.source.disconnect();
+      deck.pauseOffset = this.getDeckPosition(deck);
+      deck.source = null;
+    }
+    deck.isPlaying = false;
   }
   seekDeck(id: DeckId, pos: number) {
-    /* seek logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const clamped = Math.max(0, Math.min(deck.buffer?.duration || 0, pos));
+    if (deck.isPlaying && deck.source) {
+      try {
+        deck.source.stop();
+      } catch (e) {}
+      deck.source.disconnect();
+      deck.source = null;
+    }
+    deck.pauseOffset = clamped;
+    deck.startTime = this.ctx.currentTime;
+    if (deck.isPlaying && deck.buffer) {
+      this.playDeck(id);
+    }
   }
   getDeckProgress(id: DeckId) {
-    return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    const deck = this.getDeck(id);
+    if (!deck) return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    const duration = deck.buffer?.duration || 0;
+    const position = this.getDeckPosition(deck);
+    return { position, duration, isPlaying: deck.isPlaying, slipPosition: position };
   }
   getDeckLevel(id: DeckId) {
-    return 0.5;
+    const deck = this.getDeck(id);
+    if (!deck) return 0;
+    const data = new Float32Array(deck.analyser.fftSize);
+    deck.analyser.getFloatTimeDomainData(data);
+    let peak = 0;
+    for (let i = 0; i < data.length; i++) {
+      const abs = Math.abs(data[i]);
+      if (abs > peak) peak = abs;
+    }
+    return Math.min(1, peak * 2);
   }
   getDeckWaveformData(id: DeckId) {
-    return new Float32Array(0);
+    const deck = this.getDeck(id);
+    if (!deck?.buffer) return new Float32Array(0);
+    const channelData = deck.buffer.getChannelData(0);
+    const samples = Math.min(256, channelData.length);
+    const out = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) {
+      const sourceIndex = Math.floor((i / samples) * channelData.length);
+      out[i] = channelData[sourceIndex] ?? 0;
+    }
+    return out;
   }
   setDeckGain(id: DeckId, val: number) {
     const deck = this.getDeck(id);
@@ -591,19 +687,43 @@ export class AudioEngineService {
     }
   }
   setDeckCue(id: DeckId, active: boolean) {
-    /* cue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.slipActive = active;
   }
   loadDeck(id: DeckId, buffer: AudioBuffer) {
-    /* load logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.buffer = buffer;
+    deck.pauseOffset = 0;
+    deck.startTime = this.ctx.currentTime;
+    deck.isPlaying = false;
+    if (deck.source) {
+      try {
+        deck.source.stop();
+      } catch (e) {}
+      deck.source.disconnect();
+      deck.source = null;
+    }
   }
   setHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const cuePosition = this.getDeckPosition(deck);
+    deck.hotCues[slot] = cuePosition;
   }
   clearHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.hotCues[slot] = null;
   }
   jumpToHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const cuePosition = deck.hotCues[slot];
+    if (cuePosition !== null && cuePosition !== undefined) {
+      this.seekDeck(id, cuePosition);
+    }
   }
   setDeckEq(id: DeckId, high: number, mid: number, low: number) {
     const deck = this.getDeck(id);
@@ -626,16 +746,29 @@ export class AudioEngineService {
     deck.filter.type = type;
   }
   setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
-    /* send logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const target = send === 'A' ? deck.sendA : deck.sendB;
+    target.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.01);
   }
   scratch(id: DeckId, delta: number) {
-    /* scratch logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.pauseOffset = Math.max(
+      0,
+      Math.min(deck.buffer?.duration || 0, deck.pauseOffset + delta / 1000)
+    );
+    deck.startTime = this.ctx.currentTime;
   }
   brakeDeck(id: DeckId) {
-    /* brake logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.rate = Math.max(0.1, deck.rate - 0.1);
   }
   spinbackDeck(id: DeckId) {
-    /* spinback logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.rate = -0.25;
   }
   transformDeck(id: DeckId) {
     /* transform logic */
@@ -801,17 +934,41 @@ export class AudioEngineService {
     if (!this.trackPhaseNodes.has(id)) {
       // Complete Pro Signal Chain
       const phase = this.ctx.createGain(); // Phase Inversion Node
-      const width = this.ctx.createStereoPanner(); // Stereo Width / Pan
+      const pan = this.ctx.createStereoPanner(); // Pan Node
+      const splitter = this.ctx.createChannelSplitter(2); // Stereo width stage input
+      const merger = this.ctx.createChannelMerger(2); // Stereo width stage output
+      const leftToLeft = this.ctx.createGain();
+      const rightToLeft = this.ctx.createGain();
+      const leftToRight = this.ctx.createGain();
+      const rightToRight = this.ctx.createGain();
       const fader = this.ctx.createGain(); // Post-fader Gain
       const output = this.ctx.createGain(); // Final Track Out
 
-      phase.connect(width);
-      width.connect(fader);
+      phase.connect(pan);
+      pan.connect(splitter);
+      splitter.connect(leftToLeft, 0);
+      splitter.connect(rightToLeft, 1);
+      splitter.connect(leftToRight, 0);
+      splitter.connect(rightToRight, 1);
+      leftToLeft.connect(merger, 0, 0);
+      rightToLeft.connect(merger, 0, 1);
+      leftToRight.connect(merger, 0, 0);
+      rightToRight.connect(merger, 0, 1);
+      merger.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
 
       this.trackPhaseNodes.set(id, phase);
-      this.trackWidthNodes.set(id, width);
+      this.trackPanNodes.set(id, pan);
+      this.trackWidthProcessors.set(id, {
+        pan,
+        leftToLeft,
+        rightToLeft,
+        leftToRight,
+        rightToRight,
+        splitter,
+        merger,
+      });
       this.trackFaderGains.set(id, fader);
       this.trackOutputs.set(id, output);
 
@@ -836,7 +993,8 @@ export class AudioEngineService {
 
     const fader = this.trackFaderGains.get(idStr);
     const phase = this.trackPhaseNodes.get(idStr);
-    const width = this.trackWidthNodes.get(idStr);
+    const pan = this.trackPanNodes.get(idStr);
+    const width = this.trackWidthProcessors.get(idStr);
 
     if (patch.gain !== undefined && fader)
       fader.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
@@ -848,8 +1006,21 @@ export class AudioEngineService {
         0.01
       );
 
-    if (patch.pan !== undefined && width)
-      width.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
+    if (patch.pan !== undefined && pan)
+      pan.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
+
+    if (patch.stereoWidth !== undefined && width) {
+      const normalized = Math.max(-1, Math.min(1, patch.stereoWidth));
+      const widthAmount = (normalized + 1) / 2;
+      const leftToLeft = 0.5 + widthAmount * 0.5;
+      const rightToLeft = 0.5 - widthAmount * 0.5;
+      const leftToRight = 0.5 - widthAmount * 0.5;
+      const rightToRight = 0.5 + widthAmount * 0.5;
+      width.leftToLeft.gain.setTargetAtTime(leftToLeft, this.ctx.currentTime, 0.05);
+      width.rightToLeft.gain.setTargetAtTime(rightToLeft, this.ctx.currentTime, 0.05);
+      width.leftToRight.gain.setTargetAtTime(leftToRight, this.ctx.currentTime, 0.05);
+      width.rightToRight.gain.setTargetAtTime(rightToRight, this.ctx.currentTime, 0.05);
+    }
 
     if (patch.sendA !== undefined)
       this.trackSendAGains
@@ -994,6 +1165,8 @@ export class AudioEngineService {
   }
 
   setTrackAuxSend(trackId: string, auxId: string, level: number) {
+    this.getTrackOutput(trackId);
+
     let trackSends = this.trackAuxSends.get(trackId);
     if (!trackSends) {
       trackSends = new Map<string, GainNode>();

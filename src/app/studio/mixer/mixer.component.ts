@@ -64,6 +64,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   /** Pro: Phase correlation computed at runtime from master analyser */
   phaseCorrelation = signal(0);
   outputLufs = this.audioSession.engine.outputLufs;
+  outputPeak = this.audioSession.engine.outputPeak;
   private raf?: number;
 
   // ── Pro: Sidechain routing map ─────────────────────────────
