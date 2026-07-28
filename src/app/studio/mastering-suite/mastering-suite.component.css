@@ -307,3 +307,59 @@
     padding-right: 1.25rem;
   }
 }
+
+/* ---------- GENRE CHIPS (AI Mastering) ---------- */
+.genre-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.genre-chip:hover {
+  border-color: var(--teal-400);
+  background: rgba(43, 160, 156, 0.08);
+  color: var(--teal-500);
+}
+
+.genre-chip:active {
+  transform: scale(0.95);
+}
+
+.genre-chip-active {
+  background: var(--teal-500) !important;
+  border-color: var(--teal-500) !important;
+  color: white !important;
+  box-shadow: 0 0 16px rgba(43, 160, 156, 0.4);
+}
+
+.genre-chip-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.genre-chip-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:host-context(.dark-mode) .genre-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .genre-chip-active {
+  background: var(--teal-600) !important;
+  border-color: var(--teal-500) !important;
+}

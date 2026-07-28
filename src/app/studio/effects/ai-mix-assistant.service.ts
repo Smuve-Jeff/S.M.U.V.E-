@@ -39,6 +39,23 @@ export interface TrackAnalysis {
   suggestedRole: string;
 }
 
+/** A genre-specific mastering preset with targets and processing hints. */
+export interface GenreMasteringPreset {
+  genre: string;
+  emoji: string;
+  targetLufs: number;
+  safeCeiling: number;
+  compThreshold: number;
+  compRatio: number;
+  limiterThreshold: number;
+  limiterRatio: number;
+  eqSub: number;       // Low-shelf gain (dB) at ~60 Hz
+  eqHighShelf: number; // High-shelf gain (dB) at ~10 kHz
+  eqLowMid: number;    // Low-mid cut/boost (dB) at ~300 Hz
+  description: string;
+  tags: string[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -229,6 +246,144 @@ export class AiMixAssistantService {
         reason: `Masking conflict with ${c.trackA} in ${c.band} band — cut to create separation`,
       };
     });
+  }
+
+  // ── Genre mastering presets ──────────────────────────────────────
+
+  /**
+   * Genre-specific mastering presets for trap, house, lo-fi, and more.
+   * Each preset tailors LUFS target, multiband EQ curves, compressor,
+   * and limiter behavior for the genre's sonic signature.
+   */
+  readonly genrePresets: GenreMasteringPreset[] = [
+    {
+      genre: 'trap',
+      emoji: '🔥',
+      targetLufs: -10,
+      safeCeiling: -0.3,
+      compThreshold: -8,
+      compRatio: 6,
+      limiterThreshold: -0.5,
+      limiterRatio: 20,
+      eqSub: 3.0,
+      eqHighShelf: 2.5,
+      eqLowMid: -1.5,
+      description: 'Aggressive sub-bass with crisp hi-hats · hard brick-wall limiting for competitive loudness',
+      tags: ['trap', 'drill', 'phonk', 'bass-music', '808'],
+    },
+    {
+      genre: 'house',
+      emoji: '🎵',
+      targetLufs: -12,
+      safeCeiling: -0.8,
+      compThreshold: -10,
+      compRatio: 4,
+      limiterThreshold: -1.2,
+      limiterRatio: 10,
+      eqSub: 1.5,
+      eqHighShelf: 1.8,
+      eqLowMid: 0,
+      description: 'Punchy kick · warm low-mids · smooth highs with subtle air · streaming-optimized headroom',
+      tags: ['house', 'deep-house', 'tech-house', 'progressive', 'edm'],
+    },
+    {
+      genre: 'lo-fi',
+      emoji: '☕',
+      targetLufs: -16,
+      safeCeiling: -1.5,
+      compThreshold: -14,
+      compRatio: 2.2,
+      limiterThreshold: -2.0,
+      limiterRatio: 5,
+      eqSub: -0.5,
+      eqHighShelf: -2.0,
+      eqLowMid: 1.5,
+      description: 'Warm, rolled-off highs · gentle compression · wide dynamic range with soft ceiling',
+      tags: ['lo-fi', 'chill', 'jazz-hop', 'ambient', 'study'],
+    },
+    {
+      genre: 'pop',
+      emoji: '⭐',
+      targetLufs: -13,
+      safeCeiling: -0.8,
+      compThreshold: -9,
+      compRatio: 3.5,
+      limiterThreshold: -1.0,
+      limiterRatio: 12,
+      eqSub: 0.5,
+      eqHighShelf: 1.5,
+      eqLowMid: 0,
+      description: 'Vocal-forward clarity · balanced lows and highs · streaming-standard loudness',
+      tags: ['pop', 'rnb', 'top-40', 'radio'],
+    },
+  ];
+
+  /**
+   * Detect the most likely genre from the current track list.
+   * Analyzes instrument types, count, and patterns to guess trap, house, lo-fi, or pop.
+   */
+  detectGenre(): string {
+    const tracks = this.musicManager.tracks();
+    const types = tracks.map((t) => this.inferInstrumentType(t));
+    const names = tracks.map((t) => (t.name || '').toLowerCase());
+
+    // Trap: 808 bass + hi-hats + fast hi-hat patterns
+    const has808 = names.some((n) => n.includes('808') || n.includes('trap'));
+    const hasHihat = types.some((t) => t === 'percussion');
+    const hasHeavySub = types.some((t) => t === 'bass');
+    const drumCount = types.filter((t) => ['kick', 'snare', 'drums', 'percussion'].includes(t)).length;
+
+    // Lo-fi: mellow drums + piano/chords + vinyl crackle
+    const hasPiano = types.some((t) => t === 'chords');
+    const hasVinyl = names.some((n) => n.includes('vinyl') || n.includes('crackle') || n.includes('lo-fi'));
+    const isSparse = tracks.length <= 4;
+    const noHeavy808 = !names.some((n) => n.includes('808'));
+
+    // House: four-on-the-floor kick + synth stabs/pads
+    const hasSynthPad = types.some((t) => t === 'synth' || t === 'pad');
+    const hasKickAndSynth = types.some((t) => t === 'kick') && hasSynthPad;
+    const moderateTrackCount = tracks.length >= 4 && tracks.length <= 10;
+
+    // Weighted scoring
+    let trapScore = 0;
+    let houseScore = 0;
+    let lofiScore = 0;
+    let popScore = 0;
+
+    if (has808) trapScore += 30;
+    if (hasHihat && hasHeavySub) trapScore += 20;
+    if (drumCount >= 3) trapScore += 10;
+    if (names.some((n) => n.includes('hi-hat') || n.includes('hat'))) trapScore += 15;
+
+    if (hasKickAndSynth && moderateTrackCount) houseScore += 25;
+    if (types.includes('kick') && (types.includes('pad') || types.includes('synth'))) houseScore += 20;
+    if (names.some((n) => n.includes('stab') || n.includes('pluck'))) houseScore += 15;
+
+    if (hasPiano && isSparse && noHeavy808) lofiScore += 25;
+    if (hasVinyl) lofiScore += 30;
+    if (types.includes('bass') && tracks.length <= 4) lofiScore += 10;
+
+    if (tracks.length >= 3 && !has808 && !hasVinyl) popScore += 15;
+    if (types.some((t) => t === 'vocal')) popScore += 10;
+
+    const scores: Array<{ genre: string; score: number }> = [
+      { genre: 'trap', score: trapScore },
+      { genre: 'house', score: houseScore },
+      { genre: 'lo-fi', score: lofiScore },
+      { genre: 'pop', score: popScore },
+    ];
+
+    scores.sort((a, b) => b.score - a.score);
+    return scores[0].score > 10 ? scores[0].genre : 'pop';
+  }
+
+  /**
+   * Get the matching genre preset or fall back to density-based defaults.
+   */
+  getGenrePreset(genre?: string): GenreMasteringPreset | undefined {
+    if (!genre) return undefined;
+    const normalized = genre.toLowerCase().replace(/[^a-z-]/g, '');
+    return this.genrePresets.find((p) => p.genre === normalized || p.tags.includes(normalized));
   }
 
   /**
@@ -525,8 +680,11 @@ export class AiMixAssistantService {
    * AI Auto-Master: analyze the full mix and apply an optimal mastering chain
    * including multiband EQ, compressor, and limiter settings based on genre,
    * track count, and instrument types. Returns a human-readable report.
+   *
+   * @param genre - Optional genre hint ("trap", "house", "lo-fi", "pop").
+   *   If omitted, auto-detects from track composition.
    */
-  autoMaster(): string[] {
+  autoMaster(genre?: string): string[] {
     const tracks = this.musicManager.tracks();
     if (tracks.length === 0) return ['No tracks to master.'];
 
@@ -540,75 +698,111 @@ export class AiMixAssistantService {
     const hasVocals = instrumentTypes.some((t) => t === 'vocal');
     const density = trackCount <= 4 ? 'sparse' : trackCount <= 8 ? 'moderate' : 'dense';
 
-    // 2. Select mastering targets based on mix density
+    // 2. Check for genre preset — overrides density defaults
+    const resolvedGenre = genre || this.detectGenre();
+    const preset = this.getGenrePreset(resolvedGenre);
+
     let targetLufs: number;
     let safeCeiling: number;
     let compThreshold: number;
     let compRatio: number;
     let limiterThreshold: number;
+    let limiterRatio: number;
     let eqHighShelf: number;
     let eqLowShelf: number;
+    let eqLowMid: number;
+    let genreEmoji: string;
 
-    if (density === 'sparse' && hasVocals) {
-      // Vocal-forward: more dynamic range, airy highs
-      targetLufs = -16;
-      safeCeiling = -1.0;
-      compThreshold = -14;
-      compRatio = 2.5;
-      limiterThreshold = -1.5;
-      eqHighShelf = 2.0;
-      eqLowShelf = -0.5;
-      report.push('🎤 Vocal-forward mix: preserving dynamic range with gentle compression.');
-    } else if (density === 'sparse' && hasDrums && hasBass) {
-      // Rhythm section: punchy
-      targetLufs = -12;
-      safeCeiling = -0.5;
-      compThreshold = -12;
-      compRatio = 3.0;
-      limiterThreshold = -1.0;
-      eqHighShelf = 1.5;
-      eqLowShelf = 1.0;
-      report.push('🥁 Rhythm-heavy mix: punchy compression with low-end enhancement.');
-    } else if (density === 'moderate') {
-      // Balanced mix
-      targetLufs = -14;
-      safeCeiling = -0.8;
-      compThreshold = -10;
-      compRatio = 3.5;
-      limiterThreshold = -1.2;
-      eqHighShelf = 1.0;
-      eqLowShelf = 0;
-      report.push('⚖️ Balanced mix: transparent compression with gentle air boost.');
+    if (preset) {
+      // Use genre-specific preset values
+      targetLufs = preset.targetLufs;
+      safeCeiling = preset.safeCeiling;
+      compThreshold = preset.compThreshold;
+      compRatio = preset.compRatio;
+      limiterThreshold = preset.limiterThreshold;
+      limiterRatio = preset.limiterRatio;
+      eqHighShelf = preset.eqHighShelf;
+      eqLowShelf = preset.eqSub;
+      eqLowMid = preset.eqLowMid;
+      genreEmoji = preset.emoji;
+      report.push(`${preset.emoji} ${preset.genre.charAt(0).toUpperCase() + preset.genre.slice(1)} preset: ${preset.description}`);
     } else {
-      // Dense mix: tighter control
-      targetLufs = -10;
-      safeCeiling = -0.3;
-      compThreshold = -8;
-      compRatio = 4.0;
-      limiterThreshold = -0.5;
-      eqHighShelf = 0.5;
-      eqLowShelf = -0.5;
-      report.push('🔊 Dense mix: tighter compression with low-end control.');
+      // Fallback: density-based defaults
+      eqLowMid = 0; // no low-mid eq in density path
+      limiterRatio = 20;
+
+      if (density === 'sparse' && hasVocals) {
+        targetLufs = -16;
+        safeCeiling = -1.0;
+        compThreshold = -14;
+        compRatio = 2.5;
+        limiterThreshold = -1.5;
+        eqHighShelf = 2.0;
+        eqLowShelf = -0.5;
+        genreEmoji = '🎤';
+        report.push('🎤 Vocal-forward mix: preserving dynamic range with gentle compression.');
+      } else if (density === 'sparse' && hasDrums && hasBass) {
+        targetLufs = -12;
+        safeCeiling = -0.5;
+        compThreshold = -12;
+        compRatio = 3.0;
+        limiterThreshold = -1.0;
+        eqHighShelf = 1.5;
+        eqLowShelf = 1.0;
+        genreEmoji = '🥁';
+        report.push('🥁 Rhythm-heavy mix: punchy compression with low-end enhancement.');
+      } else if (density === 'moderate') {
+        targetLufs = -14;
+        safeCeiling = -0.8;
+        compThreshold = -10;
+        compRatio = 3.5;
+        limiterThreshold = -1.2;
+        eqHighShelf = 1.0;
+        eqLowShelf = 0;
+        genreEmoji = '⚖️';
+        report.push('⚖️ Balanced mix: transparent compression with gentle air boost.');
+      } else {
+        targetLufs = -10;
+        safeCeiling = -0.3;
+        compThreshold = -8;
+        compRatio = 4.0;
+        limiterThreshold = -0.5;
+        eqHighShelf = 0.5;
+        eqLowShelf = -0.5;
+        genreEmoji = '🔊';
+        report.push('🔊 Dense mix: tighter compression with low-end control.');
+      }
     }
 
     // 3. Apply to audio engine
     this.engine.setMasteringTargets({ lufs: targetLufs, truePeak: safeCeiling });
     this.engine.configureCompressor({ threshold: compThreshold, ratio: compRatio });
-    this.engine.configureLimiter({ threshold: limiterThreshold, ratio: 20 });
+    this.engine.configureLimiter({ threshold: limiterThreshold, ratio: limiterRatio });
 
-    // 4. Configure master EQ via the worklet or fallback shelf filter
+    // 4. Configure master EQ via the worklet or fallback shelf filters
     const now = this.engine.ctx.currentTime;
     this.engine.masterShelf.gain.setTargetAtTime(eqHighShelf, now, 0.05);
-    // Low-shelf via the master worklet or a biquad
+
+    // Low-shelf (sub/bass) and low-mid EQ via biquads
     try {
+      // Insert sub-bass low-shelf filter
       const lowShelf = this.engine.ctx.createBiquadFilter();
       lowShelf.type = 'lowshelf';
-      lowShelf.frequency.value = 200;
+      lowShelf.frequency.value = 60;
       lowShelf.gain.setTargetAtTime(eqLowShelf, now, 0.05);
-      // Insert between preMasterGain and compressor
+
+      // Insert low-mid parametric EQ
+      const lowMid = this.engine.ctx.createBiquadFilter();
+      lowMid.type = 'peaking';
+      lowMid.frequency.value = 300;
+      lowMid.Q.value = 0.7;
+      lowMid.gain.setTargetAtTime(eqLowMid, now, 0.05);
+
+      // Chain: preMasterGain → lowShelf → lowMid → compressor
       this.engine['_preMasterGain'].disconnect();
       this.engine['_preMasterGain'].connect(lowShelf);
-      lowShelf.connect(this.engine.compressor);
+      lowShelf.connect(lowMid);
+      lowMid.connect(this.engine.compressor);
     } catch { /* fallback chain already connected */ }
 
     // 5. Update suggestions to reflect applied changes
@@ -629,12 +823,13 @@ export class AiMixAssistantService {
     ]);
 
     // 6. Generate analysis summary
-    report.push(`📊 ${trackCount} tracks · ${density} arrangement`);
+    const genreLabel = preset ? `${preset.emoji} ${preset.genre.charAt(0).toUpperCase() + preset.genre.slice(1)}` : `${genreEmoji} ${density}`;
+    report.push(`📊 ${trackCount} tracks · ${density} arrangement · ${resolvedGenre} detection`);
     report.push(`🎯 Target: ${targetLufs} LUFS · Ceiling: ${safeCeiling} dBFS`);
     report.push(`🔧 Compressor: ${compThreshold} dB threshold · ${compRatio}:1 ratio`);
-    report.push(`🔩 Limiter: ${limiterThreshold} dB threshold · 20:1 brickwall`);
-    report.push(`📈 EQ: high-shelf ${eqHighShelf > 0 ? '+' : ''}${eqHighShelf} dB · low-shelf ${eqLowShelf > 0 ? '+' : ''}${eqLowShelf} dB`);
-    report.push(`✅ AI mastering complete — mix is optimized for ${density === 'sparse' ? 'clarity and dynamics' : density === 'moderate' ? 'streaming platforms' : 'maximum loudness'}.`);
+    report.push(`🔩 Limiter: ${limiterThreshold} dB threshold · ${limiterRatio}:1 brickwall`);
+    report.push(`📈 EQ: high-shelf ${eqHighShelf > 0 ? '+' : ''}${eqHighShelf} dB · sub-shelf ${eqLowShelf > 0 ? '+' : ''}${eqLowShelf} dB · low-mid ${eqLowMid > 0 ? '+' : ''}${eqLowMid} dB`);
+    report.push(`✅ AI mastering complete — ${genreLabel} mix is optimized for ${preset ? preset.description : density === 'sparse' ? 'clarity and dynamics' : density === 'moderate' ? 'streaming platforms' : 'maximum loudness'}.`);
 
     return report;
   }

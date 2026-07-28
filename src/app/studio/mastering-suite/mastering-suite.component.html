@@ -34,6 +34,41 @@
     </div>
   </header>
 
+  <!-- Genre selector for AI mastering -->
+  <section class="mb-4" aria-label="Genre selector for AI Mastering">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="material-symbols-outlined text-fl-blue text-sm"
+        >music_note</span
+      >
+      <span
+        class="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em]"
+      >
+        Genre Target
+      </span>
+      @if (aiDetectedGenre()) {
+        <span
+          class="ml-auto text-[8px] font-bold text-fl-blue/60 uppercase tracking-widest"
+        >
+          detected: {{ aiDetectedGenre() }}
+        </span>
+      }
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      @for (g of availableGenres; track g.value) {
+        <button
+          type="button"
+          class="genre-chip"
+          [class.genre-chip-active]="selectedGenre() === g.value"
+          (click)="selectGenre(g.value)"
+          [attr.aria-pressed]="selectedGenre() === g.value"
+        >
+          <span class="genre-chip-emoji">{{ g.emoji }}</span>
+          <span class="genre-chip-label">{{ g.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
   <!-- Pro: AI mastering presets rail -->
   <section class="mb-6" aria-label="AI mastering presets">
     <div class="flex items-center gap-2 mb-3">

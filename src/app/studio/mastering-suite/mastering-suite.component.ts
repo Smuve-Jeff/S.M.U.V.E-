@@ -57,6 +57,23 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   masteringRoast = signal<string>('Analyzing dynamics...');
   public uiService = inject(UIService);
 
+  /** Selected genre for AI mastering (null = auto-detect) */
+  readonly availableGenres = [
+    { value: '', label: 'Auto-Detect', emoji: '🤖' },
+    { value: 'trap', label: 'Trap', emoji: '🔥' },
+    { value: 'house', label: 'House', emoji: '🎵' },
+    { value: 'lo-fi', label: 'Lo-Fi', emoji: '☕' },
+    { value: 'pop', label: 'Pop', emoji: '⭐' },
+  ];
+  selectedGenre = signal<string>('');
+  aiDetectedGenre = signal<string>('');
+
+  /** Select a genre for AI mastering. */
+  selectGenre(value: string): void {
+    this.selectedGenre.set(value);
+    this.haptic.light();
+  }
+
   @ViewChild('spectrogram') spectrogramRef!: ElementRef<HTMLCanvasElement>;
 
   bands = signal<MasteringBand[]>([
@@ -267,8 +284,14 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.refreshRoast();
     this.isProcessing.set(true);
     try {
-      // Run the full AI auto-master analysis chain
-      const report = this.aiMix.autoMaster();
+      // Auto-detect genre if none selected
+      const genre = this.selectedGenre() || undefined;
+      if (!genre) {
+        this.aiDetectedGenre.set(this.aiMix.detectGenre());
+      }
+
+      // Run the full AI auto-master analysis chain with genre hint
+      const report = this.aiMix.autoMaster(genre);
 
       // Update UI with mastering targets from the engine
       const targets = this.audioEngine.getMasteringTargets();
