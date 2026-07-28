@@ -158,6 +158,9 @@ export class AudioEngineService {
   public onCountInComplete?: () => void;
 
   private sidechainMatrix = new Map<string, Set<string>>();
+  private sidechainWorklets = new Map<string, AudioWorkletNode>();
+  private sidechainRouting = new Map<string, { triggerGain: GainNode; sidechainInput: GainNode }>();
+  private _sidechainWorkletLoaded = false;
   private deckA!: DeckChannel;
   private deckB!: DeckChannel;
   private crossfaderValue = 0.5;
@@ -811,6 +814,12 @@ export class AudioEngineService {
       const rack = new DynamicEffectsRack(this.ctx);
       this.trackEffectsRacks.set(id, rack);
 
+      // Fire-and-forget: enable worklet-based effects for this track
+      // Falls back gracefully to main-thread plugins if worklet fails
+      rack.enableWorklet().then((ok) => {
+        if (ok) this.logger.info(`AudioEngine: Worklet effects enabled for track ${id}`);
+      });
+
       phase.connect(rack.input);
       rack.output.connect(width);
       width.connect(fader);
@@ -963,6 +972,8 @@ export class AudioEngineService {
     }
     this.sidechainMatrix.get(trigger)!.add(target);
     this.sidechainEnabled.set(true);
+    // Also connect via worklet if loaded
+    this.createSidechainWorklet(trigger, target);
   }
   disconnectSidechain(trigger: string, target: string) {
     const targets = this.sidechainMatrix.get(trigger);
@@ -973,6 +984,130 @@ export class AudioEngineService {
       }
     }
     this.sidechainEnabled.set(this.sidechainMatrix.size > 0);
+    this.removeSidechainWorklet(trigger, target);
+  }
+
+  /**
+   * Create a sidechain AudioWorklet connection: trigger signal (input 1)
+   * ducks the target track (input 0). Falls back to the existing
+   * main-thread routing if the worklet fails to load.
+   */
+  async createSidechainWorklet(triggerTrackId: string, targetTrackId: string): Promise<void> {
+    const key = `${triggerTrackId}→${targetTrackId}`;
+    if (this.sidechainWorklets.has(key)) return;
+
+    // Ensure tracks exist
+    this.getTrackOutput(triggerTrackId);
+    this.getTrackOutput(targetTrackId);
+
+    // Try to load the worklet module once
+    if (!this._sidechainWorkletLoaded) {
+      try {
+        await this.ctx.audioWorklet.addModule(
+          'assets/worklets/sidechain-processor.worklet.js'
+        );
+        this._sidechainWorkletLoaded = true;
+      } catch (err: any) {
+        if (!err?.message?.includes('already')) {
+          this.logger.warn(
+            `AudioEngine: Sidechain worklet load failed, using main-thread fallback.`,
+            err?.message
+          );
+          return;
+        }
+        this._sidechainWorkletLoaded = true;
+      }
+    }
+
+    try {
+      // Create the worklet node with TWO inputs:
+      //   input 0 = target track (the one being ducked)
+      //   input 1 = trigger track (the kick/drum doing the ducking)
+      const workletNode = new AudioWorkletNode(this.ctx, 'sidechain-processor', {
+        numberOfInputs: 2,
+        numberOfOutputs: 1,
+        channelCount: 2,
+        channelCountMode: 'explicit',
+        channelInterpretation: 'speakers',
+      });
+
+      // Configure the sidechain parameters
+      workletNode.port.postMessage({
+        type: 'CONFIGURE',
+        payload: {
+          thresholdDb: -30,
+          ratio: 8,
+          attack: 0.002,
+          release: 0.08,
+          kneeDb: 4,
+          rangeDb: -24,
+          makeupDb: 3,
+        },
+      });
+
+      // Re-route the target track signal through the worklet
+      const targetPhase = this.trackPhaseNodes.get(targetTrackId);
+      const targetWidth = this.trackWidthNodes.get(targetTrackId);
+      const triggerOutput = this.trackOutputs.get(triggerTrackId) || this.trackFaderGains.get(triggerTrackId);
+
+      if (targetPhase && targetWidth && triggerOutput) {
+        // Disconnect the existing phase → width connection
+        targetPhase.disconnect();
+
+        // Re-route: phase → worklet (input 0) → width
+        targetPhase.connect(workletNode);
+        workletNode.connect(targetWidth);
+
+        // Route: trigger output → worklet (input 1) — for envelope detection only
+        // The trigger signal enters on input 1, channels 0-1
+        const triggerTap = this.ctx.createGain();
+        triggerTap.gain.value = 1.0;
+        triggerOutput.connect(triggerTap);
+        triggerTap.connect(workletNode, 0, 1); // connect to input 1
+
+        this.sidechainRouting.set(key, { triggerGain: triggerTap, sidechainInput: triggerTap });
+        this.sidechainWorklets.set(key, workletNode);
+
+        this.logger.info(
+          `AudioEngine: Sidechain worklet connected: ${triggerTrackId} → ${targetTrackId}`
+        );
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `AudioEngine: Sidechain worklet node creation failed, using main-thread fallback.`,
+        err?.message
+      );
+    }
+  }
+
+  /** Disconnect a sidechain worklet and restore direct routing */
+  removeSidechainWorklet(triggerTrackId: string, targetTrackId: string): void {
+    const key = `${triggerTrackId}→${targetTrackId}`;
+    const workletNode = this.sidechainWorklets.get(key);
+    const routing = this.sidechainRouting.get(key);
+
+    if (workletNode && routing) {
+      // Disconnect worklet
+      workletNode.port.postMessage({ type: 'RESET' });
+      workletNode.disconnect();
+      routing.triggerGain.disconnect();
+
+      // Restore direct routing: phase → width
+      const targetPhase = this.trackPhaseNodes.get(targetTrackId);
+      const targetWidth = this.trackWidthNodes.get(targetTrackId);
+
+      if (targetPhase && targetWidth) {
+        targetPhase.disconnect();
+        targetPhase.connect(targetWidth);
+      }
+
+      this.sidechainWorklets.delete(key);
+      this.sidechainRouting.delete(key);
+
+      this.logger.info(
+        `AudioEngine: Sidechain worklet removed: ${triggerTrackId} → ${targetTrackId}`
+      );
+    }
   }
   getSidechainRouting() {
     const routes: { triggerTrackId: string; targetTrackIds: string[] }[] = [];
