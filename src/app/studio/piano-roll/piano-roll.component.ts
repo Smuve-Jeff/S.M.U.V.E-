@@ -58,6 +58,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('glVelocityCanvas') glVelocityCanvas!: ElementRef<HTMLCanvasElement>;
 
   @Output() close = new EventEmitter<void>();
+  @Output() openBezierEditor = new EventEmitter<string>();
 
   editMode = signal<'draw' | 'select' | 'erase' | 'chord'>('draw');
 
@@ -183,6 +184,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   showPrecisionPanel = signal(false);
+
+  // ── Bezier / Automation ──────────────────────────────────
+  showAutomationMenu = signal(false);
+  automationParam = signal<'velocity' | 'cutoff' | 'pan' | 'volume'>('velocity');
+
+  openBezierForCurrentLane(): void {
+    const trackId = this.selectedTrack()?.id || 'main';
+    const laneId = `${trackId}_${this.automationParam()}`;
+    this.openBezierEditor.emit(laneId);
+    this.showAutomationMenu.set(false);
+  }
+
+  toggleAutomationMenu(): void {
+    this.showAutomationMenu.update((v) => !v);
+  }
+
+  setAutomationParam(param: string): void {
+    this.automationParam.set(param as any);
+    this.openBezierForCurrentLane();
+  }
 
   highlightedRange = computed(
     () => this.musicManager.crossLinkRequest()?.noteRange ?? null

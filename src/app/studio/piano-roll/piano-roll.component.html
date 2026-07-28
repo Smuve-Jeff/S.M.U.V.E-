@@ -189,7 +189,49 @@
       ></canvas>
     </div>
 
-    <!-- Velocity lane: WebGL canvas -->
+    <!-- Velocity lane + Automation toolbar -->
+    <div class="pr-auto-toolbar">
+      <span class="pr-auto-label">Automation</span>
+      <div class="pr-auto-params">
+        <button
+          type="button"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'velocity'"
+          (click)="setAutomationParam('velocity')"
+          title="Velocity"
+        >Vel</button>
+        <button
+          type="button"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'cutoff'"
+          (click)="setAutomationParam('cutoff')"
+          title="Filter Cutoff"
+        >Cut</button>
+        <button
+          type="button"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'pan'"
+          (click)="setAutomationParam('pan')"
+          title="Pan"
+        >Pan</button>
+        <button
+          type="button"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'volume'"
+          (click)="setAutomationParam('volume')"
+          title="Volume"
+        >Vol</button>
+      </div>
+      <button
+        type="button"
+        class="pr-bezier-btn"
+        (click)="openBezierForCurrentLane()"
+        title="Edit bezier curve on this lane"
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span>Bezier</span>
+      </button>
+    </div>
     <div
       class="pr-velocity"
       #velocityViewport

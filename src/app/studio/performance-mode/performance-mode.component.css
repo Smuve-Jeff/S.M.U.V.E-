@@ -54,6 +54,46 @@
   text-align: right;
 }
 
+.perf-velo-zone {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #06091a;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.perf-midi-toggle {
+  background: transparent;
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  color: var(--espresso-muted);
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.perf-midi-toggle .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.perf-midi-toggle:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.perf-midi-toggle.active {
+  background: var(--teal-500);
+  border-color: var(--teal-500);
+  color: #06091a;
+}
+
 /* ---------- PAD GRID ---------- */
 .performance-grid {
   display: grid;
@@ -141,6 +181,40 @@
   margin-top: 2px;
 }
 
+.pad-midi-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 7px;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: var(--espresso-muted);
+  opacity: 0.5;
+  z-index: 2;
+  background: rgba(0,0,0,0.3);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.pad-velo-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  z-index: 2;
+  gap: 1px;
+}
+
+.pad-velo-segment {
+  height: 100%;
+  transition: opacity 0.2s;
+  border-radius: 1px;
+}
+
 .pad-status-indicator {
   position: absolute;
   bottom: 0;
@@ -159,6 +233,89 @@
 
 .performance-pad.loop {
   border-style: dashed;
+}
+
+/* ---------- MIDI MAPPING PANEL ---------- */
+.perf-midi-panel {
+  background: var(--ivory-panel, #14192e);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 10px;
+  padding: 12px 14px;
+  flex-shrink: 0;
+  animation: slideUp 0.25s ease-out;
+}
+
+.perf-midi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.perf-midi-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.perf-midi-help {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--espresso-muted);
+  opacity: 0.6;
+}
+
+.perf-midi-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perf-midi-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.perf-midi-pad-name {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+  min-width: 48px;
+}
+
+.perf-midi-slider {
+  flex: 1;
+  accent-color: var(--teal-500);
+  min-height: 20px;
+  max-width: 120px;
+}
+
+.perf-midi-note {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--teal-300);
+  min-width: 28px;
+  text-align: center;
+}
+
+.perf-midi-number {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--espresso-muted);
+  min-width: 24px;
+  text-align: right;
+  opacity: 0.5;
 }
 
 /* ---------- LONG-PRESS CONTEXT MENU ---------- */
@@ -203,7 +360,6 @@
 
 /* ---------- EMPTY STATE ---------- */
 .empty-state {
-  grid-column: span 4;
   text-align: center;
   padding: 4rem;
   color: var(--espresso-muted);

@@ -390,7 +390,9 @@
         </div>
       </ng-container>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">
-        <app-piano-roll></app-piano-roll>
+        <app-piano-roll
+          (openBezierEditor)="toggleBezierEditor($event)"
+        ></app-piano-roll>
       </div>
       <div class="comp-view" *ngSwitchCase="'drum-machine'">
         <app-drum-machine></app-drum-machine>

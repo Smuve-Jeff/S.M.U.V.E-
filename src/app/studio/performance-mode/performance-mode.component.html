@@ -1,7 +1,6 @@
 <!--
-  Performance Mode — Live clip launcher with velocity control
-  MPC-style pad grid with haptic feedback, long-press context
-  Ivory + Teal DAW theme, mobile-responsive
+  Performance Mode — Live clip launcher with velocity control + MIDI mapping
+  MPC-style pad grid with haptic feedback, long-press context, velocity zones
 -->
 <div class="performance-shell">
   <!-- VELOCITY STRIP -->
@@ -20,6 +19,29 @@
     <span class="perf-velo-readout"
       >{{ (activeVelocity() * 100).toFixed(0) }}%</span
     >
+    <!-- Velocity Zone Badge -->
+    <span
+      class="perf-velo-zone"
+      [style.background]="
+        currentVelocityZone() === 'soft'
+          ? '#2BA09C'
+          : currentVelocityZone() === 'medium'
+            ? '#0E7C7B'
+            : '#D97706'
+      "
+    >
+      {{ currentVelocityZone() | uppercase }}
+    </span>
+    <!-- MIDI Mapping Toggle -->
+    <button
+      type="button"
+      class="perf-midi-toggle"
+      [class.active]="showMidiMapping()"
+      (click)="toggleMidiMapping()"
+      title="MIDI note mapping"
+    >
+      <span class="material-symbols-outlined">piano</span>
+    </button>
   </div>
 
   <!-- PAD GRID -->
@@ -35,6 +57,13 @@
         'is-longpressed': longPressPadId() === pad.id,
       }"
       [style.--velo-scale]="activeVelocity()"
+      [style.--velo-zone-color]="
+        currentVelocityZone() === 'soft'
+          ? '#2BA09C'
+          : currentVelocityZone() === 'medium'
+            ? '#0E7C7B'
+            : '#D97706'
+      "
       (pointerdown)="onPointerDown(pad, $event)"
       (pointerup)="onPointerUp(pad, $event)"
       (pointerleave)="onPointerUp(pad, $event)"
@@ -50,6 +79,24 @@
     >
       <div class="pad-name">{{ pad.name || 'PAD' }}</div>
       <div class="pad-type">{{ pad.type === 'loop' ? 'LOOP' : '1-SHOT' }}</div>
+      <!-- MIDI note badge -->
+      @if (!showMidiMapping()) {
+        <div class="pad-midi-badge">{{ midiNoteName(midiNoteMap()[pad.id] ?? 36) }}</div>
+      }
+      <!-- Velocity zone indicator bar -->
+      <div class="pad-velo-bar">
+        @for (zone of velocityZones; track zone.zone) {
+          <div
+            class="pad-velo-segment"
+            [style.background]="zone.color"
+            [style.opacity]="
+              currentVelocityZone() === zone.zone ? '1' : '0.25'
+            "
+            [style.width]="(zone.range[1] - zone.range[0]) * 100 + '%'"
+            [title]="zone.label + ': ' + (zone.range[0] * 100).toFixed(0) + '%–' + (zone.range[1] * 100).toFixed(0) + '%'"
+          ></div>
+        }
+      </div>
       <div class="pad-status-indicator"></div>
 
       <!-- Long-press context menu -->
@@ -78,4 +125,36 @@
       <p>No performance pads mapped. Load an instrument or clips to begin.</p>
     </div>
   </div>
+
+  <!-- MIDI MAPPING PANEL (collapsible) -->
+  @if (showMidiMapping()) {
+    <div class="perf-midi-panel">
+      <div class="perf-midi-header">
+        <span class="perf-midi-title">MIDI NOTE MAP</span>
+        <span class="perf-midi-help">Assign MIDI note numbers (0–127) to pads</span>
+      </div>
+      <div class="perf-midi-grid">
+        @for (pad of pads; track pad.id) {
+          <div class="perf-midi-row">
+            <span class="perf-midi-pad-name">{{ pad.name }}</span>
+            <input
+              type="range"
+              class="perf-midi-slider"
+              min="0"
+              max="127"
+              step="1"
+              [value]="midiNoteMap()[pad.id] ?? 36"
+              (input)="setMidiNoteForPad(pad.id, +$any($event.target).value)"
+            />
+            <span class="perf-midi-note">{{
+              midiNoteName(midiNoteMap()[pad.id] ?? 36)
+            }}</span>
+            <span class="perf-midi-number">{{
+              midiNoteMap()[pad.id] ?? 36
+            }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>
