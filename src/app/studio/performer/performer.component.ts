@@ -383,9 +383,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
       this.activePointers.set(event.pointerId, midi);
     }
     // CRITICAL: Resume AudioContext if suspended (browser autoplay policy)
-    if (this.liveEngine['audioEngine']?.ctx?.state === 'suspended') {
-      this.liveEngine['audioEngine'].resume();
-    }
+    this.liveEngine.resumeContext();
     await this.liveEngine.initialize();
     const actualMidi = midi + this.octave() * 12;
     const velocity01 = this.velocity01();

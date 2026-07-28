@@ -47,6 +47,10 @@ export class LiveEngineService {
     if (this.isInitialized()) return;
 
     // Crucial: Sync Tone with our core Audio Engine context
+    if (!this.audioEngine.ctx || this.audioEngine.ctx.state === 'closed') {
+      this.logger.warn('LiveEngine: AudioEngine context unavailable');
+      return;
+    }
     if (Tone.getContext().rawContext !== this.audioEngine.ctx) {
       Tone.setContext(this.audioEngine.ctx);
     }
@@ -54,6 +58,25 @@ export class LiveEngineService {
     await Tone.start();
     this.isInitialized.set(true);
     this.setupMidi();
+
+    // ── Auto-load a default instrument so keyboard/pads play immediately ──
+    // Without this, triggerNoteStart() returns early because
+    // currentInstrumentNode is null — the most common reason for "no sound"
+    // on the piano keyboard.
+    if (!this.currentInstrumentNode) {
+      await this.setInstrument('grand-piano').catch(() => {
+        // Fallback: create a basic Tone.Synth if the preset can't be loaded
+        this.currentInstrumentNode = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: 'sine' },
+          envelope: { attack: 0.01, decay: 0.3, sustain: 0.6, release: 0.5 },
+        });
+        this.connectToFilter(
+          this.currentInstrumentNode,
+          2000
+        );
+        this.activeInstrument.set('grand-piano');
+      });
+    }
   }
 
   private setupMidi() {
@@ -158,6 +181,18 @@ export class LiveEngineService {
     const value = (msb << 7) | lsb;
     const normalized = (value - 8192) / 8192; // -1 to +1
     this.setPitchBend(normalized);
+  }
+
+  /** Public helper to resume the underlying AudioContext if suspended by browser autoplay policy. */
+  async resumeContext(): Promise<void> {
+    try {
+      if (this.audioEngine.ctx?.state === 'suspended') {
+        await this.audioEngine.ctx.resume();
+        this.logger.info('LiveEngine: AudioContext resumed');
+      }
+    } catch (e) {
+      this.logger.warn('LiveEngine: Could not resume AudioContext', e);
+    }
   }
 
   public midiToNote(midi: number): string {
