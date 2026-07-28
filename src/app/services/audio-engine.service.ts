@@ -173,13 +173,32 @@ export class AudioEngineService {
   public midiClockEnabled = signal(true);
   private djTracks = new Map<number, any>();
   private workletNode: AudioWorkletNode | null = null;
+  private masterWorkletNode: AudioWorkletNode | null = null;
+  private _masterWorkletLoaded = false;
+  readonly masterWorkletActive = signal(false);
+
+  /** Raw master bus node BEFORE the worklet (for metronome, reverb sends, etc.) */
+  private _preMasterGain = this.ctx.createGain();
 
   constructor() {
     this.deckA = this.createDeck('A');
     this.deckB = this.createDeck('B');
 
-    // ── Enhanced Mastering Chain (Ardour Inspired) ─────────────
-    this.masterGain.connect(this.compressor);
+    // ── Professional Mastering Chain ───────────────────────────
+    // Path: masterGain → preMasterGain → [master worklet OR fallback chain] → metering → destination
+    // The main-thread chain is retained as fallback; the worklet replaces it when loaded.
+
+    // Fallback chain (main-thread) — same as before
+    this.compressor = this.ctx.createDynamicsCompressor();
+    this.saturationNode = this.ctx.createWaveShaper();
+    this.limiter = this.ctx.createDynamicsCompressor();
+
+    // Master chain routing: masterGain → preMasterGain
+    this.masterGain.connect(this._preMasterGain);
+
+    // Build the fallback chain but don't connect it yet —
+    // the worklet will be preferred if it loads successfully
+    this._preMasterGain.connect(this.compressor);
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.quantumSaturation);
     this.quantumSaturation.connect(this.spectralExciter);
@@ -189,7 +208,7 @@ export class AudioEngineService {
     this.masterEQ.connect(this.masterShelf);
     this.masterShelf.connect(this.masterWidener);
 
-    // Metering Chain (K-Weighting for LUFS)
+    // Metering Chain (K-Weighting for LUFS) — after the mastering stage
     this.masterWidener.connect(this.lufsFilter1);
     this.lufsFilter1.connect(this.lufsFilter2);
     this.lufsFilter2.connect(this.lufsAnalyzer);
@@ -226,6 +245,7 @@ export class AudioEngineService {
 
     this.setSoftClip(0.1);
     this.setQuantumSaturation(0.0);
+    this.initMasterWorklet();
     this.initMidiOut();
     // Populate the sink enumeration so the transport-bar dropdown has options on first click.
     // Device labels stay empty until the user grants permission, but deviceId entries are still
@@ -252,45 +272,117 @@ export class AudioEngineService {
 
   toggleSmuveMode(active: boolean) {
     this.smuveModeActive.set(active);
-    if (active) {
-      this.configureCompressor({
-        threshold: -18,
-        ratio: 4,
-        attack: 0.01,
-        release: 0.1,
+    if (this.masterWorkletNode) {
+      this.masterWorkletNode.port.postMessage({
+        slot: 'preset',
+        payload: active ? 'smuve' : 'flat',
       });
-      this.configureLimiter({ threshold: -0.5, ratio: 20 });
-      this.setSaturation(0.2);
     } else {
-      this.configureCompressor({
-        threshold: -12,
-        ratio: 2,
-        attack: 0.02,
-        release: 0.2,
-      });
-      this.setSaturation(0.1);
+      if (active) {
+        this.configureCompressor({
+          threshold: -18,
+          ratio: 4,
+          attack: 0.01,
+          release: 0.1,
+        });
+        this.configureLimiter({ threshold: -0.5, ratio: 20 });
+        this.setSaturation(0.2);
+      } else {
+        this.configureCompressor({
+          threshold: -12,
+          ratio: 2,
+          attack: 0.02,
+          release: 0.2,
+        });
+        this.setSaturation(0.1);
+      }
     }
   }
 
   toggleQuantumMode(active: boolean) {
     this.quantumModeActive.set(active);
-    if (active) {
-      this.setQuantumSaturation(0.5);
-      this.spectralExciter.gain.setTargetAtTime(3, this.ctx.currentTime, 0.1);
-      this.subAtomicEnhancer.gain.setTargetAtTime(
-        1.1,
-        this.ctx.currentTime,
-        0.1
-      );
+    if (this.masterWorkletNode) {
+      this.masterWorkletNode.port.postMessage({
+        slot: 'preset',
+        payload: active ? 'quantum' : 'smuve',
+      });
     } else {
-      this.setQuantumSaturation(0);
-      this.spectralExciter.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
-      this.subAtomicEnhancer.gain.setTargetAtTime(
-        1.0,
-        this.ctx.currentTime,
-        0.1
+      if (active) {
+        this.setQuantumSaturation(0.5);
+        this.spectralExciter.gain.setTargetAtTime(3, this.ctx.currentTime, 0.1);
+        this.subAtomicEnhancer.gain.setTargetAtTime(
+          1.1,
+          this.ctx.currentTime,
+          0.1
+        );
+      } else {
+        this.setQuantumSaturation(0);
+        this.spectralExciter.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+        this.subAtomicEnhancer.gain.setTargetAtTime(
+          1.0,
+          this.ctx.currentTime,
+          0.1
+        );
+      }
+    }
+  }
+
+  /**
+   * Initialize the master bus AudioWorklet processor.
+   * Replaces the main-thread compressor/saturation/limiter/EQ chain
+   * with a single high-performance worklet running at native audio rate.
+   */
+  private async initMasterWorklet(): Promise<void> {
+    if (this._masterWorkletLoaded) return;
+
+    try {
+      await this.ctx.audioWorklet.addModule(
+        'assets/worklets/master-processor.worklet.js'
+      );
+    } catch (err: any) {
+      if (!err?.message?.includes('already')) {
+        console.warn(
+          'AudioEngine: Master worklet load failed, using main-thread fallback.',
+          err?.message
+        );
+        return;
+      }
+    }
+
+    try {
+      this.masterWorkletNode = new AudioWorkletNode(this.ctx, 'master-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCount: 2,
+        channelCountMode: 'explicit',
+        channelInterpretation: 'speakers',
+      });
+
+      // Re-route: disconnect the fallback chain and insert the worklet
+      this._preMasterGain.disconnect();
+
+      // New routing: preMasterGain → worklet → lufsFilter1 → ...
+      this._preMasterGain.connect(this.masterWorkletNode);
+      this.masterWorkletNode.connect(this.lufsFilter1);
+
+      // Apply default preset
+      this.masterWorkletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
+
+      this._masterWorkletLoaded = true;
+      this.masterWorkletActive.set(true);
+      this.logger.info('AudioEngine: Master worklet active — 5-band EQ, compressor, saturation, lookahead limiter.');
+    } catch (err: any) {
+      console.warn(
+        'AudioEngine: Master worklet node creation failed, using main-thread fallback.',
+        err?.message
       );
     }
+  }
+
+  /** Configure a specific slot on the master worklet */
+  configureMasterWorklet(slot: string, action: string, payload?: any): void {
+    if (!this.masterWorkletNode) return;
+    this.masterWorkletNode.port.postMessage({ slot, action, payload });
   }
 
   resume() {
