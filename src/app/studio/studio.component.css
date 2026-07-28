@@ -5,6 +5,8 @@
 
 /* ── Shared mobile UX base — applies to all sub-components ── */
 @import url('./shared/studio-mobile.css');
+/* ── Sprint 1 follow-up: panel-interior micro-interactions ── */
+@import url('./shell-panel-polish.css');
 
 :host {
   display: block;
