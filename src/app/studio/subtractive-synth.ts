@@ -52,6 +52,12 @@ export class SubtractiveSynth extends Instrument {
   private gainPool: NodePool<GainNode>;
   private filterPool: NodePool<BiquadFilterNode>;
 
+  // ── Phase 1 Latency: AudioWorklet Synth Processor ──────────
+  private workletNode: AudioWorkletNode | null = null;
+  private workletReady = false;
+  private useWorklet = false;
+  private nextNoteId = 0;
+
   constructor(audioContext: AudioContext, samplerEngine?: SamplerEngine) {
     super(audioContext, 12);
     this.samplerEngine = samplerEngine;
@@ -69,6 +75,28 @@ export class SubtractiveSynth extends Instrument {
     this.masterFilter.frequency.value = this.filterCutoff;
     this.masterFilter.Q.value = 1.0;
     this.masterFilter.connect(this.output);
+
+    // Kick off worklet loading (async, non-blocking)
+    this.initWorklet();
+  }
+
+  /** Initialize the AudioWorklet-based synth processor for sample-accurate DSP */
+  private async initWorklet(): Promise<void> {
+    try {
+      await this.audioContext.audioWorklet.addModule(
+        'assets/worklets/synth-processor.worklet.js'
+      );
+      this.workletNode = new AudioWorkletNode(
+        this.audioContext,
+        'synth-processor'
+      );
+      this.workletNode.connect(this.masterFilter);
+      this.workletReady = true;
+      this.useWorklet = true;
+    } catch (e) {
+      // Fallback: stay on main-thread oscillator nodes
+      console.debug('Synth worklet unavailable, using main-thread oscillators');
+    }
   }
 
   setSampleMap(map: SampleMap) {
@@ -81,8 +109,57 @@ export class SubtractiveSynth extends Instrument {
 
   play(note: number, velocity: number): void {
     const frequency = 440 * Math.pow(2, (note - 69) / 12);
-    const oscillators: OscillatorNode[] = [];
 
+    // ── Phase 1 Latency: Use AudioWorklet when available ──
+    if (this.useWorklet && this.workletReady && this.workletNode) {
+      const noteId = ++this.nextNoteId;
+      this.workletNode.port.postMessage({
+        type: 'NOTE_ON',
+        payload: {
+          noteId,
+          freq: frequency,
+          velocity: velocity / 127,
+          waveform: this.oscillatorType,
+          adsr: {
+            attack: this.envelope.attack,
+            decay: this.envelope.decay,
+            sustain: this.envelope.sustain,
+            release: this.envelope.release,
+          },
+          filterCutoff: this.filterCutoff,
+          filterQ: 1.0,
+          pan: 0,
+        },
+      });
+      this.voiceManager.addVoice({
+        note,
+        startTime: this.audioContext.currentTime,
+        stop: () => {
+          this.workletNode?.port.postMessage({
+            type: 'NOTE_OFF',
+            payload: { noteId, freq: frequency },
+          });
+        },
+      });
+      this.voices.set(note, {} as Voice); // placeholder for tracking
+
+      // Hybrid layer: sampler still runs main-thread
+      if (this.samplerEngine && this.activeSampleMap) {
+        const sampleGain = this.gainPool.get();
+        sampleGain.gain.value = this.sampleLayerMix;
+        sampleGain.connect(this.masterFilter);
+        this.samplerEngine.playNote(
+          this.activeSampleMap,
+          note,
+          velocity,
+          sampleGain
+        );
+      }
+      return;
+    }
+
+    // ── Fallback: main-thread oscillators ────────────────
+    const oscillators: OscillatorNode[] = [];
     const synthMix = 1.0 - (this.activeSampleMap ? this.sampleLayerMix : 0);
 
     for (let i = 0; i < this.numOscillators; i++) {
@@ -183,6 +260,22 @@ export class SubtractiveSynth extends Instrument {
   stop(note: number): void {
     const voice = this.voices.get(note);
     if (voice) {
+      // Worklet-managed voice: send NOTE_OFF, then remove after release
+      if (!voice.oscillators) {
+        const frequency = 440 * Math.pow(2, (note - 69) / 12);
+        this.workletNode?.port.postMessage({
+          type: 'NOTE_OFF',
+          payload: { noteId: note, freq: frequency },
+        });
+        // Let release envelope complete before cleanup
+        setTimeout(() => {
+          this.voices.delete(note);
+          this.voiceManager.removeVoice(note);
+        }, this.envelope.release * 1000 + 100);
+        return;
+      }
+
+      // Main-thread voice: standard cleanup
       this.envelope.releaseEnvelope(voice.gain);
       this.filterEnvelope.releaseParam(
         voice.filter.frequency,
@@ -212,7 +305,14 @@ export class SubtractiveSynth extends Instrument {
 
   /** Immediately stop all active voices (panic). */
   stopAll(): void {
+    // ── Phase 1 Latency: STOP_ALL via worklet ──
+    if (this.useWorklet && this.workletNode) {
+      this.workletNode.port.postMessage({ type: 'STOP_ALL' });
+    }
+
     this.voices.forEach((voice, note) => {
+      // Skip worklet-managed voices (they have no oscillators array)
+      if (!voice.oscillators) return;
       const now = this.audioContext.currentTime;
       voice.gain.gain.cancelScheduledValues(now);
       voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);

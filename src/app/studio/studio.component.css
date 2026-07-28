@@ -268,6 +268,73 @@
   display: none !important;
 }
 
+/* ── MIDI Widget in Side Rail ─────────────────────────── */
+.comp-rail-widget {
+  margin: 4px 0;
+  padding: 0;
+  border-top: 1px solid var(--espresso-line);
+  border-bottom: 1px solid var(--espresso-line);
+}
+.comp-rail-widget .midi-widget {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+.comp-rail-widget .midi-widget-header {
+  margin-bottom: 4px !important;
+}
+.comp-rail-widget .midi-widget-header .material-symbols-outlined {
+  font-size: 16px !important;
+}
+.comp-rail-widget .midi-widget-title {
+  font-size: 8px !important;
+  letter-spacing: 0.12em !important;
+}
+.comp-rail-widget .midi-widget-dot {
+  width: 6px !important;
+  height: 6px !important;
+}
+.comp-rail-widget .midi-widget-list {
+  gap: 2px !important;
+}
+.comp-rail-widget .midi-device-item {
+  padding: 3px 4px !important;
+  font-size: 10px !important;
+  border-radius: 6px !important;
+}
+.comp-rail-widget .midi-device-item .material-symbols-outlined {
+  font-size: 13px !important;
+}
+.comp-rail-widget .midi-device-name {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+}
+.comp-rail-widget .midi-note-display {
+  margin-top: 4px !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
+}
+.comp-rail-widget .midi-note-value {
+  font-size: 11px !important;
+}
+.comp-rail-widget .midi-note-vel {
+  font-size: 8px !important;
+}
+
+/* Collapsed rail: hide widget */
+.comp-rail.comp-rail-collapsed .comp-rail-widget {
+  display: none;
+}
+
+/* Dark mode rail widget */
+:host-context(.dark-mode) .comp-rail-widget .midi-widget,
+.dark-mode .comp-rail-widget .midi-widget {
+  background: transparent !important;
+}
+
 /* ---------- STAGE MARQUEE (concert visual) ---------- */
 .comp-stage-marquee {
   margin: 0;
