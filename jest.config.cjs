@@ -23,6 +23,10 @@ module.exports = {
       setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
       moduleNameMapper: {
         '^tone$': '<rootDir>/node_modules/tone/build/Tone.js',
+        // Intercept the ML worker factory so Jest never parses import.meta.url.
+        // Production code keeps using the real factory via Angular esbuild bundling.
+        '(^|[\\/])ml-worker-factory(\\.[jt]s)?$':
+          '<rootDir>/src/app/services/ml-worker-factory.mock.ts',
       },
       transformIgnorePatterns: ['node_modules/(?!tone|@angular|@ngneat)'],
     },

@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
+  "navigationUrls": [
+    "/**",
+    "!/api/**",
+    "!/assets/worklets/**",
+    "!/assets/wasm/**",
+    "!/native-bridge/**",
+    "!/__capacitor/**"
+  ],
   "assetGroups": [
     {
       "name": "app-shell",
@@ -61,6 +69,18 @@
         "maxSize": 10,
         "maxAge": "5m",
         "timeout": "15s"
+      }
+    },
+    {
+      "name": "worklets-and-wasm",
+      "urls": [
+        "/assets/worklets/**",
+        "/assets/wasm/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 100,
+        "maxAge": "30d"
       }
     }
   ]
