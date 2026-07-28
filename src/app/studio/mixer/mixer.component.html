@@ -88,6 +88,64 @@
     </p>
   </section>
 
+  <!-- Sprint 2 +: VCA bus rack. Rendered above the strip list when at least one
+       bus exists. Each bus is a row with name, fader (0..1.5), mute, count, delete. -->
+  <section
+    class="mix-vca-rack"
+    *ngIf="vcaBuses && vcaBuses.buses().length > 0"
+    aria-label="VCA bus rack"
+  >
+    <header class="mix-vca-header">
+      <span class="material-symbols-outlined">tune</span>
+      <h2>VCA BUSES</h2>
+      <button
+        type="button"
+        class="mix-vca-add"
+        (click)="createVcaBus()"
+        aria-label="Add VCA bus"
+      >
+        <span class="material-symbols-outlined">add</span>
+      </button>
+    </header>
+    <div class="mix-vca-row" *ngFor="let bus of vcaBuses.buses(); trackBy: trackBusById">
+      <div class="mix-vca-name" [title]="'VCA ' + bus.name">{{ bus.name }}</div>
+      <input
+        type="range"
+        class="mix-vca-fader"
+        min="0"
+        max="1.5"
+        step="0.01"
+        [value]="bus.faderValue"
+        (input)="onVcaFaderInput(bus.id, $event)"
+        [attr.aria-label]="'VCA fader for ' + bus.name"
+      />
+      <span class="mix-vca-readout">{{ (bus.faderValue * 100 | number: '1.0-0') }}%</span>
+      <span class="mix-vca-count" [attr.title]="(vcaBuses.assignedCountByBus()[bus.id] || 0) + ' tracks assigned'">
+        {{ vcaBuses.assignedCountByBus()[bus.id] || 0 }}↓
+      </span>
+      <button
+        type="button"
+        class="mix-vca-mute"
+        [class.mix-vca-mute-on]="bus.muted"
+        (click)="toggleVcaMute(bus.id)"
+        [attr.aria-pressed]="bus.muted"
+        [attr.aria-label]="bus.muted ? 'Unmute ' + bus.name : 'Mute ' + bus.name"
+        [title]="bus.muted ? 'Unmute' : 'Mute'"
+      >
+        <span class="material-symbols-outlined">{{ bus.muted ? 'volume_off' : 'volume_up' }}</span>
+      </button>
+      <button
+        type="button"
+        class="mix-vca-remove"
+        (click)="deleteVcaBus(bus.id)"
+        [attr.aria-label]="'Delete VCA ' + bus.name"
+        title="Delete bus"
+      >
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
+  </section>
+
   <div class="mix-strips" role="list" aria-label="Mixer channel strips">
     <div class="mix-strips-track">
       <!-- Channel strips -->

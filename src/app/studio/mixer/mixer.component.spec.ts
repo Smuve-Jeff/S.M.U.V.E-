@@ -37,7 +37,7 @@ describe('MixerComponent', () => {
       { id: 1, name: 'Track 1', gain: 1, pan: 0, mute: false, solo: false },
     ]),
     selectedTrackId: signal(1),
-    engine: { updateTrack: jest.fn(), applyProductionParameter: jest.fn() },
+    engine: { updateTrack: jest.fn(), applyProductionParameter: jest.fn(), setVcaMultiplier: jest.fn() },
     updateVolume: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),

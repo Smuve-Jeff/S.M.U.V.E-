@@ -16,6 +16,7 @@ import {
 } from '../../services/music-manager.service';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { MixerService } from '../mixer.service';
+import { VcaBusService } from '../vca-bus.service';
 import { HapticService } from '../../services/haptic.service';
 import { AiService } from '../../services/ai.service';
 import { Clip } from '../instrument.service';
@@ -39,6 +40,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly neuralMixer = inject(NeuralMixerService);
   private readonly haptic = inject(HapticService);
   public readonly mixerService = inject(MixerService);
+  public readonly vcaBuses = inject(VcaBusService);
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);
   readonly recordingStatus = inject(RecordingStatusService);
@@ -351,6 +353,69 @@ export class MixerComponent implements OnInit, OnDestroy {
   selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
     this.haptic.preset('snap');
+  }
+
+  // ── VCA bus handlers (Sprint 2 starter) ───────────────────────────────
+  /** Stable accessor so spec mocks without the audio-engine method still work. */
+  private get engineApi(): any {
+    return this.musicManager.engine;
+  }
+
+  /** Reapply every VCA bus's multiplier onto its assigned tracks. Idempotent. */
+  private refreshAllVcas(): void {
+    if (!this.vcaBuses) return;
+    const buses = this.vcaBuses.buses();
+    const fn = this.engineApi?.setVcaMultiplier;
+    if (typeof fn !== 'function') return;
+    for (const bus of buses) {
+      const value = bus.muted ? 0 : bus.faderValue;
+      const trackIds = this.vcaBuses.trackIdsForBus(bus.id);
+      for (const tid of trackIds) fn.call(this.engineApi, tid, value);
+    }
+    // Reset any unassigned tracks back to unity gain.
+    const assignments = this.vcaBuses.assignments();
+    for (const [tid, vcaId] of Object.entries(assignments)) {
+      if (vcaId == null) fn.call(this.engineApi, tid, 1);
+    }
+  }
+
+  createVcaBus(): void {
+    if (!this.vcaBuses) return;
+    this.vcaBuses.createBus(`VCA ${this.vcaBuses.busCount() + 1}`);
+  }
+
+  deleteVcaBus(busId: string): void {
+    if (!this.vcaBuses) return;
+    this.vcaBuses.deleteBus(busId);
+    this.refreshAllVcas();
+  }
+
+  onVcaFaderInput(busId: string, evt: Event): void {
+    if (!this.vcaBuses) return;
+    const value = parseFloat((evt.target as HTMLInputElement).value);
+    if (Number.isNaN(value)) return;
+    this.vcaBuses.setBusFader(busId, value);
+    this.refreshAllVcas();
+  }
+
+  toggleVcaMute(busId: string): void {
+    if (!this.vcaBuses) return;
+    this.vcaBuses.toggleBusMute(busId);
+    this.refreshAllVcas();
+  }
+
+  onAssignTrackToVca(trackId: string, busId: string): void {
+    if (!this.vcaBuses) return;
+    const fn = this.engineApi?.setVcaMultiplier;
+    if (busId === '' || busId === 'none') {
+      this.vcaBuses.unassignTrack(trackId);
+      if (typeof fn === 'function') fn.call(this.engineApi, trackId, 1);
+    } else {
+      this.vcaBuses.assignTrack(trackId, busId);
+      const bus = this.vcaBuses.buses().find((b) => b.id === busId);
+      const value = bus ? (bus.muted ? 0 : bus.faderValue) : 1;
+      if (typeof fn === 'function') fn.call(this.engineApi, trackId, value);
+    }
   }
   toggleMute(id: string): void {
     this.haptic.preset('muteFlash');

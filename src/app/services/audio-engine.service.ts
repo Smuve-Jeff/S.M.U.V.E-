@@ -119,6 +119,53 @@ export class AudioEngineService {
   private trackSendAGains = new Map<string, GainNode>();
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
+  /** Per-track *base* (pre-VCA) gain. Stored separately so VCA bus multiplier
+   *  can re-multiply without drifting across fader edits. */
+  private baseFaderGains = new Map<string, number>();
+  /** Cached VCA multiplier per-track, evaluated lazily from VcaBusService.assignments. */
+  private vcaMultipliers = new Map<string, number>();
+  /** 20ms ramp window for VCA fader smoothing (avoids audio pops). */
+  private static readonly VCA_RAMP_SECONDS = 0.02;
+
+  /**
+   * Apply a VCA multiplier onto a single track's fader gain node.
+   * Base + multiplier stored in their own maps so consecutive calls do not drift.
+   */
+  setVcaMultiplier(trackId: string, multiplier: number): void {
+    const clamped = Math.max(0, Math.min(1.5, multiplier));
+    this.vcaMultipliers.set(trackId, clamped);
+    const gain = this.trackFaderGains.get(trackId);
+    if (!gain) return;
+    const base = this.baseFaderGains.get(trackId) ?? gain.gain.value;
+    const target = Math.max(0, Math.min(1.5, base * clamped));
+    const now = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(target, now + AudioEngineService.VCA_RAMP_SECONDS);
+  }
+
+  /** Read-only inspector for mixer UI / tests. */
+  getVcaMultiplier(trackId: string): number {
+    return this.vcaMultipliers.get(trackId) ?? 1;
+  }
+
+  /**
+   * Persist the post-fader *base* gain on a track. Called whenever the
+   * track fader changes (UI drag, resetAllLevels, etc). The VCA multiplier
+   * is reapplied on top of this base value.
+   */
+  setBaseFaderGain(trackId: string, baseGain: number): void {
+    const clamped = Math.max(0, Math.min(1.5, baseGain));
+    this.baseFaderGains.set(trackId, clamped);
+    const gain = this.trackFaderGains.get(trackId);
+    if (!gain) return;
+    const multiplier = this.vcaMultipliers.get(trackId) ?? 1;
+    const target = clamped * multiplier;
+    const now = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(target, now + AudioEngineService.VCA_RAMP_SECONDS);
+  }
   private trackPhaseNodes = new Map<string, GainNode>();
   private trackWidthNodes = new Map<string, StereoPannerNode>();
   private trackFaderGains = new Map<string, GainNode>();
