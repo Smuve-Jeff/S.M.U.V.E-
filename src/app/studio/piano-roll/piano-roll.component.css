@@ -628,6 +628,129 @@
   background: #0a0f22;
 }
 
+/* ----- CC LANE STRIP ----- */
+.pr-cc-strip {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--ivory-panel, #0e1228);
+  border-top: 1px solid var(--ivory-line);
+  border-bottom: 1px solid var(--ivory-line);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.pr-cc-lane {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pr-cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pr-cc-label {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pr-cc-bezier {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  color: var(--lane-color, #2BA09C);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.pr-cc-bezier:hover {
+  background: var(--lane-color, #2BA09C);
+  color: #06091a;
+}
+
+.pr-cc-bezier .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.pr-cc-track {
+  height: 24px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.pr-cc-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 0 0 4px 4px;
+  opacity: 0.5;
+  transition: height 0.1s;
+}
+
+.pr-cc-toggle-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--ivory-panel);
+  border-top: 1px solid var(--ivory-line);
+  flex-shrink: 0;
+}
+
+.pr-cc-toggle-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  margin-right: 4px;
+}
+
+.pr-cc-toggle-btn {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--ivory-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.12s;
+  min-height: 24px;
+}
+
+.pr-cc-toggle-btn:hover {
+  border-color: var(--lane-color, #2BA09C);
+  color: var(--lane-color, #2BA09C);
+}
+
+.pr-cc-toggle-btn.active {
+  background: var(--lane-color, #2BA09C);
+  color: #06091a;
+  border-color: var(--lane-color, #2BA09C);
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 768px) {
   .pr-keys {

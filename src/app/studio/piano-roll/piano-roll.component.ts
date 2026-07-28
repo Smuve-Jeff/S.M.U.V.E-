@@ -205,6 +205,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.openBezierForCurrentLane();
   }
 
+  // ── CC Lane Strip (4 lanes: Mod, Expression, Pan, Cutoff) ──
+  ccLanes = [
+    { id: 'mod', label: 'Mod', cc: 1, color: '#A855F7', param: 'modulation' },
+    { id: 'expr', label: 'Expr', cc: 11, color: '#EC4899', param: 'expression' },
+    { id: 'pan', label: 'Pan', cc: 10, color: '#2BA09C', param: 'pan' },
+    { id: 'cut', label: 'Cut', cc: 74, color: '#D97706', param: 'cutoff' },
+  ] as const;
+
+  showCcLane = signal(false);
+  activeCcLane = signal<string | null>(null);
+
+  toggleCcLane(laneId: string): void {
+    if (this.activeCcLane() === laneId) {
+      this.activeCcLane.set(null);
+      this.showCcLane.set(false);
+    } else {
+      this.activeCcLane.set(laneId);
+      this.showCcLane.set(true);
+    }
+    this.haptic.light();
+  }
+
+  openBezierForCcLane(laneId: string): void {
+    const trackId = this.selectedTrack()?.id || 'main';
+    const fullLaneId = `${trackId}_cc_${laneId}`;
+    this.openBezierEditor.emit(fullLaneId);
+    this.haptic.light();
+  }
+
   highlightedRange = computed(
     () => this.musicManager.crossLinkRequest()?.noteRange ?? null
   );

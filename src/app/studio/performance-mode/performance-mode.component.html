@@ -1,6 +1,7 @@
 <!--
   Performance Mode — Live clip launcher with velocity control + MIDI mapping
-  MPC-style pad grid with haptic feedback, long-press context, velocity zones
+  MPC-style pad grid with haptic feedback, long-press context, velocity zones,
+  MIDI Learn Mode, and pressure-sensitive pads
 -->
 <div class="performance-shell">
   <!-- VELOCITY STRIP -->
@@ -17,8 +18,18 @@
       aria-label="Pad velocity"
     />
     <span class="perf-velo-readout"
-      >{{ (activeVelocity() * 100).toFixed(0) }}%</span
+      >{{ (effectiveVelocity() * 100).toFixed(0) }}%</span
     >
+    <!-- Pressure indicator -->
+    @if (activePressure() > 0) {
+      <span
+        class="perf-pressure-indicator"
+        [style.--pressure-scale]="activePressure()"
+        title="Pressure: {{ (activePressure() * 100).toFixed(0) }}%"
+      >
+        <span class="perf-pressure-fill" [style.width.%]="activePressure() * 100"></span>
+      </span>
+    }
     <!-- Velocity Zone Badge -->
     <span
       class="perf-velo-zone"
@@ -37,6 +48,7 @@
       type="button"
       class="perf-midi-toggle"
       [class.active]="showMidiMapping()"
+      [class.learn-active]="isLearnMode()"
       (click)="toggleMidiMapping()"
       title="MIDI note mapping"
     >
@@ -55,8 +67,10 @@
         'one-shot': pad.type === 'one-shot',
         active: pad.isPlaying,
         'is-longpressed': longPressPadId() === pad.id,
+        'is-learning': isPadLearning(pad.id),
+        'is-pressed': pressedPadId() === pad.id,
       }"
-      [style.--velo-scale]="activeVelocity()"
+      [style.--velo-scale]="effectiveVelocity()"
       [style.--velo-zone-color]="
         currentVelocityZone() === 'soft'
           ? '#2BA09C'
@@ -65,6 +79,7 @@
             : '#D97706'
       "
       (pointerdown)="onPointerDown(pad, $event)"
+      (pointermove)="onPointerMove(pad, $event)"
       (pointerup)="onPointerUp(pad, $event)"
       (pointerleave)="onPointerUp(pad, $event)"
       (contextmenu)="onContextMenu(pad); $event.preventDefault()"
@@ -83,6 +98,10 @@
       @if (!showMidiMapping()) {
         <div class="pad-midi-badge">{{ midiNoteName(midiNoteMap()[pad.id] ?? 36) }}</div>
       }
+      <!-- Learn mode indicator -->
+      @if (isPadLearning(pad.id)) {
+        <div class="pad-learn-badge">LEARN</div>
+      }
       <!-- Velocity zone indicator bar -->
       <div class="pad-velo-bar">
         @for (zone of velocityZones; track zone.zone) {
@@ -97,6 +116,13 @@
           ></div>
         }
       </div>
+      <!-- Pressure-reactive bar -->
+      <div class="pad-pressure-bar">
+        <div
+          class="pad-pressure-fill"
+          [style.width.%]="pressedPadId() === pad.id ? activePressure() * 100 : 0"
+        ></div>
+      </div>
       <div class="pad-status-indicator"></div>
 
       <!-- Long-press context menu -->
@@ -108,6 +134,13 @@
             (click)="triggerPad(pad); dismissLongPress()"
           >
             ▶ Play
+          </button>
+          <button
+            type="button"
+            class="pad-ctx-btn"
+            (click)="startLearnMode(pad.id); dismissLongPress()"
+          >
+            <span class="ctx-icon">🎯</span> MIDI Learn
           </button>
           <button
             type="button"
@@ -135,7 +168,7 @@
       </div>
       <div class="perf-midi-grid">
         @for (pad of pads; track pad.id) {
-          <div class="perf-midi-row">
+          <div class="perf-midi-row" [class.learning]="isPadLearning(pad.id)">
             <span class="perf-midi-pad-name">{{ pad.name }}</span>
             <input
               type="range"
@@ -152,9 +185,34 @@
             <span class="perf-midi-number">{{
               midiNoteMap()[pad.id] ?? 36
             }}</span>
+            <!-- Learn button per pad -->
+            <button
+              type="button"
+              class="perf-learn-btn"
+              [class.active]="isPadLearning(pad.id)"
+              (click)="isPadLearning(pad.id) ? cancelLearnMode() : startLearnMode(pad.id)"
+              title="MIDI Learn — tap this then press a key on your MIDI controller"
+            >
+              @if (isPadLearning(pad.id)) {
+                <span class="learn-pulse">● LISTENING</span>
+              } @else {
+                <span>🎯 Learn</span>
+              }
+            </button>
           </div>
         }
       </div>
+      @if (isLearnMode()) {
+        <div class="perf-learn-status">
+          <span class="learn-dot"></span>
+          Waiting for MIDI note... tap a key on your controller
+          <button
+            type="button"
+            class="perf-learn-cancel"
+            (click)="cancelLearnMode()"
+          >Cancel</button>
+        </div>
+      }
     </div>
   }
 </div>

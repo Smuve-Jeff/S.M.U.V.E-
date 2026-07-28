@@ -56,6 +56,59 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   velocityZones = VELOCITY_ZONES;
 
+  // ── Pressure-sensitive pads ───────────────────────────────
+  /** Current touch pressure (0..1 from PointerEvent.pressure) */
+  activePressure = signal(0);
+  /** Pad id currently being pressed */
+  pressedPadId = signal<number | null>(null);
+
+  /** Combined velocity = base slider velocity modulated by pressure */
+  effectiveVelocity = computed(() => {
+    const base = this.activeVelocity();
+    const pressure = this.activePressure();
+    // If pressure is available, modulate velocity by it
+    if (pressure > 0) {
+      // Pressure 0.5 = base velocity, <0.5 = softer, >0.5 = harder
+      return Math.max(0.1, Math.min(1.0, base * (0.5 + pressure)));
+    }
+    return base;
+  });
+
+  // ── MIDI Learn Mode ──────────────────────────────────────
+  isLearnMode = signal(false);
+  /** Pad id we're currently trying to assign a MIDI note to via learn */
+  selectedLearnPadId = signal<number | null>(null);
+  private learnTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly LEARN_TIMEOUT_MS = 15000;
+
+  /** Start MIDI learn mode for a specific pad. Next MIDI note-on auto-assigns. */
+  startLearnMode(padId: number): void {
+    this.isLearnMode.set(true);
+    this.selectedLearnPadId.set(padId);
+    this.haptic.medium();
+
+    // Auto-cancel after timeout
+    if (this.learnTimeout) clearTimeout(this.learnTimeout);
+    this.learnTimeout = setTimeout(() => {
+      this.cancelLearnMode();
+    }, this.LEARN_TIMEOUT_MS);
+  }
+
+  cancelLearnMode(): void {
+    this.isLearnMode.set(false);
+    this.selectedLearnPadId.set(null);
+    if (this.learnTimeout) {
+      clearTimeout(this.learnTimeout);
+      this.learnTimeout = null;
+    }
+    this.haptic.light();
+  }
+
+  /** Returns true if the given pad is the one being learned */
+  isPadLearning(padId: number): boolean {
+    return this.isLearnMode() && this.selectedLearnPadId() === padId;
+  }
+
   // ── MIDI Note Mapping ─────────────────────────────────────
   showMidiMapping = signal(false);
   /** Map each pad id to a MIDI note number (36=C2 baseline). */
@@ -74,6 +127,21 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   /** Find the pad whose MIDI note matches the incoming note-on. */
   private handleMidiNoteOn(note: number, velocity: number): void {
+    // ── MIDI Learn: capture the first MIDI note and assign to selected pad ──
+    if (this.isLearnMode()) {
+      const learnPadId = this.selectedLearnPadId();
+      if (learnPadId !== null) {
+        this.midiNoteMap.update((m) => ({
+          ...m,
+          [learnPadId]: Math.max(0, Math.min(127, Math.round(note))),
+        }));
+        this.haptic.heavy();
+        this.cancelLearnMode();
+        return;
+      }
+    }
+
+    // ── Normal mode: find pad by mapped note ──
     const map = this.midiNoteMap();
     const padId = Object.entries(map).find(([, n]) => n === note)?.[0];
     if (!padId) return;
@@ -105,6 +173,14 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   onPointerDown(pad: PerformancePad, event: PointerEvent): void {
     event.preventDefault();
+    this.pressedPadId.set(pad.id);
+
+    // ── Pressure sensing ──
+    // PointerEvent.pressure: 0 = no pressure, 0.5 = normal click,
+    // 1.0 = full pressure. Touch screens report ~0.5 for normal touch.
+    const pressure = event.pressure ?? 0.5;
+    this.activePressure.set(Math.max(0, Math.min(1, pressure)));
+
     this.longPressPadId.set(null);
     this.longPressTimer = setTimeout(() => {
       this.haptic.heavy();
@@ -112,8 +188,18 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
     }, this.LONG_PRESS_MS);
   }
 
+  onPointerMove(pad: PerformancePad, event: PointerEvent): void {
+    // Update pressure continuously during drag/touch
+    if (this.pressedPadId() !== pad.id) return;
+    const pressure = event.pressure ?? 0.5;
+    this.activePressure.set(Math.max(0, Math.min(1, pressure)));
+  }
+
   onPointerUp(pad: PerformancePad, event: PointerEvent): void {
     event.preventDefault();
+    this.pressedPadId.set(null);
+    this.activePressure.set(0);
+
     if (this.longPressTimer) {
       clearTimeout(this.longPressTimer);
       this.longPressTimer = null;
@@ -153,7 +239,7 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Restore original handler (or no-op) on teardown
+    if (this.learnTimeout) clearTimeout(this.learnTimeout);
     // This component is hosted persistently in the studio, so this is a safety net.
   }
 }

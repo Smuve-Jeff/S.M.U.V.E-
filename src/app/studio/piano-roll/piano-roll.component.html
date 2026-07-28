@@ -232,6 +232,49 @@
         <span>Bezier</span>
       </button>
     </div>
+
+    <!-- CC LANE STRIP (4 lanes: Mod, Expression, Pan, Cutoff) -->
+    <div class="pr-cc-strip" *ngIf="showCcLane()">
+      <div class="pr-cc-lane" *ngFor="let lane of ccLanes">
+        <div class="pr-cc-header">
+          <span
+            class="pr-cc-label"
+            [style.color]="lane.color"
+          >{{ lane.label }} (CC{{ lane.cc }})</span>
+          <button
+            type="button"
+            class="pr-cc-bezier"
+            (click)="openBezierForCcLane(lane.id)"
+            [style.--lane-color]="lane.color"
+            title="Edit bezier curve for {{ lane.label }}"
+          >
+            <span class="material-symbols-outlined">auto_awesome</span>
+          </button>
+        </div>
+        <div class="pr-cc-track">
+          <div
+            class="pr-cc-fill"
+            [style.background]="lane.color"
+            [style.height.%]="50"
+          ></div>
+        </div>
+      </div>
+    </div>
+    <!-- CC lane toggle button -->
+    <div class="pr-cc-toggle-bar">
+      <span class="pr-cc-toggle-label">CC Lanes</span>
+      <button
+        type="button"
+        *ngFor="let lane of ccLanes"
+        class="pr-cc-toggle-btn"
+        [class.active]="activeCcLane() === lane.id"
+        [style.--lane-color]="lane.color"
+        (click)="toggleCcLane(lane.id)"
+        [title]="lane.label + ' (CC' + lane.cc + ')'"
+      >
+        {{ lane.label }}
+      </button>
+    </div>
     <div
       class="pr-velocity"
       #velocityViewport
