@@ -1571,4 +1571,22 @@ export class AudioEngineService {
     }
     return this.recordingDestination;
   }
+
+  /**
+   * Adjust a single track's aux-send level (A or B) with the same drift-safe
+   * exponential ramp the existing updateTrack() path uses. No-op if the
+   * track has not yet been initialized into the send map.
+   *
+   * Clamps to [0, 1.5] to match VCA bus range. Existing shrink pathways
+   * (TrackModel.sendA/sendB → updateTrack → setTargetAtTime) remain unchanged;
+   * this is a fast narrow entry point for live aux-send nudging from the mixer.
+   */
+  setSendLevel(trackId: string, sendId: 'A' | 'B', level: number): void {
+    if (sendId !== 'A' && sendId !== 'B') return;
+    const safe = Math.max(0, Math.min(1.5, level));
+    const map = sendId === 'A' ? this.trackSendAGains : this.trackSendBGains;
+    const node = map.get(String(trackId));
+    if (!node) return;
+    node.gain.setTargetAtTime(safe, this.ctx.currentTime, 0.05);
+  }
 }
