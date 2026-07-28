@@ -64,7 +64,7 @@ export class StudioRecordingEngineService implements OnDestroy {
 
       try {
         await ctx.audioWorklet.addModule(
-          'assets/worklets/recording-processor.js'
+          'assets/worklets/recording-processor.worklet.js'
         );
       } catch (e) {
         this.logger.warn(

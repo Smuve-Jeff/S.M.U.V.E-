@@ -210,6 +210,26 @@ export class SubtractiveSynth extends Instrument {
     }
   }
 
+  /** Immediately stop all active voices (panic). */
+  stopAll(): void {
+    this.voices.forEach((voice, note) => {
+      const now = this.audioContext.currentTime;
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+      // Fast release (5ms) for panic
+      voice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
+      voice.oscillators.forEach((osc) => {
+        try { osc.stop(now + 0.01); } catch (e) {}
+      });
+      if (voice.subOscillator) {
+        try { voice.subOscillator.stop(now + 0.01); } catch (e) {}
+      }
+      setTimeout(() => this.executeStop(voice), 20);
+    });
+    this.voices.clear();
+    this.voiceManager.clear();
+  }
+
   private executeStop(voice: Voice) {
     voice.oscillators.forEach((osc) => {
       try {

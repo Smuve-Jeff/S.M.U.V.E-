@@ -245,124 +245,15 @@
       (touchstart)="onGridTouchStart($event)"
       (touchmove)="onGridTouchMove($event)"
       (touchend)="onGridTouchEnd()"
+      (pointerdown)="onGridPointerDown($event)"
+      (wheel)="onGridWheel($event)"
     >
-      <div
-        class="grid-canvas"
+      <canvas
+        #glCanvas
+        class="gl-canvas"
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
-        [style.background-size]="barWidth() + 'px ' + laneHeight() + 'px'"
-      >
-        <div class="scanline-overlay"></div>
-
-        <div class="time-ruler">
-          <div
-            *ngFor="let bar of bars()"
-            class="ruler-bar"
-            [style.width.px]="barWidth()"
-          >
-            {{ bar + 1 }}
-          </div>
-        </div>
-
-        <div
-          *ngFor="
-            let track of tracks().filter(
-              (t) =>
-                !t.parentId ||
-                !tracks().find((p) => p.id === t.parentId)?.collapsed
-            )
-          "
-          class="lane-group relative"
-        >
-          <!-- Main Lane -->
-          <div
-            class="lane-row relative border-b border-white/5"
-            [style.height.px]="laneHeight()"
-            (pointerdown)="onLanePointerDown($event, track)"
-          >
-            <div
-              *ngFor="let clip of track.clips"
-              class="clip-item absolute executive-glass shadow-v42-xl tactile-v42"
-              [class.selected-clip]="selectedClipIds().has(clip.id)"
-              [class.is-crosslinked]="isClipCrosslinked(track, clip)"
-              [style.left.px]="clip.start * barWidth()"
-              [style.width.px]="clip.length * barWidth()"
-              [style.background-color]="
-                (clip.color || track.color || '#af25f4') + '44'
-              "
-              [style.border-color]="clip.color || track.color || '#af25f4'"
-              (pointerdown)="onClipPointerDown($event, track.id, clip)"
-              (dblclick)="
-                crossLinkToPianoRoll(track, clip); $event.stopPropagation()
-              "
-            >
-              <div
-                class="clip-header flex justify-between items-center px-1 py-0.5"
-              >
-                <span class="clip-title truncate">{{
-                  clipLabel(track, clip) | uppercase
-                }}</span>
-                <span
-                  *ngIf="clip.isComp"
-                  class="comp-badge text-[7px] bg-brand-primary text-black px-1 rounded"
-                  >COMP</span
-                >
-              </div>
-              <button
-                type="button"
-                class="av-clip-edit-pr"
-                title="Open this clip in Piano Roll"
-                aria-label="Open this clip in Piano Roll editor"
-                (click)="
-                  crossLinkToPianoRoll(track, clip); $event.stopPropagation()
-                "
-              >
-                <span class="material-symbols-outlined">arrow_outward</span>
-              </button>
-              <div
-                class="clip-content relative flex-1 overflow-hidden pointer-events-none"
-              >
-                <!-- Waveform or MIDI dots -->
-                <div
-                  class="waveform-pro opacity-40 h-full w-full bg-white/5 flex items-center justify-center"
-                >
-                  <span class="material-symbols-outlined text-xs opacity-20">{{
-                    clip.type === 'midi' ? 'piano' : 'waves'
-                  }}</span>
-                </div>
-              </div>
-              <div class="resize-handle"></div>
-            </div>
-          </div>
-
-          <!-- Takes Lanes (Expanded) -->
-          <div
-            *ngIf="musicManager.takesExpanded()[track.id]"
-            class="takes-lanes bg-black/20"
-          >
-            <div
-              *ngFor="let take of track.clips[0]?.takes"
-              class="take-row relative border-b border-white/5 opacity-60 hover:opacity-100"
-              [style.height.px]="laneHeight() * 0.6"
-            >
-              <div
-                class="take-clip absolute h-[80%] top-[10%] rounded bg-white/10 border border-white/20"
-                [style.left.px]="track.clips[0].start * barWidth()"
-                [style.width.px]="track.clips[0].length * barWidth()"
-                (click)="promoteTake(track.id, track.clips[0].id, take.id)"
-              >
-                <span class="take-label text-[8px] px-1">{{ take.name }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="playhead absolute bottom-0 w-px bg-white extreme-glow"
-          [style.left.px]="playheadPos()"
-          [style.top.px]="rulerHeight"
-        ></div>
-      </div>
+      ></canvas>
     </div>
   </div>
 </div>

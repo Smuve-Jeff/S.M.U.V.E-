@@ -255,6 +255,20 @@ export class AdvancedSynth extends Instrument {
     }
   }
 
+  /** Immediately stop all active voices (panic). */
+  stopAll(): void {
+    this.voices.forEach((voice, note) => {
+      const now = this.audioContext.currentTime;
+      voice.ampGain.gain.cancelScheduledValues(now);
+      voice.ampGain.gain.setValueAtTime(voice.ampGain.gain.value, now);
+      // Fast release (5ms) for panic
+      voice.ampGain.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
+      setTimeout(() => this.executeStop(voice), 10);
+    });
+    this.voices.clear();
+    this.voiceManager.clear();
+  }
+
   private executeStop(voice: any) {
     if (voice.sampleStop1) voice.sampleStop1();
     if (voice.sampleStop2) voice.sampleStop2();

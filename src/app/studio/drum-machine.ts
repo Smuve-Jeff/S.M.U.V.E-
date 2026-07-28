@@ -102,6 +102,17 @@ export class DrumMachine extends Instrument {
     }
   }
 
+  /** Stop all voices and clear any running roll intervals (panic). */
+  stopAll(): void {
+    // Stop all drum roll intervals
+    this.rollIntervals.forEach((interval, pitch) => {
+      clearInterval(interval);
+    });
+    this.rollIntervals.clear();
+    // Clear voice manager
+    this.voiceManager.clear();
+  }
+
   getPads() {
     return this.pads;
   }

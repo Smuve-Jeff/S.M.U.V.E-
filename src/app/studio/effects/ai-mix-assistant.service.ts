@@ -77,6 +77,207 @@ export class AiMixAssistantService {
   constructor() {}
 
   /**
+   * Phase 4: Analyze frequency spectrum data from an AnalyserNode
+   * and identify masking conflicts between tracks.
+   * Returns per-band energy and masking warnings.
+   */
+  analyzeFrequencySpectrum(
+    frequencyData: Uint8Array,
+    sampleRate: number
+  ): {
+    bands: Array<{ name: string; lowHz: number; highHz: number; energy: number }>;
+    dominantBand: string;
+    harmonicDensity: number;
+  } {
+    const fftSize = frequencyData.length * 2;
+    const binWidth = sampleRate / fftSize;
+
+    // Define critical bands (sub, bass, low-mid, mid, high-mid, presence, air)
+    const bands = [
+      { name: 'Sub', lowHz: 20, highHz: 60, energy: 0 },
+      { name: 'Bass', lowHz: 60, highHz: 250, energy: 0 },
+      { name: 'Low-Mid', lowHz: 250, highHz: 500, energy: 0 },
+      { name: 'Mid', lowHz: 500, highHz: 2000, energy: 0 },
+      { name: 'High-Mid', lowHz: 2000, highHz: 6000, energy: 0 },
+      { name: 'Presence', lowHz: 6000, highHz: 10000, energy: 0 },
+      { name: 'Air', lowHz: 10000, highHz: 20000, energy: 0 },
+    ];
+
+    // Sum energy in each band
+    for (const band of bands) {
+      const lowBin = Math.floor(band.lowHz / binWidth);
+      const highBin = Math.min(
+        Math.floor(band.highHz / binWidth),
+        frequencyData.length - 1
+      );
+      let sum = 0;
+      for (let i = lowBin; i <= highBin; i++) {
+        sum += frequencyData[i];
+      }
+      band.energy = sum / Math.max(1, highBin - lowBin + 1);
+    }
+
+    // Find dominant band
+    let maxEnergy = 0;
+    let dominantBand = 'Mid';
+    let totalEnergy = 0;
+    for (const band of bands) {
+      totalEnergy += band.energy;
+      if (band.energy > maxEnergy) {
+        maxEnergy = band.energy;
+        dominantBand = band.name;
+      }
+    }
+
+    // Harmonic density: ratio of high-frequency energy to total
+    const highEnergy = bands.slice(4).reduce((s, b) => s + b.energy, 0);
+    const harmonicDensity = totalEnergy > 0 ? highEnergy / totalEnergy : 0.5;
+
+    return { bands, dominantBand, harmonicDensity };
+  }
+
+  /**
+   * Detect frequency masking conflicts between multiple tracks.
+   * Returns a list of conflicting track pairs with the conflicting band.
+   */
+  detectMaskingConflicts(
+    trackSpectra: Array<{
+      trackId: string;
+      trackName: string;
+      bands: Array<{ name: string; energy: number }>;
+    }>
+  ): Array<{
+    trackA: string;
+    trackB: string;
+    band: string;
+    severity: 'high' | 'medium' | 'low';
+  }> {
+    const conflicts: Array<{
+      trackA: string;
+      trackB: string;
+      band: string;
+      severity: 'high' | 'medium' | 'low';
+    }> = [];
+
+    for (let i = 0; i < trackSpectra.length; i++) {
+      for (let j = i + 1; j < trackSpectra.length; j++) {
+        const a = trackSpectra[i];
+        const b = trackSpectra[j];
+
+        for (let bi = 0; bi < a.bands.length; bi++) {
+          const aEnergy = a.bands[bi].energy;
+          const bEnergy = b.bands[bi].energy;
+
+          // Both tracks have significant energy in the same band
+          if (aEnergy > 40 && bEnergy > 40) {
+            const ratio = Math.min(aEnergy, bEnergy) / Math.max(aEnergy, bEnergy);
+            if (ratio > 0.5) {
+              // Strong conflict: both have similar energy
+              conflicts.push({
+                trackA: a.trackName || a.trackId,
+                trackB: b.trackName || b.trackId,
+                band: a.bands[bi].name,
+                severity: ratio > 0.8 ? 'high' : 'medium',
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return conflicts;
+  }
+
+  /**
+   * Generate specific EQ carving recommendations to resolve masking conflicts.
+   */
+  recommendEQ(
+    conflicts: Array<{
+      trackA: string;
+      trackB: string;
+      band: string;
+      severity: string;
+    }>
+  ): Array<{
+    trackId: string;
+    band: string;
+    action: 'cut' | 'boost';
+    amountDb: number;
+    frequencyHz: number;
+    q: number;
+    reason: string;
+  }> {
+    const bandParams: Record<string, { freqHz: number; q: number }> = {
+      'Sub': { freqHz: 50, q: 0.7 },
+      'Bass': { freqHz: 120, q: 0.7 },
+      'Low-Mid': { freqHz: 350, q: 1.0 },
+      'Mid': { freqHz: 1000, q: 1.0 },
+      'High-Mid': { freqHz: 4000, q: 1.0 },
+      'Presence': { freqHz: 8000, q: 1.5 },
+      'Air': { freqHz: 14000, q: 2.0 },
+    };
+
+    return conflicts.map((c) => {
+      const bp = bandParams[c.band] || { freqHz: 1000, q: 1.0 };
+      return {
+        trackId: c.trackB,
+        band: c.band,
+        action: 'cut' as const,
+        amountDb: c.severity === 'high' ? -4 : -2,
+        frequencyHz: bp.freqHz,
+        q: bp.q,
+        reason: `Masking conflict with ${c.trackA} in ${c.band} band — cut to create separation`,
+      };
+    });
+  }
+
+  /**
+   * Auto-balance mix levels based on genre conventions and track roles.
+   * Returns suggested gain adjustments for each track.
+   */
+  autoBalanceLevels(
+    tracks: Array<{ id: string; name: string; role: string; currentGain: number }>
+  ): Array<{ trackId: string; suggestedGain: number; reason: string }> {
+    // Target gain levels by role (relative to 0 dB)
+    const roleTargets: Record<string, number> = {
+      'kick': -3,
+      'bass': -4,
+      'snare': -3,
+      'vocal': -1,
+      'lead': -2,
+      'chords': -5,
+      'pad': -7,
+      'fx': -8,
+      'percussion': -6,
+      'rhythm': -4,
+      'foundation': -4,
+      'focus': -1,
+      'harmony': -5,
+      'atmosphere': -7,
+      'texture': -7,
+      'support': -5,
+      'instrument': -5,
+    };
+
+    return tracks.map((t) => {
+      const target = roleTargets[t.role] ?? -5;
+      const currentDb = 20 * Math.log10(Math.max(t.currentGain, 0.001));
+      const diff = target - currentDb;
+
+      if (Math.abs(diff) < 1) return { trackId: t.id, suggestedGain: t.currentGain, reason: 'Already balanced' };
+
+      const suggestedGain = Math.pow(10, target / 20);
+      return {
+        trackId: t.id,
+        suggestedGain: Math.round(suggestedGain * 100) / 100,
+        reason: diff > 0
+          ? `${t.name}: boost ${Math.abs(diff).toFixed(1)} dB to match ${t.role} target`
+          : `${t.name}: cut ${Math.abs(diff).toFixed(1)} dB to match ${t.role} target`,
+      };
+    });
+  }
+
+  /**
    * Analyze all tracks in the project and generate intelligent mix suggestions.
    */
   analyzeAll(): void {

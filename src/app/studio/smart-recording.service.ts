@@ -65,6 +65,14 @@ export class SmartRecordingService {
   /** Current comp take number in the active group */
   currentTakeNumber = signal(1);
 
+  // ── Zero-crossing crossfade settings ──────────────────────
+  /** Crossfade duration in milliseconds between adjacent comp takes */
+  crossfadeMs = signal(10);
+  /** Whether zero-crossing detection is enabled for seamless crossfades */
+  zeroCrossingEnabled = signal(true);
+  /** Lookahead window in samples for zero-crossing search */
+  zeroCrossingLookahead = signal(256);
+
   // ── Auto-split settings ───────────────────────────────────
   /** Auto-split on silence threshold (-dBFS) */
   autoSplitThreshold = signal(-45);
@@ -384,6 +392,159 @@ export class SmartRecordingService {
     }
 
     return boundaries;
+  }
+
+  // ── Zero-crossing crossfade engine ───────────────────────
+
+  /**
+   * Find the nearest zero-crossing sample index in the given buffer,
+   * searching within a lookahead window from the target index.
+   * Returns the adjusted splice index for pop-free editing.
+   */
+  findZeroCrossing(
+    buffer: Float32Array,
+    targetIndex: number,
+    sampleRate: number
+  ): number {
+    if (!this.zeroCrossingEnabled()) return targetIndex;
+
+    const lookahead = this.zeroCrossingLookahead();
+    const start = Math.max(0, targetIndex - lookahead);
+    const end = Math.min(buffer.length - 1, targetIndex + lookahead);
+
+    let bestIdx = targetIndex;
+    let bestDist = lookahead + 1;
+
+    for (let i = start; i < end - 1; i++) {
+      // Detect zero crossing: sign change between consecutive samples
+      if (
+        (buffer[i] <= 0 && buffer[i + 1] >= 0) ||
+        (buffer[i] >= 0 && buffer[i + 1] <= 0)
+      ) {
+        // Use the closer-to-zero sample
+        const idx = Math.abs(buffer[i]) < Math.abs(buffer[i + 1]) ? i : i + 1;
+        const dist = Math.abs(idx - targetIndex);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = idx;
+        }
+      }
+    }
+
+    return bestIdx;
+  }
+
+  /**
+   * Apply a zero-crossing-aligned crossfade between two audio buffers.
+   * Returns a new buffer with seamless transition at the splice point.
+   *
+   * @param bufferA First take buffer (plays first)
+   * @param bufferB Second take buffer (plays after crossfade)
+   * @param spliceSample The sample index in bufferA where the transition begins
+   * @param sampleRate Audio sample rate
+   * @returns Crossfaded interleaved result
+   */
+  applyCompCrossfade(
+    bufferA: Float32Array,
+    bufferB: Float32Array,
+    spliceSample: number,
+    sampleRate: number
+  ): Float32Array {
+    const crossfadeSamples = Math.floor(
+      (this.crossfadeMs() / 1000) * sampleRate
+    );
+
+    // Align splice to nearest zero-crossing for pop-free edit
+    const alignedSplice = this.findZeroCrossing(
+      bufferA,
+      spliceSample,
+      sampleRate
+    );
+
+    // Calculate output length: A up to splice + crossfade region + remainder of B
+    const fadeStart = alignedSplice;
+    const fadeEnd = Math.min(
+      alignedSplice + crossfadeSamples,
+      bufferA.length,
+      bufferB.length + alignedSplice
+    );
+    const fadeLength = fadeEnd - fadeStart;
+
+    const totalLength = alignedSplice + fadeLength + (bufferB.length - crossfadeSamples);
+    const result = new Float32Array(totalLength);
+
+    // Copy bufferA up to the splice point
+    for (let i = 0; i < alignedSplice; i++) {
+      result[i] = bufferA[i];
+    }
+
+    // Crossfade region: equal-power fade A out, B in
+    for (let i = 0; i < fadeLength; i++) {
+      const t = i / Math.max(1, fadeLength);
+      // Equal-power crossfade (constant power throughout transition)
+      const gainA = Math.cos(t * Math.PI / 2);
+      const gainB = Math.sin(t * Math.PI / 2);
+
+      const sampleA = fadeStart + i < bufferA.length ? bufferA[fadeStart + i] : 0;
+      const sampleB = i < bufferB.length ? bufferB[i] : 0;
+
+      result[alignedSplice + i] = sampleA * gainA + sampleB * gainB;
+    }
+
+    // Copy remainder of bufferB
+    for (let i = crossfadeSamples; i < bufferB.length; i++) {
+      result[alignedSplice + i] = bufferB[i];
+    }
+
+    this.logger.info(
+      `SmartRecording: Crossfade applied (${crossfadeSamples} samples, ` +
+        `splice at zero-crossing offset ${alignedSplice - spliceSample})`
+    );
+
+    return result;
+  }
+
+  /**
+   * Compile all selected takes in a comp group into a single
+   * crossfaded buffer using zero-crossing-aligned transitions.
+   *
+   * @param buffers Map of takeId → mono audio buffer
+   * @param sampleRate Audio sample rate
+   * @returns Interleaved crossfaded result
+   */
+  compileComp(
+    buffers: Map<string, Float32Array>,
+    sampleRate: number
+  ): Float32Array | null {
+    const group = this.activeCompGroup();
+    if (!group || group.takes.length === 0) return null;
+
+    const nonMuted = group.takes.filter((t) => !t.isMuted);
+    if (nonMuted.length === 0) return null;
+
+    // If only one take, return it directly
+    if (nonMuted.length === 1) {
+      return buffers.get(nonMuted[0].id) ?? null;
+    }
+
+    // Crossfade consecutive takes
+    let current = buffers.get(nonMuted[0].id);
+    if (!current) return null;
+
+    for (let i = 1; i < nonMuted.length; i++) {
+      const next = buffers.get(nonMuted[i].id);
+      if (!next) continue;
+
+      // Crossfade at the boundary where current ends
+      current = this.applyCompCrossfade(
+        current,
+        next,
+        current.length - Math.floor((this.crossfadeMs() / 1000) * sampleRate),
+        sampleRate
+      );
+    }
+
+    return current;
   }
 
   // ── Utility ───────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   EventEmitter,
   OnInit,
   effect,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -21,6 +22,14 @@ import {
 import { AudioSessionService } from '../audio-session.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
+import { WebGLRenderer } from '../webgl/webgl-renderer';
+import {
+  PianoRollRenderer,
+  PianoRollNote,
+} from '../webgl/piano-roll-renderer';
+
+const VELOCITY_LANE_HEIGHT = 80;
+const MAX_MIDI = 96;
 
 @Component({
   selector: 'app-piano-roll',
@@ -29,15 +38,24 @@ import { HapticService } from '../../services/haptic.service';
   templateUrl: './piano-roll.component.html',
   styleUrls: ['./piano-roll.component.css'],
 })
-export class PianoRollComponent implements OnInit, AfterViewInit {
+export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
   public readonly audioSession = inject(AudioSessionService);
   public readonly touchGestures = inject(EnhancedTouchGestureService);
   private readonly haptic = inject(HapticService);
 
+  // ── WebGL renderers ──────────────────────────────────────
+  private glRenderer!: WebGLRenderer;
+  private prRenderer!: PianoRollRenderer;
+  private glVelRenderer!: WebGLRenderer;
+  private renderRafId: number | null = null;
+  private isGlInitialized = false;
+
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('keysSidebar') keysSidebar!: ElementRef<HTMLDivElement>;
   @ViewChild('velocityViewport') velocityViewport!: ElementRef<HTMLDivElement>;
+  @ViewChild('glCanvas') glCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('glVelocityCanvas') glVelocityCanvas!: ElementRef<HTMLCanvasElement>;
 
   @Output() close = new EventEmitter<void>();
 
@@ -63,7 +81,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     );
   }
 
-  // ── Ghost Notes (from other tracks) ───────────────────────
+  // ── Ghost Notes ───────────────────────────────────────────
   ghostNotes = computed(() => {
     const selectedId = this.selectedTrack()?.id;
     return this.musicManager
@@ -76,6 +94,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   isGhost(note: TrackNote): boolean {
     return this.ghostNoteSet().has(note.id);
   }
+
   snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
   zoomLevel = signal(1.0);
   gridSteps = signal(64);
@@ -112,7 +131,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   });
 
   selectionCount = computed(() => this.selectedNoteIds().size);
-
   selectedNoteVelocity = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -120,7 +138,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.velocity ?? 0.8).toFixed(2));
   });
-
   selectedNoteProbability = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -128,8 +145,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.probability ?? 1.0).toFixed(2));
   });
-
-  // ── Pro: Precision Editing Fields ────────────────────────────
   selectedNoteMicroOffset = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -137,7 +152,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.microOffset ?? 0).toFixed(3));
   });
-
   selectedNotePitchBend = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -145,7 +159,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.pitchBend ?? 0).toFixed(2));
   });
-
   selectedNoteArticulation = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -153,7 +166,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return first?.articulation ?? 'normal';
   });
-
   selectedNoteLength = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -161,7 +173,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     const first = track.notes.find((n) => ids.has(n.id));
     return first?.length ?? 1;
   });
-
   articulationOptions = [
     { label: 'Normal', value: 'normal' as const },
     { label: 'Staccato', value: 'staccato' as const },
@@ -173,7 +184,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
 
   showPrecisionPanel = signal(false);
 
-  /** Cross-link target range — null when none active. */
   highlightedRange = computed(
     () => this.musicManager.crossLinkRequest()?.noteRange ?? null
   );
@@ -186,37 +196,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
     return ids;
   });
-
   isHighlighted(note: TrackNote): boolean {
     return this.highlightedNoteIds().has(note.id);
-  }
-
-  /** Smoothly scroll the grid to the highlighted range. Guarded so
-   *  scrollContainer being null (pre-viewInit) is safe. */
-  scrollToHighlight(range: { startStep: number; endStep: number }) {
-    setTimeout(() => {
-      if (!this.scrollContainer) return;
-      const target = Math.max(0, range.startStep - 4) * this.cellWidth();
-      this.scrollContainer.nativeElement.scrollTo({
-        left: target,
-        behavior: 'smooth',
-      });
-    }, 60);
-  }
-
-  /** Drop the cross-link highlight when the user starts editing. */
-  dismissCrossLink() {
-    if (this.musicManager.crossLinkRequest()) {
-      this.musicManager.clearCrossLink();
-    }
   }
 
   private lastHandledTimestamp = 0;
 
   constructor() {
-    // React to a newly-arriving cross-link request by scrolling the
-    // grid to it. The timestamp guard prevents duplicate scrolls and
-    //   the `scrollContainer` null check protects pre-viewInit.
     effect(() => {
       const req = this.musicManager.crossLinkRequest?.();
       if (!req || !req.noteRange) return;
@@ -229,254 +215,195 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // ── Lifecycle ────────────────────────────────────────────
+
   ngOnInit() {
-    try {
-      const c = (this.musicManager as any).editorZoomLevel;
-      if (typeof c === 'function') void c();
-    } catch {
-      /* harmless */
-    }
+    // no-op init
   }
 
   ngAfterViewInit() {
-    // Default vertical scroll to mid-keyboard view.
-    if (this.scrollContainer) {
-      const top = 96 * this.rowHeight() - 200;
-      this.scrollContainer.nativeElement.scrollTop = Math.max(0, top);
+    this.initWebGL();
+    this.scheduleRender();
+  }
+
+  ngOnDestroy() {
+    if (this.renderRafId !== null) {
+      cancelAnimationFrame(this.renderRafId);
+      this.renderRafId = null;
     }
-    // If we mounted with an active cross-link (e.g. user navigated
-    //   via deep-link or post-render), honor it by scrolling to the
-    //   range AFTER the default vertical scroll.
-    const req = this.musicManager.crossLinkRequest();
-    if (req && req.noteRange) {
-      this.lastHandledTimestamp = req.timestamp;
-      this.scrollToHighlight(req.noteRange);
+    this.glRenderer?.destroy();
+    this.glVelRenderer?.destroy();
+  }
+
+  private initWebGL(): void {
+    try {
+      this.glRenderer = new WebGLRenderer();
+      this.glRenderer.initialize(this.glCanvas.nativeElement);
+      this.prRenderer = new PianoRollRenderer(this.glRenderer);
+
+      this.glVelRenderer = new WebGLRenderer();
+      this.glVelRenderer.initialize(this.glVelocityCanvas.nativeElement);
+
+      this.isGlInitialized = true;
+      this.markDirty();
+    } catch (e) {
+      console.warn('WebGL init failed for piano roll', e);
     }
   }
 
-  setEditMode(mode: 'draw' | 'select' | 'erase' | 'chord') {
-    this.editMode.set(mode);
-    this.haptic.light();
+  // ── Render loop ──────────────────────────────────────────
+
+  private scheduleRender(): void {
+    const tick = () => {
+      this.renderRafId = requestAnimationFrame(tick);
+      if (this.isGlInitialized) {
+        const isPlaying = this.audioSession.isPlaying();
+        if (isPlaying || this.glRenderer.isDirty) {
+          this.renderPianoRoll();
+        }
+      }
+    };
+    this.renderRafId = requestAnimationFrame(tick);
   }
 
-  setKey(key: string) {
-    this.selectedKey.set(key);
-    this.haptic.light();
-  }
-  setScale(scale: string) {
-    this.selectedScale.set(scale);
-    this.haptic.light();
-  }
-  toggleScaleLock() {
-    this.scaleLockEnabled.update((v) => !v);
-    this.haptic.light();
+  private markDirty(): void {
+    this.glRenderer?.markDirty();
+    this.glVelRenderer?.markDirty();
   }
 
-  zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
+  private renderPianoRoll(): void {
+    const gridCanvas = this.glCanvas?.nativeElement;
+    const container = this.scrollContainer?.nativeElement;
+    if (!gridCanvas || !container || !this.isGlInitialized) return;
 
-  zoomIn() {
-    this.zoomLevel.update((v) => Math.min(3.0, v + 0.25));
-    this.haptic.light();
-  }
-  zoomOut() {
-    this.zoomLevel.update((v) => Math.max(0.25, v - 0.25));
-    this.haptic.light();
-  }
+    const dpr = window.devicePixelRatio || 1;
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
 
-  /**
-   * Recalculate the piano-roll viewport so the entire sequence plus a
-   * comfortable amount of trailing bars are visible without scrolling. The
-   * piano-roll spec exercises this entry point directly, so it must exist as
-   * a public no-op-safe method even when the canvas hasn't rendered yet.
-   */
-  fitToPage(): void {
-    const totalSteps =
-      this.musicManager.tracks().reduce((max, track: any) => {
-        const length = (track.notes ?? []).reduce(
-          (m: number, n: any) =>
-            Math.max(m, (n.start ?? 0) + (n.duration ?? 0)),
-          0
-        );
-        return Math.max(max, length);
-      }, 0) + 16;
-    const targetZoom = Math.max(
-      0.25,
-      Math.min(3, 96 / Math.max(1, totalSteps))
-    );
-    this.zoomLevel.set(targetZoom);
-  }
+    // Resize
+    if (gridCanvas.width !== Math.round(cw * dpr) || gridCanvas.height !== Math.round(ch * dpr)) {
+      this.glRenderer.resize();
+    }
 
-  expandGrid() {
-    this.gridSteps.update((v) => Math.min(256, v + 16));
-  }
+    const pps = this.cellWidth();
+    const rh = this.rowHeight();
+    this.prRenderer.setPixelsPerStep(pps);
+    this.prRenderer.setRowHeight(rh);
+    this.prRenderer.setMidiRange(24, 24 + MAX_MIDI - 1);
 
-  beatLabels = computed(() => {
-    const cw = this.cellWidth();
-    const steps = this.gridSteps();
-    const labels: { label: string; pos: number }[] = [];
-    for (let i = 0; i < steps; i += 4) {
-      labels.push({
-        label: String(Math.floor(i / 16) + 1) + '.' + ((i % 16) / 4 + 1),
-        pos: i * cw,
+    const camera = {
+      scrollX: container.scrollLeft / dpr,
+      scrollY: container.scrollTop / dpr,
+      zoom: 1.0,
+    };
+
+    // Build note data
+    const prNotes: PianoRollNote[] = [];
+    const mainNotes = this.selectedTrack()?.notes ?? [];
+    const ghostNotes = this.ghostNotes();
+    const selIds = this.selectedNoteIds();
+    const hlIds = this.highlightedNoteIds();
+
+    for (const note of ghostNotes) {
+      prNotes.push({
+        id: note.id,
+        midi: note.midi,
+        step: note.step,
+        length: note.length,
+        velocity: note.velocity,
+        selected: false,
+        isGhost: true,
+        isHighlighted: false,
       });
     }
-    return labels;
-  });
 
-  keyOptions = [
-    'C',
-    'C#',
-    'D',
-    'D#',
-    'E',
-    'F',
-    'F#',
-    'G',
-    'G#',
-    'A',
-    'A#',
-    'B',
-  ];
-  scaleOptions = [
-    { label: 'Major', value: 'major' },
-    { label: 'Minor', value: 'minor' },
-    { label: 'Blues', value: 'blues' },
-    { label: 'Penta', value: 'pentatonic' },
-    { label: 'Chromatic', value: 'chromatic' },
-  ];
-
-  setSnap(snap: '1/4' | '1/8' | '1/16' | '1/32' | 'off') {
-    this.snap.set(snap);
-    this.haptic.light();
-  }
-
-  setSelectedVelocity(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { velocity: value })
-    );
-  }
-
-  setSelectedProbability(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { probability: value })
-    );
-  }
-
-  // ── Pro: Precision editing setters ────────────────────────
-  setSelectedMicroOffset(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        microOffset: Number(value.toFixed(3)),
-      })
-    );
-  }
-
-  setSelectedPitchBend(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        pitchBend: Number(value.toFixed(2)),
-      })
-    );
-  }
-
-  setSelectedArticulation(value: string) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, { articulation: value as any })
-    );
-    this.haptic.light();
-  }
-
-  setSelectedLength(value: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const ids = Array.from(this.selectedNoteIds());
-    ids.forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        length: Math.max(0.125, value),
-      })
-    );
-  }
-
-  togglePrecisionPanel() {
-    this.showPrecisionPanel.update((v) => !v);
-    this.haptic.light();
-  }
-
-  // ---- Coordinate helpers ----
-  gridWidth = computed(() => this.gridSteps() * this.cellWidth());
-  canvasHeight = computed(() => 96 * this.rowHeight());
-
-  rowTopPx(midi: number): number {
-    return (95 - (midi - 24)) * this.rowHeight();
-  }
-
-  noteTopPx(midi: number): number {
-    return (95 - (midi - 24)) * this.rowHeight();
-  }
-
-  playheadPx(): number {
-    const step = this.musicManager.engine?.visualStep?.() ?? 0;
-    return (step % this.gridSteps()) * this.cellWidth();
-  }
-
-  syncKeyScroll() {
-    if (this.scrollContainer && this.keysSidebar) {
-      this.keysSidebar.nativeElement.scrollTop =
-        this.scrollContainer.nativeElement.scrollTop;
+    for (const note of mainNotes) {
+      prNotes.push({
+        id: note.id,
+        midi: note.midi,
+        step: note.step,
+        length: note.length,
+        velocity: note.velocity,
+        selected: selIds.has(note.id),
+        isGhost: false,
+        isHighlighted: hlIds.has(note.id),
+      });
     }
-    if (this.scrollContainer && this.velocityViewport) {
-      this.velocityViewport.nativeElement.scrollLeft =
-        this.scrollContainer.nativeElement.scrollLeft;
+
+    const playheadStep = this.musicManager.engine?.visualStep?.() ?? 0;
+    const totalSteps = this.gridSteps();
+
+    this.glRenderer.clear(0.03, 0.05, 0.10, 1.0);
+    this.prRenderer.render(prNotes, playheadStep, totalSteps, camera, MAX_MIDI);
+
+    // Velocity lane
+    const velCanvas = this.glVelocityCanvas?.nativeElement;
+    const velViewport = this.velocityViewport?.nativeElement;
+    if (velCanvas && velViewport) {
+      const vw = velViewport.clientWidth;
+      if (velCanvas.width !== Math.round(vw * dpr) || velCanvas.height !== Math.round(VELOCITY_LANE_HEIGHT * dpr)) {
+        this.glVelRenderer.resize();
+      }
+
+      const velCamera = {
+        scrollX: velViewport.scrollLeft / dpr,
+        scrollY: 0,
+        zoom: 1.0,
+      };
+
+      const selVelMap = new Map<string, number>();
+      selIds.forEach((id) => {
+        const n = mainNotes.find((nn) => nn.id === id);
+        if (n) selVelMap.set(id, n.velocity);
+      });
+
+      this.glVelRenderer.clear(0.04, 0.06, 0.11, 1.0);
+      this.prRenderer.renderVelocityLane(
+        prNotes.filter((n) => !n.isGhost),
+        selVelMap,
+        playheadStep,
+        totalSteps,
+        velCamera,
+        VELOCITY_LANE_HEIGHT,
+        0
+      );
     }
   }
 
-  onVelocityScroll(event: Event) {
-    if (this.scrollContainer) {
-      this.scrollContainer.nativeElement.scrollLeft = (
-        event.target as HTMLElement
-      ).scrollLeft;
+  // ── Scroll helpers ───────────────────────────────────────
+
+  scrollToHighlight(range: { startStep: number; endStep: number }) {
+    setTimeout(() => {
+      if (!this.scrollContainer) return;
+      const target = Math.max(0, range.startStep - 4) * this.cellWidth();
+      this.scrollContainer.nativeElement.scrollTo({
+        left: target,
+        behavior: 'smooth',
+      });
+    }, 60);
+  }
+
+  dismissCrossLink() {
+    if (this.musicManager.crossLinkRequest()) {
+      this.musicManager.clearCrossLink();
     }
   }
 
-  // ---- Pointer interactions ----
-  onGridPointerDown(event: PointerEvent) {
-    // Local interaction — clear any stale cross-link highlight so
-    // the focus doesn't outlive its useful context.
-    this.dismissCrossLink();
-    const container = event.currentTarget as HTMLElement;
-    const rect = container.getBoundingClientRect();
-    const x = event.clientX - rect.left + container.scrollLeft;
-    const y = event.clientY - rect.top + container.scrollTop;
-    const step = Math.max(0, Math.floor(x / this.cellWidth()));
-    const rowIndex = Math.floor(y / this.rowHeight());
-    const midi = 24 + (95 - rowIndex);
+  // ── Wheel zoom ───────────────────────────────────────────
 
-    if (this.editMode() === 'draw') {
-      this.createNoteAt(step, midi);
-    }
+  onGridWheel(e: WheelEvent): void {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    this.zoomLevel.update((v) => Math.max(0.25, Math.min(3.0, v + delta)));
+    this.markDirty();
   }
 
-  // ---- Touch interactions (enhanced mobile) ----
+  // ── Touch interactions ───────────────────────────────────
   private touchStartTime = 0;
   private touchStartX = 0;
   private touchStartY = 0;
   private isSwiping = false;
-  private swipeAccum = 0;
   private lastPinchZoom = 1;
   private drawFromTouch = false;
 
@@ -486,16 +413,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
       this.isSwiping = false;
-      this.swipeAccum = 0;
       this.drawFromTouch = false;
     }
     if (event.touches.length === 2) {
       this.lastPinchZoom = this.touchGestures.zoomLevel();
-      try {
-        this.touchGestures.handlePinch(event);
-      } catch {
-        /* swallow */
-      }
+      try { this.touchGestures.handlePinch(event); } catch {}
     }
   }
 
@@ -504,28 +426,23 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       event.preventDefault();
       try {
         this.touchGestures.handlePinch(event);
-        // Haptic tick on zoom level changes
         const newZoom = this.touchGestures.zoomLevel();
         if (Math.abs(newZoom - this.lastPinchZoom) > 0.15) {
           this.haptic.preset('tick');
           this.lastPinchZoom = newZoom;
         }
-      } catch {
-        /* swallow */
-      }
+      } catch {}
     }
     if (event.touches.length === 1 && this.editMode() === 'draw') {
       const dx = event.touches[0].clientX - this.touchStartX;
       const dy = event.touches[0].clientY - this.touchStartY;
-      const dist = Math.hypot(dx, dy);
-      if (dist > 15 && !this.drawFromTouch) {
+      if (Math.hypot(dx, dy) > 15 && !this.drawFromTouch) {
         this.isSwiping = true;
       }
     }
   }
 
   onGridTouchEnd(event: TouchEvent) {
-    // Single-finger tap = draw note with velocity from Y-position
     if (
       event.changedTouches.length === 1 &&
       !this.isSwiping &&
@@ -539,10 +456,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       const y = touch.clientY - rect.top + container.scrollTop;
       const step = Math.max(0, Math.floor(x / this.cellWidth()));
       const rowIndex = Math.floor(y / this.rowHeight());
-      const midi = 24 + (95 - rowIndex);
+      const midi = 24 + (MAX_MIDI - 1 - rowIndex);
       const snappedStep = this.applySnap(step);
-
-      // Velocity from Y-position within the row (top = loud, bottom = soft)
       const rowFraction = (y % this.rowHeight()) / this.rowHeight();
       const velocity = Math.max(0.15, Math.min(1.0, 1.0 - rowFraction * 0.6));
 
@@ -557,82 +472,31 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
         });
         this.haptic.velocity(velocity);
         this.drawFromTouch = true;
+        this.markDirty();
       }
     }
     this.isSwiping = false;
   }
 
-  private createNoteAt(step: number, midi: number) {
-    const track = this.selectedTrack();
-    if (!track) return;
-    const snappedStep = this.applySnap(step);
-    if (this.editMode() === 'chord') {
-      // Chord stamp: place all intervals at once
-      const intervals = this.getChordIntervals();
-      intervals.forEach((interval, idx) => {
-        const noteMidi = midi + interval;
-        if (noteMidi >= 0 && noteMidi <= 127) {
-          this.musicManager.addNoteToTrack(track.id, {
-            id:
-              'chord-' +
-              Date.now() +
-              '-' +
-              idx +
-              '-' +
-              Math.floor(Math.random() * 1000),
-            midi: noteMidi,
-            step: snappedStep,
-            length: this.lengthFromSnap(),
-            velocity: idx === 0 ? 0.9 : 0.75, // root slightly louder
-          });
-        }
-      });
-      this.haptic.medium();
-    } else {
-      this.musicManager.addNoteToTrack(track.id, {
-        id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-        midi,
-        step: snappedStep,
-        length: this.lengthFromSnap(),
-        velocity: 0.8,
-      });
-      this.haptic.light();
-    }
-  }
+  // ── Pointer interaction on grid canvas ───────────────────
 
-  private applySnap(step: number): number {
-    switch (this.snap()) {
-      case '1/4':
-        return Math.round(step / 4) * 4;
-      case '1/8':
-        return Math.round(step / 2) * 2;
-      case '1/16':
-        return step;
-      case '1/32':
-        return step; // half steps represented finer in audio engine
-      default:
-        return step;
-    }
-  }
+  onGridPointerDown(event: PointerEvent) {
+    this.dismissCrossLink();
+    const container = event.currentTarget as HTMLElement;
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left + container.scrollLeft;
+    const y = event.clientY - rect.top + container.scrollTop;
+    const step = Math.max(0, Math.floor(x / this.cellWidth()));
+    const rowIndex = Math.floor(y / this.rowHeight());
+    const midi = 24 + (MAX_MIDI - 1 - rowIndex);
 
-  private lengthFromSnap(): number {
-    switch (this.snap()) {
-      case '1/4':
-        return 4;
-      case '1/8':
-        return 2;
-      case '1/16':
-        return 1;
-      case '1/32':
-        return 0.5;
-      default:
-        return 1;
+    if (this.editMode() === 'draw') {
+      this.createNoteAt(step, midi);
     }
   }
 
   onNotePointerDown(event: PointerEvent, note: TrackNote) {
     event.stopPropagation();
-    // Editing an explicit note also dismisses the cross-link shimmer.
     this.dismissCrossLink();
     const track = this.selectedTrack();
     if (!track) return;
@@ -644,17 +508,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       else next.add(note.id);
       this.selectedNoteIds.set(next);
     }
+    this.markDirty();
 
     if (this.editMode() === 'erase') {
       this.musicManager.removeNotes(track.id, [note.id]);
+      this.markDirty();
       return;
     }
 
     const originalPositions = new Map<string, { step: number; midi: number }>();
     this.selectedNoteIds().forEach((id) => {
-      const n = this.musicManager
-        .selectedTrack()
-        ?.notes.find((nn) => nn.id === id);
+      const n = this.musicManager.selectedTrack()?.notes.find((nn) => nn.id === id);
       if (n) originalPositions.set(id, { step: n.step, midi: n.midi });
     });
     this.draggingNotes = {
@@ -671,7 +535,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
       const dy = e.clientY - this.draggingNotes.startY;
       const dSteps = dx / this.cellWidth();
       const dMidi = -Math.round(dy / this.rowHeight());
-
       const track = this.musicManager.selectedTrack();
       if (!track) return;
       this.draggingNotes.originalPositions.forEach((pos, id) => {
@@ -680,6 +543,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
           midi: Math.max(0, Math.min(127, pos.midi + dMidi)),
         });
       });
+      this.markDirty();
     }
   }
 
@@ -688,33 +552,187 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
     this.draggingNotes = null;
   }
 
+  // ── Velocity lane interaction ────────────────────────────
+
   onVelocityPointerDown(event: PointerEvent) {
     this.dismissCrossLink();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x =
-      event.clientX -
-      rect.left +
-      (event.currentTarget as HTMLElement).scrollLeft;
+    const x = event.clientX - rect.left + (event.currentTarget as HTMLElement).scrollLeft;
     const y = event.clientY - rect.top;
     const step = Math.max(0, Math.floor(x / this.cellWidth()));
     const velocity = Math.max(0.1, Math.min(1.5, 1 - y / 60));
-
     const track = this.selectedTrack();
     if (!track) return;
     const note = track.notes.find((n) => Math.floor(n.step) === step);
     if (note) {
       this.musicManager.updateNote(track.id, note.id, { velocity });
       this.haptic.velocity(velocity);
+      this.markDirty();
     }
   }
 
-  /** Drag to scrub velocity lane — continuous velocity painting */
   onVelocityPointerMove(event: PointerEvent) {
     if (event.buttons !== 1) return;
     this.onVelocityPointerDown(event);
   }
 
-  // ---- Keyboard / utility ----
+  // ── Note creation ────────────────────────────────────────
+
+  private createNoteAt(step: number, midi: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const snappedStep = this.applySnap(step);
+    if (this.editMode() === 'chord') {
+      const intervals = this.getChordIntervals();
+      intervals.forEach((interval, idx) => {
+        const noteMidi = midi + interval;
+        if (noteMidi >= 0 && noteMidi <= 127) {
+          this.musicManager.addNoteToTrack(track.id, {
+            id: 'chord-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+            midi: noteMidi,
+            step: snappedStep,
+            length: this.lengthFromSnap(),
+            velocity: idx === 0 ? 0.9 : 0.75,
+          });
+        }
+      });
+      this.haptic.medium();
+    } else {
+      this.musicManager.addNoteToTrack(track.id, {
+        id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        midi,
+        step: snappedStep,
+        length: this.lengthFromSnap(),
+        velocity: 0.8,
+      });
+      this.haptic.light();
+    }
+    this.markDirty();
+  }
+
+  private applySnap(step: number): number {
+    switch (this.snap()) {
+      case '1/4': return Math.round(step / 4) * 4;
+      case '1/8': return Math.round(step / 2) * 2;
+      case '1/16': return step;
+      case '1/32': return step;
+      default: return step;
+    }
+  }
+
+  private lengthFromSnap(): number {
+    switch (this.snap()) {
+      case '1/4': return 4;
+      case '1/8': return 2;
+      case '1/16': return 1;
+      case '1/32': return 0.5;
+      default: return 1;
+    }
+  }
+
+  // ── Existing utility methods ─────────────────────────────
+
+  setEditMode(mode: 'draw' | 'select' | 'erase' | 'chord') {
+    this.editMode.set(mode);
+    this.haptic.light();
+  }
+
+  setKey(key: string) { this.selectedKey.set(key); this.haptic.light(); }
+  setScale(scale: string) { this.selectedScale.set(scale); this.haptic.light(); }
+  toggleScaleLock() { this.scaleLockEnabled.update((v) => !v); this.haptic.light(); }
+
+  zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
+  zoomIn() { this.zoomLevel.update((v) => Math.min(3.0, v + 0.25)); this.haptic.light(); this.markDirty(); }
+  zoomOut() { this.zoomLevel.update((v) => Math.max(0.25, v - 0.25)); this.haptic.light(); this.markDirty(); }
+
+  fitToPage(): void {
+    const totalSteps = this.musicManager.tracks().reduce((max, track: any) => {
+      const length = (track.notes ?? []).reduce(
+        (m: number, n: any) => Math.max(m, (n.start ?? 0) + (n.duration ?? 0)), 0
+      );
+      return Math.max(max, length);
+    }, 0) + 16;
+    const targetZoom = Math.max(0.25, Math.min(3, 96 / Math.max(1, totalSteps)));
+    this.zoomLevel.set(targetZoom);
+    this.markDirty();
+  }
+
+  expandGrid() { this.gridSteps.update((v) => Math.min(256, v + 16)); this.markDirty(); }
+
+  beatLabels = computed(() => {
+    const cw = this.cellWidth();
+    const steps = this.gridSteps();
+    const labels: { label: string; pos: number }[] = [];
+    for (let i = 0; i < steps; i += 4) {
+      labels.push({ label: String(Math.floor(i / 16) + 1) + '.' + ((i % 16) / 4 + 1), pos: i * cw });
+    }
+    return labels;
+  });
+
+  keyOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  scaleOptions = [
+    { label: 'Major', value: 'major' },
+    { label: 'Minor', value: 'minor' },
+    { label: 'Blues', value: 'blues' },
+    { label: 'Penta', value: 'pentatonic' },
+    { label: 'Chromatic', value: 'chromatic' },
+  ];
+
+  setSnap(snap: '1/4' | '1/8' | '1/16' | '1/32' | 'off') { this.snap.set(snap); this.haptic.light(); }
+
+  setSelectedVelocity(value: number) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { velocity: value }));
+    this.markDirty();
+  }
+  setSelectedProbability(value: number) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { probability: value }));
+  }
+  setSelectedMicroOffset(value: number) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { microOffset: Number(value.toFixed(3)) }));
+  }
+  setSelectedPitchBend(value: number) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { pitchBend: Number(value.toFixed(2)) }));
+  }
+  setSelectedArticulation(value: string) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { articulation: value as any }));
+    this.haptic.light();
+  }
+  setSelectedLength(value: number) {
+    const track = this.selectedTrack(); if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) => this.musicManager.updateNote(track.id, id, { length: Math.max(0.125, value) }));
+  }
+  togglePrecisionPanel() { this.showPrecisionPanel.update((v) => !v); this.haptic.light(); }
+
+  gridWidth = computed(() => this.gridSteps() * this.cellWidth());
+  canvasHeight = computed(() => MAX_MIDI * this.rowHeight());
+  rowTopPx(midi: number): number { return (MAX_MIDI - 1 - (midi - 24)) * this.rowHeight(); }
+  noteTopPx(midi: number): number { return (MAX_MIDI - 1 - (midi - 24)) * this.rowHeight(); }
+
+  playheadPx(): number {
+    const step = this.musicManager.engine?.visualStep?.() ?? 0;
+    return (step % this.gridSteps()) * this.cellWidth();
+  }
+
+  syncKeyScroll() {
+    if (this.scrollContainer && this.keysSidebar) {
+      this.keysSidebar.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollTop;
+    }
+    if (this.scrollContainer && this.velocityViewport) {
+      this.velocityViewport.nativeElement.scrollLeft = this.scrollContainer.nativeElement.scrollLeft;
+    }
+  }
+
+  onVelocityScroll(event: Event) {
+    if (this.scrollContainer) {
+      this.scrollContainer.nativeElement.scrollLeft = (event.target as HTMLElement).scrollLeft;
+    }
+  }
+
   @HostListener('window:keydown', ['$event'])
   onKey(ev: KeyboardEvent) {
     if (ev.target instanceof HTMLInputElement) return;
@@ -725,24 +743,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit {
   }
 
   humanizeNotes() {
-    const track = this.selectedTrack();
-    if (!track) return;
+    const track = this.selectedTrack(); if (!track) return;
     this.haptic.medium();
     this.musicManager.humanizeTrack(track.id);
+    this.markDirty();
   }
 
-  isBlackKey(midi: number): boolean {
-    return [1, 3, 6, 8, 10].includes(midi % 12);
-  }
-  isInScale(midi: number): boolean {
-    return [0, 2, 4, 5, 7, 9, 11].includes(midi % 12);
-  }
-  getKeyName(midi: number): string {
-    return ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][
-      midi % 12
-    ];
-  }
-  getOctaveLabel(midi: number): string {
-    return Math.floor(midi / 12 - 1).toString();
-  }
+  isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
+  isInScale(midi: number): boolean { return [0, 2, 4, 5, 7, 9, 11].includes(midi % 12); }
+  getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
+  getOctaveLabel(midi: number): string { return Math.floor(midi / 12 - 1).toString(); }
 }

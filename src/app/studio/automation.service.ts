@@ -1,12 +1,15 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { bezierInterpolate, BezierPresets } from './automation/bezier-utils';
 
 export interface AutomationPoint {
   time: number;
   value: number;
+  /** Bezier control handles (only used when interpolation is 'bezier') */
+  bezierHandles?: { cpIn: { t: number; value: number }; cpOut: { t: number; value: number } };
 }
 
-export type AutomationInterpolation = 'linear' | 'step' | 'smooth';
+export type AutomationInterpolation = 'linear' | 'step' | 'smooth' | 'bezier';
 
 export interface AutomationTarget {
   trackId: string;
@@ -180,7 +183,10 @@ export class AutomationService {
             points[i].value,
             points[i + 1].value,
             ratio,
-            lane.interpolation
+            lane.interpolation,
+            points[i].time,
+            points[i + 1].time,
+            points[i].bezierHandles
           );
           break;
         }
@@ -203,10 +209,23 @@ export class AutomationService {
     start: number,
     end: number,
     ratio: number,
-    interpolation: AutomationInterpolation
+    interpolation: AutomationInterpolation,
+    startTime?: number,
+    endTime?: number,
+    bezierHandles?: AutomationPoint['bezierHandles']
   ): number {
     if (interpolation === 'step') {
       return start;
+    }
+    if (interpolation === 'bezier' && startTime !== undefined && endTime !== undefined) {
+      return bezierInterpolate(
+        startTime,
+        start,
+        endTime,
+        end,
+        ratio,
+        bezierHandles ?? BezierPresets.easeInOut
+      );
     }
     if (interpolation === 'smooth') {
       const t = ratio * ratio * (3 - 2 * ratio);

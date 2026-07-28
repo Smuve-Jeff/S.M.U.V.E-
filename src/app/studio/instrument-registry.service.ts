@@ -33,4 +33,29 @@ export class InstrumentRegistryService {
     this.instruments.set(trackId, inst);
     return inst;
   }
+
+  /**
+   * Immediately stop ALL active voices across every registered instrument.
+   * Called by the audio engine's panic() on transport stop.
+   */
+  stopAllInstruments(): void {
+    this.instruments.forEach((inst) => {
+      try {
+        if (typeof inst.stopAll === 'function') {
+          inst.stopAll();
+        }
+      } catch (e) {
+        // Silently catch — instrument may already be disposed
+      }
+    });
+  }
+
+  /** Remove all references and disconnect instruments (for cleanup). */
+  clearAll(): void {
+    this.stopAllInstruments();
+    this.instruments.forEach((inst) => {
+      try { inst.disconnect(); } catch (e) {}
+    });
+    this.instruments.clear();
+  }
 }

@@ -355,20 +355,16 @@
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: none;
-  /* Cleaner grid background — subtle stage-lit surface */
-  background:
-    radial-gradient(
-      ellipse at 30% 20%,
-      rgba(0, 229, 255, 0.04) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 70% 80%,
-      rgba(139, 92, 246, 0.03) 0%,
-      transparent 50%
-    ),
-    linear-gradient(180deg, #0a0f1e 0%, #0d1228 50%, #0a0f1e 100%);
 }
+
+.pr-gl-canvas {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Removed DOM note/row/col-line/playhead styles — rendered by WebGL */
 
 .pr-playhead {
   position: absolute;

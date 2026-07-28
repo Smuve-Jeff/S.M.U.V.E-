@@ -14,6 +14,7 @@ export abstract class Instrument {
 
   abstract play(note: number, velocity: number): void;
   abstract stop(note: number): void;
+  abstract stopAll(): void;
 
   connect(destination: AudioNode) {
     this.output.connect(destination);

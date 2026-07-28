@@ -170,7 +170,7 @@
       </div>
     </div>
 
-    <!-- Main grid -->
+    <!-- Main grid: WebGL canvas -->
     <div
       class="pr-grid no-scrollbar"
       #scrollContainer
@@ -179,61 +179,17 @@
       (touchmove)="onGridTouchMove($event)"
       (touchend)="onGridTouchEnd($event)"
       (scroll)="syncKeyScroll()"
+      (wheel)="onGridWheel($event)"
     >
-      <div
-        class="pr-grid-canvas"
+      <canvas
+        #glCanvas
+        class="pr-gl-canvas"
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
-      >
-        <!-- beat labels row -->
-        <div class="pr-beat-labels">
-          <span
-            *ngFor="let b of beatLabels()"
-            class="pr-beat-label"
-            [style.left.px]="b.pos"
-            >{{ b.label }}</span
-          >
-        </div>
-        <!-- rows -->
-        <div
-          *ngFor="let midi of displayKeys()"
-          class="pr-row"
-          [class.black]="isBlackKey(midi)"
-          [class.in-scale]="isInScale(midi)"
-          [style.top.px]="rowTopPx(midi)"
-          [style.height.px]="rowHeight()"
-        ></div>
-
-        <!-- column lines -->
-        <div
-          *ngFor="let column of columns()"
-          class="pr-col-line"
-          [class.bar]="column % 16 === 0"
-          [class.beat]="column % 4 === 0"
-          [style.left.px]="column * cellWidth()"
-          [style.width.px]="cellWidth()"
-        ></div>
-
-        <!-- notes -->
-        <div
-          *ngFor="let note of viewportNotes()"
-          class="pr-note"
-          [class.selected]="selectedNoteIds().has(note.id)"
-          [class.slide]="note.isSlide"
-          [class.is-crosslinked]="isHighlighted(note)"
-          [style.left.px]="note.step * cellWidth()"
-          [style.top.px]="noteTopPx(note.midi)"
-          [style.width.px]="note.length * cellWidth()"
-          [style.height.px]="rowHeight()"
-          (pointerdown)="onNotePointerDown($event, note)"
-        ></div>
-
-        <!-- playhead -->
-        <div class="pr-playhead" [style.left.px]="playheadPx()"></div>
-      </div>
+      ></canvas>
     </div>
 
-    <!-- Velocity lane -->
+    <!-- Velocity lane: WebGL canvas -->
     <div
       class="pr-velocity"
       #velocityViewport
@@ -241,21 +197,12 @@
       (pointerdown)="onVelocityPointerDown($event)"
       (pointermove)="onVelocityPointerMove($event)"
     >
-      <div
-        class="pr-velocity-canvas"
+      <canvas
+        #glVelocityCanvas
+        class="pr-gl-canvas"
         [style.width.px]="gridWidth()"
         [style.height.px]="80"
-      >
-        <div
-          *ngFor="let note of viewportNotes()"
-          class="pr-velocity-bar"
-          [class.selected]="selectedNoteIds().has(note.id)"
-          [style.left.px]="note.step * cellWidth()"
-          [style.width.px]="note.length * cellWidth()"
-          [style.height.px]="note.velocity * 60"
-          (pointerdown)="onNotePointerDown($event, note)"
-        ></div>
-      </div>
+      ></canvas>
     </div>
 
     <!-- Right inspector -->

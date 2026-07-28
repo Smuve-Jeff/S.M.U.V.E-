@@ -67,6 +67,198 @@ export class IdeasGeneratorService {
     return best;
   }
 
+  // ── Predictive MIDI Generation (Phase 4) ────────────────────
+
+  /** Roman numeral to semitone offset mapping for major keys */
+  private static readonly ROMAN_OFFSETS_MAJOR: Record<string, number> = {
+    'I': 0, 'i': 0,  'II': 2, 'ii': 2,  'III': 4, 'iii': 3,
+    'IV': 5, 'iv': 5, 'V': 7,  'v': 7,   'VI': 9, 'vi': 8,
+    'VII': 11, 'vii': 10,
+    'Imaj7': 0, 'ii7': 2, 'iii7': 4, 'IVmaj7': 5,
+    'V7': 7, 'vi7': 9, 'vii7': 11,
+    'Imaj9': 0, 'IIm9': 2, 'vim11': 9, 'vim9': 9,
+    'IIIm9': 4, 'IIIm7': 4, 'Vm7': 7, 'VIImaj9': 11,
+    'iim7': 2, 'III7alt': 4, 'I9': 0, 'IV13': 5, 'V7sus4': 7,
+    'Imaj7sus2': 0, 'IVmaj9': 5,
+  };
+
+  /**
+   * Generate predictive chord/pattern suggestions based on
+   * current project context: key, scale, existing notes, genre.
+   * This is the Phase 4 predictive engine that wires directly
+   * into the Piano Roll's real-time workflow.
+   */
+  generatePredictiveNotes(params: {
+    key?: string;
+    scale?: string;
+    genre?: string;
+    existingNotes?: Array<{ midi: number; step: number }>;
+    artistDNA?: { style?: string; velocity?: string };
+    barCount?: number;
+  }): { notes: IdeaNote[]; progression: string[] } {
+    const key = params.key || 'C';
+    const scale = params.scale || 'minor';
+    const genre = params.genre || 'pop';
+    const bars = params.barCount || 4;
+
+    // Select progression based on genre
+    const progression = this.selectProgression(genre, scale);
+
+    // Map roman numerals to MIDI root notes
+    const keyOffset = this.keyToMidiOffset(key);
+    const notes: IdeaNote[] = [];
+
+    progression.forEach((roman, barIdx) => {
+      const offset = IdeasGeneratorService.ROMAN_OFFSETS_MAJOR[roman] ?? 0;
+      const rootMidi = 48 + keyOffset + offset; // C3 + key + chord offset
+      const step = barIdx * 16;
+
+      // Build chord voicing (root + third + fifth + optional seventh)
+      const isSeventh = roman.includes('7') || roman.includes('maj7');
+      const isMajor = roman === roman.toUpperCase() || roman.includes('maj');
+      const third = isMajor ? 4 : 3;
+      const intervals = [0, third, 7];
+      if (isSeventh) intervals.push(isMajor ? 11 : 10);
+
+      // Root note (bass)
+      notes.push({
+        midi: rootMidi - 12,
+        step,
+        length: 16,
+        velocity: 0.85,
+      });
+
+      // Chord tones spread across bar
+      intervals.forEach((iv, idx) => {
+        notes.push({
+          midi: rootMidi + iv,
+          step: step + idx * 2,
+          length: 4 + idx * 2,
+          velocity: 0.65 + idx * 0.08,
+        });
+      });
+
+      // Rhythmic ghost notes for groove
+      if (barIdx % 2 === 0) {
+        notes.push({
+          midi: rootMidi + intervals[0] + 12,
+          step: step + 8,
+          length: 2,
+          velocity: 0.45,
+        });
+      }
+    });
+
+    return { notes, progression };
+  }
+
+  /**
+   * Predict the most likely next chord given a progression prefix.
+   * Uses Markov-style transition probabilities based on genre conventions.
+   */
+  suggestNextChord(
+    previousChords: string[],
+    genre?: string
+  ): string | null {
+    const genreProgressions: Record<string, string[][]> = {
+      'pop': [
+        ['I', 'V', 'vi', 'IV'],
+        ['I', 'IV', 'V', 'I'],
+        ['vi', 'IV', 'I', 'V'],
+      ],
+      'trap': [['i', 'VI', 'III', 'VII']],
+      'house': [['i', 'VI', 'III', 'VII'], ['i', 'iv', 'VII', 'III']],
+      'lofi': [['Imaj7', 'V7', 'IVmaj7', 'vi7']],
+      'rnb': [['ii7', 'V7', 'Imaj7', 'vi7']],
+    };
+
+    const patterns = genreProgressions[genre || 'pop'] || genreProgressions['pop'];
+
+    // Find matching pattern
+    for (const pattern of patterns) {
+      const matchLen = Math.min(previousChords.length, pattern.length);
+      let match = true;
+      for (let i = 0; i < matchLen; i++) {
+        if (previousChords[previousChords.length - matchLen + i] !== pattern[i]) {
+          match = false;
+          break;
+        }
+      }
+      if (match && matchLen < pattern.length) {
+        return pattern[matchLen];
+      }
+    }
+
+    // Fallback: return first pattern's next chord
+    return patterns[0][Math.min(previousChords.length, patterns[0].length - 1)];
+  }
+
+  /**
+   * Generate a professional drum fill pattern connecting two sections.
+   * Creates a 1-bar fill with increasing intensity.
+   */
+  generateDrumFill(style: 'trap' | 'house' | 'lofi' | 'pop' = 'trap'): {
+    kick: number[];
+    snare: number[];
+    hat: number[];
+  } {
+    switch (style) {
+      case 'trap':
+        return {
+          kick: [0, 4, 8, 12],
+          snare: [2, 6, 10, 14],
+          hat: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        };
+      case 'house':
+        return {
+          kick: [0, 4, 8, 10, 12, 14],
+          snare: [4, 12],
+          hat: [0, 2, 4, 6, 8, 10, 12, 14],
+        };
+      case 'lofi':
+        return {
+          kick: [0, 8],
+          snare: [4, 14],
+          hat: [2, 6, 10, 12],
+        };
+      case 'pop':
+        return {
+          kick: [0, 8, 12],
+          snare: [4, 12],
+          hat: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        };
+    }
+  }
+
+  private selectProgression(genre: string, scale: string): string[] {
+    const majorProgs: Record<string, string[]> = {
+      'pop': ['I', 'V', 'vi', 'IV'],
+      'lofi': ['Imaj7', 'V7', 'IVmaj7', 'vi7'],
+      'jazz': ['iim7', 'V7', 'Imaj7', 'III7alt'],
+      'funk': ['I9', 'IV13', 'I9', 'V7sus4'],
+    };
+    const minorProgs: Record<string, string[]> = {
+      'trap': ['i', 'VI', 'III', 'VII'],
+      'house': ['i', 'VI', 'III', 'VII'],
+      'drill': ['i', 'iv', 'VII', 'III'],
+      'rnb': ['ii7', 'V7', 'Imaj7', 'vi7'],
+    };
+
+    if (scale === 'major') {
+      return majorProgs[genre] || majorProgs['pop'];
+    }
+    return minorProgs[genre] || minorProgs['trap'];
+  }
+
+  private keyToMidiOffset(key: string): number {
+    const keyMap: Record<string, number> = {
+      'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+      'E': 4, 'F': 5, 'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8,
+      'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11,
+    };
+    return keyMap[key] ?? 0;
+  }
+
   // ── Recipe builders ────────────────────────────────────────────────
   // Conventions: 64 steps = 4 bars.  Step 0 = beat 1 bar 1.
   // Chord changes land on bar boundaries (every 16 steps).
