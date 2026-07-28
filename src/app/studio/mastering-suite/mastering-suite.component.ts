@@ -64,6 +64,11 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     { value: 'house', label: 'House', emoji: '🎵' },
     { value: 'lo-fi', label: 'Lo-Fi', emoji: '☕' },
     { value: 'pop', label: 'Pop', emoji: '⭐' },
+    { value: 'dubstep', label: 'Dubstep', emoji: '💥' },
+    { value: 'reggaeton', label: 'Reggaeton', emoji: '🎶' },
+    { value: 'ambient', label: 'Ambient', emoji: '🌌' },
+    { value: 'jazz', label: 'Jazz', emoji: '🎷' },
+    { value: 'rnb', label: 'R&B', emoji: '🎸' },
   ];
   selectedGenre = signal<string>('');
   aiDetectedGenre = signal<string>('');

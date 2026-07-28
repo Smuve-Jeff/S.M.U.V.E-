@@ -378,6 +378,68 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     this.activeTab.set(tab);
   }
 
+  // ── Waveform loop handle drag events ────────────────
+  onWaveformLoopStartChange(value: number): void {
+    const zone = this.selectedZone();
+    if (!zone || !this.sampler) return;
+    const endPct = zone.loopEnd;
+    if (value < endPct) {
+      this.sampler.setLoop(zone.pitch, value, endPct, zone.loopCrossfade);
+      this.refreshZones();
+    }
+  }
+
+  onWaveformLoopEndChange(value: number): void {
+    const zone = this.selectedZone();
+    if (!zone || !this.sampler) return;
+    const startPct = zone.loopStart;
+    if (value > startPct) {
+      this.sampler.setLoop(zone.pitch, startPct, value, zone.loopCrossfade);
+      this.refreshZones();
+    }
+  }
+
+  // ── Sampler → Mixer routing ─────────────────────────
+  /**
+   * Connect each sampler zone to a dedicated mixer channel output.
+   * Zones with outputChannel < 0 route to master.
+   * Zones with outputChannel >= 0 route to the corresponding mixer track.
+   */
+  connectToMixer(): void {
+    if (!this.sampler) return;
+    const allZones = this.sampler.getAllZones();
+    for (const zone of allZones) {
+      if (zone.outputChannel < 0) {
+        // Route to master
+        this.sampler.connectZoneOutput(zone.pitch, this.audioEngine.ctx.destination);
+      } else {
+        // Route to a mixer track output
+        const trackId = `sampler-${zone.pitch}`;
+        const trackOutput = this.audioEngine.getTrackOutput(trackId);
+        this.sampler.connectZoneOutput(zone.pitch, trackOutput);
+      }
+    }
+  }
+
+  /**
+   * Assign a zone to a specific mixer track and update routing.
+   */
+  assignToMixerChannel(pitch: number, channelIndex: number): void {
+    if (!this.sampler) return;
+    this.sampler.setOutputChannel(pitch, channelIndex);
+
+    // Disconnect old route
+    // Reconnect to new output
+    if (channelIndex < 0) {
+      this.sampler.connectZoneOutput(pitch, this.audioEngine.ctx.destination);
+    } else {
+      const trackId = channelIndex === 0 ? 'master' : `channel-${channelIndex}`;
+      const trackOutput = this.audioEngine.getTrackOutput(trackId);
+      this.sampler.connectZoneOutput(pitch, trackOutput);
+    }
+    this.refreshZones();
+  }
+
   // ── Remove Zone ─────────────────────────────────────
   removeZone(pitch: number): void {
     if (this.selectedPitch() === pitch) {

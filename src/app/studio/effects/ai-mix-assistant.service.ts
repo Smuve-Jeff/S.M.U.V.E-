@@ -316,6 +316,81 @@ export class AiMixAssistantService {
       description: 'Vocal-forward clarity · balanced lows and highs · streaming-standard loudness',
       tags: ['pop', 'rnb', 'top-40', 'radio'],
     },
+    {
+      genre: 'dubstep',
+      emoji: '💥',
+      targetLufs: -9,
+      safeCeiling: -0.3,
+      compThreshold: -6,
+      compRatio: 8,
+      limiterThreshold: -0.5,
+      limiterRatio: 30,
+      eqSub: 4.0,
+      eqHighShelf: 3.0,
+      eqLowMid: -3.0,
+      description: 'Massive sub-bass with aggressive mid-range scream · hard brick-wall limiting for maximum impact',
+      tags: ['dubstep', 'brostep', 'riddim', 'heavy-bass', 'wonky'],
+    },
+    {
+      genre: 'reggaeton',
+      emoji: '🎶',
+      targetLufs: -11,
+      safeCeiling: -0.6,
+      compThreshold: -9,
+      compRatio: 4.5,
+      limiterThreshold: -1.0,
+      limiterRatio: 14,
+      eqSub: 2.0,
+      eqHighShelf: 1.2,
+      eqLowMid: -0.5,
+      description: 'Punchy dembow rhythm · warm low-end · clear vocal mids with controlled highs',
+      tags: ['reggaeton', 'latin', 'dembow', 'urban-latin', 'latin-trap'],
+    },
+    {
+      genre: 'ambient',
+      emoji: '🌌',
+      targetLufs: -20,
+      safeCeiling: -2.0,
+      compThreshold: -18,
+      compRatio: 1.8,
+      limiterThreshold: -3.0,
+      limiterRatio: 4,
+      eqSub: -1.0,
+      eqHighShelf: -1.5,
+      eqLowMid: 0,
+      description: 'Wide dynamic range · gentle compression · soft highs for ethereal soundscapes',
+      tags: ['ambient', 'drone', 'soundscape', 'meditation', 'cinematic'],
+    },
+    {
+      genre: 'jazz',
+      emoji: '🎷',
+      targetLufs: -18,
+      safeCeiling: -1.5,
+      compThreshold: -14,
+      compRatio: 2.0,
+      limiterThreshold: -2.5,
+      limiterRatio: 6,
+      eqSub: -1.5,
+      eqHighShelf: -0.5,
+      eqLowMid: 1.0,
+      description: 'Natural dynamics · warm mid-range with gentle low-mid emphasis · transparent limiting for acoustic clarity',
+      tags: ['jazz', 'acoustic', 'live', 'swing', 'bebop'],
+    },
+    {
+      genre: 'rnb',
+      emoji: '🎸',
+      targetLufs: -12,
+      safeCeiling: -0.8,
+      compThreshold: -8,
+      compRatio: 3.0,
+      limiterThreshold: -1.2,
+      limiterRatio: 10,
+      eqSub: 1.0,
+      eqHighShelf: 2.0,
+      eqLowMid: -0.3,
+      description: 'Smooth vocal-forward mix · warm low-end with silky highs · streaming-optimized with punchy drums',
+      tags: ['rnb', 'soul', 'neo-soul', 'contemporary', 'urban'],
+    },
   ];
 
   /**
@@ -350,6 +425,24 @@ export class AiMixAssistantService {
     let lofiScore = 0;
     let popScore = 0;
 
+    // Dubstep: wubby bass + heavy drums + synth stabs
+    const hasWub = names.some((n) => n.includes('wob') || n.includes('wub') || n.includes('growl') || n.includes('dub'));
+    const hasSynthLead = types.some((t) => t === 'lead');
+
+    // Reggaeton: dembow drums + latin percussion
+    const hasDembow = names.some((n) => n.includes('dembow') || n.includes('regga') || n.includes('latin'));
+    const hasPercussion = types.some((t) => t === 'percussion');
+
+    // Ambient: sparse, pads, no drums
+    const hasOnlyPads = types.length > 0 && types.every((t) => ['pad', 'texture', 'fx'].includes(t) || t === 'chords');
+    const noDrums = !types.some((t) => ['kick', 'snare', 'drums', 'percussion'].includes(t));
+
+    // Jazz: acoustic instruments, piano/bass/drums
+    const hasAcoustic = names.some((n) => n.includes('acoustic') || n.includes('jazz') || n.includes('swing') || n.includes('brass'));
+    const hasMelodic = types.some((t) => t === 'melodic');
+
+    // R&B: vocals + bass + chords, moderate tempo feel
+
     if (has808) trapScore += 30;
     if (hasHihat && hasHeavySub) trapScore += 20;
     if (drumCount >= 3) trapScore += 10;
@@ -366,11 +459,40 @@ export class AiMixAssistantService {
     if (tracks.length >= 3 && !has808 && !hasVinyl) popScore += 15;
     if (types.some((t) => t === 'vocal')) popScore += 10;
 
+    // New genre scores
+    let dubstepScore = 0;
+    let reggaetonScore = 0;
+    let ambientScore = 0;
+    let jazzScore = 0;
+    let rnbScore = 0;
+
+    if (hasWub && hasSynthLead && drumCount >= 2) dubstepScore += 35;
+    if (hasWub && hasHeavySub) dubstepScore += 25;
+    if (hasSynthLead && hasSynthPad) dubstepScore += 15;
+
+    if (hasDembow) reggaetonScore += 35;
+    if (types.includes('kick') && hasPercussion && hasHeavySub) reggaetonScore += 25;
+
+    if (hasOnlyPads && noDrums && isSparse) ambientScore += 40;
+    if (noDrums && tracks.length <= 3) ambientScore += 20;
+
+    if (hasAcoustic || hasMelodic) jazzScore += 30;
+    if ((hasPiano || types.includes('chords')) && (types.includes('bass') || hasHeavySub) && types.includes('kick')) jazzScore += 20;
+    if (isSparse && hasAcoustic) jazzScore += 15;
+
+    if (types.some((t) => t === 'vocal') && types.includes('bass') && types.includes('chords')) rnbScore += 25;
+    if (types.includes('vocal') && hasPiano && hasHeavySub) rnbScore += 20;
+
     const scores: Array<{ genre: string; score: number }> = [
       { genre: 'trap', score: trapScore },
       { genre: 'house', score: houseScore },
       { genre: 'lo-fi', score: lofiScore },
       { genre: 'pop', score: popScore },
+      { genre: 'dubstep', score: dubstepScore },
+      { genre: 'reggaeton', score: reggaetonScore },
+      { genre: 'ambient', score: ambientScore },
+      { genre: 'jazz', score: jazzScore },
+      { genre: 'rnb', score: rnbScore },
     ];
 
     scores.sort((a, b) => b.score - a.score);

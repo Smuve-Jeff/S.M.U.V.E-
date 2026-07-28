@@ -95,6 +95,8 @@
           [loopStart]="selectedZone()?.loopEnabled ? selectedZone()!.loopStart : null"
           [loopEnd]="selectedZone()?.loopEnabled ? selectedZone()!.loopEnd : null"
           [loopInteractive]="true"
+          (loopStartChange)="onWaveformLoopStartChange($event)"
+          (loopEndChange)="onWaveformLoopEndChange($event)"
           color="var(--teal-400)"
         ></app-waveform-renderer>
         <div class="sampler-waveform-empty" *ngIf="!waveformData()">

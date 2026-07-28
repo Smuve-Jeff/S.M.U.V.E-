@@ -1,6 +1,8 @@
 import {
   Component,
   Input,
+  Output,
+  EventEmitter,
   ViewChild,
   ElementRef,
   AfterViewInit,
@@ -36,18 +38,78 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges {
   @Input() loopEnd: number | null = null;
   /** Whether loop handles are interactive (draggable / clickable to set). */
   @Input() loopInteractive = false;
+  /** Emitted when loopStart changes via drag interaction */
+  @Output() loopStartChange = new EventEmitter<number>();
+  /** Emitted when loopEnd changes via drag interaction */
+  @Output() loopEndChange = new EventEmitter<number>();
 
   @ViewChild('waveCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private ctx: CanvasRenderingContext2D | null = null;
 
+  // ── Draggable loop handle state ───────────────────
+  private draggingHandle: 'start' | 'end' | null = null;
+
   ngAfterViewInit() {
-    this.ctx = this.canvasRef.nativeElement.getContext('2d');
+    const canvas = this.canvasRef.nativeElement;
+    this.ctx = canvas.getContext('2d');
     this.draw();
+
+    if (this.loopInteractive) {
+      canvas.addEventListener('mousedown', this.onCanvasMouseDown.bind(this));
+      canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this));
+      canvas.addEventListener('mouseup', this.onCanvasMouseUp.bind(this));
+      canvas.addEventListener('mouseleave', this.onCanvasMouseUp.bind(this));
+    }
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.ctx) this.draw();
+  }
+
+  // ── Draggable loop handle interaction ─────────────
+  private onCanvasMouseDown(event: MouseEvent): void {
+    if (this.loopStart === null || this.loopEnd === null) return;
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const w = canvas.width;
+    const x = (event.clientX - rect.left) / rect.width;
+
+    const startX = this.loopStart * w;
+    const endX = this.loopEnd * w;
+    const pixelX = x * w;
+    const handleRadius = 10;
+
+    // Check if click is near start or end handle
+    const distToStart = Math.abs(pixelX - startX);
+    const distToEnd = Math.abs(pixelX - endX);
+
+    if (distToStart < handleRadius && distToStart <= distToEnd) {
+      this.draggingHandle = 'start';
+    } else if (distToEnd < handleRadius) {
+      this.draggingHandle = 'end';
+    }
+  }
+
+  private onCanvasMouseMove(event: MouseEvent): void {
+    if (!this.draggingHandle) return;
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+
+    if (this.draggingHandle === 'start') {
+      if (ratio < (this.loopEnd ?? 1) - 0.01) {
+        this.loopStartChange.emit(ratio);
+      }
+    } else if (this.draggingHandle === 'end') {
+      if (ratio > (this.loopStart ?? 0) + 0.01) {
+        this.loopEndChange.emit(ratio);
+      }
+    }
+  }
+
+  private onCanvasMouseUp(_event: MouseEvent): void {
+    this.draggingHandle = null;
   }
 
   /**
