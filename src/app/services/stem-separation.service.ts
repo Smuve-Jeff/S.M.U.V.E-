@@ -56,7 +56,7 @@ export class StemSeparationService {
    * until a user explicitly enables ML inference (e.g., behind a Pro-tier flag).
    * This protects first-run UX from a 13MB ONNX model download on a slow network.
    */
-  readonly useMlStems = signal(false);
+  readonly useMlStems = signal(true);
   /** Whether the runtime can host the ML stem worker (Web Worker + cross-origin isolation). */
   readonly mlStemsAvailable = signal(
     typeof window !== 'undefined' &&

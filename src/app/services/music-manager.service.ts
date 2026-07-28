@@ -28,6 +28,12 @@ export interface TrackNote {
   microOffset?: number;
   /** Pro Precision: pitch bend in semitones (±12 = one octave) */
   pitchBend?: number;
+  /** CC 1 — modulation wheel (0..1) */
+  modulation?: number;
+  /** CC 11 — expression (0..1) */
+  expression?: number;
+  /** Channel aftertouch per-note (0..1) */
+  aftertouch?: number;
   /** Pro Precision: articulation style */
   articulation?:
     | 'normal'
@@ -97,6 +103,8 @@ export interface TrackModel extends StudioTrack {
   stereoWidth?: number;
   /** Pro: Map of auxBusId -> level (0..1) */
   auxSends?: Record<string, number>;
+  /** VCA bus assignment. null = unassigned. Set via mixer.component onAssignTrackToVca. */
+  vcaId?: string | null;
   activePatternSlotId?: string | null;
   patternSlots?: PatternSlot[];
   swingAmount?: number;
