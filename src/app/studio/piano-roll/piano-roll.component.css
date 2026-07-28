@@ -689,12 +689,23 @@
 }
 
 .pr-cc-track {
-  height: 24px;
+  height: 32px;
   background: rgba(255,255,255,0.03);
   border-radius: 4px;
   position: relative;
   overflow: hidden;
-  cursor: pointer;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pr-cc-track:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.pr-cc-track:active {
+  background: rgba(255,255,255,0.08);
 }
 
 .pr-cc-fill {
@@ -703,8 +714,20 @@
   left: 0;
   right: 0;
   border-radius: 0 0 4px 4px;
-  opacity: 0.5;
-  transition: height 0.1s;
+  opacity: 0.55;
+  transition: height 0.05s;
+}
+
+.pr-cc-value {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-size: 9px;
+  font-weight: 800;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: rgba(255,255,255,0.5);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
 .pr-cc-toggle-bar {

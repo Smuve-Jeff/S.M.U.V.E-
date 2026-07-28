@@ -287,6 +287,21 @@ export class DjMidiService {
     this.sendMidiMessage(0xfb);
   }
 
+  /**
+   * Send a MIDI CC message to the first available output device.
+   * Falls back gracefully if no output is connected.
+   */
+  sendCC(controller: number, value: number, channel = 0): void {
+    if (!this.midiOutputDevices.length) return;
+    const idx = this.clockOutputIndex();
+    if (idx >= this.midiOutputDevices.length) return;
+    const status = 0xb0 | (channel & 0x0f);
+    const clampedValue = Math.max(0, Math.min(127, Math.round(value)));
+    try {
+      this.midiOutputDevices[idx].send([status, controller & 0x7f, clampedValue]);
+    } catch {}
+  }
+
   // ── MIDI Slave Sync ──────────────────────────────────
   toggleSlaveSync(): void {
     this.slaveSyncEnabled.update((v) => !v);

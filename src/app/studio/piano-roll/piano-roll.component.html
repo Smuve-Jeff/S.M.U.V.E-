@@ -251,12 +251,17 @@
             <span class="material-symbols-outlined">auto_awesome</span>
           </button>
         </div>
-        <div class="pr-cc-track">
+        <div
+          class="pr-cc-track"
+          (pointerdown)="onCcPointerDown($event, lane.id)"
+          (pointermove)="onCcPointerMove($event, lane.id)"
+        >
           <div
             class="pr-cc-fill"
             [style.background]="lane.color"
-            [style.height.%]="50"
+            [style.height.%]="(ccLaneValues()[lane.id] ?? 64) / 127 * 100"
           ></div>
+          <span class="pr-cc-value">{{ ccLaneValues()[lane.id] ?? 64 }}</span>
         </div>
       </div>
     </div>

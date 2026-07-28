@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
+import { DjMidiService } from '../../services/dj-midi.service';
 
 @Component({
   selector: 'app-channel-rack',
@@ -96,6 +97,19 @@ describe('PianoRollComponent', () => {
           useValue: mockEnhancedTouchGestures,
         },
         { provide: HapticService, useValue: mockHaptic },
+        {
+          provide: DjMidiService,
+          useValue: {
+            sendCC: jest.fn(),
+            performerNoteOn: { next: jest.fn() },
+            performerNoteOff: { next: jest.fn() },
+            performerCC: { next: jest.fn() },
+            midiActivityPulse: signal(false),
+            lastMidiMessage: signal(null),
+            connectedDevices: signal([]),
+            midiOutputs: signal([]),
+          },
+        },
       ],
     }).compileComponents();
 

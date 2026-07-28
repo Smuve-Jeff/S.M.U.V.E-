@@ -184,10 +184,25 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
   // Defense-in-depth: normalize first, then auto-repair any cabinet URL mismatches.
   // This catches both curated JSON feeds and corruption that creeps into the
   // fallback TS feed so a game whose id is "battlefield" cannot load halo-ce-web.
-  const games = (feed.games || [])
+  const rawGames = (feed.games || [])
     .map((game) => normalizeGame(game))
     .map((game) => validateAndRepairGame(game))
     .filter((game) => !!game.id && !!game.url);
+
+  // ── Deduplicate by ID: keep the FIRST occurrence, log warning ──
+  const seenIds = new Set<string>();
+  const games = rawGames.filter((game) => {
+    if (seenIds.has(game.id)) {
+      console.warn(`[ThaSpot] Duplicate game ID "${game.id}" — dropping duplicate.`);
+      return false;
+    }
+    seenIds.add(game.id);
+    return true;
+  });
+
+  if (games.length < rawGames.length) {
+    console.warn(`[ThaSpot] Removed ${rawGames.length - games.length} duplicate game entries.`);
+  }
 
   return {
     badges: (feed.badges || [])

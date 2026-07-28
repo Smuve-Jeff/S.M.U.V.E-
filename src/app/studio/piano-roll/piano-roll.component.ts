@@ -22,6 +22,7 @@ import {
 import { AudioSessionService } from '../audio-session.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
+import { DjMidiService } from '../../services/dj-midi.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   PianoRollRenderer,
@@ -43,6 +44,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly touchGestures = inject(EnhancedTouchGestureService);
   private readonly haptic = inject(HapticService);
+  private readonly djMidi = inject(DjMidiService);
 
   // ── WebGL renderers ──────────────────────────────────────
   private glRenderer!: WebGLRenderer;
@@ -215,6 +217,46 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   showCcLane = signal(false);
   activeCcLane = signal<string | null>(null);
+
+  /** Track the current value (0-127) for each CC lane for draw interaction */
+  ccLaneValues = signal<Record<string, number>>({
+    mod: 0,
+    expr: 64,
+    pan: 64,
+    cut: 127,
+  });
+
+  /** CC lane draw interaction — same pattern as velocity lane */
+  onCcPointerDown(event: PointerEvent, laneId: string): void {
+    event.preventDefault();
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const y = event.clientY - rect.top;
+    const height = rect.height || 24;
+    const value = Math.max(0, Math.min(127, Math.round((1 - y / height) * 127)));
+    this.updateCcLaneValue(laneId, value);
+  }
+
+  onCcPointerMove(event: PointerEvent, laneId: string): void {
+    if (event.buttons !== 1) return;
+    event.preventDefault();
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const y = event.clientY - rect.top;
+    const height = rect.height || 24;
+    const value = Math.max(0, Math.min(127, Math.round((1 - y / height) * 127)));
+    this.updateCcLaneValue(laneId, value);
+  }
+
+  private updateCcLaneValue(laneId: string, value: number): void {
+    this.ccLaneValues.update((v) => ({ ...v, [laneId]: value }));
+    this.haptic.light();
+    // Find the CC number for this lane and send MIDI CC
+    const lane = this.ccLanes.find((l) => l.id === laneId);
+    if (lane) {
+      this.djMidi.sendCC(lane.cc, value, 0);
+    }
+  }
 
   toggleCcLane(laneId: string): void {
     if (this.activeCcLane() === laneId) {
