@@ -79,6 +79,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
 
   // Output channel names
   outputChannels = ['Master', 'Ch 1', 'Ch 2', 'Ch 3', 'Ch 4', 'Ch 5', 'Ch 6', 'Ch 7'];
+  mixerConnected = signal(false);
 
   // ── ADSR SVG calculation helpers ─────────────────────
   adsrSvgPoints = computed(() => {
@@ -419,7 +420,25 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
         this.sampler.connectZoneOutput(zone.pitch, trackOutput);
       }
     }
+    this.mixerConnected.set(true);
+    this.haptic.medium();
   }
+
+  disconnectFromMixer(): void {
+    if (!this.sampler) return;
+    const allZones = this.sampler.getAllZones();
+    for (const zone of allZones) {
+      // Reconnect to master output directly
+      this.sampler.connectZoneOutput(zone.pitch, this.audioEngine.ctx.destination);
+    }
+    this.mixerConnected.set(false);
+    this.haptic.light();
+  }
+
+  /** Number of zones routed to non-master outputs */
+  routedZoneCount = computed(() => {
+    return this.zones().filter((z) => z.outputChannel >= 0).length;
+  });
 
   /**
    * Assign a zone to a specific mixer track and update routing.

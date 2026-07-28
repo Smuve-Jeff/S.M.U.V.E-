@@ -1009,6 +1009,10 @@ export class AiMixAssistantService {
         'trap-808-elite',
       ],
       rnb: ['grand-piano', 'p-bass-elite', 'trap-808-elite', 'synth-pad'],
+      dubstep: ['sub-commander', 'cyber-stab', 'synth-lead', 'trap-808-elite', 'fx-sweep'],
+      reggaeton: ['trap-808-elite', 'p-bass-elite', 'grand-piano', 'synth-pad', 'percussion-rack'],
+      ambient: ['synth-pad', 'grand-piano', 'fx-ambient', 'vinyl-crackle', 'texture-drone'],
+      jazz: ['grand-piano', 'p-bass-elite', 'strat-elite-clean', 'vinyl-crackle', 'brass-section'],
     };
     return recs[genre] || ['grand-piano', 'p-bass-elite', 'trap-808-elite'];
   }

@@ -466,6 +466,94 @@
   height: 60px;
 }
 
+/* ── Routing Bar (Connect/Disconnect) ──────────── */
+.sampler-routing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(61,53,42,0.1);
+  gap: 8px;
+}
+
+.sampler-routing-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sampler-routing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--espresso-100, #5c513e);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.sampler-routing-dot-on {
+  background: var(--teal-400, #2ba09c);
+  box-shadow: 0 0 8px rgba(43,160,156,0.5);
+  animation: routingPulse 2s ease-in-out infinite;
+}
+
+@keyframes routingPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(43,160,156,0.5); }
+  50% { box-shadow: 0 0 16px rgba(43,160,156,0.8); }
+}
+
+.sampler-routing-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-100, #5c513e);
+  letter-spacing: 0.03em;
+}
+
+/* ── Route indicator ──────────────────────────── */
+.sampler-routing-route {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 48px;
+  text-align: center;
+}
+
+.sampler-routing-route-master {
+  color: var(--espresso-100, #5c513e);
+  background: rgba(61,53,42,0.06);
+}
+
+.sampler-routing-route-channel {
+  color: var(--teal-500, #0e7c7b);
+  background: rgba(43,160,156,0.08);
+}
+
+.sampler-routing-summary {
+  padding: 6px 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--teal-500, #0e7c7b);
+  letter-spacing: 0.04em;
+}
+
+.sampler-routing-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px;
+  color: var(--espresso-100, #5c513e);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sampler-routing-empty .material-symbols-outlined {
+  font-size: 28px;
+  opacity: 0.3;
+}
+
 /* ── Routing Grid ──────────────────────────────── */
 .sampler-routing-grid {
   display: flex;
@@ -499,8 +587,17 @@
   font-size: 11px;
 }
 
+.sampler-routing-header span:nth-child(2) {
+  min-width: 80px;
+}
+
+.sampler-routing-header span:nth-child(3) {
+  min-width: 56px;
+  text-align: center;
+}
+
 .sampler-routing-select {
-  width: 100px;
+  width: 80px;
 }
 
 .sampler-hint {

@@ -322,10 +322,37 @@
 
         <!-- Routing tab -->
         <div class="sampler-editor-panel" *ngIf="activeTab() === 'routing'">
+          <!-- Connect / Disconnect bar -->
+          <div class="sampler-routing-bar">
+            <div class="sampler-routing-status">
+              <span
+                class="sampler-routing-dot"
+                [class.sampler-routing-dot-on]="mixerConnected()"
+              ></span>
+              <span class="sampler-routing-label">
+                {{ mixerConnected() ? 'Multi-out Active' : 'Direct to Master' }}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="sampler-btn"
+              [class.sampler-btn-import]="!mixerConnected()"
+              [class.sampler-btn-stop]="mixerConnected()"
+              (click)="mixerConnected() ? disconnectFromMixer() : connectToMixer()"
+            >
+              <span class="material-symbols-outlined">
+                {{ mixerConnected() ? 'link_off' : 'link' }}
+              </span>
+              <span>{{ mixerConnected() ? 'Disconnect' : 'Connect to Mixer' }}</span>
+            </button>
+          </div>
+
+          <!-- Zone routing grid -->
           <div class="sampler-routing-grid">
             <div class="sampler-routing-header">
               <span>Zone</span>
               <span>Output</span>
+              <span>Route</span>
             </div>
             <div
               class="sampler-routing-row"
@@ -335,16 +362,30 @@
               <select
                 class="sampler-select sampler-routing-select"
                 [value]="z.outputChannel"
-                (change)="setOutputChannel(z.pitch, getSelectValue($event))"
+                (change)="assignToMixerChannel(z.pitch, parseInt(getSelectValue($event)))"
               >
                 <option
                   *ngFor="let ch of outputChannels; let i = index"
                   [value]="i - 1"
                 >{{ ch }}</option>
               </select>
+              <span
+                class="sampler-routing-route"
+                [class.sampler-routing-route-master]="z.outputChannel < 0"
+                [class.sampler-routing-route-channel]="z.outputChannel >= 0"
+              >
+                {{ z.outputChannel < 0 ? 'Master' : 'Ch ' + (z.outputChannel + 1) }}
+              </span>
+            </div>
+            <div class="sampler-routing-summary" *ngIf="zones().length > 0">
+              <span>{{ routedZoneCount() }} / {{ zones().length }} zones on separate channels</span>
+            </div>
+            <div class="sampler-routing-empty" *ngIf="zones().length === 0">
+              <span class="material-symbols-outlined">schema</span>
+              <span>Load samples first, then assign outputs</span>
             </div>
           </div>
-          <p class="sampler-hint">Route each zone to a different mixer channel for individual processing.</p>
+          <p class="sampler-hint">Route each zone to a different mixer channel for individual processing. Click 'Connect to Mixer' to activate multi-out audio routing.</p>
         </div>
       </div>
     </ng-container>
