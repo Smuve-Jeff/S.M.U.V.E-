@@ -259,6 +259,39 @@
           ></div>
         </div>
 
+        <!-- ――― AUX Sends — sendA (teal) + sendB (amber), 0-150 % faders ――― -->
+        <div class="mix-strip-sends">
+          <span class="mix-sends-label">AUX</span>
+          <label class="mix-send-knob-wrap">
+            A
+            <input
+              type="range"
+              class="mix-send-range"
+              min="0"
+              max="150"
+              step="1"
+              [value]="(track.sendA || 0) * 100"
+              (input)="updateSend(track.id, 'A', +$any($event.target).value); $event.stopPropagation()"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Send A level for ' + track.name"
+            />
+          </label>
+          <label class="mix-send-knob-wrap">
+            B
+            <input
+              type="range"
+              class="mix-send-range mix-send-range-b"
+              min="0"
+              max="150"
+              step="1"
+              [value]="(track.sendB || 0) * 100"
+              (input)="updateSend(track.id, 'B', +$any($event.target).value); $event.stopPropagation()"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Send B level for ' + track.name"
+            />
+          </label>
+        </div>
+
         <div class="mix-strip-body">
           <div
             class="mix-fader-area"

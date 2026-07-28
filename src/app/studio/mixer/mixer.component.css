@@ -900,3 +900,82 @@
   }
   .mix-vca-add:active { transform: none; }
 }
+
+/* ---------- AUX Sends (sendA / sendB knobs per strip) ---------- */
+.mix-strip-sends {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  margin: 0.15rem 0;
+  border-top: 1px solid rgba(220, 208, 181, 0.4);
+}
+.mix-sends-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(126, 114, 89, 0.9);
+  width: 1.8rem;
+  text-transform: uppercase;
+}
+.mix-send-knob-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(14, 124, 123, 0.9);
+  letter-spacing: 0.04em;
+}
+/* send B uses amber tint to distinguish from A's teal */
+.mix-send-knob-wrap:last-child { color: rgba(217, 119, 6, 0.9); }
+
+.mix-send-range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 3rem;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 124, 123, 0.7) 0%,
+    rgba(220, 208, 181, 0.4) 100%
+  );
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+.mix-send-range-b {
+  background: linear-gradient(
+    90deg,
+    rgba(217, 119, 6, 0.7) 0%,
+    rgba(220, 208, 181, 0.4) 100%
+  );
+}
+.mix-send-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  background: #FBF7EC;
+  border: 2px solid rgba(14, 124, 123, 0.85);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(14, 124, 123, 0.25);
+  cursor: grab;
+}
+.mix-send-range-b::-webkit-slider-thumb {
+  border-color: rgba(217, 119, 6, 0.85);
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.25);
+}
+.mix-send-range::-moz-range-thumb {
+  width: 0.7rem;
+  height: 0.7rem;
+  background: #FBF7EC;
+  border: 2px solid rgba(14, 124, 123, 0.85);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(14, 124, 123, 0.25);
+  cursor: grab;
+}
+.mix-send-range-b::-moz-range-thumb {
+  border-color: rgba(217, 119, 6, 0.85);
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.25);
+}

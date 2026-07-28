@@ -467,7 +467,12 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   updateSend(id: string, send: 'A' | 'B', value: number) {
-    this.musicManager.updateSend(id, send, value / 100);
+    const normalized = Math.max(0, Math.min(1.5, value / 100));
+    this.musicManager.updateSend(id, send, normalized);
+    // Also drive the AudioContext so the aux level is audible immediately.
+    // Uses optional chaining — no-op in test environments without the method.
+    (this.musicManager as any).engine
+      ?.setSendLevel?.(id, send, normalized);
   }
 
   // ── Pro: Sidechain routing ─────────────────────────────────
