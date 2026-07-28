@@ -399,6 +399,12 @@
         <app-mixer></app-mixer>
       </div>
       <div class="comp-view" *ngSwitchCase="'performance'">
+        <app-performance-mode
+          [pads]="performancePads()"
+          (padClicked)="onPerformancePadClicked($event)"
+        ></app-performance-mode>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'performer'">
         <app-performer></app-performer>
       </div>
       <div class="comp-view" *ngSwitchCase="'mastering'">
@@ -1528,6 +1534,61 @@
   >
     {{ crossLinkAnnouncement() }}
   </div>
+
+  <!-- ====================== VOCAL COMP VIEW PANEL ====================== -->
+  <aside
+    class="comp-panel comp-vocal-comp-panel"
+    [class.comp-panel-open]="showVocalComp()"
+    role="dialog"
+    aria-label="Vocal Comp View"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">layers</span>
+        VOCAL COMP
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleVocalComp()"
+        aria-label="Close comp view"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <app-vocal-comp-view></app-vocal-comp-view>
+    </div>
+  </aside>
+
+  <!-- ====================== BEZIER EDITOR PANEL ====================== -->
+  <aside
+    class="comp-panel comp-bezier-panel"
+    [class.comp-panel-open]="showBezierEditor()"
+    role="dialog"
+    aria-label="Bezier Curve Editor"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">timeline</span>
+        BEZIER CURVES
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleBezierEditor()"
+        aria-label="Close bezier editor"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <app-bezier-editor
+        [laneId]="bezierLaneId()"
+        (curveChanged)="onBezierCurveChanged($event)"
+      ></app-bezier-editor>
+    </div>
+  </aside>
 
   <!-- ====================== GLOBAL OVERLAYS (legacy) ====================== -->
   <app-search-overlay></app-search-overlay>

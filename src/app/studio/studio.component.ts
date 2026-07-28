@@ -63,6 +63,9 @@ import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.compo
 import { ChordEditorComponent } from './chord-editor/chord-editor.component';
 import { MidiInputWidgetComponent } from './midi-input-widget/midi-input-widget.component';
 import { SamplerComponent } from './sampler/sampler.component';
+import { PerformanceModeComponent, PerformancePad } from './performance-mode/performance-mode.component';
+import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.component';
+import { BezierEditorComponent } from './automation/bezier-editor.component';
 
 type StudioView =
   | 'arrangement'
@@ -153,6 +156,9 @@ const THEME_LABEL: Record<AppTheme, string> = {
     ChordEditorComponent,
     MidiInputWidgetComponent,
     SamplerComponent,
+    PerformanceModeComponent,
+    VocalCompViewComponent,
+    BezierEditorComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -203,7 +209,60 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showSmartRecordingPanel = signal(false);
   showImportPanel = signal(false);
   showComponentRecording = signal(false);
+
+  // ── Bezier editor state ──────────────────────────────────
+  showBezierEditor = signal(false);
+  bezierLaneId = signal<string>('');
+
+  toggleBezierEditor(laneId?: string): void {
+    this.haptic.light();
+    if (laneId) this.bezierLaneId.set(laneId);
+    this.showBezierEditor.update(v => !v);
+  }
+
+  // ── Vocal comp view ─────────────────────────────────────
+  showVocalComp = signal(false);
+
+  toggleVocalComp(): void {
+    this.haptic.light();
+    this.showVocalComp.update(v => !v);
+  }
+
+  onBezierCurveChanged(curve: any): void {
+    this.snackbarService.info('Bezier curve applied to automation lane');
+  }
   crossLinkAnnouncement = signal<string>('');
+
+  // ── Performance Pads ────────────────────────────────────
+  performancePads = signal<PerformancePad[]>([
+    { id: 1, name: 'KICK', type: 'one-shot', isPlaying: false },
+    { id: 2, name: 'SNARE', type: 'one-shot', isPlaying: false },
+    { id: 3, name: 'HAT', type: 'one-shot', isPlaying: false },
+    { id: 4, name: 'CLAP', type: 'one-shot', isPlaying: false },
+    { id: 5, name: 'BASS', type: 'loop', isPlaying: false },
+    { id: 6, name: 'CHORD', type: 'loop', isPlaying: false },
+    { id: 7, name: 'LEAD', type: 'loop', isPlaying: false },
+    { id: 8, name: 'FX', type: 'one-shot', isPlaying: false },
+  ]);
+
+  onPerformancePadClicked(pad: PerformancePad): void {
+    this.haptic.medium();
+    // Toggle playing state
+    this.performancePads.update(pads =>
+      pads.map(p => p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p)
+    );
+    // Trigger a note on the live engine
+    const midiNotes: Record<string, number> = {
+      'KICK': 36, 'SNARE': 38, 'HAT': 42, 'CLAP': 39,
+      'BASS': 45, 'CHORD': 48, 'LEAD': 60, 'FX': 72,
+    };
+    const note = midiNotes[pad.name] || 48;
+    if (!pad.isPlaying) {
+      // Hit it
+      this.audioEngine.resume();
+    }
+    this.snackbarService.info(`Pad ${pad.isPlaying ? 'OFF' : 'HIT'}: ${pad.name}`);
+  }
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
