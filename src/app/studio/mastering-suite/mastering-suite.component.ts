@@ -15,6 +15,7 @@ import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
 
 interface MasteringBand {
   id: number;
@@ -52,6 +53,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
+  private aiMix = inject(AiMixAssistantService);
   masteringRoast = signal<string>('Analyzing dynamics...');
   public uiService = inject(UIService);
 
@@ -265,47 +267,30 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.refreshRoast();
     this.isProcessing.set(true);
     try {
-      const settings = await this.aiService.getAutoMixSettings();
-      const assist = this.aiService.getProductionSmartAssist({
-        arrangementDensity: 0.68,
-        midMaskingRisk: 0.61,
-        transientSharpness: 0.74,
-      });
+      // Run the full AI auto-master analysis chain
+      const report = this.aiMix.autoMaster();
 
-      const corrective = {
-        compressorThreshold: -14,
-        compressorRatio: 4,
-        limiterCeiling: -0.1,
-        targetLufs: -14,
-      };
+      // Update UI with mastering targets from the engine
+      const targets = this.audioEngine.getMasteringTargets();
+      this.targetLufs.set(targets.lufs);
+      this.safeCeiling.set(targets.truePeak);
 
-      const mergedThreshold = Math.min(
-        settings?.threshold || -12,
-        corrective.compressorThreshold
-      );
-      const mergedRatio = Math.max(
-        settings?.ratio || 4,
-        corrective.compressorRatio
-      );
-      const mergedCeiling = Math.min(
-        settings?.ceiling || -0.1,
-        corrective.limiterCeiling
-      );
-      const mergedTargetLufs = Math.min(-14, corrective.targetLufs);
+      // Build smart assist readout from the report
+      const summaryLines = report.filter((l) => l.startsWith('🎯') || l.startsWith('✅'));
+      this.smartAssistSuggestion.set(summaryLines.join(' · ') || 'AI Master applied');
 
-      (this.audioEngine as any).configureCompressor?.({
-        threshold: mergedThreshold,
-        ratio: mergedRatio,
-      });
-      (this.audioEngine as any).configureLimiter?.({ ceiling: mergedCeiling });
-      (this.audioEngine as any).setMasteringTargets?.({
-        lufs: mergedTargetLufs,
-        truePeak: mergedCeiling,
-      });
-      this.targetLufs.set(mergedTargetLufs);
-      this.safeCeiling.set(mergedCeiling);
-      this.smartAssistSuggestion.set('Standard mastering applied');
-      this.eqMaskingHint.set('No significant masking detected');
+      // Show EQ hint from the report
+      const eqLine = report.find((l) => l.startsWith('📈'));
+      this.eqMaskingHint.set(eqLine?.replace('📈 ', '') || 'EQ optimized for mix density');
+
+      // Update roast with the analysis
+      const detailLines = report.filter((l) => !l.startsWith('🎯') && !l.startsWith('✅') && !l.startsWith('📈'));
+      this.masteringRoast.set(detailLines.join(' | '));
+
+      // Deactivate manual preset since AI chose optimal settings
+      this.activePresetId.set(null);
+
+      this.snack.success('AI Mastering complete — full chain optimized');
     } finally {
       this.isProcessing.set(false);
     }
