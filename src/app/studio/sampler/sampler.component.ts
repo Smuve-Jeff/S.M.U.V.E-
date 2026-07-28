@@ -31,6 +31,7 @@ interface SamplerZoneUI {
   release: number;
   loopStart: number;
   loopEnd: number;
+  loopCrossfade: number;
   loopEnabled: boolean;
 }
 
@@ -151,6 +152,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
       release: z.adsr?.release ?? 0.2,
       loopStart: z.loop?.start ?? 0,
       loopEnd: z.loop?.end ?? 1,
+      loopCrossfade: z.loop?.crossfade ?? 0.02,
       loopEnabled: !!z.loop,
     };
   }
@@ -281,6 +283,60 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   setOutputChannel(pitch: number, channel: string): void {
     if (!this.sampler) return;
     this.sampler.setOutputChannel(pitch, parseInt(channel, 10));
+    this.refreshZones();
+  }
+
+  // ── Loop Controls ───────────────────────────────────
+  toggleLoop(pitch: number): void {
+    if (!this.sampler) return;
+    const zone = this.sampler.getZone(pitch);
+    if (!zone) return;
+
+    if (zone.loop) {
+      // Remove loop
+      this.sampler.setLoop(pitch, 0, 0, 0.02);
+      zone.loop = undefined;
+    } else {
+      // Enable loop with current start/end
+      const start = zone.loop?.start ?? 0;
+      const end = zone.loop?.end ?? 1;
+      this.sampler.setLoop(pitch, start, end, 0.02);
+    }
+    this.refreshZones();
+  }
+
+  updateLoopStart(pitch: number, value: number): void {
+    if (!this.sampler) return;
+    const zone = this.sampler.getZone(pitch);
+    if (!zone) return;
+    const startPct = Math.max(0, Math.min(99, value)) / 100;
+    const endPct = zone.loop?.end ?? 1;
+    if (startPct < endPct) {
+      this.sampler.setLoop(pitch, startPct, endPct, zone.loop?.crossfade ?? 0.02);
+    }
+    this.refreshZones();
+  }
+
+  updateLoopEnd(pitch: number, value: number): void {
+    if (!this.sampler) return;
+    const zone = this.sampler.getZone(pitch);
+    if (!zone) return;
+    const startPct = zone.loop?.start ?? 0;
+    const endPct = Math.max(1, Math.min(100, value)) / 100;
+    if (endPct > startPct) {
+      this.sampler.setLoop(pitch, startPct, endPct, zone.loop?.crossfade ?? 0.02);
+    }
+    this.refreshZones();
+  }
+
+  updateLoopCrossfade(pitch: number, value: number): void {
+    if (!this.sampler) return;
+    const zone = this.sampler.getZone(pitch);
+    if (!zone) return;
+    const fadeMs = Math.max(0, Math.min(200, value));
+    const startPct = zone.loop?.start ?? 0;
+    const endPct = zone.loop?.end ?? 1;
+    this.sampler.setLoop(pitch, startPct, endPct, fadeMs / 1000);
     this.refreshZones();
   }
 

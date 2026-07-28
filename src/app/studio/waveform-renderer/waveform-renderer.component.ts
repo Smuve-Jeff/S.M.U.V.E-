@@ -30,6 +30,13 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges {
   /** Display mode: 'bars' | 'envelope' | 'mirrored' */
   @Input() mode: 'bars' | 'envelope' | 'mirrored' = 'envelope';
 
+  /** Loop region start position (0..1 as fraction of waveform). Null = no loop. */
+  @Input() loopStart: number | null = null;
+  /** Loop region end position (0..1 as fraction of waveform). Null = no loop. */
+  @Input() loopEnd: number | null = null;
+  /** Whether loop handles are interactive (draggable / clickable to set). */
+  @Input() loopInteractive = false;
+
   @ViewChild('waveCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private ctx: CanvasRenderingContext2D | null = null;
@@ -117,6 +124,63 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges {
       ctx.shadowBlur = 6;
       ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+
+    // Loop region overlay
+    if (this.loopStart !== null && this.loopEnd !== null) {
+      const lx = Math.round(this.loopStart * w);
+      const rx = Math.round(this.loopEnd * w);
+
+      // Translucent highlight for loop region
+      ctx.fillStyle = 'rgba(43, 160, 156, 0.08)';
+      ctx.fillRect(lx, 0, rx - lx, h);
+
+      // Loop start marker
+      ctx.strokeStyle = '#2BA09C';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(lx, 0);
+      ctx.lineTo(lx, h);
+      ctx.stroke();
+
+      // Loop end marker
+      ctx.strokeStyle = '#E8A838';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(rx, 0);
+      ctx.lineTo(rx, h);
+      ctx.stroke();
+
+      // Loop label
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(43, 160, 156, 0.6)';
+      ctx.font = '9px monospace';
+      ctx.fillText(`⟳ ${(this.loopEnd - this.loopStart) * 100}%`, lx + 4, 14);
+
+      // Interactive handle markers
+      if (this.loopInteractive) {
+        // Start handle diamond
+        ctx.fillStyle = '#2BA09C';
+        ctx.beginPath();
+        ctx.moveTo(lx, h / 2 - 8);
+        ctx.lineTo(lx + 6, h / 2);
+        ctx.lineTo(lx, h / 2 + 8);
+        ctx.lineTo(lx - 6, h / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // End handle diamond
+        ctx.fillStyle = '#E8A838';
+        ctx.beginPath();
+        ctx.moveTo(rx, h / 2 - 8);
+        ctx.lineTo(rx + 6, h / 2);
+        ctx.lineTo(rx, h / 2 + 8);
+        ctx.lineTo(rx - 6, h / 2);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
 
     // Recording pulse overlay

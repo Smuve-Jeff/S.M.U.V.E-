@@ -92,6 +92,9 @@
         <app-waveform-renderer
           [audioData]="waveformData()"
           [duration]="waveformDuration()"
+          [loopStart]="selectedZone()?.loopEnabled ? selectedZone()!.loopStart : null"
+          [loopEnd]="selectedZone()?.loopEnabled ? selectedZone()!.loopEnd : null"
+          [loopInteractive]="true"
           color="var(--teal-400)"
         ></app-waveform-renderer>
         <div class="sampler-waveform-empty" *ngIf="!waveformData()">
@@ -268,7 +271,7 @@
               type="button"
               class="sampler-toggle"
               [class.sampler-toggle-on]="zone.loopEnabled"
-              (click)="zone.loopEnabled ? toggleRoundRobin(zone.pitch) : null"
+              (click)="toggleLoop(zone.pitch)"
             >
               {{ zone.loopEnabled ? 'ON' : 'OFF' }}
             </button>
@@ -280,11 +283,11 @@
               class="sampler-adsr-slider"
               min="0"
               max="100"
-              step="1"
+              step="0.5"
               [value]="zone.loopStart * 100"
-              disabled
+              (input)="updateLoopStart(zone.pitch, getInputValue($event))"
             />
-            <span class="sampler-adsr-val">{{ (zone.loopStart * 100).toFixed(0) }}%</span>
+            <span class="sampler-adsr-val">{{ (zone.loopStart * 100).toFixed(1) }}%</span>
           </div>
           <div class="sampler-editor-row">
             <label>End</label>
@@ -293,13 +296,26 @@
               class="sampler-adsr-slider"
               min="0"
               max="100"
-              step="1"
+              step="0.5"
               [value]="zone.loopEnd * 100"
-              disabled
+              (input)="updateLoopEnd(zone.pitch, getInputValue($event))"
             />
-            <span class="sampler-adsr-val">{{ (zone.loopEnd * 100).toFixed(0) }}%</span>
+            <span class="sampler-adsr-val">{{ (zone.loopEnd * 100).toFixed(1) }}%</span>
           </div>
-          <p class="sampler-hint">Load a zone and set loop points via the API.</p>
+          <div class="sampler-editor-row">
+            <label>Fade</label>
+            <input
+              type="range"
+              class="sampler-adsr-slider"
+              min="0"
+              max="200"
+              step="1"
+              [value]="zone.loopCrossfade * 1000"
+              (input)="updateLoopCrossfade(zone.pitch, getInputValue($event))"
+            />
+            <span class="sampler-adsr-val">{{ (zone.loopCrossfade * 1000).toFixed(0) }}ms</span>
+          </div>
+          <p class="sampler-hint">Loop region highlighted on waveform. Fade creates a smooth crossfade at the loop point.</p>
         </div>
 
         <!-- Routing tab -->
