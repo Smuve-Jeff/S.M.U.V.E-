@@ -42,3 +42,30 @@
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
+
+/* === Sprint 1 polish: thumb halo + hover lift === */
+.channel-fader:hover::-webkit-slider-thumb {
+  background: linear-gradient(180deg, #0e7c7b 0%, #04302f 100%);
+  border-color: #5DC4C2;
+  box-shadow:
+    0 0 0 2px rgba(93, 196, 194, 0.25),
+    0 6px 12px rgba(14, 124, 123, 0.45);
+}
+.channel-fader:hover::-webkit-slider-thumb::after {
+  background: #5DC4C2;
+  box-shadow: 0 0 8px rgba(93, 196, 194, 0.8);
+}
+.channel-fader:active::-webkit-slider-thumb {
+  transform: scaleX(1.04);
+  transition: transform 0.12s ease;
+}
+
+/* Channel strip track polish (when wrapped with a .strip wrapper) */
+.channel-strip:hover {
+  background: linear-gradient(180deg, rgba(14, 124, 123, 0.08), transparent);
+}
+.channel-strip {
+  padding: 4px 2px;
+  border-radius: 8px;
+  transition: background 0.18s ease;
+}

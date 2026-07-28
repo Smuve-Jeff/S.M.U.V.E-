@@ -41,7 +41,45 @@
   flex-shrink: 0;
   position: relative;
   z-index: 30;
+  /* === Sprint 1 polish: cascading entrance on mount === */
+  animation: comp-topbar-slide-down 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
+@keyframes comp-topbar-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Cascade each tool button + transport bar for a staggered entrance */
+.comp-topbar-left > *,
+.comp-topbar-center,
+.comp-topbar-right > *,
+.comp-topbar-tools > * {
+  animation: comp-pill-fade 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes comp-pill-fade {
+  from { transform: translateY(-6px); opacity: 0; }
+  to   { transform: translateY(0);  opacity: 1; }
+}
+.comp-topbar-right > *:nth-child(1) { animation-delay: 60ms; }
+.comp-topbar-right > *:nth-child(2) { animation-delay: 110ms; }
+.comp-topbar-right > *:nth-child(3) { animation-delay: 160ms; }
+.comp-topbar-right > *:nth-child(4) { animation-delay: 210ms; }
+.comp-topbar-right > *:nth-child(5) { animation-delay: 260ms; }
+.comp-topbar-right > *:nth-child(6) { animation-delay: 310ms; }
+.comp-topbar-right > *:nth-child(7) { animation-delay: 360ms; }
+.comp-topbar-tools > *:nth-child(1) { animation-delay: 420ms; }
+.comp-topbar-tools > *:nth-child(2) { animation-delay: 460ms; }
+.comp-topbar-tools > *:nth-child(3) { animation-delay: 500ms; }
+.comp-topbar-tools > *:nth-child(4) { animation-delay: 540ms; }
+.comp-topbar-tools > *:nth-child(5) { animation-delay: 580ms; }
+.comp-topbar-tools > *:nth-child(6) { animation-delay: 620ms; }
+.comp-topbar-tools > *:nth-child(7) { animation-delay: 660ms; }
 
 .comp-topbar-left {
   display: flex;
