@@ -341,9 +341,13 @@ export class ProjectWorkspaceService {
   restoreFromSnapshot(bundle: ProjectBundle) {
     this.metadata.set({ ...bundle.metadata });
     if (bundle.tracks) {
-      // Restore tracks through music manager
-      // (actual track restoration handled by MusicManagerService)
+      this.musicManager.tracks.set(bundle.tracks as any);
+      this.isDirty.set(false);
     }
+    if (bundle.metadata?.bpm) {
+      this.musicManager.engine.tempo.set(bundle.metadata.bpm);
+    }
+    this.logger.info('ProjectWorkspace: Restored project ' + (bundle.metadata?.name ?? 'Untitled'));
   }
 
   /** Keep only the N most recent auto-saves */

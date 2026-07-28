@@ -199,40 +199,67 @@ export class OfflineBounceService {
   ): Promise<void> {
     const tempo = this.engine.tempo();
     const stepsPerBeat = 4;
-    const beatsPerBar = 4;
-    const stepsPerBar = stepsPerBeat * beatsPerBar;
     const stepDuration = 60 / tempo / stepsPerBeat;
 
-    // Master output gain
+    // Use live master gain instead of hard-coded value
+    const liveMasterGain = this.engine.masterGain.gain.value;
     const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.8;
+    masterGain.gain.value = liveMasterGain;
     masterGain.connect(ctx.destination);
 
     this.updateProgress('rendering', 15, 'Scheduling notes and clips…', onProgress);
 
-    // Process each track
     const tracks = this.musicManager.tracks();
+
+    // Respect solo/mute: if any track is soloed, only render soloed tracks;
+    // otherwise render all non-muted tracks.
+    const hasSolo = tracks.some((t: any) => t.soloed === true);
+    const activeTracks = hasSolo
+      ? tracks.filter((t: any) => t.soloed === true)
+      : tracks.filter((t: any) => !t.muted);
+
     let trackCount = 0;
 
-    for (const track of tracks) {
+    for (const track of activeTracks) {
       trackCount++;
-      const progressBase = 15 + (trackCount / Math.max(1, tracks.length)) * 30;
-      this.updateProgress('rendering', progressBase, `Rendering track: ${track.name}`, onProgress);
+      const progressBase = 15 + (trackCount / Math.max(1, activeTracks.length)) * 30;
+      const trackLabel = 'name' in (track as any) ? (track as any).name : `Track ${trackCount}`;
+      this.updateProgress('rendering', progressBase, `Rendering track: ${trackLabel}`, onProgress);
 
-      // Render MIDI notes as synthesized audio
+      const trackGain = (track as any).gain ?? 0.8;
+      const waveform = this.getTrackWaveform(track as any);
+
       for (const note of track.notes) {
         if (note.step >= totalSteps) continue;
-        this.renderNote(ctx, note, track.gain ?? 0.8, masterGain, stepDuration, sampleRate);
+        this.renderNote(
+          ctx, note, trackGain, waveform, masterGain, stepDuration, sampleRate
+        );
       }
     }
 
+    if (activeTracks.length === 0 && tracks.length > 0) {
+      this.updateProgress('rendering', 50, 'All tracks muted — rendering silence…', onProgress);
+    }
+
     this.updateProgress('rendering', 55, 'Applying mix automation…', onProgress);
+  }
+
+  /** Extract the waveform type from a track's synthParams */
+  private getTrackWaveform(track: any): OscillatorType {
+    const raw = track?.synthParams?.type;
+    if (typeof raw === 'string' &&
+        (raw === 'sine' || raw === 'sawtooth' || raw === 'square' ||
+         raw === 'triangle' || raw === 'sawtooth')) {
+      return raw;
+    }
+    return 'sine';
   }
 
   private renderNote(
     ctx: OfflineAudioContext,
     note: { step: number; midi: number; length: number; velocity: number },
     trackGain: number,
+    waveform: OscillatorType,
     destination: AudioNode,
     stepDuration: number,
     sampleRate: number
@@ -242,12 +269,9 @@ export class OfflineBounceService {
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
     const velocity = note.velocity ?? 0.8;
 
-    // Simple bandlimited oscillator per note
-    const osc = ctx.createOscillator();
+    // Use antialiased oscillator (bandlimited for saw/square)
+    const osc = this.createBounceOscillator(ctx, waveform, freq, startTime, sampleRate);
     const env = ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, startTime);
 
     env.gain.setValueAtTime(0, startTime);
     env.gain.linearRampToValueAtTime(velocity * trackGain * 0.5, startTime + 0.005);
@@ -259,6 +283,53 @@ export class OfflineBounceService {
 
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
+  }
+
+  /**
+   * Create a bandlimited oscillator in an OfflineAudioContext.
+   * For sawtooth/square, synthesize a bandlimited PeriodicWave to avoid
+   * aliasing at high frequencies.
+   */
+  private createBounceOscillator(
+    ctx: OfflineAudioContext,
+    type: OscillatorType,
+    freq: number,
+    startTime: number,
+    sampleRate: number
+  ): OscillatorNode {
+    const osc = ctx.createOscillator();
+
+    if (type === 'sawtooth' || type === 'square') {
+      const nyquist = sampleRate / 2;
+      const maxHarmonics = Math.floor(nyquist / freq);
+      const real = new Float32Array(maxHarmonics + 1);
+      const imag = new Float32Array(maxHarmonics + 1);
+
+      if (type === 'sawtooth') {
+        for (let h = 1; h <= maxHarmonics; h++) {
+          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
+        }
+      } else {
+        for (let h = 1; h <= maxHarmonics; h += 2) {
+          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
+        }
+      }
+
+      try {
+        const wave = ctx.createPeriodicWave(real, imag, {
+          disableNormalization: false,
+        });
+        osc.setPeriodicWave(wave);
+      } catch {
+        // Fallback to native type if PeriodicWave isn't supported
+        osc.type = type;
+      }
+    } else {
+      osc.type = type;
+    }
+
+    osc.frequency.setValueAtTime(freq, startTime);
+    return osc;
   }
 
   private updateProgress(

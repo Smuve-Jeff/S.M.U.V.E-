@@ -4,6 +4,7 @@ import { LoggingService } from '../services/logging.service';
 import { RecordingStatusService } from './recording-status.service';
 import { LocalStorageService } from '../services/local-storage.service';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
+import { WavEncoder } from './wav-encoder.util';
 
 /** A single recorded take within a comp group */
 export interface CompTake {
@@ -241,9 +242,29 @@ export class SmartRecordingService {
     const takeNumber = this.currentTakeNumber();
     const now = Date.now();
 
-    // Create a silent WAV stub as placeholder (replace with real capture)
-    const blob = await this.synthesizeSilentWav(2000);
+    // Pull real recorded audio from the studio recording engine
+    const { left, right } = this.recordingEngine.getRecordedBuffers();
+    let blob: Blob;
+    let durationMs = 2000;
+
+    if (left.length > 0 && right.length > 0) {
+      // Interleave left/right channel chunks and encode as WAV
+      const interleaved = this.interleaveChannels(left, right);
+      const sampleRate = this.audioEngine.ctx.sampleRate;
+      blob = WavEncoder.encodeMultiChannel(
+        [interleaved.slice(0, interleaved.length / 2), interleaved.slice(interleaved.length / 2)],
+        'wav-16',
+        sampleRate
+      );
+      durationMs = Math.round((interleaved.length / sampleRate) * 1000);
+    } else {
+      // Fallback: no recording was active — synthesize minimal silent WAV
+      blob = await this.synthesizeSilentWav(2000);
+    }
+
     const url = URL.createObjectURL(blob);
+    const regionStartBar = 1;
+    const regionEndBar = 5;
 
     const take: CompTake = {
       id: `take_${now}_${takeNumber}`,
@@ -251,10 +272,10 @@ export class SmartRecordingService {
       label: `Take ${takeNumber}`,
       blob,
       url,
-      durationMs: 2000,
+      durationMs,
       recordedAt: now,
-      regionStartBar: 1,
-      regionEndBar: 5,
+      regionStartBar,
+      regionEndBar,
       isMuted: false,
       isCompSelection: false,
       peakDbL: -18,
@@ -548,6 +569,26 @@ export class SmartRecordingService {
   }
 
   // ── Utility ───────────────────────────────────────────────
+
+  /** Interleave two arrays of Float32Array chunks into a single interleaved Float32Array */
+  private interleaveChannels(
+    leftChunks: Float32Array[],
+    rightChunks: Float32Array[]
+  ): Float32Array {
+    let total = 0;
+    for (const c of leftChunks) total += c.length;
+    const result = new Float32Array(total * 2);
+    let off = 0;
+    for (let i = 0; i < leftChunks.length; i++) {
+      const l = leftChunks[i];
+      const r = rightChunks[i] ?? new Float32Array(l.length);
+      for (let j = 0; j < l.length; j++) {
+        result[off++] = l[j];
+        result[off++] = r[j];
+      }
+    }
+    return result;
+  }
 
   private async synthesizeSilentWav(durationMs: number): Promise<Blob> {
     const sampleRate = 48000;

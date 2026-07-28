@@ -2,6 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { SubtractiveSynth } from './subtractive-synth';
 import { AdvancedSynth } from './advanced-synth';
+import { FMSynth } from './fm-synth';
+import { WavetableSynth } from './wavetable-synth';
+import { PhysicalModelingSynth } from './physical-modeling-synth';
+import { GranularSynth } from './granular-synth';
 import { DrumMachine } from './drum-machine';
 import { SamplerEngine } from './sampler-engine';
 import { FileLoaderService } from '../services/file-loader.service';
@@ -25,6 +29,14 @@ export class InstrumentRegistryService {
       inst = new DrumMachine(this.engine.ctx);
     } else if (type === 'advanced') {
       inst = new AdvancedSynth(this.engine.ctx, this.samplerEngine);
+    } else if (type === 'fm') {
+      inst = new FMSynth(this.engine.ctx);
+    } else if (type === 'wavetable') {
+      inst = new WavetableSynth(this.engine.ctx);
+    } else if (type === 'physical') {
+      inst = new PhysicalModelingSynth(this.engine.ctx);
+    } else if (type === 'granular') {
+      inst = new GranularSynth(this.engine.ctx);
     } else {
       inst = new SubtractiveSynth(this.engine.ctx, this.samplerEngine);
     }

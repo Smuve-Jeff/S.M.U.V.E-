@@ -184,6 +184,11 @@ export class StudioRecordingEngineService implements OnDestroy {
     return this.analyserNode;
   }
 
+  /** Return the current left/right channel buffers for SmartRecordingService to pull real comp takes */
+  getRecordedBuffers(): { left: Float32Array[]; right: Float32Array[] } {
+    return { left: this.leftChannel, right: this.rightChannel };
+  }
+
   private interleave(
     left: Float32Array[],
     right: Float32Array[]

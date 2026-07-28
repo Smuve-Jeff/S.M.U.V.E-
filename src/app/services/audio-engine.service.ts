@@ -10,6 +10,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
+import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
 
 export type DeckId = 'A' | 'B';
 
@@ -122,6 +123,7 @@ export class AudioEngineService {
   private trackWidthNodes = new Map<string, StereoPannerNode>();
   private trackFaderGains = new Map<string, GainNode>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
+  private trackEffectsRacks = new Map<string, DynamicEffectsRack>();
 
   public tempo = signal(124.0);
   public isPlaying = signal(false);
@@ -805,7 +807,12 @@ export class AudioEngineService {
       const fader = this.ctx.createGain(); // Post-fader Gain
       const output = this.ctx.createGain(); // Final Track Out
 
-      phase.connect(width);
+      // Insert per-track effects rack between phase and width
+      const rack = new DynamicEffectsRack(this.ctx);
+      this.trackEffectsRacks.set(id, rack);
+
+      phase.connect(rack.input);
+      rack.output.connect(width);
       width.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
@@ -828,6 +835,16 @@ export class AudioEngineService {
       this.trackSendBGains.set(id, sB);
     }
     return this.trackPhaseNodes.get(id)!;
+  }
+
+  /** Get (or lazily create) a per-track DynamicEffectsRack for insert/send routing */
+  getTrackEffectsRack(trackId: string): DynamicEffectsRack {
+    this.getTrackOutput(trackId); // ensure signal chain exists
+    if (!this.trackEffectsRacks.has(trackId)) {
+      const rack = new DynamicEffectsRack(this.ctx);
+      this.trackEffectsRacks.set(trackId, rack);
+    }
+    return this.trackEffectsRacks.get(trackId)!;
   }
 
   updateTrack(id: string | number, patch: any) {

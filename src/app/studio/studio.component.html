@@ -4,6 +4,7 @@
   [class.comp-header-collapsed]="headerCollapsed()"
   [class.comp-footer-collapsed]="footerCollapsed()"
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
+  (keydown)="handleKeyboardShortcut($event)"
 >
   <!-- ====================== TOP TRANSPORT ====================== -->
   <header class="comp-topbar" role="banner">
@@ -335,6 +336,12 @@
         <span class="material-symbols-outlined">{{ item.icon }}</span>
         <span class="comp-rail-label">{{ item.label }}</span>
       </button>
+      <!-- MIDI Input Widget -->
+      <app-midi-input-widget
+        *ngIf="!railCollapsed()"
+        class="comp-rail-widget"
+      ></app-midi-input-widget>
+
       <button
         type="button"
         class="comp-rail-item"

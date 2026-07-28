@@ -2,6 +2,12 @@ import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { AudioInputDevice, MicrophoneService } from './microphone.service';
 
+export interface MidiInputDevice {
+  id: string;
+  name: string;
+  manufacturer: string;
+}
+
 export interface HardwareStatus {
   audioInterfaceConnected: boolean;
   activeInterfaceName: string | null;
@@ -43,7 +49,10 @@ export class HardwareService {
     return parts.join(' · ');
   });
 
-  /** True when at least one external (non-built-in) device is connected. */
+  midiInputs = signal<MidiInputDevice[]>([]);
+  /** Callback fired when a MIDI note-on is received (note 0-127, velocity 0-127). Called by the service. */
+  onMidiNoteOn?: (note: number, velocity: number) => void;
+  onMidiNoteOff?: (note: number) => void;
   readonly externalHardwareConnected = computed(() => {
     const s = this.status();
     return (
@@ -55,6 +64,7 @@ export class HardwareService {
 
   constructor() {
     this.initMonitoring();
+    this.initMidiInput();
   }
 
   private initMonitoring() {
@@ -117,5 +127,56 @@ export class HardwareService {
 
   updateMidiCount(count: number) {
     this.status.update((s) => ({ ...s, midiDevicesConnected: count }));
+  }
+
+  /** Initialize Web MIDI input and forward note events to the callback. */
+  private initMidiInput(): void {
+    if (typeof navigator === 'undefined' || typeof (navigator as any).requestMIDIAccess !== 'function') {
+      return;
+    }
+
+    this.zone.runOutsideAngular(() => {
+      (navigator as any).requestMIDIAccess().then((midi: any) => {
+        this.refreshMidiInputs(midi);
+        midi.onstatechange = () => this.refreshMidiInputs(midi);
+      }).catch(() => {
+        // MIDI access denied or unavailable
+      });
+    });
+  }
+
+  private refreshMidiInputs(midi: any): void {
+    const inputs: MidiInputDevice[] = [];
+    for (const input of (midi.inputs as any).values()) {
+      inputs.push({
+        id: input.id,
+        name: input.name || 'MIDI Device',
+        manufacturer: input.manufacturer || '',
+      });
+
+      // Wire note-on / note-off handlers
+      input.onmidimessage = (event: any) => {
+        const [status, data1, data2] = event.data;
+        const channel = status & 0x0f;
+        const command = status & 0xf0;
+
+        if (command === 0x90 && data2 > 0) {
+          // Note on
+          this.zone.run(() => {
+            this.onMidiNoteOn?.(data1, data2);
+          });
+        } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+          // Note off
+          this.zone.run(() => {
+            this.onMidiNoteOff?.(data1);
+          });
+        }
+      };
+    }
+
+    this.zone.run(() => {
+      this.midiInputs.set(inputs);
+      this.updateMidiCount(inputs.length);
+    });
   }
 }

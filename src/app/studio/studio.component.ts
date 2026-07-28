@@ -47,6 +47,7 @@ import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
+import { HistoryService } from '../services/history.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
 import { SmartRecordingService } from './smart-recording.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
@@ -60,6 +61,7 @@ import { AudioRecorderViewComponent } from './audio-recorder-view/audio-recorder
 import { SampleLibraryComponent } from './sample-library/sample-library.component';
 import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.component';
 import { ChordEditorComponent } from './chord-editor/chord-editor.component';
+import { MidiInputWidgetComponent } from './midi-input-widget/midi-input-widget.component';
 
 type StudioView =
   | 'arrangement'
@@ -146,6 +148,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     SampleLibraryComponent,
     BeginnerWizardComponent,
     ChordEditorComponent,
+    MidiInputWidgetComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -176,6 +179,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly snackbarService = inject(SnackbarService);
   private readonly logger = inject(LoggingService);
   private readonly ideasGenerator = inject(IdeasGeneratorService);
+  private readonly history = inject(HistoryService);
   public readonly templateService = inject(ProjectTemplateService);
   public readonly aiMixAssistant = inject(AiMixAssistantService);
   public readonly smartRecording = inject(SmartRecordingService);
@@ -1166,6 +1170,20 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (ctrl && event.key === 'e') {
       event.preventDefault();
       this.exportProject();
+      return true;
+    }
+
+    // Undo
+    if (ctrl && event.key === 'z' && !event.shiftKey) {
+      event.preventDefault();
+      this.history.undo();
+      return true;
+    }
+
+    // Redo
+    if (ctrl && event.key === 'Z' || (ctrl && event.shiftKey && event.key === 'z')) {
+      event.preventDefault();
+      this.history.redo();
       return true;
     }
 
