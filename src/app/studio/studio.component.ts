@@ -62,6 +62,7 @@ import { SampleLibraryComponent } from './sample-library/sample-library.componen
 import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.component';
 import { ChordEditorComponent } from './chord-editor/chord-editor.component';
 import { MidiInputWidgetComponent } from './midi-input-widget/midi-input-widget.component';
+import { SamplerComponent } from './sampler/sampler.component';
 
 type StudioView =
   | 'arrangement'
@@ -80,7 +81,8 @@ type StudioView =
   | 'sound-browser'
   | 'sound-pad'
   | 'synthesizer'
-  | 'chord-editor';
+  | 'chord-editor'
+  | 'sampler';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
@@ -101,6 +103,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'sound-pad',
   'synthesizer',
   'chord-editor',
+  'sampler',
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
@@ -149,6 +152,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     BeginnerWizardComponent,
     ChordEditorComponent,
     MidiInputWidgetComponent,
+    SamplerComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -369,6 +373,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'sound-pad', label: 'Sound Pad', icon: 'grid_on' },
     { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },
     { id: 'chord-editor', label: 'Chords', icon: 'music_note' },
+    { id: 'sampler', label: 'Sampler', icon: 'library_music' },
     { id: 'sample-library', label: 'Sample Library', icon: 'library_music' },
     { id: 'audio-recorder', label: 'Recorder', icon: 'mic_external_on' },
     {

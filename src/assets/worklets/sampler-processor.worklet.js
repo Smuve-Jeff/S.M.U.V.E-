@@ -1,9 +1,12 @@
 /**
- * Sampler AudioWorkletProcessor — sample-accurate multi-voice playback.
+ * Sampler AudioWorkletProcessor v2 — sample-accurate multi-voice playback.
  *
- * Receives LOAD (AudioBuffer) and PLAY (note-on) messages via the port.
- * Renders up to 32 concurrent voices with linear-interpolated sample playback,
- * ADSR envelope shaping, and pop-free voice termination.
+ * v2 enhancements:
+ * - Voice IDs for individual note stop (STOP_NOTE)
+ * - PITCH_BEND message for pitch wheel modulation
+ * - MODULATION message for CC-based envelope/volume modulation
+ * - Per-voice pitch bend offset tracked independently
+ * - Up to 32 concurrent voices, linear-interpolated, ADSR envelope
  */
 class SamplerProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -12,15 +15,19 @@ class SamplerProcessor extends AudioWorkletProcessor {
     this.buffers = new Map();
     /** @type {Map<string, number>} sample rate per buffer key */
     this.bufferRates = new Map();
-    /** @type {Array<{ buffer: Float32Array, sampleRate: number, playhead: number,
-     *   pitchMul: number, gain: number, envPhase: string, envPos: number,
-     *   attackS: number, decayS: number, sustain: number, releaseS: number,
-     *   srcSampleRate: number, alive: boolean }>} */
+    /** @type {number} auto-incrementing voice ID counter */
+    this.nextVoiceId = 1;
+    /** @type {Array<{ voiceId: number, note: number, buffer: Float32Array,
+     *   sampleRate: number, playhead: number, pitchMul: number, gain: number,
+     *   envPhase: string, envPos: number, attackS: number, decayS: number,
+     *   sustain: number, releaseS: number, alive: boolean }>} */
     this.voices = [];
+    /** @type {number} global pitch bend multiplier (0.5..2.0, 1.0 = neutral) */
+    this.pitchBend = 1.0;
+    /** @type {number} global modulation depth (0..1) */
+    this.modulation = 0;
 
     this.port.onmessage = (e) => {
-      /** @type {{ type: string, key?: string, buffer?: Float32Array, sampleRate?: number,
-       *    note?: number, rootNote?: number, velocity?: number }} */
       const msg = e.data;
       switch (msg.type) {
         case 'LOAD': {
@@ -41,12 +48,15 @@ class SamplerProcessor extends AudioWorkletProcessor {
           // Convert to playhead advance per output sample
           const pitchMul = rateMul * (srcRate / sampleRate);
           const vel = (msg.velocity || 100) / 127;
-          // Envelope times in seconds
-          const attackS = 0.005;
-          const decayS = 0.1;
-          const sustain = 0.8;
-          const releaseS = 0.2;
+          const voiceId = this.nextVoiceId++;
+          // Per-voice ADSR from message or defaults
+          const attackS = msg.attack != null ? msg.attack : 0.005;
+          const decayS = msg.decay != null ? msg.decay : 0.1;
+          const sustain = msg.sustain != null ? msg.sustain : 0.8;
+          const releaseS = msg.release != null ? msg.release : 0.2;
           this.voices.push({
+            voiceId,
+            note: msg.note || 60,
             buffer: buf,
             sampleRate: srcRate,
             playhead: 0,
@@ -58,12 +68,23 @@ class SamplerProcessor extends AudioWorkletProcessor {
             decayS,
             sustain,
             releaseS,
-            srcSampleRate: srcRate,
             alive: true,
           });
-          // Cap voices
-          while (this.voices.length > 32) {
-            this.voices.shift();
+          // Cap voices at 32
+          if (this.voices.length > 32) {
+            this.voices.sort((a, b) => a.voiceId - b.voiceId);
+            this.voices.splice(0, this.voices.length - 32);
+          }
+          break;
+        }
+        case 'STOP_NOTE': {
+          // Stop individual note by MIDI number
+          const stopNote = msg.note;
+          for (const v of this.voices) {
+            if (v.alive && v.envPhase !== 'release' && v.note === stopNote) {
+              v.envPhase = 'release';
+              v.envPos = 0;
+            }
           }
           break;
         }
@@ -75,6 +96,19 @@ class SamplerProcessor extends AudioWorkletProcessor {
               v.envPos = 0;
             }
           }
+          break;
+        }
+        case 'PITCH_BEND': {
+          // msg.value: -1 (full down) to +1 (full up), 0 = center
+          const bendSemitones = msg.semitones || 2;
+          const bendValue = Math.max(-1, Math.min(1, msg.value || 0));
+          // Convert semitone range to pitch multiplier
+          this.pitchBend = Math.pow(2, (bendValue * bendSemitones) / 12);
+          break;
+        }
+        case 'MODULATION': {
+          // msg.value: 0..1
+          this.modulation = Math.max(0, Math.min(1, msg.value || 0));
           break;
         }
       }
@@ -94,6 +128,8 @@ class SamplerProcessor extends AudioWorkletProcessor {
     }
 
     const invSampleRate = 1 / sampleRate;
+    // Modulation affects sustain level (CC modulation)
+    const modSustainOffset = this.modulation * 0.3; // up to 30% boost
 
     for (let i = 0; i < frameCount; i++) {
       let mixL = 0;
@@ -126,7 +162,8 @@ class SamplerProcessor extends AudioWorkletProcessor {
             break;
           }
           case 'sustain': {
-            envGain = voice.sustain;
+            // Modulation adds to sustain level
+            envGain = Math.min(1, voice.sustain + modSustainOffset);
             break;
           }
           case 'release': {
@@ -144,6 +181,9 @@ class SamplerProcessor extends AudioWorkletProcessor {
           continue;
         }
 
+        // Apply global pitch bend to playhead advance
+        const effectivePitchMul = voice.pitchMul * this.pitchBend;
+
         // Read sample with linear interpolation
         const idx = Math.floor(voice.playhead);
         const frac = voice.playhead - idx;
@@ -159,10 +199,9 @@ class SamplerProcessor extends AudioWorkletProcessor {
           // Beyond buffer end → release
           voice.envPhase = 'release';
           voice.envPos = 0;
-          voice.alive = voice.envPhase !== 'release' || voice.envPos < voice.releaseS;
         }
 
-        voice.playhead += voice.pitchMul;
+        voice.playhead += effectivePitchMul;
 
         const outSample = sample * voice.gain * envGain;
         mixL += outSample;

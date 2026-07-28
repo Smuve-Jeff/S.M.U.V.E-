@@ -21,24 +21,32 @@ export interface SampleZone {
   layers: VelocityLayer[];
   loop?: LoopRegion;
   adsr?: { attack: number; decay: number; sustain: number; release: number };
+  /** Round-robin: cycle through samples in this zone */
+  roundRobin: boolean;
+  /** Round-robin counter */
+  roundRobinIndex: number;
+  /** Multiple sample buffers for round-robin / velocity layers */
+  sampleBuffers: AudioBuffer[];
+  /** Target output channel index (-1 = master, 0+ = mixer channel) */
+  outputChannel: number;
 }
 
 interface BufferedMessage {
-  type: 'LOAD' | 'PLAY';
+  type: 'LOAD' | 'PLAY' | 'STOP_NOTE' | 'STOP_ALL' | 'PITCH_BEND' | 'MODULATION';
   data: any;
 }
 
 /**
- * Sample-accurate sampler powered by the sampler-processor AudioWorklet.
- *
- * Instead of creating AudioBufferSourceNode instances on the main thread,
- * this shuttles sample buffers and play commands through the worklet port.
- * The worklet renders up to 32 concurrent voices with linear-interpolated
- * playback, ADSR envelope shaping, and pop-free termination — all in the
- * audio rendering thread.
+ * Sampler v2 — sample-accurate worklet-powered sampler with:
+ * - Round-robin per zone
+ * - Individual note stop
+ * - Multi-out routing (per-zone output channel)
+ * - Pitch bend + modulation support
+ * - Up to 32 concurrent voices
  */
 export class Sampler {
   private readonly output: GainNode;
+  private readonly zoneOutputs: Map<number, GainNode> = new Map();
   private readonly zones: Map<number, SampleZone> = new Map();
   public slices: Slice[] = [];
 
@@ -48,6 +56,9 @@ export class Sampler {
 
   private readonly context: AudioContext;
   private loadedKeys = new Set<string>();
+
+  /** Active note -> voice info for per-note stop */
+  private activeNotes: Map<number, Set<number>> = new Map();
 
   constructor(context: AudioContext) {
     this.context = context;
@@ -77,27 +88,90 @@ export class Sampler {
     this.bufferedMessages = [];
   }
 
-  /** Send an AudioBuffer to the worklet so it can be played later. */
+  /**
+   * Send an AudioBuffer to the worklet so it can be played later.
+   * Supports round-robin: multiple buffers per pitch.
+   */
   loadSample(pitch: number, buffer: AudioBuffer, threshold: number = 127): void {
     let zone = this.zones.get(pitch);
     if (!zone) {
-      zone = { pitch, layers: [] };
+      zone = {
+        pitch,
+        layers: [],
+        roundRobin: false,
+        roundRobinIndex: 0,
+        sampleBuffers: [],
+        outputChannel: -1,
+      };
       this.zones.set(pitch, zone);
     }
+
+    // Add to velocity layers
     zone.layers.push({ threshold, buffer });
     zone.layers.sort((a, b) => a.threshold - b.threshold);
 
-    // Also ship the raw channel data to the worklet
-    const key = `sample_${pitch}`;
-    if (!this.loadedKeys.has(key)) {
-      this.loadedKeys.add(key);
-      const channelData = buffer.getChannelData(0);
-      this.sendToWorklet({
-        type: 'LOAD',
-        key,
-        buffer: channelData,
-        sampleRate: buffer.sampleRate,
-      });
+    // Add to sample buffers for round-robin
+    zone.sampleBuffers.push(buffer);
+
+    // Ship to worklet
+    const key = `sample_${pitch}_${zone.sampleBuffers.length - 1}`;
+    this.loadedKeys.add(key);
+    const channelData = buffer.getChannelData(0);
+    this.sendToWorklet({
+      type: 'LOAD',
+      key,
+      buffer: channelData,
+      sampleRate: buffer.sampleRate,
+    });
+  }
+
+  /**
+   * Load a sample buffer into a specific round-robin slot.
+   */
+  loadSampleToSlot(pitch: number, buffer: AudioBuffer, slotIndex: number): void {
+    let zone = this.zones.get(pitch);
+    if (!zone) {
+      zone = {
+        pitch,
+        layers: [],
+        roundRobin: false,
+        roundRobinIndex: 0,
+        sampleBuffers: [],
+        outputChannel: -1,
+      };
+      this.zones.set(pitch, zone);
+    }
+
+    // Expand sampleBuffers array if needed
+    while (zone.sampleBuffers.length <= slotIndex) {
+      zone.sampleBuffers.push(buffer);
+    }
+    zone.sampleBuffers[slotIndex] = buffer;
+
+    const key = `sample_${pitch}_${slotIndex}`;
+    this.loadedKeys.add(key);
+    const channelData = buffer.getChannelData(0);
+    this.sendToWorklet({
+      type: 'LOAD',
+      key,
+      buffer: channelData,
+      sampleRate: buffer.sampleRate,
+    });
+  }
+
+  /** Enable or disable round-robin for a pitch zone */
+  setRoundRobin(pitch: number, enabled: boolean): void {
+    const zone = this.zones.get(pitch);
+    if (zone) {
+      zone.roundRobin = enabled;
+    }
+  }
+
+  /** Set the output channel for a pitch zone */
+  setOutputChannel(pitch: number, channel: number): void {
+    const zone = this.zones.get(pitch);
+    if (zone) {
+      zone.outputChannel = channel;
     }
   }
 
@@ -127,8 +201,7 @@ export class Sampler {
 
   /**
    * Play a sample at the given pitch with the given velocity.
-   * The `when` parameter is passed through to the AudioParam scheduler
-   * for sample-accurate scheduling when the worklet is ready.
+   * Supports round-robin cycling if enabled for the zone.
    */
   play(
     pitch: number,
@@ -136,11 +209,19 @@ export class Sampler {
     when: number = this.context.currentTime
   ): void {
     const zone = this.zones.get(pitch);
-    if (!zone || zone.layers.length === 0) return;
+    if (!zone || zone.sampleBuffers.length === 0) return;
 
-    const key = `sample_${pitch}`;
+    // Round-robin: cycle through sample buffers
+    let slotIndex = 0;
+    if (zone.roundRobin && zone.sampleBuffers.length > 1) {
+      slotIndex = zone.roundRobinIndex % zone.sampleBuffers.length;
+      zone.roundRobinIndex = (zone.roundRobinIndex + 1) % zone.sampleBuffers.length;
+    }
+
+    const key = `sample_${pitch}_${slotIndex}`;
     const rootNote = zone.pitch;
     const vel = Math.round(velocity * 127);
+    const adsr = zone.adsr;
 
     this.sendToWorklet({
       type: 'PLAY',
@@ -148,13 +229,36 @@ export class Sampler {
       note: pitch,
       rootNote,
       velocity: vel,
+      attack: adsr?.attack ?? 0.005,
+      decay: adsr?.decay ?? 0.1,
+      sustain: adsr?.sustain ?? 0.8,
+      release: adsr?.release ?? 0.2,
     });
   }
 
-  /** Graceful stop with release — handled by the worklet's STOP_ALL message */
-  stop(_pitch: number, _when?: number): void {
-    // Individual note stop not yet supported by the worklet;
-    // STOP_ALL clears all voices gracefully.
+  /** Stop an individual note (MIDI note-off) */
+  stop(pitch: number, _when?: number): void {
+    this.sendToWorklet({
+      type: 'STOP_NOTE',
+      note: pitch,
+    });
+  }
+
+  /** Apply pitch bend (-1 to +1, semitones range) */
+  setPitchBend(value: number, semitones: number = 2): void {
+    this.sendToWorklet({
+      type: 'PITCH_BEND',
+      value: Math.max(-1, Math.min(1, value)),
+      semitones,
+    });
+  }
+
+  /** Apply modulation (0 to 1) */
+  setModulation(value: number): void {
+    this.sendToWorklet({
+      type: 'MODULATION',
+      value: Math.max(0, Math.min(1, value)),
+    });
   }
 
   /** Stop all active voices (panic) */
@@ -162,12 +266,56 @@ export class Sampler {
     this.sendToWorklet({ type: 'STOP_ALL' });
   }
 
+  /** Get the number of sample buffers loaded for a pitch */
+  getSampleCount(pitch: number): number {
+    const zone = this.zones.get(pitch);
+    return zone ? zone.sampleBuffers.length : 0;
+  }
+
+  /** Get all pitch numbers that have loaded samples */
+  getLoadedPitches(): number[] {
+    return Array.from(this.zones.keys());
+  }
+
+  /** Get zone info for a pitch */
+  getZone(pitch: number): SampleZone | undefined {
+    return this.zones.get(pitch);
+  }
+
+  /** Get all zones */
+  getAllZones(): SampleZone[] {
+    return Array.from(this.zones.values());
+  }
+
   connect(destination: AudioNode): void {
     this.output.connect(destination);
   }
 
+  /**
+   * Connect a zone's output to a specific destination (multi-out).
+   * Each zone can have its own GainNode feeding a different mixer channel.
+   */
+  connectZoneOutput(pitch: number, destination: AudioNode): void {
+    const zone = this.zones.get(pitch);
+    if (!zone) return;
+
+    let zoneGain = this.zoneOutputs.get(pitch);
+    if (!zoneGain) {
+      zoneGain = this.context.createGain();
+      this.zoneOutputs.set(pitch, zoneGain);
+    }
+    zoneGain.connect(destination);
+  }
+
+  /** Get the master output node */
+  getOutput(): GainNode {
+    return this.output;
+  }
+
   disconnect(): void {
     this.output.disconnect();
+    this.zoneOutputs.forEach((gain) => gain.disconnect());
+    this.zoneOutputs.clear();
   }
 
   /** Clean up the worklet node and output */
@@ -175,9 +323,12 @@ export class Sampler {
     this.stopAll();
     this.workletNode?.disconnect();
     this.output.disconnect();
+    this.zoneOutputs.forEach((gain) => gain.disconnect());
+    this.zoneOutputs.clear();
     this.workletNode = null;
     this.workletReady = false;
     this.loadedKeys.clear();
+    this.activeNotes.clear();
   }
 
   /** Auto-slice an AudioBuffer into onset-based slices */
