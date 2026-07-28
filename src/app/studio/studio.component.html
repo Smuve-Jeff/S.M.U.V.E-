@@ -84,7 +84,8 @@
         <span>{{ hardware ? hardware.connectedDevicesBadge() : '' }}</span>
       </span>
 
-      <!-- ARM AUDIO pip — visible until first user gesture arms the AudioContext -->
+      <!-- ARM AUDIO pip — visible until first user gesture arms the AudioContext.
+           Hidden once transport rolls so it doesn't pulse next to NOW PLAYING. -->
       <button
         *ngIf="showArmAudioPip()"
         type="button"
@@ -96,6 +97,20 @@
         <span class="material-symbols-outlined">volume_up</span>
         <span>TAP TO ARM AUDIO</span>
       </button>
+
+      <!-- NOW PLAYING pip — replaces ARM AUDIO once transport is rolling and
+           AudioContext has been resumed. Pulses teal-green for clear at-a-glance
+           "audio is flowing" feedback during live performance. -->
+      <div
+        *ngIf="isLivePerforming()"
+        class="comp-now-playing"
+        role="status"
+        aria-live="polite"
+        aria-label="Audio engine is now performing"
+      >
+        <span class="comp-now-playing-dot" aria-hidden="true"></span>
+        <span>NOW PLAYING</span>
+      </div>
 
       <!-- Beginner / Pro mode toggle -->
       <button

@@ -203,6 +203,24 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
+  /** True after the very first time this component has been constructed this browser. */
+  firstNavigationSeen = signal(
+    typeof localStorage !== 'undefined' &&
+      localStorage.getItem('smuve_first_nav_seen') === 'true'
+  );
+  /**
+   * Mark the first navigation as seen. Called once on construction so the
+   * topbar staggered entrance animation only fires for the first load.
+   */
+  private markFirstNavigationSeen(): void {
+    if (this.firstNavigationSeen()) return;
+    this.firstNavigationSeen.set(true);
+    try {
+      localStorage.setItem('smuve_first_nav_seen', 'true');
+    } catch {
+      /* private mode / locked storage — degrade silently */
+    }
+  }
   footerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
   browserCollapsed = signal(false);
@@ -294,6 +312,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showArmAudioPip = computed(
     () => this.audioContextState() === 'suspended' && !this.userGestureSeen()
   );
+  /**
+   * True when the user has armed audio AND the transport is rolling.
+   * Drives the green NOW PLAYING pip that replaces the ARM pip while
+   * the engine is actually producing sound. Uses Option C: the ARM pip
+   * Hides only when a) AudioContext is running, b) a user gesture has
+   * been registered, and c) the transport is actively playing.
+   */
+  isLivePerforming = computed(() => {
+    const api = this.audioEngine;
+    const playing =
+      typeof api.isPlaying === 'function' ? api.isPlaying() : false;
+    return playing && !this.showArmAudioPip();
+  });
 
   browserWidth = signal(260);
   inspectorWidth = signal(300);
