@@ -242,16 +242,23 @@ export class DynamicEffectsRack {
     // Reconnect dry path
     this._input.connect(this._dryBus);
 
-    // Build insert chain: input → [inserts] → sendBus
-    let current: AudioNode = this._input;
+    // If worklet is active, route input → worklet → sendBus (bypassing per-node chain)
+    if (this._useWorklet && this._workletNode) {
+      this._input.connect(this._workletNode);
+      this._workletNode.connect(this._sendBus);
+      // Still route sends to aux buses from the worklet output
+    } else {
+      // Build insert chain: input → [inserts] → sendBus
+      let current: AudioNode = this._input;
 
-    for (const slot of this._inserts) {
-      if (!slot.plugin.enabled) continue;
-      current.connect(slot.plugin.input);
-      current = slot.plugin.output;
+      for (const slot of this._inserts) {
+        if (!slot.plugin.enabled) continue;
+        current.connect(slot.plugin.input);
+        current = slot.plugin.output;
+      }
+
+      current.connect(this._sendBus);
     }
-
-    current.connect(this._sendBus);
 
     // Route sends: sendBus → send plugins → aux bus gains
     for (const slot of this._sends) {
@@ -284,6 +291,134 @@ export class DynamicEffectsRack {
     }
   }
 
+  // ── Worklet-based processing (Phase 1 latency offload) ──
+
+  private _workletNode: AudioWorkletNode | null = null;
+  private _workletLoaded = false;
+  private _useWorklet = false;
+
+  get useWorklet(): boolean {
+    return this._useWorklet;
+  }
+
+  /**
+   * Enable worklet-based processing.
+   * Loads the effects-processor AudioWorklet and routes audio through it
+   * instead of chaining individual WebAudio plugin nodes on the main thread.
+   * Falls back gracefully to main-thread mode if the worklet fails to load.
+   */
+  async enableWorklet(): Promise<boolean> {
+    if (this._workletLoaded && this._workletNode) return true;
+
+    try {
+      await this.ctx.audioWorklet.addModule(
+        'assets/worklets/effects-processor.worklet.js'
+      );
+    } catch (err: any) {
+      if (!err?.message?.includes('already')) {
+        console.warn('DynamicEffectsRack: Worklet load failed, using main-thread fallback.', err?.message);
+        return false;
+      }
+    }
+
+    try {
+      this._workletNode = new AudioWorkletNode(this.ctx, 'effects-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCount: 2,
+        channelCountMode: 'explicit',
+        channelInterpretation: 'speakers',
+      });
+      this._workletLoaded = true;
+      this._useWorklet = true;
+      this._syncWorkletState();
+      this.rebuildChain();
+      return true;
+    } catch (err: any) {
+      console.warn('DynamicEffectsRack: Worklet node creation failed.', err?.message);
+      return false;
+    }
+  }
+
+  /** Disable worklet and revert to main-thread plugin nodes */
+  disableWorklet(): void {
+    this._useWorklet = false;
+    this._workletNode?.disconnect();
+    this._workletNode?.port.postMessage({ slot: 'reset' });
+    this._workletNode = null;
+    this._workletLoaded = false;
+    this.rebuildChain();
+  }
+
+  /** Push the current plugin state to the worklet processor */
+  private _syncWorkletState(): void {
+    if (!this._workletNode) return;
+    const port = this._workletNode.port;
+
+    // Sync inserts (currently only full-chain sync — individual slot config would be richer)
+    for (const slot of this._inserts) {
+      if (!slot.plugin.enabled) continue;
+      // Map plugin types to worklet slot names
+      this._syncSlotToWorklet(port, slot);
+    }
+    for (const slot of this._masterSlots) {
+      if (!slot.plugin.enabled) continue;
+      this._syncSlotToWorklet(port, slot);
+    }
+  }
+
+  private _syncSlotToWorklet(port: MessagePort, slot: PluginSlot): void {
+    const pid = slot.plugin.id;
+    if (pid === 'smuve.eq.v1') {
+      port.postMessage({ slot: 'eq', action: 'enable', payload: true });
+      const bands = (slot.plugin as any)._eq?.getBands?.();
+      if (bands) {
+        bands.forEach((b: any, i: number) => {
+          port.postMessage({ slot: 'eq', action: 'configure', payload: { band: i, gain: b.gain || 0 } });
+        });
+      }
+    } else if (pid === 'smuve.compressor.v1') {
+      port.postMessage({ slot: 'compressor', action: 'enable', payload: true });
+      const comp = (slot.plugin as any)._comp;
+      if (comp) {
+        port.postMessage({
+          slot: 'compressor',
+          action: 'configure',
+          payload: {
+            thresholdDb: comp.compressor?.threshold?.value ?? -24,
+            ratio: comp.compressor?.ratio?.value ?? 4,
+            attack: comp.compressor?.attack?.value ?? 0.003,
+            release: comp.compressor?.release?.value ?? 0.1,
+          },
+        });
+      }
+    } else if (pid === 'smuve.distortion.v1') {
+      port.postMessage({ slot: 'saturation', action: 'enable', payload: true });
+      port.postMessage({
+        slot: 'saturation',
+        action: 'configure',
+        payload: { amount: slot.plugin.getParam('amount') },
+      });
+    } else if (pid === 'smuve.delay.v1') {
+      port.postMessage({ slot: 'delay', action: 'enable', payload: true });
+      port.postMessage({
+        slot: 'delay',
+        action: 'configure',
+        payload: {
+          time: slot.plugin.getParam('time'),
+          feedback: slot.plugin.getParam('feedback'),
+        },
+      });
+    } else if (pid === 'smuve.reverb.v1') {
+      port.postMessage({ slot: 'reverb', action: 'enable', payload: true });
+      port.postMessage({
+        slot: 'reverb',
+        action: 'configure',
+        payload: { mix: slot.plugin.getParam('mix') },
+      });
+    }
+  }
+
   /** Clean up all plugins and audio nodes */
   dispose(): void {
     for (const slot of this.getAllSlots()) {
@@ -298,6 +433,10 @@ export class DynamicEffectsRack {
     this._sendBus.disconnect();
     this._dryBus.disconnect();
     this._masterInput.disconnect();
+    this._workletNode?.disconnect();
+    this._workletNode?.port.postMessage({ slot: 'reset' });
+    this._workletNode = null;
+    this._useWorklet = false;
   }
 
   // ---- Serialization ----

@@ -109,6 +109,128 @@ class MockAudioContext {
 (window as any).AudioContext = MockAudioContext;
 (window as any).webkitAudioContext = MockAudioContext;
 
+// Mock AudioBuffer constructor for JSDOM
+(window as any).AudioBuffer = class MockAudioBuffer {
+  sampleRate: number;
+  length: number;
+  duration: number;
+  numberOfChannels: number;
+  private _channels: Float32Array[];
+
+  constructor(options: { length: number; sampleRate: number; numberOfChannels: number }) {
+    this.sampleRate = options.sampleRate || 44100;
+    this.length = options.length || 44100;
+    this.duration = this.length / this.sampleRate;
+    this.numberOfChannels = options.numberOfChannels || 2;
+    this._channels = [];
+    for (let c = 0; c < this.numberOfChannels; c++) {
+      this._channels.push(new Float32Array(this.length));
+    }
+  }
+
+  getChannelData(channel: number): Float32Array {
+    return this._channels[channel] || new Float32Array(this.length);
+  }
+
+  copyFromChannel(destination: Float32Array, channelNumber: number, bufferOffset?: number): void {
+    const src = this._channels[channelNumber];
+    if (src) {
+      destination.set(src.subarray(bufferOffset || 0, (bufferOffset || 0) + destination.length));
+    }
+  }
+
+  copyToChannel(source: Float32Array, channelNumber: number, bufferOffset?: number): void {
+    if (this._channels[channelNumber]) {
+      this._channels[channelNumber].set(source, bufferOffset || 0);
+    }
+  }
+};
+
+// Mock OfflineAudioContext for JSDOM
+class MockOfflineAudioContext {
+  sampleRate = 44100;
+  length = 44100;
+  numberOfChannels = 2;
+  destination = {};
+  currentTime = 0;
+  state = 'running';
+  private _nodes: any[] = [];
+
+  constructor(channels: number, length: number, sampleRate: number) {
+    this.numberOfChannels = channels;
+    this.length = length;
+    this.sampleRate = sampleRate;
+  }
+
+  createGain = jest.fn().mockImplementation(() => ({
+    gain: { value: 0, setValueAtTime: jest.fn(), linearRampToValueAtTime: jest.fn(),
+      exponentialRampToValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), cancelScheduledValues: jest.fn() },
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+  }));
+  createOscillator = jest.fn().mockImplementation(() => ({
+    type: 'sine',
+    frequency: { value: 440, setValueAtTime: jest.fn() },
+    start: jest.fn(),
+    stop: jest.fn(),
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+    setPeriodicWave: jest.fn(),
+  }));
+  createDynamicsCompressor = jest.fn().mockImplementation(() => ({
+    threshold: { value: -24 },
+    knee: { value: 30 },
+    ratio: { value: 12 },
+    attack: { value: 0.003 },
+    release: { value: 0.25 },
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+  }));
+  createBiquadFilter = jest.fn().mockImplementation(() => ({
+    type: 'lowpass',
+    frequency: { value: 1000, setValueAtTime: jest.fn() },
+    Q: { value: 1, setValueAtTime: jest.fn() },
+    gain: { value: 0, setValueAtTime: jest.fn() },
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+  }));
+  createDelay = jest.fn().mockImplementation(() => ({
+    delayTime: { value: 0, setValueAtTime: jest.fn() },
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+  }));
+  createBufferSource = jest.fn().mockImplementation(() => ({
+    buffer: null,
+    playbackRate: { value: 1 },
+    start: jest.fn(),
+    stop: jest.fn(),
+    connect: jest.fn().mockReturnThis(),
+    disconnect: jest.fn(),
+  }));
+  createBuffer = jest.fn().mockReturnValue({
+    getChannelData: jest.fn().mockReturnValue(new Float32Array(44100)),
+    numberOfChannels: 2,
+    length: 44100,
+    sampleRate: 44100,
+  });
+  createPeriodicWave = jest.fn().mockReturnValue({});
+
+  startRendering = jest.fn().mockResolvedValue({
+    numberOfChannels: 2,
+    length: 44100,
+    sampleRate: 44100,
+    duration: 1,
+    getChannelData: jest.fn().mockReturnValue(new Float32Array(44100).fill(0.1)),
+  });
+
+  resume = jest.fn().mockResolvedValue(undefined);
+  suspend = jest.fn().mockResolvedValue(undefined);
+  close = jest.fn().mockResolvedValue(undefined);
+}
+
+(window as any).OfflineAudioContext = MockOfflineAudioContext;
+(globalThis as any).OfflineAudioContext = MockOfflineAudioContext;
+
 jest.mock('tone', () => ({
   PolySynth: jest.fn().mockImplementation(() => ({
     toDestination: jest.fn().mockReturnThis(),
@@ -150,6 +272,12 @@ jest.mock('tone', () => ({
     return true;
   }
 };
+
+// Polyfill URL.createObjectURL / revokeObjectURL for JSDOM
+if (typeof URL !== 'undefined' && typeof URL.createObjectURL !== 'function') {
+  (URL as any).createObjectURL = jest.fn().mockReturnValue('blob:mock://test');
+  (URL as any).revokeObjectURL = jest.fn();
+}
 
 // Polyfill window.alert for JSDOM — JSDOM defines alert as a function
 // that throws "Not implemented", so we always overwrite it.
