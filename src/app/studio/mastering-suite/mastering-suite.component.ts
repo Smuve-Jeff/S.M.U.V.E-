@@ -71,6 +71,28 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   renderedPluginCount = signal(0);
   isRendering = signal(false);
 
+  /** Sprint B2 — the polished AudioBuffer is retained so the Audition
+   *  button can replay it without re-bouncing the project. */
+  renderedBufferRef: AudioBuffer | null = null;
+
+  /** Toggle audition through the live ctx (bypasses master polish + limiter). */
+  auditionToggle(): void {
+    if (!this.renderedBufferRef) return;
+    if (this.audioEngine.auditionPlaying()) {
+      this.audioEngine.stopAudition();
+      return;
+    }
+    this.audioEngine.playAudition(this.renderedBufferRef, () => undefined);
+  }
+
+  /** Render seconds into a mm:ss label for the audition progress read-out. */
+  formatSeconds(s: number): string {
+    if (!s || !isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s - m * 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
   /**
    * Sprint B1 Phase 2 — Render & Master: bounce the arrangement offline with
    * the REAL synth voice graph, run the enabled WASM plugin chain as polish,
@@ -84,6 +106,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       const raw = await this.exportService.renderProjectOffline();
       this.masteringRoast.set('Applying WASM plugin chain…');
       const polished = await this.exportService.applySmuvePolish(raw);
+      this.renderedBufferRef = polished;
       const stats = this.exportService.analyzeBuffer(polished);
       this.renderedPeak.set(stats.peakDb);
       this.renderedLufs.set(stats.lufs);

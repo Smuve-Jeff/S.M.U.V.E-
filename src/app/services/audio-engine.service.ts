@@ -1210,6 +1210,140 @@ export class AudioEngineService {
     this.trackPluginInserts.set(trackId, sp);
   }
 
+  // ── Master-bus live insert + audition (Sprint B1 Phase 3) ─────────────────
+
+  /** ScriptProcessor spliced between masterGain and preMasterGain for the
+   *  whole-mix live DSP chain. Null when disabled. */
+  private masterPluginInsert: ScriptProcessorNode | null = null;
+  /** Active plugin ids for the master-bus live insert. */
+  readonly masterPluginIds = signal<string[]>([]);
+
+  /**
+   * Enable / disable a live WASM plugin insert on the master bus. Splices a
+   * ScriptProcessor between masterGain and preMasterGain so every track
+   * flows through the chain while playing.
+   */
+  installMasterPluginInsert(
+    pluginIds: string[],
+    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
+  ): void {
+    if (pluginIds.length === 0) {
+      // Restore direct routing + drop any existing insert.
+      try {
+        this.masterGain.disconnect(this.masterPluginInsert ?? this._preMasterGain);
+      } catch { /* already disconnected */ }
+      if (this.masterPluginInsert) {
+        try { this.masterPluginInsert.disconnect(); } catch {}
+        this.masterPluginInsert = null;
+      }
+      this.masterGain.connect(this._preMasterGain);
+      this.masterPluginIds.set([]);
+      return;
+    }
+
+    if (this.masterPluginInsert) return; // already installed — toggle handled elsewhere
+
+    const sp = this.ctx.createScriptProcessor(512, 2, 2);
+    // If no closure was provided, the kernel pass-through is a no-op (the
+    // caller — Effects Rack UI / collab dispatch — supplies a real one).
+    const kernelProvider =
+      getKernels ?? ((ids: string[]) => ids.map(() => null));
+
+    sp.onaudioprocess = (e: AudioProcessingEvent) => {
+      const kernels = kernelProvider(pluginIds);
+      if (!kernels || kernels.length === 0) return;
+      const leftIn = e.inputBuffer.getChannelData(0);
+      const rightIn = e.inputBuffer.getChannelData(1);
+      const leftOut = e.outputBuffer.getChannelData(0);
+      const rightOut = e.outputBuffer.getChannelData(1);
+      const frames = new Float32Array(leftIn.length * 2);
+      const processed = new Float32Array(frames.length);
+      for (let i = 0; i < leftIn.length; i++) {
+        frames[i * 2] = leftIn[i];
+        frames[i * 2 + 1] = rightIn[i];
+      }
+      for (const kernel of kernels) {
+        if (!kernel) continue;
+        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
+        frames.set(processed);
+      }
+      for (let i = 0; i < leftOut.length; i++) {
+        leftOut[i] = frames[i * 2];
+        rightOut[i] = frames[i * 2 + 1];
+      }
+    };
+
+    try {
+      this.masterGain.disconnect(this._preMasterGain);
+    } catch { /* already disconnected */ }
+    this.masterGain.connect(sp);
+    sp.connect(this._preMasterGain);
+    this.masterPluginInsert = sp;
+    this.masterPluginIds.set([...pluginIds]);
+  }
+
+  // ── Audition (Sprint B1 Phase 3) — play polished offline render via the live ctx ─
+
+  /** Source + monitoring gain dedicated to auditioning offline buffers, wired
+   *  straight to ctx.destination so it bypasses master gain + limiter. */
+  private auditionSource: AudioBufferSourceNode | null = null;
+  private readonly auditionMonitorGain = this.ctx.createGain();
+  readonly auditionPlaying = signal(false);
+  readonly auditionProgress = signal(0); // 0..1
+  readonly auditionDuration = signal(0); // seconds
+
+  /**
+   * Audition a rendered AudioBuffer through the live audio context. Connects
+   * via a private monitor gain to ctx.destination — never into masterGain,
+   * so the loop never feeds back through the plugin chain or limiter.
+   *
+   * @param onEnd optional callback fired when the source finishes naturally
+   *              or is stopped.
+   */
+  playAudition(buffer: AudioBuffer, onEnd?: () => void): void {
+    this.stopAudition();
+    if (this.ctx.state === 'suspended') void this.ctx.resume();
+
+    this.auditionMonitorGain.connect(this.ctx.destination);
+    this.auditionMonitorGain.gain.value = 0.95;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(this.auditionMonitorGain);
+    const startTs = performance.now();
+    this.auditionSource = src;
+    this.auditionPlaying.set(true);
+    this.auditionDuration.set(buffer.duration);
+    this.auditionProgress.set(0);
+
+    const tick = () => {
+      if (this.auditionSource !== src) return;
+      const elapsed = (performance.now() - startTs) / 1000;
+      const ratio = Math.min(1, elapsed / Math.max(0.001, buffer.duration));
+      this.auditionProgress.set(ratio);
+      if (ratio < 1 && this.auditionPlaying()) {
+        requestAnimationFrame(tick);
+      }
+    };
+    src.onended = () => {
+      if (this.auditionSource !== src) return;
+      this.auditionSource = null;
+      this.auditionPlaying.set(false);
+      this.auditionProgress.set(0);
+      onEnd?.();
+    };
+    src.start();
+    requestAnimationFrame(tick);
+  }
+
+  stopAudition(): void {
+    const src = this.auditionSource;
+    if (!src) return;
+    try {
+      src.stop();
+    } catch { /* already stopped */ }
+  }
+
   updateTrack(id: string | number, patch: any) {
     const idStr = id.toString();
     this.getTrackOutput(idStr); // Ensure nodes exist

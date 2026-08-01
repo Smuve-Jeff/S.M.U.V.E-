@@ -59,6 +59,47 @@
       </div>
     </section>
 
+    <!-- Sprint B1 Phase 3 — master-bus live insert (whole mix). -->
+    <section class="er-wasm er-wasm-master" aria-label="Master bus WASM inserts">
+      <div class="er-wasm-head">
+        <span class="material-symbols-outlined">cable</span>
+        <b>Master Bus Inserts</b>
+        <small>whole mix · live</small>
+      </div>
+      <div class="er-wasm-chain">
+        <span
+          *ngFor="let id of masterPluginIds()"
+          class="er-wasm-chip"
+          title="Installed on the master bus"
+        >
+          <span class="material-symbols-outlined">bolt</span>
+          {{ id.split('.').slice(0, 2).join(' ') }}
+        </span>
+        <span class="er-wasm-empty" *ngIf="masterPluginIds().length === 0">
+          No master inserts — tap a plugin below
+        </span>
+      </div>
+      <div class="er-wasm-grid">
+        <button
+          *ngFor="let manifest of wasmCatalog"
+          type="button"
+          class="er-wasm-item"
+          [class.active]="hasMasterPlugin(manifest.id)"
+          (click)="toggleMasterPlugin(manifest)"
+          [attr.aria-pressed]="hasMasterPlugin(manifest.id)"
+          [attr.title]="
+            'Master bus — ' + manifest.name + ' (' + manifest.description + ')'
+          "
+        >
+          <span class="material-symbols-outlined">{{ manifest.icon }}</span>
+          <span class="er-wasm-item-name">{{ manifest.name }}</span>
+          <span class="er-wasm-item-badge">{{
+            hasMasterPlugin(manifest.id) ? 'BUS' : 'OFF'
+          }}</span>
+        </button>
+      </div>
+    </section>
+
     <!-- Slot list -->
     <nav class="er-slots" aria-label="Effect slots">
       <button

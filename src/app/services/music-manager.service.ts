@@ -309,6 +309,14 @@ export class MusicManagerService {
     if (!snapshot) return;
     this.logger.info('Loading project snapshot...');
     this.history.clear();
+    // Sprint B2 Phase 1 — restore tracks + tempo first so the take-lane
+    // restore lands on top of the correct arrangement.
+    if (snapshot.tracks && Array.isArray(snapshot.tracks)) {
+      this.tracks.set(this.clone(snapshot.tracks) as any);
+    }
+    if (snapshot.bpm && typeof snapshot.bpm === 'number') {
+      this.engine.tempo.set(snapshot.bpm);
+    }
     // Sprint A3 Phase 5 — restore take-lane state saved in the snapshot.
     this.takeManager.restore(snapshot.takeState);
   }

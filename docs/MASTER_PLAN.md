@@ -125,6 +125,18 @@ framework; this is our Apple-GarageBand-killer angle).
   WASM polish chain → analyzed meters (true peak / integrated LUFS / RMS).*
 - **B2 — Real-time collab sessions** (multi-user project editing, live chat,
   voice signals — already have peer-networking skeleton).
+  *Phase 1 SHIPPED: `CollaborationService` project-snapshot protocol —
+  envelope-typed `PROJECT_SYNC` messages dispatched through the existing
+  `SocialNetworkingService` party room, version-stamped + debounced + stale
+  dropped, echo/loopback guard against `currentUserId`, presence counter
+  (`peerCount`) reflecting the active party. Plus two polish surfaces that
+  share the audio engine: `AudioEngineService.playAudition()` / `stopAudition()`
+  plays the mastered offline render through a dedicated monitor gain (bypasses
+  the master bus) with progress + duration signals for the Mastering Suite
+  Play/Stop UI; `installMasterPluginInsert()` splices a `ScriptProcessor`
+  between `masterGain` and `preMasterGain` so any enabled WASM polish
+  plugin processes the entire mix live, surfaced as a Master-Bus strip in
+  the Effects Rack.*
 - **B3 — AI-assisted everything**: one-tap "Produce" (idea → beat → mix →
   master → release checklist), genre instrument recommendations, AI lyrics +
   vocal tuning.
@@ -154,7 +166,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A5 | Notation view | Cubasis | ✅ |
 | A6 | Export formats + cloud | n-Track, BandLab | ✅ |
 | B1 | WASM plugin framework | ALL (Android) | ✅ |
-| B2 | Real-time collab | BandLab | ⬜ |
+| B2 | Real-time collab | BandLab | ✅ |
 | B3 | AI end-to-end produce | ALL | ⬜ |
 | B4 | Career pipeline in-DAW | ALL | ⬜ |
 | C1 | Performance + latency | ALL | ⬜ |

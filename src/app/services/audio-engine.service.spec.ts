@@ -8,7 +8,12 @@ function makeBareEngine() {
   const svc = Object.create(AudioEngineService.prototype) as AudioEngineService;
   (svc as any).trackSendAGains = new Map();
   (svc as any).trackSendBGains = new Map();
-  (svc as any).ctx = { currentTime: 1.234 };
+  (svc as any).ctx = { currentTime: 1.234, sampleRate: 44100 };
+  // Sprint B1 Phase 3 — audition + master-bus signal stubs
+  (svc as any).auditionPlaying = signal(false);
+  (svc as any).auditionProgress = signal(0);
+  (svc as any).auditionDuration = signal(0);
+  (svc as any).masterPluginIds = signal<string[]>([]);
   return svc;
 }
 
@@ -269,6 +274,107 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       svc.isPlaying.set(false);
       (svc as any).start?.();
       expect(svc.songEnded()).toBe(false);
+    });
+  });
+
+  describe('audition (Sprint B1 Phase 3)', () => {
+    it('exposes audition signals and starts/stops playback', () => {
+      svc = makeBareEngine();
+      const sp = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        start: jest.fn(),
+        stop: jest.fn(),
+        onended: null,
+        buffer: null,
+      };
+      const monitorGain = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        gain: { value: 0 },
+      };
+      (svc as any).auditionSource = null;
+      (svc as any).auditionMonitorGain = monitorGain;
+      (svc as any).ctx = {
+        createBufferSource: jest.fn(() => sp),
+        destination: {},
+        state: 'running',
+        resume: jest.fn(() => Promise.resolve()),
+        sampleRate: 44100,
+      };
+
+      const buf: any = {
+        duration: 4,
+        numberOfChannels: 2,
+        sampleRate: 44100,
+        length: 176400,
+        getChannelData: () => new Float32Array(176400),
+      };
+
+      svc.playAudition(buf);
+      expect(sp.start).toHaveBeenCalled();
+      expect(svc.auditionPlaying()).toBe(true);
+      expect(svc.auditionDuration()).toBe(4);
+
+      svc.stopAudition();
+      expect(sp.stop).toHaveBeenCalled();
+    });
+
+    it('auditionPlayback is false at rest', () => {
+      svc = makeBareEngine();
+      expect(svc.auditionPlaying()).toBe(false);
+      expect(svc.auditionProgress()).toBe(0);
+    });
+  });
+
+  describe('installMasterPluginInsert (Sprint B1 Phase 3)', () => {
+    it('installs a ScriptProcessor between masterGain and preMasterGain', () => {
+      const sp = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        onaudioprocess: null,
+      };
+      svc = makeBareEngine();
+      (svc as any).masterGain = {
+        disconnect: jest.fn(),
+        connect: jest.fn(),
+      };
+      (svc as any)._preMasterGain = { tag: 'preMaster' };
+      (svc as any).masterPluginInsert = null;
+      (svc as any).ctx = {
+        createScriptProcessor: jest.fn(() => sp),
+        sampleRate: 44100,
+      };
+
+      svc.installMasterPluginInsert(
+        ['smuve.saturation.v2'],
+        () => null
+      );
+      expect((svc as any).masterGain.disconnect).toHaveBeenCalled();
+      expect((svc as any).masterGain.connect).toHaveBeenCalledWith(sp);
+      expect(sp.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
+      expect(svc.masterPluginIds()).toEqual(['smuve.saturation.v2']);
+      expect((svc as any).masterPluginInsert).toBe(sp);
+    });
+
+    it('removes the insert and restores masterGain → preMasterGain direct when empty', () => {
+      const sp = { connect: jest.fn(), disconnect: jest.fn(), onaudioprocess: null };
+      svc = makeBareEngine();
+      (svc as any).masterGain = {
+        disconnect: jest.fn(),
+        connect: jest.fn(),
+      };
+      (svc as any)._preMasterGain = { tag: 'preMaster' };
+      (svc as any).masterPluginInsert = sp;
+      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
+
+      svc.installMasterPluginInsert([]);
+      expect(sp.disconnect).toHaveBeenCalled();
+      expect((svc as any).masterGain.connect).toHaveBeenCalledWith(
+        (svc as any)._preMasterGain
+      );
+      expect((svc as any).masterPluginInsert).toBeNull();
+      expect(svc.masterPluginIds()).toEqual([]);
     });
   });
 

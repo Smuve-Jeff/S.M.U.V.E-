@@ -88,6 +88,51 @@
         }} dBFS</div>
       </div>
     </div>
+
+    <!-- Sprint B2 Phase 2: Audition controls -->
+    <div
+      *ngIf="renderedBufferRef"
+      class="flex items-center gap-3 pt-2"
+      aria-label="Audition polished master"
+    >
+      <button
+        type="button"
+        (click)="auditionToggle()"
+        class="px-4 py-2 bg-emerald-500 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1">
+          {{
+            audioEngine.auditionPlaying()
+              ? 'stop_circle'
+              : 'play_circle'
+          }}
+        </span>
+        {{
+          audioEngine.auditionPlaying()
+            ? 'STOP AUDITION'
+            : 'AUDITION MASTER'
+        }}
+      </button>
+      <div class="flex-1">
+        <div
+          class="h-2 bg-white/5 rounded-full overflow-hidden border border-emerald-500/20"
+        >
+          <div
+            class="h-full bg-emerald-400 transition-[width] duration-100"
+            [style.width.%]="audioEngine.auditionProgress() * 100"
+          ></div>
+        </div>
+        <div
+          class="text-[9px] text-white/60 font-mono mt-1 text-right"
+          aria-hidden="true"
+        >
+          {{
+            formatSeconds(audioEngine.auditionProgress() * audioEngine.auditionDuration())
+          }}
+          / {{ formatSeconds(audioEngine.auditionDuration()) }}
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Genre selector for AI mastering -->

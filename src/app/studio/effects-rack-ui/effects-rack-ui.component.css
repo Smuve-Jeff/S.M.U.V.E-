@@ -12,6 +12,27 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Sprint B1 Phase 3 — master-bus live insert strip (whole mix)
+   ═══════════════════════════════════════════════════════════ */
+.er-wasm-master {
+  border-style: solid;
+  border-color: rgba(14, 124, 123, 0.55);
+  margin-top: 4px;
+}
+
+.er-wasm-master::before {
+  content: 'MASTER';
+  display: block;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--teal-500);
+  margin-bottom: 6px;
+  text-align: right;
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════
    Sprint B1 Phase 2 — WASM live insert strip
    ═══════════════════════════════════════════════════════════ */
 .er-wasm {
