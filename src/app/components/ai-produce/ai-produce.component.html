@@ -99,6 +99,17 @@
       </label>
     </div>
 
+    <div class="form-toggles">
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [ngModel]="form().voicePreview"
+          (ngModelChange)="updateForm('voicePreview', $event)">
+        <span class="toggle-label">Synthesize chorus hook preview</span>
+        <span class="toggle-hint">~6&ndash;12s via OfflineAudioContext after lyrics</span>
+      </label>
+    </div>
+
     <div class="form-actions">
       <button
         type="button"
@@ -240,9 +251,61 @@
       </ng-template>
     </article>
 
-    <article class="stage-card stage-master">
+    <article class="stage-card stage-voice">
       <div class="stage-card-head">
         <span class="stage-num">4</span>
+        <h3>Voice Preview</h3>
+        <span class="stage-status"
+          [class.is-done]="hasVoicePreview() && stageDone('voice-preview')">
+          {{ hasVoicePreview() ? 'Audition ready' : form().voicePreview ? 'Pending' : 'Skipped' }}
+        </span>
+      </div>
+      <div class="stage-card-body" *ngIf="hasVoicePreview() as vp; else voiceEmpty">
+        <div class="voice-meta">
+          <span class="meta-label">Hook line</span>
+          <p class="voice-hook">"{{ vp.hookLine }}"</p>
+          <span class="meta-label">Duration</span>
+          <span class="voice-time">{{ voicePreviewProgress() }}</span>
+        </div>
+        <div class="voice-actions">
+          <button
+            type="button"
+            class="btn btn-primary voice-btn"
+            *ngIf="!auditioningVoice()"
+            (click)="playVoicePreview(vp)">
+            <i class="fas fa-play"></i>
+            Audition
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary voice-btn"
+            *ngIf="auditioningVoice()"
+            (click)="stopVoicePreview()">
+            <i class="fas fa-stop"></i>
+            Stop
+          </button>
+          <div class="voice-progress">
+            <div class="voice-progress-fill"
+              [style.width.%]="(engine.auditionProgress() * 100)">
+            </div>
+          </div>
+        </div>
+        <p class="voice-foot">
+          Synthesized with OfflineAudioContext &mdash; listen before master.
+        </p>
+      </div>
+      <ng-template #voiceEmpty>
+        <p class="stage-empty">
+          {{ form().voicePreview
+              ? 'Runs after the lyrics stage — four chorus lines become a brief AudioBuffer preview.'
+              : 'Disabled for this run — mix+master will use the lyrics directly.' }}
+        </p>
+      </ng-template>
+    </article>
+
+    <article class="stage-card stage-master">
+      <div class="stage-card-head">
+        <span class="stage-num">5</span>
         <h3>Mix + Master</h3>
         <span class="stage-status"
           [class.is-done]="produce.currentMixReport().length > 0 && stageDone('mix-master')">
@@ -261,7 +324,7 @@
 
     <article class="stage-card stage-release">
       <div class="stage-card-head">
-        <span class="stage-num">5</span>
+        <span class="stage-num">6</span>
         <h3>Release</h3>
         <span class="stage-status"
           [class.is-done]="!!produce.appliedReleaseId() && stageDone('release')">
@@ -307,6 +370,50 @@
         (click)="goToRelease()">
         View Release Pipeline
       </button>
+    </div>
+  </section>
+
+  <section class="latency-card" *ngIf="engineSnapshot() as snap">
+    <div class="latency-card-head">
+      <h3>ENGINE METRICS · Sprint C1</h3>
+      <span class="latency-context"
+        [class.is-running]="snap.contextState === 'running'"
+        [class.is-suspended]="snap.contextState !== 'running'">
+        {{ snap.contextState === 'running' ? 'Live' : 'Idle · ' + snap.contextState }}
+      </span>
+    </div>
+    <div class="latency-grid">
+      <div>
+        <span class="meta-label">Sample Rate</span>
+        <span class="meta-value">{{ (snap.sampleRateHz / 1000) | number:'1.1-1' }} kHz</span>
+      </div>
+      <div>
+        <span class="meta-label">Round-Trip Latency</span>
+        <span class="meta-value"
+          [class.is-tight]="snap.cpuHeadroomHint === 'tight'"
+          [class.is-near]="snap.cpuHeadroomHint === 'near'">
+          {{ snap.totalLatencyMs | number:'1.0-0' }} ms
+        </span>
+      </div>
+      <div>
+        <span class="meta-label">Scheduler Lookahead</span>
+        <span class="meta-value">{{ snap.schedulerLookaheadMs }} ms</span>
+      </div>
+      <div>
+        <span class="meta-label">Scheduler Tick</span>
+        <span class="meta-value">{{ snap.schedulerIntervalMs }} ms</span>
+      </div>
+      <div>
+        <span class="meta-label">Master Worklet</span>
+        <span class="meta-value"
+          [class.is-active]="snap.masterWorkletActive">
+          {{ snap.masterWorkletActive ? 'Active' : 'Fallback' }}
+        </span>
+      </div>
+      <div>
+        <span class="meta-label">CPU Tier</span>
+        <span class="meta-value">{{ snap.performanceTier }}</span>
+      </div>
     </div>
   </section>
 

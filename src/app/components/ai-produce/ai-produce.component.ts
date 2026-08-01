@@ -12,7 +12,10 @@ import {
   AiProduceService,
   ProduceOptions,
   ProduceStage,
+  VoicePreview,
 } from '../../services/ai-produce.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 import { NotificationService } from '../../services/notification.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 
@@ -38,12 +41,19 @@ export class AiProduceComponent implements OnDestroy {
   public produce = inject(AiProduceService);
   private notify = inject(NotificationService);
   private music = inject(MusicManagerService);
+  public engine = inject(AudioEngineService);
+  public latency = inject(AudioEngineLatencyService);
   private router = inject(Router);
+  /** Whether the voice-preview stage card has visible artifacts. */
+  hasVoicePreview = computed(() => !!this.produce.currentVoicePreview());
+  /** Pull cached latency snapshot for the engine metrics sub-card. */
+  engineSnapshot = computed(() => this.latency.snapshot());
 
-  readonly stageOrder: ProduceStage[] = [
+  readonly  stageOrder: ProduceStage[] = [
     'idea',
     'beat',
     'lyrics',
+    'voice-preview',
     'mix-master',
     'release',
     'done',
@@ -77,6 +87,7 @@ export class AiProduceComponent implements OnDestroy {
     mood: 'pop',
     title: '',
     bpm: undefined,
+    voicePreview: true,
   });
 
   stageLabel = computed(() => {
@@ -85,6 +96,7 @@ export class AiProduceComponent implements OnDestroy {
       idea: 'Idea',
       beat: 'Beat',
       lyrics: 'Lyrics',
+      'voice-preview': 'Voice Preview',
       'mix-master': 'Mix + Master',
       release: 'Release',
       done: 'Done',
@@ -177,6 +189,39 @@ export class AiProduceComponent implements OnDestroy {
     } else {
       this.router.navigate(['/release-pipeline']);
     }
+  }
+
+  /** Listen for the synthesized voice preview playback on the live
+   *  engine. Routes through `AudioEngineService.playAudition()` so the
+   *  synthesized AudioBuffer is monitored without bleeding into master. */
+  auditioningVoice(): boolean {
+    const vp = this.produce.currentVoicePreview();
+    return !!vp && this.engine.auditionPlaying();
+  }
+
+  playVoicePreview(vp: VoicePreview): void {
+    try {
+      this.engine.playAudition(vp.previewBuffer, () => {
+        // No-op end handler — the silence-on-end UX is handled by the
+        // signal flipping false.
+      });
+    } catch (e: any) {
+      this.notify.show(
+        'Voice preview failed to start: ' + (e?.message || 'unknown'),
+        'warning'
+      );
+    }
+  }
+
+  stopVoicePreview(): void {
+    this.engine.stopAudition();
+  }
+
+  /** Render-formatted elapsed/duration tag (e.g. "5.2 / 8.3s"). */
+  voicePreviewProgress(): string {
+    const dur = this.produce.currentVoicePreview()?.durationSeconds || 0;
+    const elapsed = dur * this.engine.auditionProgress();
+    return `${elapsed.toFixed(1)} / ${dur.toFixed(1)}s`;
   }
 
   formatStamp(ts: number): string {
