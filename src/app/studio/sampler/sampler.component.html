@@ -224,7 +224,7 @@
                 type="number"
                 class="sampler-stretch-input"
                 [ngModel]="stretchSourceBpm()"
-                (ngModelChange)="stretchSourceBpm.set(Number($event) || 120)"
+                (ngModelChange)="stretchSourceBpm.set(parseStretchBpm($event))"
                 min="20"
                 max="300"
                 title="Source BPM of this sample"
@@ -407,7 +407,7 @@
               <select
                 class="sampler-select sampler-routing-select"
                 [value]="z.outputChannel"
-                (change)="assignToMixerChannel(z.pitch, parseInt(getSelectValue($event)))"
+                (change)="assignToMixerChannel(z.pitch, parseIntSafe(getSelectValue($event)))"
               >
                 <option
                   *ngFor="let ch of outputChannels; let i = index"

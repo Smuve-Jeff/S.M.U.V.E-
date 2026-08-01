@@ -547,7 +547,7 @@
                     <div
                       class="w-full rounded-t-sm transition-all"
                       [style.height.px]="
-                        Math.max(3, (w.streams / dsp.totalStreams) * 100)
+                        streamBarPx(w.streams, dsp.totalStreams)
                       "
                       [style.background]="
                         'rgba(14,124,123,' +

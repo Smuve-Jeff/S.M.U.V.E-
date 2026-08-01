@@ -142,6 +142,22 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     return (event.target as HTMLSelectElement).value || '';
   }
 
+  /**
+   * Template-safe BPM parse. Globals like Number/parseInt are not reachable
+   * from Angular template expressions (compiled as context property reads), so
+   * event bindings must go through component helpers.
+   */
+  parseStretchBpm(value: unknown): number {
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) && n >= 20 && n <= 300 ? Math.round(n) : 120;
+  }
+
+  /** Template-safe parseInt fallback (NaN → -1, i.e. "off"). */
+  parseIntSafe(value: unknown): number {
+    const n = parseInt(String(value), 10);
+    return Number.isFinite(n) ? n : -1;
+  }
+
   // ── Zone Management ──────────────────────────────────
   private refreshZones(): void {
     if (!this.sampler) return;

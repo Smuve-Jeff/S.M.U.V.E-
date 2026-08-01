@@ -295,6 +295,15 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     return n.toString();
   }
 
+  /**
+   * Template-safe stream-bar height in px. Angular template expressions compile
+   * identifiers as context property reads, so the global Math is NOT accessible
+   * from templates — `{{ Math.max(...) }}` throws at runtime.
+   */
+  streamBarPx(streams: number, total: number): number {
+    return Math.max(3, (streams / Math.max(1, total)) * 100);
+  }
+
   formatDate(d: string): string {
     if (!d || d === 'N/A') return 'N/A';
     try {

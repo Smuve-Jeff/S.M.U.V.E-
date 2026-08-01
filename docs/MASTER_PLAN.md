@@ -120,10 +120,10 @@ framework; this is our Apple-GarageBand-killer angle).
 
 | Sprint | Deliverable | Competitor killed | Status |
 | --- | --- | --- | --- |
-| A1 | Time-stretch / pitch engine | FL Mobile, Cubasis, n-Track | 🚀 **In progress** |
-| A2 | Slide notes | FL Mobile | ⬜ |
+| A1 | Time-stretch / pitch engine | FL Mobile, Cubasis, n-Track | ✅ |
+| A2 | Slide notes | FL Mobile | ✅ |
 | A3 | Loop record + comping | Cubasis, Audio Evolution | ⬜ |
-| A4 | Song mode / clip launcher | BandLab, Koala | ⬜ |
+| A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
 | A5 | Notation view | Cubasis | ⬜ |
 | A6 | Export formats + cloud | n-Track, BandLab | ⬜ |
 | B1 | WASM plugin framework | ALL (Android) | ⬜ |
@@ -133,6 +133,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | C1 | Performance + latency | ALL | ⬜ |
 | C2 | Play listing + IAP | ALL | ⬜ |
 | C3 | Onboarding | BandLab | ⬜ |
+| X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

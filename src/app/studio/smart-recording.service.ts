@@ -34,7 +34,18 @@ export interface CompGroup {
   takes: CompTake[];
   /** Which take ID is currently selected as the comp */
   selectedTakeId: string | null;
+  /** Per-segment comp assignments (bar ranges → take). Empty = whole-take comp. */
+  segments?: CompSegment[];
   createdAt: number;
+}
+
+/** A segment of the comp timeline; each segment plays its assigned take. */
+export interface CompSegment {
+  id: string;
+  startBar: number;
+  endBar: number;
+  /** Take id assigned to this segment (null = fall back to group's comp take). */
+  takeId: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -359,6 +370,92 @@ export class SmartRecordingService {
     if (this.activeCompGroupId() === groupId) {
       this.activeCompGroupId.set(null);
     }
+  }
+
+  // ── Segment comping ──────────────────────────────────────
+  /** Auto-record a fresh take on every loop pass (loop-recording comp). */
+  autoTakeOnLoop = signal(false);
+
+  /** Split the active comp group's region into fixed-length segments. */
+  splitCompSegments(groupId: string, segmentBars: number) {
+    const segBars = Math.max(1, segmentBars);
+    this.compGroups.update((groups) =>
+      groups.map((g) => {
+        if (g.id !== groupId) return g;
+        const start = Math.min(
+          ...g.takes.map((t) => t.regionStartBar),
+          1
+        );
+        const rawEnd = Math.max(
+          ...g.takes.map((t) => t.regionEndBar),
+          start + segBars
+        );
+        const end = Math.max(rawEnd, start + segBars);
+        const segments: CompSegment[] = [];
+        for (let bar = start; bar < end; bar += segBars) {
+          segments.push({
+            id: `${groupId}_seg_${bar}`,
+            startBar: bar,
+            endBar: Math.min(bar + segBars, end),
+            takeId: g.selectedTakeId,
+          });
+        }
+        return { ...g, segments };
+      })
+    );
+  }
+
+  /** Assign a take to a specific comp segment (null = use group comp take). */
+  setSegmentTake(groupId: string, segmentId: string, takeId: string | null) {
+    this.compGroups.update((groups) =>
+      groups.map((g) => {
+        if (g.id !== groupId || !g.segments) return g;
+        return {
+          ...g,
+          segments: g.segments.map((s) =>
+            s.id === segmentId ? { ...s, takeId } : s
+          ),
+        };
+      })
+    );
+  }
+
+  /** Comp segments for a group (empty when not split yet). */
+  compSegmentsForGroup(groupId: string): CompSegment[] {
+    return this.compGroups().find((g) => g.id === groupId)?.segments ?? [];
+  }
+
+  /** Which take should play at a given bar (segment assignment, else comp take). */
+  activeTakeForBar(groupId: string, bar: number): string | null {
+    const group = this.compGroups().find((g) => g.id === groupId);
+    if (!group) return null;
+    const seg = group.segments?.find(
+      (s) => bar >= s.startBar && bar < s.endBar
+    );
+    return seg?.takeId ?? group.selectedTakeId;
+  }
+
+  setAutoTakeOnLoop(enabled: boolean) {
+    this.autoTakeOnLoop.set(enabled);
+  }
+
+  /**
+   * Called when the transport wraps around a loop in comp mode:
+   * finalizes the current take and immediately arms the next one.
+   */
+  async onLoopPass(): Promise<CompTake | null> {
+    if (!this.autoTakeOnLoop()) return null;
+    if (this.recordingMode() !== 'comp') return null;
+    if (!this.isCompRecording()) {
+      // First loop pass — start take 1
+      this.startCompTake();
+      return null;
+    }
+    const finished = await this.finishCompTake();
+    if (finished) {
+      this.startCompTake();
+    }
+    return finished;
   }
 
   // ── Auto-split silence detection ─────────────────────────
