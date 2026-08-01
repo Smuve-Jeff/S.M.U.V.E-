@@ -4,6 +4,8 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { HapticService } from '../../services/haptic.service';
 import { AudioSessionService } from '../audio-session.service';
+import { AudioImportService } from '../audio-import.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 describe('SamplerComponent', () => {
   let component: SamplerComponent;
@@ -55,6 +57,23 @@ describe('SamplerComponent', () => {
         { provide: FileLoaderService, useValue: fileLoaderMock },
         { provide: HapticService, useValue: hapticMock },
         { provide: AudioSessionService, useValue: audioSessionMock },
+        {
+          provide: AudioImportService,
+          useValue: {
+            pitchShiftBuffer: jest.fn((b: AudioBuffer) => b),
+            tempoMatchBuffer: jest.fn((b: AudioBuffer) => b),
+            stretchBuffer: jest.fn((b: AudioBuffer) => b),
+          },
+        },
+        {
+          provide: SnackbarService,
+          useValue: {
+            info: jest.fn(),
+            success: jest.fn(),
+            warning: jest.fn(),
+            error: jest.fn(),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -115,6 +134,24 @@ describe('SamplerComponent', () => {
     component.selectZone(60);
     expect(component.selectedPitch()).toBe(60);
     expect(hapticMock.light).toHaveBeenCalled();
+  });
+
+  it('should start with stretch controls at defaults', () => {
+    expect(component.stretchSemitones()).toBe(0);
+    expect(component.stretchSourceBpm()).toBe(120);
+  });
+
+  it('should no-op pitch shift when no sample is loaded', async () => {
+    component.selectZone(60); // no actual buffer in the mocked sampler
+    await component.applyPitchShift(2);
+    expect(hapticMock.medium).not.toHaveBeenCalled();
+  });
+
+  it('should expose stretch-engine UI signals for binding', () => {
+    component.stretchSemitones.set(-3);
+    component.stretchSourceBpm.set(140);
+    expect(component.stretchSemitones()).toBe(-3);
+    expect(component.stretchSourceBpm()).toBe(140);
   });
 
   it('should handle drag state', () => {

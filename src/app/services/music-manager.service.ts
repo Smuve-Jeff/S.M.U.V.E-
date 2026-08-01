@@ -1546,6 +1546,14 @@ export class MusicManagerService {
               const microTime = swungTime + (n.microOffset ?? 0) * duration;
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
               const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
+              // Slide notes: glide from the base pitch to the pitch-bend target
+              const glideTo =
+                n.isSlide && (n.pitchBend ?? 0) !== 0
+                  ? freq
+                  : undefined;
+              const synthParams = glideTo !== undefined
+                ? { ...t.synthParams, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
+                : t.synthParams;
 
               // Articulation-driven length multiplier
               let lengthMul = 1.0;
@@ -1579,7 +1587,7 @@ export class MusicManagerService {
                 notePan,
                 0,
                 0,
-                t.synthParams
+                synthParams
               );
             });
 

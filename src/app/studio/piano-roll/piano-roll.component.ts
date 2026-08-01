@@ -26,6 +26,7 @@ import { DjMidiService } from '../../services/dj-midi.service';
 import { HardwareService } from '../../services/hardware.service';
 import { HistoryService } from '../../services/history.service';
 import { AutomationService } from '../automation.service';
+import { SnackbarService } from '../../services/snackbar.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   PianoRollRenderer,
@@ -51,6 +52,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly hardware = inject(HardwareService);
   private readonly history = inject(HistoryService);
   private readonly automation = inject(AutomationService);
+  private readonly snackbar = inject(SnackbarService);
 
   /** Sustain pedal state (CC64) surfaced from the hardware layer. */
   readonly sustainActive = this.hardware.sustainActive;
@@ -191,6 +193,41 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const first = track.notes.find((n) => ids.has(n.id));
     return first?.length ?? 1;
   });
+  /** True when every selected note is a slide note. */
+  selectedNoteIsSlide = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return false;
+    return Array.from(ids).every((id) => {
+      const n = track.notes.find((x) => x.id === id);
+      return n?.isSlide === true;
+    });
+  });
+
+  /** FL-style slide toggle: marks/unmarks the selection as a pitch-glide note. */
+  toggleSlideOnSelection(): void {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const ids = this.selectedNoteIds();
+    if (ids.size === 0) return;
+    const next = !this.selectedNoteIsSlide();
+    Array.from(ids).forEach((id) => {
+      const note = track.notes.find((n) => n.id === id);
+      this.musicManager.updateNote(track.id, id, {
+        isSlide: next,
+        // Give a sensible default glide target (+2 semitones) unless already set
+        ...(next && note?.pitchBend === undefined
+          ? { pitchBend: 2 }
+          : {}),
+      });
+    });
+    this.haptic.medium();
+    this.snackbar.info(
+      next
+        ? `Slide on — ${ids.size} note${ids.size > 1 ? 's' : ''} will glide pitch`
+        : `Slide off — ${ids.size} note${ids.size > 1 ? 's' : ''}`
+    );
+  }
   articulationOptions = [
     { label: 'Normal', value: 'normal' as const },
     { label: 'Staccato', value: 'staccato' as const },
@@ -390,15 +427,23 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private previewNoteOn(note: number, velocity: number): void {
     const freq = 440 * Math.pow(2, (note - 69) / 12);
     const duration = this.sustainActive() ? 3.0 : 0.6;
+    // Sustained or bend-tuned previews glide the pitch over the note
+    const glideTo =
+      this.sustainActive() && this.previewGlideSemitones !== 0
+        ? freq * Math.pow(2, this.previewGlideSemitones / 12)
+        : undefined;
     this.musicManager.engine?.playSynth?.(
       0,
       freq,
       duration,
       Math.max(0.05, velocity),
       0,
-      { type: 'sine' }
+      glideTo !== undefined ? { type: 'sine', glideTo } : { type: 'sine' }
     );
   }
+
+  /** Semitone glide amount for live preview (0 = none). */
+  private previewGlideSemitones = 0;
 
   private previewNoteOff(note: number): void {
     if (this.sustainActive()) {
@@ -700,6 +745,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         selected: selIds.has(note.id),
         isGhost: false,
         isHighlighted: hlIds.has(note.id),
+        isSlide: note.isSlide === true,
+        slideTarget: note.midi + (note.pitchBend ?? 0),
       });
     }
 

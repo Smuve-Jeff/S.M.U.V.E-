@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
@@ -46,11 +46,68 @@ interface SessionClip {
   templateUrl: './session-view.component.html',
   styleUrls: ['./session-view.component.css'],
 })
-export class SessionViewComponent {
+export class SessionViewComponent implements OnInit, OnDestroy {
   private audioSession = inject(AudioSessionService);
   private musicManager = inject(MusicManagerService);
   private haptic = inject(HapticService);
   private snackbar = inject(SnackbarService);
+
+  // ── Song-mode transport ────────────────────────────────
+  /** Launch quantization: snap scene/clip starts to the next bar boundary. */
+  launchQuantize = signal<'none' | '1bar' | '2bar' | '4bar'>('none');
+  quantizeOptions = ['none', '1bar', '2bar', '4bar'] as const;
+
+  /** Follow-on: auto-advance to the next scene after the active one ends. */
+  followOnEnabled = signal(false);
+
+  /** Clips queued to start on the next quantized boundary. */
+  queuedClipIds = signal<Set<string>>(new Set());
+
+  private followTimer: ReturnType<typeof setTimeout> | null = null;
+  private quantizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly transportPlaying = this.audioSession.isPlaying;
+
+  ngOnInit(): void {
+    this.loadPresetList();
+    if (!this.restoreAutoSave()) {
+      this.snackbar.info('New session — no auto-save found');
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.followTimer) clearTimeout(this.followTimer);
+    if (this.quantizeTimer) clearTimeout(this.quantizeTimer);
+  }
+
+  /** Seconds until the next quantized bar boundary (0 when off/stopped). */
+  private nextBarDelay(): number {
+    if (this.launchQuantize() === 'none' || !this.audioSession.isPlaying()) {
+      return 0;
+    }
+    const bars = this.launchQuantize() === '1bar' ? 1 : this.launchQuantize() === '2bar' ? 2 : 4;
+    const tempo = this.audioSession.engine.tempo() || 120;
+    const secondsPerBar = (60 / tempo) * 4;
+    const step = this.audioSession.engine.visualStep?.() ?? 0;
+    const stepsPerBar = 16;
+    const stepsIntoBar = step % stepsPerBar;
+    const stepsToNext = (bars * stepsPerBar - stepsIntoBar) % (bars * stepsPerBar) || bars * stepsPerBar;
+    return Math.max(0.05, (stepsToNext / stepsPerBar) * secondsPerBar);
+  }
+
+  /** Stop everything — all clips, the queue, follow-on, and transport. */
+  stopAll(): void {
+    this.haptic.medium();
+    this.clips.update((list) => list.map((c) => ({ ...c, isPlaying: false })));
+    this.queuedClipIds.set(new Set());
+    this.activeSceneId.set(null);
+    if (this.quantizeTimer) clearTimeout(this.quantizeTimer);
+    if (this.followTimer) clearTimeout(this.followTimer);
+    if (this.audioSession.isPlaying()) {
+      this.audioSession.togglePlay();
+    }
+    this.snackbar.info('Session stopped');
+  }
 
   micChannels = this.audioSession.micChannels;
 
@@ -238,22 +295,77 @@ export class SessionViewComponent {
   // ── Actions ─────────────────────────────────────────
   launchScene(scene: SessionScene): void {
     this.haptic.medium();
-    this.activeSceneId.set(this.activeSceneId() === scene.id ? null : scene.id);
+    const isTogglingOff = this.activeSceneId() === scene.id;
+    if (isTogglingOff) {
+      this.activeSceneId.set(null);
+      this.clips.update((list) =>
+        list.map((c) =>
+          c.sceneId === scene.id ? { ...c, isPlaying: false } : c
+        )
+      );
+      this.scheduleAutoSave();
+      this.snackbar.info(`Scene "${scene.name}" stopped`);
+      return;
+    }
 
-    // Simulate clip playback for this scene
+    // Quantized launch: queue the scene to start on the next bar boundary
+    const delay = this.nextBarDelay();
+    if (delay > 0) {
+      const queued = new Set(
+        this.clips()
+          .filter((c) => c.sceneId === scene.id)
+          .map((c) => c.id)
+      );
+      this.queuedClipIds.set(queued);
+      this.snackbar.info(
+        `Scene "${scene.name}" queued — starts in ${delay.toFixed(2)}s`
+      );
+      this.quantizeTimer = setTimeout(() => {
+        this.queuedClipIds.set(new Set());
+        this.commitSceneLaunch(scene);
+      }, delay * 1000);
+      return;
+    }
+
+    this.commitSceneLaunch(scene);
+  }
+
+  /** Actually start a scene's clips (called directly or after quantization). */
+  private commitSceneLaunch(scene: SessionScene): void {
+    this.activeSceneId.set(scene.id);
     this.clips.update((list) =>
       list.map((c) => ({
         ...c,
-        isPlaying: c.sceneId === scene.id && this.activeSceneId() === scene.id,
+        isPlaying: c.sceneId === scene.id,
       }))
     );
     this.scheduleAutoSave();
+    this.snackbar.info(`Scene "${scene.name}" launched`);
+    this.scheduleFollowOn(scene);
+  }
 
-    if (this.activeSceneId() === scene.id) {
-      this.snackbar.info(`Scene "${scene.name}" launched`);
-    } else {
-      this.snackbar.info(`Scene "${scene.name}" stopped`);
-    }
+  /** Follow-on: auto-advance to the next scene when this one's longest clip ends. */
+  private scheduleFollowOn(scene: SessionScene): void {
+    if (!this.followOnEnabled()) return;
+    if (this.followTimer) clearTimeout(this.followTimer);
+    const sceneClips = this.clips().filter((c) => c.sceneId === scene.id);
+    if (sceneClips.length === 0) return;
+    const longestBars = Math.max(
+      1,
+      ...sceneClips.map((c) => parseFloat(c.duration ?? '1') || 1)
+    );
+    const tempo = this.audioSession.engine.tempo() || 120;
+    const ms = longestBars * (60 / tempo) * 4 * 1000;
+    this.followTimer = setTimeout(() => {
+      const idx = this.scenes().findIndex((s) => s.id === scene.id);
+      const next = this.scenes()[idx + 1];
+      if (next) {
+        this.snackbar.info(`Follow-on → "${next.name}"`);
+        this.commitSceneLaunch(next);
+      } else {
+        this.stopAll();
+      }
+    }, ms);
   }
 
   /** Trigger a clip with optional velocity (0-1) */
@@ -271,6 +383,16 @@ export class SessionViewComponent {
     this.snackbar.info(
       `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'} · vel ${Math.round(clampedVel * 100)}%`
     );
+  }
+
+  /**
+   * Template-safe percentage rounding. Angular template expressions compile
+   * identifiers as context property reads (ctx.Math), so the global Math is
+   * NOT accessible from templates — `{{ Math.round(x) }}` throws. Use this
+   * helper in the template instead.
+   */
+  roundPct(value: number): number {
+    return Math.round(value * 100);
   }
 
   // ── Automation Lanes ────────────────────────────────

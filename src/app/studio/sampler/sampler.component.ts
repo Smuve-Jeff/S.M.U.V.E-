@@ -17,6 +17,8 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { FileLoaderService } from '../../services/file-loader.service';
 import { HapticService } from '../../services/haptic.service';
 import { WaveformRendererComponent } from '../waveform-renderer/waveform-renderer.component';
+import { AudioImportService } from '../audio-import.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 
 interface SamplerZoneUI {
@@ -52,6 +54,13 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   public audioEngine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
   private haptic = inject(HapticService);
+  private audioImport = inject(AudioImportService);
+  private snackbar = inject(SnackbarService);
+
+  /** Semitone pitch-shift applied to the selected zone's first sample. */
+  stretchSemitones = signal(0);
+  /** Source BPM for tempo-matching the selected zone to the project tempo. */
+  stretchSourceBpm = signal(120);
 
   @ViewChild('dropZone') dropZoneRef!: ElementRef<HTMLDivElement>;
 
@@ -278,6 +287,49 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     if (!zone) return;
     this.sampler.setRoundRobin(pitch, !zone.roundRobin);
     this.refreshZones();
+  }
+
+  // ── Pitch Shift (stretch engine) ─────────────────────
+  /** Pitch-shift the selected zone's first sample by `semitones` (-12..12). */
+  async applyPitchShift(semitones: number): Promise<void> {
+    if (!this.sampler || this.selectedPitch() === null) return;
+    const pitch = this.selectedPitch()!;
+    const zone = this.sampler.getZone(pitch);
+    const buffer = zone?.sampleBuffers?.[0];
+    if (!buffer) {
+      this.haptic.heavy();
+      return;
+    }
+    this.haptic.medium();
+    const shifted = this.audioImport.pitchShiftBuffer(buffer, semitones);
+    this.sampler.loadSampleToSlot(pitch, shifted, 0);
+    this.stretchSemitones.set(semitones);
+    this.refreshZones();
+    this.updateWaveform(pitch);
+  }
+
+  /** Tempo-match the selected zone's first sample from sourceBpm → project tempo. */
+  async applyTempoMatch(): Promise<void> {
+    if (!this.sampler || this.selectedPitch() === null) return;
+    const pitch = this.selectedPitch()!;
+    const zone = this.sampler.getZone(pitch);
+    const buffer = zone?.sampleBuffers?.[0];
+    if (!buffer) {
+      this.haptic.heavy();
+      return;
+    }
+    const target = this.audioEngine.tempo();
+    const source = Math.max(20, this.stretchSourceBpm());
+    if (Math.abs(source - target) < 0.5) {
+      this.snackbar.info('Source already matches project tempo');
+      return;
+    }
+    this.haptic.medium();
+    const matched = this.audioImport.tempoMatchBuffer(buffer, source, target);
+    this.sampler.loadSampleToSlot(pitch, matched, 0);
+    this.refreshZones();
+    this.updateWaveform(pitch);
+    this.snackbar.success(`Tempo-matched ${source} → ${target} BPM`);
   }
 
   // ── Output Channel ──────────────────────────────────

@@ -10,6 +10,10 @@ export interface PianoRollNote {
   isGhost: boolean;
   isHighlighted: boolean;
   articulation?: string;
+  /** FL-style slide note: pitch glides over the note duration. */
+  isSlide?: boolean;
+  /** Glide target pitch in MIDI (defaults to +2 semitones). */
+  slideTarget?: number;
 }
 
 const GRID_BAR: GLColor = { r: 0.18, g: 0.22, b: 0.35, a: 0.5 };
@@ -164,14 +168,13 @@ export class PianoRollRenderer {
     for (const note of visibleNotes) {
       if (note.isGhost) continue;
       const velocity = Math.max(0.1, note.velocity);
-
-      // Note color: hue based on velocity (cool blue → warm orange)
-      const hue = 200 + velocity * 40; // 200–240 hue range
-      const sat = 0.5 + velocity * 0.3;
-      const light = 0.25 + velocity * 0.2;
       const color = this.velocityColor(velocity);
-
       this.drawNoteQuad(renderer, note, color);
+
+      // Slide notes: draw a pitch-glide arrow across the note body
+      if (note.isSlide) {
+        this.drawSlideArrow(renderer, note);
+      }
 
       // Selection / highlight overlays
       if (note.selected) {
@@ -286,5 +289,26 @@ export class PianoRollRenderer {
       b: 0.55 + t * 0.1,
       a: 0.7 + t * 0.3,
     };
+  }
+
+  /** Draw an FL-style slide arrow across the note body. */
+  private drawSlideArrow(
+    renderer: WebGLRenderer,
+    note: PianoRollNote
+  ): void {
+    const x = this.stepToX(note.step);
+    const y = this.midiToY(note.midi);
+    const w = Math.max(6, note.length * this.pixelsPerStep - 2);
+    const h = this.rowHeight - 2;
+    const color: GLColor = { r: 1.0, g: 0.45, b: 0.2, a: 0.95 };
+
+    // Diagonal glide line from bottom-left to top-right (pitch rises)
+    const x2 = x + w;
+    const y1 = y + h - 4;
+    const y2 = y + 4;
+    renderer.drawLine(x, y1, x2, y2, color);
+    // Arrow head
+    renderer.drawLine(x2, y2, x2 - 6, y2 + 5, color);
+    renderer.drawLine(x2, y2, x2 - 2, y2 + 7, color);
   }
 }

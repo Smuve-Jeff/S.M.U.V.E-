@@ -910,6 +910,22 @@
   }
 }
 
+/* FL-style Slide note toggle */
+.pr-slide-toggle.active {
+  border-color: #FF7223;
+  color: #FF7223;
+  background: rgba(255, 114, 35, 0.12);
+}
+
+.pr-slide-toggle.active .material-symbols-outlined {
+  color: #FF7223;
+}
+
+.pr-slide-toggle.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .pr-cc-toggle-bar {
   display: flex;
   align-items: center;

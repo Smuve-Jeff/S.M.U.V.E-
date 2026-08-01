@@ -194,6 +194,51 @@
               >{{ ch }}</option>
             </select>
           </div>
+          <!-- Stretch engine: pitch shift + tempo match -->
+          <div class="sampler-editor-row">
+            <label>Pitch Shift</label>
+            <div class="sampler-stretch-row">
+              <button
+                type="button"
+                class="sampler-stretch-btn"
+                (click)="applyPitchShift(stretchSemitones() - 1)"
+                title="Pitch down 1 semitone"
+                [disabled]="zone.sampleCount === 0"
+              >−</button>
+              <span class="sampler-stretch-value">
+                {{ stretchSemitones() > 0 ? '+' : '' }}{{ stretchSemitones() }} st
+              </span>
+              <button
+                type="button"
+                class="sampler-stretch-btn"
+                (click)="applyPitchShift(stretchSemitones() + 1)"
+                title="Pitch up 1 semitone"
+                [disabled]="zone.sampleCount === 0"
+              >+</button>
+            </div>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Tempo Match</label>
+            <div class="sampler-stretch-row">
+              <input
+                type="number"
+                class="sampler-stretch-input"
+                [ngModel]="stretchSourceBpm()"
+                (ngModelChange)="stretchSourceBpm.set(Number($event) || 120)"
+                min="20"
+                max="300"
+                title="Source BPM of this sample"
+              />
+              <span class="sampler-stretch-bpm">BPM → {{ audioEngine.tempo() }}</span>
+              <button
+                type="button"
+                class="sampler-stretch-btn sampler-stretch-apply"
+                (click)="applyTempoMatch()"
+                [disabled]="zone.sampleCount === 0"
+                title="Match sample to project tempo"
+              >✓</button>
+            </div>
+          </div>
         </div>
 
         <!-- ADSR tab -->

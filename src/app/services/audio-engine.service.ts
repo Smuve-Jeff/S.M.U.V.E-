@@ -872,6 +872,22 @@ export class AudioEngineService {
     osc.connect(panner);
     panner.connect(vca);
     vca.connect(this.getTrackOutput(trackId.toString()));
+
+    // Slide note support: glide the oscillator frequency over the note duration.
+    // `params.glideTo` is a target frequency; when present the pitch sweeps
+    // from `freq` to `glideTo` using an exponential ramp (portamento feel).
+    if (
+      typeof params?.glideTo === 'number' &&
+      isFinite(params.glideTo) &&
+      params.glideTo > 0
+    ) {
+      osc.frequency.setValueAtTime(freq, time);
+      osc.frequency.exponentialRampToValueAtTime(
+        params.glideTo,
+        time + Math.max(0.02, duration)
+      );
+    }
+
     osc.start(time);
     osc.stop(time + duration + (params.release || 0.1) + 0.1);
 

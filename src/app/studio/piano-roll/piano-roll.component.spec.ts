@@ -33,28 +33,46 @@ describe('PianoRollComponent', () => {
     engine: { outputLufs: signal(-14) },
   };
 
+  const mockTracks = signal([
+    {
+      id: '1',
+      name: 'Lead',
+      instrumentId: 'synth',
+      notes: [],
+      clips: [],
+      fxSlots: [],
+      gain: 1,
+      pan: 0,
+      sendA: 0,
+      sendB: 0,
+      mute: false,
+      solo: false,
+      steps: [],
+      color: '#fff',
+    },
+  ]);
+
   const mockMusicManager = {
-    tracks: signal([
-      {
-        id: '1',
-        name: 'Lead',
-        instrumentId: 'synth',
-        notes: [],
-        clips: [],
-        fxSlots: [],
-        gain: 1,
-        pan: 0,
-        sendA: 0,
-        sendB: 0,
-        mute: false,
-        solo: false,
-        steps: [],
-      },
-    ]),
+    tracks: mockTracks,
     selectedTrackId: signal('1'),
     currentStep: signal(0),
     crossLinkRequest: signal(null),
-    updateNote: jest.fn(),
+    updateNote: jest.fn(
+      (trackId: string, noteId: string, patch: Record<string, unknown>) => {
+        mockTracks.update((list) =>
+          list.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: (t.notes ?? []).map((n) =>
+                    n.id === noteId ? { ...n, ...patch } : n
+                  ),
+                }
+              : t
+          )
+        );
+      }
+    ),
     addNoteToTrack: jest.fn(),
     removeNotes: jest.fn(),
     quantizeTrack: jest.fn(),
@@ -62,7 +80,7 @@ describe('PianoRollComponent', () => {
     strumTrack: jest.fn(),
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
-    selectedTrack: signal({ id: '1', name: 'Lead', notes: [], color: '#fff' }),
+    selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal('major'), scaleLock: signal(false) },
   };
 
@@ -131,6 +149,7 @@ describe('PianoRollComponent', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     await TestBed.configureTestingModule({
       imports: [
         PianoRollComponent,
@@ -367,5 +386,46 @@ describe('PianoRollComponent', () => {
     component.updateCcLaneValue('cut', 90);
     component.toggleCcRecord();
     expect(emitSpy).toHaveBeenCalledWith('auto-lane-test');
+  });
+
+  it('should toggle slide on the selected notes', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(['n1']));
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+      '1',
+      'n1',
+      expect.objectContaining({ isSlide: true, pitchBend: 2 })
+    );
+    expect(component.selectedNoteIsSlide()).toBe(true);
+  });
+
+  it('should un-toggle slide on the selected notes', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: 'n2', midi: 62, step: 0, length: 1, velocity: 0.8, isSlide: true },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(['n2']));
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+      '1',
+      'n2',
+      expect.objectContaining({ isSlide: false })
+    );
+  });
+
+  it('should do nothing when no notes are selected', () => {
+    component.selectedNoteIds.set(new Set());
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).not.toHaveBeenCalled();
   });
 });

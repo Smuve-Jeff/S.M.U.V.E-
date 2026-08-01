@@ -4,6 +4,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { LoggingService } from '../services/logging.service';
 import { SnackbarService } from '../services/snackbar.service';
+import { AudioStretchService } from './audio-stretch.service';
 
 export interface ImportedAudio {
   id: string;
@@ -31,6 +32,7 @@ export class AudioImportService {
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
   private snackbar = inject(SnackbarService);
+  private stretch = inject(AudioStretchService);
 
   /** All imported audio files */
   importedAudio = signal<ImportedAudio[]>([]);
@@ -99,6 +101,67 @@ export class AudioImportService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Time-stretch an imported audio buffer by `ratio` (1 = unchanged) and
+   * return a rebuilt AudioBuffer. Powers tempo-matching and sample pitching.
+   */
+  stretchBuffer(
+    buffer: AudioBuffer,
+    ratio: number,
+    options: { windowSize?: number } = {}
+  ): AudioBuffer {
+    const ctx = this.audioEngine.ctx;
+    const channels = buffer.numberOfChannels;
+    const stretchedLen = Math.max(
+      1,
+      Math.ceil(buffer.length * ratio)
+    );
+    const out = ctx.createBuffer(channels, stretchedLen, buffer.sampleRate);
+    for (let ch = 0; ch < channels; ch++) {
+      const data = this.stretch.timeStretch(
+        buffer.getChannelData(ch),
+        ratio,
+        { windowSize: options.windowSize }
+      );
+      // copyToChannel throws if the WSOLA output is even a few frames longer
+      // than the precomputed buffer length — copy through getChannelData and
+      // truncate instead.
+      const target = out.getChannelData(ch);
+      target.set((data as Float32Array<ArrayBuffer>).subarray(0, target.length));
+    }
+    return out;
+  }
+
+  /** Pitch-shift an imported buffer by semitones while preserving duration. */
+  pitchShiftBuffer(buffer: AudioBuffer, semitones: number): AudioBuffer {
+    const ctx = this.audioEngine.ctx;
+    const channels = buffer.numberOfChannels;
+    const out = ctx.createBuffer(
+      channels,
+      Math.max(1, buffer.length),
+      buffer.sampleRate
+    );
+    for (let ch = 0; ch < channels; ch++) {
+      const data = this.stretch.pitchShift(
+        buffer.getChannelData(ch),
+        semitones
+      );
+      const target = out.getChannelData(ch);
+      target.set((data as Float32Array<ArrayBuffer>).subarray(0, target.length));
+    }
+    return out;
+  }
+
+  /** Tempo-match: stretch so audio recorded at `sourceBpm` plays at `targetBpm`. */
+  tempoMatchBuffer(
+    buffer: AudioBuffer,
+    sourceBpm: number,
+    targetBpm: number
+  ): AudioBuffer {
+    const ratio = sourceBpm / targetBpm;
+    return this.stretchBuffer(buffer, ratio);
   }
 
   /** Select an imported audio for editing */

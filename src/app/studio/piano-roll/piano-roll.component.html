@@ -420,6 +420,23 @@
         <span class="material-symbols-outlined">tune</span>
         <span>Precision</span>
       </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle pr-slide-toggle"
+        [class.active]="selectedNoteIsSlide()"
+        [class.disabled]="selectionCount() === 0"
+        (click)="toggleSlideOnSelection()"
+        [title]="
+          selectionCount() === 0
+            ? 'Select notes to add slide'
+            : selectedNoteIsSlide()
+              ? 'Remove slide glide'
+              : 'FL-style slide: pitch glides over note duration'
+        "
+      >
+        <span class="material-symbols-outlined">trending_up</span>
+        <span>Slide</span>
+      </button>
       <div class="pr-inspector-pill">
         <div class="pr-inspector-pill-label">Velocity</div>
         <div class="pr-inspector-pill-value">{{ selectedNoteVelocity() }}</div>

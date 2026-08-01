@@ -32,11 +32,50 @@
         >
         Add Scene
       </button>
-      <button type="button" class="sv-action-btn" aria-label="Stop all">
+      <button
+        type="button"
+        class="sv-action-btn"
+        (click)="stopAll()"
+        aria-label="Stop all clips and transport"
+        title="Stop all clips and transport"
+      >
         <span class="material-symbols-outlined" style="font-size: 16px"
           >stop</span
         >
         Stop All
+      </button>
+      <!-- Launch quantization -->
+      <label class="sv-quantize">
+        <span class="sv-quantize-label">Quantize</span>
+        <select
+          class="sv-quantize-select"
+          [value]="launchQuantize()"
+          (change)="launchQuantize.set($any($event.target).value)"
+          title="Snap clip/scene launches to the next bar boundary"
+        >
+          @for (q of quantizeOptions; track q) {
+            <option [value]="q">
+              {{ q === 'none' ? 'Off' : (q === '1bar' ? '1 bar' : q === '2bar' ? '2 bars' : '4 bars') }}
+            </option>
+          }
+        </select>
+      </label>
+      <!-- Follow-on scenes -->
+      <button
+        type="button"
+        class="sv-action-btn"
+        [class.active]="followOnEnabled()"
+        (click)="followOnEnabled.update((v) => !v)"
+        [title]="
+          followOnEnabled()
+            ? 'Follow-on ON — scenes auto-advance'
+            : 'Follow-on OFF — scenes play until stopped'
+        "
+      >
+        <span class="material-symbols-outlined" style="font-size: 16px"
+          >skip_next</span
+        >
+        Follow-on
       </button>
       <!-- Preset save/load -->
       <div class="sv-preset-group">
@@ -243,7 +282,7 @@
                       "
                     />
                     <span class="sv-auto-val"
-                      >{{ Math.round(point.value * 100) }}%</span
+                      >{{ roundPct(point.value) }}%</span
                     >
                   </div>
                 </label>
@@ -376,6 +415,7 @@
               [class.is-filled]="!!clip"
               [class.is-empty]="!clip"
               [class.is-playing]="clip?.isPlaying"
+              [class.is-queued]="clip && queuedClipIds().has(clip.id)"
               [class.sv-clip-slot-dragover]="
                 dragOverSlotKey() === scene.id + '|' + track.id
               "
@@ -398,7 +438,7 @@
                 <div
                   class="sv-clip-velocity-bar"
                   aria-label="Velocity {{
-                    Math.round((clip.velocity ?? 0.85) * 100)
+                    roundPct(clip.velocity ?? 0.85)
                   }}%"
                 >
                   <div
