@@ -1921,3 +1921,28 @@
     padding-left: max(var(--dj-pad-3), env(safe-area-inset-left));
   }
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — DJ Deck
+   Landscape phones: compact chrome so both decks fit the short
+   viewport without scrolling.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  .dj-top-bar {
+    height: 44px;
+  }
+  .dj-decks-region {
+    gap: 6px;
+    padding: 6px 6px 0;
+  }
+  .dj-platter {
+    max-width: 150px;
+  }
+  .dj-pad-tile,
+  .dj-cue-pad {
+    height: 42px;
+  }
+  .dj-perf-bed {
+    padding: 6px;
+  }
+}

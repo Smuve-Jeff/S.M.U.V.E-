@@ -243,3 +243,19 @@
 .ti-header-card {
   border-color: var(--espresso-soft);
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Track Inspector
+   Compact header + touch-friendly controls on mobile.
+   ============================================================ */
+@media (max-width: 768px) {
+  .ti-header {
+    padding: 10px 12px;
+  }
+  .tactile-v42 {
+    min-height: 40px;
+  }
+  .ti-shell {
+    overflow-y: auto;
+  }
+}

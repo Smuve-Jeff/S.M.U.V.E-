@@ -405,3 +405,20 @@
   background: rgba(217, 119, 6, 0.2);
   color: var(--orange, #d97706);
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Take Lane
+   Touch-friendly chips + wrapping header on mobile.
+   ============================================================ */
+@media (max-width: 768px) {
+  .take-chip {
+    min-height: 44px;
+  }
+  .take-chip-del {
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .take-lane-head {
+    flex-wrap: wrap;
+  }
+}

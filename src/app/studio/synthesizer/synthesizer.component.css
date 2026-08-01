@@ -802,3 +802,35 @@
     display: flex !important;
   }
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Synthesizer
+   Landscape phones reclaim row layout; touch-friendly tabs;
+   focus rings.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  .knob-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .synth-section {
+    padding: 0.5rem;
+  }
+  .wave-btn,
+  .lfo-wave-btn {
+    min-height: 44px;
+  }
+}
+@media (max-width: 768px) {
+  .synth-mobile-tabs {
+    min-height: 44px;
+  }
+}
+
+/* Keyboard & assistive-tech focus visibility */
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

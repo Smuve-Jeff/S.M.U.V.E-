@@ -97,3 +97,18 @@
 :host-context(.dark-mode) .timeline-tick.is-beat {
   border-right-color: rgba(255, 255, 255, 0.06);
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Timeline Ruler
+   Narrow screens: ruler scrolls horizontally instead of clipping
+   the bar/beat ticks.
+   ============================================================ */
+@media (max-width: 768px) {
+  :host {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .timeline-ruler {
+    min-width: 100%;
+  }
+}

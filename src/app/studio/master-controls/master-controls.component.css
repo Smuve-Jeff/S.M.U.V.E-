@@ -93,3 +93,23 @@ input[type='range']::-moz-range-thumb {
 .format-btn:hover:not(.active) {
   @apply border-white/20 bg-white/5 text-slate-300;
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Master Controls
+   Mobile: DSP dropdown must never overflow the viewport.
+   ============================================================ */
+@media (max-width: 768px) {
+  .dsp-dropdown-panel {
+    min-width: 0 !important;
+    width: calc(100vw - 24px);
+    max-width: 450px;
+    max-height: 78dvh;
+    overflow-y: auto;
+  }
+  .finish-btn {
+    min-height: 44px;
+  }
+  .control-group {
+    gap: 8px;
+  }
+}

@@ -4,10 +4,12 @@ import {
   OnDestroy,
   AfterViewInit,
   inject,
+  Injector,
   signal,
   computed,
   effect,
   untracked,
+  runInInjectionContext,
   ViewChild,
   ElementRef,
   HostListener,
@@ -171,6 +173,43 @@ const THEME_LABEL: Record<AppTheme, string> = {
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
+  /* Studio-wide deep responsive refinement (additive layer, see
+     DEEP RESPONSIVE REFINEMENT blocks in the subview stylesheets). */
+  styles: [
+    `
+      /* DEEP RESPONSIVE REFINEMENT — Studio-wide */
+      @media (max-width: 768px) {
+        .comp-tab,
+        .comp-icon-btn,
+        .comp-drawer-item {
+          min-height: 44px;
+        }
+        .comp-canvas {
+          scrollbar-width: thin;
+          scrollbar-color: var(--teal-500, #0e7c7b) transparent;
+        }
+        .comp-view {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+      }
+      @media (max-width: 932px) and (orientation: landscape) {
+        .comp-view {
+          padding-bottom: 0;
+        }
+        .comp-topbar-tools {
+          gap: 6px;
+        }
+        .comp-canvas {
+          scrollbar-width: thin;
+        }
+      }
+      .comp-shell :focus-visible {
+        outline: 2px solid var(--teal-400, #2ba09c);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+    `,
+  ],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
@@ -180,6 +219,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Animation frame handle for spectrum analyzer rendering */
   private spectrumRafId: number | null = null;
+
+  /** Used to create effects from lifecycle hooks (injection context). */
+  private readonly injector = inject(Injector);
 
   // ---- Services (public for templates) ----
   public readonly audioSession = inject(AudioSessionService);
@@ -577,18 +619,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // user knows to keep-mine / use-theirs / discard. Uses `untracked`
     // because we only want to react on length changes.
     let lastConflictCount = this.collaboration.pendingConflicts().length;
-    effect(() => {
-      const conflicts = this.collaboration.pendingConflicts();
-      if (conflicts.length > lastConflictCount) {
-        const fresh = conflicts[conflicts.length - 1];
-        untracked(() => {
-          const source = fresh.remoteUserName ?? fresh.remoteUserId.slice(-4);
-          this.snackbarService.info(
-            `CONFLICT ON ${fresh.fieldKey.toUpperCase()} · ${source} edited the same field`
-          );
-        });
-      }
-      lastConflictCount = conflicts.length;
+    // effect() must be created in an injection context; ngOnInit is not
+    // guaranteed one (NG0203 in tests), so create it inside the injector.
+    runInInjectionContext(this.injector, () => {
+      effect(() => {
+        const conflicts = this.collaboration.pendingConflicts();
+        if (conflicts.length > lastConflictCount) {
+          const fresh = conflicts[conflicts.length - 1];
+          untracked(() => {
+            const source = fresh.remoteUserName ?? fresh.remoteUserId.slice(-4);
+            this.snackbarService.info(
+              `CONFLICT ON ${fresh.fieldKey.toUpperCase()} · ${source} edited the same field`
+            );
+          });
+        }
+        lastConflictCount = conflicts.length;
+      });
     });
   }
 

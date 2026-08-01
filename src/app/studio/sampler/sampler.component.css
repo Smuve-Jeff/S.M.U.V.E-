@@ -674,3 +674,41 @@
   background: #10b981;
   color: #06091a;
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Sampler
+   Portrait: stack waveform + editor; landscape: compact keys.
+   ============================================================ */
+@media (max-width: 768px) {
+  .sampler-main {
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 12px 12px;
+    overflow-y: auto;
+  }
+  .sampler-editor {
+    width: 100%;
+    flex-shrink: 1;
+  }
+  .sampler-topbar {
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sampler-btn {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  .sampler-key {
+    min-height: 40px;
+    min-width: 36px;
+  }
+}
+@media (max-width: 932px) and (orientation: landscape) {
+  .sampler-keyboard {
+    max-height: 130px;
+  }
+  .sampler-main {
+    gap: 8px;
+  }
+}

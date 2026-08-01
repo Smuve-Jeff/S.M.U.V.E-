@@ -280,6 +280,185 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         }
         .challenge-banner { animation: none !important; }
       }
+      /* ============================================================
+         THA SPOT — DEEP RESPONSIVE REFINEMENT
+         (landscape / portrait / desktop)
+
+         Fixes the earlier audit's dead selectors:
+         - drawers toggle with class "active" (real class "rival-hub"),
+           never "is-open"/"rival-hub-sidebar";
+         - "executive-sidebar" must stay fixed (off-canvas
+           drawer), so the <=1024px sticky override is corrected;
+         - mobile drawers are full-screen sheets revealed via
+           opacity (composes with base right transition).
+         Also: "mobile-search-bar" gets real rules (hidden on
+         desktop, flex on mobile), plus compact landscape-phone
+         layouts so every component stays reachable.
+         ============================================================ */
+
+      /* ── Drawer corrections (overrides audit's sticky/wrong rules) ── */
+      .executive-sidebar,
+      .rival-hub {
+        position: fixed;
+        top: 64px;
+        bottom: 0;
+        z-index: 120;
+        transform: none;
+      }
+      .executive-sidebar { left: auto; right: 0; width: 350px; }
+      .rival-hub        { left: auto; right: 0; width: 380px; }
+
+      /* ── Mobile search bar: real rules (desktop hidden, mobile flex) ── */
+      .mobile-search-bar {
+        display: none;
+      }
+
+      /* ── Portrait / tablet: drawers become full-screen sheets ── */
+      @media (max-width: 768px) {
+        .mobile-search-bar {
+          display: flex;
+        }
+        .executive-sidebar,
+        .rival-hub {
+          position: fixed;
+          inset: 64px 0 0 0;
+          width: 100%;
+          max-width: none;
+          border-radius: 0;
+          border-left: 0;
+          transform: none;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.25s ease;
+        }
+        .executive-sidebar.active,
+        .rival-hub.active {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .sidebar-content {
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .hub-tabs {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          -webkit-overflow-scrolling: touch;
+        }
+        .mission-content.fit-screen,
+        .console-body {
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+      }
+
+      /* ── Landscape phones / short viewports (≤ 520px tall) ── */
+      @media (orientation: landscape) and (max-height: 520px) {
+        .spot-header {
+          height: 52px;
+          padding: 0 0.75rem;
+        }
+        .executive-sidebar,
+        .rival-hub {
+          top: 52px;
+          inset: 52px 0 0 0;
+          width: min(420px, 100%);
+        }
+        .content-section {
+          padding: 1.25rem 0.75rem;
+        }
+        .catalog-grid {
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 0.6rem;
+          padding: 0 0.75rem 1.5rem;
+        }
+        .rail-content .game-card {
+          flex: 0 0 150px;
+        }
+        .recommendation-rails,
+        .live-lobbies-rail {
+          padding: 1rem 0.75rem;
+        }
+        .hero-content {
+          padding: 1.25rem 1rem;
+        }
+        .cinematic-hero {
+          min-height: 200px;
+        }
+        .hero-stats-bar {
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+        .back-to-top-btn {
+          bottom: 12px;
+          right: 12px;
+        }
+        .mobile-search-bar {
+          display: flex;
+        }
+        .immersive-overlay,
+        .matchmaking-overlay,
+        .launch-mission-page,
+        .mission-overlay {
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .console-body {
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .mission-content.fit-screen {
+          height: auto;
+          min-height: 0;
+          overflow-y: auto;
+        }
+        .challenge-banner {
+          bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+        }
+      }
+
+      /* ── Portrait phones (≤ 480px): keep every control reachable ── */
+      @media (max-width: 480px) {
+        .catalog-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.5rem;
+          padding: 0 0.75rem 2rem;
+        }
+        .rail-content .game-card {
+          flex: 0 0 150px;
+        }
+        .hero-title {
+          font-size: 1.6rem;
+        }
+        .back-to-top-btn {
+          bottom: 14px;
+          right: 14px;
+          width: 42px;
+          height: 42px;
+        }
+      }
+
+      /* ── Desktop (≥ 1024px): generous spacing, no mobile-only regressions ── */
+      @media (min-width: 1024px) {
+        .content-section {
+          padding: 2.5rem 3rem;
+        }
+        .catalog-grid {
+          grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+          gap: 1.25rem;
+          padding: 0 3rem 3rem;
+        }
+        .rail-content .game-card {
+          flex: 0 0 240px;
+        }
+        .recommendation-rails,
+        .live-lobbies-rail {
+          padding: 2rem 3rem;
+        }
+        .mobile-search-bar {
+          display: none;
+        }
+      }
     `,
   ],
 })

@@ -635,3 +635,30 @@
     border-radius: 10px;
   }
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Performance Mode
+   Landscape phones fill the wide viewport; slider touch sizes;
+   focus rings.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  .performance-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .performance-pad {
+    min-height: 52px;
+  }
+}
+@media (max-width: 768px) {
+  .perf-midi-slider,
+  .perf-velo-slider {
+    min-height: 36px;
+  }
+}
+
+/* Keyboard & assistive-tech focus visibility */
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -979,3 +979,39 @@
   border-color: rgba(217, 119, 6, 0.85);
   box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.25);
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Mixer
+   Landscape phones: tighter strips + shorter faders so more
+   channels fit the short viewport; VCA rack compactness.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  .mix-header {
+    padding: 6px 10px;
+  }
+  .mix-strip {
+    width: 60px;
+  }
+  .mix-fader-area {
+    min-height: 90px;
+  }
+}
+@media (max-width: 768px) {
+  .mix-vca-rack {
+    margin: 0.5rem 0.5rem 0.4rem;
+    padding: 0.6rem 0.6rem 0.5rem;
+  }
+  .mix-msr-btn {
+    min-height: 40px;
+  }
+  .mix-sends-row {
+    gap: 6px;
+  }
+}
+
+/* Keyboard & assistive-tech focus visibility */
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

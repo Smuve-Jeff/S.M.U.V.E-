@@ -397,3 +397,26 @@
     padding-bottom: env(safe-area-inset-bottom, 8px);
   }
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Channel Rack
+   Wrap header actions, avoid horizontal clipping, compact in
+   landscape phones.
+   ============================================================ */
+@media (max-width: 768px) {
+  :host {
+    overflow-x: hidden;
+  }
+  .rack-header {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+@media (max-width: 932px) and (orientation: landscape) {
+  .rack-header {
+    height: 44px;
+  }
+  .channel-item {
+    min-height: 48px;
+  }
+}

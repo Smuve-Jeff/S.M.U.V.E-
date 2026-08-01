@@ -1270,3 +1270,28 @@
     display: none;
   }
 }
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Piano Roll
+   Landscape phones: tighter cells so more rows fit the short
+   viewport; focus rings.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  :host {
+    --pr-cell: 20px;
+    --pr-row: 16px;
+  }
+  .pr-header {
+    padding: 6px 10px;
+  }
+  .pr-keys {
+    width: 40px;
+  }
+}
+
+/* Keyboard & assistive-tech focus visibility */
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
