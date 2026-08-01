@@ -168,6 +168,16 @@
           >
         </button>
         <button
+          *ngIf="selectedClipIds().size > 1"
+          (click)="consolidateSelected()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Glue touching clips into one clip"
+          [disabled]="!canConsolidateSelection()"
+        >
+          <span class="material-symbols-outlined text-[10px]">join_full</span>
+          GLUE
+        </button>
+        <button
           (click)="quantizeSelected()"
           class="mini-btn tactile-v42 executive-glass"
           title="Quantize clip starts to the grid"

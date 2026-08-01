@@ -39,6 +39,7 @@ describe('ArrangementViewComponent', () => {
     takesExpanded: signal({}),
     addTrack: jest.fn(),
     updateClip: jest.fn(),
+    glueClips: jest.fn(),
   };
 
   const mockHistory = {
@@ -75,6 +76,7 @@ describe('ArrangementViewComponent', () => {
     mockMusicManager.tracks.set([
       { id: '1', name: 'Lead', clips: [], mute: false, solo: false },
     ]);
+    mockMusicManager.glueClips.mockReturnValue('clip-glued');
     await TestBed.configureTestingModule({
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
@@ -148,5 +150,86 @@ describe('ArrangementViewComponent', () => {
     expect(mockSnackbar.info).toHaveBeenCalledWith(
       'Selected clips are already on the grid'
     );
+  });
+
+  it('glues selected clips on one track into a single clip workflow', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 4, name: 'Clip A', type: 'midi' },
+          { id: 'clip-2', start: 4, length: 4, name: 'Clip B', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1', 'clip-2']));
+
+    component.consolidateSelected();
+
+    expect(mockMusicManager.glueClips).toHaveBeenCalledWith('1', [
+      'clip-1',
+      'clip-2',
+    ]);
+    expect(component.selectedClipIds()).toEqual(new Set(['clip-glued']));
+    expect(mockSnackbar.info).toHaveBeenCalledWith('Glued 2 clips into 1');
+  });
+
+  it('requires selected clips to stay on one track before gluing', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [{ id: 'clip-1', start: 0, length: 4, name: 'Clip A', type: 'midi' }],
+        mute: false,
+        solo: false,
+      },
+      {
+        id: '2',
+        name: 'Bass',
+        clips: [{ id: 'clip-2', start: 4, length: 4, name: 'Clip B', type: 'midi' }],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1', 'clip-2']));
+
+    component.consolidateSelected();
+
+    expect(mockMusicManager.glueClips).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      'Select 2+ clips on one track to glue'
+    );
+  });
+
+  it('uses the glue tool to consolidate the clicked clip with the current selection', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 4, name: 'Clip A', type: 'midi' },
+          { id: 'clip-2', start: 4, length: 4, name: 'Clip B', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.activeTool.set('glue');
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.onClipPointerDown(
+      { stopPropagation: jest.fn(), shiftKey: false } as any,
+      '1',
+      mockMusicManager.tracks()[0].clips[1] as any
+    );
+
+    expect(mockMusicManager.glueClips).toHaveBeenCalledWith('1', [
+      'clip-1',
+      'clip-2',
+    ]);
+    expect(component.selectedClipIds()).toEqual(new Set(['clip-glued']));
   });
 });

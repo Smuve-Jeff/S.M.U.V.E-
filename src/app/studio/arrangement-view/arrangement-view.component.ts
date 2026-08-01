@@ -301,6 +301,20 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   onClipPointerDown(e: PointerEvent, trackId: string, clip: StudioClip) {
     e.stopPropagation();
     this.selectTrack(trackId);
+    if (this.activeTool() === 'glue') {
+      const next = new Set(
+        Array.from(this.selectedClipIds()).filter(
+          (id) => this.findClipOwner(id)?.track.id === trackId
+        )
+      );
+      next.add(clip.id);
+      this.selectedClipIds.set(next);
+      this.markDirty();
+      if (next.size > 1) {
+        this.consolidateSelected();
+      }
+      return;
+    }
     if (!e.shiftKey) this.selectedClipIds.set(new Set([clip.id]));
     else {
       const next = new Set(this.selectedClipIds());
@@ -436,6 +450,33 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  canConsolidateSelection(): boolean {
+    return this.getConsolidateSelection() !== null;
+  }
+
+  consolidateSelected() {
+    const selection = this.getConsolidateSelection();
+    if (!selection) {
+      this.snackbar.info('Select 2+ clips on one track to glue');
+      return;
+    }
+
+    const mergedClipId =
+      this.musicManager.glueClips?.(selection.track.id, selection.clipIds) ?? null;
+    if (!mergedClipId) {
+      this.snackbar.info(
+        'Glue works on touching clips that share the same type/source'
+      );
+      return;
+    }
+
+    this.selectedClipIds.set(new Set([mergedClipId]));
+    this.selectTrack(selection.track.id);
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.info(`Glued ${selection.clipIds.length} clips into 1`);
+  }
+
   quantizeSelected(grid: number = 0.25) {
     let moved = 0;
     this.selectedClipIds().forEach((id) => {
@@ -476,6 +517,25 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       if (clip) return { track, clip };
     }
     return null;
+  }
+
+  private getConsolidateSelection():
+    | { track: TrackModel; clipIds: string[] }
+    | null {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length < 2) return null;
+
+    const owners = ids
+      .map((id) => this.findClipOwner(id))
+      .filter(
+        (owner): owner is { track: TrackModel; clip: StudioClip } =>
+          owner !== null
+      );
+    if (owners.length !== ids.length) return null;
+
+    const track = owners[0].track;
+    if (owners.some((owner) => owner.track.id !== track.id)) return null;
+    return { track, clipIds: owners.map((owner) => owner.clip.id) };
   }
 
   findFirstSelectedTrack(): TrackModel | null {
