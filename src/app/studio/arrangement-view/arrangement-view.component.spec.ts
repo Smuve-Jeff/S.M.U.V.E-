@@ -117,7 +117,9 @@ describe('ArrangementViewComponent', () => {
       {
         id: '1',
         name: 'Lead',
-        clips: [{ id: 'clip-1', start: 1.18, length: 4, name: 'Clip', type: 'midi' }],
+        clips: [
+          { id: 'clip-1', start: 1.18, length: 4, name: 'Clip', type: 'midi' },
+        ],
         mute: false,
         solo: false,
       },
@@ -129,7 +131,9 @@ describe('ArrangementViewComponent', () => {
     expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
       start: 1.25,
     });
-    expect(mockSnackbar.info).toHaveBeenCalledWith('Quantized 1 clip to the grid');
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      'Quantized 1 clip to the grid'
+    );
   });
 
   it('reports when selected clips are already on the grid', () => {
@@ -137,7 +141,9 @@ describe('ArrangementViewComponent', () => {
       {
         id: '1',
         name: 'Lead',
-        clips: [{ id: 'clip-1', start: 1.25, length: 4, name: 'Clip', type: 'midi' }],
+        clips: [
+          { id: 'clip-1', start: 1.25, length: 4, name: 'Clip', type: 'midi' },
+        ],
         mute: false,
         solo: false,
       },
@@ -182,14 +188,30 @@ describe('ArrangementViewComponent', () => {
       {
         id: '1',
         name: 'Lead',
-        clips: [{ id: 'clip-1', start: 0, length: 4, name: 'Clip A', type: 'midi' }],
+        clips: [
+          {
+            id: 'clip-1',
+            start: 0,
+            length: 4,
+            name: 'Clip A',
+            type: 'midi',
+          },
+        ],
         mute: false,
         solo: false,
       },
       {
         id: '2',
         name: 'Bass',
-        clips: [{ id: 'clip-2', start: 4, length: 4, name: 'Clip B', type: 'midi' }],
+        clips: [
+          {
+            id: 'clip-2',
+            start: 4,
+            length: 4,
+            name: 'Clip B',
+            type: 'midi',
+          },
+        ],
         mute: false,
         solo: false,
       },

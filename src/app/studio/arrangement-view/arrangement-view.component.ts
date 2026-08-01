@@ -462,7 +462,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
 
     const mergedClipId =
-      this.musicManager.glueClips?.(selection.track.id, selection.clipIds) ?? null;
+      this.musicManager.glueClips?.(selection.track.id, selection.clipIds) ??
+      null;
     if (!mergedClipId) {
       this.snackbar.info(
         'Glue works on touching clips that share the same type/source'
@@ -520,7 +521,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private getConsolidateSelection():
-    | { track: TrackModel; clipIds: string[] }
+    | {
+        track: TrackModel;
+        clipIds: string[];
+      }
     | null {
     const ids = Array.from(this.selectedClipIds());
     if (ids.length < 2) return null;
