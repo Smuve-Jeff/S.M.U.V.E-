@@ -1,0 +1,89 @@
+<section class="score-shell" aria-labelledby="score-title">
+  <header class="score-header">
+    <div>
+      <p class="score-eyebrow">A5 · SCORE VIEW</p>
+      <h1 id="score-title">Notation</h1>
+      <p class="score-subtitle">
+        A clean score readout from the active MIDI tracks. Edit notes in Piano Roll;
+        this view stays in sync with your session.
+      </p>
+    </div>
+    <div class="score-stats" aria-label="Score statistics">
+      <span class="score-stat"><strong>{{ staves().length }}</strong> parts</span>
+      <span class="score-stat"><strong>{{ totalNotes() }}</strong> notes</span>
+      <span class="score-stat"><strong>{{ bars() }}</strong> bars</span>
+    </div>
+  </header>
+
+  <div class="score-toolbar" role="toolbar" aria-label="Notation tools">
+    <span class="score-toolbar-status">
+      <span class="score-live-dot" aria-hidden="true"></span>
+      LIVE SCORE SYNC
+    </span>
+    <span class="score-toolbar-hint">4/4 · 16th-note grid · click a part to edit in Piano Roll</span>
+  </div>
+
+  <div class="score-scroll" *ngIf="staves().length > 0; else emptyScore">
+    <div class="score-ruler" [style.width.px]="bars() * 16 * 5.5 + 120">
+      <span class="score-ruler-label">BARS</span>
+      <span
+        *ngFor="let bar of barColumns()"
+        class="score-bar-label"
+        [style.left.px]="(bar - 1) * 16 * 5.5 + 120"
+      >
+        {{ bar }}
+      </span>
+    </div>
+
+    <article
+      *ngFor="let staff of staves()"
+      class="score-staff-card"
+      [style.--staff-color]="staff.color"
+      [attr.data-track-id]="staff.id"
+    >
+      <header class="score-staff-heading">
+        <div class="score-staff-name">
+          <span class="score-staff-swatch" aria-hidden="true"></span>
+          <strong>{{ staff.name }}</strong>
+          <span class="score-staff-range">{{ staff.range }}</span>
+        </div>
+        <span class="score-staff-count">{{ staff.noteCount }} {{ staff.noteCount === 1 ? 'note' : 'notes' }}</span>
+      </header>
+
+      <div class="score-staff-viewport">
+        <div class="score-staff-canvas" [style.width.px]="bars() * 16 * 5.5 + 120">
+          <div class="score-clef" aria-hidden="true">𝄞</div>
+          <div class="score-staff-lines" aria-hidden="true">
+            <span *ngFor="let line of [0, 1, 2, 3, 4]" [style.top.%]="line * 25"></span>
+          </div>
+          <div
+            *ngFor="let bar of barColumns()"
+            class="score-measure-line"
+            [style.left.px]="(bar - 1) * 16 * 5.5 + 120"
+            aria-hidden="true"
+          ></div>
+          <div
+            *ngFor="let note of staff.notes"
+            class="score-note"
+            [class.score-note-accidental]="isAccidental(note.midi)"
+            [style.left.px]="note.left + 120"
+            [style.top.px]="note.staffTop"
+            [attr.title]="note.name + note.octave + ' · ' + note.duration + ' · velocity ' + note.velocity"
+          >
+            <span class="score-note-stem" aria-hidden="true"></span>
+            <span class="score-note-head">{{ note.accidental }}</span>
+            <span class="score-note-label">{{ note.name }}{{ note.octave }}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <ng-template #emptyScore>
+    <div class="score-empty">
+      <span class="material-symbols-outlined">music_note</span>
+      <h2>Your score is waiting for a note</h2>
+      <p>Add a MIDI track and draw a few notes in Piano Roll to see the notation appear here.</p>
+    </div>
+  </ng-template>
+</section>

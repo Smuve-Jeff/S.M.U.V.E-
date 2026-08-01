@@ -80,6 +80,28 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     () => (this.musicManager.currentStep() / 16) * this.barWidth()
   );
 
+  // Sprint A4: Song-Mode UI surface.
+  // Defensive optional-chaining so tests that stub `musicManager` without
+  // an `engine` field don't crash (defaulting to a sane 'song'/'64'-bar view).
+  readonly engine = this.musicManager?.engine;
+  readonly playMode = computed(() => this.engine?.playMode?.() ?? 'song');
+  readonly effectiveBars = computed(() =>
+    Math.max(
+      1,
+      Math.round((this.engine?.effectiveLoopLength?.() ?? 64) / 16)
+    )
+  );
+  readonly songEnded = computed(() => this.engine?.songEnded?.() ?? false);
+  togglePlayMode(): void {
+    if (!this.engine?.setPlayMode) return;
+    const next = this.engine.playMode() === 'song' ? 'pattern' : 'song';
+    this.engine.setPlayMode(next);
+    this.haptic?.medium?.();
+  }
+  acknowledgeSongEnded(): void {
+    this.engine?.songEnded?.set?.(false);
+  }
+
   markers = signal<any[]>([]);
   showAutomation = signal(false);
 

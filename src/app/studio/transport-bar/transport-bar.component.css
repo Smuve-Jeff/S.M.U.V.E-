@@ -694,6 +694,51 @@
   }
 }
 
+/* ================================================
+   Sprint A4 — Playback mode status chip (read-only mirror
+   of AudioEngineService.playMode). Compact pill, color-coded
+   so the user always sees whether transport is going to
+   loop forever or stop at the arrangement end.
+   ================================================ */
+.ctb-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 32px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-muted);
+  cursor: default;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ctb-mode-pill .material-symbols-outlined {
+  font-size: 14px;
+  color: inherit;
+}
+.ctb-mode-pill.ctb-mode-song {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+  box-shadow: 0 0 8px var(--teal-glow);
+}
+.ctb-mode-pill.ctb-mode-pattern {
+  background: var(--orange);
+  color: white;
+  border-color: var(--orange);
+}
+:host-context(.dark-mode) .ctb-mode-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ----- Mobile: slideable toolbar ----- */
 @media (max-width: 640px) {
   .ctb-shell {

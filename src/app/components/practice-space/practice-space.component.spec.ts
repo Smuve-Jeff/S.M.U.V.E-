@@ -32,6 +32,9 @@ describe('PracticeSpaceComponent', () => {
     // Minimal surface — the component does not exercise the engine here.
     start: jest.fn(),
     stop: jest.fn(),
+    // Sprint A4 — MusicManagerService.structureSongLengthEffect calls this
+    // during construction; stub it so the practice-space spec compiles.
+    setSongLengthSteps: jest.fn(),
   };
 
   beforeEach(async () => {

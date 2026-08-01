@@ -71,6 +71,54 @@
       >
         AI VAR
       </button>
+      <!-- Sprint A4 — Song/Pattern mode pill: structure length is the song boundary. -->
+      <div
+        class="play-mode-pill tactile-v42 executive-glass flex items-center gap-1 px-2 py-1"
+        [class.play-mode-song]="playMode() === 'song'"
+        [class.play-mode-pattern]="playMode() === 'pattern'"
+        [attr.aria-label]="
+          'Playback mode ' +
+          (playMode() === 'song' ? 'Song' : 'Pattern') +
+          ' — ends at ' +
+          effectiveBars() +
+          ' bars'
+        "
+        [title]="
+          playMode() === 'song'
+            ? 'Song mode · playback stops at the arrangement end (' +
+              effectiveBars() +
+              ' bars)'
+            : 'Pattern mode · loops forever at ' +
+              effectiveBars() +
+              ' bars'
+        "
+      >
+        <button
+          type="button"
+          class="play-mode-toggle mini-btn tactile-v42 px-2 py-0.5"
+          (click)="togglePlayMode()"
+          [attr.aria-pressed]="playMode() === 'pattern'"
+          aria-label="Toggle playback mode"
+        >
+          <span class="material-symbols-outlined text-[10px]">
+            {{ playMode() === 'song' ? 'music_note' : 'repeat' }}
+          </span>
+          {{ playMode() === 'song' ? 'SONG' : 'PATTERN' }}
+        </button>
+        <span class="ends-readout text-[8px] opacity-80 ml-1">
+          ENDS AT {{ effectiveBars() }} BARS
+        </span>
+        <span
+          *ngIf="songEnded()"
+          class="song-ended-badge ml-1 text-[8px] font-black text-red-300 cursor-pointer"
+          role="status"
+          aria-live="polite"
+          (click)="acknowledgeSongEnded()"
+          title="Click to dismiss"
+        >
+          SONG ENDED ✓
+        </span>
+      </div>
     </div>
     <div class="tool-selector flex gap-1 mx-2">
       <button

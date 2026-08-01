@@ -30,7 +30,12 @@ describe('ChatbotComponent', () => {
       isMobile: signal(false),
     };
 
-    const audioEngineServiceMock = {};
+    const audioEngineServiceMock = {
+      // Sprint A4 — MusicManagerService.structureSongLengthEffect calls
+      // engine.setSongLengthSteps() while instantiating; mock it so the
+      // chatbot component test can compile without throwing.
+      setSongLengthSteps: jest.fn(),
+    };
     const speechSynthesisServiceMock = {
       speak: jest.fn(),
     };

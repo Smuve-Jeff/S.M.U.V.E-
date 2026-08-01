@@ -3,7 +3,9 @@ import { AuthService } from '../services/auth.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { ProjectService } from '../services/project.service';
 import { LocalStorageService } from '../services/local-storage.service';
+import { OfflineSyncService } from '../services/offline-sync.service';
 import { LoggingService } from '../services/logging.service';
+import { APP_SECURITY_CONFIG } from '../app.security';
 
 export interface ProjectMetadata {
   id: string;
@@ -34,6 +36,7 @@ export class ProjectWorkspaceService {
   private readonly musicManager = inject(MusicManagerService);
   private readonly projectService = inject(ProjectService);
   private readonly storage = inject(LocalStorageService);
+  private readonly offlineSync = inject(OfflineSyncService);
   private readonly logger = inject(LoggingService);
 
   /** Current project metadata */
@@ -48,6 +51,10 @@ export class ProjectWorkspaceService {
   isDirty = signal(false);
   /** Number of versions saved */
   versionCount = signal(0);
+  /** Most recent queued cloud operation, if the user is authenticated. */
+  lastQueuedSyncId = signal<string | null>(null);
+  /** True while a local save has been queued for cloud sync. */
+  cloudSyncQueued = signal(false);
 
   /** Available genre templates */
   genres = [
@@ -157,21 +164,23 @@ export class ProjectWorkspaceService {
     }
   }
 
-  private createNewMetadata() {
+  private createNewMetadata(): ProjectMetadata {
+    const now = Date.now();
     const meta: ProjectMetadata = {
-      id: `proj_${Date.now()}`,
+      id: `proj_${now}`,
       name: 'Untitled Project',
       bpm: 120,
       key: 'C',
       genre: 'pop',
       mood: 'energetic',
       tags: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      lastOpenedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
       version: 1,
     };
     this.metadata.set(meta);
+    return meta;
   }
 
   updateMetadata(patch: Partial<ProjectMetadata>) {
@@ -225,10 +234,12 @@ export class ProjectWorkspaceService {
   async autoSave() {
     try {
       const snapshot = this.createSnapshot();
-      await this.storage.saveItem(
-        'autosave',
-        `autosave_${snapshot.metadata.id}`
-      );
+      await this.storage.saveItem('projects', {
+        id: `autosave_${snapshot.metadata.id}`,
+        ...snapshot,
+        savedAt: Date.now(),
+      });
+      await this.queueCloudSync(snapshot);
       this.lastAutoSave.set(Date.now());
       this.isDirty.set(false);
       this.versionCount.update((v) => v + 1);
@@ -246,12 +257,24 @@ export class ProjectWorkspaceService {
   async manualSave(): Promise<ProjectBundle> {
     const bundle = this.createSnapshot();
     try {
-      await this.storage.saveItem('projects', `project_${bundle.metadata.id}`);
-      await this.storage.saveItem('prefs', 'last_saved_project_id');
+      // Persist the complete bundle locally before attempting any network work.
+      await this.storage.saveItem('projects', {
+        id: `project_${bundle.metadata.id}`,
+        ...bundle,
+        savedAt: Date.now(),
+      });
+      await this.storage.saveItem('offline_local_cache', {
+        id: 'last_saved_project_id',
+        payload: bundle.metadata.id,
+        savedAt: Date.now(),
+      });
+      await this.queueCloudSync(bundle);
       this.isDirty.set(false);
       this.versionCount.update((v) => v + 1);
       this.logger.info('ProjectWorkspace: Saved ' + bundle.metadata.name);
     } catch (e) {
+      // A local save should never be reported as lost if optional cloud
+      // persistence is unavailable. The next save can retry the queue.
       this.logger.warn('ProjectWorkspace: Manual save failed', e);
     }
     return bundle;
@@ -276,13 +299,23 @@ export class ProjectWorkspaceService {
   async exportProjectBundle(): Promise<ProjectBundle> {
     const bundle = this.createSnapshot();
     bundle.exportedAt = Date.now();
+    await this.offlineSync.saveLocal(
+      `export_${bundle.metadata.id}_${bundle.exportedAt}`,
+      bundle,
+      30 * 24 * 60 * 60 * 1000
+    );
     return bundle;
   }
 
   async importProjectBundle(bundle: ProjectBundle): Promise<boolean> {
     try {
-      await this.storage.saveItem('projects', `project_${bundle.metadata.id}`);
+      await this.storage.saveItem('projects', {
+        id: `project_${bundle.metadata.id}`,
+        ...bundle,
+        savedAt: Date.now(),
+      });
       this.restoreFromSnapshot(bundle);
+      await this.queueCloudSync(bundle);
       this.logger.info('ProjectWorkspace: Imported ' + bundle.metadata.name);
       return true;
     } catch (e) {
@@ -297,6 +330,11 @@ export class ProjectWorkspaceService {
     if (!meta) return;
 
     const bundle = this.createSnapshot();
+    void this.offlineSync.saveLocal(
+      `export_${bundle.metadata.id}_${bundle.exportedAt}`,
+      bundle,
+      30 * 24 * 60 * 60 * 1000
+    );
     const blob = new Blob([JSON.stringify(bundle, null, 2)], {
       type: 'application/json',
     });
@@ -308,23 +346,32 @@ export class ProjectWorkspaceService {
     URL.revokeObjectURL(url);
   }
 
+  private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
+    const userId = this.auth.currentUser()?.id;
+    if (!userId) {
+      this.cloudSyncQueued.set(false);
+      return;
+    }
+
+    const syncId = await this.offlineSync.queueOperation(
+      'CREATE',
+      `${APP_SECURITY_CONFIG.api_url}/projects`,
+      {
+        projectId: bundle.metadata.id,
+        userId,
+        title: bundle.metadata.name,
+        projectData: bundle,
+      },
+      { userId }
+    );
+    this.lastQueuedSyncId.set(syncId);
+    this.cloudSyncQueued.set(true);
+  }
+
   // ── Snapshot ───────────────────────────────────────────
 
   createSnapshot(): ProjectBundle {
-    const meta = this.metadata() ||
-      this.createNewMetadata() || {
-        id: `proj_${Date.now()}`,
-        name: 'Untitled',
-        bpm: 120,
-        key: 'C',
-        genre: 'pop',
-        mood: 'energetic',
-        tags: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        lastOpenedAt: Date.now(),
-        version: 1,
-      };
+    const meta = this.metadata() ?? this.createNewMetadata();
 
     return {
       metadata: meta,
@@ -345,7 +392,7 @@ export class ProjectWorkspaceService {
       this.isDirty.set(false);
     }
     if (bundle.metadata?.bpm) {
-      this.musicManager.engine.tempo.set(bundle.metadata.bpm);
+      this.musicManager.engine?.tempo?.set?.(bundle.metadata.bpm);
     }
     this.logger.info('ProjectWorkspace: Restored project ' + (bundle.metadata?.name ?? 'Untitled'));
   }

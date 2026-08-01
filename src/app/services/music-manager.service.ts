@@ -178,6 +178,24 @@ export class MusicManagerService {
     this.crossLinkRequest.set(null);
   }
 
+  /**
+   * Sprint A4 — reactive bridge from the arrangement's `structure` (the
+   * SongSection list edited in arrangement-view) to the audio engine's
+   * `songLengthSteps` signal. Recomputes on every structure change and
+   * pushes the larger of structure total / activeLoopBars so the song-stop
+   * boundary always follows the arrangement instead of staying on the
+   * default 64-step seed. Result is clamped to a minimum of 16 (1 bar) so
+   * pattern-mode fallback below never produces a 0-length song.
+   */
+  private structureSongLengthEffect = effect(() => {
+    const sections = this.structure() ?? [];
+    const fromStructure = sections.reduce(
+      (sum, s) => sum + Math.max(0, s?.length ?? 0),
+      0
+    );
+    const bars = Math.max(4, fromStructure, this.activeLoopBars());
+    this.engine.setSongLengthSteps(bars * 16);
+  });
   activeLoopBars = signal(64);
   structure = signal<SongSection[]>([
     { id: 'intro', name: 'Intro', start: 0, length: 4 },

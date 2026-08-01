@@ -66,6 +66,7 @@ import { SamplerComponent } from './sampler/sampler.component';
 import { PerformanceModeComponent, PerformancePad } from './performance-mode/performance-mode.component';
 import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.component';
 import { BezierEditorComponent } from './automation/bezier-editor.component';
+import { ScoreViewComponent } from './score-view/score-view.component';
 
 type StudioView =
   | 'arrangement'
@@ -85,7 +86,8 @@ type StudioView =
   | 'sound-pad'
   | 'synthesizer'
   | 'chord-editor'
-  | 'sampler';
+  | 'sampler'
+  | 'score';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
@@ -107,6 +109,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'synthesizer',
   'chord-editor',
   'sampler',
+  'score',
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
@@ -159,6 +162,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     PerformanceModeComponent,
     VocalCompViewComponent,
     BezierEditorComponent,
+    ScoreViewComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.css'],
@@ -433,6 +437,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },
     { id: 'chord-editor', label: 'Chords', icon: 'music_note' },
     { id: 'sampler', label: 'Sampler', icon: 'library_music' },
+    { id: 'score', label: 'Score', icon: 'music_note' },
     { id: 'sample-library', label: 'Sample Library', icon: 'library_music' },
     { id: 'audio-recorder', label: 'Recorder', icon: 'mic_external_on' },
     {

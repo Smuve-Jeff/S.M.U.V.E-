@@ -125,6 +125,35 @@
     </button>
   </div>
 
+  <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->
+  <div
+    class="ctb-group ctb-playmode"
+    role="group"
+    aria-label="Playback mode"
+  >
+    <span
+      class="ctb-mode-pill"
+      [class.ctb-mode-song]="audioEngine.playMode() === 'song'"
+      [class.ctb-mode-pattern]="audioEngine.playMode() === 'pattern'"
+      [attr.aria-label]="
+        'Playback mode is ' +
+        (audioEngine.playMode() === 'song' ? 'Song' : 'Pattern')
+      "
+      [title]="
+        audioEngine.playMode() === 'song'
+          ? 'Song mode · playback stops at the arrangement end'
+          : 'Pattern mode · loops forever'
+      "
+    >
+      <span class="material-symbols-outlined">
+        {{
+          audioEngine.playMode() === 'song' ? 'music_note' : 'repeat'
+        }}
+      </span>
+      {{ audioEngine.playMode() === 'song' ? 'SONG' : 'PATTERN' }}
+    </span>
+  </div>
+
   <!-- Pro: Count-in picker -->
   <div
     class="ctb-group ctb-countin"

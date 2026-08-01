@@ -13,7 +13,7 @@ export interface CacheMetadata {
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 3;
+  private dbVersion = 4;
   private db: IDBDatabase | null = null;
   private dbUnsupported = false;
   private dbReady: Promise<void>;
@@ -66,6 +66,9 @@ export class LocalStorageService {
       }
       if (!db.objectStoreNames.contains('offline_assets')) {
         db.createObjectStore('offline_assets', { keyPath: 'url' });
+      }
+      if (!db.objectStoreNames.contains('offline_local_cache')) {
+        db.createObjectStore('offline_local_cache', { keyPath: 'id' });
       }
     };
 
@@ -300,7 +303,12 @@ export class LocalStorageService {
   async clearAllCache(): Promise<void> {
     if (!this.db) return;
 
-    const storeNames = ['audio_cache', 'offline_assets', 'cache_metadata'];
+    const storeNames = [
+      'audio_cache',
+      'offline_assets',
+      'offline_local_cache',
+      'cache_metadata',
+    ];
 
     for (const storeName of storeNames) {
       try {

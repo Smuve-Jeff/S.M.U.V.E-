@@ -14,6 +14,13 @@ import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
 
 export type DeckId = 'A' | 'B';
 
+/**
+ * Sprint A4 — Playback toggle for the arrangement-level transport.
+ * `pattern` keeps the original loop-forever behaviour at `loopLengthSteps`.
+ * `song` stops at `songLengthSteps` and raises `songEnded`.
+ */
+export type PlayMode = 'pattern' | 'song';
+
 interface DeckChannel {
   id: DeckId;
   buffer: AudioBuffer | null;
@@ -191,6 +198,20 @@ export class AudioEngineService {
   public metronomeVolume = signal(0.5);
 
   public loopLengthSteps = signal(64);
+  /**
+   * Sprint A4 — total song length in steps. Defaults to 64 (= 4 bars),
+   * MusicManagerService listens to `structure()` and pushes the real
+   * length here so the song-stop boundary follows the arrangement.
+   */
+  public songLengthSteps = signal(64);
+  /** Current playback mode (toggleable from arrangement view / transport bar). */
+  public playMode = signal<PlayMode>('song');
+  /** Rising-edge event: fires once when song mode reaches its end. */
+  public songEnded = signal<boolean>(false);
+  /** Convenience: the steps the scheduler should actually loop over. */
+  public readonly effectiveLoopLength = computed<number>(() =>
+    this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps()
+  );
   public currentBeat = signal(0);
   public visualStep = signal(0);
   private nextNoteTime = 0;
@@ -203,6 +224,8 @@ export class AudioEngineService {
     duration: number
   ) => void;
   public onCountInComplete?: () => void;
+  /** Sprint A4 — fire-once callback when song-mode playback reaches the end. */
+  public onSongEnded?: () => void;
 
   private sidechainMatrix = new Map<string, Set<string>>();
   private sidechainWorklets = new Map<string, AudioWorkletNode>();
@@ -463,6 +486,8 @@ export class AudioEngineService {
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
     this.sendMidiStart();
+    // Sprint A4 — fresh start resets the song-ended latching signal.
+    this.songEnded.set(false);
     this.nextNoteTime = this.ctx.currentTime + 0.05;
 
     if (this.workletNode) {
@@ -550,6 +575,11 @@ export class AudioEngineService {
   }
 
   private handleTick(step: number, time: number, stepDuration: number) {
+    // Sprint A4 — guard against re-entrant ticks after the song has ended.
+    // The worklet may emit one or two trailing TICKs after STOP is queued;
+    // we drop them so they cannot re-schedule audio past the boundary.
+    if (this.songEnded()) return;
+
     if (this.isCountIn()) {
       if (step % this.stepsPerBeat() === 0) {
         this.playMetronomeClick(time, step === 0, true);
@@ -566,7 +596,28 @@ export class AudioEngineService {
       return;
     }
 
-    const loopedStep = step % this.loopLengthSteps();
+    // Sprint A4 — song-mode end detector. Stops transport the moment the
+    // monotonically incrementing step meets or exceeds the arrangement
+    // length. displayStep is the in-range step we hand to downstream
+    // consumers (no modulo in song mode so clip gating sees the right index).
+    let displayStep: number;
+    if (this.playMode() === 'song') {
+      const length = Math.max(1, this.songLengthSteps());
+      if (step >= length) {
+        this.songEnded.set(true);
+        // stop() is synchronous w.r.t. UI flags; queued visual setTimeouts
+        // for prior ticks will still run but they are no-ops because
+        // songEnded() short-circuits at the top of this function.
+        this.stop();
+        this.onSongEnded?.();
+        return;
+      }
+      displayStep = step;
+    } else {
+      displayStep = step % this.loopLengthSteps();
+    }
+
+    const loopedStep = displayStep;
 
     this.onScheduleStep?.(loopedStep, time, stepDuration);
 
@@ -596,7 +647,16 @@ export class AudioEngineService {
       this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       this.nextNoteTime += stepDuration;
       if (!this.isCountIn()) {
-        this.currentStep = (this.currentStep + 1) % this.loopLengthSteps();
+        // Sprint A4: in song mode the counter goes straight — handleTick
+        // detects the boundary and calls stop() (which clears the
+        // schedulerHandle on its next tick). In pattern mode we wrap to
+        // the existing loopLengthSteps to preserve the original behaviour.
+        if (this.playMode() === 'song') {
+          this.currentStep++;
+        } else {
+          this.currentStep =
+            (this.currentStep + 1) % this.loopLengthSteps();
+        }
       } else {
         this.currentStep++;
       }
@@ -1062,6 +1122,40 @@ export class AudioEngineService {
 
   setMasterOutputLevel(val: number) {
     this.masterGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
+  }
+
+  // ============================================================
+  //  Sprint A4 — Song-Mode API
+  // ============================================================
+
+  /**
+   * Toggle Pattern ↔ Song playback. Validation rejects any string other
+   * than the literals. While playing, switching modes resets the playhead
+   * so a song→pattern flip doesn't leave the counter past the new
+   * loopLengthSteps boundary (and vice-versa).
+   */
+  setPlayMode(mode: PlayMode): void {
+    if (mode !== 'pattern' && mode !== 'song') return;
+    if (this.playMode() === mode) return;
+    this.playMode.set(mode);
+    if (this.isPlaying()) {
+      this.currentStep = 0;
+      this.visualStep.set(0);
+      this.currentBeat.set(0);
+      // Tell the worklet to restart its step counter from 0 so the
+      // next TICK aligns with our Angular-side state.
+      this.workletNode?.port.postMessage({ type: 'RESET_STEP' });
+    }
+  }
+
+  /**
+   * Update the song-mode total length. Safe to call while playing —
+   * the next handleTick will observe the new value inside the playMode
+   * branch and clamp at the new boundary.
+   */
+  setSongLengthSteps(steps: number): void {
+    const safe = Math.max(1, Math.floor(steps));
+    this.songLengthSteps.set(safe);
   }
   toggleMetronome() {
     this.metronomeEnabled.update((v) => !v);
