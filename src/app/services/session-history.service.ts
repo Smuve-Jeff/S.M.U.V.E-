@@ -23,6 +23,8 @@ import {
   RebasePlan,
   ResolveRequest,
 } from '../types/merge.types';
+import { SessionGraph } from '../types/session-graph.types';
+import { layoutSessionGraph } from '../utils/session-graph.util';
 import { canonicalize, djb2Hash } from '../utils/djb2-hash.util';
 import {
   applyPatches,
@@ -63,6 +65,12 @@ export class SessionHistoryService {
    * user resolves every marker (or auto-merges with no conflicts).
    */
   pendingMergeByProject = signal<Record<string, MergeResult | null>>({});
+  /**
+   * Sprint D4 — Auto-record on project save. When true, ProjectService
+   * calls autoRecord() on every save; dedup (same canonical payload)
+   * swallows no-op saves automatically.
+   */
+  autoRecordEnabled = signal<boolean>(true);
 
   // Computed summaries driven by the active branch.
   branchCount = computed(() => {
@@ -864,6 +872,39 @@ export class SessionHistoryService {
       newCheckpointId: cp.id,
       conflicts: [],
     };
+  }
+
+  // ─── Sprint D4 — auto-record + graph ──────────────────────────────
+
+  toggleAutoRecord(): void {
+    this.autoRecordEnabled.update((v) => !v);
+  }
+
+  /**
+   * Auto-record a project save as a checkpoint on the active branch.
+   * Honors the autoRecordEnabled toggle and relies on checkpoint()'s
+   * canonical-hash dedup so identical saves collapse to no-op.
+   */
+  async autoRecord(
+    projectId: string,
+    label: string,
+    payload: Record<string, unknown>
+  ): Promise<SessionCheckpoint | null> {
+    if (!this.autoRecordEnabled()) return null;
+    return this.checkpoint(projectId, label, payload);
+  }
+
+  /**
+   * Build a SessionGraph for a project — pure wrapper over the layout
+   * util so the component only talks to the service.
+   */
+  buildGraph(projectId: string): SessionGraph {
+    const branches = this.branches(projectId);
+    const byBranch: Record<string, SessionCheckpoint[]> = {};
+    for (const b of branches) {
+      byBranch[b.id] = this.checkpoints(projectId, b.id);
+    }
+    return layoutSessionGraph(projectId, branches, byBranch);
   }
 
   // ─── D3 Internals ──────────────────────────────────────────────────

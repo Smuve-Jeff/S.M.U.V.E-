@@ -1,9 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, Injector, inject, signal } from '@angular/core';
 import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LocalStorageService } from './local-storage.service';
 import { LoggingService } from './logging.service';
 import { Project } from '../types';
+import { SessionHistoryService } from './session-history.service';
 
 @Injectable({
   providedIn: 'root',
@@ -11,12 +12,23 @@ import { Project } from '../types';
 export class ProjectService {
   private storage = inject(LocalStorageService);
   private logger = inject(LoggingService);
+  private injector = inject(Injector);
 
   private _list = new BehaviorSubject<Project[]>([]);
   private _currentId = new BehaviorSubject<string | undefined>(undefined);
   private _current = new BehaviorSubject<Project | undefined>(undefined);
 
   currentProject = signal<Project | null>(null);
+
+  /**
+   * Sprint D4 — lazy session-history accessor. SessionHistoryService is
+   * providedIn root and depends on CloudSyncService; we resolve it lazily
+   * through the Injector to keep the module graph acyclic even if
+   * SessionHistoryService ever grows a ProjectService dependency.
+   */
+  private get sessionHistory(): SessionHistoryService {
+    return this.injector.get(SessionHistoryService);
+  }
 
   constructor() {
     this.loadProjects();
@@ -60,6 +72,7 @@ export class ProjectService {
     const updatedList = [...this._list.getValue(), project];
     this._list.next(updatedList);
     await this.saveAll(updatedList);
+    await this.autoRecordCheckpoint(project);
   }
 
   public async update(project: Project) {
@@ -77,11 +90,30 @@ export class ProjectService {
       ];
       this._list.next(updatedList);
       await this.saveAll(updatedList);
+      await this.autoRecordCheckpoint(updated);
     }
   }
 
   public select(id: string) {
     this._currentId.next(id);
+  }
+
+  /**
+   * Sprint D4 — fire-and-forget auto-record of a project save into
+   * the session graph. Canonical-hash dedup in SessionHistoryService
+   * swallows no-op saves (identical payloads) automatically, so the
+   * graph only grows when the project actually changed.
+   */
+  private async autoRecordCheckpoint(project: Project): Promise<void> {
+    try {
+      await this.sessionHistory.autoRecord(
+        project.id,
+        `save: ${project.name || 'project'}`,
+        { ...(project as unknown as Record<string, unknown>) }
+      );
+    } catch (err) {
+      this.logger.warn('ProjectService: auto-record checkpoint failed', err);
+    }
   }
 
   private async saveAll(projects: Project[]) {

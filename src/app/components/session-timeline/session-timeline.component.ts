@@ -16,6 +16,18 @@ import {
   ConflictResolution,
   MergeResult,
 } from '../../types/merge.types';
+import {
+  GraphEdge,
+  GraphNode,
+  SessionGraph,
+} from '../../types/session-graph.types';
+import {
+  graphDimensions,
+  GRAPH_LANE_W,
+  GRAPH_PAD_X,
+  GRAPH_PAD_Y,
+  GRAPH_ROW_H,
+} from '../../utils/session-graph.util';
 
 @Component({
   selector: 'app-session-timeline',
@@ -97,6 +109,103 @@ export class SessionTimelineComponent {
    */
   readonly pendingMerge = computed<MergeResult | null>(() =>
     this.history.pendingMergeByProject()[this.projectId()] ?? null
+  );
+
+  // ─── Sprint D4 — merge graph visualization ────────────────────────
+  readonly graph = computed<SessionGraph>(() =>
+    this.history.buildGraph(this.projectId())
+  );
+  readonly graphDims = computed(() => graphDimensions(this.graph()));
+  readonly graphByCpId = computed(() => {
+    const m: Record<string, GraphNode> = {};
+    for (const n of this.graph().nodes) m[n.checkpointId] = n;
+    return m;
+  });
+  readonly graphPos = (node: GraphNode) => ({
+    x: this.graphDims().nodeX(node),
+    y: this.graphDims().nodeY(node),
+  });
+
+  graphEdgePath(edge: GraphEdge): string {
+    const byId = this.graphByCpId();
+    const from = byId[edge.fromId];
+    const to = byId[edge.toId];
+    if (!from || !to) return '';
+    const dims = this.graphDims();
+    const x1 = dims.nodeX(from);
+    const y1 = dims.nodeY(from);
+    const x2 = dims.nodeX(to);
+    const y2 = dims.nodeY(to);
+    const midY = (y1 + y2) / 2;
+    if (edge.kind === 'linear') {
+      return `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+    // fork / merge / cherry sweep across lanes with an S-curve.
+    return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  edgeLabelPos(edge: GraphEdge): { x: number; y: number } {
+    const byId = this.graphByCpId();
+    const from = byId[edge.fromId];
+    const to = byId[edge.toId];
+    if (!from || !to) return { x: 0, y: 0 };
+    const dims = this.graphDims();
+    return {
+      x: (dims.nodeX(from) + dims.nodeX(to)) / 2,
+      y: (dims.nodeY(from) + dims.nodeY(to)) / 2 - 6,
+    };
+  }
+
+  edgeKindLabel(kind: GraphEdge['kind']): string {
+    switch (kind) {
+      case 'fork':
+        return 'fork';
+      case 'merge':
+        return 'merge';
+      case 'cherry':
+        return 'cherry';
+      default:
+        return '';
+    }
+  }
+
+  graphSvgViewBox(): string {
+    const d = this.graphDims();
+    return `0 0 ${d.width} ${d.height}`;
+  }
+
+  laneHeaderX(branchId: string): number {
+    const lane = this.graph().lanes[branchId] ?? 0;
+    return GRAPH_PAD_X + lane * GRAPH_LANE_W + GRAPH_LANE_W / 2;
+  }
+
+  graphNodeTitle(node: GraphNode): string {
+    return `${node.label} · ${node.branchName} · ${node.isFullSnapshot ? 'snapshot' : 'delta'}${node.isMergeNode ? ' · merge' : ''}`;
+  }
+
+  graphNodeAria(node: GraphNode): string {
+    return `Rewind to checkpoint ${node.label} on branch ${node.branchName}`;
+  }
+
+  graphNodeRadius(node: GraphNode): number {
+    if (node.isMergeNode) return 11;
+    return node.isFullSnapshot ? 7 : 5;
+  }
+
+  get graphPadY(): number {
+    return GRAPH_PAD_Y;
+  }
+  get graphRowH(): number {
+    return GRAPH_ROW_H;
+  }
+  get graphPadX(): number {
+    return GRAPH_PAD_X;
+  }
+
+  readonly graphLaneKeys = computed<string[]>(() =>
+    this.graph().nodes
+      .map((n) => n.branchId)
+      .filter((v, i, a) => a.indexOf(v) === i)
   );
 
   constructor() {
@@ -200,6 +309,9 @@ export class SessionTimelineComponent {
 
   trackById = (_: number, item: { id: string }): string => item.id;
   trackByCheckpoint = (_: number, item: SessionCheckpoint): string => item.id;
+  trackEdge = (_: number, item: GraphEdge): string =>
+    item.fromId + '→' + item.toId + ':' + item.kind;
+  trackGraphNode = (_: number, item: GraphNode): string => item.checkpointId;
 
   // ─── Sprint D3 — Merge / Rebase / Cherry-pick actions ─────────────
 

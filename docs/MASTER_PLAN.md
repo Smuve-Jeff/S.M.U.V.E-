@@ -278,6 +278,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | D1 | Cloud Sync / Cross-device project sync | BandLab, n-Track | ✅ |
 | D2 | Session replay + project version history | Cubasis (sessions), FL Mobile (alt take history) | ✅ |
 | D3 | Branching & merge (3-way merge + rebase + cherry-pick) | Git CLI metaphor (all DAWs) | ✅ |
+| D4 | Merge graph visualization + auto-record on save | All (graph viz is a DAW first) | ✅ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
@@ -344,6 +345,72 @@ framework; this is our Apple-GarageBand-killer angle).
   diff list (first→last), cloud-vault restore rows that call back into
   `CloudSyncService.cloudProjects()`. Hub gained a 1×1
   `Session Timeline` bento card with project-tracked count.*
+- **D3 — Branching & merge (3-way merge + conflict markers + rebase +
+  cherry-pick)**: round out the git-CLI metaphor so the user can
+  fork, fork again, resolve competing edits, replay history onto a
+  different branch, and pluck single commits across branches.
+  ✅ *SHIPPED. `merge.types.ts` contract (MergeRequest, MergeResult,
+  ConflictMarker with `{field, base, mine, theirs}`, ConflictResolution
+  with `pick: 'mine'|'theirs'|'custom'`, RebasePlan, CherryPickRequest,
+  CherryPickResult, MERGE_SENTINEL constant, MergeCheckpointPayload
+  shape). `SessionHistoryService` extensions: `findAncestor` walks
+  back from both branches' parentId chains to find the LCA, with a
+  fallback that searches either branch's CPS for the fork anchor;
+  `threeWayMerge(projectId, source, target)` materializes base, mine,
+  theirs; auto-resolves a field when only one side changed or both
+  changed identically; emits a ConflictMarker when both sides changed
+  the same field differently. Result is a forced full-snapshot
+  checkpoint on target with `__merge__:true` sentinel + `auto` map +
+  `conflicts` map + base / mine / theirs checkpoint ids.
+  `resolveConflicts(projectId, mergeCheckpointId, resolutions)`
+  rebuilds the merged payload from the resolutions and writes a final
+  non-merge checkpoint on target; clears `pendingMergeByProject`.
+  `rebase(projectId, source, onto)` replays every source checkpoint
+  AFTER the LCA as a new cp on the target branch with new ids + same
+  labels. `cherryPick(projectId, source, sourceCheckpointId, onto)`
+  materializes sourceBefore from the fork-anchor state when no source
+  parent exists, applies the field delta non-conflictingly, and emits
+  a merge-cp if any field diverges. `readConflicts` returns open
+  markers from a pending merge cp. Private `appendFullSnapshot`
+  helper bypasses the every-10th promotion rule so merge payloads
+  round-trip intact. 9 jest specs cover LCA on forked + disjoint
+  graphs, clean + conflict three-way merges, the full resolve
+  round-trip, rebase replay count, cherryPick clean + conflict, and
+  readConflicts. UI: `SessionTimelineComponent` gained a
+  "Branch operations" card with Source/Target `<select>` pickers for
+  3-way merge, rebase, and cherry-pick; a conflict-resolution modal
+  appears automatically when `pendingMerge()` is non-null, with
+  per-field Mine / Theirs / Custom radio pickers + JSON custom-value
+  input + "Resolve & commit" CTA.*
+- **D4 — Merge graph visualization + auto-record on save**: render the
+  per-project branch lineage as a git-log-style SVG graph and make
+  every project save a checkpoint without lifting a finger.
+  ✅ *SHIPPED. `session-graph.types.ts` (GraphNode, GraphEdge,
+  GraphEdgeKind, SessionGraph). `session-graph.util.ts` — pure,
+  deterministic `layoutSessionGraph(projectId, branches,
+  checkpointsByBranch)` that assigns one lane per branch (creation
+  order), one row per checkpoint (global chronological order),
+  linear edges chaining consecutive cps within a branch, fork edges
+  from the forkFromCheckpointId ancestor to the first cp of each
+  derived branch, merge edges from the merge provenance heads (mine
+  = target head, theirs = source head) into any MERGE_SENTINEL
+  checkpoint, and cherry edges into cherry-pick conflict checkpoints;
+  plus `graphDimensions()` for SVG viewBox math and `isMergePayload`.
+  7 jest specs cover lane assignment, cross-branch chronological row
+  ordering, linear chaining, fork edges, merge edges + merge-node
+  flag, cherry edge kind, cp-id dedup across branches, and viewBox
+  scaling. `SessionHistoryService` gained `autoRecordEnabled` signal
+  + `toggleAutoRecord()` + `autoRecord(projectId, label, payload)`
+  (honors toggle, canonical-hash dedup swallows no-op saves) +
+  `buildGraph(projectId)` wrapper. `ProjectService` now auto-records
+  a checkpoint on every add/update via a lazy Injector getter, so a
+  project save becomes a graph node with a `save: <name>` label and
+  the graph only grows when the project actually changed. UI:
+  `SessionTimelineComponent` gained a full-width Merge graph SVG card
+  (lane headers, linear/fork/merge/cherry stroke + dash styles,
+  legend, full-snapshot vs delta vs merge node glyphs, click + Enter
+  + Space to rewind from any node). New master-plan rows: D3 ✅ +
+  D4 ✅.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

@@ -224,6 +224,94 @@
       </div>
     </article>
 
+    <!-- SPRINT D4 — MERGE GRAPH VIZ -->
+    <article class="sh-card sh-graph" aria-labelledby="sh-graph-title">
+      <header class="sh-card-head">
+        <h2 id="sh-graph-title">Merge graph</h2>
+        <span class="sh-pill">
+          {{ graph().nodes.length }} nodes · {{ graph().edges.length }} edges
+        </span>
+      </header>
+      <p class="sh-empty" *ngIf="graph().nodes.length === 0">
+        No checkpoints yet — record one to draw the graph.
+      </p>
+      <div class="sh-graph-legend" aria-hidden="true">
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot is-snapshot"></span> snapshot
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot"></span> delta
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot is-merge"></span> merge
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-fork"></span> fork
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-merge"></span> merge
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-cherry"></span> cherry
+        </span>
+      </div>
+      <svg
+        class="sh-graph-svg"
+        [attr.viewBox]="graphSvgViewBox()"
+        role="img"
+        [attr.aria-label]="'Merge graph with ' + graph().nodes.length + ' checkpoints'"
+      >
+        <!-- lane headers -->
+        <g class="sh-graph-lanes" aria-hidden="true">
+          <text
+            *ngFor="let branchId of graphLaneKeys()"
+            [attr.x]="laneHeaderX(branchId)"
+            [attr.y]="graphPadY - 8"
+            class="sh-graph-lane-label"
+            text-anchor="middle"
+          >{{ graph().branchNames[branchId] }}</text>
+        </g>
+        <!-- edges -->
+        <g class="sh-graph-edges" aria-hidden="true">
+          <path
+            *ngFor="let edge of graph().edges; trackBy: trackEdge"
+            [attr.d]="graphEdgePath(edge)"
+            [class.is-linear]="edge.kind === 'linear'"
+            [class.is-fork]="edge.kind === 'fork'"
+            [class.is-merge]="edge.kind === 'merge'"
+            [class.is-cherry]="edge.kind === 'cherry'"
+            class="sh-graph-edge"
+          />
+          <text
+            *ngFor="let edge of graph().edges; trackBy: trackEdge"
+            [attr.x]="edgeLabelPos(edge).x"
+            [attr.y]="edgeLabelPos(edge).y"
+            class="sh-graph-edge-label"
+            text-anchor="middle"
+          >{{ edgeKindLabel(edge.kind) }}</text>
+        </g>
+        <!-- nodes -->
+        <g class="sh-graph-nodes">
+          <circle
+            *ngFor="let node of graph().nodes; trackBy: trackGraphNode"
+            [attr.cx]="graphPos(node).x"
+            [attr.cy]="graphPos(node).y"
+            [attr.r]="graphNodeRadius(node)"
+            [class.is-snapshot]="node.isFullSnapshot && !node.isMergeNode"
+            [class.is-merge]="node.isMergeNode"
+            class="sh-graph-node"
+            role="button"
+            tabindex="0"
+            [attr.title]="graphNodeTitle(node)"
+            [attr.aria-label]="graphNodeAria(node)"
+            (click)="rewind(node.checkpointId)"
+            (keydown.enter)="rewind(node.checkpointId)"
+            (keydown.space)="rewind(node.checkpointId)"
+          />
+        </g>
+      </svg>
+    </article>
+
     <!-- SPRINT D3 — MERGE / REBASE / CHERRY-PICK -->
     <article class="sh-card sh-merge" aria-labelledby="sh-merge-title">
       <header class="sh-card-head">
