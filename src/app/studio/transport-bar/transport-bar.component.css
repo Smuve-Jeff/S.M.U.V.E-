@@ -445,6 +445,22 @@
   padding: 0 4px;
 }
 
+.ctb-dropdown-share {
+  border-top: 1px dashed var(--ivory-line);
+  border-radius: 0 0 10px 10px;
+  color: var(--teal-500);
+}
+
+.ctb-dropdown-share:hover {
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-500);
+}
+
+.ctb-dropdown-share[disabled] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* ================================================
    AUDIO OUTPUT DEVICE PICKER
    ================================================ */

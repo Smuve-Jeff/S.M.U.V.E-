@@ -962,6 +962,81 @@ export class AudioEngineService {
     }
   }
 
+  /**
+   * Offline voice graph — Sprint A6.5: the exact same synth voice used live
+   * (antialiased oscillator + filter + panner + ADSR VCA + glide), scheduled
+   * onto an arbitrary BaseAudioContext so offline renders sound like live
+   * playback instead of plain oscillators.
+   */
+  scheduleOfflineNote(
+    ctx: BaseAudioContext,
+    destination: AudioNode,
+    freq: number,
+    time: number,
+    velocity: number,
+    duration: number,
+    params: any,
+    pan: number
+  ): void {
+    const osc = this.createAntialiasedOscillator(
+      ctx as AudioContext,
+      params.type || 'sine',
+      freq,
+      time
+    );
+
+    // Filter stage (lowpass by default, cutoff/Q from the synth params)
+    const filter = ctx.createBiquadFilter();
+    filter.type = (params.filterType as BiquadFilterType) || 'lowpass';
+    filter.frequency.setValueAtTime(params.cutoff || 8000, time);
+    filter.Q.setValueAtTime(params.q || 1, time);
+
+    const panner = ctx.createStereoPanner();
+    const vca = ctx.createGain();
+    panner.pan.setValueAtTime(pan, time);
+
+    // ADSR envelope from the synth params (matches the live triggerAttack path)
+    const peak = Math.min(1, Math.max(0.02, velocity * 0.9));
+    const attack = params.attack || 0.01;
+    const decay = params.decay || 0.1;
+    const sustain = params.sustain ?? 0.7;
+    const release = params.release || 0.2;
+
+    vca.gain.setValueAtTime(0.0001, time);
+    vca.gain.exponentialRampToValueAtTime(peak, time + attack);
+    vca.gain.setValueAtTime(peak, time + attack + decay);
+    vca.gain.exponentialRampToValueAtTime(
+      Math.max(0.0001, peak * sustain),
+      time + attack + decay
+    );
+    vca.gain.setValueAtTime(
+      Math.max(0.0001, peak * sustain),
+      time + Math.max(attack + decay, duration - release)
+    );
+    vca.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+    osc.connect(filter);
+    filter.connect(panner);
+    panner.connect(vca);
+    vca.connect(destination);
+
+    // Slide/glide support — same behavior as live triggerAttack
+    if (
+      typeof params?.glideTo === 'number' &&
+      isFinite(params.glideTo) &&
+      params.glideTo > 0
+    ) {
+      osc.frequency.setValueAtTime(freq, time);
+      osc.frequency.exponentialRampToValueAtTime(
+        params.glideTo,
+        time + Math.max(0.02, duration)
+      );
+    }
+
+    osc.start(time);
+    osc.stop(time + duration + release + 0.1);
+  }
+
   /** Toggle antialiased oscillator mode */
   toggleAntialias(enabled: boolean) {
     this.antialiasEnabled.set(enabled);

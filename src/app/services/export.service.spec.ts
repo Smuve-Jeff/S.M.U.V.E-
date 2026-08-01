@@ -126,4 +126,50 @@ describe('ExportService (Sprint A6)', () => {
     const view = new Uint8Array(buf);
     expect(String.fromCharCode(view[0], view[1], view[2], view[3])).toBe('RIFF');
   });
+
+  describe('share sheet (Sprint A6.5)', () => {
+    it('shareBlob falls back to download + clipboard when no Web Share API', async () => {
+      // jsdom has no navigator.share → must fall back to a plain download.
+      const downloadSpy = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+      const used = await svc.shareBlob(new Blob(['x'], { type: 'audio/wav' }), 'song.wav');
+      expect(used).toBe(false);
+      expect(downloadSpy).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringContaining('.wav')
+      );
+      downloadSpy.mockRestore();
+    });
+
+    it('shareBlob uses the native share sheet when available', async () => {
+      const shareFn = jest.fn().mockResolvedValue(undefined);
+      const canShare = jest.fn(() => true);
+      (navigator as any).share = shareFn;
+      (navigator as any).canShare = canShare;
+      const downloadSpy = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+
+      const used = await svc.shareBlob(new Blob(['x'], { type: 'audio/wav' }), 'song.wav');
+      expect(used).toBe(true);
+      expect(shareFn).toHaveBeenCalledWith(
+        expect.objectContaining({ files: expect.any(Array) })
+      );
+      expect(downloadSpy).not.toHaveBeenCalled();
+
+      downloadSpy.mockRestore();
+      delete (navigator as any).share;
+      delete (navigator as any).canShare;
+    });
+
+    it('shareMidi shares a real Standard MIDI File blob', async () => {
+      const shareSpy = jest
+        .spyOn(svc, 'shareBlob')
+        .mockImplementation(() => Promise.resolve(true));
+      const used = await svc.shareMidi();
+      expect(used).toBe(true);
+      expect(shareSpy).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringContaining('.mid')
+      );
+      shareSpy.mockRestore();
+    });
+  });
 });

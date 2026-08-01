@@ -1,0 +1,87 @@
+<section class="plugin-store" aria-label="WASM plugin store">
+  <header class="ps-header">
+    <div class="ps-header-icon">
+      <span class="material-symbols-outlined">extension</span>
+    </div>
+    <div class="ps-header-copy">
+      <h1 class="ps-title">WASM Plugin Store</h1>
+      <p class="ps-sub">
+        Sandboxed DSP plugins — WebAssembly kernels when supported, automatic
+        JS fallback everywhere else. Toggle them on and they join the
+        S.M.U.V.E Polish chain on export.
+      </p>
+      <div class="ps-runtime">
+        <span
+          class="ps-runtime-badge"
+          [class.ps-runtime-wasm]="wasmSupported()"
+          [class.ps-runtime-js]="!wasmSupported()"
+        >
+          <span class="material-symbols-outlined">{{
+            wasmSupported() ? 'memory' : 'code'
+          }}</span>
+          {{ wasmSupported() ? 'WebAssembly ready' : 'JS fallback kernels' }}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div class="ps-grid">
+    <article
+      *ngFor="let plugin of catalog"
+      class="ps-card"
+      [class.ps-card-enabled]="isEnabled(plugin.id)"
+    >
+      <div class="ps-card-top">
+        <div class="ps-card-icon">
+          <span class="material-symbols-outlined">{{ plugin.icon }}</span>
+        </div>
+        <span class="ps-category">{{ plugin.category }}</span>
+        <span class="ps-version">v{{ plugin.version }}</span>
+      </div>
+
+      <h2 class="ps-card-name">{{ plugin.name }}</h2>
+      <p class="ps-card-desc">{{ plugin.description }}</p>
+
+      <div class="ps-kernel-line">
+        <span class="material-symbols-outlined">bolt</span>
+        kernel: <code>{{ plugin.kernelName }}</code>
+        <span class="ps-author">by {{ plugin.author }}</span>
+      </div>
+
+      <div class="ps-params">
+        <label
+          *ngFor="let param of plugin.params"
+          class="ps-param"
+        >
+          <span class="ps-param-label">
+            {{ param.label }}
+            <b>{{ valuesFor(plugin.id)[param.id] ?? param.default }}{{
+              param.unit ? ' ' + param.unit : ''
+            }}</b>
+          </span>
+          <input
+            type="range"
+            [min]="param.min"
+            [max]="param.max"
+            [step]="param.step"
+            [value]="valuesFor(plugin.id)[param.id] ?? param.default"
+            (input)="onParamChange(plugin.id, param.id, $event)"
+          />
+        </label>
+      </div>
+
+      <button
+        type="button"
+        class="ps-toggle"
+        [class.ps-toggle-on]="isEnabled(plugin.id)"
+        (click)="toggle(plugin)"
+        [attr.aria-pressed]="isEnabled(plugin.id)"
+      >
+        <span class="material-symbols-outlined">{{
+          isEnabled(plugin.id) ? 'power_settings_new' : 'power_off'
+        }}</span>
+        {{ isEnabled(plugin.id) ? 'Enabled' : 'Enable' }}
+      </button>
+    </article>
+  </div>
+</section>

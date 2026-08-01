@@ -109,6 +109,13 @@ framework; this is our Apple-GarageBand-killer angle).
 
 - **B1 — WASM plugin framework** (official plugin API, sandboxed DSP modules,
   community plugin store) — the Android answer to AUv3. Nobody else has it.
+  *Phase 1 SHIPPED: `PluginStoreService` plugin registry (manifests, persisted
+  enabled state, kernel-chain buffer processing) over the existing
+  `WasmLoaderService` + DSP kernels (dynamics, mastering EQ, saturation,
+  algorithmic reverb, full mastering chain); WASM-first with automatic JS
+  fallback; plugin-store UI in the Studio (cards, enable toggles, param
+  sliders, WASM/JS runtime badge); enabled plugins now drive the
+  `applySmuvePolish` export stage.*
 - **B2 — Real-time collab sessions** (multi-user project editing, live chat,
   voice signals — already have peer-networking skeleton).
 - **B3 — AI-assisted everything**: one-tap "Produce" (idea → beat → mix →
@@ -139,7 +146,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
 | A5 | Notation view | Cubasis | ✅ |
 | A6 | Export formats + cloud | n-Track, BandLab | ✅ |
-| B1 | WASM plugin framework | ALL (Android) | ⬜ |
+| B1 | WASM plugin framework | ALL (Android) | 🟡 |
 | B2 | Real-time collab | BandLab | ⬜ |
 | B3 | AI end-to-end produce | ALL | ⬜ |
 | B4 | Career pipeline in-DAW | ALL | ⬜ |

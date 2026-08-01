@@ -3,6 +3,7 @@ import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService, TrackNote } from './music-manager.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import { LoggingService } from './logging.service';
+import { PluginStoreService } from './plugin-store.service';
 import {
   MidiTrackData,
   MidiNoteEvent,
@@ -38,6 +39,7 @@ export class ExportService {
   private engine = inject(AudioEngineService);
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
+  private pluginStore = inject(PluginStoreService);
 
   async exportProjectWav() {
     this.logger.info('Starting Professional Offline Export...');
@@ -88,59 +90,84 @@ export class ExportService {
       if (track.muted || track.type === 'audio' || track.type === 'bus') continue;
       const notes = track.notes ?? [];
       if (notes.length === 0) continue;
-      this.scheduleTrackNotes(offline, master, notes, track.synthParams ?? { type: 'sine' }, secondsPerStep);
+      this.scheduleTrackNotes(
+        offline,
+        master,
+        notes,
+        track.synthParams ?? { type: 'sine' },
+        secondsPerStep,
+        track.pan ?? 0
+      );
     }
 
     return offline.startRendering();
   }
 
-  /** Schedule one oscillator voice per note with the track's ADSR envelope. */
+  /**
+   * Schedule the track's notes using the REAL live synth voice graph
+   * (antialiased oscillator + filter + ADSR + glide + pan) via the audio
+   * engine, so offline bounces sound identical to live playback.
+   */
   private scheduleTrackNotes(
     ctx: OfflineAudioContext,
     master: GainNode,
     notes: TrackNote[],
     params: any,
-    secondsPerStep: number
+    secondsPerStep: number,
+    trackPan: number
   ): void {
-    const type = params?.type ?? 'sine';
-    const attack = params?.attack ?? 0.01;
-    const decay = params?.decay ?? 0.1;
-    const sustain = params?.sustain ?? 0.7;
-    const release = params?.release ?? 0.2;
-
     for (const n of notes) {
       if (n.velocity <= 0) continue;
-      const start = Math.max(0, (n.step ?? 0) * secondsPerStep);
-      const dur = Math.max(0.05, (n.length ?? 1) * secondsPerStep);
-      const freq = 440 * Math.pow(2, ((n.midi ?? 60) - 69) / 12);
+      // Probability gate — matches live playStep behavior
+      if (n.probability !== undefined && Math.random() >= n.probability) continue;
 
-      const osc = ctx.createOscillator();
-      osc.type = (type as OscillatorType) || 'sine';
-      osc.frequency.setValueAtTime(freq, start);
-      const gain = ctx.createGain();
-      const peak = Math.min(1, Math.max(0.02, (n.velocity ?? 0.8) * 0.9));
+      const start =
+        Math.max(0, (n.step ?? 0) * secondsPerStep) +
+        (n.microOffset ?? 0) * secondsPerStep;
+      const baseFreq = 440 * Math.pow(2, ((n.midi ?? 60) - 69) / 12);
+      const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
 
-      // ADSR envelope
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(peak, start + attack);
-      gain.gain.setValueAtTime(peak, start + attack + decay);
-      gain.gain.exponentialRampToValueAtTime(
-        Math.max(0.0001, peak * sustain),
-        start + attack + decay
+      // Articulation-driven length multiplier — same table as live playStep
+      let lengthMul = 1.0;
+      switch (n.articulation) {
+        case 'staccato': lengthMul = 0.25; break;
+        case 'legato': lengthMul = 1.1; break;
+        case 'pizzicato': lengthMul = 0.15; break;
+        case 'accent': lengthMul = 0.5; break;
+      }
+      const dur = Math.max(
+        0.05,
+        (n.length ?? 1) * secondsPerStep * lengthMul
       );
-      gain.gain.setValueAtTime(Math.max(0.0001, peak * sustain), start + dur - release);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
 
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(start);
-      osc.stop(start + dur + 0.02);
+      // Slide notes: glide from the base pitch to the pitch-bend target
+      const glideTo =
+        n.isSlide && (n.pitchBend ?? 0) !== 0
+          ? baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12)
+          : undefined;
+      const voiceParams =
+        glideTo !== undefined
+          ? { ...params, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
+          : params;
+
+      const notePan = n.notePan ?? trackPan;
+      this.engine.scheduleOfflineNote(
+        ctx,
+        master,
+        freq,
+        start,
+        n.velocity ?? 0.8,
+        dur,
+        voiceParams,
+        notePan
+      );
     }
   }
 
   async applySmuvePolish(buffer: AudioBuffer): Promise<AudioBuffer> {
-    this.logger.info('Applying Elite S.M.U.V.E Polish...');
-    return buffer;
+    // Sprint B1 — the enabled WASM plugin chain IS the S.M.U.V.E Polish stage.
+    this.logger.info('Applying Elite S.M.U.V.E Polish (WASM plugin chain)...');
+    return this.pluginStore.applyEnabledChain(buffer);
   }
 
   // ── Sprint A6 — real format encoding ────────────────────────────────
@@ -338,6 +365,67 @@ export class ExportService {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Sprint A6.5 — export share sheet ──────────────────────────────
+
+  /**
+   * Share a rendered/encoded blob via the native Web Share API when available
+   * (Android/iOS share sheet with the audio file attached). Falls back to a
+   * plain download + clipboard link copy everywhere else.
+   *
+   * @returns true when the native share sheet was used, false on fallback.
+   */
+  async shareBlob(blob: Blob, filename: string): Promise<boolean> {
+    const nav = navigator as any;
+    const file = new File([blob], filename, { type: blob.type });
+
+    if (typeof nav.share === 'function' && typeof nav.canShare === 'function') {
+      try {
+        if (nav.canShare({ files: [file] })) {
+          await nav.share({
+            files: [file],
+            title: `${this.musicManager.projectName || 'Elite Session'} — S.M.U.V.E`,
+            text: `Made with S.M.U.V.E — ${filename}`,
+          });
+          return true;
+        }
+      } catch (err: any) {
+        // User dismissed the sheet (AbortError) → fall through to download.
+        if (err?.name === 'AbortError') return false;
+        this.logger.warn('Web Share failed, falling back to download', err);
+      }
+    }
+
+    // Fallback: download + copy a shareable link.
+    this.downloadBlob(blob, filename);
+    try {
+      const url = `${location.origin}/studio?view=arrangement&export=${encodeURIComponent(filename)}`;
+      await navigator.clipboard?.writeText(url);
+    } catch {
+      // clipboard unavailable — download alone is fine
+    }
+    return false;
+  }
+
+  /**
+   * One-tap share: render the project offline with real synth voices, encode
+   * to the requested format, then open the native share sheet.
+   */
+  async exportAndShare(format: string): Promise<boolean> {
+    const buffer = await this.renderProjectOffline();
+    const polished = await this.applySmuvePolish(buffer);
+    const blob = await this.exportToFormat(polished, format, 16);
+    const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
+    const filename = `${(this.musicManager.projectName || 'Elite_Session').replace(/\s+/g, '_')}_${Date.now()}.${info.ext}`;
+    return this.shareBlob(blob, filename);
+  }
+
+  /** Share the arrangement as a Standard MIDI File via the native sheet. */
+  async shareMidi(): Promise<boolean> {
+    const blob = this.exportProjectMidi();
+    const filename = `${(this.musicManager.projectName || 'Elite_Session').replace(/\s+/g, '_')}_${Date.now()}.mid`;
+    return this.shareBlob(blob, filename);
   }
 
   private async realTimeBounce(duration: number) {

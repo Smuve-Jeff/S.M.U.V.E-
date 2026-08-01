@@ -508,6 +508,31 @@ export class TransportBarComponent {
     this.snack.success('MIDI exported · .mid (Standard MIDI File)' );
   }
 
+  /** Sprint A6.5 — render offline (real synth voices) + open share sheet. */
+  async shareExport(): Promise<void> {
+    this.isExporting.set(true);
+    try {
+      const used = await this.exportService.exportAndShare('wav');
+      this.haptic.medium();
+      this.snack[
+        used ? 'success' : 'info'
+      ](used ? 'Share sheet opened · WAV attached' : 'Downloaded WAV + share link copied');
+    } catch (err: any) {
+      this.snack.error('Share failed · ' + (err?.message ?? 'unknown error'));
+    } finally {
+      this.isExporting.set(false);
+    }
+  }
+
+  /** Share the arrangement as a Standard MIDI File via the native sheet. */
+  async shareMidi(): Promise<void> {
+    const used = await this.exportService.shareMidi();
+    this.haptic.light();
+    this.snack[
+      used ? 'success' : 'info'
+    ](used ? 'Share sheet opened · .mid attached' : 'Downloaded .mid + share link copied');
+  }
+
   toggleMetronome(): void {
     // Always arm the AudioContext in user-gesture context
     this.audioEngine.resume();

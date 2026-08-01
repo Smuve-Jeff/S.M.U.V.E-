@@ -32,7 +32,7 @@ export interface WizardStep {
         <div class="wizard-hero-icon">🎵</div>
         <h1 class="wizard-hero-title">Make Your First Song</h1>
         <p class="wizard-hero-sub">
-          Follow these 5 easy steps — no experience needed!
+          Follow these 6 easy steps — no experience needed!
         </p>
         <div class="wizard-progress-track">
           <div
@@ -447,7 +447,7 @@ export class BeginnerWizardComponent {
       title: 'Record Your Voice',
       subtitle: 'Step 1 — Capture your sound',
       description:
-        "Hit the big record button and sing, rap, or speak. It's that easy! You can always redo it.",
+        "Hit the big record button and sing, rap, or speak. It's that easy! You can always redo it — every pass becomes a take you can pick from later.",
       targetView: 'audio-recorder',
       accentColor: '#E11D48',
       tip: 'Find a quiet spot and hold your phone about 6 inches from your mouth.',
@@ -459,7 +459,7 @@ export class BeginnerWizardComponent {
       title: 'Add a Beat',
       subtitle: 'Step 2 — Pick a rhythm',
       description:
-        'Choose from ready-made drum patterns. Tap the pads to make your own groove — no music theory needed!',
+        'Choose from ready-made drum patterns or let the AI generate a style. Tap the pads to make your own groove — no music theory needed!',
       targetView: 'drum-machine',
       accentColor: '#F59E0B',
       tip: 'Start with a simple kick-snare pattern. The "Four on the Floor" preset is a great start!',
@@ -471,34 +471,46 @@ export class BeginnerWizardComponent {
       title: 'Add a Melody',
       subtitle: 'Step 3 — Play some notes',
       description:
-        "Use the piano keys to add chords or a melody. Don't worry about wrong notes — just experiment!",
+        "Use the piano keys to add chords or a melody, or tap notes straight into the piano roll. Don't worry about wrong notes — just experiment! See them as sheet music in Score view.",
       targetView: 'piano-roll',
       accentColor: '#8B5CF6',
       tip: 'Try pressing only the white keys. They all sound good together in C major!',
     },
     {
       id: 4,
+      key: 'takes',
+      icon: '🎬',
+      title: 'Record Takes & Comp',
+      subtitle: 'Step 4 — Keep the best pass',
+      description:
+        'Arm punch-in and record a few takes of your part. Tap a take to make it active, stack a comp, or assign different takes to different bars — like a pro.',
+      targetView: 'arrangement',
+      accentColor: '#F97316',
+      tip: 'Record 3 takes, then tap the best moments from each to build one perfect take.',
+    },
+    {
+      id: 5,
       key: 'mix',
       icon: '🎛️',
       title: 'Mix It Together',
-      subtitle: 'Step 4 — Balance your sound',
+      subtitle: 'Step 5 — Balance your sound',
       description:
-        'Slide the volume knobs so nothing is too loud or too quiet. Make your voice and beat blend perfectly.',
+        'Slide the volume knobs so nothing is too loud or too quiet. Drop WASM effects into the Effects Rack and polish the whole song in Mastering.',
       targetView: 'mixer',
       accentColor: '#0EA5E9',
       tip: 'Your voice should be the loudest thing. Bring the beat up until it feels right under your voice.',
     },
     {
-      id: 5,
+      id: 6,
       key: 'export',
       icon: '🚀',
-      title: 'Save & Share',
-      subtitle: 'Step 5 — Export your song',
+      title: 'Export & Share',
+      subtitle: 'Step 6 — Ship your song',
       description:
-        'Save your creation as an audio file you can share with friends, post on social media, or keep working on!',
+        'Render a pro offline bounce, export as WAV, MP3, M4A or OGG, save a MIDI file, or share straight from the native share sheet.',
       targetView: 'arrangement',
       accentColor: '#10B981',
-      tip: 'Export as WAV for best quality, or MP3 if you want a smaller file to text to friends.',
+      tip: 'Export WAV for best quality, MP3 for small files to text, and use Share to send it anywhere in one tap.',
     },
   ];
 

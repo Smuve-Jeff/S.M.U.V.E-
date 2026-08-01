@@ -271,4 +271,112 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect(svc.songEnded()).toBe(false);
     });
   });
+
+  describe('scheduleOfflineNote (Sprint A6.5 real-synth offline render)', () => {
+    it('builds the full voice graph (osc → filter → panner → vca → dest)', () => {
+      const osc = {
+        connect: jest.fn(() => osc),
+        frequency: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      };
+      const gainNode = {
+        connect: jest.fn(() => gainNode),
+        gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+      };
+      const filterNode = {
+        connect: jest.fn(() => filterNode),
+        frequency: { setValueAtTime: jest.fn() },
+        Q: { setValueAtTime: jest.fn() },
+      };
+      const pannerNode = {
+        connect: jest.fn(() => pannerNode),
+        pan: { setValueAtTime: jest.fn() },
+      };
+      const ctx = {
+        createBiquadFilter: () => filterNode,
+        createStereoPanner: () => pannerNode,
+        createGain: () => gainNode,
+      };
+      const dest = { connect: jest.fn() };
+
+      (svc as any).createAntialiasedOscillator = jest.fn(() => osc);
+      svc.scheduleOfflineNote(
+        ctx as any,
+        dest as any,
+        440,
+        0.5,
+        0.8,
+        1.0,
+        { type: 'sawtooth', cutoff: 1200, q: 2, glideTo: 880 },
+        0.25
+      );
+
+      expect((svc as any).createAntialiasedOscillator).toHaveBeenCalledWith(
+        ctx,
+        'sawtooth',
+        440,
+        0.5
+      );
+      expect(filterNode.frequency.setValueAtTime).toHaveBeenCalledWith(1200, 0.5);
+      expect(filterNode.Q.setValueAtTime).toHaveBeenCalledWith(2, 0.5);
+      expect(pannerNode.pan.setValueAtTime).toHaveBeenCalledWith(0.25, 0.5);
+      // Glide applied
+      expect(osc.frequency.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        880,
+        expect.any(Number)
+      );
+      expect(osc.start).toHaveBeenCalledWith(0.5);
+      expect(osc.stop).toHaveBeenCalledWith(expect.any(Number));
+      // The VCA connects INTO the destination (dest is the sink, not a source).
+      expect(gainNode.connect).toHaveBeenCalledWith(dest);
+    });
+
+    it('applies the ADSR envelope values from the synth params', () => {
+      const osc = {
+        connect: jest.fn(() => osc),
+        frequency: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      };
+      const gainNode = {
+        connect: jest.fn(() => gainNode),
+        gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+      };
+      const ctx = {
+        createBiquadFilter: () => ({
+          connect: jest.fn(() => ({
+            connect: jest.fn(() => gainNode),
+          })),
+          frequency: { setValueAtTime: jest.fn() },
+          Q: { setValueAtTime: jest.fn() },
+        }),
+        createStereoPanner: () => ({
+          connect: jest.fn(() => gainNode),
+          pan: { setValueAtTime: jest.fn() },
+        }),
+        createGain: () => gainNode,
+      };
+
+      (svc as any).createAntialiasedOscillator = jest.fn(() => osc);
+      svc.scheduleOfflineNote(
+        ctx as any,
+        { connect: jest.fn() } as any,
+        220,
+        0,
+        1,
+        2,
+        { attack: 0.05, decay: 0.2, sustain: 0.4, release: 0.3 },
+        0
+      );
+
+      const setCalls = gainNode.gain.setValueAtTime.mock.calls;
+      expect(setCalls.length).toBeGreaterThanOrEqual(3);
+      // First set is the near-silent attack floor.
+      expect(setCalls[0][0]).toBe(0.0001);
+      // Attack ramp reaches the velocity-scaled peak.
+      const rampCalls = gainNode.gain.exponentialRampToValueAtTime.mock.calls;
+      expect(rampCalls[0][0]).toBeCloseTo(0.9); // 1.0 velocity * 0.9
+    });
+  });
 });

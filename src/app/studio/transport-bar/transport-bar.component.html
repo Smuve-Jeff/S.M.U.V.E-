@@ -582,6 +582,25 @@
       <span class="material-symbols-outlined">music_note</span>
       Export MIDI
     </button>
+    <button
+      type="button"
+      class="ctb-dropdown-action ctb-dropdown-share"
+      (click)="showBpmDropdown.set(false); shareExport()"
+      [disabled]="isExporting()"
+      [attr.title]="'Render offline with real synth voices and share the WAV via the native share sheet'"
+    >
+      <span class="material-symbols-outlined">share</span>
+      {{ isExporting() ? 'Rendering…' : 'Export & Share WAV' }}
+    </button>
+    <button
+      type="button"
+      class="ctb-dropdown-action ctb-dropdown-share"
+      (click)="showBpmDropdown.set(false); shareMidi()"
+      [attr.title]="'Share the arrangement as a Standard MIDI File (.mid)'"
+    >
+      <span class="material-symbols-outlined">ios_share</span>
+      Share MIDI
+    </button>
   </div>
 </div>
 
