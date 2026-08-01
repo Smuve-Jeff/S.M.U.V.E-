@@ -51,7 +51,8 @@ describe('CommandPaletteService', () => {
         {
           id: 'studio-preview-ai',
           label: 'Preview AI Fix',
-          description: 'Preview the primary AI fix for the current studio view.',
+          description:
+            'Preview the primary AI fix for the current studio view.',
           category: 'Studio AI',
           keywords: ['studio', 'ai', 'preview'],
           run: jest.fn(),

@@ -1,9 +1,5 @@
 import { of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
 import { ThaSpotComponent } from './tha-spot.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { SecurityService } from '../../services/security.service';
@@ -18,17 +14,12 @@ import { MatchmakingService } from '../../hub/matchmaking.service';
 import { DailyMissionsService } from '../../services/daily-missions.service';
 import { GameRatingsService } from '../../services/game-ratings.service';
 import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
-import {
-  Router,
-  ActivatedRoute,
-  convertToParamMap,
-} from '@angular/router';
+import { Router, ActivatedRoute, convertToParamMap } from '@angular/router';
 import { signal } from '@angular/core';
 
 describe('ThaSpotComponent', () => {
   let component: ThaSpotComponent;
   let fixture: ComponentFixture<ThaSpotComponent>;
-  let httpMock: HttpTestingController;
   let removeListenerSpy: jest.SpyInstance;
 
   const mockFeed = {
@@ -78,6 +69,7 @@ describe('ThaSpotComponent', () => {
       getCSRFToken: jest.fn().mockReturnValue('test-token'),
     };
     const gameServiceMock = {
+      getThaSpotFeed: jest.fn().mockReturnValue(of(mockFeed)),
       matchesRoom: jest.fn().mockReturnValue(true),
       filterAndSortGames: jest.fn((games: any[]) => games),
       buildIframeSandbox: jest.fn().mockReturnValue('allow-scripts'),
@@ -88,7 +80,9 @@ describe('ThaSpotComponent', () => {
       onlineUsers: signal([]),
       messages: signal([]),
       roomMessages: signal([]),
-      activeHubTab: signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room'),
+      activeHubTab: signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>(
+        'room'
+      ),
       simulatedLiveChat: signal([]),
       matchmakingStatus: signal<'idle' | 'searching' | 'matched'>('idle'),
       currentPartyId: jest.fn().mockReturnValue(null),
@@ -123,7 +117,9 @@ describe('ThaSpotComponent', () => {
     const matchmakingMock = {
       cancelMatchQueue: jest.fn(),
       queueForMatch: jest.fn(),
-      createLobby: jest.fn().mockReturnValue({ gameName: 'Test Game', id: 'lobby-1' }),
+      createLobby: jest
+        .fn()
+        .mockReturnValue({ gameName: 'Test Game', id: 'lobby-1' }),
       toggleReady: jest.fn(),
       startCountdown: jest.fn(),
       cancelCountdown: jest.fn(),
@@ -152,7 +148,7 @@ describe('ThaSpotComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, ThaSpotComponent],
+      imports: [ThaSpotComponent],
       providers: [
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
@@ -171,11 +167,21 @@ describe('ThaSpotComponent', () => {
         { provide: UIService, useValue: uiServiceMock },
         { provide: SecurityService, useValue: securityServiceMock },
         { provide: GameService, useValue: gameServiceMock },
-        { provide: GamepadService, useValue: { connectedGamepad: signal(null), dpadX: signal(0), dpadY: signal(0) } },
+        {
+          provide: GamepadService,
+          useValue: {
+            connectedGamepad: signal(null),
+            dpadX: signal(0),
+            dpadY: signal(0),
+          },
+        },
         { provide: SocialNetworkingService, useValue: socialServiceMock },
         { provide: ChallengeInboxService, useValue: inboxServiceMock },
         { provide: PeerNetworkingService, useValue: peerServiceMock },
-        { provide: SnackbarService, useValue: { info: jest.fn(), success: jest.fn(), error: jest.fn() } },
+        {
+          provide: SnackbarService,
+          useValue: { info: jest.fn(), success: jest.fn(), error: jest.fn() },
+        },
         { provide: MatchmakingService, useValue: matchmakingMock },
         { provide: DailyMissionsService, useValue: {} },
         { provide: GameRatingsService, useValue: {} },
@@ -189,25 +195,14 @@ describe('ThaSpotComponent', () => {
 
     fixture = TestBed.createComponent(ThaSpotComponent);
     component = fixture.componentInstance;
-    httpMock = TestBed.inject(HttpTestingController);
     removeListenerSpy = jest.spyOn(window, 'removeEventListener');
     fixture.detectChanges();
-
-    const req = httpMock.expectOne('assets/data/tha-spot-feed.json');
-    req.flush(mockFeed);
-
-    // Also handle featured users call from ngOnInit
-    const featuredReq = httpMock.expectOne((req) =>
-      req.url.includes('/api/users/featured')
-    );
-    featuredReq.flush([]);
-
+    await fixture.whenStable();
     fixture.detectChanges();
   });
 
   afterEach(() => {
     fixture.destroy();
-    httpMock.verify();
   });
 
   it('should create', () => {

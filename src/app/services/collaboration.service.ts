@@ -5,6 +5,7 @@ import {
   inject,
   computed,
   effect,
+  untracked,
   WritableSignal,
 } from '@angular/core';
 import { AuthUser, AuthService } from './auth.service';
@@ -227,9 +228,7 @@ export class CollaborationService {
     const peers = Object.values(this.voicePeers());
     return peers.some(
       (p: VoicePeer) =>
-        p.state === 'calling' ||
-        p.state === 'connected' ||
-        p.state === 'muted'
+        p.state === 'calling' || p.state === 'connected' || p.state === 'muted'
     );
   });
 
@@ -256,14 +255,15 @@ export class CollaborationService {
   );
 
   sessionCode = computed(
-    () =>
-      this.currentSession()?.sessionId?.slice(-4).toUpperCase() ?? '----'
+    () => this.currentSession()?.sessionId?.slice(-4).toUpperCase() ?? '----'
   );
 
   peerCount = computed(() => {
     const session = this.currentSession();
     if (!session) return 0;
-    const members = this.sessionMembers().filter((member) => member.status !== 'revoked');
+    const members = this.sessionMembers().filter(
+      (member) => member.status !== 'revoked'
+    );
     return members.length > 0 ? members.length : 1;
   });
 
@@ -280,9 +280,8 @@ export class CollaborationService {
         userId: member.userId,
         artistName:
           member.artistName ??
-          this.social
-            .onlineUsers()
-            .find((u: any) => u.userId === member.userId)?.artistName ??
+          this.social.onlineUsers().find((u: any) => u.userId === member.userId)
+            ?.artistName ??
           member.userId.slice(-4),
       }));
   });
@@ -299,11 +298,7 @@ export class CollaborationService {
     });
 
     this.heartbeatTimer = setInterval(() => {
-      if (
-        !this.currentSession() ||
-        !this.autoSync() ||
-        this.isRemoteUpdate
-      )
+      if (!this.currentSession() || !this.autoSync() || this.isRemoteUpdate)
         return;
       const snap = this.musicManager.snapshotProject();
       if (!snap) return;
@@ -314,7 +309,7 @@ export class CollaborationService {
       const sync = this.social.sessionSyncState();
       if (!sync?.session) return;
       if (sync.session.id !== this.currentSession()?.sessionId) return;
-      this.applySessionSync(sync);
+      untracked(() => this.applySessionSync(sync));
     });
 
     effect(() => {
@@ -322,7 +317,9 @@ export class CollaborationService {
       if (events.length === 0) return;
       const latest = events[events.length - 1];
       if (latest?.sessionId !== this.currentSession()?.sessionId) return;
-      this.handleIncomingEnvelope(latest.event as CollabMessage);
+      untracked(() =>
+        this.handleIncomingEnvelope(latest.event as CollabMessage)
+      );
     });
 
     /* Receive dispatcher */
@@ -337,7 +334,7 @@ export class CollaborationService {
       } catch {
         return;
       }
-      this.handleIncomingEnvelope(env);
+      untracked(() => this.handleIncomingEnvelope(env));
     });
   }
 
@@ -350,7 +347,8 @@ export class CollaborationService {
   }
 
   private applySessionSync(sync: StudioSessionSyncState): void {
-    const projectId = sync.session?.projectId ?? this.currentSession()?.projectId ?? null;
+    const projectId =
+      sync.session?.projectId ?? this.currentSession()?.projectId ?? null;
     this.sessionMembers.set(sync.members ?? []);
     this.currentSession.update((session) =>
       session
@@ -368,7 +366,10 @@ export class CollaborationService {
     try {
       this.social.sendStudioSessionEvent(session.sessionId, envelope);
     } catch (err) {
-      this.logger.warn('CollaborationService: session event dispatch failed', err);
+      this.logger.warn(
+        'CollaborationService: session event dispatch failed',
+        err
+      );
       try {
         this.social.sendPartyMessage(JSON.stringify(envelope));
       } catch (fallbackErr) {
@@ -486,13 +487,7 @@ export class CollaborationService {
     for (const field of Object.keys(remoteVersions)) {
       const lv = localVersions[field] ?? 0;
       const rv = remoteVersions[field];
-      if (
-        lv &&
-        rv &&
-        lv < rv &&
-        now - lv < 800 &&
-        track[field] !== undefined
-      ) {
+      if (lv && rv && lv < rv && now - lv < 800 && track[field] !== undefined) {
         newConflicts.push({
           trackId,
           fieldKey: field,
@@ -517,9 +512,7 @@ export class CollaborationService {
       this.lastAppliedVersion = env.v;
       this.isRemoteUpdate = true;
       try {
-        const trackList = (this.musicManager.tracks() ?? []).map((t: any) =>
-          t && t.id === trackId ? { ...track } : t
-        );
+        const trackList = this.upsertTrackState(trackId, track);
         this.musicManager.loadProject({
           ...(this.musicManager.snapshotProject() ?? {}),
           tracks: trackList,
@@ -641,10 +634,8 @@ export class CollaborationService {
       env.fromUserId,
       'idle',
       0,
-      this.social
-        .onlineUsers()
-        .find((u: any) => u.userId === env.fromUserId)?.artistName ??
-        env.fromUserId.slice(-4)
+      this.social.onlineUsers().find((u: any) => u.userId === env.fromUserId)
+        ?.artistName ?? env.fromUserId.slice(-4)
     );
   }
 
@@ -673,9 +664,8 @@ export class CollaborationService {
         userId,
         artistName:
           artistName ??
-          this.social
-            .onlineUsers()
-            .find((u: any) => u.userId === userId)?.artistName ??
+          this.social.onlineUsers().find((u: any) => u.userId === userId)
+            ?.artistName ??
           userId.slice(-4),
         state,
         level,
@@ -744,9 +734,13 @@ export class CollaborationService {
     const value =
       resolution === 'mine' ? conflict.localValue : conflict.remoteValue;
 
-    const trackList = (this.musicManager.tracks() ?? []).map((t: any) =>
-      t && t.id === trackId ? { ...(t ?? {}), [fieldKey]: value } : t
+    const existingTrack = (this.musicManager.tracks() ?? []).find(
+      (t: any) => t?.id === trackId
     );
+    const trackList = this.upsertTrackState(trackId, {
+      ...(existingTrack ?? { id: trackId }),
+      [fieldKey]: value,
+    });
     this.isRemoteUpdate = true;
     try {
       this.musicManager.loadProject({
@@ -767,8 +761,22 @@ export class CollaborationService {
     }
   }
 
+  private upsertTrackState(trackId: string, nextTrack: any): any[] {
+    const currentTracks = this.musicManager.tracks() ?? [];
+    const nextTracks = currentTracks.map((track: any) =>
+      track && track.id === trackId ? { ...nextTrack } : track
+    );
+    if (nextTracks.some((track: any) => track?.id === trackId)) {
+      return nextTracks;
+    }
+    return [...nextTracks, { ...nextTrack }];
+  }
+
   /* Session lifecycle (Phase 1) */
-  async startSession(user: AuthUser, _projectState: any = null): Promise<string> {
+  async startSession(
+    user: AuthUser,
+    _projectState: any = null
+  ): Promise<string> {
     const sessionId = this.generateSecureId();
     const partyKey = 'studio_' + sessionId;
     const projectId =
@@ -783,7 +791,9 @@ export class CollaborationService {
       sessionId,
       projectId,
       sessionName:
-        _projectState?.name ?? this.projects.currentProject()?.name ?? 'Studio Session',
+        _projectState?.name ??
+        this.projects.currentProject()?.name ??
+        'Studio Session',
       role: 'host',
     });
     this.lastAppliedVersion = Date.now();

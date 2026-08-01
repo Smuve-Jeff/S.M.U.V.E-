@@ -226,9 +226,12 @@ export class SocialNetworkingService {
     // incoming_challenge + challenge_inbox_sync are dispatched by ChallengeInboxComponent
     // (the inbox owns the persisted challenge signal; see ChallengeInboxService).
 
-    this.socket.on('studio_session_event', (data: StudioSessionEventEnvelope) => {
-      this.studioSessionEvents.update((events) => [...events, data]);
-    });
+    this.socket.on(
+      'studio_session_event',
+      (data: StudioSessionEventEnvelope) => {
+        this.studioSessionEvents.update((events) => [...events, data]);
+      }
+    );
 
     this.socket.on('studio_session_invite', (data: any) => {
       this.studioSessionInvites.update((invites) => [...invites, data]);
@@ -296,20 +299,25 @@ export class SocialNetworkingService {
       );
     });
 
-    this.socket.on('async_packet_received', (data: AsyncCollaborationPacket) => {
-      this.asyncCollaborationPackets.update((packets) => [...packets, data]);
-      this.sessionSyncState.update((sync) =>
-        sync
-          ? {
-              ...sync,
-              asyncPackets: [
-                ...sync.asyncPackets.filter((packet) => packet.id !== data.id),
-                data,
-              ],
-            }
-          : sync
-      );
-    });
+    this.socket.on(
+      'async_packet_received',
+      (data: AsyncCollaborationPacket) => {
+        this.asyncCollaborationPackets.update((packets) => [...packets, data]);
+        this.sessionSyncState.update((sync) =>
+          sync
+            ? {
+                ...sync,
+                asyncPackets: [
+                  ...sync.asyncPackets.filter(
+                    (packet) => packet.id !== data.id
+                  ),
+                  data,
+                ],
+              }
+            : sync
+        );
+      }
+    );
 
     this.socket.on('async_packet_applied', (data: any) => {
       this.asyncCollaborationPackets.update((packets) =>

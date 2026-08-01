@@ -1,8 +1,4 @@
-export type StudioCollaborationRole =
-  | 'host'
-  | 'editor'
-  | 'reviewer'
-  | 'viewer';
+export type StudioCollaborationRole = 'host' | 'editor' | 'reviewer' | 'viewer';
 
 export type StudioCollaborationPermission =
   | 'edit'

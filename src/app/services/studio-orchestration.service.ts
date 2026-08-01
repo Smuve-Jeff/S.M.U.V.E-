@@ -21,7 +21,10 @@ import {
   StudioSessionSyncState,
 } from '../types/studio-orchestration.types';
 
-function mergeById<T extends { id: string }>(existing: T[], incoming: T[]): T[] {
+function mergeById<T extends { id: string }>(
+  existing: T[],
+  incoming: T[]
+): T[] {
   const byId = new Map<string, T>();
   for (const item of existing) byId.set(item.id, item);
   for (const item of incoming) byId.set(item.id, item);
@@ -62,7 +65,7 @@ export class StudioOrchestrationService {
     const branchId = projectId ? this.history.activeBranch(projectId) : null;
     const checkpointId =
       projectId && branchId
-        ? this.history.checkpoints(projectId, branchId).at(-1)?.id ?? null
+        ? (this.history.checkpoints(projectId, branchId).at(-1)?.id ?? null)
         : null;
     return {
       projectId,
@@ -89,7 +92,9 @@ export class StudioOrchestrationService {
   });
 
   primaryAction = computed<StudioActionResult | null>(
-    () => this.actionableResults().find((result) => result.status === 'pending') ?? null
+    () =>
+      this.actionableResults().find((result) => result.status === 'pending') ??
+      null
   );
 
   pendingAsyncPackets = computed(() =>
@@ -168,7 +173,8 @@ export class StudioOrchestrationService {
       actions.push({
         id: 'studio-branch-session',
         label: 'Branch Session Timeline',
-        description: 'Create a new timeline branch from the current checkpoint.',
+        description:
+          'Create a new timeline branch from the current checkpoint.',
         category: 'Timeline',
         keywords: ['branch', 'timeline', 'checkpoint'],
         context: ['studio'],
@@ -244,7 +250,9 @@ export class StudioOrchestrationService {
     return result;
   }
 
-  async applyAction(resultId?: string | null): Promise<StudioActionResult | null> {
+  async applyAction(
+    resultId?: string | null
+  ): Promise<StudioActionResult | null> {
     const result = this.findAction(resultId);
     if (!result) return null;
 
@@ -326,7 +334,8 @@ export class StudioOrchestrationService {
     const trimmed = content.trim();
     const sessionId = this.collaboration.currentSession()?.sessionId;
     const projectId = this.currentProjectId();
-    if (!trimmed || !sessionId || !projectId || !this.can('comment')) return null;
+    if (!trimmed || !sessionId || !projectId || !this.can('comment'))
+      return null;
 
     const target = this.currentTarget();
     const comment: StudioComment = {
@@ -382,7 +391,9 @@ export class StudioOrchestrationService {
   ): Promise<boolean> {
     const conflict = this.collaboration
       .pendingConflicts()
-      .find((entry) => entry.trackId === trackId && entry.fieldKey === fieldKey);
+      .find(
+        (entry) => entry.trackId === trackId && entry.fieldKey === fieldKey
+      );
     if (!conflict) return false;
 
     if (decision === 'branch') {
@@ -420,7 +431,7 @@ export class StudioOrchestrationService {
     if (!projectId) return null;
     const branchId = this.history.activeBranch(projectId);
     const headCheckpointId = branchId
-      ? this.history.checkpoints(projectId, branchId).at(-1)?.id ?? null
+      ? (this.history.checkpoints(projectId, branchId).at(-1)?.id ?? null)
       : null;
     const branch = await this.history.createBranch(
       projectId,
@@ -430,7 +441,9 @@ export class StudioOrchestrationService {
     return branch.id;
   }
 
-  async exportArtifact(resultId?: string | null): Promise<StudioActionResult | null> {
+  async exportArtifact(
+    resultId?: string | null
+  ): Promise<StudioActionResult | null> {
     const result = this.findAction(resultId) ?? this.syntheticExportResult();
     if (!result) return null;
 
@@ -501,7 +514,9 @@ export class StudioOrchestrationService {
 
   private applyServerSync(sync: StudioSessionSyncState): void {
     this.comments.update((records) => mergeById(records, sync.comments ?? []));
-    this.approvals.update((records) => mergeById(records, sync.approvals ?? []));
+    this.approvals.update((records) =>
+      mergeById(records, sync.approvals ?? [])
+    );
     this.asyncPackets.update((records) =>
       mergeById(records, sync.asyncPackets ?? [])
     );
@@ -522,10 +537,12 @@ export class StudioOrchestrationService {
     );
   }
 
-  private buildConflictActions(target: StudioActionTarget): StudioActionResult[] {
-    return this.collaboration.pendingConflicts().map((conflict) =>
-      this.conflictToAction(conflict, target)
-    );
+  private buildConflictActions(
+    target: StudioActionTarget
+  ): StudioActionResult[] {
+    return this.collaboration
+      .pendingConflicts()
+      .map((conflict) => this.conflictToAction(conflict, target));
   }
 
   private conflictToAction(
@@ -569,7 +586,9 @@ export class StudioOrchestrationService {
 
   private findAction(resultId?: string | null): StudioActionResult | null {
     if (!resultId) return this.primaryAction();
-    return this.actionableResults().find((result) => result.id === resultId) ?? null;
+    return (
+      this.actionableResults().find((result) => result.id === resultId) ?? null
+    );
   }
 
   private syntheticExportResult(): StudioActionResult | null {

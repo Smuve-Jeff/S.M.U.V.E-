@@ -63,6 +63,7 @@ describe('SocialNetworkingService', () => {
       ],
     });
     service = TestBed.inject(SocialNetworkingService);
+    TestBed.flushEffects();
   });
 
   it('should be created and initialize the socket for an authenticated profile', () => {

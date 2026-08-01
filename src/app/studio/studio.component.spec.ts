@@ -195,7 +195,15 @@ describe('StudioComponent', () => {
         { provide: SmartSoundService, useValue: {} },
         { provide: AudioImportService, useValue: {} },
         { provide: ComponentRecordingService, useValue: {} },
-        { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), system: jest.fn() } },
+        {
+          provide: LoggingService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            system: jest.fn(),
+          },
+        },
         { provide: HistoryService, useValue: {} },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
@@ -239,12 +247,20 @@ describe('StudioComponent', () => {
 
   it('starts a fresh workspace when applying a template', () => {
     mockTemplateService.templates = [
-      { id: 'trap-elite', name: 'Trap Elite', bpm: 140, genre: 'trap', tracks: [] },
+      {
+        id: 'trap-elite',
+        name: 'Trap Elite',
+        bpm: 140,
+        genre: 'trap',
+        tracks: [],
+      },
     ];
 
     component.applyTemplate('trap-elite');
 
-    expect(mockTemplateService.applyTemplate).toHaveBeenCalledWith('trap-elite');
+    expect(mockTemplateService.applyTemplate).toHaveBeenCalledWith(
+      'trap-elite'
+    );
     expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith({
       name: 'Trap Elite',
       bpm: 140,
@@ -253,9 +269,9 @@ describe('StudioComponent', () => {
   });
 
   it('syncs studio subview changes into the orchestration layer', () => {
+    mockOrchestration.setActiveStudioView.mockClear();
     component.setActiveView('mixer');
-    expect(mockOrchestration.setActiveStudioView).toHaveBeenLastCalledWith(
-      'mixer'
-    );
+    TestBed.flushEffects();
+    expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith('mixer');
   });
 });

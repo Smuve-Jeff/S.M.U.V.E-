@@ -86,7 +86,11 @@ describe('CollaborationService (Sprint B2)', () => {
     roomMessages = signal<any[]>([]);
     currentPartyId = signal<string | null>('studio_abcdef');
     onlineUsers = signal<any[]>([]);
-    partyMembersSig = signal<any[]>([{ userId: 'user_me' }, { userId: 'p1' }, { userId: 'p2' }]);
+    partyMembersSig = signal<any[]>([
+      { userId: 'user_me' },
+      { userId: 'p1' },
+      { userId: 'p2' },
+    ]);
     sessionSyncState = signal<any | null>(null);
     studioSessionEvents = signal<any[]>([]);
     TestBed.configureTestingModule({
@@ -98,9 +102,19 @@ describe('CollaborationService (Sprint B2)', () => {
         { provide: UserProfileService, useValue: mockProfile },
         {
           provide: ProjectService,
-          useValue: { currentProject: signal({ id: 'proj-1', name: 'Project 1' }) },
+          useValue: {
+            currentProject: signal({ id: 'proj-1', name: 'Project 1' }),
+          },
         },
-        { provide: LoggingService, useValue: { info: () => {}, warn: () => {}, system: () => {}, error: () => {} } },
+        {
+          provide: LoggingService,
+          useValue: {
+            info: () => {},
+            warn: () => {},
+            system: () => {},
+            error: () => {},
+          },
+        },
         { provide: PeerNetworkingService, useValue: mockPeerNet },
       ],
     });
@@ -136,7 +150,7 @@ describe('CollaborationService (Sprint B2)', () => {
     const msg = JSON.parse(sent[0]);
     expect(msg.type).toBe('PROJECT_SYNC');
     expect(msg.fromUserId).toBe('user_me');
-// fromUserName sourced from mocked profile — checked separately to avoid platform-coupled mocks.
+    // fromUserName sourced from mocked profile — checked separately to avoid platform-coupled mocks.
     expect(typeof msg.v).toBe('number');
     expect(msg.payload.tracks.length).toBe(1);
     expect(msg.payload.bpm).toBe(120);
@@ -201,7 +215,10 @@ describe('CollaborationService (Sprint B2)', () => {
         roomId: 'studio_abcdef',
         fromUserId: 'peer_a',
         message: JSON.stringify({
-          type: 'PROJECT_SYNC', v: v0, fromUserId: 'peer_a', payload: mockSnapshot(),
+          type: 'PROJECT_SYNC',
+          v: v0,
+          fromUserId: 'peer_a',
+          payload: mockSnapshot(),
         }),
         timestamp: v0,
       },
@@ -211,7 +228,10 @@ describe('CollaborationService (Sprint B2)', () => {
         roomId: 'studio_abcdef',
         fromUserId: 'peer_a',
         message: JSON.stringify({
-          type: 'PROJECT_SYNC', v: v0 + 500, fromUserId: 'peer_a', payload: mockSnapshot(),
+          type: 'PROJECT_SYNC',
+          v: v0 + 500,
+          fromUserId: 'peer_a',
+          payload: mockSnapshot(),
         }),
         timestamp: v0 + 500,
       },
@@ -219,7 +239,10 @@ describe('CollaborationService (Sprint B2)', () => {
     await new Promise((r) => setTimeout(r, 400));
     // Burst: only the latest applies.
     expect(mockMk.loadProject).toHaveBeenCalled();
-    const last = mockMk.loadProject.mock.calls[mockMk.loadProject.mock.calls.length - 1][0];
+    const last =
+      mockMk.loadProject.mock.calls[
+        mockMk.loadProject.mock.calls.length - 1
+      ][0];
     expect(last.bpm).toBe(120);
   });
 
@@ -232,10 +255,30 @@ describe('CollaborationService (Sprint B2)', () => {
       participants: [],
     });
     svc.sessionMembers.set([
-      { sessionId: 'abcdef', userId: 'user_me', role: 'host', status: 'active' },
-      { sessionId: 'abcdef', userId: 'user_a', role: 'editor', status: 'active' },
-      { sessionId: 'abcdef', userId: 'user_b', role: 'reviewer', status: 'active' },
-      { sessionId: 'abcdef', userId: 'user_c', role: 'viewer', status: 'active' },
+      {
+        sessionId: 'abcdef',
+        userId: 'user_me',
+        role: 'host',
+        status: 'active',
+      },
+      {
+        sessionId: 'abcdef',
+        userId: 'user_a',
+        role: 'editor',
+        status: 'active',
+      },
+      {
+        sessionId: 'abcdef',
+        userId: 'user_b',
+        role: 'reviewer',
+        status: 'active',
+      },
+      {
+        sessionId: 'abcdef',
+        userId: 'user_c',
+        role: 'viewer',
+        status: 'active',
+      },
     ] as any);
     expect(svc.peerCount()).toBe(4);
   });
@@ -286,10 +329,10 @@ describe('CollaborationService (Sprint B2)', () => {
         payload: {
           trackId: 'tX',
           track: { id: 'tX', name: 'Pluck', volume: 0.5 },
-          fieldVersions: { volume: Date.now() }
-        }
+          fieldVersions: { volume: Date.now() },
+        },
       }),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     roomMessages.set([delta]);
     await new Promise((r) => setTimeout(r, 220));
@@ -310,6 +353,8 @@ describe('CollaborationService (Sprint B2)', () => {
     ] as any);
     // Seed local edit (so local fieldVersion is recent).
     svc.dispatchTrackDelta('tY', { id: 'tY', name: 'Pad', volume: 0.3 });
+    const remoteVolumeVersion =
+      ((svc as any).fieldVersions?.tY?.volume ?? Date.now()) + 50;
     // Remote arrives within 800ms.
     const delta = {
       roomId: 'studio_d3',
@@ -322,17 +367,19 @@ describe('CollaborationService (Sprint B2)', () => {
         payload: {
           trackId: 'tY',
           track: { id: 'tY', volume: 0.85 },
-          fieldVersions: { volume: Date.now() }
-        }
+          fieldVersions: { volume: remoteVolumeVersion },
+        },
       }),
-      timestamp: Date.now()
+      timestamp: remoteVolumeVersion,
     };
     roomMessages.set([delta]);
     await new Promise((r) => setTimeout(r, 220));
     // Remote should NOT have been applied — it should be queued as a conflict.
     const conflicts = svc.pendingConflicts();
     expect(conflicts.length).toBeGreaterThan(0);
-    expect(conflicts.some((c) => c.trackId === 'tY' && c.fieldKey === 'volume')).toBe(true);
+    expect(
+      conflicts.some((c) => c.trackId === 'tY' && c.fieldKey === 'volume')
+    ).toBe(true);
   });
 
   it('resolveConflict(their) applies remote value and clears the entry', async () => {
@@ -347,26 +394,32 @@ describe('CollaborationService (Sprint B2)', () => {
     ] as any);
     // Seed conflict.
     svc.dispatchTrackDelta('tZ', { id: 'tZ', name: 'Bass', pan: 0.2 });
+    const remotePanVersion =
+      ((svc as any).fieldVersions?.tZ?.pan ?? Date.now()) + 50;
     const delta = {
       roomId: 'studio_d4',
       fromUserId: 'other_user',
       message: JSON.stringify({
         type: 'TRACK_DELTA_SYNC',
-        v: Date.now(),
+        v: remotePanVersion,
         fromUserId: 'other_user',
         payload: {
           trackId: 'tZ',
           track: { id: 'tZ', pan: -0.4 },
-          fieldVersions: { pan: Date.now() }
-        }
+          fieldVersions: { pan: remotePanVersion },
+        },
       }),
-      timestamp: Date.now()
+      timestamp: remotePanVersion,
     };
     roomMessages.set([delta]);
     await new Promise((r) => setTimeout(r, 220));
     expect(svc.pendingConflicts().length).toBeGreaterThan(0);
     svc.resolveConflict('tZ', 'pan', 'theirs');
-    expect(svc.pendingConflicts().find((c) => c.trackId === 'tZ' && c.fieldKey === 'pan')).toBeUndefined();
+    expect(
+      svc
+        .pendingConflicts()
+        .find((c) => c.trackId === 'tZ' && c.fieldKey === 'pan')
+    ).toBeUndefined();
   });
 
   it('voice invite flow dispatches VOICE_INVITE and accept calls peerNet.startCall', () => {
@@ -448,9 +501,9 @@ describe('CollaborationService (Sprint B2)', () => {
         v: Date.now(),
         fromUserId: 'peer_z',
         fromUserName: 'Zara',
-        payload: { surface: 'studio', x: 0.6, y: 0.45 }
+        payload: { surface: 'studio', x: 0.6, y: 0.45 },
       }),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     roomMessages.set([msg]);
     await new Promise((r) => setTimeout(r, 30));
@@ -488,5 +541,4 @@ describe('CollaborationService (Sprint B2)', () => {
     svc.sendProjectUpdate();
     expect(sent.length).toBe(0);
   });
-
 });

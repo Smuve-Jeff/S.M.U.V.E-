@@ -144,10 +144,7 @@ export class AiProduceService {
   });
 
   hasArtifacts = computed(
-    () =>
-      !!this.currentIdea() &&
-      !!this.currentBeat() &&
-      !!this.currentLyrics()
+    () => !!this.currentIdea() && !!this.currentBeat() && !!this.currentLyrics()
   );
 
   private cancelled = false;
@@ -310,8 +307,16 @@ export class AiProduceService {
               'instrumental',
               'Completed'
             );
-            await this.releases.updateTrackStage(track.id, 'lyrics', 'Completed');
-            await this.releases.updateTrackStage(track.id, 'mixing', 'Completed');
+            await this.releases.updateTrackStage(
+              track.id,
+              'lyrics',
+              'Completed'
+            );
+            await this.releases.updateTrackStage(
+              track.id,
+              'mixing',
+              'Completed'
+            );
             await this.releases.updateTrackStage(
               track.id,
               'mastering',
@@ -341,7 +346,9 @@ export class AiProduceService {
         'AI Produce complete. Tap Apply to commit to your studio.',
         'success'
       );
-      this.logger.info('Sprint B3+polish: AI Produce run finished — all 6 stages.');
+      this.logger.info(
+        'Sprint B3+polish: AI Produce run finished — all 6 stages.'
+      );
       return this.buildResult(false);
     } catch (e: any) {
       const msg = (e && e.message) || 'AI Produce failed.';
@@ -365,18 +372,7 @@ export class AiProduceService {
     const topic = (opts.prompt || `${mood} ${genre} track`).trim();
     const bpm = opts.bpm && opts.bpm > 0 ? opts.bpm : this.suggestBpm(genre);
     const energy = this.suggestEnergy(genre, mood);
-    const keys = [
-      'C#m',
-      'Am',
-      'F#m',
-      'Dm',
-      'Em',
-      'Cm',
-      'Gm',
-      'Bm',
-      'C',
-      'G',
-    ];
+    const keys = ['C#m', 'Am', 'F#m', 'Dm', 'Em', 'Cm', 'Gm', 'Bm', 'C', 'G'];
     const key = keys[Math.floor(Math.random() * keys.length)];
     const estimatedBars = this.estimateBars(genre);
     return {
@@ -582,7 +578,8 @@ export class AiProduceService {
     );
 
     const chorus =
-      lyrics?.lyrics?.find((entry) => entry.type === 'chorus') ?? lyrics?.lyrics?.[0];
+      lyrics?.lyrics?.find((entry) => entry.type === 'chorus') ??
+      lyrics?.lyrics?.[0];
     if (chorus?.lines?.length) {
       results.push({
         id: `produce_hook_${idea.title}`,

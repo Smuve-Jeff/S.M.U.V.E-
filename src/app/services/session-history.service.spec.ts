@@ -65,12 +65,17 @@ describe('SessionHistoryService (D2 + D3)', () => {
     await sut.checkpoint('proj-2', 'a', { tempo: 128 });
     const second = await sut.checkpoint('proj-2', 'b', { tempo: 128 });
     expect(second).toBeNull();
-    expect(sut.checkpoints('proj-2', sut.activeBranch('proj-2')!).length).toBe(1);
+    expect(sut.checkpoints('proj-2', sut.activeBranch('proj-2')!).length).toBe(
+      1
+    );
   });
 
   it('advances lineage + materializes intermediate deltas', async () => {
     await sut.checkpoint('proj-3', 'init', { tempo: 128, key: 'A minor' });
-    await sut.checkpoint('proj-3', 'bump tempo', { tempo: 140, key: 'A minor' });
+    await sut.checkpoint('proj-3', 'bump tempo', {
+      tempo: 140,
+      key: 'A minor',
+    });
     await sut.checkpoint('proj-3', 'swap key', { tempo: 140, key: 'C minor' });
     const cps = sut.checkpoints('proj-3', sut.activeBranch('proj-3')!);
     expect(cps.length).toBe(3);
@@ -105,7 +110,11 @@ describe('SessionHistoryService (D2 + D3)', () => {
     await sut.checkpoint('proj-6', 'init', { tempo: 120 });
     const mainId = sut.activeBranch('proj-6')!;
     await sut.checkpoint('proj-6', 'main move', { tempo: 130 });
-    const newBranch = await sut.createBranch('proj-6', 'alt', sut.checkpoints('proj-6', mainId)[0].id);
+    const newBranch = await sut.createBranch(
+      'proj-6',
+      'alt',
+      sut.checkpoints('proj-6', mainId)[0].id
+    );
     await sut.setActiveBranch('proj-6', newBranch.id);
     await sut.checkpoint('proj-6', 'alt move', { tempo: 110 });
     const restore = await sut.switchBranch('proj-6', mainId);
@@ -237,9 +246,9 @@ describe('SessionHistoryService (D2 + D3)', () => {
     expect(sut.timelineComments('proj-review')).toHaveLength(1);
     expect(sut.commentsForCheckpoint('proj-review', 'cp-1')).toHaveLength(1);
     expect(sut.timelineApprovals('proj-review')).toHaveLength(1);
-    expect(sut.approvalsForCheckpoint('proj-review', 'cp-1')[0].overallStatus).toBe(
-      'approved'
-    );
+    expect(
+      sut.approvalsForCheckpoint('proj-review', 'cp-1')[0].overallStatus
+    ).toBe('approved');
   });
 
   // ─── D3 — Branching & Merge ───────────────────────────────────────
@@ -274,7 +283,10 @@ describe('SessionHistoryService (D2 + D3)', () => {
   it('threeWayMerge yields clean status + auto-resolved fields when edits are disjoint', async () => {
     await sut.checkpoint('proj-15', 'init', { tempo: 100, gain: 0.7 });
     const mainId = sut.activeBranch('proj-15')!;
-    await sut.checkpoint('proj-15', 'main moves gain', { tempo: 100, gain: 0.8 });
+    await sut.checkpoint('proj-15', 'main moves gain', {
+      tempo: 100,
+      gain: 0.8,
+    });
 
     const fork = await sut.createBranch(
       'proj-15',
@@ -282,7 +294,10 @@ describe('SessionHistoryService (D2 + D3)', () => {
       sut.checkpoints('proj-15', mainId)[0].id
     );
     await sut.setActiveBranch('proj-15', fork.id);
-    await sut.checkpoint('proj-15', 'alt moves tempo', { tempo: 130, gain: 0.7 });
+    await sut.checkpoint('proj-15', 'alt moves tempo', {
+      tempo: 130,
+      gain: 0.7,
+    });
 
     await sut.setActiveBranch('proj-15', mainId);
     const result = await sut.threeWayMerge('proj-15', fork.id, mainId);
@@ -379,14 +394,12 @@ describe('SessionHistoryService (D2 + D3)', () => {
 
     const srcCp = sut.checkpoints('proj-19', fork.id).at(-1)!;
     await sut.setActiveBranch('proj-19', mainId);
-    const result = await sut.cherryPick(
-      'proj-19',
-      fork.id,
-      srcCp.id,
-      mainId
-    );
+    const result = await sut.cherryPick('proj-19', fork.id, srcCp.id, mainId);
     expect(result?.status).toBe('clean');
-    const finalState = sut.materializeSnapshot('proj-19', result!.newCheckpointId);
+    const finalState = sut.materializeSnapshot(
+      'proj-19',
+      result!.newCheckpointId
+    );
     expect(finalState?.['tempo']).toBe(130);
     expect(finalState?.['gain']).toBe(0.6);
   });
@@ -406,12 +419,7 @@ describe('SessionHistoryService (D2 + D3)', () => {
     const srcCp = sut.checkpoints('proj-20', fork.id).at(-1)!;
 
     await sut.setActiveBranch('proj-20', mainId);
-    const result = await sut.cherryPick(
-      'proj-20',
-      fork.id,
-      srcCp.id,
-      mainId
-    );
+    const result = await sut.cherryPick('proj-20', fork.id, srcCp.id, mainId);
     expect(result?.status).toBe('conflict');
     expect(result?.conflicts.length).toBeGreaterThan(0);
     expect(result?.conflicts[0].field).toBe('tempo');

@@ -175,7 +175,7 @@ describe('server/index.js backend smoke tests', () => {
 
     const response2 = await requestJson(baseUrl, '/api/users/user-1/friends', {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: 'Bearer ' + token,
       },
     });
 
@@ -192,7 +192,7 @@ describe('server/index.js backend smoke tests', () => {
 
     const response = await requestJson(baseUrl, '/api/users/user-1/friends', {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: 'Bearer ' + token,
       },
     });
 
@@ -219,7 +219,7 @@ describe('server/index.js backend smoke tests', () => {
 
     const response = await requestJson(baseUrl, '/api/studio/sessions/proj-1', {
       headers: {
-        Authorization: `******
+        Authorization: 'Bearer ' + token,
       },
     });
 
@@ -255,7 +255,7 @@ describe('server/index.js backend smoke tests', () => {
 
     const response = await requestJson(baseUrl, '/api/remix/lineage/proj-1', {
       headers: {
-        Authorization: `******
+        Authorization: 'Bearer ' + token,
       },
     });
 

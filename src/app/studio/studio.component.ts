@@ -66,7 +66,10 @@ import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.compo
 import { ChordEditorComponent } from './chord-editor/chord-editor.component';
 import { MidiInputWidgetComponent } from './midi-input-widget/midi-input-widget.component';
 import { SamplerComponent } from './sampler/sampler.component';
-import { PerformanceModeComponent, PerformancePad } from './performance-mode/performance-mode.component';
+import {
+  PerformanceModeComponent,
+  PerformancePad,
+} from './performance-mode/performance-mode.component';
 import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.component';
 import { BezierEditorComponent } from './automation/bezier-editor.component';
 import { ScoreViewComponent } from './score-view/score-view.component';
@@ -281,7 +284,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleBezierEditor(laneId?: string): void {
     this.haptic.light();
     if (laneId) this.bezierLaneId.set(laneId);
-    this.showBezierEditor.update(v => !v);
+    this.showBezierEditor.update((v) => !v);
   }
 
   // ── Vocal comp view ─────────────────────────────────────
@@ -289,7 +292,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleVocalComp(): void {
     this.haptic.light();
-    this.showVocalComp.update(v => !v);
+    this.showVocalComp.update((v) => !v);
   }
 
   onBezierCurveChanged(curve: any): void {
@@ -312,25 +315,35 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   onPerformancePadClicked(pad: PerformancePad): void {
     this.haptic.medium();
     // Toggle playing state
-    this.performancePads.update(pads =>
-      pads.map(p => p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p)
+    this.performancePads.update((pads) =>
+      pads.map((p) => (p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p))
     );
     // Trigger a note on the live engine
     const midiNotes: Record<string, number> = {
-      'KICK': 36, 'SNARE': 38, 'HAT': 42, 'CLAP': 39,
-      'BASS': 45, 'CHORD': 48, 'LEAD': 60, 'FX': 72,
+      KICK: 36,
+      SNARE: 38,
+      HAT: 42,
+      CLAP: 39,
+      BASS: 45,
+      CHORD: 48,
+      LEAD: 60,
+      FX: 72,
     };
     const note = midiNotes[pad.name] || 48;
     if (!pad.isPlaying) {
       // Hit it
       this.audioEngine.resume();
     }
-    this.snackbarService.info(`Pad ${pad.isPlaying ? 'OFF' : 'HIT'}: ${pad.name}`);
+    this.snackbarService.info(
+      `Pad ${pad.isPlaying ? 'OFF' : 'HIT'}: ${pad.name}`
+    );
   }
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
-  studioWeeklyDashboard = computed(() => this.studioTelemetry.weeklyDashboard());
+  studioWeeklyDashboard = computed(() =>
+    this.studioTelemetry.weeklyDashboard()
+  );
   /** True after the very first time this component has been constructed this browser. */
   firstNavigationSeen = signal(
     typeof localStorage !== 'undefined' &&
@@ -781,11 +794,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       .writeText(url)
       .then(() => {
         this.snackbarService.success('Studio link copied to clipboard');
-        this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, true);
+        this.studioTelemetry.trackEvent(
+          'share_link_copied',
+          { hasSession: !!sessionId },
+          true
+        );
       })
       .catch(() => {
         this.snackbarService.error('Could not copy link');
-        this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, false);
+        this.studioTelemetry.trackEvent(
+          'share_link_copied',
+          { hasSession: !!sessionId },
+          false
+        );
       });
   }
 
@@ -807,7 +828,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   applyTemplate(id: string) {
-    const template = this.templateService.templates.find((item) => item.id === id);
+    const template = this.templateService.templates.find(
+      (item) => item.id === id
+    );
     if (!template) return;
     this.templateService.applyTemplate(id);
     this.projectWorkspace.startFreshProject({
@@ -818,7 +841,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.closeMobilePanel();
     this.snackbarService.success('Template applied');
     this.haptic.medium();
-    this.studioTelemetry.trackEvent('template_applied', { templateId: id }, true);
+    this.studioTelemetry.trackEvent(
+      'template_applied',
+      { templateId: id },
+      true
+    );
   }
 
   toggleMobilePanel(panel: MobileStudioPanel) {
@@ -894,7 +921,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.musicManager.snapshotProject()
       );
       this.snackbarService.success('Collaboration session started');
-      this.studioTelemetry.trackEvent('collab_started', { userId: user.id }, true);
+      this.studioTelemetry.trackEvent(
+        'collab_started',
+        { userId: user.id },
+        true
+      );
     }
   }
 
@@ -1114,7 +1145,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Apply a specific AI mix suggestion to a track */
   applyMixSuggestion(suggestionId: string) {
     if (!this.collaboration.can('edit')) {
-      this.snackbarService.error('Your session role is view-only for mix edits.');
+      this.snackbarService.error(
+        'Your session role is view-only for mix edits.'
+      );
       return;
     }
     const suggestion = this.aiMixAssistant
@@ -1174,7 +1207,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch (e) {
       this.studioTelemetry.trackEvent(
         'studio_error',
-        { action: 'project_save', error: e instanceof Error ? e.message : 'unknown' },
+        {
+          action: 'project_save',
+          error: e instanceof Error ? e.message : 'unknown',
+        },
         false
       );
       throw e;
@@ -1186,7 +1222,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       this.projectWorkspace.downloadProjectBundle();
       this.snackbarService.success('Project exported as .smuve bundle');
-      this.studioTelemetry.trackEvent('project_exported', { format: 'smuve' }, true);
+      this.studioTelemetry.trackEvent(
+        'project_exported',
+        { format: 'smuve' },
+        true
+      );
     } catch (e) {
       this.studioTelemetry.trackEvent(
         'project_exported',
@@ -1195,7 +1235,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       this.studioTelemetry.trackEvent(
         'studio_error',
-        { action: 'project_export', error: e instanceof Error ? e.message : 'unknown' },
+        {
+          action: 'project_export',
+          error: e instanceof Error ? e.message : 'unknown',
+        },
         false
       );
       throw e;
@@ -1437,7 +1480,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const takes = this.smartRecording.activeCompGroupTakes();
     if (takes.length === 0) {
       this.snackbarService.info('No comp takes to export');
-      this.studioTelemetry.trackEvent('comp_takes_exported', { count: 0 }, false);
+      this.studioTelemetry.trackEvent(
+        'comp_takes_exported',
+        { count: 0 },
+        false
+      );
       return;
     }
 
@@ -1460,7 +1507,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.snackbarService.success(`Exported ${takes.length} take(s) as WAV`);
-    this.studioTelemetry.trackEvent('comp_takes_exported', { count: takes.length }, true);
+    this.studioTelemetry.trackEvent(
+      'comp_takes_exported',
+      { count: takes.length },
+      true
+    );
   }
 
   /** Helper: trigger a file download from a Blob */
@@ -1587,7 +1638,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       this.studioTelemetry.trackEvent(
         'studio_error',
-        { action: 'midi_export', error: e instanceof Error ? e.message : 'unknown' },
+        {
+          action: 'midi_export',
+          error: e instanceof Error ? e.message : 'unknown',
+        },
         false
       );
       this.snackbarService.error(
@@ -1683,7 +1737,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     // Redo
-    if (ctrl && event.key === 'Z' || (ctrl && event.shiftKey && event.key === 'z')) {
+    if (
+      (ctrl && event.key === 'Z') ||
+      (ctrl && event.shiftKey && event.key === 'z')
+    ) {
       event.preventDefault();
       this.history.redo();
       return true;
