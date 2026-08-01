@@ -66,14 +66,24 @@
             *ngFor="let note of staff.notes"
             class="score-note"
             [class.score-note-accidental]="isAccidental(note.midi)"
+            [class.score-note-quiet]="note.velocity < 64"
             [style.left.px]="note.left + 120"
             [style.top.px]="note.staffTop"
+            [style.opacity]="note.velocityOpacity"
             [attr.title]="note.name + note.octave + ' · ' + note.duration + ' · velocity ' + note.velocity"
           >
             <span class="score-note-stem" aria-hidden="true"></span>
             <span class="score-note-head">{{ note.accidental }}</span>
             <span class="score-note-label">{{ note.name }}{{ note.octave }}</span>
           </div>
+          <div
+            *ngFor="let rest of staff.rests"
+            class="score-rest"
+            [style.left.px]="rest.left + 120"
+            [style.top.px]="rest.staffTop"
+            [attr.title]="'Rest · bar ' + rest.bar"
+            aria-label="Rest"
+          >𝄽</div>
         </div>
       </div>
     </article>

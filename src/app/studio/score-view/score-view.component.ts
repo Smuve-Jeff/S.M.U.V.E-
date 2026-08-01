@@ -15,6 +15,19 @@ export interface ScoreNote {
   left: number;
   staffTop: number;
   velocity: number;
+  /** 0.45 (quiet) → 1 (loud) — drives note-head shading. */
+  velocityOpacity: number;
+}
+
+/** Sprint A5 — a rest drawn on the beat grid where no note sounds. */
+export interface ScoreRest {
+  id: string;
+  /** 1-based bar the rest falls in. */
+  bar: number;
+  /** Horizontal offset from the staff origin (steps). */
+  left: number;
+  /** Staff-relative vertical center (middle of the staff). */
+  staffTop: number;
 }
 
 export interface ScoreStaff {
@@ -22,6 +35,7 @@ export interface ScoreStaff {
   name: string;
   color: string;
   notes: ScoreNote[];
+  rests: ScoreRest[];
   noteCount: number;
   range: string;
 }
@@ -75,6 +89,7 @@ export class ScoreViewComponent {
           name: track.name || 'Untitled track',
           color: track.color || '#2ba09c',
           notes,
+          rests: this.computeRests(notes),
           noteCount: notes.length,
           range:
             notes.length > 0
@@ -83,6 +98,37 @@ export class ScoreViewComponent {
         };
       })
   );
+
+  /**
+   * Sprint A5 — rests on the quarter-note grid: any beat in a bar that has at
+   * least one note but no note *onset* gets a rest glyph. Bars with no notes at
+   * all are skipped (they read as empty measures, not rest spam).
+   */
+  private computeRests(notes: ScoreNote[]): ScoreRest[] {
+    const rests: ScoreRest[] = [];
+    const byBar = new Map<number, ScoreNote[]>();
+    for (const note of notes) {
+      const list = byBar.get(note.bar) ?? [];
+      list.push(note);
+      byBar.set(note.bar, list);
+    }
+    const BEATS = [0, 4, 8, 12];
+    for (const [bar, barNotes] of byBar) {
+      if (barNotes.length === 0) continue;
+      const occupied = new Set(barNotes.map((n) => Math.floor(n.step) % 16));
+      for (const beat of BEATS) {
+        if (!occupied.has(beat)) {
+          rests.push({
+            id: `rest_${bar}_${beat}`,
+            bar,
+            left: ((bar - 1) * 16 + beat) * STEP_WIDTH,
+            staffTop: 50,
+          });
+        }
+      }
+    }
+    return rests;
+  }
 
   readonly totalNotes = computed(() =>
     this.staves().reduce((total, staff) => total + staff.noteCount, 0)
@@ -129,6 +175,7 @@ export class ScoreViewComponent {
       // The staff is a visual pitch guide; middle C sits in the center.
       staffTop: 50 - (midi - 60) * STAFF_TOP_BY_SEMITONE,
       velocity: Math.round((note.velocity ?? 0.8) * 127),
+      velocityOpacity: 0.45 + Math.min(1, Math.max(0, note.velocity ?? 0.8)) * 0.55,
     };
   }
 }

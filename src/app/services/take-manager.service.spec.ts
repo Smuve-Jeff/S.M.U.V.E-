@@ -209,4 +209,99 @@ describe('TakeManagerService (Sprint A3 starter)', () => {
     expect(svc.compStack('trk1')()).toEqual([]);
     expect(svc.getTakes('trk1')()).toEqual([]);
   });
+
+  // ── Sprint A3 Phase 5 — sectional comping + persistence ──
+
+  it('setSection assigns a take to a step span and sorts sections', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.setSection('trk1', 32, 48, a.id);
+    svc.setSection('trk1', 0, 16, a.id);
+    const sections = svc.sections('trk1')();
+    expect(sections.length).toBe(2);
+    expect(sections[0].startStep).toBe(0);
+    expect(sections[1].startStep).toBe(32);
+  });
+
+  it('getCompNotesForStepNow returns the covering section take notes', () => {
+    const a = svc.stampTake(
+      'trk1',
+      'Take A',
+      [{ id: 'nA', midi: 60, step: 2, length: 1, velocity: 100 }],
+      0
+    );
+    const b = svc.stampTake(
+      'trk1',
+      'Take B',
+      [{ id: 'nB', midi: 64, step: 2, length: 1, velocity: 100 }],
+      0
+    );
+    svc.setSection('trk1', 0, 16, b.id);
+    // Step 4 falls inside the section → take B's notes.
+    expect(svc.getCompNotesForStepNow('trk1', 4)[0].midi).toBe(64);
+    // Step 24 is outside the section → falls back to active take (last stamped).
+    expect(svc.getCompNotesForStepNow('trk1', 24)[0].midi).toBe(64);
+    // Unknown track → [] so the caller keeps working notes.
+    expect(svc.getCompNotesForStepNow('nope', 4)).toEqual([]);
+    expect(a.id).toBeTruthy();
+  });
+
+  it('removeSection removes only the named section', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    const s1 = svc.setSection('trk1', 0, 16, a.id);
+    svc.setSection('trk1', 32, 48, a.id);
+    svc.removeSection('trk1', s1.id);
+    const sections = svc.sections('trk1')();
+    expect(sections.length).toBe(1);
+    expect(sections[0].startStep).toBe(32);
+  });
+
+  it('removeTake also drops sections pointing at the deleted take', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.setSection('trk1', 0, 16, a.id);
+    svc.removeTake('trk1', a.id);
+    expect(svc.sections('trk1')()).toEqual([]);
+  });
+
+  it('applySections bakes section takes and keeps gaps from working notes', () => {
+    const a = svc.stampTake(
+      'trk1',
+      'Take A',
+      [{ id: 'nA', midi: 60, step: 2, length: 1, velocity: 100 }],
+      0
+    );
+    svc.setSection('trk1', 0, 16, a.id);
+    const working = [{ id: 'w', midi: 72, step: 20, length: 1, velocity: 90 }];
+    const merged = svc.applySections('trk1', working);
+    expect(merged.some((n) => n.midi === 60)).toBe(true); // section take
+    expect(merged.some((n) => n.midi === 72)).toBe(true); // gap keeps working
+  });
+
+  it('serialize/restore round-trips takes, active, comp and sections', () => {
+    const a = svc.stampTake(
+      'trk1',
+      'Take A',
+      [{ id: 'nA', midi: 60, step: 2, length: 1, velocity: 100 }],
+      0
+    );
+    svc.setPunchIn('trk1', true);
+    svc.setSection('trk1', 0, 16, a.id);
+
+    const bundle = svc.serialize();
+    svc.clearTakesForTrack('trk1');
+    expect(svc.getTakes('trk1')()).toEqual([]);
+
+    svc.restore(bundle);
+    expect(svc.getTakes('trk1')().length).toBe(1);
+    expect(svc.isPunchIn('trk1')()).toBe(true);
+    expect(svc.sections('trk1')().length).toBe(1);
+    expect(svc.getActiveTake('trk1')()?.id).toBe(a.id);
+  });
+
+  it('restore(undefined) is a safe no-op', () => {
+    svc.addTake('trk1', 'Take A');
+    svc.restore(undefined);
+    expect(svc.getTakes('trk1')().length).toBe(1);
+    svc.restore(null);
+    expect(svc.getTakes('trk1')().length).toBe(1);
+  });
 });

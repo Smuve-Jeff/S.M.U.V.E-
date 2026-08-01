@@ -172,4 +172,64 @@ describe('TakeLaneComponent (Sprint A3 Phase 3)', () => {
     expect(component.compStack()).toEqual([]);
     expect(takeManager.getTakes('trk1')().length).toBe(1);
   });
+
+  // ── Sprint A3 Phase 5 — sectional comping ─────────────────────────
+
+  it('assignBar without a picked take is a no-op with an info snack', () => {
+    component.toggleSectionMode();
+    component.assignBar(1);
+    expect(takeManager.sections('trk1')().length).toBe(0);
+    expect(mockSnack.info).toHaveBeenCalledWith(
+      'Tap a take chip first to pick which take to assign'
+    );
+  });
+
+  it('pick a take then assignBar creates a section for that bar', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    component.toggleSectionMode();
+    component.onChipTap(a.id);
+    expect(component.pickedTakeId()).toBe(a.id);
+    component.assignBar(2);
+    const sections = takeManager.sections('trk1')();
+    expect(sections.length).toBe(1);
+    expect(sections[0].startStep).toBe(16);
+    expect(sections[0].endStep).toBe(32);
+    expect(component.sectionForBar(2)?.takeId).toBe(a.id);
+    expect(component.sectionForBar(3)).toBeUndefined();
+  });
+
+  it('assignBar toggles a section off when re-tapping the same take', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    component.toggleSectionMode();
+    component.onChipTap(a.id);
+    component.assignBar(1);
+    expect(takeManager.sections('trk1')().length).toBe(1);
+    component.assignBar(1);
+    expect(takeManager.sections('trk1')().length).toBe(0);
+  });
+
+  it('applySections bakes the sectional comp and exits section mode', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    component.toggleSectionMode();
+    component.onChipTap(a.id);
+    component.assignBar(1);
+    component.applySections();
+    expect(mockMusicManager.replaceTrackNotes).toHaveBeenCalledWith(
+      'trk1',
+      expect.any(Array)
+    );
+    expect(component.sectionMode()).toBe(false);
+  });
+
+  it('clearSections removes all section assignments', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    component.toggleSectionMode();
+    component.onChipTap(a.id);
+    component.assignBar(1);
+    component.assignBar(2);
+    expect(takeManager.sections('trk1')().length).toBe(2);
+    component.clearSections();
+    expect(takeManager.sections('trk1')().length).toBe(0);
+    expect(component.pickedTakeId()).toBeNull();
+  });
 });

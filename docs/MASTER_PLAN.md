@@ -92,6 +92,9 @@ framework; this is our Apple-GarageBand-killer angle).
   performance quantization) — beat BandLab's grid and Koala's scenes.
 - **A5 — Notation view** (basic score from MIDI: clefs, note heads, rests,
   velocity shading) — only Cubasis has it; we ship it free.
+  ✅ *Score view ships staves per MIDI track with clef, bar ruler, accidentals,
+  duration labels, quarter-note rest glyphs on empty beats, and velocity
+  shading on note heads.*
 - **A6 — Export formats + cloud** (MP3/FLAC/OGG encode, .mid, project cloud
   save with offline-sync merge) — n-Track/BandLab parity.
 
@@ -128,7 +131,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A2 | Slide notes | FL Mobile | ✅ |
 | A3 | Loop record + comping | Cubasis, Audio Evolution | ✅ |
 | A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
-| A5 | Notation view | Cubasis | ⬜ |
+| A5 | Notation view | Cubasis | ✅ |
 | A6 | Export formats + cloud | n-Track, BandLab | ⬜ |
 | B1 | WASM plugin framework | ALL (Android) | ⬜ |
 | B2 | Real-time collab | BandLab | ⬜ |

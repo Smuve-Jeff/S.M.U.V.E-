@@ -83,4 +83,22 @@ describe('ScoreViewComponent', () => {
     expect(component.durationLabel(2)).toBe('eighth');
     expect(component.durationLabel(1)).toBe('sixteenth');
   });
+
+  it('adds velocity shading: louder notes are more opaque', () => {
+    const notes = component.staves()[0].notes;
+    const quiet = notes.find((n) => n.id === 'n-2'); // velocity 0.5
+    const loud = notes.find((n) => n.id === 'n-1'); // velocity 0.9
+    expect(quiet!.velocityOpacity).toBeCloseTo(0.725, 3);
+    expect(loud!.velocityOpacity).toBeCloseTo(0.945, 3);
+    expect(loud!.velocityOpacity).toBeGreaterThan(quiet!.velocityOpacity);
+  });
+
+  it('marks quarter-note rests on beats with no note onset', () => {
+    const staff = component.staves()[0];
+    // Two notes: n-1 at step 0 (bar 1, beat 1) and n-2 at step 16 (bar 2, beat 1).
+    // Bars 1 and 2 each get rests on beats 2–4 → 3 + 3 = 6 rests.
+    expect(staff.rests.length).toBe(6);
+    expect(staff.rests.every((r) => r.bar === 1 || r.bar === 2)).toBe(true);
+    expect(staff.rests.some((r) => r.left > 0)).toBe(true);
+  });
 });

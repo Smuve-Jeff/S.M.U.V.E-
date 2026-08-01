@@ -23,6 +23,31 @@ export interface Take {
 }
 
 /**
+ * Sprint A3 Phase 5 — one comp section: a step range on a track assigned to a
+ * specific take. Playback uses the section's take for that span (sectional
+ * comping), while gaps fall back to the active take / working notes.
+ */
+export interface CompSection {
+  id: string;
+  trackId: string;
+  /** Inclusive first step of the section. */
+  startStep: number;
+  /** Exclusive last step of the section. */
+  endStep: number;
+  /** Take id that plays this span. */
+  takeId: string;
+}
+
+/** Serializable snapshot of all take-lane state (persistence). */
+export interface TakeStateBundle {
+  takes: Record<string, Take[]>;
+  active: Record<string, string>;
+  punchIn: Record<string, boolean>;
+  compStack: Record<string, string[]>;
+  sections: Record<string, CompSection[]>;
+}
+
+/**
  * Take-lane manager for Sprint A3 (loop record + comping). Keeps all state in
  * `Map<trackId, ...>`-shaped signals so callers never touch the Track model or
  * its renderer.
@@ -30,6 +55,7 @@ export interface Take {
  * Punch-in is per-track (the toggle to *create* a new take), not per-take.
  * The comp stack is an ordered take-id list; `applyComp` merges the stacked
  * takes' note snapshots back into the working track (later takes win overlaps).
+ * Sections (`setSection`) enable bar-by-bar comping with per-span take picks.
  */
 @Injectable({ providedIn: 'root' })
 export class TakeManagerService {
@@ -37,6 +63,7 @@ export class TakeManagerService {
   private readonly activeByTrack = signal<Record<string, string>>({});
   private readonly punchInByTrack = signal<Record<string, boolean>>({});
   private readonly compStackByTrack = signal<Record<string, string[]>>({});
+  private readonly sectionsByTrack = signal<Record<string, CompSection[]>>({});
 
   /**
    * Append a new take to the track and return it so the caller can persist
@@ -109,7 +136,7 @@ export class TakeManagerService {
   /**
    * Delete a single take by id. If the deleted take was the active selection,
    * the active selection for that track is cleared so UI never points at a
-   * dangling id.
+   * dangling id. Any comp sections referencing the take are also removed.
    */
   removeTake(trackId: string, takeId: string): void {
     this.takesByTrack.update((m) => ({
@@ -127,6 +154,11 @@ export class TakeManagerService {
       const stack = (m[trackId] ?? []).filter((id) => id !== takeId);
       return { ...m, [trackId]: stack };
     });
+    // Drop any sections pointing at the deleted take.
+    this.sectionsByTrack.update((m) => ({
+      ...m,
+      [trackId]: (m[trackId] ?? []).filter((s) => s.takeId !== takeId),
+    }));
   }
 
   /** Reactive list of takes for a track — never throws on unknown tracks. */
@@ -230,9 +262,123 @@ export class TakeManagerService {
     return [...merged.values()];
   }
 
+  // ── Sprint A3 Phase 5 — sectional comping ───────────────────────────
+
   /**
-   * Wipe all takes + active + punch-in + comp state for a track. Useful when
-   * the user resets a project or assigns a fresh instrument to the track.
+   * Assign a take to a step span on a track (sectional comp). Replaces any
+   * existing section that overlaps the span, then appends the new section.
+   */
+  setSection(
+    trackId: string,
+    startStep: number,
+    endStep: number,
+    takeId: string
+  ): CompSection {
+    const section: CompSection = {
+      id: `sec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      trackId,
+      startStep,
+      endStep,
+      takeId,
+    };
+    this.sectionsByTrack.update((m) => {
+      const rest = (m[trackId] ?? []).filter(
+        (s) => s.endStep <= startStep || s.startStep >= endStep
+      );
+      return { ...m, [trackId]: [...rest, section] };
+    });
+    return section;
+  }
+
+  /** Remove a comp section by id (safe no-op on unknown id). */
+  removeSection(trackId: string, sectionId: string): void {
+    this.sectionsByTrack.update((m) => ({
+      ...m,
+      [trackId]: (m[trackId] ?? []).filter((s) => s.id !== sectionId),
+    }));
+  }
+
+  /** Reactive list of comp sections for a track, sorted by start step. */
+  sections(trackId: string) {
+    return computed<CompSection[]>(() =>
+      [...(this.sectionsByTrack()[trackId] ?? [])].sort(
+        (a, b) => a.startStep - b.startStep
+      )
+    );
+  }
+
+  /** Section covering a step, or undefined. */
+  getSectionForStep(trackId: string, step: number): CompSection | undefined {
+    return (this.sectionsByTrack()[trackId] ?? []).find(
+      (s) => step >= s.startStep && step < s.endStep
+    );
+  }
+
+  /**
+   * Hot-path sectional playback read: notes that should sound at `step` for
+   * the track. A comp section covering the step returns its take's snapshot;
+   * otherwise falls back to the active take, then to [] so the caller keeps
+   * the working notes.
+   */
+  getCompNotesForStepNow(trackId: string, step: number): TrackNote[] {
+    const section = this.getSectionForStep(trackId, step);
+    if (section) {
+      const take = (this.takesByTrack()[trackId] ?? []).find(
+        (t) => t.id === section.takeId
+      );
+      if (take?.notes?.length) return take.notes;
+    }
+    return this.getActiveTakeNotesNow(trackId);
+  }
+
+  /**
+   * Bake the sectional comp into a full note list: section-assigned takes win
+   * inside their spans, gaps keep the working notes. Ready for
+   * `replaceTrackNotes` — the "APPLY" action for section mode.
+   */
+  applySections(trackId: string, workingNotes: TrackNote[]): TrackNote[] {
+    const sections = this.sectionsByTrack()[trackId] ?? [];
+    if (sections.length === 0) return workingNotes.map((n) => ({ ...n }));
+    const takes = this.takesByTrack()[trackId] ?? [];
+    const byCell = new Map<string, TrackNote>();
+    for (const n of workingNotes) byCell.set(`${n.step}:${n.midi}`, { ...n });
+    for (const sec of sections) {
+      const take = takes.find((t) => t.id === sec.takeId);
+      for (const n of take?.notes ?? []) {
+        if (n.step >= sec.startStep && n.step < sec.endStep) {
+          byCell.set(`${n.step}:${n.midi}`, { ...n });
+        }
+      }
+    }
+    return [...byCell.values()].sort((a, b) => a.step - b.step);
+  }
+
+  // ── Sprint A3 Phase 5 — persistence ─────────────────────────────────
+
+  /** Serialize all take-lane state for project save/export. */
+  serialize(): TakeStateBundle {
+    return {
+      takes: this.takesByTrack(),
+      active: this.activeByTrack(),
+      punchIn: this.punchInByTrack(),
+      compStack: this.compStackByTrack(),
+      sections: this.sectionsByTrack(),
+    };
+  }
+
+  /** Restore take-lane state from a saved bundle (safe no-op on undefined). */
+  restore(bundle: TakeStateBundle | undefined | null): void {
+    if (!bundle) return;
+    this.takesByTrack.set(bundle.takes ?? {});
+    this.activeByTrack.set(bundle.active ?? {});
+    this.punchInByTrack.set(bundle.punchIn ?? {});
+    this.compStackByTrack.set(bundle.compStack ?? {});
+    this.sectionsByTrack.set(bundle.sections ?? {});
+  }
+
+  /**
+   * Wipe all takes + active + punch-in + comp + sections state for a track.
+   * Useful when the user resets a project or assigns a fresh instrument.
    */
   clearTakesForTrack(trackId: string): void {
     this.takesByTrack.update((m) => {
@@ -251,6 +397,11 @@ export class TakeManagerService {
       return copy;
     });
     this.compStackByTrack.update((m) => {
+      const copy = { ...m };
+      delete copy[trackId];
+      return copy;
+    });
+    this.sectionsByTrack.update((m) => {
       const copy = { ...m };
       delete copy[trackId];
       return copy;

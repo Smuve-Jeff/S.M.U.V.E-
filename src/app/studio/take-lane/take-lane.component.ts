@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
+  CompSection,
   Take,
   TakeManagerService,
 } from '../../services/take-manager.service';
@@ -44,8 +45,34 @@ export class TakeLaneComponent {
   /** Sprint A3 Phase 4 — comp mode: chip taps build an ordered comp stack. */
   compMode = signal(false);
 
+  /** Sprint A3 Phase 5 — section mode: pick a take, then tap bars to assign. */
+  sectionMode = signal(false);
+
+  /** Take currently armed for bar assignment in section mode. */
+  pickedTakeId = signal<string | null>(null);
+
   /** Ordered comp stack (take ids) for this track. */
   compStack = computed(() => this.takeManager.compStack(this.trackId())());
+
+  /** Comp sections for this track, sorted by start step. */
+  sections = computed(() => this.takeManager.sections(this.trackId())());
+
+  /** Number of bars to comp over (from the track's furthest note, min 4). */
+  sectionBars = computed(() => {
+    const track = this.musicManager
+      .tracks()
+      .find((t) => t.id === this.trackId());
+    const furthest = (track?.notes ?? []).reduce(
+      (max, n) => Math.max(max, n.step + (n.length ?? 1)),
+      0
+    );
+    return Math.max(4, Math.ceil(furthest / 16));
+  });
+
+  /** Bar numbers available for section assignment (1-based). */
+  sectionBarColumns = computed(() =>
+    Array.from({ length: this.sectionBars() }, (_, i) => i + 1)
+  );
 
   /** 1-based order badge for a take inside the comp stack, or null. */
   compOrderOf(takeId: string): number | null {
@@ -94,13 +121,89 @@ export class TakeLaneComponent {
     this.snack.success(`Comp applied · ${merged.length} notes written`);
   }
 
-  /** Route a chip tap: comp build when in comp mode, else select active. */
+  /** Route a chip tap: pick a take in section mode, comp build in comp mode. */
   onChipTap(takeId: string): void {
-    if (this.compMode()) {
+    if (this.sectionMode()) {
+      this.pickedTakeId.set(takeId);
+      this.snack.info(`Section take picked — tap a bar to assign ${this.labelFor(takeId)}`);
+    } else if (this.compMode()) {
       this.toggleComp(takeId);
     } else {
       this.selectTake(takeId);
     }
+  }
+
+  /** Toggle section mode (bar-by-bar comp assignment). */
+  toggleSectionMode(): void {
+    this.sectionMode.update((v) => !v);
+    if (!this.sectionMode()) this.pickedTakeId.set(null);
+    this.haptic.light();
+  }
+
+  /** The section covering a bar, or undefined. */
+  sectionForBar(bar: number): CompSection | undefined {
+    const start = (bar - 1) * 16;
+    return this.sections().find(
+      (s) => s.startStep <= start && s.endStep > start
+    );
+  }
+
+  /** Short take label for a take id (falls back to 'Take ?'). */
+  labelFor(takeId: string): string {
+    return this.takes().find((t) => t.id === takeId)?.label ?? 'Take';
+  }
+
+  /** Assign the picked take to a bar (toggles off if already that take). */
+  assignBar(bar: number): void {
+    const takeId = this.pickedTakeId();
+    if (!takeId) {
+      this.snack.info('Tap a take chip first to pick which take to assign');
+      return;
+    }
+    const existing = this.sectionForBar(bar);
+    if (existing) {
+      this.takeManager.removeSection(this.trackId(), existing.id);
+      if (existing.takeId === takeId) {
+        this.snack.info(`Bar ${bar} unassigned`);
+        this.haptic.light();
+        return;
+      }
+    }
+    const start = (bar - 1) * 16;
+    const end = bar * 16;
+    this.takeManager.setSection(this.trackId(), start, end, takeId);
+    this.haptic.medium();
+    this.snack.success(`Bar ${bar} → ${this.labelFor(takeId)}`);
+  }
+
+  /** Clear all sections for this track. */
+  clearSections(): void {
+    for (const s of this.sections()) {
+      this.takeManager.removeSection(this.trackId(), s.id);
+    }
+    this.pickedTakeId.set(null);
+    this.haptic.light();
+  }
+
+  /** Bake the sectional comp into the working track notes. */
+  applySections(): void {
+    const track = this.musicManager
+      .tracks()
+      .find((t) => t.id === this.trackId());
+    if (!track) return;
+    if (this.sections().length === 0) {
+      this.snack.info('No sections assigned — pick a take, then tap bars');
+      return;
+    }
+    const merged = this.takeManager.applySections(
+      this.trackId(),
+      track.notes ?? []
+    );
+    this.musicManager.replaceTrackNotes(this.trackId(), merged);
+    this.sectionMode.set(false);
+    this.pickedTakeId.set(null);
+    this.haptic.medium();
+    this.snack.success(`Sections baked · ${merged.length} notes in track`);
   }
 
   /** Arm / disarm punch-in recording for this track. */

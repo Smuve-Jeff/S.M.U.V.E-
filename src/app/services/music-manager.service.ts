@@ -305,6 +305,8 @@ export class MusicManagerService {
     if (!snapshot) return;
     this.logger.info('Loading project snapshot...');
     this.history.clear();
+    // Sprint A3 Phase 5 — restore take-lane state saved in the snapshot.
+    this.takeManager.restore(snapshot.takeState);
   }
 
   // ── Tracks ─────────────────────────────────────────────────────────
@@ -1255,7 +1257,10 @@ export class MusicManagerService {
       tracks: this.tracks() as any,
       bpm: this.engine.tempo(),
       updatedAt: Date.now(),
-    };
+      // Sprint A3 Phase 5 — persist take-lane state (takes, active, punch-in,
+      // comp stacks, sections) alongside the arrangement.
+      takeState: this.takeManager.serialize(),
+    } as Project & { takeState: ReturnType<TakeManagerService['serialize']> };
   }
 
   importProject(file: File) {
@@ -1569,9 +1574,10 @@ export class MusicManagerService {
     this.tracks().forEach((t) => {
       if (t.muted) return;
 
-      // Sprint A3 Phase 4 — active-take playback: when a comp take is selected
-      // for this track, its note snapshot plays instead of the working copy.
-      const takeNotes = this.takeManager.getActiveTakeNotesNow(t.id);
+      // Sprint A3 Phase 4/5 — comp playback: a section-assigned take wins for
+      // this step (sectional comp), else the active take snapshot, else the
+      // working copy.
+      const takeNotes = this.takeManager.getCompNotesForStepNow(t.id, step);
       const playNotes = takeNotes.length > 0 ? takeNotes : t.notes;
 
       t.clips.forEach((clip) => {

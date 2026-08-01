@@ -263,6 +263,104 @@
   background: rgba(31, 26, 18, 0.06);
 }
 
+/* ============================================================
+   Sprint A3 Phase 5 — Sectional comp strip
+   ============================================================ */
+.tl-btn.tl-sections {
+  margin-left: 1px;
+}
+.tl-btn.tl-sections.armed {
+  background: var(--teal-500, #0e7c7b);
+  color: white;
+  box-shadow: 0 0 6px var(--teal-glow, rgba(43, 160, 156, 0.45));
+}
+
+.section-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  background: rgba(14, 124, 123, 0.08);
+  border: 1px dashed rgba(14, 124, 123, 0.5);
+}
+.section-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-bars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.section-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.16));
+  border-radius: 6px;
+  background: var(--ivory-paper, #fbf7ec);
+  padding: 2px 6px;
+  cursor: pointer;
+  min-height: 22px;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+.section-bar:hover,
+.section-bar:focus-visible {
+  border-color: var(--teal-500, #0e7c7b);
+  transform: translateY(-1px);
+}
+.section-bar:active {
+  transform: scale(0.95);
+}
+.section-bar.assigned {
+  background: var(--teal-50, #e6f5f4);
+  border-color: var(--teal-500, #0e7c7b);
+}
+.section-bar.picked {
+  box-shadow: 0 0 0 2px var(--orange, #d97706) inset;
+}
+.section-bar-num {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--espresso-muted, #7e7259);
+}
+.section-bar-take {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--teal-500, #0e7c7b);
+}
+.section-hint {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--espresso-muted, #7e7259);
+  margin: 0;
+}
+
+:host-context(.dark-mode) .section-strip {
+  background: rgba(43, 160, 156, 0.1);
+  border-color: rgba(43, 160, 156, 0.4);
+}
+:host-context(.dark-mode) .section-bar {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:host-context(.dark-mode) .section-bar.assigned {
+  background: rgba(43, 160, 156, 0.16);
+  border-color: var(--teal-400, #2ba09c);
+}
+:host-context(.dark-mode) .section-bar-num,
+:host-context(.dark-mode) .section-hint {
+  color: rgba(255, 255, 255, 0.45);
+}
+:host-context(.dark-mode) .section-bar-take {
+  color: var(--teal-300, #5dc4c2);
+}
+
 /* ── Dark mode ───────────────────────────────────────────── */
 :host-context(.dark-mode) .take-lane {
   background: rgba(255, 255, 255, 0.04);
