@@ -13,6 +13,10 @@ import { ReleasePipelineService } from './release-pipeline.service';
 import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
 import { LoggingService } from './logging.service';
+import {
+  StudioActionResult,
+  StudioActionTarget,
+} from '../types/studio-orchestration.types';
 
 export type ProduceStage =
   | 'idle'
@@ -140,10 +144,7 @@ export class AiProduceService {
   });
 
   hasArtifacts = computed(
-    () =>
-      !!this.currentIdea() &&
-      !!this.currentBeat() &&
-      !!this.currentLyrics()
+    () => !!this.currentIdea() && !!this.currentBeat() && !!this.currentLyrics()
   );
 
   private cancelled = false;
@@ -306,8 +307,16 @@ export class AiProduceService {
               'instrumental',
               'Completed'
             );
-            await this.releases.updateTrackStage(track.id, 'lyrics', 'Completed');
-            await this.releases.updateTrackStage(track.id, 'mixing', 'Completed');
+            await this.releases.updateTrackStage(
+              track.id,
+              'lyrics',
+              'Completed'
+            );
+            await this.releases.updateTrackStage(
+              track.id,
+              'mixing',
+              'Completed'
+            );
             await this.releases.updateTrackStage(
               track.id,
               'mastering',
@@ -337,7 +346,9 @@ export class AiProduceService {
         'AI Produce complete. Tap Apply to commit to your studio.',
         'success'
       );
-      this.logger.info('Sprint B3+polish: AI Produce run finished — all 6 stages.');
+      this.logger.info(
+        'Sprint B3+polish: AI Produce run finished — all 6 stages.'
+      );
       return this.buildResult(false);
     } catch (e: any) {
       const msg = (e && e.message) || 'AI Produce failed.';
@@ -361,18 +372,7 @@ export class AiProduceService {
     const topic = (opts.prompt || `${mood} ${genre} track`).trim();
     const bpm = opts.bpm && opts.bpm > 0 ? opts.bpm : this.suggestBpm(genre);
     const energy = this.suggestEnergy(genre, mood);
-    const keys = [
-      'C#m',
-      'Am',
-      'F#m',
-      'Dm',
-      'Em',
-      'Cm',
-      'Gm',
-      'Bm',
-      'C',
-      'G',
-    ];
+    const keys = ['C#m', 'Am', 'F#m', 'Dm', 'Em', 'Cm', 'Gm', 'Bm', 'C', 'G'];
     const key = keys[Math.floor(Math.random() * keys.length)];
     const estimatedBars = this.estimateBars(genre);
     return {
@@ -503,6 +503,114 @@ export class AiProduceService {
       `Applied ${trackIds.length} tracks to studio: ${trackIds.join(', ')}.`
     );
     return trackIds;
+  }
+
+  buildStudioActionResults(target: StudioActionTarget): StudioActionResult[] {
+    const beat = this.currentBeat();
+    const idea = this.currentIdea();
+    const lyrics = this.currentLyrics();
+    if (!beat || !idea) return [];
+
+    const createdAt = this.currentVoicePreview()?.generatedAt ?? Date.now();
+    const arrangementPreview = beat.arrangement
+      .map((section) => `${section.name} (${section.bars} bars)`)
+      .join(' → ');
+    const results: StudioActionResult[] = [
+      {
+        id: `produce_arrangement_${idea.title}`,
+        source: 'ai-produce',
+        kind: 'arrangement-completion',
+        title: `Complete ${idea.title}`,
+        description: `Use the generated ${beat.totalBars}-bar arrangement to complete the active ${target.activeView} pass.`,
+        reason: `AI Produce generated ${beat.arrangement.length} arrangement sections for the current session.`,
+        preview: arrangementPreview,
+        status: 'pending',
+        target,
+        payload: {
+          title: idea.title,
+          genre: beat.genre,
+          totalBars: beat.totalBars,
+          arrangement: beat.arrangement,
+          releaseId: this.appliedReleaseId(),
+        },
+        outcomes: {
+          preview: 'Review the generated arrangement outline.',
+          apply: 'Apply the arrangement artifacts to the studio project.',
+          transition: 'Use the generated transitions between sections.',
+          export: 'Export the arrangement brief for async collaboration.',
+        },
+        createdAt,
+        updatedAt: Date.now(),
+      },
+    ];
+
+    results.push(
+      ...beat.arrangement.slice(0, 3).flatMap((section, index, sections) => {
+        const next = sections[index + 1];
+        if (!next) return [];
+        return [
+          {
+            id: `produce_transition_${idea.title}_${index}`,
+            source: 'ai-produce' as const,
+            kind: 'section-transition' as const,
+            title: `${section.name} → ${next.name}`,
+            description: `Stage a transition from ${section.name} into ${next.name} for the active arrangement checkpoint.`,
+            reason: `${section.name} carries ${section.elements.join(', ')} before handing off to ${next.elements.join(', ')}.`,
+            preview: `${section.description} → ${next.description}`,
+            status: 'pending' as const,
+            target,
+            payload: {
+              fromSection: section,
+              toSection: next,
+              bpm: idea.bpm,
+            },
+            outcomes: {
+              preview: 'Preview the AI-produced transition brief.',
+              apply: 'Apply the transition direction to the arrangement.',
+              replace: 'Swap to a different transition idea.',
+              transition: 'Advance the checkpoint to the next section.',
+            },
+            createdAt,
+            updatedAt: Date.now(),
+          },
+        ];
+      })
+    );
+
+    const chorus =
+      lyrics?.lyrics?.find((entry) => entry.type === 'chorus') ??
+      lyrics?.lyrics?.[0];
+    if (chorus?.lines?.length) {
+      results.push({
+        id: `produce_hook_${idea.title}`,
+        source: 'ai-produce',
+        kind: 'hook-variant',
+        title: `Hook variants for ${idea.title}`,
+        description: `Attach hook candidates to ${target.selectedTrackId ?? 'the active arrangement'} for review.`,
+        reason: `Generated chorus material is available for the current ${target.activeView} context.`,
+        preview: chorus.lines
+          .slice(0, 3)
+          .map((line) => line.text)
+          .join('\n'),
+        status: 'pending',
+        target,
+        payload: {
+          hookLines: chorus.lines.map((line) => line.text),
+          voicePreviewReady: !!this.currentVoicePreview(),
+          mixReport: this.currentMixReport(),
+        },
+        outcomes: {
+          preview: 'Preview the hook variants against the active context.',
+          apply: 'Commit the current hook direction to the project.',
+          replace: 'Replace the active hook with a new variant.',
+          export: 'Export the hook brief for reviewers.',
+        },
+        createdAt,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return results;
   }
 
   // ── Internal helpers ──

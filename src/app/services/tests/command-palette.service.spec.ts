@@ -5,6 +5,7 @@ import { UIService } from '../ui.service';
 import { PlayerService } from '../player.service';
 import { AiService } from '../ai.service';
 import { NotificationService } from '../notification.service';
+import { StudioOrchestrationService } from '../studio-orchestration.service';
 
 describe('CommandPaletteService', () => {
   let service: CommandPaletteService;
@@ -12,6 +13,7 @@ describe('CommandPaletteService', () => {
   let playerService: any;
   let aiService: any;
   let notificationService: any;
+  let orchestrationService: any;
 
   beforeEach(() => {
     uiService = {
@@ -44,6 +46,19 @@ describe('CommandPaletteService', () => {
     notificationService = {
       show: jest.fn(),
     };
+    orchestrationService = {
+      paletteActions: signal([
+        {
+          id: 'studio-preview-ai',
+          label: 'Preview AI Fix',
+          description:
+            'Preview the primary AI fix for the current studio view.',
+          category: 'Studio AI',
+          keywords: ['studio', 'ai', 'preview'],
+          run: jest.fn(),
+        },
+      ]),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -52,6 +67,7 @@ describe('CommandPaletteService', () => {
         { provide: PlayerService, useValue: playerService },
         { provide: AiService, useValue: aiService },
         { provide: NotificationService, useValue: notificationService },
+        { provide: StudioOrchestrationService, useValue: orchestrationService },
       ],
     });
 
@@ -89,5 +105,15 @@ describe('CommandPaletteService', () => {
     service.runAction(action!);
     expect(uiService.toggleTheme).toHaveBeenCalled();
     expect(service.isOpen()).toBe(false);
+  });
+
+  it('includes orchestration-driven studio actions', () => {
+    const action = service
+      .actions()
+      .find((candidate) => candidate.id === 'studio-preview-ai');
+
+    expect(action?.label).toBe('Preview AI Fix');
+    action?.run();
+    expect(orchestrationService.paletteActions()[0].run).toHaveBeenCalled();
   });
 });

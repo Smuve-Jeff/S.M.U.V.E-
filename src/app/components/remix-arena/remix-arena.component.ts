@@ -11,6 +11,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { UIService } from '../../services/ui.service';
 import { AiService } from '../../services/ai.service';
 import { NotificationService } from '../../services/notification.service';
+import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -33,6 +34,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   uiService = inject(UIService);
   aiService = inject(AiService);
   notificationService = inject(NotificationService);
+  orchestration = inject(StudioOrchestrationService);
 
   code = signal(
     '// S.M.U.V.E 2.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
@@ -164,6 +166,7 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
         pan: updated.pan,
       });
     }
+    void this.orchestration.requestRemix();
   }
 
   onCodeChange(newCode: string) {

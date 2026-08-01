@@ -28,13 +28,37 @@ class StubAiBeat {
     },
     bass: { notes: [], pattern: 'root-fifth', style: '808' },
     chords: [
-      { chord: 'i', position: 0, duration: 4, velocity: 0.7, inversion: 'root' },
-      { chord: 'VI', position: 4, duration: 4, velocity: 0.7, inversion: 'root' },
+      {
+        chord: 'i',
+        position: 0,
+        duration: 4,
+        velocity: 0.7,
+        inversion: 'root',
+      },
+      {
+        chord: 'VI',
+        position: 4,
+        duration: 4,
+        velocity: 0.7,
+        inversion: 'root',
+      },
     ],
     melody: [],
     arrangement: [
-      { name: 'Intro', bars: 8, elements: ['hihat'], energy: 0.3, description: 'stubbed intro' },
-      { name: 'Verse', bars: 16, elements: ['kick', 'bass'], energy: 0.6, description: 'stubbed verse' },
+      {
+        name: 'Intro',
+        bars: 8,
+        elements: ['hihat'],
+        energy: 0.3,
+        description: 'stubbed intro',
+      },
+      {
+        name: 'Verse',
+        bars: 16,
+        elements: ['kick', 'bass'],
+        energy: 0.6,
+        description: 'stubbed verse',
+      },
     ],
     totalBars: 24,
     estimatedDuration: '0:42',
@@ -50,25 +74,42 @@ class StubSongwriter {
       { type: 'chorus', lines: [{ text: 'stubbed hook', syllableCount: 5 }] },
     ],
     chordProgressions: [
-      { name: 'Trap Minor', chords: ['i', 'VI'], key: 'F#m', mood: 'dark', complexity: 'Basic', usage: 'trap', artists: ['Drake'] },
+      {
+        name: 'Trap Minor',
+        chords: ['i', 'VI'],
+        key: 'F#m',
+        mood: 'dark',
+        complexity: 'Basic',
+        usage: 'trap',
+        artists: ['Drake'],
+      },
     ],
     melodyIdeas: [],
-    structure: { name: 'Hip-Hop', genre: 'Hip Hop', totalBars: 96, sections: [] },
+    structure: {
+      name: 'Hip-Hop',
+      genre: 'Hip Hop',
+      totalBars: 96,
+      sections: [],
+    },
   });
 }
 
 class StubAiMix {
-  autoMaster = jest.fn().mockReturnValue([
-    'Trap preset engaged.',
-    'Target -10 LUFS · -0.3 dBFS ceiling.',
-  ]);
+  autoMaster = jest
+    .fn()
+    .mockReturnValue([
+      'Trap preset engaged.',
+      'Target -10 LUFS · -0.3 dBFS ceiling.',
+    ]);
   detectGenre = jest.fn().mockReturnValue('trap');
-  recommendInstruments = jest.fn().mockReturnValue([
-    'sub-commander',
-    'trap-808-elite',
-    'cyber-stab',
-    'synth-lead',
-  ]);
+  recommendInstruments = jest
+    .fn()
+    .mockReturnValue([
+      'sub-commander',
+      'trap-808-elite',
+      'cyber-stab',
+      'synth-lead',
+    ]);
 }
 
 class StubReleases {
@@ -82,7 +123,12 @@ class StubReleases {
       description: '',
       status: 'Planning',
       tracks: [],
-      credits: { artistName: 'Stub', proName: '', proIpi: '', collaborators: [] },
+      credits: {
+        artistName: 'Stub',
+        proName: '',
+        proIpi: '',
+        collaborators: [],
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -166,7 +212,11 @@ describe('AiProduceService', () => {
   });
 
   it('applyIdea returns sensible defaults from a thin prompt', () => {
-    const idea = sut.applyIdea({ prompt: 'midnight rooftop swing', genre: 'Trap', mood: 'dark' });
+    const idea = sut.applyIdea({
+      prompt: 'midnight rooftop swing',
+      genre: 'Trap',
+      mood: 'dark',
+    });
     expect(idea.title.length).toBeGreaterThan(0);
     expect(idea.genre).toBe('Trap');
     expect(idea.mood).toBe('dark');
@@ -224,25 +274,47 @@ describe('AiProduceService', () => {
   it('applyToProject creates four tracks with stable role suffixes', () => {
     sut.reset();
     // Force an idea+beat quickly by running then cancelling before mix-master.
-    return sut
-      .run({ prompt: 'concrete test', genre: 'Trap' })
-      .then(() => {
-        const before = music.addTrack.mock.calls.length;
-        const ids = sut.applyToProject();
-        expect(ids.length).toBe(4);
-        expect(music.addTrack.mock.calls.length).toBe(before + 4);
-        const suffixes = music.addTrack.mock.calls
-          .slice(-4)
-          .map((c) => c[0].split(' · ')[1]);
-        expect(suffixes).toEqual(['Drums', 'Bass', 'Chords', 'Lead']);
-        expect(sut.appliedTrackIds().length).toBe(4);
-      });
+    return sut.run({ prompt: 'concrete test', genre: 'Trap' }).then(() => {
+      const before = music.addTrack.mock.calls.length;
+      const ids = sut.applyToProject();
+      expect(ids.length).toBe(4);
+      expect(music.addTrack.mock.calls.length).toBe(before + 4);
+      const suffixes = music.addTrack.mock.calls
+        .slice(-4)
+        .map((c) => c[0].split(' · ')[1]);
+      expect(suffixes).toEqual(['Drums', 'Bass', 'Chords', 'Lead']);
+      expect(sut.appliedTrackIds().length).toBe(4);
+    });
   });
 
   it('hasArtifacts is false until all three core stages complete', async () => {
     expect(sut.hasArtifacts()).toBe(false);
     await sut.run({ prompt: 'fire', genre: 'Lo-Fi' });
     expect(sut.hasArtifacts()).toBe(true);
+  });
+
+  it('buildStudioActionResults attaches actionable studio targets', async () => {
+    await sut.run({
+      prompt: 'midnight rooftop swing',
+      genre: 'Trap',
+      mood: 'dark',
+    });
+
+    const results = sut.buildStudioActionResults({
+      projectId: 'proj-1',
+      sessionId: 'sess-1',
+      activeView: 'arrangement',
+      selectedTrackId: 'track-1',
+      branchId: 'branch-1',
+      checkpointId: 'cp-1',
+    });
+
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(results[0].target.activeView).toBe('arrangement');
+    expect(results[0].target.selectedTrackId).toBe('track-1');
+    expect(results.some((result) => result.kind === 'section-transition')).toBe(
+      true
+    );
   });
 });
 
@@ -254,7 +326,10 @@ describe('AiProduceService · helpers', () => {
       providers: [
         AiProduceService,
         { provide: AiBeatGeneratorService, useValue: new StubAiBeat() },
-        { provide: SongwritingAssistantService, useValue: new StubSongwriter() },
+        {
+          provide: SongwritingAssistantService,
+          useValue: new StubSongwriter(),
+        },
         { provide: AiMixAssistantService, useValue: new StubAiMix() },
         { provide: ReleasePipelineService, useValue: new StubReleases() },
         { provide: MusicManagerService, useValue: new StubMusic() },
@@ -268,7 +343,9 @@ describe('AiProduceService · helpers', () => {
 
   it('guessMoodFromPrompt maps hobby keywords to moods', () => {
     expect((sut as any).guessMoodFromPrompt('dark gritty trap')).toBe('dark');
-    expect((sut as any).guessMoodFromPrompt('love forever romance')).toBe('romantic');
+    expect((sut as any).guessMoodFromPrompt('love forever romance')).toBe(
+      'romantic'
+    );
     expect((sut as any).guessMoodFromPrompt('party hype')).toBe('high-energy');
     expect((sut as any).guessMoodFromPrompt('chill lofi study')).toBe('chill');
     expect((sut as any).guessMoodFromPrompt('sad cry alone')).toBe('sad');

@@ -18,6 +18,20 @@ import { SnackbarService } from '../services/snackbar.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { signal, Component, NO_ERRORS_SCHEMA } from '@angular/core';
 import { of } from 'rxjs';
+import { ProjectWorkspaceService } from './project-workspace.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
+import { CollaborationService } from '../services/collaboration.service';
+import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
+import { StudioOrchestrationService } from '../services/studio-orchestration.service';
+import { ProjectService } from '../services/project.service';
+import { AuthService } from '../services/auth.service';
+import { StudioTelemetryService } from './studio-telemetry.service';
+import { SmartRecordingService } from './smart-recording.service';
+import { SmartSoundService } from './smart-sound.service';
+import { AudioImportService } from './audio-import.service';
+import { ComponentRecordingService } from './component-recording.service';
+import { LoggingService } from '../services/logging.service';
+import { HistoryService } from '../services/history.service';
 
 describe('StudioComponent', () => {
   let component: StudioComponent;
@@ -34,15 +48,62 @@ describe('StudioComponent', () => {
   const mockMusicManager = {
     currentStep: signal(0),
     tracks: signal([]),
+    selectedTrackId: signal<string | null>(null),
     applyGeneratedRecipe: jest.fn(),
     newProject: jest.fn(),
-    crossLinkRequest: jest.fn(),
-    crossLinkAnnounce: jest.fn(),
-    crossLinkSubscribe: jest.fn().mockReturnValue(() => undefined),
+    crossLinkRequest: signal(null),
+    snapshotProject: jest.fn().mockReturnValue({ id: 'proj-1', tracks: [] }),
   };
 
   const mockIdeasGenerator = {
     recipes: [],
+  };
+
+  const mockProjectWorkspace = {
+    restoreLatestProjectState: jest.fn().mockResolvedValue(false),
+    startFreshProject: jest.fn(),
+    updateMetadata: jest.fn(),
+    isDirty: signal(false),
+    metadata: signal(null),
+    lastAutoSave: signal(0),
+    lastPersistedAt: signal(0),
+    lastRecoveredAt: signal(null),
+    lastRecoveredSource: signal(null),
+    autoSaveEnabled: signal(true),
+    genres: [],
+    moods: [],
+    keys: [],
+  };
+
+  const mockTemplateService = {
+    templates: [],
+    applyTemplate: jest.fn(),
+  };
+
+  const mockSnackbar = {
+    info: jest.fn(),
+    success: jest.fn(),
+    error: jest.fn(),
+  };
+
+  const mockEngineLatency = {
+    readSnapshot: jest.fn().mockReturnValue({
+      totalLatencyMs: 24,
+      masterWorkletActive: true,
+      sampleRateHz: 48000,
+      contextState: 'running',
+    }),
+    runOfflineBenchmark: jest.fn(),
+    profileSummary: () => ({
+      snapshot: {
+        performanceTier: 'ultra',
+        totalLatencyMs: 24,
+        sampleRateHz: 48000,
+        contextState: 'running',
+      },
+      recentBenchmarks: [],
+      recommendations: [],
+    }),
   };
 
   const mockAudioEngine = {
@@ -54,12 +115,56 @@ describe('StudioComponent', () => {
     setSaturation: jest.fn(),
   };
 
+  const mockCollaboration = {
+    currentSession: signal<any>(null),
+    pendingConflicts: signal<any[]>([]),
+    peerCursors: signal({}),
+    voicePeers: signal({}),
+    publishCursor: jest.fn(),
+    joinSession: jest.fn(),
+    leaveSession: jest.fn(),
+    startSession: jest.fn().mockResolvedValue('sess-1'),
+    can: jest.fn().mockReturnValue(true),
+  };
+
+  const mockAiMixAssistant = {
+    analyses: signal<any[]>([]),
+    suggestions: signal<any[]>([]),
+    analyzeAll: jest.fn(),
+  };
+
+  const mockOrchestration = {
+    setActiveStudioView: jest.fn(),
+  };
+
+  const mockProjectService = {
+    currentProject: signal({ id: 'proj-1', name: 'Project 1' }),
+  };
+
+  const mockAuthService = {
+    currentUser: signal({ id: 'user-1', artistName: 'Tester' }),
+  };
+
+  const mockStudioTelemetry = {
+    weeklyDashboard: signal({}),
+    beginSession: jest.fn(),
+    endSession: jest.fn(),
+    trackEvent: jest.fn(),
+  };
+
+  const mockSmartRecording = {
+    onBarTick: jest.fn(),
+  };
+
   const mockHaptic = {
     light: jest.fn(),
     medium: jest.fn(),
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockTemplateService.templates = [];
+    mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
     await TestBed.configureTestingModule({
       imports: [StudioComponent],
       providers: [
@@ -75,9 +180,31 @@ describe('StudioComponent', () => {
         { provide: TouchGestureService, useValue: {} },
         { provide: SequencerService, useValue: {} },
         { provide: InteractionDialogService, useValue: {} },
-        { provide: ProjectTemplateService, useValue: { templates: [] } },
-        { provide: SnackbarService, useValue: { info: jest.fn() } },
+        { provide: ProjectTemplateService, useValue: mockTemplateService },
+        { provide: ProjectWorkspaceService, useValue: mockProjectWorkspace },
+        { provide: AudioEngineLatencyService, useValue: mockEngineLatency },
+        { provide: SnackbarService, useValue: mockSnackbar },
         { provide: IdeasGeneratorService, useValue: mockIdeasGenerator },
+        { provide: CollaborationService, useValue: mockCollaboration },
+        { provide: AiMixAssistantService, useValue: mockAiMixAssistant },
+        { provide: StudioOrchestrationService, useValue: mockOrchestration },
+        { provide: ProjectService, useValue: mockProjectService },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: StudioTelemetryService, useValue: mockStudioTelemetry },
+        { provide: SmartRecordingService, useValue: mockSmartRecording },
+        { provide: SmartSoundService, useValue: {} },
+        { provide: AudioImportService, useValue: {} },
+        { provide: ComponentRecordingService, useValue: {} },
+        {
+          provide: LoggingService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            system: jest.fn(),
+          },
+        },
+        { provide: HistoryService, useValue: {} },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
           provide: ActivatedRoute,
@@ -105,6 +232,9 @@ describe('StudioComponent', () => {
 
   it('exposes an active view signal initialised by the queryParamMap mock', () => {
     expect(component.activeView()).toBe('arrangement');
+    expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith(
+      'arrangement'
+    );
   });
 
   it('exposes an empty mobile panel by default', () => {
@@ -113,5 +243,35 @@ describe('StudioComponent', () => {
 
   it('exposes a templates collection backed by the ProjectTemplateService mock', () => {
     expect(component.templateService.templates).toEqual([]);
+  });
+
+  it('starts a fresh workspace when applying a template', () => {
+    mockTemplateService.templates = [
+      {
+        id: 'trap-elite',
+        name: 'Trap Elite',
+        bpm: 140,
+        genre: 'trap',
+        tracks: [],
+      },
+    ];
+
+    component.applyTemplate('trap-elite');
+
+    expect(mockTemplateService.applyTemplate).toHaveBeenCalledWith(
+      'trap-elite'
+    );
+    expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith({
+      name: 'Trap Elite',
+      bpm: 140,
+      genre: 'trap',
+    });
+  });
+
+  it('syncs studio subview changes into the orchestration layer', () => {
+    mockOrchestration.setActiveStudioView.mockClear();
+    component.setActiveView('mixer');
+    TestBed.flushEffects();
+    expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith('mixer');
   });
 });

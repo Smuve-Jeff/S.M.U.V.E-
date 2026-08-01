@@ -8,6 +8,12 @@ import { PeerNetworkingService } from './peer-networking.service';
 import { ChallengeInboxService } from './challenge-inbox.service';
 import { io, Socket } from 'socket.io-client';
 import { TokenService } from './token.service';
+import {
+  AsyncCollaborationPacket,
+  StudioCollaborationRole,
+  StudioSessionEventEnvelope,
+  StudioSessionSyncState,
+} from '../types/studio-orchestration.types';
 
 export interface OnlineUser {
   userId: string;
@@ -97,6 +103,10 @@ export class SocialNetworkingService {
   remoteSignals = signal<any[]>([]);
   typingUsers = signal<Record<string, boolean>>({});
   isIncognito = signal(false);
+  studioSessionEvents = signal<StudioSessionEventEnvelope[]>([]);
+  sessionSyncState = signal<StudioSessionSyncState | null>(null);
+  studioSessionInvites = signal<any[]>([]);
+  asyncCollaborationPackets = signal<AsyncCollaborationPacket[]>([]);
 
   private currentRoomId: string | null = null;
   private get peerService() {
@@ -215,6 +225,143 @@ export class SocialNetworkingService {
 
     // incoming_challenge + challenge_inbox_sync are dispatched by ChallengeInboxComponent
     // (the inbox owns the persisted challenge signal; see ChallengeInboxService).
+
+    this.socket.on(
+      'studio_session_event',
+      (data: StudioSessionEventEnvelope) => {
+        this.studioSessionEvents.update((events) => [...events, data]);
+      }
+    );
+
+    this.socket.on('studio_session_invite', (data: any) => {
+      this.studioSessionInvites.update((invites) => [...invites, data]);
+    });
+
+    this.socket.on('session_sync', (data: StudioSessionSyncState) => {
+      this.sessionSyncState.set(data);
+      if (Array.isArray(data?.asyncPackets)) {
+        this.asyncCollaborationPackets.set(data.asyncPackets);
+      }
+    });
+
+    this.socket.on('studio_comment_added', (data: any) => {
+      this.sessionSyncState.update((sync) =>
+        sync
+          ? {
+              ...sync,
+              comments: [
+                data,
+                ...sync.comments.filter((comment) => comment.id !== data.id),
+              ],
+            }
+          : sync
+      );
+    });
+
+    this.socket.on('studio_comment_resolved', (data: any) => {
+      this.sessionSyncState.update((sync) =>
+        sync
+          ? {
+              ...sync,
+              comments: sync.comments.map((comment) =>
+                comment.id === data.commentId
+                  ? { ...comment, resolved: true, updatedAt: Date.now() }
+                  : comment
+              ),
+            }
+          : sync
+      );
+    });
+
+    this.socket.on('studio_approval_updated', (data: any) => {
+      this.sessionSyncState.update((sync) =>
+        sync
+          ? {
+              ...sync,
+              approvals: sync.approvals.map((approval) =>
+                approval.id === data.approvalId
+                  ? {
+                      ...approval,
+                      overallStatus: data.overallStatus,
+                      decisions: {
+                        ...approval.decisions,
+                        [data.approverId]: {
+                          status: data.status,
+                          timestamp: Date.now(),
+                        },
+                      },
+                      updatedAt: Date.now(),
+                    }
+                  : approval
+              ),
+            }
+          : sync
+      );
+    });
+
+    this.socket.on(
+      'async_packet_received',
+      (data: AsyncCollaborationPacket) => {
+        this.asyncCollaborationPackets.update((packets) => [...packets, data]);
+        this.sessionSyncState.update((sync) =>
+          sync
+            ? {
+                ...sync,
+                asyncPackets: [
+                  ...sync.asyncPackets.filter(
+                    (packet) => packet.id !== data.id
+                  ),
+                  data,
+                ],
+              }
+            : sync
+        );
+      }
+    );
+
+    this.socket.on('async_packet_applied', (data: any) => {
+      this.asyncCollaborationPackets.update((packets) =>
+        packets.map((packet) =>
+          packet.id === data.packetId
+            ? {
+                ...packet,
+                status: 'applied',
+                appliedAt: Date.now(),
+              }
+            : packet
+        )
+      );
+      this.sessionSyncState.update((sync) =>
+        sync
+          ? {
+              ...sync,
+              asyncPackets: sync.asyncPackets.map((packet) =>
+                packet.id === data.packetId
+                  ? {
+                      ...packet,
+                      status: 'applied',
+                      appliedAt: Date.now(),
+                    }
+                  : packet
+              ),
+            }
+          : sync
+      );
+    });
+
+    this.socket.on('remix_lineage_created', (data: any) => {
+      this.sessionSyncState.update((sync) =>
+        sync
+          ? {
+              ...sync,
+              remixLineage: [
+                data,
+                ...sync.remixLineage.filter((record) => record.id !== data.id),
+              ],
+            }
+          : sync
+      );
+    });
 
     this.socket.on('match_found', (data: any) => {
       this.matchmakingStatus.set('matched');
@@ -583,6 +730,75 @@ export class SocialNetworkingService {
     if (!partyId) return;
     this.socket?.emit('leave_party', { partyId });
     this.currentPartyId.set(null);
+  }
+
+  createStudioSession(data: {
+    sessionId: string;
+    projectId: string | null;
+    sessionName?: string;
+    invitedUserIds?: string[];
+    role?: StudioCollaborationRole;
+  }) {
+    this.socket?.emit('create_studio_session', data);
+  }
+
+  inviteToStudioSession(
+    sessionId: string,
+    toUserId: string,
+    role: StudioCollaborationRole = 'viewer'
+  ) {
+    this.socket?.emit('invite_to_studio_session', {
+      sessionId,
+      toUserId,
+      role,
+    });
+  }
+
+  joinStudioSession(
+    sessionId: string,
+    role: StudioCollaborationRole = 'viewer'
+  ) {
+    this.socket?.emit('join_studio_session', { sessionId, role });
+  }
+
+  leaveStudioSession(sessionId: string) {
+    this.socket?.emit('leave_studio_session', { sessionId });
+  }
+
+  sendStudioSessionEvent(sessionId: string, event: unknown) {
+    this.socket?.emit('studio_session_event', { sessionId, event });
+  }
+
+  requestSessionSync(sessionId: string) {
+    this.socket?.emit('request_session_sync', { sessionId });
+  }
+
+  addStudioComment(data: Record<string, unknown>) {
+    this.socket?.emit('add_studio_comment', data);
+  }
+
+  resolveStudioComment(data: Record<string, unknown>) {
+    this.socket?.emit('resolve_studio_comment', data);
+  }
+
+  createApprovalRequest(data: Record<string, unknown>) {
+    this.socket?.emit('create_approval_request', data);
+  }
+
+  submitStudioApproval(data: Record<string, unknown>) {
+    this.socket?.emit('submit_approval', data);
+  }
+
+  sendAsyncCollaborationPacket(data: Record<string, unknown>) {
+    this.socket?.emit('send_async_packet', data);
+  }
+
+  applyAsyncCollaborationPacket(data: Record<string, unknown>) {
+    this.socket?.emit('apply_async_packet', data);
+  }
+
+  createRemixLineage(data: Record<string, unknown>) {
+    this.socket?.emit('create_remix', data);
   }
 
   launchPartyGame(gameId: string) {

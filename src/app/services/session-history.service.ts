@@ -24,6 +24,10 @@ import {
   ResolveRequest,
 } from '../types/merge.types';
 import { SessionGraph } from '../types/session-graph.types';
+import {
+  StudioApproval,
+  StudioComment,
+} from '../types/studio-orchestration.types';
 import { layoutSessionGraph } from '../utils/session-graph.util';
 import { canonicalize, djb2Hash } from '../utils/djb2-hash.util';
 import {
@@ -65,6 +69,8 @@ export class SessionHistoryService {
    * user resolves every marker (or auto-merges with no conflicts).
    */
   pendingMergeByProject = signal<Record<string, MergeResult | null>>({});
+  timelineCommentsByProject = signal<Record<string, StudioComment[]>>({});
+  timelineApprovalsByProject = signal<Record<string, StudioApproval[]>>({});
   /**
    * Sprint D4 — Auto-record on project save. When true, ProjectService
    * calls autoRecord() on every save; dedup (same canonical payload)
@@ -118,9 +124,7 @@ export class SessionHistoryService {
     }
   }
 
-  private async loadBranches(
-    projectId: string
-  ): Promise<SessionBranch[]> {
+  private async loadBranches(projectId: string): Promise<SessionBranch[]> {
     try {
       const list = (await this.storage.getItem(
         this.branchesKey(projectId),
@@ -138,19 +142,41 @@ export class SessionHistoryService {
     return this.branchesByProject()[projectId] ?? [];
   }
   checkpoints(projectId: string, branchId: string): SessionCheckpoint[] {
-    const all = this.checkpointsByBranch()[
-      `${projectId}:${branchId}`
-    ] ?? [];
+    const all = this.checkpointsByBranch()[`${projectId}:${branchId}`] ?? [];
     return [...all].sort((a, b) => a.at - b.at);
   }
   activeBranch(projectId: string): string | null {
     return this.activeBranchByProject()[projectId] ?? null;
   }
+  timelineComments(projectId: string): StudioComment[] {
+    return this.timelineCommentsByProject()[projectId] ?? [];
+  }
+  timelineApprovals(projectId: string): StudioApproval[] {
+    return this.timelineApprovalsByProject()[projectId] ?? [];
+  }
+  commentsForCheckpoint(
+    projectId: string,
+    checkpointId: string
+  ): StudioComment[] {
+    return this.timelineComments(projectId).filter(
+      (comment) => comment.checkpointId === checkpointId
+    );
+  }
+  approvalsForCheckpoint(
+    projectId: string,
+    checkpointId: string
+  ): StudioApproval[] {
+    return this.timelineApprovals(projectId).filter(
+      (approval) => approval.checkpointId === checkpointId
+    );
+  }
   lineage(projectId: string, branchId: string): BranchLineage {
     return { branchId, checkpoints: this.checkpoints(projectId, branchId) };
   }
   chapters(projectId: string, branchId: string): SessionCheckpoint[] {
-    return this.checkpoints(projectId, branchId).filter((c) => c.isFullSnapshot);
+    return this.checkpoints(projectId, branchId).filter(
+      (c) => c.isFullSnapshot
+    );
   }
 
   /** Public wrapper around the active-branch materializer. */
@@ -184,11 +210,23 @@ export class SessionHistoryService {
   }
 
   /** Public version of the private setActive — keeps the test API honest. */
-  async setActiveBranch(
-    projectId: string,
-    branchId: string
-  ): Promise<void> {
+  async setActiveBranch(projectId: string, branchId: string): Promise<void> {
     this.setActive(projectId, branchId);
+  }
+
+  setTimelineReviewState(
+    projectId: string,
+    comments: StudioComment[],
+    approvals: StudioApproval[]
+  ): void {
+    this.timelineCommentsByProject.update((state) => ({
+      ...state,
+      [projectId]: [...comments].sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
+    this.timelineApprovalsByProject.update((state) => ({
+      ...state,
+      [projectId]: [...approvals].sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
   }
 
   // ─── Write API ─────────────────────────────────────────────────────
@@ -221,17 +259,17 @@ export class SessionHistoryService {
 
     const branchCheckpoints = this.checkpoints(projectId, branchId);
     const nextIndex = branchCheckpoints.length + 1;
-    const isFullSnapshot = nextIndex % SNAPSHOT_INTERVAL === 1 || branchCheckpoints.length === 0;
+    const isFullSnapshot =
+      nextIndex % SNAPSHOT_INTERVAL === 1 || branchCheckpoints.length === 0;
     const diffPayload: DiffPatch[] | null = isFullSnapshot
       ? null
       : head
-        ? (diffShallow(
-            (head.isFullSnapshot
+        ? diffShallow(
+            head.isFullSnapshot
               ? (head.payload as Record<string, unknown>)
-              : this.materializeState(projectId, head.id) ?? {}
-            ),
+              : (this.materializeState(projectId, head.id) ?? {}),
             payload
-          ).map((d) => ({ field: d.field, value: d.after })))
+          ).map((d) => ({ field: d.field, value: d.after }))
         : null;
 
     const cp: SessionCheckpoint = {
@@ -253,7 +291,12 @@ export class SessionHistoryService {
     const branch = branches.find((b) => b.id === branchId);
     if (branch) branch.headCheckpointId = cp.id;
 
-    await this.persistBranchState(projectId, branchCheckpoints, branches, branchId);
+    await this.persistBranchState(
+      projectId,
+      branchCheckpoints,
+      branches,
+      branchId
+    );
     this.refreshSignals(projectId);
     return cp;
   }
@@ -271,7 +314,8 @@ export class SessionHistoryService {
       forkFromCheckpointId: fromCheckpointId,
       headCheckpointId: fromCheckpointId,
       createdAt: Date.now(),
-    };    const next = [...branches, branch];
+    };
+    const next = [...branches, branch];
     this.branchesByProject.update((m) => ({ ...m, [projectId]: next }));
     return branch;
   }
@@ -290,10 +334,7 @@ export class SessionHistoryService {
     this.branchesByProject.update((m) => ({ ...m, [projectId]: next }));
   }
 
-  async deleteBranch(
-    projectId: string,
-    branchId: string
-  ): Promise<void> {
+  async deleteBranch(projectId: string, branchId: string): Promise<void> {
     const branches = this.branches(projectId);
     if (branches.length <= 1) return; // keep at least one branch alive
     if (this.activeBranch(projectId) === branchId) return; // can't delete active
@@ -405,7 +446,11 @@ export class SessionHistoryService {
   ): Promise<SessionCheckpoint | null> {
     const projectId = remoteSnapshot.projectId;
     const payload = (remoteSnapshot.data ?? {}) as Record<string, unknown>;
-    return this.checkpoint(projectId, `cloud:${remoteSnapshot.deviceId}`, payload);
+    return this.checkpoint(
+      projectId,
+      `cloud:${remoteSnapshot.deviceId}`,
+      payload
+    );
   }
 
   // ─── Internals ─────────────────────────────────────────────────────
@@ -435,7 +480,10 @@ export class SessionHistoryService {
   }
 
   private refreshSignals(projectId: string): void {
-    this.branchesByProject.update((m) => ({ ...m, [projectId]: m[projectId] ?? [] }));
+    this.branchesByProject.update((m) => ({
+      ...m,
+      [projectId]: m[projectId] ?? [],
+    }));
     this.checkpointsByBranch.update((m) => ({
       ...m,
       [`${projectId}:${this.activeBranch(projectId)}`]:
@@ -480,8 +528,9 @@ export class SessionHistoryService {
         this.branches(projectId).find((b) => b.id === branchAId)
           ?.headCheckpointId ?? null;
       return headId
-        ? this.checkpoints(projectId, branchAId).find((c) => c.id === headId) ??
-            null
+        ? (this.checkpoints(projectId, branchAId).find(
+            (c) => c.id === headId
+          ) ?? null)
         : null;
     }
     const aSet = new Set<string>(
@@ -532,26 +581,29 @@ export class SessionHistoryService {
     sourceBranchId: string,
     targetBranchId: string
   ): Promise<MergeResult | null> {
-    const ancestor = this.findAncestor(projectId, targetBranchId, sourceBranchId);
+    const ancestor = this.findAncestor(
+      projectId,
+      targetBranchId,
+      sourceBranchId
+    );
     if (!ancestor) return null;
 
-    const base = this.materializeOnBranch(
-      projectId,
-      targetBranchId,
-      ancestor.id
-    ) ?? {};
-    const mine = this.materializeOnBranch(
-      projectId,
-      targetBranchId,
-      this.branches(projectId).find((b) => b.id === targetBranchId)
-        ?.headCheckpointId ?? ancestor.id
-    ) ?? {};
-    const theirs = this.materializeOnBranch(
-      projectId,
-      sourceBranchId,
-      this.branches(projectId).find((b) => b.id === sourceBranchId)
-        ?.headCheckpointId ?? ancestor.id
-    ) ?? {};
+    const base =
+      this.materializeOnBranch(projectId, targetBranchId, ancestor.id) ?? {};
+    const mine =
+      this.materializeOnBranch(
+        projectId,
+        targetBranchId,
+        this.branches(projectId).find((b) => b.id === targetBranchId)
+          ?.headCheckpointId ?? ancestor.id
+      ) ?? {};
+    const theirs =
+      this.materializeOnBranch(
+        projectId,
+        sourceBranchId,
+        this.branches(projectId).find((b) => b.id === sourceBranchId)
+          ?.headCheckpointId ?? ancestor.id
+      ) ?? {};
 
     const fields = new Set<string>([
       ...Object.keys(base),
@@ -573,7 +625,8 @@ export class SessionHistoryService {
       };
       if (equal(mineVal, baseVal) && equal(theirsVal, baseVal)) {
         continue;
-      } if (equal(mineVal, baseVal) && !equal(theirsVal, baseVal)) {
+      }
+      if (equal(mineVal, baseVal) && !equal(theirsVal, baseVal)) {
         autoResolved[field] = theirsVal;
       } else if (!equal(mineVal, baseVal) && equal(theirsVal, baseVal)) {
         autoResolved[field] = mineVal;
@@ -635,7 +688,9 @@ export class SessionHistoryService {
    * marker. Produces a final non-merge checkpoint on the target
    * branch that materializes the merged payload.
    */
-  async resolveConflicts(req: ResolveRequest): Promise<SessionCheckpoint | null> {
+  async resolveConflicts(
+    req: ResolveRequest
+  ): Promise<SessionCheckpoint | null> {
     const projectId = req.projectId;
     const mergeCp = this.findCheckpoint(projectId, req.mergeCheckpointId);
     if (!mergeCp) return null;
@@ -659,7 +714,10 @@ export class SessionHistoryService {
   }
 
   /** Read the open conflict markers off a pending merge checkpoint. */
-  readConflicts(projectId: string, mergeCheckpointId: string): ConflictMarker[] {
+  readConflicts(
+    projectId: string,
+    mergeCheckpointId: string
+  ): ConflictMarker[] {
     const cp = this.findCheckpoint(projectId, mergeCheckpointId);
     if (!cp) return [];
     const payload = cp.payload as MergeCheckpointPayload;
@@ -699,8 +757,16 @@ export class SessionHistoryService {
         }
         const parentId = cp.parentId;
         const parentMaterialized = parentId
-          ? this.materializeOnBranch(sourceBranchId.includes(ontoBranchId) ? projectId : projectId, sourceBranchId, parentId) ?? {}
-          : this.materializeOnBranch(projectId, sourceBranchId, parentId ?? ancestor.id) ?? {};
+          ? (this.materializeOnBranch(
+              sourceBranchId.includes(ontoBranchId) ? projectId : projectId,
+              sourceBranchId,
+              parentId
+            ) ?? {})
+          : (this.materializeOnBranch(
+              projectId,
+              sourceBranchId,
+              parentId ?? ancestor.id
+            ) ?? {});
         const currentMaterialized =
           this.materializeOnBranch(projectId, sourceBranchId, cp.id) ?? {};
         void parentMaterialized;
@@ -743,13 +809,10 @@ export class SessionHistoryService {
       sourceCheckpointId
     );
     if (!sourceCp) return null;
-    const ontoCheckpointSet =
-      this.checkpoints(projectId, ontoBranchId).slice();
-    const sourceAfter = this.materializeOnBranch(
-      projectId,
-      sourceBranchId,
-      sourceCheckpointId
-    ) ?? {};
+    const ontoCheckpointSet = this.checkpoints(projectId, ontoBranchId).slice();
+    const sourceAfter =
+      this.materializeOnBranch(projectId, sourceBranchId, sourceCheckpointId) ??
+      {};
 
     // sourceBefore is the state at the source's parent. When the source
     // CP has no parent (e.g. it's the very first commit on a freshly
@@ -773,11 +836,8 @@ export class SessionHistoryService {
       );
       if (anchorCp) {
         sourceBefore =
-          this.materializeOnBranch(
-            projectId,
-            anchorCp.branchId,
-            anchorCp.id
-          ) ?? {};
+          this.materializeOnBranch(projectId, anchorCp.branchId, anchorCp.id) ??
+          {};
       }
     }
 
@@ -785,7 +845,7 @@ export class SessionHistoryService {
       this.branches(projectId).find((b) => b.id === ontoBranchId)
         ?.headCheckpointId ?? null;
     const ontoBefore = ontoHead
-      ? this.materializeOnBranch(projectId, ontoBranchId, ontoHead) ?? {}
+      ? (this.materializeOnBranch(projectId, ontoBranchId, ontoHead) ?? {})
       : {};
 
     const fields = new Set<string>([
@@ -950,7 +1010,8 @@ export class SessionHistoryService {
 
   private branchNameById(projectId: string, branchId: string): string {
     return (
-      this.branches(projectId).find((b) => b.id === branchId)?.name ?? branchId.slice(0, 8)
+      this.branches(projectId).find((b) => b.id === branchId)?.name ??
+      branchId.slice(0, 8)
     );
   }
 

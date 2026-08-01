@@ -965,6 +965,117 @@ export class MusicManagerService {
     );
   }
 
+  glueClips(trackId: string, clipIds: string[]): string | null {
+    const uniqueIds = Array.from(new Set(clipIds)).filter(Boolean);
+    if (uniqueIds.length < 2) return null;
+
+    const track = this.tracks().find((x) => x.id === trackId);
+    if (!track) return null;
+
+    const selected = uniqueIds
+      .map((id) => track.clips.find((clip) => clip.id === id) ?? null)
+      .filter((clip): clip is StudioClip => clip !== null);
+    if (selected.length !== uniqueIds.length) return null;
+
+    const sorted = this.sortClipsByStart(selected);
+    if (!this.areClipsGlueCompatible(sorted)) return null;
+
+    const start = sorted[0].start || 0;
+    const end = sorted.reduce(
+      (max, clip) => Math.max(max, this.clipEnd(clip)),
+      start
+    );
+    const mergedClip: StudioClip = {
+      ...sorted[0],
+      id: `clip_${Date.now()}_glue`,
+      start,
+      length: Math.max(0.25, end - start),
+      name: this.buildGluedClipName(track.name, sorted),
+    };
+    const mergedClipId = mergedClip.id;
+    const idSet = new Set(uniqueIds);
+    const before = this.copyClipList(track.clips);
+    const after = this.sortClipsByStart([
+      ...track.clips.filter((clip) => !idSet.has(clip.id)),
+      mergedClip,
+    ]);
+
+    this.runCommand(
+      `Glue ${sorted.length} Clips · ${track.name}`,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: this.copyClipList(after) } : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: this.copyClipList(before) } : x
+          )
+        );
+      }
+    );
+
+    return mergedClipId;
+  }
+
+  private clipEnd(clip: Pick<StudioClip, 'start' | 'length'>): number {
+    return (clip.start || 0) + (clip.length || 0);
+  }
+
+  private sortClipsByStart(clips: StudioClip[]): StudioClip[] {
+    return [...clips].sort((a, b) => {
+      const startDelta = (a.start || 0) - (b.start || 0);
+      if (Math.abs(startDelta) > 0.001) return startDelta;
+      return this.clipEnd(a) - this.clipEnd(b);
+    });
+  }
+
+  private copyClipList(clips: StudioClip[]): StudioClip[] {
+    return clips.map((clip) => ({ ...clip }));
+  }
+
+  private resolveClipAudioSource(clip: StudioClip): unknown {
+    const refId = (clip as any).audioRefId;
+    if (typeof refId === 'string' && refId.trim().length > 0) return refId;
+    return (clip as any).audioData ?? null;
+  }
+
+  private areClipsGlueCompatible(clips: StudioClip[]): boolean {
+    if (clips.length < 2) return false;
+    const baseType = clips[0].type;
+    const baseAudioSource =
+      baseType === 'audio' ? this.resolveClipAudioSource(clips[0]) : null;
+    const epsilon = 0.001;
+    let lastEnd = this.clipEnd(clips[0]);
+
+    for (let index = 1; index < clips.length; index++) {
+      const clip = clips[index];
+      if (clip.type !== baseType) return false;
+      if ((clip.start || 0) - lastEnd > epsilon) return false;
+      if (
+        baseType === 'audio' &&
+        this.resolveClipAudioSource(clip) !== baseAudioSource
+      ) {
+        return false;
+      }
+      lastEnd = Math.max(lastEnd, this.clipEnd(clip));
+    }
+
+    return true;
+  }
+
+  private buildGluedClipName(trackName: string, clips: StudioClip[]): string {
+    const uniqueNames = Array.from(
+      new Set(clips.map((clip) => (clip.name || '').trim()).filter(Boolean))
+    );
+    if (uniqueNames.length === 1) return uniqueNames[0];
+    if (uniqueNames.length === 0) return `${trackName} Clip`;
+    return `${trackName} Consolidated`;
+  }
+
   // ── Bulk-mutate current notes (array wholesale replace for clean undo) ─
 
   quantizeTrack(id: string, noteIds?: string[]) {

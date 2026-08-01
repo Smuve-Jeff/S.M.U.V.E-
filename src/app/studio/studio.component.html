@@ -338,6 +338,19 @@
       <span class="material-symbols-outlined">piano</span>
       <span class="comp-tool-label">MIDI</span>
     </button>
+    <!-- Studio product insights (north-star metrics + competitor gaps) -->
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleStudioInsights()"
+      [class.comp-tool-active]="showStudioInsights()"
+      title="Studio Insights — north-star metrics &amp; competitor gap backlog"
+      aria-label="Toggle Studio Insights panel"
+      [attr.aria-pressed]="showStudioInsights()"
+    >
+      <span class="material-symbols-outlined">monitoring</span>
+      <span class="comp-tool-label">INSIGHTS</span>
+    </button>
   </div>
 
   <!-- ====================== STAGE MARQUEE ====================== -->
@@ -1310,6 +1323,23 @@
         </div>
       </div>
 
+      <div class="comp-meta-field" *ngIf="templateService.templates.length">
+        <label>Rapid build</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let template of templateService.templates"
+            type="button"
+            class="comp-meta-chip"
+            (click)="applyTemplate(template.id)"
+          >
+            {{ template.name }}
+          </button>
+        </div>
+        <span class="comp-meta-hint"
+          >One-tap starter templates for faster arrangement building.</span
+        >
+      </div>
+
       <div class="comp-meta-field">
         <label>Auto-save</label>
         <label class="comp-rec-toggle">
@@ -1324,6 +1354,28 @@
           >Last auto-save:
           {{ projectWorkspace.lastAutoSave() | date: 'HH:mm:ss' }}</span
         >
+      </div>
+
+      <div class="comp-meta-field" *ngIf="projectWorkspace.lastPersistedAt() > 0">
+        <label>Last save</label>
+        <span class="comp-meta-hint">
+          {{ projectWorkspace.lastPersistedAt() | date: 'HH:mm:ss' }}
+        </span>
+      </div>
+
+      <div
+        class="comp-meta-field"
+        *ngIf="
+          projectWorkspace.lastRecoveredAt() &&
+          projectWorkspace.lastRecoveredSource()
+        "
+      >
+        <label>Recovered</label>
+        <span class="comp-meta-hint">
+          Restored {{ formatPersistenceSource(projectWorkspace.lastRecoveredSource()) }}
+          snapshot at
+          {{ projectWorkspace.lastRecoveredAt() | date: 'HH:mm:ss' }}
+        </span>
       </div>
 
       <div class="comp-meta-actions">
@@ -1344,6 +1396,259 @@
           Export .smuve
         </button>
       </div>
+    </div>
+  </aside>
+
+  <!-- ====================== STUDIO INSIGHTS PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-insights-panel"
+    [class.comp-panel-open]="showStudioInsights()"
+    role="dialog"
+    aria-label="Studio Insights"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        INSIGHTS
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleStudioInsights()"
+        aria-label="Close Studio Insights panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <p class="comp-insights-lede">
+        Rolling {{ studioWeeklyDashboard().windowDays }}-day north-star pulse,
+        live gap scoring, and coach CTAs. Local-only — nothing leaves this
+        device.
+      </p>
+
+      <div class="comp-insights-section" *ngIf="insightCoachActions().length">
+        <span class="comp-aimix-section-title">COACH · NEXT BEST</span>
+        <div
+          class="comp-insights-coach"
+          *ngFor="let action of insightCoachActions()"
+        >
+          <div class="comp-insights-coach-head">
+            <span class="comp-insights-coach-title">{{ action.title }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-dismiss"
+              (click)="dismissCoachAction(action, $event)"
+              [attr.aria-label]="'Dismiss ' + action.title"
+              title="Dismiss"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <p class="comp-insights-coach-reason">{{ action.reason }}</p>
+          <div class="comp-insights-coach-meta">
+            <span class="comp-insights-coach-cat">{{
+              formatInsightCategory(action.category)
+            }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-cta"
+              (click)="runCoachAction(action)"
+              [disabled]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+              [attr.aria-busy]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+            >
+              {{
+                action.id === 'probe_latency' && insightsProbeRunning()
+                  ? 'Probing…'
+                  : action.ctaLabel
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">LIVE ENGINE PROFILE</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.performanceTier
+                | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Adaptive tier</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.totalLatencyMs | number: '1.0-0'
+            }}ms</span>
+            <span class="comp-insights-metric-label">Live latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.sampleRateHz
+            }}</span>
+            <span class="comp-insights-metric-label">Sample rate</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.contextState | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Engine state</span>
+          </div>
+        </div>
+        <ul
+          class="comp-insights-events"
+          *ngIf="engineLatency.profileSummary().recommendations.length"
+        >
+          <li
+            *ngFor="
+              let recommendation of engineLatency.profileSummary().recommendations
+                | slice: 0 : 3
+            "
+          >
+            <code>ENGINE</code>
+            <span>{{ recommendation }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">NORTH STAR</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              studioWeeklyDashboard().metrics.avgSessionMinutes
+            }}</span>
+            <span class="comp-insights-metric-label">Avg session (min)</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val"
+              >{{ studioWeeklyDashboard().metrics.ideaToFirstLoopSeconds }}s</span
+            >
+            <span class="comp-insights-metric-label">Idea → first loop</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.exportSuccessRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Export success</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(
+                studioWeeklyDashboard().metrics.crashFreeSessionsRate
+              )
+            }}</span>
+            <span class="comp-insights-metric-label">Crash-free</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.collabSessionRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Collab sessions</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.latencyProbeCount
+                  ? studioWeeklyDashboard().metrics.avgLatencyMs + 'ms'
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Avg latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                  ? '×' +
+                    (
+                      studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                      | number: '1.0-2'
+                    )
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Render speed</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="comp-insights-probe-btn"
+          (click)="runInsightsLatencyProbe()"
+          [disabled]="insightsProbeRunning()"
+          [attr.aria-busy]="insightsProbeRunning()"
+        >
+          <span class="material-symbols-outlined">speed</span>
+          {{
+            insightsProbeRunning() ? 'Probing engine…' : 'Run full engine probe'
+          }}
+        </button>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">PRIORITY BACKLOG</span>
+        <div
+          class="comp-insights-gap"
+          *ngFor="let row of studioWeeklyDashboard().prioritizedBacklog"
+        >
+          <div class="comp-insights-gap-head">
+            <span class="comp-insights-gap-name">{{
+              formatInsightCategory(row.category)
+            }}</span>
+            <span class="comp-insights-gap-weight"
+              >w {{ row.weight | number: '1.0-2' }}</span
+            >
+          </div>
+          <div class="comp-insights-gap-bar">
+            <div
+              class="comp-insights-gap-fill"
+              [style.width.%]="row.smuveScore"
+              [attr.aria-valuenow]="row.smuveScore"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              role="progressbar"
+              [attr.aria-label]="
+                formatInsightCategory(row.category) +
+                ' score ' +
+                row.smuveScore
+              "
+            ></div>
+          </div>
+          <div class="comp-insights-gap-meta">
+            <span>Us {{ row.smuveScore }}</span>
+            <span>Best {{ row.bestCompetitorScore }}</span>
+            <span
+              class="comp-insights-gap-delta"
+              [class.comp-insights-gap-lead]="row.gap === 0"
+              >{{ row.gap === 0 ? 'LEAD' : '−' + row.gap }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="comp-insights-section"
+        *ngIf="insightEventVolumeEntries().length"
+      >
+        <span class="comp-aimix-section-title">EVENT VOLUME</span>
+        <ul class="comp-insights-events">
+          <li *ngFor="let e of insightEventVolumeEntries()">
+            <code>{{ e.name }}</code>
+            <span>{{ e.count }}</span>
+          </li>
+        </ul>
+      </div>
+      <p
+        class="comp-insights-empty"
+        *ngIf="!insightEventVolumeEntries().length"
+      >
+        No Studio events yet this week — keep producing and the pulse fills in.
+      </p>
     </div>
   </aside>
 

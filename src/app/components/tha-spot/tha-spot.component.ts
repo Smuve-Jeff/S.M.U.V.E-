@@ -49,6 +49,7 @@ import {
   Rating,
   PlayResult,
 } from '../../services/game-ratings.service';
+import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -478,6 +479,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private snackbarService = inject(SnackbarService);
   public dailyMissions = inject(DailyMissionsService);
   public gameRatings = inject(GameRatingsService);
+  private orchestration = inject(StudioOrchestrationService);
 
   // Signals
   displayMode = signal<'gaming' | 'pluto'>('gaming');
@@ -1770,6 +1772,46 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.challengeCount.update((c) => c + 1);
     this.checkAchievements();
     this.playSoundEffect('challenge');
+  }
+
+  async sendRemixRequest(userId: string): Promise<void> {
+    const sent = await this.orchestration.requestRemix(userId);
+    if (sent) {
+      this.snackbarService.success('REMIX REQUEST DISPATCHED');
+      this.playSoundEffect('challenge');
+    } else {
+      this.snackbarService.info('OPEN A COLLAB SESSION TO REQUEST A REMIX');
+    }
+  }
+
+  async requestSessionReview(): Promise<void> {
+    const requested = await this.orchestration.requestReview();
+    if (requested) {
+      this.snackbarService.success('REVIEW REQUEST DISPATCHED');
+    } else {
+      this.snackbarService.info('NO REVIEWERS AVAILABLE FOR THIS SESSION');
+    }
+  }
+
+  buildRemixSessionLink(toUserId?: string): string {
+    const target = this.orchestration.currentTarget();
+    const baseUrl = window.location.origin + '/remix-arena';
+    const params = new URLSearchParams();
+    if (target.sessionId) params.set('sessionId', target.sessionId);
+    if (target.projectId) params.set('projectId', target.projectId);
+    if (toUserId) params.set('to', toUserId);
+    return `${baseUrl}?${params.toString()}`;
+  }
+
+  async shareRemixSessionLink(toUserId?: string): Promise<void> {
+    const link = this.buildRemixSessionLink(toUserId);
+    const text = `🎛️ Remix this S.M.U.V.E. session with me: ${link}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      this.snackbarService.success('REMIX LINK COPIED');
+    } catch {
+      this.snackbarService.error('FAILED TO COPY REMIX LINK');
+    }
   }
 
   buildChallengeLink(gameId: string, toUserId?: string): string {

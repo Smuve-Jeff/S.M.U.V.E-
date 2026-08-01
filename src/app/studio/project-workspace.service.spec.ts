@@ -14,6 +14,8 @@ describe('ProjectWorkspaceService', () => {
   let saveItem: jest.Mock;
   let queueOperation: jest.Mock;
   let tempoSet: jest.Mock;
+  let getItem: jest.Mock;
+  let getAllItems: jest.Mock;
 
   const metadata = {
     id: 'proj_test',
@@ -43,6 +45,8 @@ describe('ProjectWorkspaceService', () => {
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue('sync_test_1');
     tempoSet = jest.fn();
+    getItem = jest.fn().mockResolvedValue(null);
+    getAllItems = jest.fn().mockResolvedValue([]);
 
     TestBed.configureTestingModule({
       providers: [
@@ -69,8 +73,8 @@ describe('ProjectWorkspaceService', () => {
           provide: LocalStorageService,
           useValue: {
             saveItem,
-            getItem: jest.fn().mockResolvedValue(null),
-            getAllItems: jest.fn().mockResolvedValue([]),
+            getItem,
+            getAllItems,
           },
         },
         {
@@ -122,6 +126,19 @@ describe('ProjectWorkspaceService', () => {
       })
     );
     expect(service.isDirty()).toBe(false);
+    expect(service.lastPersistedAt()).toBeGreaterThan(0);
+  });
+
+  it('marks arrangement changes dirty even without metadata edits', async () => {
+    expect(service.isDirty()).toBe(false);
+
+    tracks.set([
+      { id: 'track-1', notes: [] },
+      { id: 'track-2', notes: [{ id: 'note-1', step: 4 }] },
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(service.isDirty()).toBe(true);
   });
 
   it('imports a bundle, restores tracks, and queues authenticated cloud sync', async () => {
@@ -153,5 +170,32 @@ describe('ProjectWorkspaceService', () => {
       { userId: user.id }
     );
     expect(service.cloudSyncQueued()).toBe(true);
+  });
+
+  it('restores the freshest local bundle and tracks the recovery source', async () => {
+    const olderBundle = {
+      id: 'project_proj_old',
+      ...makeBundle(),
+      savedAt: 100,
+      source: 'manual',
+    };
+    const newerBundle = {
+      id: 'recovery_proj_new',
+      ...makeBundle(),
+      metadata: { ...metadata, name: 'Recovered Session', bpm: 132 },
+      tracks: [{ id: 'track-9', notes: [{ id: 'n-1', step: 8 }] }],
+      savedAt: 200,
+      source: 'recovery',
+    };
+    tracks.set([]);
+    getAllItems.mockResolvedValue([olderBundle, newerBundle]);
+
+    await expect(service.restoreLatestProjectState()).resolves.toBe(true);
+
+    expect(service.metadata()?.name).toBe('Recovered Session');
+    expect(service.lastRecoveredSource()).toBe('recovery');
+    expect(service.lastRecoveredAt()).toBe(200);
+    expect(tracks()).toEqual(newerBundle.tracks);
+    expect(tempoSet).toHaveBeenCalledWith(132);
   });
 });

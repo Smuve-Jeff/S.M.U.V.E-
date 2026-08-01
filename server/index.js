@@ -36,6 +36,63 @@ if (MISSING_VARS.length > 0) {
 const JWT_SECRET = process.env.JWT_SECRET || 'SMUVE_SALT_V4_SECURE_HASH';
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
+let appIO = null;
+
+const STUDIO_ROLE_PERMISSIONS = {
+  host: {
+    edit: true,
+    transport: true,
+    invite: true,
+    voice: true,
+    approve: true,
+    share: true,
+    remix: true,
+    comment: true,
+    review: true,
+    export: true,
+  },
+  editor: {
+    edit: true,
+    transport: true,
+    invite: false,
+    voice: true,
+    approve: false,
+    share: true,
+    remix: true,
+    comment: true,
+    review: true,
+    export: true,
+  },
+  reviewer: {
+    edit: false,
+    transport: false,
+    invite: false,
+    voice: false,
+    approve: true,
+    share: true,
+    remix: false,
+    comment: true,
+    review: true,
+    export: false,
+  },
+  viewer: {
+    edit: false,
+    transport: false,
+    invite: false,
+    voice: false,
+    approve: false,
+    share: true,
+    remix: false,
+    comment: false,
+    review: false,
+    export: false,
+  },
+};
+
+const resolveStudioPermissions = (role, overrides = null) => ({
+  ...(STUDIO_ROLE_PERMISSIONS[role] || STUDIO_ROLE_PERMISSIONS.viewer),
+  ...(overrides || {}),
+});
 
 // --- R2 STORAGE CONFIG ---
 const s3Client = new S3Client({
@@ -210,6 +267,104 @@ const initDb = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id, is_read, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS studio_sessions (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        created_by_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'archived')),
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_studio_sessions_project ON studio_sessions(project_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_studio_sessions_creator ON studio_sessions(created_by_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS studio_session_members (
+        id SERIAL PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES studio_sessions(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('host', 'editor', 'reviewer', 'viewer')),
+        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active', 'revoked')),
+        permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+        joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (session_id, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_studio_session_members_session ON studio_session_members(session_id, status);
+      CREATE INDEX IF NOT EXISTS idx_studio_session_members_user ON studio_session_members(user_id, status);
+
+      CREATE TABLE IF NOT EXISTS studio_comments (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES studio_sessions(id) ON DELETE CASCADE,
+        project_id TEXT NOT NULL,
+        branch_id TEXT,
+        checkpoint_id TEXT,
+        track_id TEXT,
+        clip_id TEXT,
+        user_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        resolved BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_studio_comments_session ON studio_comments(session_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_studio_comments_checkpoint ON studio_comments(checkpoint_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS studio_approvals (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES studio_sessions(id) ON DELETE CASCADE,
+        project_id TEXT NOT NULL,
+        branch_id TEXT,
+        checkpoint_id TEXT,
+        created_by_id TEXT NOT NULL,
+        approver_ids TEXT[] NOT NULL DEFAULT '{}',
+        approval_status JSONB NOT NULL DEFAULT '{}'::jsonb,
+        overall_status TEXT NOT NULL DEFAULT 'pending' CHECK (overall_status IN ('pending', 'approved', 'rejected', 'mixed')),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_studio_approvals_session ON studio_approvals(session_id, overall_status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_studio_approvals_checkpoint ON studio_approvals(checkpoint_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS async_collaboration_packets (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES studio_sessions(id) ON DELETE CASCADE,
+        from_user_id TEXT NOT NULL,
+        to_user_id TEXT NOT NULL,
+        packet_type TEXT NOT NULL CHECK (
+          packet_type IN (
+            'track_delta',
+            'review_request',
+            'revision_request',
+            'approval_request',
+            'remix_request',
+            'mix_notes',
+            'render_task',
+            'stem_exchange'
+          )
+        ),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'received', 'applied', 'rejected')),
+        payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+        response_payload JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        applied_at TIMESTAMP WITH TIME ZONE
+      );
+      CREATE INDEX IF NOT EXISTS idx_async_packets_session ON async_collaboration_packets(session_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_async_packets_user ON async_collaboration_packets(to_user_id, status, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS remix_lineage (
+        id TEXT PRIMARY KEY,
+        remix_project_id TEXT NOT NULL UNIQUE,
+        source_project_id TEXT,
+        remixer_id TEXT NOT NULL,
+        lineage JSONB NOT NULL DEFAULT '[]'::jsonb,
+        depth INTEGER NOT NULL DEFAULT 1,
+        attribution JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        accepted_at TIMESTAMP WITH TIME ZONE
+      );
+      CREATE INDEX IF NOT EXISTS idx_remix_lineage_source ON remix_lineage(source_project_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_remix_lineage_remixer ON remix_lineage(remixer_id, created_at DESC);
     `);
     console.log('STABILITY_CHECK: Database initialized successfully.');
   } catch (err) {
@@ -237,14 +392,189 @@ const setupSocketIO = (server) => {
     },
   });
 
-  // Module-level reference so REST endpoints can broadcast via Socket.io
-  let appIO = null;
-
   // In-memory state for real-time social features
   const presence = new Map(); // userId -> { socketId, metadata }
   const rooms = new Map(); // roomId -> Set<userId>
   const parties = new Map(); // partyId -> { leaderId, members: [{userId, artistName}], gameId }
   const matchmakingQueues = new Map(); // gameId -> [{userId, socketId, timestamp}]
+  const getStudioRoom = (sessionId) => `session:${sessionId}`;
+  const coerceJson = (value, fallback) => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'object') return value;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const studioEventPermission = (eventType) => {
+    switch (eventType) {
+      case 'PROJECT_SYNC':
+      case 'TRACK_DELTA_SYNC':
+        return 'edit';
+      case 'VOICE_INVITE':
+      case 'VOICE_ACCEPT':
+      case 'VOICE_DECLINE':
+      case 'VOICE_END':
+        return 'voice';
+      default:
+        return null;
+    }
+  };
+
+  const getStudioMember = async (sessionId, memberUserId) => {
+    const { rows } = await pool.query(
+      `SELECT session_id, user_id, role, status, permissions,
+              EXTRACT(EPOCH FROM joined_at)::bigint * 1000 as joined_at
+       FROM studio_session_members
+       WHERE session_id = $1 AND user_id = $2
+       LIMIT 1`,
+      [sessionId, memberUserId]
+    );
+    return rows[0] || null;
+  };
+
+  const hasStudioPermission = async (sessionId, memberUserId, permission) => {
+    const member = await getStudioMember(sessionId, memberUserId);
+    if (!member || member.status !== 'active') return false;
+    if (!permission) return true;
+    const permissions = resolveStudioPermissions(
+      member.role,
+      coerceJson(member.permissions, {})
+    );
+    return !!permissions[permission];
+  };
+
+  const buildSessionSyncPayload = async (sessionId, memberUserId) => {
+    const { rows: sessionRows } = await pool.query(
+      `SELECT id, project_id, status, metadata
+       FROM studio_sessions
+       WHERE id = $1
+       LIMIT 1`,
+      [sessionId]
+    );
+    const session = sessionRows[0]
+      ? {
+          id: sessionRows[0].id,
+          projectId: sessionRows[0].project_id,
+          status: sessionRows[0].status,
+          metadata: coerceJson(sessionRows[0].metadata, {}),
+        }
+      : null;
+    const { rows: memberRows } = await pool.query(
+      `SELECT m.session_id, m.user_id, m.role, m.status, m.permissions,
+              EXTRACT(EPOCH FROM m.joined_at)::bigint * 1000 as joined_at,
+              profile_data->>'artistName' as artist_name
+       FROM studio_session_members m
+       LEFT JOIN user_profiles p ON p.user_id = m.user_id
+       WHERE m.session_id = $1
+       ORDER BY m.joined_at ASC`,
+      [sessionId]
+    );
+    const { rows: commentRows } = await pool.query(
+      `SELECT id, session_id, project_id, branch_id, checkpoint_id, track_id, clip_id, user_id,
+              content, resolved,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM updated_at)::bigint * 1000 as updated_at
+       FROM studio_comments
+       WHERE session_id = $1
+       ORDER BY updated_at DESC`,
+      [sessionId]
+    );
+    const { rows: approvalRows } = await pool.query(
+      `SELECT id, session_id, project_id, branch_id, checkpoint_id, created_by_id,
+              approver_ids, approval_status, overall_status,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM updated_at)::bigint * 1000 as updated_at
+       FROM studio_approvals
+       WHERE session_id = $1
+       ORDER BY updated_at DESC`,
+      [sessionId]
+    );
+    const { rows: packetRows } = await pool.query(
+      `SELECT id, session_id, from_user_id, to_user_id, packet_type, status, payload, response_payload,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM applied_at)::bigint * 1000 as applied_at
+       FROM async_collaboration_packets
+       WHERE session_id = $1 AND (to_user_id = $2 OR from_user_id = $2)
+       ORDER BY created_at DESC`,
+      [sessionId, memberUserId]
+    );
+    let lineageRows = [];
+    if (session?.projectId) {
+      const lineageResult = await pool.query(
+        `SELECT id, remix_project_id, source_project_id, remixer_id, lineage, depth, created_at, accepted_at
+         FROM remix_lineage
+         WHERE remix_project_id = $1 OR source_project_id = $1
+         ORDER BY created_at DESC`,
+        [session.projectId]
+      );
+      lineageRows = lineageResult.rows;
+    }
+
+    return {
+      session,
+      members: memberRows.map((row) => ({
+        sessionId: row.session_id,
+        userId: row.user_id,
+        artistName: row.artist_name || row.user_id,
+        role: row.role,
+        status: row.status,
+        permissions: coerceJson(row.permissions, {}),
+        joinedAt: Number(row.joined_at),
+      })),
+      comments: commentRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        projectId: row.project_id,
+        branchId: row.branch_id,
+        checkpointId: row.checkpoint_id,
+        trackId: row.track_id,
+        clipId: row.clip_id,
+        userId: row.user_id,
+        content: row.content,
+        resolved: row.resolved,
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      })),
+      approvals: approvalRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        projectId: row.project_id,
+        branchId: row.branch_id,
+        checkpointId: row.checkpoint_id,
+        requestedBy: row.created_by_id,
+        approverIds: row.approver_ids || [],
+        overallStatus: row.overall_status,
+        decisions: coerceJson(row.approval_status, {}),
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      })),
+      asyncPackets: packetRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        fromUserId: row.from_user_id,
+        toUserId: row.to_user_id,
+        packetType: row.packet_type,
+        status: row.status,
+        payload: coerceJson(row.payload, {}),
+        responsePayload: coerceJson(row.response_payload, null),
+        createdAt: Number(row.created_at),
+        appliedAt: row.applied_at ? Number(row.applied_at) : null,
+      })),
+      remixLineage: lineageRows.map((row) => ({
+        id: row.id,
+        remixProjectId: row.remix_project_id,
+        sourceProjectId: row.source_project_id,
+        remixerId: row.remixer_id,
+        lineage: coerceJson(row.lineage, []),
+        depth: Number(row.depth || 1),
+        createdAt: new Date(row.created_at).getTime(),
+        acceptedAt: row.accepted_at ? new Date(row.accepted_at).getTime() : null,
+      })),
+    };
+  };
 
   const getSenderFromSocket = (socket) => {
     try {
@@ -509,6 +839,418 @@ const setupSocketIO = (server) => {
         fromUserId: userId,
         signal,
       });
+    });
+
+    // --- Persisted Studio Sessions ---
+    socket.on('create_studio_session', async (data = {}) => {
+      const sessionId = data.sessionId || `sess_${crypto.randomUUID()}`;
+      const role = 'host';
+      try {
+        await pool.query(
+          `INSERT INTO studio_sessions (id, project_id, created_by_id, metadata)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (id)
+           DO UPDATE SET
+             project_id = EXCLUDED.project_id,
+             metadata = EXCLUDED.metadata,
+             updated_at = CURRENT_TIMESTAMP`,
+          [
+            sessionId,
+            data.projectId || null,
+            userId,
+            JSON.stringify({ name: data.sessionName || 'Studio Session' }),
+          ]
+        );
+        await pool.query(
+          `INSERT INTO studio_session_members (session_id, user_id, role, status, permissions)
+           VALUES ($1, $2, $3, 'active', $4)
+           ON CONFLICT (session_id, user_id)
+           DO UPDATE SET
+             role = EXCLUDED.role,
+             status = 'active',
+             permissions = EXCLUDED.permissions`,
+          [
+            sessionId,
+            userId,
+            role,
+            JSON.stringify(STUDIO_ROLE_PERMISSIONS[role]),
+          ]
+        );
+        socket.join(getStudioRoom(sessionId));
+        io.to(userId).emit('studio_session_created', {
+          sessionId,
+          projectId: data.projectId || null,
+          sessionName: data.sessionName || 'Studio Session',
+        });
+      } catch (err) {
+        console.error('Create studio session error:', err);
+      }
+    });
+
+    socket.on('invite_to_studio_session', async (data = {}) => {
+      const { sessionId, toUserId } = data;
+      const role = ['editor', 'reviewer', 'viewer'].includes(data.role)
+        ? data.role
+        : 'viewer';
+      if (!sessionId || !toUserId) return;
+      try {
+        if (!(await hasStudioPermission(sessionId, userId, 'invite'))) return;
+        await pool.query(
+          `INSERT INTO studio_session_members (session_id, user_id, role, status, permissions)
+           VALUES ($1, $2, $3, 'invited', $4)
+           ON CONFLICT (session_id, user_id)
+           DO UPDATE SET
+             role = EXCLUDED.role,
+             status = 'invited',
+             permissions = EXCLUDED.permissions`,
+          [
+            sessionId,
+            toUserId,
+            role,
+            JSON.stringify(STUDIO_ROLE_PERMISSIONS[role]),
+          ]
+        );
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, title, body, payload)
+           VALUES ($1, 'studio_session_invite', $2, $3, $4)`,
+          [
+            toUserId,
+            '🎛️ Studio Session Invite',
+            `${presence.get(userId)?.metadata?.artistName || userId} invited you to collaborate.`,
+            JSON.stringify({ sessionId, role, invitedBy: userId }),
+          ]
+        );
+        io.to(toUserId).emit('studio_session_invite', {
+          sessionId,
+          invitedBy: userId,
+          role,
+        });
+      } catch (err) {
+        console.error('Invite studio session error:', err);
+      }
+    });
+
+    socket.on('join_studio_session', async (data = {}) => {
+      const { sessionId } = data;
+      if (!sessionId) return;
+      try {
+        const member = await getStudioMember(sessionId, userId);
+        if (!member) return;
+        await pool.query(
+          `UPDATE studio_session_members
+           SET status = 'active', joined_at = CURRENT_TIMESTAMP
+           WHERE session_id = $1 AND user_id = $2`,
+          [sessionId, userId]
+        );
+        socket.join(getStudioRoom(sessionId));
+        io.to(getStudioRoom(sessionId)).emit('member_joined', { sessionId, userId });
+        io.to(userId).emit(
+          'session_sync',
+          await buildSessionSyncPayload(sessionId, userId)
+        );
+      } catch (err) {
+        console.error('Join studio session error:', err);
+      }
+    });
+
+    socket.on('leave_studio_session', (data = {}) => {
+      const { sessionId } = data;
+      if (!sessionId) return;
+      socket.leave(getStudioRoom(sessionId));
+      io.to(getStudioRoom(sessionId)).emit('member_left', { sessionId, userId });
+    });
+
+    socket.on('studio_session_event', async (data = {}) => {
+      const { sessionId, event } = data;
+      if (!sessionId || !event || !event.type) return;
+      try {
+        const permission = studioEventPermission(event.type);
+        if (!(await hasStudioPermission(sessionId, userId, permission))) return;
+        io.to(getStudioRoom(sessionId)).emit('studio_session_event', {
+          sessionId,
+          event: {
+            ...event,
+            fromUserId: userId,
+            fromUserName:
+              presence.get(userId)?.metadata?.artistName ||
+              event.fromUserName ||
+              userId,
+          },
+        });
+      } catch (err) {
+        console.error('Studio session event error:', err);
+      }
+    });
+
+    socket.on('add_studio_comment', async (data = {}) => {
+      const { sessionId, projectId, branchId, checkpointId, trackId, clipId, content } = data;
+      if (!sessionId || !projectId || !content) return;
+      try {
+        if (!(await hasStudioPermission(sessionId, userId, 'comment'))) return;
+        const commentId = data.id || `comment_${crypto.randomUUID()}`;
+        await pool.query(
+          `INSERT INTO studio_comments (
+             id, session_id, project_id, branch_id, checkpoint_id, track_id, clip_id, user_id, content
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            commentId,
+            sessionId,
+            projectId,
+            branchId || null,
+            checkpointId || null,
+            trackId || null,
+            clipId || null,
+            userId,
+            content,
+          ]
+        );
+        io.to(getStudioRoom(sessionId)).emit('studio_comment_added', {
+          id: commentId,
+          sessionId,
+          projectId,
+          branchId: branchId || null,
+          checkpointId: checkpointId || null,
+          trackId: trackId || null,
+          clipId: clipId || null,
+          userId,
+          content,
+        });
+      } catch (err) {
+        console.error('Add studio comment error:', err);
+      }
+    });
+
+    socket.on('resolve_studio_comment', async (data = {}) => {
+      const { sessionId, commentId } = data;
+      if (!sessionId || !commentId) return;
+      try {
+        if (!(await hasStudioPermission(sessionId, userId, 'comment'))) return;
+        await pool.query(
+          `UPDATE studio_comments
+           SET resolved = TRUE, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1 AND session_id = $2`,
+          [commentId, sessionId]
+        );
+        io.to(getStudioRoom(sessionId)).emit('studio_comment_resolved', {
+          commentId,
+          sessionId,
+        });
+      } catch (err) {
+        console.error('Resolve studio comment error:', err);
+      }
+    });
+
+    socket.on('create_approval_request', async (data = {}) => {
+      const { sessionId, projectId, branchId, checkpointId, approverIds } = data;
+      if (!sessionId || !projectId || !Array.isArray(approverIds)) return;
+      try {
+        if (!(await hasStudioPermission(sessionId, userId, 'review'))) return;
+        const approvalId = data.id || `approval_${crypto.randomUUID()}`;
+        await pool.query(
+          `INSERT INTO studio_approvals (
+             id, session_id, project_id, branch_id, checkpoint_id, created_by_id, approver_ids
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            approvalId,
+            sessionId,
+            projectId,
+            branchId || null,
+            checkpointId || null,
+            userId,
+            approverIds,
+          ]
+        );
+        for (const approverId of approverIds) {
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, body, payload)
+             VALUES ($1, 'studio_review_request', $2, $3, $4)`,
+            [
+              approverId,
+              '📝 Review Requested',
+              `${presence.get(userId)?.metadata?.artistName || userId} requested a session review.`,
+              JSON.stringify({ approvalId, sessionId, projectId }),
+            ]
+          );
+          io.to(approverId).emit('approval_requested', {
+            approvalId,
+            sessionId,
+            projectId,
+            requestedBy: userId,
+          });
+        }
+      } catch (err) {
+        console.error('Create approval request error:', err);
+      }
+    });
+
+    socket.on('submit_approval', async (data = {}) => {
+      const { approvalId, status, reason } = data;
+      if (!approvalId || !['approved', 'rejected', 'revision-requested'].includes(status)) return;
+      try {
+        const { rows } = await pool.query(
+          `SELECT session_id, approver_ids, approval_status
+           FROM studio_approvals
+           WHERE id = $1
+           LIMIT 1`,
+          [approvalId]
+        );
+        const approval = rows[0];
+        if (!approval) return;
+        if (!(await hasStudioPermission(approval.session_id, userId, 'approve'))) return;
+        if (Array.isArray(approval.approver_ids) && !approval.approver_ids.includes(userId)) {
+          return;
+        }
+        const nextStatus = coerceJson(approval.approval_status, {});
+        nextStatus[userId] = {
+          status,
+          reason: reason || '',
+          timestamp: Date.now(),
+        };
+        const decisionStates = Object.values(nextStatus).map((entry) => entry.status);
+        const overallStatus = decisionStates.includes('rejected')
+          ? 'rejected'
+          : decisionStates.length > 0 &&
+              decisionStates.every((entry) => entry === 'approved')
+            ? 'approved'
+            : decisionStates.includes('revision-requested')
+              ? 'mixed'
+              : 'pending';
+        await pool.query(
+          `UPDATE studio_approvals
+           SET approval_status = $1, overall_status = $2, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $3`,
+          [JSON.stringify(nextStatus), overallStatus, approvalId]
+        );
+        io.to(getStudioRoom(approval.session_id)).emit('studio_approval_updated', {
+          approvalId,
+          sessionId: approval.session_id,
+          approverId: userId,
+          status,
+          overallStatus,
+        });
+      } catch (err) {
+        console.error('Submit approval error:', err);
+      }
+    });
+
+    socket.on('send_async_packet', async (data = {}) => {
+      const { sessionId, toUserId, packetType, payload } = data;
+      if (!sessionId || !toUserId || !packetType) return;
+      try {
+        const requiredPermission =
+          packetType === 'remix_request'
+            ? 'remix'
+            : ['review_request', 'revision_request', 'approval_request'].includes(
+                  packetType
+                )
+              ? 'review'
+              : 'edit';
+        if (!(await hasStudioPermission(sessionId, userId, requiredPermission))) return;
+        const packetId = data.id || `packet_${crypto.randomUUID()}`;
+        await pool.query(
+          `INSERT INTO async_collaboration_packets (
+             id, session_id, from_user_id, to_user_id, packet_type, payload
+           ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            packetId,
+            sessionId,
+            userId,
+            toUserId,
+            packetType,
+            JSON.stringify(payload || {}),
+          ]
+        );
+        if (presence.has(toUserId)) {
+          io.to(toUserId).emit('async_packet_received', {
+            id: packetId,
+            sessionId,
+            fromUserId: userId,
+            toUserId,
+            packetType,
+            status: 'pending',
+            payload: payload || {},
+            createdAt: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error('Send async packet error:', err);
+      }
+    });
+
+    socket.on('apply_async_packet', async (data = {}) => {
+      const { packetId, status, responsePayload } = data;
+      if (!packetId) return;
+      try {
+        const { rows } = await pool.query(
+          `UPDATE async_collaboration_packets
+           SET status = $1, response_payload = $2, applied_at = CURRENT_TIMESTAMP
+           WHERE id = $3 AND to_user_id = $4
+           RETURNING session_id, from_user_id`,
+          [status || 'applied', JSON.stringify(responsePayload || {}), packetId, userId]
+        );
+        const packet = rows[0];
+        if (!packet) return;
+        io.to(packet.from_user_id).emit('async_packet_applied', {
+          packetId,
+          sessionId: packet.session_id,
+          appliedBy: userId,
+        });
+      } catch (err) {
+        console.error('Apply async packet error:', err);
+      }
+    });
+
+    socket.on('create_remix', async (data = {}) => {
+      const { sourceProjectId, remixProjectId, lineageChain } = data;
+      if (!remixProjectId) return;
+      try {
+        const lineageId = data.id || `lineage_${crypto.randomUUID()}`;
+        const lineage = Array.isArray(lineageChain) ? lineageChain : [];
+        await pool.query(
+          `INSERT INTO remix_lineage (
+             id, remix_project_id, source_project_id, remixer_id, lineage, depth, attribution
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (remix_project_id)
+           DO UPDATE SET
+             source_project_id = EXCLUDED.source_project_id,
+             remixer_id = EXCLUDED.remixer_id,
+             lineage = EXCLUDED.lineage,
+             depth = EXCLUDED.depth,
+             attribution = EXCLUDED.attribution`,
+          [
+            lineageId,
+            remixProjectId,
+            sourceProjectId || null,
+            userId,
+            JSON.stringify(lineage),
+            Math.max(1, lineage.length || 1),
+            JSON.stringify({
+              remixer: presence.get(userId)?.metadata?.artistName || userId,
+            }),
+          ]
+        );
+        io.to(userId).emit('remix_lineage_created', {
+          id: lineageId,
+          remixProjectId,
+          sourceProjectId: sourceProjectId || null,
+        });
+      } catch (err) {
+        console.error('Create remix lineage error:', err);
+      }
+    });
+
+    socket.on('request_session_sync', async (data = {}) => {
+      const { sessionId } = data;
+      if (!sessionId) return;
+      try {
+        if (!(await hasStudioPermission(sessionId, userId, null))) return;
+        io.to(userId).emit(
+          'session_sync',
+          await buildSessionSyncPayload(sessionId, userId)
+        );
+      } catch (err) {
+        console.error('Session sync error:', err);
+      }
     });
 
     // --- Parties / Squads ---
@@ -1171,6 +1913,299 @@ app.post(
     }
   }
 );
+
+// --- STUDIO COLLABORATION ---
+app.get('/api/studio/sessions/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.user;
+    const { rows } = await pool.query(
+      `SELECT DISTINCT s.id, s.project_id, s.created_by_id, s.status, s.metadata,
+              EXTRACT(EPOCH FROM s.created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM s.updated_at)::bigint * 1000 as updated_at
+       FROM studio_sessions s
+       LEFT JOIN studio_session_members m ON m.session_id = s.id
+       WHERE s.project_id = $1
+         AND (s.created_by_id = $2 OR m.user_id = $2)
+       ORDER BY s.updated_at DESC`,
+      [projectId, userId]
+    );
+    res.json(
+      rows.map((row) => ({
+        id: row.id,
+        projectId: row.project_id,
+        createdById: row.created_by_id,
+        status: row.status,
+        metadata: row.metadata || {},
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      }))
+    );
+  } catch (err) {
+    console.error('Studio sessions list error:', err);
+    res.status(500).json({ error: 'Failed to load studio sessions.' });
+  }
+});
+
+app.get('/api/studio/sessions/:sessionId/sync', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { userId } = req.user;
+    const memberCheck = await pool.query(
+      `SELECT 1
+       FROM studio_session_members
+       WHERE session_id = $1 AND user_id = $2 AND status = 'active'
+       LIMIT 1`,
+      [sessionId, userId]
+    );
+    if (memberCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Studio session access denied.' });
+    }
+
+    const { rows: sessionRows } = await pool.query(
+      `SELECT id, project_id, status, metadata
+       FROM studio_sessions
+       WHERE id = $1
+       LIMIT 1`,
+      [sessionId]
+    );
+    const { rows: memberRows } = await pool.query(
+      `SELECT session_id, user_id, role, status, permissions,
+              EXTRACT(EPOCH FROM joined_at)::bigint * 1000 as joined_at
+       FROM studio_session_members
+       WHERE session_id = $1
+       ORDER BY joined_at ASC`,
+      [sessionId]
+    );
+    const { rows: commentRows } = await pool.query(
+      `SELECT id, session_id, project_id, branch_id, checkpoint_id, track_id, clip_id, user_id,
+              content, resolved,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM updated_at)::bigint * 1000 as updated_at
+       FROM studio_comments
+       WHERE session_id = $1
+       ORDER BY updated_at DESC`,
+      [sessionId]
+    );
+    const { rows: approvalRows } = await pool.query(
+      `SELECT id, session_id, project_id, branch_id, checkpoint_id, created_by_id, approver_ids,
+              approval_status, overall_status,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM updated_at)::bigint * 1000 as updated_at
+       FROM studio_approvals
+       WHERE session_id = $1
+       ORDER BY updated_at DESC`,
+      [sessionId]
+    );
+    const { rows: packetRows } = await pool.query(
+      `SELECT id, session_id, from_user_id, to_user_id, packet_type, status, payload, response_payload,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM applied_at)::bigint * 1000 as applied_at
+       FROM async_collaboration_packets
+       WHERE session_id = $1 AND (to_user_id = $2 OR from_user_id = $2)
+       ORDER BY created_at DESC`,
+      [sessionId, userId]
+    );
+
+    let remixRows = [];
+    if (sessionRows[0]?.project_id) {
+      const remixResult = await pool.query(
+        `SELECT id, remix_project_id, source_project_id, remixer_id, lineage, depth,
+                EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+                EXTRACT(EPOCH FROM accepted_at)::bigint * 1000 as accepted_at
+         FROM remix_lineage
+         WHERE remix_project_id = $1 OR source_project_id = $1
+         ORDER BY created_at DESC`,
+        [sessionRows[0].project_id]
+      );
+      remixRows = remixResult.rows;
+    }
+
+    res.json({
+      session: sessionRows[0]
+        ? {
+            id: sessionRows[0].id,
+            projectId: sessionRows[0].project_id,
+            status: sessionRows[0].status,
+            metadata: sessionRows[0].metadata || {},
+          }
+        : null,
+      members: memberRows.map((row) => ({
+        sessionId: row.session_id,
+        userId: row.user_id,
+        role: row.role,
+        status: row.status,
+        permissions: row.permissions || {},
+        joinedAt: Number(row.joined_at),
+      })),
+      comments: commentRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        projectId: row.project_id,
+        branchId: row.branch_id,
+        checkpointId: row.checkpoint_id,
+        trackId: row.track_id,
+        clipId: row.clip_id,
+        userId: row.user_id,
+        content: row.content,
+        resolved: row.resolved,
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      })),
+      approvals: approvalRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        projectId: row.project_id,
+        branchId: row.branch_id,
+        checkpointId: row.checkpoint_id,
+        requestedBy: row.created_by_id,
+        approverIds: row.approver_ids || [],
+        overallStatus: row.overall_status,
+        decisions: row.approval_status || {},
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      })),
+      asyncPackets: packetRows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        fromUserId: row.from_user_id,
+        toUserId: row.to_user_id,
+        packetType: row.packet_type,
+        status: row.status,
+        payload: row.payload || {},
+        responsePayload: row.response_payload || null,
+        createdAt: Number(row.created_at),
+        appliedAt: row.applied_at ? Number(row.applied_at) : null,
+      })),
+      remixLineage: remixRows.map((row) => ({
+        id: row.id,
+        remixProjectId: row.remix_project_id,
+        sourceProjectId: row.source_project_id,
+        remixerId: row.remixer_id,
+        lineage: row.lineage || [],
+        depth: Number(row.depth || 1),
+        createdAt: Number(row.created_at),
+        acceptedAt: row.accepted_at ? Number(row.accepted_at) : null,
+      })),
+    });
+  } catch (err) {
+    console.error('Studio session sync error:', err);
+    res.status(500).json({ error: 'Failed to sync studio session.' });
+  }
+});
+
+app.get('/api/studio/sessions/:sessionId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { userId } = req.user;
+    const memberCheck = await pool.query(
+      `SELECT 1
+       FROM studio_session_members
+       WHERE session_id = $1 AND user_id = $2
+       LIMIT 1`,
+      [sessionId, userId]
+    );
+    if (memberCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Studio session access denied.' });
+    }
+    const { rows } = await pool.query(
+      `SELECT id, session_id, project_id, branch_id, checkpoint_id, track_id, clip_id, user_id,
+              content, resolved,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM updated_at)::bigint * 1000 as updated_at
+       FROM studio_comments
+       WHERE session_id = $1
+       ORDER BY updated_at DESC`,
+      [sessionId]
+    );
+    res.json(
+      rows.map((row) => ({
+        id: row.id,
+        sessionId: row.session_id,
+        projectId: row.project_id,
+        branchId: row.branch_id,
+        checkpointId: row.checkpoint_id,
+        trackId: row.track_id,
+        clipId: row.clip_id,
+        userId: row.user_id,
+        content: row.content,
+        resolved: row.resolved,
+        createdAt: Number(row.created_at),
+        updatedAt: Number(row.updated_at),
+      }))
+    );
+  } catch (err) {
+    console.error('Studio comments error:', err);
+    res.status(500).json({ error: 'Failed to load studio comments.' });
+  }
+});
+
+app.get(
+  '/api/studio/async-packets/:userId',
+  authenticateToken,
+  authorizeUser,
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { rows } = await pool.query(
+        `SELECT id, session_id, from_user_id, to_user_id, packet_type, status, payload, response_payload,
+                EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+                EXTRACT(EPOCH FROM applied_at)::bigint * 1000 as applied_at
+         FROM async_collaboration_packets
+         WHERE to_user_id = $1
+         ORDER BY created_at DESC`,
+        [userId]
+      );
+      res.json(
+        rows.map((row) => ({
+          id: row.id,
+          sessionId: row.session_id,
+          fromUserId: row.from_user_id,
+          toUserId: row.to_user_id,
+          packetType: row.packet_type,
+          status: row.status,
+          payload: row.payload || {},
+          responsePayload: row.response_payload || null,
+          createdAt: Number(row.created_at),
+          appliedAt: row.applied_at ? Number(row.applied_at) : null,
+        }))
+      );
+    } catch (err) {
+      console.error('Async packet list error:', err);
+      res.status(500).json({ error: 'Failed to load async collaboration packets.' });
+    }
+  }
+);
+
+app.get('/api/remix/lineage/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT id, remix_project_id, source_project_id, remixer_id, lineage, depth,
+              EXTRACT(EPOCH FROM created_at)::bigint * 1000 as created_at,
+              EXTRACT(EPOCH FROM accepted_at)::bigint * 1000 as accepted_at
+       FROM remix_lineage
+       WHERE remix_project_id = $1 OR source_project_id = $1
+       ORDER BY created_at DESC`,
+      [projectId]
+    );
+    res.json(
+      rows.map((row) => ({
+        id: row.id,
+        remixProjectId: row.remix_project_id,
+        sourceProjectId: row.source_project_id,
+        remixerId: row.remixer_id,
+        lineage: row.lineage || [],
+        depth: Number(row.depth || 1),
+        createdAt: Number(row.created_at),
+        acceptedAt: row.accepted_at ? Number(row.accepted_at) : null,
+      }))
+    );
+  } catch (err) {
+    console.error('Remix lineage error:', err);
+    res.status(500).json({ error: 'Failed to load remix lineage.' });
+  }
+});
 
 // AI & Analysis Endpoints
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
