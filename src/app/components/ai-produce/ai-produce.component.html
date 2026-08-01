@@ -415,6 +415,36 @@
         <span class="meta-value">{{ snap.performanceTier }}</span>
       </div>
     </div>
+    <!-- Sprint X3 — Engine benchmark CTA. Drives the latency service's
+         OfflineAudioContext render from this page so users can spot-check
+         device throughput without leaving /produce. -->
+    <div class="benchmark-row">
+      <button
+        type="button"
+        class="btn-benchmark"
+        (click)="runBenchmarkNow()"
+        [disabled]="isBenchmarking()"
+        [attr.aria-busy]="isBenchmarking()"
+        aria-label="Run engine benchmark"
+      >
+        <span class="material-symbols-outlined">speed</span>
+        {{ isBenchmarking() ? 'Running benchmark…' : 'Run Benchmark' }}
+      </button>
+      <div class="benchmark-result" *ngIf="benchmarkResult() as r">
+        <span class="meta-label">Render</span>
+        <span class="meta-value">
+          {{ r.offlineRenderMs | number:'1.0-0' }} ms ·
+          <strong>
+            {{ r.speedRatio > 1 ? (r.speedRatio | number:'1.1-1') + '× real-time' :
+               r.speedRatio === 1 ? 'real-time' :
+               ((1 / r.speedRatio) | number:'1.1-1') + '× slower' }}
+          </strong>
+        </span>
+      </div>
+      <div class="benchmark-result is-empty" *ngIf="!benchmarkResult() && !isBenchmarking()">
+        <span class="meta-value">Offload a render to see real-time performance ratio.</span>
+      </div>
+    </div>
   </section>
 
   <section class="log-card" *ngIf="produce.log().length > 0">

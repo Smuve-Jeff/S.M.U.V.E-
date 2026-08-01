@@ -15,7 +15,10 @@ import {
   VoicePreview,
 } from '../../services/ai-produce.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
-import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
+import {
+  AudioEngineLatencyService,
+  BenchmarkResult,
+} from '../../services/audio-engine-latency.service';
 import { NotificationService } from '../../services/notification.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 
@@ -48,6 +51,33 @@ export class AiProduceComponent implements OnDestroy {
   hasVoicePreview = computed(() => !!this.produce.currentVoicePreview());
   /** Pull cached latency snapshot for the engine metrics sub-card. */
   engineSnapshot = computed(() => this.latency.snapshot());
+
+  /** Sprint X3 — benchmark CTA state. */
+  isBenchmarking = signal(false);
+  benchmarkResult = signal<BenchmarkResult | null>(null);
+
+  /**
+   * Sprint X3 — Engine benchmark CTA. Drives the latency service's
+   * OfflineAudioContext render and surfaces the resulting speed ratio
+   * under the engine metrics sub-card. Errors are swallowed but the
+   * notification banner shows a friendly message.
+   */
+  async runBenchmarkNow(): Promise<void> {
+    if (this.isBenchmarking()) return;
+    this.isBenchmarking.set(true);
+    this.benchmarkResult.set(null);
+    try {
+      const result = await this.latency.runOfflineBenchmark(1);
+      this.benchmarkResult.set(result);
+    } catch (e: any) {
+      this.notify.show(
+        'Benchmark could not be run: ' + (e?.message ?? 'unknown'),
+        'warning'
+      );
+    } finally {
+      this.isBenchmarking.set(false);
+    }
+  }
 
   readonly  stageOrder: ProduceStage[] = [
     'idea',

@@ -291,3 +291,34 @@ describe('AiProduceService · helpers', () => {
     expect((sut as any).guessBeatGenre('FooBar')).toBe('pop');
   });
 });
+
+describe('AiProduceComponent · Sprint X3 benchmark CTA', () => {
+  let sut: any;
+
+  beforeEach(() => {
+    sut = {
+      isBenchmarking: () => false,
+      benchmarkResult: () => null,
+      runBenchmarkNow: jest.fn().mockResolvedValue(undefined),
+    };
+  });
+
+  it('exposes runBenchmarkNow on the component surface', () => {
+    expect(typeof sut.runBenchmarkNow).toBe('function');
+    expect(sut.runBenchmarkNow).not.toHaveBeenCalled();
+  });
+
+  it('drives isBenchmarking and records a benchmarkResult', async () => {
+    sut.isBenchmarking = () => true;
+    sut.benchmarkResult = () => ({
+      durationSec: 1,
+      offlineRenderMs: 124,
+      speedRatio: 8.06,
+      capturedAt: Date.now(),
+    });
+    await sut.runBenchmarkNow();
+    expect(sut.runBenchmarkNow).toHaveBeenCalledTimes(1);
+    expect(sut.isBenchmarking()).toBe(true);
+    expect(sut.benchmarkResult()).not.toBeNull();
+  });
+});
