@@ -43,14 +43,17 @@
     >
       {{ currentVelocityZone() | uppercase }}
     </span>
-    <!-- Sustain pedal LED (CC64) -->
+    <!-- Sustain pedal LED (CC64 + half-pedal CC68) -->
     <span
       class="perf-sustain-led"
       [class.active]="sustainActive()"
-      title="Sustain pedal (CC64) — {{ sustainActive() ? 'engaged' : 'released' }}"
+      [class.half]="sustainHalfPedal()"
+      title="Sustain pedal — {{ sustainHalfPedal() ? 'HALF-PEDAL (' + sustainAmount() + ')' : sustainActive() ? 'engaged' : 'released' }}"
     >
       <span class="perf-sustain-dot"></span>
-      <span class="perf-sustain-label">SUS</span>
+      <span class="perf-sustain-label">
+        SUS{{ sustainHalfPedal() ? ' ½' : '' }}
+      </span>
     </span>
     <!-- MIDI Mapping Toggle -->
     <button

@@ -54,6 +54,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Sustain pedal state (CC64) surfaced from the hardware layer. */
   readonly sustainActive = this.hardware.sustainActive;
+  /** Half-pedal state (CC68 < 64 while held) surfaced from the hardware layer. */
+  readonly sustainHalfPedal = this.hardware.sustainHalfPedal;
+  /** Continuous pedal position 0-127 (CC68) surfaced from the hardware layer. */
+  readonly sustainAmount = this.hardware.sustainAmount;
+  /** Notes released by the last pedal lift — for the release-count chip. */
+  readonly sustainReleaseCount = this.hardware.lastSustainReleaseCount;
 
   // ── WebGL renderers ──────────────────────────────────────
   private glRenderer!: WebGLRenderer;
@@ -228,6 +234,52 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   showCcLane = signal(false);
   activeCcLane = signal<string | null>(null);
 
+  /** Per-lane MIDI controller number — defaults to the lane's stock CC. */
+  ccLaneController = signal<Record<string, number>>({
+    mod: 1,
+    expr: 11,
+    pan: 10,
+    cut: 74,
+    bend: 0,
+  });
+
+  /** Per-lane MIDI channel (0-15) for both send and learn-matching. */
+  ccLaneChannel = signal<Record<string, number>>({
+    mod: 0,
+    expr: 0,
+    pan: 0,
+    cut: 0,
+    bend: 0,
+  });
+
+  /** Lane currently waiting for a MIDI Learn capture, or null. */
+  ccLaneLearnTarget = signal<string | null>(null);
+
+  /** Start MIDI Learn for a lane — next incoming CC (on its channel) assigns it. */
+  startCcLaneLearn(laneId: string): void {
+    this.djMidi.startPerformerLearn('cc_lane_' + laneId);
+    this.ccLaneLearnTarget.set(laneId);
+    this.haptic.medium();
+  }
+
+  cancelCcLaneLearn(): void {
+    this.djMidi.cancelPerformerLearn();
+    this.ccLaneLearnTarget.set(null);
+    this.haptic.light();
+  }
+
+  /** True while this lane is the active learn target. */
+  isCcLaneLearning(laneId: string): boolean {
+    return this.ccLaneLearnTarget() === laneId;
+  }
+
+  /** Set the MIDI channel a lane sends / matches on (0-15). */
+  setCcLaneChannel(laneId: string, channel: number): void {
+    const ch = Math.max(0, Math.min(15, Math.round(channel)));
+    this.ccLaneChannel.update((v) => ({ ...v, [laneId]: ch }));
+    this.haptic.light();
+  }
+
   /** Arm CC automation recording — writes keyframes at the playhead while playing. */
   ccRecordArmed = signal(false);
   private ccSubscription: { unsubscribe: () => void } | null = null;
@@ -316,7 +368,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       undo: () => this.restoreCcLanes(this.recordSnapshot ?? {}),
     });
     this.recordSnapshot = null;
+    // Bezier readout sync: auto-open the editor for the most-recently drawn lane
+    if (this.lastRecordedLaneId) {
+      const laneId = this.lastRecordedLaneId;
+      this.lastRecordedLaneId = null;
+      this.openBezierEditor.emit(laneId);
+    }
   }
+
+  /** Real automation lane id most recently written by CC recording. */
+  private lastRecordedLaneId: string | null = null;
+
+  private learnEffect: { destroy: () => void } | null = null;
 
   private recordSnapshot: Record<string, { time: number; value: number }[]> | null = null;
 
@@ -362,6 +425,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       (this.musicManager.engine?.visualStep?.() ?? 0) % this.gridSteps()
     );
     this.automation.addPoint(autoLane.id, playhead, Math.round(value));
+    this.lastRecordedLaneId = autoLane.id;
     this.haptic.light();
   }
 
@@ -373,8 +437,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /** Called with incoming MIDI CC (0-127) from an external controller. */
-  private handleIncomingCc(controller: number, value: number): void {
-    const lane = this.ccLanes.find((l) => l.cc === controller);
+  private handleIncomingCc(controller: number, value: number, channel = 0): void {
+    // Match by learned/stock controller AND per-lane channel
+    const lane = this.ccLanes.find((l) => {
+      const ctrl = this.ccLaneController()[l.id] ?? l.cc;
+      const ch = this.ccLaneChannel()[l.id] ?? 0;
+      return ctrl === controller && ch === channel;
+    });
     if (!lane) return;
     const clamped = Math.max(0, Math.min(127, Math.round(value)));
     this.ccLaneValues.update((v) => ({ ...v, [lane.id]: clamped }));
@@ -416,11 +485,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.haptic.light();
     const lane = this.ccLanes.find((l) => l.id === laneId);
     if (lane) {
+      const channel = this.ccLaneChannel()[laneId] ?? 0;
+      const controller = this.ccLaneController()[laneId] ?? lane.cc;
       if (lane.type === 'pitchbend') {
         // Bend lane stores 0..127 → normalize to -1..1 for the 14-bit MIDI PB message
-        this.djMidi.sendPitchBend((value / 127) * 2 - 1, 0);
+        this.djMidi.sendPitchBend((value / 127) * 2 - 1, channel);
       } else {
-        this.djMidi.sendCC(lane.cc, value, 0);
+        this.djMidi.sendCC(controller, value, channel);
       }
       this.recordCcIfArmed(laneId, value);
     }
@@ -439,8 +510,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openBezierForCcLane(laneId: string): void {
     const trackId = this.selectedTrack()?.id || 'main';
-    const fullLaneId = `${trackId}_cc_${laneId}`;
-    this.openBezierEditor.emit(fullLaneId);
+    const lane = this.ccLanes.find((l) => l.id === laneId);
+    if (!lane) return;
+    // Resolve the REAL automation lane id so the bezier editor finds it
+    const autoLane = this.automation.ensureLane(trackId, `cc_${lane.param}`, {
+      interpolation: 'linear',
+      min: 0,
+      max: 127,
+    });
+    this.openBezierEditor.emit(autoLane.id);
     this.haptic.light();
   }
 
@@ -473,6 +551,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         this.scrollToHighlight(req.noteRange);
       }
     });
+
+    // MIDI Learn capture: when the DJ service records a mapping for a lane we
+    // are waiting on, adopt the learned controller + channel immediately.
+    // (Created in the constructor so it runs inside an injection context.)
+    this.learnEffect = effect(() => {
+      const map = this.djMidi.performerCCMap?.() ?? [];
+      const target = this.ccLaneLearnTarget();
+      if (!target) return;
+      const mapping = map.find((m) => m.target === 'cc_lane_' + target);
+      if (mapping) {
+        this.ccLaneController.update((v) => ({ ...v, [target]: mapping.controller }));
+        this.ccLaneChannel.update((v) => ({ ...v, [target]: mapping.channel }));
+        this.ccLaneLearnTarget.set(null);
+        this.haptic.medium();
+      }
+    });
   }
 
   // ── Lifecycle ────────────────────────────────────────────
@@ -480,7 +574,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     // Listen for external MIDI CC controllers (CC1/10/11/74) → live lane value + record
     this.ccSubscription = this.djMidi.performerCC.subscribe((event) => {
-      this.handleIncomingCc(event.controller, event.value * 127);
+      this.handleIncomingCc(event.controller, event.value * 127, event.channel ?? 0);
     });
     // Pitch bend wheel (0xE0) → bend lane live value + record
     this.pbSubscription = this.djMidi.performerPitchBend.subscribe((event) => {
@@ -505,6 +599,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.pbSubscription?.unsubscribe();
     this.noteOnSubscription?.unsubscribe();
     this.noteOffSubscription?.unsubscribe();
+    this.learnEffect?.destroy();
     if (this.renderRafId !== null) {
       cancelAnimationFrame(this.renderRafId);
       this.renderRafId = null;

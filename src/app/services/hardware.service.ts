@@ -56,13 +56,23 @@ export class HardwareService {
   /** Callback fired for any MIDI CC message (controller 0-127, value 0-127). */
   onMidiCC?: (controller: number, value: number) => void;
 
-  // ── Sustain Pedal (CC64) ────────────────────────────────
+  // ── Sustain Pedal (CC64 + Half-Pedal CC68) ──────────────
   /** True while the sustain pedal is held down (MIDI CC64 >= 64). */
   sustainActive = signal(false);
+  /** Continuous pedal position 0-127 (CC68 half-pedal amount, 127 = full). */
+  sustainAmount = signal(127);
+  /** Half-pedal engaged: pedal partially released but still holding. */
+  readonly sustainHalfPedal = computed(
+    () => this.sustainActive() && this.sustainAmount() < 64
+  );
+  /** Number of notes released by the last pedal lift (pedal-up or half-pedal). */
+  lastSustainReleaseCount = signal(0);
   /** Notes currently held down on the keyboard (note -> press count). */
   private heldNotes = new Map<number, number>();
-  /** Notes kept ringing by the sustain pedal after key release. */
-  private sustainedNotes = new Set<number>();
+  /** Notes kept ringing by the sustain pedal (note -> strike velocity). */
+  private sustainedNotes = new Map<number, number>();
+  /** Last strike velocity per held note, used for velocity-aware half-pedal. */
+  private noteVelocities = new Map<number, number>();
   readonly externalHardwareConnected = computed(() => {
     const s = this.status();
     return (
@@ -173,6 +183,7 @@ export class HardwareService {
           // Note on
           this.heldNotes.set(data1, (this.heldNotes.get(data1) ?? 0) + 1);
           this.sustainedNotes.delete(data1);
+          this.noteVelocities.set(data1, data2);
           this.zone.run(() => {
             this.onMidiNoteOn?.(data1, data2);
           });
@@ -181,8 +192,10 @@ export class HardwareService {
           const count = (this.heldNotes.get(data1) ?? 1) - 1;
           if (count <= 0) {
             this.heldNotes.delete(data1);
+            const velocity = this.noteVelocities.get(data1) ?? 100;
+            this.noteVelocities.delete(data1);
             if (this.sustainActive()) {
-              this.sustainedNotes.add(data1);
+              this.sustainedNotes.set(data1, velocity);
             } else {
               this.zone.run(() => {
                 this.onMidiNoteOff?.(data1);
@@ -192,16 +205,35 @@ export class HardwareService {
             this.heldNotes.set(data1, count);
           }
         } else if (command === 0xb0) {
-          // CC message — sustain pedal is CC64 (0x40)
+          // CC message — sustain pedal is CC64 (0x40), half-pedal CC68 (0x44)
           this.zone.run(() => {
             if (data1 === 64) {
               if (data2 >= 64) {
                 this.sustainActive.set(true);
+                this.sustainAmount.set(127);
               } else {
                 this.sustainActive.set(false);
+                this.sustainAmount.set(0);
                 // Release every note that was held through the pedal
-                this.sustainedNotes.forEach((note) => this.onMidiNoteOff?.(note));
+                const released = this.sustainedNotes.size;
+                this.sustainedNotes.forEach((_, note) => this.onMidiNoteOff?.(note));
                 this.sustainedNotes.clear();
+                if (released > 0) this.lastSustainReleaseCount.set(released);
+              }
+            } else if (data1 === 68) {
+              // Half-pedal: continuous pedal position. Notes struck softer
+              // than the current position release first (velocity-aware).
+              this.sustainAmount.set(data2);
+              if (data2 < 64) {
+                let released = 0;
+                this.sustainedNotes.forEach((velocity, note) => {
+                  if (velocity < data2) {
+                    this.onMidiNoteOff?.(note);
+                    this.sustainedNotes.delete(note);
+                    released++;
+                  }
+                });
+                if (released > 0) this.lastSustainReleaseCount.set(released);
               }
             }
             this.onMidiCC?.(data1, data2);

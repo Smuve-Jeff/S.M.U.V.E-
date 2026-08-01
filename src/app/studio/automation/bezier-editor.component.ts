@@ -39,6 +39,7 @@ const HANDLE_LINE_COLOR: GLColor = { r: 0.4, g: 0.4, b: 0.6, a: 0.7 };
 const HANDLE_POINT_COLOR: GLColor = { r: 1.0, g: 0.85, b: 0.1, a: 0.9 };
 const GRID_COLOR: GLColor = { r: 0.12, g: 0.15, b: 0.25, a: 0.4 };
 const BG_COLOR: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
+const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
 
 @Component({
   selector: 'app-bezier-editor',
@@ -70,6 +71,10 @@ const BG_COLOR: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
       <div class="bezier-footer">
         <div class="bezier-point-info" *ngIf="draggingHandle() as h">
           CP{{ h }}: {{ handlePositions() }}
+        </div>
+        <div class="bezier-readout-info" *ngIf="readoutDots().length > 0">
+          <span class="bezier-readout-dot"></span>
+          {{ readoutDots().length }} recorded keyframes
         </div>
         <button type="button" class="bezier-reset-btn" (click)="resetHandles()">Reset</button>
         <button type="button" class="bezier-apply-btn" (click)="commitCurve()">Apply to Lane</button>
@@ -150,6 +155,21 @@ const BG_COLOR: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
       border-top: 1px solid rgba(255,255,255,0.06);
     }
     .bezier-point-info { font-size: 9px; font-weight: 600; color: #8b949e; }
+    .bezier-readout-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 9px;
+      font-weight: 600;
+      color: #f25a7e;
+    }
+    .bezier-readout-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f25a7e;
+      box-shadow: 0 0 6px rgba(242,90,126,0.8);
+    }
     .bezier-reset-btn, .bezier-apply-btn {
       padding: 4px 12px;
       font-size: 9px;
@@ -193,6 +213,25 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
     const i = this.cpIn();
     const o = this.cpOut();
     return `IN(${(i.t * 100).toFixed(0)}%,${(i.value * 100).toFixed(0)}%) OUT(${(o.t * 100).toFixed(0)}%,${(o.value * 100).toFixed(0)}%)`;
+  });
+
+  /**
+   * Readout sync: recorded keyframes from the automation lane mapped to
+   * normalized canvas space (x = time%, y = value%) so the editor overlays
+   * the same dots the piano-roll CC strip shows.
+   */
+  readoutDots = computed(() => {
+    if (!this.laneId) return [];
+    const lane = this.autoSvc.lanes().find((l) => l.id === this.laneId);
+    if (!lane || lane.points.length === 0) return [];
+    const maxT = Math.max(1, ...lane.points.map((p) => p.time));
+    const minV = lane.target.min ?? 0;
+    const maxV = lane.target.max ?? 127;
+    const span = Math.max(1, maxV - minV);
+    return lane.points.map((p) => ({
+      x: p.time / maxT,
+      y: (p.value - minV) / span,
+    }));
   });
 
   ngAfterViewInit(): void {
@@ -286,6 +325,13 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
     // Corner anchors
     this.gl.drawQuad(-4, h - 4, 8, 8, HANDLE_POINT_COLOR, 4);
     this.gl.drawQuad(w - 4, -4, 8, 8, HANDLE_POINT_COLOR, 4);
+
+    // Readout sync: recorded keyframe dots from the automation lane
+    for (const dot of this.readoutDots()) {
+      const dx = dot.x * w;
+      const dy = (1 - dot.y) * h;
+      this.gl.drawQuad(dx - 4, dy - 4, 8, 8, READOUT_COLOR, 4);
+    }
 
     this.gl.flush();
   }

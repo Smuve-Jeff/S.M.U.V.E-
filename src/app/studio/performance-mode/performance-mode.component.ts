@@ -43,6 +43,10 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   /** Sustain pedal state (CC64) surfaced from the hardware layer. */
   readonly sustainActive = this.hardware.sustainActive;
+  /** Half-pedal state (CC68 < 64 while held) surfaced from the hardware layer. */
+  readonly sustainHalfPedal = this.hardware.sustainHalfPedal;
+  /** Continuous pedal position 0-127 (CC68) surfaced from the hardware layer. */
+  readonly sustainAmount = this.hardware.sustainAmount;
 
   @Input() pads: PerformancePad[] = [];
   @Output() padClicked = new EventEmitter<PerformancePad>();

@@ -103,6 +103,9 @@ describe('PianoRollComponent', () => {
     performerNoteOff,
     performerCC,
     performerPitchBend,
+    performerCCMap: signal([]),
+    startPerformerLearn: jest.fn(),
+    cancelPerformerLearn: jest.fn(),
     midiActivityPulse: signal(false),
     lastMidiMessage: signal(null),
     connectedDevices: signal([]),
@@ -118,6 +121,9 @@ describe('PianoRollComponent', () => {
 
   const mockHardware = {
     sustainActive: signal(false),
+    sustainHalfPedal: signal(false),
+    sustainAmount: signal(127),
+    lastSustainReleaseCount: signal(0),
   };
 
   const mockHistory = {
@@ -159,9 +165,15 @@ describe('PianoRollComponent', () => {
     mockDjMidi.sendCC.mockClear();
     mockDjMidi.sendPitchBend.mockClear();
     mockDjMidi.setCcOutput.mockClear();
+    mockDjMidi.startPerformerLearn.mockClear();
+    mockDjMidi.cancelPerformerLearn.mockClear();
     mockHistory.execute.mockClear();
     mockHardware.sustainActive.set(false);
+    mockHardware.sustainHalfPedal.set(false);
+    mockHardware.sustainAmount.set(127);
+    mockHardware.lastSustainReleaseCount.set(0);
     component.ccRecordArmed.set(false);
+    component.ccLaneLearnTarget.set(null);
   });
 
   it('should create', () => {
@@ -289,5 +301,71 @@ describe('PianoRollComponent', () => {
     const call = mockHistory.execute.mock.calls[0][0];
     call.undo();
     expect(mockAutomation.setPoints).toHaveBeenCalled();
+  });
+
+  it('should send CC on the per-lane MIDI channel', () => {
+    component.setCcLaneChannel('pan', 3);
+    component.updateCcLaneValue('pan', 64);
+    expect(mockDjMidi.sendCC).toHaveBeenCalledWith(10, 64, 3);
+  });
+
+  it('should only match incoming CC on the lane channel', () => {
+    // CC10 on channel 0 does not match the pan lane now routed to CH3
+    component.setCcLaneChannel('pan', 3);
+    performerCC.next({ controller: 10, value: 0.5, channel: 0 });
+    expect(component.ccLaneValues()['pan']).toBe(64);
+    performerCC.next({ controller: 10, value: 0.25, channel: 3 });
+    expect(component.ccLaneValues()['pan']).toBe(32);
+  });
+
+  it('should start MIDI Learn for a lane and adopt the captured mapping', () => {
+    component.startCcLaneLearn('cut');
+    expect(mockDjMidi.startPerformerLearn).toHaveBeenCalledWith('cc_lane_cut');
+    expect(component.isCcLaneLearning('cut')).toBe(true);
+    // Simulate the DJ service recording a capture for this target
+    mockDjMidi.performerCCMap.set([
+      { controller: 73, channel: 5, target: 'cc_lane_cut' },
+    ]);
+    // Let the effect flush
+    TestBed.flushEffects();
+    expect(component.ccLaneController()['cut']).toBe(73);
+    expect(component.ccLaneChannel()['cut']).toBe(5);
+    expect(component.isCcLaneLearning('cut')).toBe(false);
+  });
+
+  it('should cancel MIDI Learn', () => {
+    component.startCcLaneLearn('mod');
+    component.cancelCcLaneLearn();
+    expect(mockDjMidi.cancelPerformerLearn).toHaveBeenCalled();
+    expect(component.isCcLaneLearning('mod')).toBe(false);
+  });
+
+  it('should surface half-pedal + release count from the hardware layer', () => {
+    mockHardware.sustainHalfPedal.set(true);
+    mockHardware.sustainAmount.set(40);
+    mockHardware.lastSustainReleaseCount.set(3);
+    expect(component.sustainHalfPedal()).toBe(true);
+    expect(component.sustainAmount()).toBe(40);
+    expect(component.sustainReleaseCount()).toBe(3);
+  });
+
+  it('should open the bezier editor with the real automation lane id', () => {
+    const emitSpy = jest.spyOn(component.openBezierEditor, 'emit');
+    component.openBezierForCcLane('cut');
+    expect(mockAutomation.ensureLane).toHaveBeenCalledWith(
+      '1',
+      'cc_cutoff',
+      expect.anything()
+    );
+    expect(emitSpy).toHaveBeenCalledWith('auto-lane-test');
+  });
+
+  it('should auto-open the bezier editor for the last recorded lane on disarm', () => {
+    const emitSpy = jest.spyOn(component.openBezierEditor, 'emit');
+    mockAudioSession.isPlaying.set(true);
+    component.toggleCcRecord();
+    component.updateCcLaneValue('cut', 90);
+    component.toggleCcRecord();
+    expect(emitSpy).toHaveBeenCalledWith('auto-lane-test');
   });
 });

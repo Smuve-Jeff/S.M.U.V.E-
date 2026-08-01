@@ -35,6 +35,8 @@ describe('PerformanceModeComponent', () => {
       onMidiNoteOff: undefined,
       onMidiCC: undefined,
       sustainActive: jest.fn().mockReturnValue(false),
+      sustainHalfPedal: jest.fn().mockReturnValue(false),
+      sustainAmount: jest.fn().mockReturnValue(127),
     } as any;
 
     await TestBed.configureTestingModule({

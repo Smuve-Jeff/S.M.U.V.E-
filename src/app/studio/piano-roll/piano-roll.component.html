@@ -242,7 +242,7 @@
             [style.color]="lane.color"
           >{{ lane.label }}
             <span *ngIf="lane.type === 'pitchbend'">(PB)</span>
-            <span *ngIf="lane.type !== 'pitchbend'">(CC{{ lane.cc }})</span>
+            <span *ngIf="lane.type !== 'pitchbend'">(CC{{ ccLaneController()[lane.id] ?? lane.cc }})</span>
           </span>
           <span
             class="pr-cc-live"
@@ -250,15 +250,47 @@
             *ngIf="ccRecordArmed()"
             title="Recording armed"
           >●</span>
-          <button
-            type="button"
-            class="pr-cc-bezier"
-            (click)="openBezierForCcLane(lane.id)"
-            [style.--lane-color]="lane.color"
-            title="Edit bezier curve for {{ lane.label }}"
-          >
-            <span class="material-symbols-outlined">auto_awesome</span>
-          </button>
+          <span class="pr-cc-header-actions">
+            <!-- Per-lane MIDI channel selector -->
+            <select
+              class="pr-cc-ch"
+              [value]="ccLaneChannel()[lane.id] ?? 0"
+              (change)="setCcLaneChannel(lane.id, $any($event.target).value)"
+              [title]="'MIDI channel for ' + lane.label + ' (CH' + (ccLaneChannel()[lane.id] ?? 0) + ')'"
+            >
+              <option *ngFor="let ch of [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]" [value]="ch">
+                CH{{ ch }}
+              </option>
+            </select>
+            <!-- MIDI Learn: assign the next incoming CC to this lane -->
+            <button
+              type="button"
+              class="pr-cc-learn"
+              [class.learning]="isCcLaneLearning(lane.id)"
+              [style.--lane-color]="lane.color"
+              (click)="
+                isCcLaneLearning(lane.id)
+                  ? cancelCcLaneLearn()
+                  : startCcLaneLearn(lane.id)
+              "
+              [title]="
+                isCcLaneLearning(lane.id)
+                  ? 'Listening… twist a knob to assign ' + lane.label
+                  : 'MIDI Learn: assign the next knob to ' + lane.label
+              "
+            >
+              <span class="material-symbols-outlined">track_changes</span>
+            </button>
+            <button
+              type="button"
+              class="pr-cc-bezier"
+              (click)="openBezierForCcLane(lane.id)"
+              [style.--lane-color]="lane.color"
+              title="Edit bezier curve for {{ lane.label }}"
+            >
+              <span class="material-symbols-outlined">auto_awesome</span>
+            </button>
+          </span>
         </div>
         <div
           class="pr-cc-track"
@@ -332,18 +364,33 @@
         <span class="pr-cc-rec-dot"></span>
         <span>REC</span>
       </button>
-      <!-- Sustain pedal LED (CC64) -->
+      <!-- Sustain pedal LED (CC64 + half-pedal CC68) -->
       <span
         class="pr-sus-led"
         [class.active]="sustainActive()"
+        [class.half]="sustainHalfPedal()"
         [title]="
           sustainActive()
-            ? 'Sustain pedal (CC64) engaged'
-            : 'Sustain pedal (CC64)'
+            ? sustainHalfPedal()
+              ? 'Sustain half-pedal (CC68 ' + sustainAmount() + ') — soft notes released'
+              : 'Sustain pedal (CC64) engaged'
+            : 'Sustain pedal (CC64) — half-pedal via CC68'
         "
       >
         <span class="pr-sus-dot"></span>
         <span>SUS</span>
+        <!-- Half-pedal intensity meter -->
+        <span class="pr-sus-meter" *ngIf="sustainActive()">
+          <span
+            class="pr-sus-meter-fill"
+            [style.width.%]="(sustainAmount() / 127) * 100"
+          ></span>
+        </span>
+        <!-- Release count chip: notes released by the last pedal lift -->
+        <span
+          class="pr-sus-release"
+          *ngIf="sustainReleaseCount() > 0"
+        >{{ sustainReleaseCount() }} ✕</span>
       </span>
     </div>
     <div

@@ -656,6 +656,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
 }
 
 .pr-cc-label {
@@ -663,6 +664,66 @@
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pr-cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pr-cc-ch {
+  max-width: 44px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 2px 2px;
+  font-size: 7px;
+  font-weight: 800;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  min-height: 20px;
+}
+
+.pr-cc-learn {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  color: var(--lane-color, #2BA09C);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.pr-cc-learn:hover {
+  background: var(--lane-color, #2BA09C);
+  color: #06091a;
+}
+
+.pr-cc-learn .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.pr-cc-learn.learning {
+  border-color: var(--lane-color, #2BA09C);
+  color: var(--lane-color, #2BA09C);
+  animation: pr-cc-learn-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes pr-cc-learn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 90, 126, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(242, 90, 126, 0.15);
+  }
 }
 
 .pr-cc-bezier {
@@ -743,7 +804,7 @@
   z-index: 2;
 }
 
-/* Sustain pedal LED (CC64) */
+/* Sustain pedal LED (CC64 + half-pedal CC68) */
 .pr-sus-led {
   display: inline-flex;
   align-items: center;
@@ -760,6 +821,7 @@
   min-height: 24px;
   transition: all 0.15s;
   cursor: default;
+  position: relative;
 }
 
 .pr-sus-dot {
@@ -777,10 +839,23 @@
   background: rgba(236, 72, 153, 0.12);
 }
 
+.pr-sus-led.half {
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .pr-sus-led.active .pr-sus-dot {
   background: #EC4899;
   border-color: #EC4899;
   box-shadow: 0 0 8px rgba(236, 72, 153, 0.9);
+  animation: pr-sus-pulse 1s ease-in-out infinite;
+}
+
+.pr-sus-led.half .pr-sus-dot {
+  background: #F59E0B;
+  border-color: #F59E0B;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.9);
   animation: pr-sus-pulse 1s ease-in-out infinite;
 }
 
@@ -791,6 +866,47 @@
   }
   50% {
     box-shadow: 0 0 12px rgba(236, 72, 153, 1);
+  }
+}
+
+/* Half-pedal intensity meter (CC68 position) */
+.pr-sus-meter {
+  width: 34px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+
+.pr-sus-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #F59E0B, #EC4899);
+  transition: width 0.08s linear;
+}
+
+/* Notes released by the last pedal lift */
+.pr-sus-release {
+  font-size: 8px;
+  font-weight: 900;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  padding: 1px 4px;
+  animation: pr-sus-release-pop 0.4s ease-out;
+}
+
+@keyframes pr-sus-release-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

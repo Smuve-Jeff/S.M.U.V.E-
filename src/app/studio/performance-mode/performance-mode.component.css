@@ -139,6 +139,22 @@
   color: var(--neon-pink, #ec4899);
 }
 
+/* Half-pedal (CC68) — amber warning state */
+.perf-sustain-led.half {
+  border-color: var(--neon-amber, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.perf-sustain-led.half .perf-sustain-dot {
+  background: var(--neon-amber, #f59e0b);
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.85);
+}
+
+.perf-sustain-led.half .perf-sustain-label {
+  color: var(--neon-amber, #f59e0b);
+}
+
 /* ---------- PAD GRID ---------- */
 .performance-grid {
   display: grid;
