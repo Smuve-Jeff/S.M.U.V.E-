@@ -76,6 +76,141 @@
       </div>
     </div>
 
+    <!-- Sprint B4 — Career Charter launcher + panel -->
+    <section class="charter-card"
+      *ngIf="releaseService.activeRelease() as release">
+      <div class="charter-head">
+        <div>
+          <span class="charter-chip">Sprint B4 · Career Pipeline</span>
+          <h2 class="charter-title">Career Charter</h2>
+          <p class="charter-sub">
+            One tap drafts the DSP-ready metadata, the 3-tier revenue
+            forecast, and the curator-outreach pitch for this release.
+            Nothing ships until <em>Commit</em>.
+          </p>
+        </div>
+
+        <div class="charter-actions">
+          <select
+            [ngModel]="charterGenre()"
+            (ngModelChange)="charterGenre.set($event)"
+            aria-label="Charter genre">
+            <option value="Trap">Trap</option>
+            <option value="Pop">Pop</option>
+            <option value="Hip Hop">Hip Hop</option>
+            <option value="House">House</option>
+            <option value="R&amp;B">R&amp;B</option>
+            <option value="Lo-Fi">Lo-Fi</option>
+            <option value="Jazz">Jazz</option>
+            <option value="Electronic">Electronic</option>
+            <option value="Drill">Drill</option>
+            <option value="Dubstep">Dubstep</option>
+            <option value="Reggaeton">Reggaeton</option>
+          </select>
+          <select
+            [ngModel]="charterMood()"
+            (ngModelChange)="charterMood.set($event)"
+            aria-label="Charter mood">
+            <option value="pop">Pop</option>
+            <option value="dark">Dark</option>
+            <option value="romantic">Romantic</option>
+            <option value="high-energy">High Energy</option>
+            <option value="chill">Chill</option>
+            <option value="sad">Sad</option>
+          </select>
+          <button
+            type="button"
+            class="charter-btn"
+            (click)="buildCareerCharter()"
+            [disabled]="career.isGenerating()">
+            <i class="fas" [class.fa-bolt]="!career.isGenerating()" [class.fa-spinner]="career.isGenerating()" [class.fa-spin]="career.isGenerating()"></i>
+            {{ career.isGenerating() ? 'Drafting…' : (hasCharter() ? 'Re-draft' : 'Generate Charter') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="charter-grid" *ngIf="activeCharter() as ch; else charterEmpty">
+        <article class="charter-sub-card">
+          <div class="charter-sub-head">
+            <span class="charter-sub-tag">Distribution</span>
+            <span class="charter-status" [class.is-committed]="ch.status === 'committed'">
+              {{ ch.status === 'committed' ? 'Committed' : 'Draft' }}
+            </span>
+          </div>
+          <ul class="charter-list">
+            <li><span>Title</span><span>{{ ch.metadataDraft.title }}</span></li>
+            <li><span>Type</span><span>{{ ch.metadataDraft.type }}</span></li>
+            <li><span>Artist</span><span>{{ ch.metadataDraft.artistName }}</span></li>
+            <li><span>Genre</span><span>{{ ch.metadataDraft.primaryGenre }}</span></li>
+            <li><span>Copyright</span><span>{{ ch.metadataDraft.copyright }}</span></li>
+            <li><span>Platforms</span><span>{{ ch.metadataDraft.platforms.length }}</span></li>
+          </ul>
+        </article>
+
+        <article class="charter-sub-card">
+          <div class="charter-sub-head">
+            <span class="charter-sub-tag">Forecast</span>
+            <span class="charter-tier"
+              [class.is-mainstream]="ch.forecast.marketTier === 'mainstream'"
+              [class.is-mid]="ch.forecast.marketTier === 'mid'"
+              [class.is-indie]="ch.forecast.marketTier === 'indie'">
+              {{ ch.forecast.marketTier }}
+            </span>
+          </div>
+          <ul class="charter-list">
+            <li><span>Streams / mo · midpoint</span><span>{{ ch.forecast.monthlyStreamsMid | number }}</span></li>
+            <li><span>Range</span><span>{{ ch.forecast.monthlyStreamsLow | number }} – {{ ch.forecast.monthlyStreamsHigh | number }}</span></li>
+            <li><span>Yearly revenue · mid</span><span>\${{ ch.forecast.yearlyRevenueMid | number: '1.0-2' }}</span></li>
+            <li><span>Genre momentum</span><span>{{ (ch.forecast.genreMomentumScore * 100) | number: '1.0-0' }}%</span></li>
+          </ul>
+          <p class="charter-notes">
+            <i class="fas fa-info-circle"></i> Estimate only — sync, advances, and label fees not included.
+          </p>
+        </article>
+
+        <article class="charter-sub-card charter-outreach">
+          <div class="charter-sub-head">
+            <span class="charter-sub-tag">Outreach</span>
+            <span class="charter-targets">{{ ch.outreach.targetListSize }} targets</span>
+          </div>
+          <p class="charter-subject">
+            <strong>Subject:</strong> {{ ch.outreach.subject }}
+          </p>
+          <pre class="charter-body">{{ ch.outreach.body }}</pre>
+          <div class="charter-copy-row">
+            <button type="button" class="charter-mini-btn"
+              (click)="copyText(ch.outreach.subject)">
+              <i class="fas fa-copy"></i> Copy subject
+            </button>
+            <button type="button" class="charter-mini-btn"
+              (click)="copyText(ch.outreach.body)">
+              <i class="fas fa-copy"></i> Copy body
+            </button>
+          </div>
+        </article>
+
+        <div class="charter-commit">
+          <button
+            type="button"
+            class="charter-commit-btn"
+            [disabled]="ch.status === 'committed'"
+            (click)="commitCareerCharter()">
+            <i class="fas fa-rocket"></i>
+            {{ ch.status === 'committed' ? 'Charter committed · outreach queued' : 'Commit Charter · kick off outreach campaign' }}
+          </button>
+        </div>
+      </div>
+
+      <ng-template #charterEmpty>
+        <p class="charter-empty">
+          {{ career.isGenerating()
+              ? 'Synthesizing distribution metadata, forecast, and pitch…'
+              : 'Pick a genre + mood and tap Generate Charter. Output is
+                 a draft — review and commit to lock it in.' }}
+        </p>
+      </ng-template>
+    </section>
+
     <!-- Track Pipeline -->
     <div class="space-y-4">
       <div class="flex justify-between items-center">

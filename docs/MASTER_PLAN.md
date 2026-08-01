@@ -183,11 +183,43 @@ framework; this is our Apple-GarageBand-killer angle).
   updated.*
 - **B4 — Career pipeline inside the DAW**: export straight to release
   pipeline, distribution metadata, revenue forecasts.
+  ✅ *SHIPPED: `CareerPipelineService` (signal-driven charter orchestrator)
+  wires the existing `ReleasePipelineService` + `MarketingService` into a
+  one-tap post-master flow that produces three draft artifacts per
+  release — `DistributionMetadata` (DSP-ready title/artist/genre/copyright
+  + platform map), `RevenueForecast` (3-tier low/mid/high stream + yearly
+  revenue estimate driven by `genreMomentumTier()` heuristics on the
+  trap/house/lo-fi/jazz/reggaeton buckets), and `OutreachPacket` (curator
+  pitch with subject + body + CTA + target list size). `buildCharter()` is
+  deterministic per release, `commitCharter()` promotes the draft to
+  `committed` and kicks off a Marketing campaign without mutating user
+  profile state until the user explicitly commits. `/release-pipeline` got
+  a Charter card with Generate / Re-draft / Commit + Copy Subject / Copy
+  Body clipboard hooks. New spec covers build determinism, forecast
+  tiering (trap > jazz), outreach CTA targeting, commit + marketing
+  handoff, and unknown-id no-op safety.*
 
 ### Phase C — Polish & storefront (Sprints C1–C3)
 - **C1 — Performance audit**: AudioWorklet benchmarks, buffer tuning, 60fps
   stress on mid-range Android, latency reduction (already planned: "latency &
   engine").
+  ✅ *SHIPPED: `AudioEngineLatencyService` (decoupled from the engine
+  hot path) — a snapshot service that reads the engine public surface
+  (`baseLatency`, `outputLatency`, `nativeSampleRate`, `masterWorkletActive`,
+  `performanceTier`, scheduler lookahead + tick) on a 1.5s refresh and
+  surfaces `snapshot()` / `readSnapshot()` / `getEngineMetrics()` as
+  plain-object shape. Plus an on-demand `runOfflineBenchmark()` that
+  schedules 4 oscillators onto an `OfflineAudioContext` (1-second buffer
+  default) and reports wall-clock render time + speedRatio (≤1 means
+  faster than real-time). `buildSummary()` rolls benchmark history plus
+  live state and emits actionable tips — contextState, totalLatency, sample
+  rate, master worklet, render speed. `/produce` gained an Engine
+  Metrics sub-card showing sample rate, round-trip latency, scheduler
+  lookahead, scheduler tick, master worklet state, CPU tier. The
+  round-trip latency chip turns red when ≤60 ms is exceeded. New spec
+  covers snapshot capture, headroom hint escalation (headroom → near →
+  tight), suspended-context prompts, missing-master-worklet flag, rolling
+  benchmark window cap, and plain-object read.*
 - **C2 — Play listing + IAP**: RevenueCat wiring, Pro tier, sound packs,
   screenshots that show the 60-second demo (8-bar trap → 6 stems → AI mix →
   master at −14 LUFS).
@@ -209,11 +241,12 @@ framework; this is our Apple-GarageBand-killer angle).
 | B1 | WASM plugin framework | ALL (Android) | ✅ |
 | B2 | Real-time collab | BandLab | ✅ |
 | B3 | AI end-to-end produce | ALL | ✅ |
-| B4 | Career pipeline in-DAW | ALL | ⬜ |
-| C1 | Performance + latency | ALL | ⬜ |
+| B4 | Career pipeline in-DAW | ALL | ✅ |
+| C1 | Performance + latency | ALL | ✅ |
 | C2 | Play listing + IAP | ALL | ⬜ |
 | C3 | Onboarding | BandLab | ⬜ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
+| X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

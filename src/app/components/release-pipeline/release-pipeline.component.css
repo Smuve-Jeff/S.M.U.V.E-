@@ -14,3 +14,351 @@
 .border-primary {
   border-color: #ec5b13;
 }
+
+/* ─── Sprint B4 Career Charter Panel ──────────────────── */
+
+.charter-card {
+  background: linear-gradient(
+    135deg,
+    rgba(175, 37, 244, 0.06),
+    rgba(15, 7, 26, 0.4)
+  );
+  border: 1px solid rgba(175, 37, 244, 0.22);
+  border-radius: 18px;
+  padding: 1.4rem 1.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.charter-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.charter-chip {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #af25f4;
+  background: rgba(175, 37, 244, 0.16);
+  border: 1px solid rgba(175, 37, 244, 0.45);
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+}
+
+.charter-title {
+  margin: 0.5rem 0 0.2rem 0;
+  font-size: 1.45rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.charter-sub {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #94a3b8;
+  max-width: 64ch;
+  line-height: 1.5;
+}
+
+.charter-sub em {
+  color: #af25f4;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.charter-actions {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.charter-actions select {
+  background: rgba(8, 4, 24, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  color: #f8fafc;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  outline: none;
+  cursor: pointer;
+}
+
+.charter-actions select:focus {
+  border-color: #af25f4;
+}
+
+.charter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(135deg, #af25f4, #7913a8);
+  color: #04020a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border: 1px solid #af25f4;
+  border-radius: 10px;
+  padding: 0.65rem 1.15rem;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.charter-btn:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(175, 37, 244, 0.45);
+}
+
+.charter-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.charter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 1100px) {
+  .charter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.charter-sub-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.charter-sub-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charter-sub-tag {
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #af25f4;
+}
+
+.charter-status {
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.charter-status.is-committed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.charter-tier {
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.charter-tier.is-mainstream {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+}
+
+.charter-tier.is-mid {
+  background: rgba(245, 158, 11, 0.18);
+  color: #f59e0b;
+}
+
+.charter-tier.is-indie {
+  background: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+}
+
+.charter-targets {
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.charter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.charter-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+}
+
+.charter-list li span:first-child {
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.66rem;
+}
+
+.charter-list li span:last-child {
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.charter-notes {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0 0;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.charter-notes i {
+  color: #af25f4;
+}
+
+.charter-outreach {
+  grid-column: span 1;
+}
+
+.charter-subject {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  color: #f8fafc;
+  word-break: break-word;
+}
+
+.charter-subject strong {
+  color: #af25f4;
+}
+
+.charter-body {
+  background: rgba(8, 4, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.charter-copy-row {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.charter-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(175, 37, 244, 0.16);
+  color: #af25f4;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid rgba(175, 37, 244, 0.4);
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.charter-mini-btn:hover {
+  background: rgba(175, 37, 244, 0.28);
+}
+
+.charter-commit {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+}
+
+.charter-commit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: linear-gradient(135deg, #10b981, #0a8d68);
+  color: #021;
+  font-size: 0.82rem;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  padding: 0.85rem 1.6rem;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.charter-commit-btn:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 8px 28px rgba(16, 185, 129, 0.5);
+}
+
+.charter-commit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.charter-empty {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  background: rgba(175, 37, 244, 0.05);
+  border: 1px dashed rgba(175, 37, 244, 0.25);
+  border-radius: 10px;
+  font-size: 0.84rem;
+  color: #cbd5e1;
+  font-style: italic;
+  text-align: center;
+}
