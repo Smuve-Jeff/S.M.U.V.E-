@@ -23,6 +23,8 @@ import { AudioSessionService } from '../audio-session.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
 import { DjMidiService } from '../../services/dj-midi.service';
+import { HardwareService } from '../../services/hardware.service';
+import { HistoryService } from '../../services/history.service';
 import { AutomationService } from '../automation.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
@@ -46,7 +48,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly touchGestures = inject(EnhancedTouchGestureService);
   private readonly haptic = inject(HapticService);
   public readonly djMidi = inject(DjMidiService);
+  private readonly hardware = inject(HardwareService);
+  private readonly history = inject(HistoryService);
   private readonly automation = inject(AutomationService);
+
+  /** Sustain pedal state (CC64) surfaced from the hardware layer. */
+  readonly sustainActive = this.hardware.sustainActive;
 
   // ── WebGL renderers ──────────────────────────────────────
   private glRenderer!: WebGLRenderer;
@@ -209,12 +216,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.openBezierForCurrentLane();
   }
 
-  // ── CC Lane Strip (4 lanes: Mod, Expression, Pan, Cutoff) ──
+  // ── CC Lane Strip (Mod, Expression, Pan, Cutoff + Pitch Bend) ──
   ccLanes = [
-    { id: 'mod', label: 'Mod', cc: 1, color: '#A855F7', param: 'modulation' },
-    { id: 'expr', label: 'Expr', cc: 11, color: '#EC4899', param: 'expression' },
-    { id: 'pan', label: 'Pan', cc: 10, color: '#2BA09C', param: 'pan' },
-    { id: 'cut', label: 'Cut', cc: 74, color: '#D97706', param: 'cutoff' },
+    { id: 'mod', label: 'Mod', cc: 1, color: '#A855F7', param: 'modulation', type: 'cc' },
+    { id: 'expr', label: 'Expr', cc: 11, color: '#EC4899', param: 'expression', type: 'cc' },
+    { id: 'pan', label: 'Pan', cc: 10, color: '#2BA09C', param: 'pan', type: 'cc' },
+    { id: 'cut', label: 'Cut', cc: 74, color: '#D97706', param: 'cutoff', type: 'cc' },
+    { id: 'bend', label: 'PB', cc: 0, color: '#38BDF8', param: 'pitchbend', type: 'pitchbend' },
   ] as const;
 
   showCcLane = signal(false);
@@ -223,6 +231,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Arm CC automation recording — writes keyframes at the playhead while playing. */
   ccRecordArmed = signal(false);
   private ccSubscription: { unsubscribe: () => void } | null = null;
+  private pbSubscription: { unsubscribe: () => void } | null = null;
+  private noteOnSubscription: { unsubscribe: () => void } | null = null;
+  private noteOffSubscription: { unsubscribe: () => void } | null = null;
+
+  /** Notes still ringing because the sustain pedal is held. */
+  private sustainedNotes = new Set<number>();
 
   /** Track the current value (0-127) for each CC lane for draw interaction */
   ccLaneValues = signal<Record<string, number>>({
@@ -230,11 +244,105 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     expr: 64,
     pan: 64,
     cut: 127,
+    bend: 64,
   });
 
+  /**
+   * Readout of recorded keyframes per CC lane, mapped to % positions on the
+   * lane track (x = step / totalSteps, y = value / 127).
+   */
+  ccLaneReadouts = computed(() => {
+    const trackId = this.selectedTrack()?.id || 'main';
+    const steps = Math.max(1, this.gridSteps());
+    const out: Record<string, { x: number; y: number }[]> = {};
+    for (const lane of this.ccLanes) {
+      const autoLane = this.automation.lanes().find(
+        (l) =>
+          l.target.trackId === trackId && l.target.parameter === `cc_${lane.param}`
+      );
+      out[lane.id] = (autoLane?.points ?? []).map((p) => ({
+        x: Math.max(0, Math.min(100, (p.time / steps) * 100)),
+        y: Math.max(0, Math.min(100, (p.value / 127) * 100)),
+      }));
+    }
+    return out;
+  });
+
+  /** Snapshot of every CC lane's recorded points, keyed by lane id. */
+  private snapshotCcLanes(): Record<string, { time: number; value: number }[]> {
+    const trackId = this.selectedTrack()?.id || 'main';
+    const snap: Record<string, { time: number; value: number }[]> = {};
+    for (const lane of this.ccLanes) {
+      const autoLane = this.automation.lanes().find(
+        (l) =>
+          l.target.trackId === trackId && l.target.parameter === `cc_${lane.param}`
+      );
+      snap[lane.id] = (autoLane?.points ?? []).map((p) => ({
+        time: p.time,
+        value: p.value,
+      }));
+    }
+    return snap;
+  }
+
+  /** Apply a CC lane snapshot back onto the automation lanes. */
+  private restoreCcLanes(
+    snap: Record<string, { time: number; value: number }[]>
+  ): void {
+    const trackId = this.selectedTrack()?.id || 'main';
+    for (const lane of this.ccLanes) {
+      const autoLane = this.automation.ensureLane(trackId, `cc_${lane.param}`, {
+        min: 0,
+        max: 127,
+      });
+      this.automation.setPoints(
+        autoLane.id,
+        (snap[lane.id] ?? []).map((p) => ({ time: p.time, value: p.value }))
+      );
+    }
+  }
+
   toggleCcRecord(): void {
+    const wasArmed = this.ccRecordArmed();
     this.ccRecordArmed.update((v) => !v);
     this.haptic.medium();
+
+    if (!wasArmed) return;
+    // Disarming: commit a single undoable step for the whole recording pass
+    const recorded = this.snapshotCcLanes();
+    this.history.execute({
+      name: 'Record CC automation',
+      execute: () => this.restoreCcLanes(recorded),
+      undo: () => this.restoreCcLanes(this.recordSnapshot ?? {}),
+    });
+    this.recordSnapshot = null;
+  }
+
+  private recordSnapshot: Record<string, { time: number; value: number }[]> | null = null;
+
+  /**
+   * Live note preview — plays a note through the engine; when the sustain
+   * pedal is held the note rings much longer.
+   */
+  private previewNoteOn(note: number, velocity: number): void {
+    const freq = 440 * Math.pow(2, (note - 69) / 12);
+    const duration = this.sustainActive() ? 3.0 : 0.6;
+    this.musicManager.engine?.playSynth?.(
+      0,
+      freq,
+      duration,
+      Math.max(0.05, velocity),
+      0,
+      { type: 'sine' }
+    );
+  }
+
+  private previewNoteOff(note: number): void {
+    if (this.sustainActive()) {
+      this.sustainedNotes.add(note);
+    } else {
+      this.sustainedNotes.delete(note);
+    }
   }
 
   /**
@@ -273,6 +381,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.recordCcIfArmed(lane.id, clamped);
   }
 
+  /** Called with incoming MIDI pitch bend (-1..1) → bend lane value 0..127. */
+  private handleIncomingPitchBend(value: number): void {
+    const clamped = Math.max(-1, Math.min(1, value));
+    const mapped = Math.round((clamped + 1) * 63.5); // -1..1 → 0..127
+    this.ccLaneValues.update((v) => ({ ...v, bend: mapped }));
+    this.recordCcIfArmed('bend', mapped);
+  }
+
   /** CC lane draw interaction — same pattern as velocity lane */
   onCcPointerDown(event: PointerEvent, laneId: string): void {
     event.preventDefault();
@@ -298,10 +414,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private updateCcLaneValue(laneId: string, value: number): void {
     this.ccLaneValues.update((v) => ({ ...v, [laneId]: value }));
     this.haptic.light();
-    // Find the CC number for this lane and send MIDI CC
     const lane = this.ccLanes.find((l) => l.id === laneId);
     if (lane) {
-      this.djMidi.sendCC(lane.cc, value, 0);
+      if (lane.type === 'pitchbend') {
+        // Bend lane stores 0..127 → normalize to -1..1 for the 14-bit MIDI PB message
+        this.djMidi.sendPitchBend((value / 127) * 2 - 1, 0);
+      } else {
+        this.djMidi.sendCC(lane.cc, value, 0);
+      }
       this.recordCcIfArmed(laneId, value);
     }
   }
@@ -362,6 +482,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.ccSubscription = this.djMidi.performerCC.subscribe((event) => {
       this.handleIncomingCc(event.controller, event.value * 127);
     });
+    // Pitch bend wheel (0xE0) → bend lane live value + record
+    this.pbSubscription = this.djMidi.performerPitchBend.subscribe((event) => {
+      this.handleIncomingPitchBend(event.value);
+    });
+    // External keyboard note preview (sustain-aware)
+    this.noteOnSubscription = this.djMidi.performerNoteOn.subscribe((event) => {
+      this.previewNoteOn(event.note, event.velocity ?? 0.8);
+    });
+    this.noteOffSubscription = this.djMidi.performerNoteOff.subscribe((event) => {
+      this.previewNoteOff(event.note);
+    });
   }
 
   ngAfterViewInit() {
@@ -371,6 +502,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.ccSubscription?.unsubscribe();
+    this.pbSubscription?.unsubscribe();
+    this.noteOnSubscription?.unsubscribe();
+    this.noteOffSubscription?.unsubscribe();
     if (this.renderRafId !== null) {
       cancelAnimationFrame(this.renderRafId);
       this.renderRafId = null;

@@ -240,7 +240,10 @@
           <span
             class="pr-cc-label"
             [style.color]="lane.color"
-          >{{ lane.label }} (CC{{ lane.cc }})</span>
+          >{{ lane.label }}
+            <span *ngIf="lane.type === 'pitchbend'">(PB)</span>
+            <span *ngIf="lane.type !== 'pitchbend'">(CC{{ lane.cc }})</span>
+          </span>
           <span
             class="pr-cc-live"
             [style.color]="lane.color"
@@ -268,6 +271,15 @@
             [style.height.%]="(ccLaneValues()[lane.id] ?? 64) / 127 * 100"
           ></div>
           <span class="pr-cc-value">{{ ccLaneValues()[lane.id] ?? 64 }}</span>
+          <!-- Recorded keyframe readout dots: x = step%, y = value% -->
+          <span
+            class="pr-cc-dot"
+            *ngFor="let pt of ccLaneReadouts()[lane.id]"
+            [style.left.%]="pt.x"
+            [style.bottom.%]="pt.y"
+            [style.background]="lane.color"
+            title="Recorded keyframe"
+          ></span>
         </div>
       </div>
     </div>
@@ -320,6 +332,19 @@
         <span class="pr-cc-rec-dot"></span>
         <span>REC</span>
       </button>
+      <!-- Sustain pedal LED (CC64) -->
+      <span
+        class="pr-sus-led"
+        [class.active]="sustainActive()"
+        [title]="
+          sustainActive()
+            ? 'Sustain pedal (CC64) engaged'
+            : 'Sustain pedal (CC64)'
+        "
+      >
+        <span class="pr-sus-dot"></span>
+        <span>SUS</span>
+      </span>
     </div>
     <div
       class="pr-velocity"

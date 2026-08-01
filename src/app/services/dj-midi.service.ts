@@ -15,6 +15,12 @@ export interface MidiCCEvent {
   channel: number;
 }
 
+export interface MidiPitchBendEvent {
+  /** Normalized pitch bend -1..1 (0 = center). */
+  value: number;
+  channel: number;
+}
+
 export interface MidiMapping {
   type: 'cc' | 'note';
   channel: number;
@@ -129,6 +135,7 @@ export class DjMidiService {
   readonly performerNoteOn = new Subject<MidiNoteEvent>();
   readonly performerNoteOff = new Subject<MidiNoteEvent>();
   readonly performerCC = new Subject<MidiCCEvent>();
+  readonly performerPitchBend = new Subject<MidiPitchBendEvent>();
 
   /** Last received MIDI message for debugging */
   lastMidiMessage = signal<{
@@ -314,6 +321,23 @@ export class DjMidiService {
     } catch {}
   }
 
+  /**
+   * Send a MIDI pitch bend message (0xE0) to the selected CC output device.
+   * `value` is normalized -1..1 (0 = center) and is scaled to the 14-bit
+   * pitch bend range (0..16383, center 8192).
+   */
+  sendPitchBend(value: number, channel = 0): void {
+    if (!this.midiOutputDeviceList.length) return;
+    const idx = this.ccOutputIndex();
+    if (idx >= this.midiOutputDeviceList.length) return;
+    const clamped = Math.max(-1, Math.min(1, value));
+    const raw = Math.round((clamped + 1) * 8191.5); // 0..16383
+    const status = 0xe0 | (channel & 0x0f);
+    try {
+      this.midiOutputDeviceList[idx].send([status, raw & 0x7f, (raw >> 7) & 0x7f]);
+    } catch {}
+  }
+
   // ── MIDI Slave Sync ──────────────────────────────────
   toggleSlaveSync(): void {
     this.slaveSyncEnabled.update((v) => !v);
@@ -474,7 +498,9 @@ export class DjMidiService {
             ? 'note_off'
             : cmd === 11
               ? 'cc'
-              : 'other',
+              : cmd === 14
+                ? 'pitchbend'
+                : 'other',
       channel,
       number: data1,
       value: data2,
@@ -569,6 +595,13 @@ export class DjMidiService {
       this.performerNoteOff.next({ note: data1, velocity: 0, channel });
     } else if (cmd === 11) {
       this.performerCC.next({ controller: data1, value: data2 / 127, channel });
+    } else if (cmd === 14) {
+      const raw = data1 | (data2 << 7);
+      const normalized = (raw - 8192) / 8192;
+      this.performerPitchBend.next({
+        value: Math.max(-1, Math.min(1, normalized)),
+        channel,
+      });
     }
 
     // Process message against mappings

@@ -172,6 +172,20 @@ export class AutomationService {
     });
   }
 
+  /** Replace the full point list of a lane (used for undo/redo snapshots). */
+  setPoints(laneId: string, points: AutomationPoint[]) {
+    this.lanes.update((lanes) =>
+      lanes.map((lane) =>
+        lane.id === laneId
+          ? {
+              ...lane,
+              points: [...points].sort((a, b) => a.time - b.time),
+            }
+          : lane
+      )
+    );
+  }
+
   updatePoint(
     laneId: string,
     pointIndex: number,
