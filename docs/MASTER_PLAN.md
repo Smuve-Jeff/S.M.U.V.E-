@@ -84,6 +84,10 @@ framework; this is our Apple-GarageBand-killer angle).
   glide over note duration, plus volume/pan glide). Kills FL's signature.
 - **A3 — Loop recording + take lanes + audio comping** (Cubasis/Audio Evo
   parity): punch in/out, multi-take lanes, per-take comp highlighting.
+  ✅ *Shipped across 4 phases — TakeManagerService data foundation, punch-in
+  arm + take stamping in the transport bar, take-lane panel in the arrangement
+  view, active-take playback from note snapshots, loop-pass take recording,
+  and comp stacking with APPLY/CLEAR (later takes win overlaps).*
 - **A4 — Song mode / clip launcher** (session view scenes, launch clips,
   performance quantization) — beat BandLab's grid and Koala's scenes.
 - **A5 — Notation view** (basic score from MIDI: clefs, note heads, rests,
@@ -122,7 +126,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | --- | --- | --- | --- |
 | A1 | Time-stretch / pitch engine | FL Mobile, Cubasis, n-Track | ✅ |
 | A2 | Slide notes | FL Mobile | ✅ |
-| A3 | Loop record + comping | Cubasis, Audio Evolution | ⬜ |
+| A3 | Loop record + comping | Cubasis, Audio Evolution | ✅ |
 | A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
 | A5 | Notation view | Cubasis | ⬜ |
 | A6 | Export formats + cloud | n-Track, BandLab | ⬜ |
