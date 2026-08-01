@@ -202,6 +202,39 @@
         <span class="material-symbols-outlined">auto_awesome</span>
         <span class="comp-ai-pip" aria-hidden="true"></span>
       </button>
+
+      <!-- Sprint B2 Phase 2 — presence header (avatars, voice chip, session code) -->
+      @if (collaboration.currentSession() || collaboration.peerRoster().length > 0) {
+        <div class="comp-presence" role="group" aria-label="Live collaboration peers">
+          <span class="comp-session-chip" [attr.title]="'Session ' + collaboration.sessionCode()">
+            <span class="material-symbols-outlined">group</span>
+            <span class="comp-session-code">{{ collaboration.sessionCode() }}</span>
+          </span>
+          @for (peer of collaboration.peerRoster().slice(0, 5); track peer.userId) {
+            <span
+              class="comp-peer-avatar"
+              [class.comp-peer-talking]="isPeerTalking(peer.userId)"
+              [attr.title]="peer.artistName + (isPeerTalking(peer.userId) ? ' · talking' : '')"
+            >
+              {{ peer.artistName.slice(0, 2).toUpperCase() }}
+              <span class="comp-peer-talking-dot" aria-hidden="true"></span>
+            </span>
+          }
+          @if (collaboration.peerRoster().length > 5) {
+            <span class="comp-peer-overflow">+{{ collaboration.peerRoster().length - 5 }}</span>
+          }
+          @if (collaboration.voiceActive()) {
+            <span
+              class="comp-voice-chip"
+              role="status"
+              aria-label="Voice channel active"
+              title="Voice channel active"
+            >
+              <span class="material-symbols-outlined">call</span>
+            </span>
+          }
+        </div>
+      }
     </div>
   </header>
 
@@ -1612,4 +1645,19 @@
   >
     <span class="material-symbols-outlined">auto_awesome</span>
   </button>
+
+  <!-- Sprint B2 Phase 2 — Peer cursors overlay (absolute over the studio surface) -->
+  <div class="peer-cursor-layer" aria-hidden="true">
+    @for (cursor of peerCursorList(); track cursor.userId) {
+      <span
+        class="peer-cursor"
+        [style.left.%]="cursor.x * 100"
+        [style.top.%]="cursor.y * 100"
+        [attr.title]="cursor.artistName"
+      >
+        <span class="peer-cursor-arrow"></span>
+        <span class="peer-cursor-name">{{ cursor.artistName }}</span>
+      </span>
+    }
+  </div>
 </div>

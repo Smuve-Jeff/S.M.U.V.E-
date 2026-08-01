@@ -10,6 +10,7 @@ import {
   untracked,
   ViewChild,
   ElementRef,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -570,6 +571,53 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
     void this.logger;
+
+    // ── Sprint B2 Phase 2 — surface collaboration conflicts as a snackbar ──
+    // Track each new conflict and pass it to the global snackbar so the
+    // user knows to keep-mine / use-theirs / discard. Uses `untracked`
+    // because we only want to react on length changes.
+    let lastConflictCount = this.collaboration.pendingConflicts().length;
+    effect(() => {
+      const conflicts = this.collaboration.pendingConflicts();
+      if (conflicts.length > lastConflictCount) {
+        const fresh = conflicts[conflicts.length - 1];
+        untracked(() => {
+          const source = fresh.remoteUserName ?? fresh.remoteUserId.slice(-4);
+          this.snackbarService.info(
+            `CONFLICT ON ${fresh.fieldKey.toUpperCase()} · ${source} edited the same field`
+          );
+        });
+      }
+      lastConflictCount = conflicts.length;
+    });
+  }
+
+  // ── Sprint B2 Phase 2 — presence + peer cursor surface ─────────────────
+  /** Flatten the peer-cursors map for the @for template. */
+  peerCursorList = computed(() =>
+    Object.values(this.collaboration.peerCursors()).filter(
+      (c) => c.surface === 'studio'
+    )
+  );
+
+  /** A peer is "talking" when their voicePeers state is `connected` / `muted`
+   *  OR (cheap proxy) when the local peerNet is mid-call with them. */
+  isPeerTalking(userId: string): boolean {
+    const peer = this.collaboration.voicePeers()[userId];
+    if (!peer) return false;
+    return peer.state === 'connected' || peer.state === 'muted';
+  }
+
+  /** Throttled-by-service mousemove handler — publishes normalized {x,y}. */
+  @HostListener('mousemove', ['$event'])
+  onStudioMouseMove(event: MouseEvent): void {
+    const host = (event.currentTarget as HTMLElement) ?? null;
+    if (!host) return;
+    const rect = host.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    this.collaboration.publishCursor('studio', x, y);
   }
 
   ngAfterViewInit() {

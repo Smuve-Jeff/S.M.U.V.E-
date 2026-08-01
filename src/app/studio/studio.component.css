@@ -2589,3 +2589,161 @@
     display: none;
   }
 }
+
+
+/* Sprint B2 Phase 2: presence header pill + peer-cursor overlay */
+
+.comp-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.10);
+  border: 1px solid rgba(14, 124, 123, 0.35);
+  margin-left: 4px;
+  height: 28px;
+}
+
+.comp-session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(31, 26, 18, 0.10);
+  color: var(--espresso-200, #3d352a);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.comp-session-chip .material-symbols-outlined {
+  font-size: 12px;
+  color: var(--teal-600, #0a5f5e);
+}
+
+.comp-session-code { text-transform: uppercase; }
+
+.comp-peer-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0e7c7b 0%, #5dc4c2 100%);
+  color: #fbf7ec;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border: 1.5px solid rgba(251, 247, 236, 0.75);
+  box-shadow: 0 1px 4px rgba(14, 124, 123, 0.25);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.comp-peer-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.45);
+}
+
+.comp-peer-talking {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 2px rgba(14, 124, 123, 0.95),
+    0 0 12px rgba(93, 196, 194, 0.85);
+}
+
+.comp-peer-talking-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #c2b295;
+  border: 1.5px solid rgba(251, 247, 236, 0.95);
+  transition: background 100ms ease, transform 100ms ease;
+}
+
+.comp-peer-talking .comp-peer-talking-dot {
+  background: #10b981;
+  transform: scale(1.15);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.85);
+}
+
+.comp-peer-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(31, 26, 18, 0.18);
+  color: #fbf7ec;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.comp-voice-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(217, 119, 6, 0.18);
+  color: #d97706;
+  margin-left: 4px;
+  animation: pulse-warm 1.6s ease-in-out infinite;
+}
+
+.comp-voice-chip .material-symbols-outlined { font-size: 14px; }
+
+.peer-cursor-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+}
+
+.peer-cursor {
+  position: absolute;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: translate(-2px, -2px);
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.peer-cursor-arrow {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #0e7c7b 0%, #5dc4c2 100%);
+  clip-path: polygon(0 0, 14px 0, 0 14px);
+  border-radius: 2px;
+  filter: drop-shadow(0 1px 2px rgba(31, 26, 18, 0.35));
+}
+
+.peer-cursor-name {
+  margin-top: 2px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(31, 26, 18, 0.78);
+  color: #fbf7ec;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity 150ms ease;
+}
+
+.peer-cursor:hover .peer-cursor-name { opacity: 1; }
+
+/* END Sprint B2 Phase 2 */

@@ -137,6 +137,24 @@ framework; this is our Apple-GarageBand-killer angle).
   between `masterGain` and `preMasterGain` so any enabled WASM polish
   plugin processes the entire mix live, surfaced as a Master-Bus strip in
   the Effects Rack.*
+  *Phase 2 SHIPPED: hardened collab protocol — per-track diff sync
+  (`TRACK_DELTA_SYNC` envelopes with per-field version registry, light
+  enough for every incremental edit; a 30s heartbeat `PROJECT_SYNC` keeps
+  peers eventually consistent); field-level last-writer-wins (LWW) with
+  an 800 ms near-simultaneous-edit guard that surfaces a structured
+  `pendingConflicts` signal; `resolveConflict('mine'|'theirs'|'discard')`
+  re-dispatches the chosen value so peers converge; voice bridge through
+  `PeerNetworkingService` — `inviteToVoice()` / `acceptVoiceInvite()` /
+  `declineVoiceInvite()` / `endVoice()` round-trip through the party room
+  with a `voicePeers` map + `voiceActive` computed; peer cursors
+  (`PEER_CURSOR` envelopes with normalized {x,y} on a named surface),
+  throttled to 80 ms with a `lastSentX/Y` dedup so sub-pixel motion is
+  dropped silently. Studio header gained a presence cluster — session
+  code chip, 5-up avatar pill stack with talking dot that lights when
+  `voicePeers[userId]` is `connected` or `muted`, `+N` overflow, and a
+  voice-active chip; peer cursors render as labeled markers over the
+  studio canvas. New conflict entries route through `SnackbarService`
+  so the user is alerted the moment their edit collides.*
 - **B3 — AI-assisted everything**: one-tap "Produce" (idea → beat → mix →
   master → release checklist), genre instrument recommendations, AI lyrics +
   vocal tuning.
