@@ -71,6 +71,7 @@ import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.compon
 import { BezierEditorComponent } from './automation/bezier-editor.component';
 import { ScoreViewComponent } from './score-view/score-view.component';
 import { PluginStoreComponent } from './plugin-store/plugin-store.component';
+import { StudioTelemetryService } from './studio-telemetry.service';
 
 type StudioView =
   | 'arrangement'
@@ -248,6 +249,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly smartSound = inject(SmartSoundService);
   public readonly audioImport = inject(AudioImportService);
   public readonly componentRecording = inject(ComponentRecordingService);
+  public readonly studioTelemetry = inject(StudioTelemetryService);
 
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
@@ -317,6 +319,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
+  studioWeeklyDashboard = computed(() => this.studioTelemetry.weeklyDashboard());
   /** True after the very first time this component has been constructed this browser. */
   firstNavigationSeen = signal(
     typeof localStorage !== 'undefined' &&
@@ -573,6 +576,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    this.studioTelemetry.beginSession({ entryView: this.activeView() });
     try {
       // Try to resume immediately (works on first server-side render or
       // if browser is already primed). Failure here is harmless —
@@ -591,9 +595,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const first = ideas.recipes?.[0];
       if (first) {
         this.musicManager.applyGeneratedRecipe(first);
+        this.studioTelemetry.trackEvent(
+          'starter_recipe_seeded',
+          { source: 'ideas_generator' },
+          true
+        );
       } else {
         // Fallback — newProject auto-populates piano + drums.
         this.musicManager.newProject(false);
+        this.studioTelemetry.trackEvent(
+          'starter_recipe_seeded',
+          { source: 'new_project_fallback' },
+          true
+        );
       }
     }
 
@@ -603,6 +617,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         const user = this.authService.currentUser();
         if (user) {
           this.collaboration.joinSession(sessionId, user);
+          this.studioTelemetry.trackEvent('collab_joined', { sessionId }, true);
           const projectHint = params.get('project');
           this.snackbarService.info(
             projectHint
@@ -674,6 +689,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.stopSpectrumAnalyzer();
+    this.studioTelemetry.endSession('component_destroy');
   }
 
   // ── Theme cycle: Light → Focus → Dark → Light ─────────────────
@@ -701,6 +717,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
+    this.studioTelemetry.trackEvent('view_changed', { view }, true);
+    if (view === 'plugins') {
+      this.studioTelemetry.trackEvent('plugin_store_opened', { view }, true);
+    }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { view },
@@ -727,10 +747,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     navigator.clipboard
       .writeText(url)
-      .then(() =>
-        this.snackbarService.success('Studio link copied to clipboard')
-      )
-      .catch(() => this.snackbarService.error('Could not copy link'));
+      .then(() => {
+        this.snackbarService.success('Studio link copied to clipboard');
+        this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, true);
+      })
+      .catch(() => {
+        this.snackbarService.error('Could not copy link');
+        this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, false);
+      });
   }
 
   async newProject() {
@@ -743,6 +767,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (confirmed) {
       this.musicManager.newProject();
       this.snackbarService.success('New session created');
+      this.studioTelemetry.trackEvent('new_project_created', undefined, true);
     }
   }
 
@@ -751,6 +776,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.closeMobilePanel();
     this.snackbarService.success('Template applied');
     this.haptic.medium();
+    this.studioTelemetry.trackEvent('template_applied', { templateId: id }, true);
   }
 
   toggleMobilePanel(panel: MobileStudioPanel) {
@@ -814,6 +840,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.collaboration.currentSession()) {
       this.collaboration.leaveSession();
       this.snackbarService.info('Left collaboration session');
+      this.studioTelemetry.trackEvent('collab_left', undefined, true);
     } else {
       const user = this.authService.currentUser() || {
         id: 'anon',
@@ -824,6 +851,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.musicManager.snapshotProject()
       );
       this.snackbarService.success('Collaboration session started');
+      this.studioTelemetry.trackEvent('collab_started', { userId: user.id }, true);
     }
   }
 
@@ -837,6 +865,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleAiMixAssistant() {
     this.haptic.light();
     this.showAiMixAssistant.update((v) => !v);
+    if (this.showAiMixAssistant()) {
+      this.studioTelemetry.trackEvent('ai_mix_panel_opened', undefined, true);
+    }
     if (
       this.showAiMixAssistant() &&
       this.aiMixAssistant.analyses().length === 0
@@ -848,6 +879,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Run fresh AI mix analysis on all tracks */
   runAiMixAnalysis() {
     this.aiMixAssistant.analyzeAll();
+    this.studioTelemetry.trackEvent(
+      'ai_mix_analysis_run',
+      { trackCount: this.musicManager.tracks().length },
+      true
+    );
     this.snackbarService.success(
       'AI Mix Assistant analyzed ' +
         this.musicManager.tracks().length +
@@ -894,6 +930,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
     this.smartRecording.setRecordingMode(mode);
+    this.studioTelemetry.trackEvent('recording_mode_changed', { mode }, true);
     this.snackbarService.info('Recording mode: ' + mode.toUpperCase());
   }
 
@@ -906,14 +943,39 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async saveProject() {
     this.haptic.medium();
-    await this.projectWorkspace.manualSave();
-    this.snackbarService.success('Project saved');
+    try {
+      await this.projectWorkspace.manualSave();
+      this.snackbarService.success('Project saved');
+      this.studioTelemetry.trackEvent('project_saved', undefined, true);
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        { action: 'project_save', error: e instanceof Error ? e.message : 'unknown' },
+        false
+      );
+      throw e;
+    }
   }
 
   async exportProject() {
     this.haptic.light();
-    this.projectWorkspace.downloadProjectBundle();
-    this.snackbarService.success('Project exported as .smuve bundle');
+    try {
+      this.projectWorkspace.downloadProjectBundle();
+      this.snackbarService.success('Project exported as .smuve bundle');
+      this.studioTelemetry.trackEvent('project_exported', { format: 'smuve' }, true);
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        'project_exported',
+        { format: 'smuve', error: e instanceof Error ? e.message : 'unknown' },
+        false
+      );
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        { action: 'project_export', error: e instanceof Error ? e.message : 'unknown' },
+        false
+      );
+      throw e;
+    }
   }
 
   setProjectGenre(genre: string) {
@@ -1151,6 +1213,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const takes = this.smartRecording.activeCompGroupTakes();
     if (takes.length === 0) {
       this.snackbarService.info('No comp takes to export');
+      this.studioTelemetry.trackEvent('comp_takes_exported', { count: 0 }, false);
       return;
     }
 
@@ -1173,6 +1236,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     this.snackbarService.success(`Exported ${takes.length} take(s) as WAV`);
+    this.studioTelemetry.trackEvent('comp_takes_exported', { count: takes.length }, true);
   }
 
   /** Helper: trigger a file download from a Blob */
@@ -1282,11 +1346,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       const blob = new Blob([arrayBuffer], { type: 'audio/midi' });
       this.downloadBlob(blob, `${projectName}.mid`);
+      this.studioTelemetry.trackEvent(
+        'midi_exported',
+        { trackCount: midiTracks.length },
+        true
+      );
       this.snackbarService.success(
         `MIDI exported — ${midiTracks.length} track(s)`
       );
     } catch (e) {
       this.logger.warn('MIDI export failed', e);
+      this.studioTelemetry.trackEvent(
+        'midi_exported',
+        { error: e instanceof Error ? e.message : 'unknown' },
+        false
+      );
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        { action: 'midi_export', error: e instanceof Error ? e.message : 'unknown' },
+        false
+      );
       this.snackbarService.error(
         'MIDI export failed. Check browser console for details.'
       );
