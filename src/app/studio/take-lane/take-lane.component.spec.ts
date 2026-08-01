@@ -30,9 +30,13 @@ describe('TakeLaneComponent (Sprint A3 Phase 3)', () => {
       },
     ]),
     currentStep: signal(8),
+    replaceTrackNotes: jest.fn(),
   };
 
   beforeEach(async () => {
+    mockMusicManager.replaceTrackNotes.mockClear();
+    mockSnack.success.mockClear();
+    mockSnack.info.mockClear();
     await TestBed.configureTestingModule({
       imports: [TakeLaneComponent],
       providers: [
@@ -106,5 +110,66 @@ describe('TakeLaneComponent (Sprint A3 Phase 3)', () => {
     expect(takes[0].startStep).toBe(0);
     expect(takes[0].endStep).toBe(5);
     expect(takeManager.getActiveTake('trk1')()?.id).toBe(takes[0].id);
+  });
+
+  // ── Sprint A3 Phase 4 — comp stacking ────────────────────────────
+
+  it('comp mode routes chip taps to the ordered comp stack', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    const b = takeManager.addTake('trk1', 'Take B');
+    component.toggleCompMode();
+    expect(component.compMode()).toBe(true);
+    component.onChipTap(a.id);
+    component.onChipTap(b.id);
+    expect(component.compStack()).toEqual([a.id, b.id]);
+    expect(component.compOrderOf(b.id)).toBe(2);
+    component.onChipTap(a.id); // toggle off
+    expect(component.compStack()).toEqual([b.id]);
+  });
+
+  it('applyComp writes the merged comp notes back into the track', () => {
+    const a = takeManager.stampTake(
+      'trk1',
+      'Take A',
+      [{ id: 'n1', midi: 60, step: 0, length: 2, velocity: 100 }],
+      0
+    );
+    const b = takeManager.stampTake(
+      'trk1',
+      'Take B',
+      [{ id: 'n1', midi: 60, step: 0, length: 2, velocity: 111 }],
+      0
+    );
+    component.toggleCompMode();
+    component.onChipTap(a.id);
+    component.onChipTap(b.id);
+    component.applyComp();
+    expect(mockMusicManager.replaceTrackNotes).toHaveBeenCalledWith(
+      'trk1',
+      expect.any(Array)
+    );
+    const merged = mockMusicManager.replaceTrackNotes.mock.calls[0][1];
+    expect(merged[0].velocity).toBe(111); // later take wins
+    expect(component.compStack()).toEqual([]);
+    expect(component.compMode()).toBe(false);
+  });
+
+  it('applyComp on an empty stack is a no-op with an info snack', () => {
+    component.toggleCompMode();
+    component.applyComp();
+    expect(mockMusicManager.replaceTrackNotes).not.toHaveBeenCalled();
+    expect(mockSnack.info).toHaveBeenCalledWith(
+      'Comp stack is empty — tap takes in order first'
+    );
+  });
+
+  it('clearComp empties the stack without deleting takes', () => {
+    const a = takeManager.addTake('trk1', 'Take A');
+    component.toggleCompMode();
+    component.onChipTap(a.id);
+    expect(component.compStack().length).toBe(1);
+    component.clearComp();
+    expect(component.compStack()).toEqual([]);
+    expect(takeManager.getTakes('trk1')().length).toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   Take,
@@ -41,10 +41,66 @@ export class TakeLaneComponent {
   /** Punch-in armed for this track? */
   punchIn = computed(() => this.takeManager.isPunchIn(this.trackId())());
 
+  /** Sprint A3 Phase 4 — comp mode: chip taps build an ordered comp stack. */
+  compMode = signal(false);
+
+  /** Ordered comp stack (take ids) for this track. */
+  compStack = computed(() => this.takeManager.compStack(this.trackId())());
+
+  /** 1-based order badge for a take inside the comp stack, or null. */
+  compOrderOf(takeId: string): number | null {
+    const idx = this.compStack().indexOf(takeId);
+    return idx === -1 ? null : idx + 1;
+  }
+
   /** Comp-select a take — becomes the playback-priority take for the track. */
   selectTake(takeId: string): void {
     this.takeManager.setActiveTake(this.trackId(), takeId);
     this.haptic.light();
+  }
+
+  /** Toggle comp mode (chip taps build the stack instead of selecting). */
+  toggleCompMode(): void {
+    this.compMode.update((v) => !v);
+    this.haptic.light();
+  }
+
+  /** In comp mode: add/remove a take from the ordered comp stack. */
+  toggleComp(takeId: string): void {
+    this.takeManager.toggleCompTake(this.trackId(), takeId);
+    this.haptic.light();
+  }
+
+  /** In comp mode: clear the stack without touching the takes. */
+  clearComp(): void {
+    this.takeManager.clearCompStack(this.trackId());
+    this.haptic.light();
+  }
+
+  /**
+   * In comp mode: merge the stacked takes (later wins overlaps) and write the
+   * result back into the working track, then clear the stack.
+   */
+  applyComp(): void {
+    const merged = this.takeManager.applyComp(this.trackId());
+    if (merged.length === 0) {
+      this.snack.info('Comp stack is empty — tap takes in order first');
+      return;
+    }
+    this.musicManager.replaceTrackNotes(this.trackId(), merged);
+    this.takeManager.clearCompStack(this.trackId());
+    this.compMode.set(false);
+    this.haptic.medium();
+    this.snack.success(`Comp applied · ${merged.length} notes written`);
+  }
+
+  /** Route a chip tap: comp build when in comp mode, else select active. */
+  onChipTap(takeId: string): void {
+    if (this.compMode()) {
+      this.toggleComp(takeId);
+    } else {
+      this.selectTake(takeId);
+    }
   }
 
   /** Arm / disarm punch-in recording for this track. */

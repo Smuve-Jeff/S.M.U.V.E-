@@ -142,16 +142,31 @@ export class TransportBarComponent {
       // no-op tick — effect re-fires on set
     });
 
-    // Sprint A3 — auto-stamp a take when recording stops while punch-in is
-    // armed for the selected track. Snapshots the punch-in state at record
-    // START so arming mid-pass still counts for that pass.
+    // Sprint A3 — auto-stamp takes around recording while punch-in is armed
+    // for the selected track. Snapshots the punch-in state at record START so
+    // arming mid-pass still counts for that pass. While recording, each loop
+    // wrap of the playhead stamps a take (loop-recording takes); stopping
+    // stamps the final (partial) pass.
     effect(() => {
       const rec = this.isRecording();
+      const step = this.audioEngine.visualStep();
       if (rec && !this.recordWasActive) {
         const id = this.musicManager.selectedTrackId();
         this.punchArmedAtRecordStart = id
           ? this.takeManager.isPunchIn(id)()
           : false;
+        this.lastLoopStep = step;
+        this.loopStampCount = 0;
+      }
+      // Loop pass completed while recording: playhead wrapped backward.
+      if (rec && this.punchArmedAtRecordStart && this.recordWasActive) {
+        if (step < (this.lastLoopStep ?? step)) {
+          if (this.loopStampCount < 32) {
+            this.stampTake();
+            this.loopStampCount++;
+          }
+        }
+        this.lastLoopStep = step;
       }
       if (!rec && this.recordWasActive && this.punchArmedAtRecordStart) {
         this.stampTake();
@@ -163,6 +178,10 @@ export class TransportBarComponent {
   private recordWasActive = false;
   /** Sprint A3 — punch-in snapshot taken when the record pass began. */
   private punchArmedAtRecordStart = false;
+  /** Sprint A3 — last playhead step during loop-pass tracking. */
+  private lastLoopStep: number | null = null;
+  /** Sprint A3 — per-record-session loop-pass stamp count (safety cap). */
+  private loopStampCount = 0;
 
   // ── Sprint A3 — Take lane (punch-in + take stamping) ────────────
 

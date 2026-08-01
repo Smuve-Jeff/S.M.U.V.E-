@@ -118,4 +118,95 @@ describe('TakeManagerService (Sprint A3 starter)', () => {
     expect(t.startStep).toBe(3);
     expect(t.endStep).toBe(7);
   });
+
+  // ── Sprint A3 Phase 4 — note snapshots, active-take playback, comp stack ──
+
+  it('stampTake snapshots notes so the active take can drive playback', () => {
+    const notes = [
+      { id: 'a', midi: 60, step: 0, length: 2, velocity: 100 },
+      { id: 'b', midi: 64, step: 4, length: 1, velocity: 90 },
+    ];
+    const t = svc.stampTake('trk1', 'Take 1', notes, 0);
+    expect(t.notes?.length).toBe(2);
+    expect(svc.getActiveTakeNotes('trk1')()[0].midi).toBe(60);
+  });
+
+  it('getActiveTakeNotes returns [] when no active take or empty snapshot', () => {
+    expect(svc.getActiveTakeNotes('nope')()).toEqual([]);
+    const t = svc.stampTake('trk1', 'Empty', [], 0);
+    expect(svc.getActiveTakeNotes('trk1')()).toEqual([]);
+    expect(t.noteCount).toBeUndefined();
+  });
+
+  it('getActiveTakeNotesNow is a hot-path read of the same active snapshot', () => {
+    svc.stampTake(
+      'trk1',
+      'Take 1',
+      [{ id: 'a', midi: 67, step: 0, length: 2, velocity: 100 }],
+      0
+    );
+    expect(svc.getActiveTakeNotesNow('trk1')[0].midi).toBe(67);
+    expect(svc.getActiveTakeNotesNow('nope')).toEqual([]);
+  });
+
+  it('toggleCompTake builds an ordered comp stack and removes on second tap', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    const b = svc.addTake('trk1', 'Take B');
+    svc.toggleCompTake('trk1', a.id);
+    svc.toggleCompTake('trk1', b.id);
+    expect(svc.compStack('trk1')()).toEqual([a.id, b.id]);
+    svc.toggleCompTake('trk1', a.id);
+    expect(svc.compStack('trk1')()).toEqual([b.id]);
+  });
+
+  it('applyComp merges stacked takes with later takes winning overlaps', () => {
+    const a = svc.stampTake(
+      'trk1',
+      'Take A',
+      [{ id: 'n1', midi: 60, step: 0, length: 2, velocity: 100 }],
+      0
+    );
+    const b = svc.stampTake(
+      'trk1',
+      'Take B',
+      [
+        { id: 'n1', midi: 60, step: 0, length: 2, velocity: 111 }, // overlaps n1
+        { id: 'n2', midi: 65, step: 4, length: 1, velocity: 95 },
+      ],
+      0
+    );
+    svc.toggleCompTake('trk1', a.id);
+    svc.toggleCompTake('trk1', b.id);
+    const merged = svc.applyComp('trk1');
+    expect(merged.length).toBe(2);
+    const n1 = merged.find((n) => n.step === 0);
+    expect(n1?.velocity).toBe(111); // later take B wins
+    expect(merged.some((n) => n.midi === 65)).toBe(true);
+  });
+
+  it('clearCompStack empties the stack without deleting takes', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.toggleCompTake('trk1', a.id);
+    expect(svc.compStack('trk1')().length).toBe(1);
+    svc.clearCompStack('trk1');
+    expect(svc.compStack('trk1')()).toEqual([]);
+    expect(svc.getTakes('trk1')().length).toBe(1);
+  });
+
+  it('removeTake also drops the take from any comp stack', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    const b = svc.addTake('trk1', 'Take B');
+    svc.toggleCompTake('trk1', a.id);
+    svc.toggleCompTake('trk1', b.id);
+    svc.removeTake('trk1', a.id);
+    expect(svc.compStack('trk1')()).toEqual([b.id]);
+  });
+
+  it('clearTakesForTrack also clears the comp stack', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.toggleCompTake('trk1', a.id);
+    svc.clearTakesForTrack('trk1');
+    expect(svc.compStack('trk1')()).toEqual([]);
+    expect(svc.getTakes('trk1')()).toEqual([]);
+  });
 });

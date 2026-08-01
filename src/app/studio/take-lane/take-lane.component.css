@@ -175,6 +175,94 @@
   padding: 2px 4px;
 }
 
+/* ============================================================
+   Sprint A3 Phase 4 — Comp stack (badges + strip)
+   ============================================================ */
+.tl-btn.tl-comp {
+  margin-left: 1px;
+}
+.tl-btn.tl-comp.armed {
+  background: var(--orange, #d97706);
+  color: white;
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.45);
+}
+
+.take-chip-badge {
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  border-radius: 5px;
+  background: var(--orange, #d97706);
+  color: white;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 900;
+  padding: 0 3px;
+}
+.take-chip.in-comp {
+  border-style: dashed;
+  border-color: var(--orange, #d97706);
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.comp-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.1);
+  border: 1px dashed rgba(217, 119, 6, 0.5);
+}
+.comp-strip-label {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--orange, #d97706);
+}
+.comp-strip-order {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  color: var(--espresso-muted, #7e7259);
+}
+.comp-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
+}
+.comp-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.comp-btn:not(:disabled):active {
+  transform: scale(0.94);
+}
+.comp-apply {
+  margin-left: auto;
+  background: var(--orange, #d97706);
+  color: white;
+}
+.comp-apply:not(:disabled):hover {
+  background: #b85e04;
+}
+.comp-clear {
+  background: transparent;
+  color: var(--espresso-muted, #7e7259);
+  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.18));
+}
+.comp-clear:not(:disabled):hover {
+  background: rgba(31, 26, 18, 0.06);
+}
+
 /* ── Dark mode ───────────────────────────────────────────── */
 :host-context(.dark-mode) .take-lane {
   background: rgba(255, 255, 255, 0.04);

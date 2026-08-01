@@ -36,6 +36,25 @@
     >
       <span class="material-symbols-outlined">note_add</span>
     </button>
+    <button
+      type="button"
+      class="tl-btn tl-comp"
+      [class.armed]="compMode()"
+      (click)="toggleCompMode()"
+      [attr.aria-pressed]="compMode()"
+      [attr.aria-label]="
+        compMode()
+          ? 'Exit comp mode — chip taps select active take'
+          : 'Enter comp mode — chip taps build the comp stack'
+      "
+      [attr.title]="
+        compMode()
+          ? 'Comp mode on — tap takes in order, then APPLY'
+          : 'Comp mode off — tap to build a comp stack'
+      "
+    >
+      <span class="material-symbols-outlined">layers</span>
+    </button>
   </div>
 
   <div class="take-list" *ngIf="takes().length > 0; else emptyTake">
@@ -44,13 +63,27 @@
       type="button"
       class="take-chip"
       [class.active]="take.id === activeTakeId()"
-      (click)="selectTake(take.id)"
-      [attr.aria-pressed]="take.id === activeTakeId()"
+      [class.in-comp]="compMode() && compOrderOf(take.id) !== null"
+      (click)="onChipTap(take.id)"
+      [attr.aria-pressed]="
+        compMode()
+          ? compOrderOf(take.id) !== null
+          : take.id === activeTakeId()
+      "
       [attr.title]="
-        take.label +
-        (take.noteCount !== undefined ? ' · ' + take.noteCount + ' notes' : '')
+        compMode()
+          ? (compOrderOf(take.id) !== null
+              ? take.label + ' — tap to remove from comp'
+              : take.label + ' — tap to add to comp')
+          : take.label +
+            (take.noteCount !== undefined
+              ? ' · ' + take.noteCount + ' notes'
+              : '')
       "
     >
+      <span class="take-chip-badge" *ngIf="compOrderOf(take.id) !== null">
+        {{ compOrderOf(take.id) }}
+      </span>
       <span class="take-chip-label">{{ take.label }}</span>
       <span class="take-chip-meta" *ngIf="take.noteCount !== undefined">
         {{ take.noteCount }}n
@@ -76,4 +109,32 @@
       No takes yet — arm punch-in &amp; record, or tap +
     </div>
   </ng-template>
+
+  <!-- Sprint A3 Phase 4 — comp stack strip (visible in comp mode) -->
+  <div class="comp-strip" *ngIf="compMode()">
+    <span class="comp-strip-label">COMP</span>
+    <span class="comp-strip-order" *ngIf="compStack().length > 0">
+      {{ compStack().length }} layered
+    </span>
+    <button
+      type="button"
+      class="comp-btn comp-apply"
+      (click)="applyComp()"
+      [disabled]="compStack().length === 0"
+      [attr.aria-label]="'Apply comp to track'"
+      [attr.title]="'Merge stacked takes into the track (later wins)'"
+    >
+      APPLY
+    </button>
+    <button
+      type="button"
+      class="comp-btn comp-clear"
+      (click)="clearComp()"
+      [disabled]="compStack().length === 0"
+      [attr.aria-label]="'Clear comp stack'"
+      [attr.title]="'Clear the comp stack'"
+    >
+      CLEAR
+    </button>
+  </div>
 </div>

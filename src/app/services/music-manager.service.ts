@@ -7,6 +7,7 @@ import { StemSeparationService } from './stem-separation.service';
 import { IdeaRecipe } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
+import { TakeManagerService } from './take-manager.service';
 import {
   Project,
   StudioTrack,
@@ -128,6 +129,8 @@ export class MusicManagerService {
   private recordingEngine = inject(StudioRecordingEngineService);
   private stemSplitter = inject(StemSeparationService);
   private logger = inject(LoggingService);
+  /** Sprint A3 Phase 4 — comp/take source for active-take playback. */
+  private takeManager = inject(TakeManagerService);
 
   /**
    * AudioBuffer cache for stem-derived audio clips.
@@ -399,6 +402,19 @@ export class MusicManagerService {
   }
 
   // ── Notes ──────────────────────────────────────────────────────────
+
+  /**
+   * Sprint A3 Phase 4 — write a comp-merged note list back to a track. Used
+   * by the take-lane APPLY COMP action; replaces the working notes wholesale
+   * so the comp becomes the new arrangement content.
+   */
+  replaceTrackNotes(trackId: string, notes: TrackNote[]): void {
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId ? { ...t, notes: notes.map((n) => this.clone(n)) } : t
+      )
+    );
+  }
 
   addNoteToTrack(trackId: string, note: TrackNote) {
     const noteClone = this.clone(note);
@@ -1553,9 +1569,14 @@ export class MusicManagerService {
     this.tracks().forEach((t) => {
       if (t.muted) return;
 
+      // Sprint A3 Phase 4 — active-take playback: when a comp take is selected
+      // for this track, its note snapshot plays instead of the working copy.
+      const takeNotes = this.takeManager.getActiveTakeNotesNow(t.id);
+      const playNotes = takeNotes.length > 0 ? takeNotes : t.notes;
+
       t.clips.forEach((clip) => {
         if (bar >= clip.start && bar < clip.start + clip.length) {
-          t.notes
+          playNotes
             .filter((n) => Math.floor(n.step) === step % 64)
             .forEach((n) => {
               if (n.probability !== undefined && Math.random() >= n.probability)
