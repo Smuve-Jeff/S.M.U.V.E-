@@ -283,6 +283,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
 | E1 | Studio product telemetry + Insights panel — local event bus (`StudioTelemetryService`), north-star metrics (session length, idea→first loop, export success, crash-free, collab rate), weighted competitor gap backlog, topbar Insights slide-over, unit coverage | Data-driven Studio backlog vs BandLab/FL/Koala | ✅ |
+| E2 | Adaptive Studio Coach + live gap scoring — telemetry-adjusted S.M.U.V.E parity scores, latency probe events, ranked next-best coach CTAs (probe / starter / collab / export / AI mix / plugins / share), Insights coach rail + full engine probe, dismiss/complete persistence | Closes measured latency + onboarding + collab gaps with one-tap actions | ✅ |
 
 ### Phase D — Continuity cloud (Sprints D1–D2)
 *Goal: features competitors can't copy because they assume a single device. Every artist now works across phone, tablet, and desktop without losing the lab session in transit.*
@@ -413,7 +414,7 @@ framework; this is our Apple-GarageBand-killer angle).
   + Space to rewind from any node). New master-plan rows: D3 ✅ +
   D4 ✅.*
 
-### Phase E — Product intelligence (Sprint E1)
+### Phase E — Product intelligence (Sprints E1–E2)
 *Goal: instrument Studio so every future sprint is ranked by measured
 competitor gap and real north-star movement, not gut feel.*
 
@@ -430,6 +431,21 @@ competitor gap and real north-star movement, not gut feel.*
   north-star grid, gap bars, and event volume. Jest coverage for
   session lifecycle, rates, backlog sort, rehydrate, and corrupt
   storage. Same-ms session teardown counts as completed.*
+- **E2 — Adaptive Studio Coach + live gap scoring**: ✅ *SHIPPED.
+  Live S.M.U.V.E category scores recompute from north-star + event
+  volume (latency probes, starter seeds, collab rate, export success,
+  AI mix usage, plugin/share ecosystem signals) so the priority backlog
+  moves when the artist closes gaps. New events: `latency_probe_run`,
+  `coach_action_taken`, `coach_action_dismissed`. North-star gained
+  avg latency ms, render speed ratio, and probe count. Ranked coach
+  CTAs (max 4) map the heaviest weighted gaps to one-tap actions —
+  probe latency, seed starter, start collab, export, open AI Mix,
+  open WASM plugins, copy share link — with local dismiss persistence.
+  Insights panel gained a COACH · NEXT BEST rail, latency/render
+  metrics, and a full engine probe button wired through
+  `AudioEngineLatencyService` (live snapshot + 1s offline benchmark).
+  Jest covers probe scoring, coach ranking, dismiss, complete, and
+  dashboard payload shape.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

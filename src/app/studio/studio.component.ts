@@ -71,7 +71,12 @@ import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.compon
 import { BezierEditorComponent } from './automation/bezier-editor.component';
 import { ScoreViewComponent } from './score-view/score-view.component';
 import { PluginStoreComponent } from './plugin-store/plugin-store.component';
-import { StudioTelemetryService } from './studio-telemetry.service';
+import {
+  StudioCoachAction,
+  StudioCoachActionId,
+  StudioTelemetryService,
+} from './studio-telemetry.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 
 type StudioView =
   | 'arrangement'
@@ -250,6 +255,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly audioImport = inject(AudioImportService);
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
+  public readonly engineLatency = inject(AudioEngineLatencyService);
 
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
@@ -263,6 +269,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showImportPanel = signal(false);
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
+  /** True while an Insights engine probe is in-flight. */
+  insightsProbeRunning = signal(false);
 
   // ── Bezier editor state ──────────────────────────────────
   showBezierEditor = signal(false);
@@ -884,6 +892,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showStudioInsights.update((v) => !v);
     if (this.showStudioInsights()) {
       this.studioTelemetry.trackEvent('insights_panel_opened', undefined, true);
+      // Cheap live snapshot so the coach has a latency sample without a full
+      // offline benchmark every open.
+      try {
+        const snap = this.engineLatency.readSnapshot();
+        this.studioTelemetry.recordLatencyProbe(
+          {
+            totalLatencyMs: snap.totalLatencyMs,
+            masterWorkletActive: snap.masterWorkletActive,
+            sampleRateHz: snap.sampleRateHz,
+          },
+          snap.contextState === 'running'
+        );
+      } catch {
+        /* engine may be suspended / unavailable */
+      }
     }
   }
 
@@ -906,6 +929,122 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return Object.entries(volume)
       .map(([name, count]) => ({ name, count: Number(count) || 0 }))
       .sort((a, b) => b.count - a.count);
+  }
+
+  /** Coach CTAs ranked by live weighted gap. */
+  insightCoachActions(): StudioCoachAction[] {
+    return this.studioWeeklyDashboard().coachActions || [];
+  }
+
+  /**
+   * Full offline + live latency probe from Insights / coach CTA.
+   * Updates telemetry so live parity scores recompute immediately.
+   */
+  async runInsightsLatencyProbe(): Promise<void> {
+    if (this.insightsProbeRunning()) return;
+    this.insightsProbeRunning.set(true);
+    this.haptic.light();
+    try {
+      const snap = this.engineLatency.readSnapshot();
+      const bench = await this.engineLatency.runOfflineBenchmark(1);
+      this.studioTelemetry.recordLatencyProbe(
+        {
+          totalLatencyMs: snap.totalLatencyMs,
+          speedRatio: bench.speedRatio,
+          masterWorkletActive: snap.masterWorkletActive,
+          sampleRateHz: snap.sampleRateHz,
+        },
+        true
+      );
+      this.snackbarService.success(
+        `Engine probe · ${Math.round(snap.totalLatencyMs)} ms · ×${bench.speedRatio.toFixed(2)} render`
+      );
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        {
+          action: 'latency_probe',
+          error: e instanceof Error ? e.message : 'unknown',
+        },
+        false
+      );
+      this.snackbarService.error('Engine probe failed');
+    } finally {
+      this.insightsProbeRunning.set(false);
+    }
+  }
+
+  /** Execute a coach CTA and mark it complete in telemetry. */
+  async runCoachAction(action: StudioCoachAction): Promise<void> {
+    this.haptic.medium();
+    const id = action.id as StudioCoachActionId;
+    try {
+      switch (id) {
+        case 'probe_latency':
+          await this.runInsightsLatencyProbe();
+          break;
+        case 'seed_starter': {
+          const recipe = this.ideasGenerator.recipes?.[0];
+          if (recipe) {
+            this.musicManager.applyGeneratedRecipe(recipe);
+            this.studioTelemetry.trackEvent(
+              'starter_recipe_seeded',
+              { source: 'coach', recipeId: recipe.id },
+              true
+            );
+            this.snackbarService.success(`Starter seeded · ${recipe.name}`);
+          } else if (this.templateService.templates?.[0]) {
+            this.applyTemplate(this.templateService.templates[0].id);
+          }
+          if (action.targetView && isStudioView(action.targetView)) {
+            this.setActiveView(action.targetView);
+          }
+          break;
+        }
+        case 'start_collab':
+          if (!this.collaboration.currentSession()) {
+            this.toggleCollaboration();
+          } else {
+            this.snackbarService.info('Collab session already active');
+          }
+          break;
+        case 'export_project':
+          await this.exportProject();
+          break;
+        case 'open_ai_mix':
+          if (!this.showAiMixAssistant()) {
+            this.toggleAiMixAssistant();
+          }
+          break;
+        case 'open_plugins':
+          this.setActiveView('plugins');
+          break;
+        case 'share_link':
+          this.copyShareLink();
+          break;
+        default:
+          break;
+      }
+      this.studioTelemetry.completeCoachAction(id, {
+        category: action.category,
+      });
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        {
+          action: 'coach_action',
+          coachId: id,
+          error: e instanceof Error ? e.message : 'unknown',
+        },
+        false
+      );
+    }
+  }
+
+  dismissCoachAction(action: StudioCoachAction, event?: Event): void {
+    event?.stopPropagation();
+    this.haptic.light();
+    this.studioTelemetry.dismissCoachAction(action.id);
   }
 
   /** Run fresh AI mix analysis on all tracks */

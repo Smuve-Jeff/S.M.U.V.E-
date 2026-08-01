@@ -1383,9 +1383,54 @@
     </header>
     <div class="comp-panel-body">
       <p class="comp-insights-lede">
-        Rolling {{ studioWeeklyDashboard().windowDays }}-day north-star pulse
-        and weighted competitor gaps. Local-only — nothing leaves this device.
+        Rolling {{ studioWeeklyDashboard().windowDays }}-day north-star pulse,
+        live gap scoring, and coach CTAs. Local-only — nothing leaves this
+        device.
       </p>
+
+      <div class="comp-insights-section" *ngIf="insightCoachActions().length">
+        <span class="comp-aimix-section-title">COACH · NEXT BEST</span>
+        <div
+          class="comp-insights-coach"
+          *ngFor="let action of insightCoachActions()"
+        >
+          <div class="comp-insights-coach-head">
+            <span class="comp-insights-coach-title">{{ action.title }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-dismiss"
+              (click)="dismissCoachAction(action, $event)"
+              [attr.aria-label]="'Dismiss ' + action.title"
+              title="Dismiss"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <p class="comp-insights-coach-reason">{{ action.reason }}</p>
+          <div class="comp-insights-coach-meta">
+            <span class="comp-insights-coach-cat">{{
+              formatInsightCategory(action.category)
+            }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-cta"
+              (click)="runCoachAction(action)"
+              [disabled]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+              [attr.aria-busy]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+            >
+              {{
+                action.id === 'probe_latency' && insightsProbeRunning()
+                  ? 'Probing…'
+                  : action.ctaLabel
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div class="comp-insights-section">
         <span class="comp-aimix-section-title">NORTH STAR</span>
@@ -1422,7 +1467,43 @@
             }}</span>
             <span class="comp-insights-metric-label">Collab sessions</span>
           </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.latencyProbeCount
+                  ? studioWeeklyDashboard().metrics.avgLatencyMs + 'ms'
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Avg latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                  ? '×' +
+                    (
+                      studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                      | number: '1.0-2'
+                    )
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Render speed</span>
+          </div>
         </div>
+        <button
+          type="button"
+          class="comp-insights-probe-btn"
+          (click)="runInsightsLatencyProbe()"
+          [disabled]="insightsProbeRunning()"
+          [attr.aria-busy]="insightsProbeRunning()"
+        >
+          <span class="material-symbols-outlined">speed</span>
+          {{
+            insightsProbeRunning() ? 'Probing engine…' : 'Run full engine probe'
+          }}
+        </button>
       </div>
 
       <div class="comp-insights-section">

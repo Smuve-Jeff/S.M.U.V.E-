@@ -20,7 +20,19 @@ export type StudioTelemetryEventName =
   | 'plugin_store_opened'
   | 'share_link_copied'
   | 'insights_panel_opened'
+  | 'latency_probe_run'
+  | 'coach_action_taken'
+  | 'coach_action_dismissed'
   | 'studio_error';
+
+export type StudioCoachActionId =
+  | 'probe_latency'
+  | 'seed_starter'
+  | 'start_collab'
+  | 'export_project'
+  | 'open_ai_mix'
+  | 'open_plugins'
+  | 'share_link';
 
 export interface StudioTelemetryEvent {
   id: string;
@@ -37,6 +49,11 @@ export interface StudioNorthStarMetrics {
   exportSuccessRate: number;
   crashFreeSessionsRate: number;
   collabSessionRate: number;
+  /** Rolling mean of latency_probe_run totalLatencyMs (0 when no probes). */
+  avgLatencyMs: number;
+  /** Rolling mean of offline speedRatio (0 when no probes). */
+  avgRenderSpeedRatio: number;
+  latencyProbeCount: number;
 }
 
 export interface StudioCompetitorScore {
@@ -53,23 +70,42 @@ export interface StudioGapRow {
   weightedGap: number;
 }
 
+export interface StudioCoachAction {
+  id: StudioCoachActionId;
+  category: string;
+  title: string;
+  reason: string;
+  ctaLabel: string;
+  priority: number;
+  /** Optional Studio view to open when the CTA runs. */
+  targetView?: string;
+}
+
 export interface StudioWeeklyDashboard {
   generatedAt: number;
   windowDays: number;
   metrics: StudioNorthStarMetrics;
   eventVolume: Record<string, number>;
   prioritizedBacklog: StudioGapRow[];
+  /** Live S.M.U.V.E category scores after telemetry adjustments. */
+  liveScores: Record<string, number>;
+  /** Top next-best actions ranked by weighted gap. */
+  coachActions: StudioCoachAction[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class StudioTelemetryService {
   private readonly STORAGE_KEY = 'smuve_studio_telemetry_events_v1';
+  private readonly DISMISS_KEY = 'smuve_studio_coach_dismissed_v1';
   private readonly MAX_EVENTS = 4000;
   private readonly WINDOW_DAYS = 7;
 
   private activeSessionId = signal<string | null>(null);
   private activeSessionStartedAt = signal<number | null>(null);
   private events = signal<StudioTelemetryEvent[]>(this.loadEvents());
+  private dismissedCoachIds = signal<Set<StudioCoachActionId>>(
+    this.loadDismissed()
+  );
 
   /** Active studio session id (null when no session is open). */
   readonly activeSession = computed(() => this.activeSessionId());
@@ -219,23 +255,127 @@ export class StudioTelemetryService {
         : completed.filter((s) => collabSessionIds.has(s.id)).length /
           completed.length;
 
+    const latencyProbes = events.filter((e) => e.name === 'latency_probe_run');
+    const latencySamples = latencyProbes
+      .map((e) => Number(e.data?.['totalLatencyMs']))
+      .filter((n) => Number.isFinite(n) && n >= 0);
+    const speedSamples = latencyProbes
+      .map((e) => Number(e.data?.['speedRatio']))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const avgLatencyMs =
+      latencySamples.length > 0
+        ? latencySamples.reduce((sum, v) => sum + v, 0) / latencySamples.length
+        : 0;
+    const avgRenderSpeedRatio =
+      speedSamples.length > 0
+        ? speedSamples.reduce((sum, v) => sum + v, 0) / speedSamples.length
+        : 0;
+
     return {
       avgSessionMinutes: this.round(avgSessionMs / 60000, 2),
       ideaToFirstLoopSeconds: this.round(avgIdeaToFirstLoopMs / 1000, 1),
       exportSuccessRate: this.round(exportSuccessRate, 3),
       crashFreeSessionsRate: this.round(crashFreeSessionsRate, 3),
       collabSessionRate: this.round(collabSessionRate, 3),
+      avgLatencyMs: this.round(avgLatencyMs, 1),
+      avgRenderSpeedRatio: this.round(avgRenderSpeedRatio, 3),
+      latencyProbeCount: latencyProbes.length,
+    };
+  });
+
+  /**
+   * Baseline S.M.U.V.E scores adjusted by observed north-star + latency
+   * telemetry so the Insights backlog moves when the user actually closes gaps.
+   */
+  readonly liveScores = computed<Record<string, number>>(() => {
+    const base =
+      this.parity().find((r) => r.app === 'S.M.U.V.E')?.scores ?? {};
+    const m = this.northStarMetrics();
+    const recent = this.recentEvents();
+    const volume = (name: StudioTelemetryEventName) =>
+      recent.filter((e) => e.name === name).length;
+
+    const onboardingDelta =
+      (m.ideaToFirstLoopSeconds > 0
+        ? m.ideaToFirstLoopSeconds <= 30
+          ? 12
+          : m.ideaToFirstLoopSeconds <= 90
+            ? 6
+            : m.ideaToFirstLoopSeconds <= 180
+              ? 0
+              : -8
+        : 0) +
+      Math.min(8, volume('starter_recipe_seeded') * 2) +
+      Math.min(6, volume('template_applied') * 2);
+
+    let latencyDelta = (m.crashFreeSessionsRate - 1) * 12;
+    if (m.latencyProbeCount > 0) {
+      if (m.avgLatencyMs <= 40) latencyDelta += 16;
+      else if (m.avgLatencyMs <= 60) latencyDelta += 10;
+      else if (m.avgLatencyMs <= 100) latencyDelta += 2;
+      else latencyDelta -= 10;
+      if (m.avgRenderSpeedRatio > 0) {
+        if (m.avgRenderSpeedRatio <= 1) latencyDelta += 8;
+        else if (m.avgRenderSpeedRatio <= 1.5) latencyDelta += 3;
+        else latencyDelta -= 6;
+      }
+    }
+
+    const workflowDelta =
+      (m.exportSuccessRate - 1) * 18 +
+      Math.min(10, volume('project_saved') * 1.5) +
+      Math.min(8, volume('project_exported') + volume('midi_exported')) +
+      (m.avgSessionMinutes >= 5 ? 4 : m.avgSessionMinutes >= 2 ? 2 : 0);
+
+    const collabDelta =
+      m.collabSessionRate * 22 +
+      Math.min(8, volume('collab_started') + volume('collab_joined')) -
+      // Empty week stays at baseline (collabSessionRate 0) without a penalty.
+      0;
+
+    const aiDelta =
+      Math.min(10, volume('ai_mix_analysis_run') * 3) +
+      Math.min(6, volume('ai_mix_panel_opened') * 2) -
+      (volume('ai_mix_analysis_run') === 0 && recent.length > 12 ? 4 : 0);
+
+    const ecoDelta =
+      Math.min(12, volume('plugin_store_opened') * 3) +
+      Math.min(8, volume('share_link_copied') * 2) +
+      Math.min(6, volume('project_exported')) +
+      (volume('plugin_store_opened') + volume('share_link_copied') === 0 &&
+      recent.length > 12
+        ? -4
+        : 0);
+
+    return {
+      onboardingSpeed: this.clampScore(
+        (base['onboardingSpeed'] ?? 0) + onboardingDelta
+      ),
+      latencyReliability: this.clampScore(
+        (base['latencyReliability'] ?? 0) + latencyDelta
+      ),
+      workflowVelocity: this.clampScore(
+        (base['workflowVelocity'] ?? 0) + workflowDelta
+      ),
+      collabFlywheel: this.clampScore(
+        (base['collabFlywheel'] ?? 0) + collabDelta
+      ),
+      aiGuidanceDepth: this.clampScore(
+        (base['aiGuidanceDepth'] ?? 0) + aiDelta
+      ),
+      ecosystemLockIn: this.clampScore(
+        (base['ecosystemLockIn'] ?? 0) + ecoDelta
+      ),
     };
   });
 
   readonly prioritizedBacklog = computed<StudioGapRow[]>(() => {
     const data = this.parity();
-    const smuve = data.find((r) => r.app === 'S.M.U.V.E');
-    if (!smuve) return [];
+    const smuveScores = this.liveScores();
     const competitors = data.filter((r) => r.app !== 'S.M.U.V.E');
     const categories = Object.keys(this.weights);
     const rows: StudioGapRow[] = categories.map((category) => {
-      const smuveScore = smuve.scores[category] ?? 0;
+      const smuveScore = smuveScores[category] ?? 0;
       const bestCompetitorScore = competitors.reduce(
         (max, c) => Math.max(max, c.scores[category] ?? 0),
         0
@@ -254,6 +394,29 @@ export class StudioTelemetryService {
     return rows.sort((a, b) => b.weightedGap - a.weightedGap);
   });
 
+  readonly coachActions = computed<StudioCoachAction[]>(() => {
+    const dismissed = this.dismissedCoachIds();
+    const backlog = this.prioritizedBacklog();
+    const metrics = this.northStarMetrics();
+    const actions: StudioCoachAction[] = [];
+
+    for (const row of backlog) {
+      if (row.gap <= 0) continue;
+      const action = this.buildCoachAction(row, metrics);
+      if (!action) continue;
+      if (dismissed.has(action.id)) continue;
+      actions.push(action);
+    }
+
+    // Prefer higher weighted gaps; stable secondary sort by id.
+    return actions
+      .sort(
+        (a, b) =>
+          b.priority - a.priority || a.id.localeCompare(b.id)
+      )
+      .slice(0, 4);
+  });
+
   readonly weeklyDashboard = computed<StudioWeeklyDashboard>(() => {
     const recent = this.recentEvents();
     const eventVolume: Record<string, number> = {};
@@ -266,6 +429,8 @@ export class StudioTelemetryService {
       metrics: this.northStarMetrics(),
       eventVolume,
       prioritizedBacklog: this.prioritizedBacklog(),
+      liveScores: this.liveScores(),
+      coachActions: this.coachActions(),
     };
   });
 
@@ -309,6 +474,51 @@ export class StudioTelemetryService {
       this.saveEvents(next);
       return next;
     });
+  }
+
+  /** Record an engine latency probe into the rolling telemetry window. */
+  recordLatencyProbe(
+    data: {
+      totalLatencyMs: number;
+      speedRatio?: number;
+      masterWorkletActive?: boolean;
+      sampleRateHz?: number;
+    },
+    success: boolean = true
+  ): void {
+    this.trackEvent('latency_probe_run', { ...data }, success);
+  }
+
+  /** Mark a coach CTA as completed (taken) and hide it for the local week. */
+  completeCoachAction(id: StudioCoachActionId, data?: Record<string, unknown>): void {
+    this.trackEvent('coach_action_taken', { actionId: id, ...(data || {}) }, true);
+    this.dismissCoachAction(id, false);
+  }
+
+  /** Soft-dismiss a coach CTA without treating it as completed. */
+  dismissCoachAction(
+    id: StudioCoachActionId,
+    track: boolean = true
+  ): void {
+    if (track) {
+      this.trackEvent('coach_action_dismissed', { actionId: id }, true);
+    }
+    this.dismissedCoachIds.update((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      this.saveDismissed(next);
+      return next;
+    });
+  }
+
+  /** Clear dismissed coach CTAs (used by tests / Insights reset). */
+  resetCoachDismissals(): void {
+    this.dismissedCoachIds.set(new Set());
+    try {
+      localStorage.removeItem(this.DISMISS_KEY);
+    } catch {
+      /* ignore */
+    }
   }
 
   private recentEvents(): StudioTelemetryEvent[] {
@@ -359,6 +569,115 @@ export class StudioTelemetryService {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
     } catch {
       // best-effort persistence
+    }
+  }
+
+  private loadDismissed(): Set<StudioCoachActionId> {
+    try {
+      const raw = localStorage.getItem(this.DISMISS_KEY);
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return new Set();
+      return new Set(
+        parsed.filter((id: unknown): id is StudioCoachActionId => typeof id === 'string')
+      );
+    } catch {
+      return new Set();
+    }
+  }
+
+  private saveDismissed(ids: Set<StudioCoachActionId>): void {
+    try {
+      localStorage.setItem(this.DISMISS_KEY, JSON.stringify([...ids]));
+    } catch {
+      // best-effort persistence
+    }
+  }
+
+  private clampScore(value: number): number {
+    return Math.max(0, Math.min(100, Math.round(value)));
+  }
+
+  private buildCoachAction(
+    row: StudioGapRow,
+    metrics: StudioNorthStarMetrics
+  ): StudioCoachAction | null {
+    const priority = row.weightedGap;
+    switch (row.category) {
+      case 'latencyReliability':
+        return {
+          id: 'probe_latency',
+          category: row.category,
+          title: 'Run engine latency probe',
+          reason:
+            metrics.latencyProbeCount === 0
+              ? 'No latency samples yet — Audio Evolution leads reliability until we measure this device.'
+              : `Avg round-trip ${metrics.avgLatencyMs} ms (gap −${row.gap}). Probe again after buffer tweaks.`,
+          ctaLabel: 'Probe now',
+          priority,
+        };
+      case 'onboardingSpeed':
+        return {
+          id: 'seed_starter',
+          category: row.category,
+          title: 'Seed a starter recipe',
+          reason:
+            metrics.ideaToFirstLoopSeconds > 90
+              ? `Idea → first loop is ${metrics.ideaToFirstLoopSeconds}s. Starter recipes cut cold-start friction.`
+              : 'Koala/BandLab win first-loop speed. Drop a starter loop to close the gap.',
+          ctaLabel: 'Apply starter',
+          priority,
+          targetView: 'arrangement',
+        };
+      case 'collabFlywheel':
+        return {
+          id: 'start_collab',
+          category: row.category,
+          title: 'Start a collab session',
+          reason: `Collab session rate is ${Math.round(
+            metrics.collabSessionRate * 100
+          )}%. BandLab’s flywheel starts with one shared booth.`,
+          ctaLabel: 'Start collab',
+          priority,
+        };
+      case 'workflowVelocity':
+        return {
+          id: 'export_project',
+          category: row.category,
+          title: 'Export this session',
+          reason:
+            metrics.exportSuccessRate < 1
+              ? 'Recent exports failed — retry to protect workflow velocity.'
+              : 'FL Mobile wins finish speed. Ship a bounce to raise the velocity score.',
+          ctaLabel: 'Export project',
+          priority,
+        };
+      case 'aiGuidanceDepth':
+        return {
+          id: 'open_ai_mix',
+          category: row.category,
+          title: 'Run AI Mix analysis',
+          reason:
+            'Keep the AI guidance lead warm — analyze the current mix and act on the top tip.',
+          ctaLabel: 'Open AI Mix',
+          priority,
+        };
+      case 'ecosystemLockIn':
+        return {
+          id: row.gap >= 20 ? 'open_plugins' : 'share_link',
+          category: row.category,
+          title:
+            row.gap >= 20 ? 'Browse WASM plugin store' : 'Copy a share link',
+          reason:
+            row.gap >= 20
+              ? 'Ecosystem lock-in trails BandLab. Enable a WASM insert to deepen the stack.'
+              : 'Share the booth link so peers land in the same session graph.',
+          ctaLabel: row.gap >= 20 ? 'Open plugins' : 'Copy link',
+          priority,
+          targetView: row.gap >= 20 ? 'plugins' : undefined,
+        };
+      default:
+        return null;
     }
   }
 

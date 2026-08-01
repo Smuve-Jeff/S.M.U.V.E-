@@ -8,8 +8,11 @@ describe('StudioTelemetryService', () => {
   let service: StudioTelemetryService;
   const STORAGE_KEY = 'smuve_studio_telemetry_events_v1';
 
+  const DISMISS_KEY = 'smuve_studio_coach_dismissed_v1';
+
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DISMISS_KEY);
     TestBed.configureTestingModule({
       providers: [StudioTelemetryService],
     });
@@ -18,6 +21,7 @@ describe('StudioTelemetryService', () => {
 
   afterEach(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DISMISS_KEY);
   });
 
   it('should create', () => {
@@ -124,6 +128,55 @@ describe('StudioTelemetryService', () => {
     expect(dash.prioritizedBacklog.length).toBe(6);
     expect(dash.metrics).toBeTruthy();
     expect(typeof dash.generatedAt).toBe('number');
+    expect(dash.liveScores).toBeTruthy();
+    expect(dash.coachActions.length).toBeGreaterThan(0);
+  });
+
+  it('recordLatencyProbe feeds avg latency and lifts live reliability score', () => {
+    const before = service.liveScores()['latencyReliability'];
+    service.beginSession();
+    service.recordLatencyProbe(
+      { totalLatencyMs: 32, speedRatio: 0.7, masterWorkletActive: true },
+      true
+    );
+    service.endSession();
+
+    const metrics = service.northStarMetrics();
+    expect(metrics.latencyProbeCount).toBe(1);
+    expect(metrics.avgLatencyMs).toBe(32);
+    expect(metrics.avgRenderSpeedRatio).toBeCloseTo(0.7, 3);
+    expect(service.liveScores()['latencyReliability']).toBeGreaterThan(before);
+  });
+
+  it('coachActions ranks next-best CTAs and honors dismissals', () => {
+    service.resetCoachDismissals();
+    const actions = service.coachActions();
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions.length).toBeLessThanOrEqual(4);
+    // Top gap is latency — coach should offer a probe.
+    expect(actions.some((a) => a.id === 'probe_latency')).toBe(true);
+    for (let i = 1; i < actions.length; i++) {
+      expect(actions[i - 1].priority).toBeGreaterThanOrEqual(actions[i].priority);
+    }
+
+    const target = actions.find((a) => a.id === 'probe_latency')!;
+    service.dismissCoachAction(target.id);
+    expect(service.coachActions().some((a) => a.id === 'probe_latency')).toBe(
+      false
+    );
+    expect(
+      readStored().some((e) => e.name === 'coach_action_dismissed')
+    ).toBe(true);
+  });
+
+  it('completeCoachAction tracks taken event and hides the CTA', () => {
+    service.resetCoachDismissals();
+    const actions = service.coachActions();
+    const target = actions.find((a) => a.id === 'start_collab') || actions[0];
+    service.completeCoachAction(target.id, { category: target.category });
+    expect(service.coachActions().some((a) => a.id === target.id)).toBe(false);
+    const names = readStored().map((e) => e.name);
+    expect(names).toContain('coach_action_taken');
   });
 
   it('rehydrates events from localStorage on construct', () => {
