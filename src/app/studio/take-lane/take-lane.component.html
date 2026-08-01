@@ -1,0 +1,79 @@
+<div
+  class="take-lane"
+  role="group"
+  [attr.aria-label]="'Take lane for track'"
+>
+  <div class="take-lane-head">
+    <span class="take-lane-title">TAKES</span>
+    <span class="take-lane-count" *ngIf="takes().length > 0">
+      {{ takes().length }}
+    </span>
+    <button
+      type="button"
+      class="tl-btn tl-punch"
+      [class.armed]="punchIn()"
+      (click)="togglePunchIn()"
+      [attr.aria-pressed]="punchIn()"
+      [attr.aria-label]="
+        punchIn()
+          ? 'Disarm punch-in for this track'
+          : 'Arm punch-in for this track'
+      "
+      [attr.title]="
+        punchIn()
+          ? 'Punch-in armed — next record stop stamps a take'
+          : 'Punch-in off — arm to stamp a take on record stop'
+      "
+    >
+      <span class="material-symbols-outlined">radio_button_checked</span>
+    </button>
+    <button
+      type="button"
+      class="tl-btn tl-stamp"
+      (click)="stampTake()"
+      [attr.aria-label]="'Stamp a take from the current notes'"
+      [attr.title]="'Stamp a take from the current note region'"
+    >
+      <span class="material-symbols-outlined">note_add</span>
+    </button>
+  </div>
+
+  <div class="take-list" *ngIf="takes().length > 0; else emptyTake">
+    <button
+      *ngFor="let take of takes()"
+      type="button"
+      class="take-chip"
+      [class.active]="take.id === activeTakeId()"
+      (click)="selectTake(take.id)"
+      [attr.aria-pressed]="take.id === activeTakeId()"
+      [attr.title]="
+        take.label +
+        (take.noteCount !== undefined ? ' · ' + take.noteCount + ' notes' : '')
+      "
+    >
+      <span class="take-chip-label">{{ take.label }}</span>
+      <span class="take-chip-meta" *ngIf="take.noteCount !== undefined">
+        {{ take.noteCount }}n
+      </span>
+      <span class="take-chip-region" *ngIf="formatRegion(take)">
+        {{ formatRegion(take) }}
+      </span>
+      <span
+        class="take-chip-del"
+        role="button"
+        tabindex="0"
+        (click)="deleteTake(take.id, $event)"
+        (keydown.enter)="deleteTake(take.id, $event)"
+        [attr.aria-label]="'Delete ' + take.label"
+        [attr.title]="'Delete ' + take.label"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </span>
+    </button>
+  </div>
+  <ng-template #emptyTake>
+    <div class="take-empty">
+      No takes yet — arm punch-in &amp; record, or tap +
+    </div>
+  </ng-template>
+</div>

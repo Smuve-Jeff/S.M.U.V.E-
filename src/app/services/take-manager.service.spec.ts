@@ -89,4 +89,33 @@ describe('TakeManagerService (Sprint A3 starter)', () => {
     expect(svc.getTakes('trk1')().length).toBe(1);
     expect(svc.getTakes('trk1')()[0].id).toBe(a.id);
   });
+
+  // ── Sprint A3 Phase 3 — stampTake region snapshot ──
+
+  it('stampTake computes the min/max region from note steps and sets active', () => {
+    const notes = [
+      { step: 0, length: 2 },
+      { step: 4, length: 1 },
+      { step: 2, length: 3 },
+    ];
+    const t = svc.stampTake('trk1', 'Take 1', notes, 0);
+    expect(t.noteCount).toBe(3);
+    expect(t.startStep).toBe(0);
+    expect(t.endStep).toBe(5); // max(step+length) = 4+1
+    expect(svc.getActiveTake('trk1')()?.id).toBe(t.id);
+  });
+
+  it('stampTake falls back to the playhead region for empty note lists', () => {
+    const t = svc.stampTake('trk1', 'Take 1', [], 16);
+    expect(t.noteCount).toBeUndefined();
+    expect(t.startStep).toBe(16);
+    expect(t.endStep).toBe(17);
+    expect(svc.getActiveTake('trk1')()?.id).toBe(t.id);
+  });
+
+  it('stampTake honors note length in the exclusive end bound', () => {
+    const t = svc.stampTake('trk1', 'Take 1', [{ step: 3, length: 4 }], 0);
+    expect(t.startStep).toBe(3);
+    expect(t.endStep).toBe(7);
+  });
 });

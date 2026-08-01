@@ -1,0 +1,221 @@
+/* ============================================================
+   Sprint A3 Phase 3 — Take Lane panel
+   Compact per-track take stack: chips with comp-select highlight,
+   punch-in arm, stamp, and per-take delete. Ivory/teal theme.
+   ============================================================ */
+
+.take-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 6px 8px;
+  background: var(--ivory-panel, #f5efe0);
+  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.18));
+  border-radius: 10px;
+  animation: takeLaneIn 0.25s ease-out;
+}
+@keyframes takeLaneIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.take-lane-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.take-lane-title {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted, #7e7259);
+}
+.take-lane-count {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--teal-500, #0e7c7b);
+  background: var(--teal-50, #e6f5f4);
+  border-radius: 999px;
+  padding: 0 7px;
+  line-height: 16px;
+}
+
+.tl-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--espresso-muted, #7e7259);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease,
+    color 0.12s ease;
+}
+.tl-btn .material-symbols-outlined {
+  font-size: 15px;
+}
+.tl-btn:hover,
+.tl-btn:focus-visible {
+  background: rgba(14, 124, 123, 0.1);
+}
+.tl-btn:active {
+  transform: scale(0.92);
+}
+.tl-btn.tl-punch.armed {
+  background: var(--teal-500, #0e7c7b);
+  color: white;
+  box-shadow: 0 0 6px var(--teal-glow, rgba(43, 160, 156, 0.45));
+  animation: punchPulse 1.2s ease-in-out infinite;
+}
+@keyframes punchPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px var(--teal-glow, rgba(43, 160, 156, 0.4));
+  }
+  50% {
+    box-shadow: 0 0 9px var(--teal-glow, rgba(43, 160, 156, 0.65));
+  }
+}
+
+.take-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.take-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.16));
+  border-radius: 8px;
+  padding: 4px 6px;
+  background: var(--ivory-paper, #fbf7ec);
+  color: var(--espresso-text, #1f1a12);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    transform 0.12s ease;
+}
+.take-chip:hover,
+.take-chip:focus-visible {
+  border-color: var(--teal-500, #0e7c7b);
+  transform: translateX(1px);
+}
+.take-chip:active {
+  transform: scale(0.98);
+}
+.take-chip.active {
+  border-color: var(--teal-500, #0e7c7b);
+  background: var(--teal-50, #e6f5f4);
+  box-shadow: 0 0 0 1px var(--teal-500, #0e7c7b) inset;
+}
+.take-chip-label {
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.take-chip-meta {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--teal-500, #0e7c7b);
+  background: var(--teal-50, #e6f5f4);
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 14px;
+}
+.take-chip-region {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 9px;
+  color: var(--espresso-muted, #7e7259);
+  margin-left: auto;
+}
+
+.take-chip-del {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--espresso-muted, #7e7259);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.take-chip-del:hover,
+.take-chip-del:focus-visible {
+  background: rgba(217, 119, 6, 0.14);
+  color: var(--orange, #d97706);
+}
+.take-chip-del .material-symbols-outlined {
+  font-size: 13px;
+}
+
+.take-empty {
+  font-size: 10px;
+  color: var(--espresso-muted, #7e7259);
+  font-style: italic;
+  padding: 2px 4px;
+}
+
+/* ── Dark mode ───────────────────────────────────────────── */
+:host-context(.dark-mode) .take-lane {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+:host-context(.dark-mode) .take-lane-title {
+  color: rgba(255, 255, 255, 0.5);
+}
+:host-context(.dark-mode) .tl-btn {
+  color: rgba(255, 255, 255, 0.55);
+}
+:host-context(.dark-mode) .tl-btn:hover,
+:host-context(.dark-mode) .tl-btn:focus-visible {
+  background: rgba(93, 196, 194, 0.14);
+}
+:host-context(.dark-mode) .tl-btn.tl-punch.armed {
+  background: var(--teal-500, #0e7c7b);
+  color: white;
+}
+:host-context(.dark-mode) .take-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+:host-context(.dark-mode) .take-chip.active {
+  border-color: var(--teal-400, #2ba09c);
+  background: rgba(43, 160, 156, 0.16);
+}
+:host-context(.dark-mode) .take-chip-meta {
+  color: var(--teal-300, #5dc4c2);
+  background: rgba(43, 160, 156, 0.16);
+}
+:host-context(.dark-mode) .take-chip-region,
+:host-context(.dark-mode) .take-empty {
+  color: rgba(255, 255, 255, 0.45);
+}
+:host-context(.dark-mode) .take-chip-del {
+  color: rgba(255, 255, 255, 0.45);
+}
+:host-context(.dark-mode) .take-chip-del:hover,
+:host-context(.dark-mode) .take-chip-del:focus-visible {
+  background: rgba(217, 119, 6, 0.2);
+  color: var(--orange, #d97706);
+}

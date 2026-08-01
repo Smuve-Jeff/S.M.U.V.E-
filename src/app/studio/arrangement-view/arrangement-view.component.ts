@@ -25,6 +25,8 @@ import {
   Stems,
 } from '../../services/stem-separation.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { TakeManagerService } from '../../services/take-manager.service';
+import { TakeLaneComponent } from '../take-lane/take-lane.component';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   TimelineRenderer,
@@ -36,7 +38,7 @@ import {
 @Component({
   selector: 'app-arrangement-view',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TakeLaneComponent],
   templateUrl: './arrangement-view.component.html',
   styleUrls: ['./arrangement-view.component.css'],
 })
@@ -48,6 +50,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly enhancedGestures = inject(EnhancedTouchGestureService);
   private readonly stemSvc = inject(StemSeparationService);
   private readonly snackbar = inject(SnackbarService);
+  /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
+  public readonly takeManager = inject(TakeManagerService);
 
   // ── WebGL renderer ───────────────────────────────────────
   private glRenderer!: WebGLRenderer;
@@ -379,6 +383,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   toggleTakes(id: string, e: Event) {
     e.stopPropagation();
     this.musicManager.takesExpanded.update((v) => ({ ...v, [id]: !v[id] }));
+  }
+
+  /**
+   * Sprint A3 — rows this track's expanded take lane shows: the max of the
+   * legacy audio-clip take count and the TakeManagerService MIDI take count.
+   */
+  takeLaneRows(track: TrackModel): number {
+    const clipTakes = track.clips?.[0]?.takes?.length ?? 0;
+    const midiTakes = this.takeManager.getTakes(track.id)().length;
+    return Math.max(clipTakes, midiTakes);
   }
 
   toggleSnap() {

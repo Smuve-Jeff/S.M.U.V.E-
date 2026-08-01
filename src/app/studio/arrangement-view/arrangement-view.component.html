@@ -233,7 +233,7 @@
         [style.height.px]="
           laneHeight() +
           (musicManager.takesExpanded()[track.id]
-            ? (track.clips[0]?.takes?.length || 0) * (laneHeight() * 0.6)
+            ? takeLaneRows(track) * (laneHeight() * 0.6)
             : 0)
         "
         [class.selected]="isTrackSelected(track.id)"
@@ -248,9 +248,10 @@
             track.name | uppercase
           }}</span>
           <button
-            *ngIf="track.type === 'audio' || track.type === 'vocal'"
+            type="button"
             class="ml-auto text-[8px] opacity-60 hover:opacity-100"
             (click)="toggleTakes(track.id, $event)"
+            [attr.aria-expanded]="musicManager.takesExpanded()[track.id]"
           >
             {{
               musicManager.takesExpanded()[track.id]
@@ -284,6 +285,11 @@
             <span class="material-symbols-outlined text-[10px]">delete</span>
           </button>
         </div>
+        <app-take-lane
+          *ngIf="musicManager.takesExpanded()[track.id]"
+          [trackId]="track.id"
+          class="track-take-lane"
+        ></app-take-lane>
       </div>
     </div>
 

@@ -212,30 +212,18 @@ export class TransportBarComponent {
     const track = this.musicManager.selectedTrack();
     if (!track) return; // silent: auto-stamp fires on every record stop
     const notes = track.notes ?? [];
-    let startStep = Number.MAX_SAFE_INTEGER;
-    let endStep = 0;
-    for (const n of notes) {
-      if (n.step < startStep) startStep = n.step;
-      const nEnd = n.step + (n.length ?? 1);
-      if (nEnd > endStep) endStep = nEnd;
-    }
-    if (notes.length === 0) {
-      const at = this.audioEngine.visualStep();
-      startStep = at;
-      endStep = at + 1;
-    }
     const count = this.takeCount() + 1;
-    const take = this.takeManager.addTake(
+    const take = this.takeManager.stampTake(
       track.id,
       `Take ${count}`,
-      notes.length ? { noteCount: notes.length, startStep, endStep } : undefined
+      notes,
+      this.audioEngine.visualStep()
     );
-    this.takeManager.setActiveTake(track.id, take.id);
     this.haptic.medium();
     this.snack.success(
       `Take ${count} stamped · ${notes.length} note${
         notes.length === 1 ? '' : 's'
-      } · steps ${startStep}–${endStep}`
+      } · steps ${take.startStep}–${take.endStep}`
     );
   }
 

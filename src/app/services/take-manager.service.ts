@@ -59,6 +59,43 @@ export class TakeManagerService {
   }
 
   /**
+   * Snapshot the current note region of a track as a new take and make it the
+   * active selection. Centralizes the region math (min/max step bounds, with
+   * playhead fallback for empty passes) so the transport bar and the take-lane
+   * panel stamp identically.
+   *
+   * @param notes Track note list (only `step`/`length` are read).
+   * @param playhead Current song position, used when the track has no notes.
+   */
+  stampTake(
+    trackId: string,
+    label: string,
+    notes: Array<{ step: number; length?: number }>,
+    playhead: number
+  ): Take {
+    let startStep = Number.MAX_SAFE_INTEGER;
+    let endStep = 0;
+    for (const n of notes) {
+      if (n.step < startStep) startStep = n.step;
+      const nEnd = n.step + (n.length ?? 1);
+      if (nEnd > endStep) endStep = nEnd;
+    }
+    if (notes.length === 0) {
+      startStep = playhead;
+      endStep = playhead + 1;
+    }
+    // Region is always persisted (empty passes still record the playhead
+    // span); noteCount only when the pass captured actual notes.
+    const take = this.addTake(trackId, label, {
+      noteCount: notes.length ? notes.length : undefined,
+      startStep,
+      endStep,
+    });
+    this.setActiveTake(trackId, take.id);
+    return take;
+  }
+
+  /**
    * Delete a single take by id. If the deleted take was the active selection,
    * the active selection for that track is cleared so UI never points at a
    * dangling id.
