@@ -1,0 +1,119 @@
+<div class="store-shell">
+  <header class="store-hero">
+    <div class="hero-row">
+      <div>
+        <p class="chip">Sprint C2 · Sound Packs · AI Bundles · Subscriptions</p>
+        <h1 class="hero-title">S.M.U.V.E Storefront</h1>
+        <p class="hero-sub">
+          Hand-crafted packs from the lab, AI bundle unlocks, and the
+          Career Pro subscription. Owned items persist across launches.
+        </p>
+      </div>
+      <div class="cart-pill" *ngIf="hasCart()">
+        <span class="material-symbols-outlined">shopping_bag</span>
+        <span>{{ store.cart().length }}</span>
+        <span class="cart-total">{{ totalPrice() }}</span>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <button
+        *ngFor="let cat of [
+          { id: 'all', label: 'All' },
+          { id: 'sound-pack', label: 'Sound Packs' },
+          { id: 'instrument-pack', label: 'Instruments' },
+          { id: 'ai-bundle', label: 'AI Bundles' },
+          { id: 'subscription', label: 'Subscriptions' }
+        ]"
+        type="button"
+        class="filter-chip"
+        [class.is-active]="filter() === cat.id"
+        (click)="filter.set(cat.id)"
+      >
+        {{ cat.label }}
+      </button>
+    </div>
+  </header>
+
+  <section class="sku-grid">
+    <article
+      *ngFor="let sku of filtered(); trackBy: trackBySku"
+      class="sku-card"
+      [class.is-owned]="store.owned(sku.id)"
+    >
+      <div class="sku-card-head">
+        <div class="sku-icon">
+          <span class="material-symbols-outlined">{{ sku.icon }}</span>
+        </div>
+        <span class="sku-tier">{{ sku.tier }}</span>
+      </div>
+      <h3 class="sku-title">{{ sku.title }}</h3>
+      <p class="sku-summary">{{ sku.entitlement.summary }}</p>
+      <ul class="sku-perks">
+        <li *ngFor="let perk of sku.entitlement.perks.slice(0, 3)">
+          · {{ perk }}
+        </li>
+      </ul>
+      <div class="sku-meta">
+        <span>
+          <span class="material-symbols-outlined">{{
+            iconForCategory(sku.category)
+          }}</span>
+          {{ sku.category }}
+        </span>
+        <span class="sku-price">
+          {{ sku.priceCents === 0 ? 'Free' : '$' + (sku.priceCents / 100).toFixed(2) }}
+        </span>
+      </div>
+      <div class="sku-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="busy()[sku.id]"
+          (click)="purchaseNow(sku)"
+        >
+          {{ busy()[sku.id] ? 'Processing…' : 'Buy Now' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost"
+          [disabled]="store.owned(sku.id) || busy()[sku.id]"
+          (click)="addToCart(sku)"
+        >
+          {{ store.owned(sku.id) ? 'Owned' : 'Add to Cart' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="cart-drawer" *ngIf="hasCart()">
+    <header class="cart-head">
+      <h2>Cart</h2>
+      <button
+        type="button"
+        class="link-btn"
+        (click)="store.clearCart()"
+      >
+        Clear
+      </button>
+    </header>
+    <ul class="cart-list">
+      <li *ngFor="let line of store.cart()" class="cart-row">
+        <span class="cart-line-id">{{ line.skuId }}</span>
+        <span class="cart-line-qty">×{{ line.qty }}</span>
+        <span class="cart-line-price">{{ cartUnitPriceCents(line) }}</span>
+        <button
+          type="button"
+          class="link-btn"
+          (click)="store.removeFromCart(line.skuId)"
+        >
+          Remove
+        </button>
+      </li>
+    </ul>
+    <footer class="cart-foot">
+      <span class="cart-line-grand">Total</span>
+      <span class="cart-line-grand-value">{{ totalPrice() }}</span>
+    </footer>
+  </section>
+</div>

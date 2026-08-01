@@ -275,6 +275,20 @@ export const routes: Routes = [
     redirectTo: 'artist-development',
     pathMatch: 'full',
   },
+  {
+    path: 'store',
+    loadComponent: () =>
+      import('./components/storefront/storefront.component').then(
+        (m) => m.StorefrontComponent
+      ),
+  },
+  {
+    path: 'onboarding/tour',
+    loadComponent: () =>
+      import(
+        './components/first-beat-tour/first-beat-tour.component'
+      ).then((m) => m.FirstBeatTourComponent),
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
