@@ -776,6 +776,41 @@
           </span>
         </div>
       </div>
+
+      <!-- Sprint D2 — Session Timeline (1x1) -->
+      <div
+        class="bento-item bento-1x1 bento-card session-timeline-module"
+        (click)="goToTimeline()"
+        [attr.aria-label]="
+          'Session timeline — ' + sessionProjectCount + ' projects tracked'
+        "
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--amber-gold, #ffb800)"
+            >history_edu</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Session Timeline
+          </h3>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            Git-style checkpoints
+          </p>
+          <span
+            class="cv-conflict-badge"
+            style="background: rgba(255, 184, 0, 0.18); border-color: rgba(255, 184, 0, 0.35); color: var(--amber-gold);"
+          >
+            {{ sessionProjectCount }} project{{
+              sessionProjectCount === 1 ? '' : 's'
+            }} tracked
+          </span>
+        </div>
+      </div>
     </div>
 
     <!-- Secondary Bottom Actions -->

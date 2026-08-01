@@ -276,6 +276,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | C2 | Play listing + IAP | ALL | ✅ |
 | C3 | Onboarding | BandLab | ✅ |
 | D1 | Cloud Sync / Cross-device project sync | BandLab, n-Track | ✅ |
+| D2 | Session replay + project version history | Cubasis (sessions), FL Mobile (alt take history) | ✅ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
@@ -308,9 +309,40 @@ framework; this is our Apple-GarageBand-killer angle).
   Cloud Vault bento card with reachability + project-count + conflict
   badge; header gained a slim `cloud_sync` status pill (online dot vs
   amber offline dot, conflict-count chip). New master-plan row: D1 ✅.*
-- **D2 — Session replay + project version history** (next): every edit gets
-  a tiny versioned checkpoint so the user can rewind, branch, and chapter
-  a session like a git CLI. Pairs naturally with D1's snapshot history.
+- **D2 — Session replay + project version history**: git-style branches,
+  rewinds, replay events and chapter shortcuts so the user can chapter
+  a session like a CLI.
+  ✅ *SHIPPED. `session-history.types.ts` contract (SessionCheckpoint,
+  SessionBranch, BranchLineage, RewindRequest, SessionRestore,
+  ReplayEvent, DiffPatch / DiffEntry). `djb2-hash.util.ts` (32-bit djb2
+  + canonical-JSON serializer so `{a:1,b:2}` ≡ `{b:2,a:1}`).
+  `json-patch.util.ts` — top-level shallow diff + patch application +
+  replay materializer that walks forward through the delta stream.
+  `SessionHistoryService` — per-project branch registry, signal-driven
+  `checkpointsByBranch`, `activeBranchByProject`, `branchesByProject`;
+  auto-creates a `main` branch on first checkpoint; dedupes identical
+  payloads by canonical djb2 hash; promotes every 10th checkpoint
+  to a full snapshot (intermediates are JSON-patch deltas against the
+  previous checkpoint in the same branch); `createBranch` / `renameBranch`
+  / `deleteBranch` with active-branch guards; `switchBranch` moves the
+  head pointer + returns the reconstructed state; `rewind` materializes
+  any historical checkpoint by walking forward from the nearest full
+  snapshot; `diff` produces before/after pairs across any two
+  checkpoints; `replayEvents` enumerates the running state at every
+  checkpoint in head-to-tail order; `restoreToCloudCheckpoint` copies
+  a D1 RemoteSnapshot as a fresh, labelled checkpoint on the active
+  branch. 12 jest specs cover auto-branch creation, dedup, delta
+  advancement, every-10th snapshot promotion, fork point handling,
+  switchBranch head swap, exact rewind round-trip, diff delta-analysis,
+  replay event ordering, cloud-restore, chaptering, branch rename +
+  delete guards. UI: `/timeline` route +
+  `SessionTimelineComponent` (TS+HTML+CSS) — checkpoint-intake card,
+  branch list with Switch/Delete/Active pill, checkpoint timeline
+  hairline with full-snapshot vs delta dot styling, replay panel with
+  tick-based progress + Start/Pause + JSON payload preview, top-level
+  diff list (first→last), cloud-vault restore rows that call back into
+  `CloudSyncService.cloudProjects()`. Hub gained a 1×1
+  `Session Timeline` bento card with project-tracked count.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

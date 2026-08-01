@@ -1,0 +1,257 @@
+<section class="sh-shell" aria-labelledby="sh-title">
+  <header class="sh-header">
+    <div class="sh-header-text">
+      <p class="sh-eyebrow">SPRINT&nbsp;D2&nbsp;·&nbsp;SESSION&nbsp;REPLAY</p>
+      <h1 id="sh-title">Project&nbsp;Version&nbsp;History</h1>
+      <p class="sh-lede">
+        Git-style checkpoint graph for the current project. Branch,
+        rewind, replay, and restore — every edit becomes a node you
+        can return to.
+      </p>
+    </div>
+    <div class="sh-header-actions">
+      <button
+        type="button"
+        class="sh-btn sh-btn-ghost"
+        (click)="goBack()"
+        aria-label="Back to hub"
+      >← Hub</button>
+    </div>
+  </header>
+
+  <div class="sh-status-strip" role="status" aria-live="polite">
+    <span class="sh-meta">Branches</span>
+    <strong>{{ branches().length }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Active</span>
+    <strong>{{ activeBranchId() ? (activeBranchId() | slice:0:12) + '…' : '—' }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Checkpoints</span>
+    <strong>{{ checkpoints().length }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Snapshots</span>
+    <strong>{{ chapters().length }}</strong>
+  </div>
+
+  <div class="sh-grid">
+    <!-- CHECKPOINT INTAKE -->
+    <article class="sh-card sh-intake" aria-labelledby="sh-intake-title">
+      <header class="sh-card-head">
+        <h2 id="sh-intake-title">Add checkpoint</h2>
+        <span class="sh-pill">RECORD</span>
+      </header>
+      <label class="sh-field">
+        <span class="sh-field-label">Project ID</span>
+        <input
+          type="text"
+          [ngModel]="projectId()"
+          (ngModelChange)="projectId.set($event)"
+          aria-label="Project identifier"
+        />
+      </label>
+      <label class="sh-field">
+        <span class="sh-field-label">Label</span>
+        <input
+          type="text"
+          [ngModel]="draftLabel()"
+          (ngModelChange)="draftLabel.set($event)"
+          aria-label="Checkpoint label"
+        />
+      </label>
+      <label class="sh-field">
+        <span class="sh-field-label">Payload (JSON)</span>
+        <textarea
+          rows="3"
+          [ngModel]="draftPayload()"
+          (ngModelChange)="draftPayload.set($event)"
+          aria-label="Payload as JSON"
+        ></textarea>
+      </label>
+      <div class="sh-action-row">
+        <button
+          type="button"
+          class="sh-btn sh-btn-primary"
+          (click)="addCheckpoint()"
+        >Record checkpoint</button>
+      </div>
+    </article>
+
+    <!-- BRANCHES -->
+    <article class="sh-card sh-branches" aria-labelledby="sh-branches-title">
+      <header class="sh-card-head">
+        <h2 id="sh-branches-title">Branches</h2>
+        <span class="sh-pill">{{ branches().length }}</span>
+      </header>
+      <ul class="sh-branch-list">
+        <li
+          class="sh-branch-row"
+          *ngFor="let branch of branches(); trackBy: trackById"
+          [class.is-active]="branch.id === activeBranchId()"
+        >
+          <div class="sh-branch-meta">
+            <strong>{{ branch.name }}</strong>
+            <span class="sh-mono">{{ branch.id | slice:0:14 }}…</span>
+            <span class="sh-mute">
+              Forked from
+              {{ branch.forkFromCheckpointId
+                ? ((branch.forkFromCheckpointId | slice:0:12) + '…')
+                : '—' }}
+            </span>
+          </div>
+          <div class="sh-action-row">
+            <button
+              *ngIf="branch.id !== activeBranchId()"
+              type="button"
+              class="sh-btn sh-btn-primary"
+              (click)="switchBranch(branch.id)"
+            >Switch</button>
+            <button
+              *ngIf="branch.id !== activeBranchId()"
+              type="button"
+              class="sh-btn"
+              (click)="deleteBranch(branch)"
+            >Delete</button>
+            <span
+              *ngIf="branch.id === activeBranchId()"
+              class="sh-pill sh-pill-active"
+            >Active</span>
+          </div>
+        </li>
+      </ul>
+      <div class="sh-branch-form">
+        <input
+          type="text"
+          placeholder="new branch name"
+          [ngModel]="newBranchName()"
+          (ngModelChange)="newBranchName.set($event)"
+          aria-label="New branch name"
+        />
+        <button
+          type="button"
+          class="sh-btn"
+          (click)="createBranch()"
+        >Fork at head</button>
+      </div>
+    </article>
+
+    <!-- TIMELINE -->
+    <article class="sh-card sh-timeline" aria-labelledby="sh-timeline-title">
+      <header class="sh-card-head">
+        <h2 id="sh-timeline-title">Checkpoint timeline</h2>
+        <span class="sh-pill">{{ checkpoints().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="checkpoints().length === 0">
+        No checkpoints yet — record one above to start the branch.
+      </p>
+      <ol class="sh-timeline-list" *ngIf="checkpoints().length > 0">
+        <li
+          class="sh-timeline-row"
+          *ngFor="let cp of checkpoints(); trackBy: trackByCheckpoint"
+        >
+          <span
+            class="sh-dot"
+            [class.is-snapshot]="cp.isFullSnapshot"
+            [attr.aria-label]="
+              cp.isFullSnapshot ? 'Full snapshot checkpoint' : 'Delta checkpoint'
+            "
+          ></span>
+          <div class="sh-timeline-meta">
+            <span class="sh-mono">{{ cp.id | slice:0:14 }}…</span>
+            <strong>{{ cp.label }}</strong>
+            <span class="sh-mute">{{ cp.at | date: 'shortTime' }}</span>
+          </div>
+          <div class="sh-action-row">
+            <button
+              type="button"
+              class="sh-btn sh-btn-mini"
+              (click)="rewind(cp.id)"
+            >Rewind</button>
+          </div>
+        </li>
+      </ol>
+    </article>
+
+    <!-- REPLAY PANEL -->
+    <article class="sh-card sh-replay" aria-labelledby="sh-replay-title">
+      <header class="sh-card-head">
+        <h2 id="sh-replay-title">Replay</h2>
+        <span class="sh-pill">{{ replayIndex() + 1 }} / {{ replayEvents().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="replayEvents().length === 0">
+        Add at least one checkpoint to enable replay.
+      </p>
+      <div class="sh-replay-body" *ngIf="replayEvents().length > 0">
+        <div class="sh-replay-progress">
+          <span
+            class="sh-replay-tick"
+            *ngFor="let ev of replayEvents(); let i = index; trackBy: trackById"
+            [class.is-on]="i <= replayIndex()"
+          ></span>
+        </div>
+        <div class="sh-replay-meta">
+          <strong>{{ currentReplay()?.label }}</strong>
+          <span class="sh-mute">
+            index {{ currentReplay()?.index }} of {{ currentReplay()?.total }}
+          </span>
+          <pre class="sh-replay-json">{{ currentReplay()?.payload | json }}</pre>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn sh-btn-primary"
+            (click)="toggleReplay()"
+            [attr.aria-pressed]="isReplaying()"
+          >
+            {{ isReplaying() ? 'Pause replay' : 'Start replay' }}
+          </button>
+        </div>
+      </div>
+      <div class="sh-diff-list" *ngIf="diffSelected().length > 0">
+        <h3>Diff (first → last):</h3>
+        <ul>
+          <li
+            class="sh-diff-row"
+            *ngFor="let d of diffSelected()"
+          >
+            <span class="sh-mono">{{ d.field }}</span>
+            <span class="sh-diff-meta">
+              <code>{{ d.before | json }}</code>
+              <span class="sh-arrow" aria-hidden="true">→</span>
+              <code>{{ d.after | json }}</code>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- CLOUD RESTORE -->
+    <article class="sh-card sh-cloud" aria-labelledby="sh-cloud-title">
+      <header class="sh-card-head">
+        <h2 id="sh-cloud-title">Restore from cloud vault</h2>
+        <span class="sh-pill">{{ cloudSnapshots().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="cloudSnapshots().length === 0">
+        No remote snapshots yet. Push a project from
+        <a routerLink="/cloud" (click)="goBack()">/cloud</a>
+        to populate this list.
+      </p>
+      <ul class="sh-cloud-list" *ngIf="cloudSnapshots().length > 0">
+        <li
+          class="sh-cloud-row"
+          *ngFor="let snap of cloudSnapshots(); trackBy: trackById"
+        >
+          <div class="sh-cloud-meta">
+            <strong>{{ snap.title }}</strong>
+            <span class="sh-mono">{{ snap.projectId }}</span>
+            <span class="sh-mute">v{{ snap.version }} · {{ snap.deviceId }}</span>
+          </div>
+          <button
+            type="button"
+            class="sh-btn sh-btn-mini"
+            (click)="restoreFromCloud(snap)"
+          >Restore</button>
+        </li>
+      </ul>
+    </article>
+  </div>
+</section>

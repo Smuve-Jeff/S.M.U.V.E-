@@ -296,6 +296,13 @@ export const routes: Routes = [
         (m) => m.CloudVaultComponent
       ),
   },
+  {
+    path: 'timeline',
+    loadComponent: () =>
+      import('./components/session-timeline/session-timeline.component').then(
+        (m) => m.SessionTimelineComponent
+      ),
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];

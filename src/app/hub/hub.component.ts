@@ -25,6 +25,7 @@ import { OnboardingService } from '../services/onboarding.service';
 import { OnboardingStep } from '../services/onboarding.service';
 import { CloudSyncService } from '../services/cloud-sync.service';
 import { OfflineSyncService } from '../services/offline-sync.service';
+import { SessionHistoryService } from '../services/session-history.service';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -71,9 +72,17 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public securityService = inject(SecurityService);
   public cloudSyncService = inject(CloudSyncService);
   public offlineSync = inject(OfflineSyncService);
+  public sessionHistoryService = inject(SessionHistoryService);
 
   goToCloudVault(): void {
     void this.router.navigate(['/cloud']);
+  }
+  goToTimeline(): void {
+    void this.router.navigate(['/timeline']);
+  }
+
+  get sessionProjectCount(): number {
+    return Object.keys(this.sessionHistoryService.branchesByProject()).length;
   }
 
   // Quick Start Form
