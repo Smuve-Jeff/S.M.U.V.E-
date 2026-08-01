@@ -53,6 +53,16 @@ export class HardwareService {
   /** Callback fired when a MIDI note-on is received (note 0-127, velocity 0-127). Called by the service. */
   onMidiNoteOn?: (note: number, velocity: number) => void;
   onMidiNoteOff?: (note: number) => void;
+  /** Callback fired for any MIDI CC message (controller 0-127, value 0-127). */
+  onMidiCC?: (controller: number, value: number) => void;
+
+  // ── Sustain Pedal (CC64) ────────────────────────────────
+  /** True while the sustain pedal is held down (MIDI CC64 >= 64). */
+  sustainActive = signal(false);
+  /** Notes currently held down on the keyboard (note -> press count). */
+  private heldNotes = new Map<number, number>();
+  /** Notes kept ringing by the sustain pedal after key release. */
+  private sustainedNotes = new Set<number>();
   readonly externalHardwareConnected = computed(() => {
     const s = this.status();
     return (
@@ -157,21 +167,48 @@ export class HardwareService {
       // Wire note-on / note-off handlers
       input.onmidimessage = (event: any) => {
         const [status, data1, data2] = event.data;
-        const channel = status & 0x0f;
         const command = status & 0xf0;
 
         if (command === 0x90 && data2 > 0) {
           // Note on
+          this.heldNotes.set(data1, (this.heldNotes.get(data1) ?? 0) + 1);
+          this.sustainedNotes.delete(data1);
           this.zone.run(() => {
             this.onMidiNoteOn?.(data1, data2);
           });
         } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
-          // Note off
+          // Note off — if the sustain pedal is down, defer until pedal release
+          const count = (this.heldNotes.get(data1) ?? 1) - 1;
+          if (count <= 0) {
+            this.heldNotes.delete(data1);
+            if (this.sustainActive()) {
+              this.sustainedNotes.add(data1);
+            } else {
+              this.zone.run(() => {
+                this.onMidiNoteOff?.(data1);
+              });
+            }
+          } else {
+            this.heldNotes.set(data1, count);
+          }
+        } else if (command === 0xb0) {
+          // CC message — sustain pedal is CC64 (0x40)
           this.zone.run(() => {
-            this.onMidiNoteOff?.(data1);
+            if (data1 === 64) {
+              if (data2 >= 64) {
+                this.sustainActive.set(true);
+              } else {
+                this.sustainActive.set(false);
+                // Release every note that was held through the pedal
+                this.sustainedNotes.forEach((note) => this.onMidiNoteOff?.(note));
+                this.sustainedNotes.clear();
+              }
+            }
+            this.onMidiCC?.(data1, data2);
           });
         }
       };
+
     }
 
     this.zone.run(() => {

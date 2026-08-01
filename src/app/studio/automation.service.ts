@@ -98,6 +98,29 @@ export class AutomationService {
     return lane;
   }
 
+  /**
+   * Find an existing lane for (trackId, parameter) or create it lazily.
+   * Used by CC automation recording so repeated keyframes land on the same lane.
+   */
+  ensureLane(
+    trackId: string,
+    parameter: string,
+    options?: {
+      interpolation?: AutomationInterpolation;
+      min?: number;
+      max?: number;
+      modulationDepth?: number;
+      macroId?: string;
+    }
+  ): AutomationLane {
+    const existing = this.lanes().find(
+      (lane) =>
+        lane.target.trackId === trackId && lane.target.parameter === parameter
+    );
+    if (existing) return existing;
+    return this.addLane(trackId, parameter, options);
+  }
+
   removeLane(laneId: string) {
     this.lanes.update((lanes) => lanes.filter((lane) => lane.id !== laneId));
     this.modulationSources.update((sources) =>

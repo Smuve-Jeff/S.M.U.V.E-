@@ -114,6 +114,12 @@ export class DjMidiService {
   /** Target output device index */
   clockOutputIndex = signal(0);
 
+  // ── CC Output Selector ──────────────────────────────────
+  /** Dedicated MIDI output for CC messages (independent of clock out). */
+  ccOutputIndex = signal(0);
+  /** Available output device names for CC routing UI. */
+  ccOutputNames = signal<string[]>([]);
+
   private midiOutputDevices: any[] = [];
   private midiOutputDevicesList: any[] = [];
   private clockInterval: any = null;
@@ -287,18 +293,24 @@ export class DjMidiService {
     this.sendMidiMessage(0xfb);
   }
 
+  /** Select which MIDI output receives CC messages. */
+  setCcOutput(index: number): void {
+    const clamped = Math.max(0, Math.min(Math.max(0, this.midiOutputDeviceList.length - 1), index));
+    this.ccOutputIndex.set(clamped);
+  }
+
   /**
-   * Send a MIDI CC message to the first available output device.
+   * Send a MIDI CC message to the selected CC output device.
    * Falls back gracefully if no output is connected.
    */
   sendCC(controller: number, value: number, channel = 0): void {
-    if (!this.midiOutputDevices.length) return;
-    const idx = this.clockOutputIndex();
-    if (idx >= this.midiOutputDevices.length) return;
+    if (!this.midiOutputDeviceList.length) return;
+    const idx = this.ccOutputIndex();
+    if (idx >= this.midiOutputDeviceList.length) return;
     const status = 0xb0 | (channel & 0x0f);
     const clampedValue = Math.max(0, Math.min(127, Math.round(value)));
     try {
-      this.midiOutputDevices[idx].send([status, controller & 0x7f, clampedValue]);
+      this.midiOutputDeviceList[idx].send([status, controller & 0x7f, clampedValue]);
     } catch {}
   }
 
@@ -428,6 +440,9 @@ export class DjMidiService {
       this.midiOutputDevicesList.push(o.value);
     }
     this.midiOutputNames.set(
+      this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output')
+    );
+    this.ccOutputNames.set(
       this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output')
     );
   }

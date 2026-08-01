@@ -41,6 +41,9 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   private haptic = inject(HapticService);
   private hardware = inject(HardwareService);
 
+  /** Sustain pedal state (CC64) surfaced from the hardware layer. */
+  readonly sustainActive = this.hardware.sustainActive;
+
   @Input() pads: PerformancePad[] = [];
   @Output() padClicked = new EventEmitter<PerformancePad>();
 

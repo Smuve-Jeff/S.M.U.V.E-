@@ -94,6 +94,51 @@
   color: #06091a;
 }
 
+/* ---------- SUSTAIN PEDAL LED (CC64) ---------- */
+.perf-sustain-led {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ivory-line);
+  background: var(--ivory-paper);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.perf-sustain-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--espresso-muted);
+  opacity: 0.45;
+  transition: all 0.15s;
+  box-shadow: none;
+}
+
+.perf-sustain-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--espresso-muted);
+}
+
+.perf-sustain-led.active {
+  border-color: var(--neon-pink, #ec4899);
+  background: rgba(236, 72, 153, 0.12);
+}
+
+.perf-sustain-led.active .perf-sustain-dot {
+  background: var(--neon-pink, #ec4899);
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.8);
+}
+
+.perf-sustain-led.active .perf-sustain-label {
+  color: var(--neon-pink, #ec4899);
+}
+
 /* ---------- PAD GRID ---------- */
 .performance-grid {
   display: grid;

@@ -774,6 +774,104 @@
   border-color: var(--lane-color, #2BA09C);
 }
 
+.pr-cc-toggle-btn.recording {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.55);
+  animation: pr-rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pr-rec-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.15);
+  }
+}
+
+.pr-cc-spacer {
+  flex: 1;
+}
+
+.pr-cc-out-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.pr-cc-out-select {
+  max-width: 140px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--espresso-text);
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.pr-cc-out-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pr-cc-rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--ivory-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.12s;
+  min-height: 24px;
+  white-space: nowrap;
+}
+
+.pr-cc-rec .pr-cc-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--espresso-muted);
+  transition: all 0.12s;
+}
+
+.pr-cc-rec:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.pr-cc-rec.armed {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.pr-cc-rec.armed .pr-cc-rec-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+  animation: pr-rec-pulse 1.2s ease-in-out infinite;
+}
+
+.pr-cc-live {
+  font-size: 9px;
+  line-height: 1;
+  animation: pr-rec-pulse 1.2s ease-in-out infinite;
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 768px) {
   .pr-keys {

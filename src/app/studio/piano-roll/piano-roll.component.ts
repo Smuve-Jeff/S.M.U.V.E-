@@ -23,6 +23,7 @@ import { AudioSessionService } from '../audio-session.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
 import { DjMidiService } from '../../services/dj-midi.service';
+import { AutomationService } from '../automation.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   PianoRollRenderer,
@@ -44,7 +45,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly touchGestures = inject(EnhancedTouchGestureService);
   private readonly haptic = inject(HapticService);
-  private readonly djMidi = inject(DjMidiService);
+  public readonly djMidi = inject(DjMidiService);
+  private readonly automation = inject(AutomationService);
 
   // ── WebGL renderers ──────────────────────────────────────
   private glRenderer!: WebGLRenderer;
@@ -218,6 +220,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   showCcLane = signal(false);
   activeCcLane = signal<string | null>(null);
 
+  /** Arm CC automation recording — writes keyframes at the playhead while playing. */
+  ccRecordArmed = signal(false);
+  private ccSubscription: { unsubscribe: () => void } | null = null;
+
   /** Track the current value (0-127) for each CC lane for draw interaction */
   ccLaneValues = signal<Record<string, number>>({
     mod: 0,
@@ -225,6 +231,47 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     pan: 64,
     cut: 127,
   });
+
+  toggleCcRecord(): void {
+    this.ccRecordArmed.update((v) => !v);
+    this.haptic.medium();
+  }
+
+  /**
+   * Write a CC keyframe for a lane at the current playhead step.
+   * Target parameter uses the lane's stable param key (e.g. `cc_pan`).
+   */
+  private recordCcKeyframe(laneId: string, value: number): void {
+    const lane = this.ccLanes.find((l) => l.id === laneId);
+    if (!lane) return;
+    const trackId = this.selectedTrack()?.id || 'main';
+    const autoLane = this.automation.ensureLane(trackId, `cc_${lane.param}`, {
+      interpolation: 'linear',
+      min: 0,
+      max: 127,
+    });
+    const playhead = Math.floor(
+      (this.musicManager.engine?.visualStep?.() ?? 0) % this.gridSteps()
+    );
+    this.automation.addPoint(autoLane.id, playhead, Math.round(value));
+    this.haptic.light();
+  }
+
+  /** Record a drawn CC value if recording is armed and transport is playing. */
+  private recordCcIfArmed(laneId: string, value: number): void {
+    if (!this.ccRecordArmed()) return;
+    if (!this.audioSession.isPlaying()) return;
+    this.recordCcKeyframe(laneId, value);
+  }
+
+  /** Called with incoming MIDI CC (0-127) from an external controller. */
+  private handleIncomingCc(controller: number, value: number): void {
+    const lane = this.ccLanes.find((l) => l.cc === controller);
+    if (!lane) return;
+    const clamped = Math.max(0, Math.min(127, Math.round(value)));
+    this.ccLaneValues.update((v) => ({ ...v, [lane.id]: clamped }));
+    this.recordCcIfArmed(lane.id, clamped);
+  }
 
   /** CC lane draw interaction — same pattern as velocity lane */
   onCcPointerDown(event: PointerEvent, laneId: string): void {
@@ -255,6 +302,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const lane = this.ccLanes.find((l) => l.id === laneId);
     if (lane) {
       this.djMidi.sendCC(lane.cc, value, 0);
+      this.recordCcIfArmed(laneId, value);
     }
   }
 
@@ -310,7 +358,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Lifecycle ────────────────────────────────────────────
 
   ngOnInit() {
-    // no-op init
+    // Listen for external MIDI CC controllers (CC1/10/11/74) → live lane value + record
+    this.ccSubscription = this.djMidi.performerCC.subscribe((event) => {
+      this.handleIncomingCc(event.controller, event.value * 127);
+    });
   }
 
   ngAfterViewInit() {
@@ -319,6 +370,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.ccSubscription?.unsubscribe();
     if (this.renderRafId !== null) {
       cancelAnimationFrame(this.renderRafId);
       this.renderRafId = null;

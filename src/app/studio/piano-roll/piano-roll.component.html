@@ -241,6 +241,12 @@
             class="pr-cc-label"
             [style.color]="lane.color"
           >{{ lane.label }} (CC{{ lane.cc }})</span>
+          <span
+            class="pr-cc-live"
+            [style.color]="lane.color"
+            *ngIf="ccRecordArmed()"
+            title="Recording armed"
+          >●</span>
           <button
             type="button"
             class="pr-cc-bezier"
@@ -265,7 +271,7 @@
         </div>
       </div>
     </div>
-    <!-- CC lane toggle button -->
+    <!-- CC lane toggle button + output selector + record arm -->
     <div class="pr-cc-toggle-bar">
       <span class="pr-cc-toggle-label">CC Lanes</span>
       <button
@@ -273,11 +279,46 @@
         *ngFor="let lane of ccLanes"
         class="pr-cc-toggle-btn"
         [class.active]="activeCcLane() === lane.id"
+        [class.recording]="ccRecordArmed() && activeCcLane() === lane.id"
         [style.--lane-color]="lane.color"
         (click)="toggleCcLane(lane.id)"
         [title]="lane.label + ' (CC' + lane.cc + ')'"
       >
         {{ lane.label }}
+      </button>
+      <span class="pr-cc-spacer"></span>
+      <!-- MIDI OUT selector -->
+      <label class="pr-cc-out-label" for="ccOutputSelect">MIDI OUT</label>
+      <select
+        id="ccOutputSelect"
+        class="pr-cc-out-select"
+        [ngModel]="djMidi.ccOutputIndex()"
+        (ngModelChange)="djMidi.setCcOutput($event)"
+        [disabled]="djMidi.ccOutputNames().length === 0"
+        [title]="
+          djMidi.ccOutputNames().length === 0
+            ? 'No MIDI outputs connected'
+            : 'Choose MIDI output for CC messages'
+        "
+      >
+        <option *ngFor="let name of djMidi.ccOutputNames(); let i = index" [value]="i">
+          {{ name }}
+        </option>
+      </select>
+      <!-- REC arm -->
+      <button
+        type="button"
+        class="pr-cc-rec"
+        [class.armed]="ccRecordArmed()"
+        (click)="toggleCcRecord()"
+        [title]="
+          ccRecordArmed()
+            ? 'Stop CC automation recording'
+            : 'Arm CC automation recording (writes keyframes at playhead while playing)'
+        "
+      >
+        <span class="pr-cc-rec-dot"></span>
+        <span>REC</span>
       </button>
     </div>
     <div
