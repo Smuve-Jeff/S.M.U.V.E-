@@ -449,3 +449,68 @@ competitor gap and real north-star movement, not gut feel.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*
+
+---
+
+## 5. Phase 0–7 delivery overlay (retroactive bundling model)
+
+The **A–E sprint model remains the engineering source of truth** for what is in
+the repo. The **Phase 0–7 model is the release-sequencing overlay** used to
+group those shipped capabilities into executive bundles. This prevents the repo
+from carrying two competing roadmap systems: **A–E explains the build detail;
+Phase 0–7 explains the rollout order.**
+
+| New phase | Mission | Maps to shipped roadmap | Existing routes / surfaces | Core services / types | Validation anchors |
+| --- | --- | --- | --- | --- | --- |
+| **Phase 0** | Normalize roadmap language, release gates, and ownership before more feature work ships | Cross-cutting overlay across tracker rows **A1–E2** and hardening rows **X1–X3** | Release-critical audit set: `/hub`, `/studio`, `/produce`, `/store`, `/cloud`, `/timeline` | `docs/MASTER_PLAN.md`, `src/app/app.routes.ts`, `src/app/services/workspace-registry.ts` | `src/app/studio/piano-roll/piano-roll.component.spec.ts`, `src/app/services/export.service.spec.ts`, `src/app/services/plugin-store.service.spec.ts`, `src/app/services/cloud-sync.service.spec.ts`, `src/app/studio/studio-telemetry.service.spec.ts` |
+| **Phase 1** | Ship the competitive-parity floor first | **A1–A6** | `/studio`, `/piano-roll`, `/mastering`, score view inside Studio, transport-bar export flows | `src/app/studio/audio-stretch.service.ts`, `src/app/services/take-manager.service.ts`, `src/app/services/export.service.ts`, `src/app/services/music-manager.service.ts` | `src/app/studio/audio-stretch.service.spec.ts`, `src/app/studio/piano-roll/piano-roll.component.spec.ts`, `src/app/services/take-manager.service.spec.ts`, `src/app/studio/score-view/score-view.component.spec.ts`, `src/app/services/export.service.spec.ts` |
+| **Phase 2** | Run the extensible Studio + collaboration lane in parallel once parity is stable | **B1–B2** | `/studio`, `/tha-spot/room/:id`, Effects Rack WASM inserts, Studio presence header, peer cursor overlay | `src/app/services/plugin-store.service.ts`, `src/app/services/collaboration.service.ts`, `src/app/services/audio-engine.service.ts`, `src/app/services/peer-networking.service.ts` | `src/app/services/plugin-store.service.spec.ts`, `src/app/services/collaboration.service.spec.ts`, `src/app/services/audio-engine.service.spec.ts` |
+| **Phase 3** | Run the AI production + release conversion lane in parallel with Phase 2 | **B3–B4** | `/produce`, `/release-pipeline`, `/career`, Hub spotlights into Produce and Charter flows | `src/app/services/ai-produce.service.ts`, `src/app/services/career-pipeline.service.ts`, `src/app/services/release-pipeline.service.ts`, `src/app/services/ai-beat-generator.service.ts` | `src/app/components/ai-produce/ai-produce.component.spec.ts`, `src/app/services/career-pipeline.service.spec.ts`, `src/app/services/tests/release-pipeline.service.spec.ts` |
+| **Phase 4** | Converge the parallel lanes into a release-ready operating surface | **C1–C3** | `/produce`, `/store`, `/onboarding/tour`, Hub bento cards and entry CTAs | `src/app/services/audio-engine-latency.service.ts`, `src/app/services/storefront.service.ts`, `src/app/services/onboarding.service.ts`, `src/app/services/performance-monitor.service.ts` | `src/app/services/audio-engine-latency.service.spec.ts`, `src/app/services/storefront.service.spec.ts`, `src/app/components/first-beat-tour/first-beat-tour.component.spec.ts`, `src/app/services/tests/performance-monitor.service.spec.ts` |
+| **Phase 5** | Add durable continuity once the creation, collab, and release loops converge | **D1–D4** | `/cloud`, `/timeline`, Hub status pills for cloud + timeline, branch operations + merge graph | `src/app/services/cloud-sync.service.ts`, `src/app/services/session-history.service.ts`, `src/app/utils/session-graph.util.ts`, `src/app/services/project.service.ts` | `src/app/services/cloud-sync.service.spec.ts`, `src/app/services/session-history.service.spec.ts`, `src/app/utils/session-graph.util.spec.ts` |
+| **Phase 6** | Instrument the combined product and rank the next backlog by live evidence instead of gut feel | **E1–E2** | Studio Insights rail, coach rail, `/produce` engine metrics, telemetry-backed topbar flows | `src/app/studio/studio-telemetry.service.ts`, `src/app/services/audio-engine-latency.service.ts` | `src/app/studio/studio-telemetry.service.spec.ts`, `src/app/services/audio-engine-latency.service.spec.ts` |
+| **Phase 7** | Turn the shipped stack into a durable moat and growth flywheel | Portfolio layer built from **B4 + C2 + D1 + E2** plus existing Hub / social / analytics surfaces | `/hub`, `/tha-spot`, `/release-pipeline`, `/store`, `/cloud`, `/analytics` | `src/app/services/career-pipeline.service.ts`, `src/app/services/storefront.service.ts`, `src/app/services/cloud-sync.service.ts`, `src/app/studio/studio-telemetry.service.ts`, `src/app/services/social-networking.service.ts` | `src/app/services/career-pipeline.service.spec.ts`, `src/app/services/storefront.service.spec.ts`, `src/app/services/cloud-sync.service.spec.ts`, `src/app/studio/studio-telemetry.service.spec.ts` |
+
+**Execution order:** Phase 0 + Phase 1 immediately, then **Phase 2** and
+**Phase 3** as parallel lanes, then **Phase 4 + Phase 5**, and finally
+**Phase 6 + Phase 7** for durable moat and growth.
+
+**Parallel-lane rule:** Phase 2 owns the Studio signal-chain + collaboration
+stack, while Phase 3 owns the AI, release, and commercial conversion stack.
+They can progress in parallel because their primary codepaths are already
+separated in the repo (`src/app/studio/**` + collaboration services vs
+`src/app/components/ai-produce/**` + release/career services). The merge point
+is Phase 4/5, where performance, onboarding, storefront, cloud continuity, and
+history need the prior lanes to be stable.
+
+---
+
+## 6. Wave 1–Wave 6 execution blueprint
+
+Because the A1–E2 body is already in the repo, the wave plan below is a
+**release bundling blueprint**, not a status reset. Each wave tells us how to
+package the shipped stack into a coherent go-to-market sequence.
+
+| Wave | Phase focus | Feature bundle | KPI targets | Dependency ordering / release gate |
+| --- | --- | --- | --- | --- |
+| **Wave 1** | **Phase 0** | Roadmap normalization, ownership map, release-gate checklist, one naming system between A–E and Phase 0–7 | **100%** of A1–E2 mapped to one phase/wave; **0** orphan sprints; **1** source of truth for roadmap language | Start here. No later wave should ship until the roadmap, route ownership, and test anchors are mapped in this document. |
+| **Wave 2** | **Phase 1** | Core DAW parity bundle: time-stretch, slide notes, take lanes/comping, clip launcher, score view, export/cloud parity floor | Phase A stays **6/6 green** in the tracker; idea→first-loop target **< 5 min**; export success target **> 95%** | Depends on Wave 1. Release gate: parity spec pack stays green (`audio-stretch`, `piano-roll`, `take-manager`, `score-view`, `export`). |
+| **Wave 3** | **Phase 2** | Parallel lane A: WASM plugin framework, community plugin path, live inserts, mastering audition, project sync, voice, peer cursors, conflict handling | Enabled plugin chains persist on reload **100%** of the time; collab session rate target **> 10%** of active Studio sessions; conflict surfaces visible for **100%** of near-simultaneous edits | Depends on Wave 2. Can ship in parallel with Wave 4 because its core path is Studio + collaboration infrastructure. |
+| **Wave 4** | **Phase 3** | Parallel lane B: AI Produce, genre-aware beat/lyrics/mix flow, release charter drafting, career handoff | AI Produce / AI Mix usage target **> 25%** of eligible creation sessions; release-charter generation target **> 20%** of release flows; one-prompt draft flow fully traversable | Depends on Wave 2. Can ship in parallel with Wave 3 because its core path is AI + release + career conversion. |
+| **Wave 5** | **Phase 4 + Phase 5** | Convergence bundle: performance audit, storefront, onboarding, cloud sync, replay, branch/merge, merge graph, auto-record on save | Average round-trip latency target **≤ 60 ms** on supported devices; offline benchmark speedRatio target **≤ 1.0**; purchase success target **> 95%** in mock/preview path; cloud push/pull/restore target **> 95%** | Depends on both Wave 3 and Wave 4. Release gate: latency, storefront, onboarding, cloud-sync, session-history, and graph specs all hold together as one release train. |
+| **Wave 6** | **Phase 6 + Phase 7** | Telemetry, adaptive coaching, retention loops, share/store/cloud/release flywheel, backlog ranked by live gap scores | Average session minutes target **+15%**; collab session rate target **+25%** vs Wave 3 baseline; export success target **> 97%**; coach CTA completion target **> 30%** | Depends on Wave 5. Release gate: telemetry + coach signals are live enough to drive backlog ranking and prove moat / growth movement. |
+
+**Recommended merge order:** `Wave 1 -> Wave 2 -> (Wave 3 || Wave 4) -> Wave 5 -> Wave 6`
+
+**What this means in practice**
+
+- **Immediate release gate:** execute **Phase 0 + Phase 1** as the minimum
+  coherent bundle.
+- **Parallel work split:** execute **Phase 2** and **Phase 3** as separate lanes
+  after Phase 1 is locked.
+- **Convergence point:** execute **Phase 4 + Phase 5** only after both lanes are
+  stable enough to support onboarding, storefront, cloud continuity, and
+  version-history flows without integration churn.
+- **Durable moat / growth:** execute **Phase 6 + Phase 7** after the full stack
+  is measurable, coachable, and able to compound retention, collaboration,
+  release throughput, and monetization.
