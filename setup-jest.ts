@@ -45,6 +45,8 @@ const createMockNode = () => ({
     value: 0,
     setTargetAtTime: jest.fn(),
     setValueAtTime: jest.fn(),
+    linearRampToValueAtTime: jest.fn(),
+    exponentialRampToValueAtTime: jest.fn(),
   },
   detune: { value: 0 },
   pan: { value: 0 },

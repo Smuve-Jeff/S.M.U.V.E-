@@ -10,7 +10,7 @@
     "install:legacy": "npm install --legacy-peer-deps",
     "dev": "ng serve",
     "build": "ng build",
-    "start": "serve -s Build/browser",
+    "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
     "test": "jest",
     "lint": "eslint src setup-jest.ts",
