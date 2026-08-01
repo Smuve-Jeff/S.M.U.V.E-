@@ -282,6 +282,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
+| E1 | Studio product telemetry + Insights panel — local event bus (`StudioTelemetryService`), north-star metrics (session length, idea→first loop, export success, crash-free, collab rate), weighted competitor gap backlog, topbar Insights slide-over, unit coverage | Data-driven Studio backlog vs BandLab/FL/Koala | ✅ |
 
 ### Phase D — Continuity cloud (Sprints D1–D2)
 *Goal: features competitors can't copy because they assume a single device. Every artist now works across phone, tablet, and desktop without losing the lab session in transit.*
@@ -411,6 +412,24 @@ framework; this is our Apple-GarageBand-killer angle).
   legend, full-snapshot vs delta vs merge node glyphs, click + Enter
   + Space to rewind from any node). New master-plan rows: D3 ✅ +
   D4 ✅.*
+
+### Phase E — Product intelligence (Sprint E1)
+*Goal: instrument Studio so every future sprint is ranked by measured
+competitor gap and real north-star movement, not gut feel.*
+
+- **E1 — Studio product telemetry + Insights panel**: ✅ *SHIPPED.
+  `StudioTelemetryService` (localStorage-backed event bus, 7-day window,
+  4k event cap) tracks session start/end, view changes, starter recipes,
+  templates, collab join/leave/start, save/export/MIDI/comp export,
+  AI mix, plugin store, share-link, and Insights opens. Computed
+  north-star metrics: avg session minutes, idea→first loop seconds,
+  export success rate, crash-free session rate, collab session rate.
+  Weighted competitor parity matrix (BandLab / FL Mobile / n-Track /
+  Audio Evolution / Koala) feeds a prioritized gap backlog. Studio
+  topbar gained an INSIGHTS tool that opens a slide-over with the
+  north-star grid, gap bars, and event volume. Jest coverage for
+  session lifecycle, rates, backlog sort, rehydrate, and corrupt
+  storage. Same-ms session teardown counts as completed.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

@@ -262,6 +262,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showSmartRecordingPanel = signal(false);
   showImportPanel = signal(false);
   showComponentRecording = signal(false);
+  showStudioInsights = signal(false);
 
   // ── Bezier editor state ──────────────────────────────────
   showBezierEditor = signal(false);
@@ -874,6 +875,37 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     ) {
       this.aiMixAssistant.analyzeAll();
     }
+  }
+
+  // ── Studio Insights (product telemetry dashboard) ─────
+
+  toggleStudioInsights() {
+    this.haptic.light();
+    this.showStudioInsights.update((v) => !v);
+    if (this.showStudioInsights()) {
+      this.studioTelemetry.trackEvent('insights_panel_opened', undefined, true);
+    }
+  }
+
+  /** Humanize camelCase gap categories for the insights panel. */
+  formatInsightCategory(category: string): string {
+    return category
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (c) => c.toUpperCase())
+      .trim();
+  }
+
+  /** Format 0..1 rates as whole percentages. */
+  formatInsightPct(rate: number): string {
+    return `${Math.round((rate || 0) * 100)}%`;
+  }
+
+  /** Stable event-volume entries sorted by count descending. */
+  insightEventVolumeEntries(): Array<{ name: string; count: number }> {
+    const volume = this.studioWeeklyDashboard().eventVolume || {};
+    return Object.entries(volume)
+      .map(([name, count]) => ({ name, count: Number(count) || 0 }))
+      .sort((a, b) => b.count - a.count);
   }
 
   /** Run fresh AI mix analysis on all tracks */

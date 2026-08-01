@@ -338,6 +338,19 @@
       <span class="material-symbols-outlined">piano</span>
       <span class="comp-tool-label">MIDI</span>
     </button>
+    <!-- Studio product insights (north-star metrics + competitor gaps) -->
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleStudioInsights()"
+      [class.comp-tool-active]="showStudioInsights()"
+      title="Studio Insights — north-star metrics &amp; competitor gap backlog"
+      aria-label="Toggle Studio Insights panel"
+      [attr.aria-pressed]="showStudioInsights()"
+    >
+      <span class="material-symbols-outlined">monitoring</span>
+      <span class="comp-tool-label">INSIGHTS</span>
+    </button>
   </div>
 
   <!-- ====================== STAGE MARQUEE ====================== -->
@@ -1344,6 +1357,133 @@
           Export .smuve
         </button>
       </div>
+    </div>
+  </aside>
+
+  <!-- ====================== STUDIO INSIGHTS PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-insights-panel"
+    [class.comp-panel-open]="showStudioInsights()"
+    role="dialog"
+    aria-label="Studio Insights"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        INSIGHTS
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleStudioInsights()"
+        aria-label="Close Studio Insights panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <p class="comp-insights-lede">
+        Rolling {{ studioWeeklyDashboard().windowDays }}-day north-star pulse
+        and weighted competitor gaps. Local-only — nothing leaves this device.
+      </p>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">NORTH STAR</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              studioWeeklyDashboard().metrics.avgSessionMinutes
+            }}</span>
+            <span class="comp-insights-metric-label">Avg session (min)</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val"
+              >{{ studioWeeklyDashboard().metrics.ideaToFirstLoopSeconds }}s</span
+            >
+            <span class="comp-insights-metric-label">Idea → first loop</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.exportSuccessRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Export success</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(
+                studioWeeklyDashboard().metrics.crashFreeSessionsRate
+              )
+            }}</span>
+            <span class="comp-insights-metric-label">Crash-free</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.collabSessionRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Collab sessions</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">PRIORITY BACKLOG</span>
+        <div
+          class="comp-insights-gap"
+          *ngFor="let row of studioWeeklyDashboard().prioritizedBacklog"
+        >
+          <div class="comp-insights-gap-head">
+            <span class="comp-insights-gap-name">{{
+              formatInsightCategory(row.category)
+            }}</span>
+            <span class="comp-insights-gap-weight"
+              >w {{ row.weight | number: '1.0-2' }}</span
+            >
+          </div>
+          <div class="comp-insights-gap-bar">
+            <div
+              class="comp-insights-gap-fill"
+              [style.width.%]="row.smuveScore"
+              [attr.aria-valuenow]="row.smuveScore"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              role="progressbar"
+              [attr.aria-label]="
+                formatInsightCategory(row.category) +
+                ' score ' +
+                row.smuveScore
+              "
+            ></div>
+          </div>
+          <div class="comp-insights-gap-meta">
+            <span>Us {{ row.smuveScore }}</span>
+            <span>Best {{ row.bestCompetitorScore }}</span>
+            <span
+              class="comp-insights-gap-delta"
+              [class.comp-insights-gap-lead]="row.gap === 0"
+              >{{ row.gap === 0 ? 'LEAD' : '−' + row.gap }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="comp-insights-section"
+        *ngIf="insightEventVolumeEntries().length"
+      >
+        <span class="comp-aimix-section-title">EVENT VOLUME</span>
+        <ul class="comp-insights-events">
+          <li *ngFor="let e of insightEventVolumeEntries()">
+            <code>{{ e.name }}</code>
+            <span>{{ e.count }}</span>
+          </li>
+        </ul>
+      </div>
+      <p
+        class="comp-insights-empty"
+        *ngIf="!insightEventVolumeEntries().length"
+      >
+        No Studio events yet this week — keep producing and the pulse fills in.
+      </p>
     </div>
   </aside>
 

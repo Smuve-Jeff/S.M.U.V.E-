@@ -19,6 +19,7 @@ export type StudioTelemetryEventName =
   | 'ai_mix_analysis_run'
   | 'plugin_store_opened'
   | 'share_link_copied'
+  | 'insights_panel_opened'
   | 'studio_error';
 
 export interface StudioTelemetryEvent {
@@ -69,6 +70,9 @@ export class StudioTelemetryService {
   private activeSessionId = signal<string | null>(null);
   private activeSessionStartedAt = signal<number | null>(null);
   private events = signal<StudioTelemetryEvent[]>(this.loadEvents());
+
+  /** Active studio session id (null when no session is open). */
+  readonly activeSession = computed(() => this.activeSessionId());
 
   private readonly weights: Record<string, number> = {
     onboardingSpeed: 0.2,
@@ -151,11 +155,15 @@ export class StudioTelemetryService {
   readonly northStarMetrics = computed<StudioNorthStarMetrics>(() => {
     const events = this.recentEvents();
     const sessions = this.buildSessions(events);
-    const completed = sessions.filter((s) => s.endAt > s.startAt);
+    // Prefer sessions that actually ended. endAt may equal startAt when the
+    // session is closed in the same millisecond (unit tests / instant teardown).
+    const completed = sessions.filter((s) => s.ended);
     const avgSessionMs =
       completed.length > 0
-        ? completed.reduce((sum, s) => sum + (s.endAt - s.startAt), 0) /
-          completed.length
+        ? completed.reduce(
+            (sum, s) => sum + Math.max(0, s.endAt - s.startAt),
+            0
+          ) / completed.length
         : 0;
 
     const ideaToFirstLoopSamples: number[] = [];
@@ -185,7 +193,9 @@ export class StudioTelemetryService {
         e.name
       )
     );
-    const exportSuccess = exportEvents.filter((e) => e.success !== false).length;
+    const exportSuccess = exportEvents.filter(
+      (e) => e.success !== false
+    ).length;
     const exportSuccessRate =
       exportEvents.length === 0 ? 1 : exportSuccess / exportEvents.length;
 
@@ -310,6 +320,7 @@ export class StudioTelemetryService {
     id: string;
     startAt: number;
     endAt: number;
+    ended: boolean;
   }> {
     const starts = events.filter((e) => e.name === 'studio_session_start');
     return starts.map((s) => {
@@ -320,6 +331,7 @@ export class StudioTelemetryService {
         id: s.sessionId ?? s.id,
         startAt: s.ts,
         endAt: end?.ts ?? s.ts,
+        ended: !!end,
       };
     });
   }
