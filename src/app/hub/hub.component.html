@@ -161,6 +161,13 @@
             Lock It In
           </button>
           <button
+            (click)="startFirstBeatTour()"
+            class="px-5 py-3 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px]"
+            style="background: var(--amber-gold); color: var(--city-midnight)"
+          >
+            Start First Beat Tour
+          </button>
+          <button
             (click)="resumeWorkspace()"
             class="px-5 py-3 rounded-2xl border font-black uppercase tracking-[0.2em] text-[11px] text-white"
             style="border-color: rgba(255, 255, 255, 0.12)"
@@ -645,6 +652,54 @@
           </h3>
           <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
             Campaigns
+          </p>
+        </div>
+      </div>
+
+      <!-- Sprint C2 — Storefront (1x1) -->
+      <div
+        class="bento-item bento-1x1 bento-card store-module"
+        (click)="goToStore()"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--amber-gold)"
+            >shopping_bag</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Storefront
+          </h3>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            Sound Packs · AI
+          </p>
+        </div>
+      </div>
+
+      <!-- Sprint C3 — First Beat Tour (1x1) -->
+      <div
+        class="bento-item bento-1x1 bento-card tour-module"
+        (click)="startFirstBeatTour()"
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--brand-secondary, #5dc4c2)"
+            >rocket_launch</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            First Beat Tour
+          </h3>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            5-min walkthrough
           </p>
         </div>
       </div>

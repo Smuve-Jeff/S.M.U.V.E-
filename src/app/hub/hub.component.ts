@@ -385,4 +385,16 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
       queryParams: step.queryParams,
     });
   }
+
+  // Sprint C2 — storefront launcher.
+  goToStore() {
+    this.router.navigate(['/store']);
+  }
+
+  // Sprint C3 — first beat tour launcher: seeds the tour progress then
+  // routes to the dedicated overlay screen.
+  startFirstBeatTour() {
+    this.onboarding.startTour();
+    this.router.navigate(['/onboarding/tour']);
+  }
 }

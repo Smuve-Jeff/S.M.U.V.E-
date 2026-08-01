@@ -223,8 +223,38 @@ framework; this is our Apple-GarageBand-killer angle).
 - **C2 — Play listing + IAP**: RevenueCat wiring, Pro tier, sound packs,
   screenshots that show the 60-second demo (8-bar trap → 6 stems → AI mix →
   master at −14 LUFS).
+  ✅ *SHIPPED: `StorefrontService` + `play-billing.client.ts` shim —
+  8-SKU deterministic seed catalog across 4 categories (sound-pack /
+  instrument-pack / ai-bundle / subscription) tagged for genre-aware
+  `recommendFor(viewMode, profileGenre)`. Drives a `MockPlayBillingClient`
+  that resolves after 1.2s (1.4s including ack) so the preview shows end
+  to end without a Play backend; production swaps in a dynamic import of
+  the real client. `purchase(skuId)` produces an `OwnershipState` row,
+  removes the cart line, and persists to `smuve_store_owned` so a reload
+  keeps your collection. `cart / addToCart / removeFromCart / clearCart /
+  totalPriceCents` are signal-driven and shout at the user when they try
+  to re-buy an owned SKU. `/store` route + `StorefrontComponent` (grid +
+  category filter + cart drawer + ownership pill) lives on the hub's new
+  1×1 shopping_bag bento card. Catalog spec covers 4 categories, free
+  + paid price labels, cart dedup + ownership refusal, success and
+  failure paths, acknowledge, restore (mock), recommend scoring
+  (category + tag overlap), persist + reload, and clear cart.*
 - **C3 — Onboarding that beats BandLab**: 5-minute guided first beat with AI
   session musicians.
+  ✅ *SHIPPED: extended `OnboardingService` (existing `steps()/progress()` API
+  stays intact) with `currentTour()` signal, `tourSteps()` signal-driven
+  5-step tour, `tourProgress()` 0..100 computed, `startTour()` /
+  `completeTour()` / `exitTour()` / `markStepComplete(id)` /
+  `openStep(step)` methods, plus cached completion in
+  `smuve_tour_progress` so reload + rehydrate doesn't lose marks. New
+  `FirstBeatTourComponent` (TS+HTML+CSS) renders the tour as a styled
+  overlay with a stepped progress bar, per-step "Open Step" /
+  "Mark Complete" buttons, a "Skip Tour" escape hatch, and a "Finish Tour"
+  button that locks once progress hits 100. Tour steps: profile → studio →
+  produce → store → strategy. Hub gained a 1×1 "First Beat Tour" bento
+  card + an inline CTA on the First-Signing Path panel; new
+  `/onboarding/tour` route. Spec covers seeding, mark-step climbing,
+  completeTour reset, exitTour state-clear and persistence survival.*
 
 ---
 
@@ -243,10 +273,11 @@ framework; this is our Apple-GarageBand-killer angle).
 | B3 | AI end-to-end produce | ALL | ✅ |
 | B4 | Career pipeline in-DAW | ALL | ✅ |
 | C1 | Performance + latency | ALL | ✅ |
-| C2 | Play listing + IAP | ALL | ⬜ |
-| C3 | Onboarding | BandLab | ⬜ |
+| C2 | Play listing + IAP | ALL | ✅ |
+| C3 | Onboarding | BandLab | ✅ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
+| X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

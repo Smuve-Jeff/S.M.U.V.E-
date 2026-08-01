@@ -1,0 +1,84 @@
+<div class="tour-shell">
+  <header class="tour-header">
+    <div>
+      <p class="chip">Sprint C3 · First Beat Tour</p>
+      <h1>Your 5-minute first signing</h1>
+      <p class="hero-sub">
+        Five stations, one straight line: profile, booth, produce, store,
+        career. Mark each one off and we'll keep the lights warm.
+      </p>
+    </div>
+    <button type="button" class="btn-ghost close" (click)="skipTour()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </header>
+
+  <section class="tour-progress" [class.is-full]="onboarding.tourProgress() >= 100">
+    <div class="bar">
+      <div
+        class="bar-fill"
+        [style.width.%]="onboarding.tourProgress()"
+      ></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-stat">{{ onboarding.tourProgress() }}% complete</span>
+      <span class="bar-pacing">Pacing · {{ formatPacing() }}</span>
+    </div>
+  </section>
+
+  <ul class="step-list">
+    <li
+      *ngFor="let step of onboarding.tourSteps(); let i = index"
+      class="step"
+      [class.is-done]="step.complete"
+      [class.is-active]="!step.complete && i === 0"
+    >
+      <div class="step-num">{{ i + 1 }}</div>
+      <div class="step-body">
+        <div class="step-meta">
+          <span class="step-route">/{{ step.route }}</span>
+          <span class="step-flag">
+            {{ step.complete ? 'Locked In' : 'Next Move' }}
+          </span>
+        </div>
+        <h3>{{ step.title }}</h3>
+        <p>{{ step.description }}</p>
+        <div class="step-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="openStep(step)"
+          >
+            {{ step.cta }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost"
+            (click)="markComplete(step)"
+            *ngIf="!step.complete"
+          >
+            Mark Complete
+          </button>
+          <span class="done-pill" *ngIf="step.complete">
+            <span class="material-symbols-outlined">check_circle</span>
+            Done
+          </span>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <footer class="tour-footer">
+    <button type="button" class="btn-ghost" (click)="skipTour()">
+      Skip Tour
+    </button>
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="onboarding.tourProgress() < 100"
+      (click)="finishTour()"
+    >
+      {{ onboarding.tourProgress() < 100 ? 'Finish All Steps' : 'Finish Tour' }}
+    </button>
+  </footer>
+</div>
