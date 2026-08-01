@@ -78,6 +78,7 @@ describe('PianoRollComponent', () => {
     quantizeTrack: jest.fn(),
     duplicateNotes: jest.fn(),
     strumTrack: jest.fn(),
+    getNoteSlideSemitones: jest.fn((n) => (n?.isSlide ? (n.pitchBend ?? 0) : 0)),
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
@@ -427,5 +428,37 @@ describe('PianoRollComponent', () => {
     component.selectedNoteIds.set(new Set());
     component.toggleSlideOnSelection();
     expect(mockMusicManager.updateNote).not.toHaveBeenCalled();
+  });
+
+  // ── Sprint A2 — slide-note data path ─────────────────────
+  it('getNoteSlideSemitones returns 0 for non-slide notes', () => {
+    mockMusicManager.getNoteSlideSemitones.mockReturnValue(0);
+    expect(mockMusicManager.getNoteSlideSemitones({ midi: 60 })).toBe(0);
+  });
+
+  it('getNoteSlideSemitones returns the clamped bend for slide notes', () => {
+    mockMusicManager.getNoteSlideSemitones.mockImplementation(
+      (n) => (n.isSlide ? 5 : 0)
+    );
+    expect(
+      mockMusicManager.getNoteSlideSemitones({
+        midi: 62,
+        isSlide: true,
+        pitchBend: 5,
+      })
+    ).toBe(5);
+  });
+
+  it('selectedNoteIsSlide stays true after re-selecting the same notes', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: 'n3', midi: 60, step: 0, length: 1, velocity: 0.8, isSlide: true, pitchBend: 3 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(['n3']));
+    expect(component.selectedNoteIsSlide()).toBe(true);
   });
 });

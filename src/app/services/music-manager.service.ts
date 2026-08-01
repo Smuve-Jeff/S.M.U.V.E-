@@ -1639,6 +1639,20 @@ export class MusicManagerService {
     return track.notes.some((n) => Math.floor(n.step) === stepIdx);
   }
 
+  /**
+   * Sprint A2 — slide-note data path helper. Returns the semitone ramp the
+   * engine should glide to while playing the note. Returns 0 for non-slide
+   * notes (so callers can treat it as "no glide"). The piano-roll toggle
+   * defaults `pitchBend` to 2 (~whole-step) when slide mode turns ON, but
+   * designers can dial it to ±12 semitones (±1 octave).
+   */
+  getNoteSlideSemitones(note: TrackNote): number {
+    if (!note?.isSlide) return 0;
+    const bend = Number(note.pitchBend ?? 0);
+    if (!Number.isFinite(bend)) return 0;
+    return Math.max(-12, Math.min(12, bend));
+  }
+
   createBus(name: string) {
     return this.addTrack(name, 'bus', 'bus');
   }
