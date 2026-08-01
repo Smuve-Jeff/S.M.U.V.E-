@@ -5,6 +5,19 @@ import {
 } from '../../services/music-manager.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { IdeasGeneratorService } from '../../services/ideas-generator.service';
+import {
+  StudioActionResult,
+  StudioActionTarget,
+} from '../../types/studio-orchestration.types';
+
+export type MixSuggestionStatus =
+  | 'pending'
+  | 'previewed'
+  | 'approved'
+  | 'rejected'
+  | 'applied'
+  | 'replaced'
+  | 'exported';
 
 export interface MixSuggestion {
   id: string;
@@ -21,6 +34,16 @@ export interface MixSuggestion {
   description: string;
   severity: 'critical' | 'recommended' | 'optional';
   action: () => void;
+  reason?: string;
+  status?: MixSuggestionStatus;
+  previewText?: string;
+  target?: StudioActionTarget;
+  outcomes?: Partial<
+    Record<
+      'preview' | 'apply' | 'reject' | 'approve' | 'replace' | 'transition' | 'export',
+      string
+    >
+  >;
   parameter: string;
   currentValue: number;
   suggestedValue: number;
@@ -72,6 +95,8 @@ export class AiMixAssistantService {
   isMonitoring = signal(false);
   /** Last analysis timestamp */
   lastAnalyzed = signal<number>(0);
+  previewedSuggestionId = signal<string | null>(null);
+  lastSuggestionOutcome = signal<string | null>(null);
 
   /** Overall mix quality score 0-100 based on all tracks */
   mixQualityScore = computed(() => {
@@ -579,6 +604,106 @@ export class AiMixAssistantService {
     this.isMonitoring.set(true);
   }
 
+  buildStudioActionResults(target: StudioActionTarget): StudioActionResult[] {
+    const createdAt = this.lastAnalyzed() || Date.now();
+    return this.suggestions().map((suggestion) => ({
+      id: `mix_action_${suggestion.id}`,
+      source: 'ai-mix',
+      kind: 'mix-fix',
+      title: suggestion.label,
+      description: suggestion.description,
+      reason: suggestion.reason ?? suggestion.description,
+      preview:
+        suggestion.previewText ??
+        `${suggestion.parameter}: ${suggestion.currentValue} → ${suggestion.suggestedValue}`,
+      status: this.mapStatus(suggestion.status),
+      target:
+        suggestion.target ??
+        (suggestion.trackId === 'master'
+          ? target
+          : { ...target, selectedTrackId: suggestion.trackId }),
+      payload: {
+        suggestionId: suggestion.id,
+        trackId: suggestion.trackId,
+        parameter: suggestion.parameter,
+        currentValue: suggestion.currentValue,
+        suggestedValue: suggestion.suggestedValue,
+      },
+      outcomes: suggestion.outcomes ?? {
+        preview: 'Preview the mix change.',
+        apply: 'Apply the suggested fix.',
+        reject: 'Reject the suggestion.',
+        approve: 'Approve the fix for async review.',
+        replace: 'Replace this suggestion with a custom adjustment.',
+        transition: 'Promote the change into the next checkpoint.',
+        export: 'Export the fix rationale.',
+      },
+      createdAt,
+      updatedAt: Date.now(),
+    }));
+  }
+
+  previewSuggestion(id: string): MixSuggestion | null {
+    const suggestion = this.findSuggestion(id);
+    if (!suggestion) return null;
+    this.previewedSuggestionId.set(id);
+    this.setSuggestionState(id, {
+      status: 'previewed',
+      previewText:
+        suggestion.previewText ??
+        `${suggestion.parameter}: ${suggestion.currentValue} → ${suggestion.suggestedValue}`,
+    });
+    this.lastSuggestionOutcome.set(`preview:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  applySuggestion(id: string): MixSuggestion | null {
+    const suggestion = this.findSuggestion(id);
+    if (!suggestion) return null;
+    this.applySuggestionPatch(suggestion);
+    this.setSuggestionState(id, { status: 'applied' });
+    this.lastSuggestionOutcome.set(`apply:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  rejectSuggestion(id: string): MixSuggestion | null {
+    this.setSuggestionState(id, { status: 'rejected' });
+    this.lastSuggestionOutcome.set(`reject:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  approveSuggestion(id: string): MixSuggestion | null {
+    this.setSuggestionState(id, { status: 'approved' });
+    this.lastSuggestionOutcome.set(`approve:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  replaceSuggestion(
+    id: string,
+    replacement: Partial<
+      Pick<MixSuggestion, 'label' | 'description' | 'reason' | 'suggestedValue'>
+    >
+  ): MixSuggestion | null {
+    this.setSuggestionState(id, { ...replacement, status: 'replaced' });
+    this.lastSuggestionOutcome.set(`replace:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  transitionSuggestion(id: string, previewText?: string): MixSuggestion | null {
+    this.setSuggestionState(id, {
+      status: 'previewed',
+      previewText: previewText ?? this.findSuggestion(id)?.previewText,
+    });
+    this.lastSuggestionOutcome.set(`transition:${id}`);
+    return this.findSuggestion(id);
+  }
+
+  exportSuggestion(id: string): MixSuggestion | null {
+    this.setSuggestionState(id, { status: 'exported' });
+    this.lastSuggestionOutcome.set(`export:${id}`);
+    return this.findSuggestion(id);
+  }
+
   /**
    * Analyze a single track based on its instrument type, position in mix, etc.
    */
@@ -609,6 +734,32 @@ export class AiMixAssistantService {
     };
   }
 
+  private createSuggestion(
+    suggestion: Omit<MixSuggestion, 'action'> & { action?: () => void }
+  ): MixSuggestion {
+    const next: MixSuggestion = {
+      ...suggestion,
+      reason: suggestion.reason ?? suggestion.description,
+      status: suggestion.status ?? 'pending',
+      previewText:
+        suggestion.previewText ??
+        `${suggestion.parameter}: ${suggestion.currentValue} → ${suggestion.suggestedValue}`,
+      outcomes: suggestion.outcomes ?? {
+        preview: 'Preview the suggested fix.',
+        apply: 'Apply the suggested fix.',
+        reject: 'Reject the suggested fix.',
+        approve: 'Approve the fix for async collaboration.',
+        replace: 'Replace the suggestion with a custom move.',
+        transition: 'Transition the fix into the next checkpoint.',
+        export: 'Export the rationale for this fix.',
+      },
+      action: () => {
+        this.applySuggestion(suggestion.id);
+      },
+    };
+    return next;
+  }
+
   /**
    * Generate actionable mix suggestions from a track analysis.
    */
@@ -624,36 +775,36 @@ export class AiMixAssistantService {
       analysis.frequencyProfile === 'dark' ||
       analysis.frequencyProfile === 'warm'
     ) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `eq-hi-${ti}`,
         type: 'eq',
         trackId: ti,
         label: 'Add High-End Presence',
         description: `${analysis.trackName} sounds dark — try a gentle high-shelf boost around 8-12 kHz to add air and clarity.`,
         severity: 'recommended',
-        action: () => {},
+        reason: `${analysis.trackName} is skewing dark in the current ${analysis.suggestedRole} role.`,
         parameter: 'eqHighShelf',
         currentValue: 0,
         suggestedValue: 3,
-      });
+      }));
     }
 
     if (
       analysis.frequencyProfile === 'harsh' ||
       analysis.frequencyProfile === 'bright'
     ) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `eq-lo-${ti}`,
         type: 'eq',
         trackId: ti,
         label: 'Tame High Frequencies',
         description: `${analysis.trackName} is bright — a gentle cut around 3-5 kHz can reduce listener fatigue.`,
         severity: 'recommended',
-        action: () => {},
+        reason: `${analysis.trackName} is occupying the harsh end of the spectrum.`,
         parameter: 'eqNotch',
         currentValue: 0,
         suggestedValue: -2,
-      });
+      }));
     }
 
     // Stereo width suggestions
@@ -661,18 +812,18 @@ export class AiMixAssistantService {
       analysis.stereoWidth === 'mono' &&
       this.isWideInstrument(analysis.instrumentType)
     ) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `width-${ti}`,
         type: 'width',
         trackId: ti,
         label: 'Widen Stereo Image',
         description: `${analysis.trackName} sounds mono — apply stereo enhancement to fill the soundstage.`,
         severity: 'optional',
-        action: () => {},
+        reason: `${analysis.trackName} is a width-friendly source but is currently mono.`,
         parameter: 'stereoWidth',
         currentValue: 0,
         suggestedValue: 40,
-      });
+      }));
     }
 
     // Dynamic range / compression suggestions
@@ -680,18 +831,18 @@ export class AiMixAssistantService {
       analysis.transientContent === 'high' &&
       analysis.instrumentType !== 'drums'
     ) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `comp-${ti}`,
         type: 'compression',
         trackId: ti,
         label: 'Apply Gentle Compression',
         description: `${analysis.trackName} has wide dynamics — a 2:1 ratio compressor smooths peaks while retaining punch.`,
         severity: 'optional',
-        action: () => {},
+        reason: `${analysis.trackName} has transient spikes that can be smoothed without flattening the part.`,
         parameter: 'compRatio',
         currentValue: 1,
         suggestedValue: 2,
-      });
+      }));
     }
 
     // Reverb suggestions based on role
@@ -699,18 +850,18 @@ export class AiMixAssistantService {
       analysis.suggestedRole === 'pad' ||
       analysis.suggestedRole === 'atmosphere'
     ) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `verb-${ti}`,
         type: 'reverb',
         trackId: ti,
         label: 'Add Ambience',
         description: `${analysis.trackName} would benefit from a hall or plate reverb to create depth.`,
         severity: 'optional',
-        action: () => {},
+        reason: `${analysis.trackName} is serving a spacious support role in the mix.`,
         parameter: 'reverbMix',
         currentValue: 0,
         suggestedValue: 25,
-      });
+      }));
     }
 
     // Level suggestions based on role priority
@@ -727,18 +878,18 @@ export class AiMixAssistantService {
     };
     const trackPriority = priorityMap[analysis.instrumentType] ?? 5;
     if (trackPriority > 5 && analysis.estimatedLoudness > -8) {
-      result.push({
+      result.push(this.createSuggestion({
         id: `level-${ti}`,
         type: 'level',
         trackId: ti,
         label: 'Reduce Level Slightly',
         description: `${analysis.trackName} may be too loud for its role — a 1-2 dB reduction can improve mix balance.`,
         severity: 'optional',
-        action: () => {},
+        reason: `${analysis.trackName} is louder than expected for its supporting role.`,
         parameter: 'gain',
         currentValue: 0,
         suggestedValue: -1.5,
-      });
+      }));
     }
 
     return result;
@@ -752,50 +903,204 @@ export class AiMixAssistantService {
     const count = tracks.length;
 
     if (count < 3) {
-      result.push({
+      result.push(this.createSuggestion({
         id: 'mix-depth',
         type: 'level',
         trackId: 'master',
         label: 'Add More Elements',
         description: `Only ${count} tracks — try adding bass, pads, or percussion for a fuller arrangement.`,
         severity: 'optional',
-        action: () => {},
+        reason: 'The current arrangement is sparse and can support more supporting elements.',
         parameter: 'arrangement',
         currentValue: count,
         suggestedValue: 5,
-      });
+      }));
     }
 
     if (count > 8) {
-      result.push({
+      result.push(this.createSuggestion({
         id: 'mix-clarity',
         type: 'eq',
         trackId: 'master',
         label: 'Check Frequency Masking',
         description: `${count} tracks may cause frequency masking — use EQ carving to keep each element clear.`,
         severity: 'recommended',
-        action: () => {},
+        reason: 'Dense arrangements typically need a masking pass to preserve clarity.',
         parameter: 'eqCarving',
         currentValue: count,
         suggestedValue: 0,
-      });
+      }));
     }
 
     // Check if master peaks near 0 dBFS
-    result.push({
+    result.push(this.createSuggestion({
       id: 'mix-headroom',
       type: 'level',
       trackId: 'master',
       label: 'Maintain Headroom',
       description: `Keep master peaks at -6 dBFS or below for clean mastering. Use master gain to adjust.`,
       severity: 'recommended',
-      action: () => {},
+      reason: 'Headroom is required before AI mastering and export.',
       parameter: 'masterHeadroom',
       currentValue: 0,
       suggestedValue: -6,
-    });
+    }));
 
     return result;
+  }
+
+  private mapStatus(
+    status: MixSuggestionStatus | undefined
+  ): StudioActionResult['status'] {
+    switch (status) {
+      case 'previewed':
+      case 'applied':
+      case 'approved':
+      case 'rejected':
+      case 'replaced':
+      case 'exported':
+        return status;
+      default:
+        return 'pending';
+    }
+  }
+
+  private findSuggestion(id: string): MixSuggestion | null {
+    return this.suggestions().find((suggestion) => suggestion.id === id) ?? null;
+  }
+
+  private setSuggestionState(
+    id: string,
+    patch: Partial<MixSuggestion>
+  ): void {
+    this.suggestions.update((suggestions) =>
+      suggestions.map((suggestion) =>
+        suggestion.id === id ? { ...suggestion, ...patch } : suggestion
+      )
+    );
+  }
+
+  private applySuggestionPatch(suggestion: MixSuggestion): void {
+    if (suggestion.trackId === 'master') {
+      if (suggestion.parameter === 'masterHeadroom') {
+        this.engine.setMasterOutputLevel(
+          Math.pow(10, suggestion.suggestedValue / 20)
+        );
+      }
+      return;
+    }
+
+    const track = this.musicManager
+      .tracks()
+      .find((candidate) => candidate.id === suggestion.trackId);
+    if (!track) return;
+
+    switch (suggestion.parameter) {
+      case 'gain':
+        this.musicManager.updateVolume(
+          suggestion.trackId,
+          this.resolveSuggestedGain(track.gain, suggestion.suggestedValue)
+        );
+        return;
+      case 'stereoWidth':
+        this.musicManager.updateStereoWidth(
+          suggestion.trackId,
+          suggestion.suggestedValue
+        );
+        return;
+      case 'pan':
+        this.musicManager.updateTrackPan(
+          suggestion.trackId,
+          suggestion.suggestedValue * 100
+        );
+        return;
+      case 'eqHighShelf':
+      case 'eqNotch':
+        this.patchTrackState(track, {
+          eqData: {
+            low: track.eqData?.low ?? 0,
+            mid:
+              suggestion.parameter === 'eqNotch'
+                ? suggestion.suggestedValue
+                : (track.eqData?.mid ?? 0),
+            high:
+              suggestion.parameter === 'eqHighShelf'
+                ? suggestion.suggestedValue
+                : (track.eqData?.high ?? 0),
+          },
+          fxSlots: this.upsertFxSlot(track.fxSlots, 'EQ', {
+            [suggestion.parameter]: suggestion.suggestedValue,
+          }),
+        });
+        return;
+      case 'compRatio':
+        this.patchTrackState(track, {
+          fxSlots: this.upsertFxSlot(track.fxSlots, 'Compressor', {
+            ratio: suggestion.suggestedValue,
+          }),
+        });
+        return;
+      case 'reverbMix':
+        this.patchTrackState(track, {
+          fxSlots: this.upsertFxSlot(track.fxSlots, 'Reverb', {
+            mix: suggestion.suggestedValue,
+          }),
+        });
+        return;
+      default:
+        this.engine.updateTrack(suggestion.trackId, {
+          [suggestion.parameter]: suggestion.suggestedValue,
+        });
+    }
+  }
+
+  private resolveSuggestedGain(currentGain: number, suggestedValue: number): number {
+    if (suggestedValue >= 0 && suggestedValue <= 1.5) {
+      return suggestedValue;
+    }
+    const deltaGain = currentGain * Math.pow(10, suggestedValue / 20);
+    return Math.max(0, Math.min(1.5, deltaGain));
+  }
+
+  private upsertFxSlot(
+    slots: TrackModel['fxSlots'],
+    type: string,
+    params: Record<string, unknown>
+  ): TrackModel['fxSlots'] {
+    const next = [...(slots ?? [])];
+    const existingIndex = next.findIndex(
+      (slot) => slot.type.toLowerCase() === type.toLowerCase()
+    );
+    if (existingIndex >= 0) {
+      next[existingIndex] = {
+        ...next[existingIndex],
+        enabled: true,
+        params: {
+          ...(next[existingIndex].params ?? {}),
+          ...params,
+        },
+      };
+      return next;
+    }
+    next.push({
+      id: `fx_${type.toLowerCase()}_${Date.now().toString(36)}`,
+      type,
+      params,
+      enabled: true,
+    });
+    return next;
+  }
+
+  private patchTrackState(
+    track: TrackModel,
+    patch: Partial<TrackModel>
+  ): void {
+    this.musicManager.tracks.update((tracks) =>
+      tracks.map((candidate) =>
+        candidate.id === track.id ? { ...candidate, ...patch } : candidate
+      )
+    );
+    this.engine.updateTrack(track.id, patch);
   }
 
   /**
@@ -930,18 +1235,18 @@ export class AiMixAssistantService {
     // 5. Update suggestions to reflect applied changes
     this.suggestions.update((sugs) => [
       ...sugs,
-      {
+      this.createSuggestion({
         id: 'auto-master',
         type: 'level',
         trackId: 'master',
         label: 'AI Master Applied',
         description: `Target ${targetLufs} LUFS · ceiling ${safeCeiling} dBFS · ratio ${compRatio}:1 · high-shelf ${eqHighShelf > 0 ? '+' : ''}${eqHighShelf}dB`,
         severity: 'recommended',
-        action: () => {},
+        reason: `The ${resolvedGenre} mastering profile has already been applied to the current mix.`,
         parameter: 'mastering',
         currentValue: 0,
         suggestedValue: targetLufs,
-      },
+      }),
     ]);
 
     // 6. Generate analysis summary

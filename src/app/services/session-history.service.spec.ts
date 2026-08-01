@@ -193,6 +193,55 @@ describe('SessionHistoryService (D2 + D3)', () => {
     expect(sut.branches('proj-12').length).toBe(1);
   });
 
+  it('tracks server-backed comments and approvals alongside checkpoints', () => {
+    sut.setTimelineReviewState(
+      'proj-review',
+      [
+        {
+          id: 'comment-1',
+          sessionId: 'sess-1',
+          projectId: 'proj-review',
+          checkpointId: 'cp-1',
+          branchId: 'main',
+          trackId: 'track-1',
+          clipId: null,
+          userId: 'reviewer-1',
+          content: 'Tighten the intro transition.',
+          resolved: false,
+          createdAt: 1,
+          updatedAt: 2,
+        },
+      ] as any,
+      [
+        {
+          id: 'approval-1',
+          sessionId: 'sess-1',
+          projectId: 'proj-review',
+          checkpointId: 'cp-1',
+          branchId: 'main',
+          requestedBy: 'host-1',
+          approverIds: ['reviewer-1'],
+          overallStatus: 'approved',
+          decisions: {
+            'reviewer-1': {
+              status: 'approved',
+              timestamp: 3,
+            },
+          },
+          createdAt: 2,
+          updatedAt: 3,
+        },
+      ] as any
+    );
+
+    expect(sut.timelineComments('proj-review')).toHaveLength(1);
+    expect(sut.commentsForCheckpoint('proj-review', 'cp-1')).toHaveLength(1);
+    expect(sut.timelineApprovals('proj-review')).toHaveLength(1);
+    expect(sut.approvalsForCheckpoint('proj-review', 'cp-1')[0].overallStatus).toBe(
+      'approved'
+    );
+  });
+
   // ─── D3 — Branching & Merge ───────────────────────────────────────
 
   it('findAncestor returns the LCA on a forked graph', async () => {

@@ -244,6 +244,26 @@ describe('AiProduceService', () => {
     await sut.run({ prompt: 'fire', genre: 'Lo-Fi' });
     expect(sut.hasArtifacts()).toBe(true);
   });
+
+  it('buildStudioActionResults attaches actionable studio targets', async () => {
+    await sut.run({ prompt: 'midnight rooftop swing', genre: 'Trap', mood: 'dark' });
+
+    const results = sut.buildStudioActionResults({
+      projectId: 'proj-1',
+      sessionId: 'sess-1',
+      activeView: 'arrangement',
+      selectedTrackId: 'track-1',
+      branchId: 'branch-1',
+      checkpointId: 'cp-1',
+    });
+
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(results[0].target.activeView).toBe('arrangement');
+    expect(results[0].target.selectedTrackId).toBe('track-1');
+    expect(results.some((result) => result.kind === 'section-transition')).toBe(
+      true
+    );
+  });
 });
 
 describe('AiProduceService · helpers', () => {

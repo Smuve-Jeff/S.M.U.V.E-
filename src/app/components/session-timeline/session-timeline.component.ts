@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SessionHistoryService } from '../../services/session-history.service';
 import { CloudSyncService } from '../../services/cloud-sync.service';
+import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
 import {
   DiffEntry,
   ReplayEvent,
@@ -39,6 +40,7 @@ import {
 export class SessionTimelineComponent {
   history = inject(SessionHistoryService);
   cloud = inject(CloudSyncService);
+  orchestration = inject(StudioOrchestrationService);
   private router = inject(Router);
 
   readonly projectId = signal<string>('proj_demo_session');
@@ -101,6 +103,12 @@ export class SessionTimelineComponent {
   });
   readonly cloudSnapshots = computed<RemoteSnapshot[]>(() =>
     this.cloud.cloudProjects()
+  );
+  readonly comments = computed(() =>
+    this.history.timelineComments(this.projectId())
+  );
+  readonly approvals = computed(() =>
+    this.history.timelineApprovals(this.projectId())
   );
 
   /**
@@ -312,6 +320,49 @@ export class SessionTimelineComponent {
   trackEdge = (_: number, item: GraphEdge): string =>
     item.fromId + '→' + item.toId + ':' + item.kind;
   trackGraphNode = (_: number, item: GraphNode): string => item.checkpointId;
+
+  commentCount(checkpointId: string): number {
+    return this.history.commentsForCheckpoint(this.projectId(), checkpointId).length;
+  }
+
+  approvalState(checkpointId: string): string {
+    const approval = this.history
+      .approvalsForCheckpoint(this.projectId(), checkpointId)
+      .find((entry) => entry.overallStatus !== 'pending');
+    return approval?.overallStatus ?? 'pending';
+  }
+
+  async keepMine(trackId: string, fieldKey: string): Promise<void> {
+    await this.orchestration.resolveConflictDecision(
+      trackId,
+      fieldKey,
+      'keep-mine'
+    );
+  }
+
+  async acceptTheirs(trackId: string, fieldKey: string): Promise<void> {
+    await this.orchestration.resolveConflictDecision(
+      trackId,
+      fieldKey,
+      'accept-theirs'
+    );
+  }
+
+  async branchForConflict(trackId: string, fieldKey: string): Promise<void> {
+    await this.orchestration.resolveConflictDecision(
+      trackId,
+      fieldKey,
+      'branch'
+    );
+  }
+
+  async requestRevision(trackId: string, fieldKey: string): Promise<void> {
+    await this.orchestration.resolveConflictDecision(
+      trackId,
+      fieldKey,
+      'request-revision'
+    );
+  }
 
   // ─── Sprint D3 — Merge / Rebase / Cherry-pick actions ─────────────
 

@@ -7,6 +7,7 @@ import { UserProfileService } from './user-profile.service';
 import { PeerNetworkingService } from './peer-networking.service';
 import { LoggingService } from './logging.service';
 import { signal, WritableSignal } from '@angular/core';
+import { ProjectService } from './project.service';
 
 /**
  * Sprint B2 Phase 1 — CollaborationService hardening tests:
@@ -22,6 +23,8 @@ describe('CollaborationService (Sprint B2)', () => {
   let currentPartyId: WritableSignal<string | null>;
   let onlineUsers: WritableSignal<any[]>;
   let partyMembersSig: WritableSignal<any[]>;
+  let sessionSyncState: WritableSignal<any | null>;
+  let studioSessionEvents: WritableSignal<any[]>;
 
   const sent: string[] = [];
 
@@ -41,13 +44,22 @@ describe('CollaborationService (Sprint B2)', () => {
 
   const mockSocial = {
     sendPartyMessage: jest.fn((msg: string) => sent.push(msg)),
+    sendStudioSessionEvent: jest.fn((_sessionId: string, env: any) =>
+      sent.push(JSON.stringify(env))
+    ),
     roomMessages: () => roomMessages(),
+    studioSessionEvents: () => studioSessionEvents(),
+    sessionSyncState: () => sessionSyncState(),
     currentPartyId: () => currentPartyId(),
     onlineUsers: () => onlineUsers(),
     partyMembers: () => partyMembersSig(),
     createParty: jest.fn(),
+    createStudioSession: jest.fn(),
     joinParty: jest.fn(),
+    joinStudioSession: jest.fn(),
     leaveParty: jest.fn(),
+    leaveStudioSession: jest.fn(),
+    requestSessionSync: jest.fn(),
   };
 
   const mockAuth = {
@@ -75,6 +87,8 @@ describe('CollaborationService (Sprint B2)', () => {
     currentPartyId = signal<string | null>('studio_abcdef');
     onlineUsers = signal<any[]>([]);
     partyMembersSig = signal<any[]>([{ userId: 'user_me' }, { userId: 'p1' }, { userId: 'p2' }]);
+    sessionSyncState = signal<any | null>(null);
+    studioSessionEvents = signal<any[]>([]);
     TestBed.configureTestingModule({
       providers: [
         CollaborationService,
@@ -82,6 +96,10 @@ describe('CollaborationService (Sprint B2)', () => {
         { provide: SocialNetworkingService, useValue: mockSocial },
         { provide: AuthService, useValue: mockAuth },
         { provide: UserProfileService, useValue: mockProfile },
+        {
+          provide: ProjectService,
+          useValue: { currentProject: signal({ id: 'proj-1', name: 'Project 1' }) },
+        },
         { provide: LoggingService, useValue: { info: () => {}, warn: () => {}, system: () => {}, error: () => {} } },
         { provide: PeerNetworkingService, useValue: mockPeerNet },
       ],
@@ -89,6 +107,7 @@ describe('CollaborationService (Sprint B2)', () => {
     svc = TestBed.inject(CollaborationService);
     mockMk.loadProject.mockClear();
     mockSocial.sendPartyMessage.mockClear();
+    mockSocial.sendStudioSessionEvent.mockClear();
   });
 
   it('starts an idle session and exposes sessionCode + autoSync', () => {
@@ -98,8 +117,22 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('sendProjectUpdate stamps version + envelope with fromUserId+fromUserName+payload', () => {
+    svc.currentSession.set({
+      sessionId: 'abcdef',
+      partyKey: 'studio_abcdef',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      {
+        sessionId: 'abcdef',
+        userId: 'user_me',
+        role: 'host',
+        status: 'active',
+      },
+    ] as any);
     svc.sendProjectUpdate();
-    expect(mockSocial.sendPartyMessage).toHaveBeenCalled();
+    expect(mockSocial.sendStudioSessionEvent).toHaveBeenCalled();
     const msg = JSON.parse(sent[0]);
     expect(msg.type).toBe('PROJECT_SYNC');
     expect(msg.fromUserId).toBe('user_me');
@@ -110,7 +143,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('receive loopback drops messages from the same user', async () => {
-    svc.currentSession.set({ sessionId: 'abcdef', partyKey: 'studio_abcdef', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'abcdef',
+      partyKey: 'studio_abcdef',
+      projectId: 'proj-1',
+      participants: [],
+    });
     const echo: any = {
       roomId: 'studio_abcdef',
       fromUserId: 'user_me',
@@ -128,7 +166,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('receive applies messages from peers with a newer version', async () => {
-    svc.currentSession.set({ sessionId: 'abcdef', partyKey: 'studio_abcdef', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'abcdef',
+      partyKey: 'studio_abcdef',
+      projectId: 'proj-1',
+      participants: [],
+    });
     const fresh: any = {
       roomId: 'studio_abcdef',
       fromUserId: 'peer_a',
@@ -146,7 +189,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('receive coalesces a burst with the highest winning version', async () => {
-    svc.currentSession.set({ sessionId: 'abcdef', partyKey: 'studio_abcdef', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'abcdef',
+      partyKey: 'studio_abcdef',
+      projectId: 'proj-1',
+      participants: [],
+    });
     const v0 = Date.now() + 1000;
     roomMessages.set([
       {
@@ -177,13 +225,18 @@ describe('CollaborationService (Sprint B2)', () => {
 
   it('presence peerCount returns the party member count', () => {
     currentPartyId.set('studio_abcdef');
-    svc.currentSession.set({ sessionId: 'abcdef', partyKey: 'studio_abcdef', participants: [] });
-    partyMembersSig.set([
-      { userId: 'user_me' },
-      { userId: 'user_a' },
-      { userId: 'user_b' },
-      { userId: 'user_c' },
-    ]);
+    svc.currentSession.set({
+      sessionId: 'abcdef',
+      partyKey: 'studio_abcdef',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'abcdef', userId: 'user_me', role: 'host', status: 'active' },
+      { sessionId: 'abcdef', userId: 'user_a', role: 'editor', status: 'active' },
+      { sessionId: 'abcdef', userId: 'user_b', role: 'reviewer', status: 'active' },
+      { sessionId: 'abcdef', userId: 'user_c', role: 'viewer', status: 'active' },
+    ] as any);
     expect(svc.peerCount()).toBe(4);
   });
 
@@ -196,7 +249,15 @@ describe('CollaborationService (Sprint B2)', () => {
   // ── Sprint B2 Phase 2 — per-track diff + conflict + voice + cursors ──
 
   it('dispatchTrackDelta sends TRACK_DELTA_SYNC envelopes with fieldVersions', async () => {
-    svc.currentSession.set({ sessionId: 'd1', partyKey: 'studio_d1', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'd1',
+      partyKey: 'studio_d1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'd1', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
     await new Promise((r) => setTimeout(r, 5));
     svc.dispatchTrackDelta('tA', { id: 'tA', name: 'Lead', volume: 0.7 });
     expect(sent.length).toBeGreaterThan(0);
@@ -209,7 +270,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('handleTrackDelta applies without conflict when no local recent edits', async () => {
-    svc.currentSession.set({ sessionId: 'd2', partyKey: 'studio_d2', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'd2',
+      partyKey: 'studio_d2',
+      projectId: 'proj-1',
+      participants: [],
+    });
     const delta = {
       roomId: 'studio_d2',
       fromUserId: 'other_user',
@@ -233,7 +299,15 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('handleTrackDelta surfaces pendingConflicts on near-simultaneous edits', async () => {
-    svc.currentSession.set({ sessionId: 'd3', partyKey: 'studio_d3', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'd3',
+      partyKey: 'studio_d3',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'd3', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
     // Seed local edit (so local fieldVersion is recent).
     svc.dispatchTrackDelta('tY', { id: 'tY', name: 'Pad', volume: 0.3 });
     // Remote arrives within 800ms.
@@ -262,7 +336,15 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('resolveConflict(their) applies remote value and clears the entry', async () => {
-    svc.currentSession.set({ sessionId: 'd4', partyKey: 'studio_d4', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'd4',
+      partyKey: 'studio_d4',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'd4', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
     // Seed conflict.
     svc.dispatchTrackDelta('tZ', { id: 'tZ', name: 'Bass', pan: 0.2 });
     const delta = {
@@ -288,7 +370,15 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('voice invite flow dispatches VOICE_INVITE and accept calls peerNet.startCall', () => {
-    svc.currentSession.set({ sessionId: 'v1', partyKey: 'studio_v1', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'v1',
+      partyKey: 'studio_v1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'v1', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
     sent.length = 0;
     svc.inviteToVoice('peer_x');
     expect(sent.length).toBeGreaterThan(0);
@@ -306,7 +396,15 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('endVoice clears the voice peer rower and calls peerNet.endCall', () => {
-    svc.currentSession.set({ sessionId: 'v2', partyKey: 'studio_v2', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'v2',
+      partyKey: 'studio_v2',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    svc.sessionMembers.set([
+      { sessionId: 'v2', userId: 'user_me', role: 'host', status: 'active' },
+    ] as any);
     svc.inviteToVoice('peer_y');
     expect(svc.voicePeers()['peer_y']).toBeDefined();
     svc.endVoice('peer_y');
@@ -315,7 +413,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('publishCursor throttles to 80ms and applies normalized coords', () => {
-    svc.currentSession.set({ sessionId: 'c1', partyKey: 'studio_c1', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'c1',
+      partyKey: 'studio_c1',
+      projectId: 'proj-1',
+      participants: [],
+    });
     sent.length = 0;
     svc.publishCursor('studio', 0.4, 0.3);
     // First publish — should send.
@@ -331,7 +434,12 @@ describe('CollaborationService (Sprint B2)', () => {
   });
 
   it('handlePeerCursor stores incoming peer cursor in peerCursors signal', async () => {
-    svc.currentSession.set({ sessionId: 'c2', partyKey: 'studio_c2', participants: [] });
+    svc.currentSession.set({
+      sessionId: 'c2',
+      partyKey: 'studio_c2',
+      projectId: 'proj-1',
+      participants: [],
+    });
     const msg = {
       roomId: 'studio_c2',
       fromUserId: 'peer_z',
@@ -349,6 +457,36 @@ describe('CollaborationService (Sprint B2)', () => {
     expect(svc.peerCursors()['peer_z']).toBeDefined();
     expect(svc.peerCursors()['peer_z'].x).toBeCloseTo(0.6);
     expect(svc.peerCursors()['peer_z'].surface).toBe('studio');
+  });
+
+  it('derives viewer permissions from server-backed session sync', () => {
+    svc.currentSession.set({
+      sessionId: 'perm1',
+      partyKey: 'studio_perm1',
+      projectId: 'proj-1',
+      participants: [],
+    });
+    sessionSyncState.set({
+      session: { id: 'perm1', projectId: 'proj-1', status: 'active' },
+      members: [
+        {
+          sessionId: 'perm1',
+          userId: 'user_me',
+          role: 'viewer',
+          status: 'active',
+        },
+      ],
+      comments: [],
+      approvals: [],
+      asyncPackets: [],
+      remixLineage: [],
+    });
+
+    expect(svc.currentRole()).toBe('viewer');
+    expect(svc.can('edit')).toBe(false);
+    sent.length = 0;
+    svc.sendProjectUpdate();
+    expect(sent.length).toBe(0);
   });
 
 });

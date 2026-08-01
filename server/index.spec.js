@@ -199,4 +199,69 @@ describe('server/index.js backend smoke tests', () => {
     expect(response.status).toBe(200);
     expect(mockPoolQuery).toHaveBeenCalled();
   });
+
+  it('lists persisted studio sessions for an authenticated collaborator', async () => {
+    const baseUrl = await startServer();
+    const token = jwt.sign({ userId: 'user-1' }, process.env.JWT_SECRET);
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'sess-1',
+          project_id: 'proj-1',
+          created_by_id: 'user-1',
+          status: 'active',
+          metadata: { name: 'Session 1' },
+          created_at: 1,
+          updated_at: 2,
+        },
+      ],
+    });
+
+    const response = await requestJson(baseUrl, '/api/studio/sessions/proj-1', {
+      headers: {
+        Authorization: `******
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.json[0]).toEqual({
+      id: 'sess-1',
+      projectId: 'proj-1',
+      createdById: 'user-1',
+      status: 'active',
+      metadata: { name: 'Session 1' },
+      createdAt: 1,
+      updatedAt: 2,
+    });
+  });
+
+  it('lists remix lineage records for a project', async () => {
+    const baseUrl = await startServer();
+    const token = jwt.sign({ userId: 'user-1' }, process.env.JWT_SECRET);
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 'lineage-1',
+          remix_project_id: 'proj-1',
+          source_project_id: 'proj-0',
+          remixer_id: 'user-1',
+          lineage: [{ projectId: 'proj-0', remixerId: 'user-1' }],
+          depth: 1,
+          created_at: 10,
+          accepted_at: null,
+        },
+      ],
+    });
+
+    const response = await requestJson(baseUrl, '/api/remix/lineage/proj-1', {
+      headers: {
+        Authorization: `******
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.json[0].remixProjectId).toBe('proj-1');
+    expect(response.json[0].sourceProjectId).toBe('proj-0');
+    expect(response.json[0].lineage[0].projectId).toBe('proj-0');
+  });
 });

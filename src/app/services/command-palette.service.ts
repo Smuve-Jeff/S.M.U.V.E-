@@ -4,6 +4,7 @@ import { PlayerService } from './player.service';
 import { AiService } from './ai.service';
 import { NotificationService } from './notification.service';
 import { MainViewMode } from './user-context.service';
+import { StudioOrchestrationService } from './studio-orchestration.service';
 
 export interface CommandPaletteAction {
   id: string;
@@ -85,6 +86,7 @@ export class CommandPaletteService {
   private playerService = inject(PlayerService);
   private aiService = inject(AiService);
   private notificationService = inject(NotificationService);
+  private orchestration = inject(StudioOrchestrationService);
 
   isOpen = signal(false);
   showGuide = signal(false);
@@ -216,6 +218,10 @@ export class CommandPaletteService {
         keepOpen: true,
         run: () => this.openGuide(),
       },
+      ...this.orchestration.paletteActions().map((action) => ({
+        ...action,
+        context: action.context as MainViewMode[] | undefined,
+      })),
       ...recentActions,
       ...pinnedActions,
       ...navigationActions,

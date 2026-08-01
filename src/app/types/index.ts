@@ -6,3 +6,4 @@ export * from './artist-identity.types';
 export * from './game-telemetry.types';
 export * from './marketing.types';
 export * from './release.types';
+export * from './studio-orchestration.types';

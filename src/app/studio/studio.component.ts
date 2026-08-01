@@ -77,6 +77,7 @@ import {
   StudioTelemetryService,
 } from './studio-telemetry.service';
 import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
+import { StudioOrchestrationService } from '../services/studio-orchestration.service';
 
 type StudioView =
   | 'arrangement'
@@ -256,6 +257,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
   public readonly engineLatency = inject(AudioEngineLatencyService);
+  public readonly orchestration = inject(StudioOrchestrationService);
 
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
@@ -514,6 +516,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (view && isStudioView(view)) this.activeView.set(view);
     });
 
+    effect(() => {
+      this.orchestration.setActiveStudioView(this.activeView());
+    });
+
     // Restore 3-way theme preference from localStorage
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY) as AppTheme | null;
@@ -755,6 +761,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   copyShareLink() {
+    if (!this.collaboration.can('share')) {
+      this.snackbarService.error('Your session role does not allow sharing.');
+      return;
+    }
     const session = this.collaboration.currentSession();
     const sessionId = session?.sessionId;
     const project = this.projectService.currentProject();
@@ -1103,6 +1113,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Apply a specific AI mix suggestion to a track */
   applyMixSuggestion(suggestionId: string) {
+    if (!this.collaboration.can('edit')) {
+      this.snackbarService.error('Your session role is view-only for mix edits.');
+      return;
+    }
     const suggestion = this.aiMixAssistant
       .suggestions()
       .find((s) => s.id === suggestionId);

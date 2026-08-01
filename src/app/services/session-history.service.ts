@@ -24,6 +24,10 @@ import {
   ResolveRequest,
 } from '../types/merge.types';
 import { SessionGraph } from '../types/session-graph.types';
+import {
+  StudioApproval,
+  StudioComment,
+} from '../types/studio-orchestration.types';
 import { layoutSessionGraph } from '../utils/session-graph.util';
 import { canonicalize, djb2Hash } from '../utils/djb2-hash.util';
 import {
@@ -65,6 +69,8 @@ export class SessionHistoryService {
    * user resolves every marker (or auto-merges with no conflicts).
    */
   pendingMergeByProject = signal<Record<string, MergeResult | null>>({});
+  timelineCommentsByProject = signal<Record<string, StudioComment[]>>({});
+  timelineApprovalsByProject = signal<Record<string, StudioApproval[]>>({});
   /**
    * Sprint D4 — Auto-record on project save. When true, ProjectService
    * calls autoRecord() on every save; dedup (same canonical payload)
@@ -146,6 +152,28 @@ export class SessionHistoryService {
   activeBranch(projectId: string): string | null {
     return this.activeBranchByProject()[projectId] ?? null;
   }
+  timelineComments(projectId: string): StudioComment[] {
+    return this.timelineCommentsByProject()[projectId] ?? [];
+  }
+  timelineApprovals(projectId: string): StudioApproval[] {
+    return this.timelineApprovalsByProject()[projectId] ?? [];
+  }
+  commentsForCheckpoint(
+    projectId: string,
+    checkpointId: string
+  ): StudioComment[] {
+    return this.timelineComments(projectId).filter(
+      (comment) => comment.checkpointId === checkpointId
+    );
+  }
+  approvalsForCheckpoint(
+    projectId: string,
+    checkpointId: string
+  ): StudioApproval[] {
+    return this.timelineApprovals(projectId).filter(
+      (approval) => approval.checkpointId === checkpointId
+    );
+  }
   lineage(projectId: string, branchId: string): BranchLineage {
     return { branchId, checkpoints: this.checkpoints(projectId, branchId) };
   }
@@ -189,6 +217,21 @@ export class SessionHistoryService {
     branchId: string
   ): Promise<void> {
     this.setActive(projectId, branchId);
+  }
+
+  setTimelineReviewState(
+    projectId: string,
+    comments: StudioComment[],
+    approvals: StudioApproval[]
+  ): void {
+    this.timelineCommentsByProject.update((state) => ({
+      ...state,
+      [projectId]: [...comments].sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
+    this.timelineApprovalsByProject.update((state) => ({
+      ...state,
+      [projectId]: [...approvals].sort((a, b) => b.updatedAt - a.updatedAt),
+    }));
   }
 
   // ─── Write API ─────────────────────────────────────────────────────
