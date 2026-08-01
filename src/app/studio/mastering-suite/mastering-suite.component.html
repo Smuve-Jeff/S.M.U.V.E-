@@ -26,6 +26,16 @@
         Roast
       </button>
       <button
+        (click)="renderAndMaster()"
+        class="px-6 py-2 bg-emerald-500/90 tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
+        [disabled]="isRendering()"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1">
+          {{ isRendering() ? 'hourglass_top' : 'graphic_eq' }}
+        </span>
+        {{ isRendering() ? 'RENDERING…' : 'RENDER & MASTER' }}
+      </button>
+      <button
         (click)="processMastering()"
         class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all"
       >
@@ -33,6 +43,52 @@
       </button>
     </div>
   </header>
+
+  <!-- Sprint B1 Phase 2: real-render meters -->
+  <section
+    *ngIf="renderedPeak() !== null"
+    class="mb-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 p-4 flex flex-col gap-2"
+    aria-label="Real render mastering meters"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-emerald-400 text-sm"
+        >bolt</span
+      >
+      <span
+        class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.25em]"
+      >
+        Real Render · {{ renderedDuration() }}s · {{
+          renderedPluginCount()
+        }} plugin{{ renderedPluginCount() === 1 ? '' : 's' }}
+      </span>
+    </div>
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          True Peak
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedPeak()
+        }} dBFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          Integrated LUFS
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedLufs()
+        }} LUFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          RMS
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedRms()
+        }} dBFS</div>
+      </div>
+    </div>
+  </section>
 
   <!-- Genre selector for AI mastering -->
   <section class="mb-4" aria-label="Genre selector for AI Mastering">

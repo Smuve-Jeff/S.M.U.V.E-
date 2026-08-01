@@ -21,6 +21,11 @@
           }}</span>
           {{ wasmSupported() ? 'WebAssembly ready' : 'JS fallback kernels' }}
         </span>
+        <label class="ps-import-btn" title="Import a .smuveplugin file from the community">
+          <span class="material-symbols-outlined">file_open</span>
+          Import Plugin
+          <input type="file" accept=".smuveplugin,.json" (change)="importPlugin($event)" hidden />
+        </label>
       </div>
     </div>
   </header>
@@ -70,18 +75,61 @@
         </label>
       </div>
 
-      <button
-        type="button"
-        class="ps-toggle"
-        [class.ps-toggle-on]="isEnabled(plugin.id)"
-        (click)="toggle(plugin)"
-        [attr.aria-pressed]="isEnabled(plugin.id)"
-      >
-        <span class="material-symbols-outlined">{{
-          isEnabled(plugin.id) ? 'power_settings_new' : 'power_off'
-        }}</span>
-        {{ isEnabled(plugin.id) ? 'Enabled' : 'Enable' }}
-      </button>
+      <div class="ps-card-actions">
+        <button
+          type="button"
+          class="ps-toggle"
+          [class.ps-toggle-on]="isEnabled(plugin.id)"
+          (click)="toggle(plugin)"
+          [attr.aria-pressed]="isEnabled(plugin.id)"
+        >
+          <span class="material-symbols-outlined">{{
+            isEnabled(plugin.id) ? 'power_settings_new' : 'power_off'
+          }}</span>
+          {{ isEnabled(plugin.id) ? 'Enabled' : 'Enable' }}
+        </button>
+        <button
+          type="button"
+          class="ps-export-btn"
+          (click)="exportPlugin(plugin)"
+          title="Export as a shareable .smuveplugin file"
+        >
+          <span class="material-symbols-outlined">ios_share</span>
+          Share
+        </button>
+      </div>
     </article>
   </div>
+
+  <!-- Community catalog — plugins imported from .smuveplugin files -->
+  <section class="ps-community" *ngIf="community.length > 0" aria-label="Community plugins">
+    <h2 class="ps-community-title">
+      <span class="material-symbols-outlined">groups</span>
+      Community Plugins
+    </h2>
+    <div class="ps-community-list">
+      <div
+        *ngFor="let item of community"
+        class="ps-community-row"
+      >
+        <span class="ps-community-icon material-symbols-outlined">{{
+          item.manifest.icon || 'extension'
+        }}</span>
+        <div class="ps-community-copy">
+          <b>{{ item.manifest.name }}</b>
+          <small>{{ item.manifest.author }} · v{{ item.manifest.version }} · {{
+            item.manifest.category
+          }}</small>
+        </div>
+        <button
+          type="button"
+          class="ps-community-remove"
+          (click)="removeCommunity(item)"
+          title="Remove this community plugin"
+        >
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+    </div>
+  </section>
 </section>

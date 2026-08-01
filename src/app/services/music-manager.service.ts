@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
+import { PluginStoreService } from './plugin-store.service';
 import { InstrumentsService } from './instruments.service';
 import { StemSeparationService } from './stem-separation.service';
 import { IdeaRecipe } from './ideas-generator.service';
@@ -94,6 +95,8 @@ export interface TrackModel extends StudioTrack {
   notes: TrackNote[];
   steps: boolean[];
   fxSlots: FxSlot[];
+  /** Sprint B1 Phase 2 — WASM plugin inserts on this track's live chain. */
+  pluginIds?: string[];
   synthParams?: any;
   gain: number;
   sendA: number;
@@ -126,6 +129,7 @@ export class MusicManagerService {
   private projectService = inject(ProjectService);
   private history = inject(HistoryService);
   private instruments = inject(InstrumentsService);
+  private pluginStore = inject(PluginStoreService);
   private recordingEngine = inject(StudioRecordingEngineService);
   private stemSplitter = inject(StemSeparationService);
   private logger = inject(LoggingService);
@@ -333,6 +337,7 @@ export class MusicManagerService {
       notes: [],
       steps: new Array(64).fill(false),
       fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      pluginIds: [],
       sendA: 0,
       sendB: 0,
       color: '#af25f4',
@@ -345,6 +350,34 @@ export class MusicManagerService {
     this.tracks.update((ts) => [...ts, newTrack]);
     this.selectedTrackId.set(id);
     return id;
+  }
+
+  /**
+   * Sprint B1 Phase 2 — set a track's WASM plugin insert chain. Persists on
+   * the model and installs the live ScriptProcessor insert in the audio
+   * graph (kernels run on every render quantum while playing).
+   */
+  setTrackPlugins(trackId: string, pluginIds: string[]): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const prev = [...(t.pluginIds ?? [])];
+    const next = [...pluginIds];
+    this.runCommand(
+      'Edit WASM Chain · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: next } : x))
+        );
+        this.engine.installTrackPluginInsert(trackId, next);
+        this.pluginStore.preload(next);
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: prev } : x))
+        );
+        this.engine.installTrackPluginInsert(trackId, prev);
+      }
+    );
   }
 
   removeTrack(id: string) {

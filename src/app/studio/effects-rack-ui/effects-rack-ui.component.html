@@ -20,6 +20,45 @@
 
   <!-- Body -->
   <div class="er-body">
+    <!-- Sprint B1 Phase 2: WASM live insert chain -->
+    <section class="er-wasm" *ngIf="selectedTrack()" aria-label="WASM plugin inserts">
+      <div class="er-wasm-head">
+        <span class="material-symbols-outlined">extension</span>
+        <b>WASM Inserts</b>
+        <small>live DSP kernels</small>
+      </div>
+      <div class="er-wasm-chain">
+        <span
+          *ngFor="let id of trackPluginIds()"
+          class="er-wasm-chip"
+          title="Installed on this track's live chain"
+        >
+          <span class="material-symbols-outlined">bolt</span>
+          {{ id.split('.').slice(0, 2).join(' ') }}
+        </span>
+        <span class="er-wasm-empty" *ngIf="trackPluginIds().length === 0">
+          No WASM inserts — tap a plugin below
+        </span>
+      </div>
+      <div class="er-wasm-grid">
+        <button
+          *ngFor="let manifest of wasmCatalog"
+          type="button"
+          class="er-wasm-item"
+          [class.active]="hasPlugin(manifest.id)"
+          (click)="togglePluginInsert(manifest)"
+          [attr.aria-pressed]="hasPlugin(manifest.id)"
+          [attr.title]="manifest.name + ' — ' + manifest.description"
+        >
+          <span class="material-symbols-outlined">{{ manifest.icon }}</span>
+          <span class="er-wasm-item-name">{{ manifest.name }}</span>
+          <span class="er-wasm-item-badge">{{
+            hasPlugin(manifest.id) ? 'ON' : 'OFF'
+          }}</span>
+        </button>
+      </div>
+    </section>
+
     <!-- Slot list -->
     <nav class="er-slots" aria-label="Effect slots">
       <button

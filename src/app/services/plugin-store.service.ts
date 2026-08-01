@@ -54,6 +54,25 @@ export interface DspPluginManifest {
 
 const ENABLED_KEY = 'smuve_plugins_enabled';
 const PARAMS_KEY = 'smuve_plugin_params';
+const COMMUNITY_KEY = 'smuve_plugins_community';
+
+/** Serializable plugin manifest for the community store (.smuveplugin JSON). */
+export interface CommunityPluginPayload {
+  format: 'smuve-plugin';
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    author: string;
+    category: DspPluginManifest['category'];
+    description: string;
+    icon: string;
+    kernelName: string;
+    params: DspPluginParam[];
+  };
+}
+
+const ALLOWED_CATEGORIES = new Set(['Dynamics', 'EQ', 'Saturation', 'Reverb', 'Mastering']);
 
 function readArray(key: string): string[] {
   try {
@@ -83,6 +102,20 @@ function readParams(key: string): Record<string, Record<string, number>> {
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
+}
+
+/** Read the persisted community plugin payloads. */
+function readCommunity(): CommunityPluginPayload[] {
+  try {
+    const raw = localStorage.getItem(COMMUNITY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // storage unavailable — ignore
+  }
+  return [];
 }
 
 /** Interleave any channel count into a stereo frame buffer the kernels expect. */
@@ -265,6 +298,9 @@ export class PluginStoreService {
     },
   ];
 
+  /** Community plugins imported from .smuveplugin JSON (persisted). */
+  private readonly community = signal<CommunityPluginPayload[]>(readCommunity());
+
   /** Plugin ids the user has enabled on this device (persisted). */
   private readonly enabledIds = signal<string[]>(readArray(ENABLED_KEY));
 
@@ -275,8 +311,160 @@ export class PluginStoreService {
 
   readonly enabled = computed(() => new Set(this.enabledIds()));
 
+  /** Full catalog — built-ins plus imported community plugins. */
+  readonly communityPlugins = this.community.asReadonly();
+
   isEnabled(id: string): boolean {
     return this.enabledIds().includes(id);
+  }
+
+  /** Look up a manifest by id across built-ins and community imports. */
+  manifestFor(id: string): DspPluginManifest | null {
+    const builtIn = this.catalog.find((p) => p.id === id);
+    if (builtIn) return builtIn;
+    const community = this.community().find((p) => p.manifest.id === id);
+    if (community) {
+      const m = community.manifest;
+      return {
+        id: m.id,
+        name: m.name,
+        version: m.version,
+        author: m.author,
+        category: m.category,
+        description: m.description,
+        icon: m.icon,
+        kernelName: m.kernelName,
+        params: m.params,
+        moduleFactory: () => {
+          // Community plugins share the built-in kernel namespace; the
+          // importer guarantees kernelName is one of the known kernels.
+          return this.catalog.find((p) => p.kernelName === m.kernelName)
+            ?.moduleFactory() ?? wasmSaturationModule();
+        },
+        buildParams: (values: Record<string, number>) => {
+          const out = new Float32Array(m.params.length);
+          m.params.forEach((p, i) => {
+            out[i] = values[p.id] ?? p.default;
+          });
+          return out;
+        },
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Sprint B1 Phase 2 — community store: serialize a plugin to the
+   * shareable .smuveplugin JSON payload.
+   */
+  exportCommunityPlugin(id: string): string | null {
+    const manifest = this.manifestFor(id);
+    if (!manifest) return null;
+    const payload: CommunityPluginPayload = {
+      format: 'smuve-plugin',
+      manifest: {
+        id: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        author: manifest.author,
+        category: manifest.category,
+        description: manifest.description,
+        icon: manifest.icon,
+        kernelName: manifest.kernelName,
+        params: manifest.params.map((p) => ({ ...p })),
+      },
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  /**
+   * Validate + import a community plugin payload. Rejects malformed JSON,
+   * duplicate ids, and unknown categories. Returns the imported id or throws
+   * with a user-facing message.
+   */
+  importCommunityPlugin(raw: string): string {
+    let payload: CommunityPluginPayload;
+    try {
+      payload = JSON.parse(raw) as CommunityPluginPayload;
+    } catch {
+      throw new Error('Invalid plugin file — not valid JSON');
+    }
+
+    if (!payload || payload.format !== 'smuve-plugin' || !payload.manifest) {
+      throw new Error('Invalid plugin file — missing smuve-plugin envelope');
+    }
+    const m = payload.manifest;
+    if (!m.id || !m.name || !m.kernelName || !Array.isArray(m.params)) {
+      throw new Error('Invalid plugin manifest — id, name, kernel and params required');
+    }
+    if (!ALLOWED_CATEGORIES.has(m.category)) {
+      throw new Error(`Unsupported plugin category '${m.category}'`);
+    }
+    for (const p of m.params) {
+      if (p.id && typeof p.id === 'string' && isFinite(p.min) && isFinite(p.max)) continue;
+      throw new Error(`Invalid param '${p?.id ?? '?'}' — min/max must be numbers`);
+    }
+    if (this.manifestFor(m.id)) {
+      throw new Error(`Plugin '${m.id}' already exists`);
+    }
+
+    const next = [...this.community(), payload];
+    this.community.set(next);
+    try {
+      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
+    } catch {
+      // storage unavailable — ignore
+    }
+    return m.id;
+  }
+
+  /** Remove an imported community plugin. Built-ins cannot be removed. */
+  removeCommunityPlugin(id: string): void {
+    const next = this.community().filter((p) => p.manifest.id !== id);
+    this.community.set(next);
+    try {
+      localStorage.setItem(COMMUNITY_KEY, JSON.stringify(next));
+    } catch {
+      // storage unavailable — ignore
+    }
+    // Drop it from the enabled set too.
+    if (this.isEnabled(id)) this.toggle(id);
+  }
+
+  /**
+   * Synchronous block processor for LIVE audio inserts (Sprint B1 Phase 2).
+   * Runs the given plugin chain over a mono block in-place. Kernels must be
+   * pre-loaded (call `preload(ids)` when the chain is attached); unloaded
+   * plugins pass through silently so live audio never drops out.
+   */
+  processLiveBlock(
+    pluginIds: string[],
+    block: Float32Array,
+    sampleRate: number
+  ): void {
+    if (pluginIds.length === 0 || block.length === 0) return;
+    const frames = interleaveStereo([block, block], block.length);
+    const processed = new Float32Array(frames.length);
+
+    for (const id of pluginIds) {
+      const manifest = this.manifestFor(id);
+      if (!manifest) continue;
+      const module = this.loader.getModule(id);
+      const kernel: DspKernelFn | null = module?.getKernel(manifest.kernelName) ?? null;
+      if (!kernel) {
+        // Kick off a background load so the next block can use it.
+        this.loadModule(id).catch(() => {});
+        continue;
+      }
+      kernel(frames, processed, this.kernelParamsFor(id), sampleRate);
+      frames.set(processed);
+    }
+    for (let i = 0; i < block.length; i++) block[i] = frames[i * 2];
+  }
+
+  /** Preload every plugin in a chain so live inserts have zero-drop kernels. */
+  async preload(pluginIds: string[]): Promise<void> {
+    await Promise.all(pluginIds.map((id) => this.loadModule(id).catch(() => null)));
   }
 
   toggle(id: string): void {

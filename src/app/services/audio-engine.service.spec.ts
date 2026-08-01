@@ -272,6 +272,57 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
     });
   });
 
+  describe('installTrackPluginInsert (Sprint B1 Phase 2 live inserts)', () => {
+    it('installs a ScriptProcessor between rack and width for a non-empty chain', () => {
+      const sp = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        onaudioprocess: null,
+      };
+      const rack = { output: { disconnect: jest.fn(), connect: jest.fn() } };
+      const width = { connect: jest.fn() };
+      svc = makeBareEngine();
+      (svc as any).trackEffectsRacks = new Map([['t1', rack]]);
+      (svc as any).trackWidthNodes = new Map([['t1', width]]);
+      (svc as any).trackPluginInserts = new Map();
+      (svc as any).ctx = { createScriptProcessor: jest.fn(() => sp), sampleRate: 44100 };
+      (svc as any).trackPhaseNodes = new Map();
+      (svc as any).trackFaderGains = new Map();
+      (svc as any).trackOutputs = new Map();
+      (svc as any).trackSendAGains = new Map();
+      (svc as any).trackSendBGains = new Map();
+      (svc as any).getTrackOutput = jest.fn(() => ({}));
+
+      svc.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+      expect(rack.output.disconnect).toHaveBeenCalledWith(width);
+      expect(rack.output.connect).toHaveBeenCalledWith(sp);
+      expect(sp.connect).toHaveBeenCalledWith(width);
+      expect((svc as any).trackPluginInserts.get('t1')).toBe(sp);
+    });
+
+    it('removes the insert and restores direct routing for an empty chain', () => {
+      const sp = { connect: jest.fn(), disconnect: jest.fn(), onaudioprocess: null };
+      const rack = { output: { disconnect: jest.fn(), connect: jest.fn() } };
+      const width = { connect: jest.fn() };
+      svc = makeBareEngine();
+      (svc as any).trackEffectsRacks = new Map([['t1', rack]]);
+      (svc as any).trackWidthNodes = new Map([['t1', width]]);
+      (svc as any).trackPluginInserts = new Map([['t1', sp]]);
+      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
+      (svc as any).trackPhaseNodes = new Map();
+      (svc as any).trackFaderGains = new Map();
+      (svc as any).trackOutputs = new Map();
+      (svc as any).trackSendAGains = new Map();
+      (svc as any).trackSendBGains = new Map();
+      (svc as any).getTrackOutput = jest.fn(() => ({}));
+
+      svc.installTrackPluginInsert('t1', []);
+      expect(sp.disconnect).toHaveBeenCalled();
+      expect(rack.output.connect).toHaveBeenCalledWith(width);
+      expect((svc as any).trackPluginInserts.has('t1')).toBe(false);
+    });
+  });
+
   describe('scheduleOfflineNote (Sprint A6.5 real-synth offline render)', () => {
     it('builds the full voice graph (osc → filter → panner → vca → dest)', () => {
       const osc = {

@@ -127,6 +127,37 @@ describe('ExportService (Sprint A6)', () => {
     expect(String.fromCharCode(view[0], view[1], view[2], view[3])).toBe('RIFF');
   });
 
+  describe('mastering analysis (Phase 2)', () => {
+    it('analyzeBuffer reports peak, RMS, LUFS and duration', () => {
+      // 1s of 0.5 amplitude → peak -6 dBFS, RMS -6 dBFS, LUFS ≈ -2.
+      const data = new Float32Array(44100).fill(0.5);
+      const buffer: any = {
+        numberOfChannels: 1,
+        sampleRate: 44100,
+        length: 44100,
+        getChannelData: () => data,
+      };
+      const stats = svc.analyzeBuffer(buffer);
+      expect(stats.peakDb).toBeCloseTo(-6.02, 0);
+      expect(stats.rmsDb).toBeCloseTo(-6.02, 0);
+      expect(stats.lufs).toBeCloseTo(-2.02, 0);
+      expect(stats.durationSec).toBeCloseTo(1, 1);
+      expect(stats.sampleCount).toBe(44100);
+    });
+
+    it('analyzeBuffer handles silence without NaN', () => {
+      const buffer: any = {
+        numberOfChannels: 1,
+        sampleRate: 44100,
+        length: 10,
+        getChannelData: () => new Float32Array(10),
+      };
+      const stats = svc.analyzeBuffer(buffer);
+      expect(stats.peakDb).toBeCloseTo(-120, 0);
+      expect(Number.isNaN(stats.rmsDb)).toBe(false);
+    });
+  });
+
   describe('share sheet (Sprint A6.5)', () => {
     it('shareBlob falls back to download + clipboard when no Web Share API', async () => {
       // jsdom has no navigator.share → must fall back to a plain download.

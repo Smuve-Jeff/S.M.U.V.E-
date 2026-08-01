@@ -6,10 +6,14 @@ import { LoggingService } from './logging.service';
 describe('PluginStoreService (Sprint B1)', () => {
   let svc: PluginStoreService;
 
+  const loadedModules = new Map<string, any>();
   const mockLoader = {
-    loadModule: jest.fn((id: string, config: any) =>
-      Promise.resolve(config.jsFallback ? config.jsFallback() : null)
-    ),
+    loadModule: jest.fn((id: string, config: any) => {
+      const mod = config.jsFallback ? config.jsFallback() : null;
+      if (mod) loadedModules.set(id, mod);
+      return Promise.resolve(mod);
+    }),
+    getModule: jest.fn((id: string) => loadedModules.get(id) ?? null),
     wasmSupported: () => true,
   };
 
@@ -30,6 +34,7 @@ describe('PluginStoreService (Sprint B1)', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    loadedModules.clear();
     TestBed.configureTestingModule({
       providers: [
         PluginStoreService,
@@ -115,5 +120,116 @@ describe('PluginStoreService (Sprint B1)', () => {
     const buffer = fakeBuffer(1);
     const out = await svc.applyEnabledChain(buffer);
     expect(out).toBe(buffer);
+  });
+
+  describe('community store (Phase 2)', () => {
+    it('exports a shareable smuve-plugin payload', () => {
+      const json = svc.exportCommunityPlugin('smuve.saturation.v2');
+      expect(json).not.toBeNull();
+      const payload = JSON.parse(json!);
+      expect(payload.format).toBe('smuve-plugin');
+      expect(payload.manifest.id).toBe('smuve.saturation.v2');
+      expect(payload.manifest.params.length).toBe(3);
+    });
+
+    it('imports a valid community plugin and persists it', () => {
+      const id = svc.importCommunityPlugin(
+        JSON.stringify({
+          format: 'smuve-plugin',
+          manifest: {
+            id: 'smuve.chorus.v1',
+            name: 'Chorus',
+            version: '1.0.0',
+            author: 'Community',
+            category: 'Saturation',
+            description: 'Test chorus',
+            icon: 'chorus',
+            kernelName: 'process',
+            params: [{ id: 'mix', label: 'Mix', min: 0, max: 1, step: 0.01, default: 0.5 }],
+          },
+        })
+      );
+      expect(id).toBe('smuve.chorus.v1');
+      expect(svc.manifestFor('smuve.chorus.v1')).not.toBeNull();
+      expect(svc.communityPlugins().length).toBe(1);
+
+      const again = TestBed.inject(PluginStoreService);
+      expect(again.manifestFor('smuve.chorus.v1')).not.toBeNull();
+    });
+
+    it('rejects malformed payloads and duplicates', () => {
+      expect(() => svc.importCommunityPlugin('not json')).toThrow();
+      expect(() =>
+        svc.importCommunityPlugin(JSON.stringify({ format: 'other' }))
+      ).toThrow();
+      // Duplicate built-in id
+      expect(() =>
+        svc.importCommunityPlugin(
+          JSON.stringify({
+            format: 'smuve-plugin',
+            manifest: {
+              id: 'smuve.saturation.v2',
+              name: 'Clone',
+              version: '1.0.0',
+              author: 'X',
+              category: 'EQ',
+              description: 'dup',
+              icon: 'x',
+              kernelName: 'eq',
+              params: [],
+            },
+          })
+        )
+      ).toThrow('already exists');
+    });
+
+    it('removes community plugins (and their enabled state)', () => {
+      svc.importCommunityPlugin(
+        JSON.stringify({
+          format: 'smuve-plugin',
+          manifest: {
+            id: 'smuve.tmp.v1',
+            name: 'Tmp',
+            version: '1.0.0',
+            author: 'X',
+            category: 'EQ',
+            description: 'temp',
+            icon: 'x',
+            kernelName: 'eq',
+            params: [],
+          },
+        })
+      );
+      svc.toggle('smuve.tmp.v1');
+      expect(svc.isEnabled('smuve.tmp.v1')).toBe(true);
+      svc.removeCommunityPlugin('smuve.tmp.v1');
+      expect(svc.manifestFor('smuve.tmp.v1')).toBeNull();
+      expect(svc.isEnabled('smuve.tmp.v1')).toBe(false);
+    });
+  });
+
+  describe('live block processing (Phase 2)', () => {
+    it('passes a block through a preloaded plugin kernel in-place', async () => {
+      // Load the module first so processLiveBlock finds a kernel.
+      await svc.loadModule('smuve.saturation.v2');
+      const block = new Float32Array(64).fill(0.5);
+      const before = block.slice();
+      svc.processLiveBlock(['smuve.saturation.v2'], block, 44100);
+      let changed = 0;
+      for (let i = 0; i < block.length; i++) {
+        if (block[i] !== before[i]) changed++;
+      }
+      expect(changed).toBeGreaterThan(0);
+    });
+
+    it('passes through untouched when the chain is empty or unloaded', () => {
+      const block = new Float32Array(16).fill(0.25);
+      const copy = block.slice();
+      svc.processLiveBlock([], block, 44100);
+      expect(block).toEqual(copy);
+      // Unloaded plugin → silent pass-through (kicks off a background load).
+      svc.processLiveBlock(['smuve.eq.mastering.v2'], block, 44100);
+      expect(block).toEqual(copy);
+    });
   });
 });

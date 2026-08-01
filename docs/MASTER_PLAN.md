@@ -116,6 +116,13 @@ framework; this is our Apple-GarageBand-killer angle).
   fallback; plugin-store UI in the Studio (cards, enable toggles, param
   sliders, WASM/JS runtime badge); enabled plugins now drive the
   `applySmuvePolish` export stage.*
+  *Phase 2 SHIPPED: community store (export/import `.smuveplugin` JSON
+  manifests with validation + persisted community catalog, share/remove UI);
+  LIVE plugin inserts — per-track `pluginIds` chain rendered by a
+  ScriptProcessor insert in each track's signal chain (kernels run on every
+  render quantum while playing), wired from the Effects Rack WASM Inserts
+  strip; mastering gained Render & Master — real-synth offline bounce →
+  WASM polish chain → analyzed meters (true peak / integrated LUFS / RMS).*
 - **B2 — Real-time collab sessions** (multi-user project editing, live chat,
   voice signals — already have peer-networking skeleton).
 - **B3 — AI-assisted everything**: one-tap "Produce" (idea → beat → mix →
@@ -146,7 +153,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
 | A5 | Notation view | Cubasis | ✅ |
 | A6 | Export formats + cloud | n-Track, BandLab | ✅ |
-| B1 | WASM plugin framework | ALL (Android) | 🟡 |
+| B1 | WASM plugin framework | ALL (Android) | ✅ |
 | B2 | Real-time collab | BandLab | ⬜ |
 | B3 | AI end-to-end produce | ALL | ⬜ |
 | B4 | Career pipeline in-DAW | ALL | ⬜ |

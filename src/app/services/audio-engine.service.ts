@@ -178,6 +178,8 @@ export class AudioEngineService {
   private trackFaderGains = new Map<string, GainNode>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
   private trackEffectsRacks = new Map<string, DynamicEffectsRack>();
+  /** Sprint B1 Phase 2 — live WASM plugin insert ScriptProcessors per track. */
+  private trackPluginInserts = new Map<string, ScriptProcessorNode>();
 
   public tempo = signal(124.0);
   public isPlaying = signal(false);
@@ -1144,6 +1146,68 @@ export class AudioEngineService {
       this.trackEffectsRacks.set(trackId, rack);
     }
     return this.trackEffectsRacks.get(trackId)!;
+  }
+
+  /**
+   * Sprint B1 Phase 2 — live WASM plugin inserts.
+   * Inserts a ScriptProcessor between the track's effects rack and the width
+   * node so DSP kernels run on every render quantum while playing. An empty
+   * chain removes the insert and restores the direct rack → width routing.
+   *
+   * `getKernels` returns the loaded kernel closures for the track's plugins
+   * (or null when the chain is empty); the engine handles node wiring only.
+   */
+  installTrackPluginInsert(
+    trackId: string,
+    pluginIds: string[],
+    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
+  ): void {
+    this.getTrackOutput(trackId); // ensure signal chain exists
+    const rack = this.trackEffectsRacks.get(trackId);
+    const width = this.trackWidthNodes.get(trackId);
+    const insert = this.trackPluginInserts.get(trackId);
+    if (!rack || !width) return;
+
+    // Empty chain → remove any existing insert and restore direct routing.
+    if (pluginIds.length === 0) {
+      if (insert) {
+        try {
+          rack.output.disconnect(insert);
+          insert.disconnect();
+        } catch { /* already disconnected */ }
+        rack.output.connect(width);
+        this.trackPluginInserts.delete(trackId);
+      }
+      return;
+    }
+
+    if (insert) return; // already installed — chain changes rebuild on next pass
+
+    const sp = this.ctx.createScriptProcessor(512, 1, 1);
+    const kernelProvider = getKernels ?? (() => null);
+    sp.onaudioprocess = (e: AudioProcessingEvent) => {
+      const kernels = kernelProvider(pluginIds);
+      if (!kernels || kernels.length === 0) return;
+      const input = e.inputBuffer.getChannelData(0);
+      const output = e.outputBuffer.getChannelData(0);
+      const frames = new Float32Array(input.length * 2);
+      const processed = new Float32Array(input.length * 2);
+      for (let i = 0; i < input.length; i++) {
+        frames[i * 2] = input[i];
+        frames[i * 2 + 1] = input[i];
+      }
+      for (const kernel of kernels) {
+        if (!kernel) continue;
+        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
+        frames.set(processed);
+      }
+      for (let i = 0; i < output.length; i++) output[i] = frames[i * 2];
+    };
+
+    rack.output.disconnect(width);
+    rack.output.connect(sp);
+    sp.connect(width);
+    this.trackPluginInserts.set(trackId, sp);
   }
 
   updateTrack(id: string | number, patch: any) {

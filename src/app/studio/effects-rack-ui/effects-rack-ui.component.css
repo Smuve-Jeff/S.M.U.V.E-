@@ -11,6 +11,132 @@
   overflow: hidden;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Sprint B1 Phase 2 — WASM live insert strip
+   ═══════════════════════════════════════════════════════════ */
+.er-wasm {
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  background: var(--ivory-panel);
+  border: 1px dashed rgba(14, 124, 123, 0.35);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.er-wasm-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--teal-500);
+}
+
+.er-wasm-head .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.er-wasm-head small {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  letter-spacing: 0.08em;
+}
+
+.er-wasm-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+  align-items: center;
+}
+
+.er-wasm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: rgba(14, 124, 123, 0.15);
+  border: 1px solid rgba(14, 124, 123, 0.35);
+  color: var(--teal-500);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.er-wasm-chip .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.er-wasm-empty {
+  font-size: 10px;
+  color: var(--espresso-muted);
+  font-style: italic;
+}
+
+.er-wasm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.er-wasm-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--espresso-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.er-wasm-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+
+.er-wasm-item-name {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.er-wasm-item-badge {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.er-wasm-item:hover {
+  border-color: var(--teal-500);
+  color: var(--espresso-text);
+}
+
+.er-wasm-item.active {
+  background: rgba(14, 124, 123, 0.18);
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.er-wasm-item.active .er-wasm-item-badge {
+  color: var(--teal-500);
+}
+
 .er-shell {
   display: flex;
   flex-direction: column;

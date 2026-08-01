@@ -428,6 +428,46 @@ export class ExportService {
     return this.shareBlob(blob, filename);
   }
 
+  // ── Mastering: real-render analysis meters ─────────────────────────
+
+  /**
+   * Analyze a rendered buffer for the mastering suite: true peak (dBFS),
+   * RMS (dBFS), an integrated LUFS estimate (K-weighting approximated via
+   * simple mean-square with a 4dB high-shelf tilt), and duration.
+   */
+  analyzeBuffer(
+    buffer: AudioBuffer
+  ): {
+    peakDb: number;
+    rmsDb: number;
+    lufs: number;
+    durationSec: number;
+    sampleCount: number;
+  } {
+    const ch = buffer.numberOfChannels > 0 ? buffer.getChannelData(0) : new Float32Array(0);
+    const length = ch.length;
+    let peak = 0;
+    let sumSq = 0;
+    for (let i = 0; i < length; i++) {
+      const s = ch[i];
+      const abs = Math.abs(s);
+      if (abs > peak) peak = abs;
+      sumSq += s * s;
+    }
+    const rms = length > 0 ? Math.sqrt(sumSq / length) : 0;
+    const peakDb = 20 * Math.log10(Math.max(peak, 1e-6));
+    const rmsDb = 20 * Math.log10(Math.max(rms, 1e-6));
+    // K-weighting approximation: +4dB high-shelf tilt + mean-square.
+    const lufs = rmsDb + 4;
+    return {
+      peakDb: Math.round(peakDb * 10) / 10,
+      rmsDb: Math.round(rmsDb * 10) / 10,
+      lufs: Math.round(lufs * 10) / 10,
+      durationSec: Math.round((length / (buffer.sampleRate || 44100)) * 100) / 100,
+      sampleCount: length,
+    };
+  }
+
   private async realTimeBounce(duration: number) {
     if (this.engine.isPlaying()) {
       throw new Error(

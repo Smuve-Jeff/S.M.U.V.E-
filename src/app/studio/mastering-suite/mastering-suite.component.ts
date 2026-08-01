@@ -16,6 +16,9 @@ import { UIService } from '../../services/ui.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
+import { ExportService } from '../../services/export.service';
+import { PluginStoreService } from '../../services/plugin-store.service';
+import { MusicManagerService } from '../../services/music-manager.service';
 
 interface MasteringBand {
   id: number;
@@ -54,8 +57,57 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
   private aiMix = inject(AiMixAssistantService);
+  private exportService = inject(ExportService);
+  private pluginStore = inject(PluginStoreService);
+  private musicManager = inject(MusicManagerService);
   masteringRoast = signal<string>('Analyzing dynamics...');
   public uiService = inject(UIService);
+
+  // ── Sprint B1 Phase 2 — real-render mastering meters ────────────
+  renderedPeak = signal<number | null>(null);
+  renderedLufs = signal<number | null>(null);
+  renderedRms = signal<number | null>(null);
+  renderedDuration = signal<number | null>(null);
+  renderedPluginCount = signal(0);
+  isRendering = signal(false);
+
+  /**
+   * Sprint B1 Phase 2 — Render & Master: bounce the arrangement offline with
+   * the REAL synth voice graph, run the enabled WASM plugin chain as polish,
+   * then analyze the result into true meters (peak / LUFS / RMS / duration).
+   */
+  async renderAndMaster(): Promise<void> {
+    if (this.isRendering()) return;
+    this.isRendering.set(true);
+    try {
+      this.masteringRoast.set('Bouncing real synth voices offline…');
+      const raw = await this.exportService.renderProjectOffline();
+      this.masteringRoast.set('Applying WASM plugin chain…');
+      const polished = await this.exportService.applySmuvePolish(raw);
+      const stats = this.exportService.analyzeBuffer(polished);
+      this.renderedPeak.set(stats.peakDb);
+      this.renderedLufs.set(stats.lufs);
+      this.renderedRms.set(stats.rmsDb);
+      this.renderedDuration.set(stats.durationSec);
+      const enabled = this.pluginStore
+        .catalog
+        .filter((p) => this.pluginStore.isEnabled(p.id))
+        .map((p) => p.name);
+      this.renderedPluginCount.set(enabled.length);
+      this.masteringRoast.set(
+        `Real render done · ${stats.durationSec}s · peak ${stats.peakDb} dBFS · ${stats.lufs} LUFS${enabled.length ? ' · chain: ' + enabled.join(' → ') : ''}`
+      );
+      this.smartAssistSuggestion.set(
+        enabled.length
+          ? `Rendered with ${enabled.length} WASM plugin${enabled.length > 1 ? 's' : ''} in the polish chain`
+          : 'Rendered with real synth voices — enable WASM plugins in the Plugin Store to add polish'
+      );
+    } catch (err: any) {
+      this.masteringRoast.set('Render failed · ' + (err?.message ?? 'unknown error'));
+    } finally {
+      this.isRendering.set(false);
+    }
+  }
 
   /** Selected genre for AI mastering (null = auto-detect) */
   readonly availableGenres = [
