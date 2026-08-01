@@ -277,6 +277,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | C3 | Onboarding | BandLab | ✅ |
 | D1 | Cloud Sync / Cross-device project sync | BandLab, n-Track | ✅ |
 | D2 | Session replay + project version history | Cubasis (sessions), FL Mobile (alt take history) | ✅ |
+| D3 | Branching & merge (3-way merge + rebase + cherry-pick) | Git CLI metaphor (all DAWs) | ✅ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |

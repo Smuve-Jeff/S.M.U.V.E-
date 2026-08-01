@@ -224,6 +224,181 @@
       </div>
     </article>
 
+    <!-- SPRINT D3 — MERGE / REBASE / CHERRY-PICK -->
+    <article class="sh-card sh-merge" aria-labelledby="sh-merge-title">
+      <header class="sh-card-head">
+        <h2 id="sh-merge-title">Branch operations</h2>
+        <span class="sh-pill">
+          {{ pendingMerge() ? 'CONFLICT' : 'IDLE' }}
+        </span>
+      </header>
+
+      <!-- Conflict modal (D3) -->
+      <ng-container *ngIf="pendingMerge() as pending">
+        <p class="sh-empty" style="border-color: rgba(255, 184, 0, 0.5);">
+          {{ pending.conflicts.length }} conflict{{
+            pending.conflicts.length === 1 ? '' : 's'
+          }} need resolution before the merge can complete.
+        </p>
+        <div class="sh-conflict-resolver">
+          <div
+            class="sh-conflict-row"
+            *ngFor="let marker of pending.conflicts; trackBy: trackById"
+          >
+            <div class="sh-conflict-head">
+              <span class="sh-mono">{{ marker.field }}</span>
+              <span class="sh-mute">
+                base <code>{{ marker.base | json }}</code>
+              </span>
+            </div>
+            <div class="sh-conflict-picks">
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'mine' || !conflictPicks()[marker.field]"
+                  (change)="pickConflict(marker, 'mine')"
+                />
+                <span>Mine <code>{{ marker.mine | json }}</code></span>
+              </label>
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'theirs'"
+                  (change)="pickConflict(marker, 'theirs')"
+                />
+                <span>Theirs <code>{{ marker.theirs | json }}</code></span>
+              </label>
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'custom'"
+                  (change)="pickConflict(marker, 'custom')"
+                />
+                <span>Custom</span>
+                <input
+                  type="text"
+                  class="sh-pick-input"
+                  placeholder="value (JSON)"
+                  [disabled]="conflictPicks()[marker.field]?.pick !== 'custom'"
+                  (input)="customConflictValue(marker, $any($event.target).value)"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="sh-action-row">
+            <button
+              type="button"
+              class="sh-btn sh-btn-primary"
+              (click)="submitResolve()"
+            >Resolve &amp; commit</button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Three-way merge form -->
+      <fieldset class="sh-fieldset" *ngIf="!pendingMerge()">
+        <legend>3-way merge</legend>
+        <div class="sh-field">
+          <span class="sh-field-label">Source branch</span>
+          <select
+            [ngModel]="mergeSource()"
+            (ngModelChange)="setMergeSource($event)"
+            aria-label="Source branch"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Target branch</span>
+          <select
+            [ngModel]="mergeTarget()"
+            (ngModelChange)="setMergeTarget($event)"
+            aria-label="Target branch"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn sh-btn-primary"
+            (click)="runMerge()"
+            [disabled]="!mergeSource() || !mergeTarget() || mergeSource() === mergeTarget()"
+          >Three-way merge</button>
+          <button
+            type="button"
+            class="sh-btn"
+            (click)="runRebase()"
+            [disabled]="!mergeSource() || !mergeTarget() || mergeSource() === mergeTarget()"
+          >Rebase → target</button>
+        </div>
+      </fieldset>
+
+      <!-- Cherry-pick form -->
+      <fieldset class="sh-fieldset" *ngIf="!pendingMerge()">
+        <legend>Cherry-pick</legend>
+        <div class="sh-field">
+          <span class="sh-field-label">Source branch</span>
+          <select
+            [ngModel]="mergeSource()"
+            (ngModelChange)="setMergeSource($event)"
+            aria-label="Source branch for cherry-pick"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Source checkpoint</span>
+          <select
+            [ngModel]="cherryPickSourceCheckpoint()"
+            (ngModelChange)="setCherryPickSourceCheckpoint($event)"
+            aria-label="Checkpoint on source branch"
+          >
+            <option value="">— pick checkpoint —</option>
+            <option
+              *ngFor="let cp of checkpoints(); trackBy: trackByCheckpoint"
+              [value]="cp.id"
+            >
+              {{ cp.label }} · {{ cp.id | slice: 0: 10 }}…
+            </option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Target branch</span>
+          <select
+            [ngModel]="cherryPickTarget()"
+            (ngModelChange)="setCherryPickTarget($event)"
+            aria-label="Target branch for cherry-pick"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn"
+            (click)="runCherryPick()"
+            [disabled]="!mergeSource() || !cherryPickSourceCheckpoint() || !cherryPickTarget()"
+          >Cherry-pick onto target</button>
+        </div>
+      </fieldset>
+    </article>
+
     <!-- CLOUD RESTORE -->
     <article class="sh-card sh-cloud" aria-labelledby="sh-cloud-title">
       <header class="sh-card-head">

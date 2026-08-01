@@ -349,3 +349,98 @@
   border-radius: 6px;
 }
 .sh-arrow { color: #ffb800; font-weight: 900; }
+
+/* Sprint D3 — Merge / Rebase / Cherry-pick */
+.sh-merge {
+  border-color: rgba(255, 184, 0, 0.4);
+  grid-column: 1 / -1;
+}
+.sh-fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+.sh-fieldset legend {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ffb800;
+  padding: 0 6px;
+}
+.sh-fieldset select {
+  width: 100%;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  background: rgba(8, 10, 18, 0.7);
+  color: #f5efe0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 9px 11px;
+  outline: none;
+  appearance: none;
+}
+.sh-fieldset select:focus {
+  border-color: #ffb800;
+  box-shadow: 0 0 0 2px rgba(255, 184, 0, 0.18);
+}
+.sh-conflict-resolver {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sh-conflict-row {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 184, 0, 0.08);
+  border: 1px solid rgba(255, 184, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sh-conflict-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sh-conflict-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sh-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #f5efe0;
+  flex-wrap: wrap;
+}
+.sh-pick input[type='radio'] {
+  accent-color: #ffb800;
+}
+.sh-pick code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: #ffb800;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.sh-pick-input {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  background: rgba(8, 10, 18, 0.7);
+  color: #f5efe0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 8px;
+  outline: none;
+  flex: 1;
+  min-width: 140px;
+}
+.sh-pick-input:disabled { opacity: 0.5; }

@@ -11,6 +11,11 @@ import {
   SessionCheckpoint,
 } from '../../types/session-history.types';
 import { RemoteSnapshot } from '../../types/cloud-sync.types';
+import {
+  ConflictMarker,
+  ConflictResolution,
+  MergeResult,
+} from '../../types/merge.types';
 
 @Component({
   selector: 'app-session-timeline',
@@ -32,6 +37,16 @@ export class SessionTimelineComponent {
   );
   readonly replayIndex = signal<number>(0);
   readonly isReplaying = signal<boolean>(false);
+
+  // ─── Sprint D3 — Merge / Rebase / Cherry-pick controls ────────────
+  readonly mergeSource = signal<string>('');
+  readonly mergeTarget = signal<string>('');
+  readonly cherryPickSourceCheckpoint = signal<string>('');
+  readonly cherryPickTarget = signal<string>('');
+  /** Pending conflict resolution picks — one entry per ConflictMarker. */
+  readonly conflictPicks = signal<
+    Record<string, ConflictResolution>
+  >({});
   private replayTimer: ReturnType<typeof setInterval> | null = null;
 
   readonly branches = computed<SessionBranch[]>(() =>
@@ -76,9 +91,26 @@ export class SessionTimelineComponent {
     this.cloud.cloudProjects()
   );
 
+  /**
+   * The currently-active (per-project) pending merge — drives the
+   * conflict-resolution modal. Null when the user has no open merge.
+   */
+  readonly pendingMerge = computed<MergeResult | null>(() =>
+    this.history.pendingMergeByProject()[this.projectId()] ?? null
+  );
+
   constructor() {
     // Touch the cloud snapshot index so the restore button has data.
     this.cloud.refresh();
+    // Pre-populate merge selectors with anything we already know about.
+    queueMicrotask(() => {
+      const list = this.branches();
+      if (list.length >= 2) {
+        this.mergeSource.set(list[list.length - 1].id);
+        this.mergeTarget.set(list[0].id);
+        this.cherryPickTarget.set(list[0].id);
+      }
+    });
   }
 
   goBack(): void {
@@ -168,4 +200,107 @@ export class SessionTimelineComponent {
 
   trackById = (_: number, item: { id: string }): string => item.id;
   trackByCheckpoint = (_: number, item: SessionCheckpoint): string => item.id;
+
+  // ─── Sprint D3 — Merge / Rebase / Cherry-pick actions ─────────────
+
+  setMergeSource(branchId: string): void {
+    this.mergeSource.set(branchId);
+  }
+  setMergeTarget(branchId: string): void {
+    this.mergeTarget.set(branchId);
+  }
+  setCherryPickTarget(branchId: string): void {
+    this.cherryPickTarget.set(branchId);
+  }
+  setCherryPickSourceCheckpoint(cpId: string): void {
+    this.cherryPickSourceCheckpoint.set(cpId);
+  }
+
+  async runMerge(): Promise<void> {
+    if (!this.mergeSource() || !this.mergeTarget()) return;
+    const result = await this.history.threeWayMerge(
+      this.projectId(),
+      this.mergeSource(),
+      this.mergeTarget()
+    );
+    if (result?.status === 'conflicts') {
+      // Pre-seed the conflict-picks with 'mine' default so the user
+      // can submit immediately if they like the default.
+      const picks: Record<string, ConflictResolution> = {};
+      result.conflicts.forEach((m) => {
+        picks[m.field] = { field: m.field, pick: 'mine' };
+      });
+      this.conflictPicks.set(picks);
+    }
+  }
+
+  pickConflict(
+    marker: ConflictMarker,
+    pick: 'mine' | 'theirs' | 'custom',
+    customValue?: unknown
+  ): void {
+    this.conflictPicks.update((m) => ({
+      ...m,
+      [marker.field]: { field: marker.field, pick, value: customValue },
+    }));
+  }
+
+  customConflictValue(marker: ConflictMarker, value: string): void {
+    const trimmed = value.trim();
+    let parsed: unknown = trimmed;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      // Hold raw text as-is if it isn't valid JSON.
+    }
+    this.pickConflict(marker, 'custom', parsed);
+  }
+
+  async submitResolve(): Promise<void> {
+    const pending = this.pendingMerge();
+    if (!pending) return;
+    const resolutions: ConflictResolution[] = pending.conflicts.map((c) => {
+      const pick = this.conflictPicks()[c.field];
+      if (!pick) return { field: c.field, pick: 'mine' as const };
+      return pick;
+    });
+    await this.history.resolveConflicts({
+      projectId: pending.projectId,
+      mergeCheckpointId: pending.mergeCheckpointId,
+      resolutions,
+    });
+    this.conflictPicks.set({});
+  }
+
+  async runRebase(): Promise<void> {
+    if (!this.mergeSource() || !this.mergeTarget()) return;
+    await this.history.rebase(
+      this.projectId(),
+      this.mergeSource(),
+      this.mergeTarget()
+    );
+  }
+
+  async runCherryPick(): Promise<void> {
+    if (
+      !this.mergeSource() ||
+      !this.cherryPickSourceCheckpoint() ||
+      !this.cherryPickTarget()
+    ) {
+      return;
+    }
+    const result = await this.history.cherryPick(
+      this.projectId(),
+      this.mergeSource(),
+      this.cherryPickSourceCheckpoint(),
+      this.cherryPickTarget()
+    );
+    if (result?.status === 'conflict') {
+      const picks: Record<string, ConflictResolution> = {};
+      result.conflicts.forEach((c) => {
+        picks[c.field] = { field: c.field, pick: 'mine' };
+      });
+      this.conflictPicks.set(picks);
+    }
+  }
 }
