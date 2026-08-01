@@ -25,6 +25,7 @@ export type MainViewMode =
   | 'login'
   | 'projects'
   | 'release-pipeline'
+  | 'produce'
   | 'lyric-editor'
   | 'remix-arena'
   | 'image-video-lab'

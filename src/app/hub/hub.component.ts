@@ -85,6 +85,15 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   ];
   featureSpotlights: LandingFeature[] = [
     {
+      route: 'produce',
+      category: 'AI Produce',
+      title: 'One-Tap Produce — idea → beat → master',
+      description:
+        'Type a vibe. The orchestrator pulls the AI Beat Generator, Songwriting Assistant, AI Mix Master, and release pipeline into a single run.',
+      points: ['B3 · one-tap pipeline', 'Idea → beat → lyrics → master → release'],
+      icon: 'auto_awesome',
+    },
+    {
       route: 'studio',
       category: 'Production',
       title: 'The Booth — full studio & deck control',

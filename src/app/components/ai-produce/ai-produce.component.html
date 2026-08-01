@@ -1,0 +1,335 @@
+<div class="ai-produce-shell">
+  <header class="hero">
+    <div class="hero-meta">
+      <span class="chip">Sprint B3 · AI Produce</span>
+      <span class="chip chip-ghost">one-tap · {{ stageLabel() }}</span>
+    </div>
+    <h1 class="hero-title">One-Tap Produce</h1>
+    <p class="hero-sub">
+      Drop a prompt. Get an <strong>idea → beat → lyrics → master → release
+      checklist</strong> in one pass. Stay in control — apply what you love,
+      re-run what you don't.
+    </p>
+
+    <div class="progress">
+      <div class="progress-track" role="progressbar"
+        [attr.aria-valuenow]="produce.progress()"
+        aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-fill"
+          [style.width.%]="produce.progress()"
+          [class.is-error]="produce.stage() === 'error'"
+          [class.is-cancelled]="produce.stage() === 'cancelled'">
+        </div>
+      </div>
+      <div class="progress-meta">
+        <span>{{ produce.progress() | number: '1.0-0' }}%</span>
+        <span class="progress-label">{{ produce.progressLabel() }}</span>
+      </div>
+    </div>
+
+    <div class="stage-pills">
+      <span
+        *ngFor="let stage of stageOrder; let i = index"
+        class="stage-pill"
+        [class.is-done]="stageDone(stage)"
+        [class.is-active]="stageIndex() === i"
+        [class.is-final]="stage === 'done' && stageIndex() === i">
+        <span class="stage-pill-index">{{ i + 1 }}</span>
+        <span class="stage-pill-label">{{ stage }}</span>
+      </span>
+    </div>
+  </header>
+
+  <section class="form-card">
+    <div class="form-header">
+      <h2>STEP 0 · Idea Input</h2>
+      <p>Type the vibe. The orchestrator handles the rest.</p>
+    </div>
+
+    <div class="form-grid">
+      <label class="field field-grow">
+        <span class="field-label">Prompt</span>
+        <input
+          type="text"
+          [ngModel]="form().prompt"
+          (ngModelChange)="updateForm('prompt', $event)"
+          placeholder="e.g. midnight rooftop with a heavy 808 swing"
+          autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span class="field-label">Genre</span>
+        <select
+          [ngModel]="form().genre"
+          (ngModelChange)="updateForm('genre', $event)">
+          <option *ngFor="let g of genres" [value]="g.value">
+            {{ g.emoji }} {{ g.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Mood</span>
+        <select
+          [ngModel]="form().mood"
+          (ngModelChange)="updateForm('mood', $event)">
+          <option *ngFor="let m of moods" [value]="m.value">{{ m.label }}</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Title Override</span>
+        <input
+          type="text"
+          [ngModel]="form().title"
+          (ngModelChange)="updateForm('title', $event)"
+          placeholder="Optional">
+      </label>
+
+      <label class="field">
+        <span class="field-label">BPM Override</span>
+        <input
+          type="number"
+          min="40"
+          max="200"
+          [ngModel]="form().bpm ?? null"
+          [ngModelOptions]="{ updateOn: 'change' }"
+          (ngModelChange)="updateBpm($event)"
+          placeholder="Auto">
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!canRun()"
+        (click)="run()">
+        <i class="fas fa-bolt"></i>
+        {{ produce.isRunning() ? 'Producing...' : 'Run AI Produce' }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        [disabled]="!produce.isRunning()"
+        (click)="cancel()">
+        <i class="fas fa-stop"></i>
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        [disabled]="produce.isRunning() || !produce.hasArtifacts()"
+        (click)="reset()">
+        <i class="fas fa-rotate-left"></i>
+        Reset
+      </button>
+    </div>
+  </section>
+
+  <section class="stages">
+    <article class="stage-card stage-idea">
+      <div class="stage-card-head">
+        <span class="stage-num">1</span>
+        <h3>Idea</h3>
+        <span class="stage-status"
+          [class.is-done]="!!produce.currentIdea() && stageDone('idea')">
+          {{ produce.currentIdea() ? 'Generated' : 'Pending' }}
+        </span>
+      </div>
+      <div class="stage-card-body" *ngIf="produce.currentIdea() as idea; else ideaEmpty">
+        <div class="idea-grid">
+          <div>
+            <span class="meta-label">Title</span>
+            <span class="meta-value">{{ idea.title }}</span>
+          </div>
+          <div>
+            <span class="meta-label">Genre</span>
+            <span class="meta-value">{{ idea.genre }}</span>
+          </div>
+          <div>
+            <span class="meta-label">BPM</span>
+            <span class="meta-value">{{ idea.bpm }}</span>
+          </div>
+          <div>
+            <span class="meta-label">Key</span>
+            <span class="meta-value">{{ idea.key }}</span>
+          </div>
+          <div>
+            <span class="meta-label">Mood</span>
+            <span class="meta-value">{{ idea.mood }}</span>
+          </div>
+          <div>
+            <span class="meta-label">Energy</span>
+            <span class="meta-value">{{ idea.energy | number: '1.0-0' }}/1</span>
+          </div>
+        </div>
+        <div class="theme-row">
+          <span class="meta-label">Theme</span>
+          <p class="meta-theme">"{{ idea.theme }}"</p>
+        </div>
+      </div>
+      <ng-template #ideaEmpty>
+        <p class="stage-empty">Run AI Produce to synthesize the idea envelope.</p>
+      </ng-template>
+    </article>
+
+    <article class="stage-card stage-beat">
+      <div class="stage-card-head">
+        <span class="stage-num">2</span>
+        <h3>Beat</h3>
+        <span class="stage-status"
+          [class.is-done]="!!produce.currentBeat() && stageDone('beat')">
+          {{ produce.currentBeat() ? 'Drafted' : 'Pending' }}
+        </span>
+      </div>
+      <div class="stage-card-body" *ngIf="produce.currentBeat() as beat; else beatEmpty">
+        <div class="beat-headline">
+          <h4>{{ beat.drums.name }}</h4>
+          <span>{{ beat.genre }} · {{ beat.totalBars }} bars · {{ beat.estimatedDuration }}</span>
+        </div>
+        <ul class="arrangement-list">
+          <li *ngFor="let section of beat.arrangement">
+            <span class="arr-name">{{ section.name }}</span>
+            <span class="arr-bars">{{ section.bars }} bars</span>
+            <span class="arr-energy">
+              <span class="energy-bar"
+                [style.width.%]="(section.energy * 100)"></span>
+            </span>
+            <span class="arr-desc">{{ section.description }}</span>
+          </li>
+        </ul>
+        <div class="chord-line">
+          <span class="meta-label">Chords</span>
+          <span class="meta-value chord-list">
+            <span *ngFor="let c of beat.chords; let last = last"
+              class="chord-tag">
+              {{ c.chord }}<span *ngIf="!last"> ·</span>
+            </span>
+          </span>
+        </div>
+      </div>
+      <ng-template #beatEmpty>
+        <p class="stage-empty">Beat arrangement materializes after stage 1.</p>
+      </ng-template>
+    </article>
+
+    <article class="stage-card stage-lyrics">
+      <div class="stage-card-head">
+        <span class="stage-num">3</span>
+        <h3>Lyrics</h3>
+        <span class="stage-status"
+          [class.is-done]="!!produce.currentLyrics() && stageDone('lyrics')">
+          {{ produce.currentLyrics() ? 'Drafted' : 'Pending' }}
+        </span>
+      </div>
+      <div class="stage-card-body" *ngIf="produce.currentLyrics() as lyrics; else lyricsEmpty">
+        <div *ngFor="let section of lyrics.lyrics" class="lyric-section">
+          <h4>{{ section.type | uppercase }}</h4>
+          <p *ngFor="let line of section.lines" class="lyric-line">
+            {{ line.text }}
+          </p>
+        </div>
+        <div class="chord-line" *ngIf="lyrics.chordProgressions?.length">
+          <span class="meta-label">Chord Set</span>
+          <span class="meta-value">{{ lyrics.chordProgressions[0]?.name }} — {{ lyrics.chordProgressions[0]?.usage }}</span>
+        </div>
+      </div>
+      <ng-template #lyricsEmpty>
+        <p class="stage-empty">Verse + chorus + bridge outlined after stage 2.</p>
+      </ng-template>
+    </article>
+
+    <article class="stage-card stage-master">
+      <div class="stage-card-head">
+        <span class="stage-num">4</span>
+        <h3>Mix + Master</h3>
+        <span class="stage-status"
+          [class.is-done]="produce.currentMixReport().length > 0 && stageDone('mix-master')">
+          {{ produce.currentMixReport().length > 0 ? 'Ready' : 'Pending' }}
+        </span>
+      </div>
+      <div class="stage-card-body">
+        <ul class="master-report" *ngIf="produce.currentMixReport().length > 0; else masterEmpty">
+          <li *ngFor="let line of produce.currentMixReport()">{{ line }}</li>
+        </ul>
+        <ng-template #masterEmpty>
+          <p class="stage-empty">Genre-specific mastering analysis runs after stage 3.</p>
+        </ng-template>
+      </div>
+    </article>
+
+    <article class="stage-card stage-release">
+      <div class="stage-card-head">
+        <span class="stage-num">5</span>
+        <h3>Release</h3>
+        <span class="stage-status"
+          [class.is-done]="!!produce.appliedReleaseId() && stageDone('release')">
+          {{ produce.appliedReleaseId() ? 'Initialized' : 'Pending' }}
+        </span>
+      </div>
+      <div class="stage-card-body">
+        <p *ngIf="produce.appliedReleaseId() as rid" class="release-line">
+          <span class="meta-label">Release ID</span>
+          <span class="meta-value mono">{{ rid }}</span>
+        </p>
+        <p *ngIf="!produce.appliedReleaseId()" class="stage-empty">
+          A release row + per-track stage statuses seed automatically.
+        </p>
+        <button class="link-btn"
+          *ngIf="produce.appliedReleaseId()"
+          (click)="goToRelease()">
+          Open release pipeline →
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <section class="apply-card" *ngIf="produce.stage() === 'done'">
+    <div class="apply-card-head">
+      <h2>APPLY · One tap to commit the run</h2>
+      <p>Lands the AI-recommended tracks in your studio and routes you to the arrangement view.</p>
+    </div>
+    <div class="apply-card-actions">
+      <button
+        type="button"
+        class="btn btn-primary btn-xl"
+        [disabled]="!canApply()"
+        (click)="applyToProject()">
+        <i class="fas fa-arrow-right"></i>
+        {{ produce.appliedTrackIds().length > 0
+          ? 'Already applied (' + produce.appliedTrackIds().length + ' tracks)'
+          : 'Apply ' + (produce.currentIdea()?.title || 'Produce') + ' to Studio' }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-ghost"
+        (click)="goToRelease()">
+        View Release Pipeline
+      </button>
+    </div>
+  </section>
+
+  <section class="log-card" *ngIf="produce.log().length > 0">
+    <div class="log-header" (click)="reset">
+      <h3>Pipeline Log</h3>
+      <span>{{ produce.log().length }} entries</span>
+    </div>
+    <ul class="log-list">
+      <li *ngFor="let entry of produce.log()" class="log-entry"
+        [attr.data-stage]="entry.stage">
+        <span class="log-time">{{ formatStamp(entry.timestamp) }}</span>
+        <span class="log-stage">{{ entry.stage | uppercase }}</span>
+        <span class="log-msg">{{ entry.message }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="error-card" *ngIf="produce.error() as err">
+    <i class="fas fa-triangle-exclamation"></i>
+    <div>
+      <h3>Produce failed</h3>
+      <p>{{ err }}</p>
+    </div>
+  </section>
+</div>

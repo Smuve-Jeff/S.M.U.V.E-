@@ -104,6 +104,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'produce',
+    loadComponent: () =>
+      import('./components/ai-produce/ai-produce.component').then(
+        (m) => m.AiProduceComponent
+      ),
+  },
+  {
     path: 'business-suite',
     loadComponent: () =>
       import('./components/business-suite/business-suite.component').then(

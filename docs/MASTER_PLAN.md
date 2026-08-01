@@ -158,6 +158,29 @@ framework; this is our Apple-GarageBand-killer angle).
 - **B3 — AI-assisted everything**: one-tap "Produce" (idea → beat → mix →
   master → release checklist), genre instrument recommendations, AI lyrics +
   vocal tuning.
+  ✅ *Phase 1 SHIPPED: `AiProduceService` orchestrator wires the existing
+  AI services into a single gesture — 5 cancellable stages (idea · beat ·
+  lyrics · mix+master · release-checklist) with signal-driven progress.
+  Idea: `applyIdea(opts)` synthesizes a `ProduceIdea` (title, genre, mood,
+  key, BPM, energy, theme, estimated bars) with prompt-keyword mood
+  detection. Beat: reuses `AiBeatGeneratorService.generateBeat()` to lock
+  a full arrangement (drum pattern + bass + chords + melody + section
+  breakdown). Lyrics: reuses `SongwritingAssistantService.generateLyrics()`
+  for verse/chorus/bridge with chord set. Mix+Master: routes through
+  `AiMixAssistantService.autoMaster()` with a beat-genre→mastering-preset
+  inference (`guessBeatGenre` collapses Trap/Hip Hop/etc. to one of the
+  nine genre presets) and exposes the per-line report. Release: calls
+  `ReleasePipelineService.initializeRelease()` + `addTrack()` and stamps
+  the four pre-master stages Completed for the new track. Apply: rolling
+  Apply button creates the drum/bass/chord/lead track quartet via a
+  hardcoded role→instrument map (decoupled from per-genre recommender
+  order). UI: `/produce` route mounts `AiProduceComponent` with a sticky
+  progress bar, 5-up stage-pill nav, idea form (prompt + genre + mood +
+  BPM override + title override), and 5-stage review cards that light up
+  as the pipeline produces real artifacts. Cancellation: cancel-anytime
+  flag, three log entries (`/produce` log table) and a per-stage review
+  surface keep the user in the driver's seat. Master Plan / Hub spotlight
+  updated.*
 - **B4 — Career pipeline inside the DAW**: export straight to release
   pipeline, distribution metadata, revenue forecasts.
 
@@ -185,7 +208,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A6 | Export formats + cloud | n-Track, BandLab | ✅ |
 | B1 | WASM plugin framework | ALL (Android) | ✅ |
 | B2 | Real-time collab | BandLab | ✅ |
-| B3 | AI end-to-end produce | ALL | ⬜ |
+| B3 | AI end-to-end produce | ALL | ✅ |
 | B4 | Career pipeline in-DAW | ALL | ⬜ |
 | C1 | Performance + latency | ALL | ⬜ |
 | C2 | Play listing + IAP | ALL | ⬜ |
