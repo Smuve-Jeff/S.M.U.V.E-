@@ -573,6 +573,15 @@
       <span class="material-symbols-outlined">download</span>
       Export WAV
     </button>
+    <button
+      type="button"
+      class="ctb-dropdown-action"
+      (click)="showBpmDropdown.set(false); exportMidi()"
+      [attr.title]="'Export the arrangement as a Standard MIDI File (.mid)'"
+    >
+      <span class="material-symbols-outlined">music_note</span>
+      Export MIDI
+    </button>
   </div>
 </div>
 

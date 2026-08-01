@@ -96,7 +96,13 @@ framework; this is our Apple-GarageBand-killer angle).
   duration labels, quarter-note rest glyphs on empty beats, and velocity
   shading on note heads.*
 - **A6 — Export formats + cloud** (MP3/FLAC/OGG encode, .mid, project cloud
-  save with offline-sync merge) — n-Track/BandLab parity.
+  save with offline-sync merge) — n-Track/BandLab parity. *SHIPPED: real
+  `exportToFormat()` (WAV PCM encode + WebCodecs MP3/OGG/M4A with WAV
+  fallback), `exportProjectMidi()` via the MidiWriter util (track→channel
+  mapping, tempo, muted/audio/empty skip), and a real offline render —
+  `renderProjectOffline()` now schedules actual notes on an
+  OfflineAudioContext instead of returning silence. Transport-bar export
+  dropdown gained an Export MIDI action.*
 
 ### Phase B — Ecosystem lock-in (Sprints B1–B4)
 *Goal: features competitors cannot copy because they don't have our stack.*
@@ -132,7 +138,7 @@ framework; this is our Apple-GarageBand-killer angle).
 | A3 | Loop record + comping | Cubasis, Audio Evolution | ✅ |
 | A4 | Song mode / clip launcher | BandLab, Koala | ✅ |
 | A5 | Notation view | Cubasis | ✅ |
-| A6 | Export formats + cloud | n-Track, BandLab | ⬜ |
+| A6 | Export formats + cloud | n-Track, BandLab | ✅ |
 | B1 | WASM plugin framework | ALL (Android) | ⬜ |
 | B2 | Real-time collab | BandLab | ⬜ |
 | B3 | AI end-to-end produce | ALL | ⬜ |

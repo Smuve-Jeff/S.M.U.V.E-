@@ -497,6 +497,17 @@ export class TransportBarComponent {
     }
   }
 
+  /** Sprint A6 — one-tap Standard MIDI File export. */
+  exportMidi(): void {
+    const blob = this.exportService.exportProjectMidi();
+    this.exportService.downloadBlob(
+      blob,
+      `${this.musicManager.projectName || 'Elite_Session'}_${Date.now()}.mid`
+    );
+    this.haptic.medium();
+    this.snack.success('MIDI exported · .mid (Standard MIDI File)' );
+  }
+
   toggleMetronome(): void {
     // Always arm the AudioContext in user-gesture context
     this.audioEngine.resume();
