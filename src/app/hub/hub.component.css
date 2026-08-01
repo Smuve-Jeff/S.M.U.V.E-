@@ -24,6 +24,81 @@
 }
 
 /* ── Wrapper: Midnight City Canvas ─────────────────── */
+
+/* Sprint D1 — Cloud Vault header status pill */
+.hub-cloud-pill {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 10, 18, 0.6);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.hub-cloud-pill:hover {
+  border-color: #5dc4c2;
+  background: rgba(14, 124, 123, 0.2);
+}
+.hub-cloud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #888;
+}
+.hub-cloud-dot.is-up {
+  background: #5dc4c2;
+  box-shadow: 0 0 10px rgba(93, 196, 194, 0.65);
+}
+.hub-cloud-dot.is-down {
+  background: var(--amber-gold, #ffb800);
+  box-shadow: 0 0 10px rgba(255, 184, 0, 0.55);
+}
+.hub-cloud-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--pure-white, #faf9ff);
+}
+.hub-cloud-meta {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber-gold, #ffb800);
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Sprint D1 — Cloud Vault bento card */
+.cloud-vault-module {
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(0, 229, 255, 0.16), transparent 60%),
+    var(--city-slate, #1a1a2e) !important;
+  border-color: rgba(0, 229, 255, 0.4) !important;
+}
+.cv-conflict-badge {
+  margin-top: 6px;
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 184, 0, 0.25);
+  color: var(--amber-gold, #ffb800);
+  border: 1px solid rgba(255, 184, 0, 0.45);
+}
+
 .hub-wrapper {
   position: relative;
   min-height: 100vh;

@@ -275,9 +275,42 @@ framework; this is our Apple-GarageBand-killer angle).
 | C1 | Performance + latency | ALL | ✅ |
 | C2 | Play listing + IAP | ALL | ✅ |
 | C3 | Onboarding | BandLab | ✅ |
+| D1 | Cloud Sync / Cross-device project sync | BandLab, n-Track | ✅ |
 | X1 | Math/Date/JSON/parseInt/Number/window/document/localStorage in-template sweep (Angular template globals inaccessible — added roundPct() helper to session-view and shipped first-ever spec for that component to catch any regression) | Latent production crashes | ✅ |
 | X2 | B3 polish — voice-preview stage added to /produce between Lyrics and Mix+Master (synthesizes chorus hook on OfflineAudioContext, auditionable on engine via `playAudition()`, optional per-run checkbox toggle in the form; stage pill + status card + audition progress bar) + B4 charter UI + C1 latency profile surfaced in `/produce` engine-metrics sub-card | AI Lyrics tuning gap | ✅ |
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
+
+### Phase D — Continuity cloud (Sprints D1–D2)
+*Goal: features competitors can't copy because they assume a single device. Every artist now works across phone, tablet, and desktop without losing the lab session in transit.*
+
+- **D1 — Cloud Sync / Cross-device project sync**: end-to-end project sync
+  with conflict resolution and per-device history. Beat BandLab + n-Track
+  parity and add real cross-device presence. ✅ *SHIPPED. `cloud-sync.types.ts`
+  contract (ProjectManifest, SyncEnvelope, CloudDevice, ConflictRecord,
+  RemoteSnapshot, SyncTimelineEntry). `mock-cloud-server.ts` shim — 350–700ms
+  deterministic latency, per-project + per-device snapshot table, conflict
+  surfaced on version mismatch. `CloudSyncService` — stable per-device id
+  (`smuve_cloud_device`), manifest mirror (`smuve_cloud_projects::manifests`),
+  push / pull / refresh / restore APIs, three-way conflict resolution
+  (`mine` re-push +1, `theirs` accept & bump mirror version, `merge`
+  deep-union & max-version +1), `isCloudReachable()` computed from
+  `navigator.onLine` + `OfflineSyncService.networkStatus()` + a manual
+  `simulatedNetworkOnline` chaos switch, automatic degradation
+  (`/mock-cloud/push` op queued through the existing `OfflineSyncService`
+  when offline). 10 spec cases — push & version bump, conflicting-edit
+  detection, mine/theirs/merge strategies with version arithmetic,
+  pull-then-mirror, offline-degradation, simulated-network toggle,
+  timeline, etc. UI: `/cloud` route + `CloudVaultComponent` —
+  device-registry card with editable nickname, demo-project push
+  (JSON payload editor), conflict queue with three CTA per row,
+  recent cloud projects + per-project snapshot history with Restore,
+  sync timeline of last 12 events with status pill. Hub gained a 1×1
+  Cloud Vault bento card with reachability + project-count + conflict
+  badge; header gained a slim `cloud_sync` status pill (online dot vs
+  amber offline dot, conflict-count chip). New master-plan row: D1 ✅.*
+- **D2 — Session replay + project version history** (next): every edit gets
+  a tiny versioned checkpoint so the user can rewind, branch, and chapter
+  a session like a git CLI. Pairs naturally with D1's snapshot history.
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

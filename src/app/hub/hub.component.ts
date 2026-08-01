@@ -23,6 +23,8 @@ import { PlayerService } from '../services/player.service';
 import { MainViewMode } from '../services/user-context.service';
 import { OnboardingService } from '../services/onboarding.service';
 import { OnboardingStep } from '../services/onboarding.service';
+import { CloudSyncService } from '../services/cloud-sync.service';
+import { OfflineSyncService } from '../services/offline-sync.service';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -67,6 +69,12 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public playerService = inject(PlayerService);
   public onboarding = inject(OnboardingService);
   public securityService = inject(SecurityService);
+  public cloudSyncService = inject(CloudSyncService);
+  public offlineSync = inject(OfflineSyncService);
+
+  goToCloudVault(): void {
+    void this.router.navigate(['/cloud']);
+  }
 
   // Quick Start Form
   quickProfile = signal({

@@ -1,4 +1,32 @@
 <div class="hub-wrapper" [class.playing]="playerService.isPlaying()">
+  <!-- Sprint D1 — Cloud Vault header status pill -->
+  <div
+    class="hub-cloud-pill"
+    role="status"
+    aria-live="polite"
+    (click)="goToCloudVault()"
+  >
+    <span
+      class="hub-cloud-dot"
+      [class.is-up]="cloudSyncService.isCloudReachable()"
+      [class.is-down]="!cloudSyncService.isCloudReachable()"
+    ></span>
+    <span class="hub-cloud-label">
+      {{
+        cloudSyncService.isCloudReachable()
+          ? 'Cloud synced'
+          : 'Offline queue'
+      }}
+    </span>
+    <span
+      class="hub-cloud-meta"
+      *ngIf="cloudSyncService.conflictCount() > 0"
+    >
+      {{ cloudSyncService.conflictCount() }} conflict{{
+        cloudSyncService.conflictCount() === 1 ? '' : 's'
+      }}
+    </span>
+  </div>
   <!-- S.M.U.V.E 2.0 Mobile Executive HUD -->
   @if (aiService.isMobile() && aiService.isScanning()) {
     <div class="mobile-executive-hud animate-pulse">
@@ -701,6 +729,51 @@
           <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
             5-min walkthrough
           </p>
+        </div>
+      </div>
+
+      <!-- Sprint D1 — Cloud Vault (1x1) -->
+      <div
+        class="bento-item bento-1x1 bento-card cloud-vault-module"
+        (click)="goToCloudVault()"
+        [attr.aria-label]="
+          'Cloud vault — ' + cloudSyncService.cloudProjects().length + ' projects synced'
+        "
+      >
+        <div
+          class="card-content flex flex-col items-center justify-center text-center h-full"
+        >
+          <span
+            class="material-symbols-outlined text-4xl mb-2"
+            style="color: var(--brand-secondary, #5dc4c2)"
+            >cloud_sync</span
+          >
+          <h3
+            class="font-black text-sm uppercase tracking-tighter glimmer-text"
+          >
+            Cloud Vault
+          </h3>
+          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
+            <ng-container *ngIf="cloudSyncService.isCloudReachable()">
+              Sync · {{ cloudSyncService.cloudProjects().length }} project{{
+                cloudSyncService.cloudProjects().length === 1 ? '' : 's'
+              }}
+            </ng-container>
+            <ng-container *ngIf="!cloudSyncService.isCloudReachable()">
+              Offline queue · {{ offlineSync.pendingCount() }}
+            </ng-container>
+          </p>
+          <span
+            *ngIf="cloudSyncService.conflictCount() > 0"
+            class="cv-conflict-badge"
+            [attr.aria-label]="
+              cloudSyncService.conflictCount() + ' unsynced conflicts'
+            "
+          >
+            {{ cloudSyncService.conflictCount() }} conflict{{
+              cloudSyncService.conflictCount() === 1 ? '' : 's'
+            }}
+          </span>
         </div>
       </div>
     </div>

@@ -289,6 +289,13 @@ export const routes: Routes = [
         './components/first-beat-tour/first-beat-tour.component'
       ).then((m) => m.FirstBeatTourComponent),
   },
+  {
+    path: 'cloud',
+    loadComponent: () =>
+      import('./components/cloud-vault/cloud-vault.component').then(
+        (m) => m.CloudVaultComponent
+      ),
+  },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
