@@ -47,4 +47,46 @@ describe('TakeManagerService (Sprint A3 starter)', () => {
     expect(svc.getActiveTake('trk1')()).toBeUndefined();
     expect(svc.isPunchIn('trk1')()).toBe(false);
   });
+
+  // ── Sprint A3 Phase 2 — region metadata + per-take removal ──
+
+  it('addTake stores the region snapshot passed as metadata', () => {
+    const t = svc.addTake('trk1', 'Take 1', {
+      noteCount: 8,
+      startStep: 0,
+      endStep: 16,
+    });
+    expect(t.noteCount).toBe(8);
+    expect(t.startStep).toBe(0);
+    expect(t.endStep).toBe(16);
+    // Meta is optional — plain calls stay fully backward compatible
+    const plain = svc.addTake('trk1', 'Take 2');
+    expect(plain.noteCount).toBeUndefined();
+    expect(plain.startStep).toBeUndefined();
+  });
+
+  it('removeTake deletes only the named take, leaving siblings intact', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    const b = svc.addTake('trk1', 'Take B');
+    svc.removeTake('trk1', a.id);
+    const remaining = svc.getTakes('trk1')();
+    expect(remaining.length).toBe(1);
+    expect(remaining[0].id).toBe(b.id);
+  });
+
+  it('removeTake clears the active selection when the active take is removed', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.setActiveTake('trk1', a.id);
+    expect(svc.getActiveTake('trk1')()?.id).toBe(a.id);
+    svc.removeTake('trk1', a.id);
+    expect(svc.getActiveTake('trk1')()).toBeUndefined();
+  });
+
+  it('removeTake on an unknown take id is a safe no-op', () => {
+    const a = svc.addTake('trk1', 'Take A');
+    svc.removeTake('trk1', 'tk_missing');
+    svc.removeTake('nope', 'tk_missing');
+    expect(svc.getTakes('trk1')().length).toBe(1);
+    expect(svc.getTakes('trk1')()[0].id).toBe(a.id);
+  });
 });

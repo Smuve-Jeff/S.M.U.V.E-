@@ -656,6 +656,96 @@
   }
 }
 
+/* ================================================
+   Sprint A3 — Take lane cluster (punch-in arm + take
+   stamp + take count). Compact group that lives right
+   next to the record button; teal-tinted when armed.
+   ================================================ */
+.ctb-takes {
+  gap: 2px;
+  transition: box-shadow 0.2s ease;
+}
+.ctb-punch {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--espresso-muted);
+  border-radius: 9px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.2s ease;
+}
+.ctb-punch .material-symbols-outlined {
+  font-size: 17px;
+}
+.ctb-punch:hover,
+.ctb-punch:focus-visible {
+  background: rgba(14, 124, 123, 0.1);
+}
+.ctb-punch:active {
+  transform: scale(0.92);
+}
+.ctb-punch.ctb-punch-active {
+  background: var(--teal-500);
+  color: white;
+  box-shadow: 0 0 8px var(--teal-glow);
+  animation: ctbPunchPulse 1.2s ease-in-out infinite;
+}
+@keyframes ctbPunchPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px var(--teal-glow);
+  }
+  50% {
+    box-shadow: 0 0 11px var(--teal-glow);
+  }
+}
+.ctb-take-stamp {
+  width: 32px;
+  height: 32px;
+}
+.ctb-take-stamp .material-symbols-outlined {
+  font-size: 17px;
+}
+.ctb-take-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--teal-500);
+  white-space: nowrap;
+  padding: 0 6px 0 3px;
+  animation: recSourceFadeIn 0.3s ease-out;
+}
+.ctb-take-count .material-symbols-outlined {
+  font-size: 13px;
+  color: inherit;
+}
+:host-context(.dark-mode) .ctb-punch {
+  color: rgba(255, 255, 255, 0.55);
+}
+:host-context(.dark-mode) .ctb-punch:hover,
+:host-context(.dark-mode) .ctb-punch:focus-visible {
+  background: rgba(93, 196, 194, 0.14);
+}
+:host-context(.dark-mode) .ctb-punch.ctb-punch-active {
+  background: var(--teal-500);
+  color: white;
+}
+:host-context(.dark-mode) .ctb-take-count {
+  color: var(--teal-300);
+}
+
 /* ----- Test Sound probe chip -----
    1-shot button that fires a 0.6s sine sweep to verify audio.
    Yellow accent + check-mark feedback when fired. */

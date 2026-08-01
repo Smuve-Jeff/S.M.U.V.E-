@@ -64,6 +64,53 @@
       <span class="ctb-rec-dot" aria-hidden="true"></span>
       {{ recordingLabel() }}
     </span>
+
+    <!-- Sprint A3 — Take lane: punch-in arm + take stamp + count -->
+    <div
+      class="ctb-group ctb-takes"
+      role="group"
+      aria-label="Take lane — punch-in and take stamping"
+    >
+      <button
+        type="button"
+        class="ctb-punch"
+        [class.ctb-punch-active]="punchInActive()"
+        (click)="togglePunchIn()"
+        [attr.aria-pressed]="punchInActive()"
+        [attr.aria-label]="
+          punchInActive()
+            ? 'Punch-in armed for selected track — disarm'
+            : 'Arm punch-in for selected track'
+        "
+        [attr.title]="
+          punchInActive()
+            ? 'Punch-in armed — stop recording to stamp a take'
+            : 'Punch-in off — tap to arm for the selected track'
+        "
+      >
+        <span class="material-symbols-outlined">radio_button_checked</span>
+      </button>
+      <button
+        type="button"
+        class="ctb-btn ctb-take-stamp"
+        (click)="stampTake()"
+        [attr.aria-label]="'Stamp a take for the selected track'"
+        [attr.title]="'Stamp a take for the selected track (snapshots note region)'"
+      >
+        <span class="material-symbols-outlined">note_add</span>
+      </button>
+      <span
+        *ngIf="takeCount() > 0"
+        class="ctb-take-count"
+        [attr.aria-live]="'polite'"
+        [attr.title]="
+          lastTakeLabel() ? 'Latest: ' + lastTakeLabel() : takeCount() + ' takes'
+        "
+      >
+        <span class="material-symbols-outlined">library_music</span>
+        {{ takeCount() }}<ng-container *ngIf="lastTakeLabel()"> · {{ lastTakeLabel() }}</ng-container>
+      </span>
+    </div>
   </div>
 
   <!-- Tempo group + Tap Tempo -->

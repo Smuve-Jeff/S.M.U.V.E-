@@ -17,6 +17,7 @@ import {
   IdeaRecipe,
 } from '../../services/ideas-generator.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { TakeManagerService } from '../../services/take-manager.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ProjectService } from '../../services/project.service';
 import { HapticService } from '../../services/haptic.service';
@@ -35,7 +36,9 @@ export class TransportBarComponent {
   private readonly exportService = inject(ExportService);
   readonly recordingStatus = inject(RecordingStatusService);
   private readonly projectService = inject(ProjectService);
-  private readonly musicManager = inject(MusicManagerService);
+  readonly musicManager = inject(MusicManagerService);
+  /** Sprint A3 — take lane: per-track takes + punch-in state. */
+  readonly takeManager = inject(TakeManagerService);
   private readonly haptic = inject(HapticService);
   private readonly snack = inject(SnackbarService);
   /** Real history stack — bound so Undo/Redo buttons actually reverse mutations. */
@@ -138,6 +141,102 @@ export class TransportBarComponent {
       this.tapTempoBuffer();
       // no-op tick — effect re-fires on set
     });
+
+    // Sprint A3 — auto-stamp a take when recording stops while punch-in is
+    // armed for the selected track. Snapshots the punch-in state at record
+    // START so arming mid-pass still counts for that pass.
+    effect(() => {
+      const rec = this.isRecording();
+      if (rec && !this.recordWasActive) {
+        const id = this.musicManager.selectedTrackId();
+        this.punchArmedAtRecordStart = id
+          ? this.takeManager.isPunchIn(id)()
+          : false;
+      }
+      if (!rec && this.recordWasActive && this.punchArmedAtRecordStart) {
+        this.stampTake();
+      }
+      this.recordWasActive = rec;
+    });
+  }
+  /** Sprint A3 — previous record-state edge tracker. */
+  private recordWasActive = false;
+  /** Sprint A3 — punch-in snapshot taken when the record pass began. */
+  private punchArmedAtRecordStart = false;
+
+  // ── Sprint A3 — Take lane (punch-in + take stamping) ────────────
+
+  /** Punch-in armed for the currently selected track? */
+  punchInActive = computed(() => {
+    const id = this.musicManager.selectedTrackId();
+    return id ? this.takeManager.isPunchIn(id)() : false;
+  });
+
+  /** Number of takes recorded for the currently selected track. */
+  takeCount = computed(() => {
+    const id = this.musicManager.selectedTrackId();
+    return id ? this.takeManager.getTakes(id)().length : 0;
+  });
+
+  /** Label of the most recent take for the selected track (chip readout). */
+  lastTakeLabel = computed(() => {
+    const id = this.musicManager.selectedTrackId();
+    if (!id) return '';
+    const takes = this.takeManager.getTakes(id)();
+    return takes.length ? takes[takes.length - 1].label : '';
+  });
+
+  /** Toggle punch-in recording on/off for the selected track. */
+  togglePunchIn(): void {
+    const id = this.musicManager.selectedTrackId();
+    if (!id) {
+      this.snack.info('Select a track first — punch-in arms the selected track');
+      return;
+    }
+    const next = !this.takeManager.isPunchIn(id)();
+    this.takeManager.setPunchIn(id, next);
+    this.haptic.light();
+    this.snack[next ? 'success' : 'info'](
+      next
+        ? 'Punch-in armed — next record stop stamps a take'
+        : 'Punch-in off'
+    );
+  }
+
+  /**
+   * Stamp a take for the selected track, snapshotting the note region. Called
+   * manually from the take cluster and automatically when a punch-in-armed
+   * record pass ends.
+   */
+  stampTake(): void {
+    const track = this.musicManager.selectedTrack();
+    if (!track) return; // silent: auto-stamp fires on every record stop
+    const notes = track.notes ?? [];
+    let startStep = Number.MAX_SAFE_INTEGER;
+    let endStep = 0;
+    for (const n of notes) {
+      if (n.step < startStep) startStep = n.step;
+      const nEnd = n.step + (n.length ?? 1);
+      if (nEnd > endStep) endStep = nEnd;
+    }
+    if (notes.length === 0) {
+      const at = this.audioEngine.visualStep();
+      startStep = at;
+      endStep = at + 1;
+    }
+    const count = this.takeCount() + 1;
+    const take = this.takeManager.addTake(
+      track.id,
+      `Take ${count}`,
+      notes.length ? { noteCount: notes.length, startStep, endStep } : undefined
+    );
+    this.takeManager.setActiveTake(track.id, take.id);
+    this.haptic.medium();
+    this.snack.success(
+      `Take ${count} stamped · ${notes.length} note${
+        notes.length === 1 ? '' : 's'
+      } · steps ${startStep}–${endStep}`
+    );
   }
 
   togglePlay(): void {

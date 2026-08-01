@@ -1,14 +1,21 @@
 import { Injectable, signal, computed } from '@angular/core';
 
 /**
- * A single take for one track. Sprint A3 starter slice is metadata-only;
- * `midiEvents` and audio buffer capture land in A3 Phase 2.
+ * A single take for one track. Sprint A3 Phase 2 adds the region snapshot
+ * (`noteCount`, `startStep`, `endStep`) so take-lane UI can render meaningful
+ * labels and a future comp view can slice takes by song position.
  */
 export interface Take {
   id: string;
   trackId: string;
   label: string;
   createdAt: number;
+  /** Number of MIDI notes captured in this take (0 = audio-only/empty pass). */
+  noteCount?: number;
+  /** First captured step in the take region. */
+  startStep?: number;
+  /** Last captured step (exclusive end) in the take region. */
+  endStep?: number;
 }
 
 /**
@@ -28,19 +35,45 @@ export class TakeManagerService {
    * Append a new take to the track and return it so the caller can persist
    * the id immediately. IDs are stable across reloads because they embed a
    * millisecond timestamp + random suffix.
+   *
+   * @param meta Optional region snapshot (noteCount/startStep/endStep) captured
+   *   by the caller at record stop — drives take-lane labels + comp slicing.
    */
-  addTake(trackId: string, label: string): Take {
+  addTake(
+    trackId: string,
+    label: string,
+    meta?: Pick<Take, 'noteCount' | 'startStep' | 'endStep'>
+  ): Take {
     const take: Take = {
       id: `tk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       trackId,
       label,
       createdAt: Date.now(),
+      ...meta,
     };
     this.takesByTrack.update((m) => ({
       ...m,
       [trackId]: [...(m[trackId] ?? []), take],
     }));
     return take;
+  }
+
+  /**
+   * Delete a single take by id. If the deleted take was the active selection,
+   * the active selection for that track is cleared so UI never points at a
+   * dangling id.
+   */
+  removeTake(trackId: string, takeId: string): void {
+    this.takesByTrack.update((m) => ({
+      ...m,
+      [trackId]: (m[trackId] ?? []).filter((t) => t.id !== takeId),
+    }));
+    this.activeByTrack.update((m) => {
+      if (m[trackId] !== takeId) return m;
+      const copy = { ...m };
+      delete copy[trackId];
+      return copy;
+    });
   }
 
   /** Reactive list of takes for a track — never throws on unknown tracks. */
