@@ -436,6 +436,34 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  quantizeSelected(grid: number = 0.25) {
+    let moved = 0;
+    this.selectedClipIds().forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      const currentStart = found.clip.start || 0;
+      const snappedStart = Math.round(currentStart / grid) * grid;
+      if (Math.abs(snappedStart - currentStart) < 0.001) {
+        return;
+      }
+      this.musicManager.updateClip?.(found.track.id, id, {
+        start: snappedStart,
+      });
+      moved++;
+    });
+
+    if (moved === 0) {
+      this.snackbar.info('Selected clips are already on the grid');
+      return;
+    }
+
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.info(
+      `Quantized ${moved} clip${moved === 1 ? '' : 's'} to the grid`
+    );
+  }
+
   clipLabel(track: StudioTrack, clip: StudioClip): string {
     return clip.name || track.name;
   }

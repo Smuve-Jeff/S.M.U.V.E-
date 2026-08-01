@@ -584,7 +584,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.studioTelemetry.beginSession({ entryView: this.activeView() });
     try {
       // Try to resume immediately (works on first server-side render or
@@ -596,10 +596,23 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       // silent — fallback handled by armOnFirstUserGesture()
     }
 
+    const restored = await this.projectWorkspace.restoreLatestProjectState();
+    if (restored) {
+      const source = this.projectWorkspace.lastRecoveredSource();
+      this.snackbarService.info(
+        `Restored ${this.formatPersistenceSource(source)} snapshot`
+      );
+      this.studioTelemetry.trackEvent(
+        'project_recovered',
+        { source: source ?? 'unknown' },
+        true
+      );
+    }
+
     // ── Seed an empty studio with a starter recipe ──
     // If the user opens Studio fresh and tracks() is empty, we apply
     // a curated 4-bar starter so the FIRST Play click produces audio.
-    if (this.musicManager.tracks().length === 0) {
+    if (!restored && this.musicManager.tracks().length === 0) {
       const ideas = this.ideasGenerator;
       const first = ideas.recipes?.[0];
       if (first) {
@@ -775,13 +788,23 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     });
     if (confirmed) {
       this.musicManager.newProject();
+      this.projectWorkspace.startFreshProject({
+        bpm: this.audioEngine.tempo(),
+      });
       this.snackbarService.success('New session created');
       this.studioTelemetry.trackEvent('new_project_created', undefined, true);
     }
   }
 
   applyTemplate(id: string) {
+    const template = this.templateService.templates.find((item) => item.id === id);
+    if (!template) return;
     this.templateService.applyTemplate(id);
+    this.projectWorkspace.startFreshProject({
+      name: template.name,
+      bpm: template.bpm,
+      genre: template.genre,
+    });
     this.closeMobilePanel();
     this.snackbarService.success('Template applied');
     this.haptic.medium();
@@ -831,6 +854,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const val = parseInt(result, 10);
       if (!isNaN(val) && val >= 20 && val <= 300) {
         this.audioEngine.tempo.set(val);
+        this.projectWorkspace.updateMetadata({ bpm: val });
         this.snackbarService.success(`Tempo set to ${val} BPM`);
       }
     }
@@ -921,6 +945,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Format 0..1 rates as whole percentages. */
   formatInsightPct(rate: number): string {
     return `${Math.round((rate || 0) * 100)}%`;
+  }
+
+  formatPersistenceSource(source: string | null): string {
+    switch (source) {
+      case 'autosave':
+        return 'auto-save';
+      case 'recovery':
+        return 'background recovery';
+      case 'import':
+        return 'imported';
+      case 'manual':
+        return 'saved';
+      default:
+        return 'local';
+    }
   }
 
   /** Stable event-volume entries sorted by count descending. */

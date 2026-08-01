@@ -1323,6 +1323,23 @@
         </div>
       </div>
 
+      <div class="comp-meta-field" *ngIf="templateService.templates.length">
+        <label>Rapid build</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let template of templateService.templates"
+            type="button"
+            class="comp-meta-chip"
+            (click)="applyTemplate(template.id)"
+          >
+            {{ template.name }}
+          </button>
+        </div>
+        <span class="comp-meta-hint"
+          >One-tap starter templates for faster arrangement building.</span
+        >
+      </div>
+
       <div class="comp-meta-field">
         <label>Auto-save</label>
         <label class="comp-rec-toggle">
@@ -1337,6 +1354,28 @@
           >Last auto-save:
           {{ projectWorkspace.lastAutoSave() | date: 'HH:mm:ss' }}</span
         >
+      </div>
+
+      <div class="comp-meta-field" *ngIf="projectWorkspace.lastPersistedAt() > 0">
+        <label>Last save</label>
+        <span class="comp-meta-hint">
+          {{ projectWorkspace.lastPersistedAt() | date: 'HH:mm:ss' }}
+        </span>
+      </div>
+
+      <div
+        class="comp-meta-field"
+        *ngIf="
+          projectWorkspace.lastRecoveredAt() &&
+          projectWorkspace.lastRecoveredSource()
+        "
+      >
+        <label>Recovered</label>
+        <span class="comp-meta-hint">
+          Restored {{ formatPersistenceSource(projectWorkspace.lastRecoveredSource()) }}
+          snapshot at
+          {{ projectWorkspace.lastRecoveredAt() | date: 'HH:mm:ss' }}
+        </span>
       </div>
 
       <div class="comp-meta-actions">
@@ -1430,6 +1469,51 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">LIVE ENGINE PROFILE</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.performanceTier
+                | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Adaptive tier</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.totalLatencyMs | number: '1.0-0'
+            }}ms</span>
+            <span class="comp-insights-metric-label">Live latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.sampleRateHz
+            }}</span>
+            <span class="comp-insights-metric-label">Sample rate</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.contextState | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Engine state</span>
+          </div>
+        </div>
+        <ul
+          class="comp-insights-events"
+          *ngIf="engineLatency.profileSummary().recommendations.length"
+        >
+          <li
+            *ngFor="
+              let recommendation of engineLatency.profileSummary().recommendations
+                | slice: 0 : 3
+            "
+          >
+            <code>ENGINE</code>
+            <span>{{ recommendation }}</span>
+          </li>
+        </ul>
       </div>
 
       <div class="comp-insights-section">

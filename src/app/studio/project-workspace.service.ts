@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { ProjectService } from '../services/project.service';
@@ -30,6 +30,18 @@ export interface ProjectBundle {
   exportedAt: number;
 }
 
+export type ProjectPersistenceSource =
+  | 'manual'
+  | 'autosave'
+  | 'recovery'
+  | 'import';
+
+interface StoredProjectBundle extends ProjectBundle {
+  id: string;
+  savedAt: number;
+  source: ProjectPersistenceSource;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProjectWorkspaceService {
   private readonly auth = inject(AuthService);
@@ -51,10 +63,16 @@ export class ProjectWorkspaceService {
   isDirty = signal(false);
   /** Number of versions saved */
   versionCount = signal(0);
+  /** Timestamp of the last successful local/manual persistence. */
+  lastPersistedAt = signal<number>(0);
   /** Most recent queued cloud operation, if the user is authenticated. */
   lastQueuedSyncId = signal<string | null>(null);
   /** True while a local save has been queued for cloud sync. */
   cloudSyncQueued = signal(false);
+  /** Timestamp of the most recent restored local bundle. */
+  lastRecoveredAt = signal<number | null>(null);
+  /** Source of the most recent restored local bundle. */
+  lastRecoveredSource = signal<ProjectPersistenceSource | null>(null);
 
   /** Available genre templates */
   genres = [
@@ -135,10 +153,16 @@ export class ProjectWorkspaceService {
 
   /** Auto-save timer ref */
   private autoSaveTimer: ReturnType<typeof setInterval> | null = null;
+  private lastObservedSignature = '';
+  private lastSavedSignature = '';
 
   constructor() {
     this.initializeMetadata();
+    this.lastObservedSignature = this.captureStateSignature();
+    this.lastSavedSignature = this.lastObservedSignature;
+    this.watchWorkspaceChanges();
     this.startAutoSave();
+    this.installLifecyclePersistence();
   }
 
   // ── Project Metadata ───────────────────────────────────
@@ -164,22 +188,44 @@ export class ProjectWorkspaceService {
     }
   }
 
-  private createNewMetadata(): ProjectMetadata {
+  private createNewMetadata(
+    patch: Partial<ProjectMetadata> = {}
+  ): ProjectMetadata {
     const now = Date.now();
     const meta: ProjectMetadata = {
-      id: `proj_${now}`,
-      name: 'Untitled Project',
-      bpm: 120,
-      key: 'C',
-      genre: 'pop',
-      mood: 'energetic',
-      tags: [],
-      createdAt: now,
-      updatedAt: now,
-      lastOpenedAt: now,
-      version: 1,
+      id: patch.id || `proj_${now}`,
+      name: patch.name || 'Untitled Project',
+      bpm: patch.bpm ?? this.currentTempo() ?? 120,
+      key: patch.key || 'C',
+      genre: patch.genre || 'pop',
+      mood: patch.mood || 'energetic',
+      tags: patch.tags ? [...patch.tags] : [],
+      createdAt: patch.createdAt ?? now,
+      updatedAt: patch.updatedAt ?? now,
+      lastOpenedAt: patch.lastOpenedAt ?? now,
+      version: patch.version ?? 1,
     };
     this.metadata.set(meta);
+    return meta;
+  }
+
+  startFreshProject(seed: Partial<ProjectMetadata> = {}): ProjectMetadata {
+    const meta = this.createNewMetadata(seed);
+    const signature = this.captureStateSignature(
+      meta,
+      this.musicManager.tracks(),
+      meta.bpm
+    );
+    this.lastObservedSignature = signature;
+    this.lastSavedSignature = '';
+    this.lastAutoSave.set(0);
+    this.lastPersistedAt.set(0);
+    this.versionCount.set(0);
+    this.lastQueuedSyncId.set(null);
+    this.cloudSyncQueued.set(false);
+    this.lastRecoveredAt.set(null);
+    this.lastRecoveredSource.set(null);
+    this.isDirty.set(this.musicManager.tracks().length > 0);
     return meta;
   }
 
@@ -234,14 +280,11 @@ export class ProjectWorkspaceService {
   async autoSave() {
     try {
       const snapshot = this.createSnapshot();
-      await this.storage.saveItem('projects', {
-        id: `autosave_${snapshot.metadata.id}`,
-        ...snapshot,
-        savedAt: Date.now(),
-      });
+      const stored = this.toStoredBundle(snapshot, 'autosave');
+      await this.storage.saveItem('projects', stored);
       await this.queueCloudSync(snapshot);
-      this.lastAutoSave.set(Date.now());
-      this.isDirty.set(false);
+      this.lastAutoSave.set(stored.savedAt);
+      this.markPersistenceClean(snapshot, 'autosave', stored.savedAt);
       this.versionCount.update((v) => v + 1);
       this.logger.info(
         'ProjectWorkspace: Auto-saved ' + snapshot.metadata.name
@@ -257,19 +300,16 @@ export class ProjectWorkspaceService {
   async manualSave(): Promise<ProjectBundle> {
     const bundle = this.createSnapshot();
     try {
+      const stored = this.toStoredBundle(bundle, 'manual');
       // Persist the complete bundle locally before attempting any network work.
-      await this.storage.saveItem('projects', {
-        id: `project_${bundle.metadata.id}`,
-        ...bundle,
-        savedAt: Date.now(),
-      });
+      await this.storage.saveItem('projects', stored);
       await this.storage.saveItem('offline_local_cache', {
         id: 'last_saved_project_id',
         payload: bundle.metadata.id,
-        savedAt: Date.now(),
+        savedAt: stored.savedAt,
       });
       await this.queueCloudSync(bundle);
-      this.isDirty.set(false);
+      this.markPersistenceClean(bundle, 'manual', stored.savedAt);
       this.versionCount.update((v) => v + 1);
       this.logger.info('ProjectWorkspace: Saved ' + bundle.metadata.name);
     } catch (e) {
@@ -288,6 +328,11 @@ export class ProjectWorkspaceService {
       );
       if (bundle) {
         this.restoreFromSnapshot(bundle as ProjectBundle);
+        this.markPersistenceClean(
+          bundle as ProjectBundle,
+          'manual',
+          (bundle as StoredProjectBundle).savedAt
+        );
         return bundle as ProjectBundle;
       }
     } catch (e) {
@@ -309,13 +354,16 @@ export class ProjectWorkspaceService {
 
   async importProjectBundle(bundle: ProjectBundle): Promise<boolean> {
     try {
-      await this.storage.saveItem('projects', {
-        id: `project_${bundle.metadata.id}`,
-        ...bundle,
-        savedAt: Date.now(),
+      const stored = this.toStoredBundle(bundle, 'import');
+      await this.storage.saveItem('projects', stored);
+      await this.storage.saveItem('offline_local_cache', {
+        id: 'last_saved_project_id',
+        payload: bundle.metadata.id,
+        savedAt: stored.savedAt,
       });
       this.restoreFromSnapshot(bundle);
       await this.queueCloudSync(bundle);
+      this.markPersistenceClean(bundle, 'import', stored.savedAt);
       this.logger.info('ProjectWorkspace: Imported ' + bundle.metadata.name);
       return true;
     } catch (e) {
@@ -346,6 +394,46 @@ export class ProjectWorkspaceService {
     URL.revokeObjectURL(url);
   }
 
+  async restoreLatestProjectState(): Promise<boolean> {
+    if (this.musicManager.tracks().length > 0) return false;
+
+    try {
+      const stored = (await this.storage.getAllItems('projects'))
+        .filter((item) => this.isStoredProjectBundle(item))
+        .sort(
+          (a, b) =>
+            this.storedSavedAt(b as StoredProjectBundle) -
+            this.storedSavedAt(a as StoredProjectBundle)
+        ) as StoredProjectBundle[];
+
+      const freshest = stored.find((bundle) => bundle.tracks?.length > 0);
+      if (!freshest) return false;
+
+      const source = freshest.source || this.detectPersistenceSource(freshest.id);
+      const recoveredMeta = {
+        ...freshest.metadata,
+        lastOpenedAt: Date.now(),
+      };
+      const recoveredBundle: ProjectBundle = {
+        ...freshest,
+        metadata: recoveredMeta,
+      };
+
+      this.restoreFromSnapshot(recoveredBundle);
+      this.markPersistenceClean(
+        recoveredBundle,
+        source,
+        this.storedSavedAt(freshest)
+      );
+      this.lastRecoveredAt.set(this.storedSavedAt(freshest));
+      this.lastRecoveredSource.set(source);
+      return true;
+    } catch (e) {
+      this.logger.warn('ProjectWorkspace: Restore failed', e);
+      return false;
+    }
+  }
+
   private async queueCloudSync(bundle: ProjectBundle): Promise<void> {
     const userId = this.auth.currentUser()?.id;
     if (!userId) {
@@ -370,8 +458,11 @@ export class ProjectWorkspaceService {
 
   // ── Snapshot ───────────────────────────────────────────
 
-  createSnapshot(): ProjectBundle {
-    const meta = this.metadata() ?? this.createNewMetadata();
+  createSnapshot(metadata: ProjectMetadata = this.currentSyncedMetadata()): ProjectBundle {
+    const meta = {
+      ...metadata,
+      bpm: metadata.bpm || this.currentTempo() || 120,
+    };
 
     return {
       metadata: meta,
@@ -386,7 +477,10 @@ export class ProjectWorkspaceService {
   }
 
   restoreFromSnapshot(bundle: ProjectBundle) {
-    this.metadata.set({ ...bundle.metadata });
+    this.metadata.set({
+      ...bundle.metadata,
+      lastOpenedAt: Date.now(),
+    });
     if (bundle.tracks) {
       this.musicManager.tracks.set(bundle.tracks as any);
       this.isDirty.set(false);
@@ -408,5 +502,149 @@ export class ProjectWorkspaceService {
       clearInterval(this.autoSaveTimer);
       this.autoSaveTimer = null;
     }
+  }
+
+  private watchWorkspaceChanges() {
+    effect(() => {
+      const signature = this.captureStateSignature(
+        this.metadata(),
+        this.musicManager.tracks(),
+        this.currentTempo()
+      );
+      if (!this.lastObservedSignature) {
+        this.lastObservedSignature = signature;
+        if (!this.lastSavedSignature) {
+          this.lastSavedSignature = signature;
+        }
+        return;
+      }
+      if (signature === this.lastObservedSignature) {
+        return;
+      }
+      this.lastObservedSignature = signature;
+      this.isDirty.set(signature !== this.lastSavedSignature);
+    });
+  }
+
+  private installLifecyclePersistence() {
+    if (typeof window === 'undefined') return;
+
+    window.addEventListener('pagehide', () => {
+      void this.persistRecoverySnapshot();
+    });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          void this.persistRecoverySnapshot();
+        }
+      });
+    }
+  }
+
+  private async persistRecoverySnapshot(): Promise<void> {
+    if (!this.metadata() || this.musicManager.tracks().length === 0) return;
+
+    try {
+      const bundle = this.toStoredBundle(this.createSnapshot(), 'recovery');
+      await this.storage.saveItem('projects', bundle);
+      await this.storage.saveItem('offline_local_cache', {
+        id: 'last_saved_project_id',
+        payload: bundle.metadata.id,
+        savedAt: bundle.savedAt,
+      });
+    } catch (e) {
+      this.logger.warn('ProjectWorkspace: Recovery snapshot failed', e);
+    }
+  }
+
+  private currentSyncedMetadata(): ProjectMetadata {
+    const meta = this.metadata() ?? this.createNewMetadata();
+    return {
+      ...meta,
+      bpm: this.currentTempo() || meta.bpm,
+      updatedAt: Date.now(),
+      lastOpenedAt: meta.lastOpenedAt || Date.now(),
+    };
+  }
+
+  private currentTempo(): number {
+    const tempoSignal = this.musicManager.engine?.tempo;
+    if (typeof tempoSignal === 'function') {
+      const value = Number(tempoSignal());
+      if (Number.isFinite(value) && value > 0) {
+        return value;
+      }
+    }
+    return this.metadata()?.bpm || 120;
+  }
+
+  private captureStateSignature(
+    metadata: ProjectMetadata | null = this.metadata(),
+    tracks: any[] = this.musicManager.tracks(),
+    tempo: number = this.currentTempo()
+  ): string {
+    return JSON.stringify({
+      metadata,
+      tempo,
+      tracks,
+      masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
+    });
+  }
+
+  private toStoredBundle(
+    bundle: ProjectBundle,
+    source: ProjectPersistenceSource
+  ): StoredProjectBundle {
+    return {
+      id: `${source === 'manual' || source === 'import' ? 'project' : source}_${bundle.metadata.id}`,
+      ...bundle,
+      savedAt: Date.now(),
+      source,
+    };
+  }
+
+  private markPersistenceClean(
+    bundle: ProjectBundle,
+    source: ProjectPersistenceSource,
+    savedAt: number = Date.now()
+  ) {
+    const signature = this.captureStateSignature(
+      bundle.metadata,
+      bundle.tracks,
+      bundle.metadata.bpm
+    );
+    this.lastObservedSignature = signature;
+    this.lastSavedSignature = signature;
+    this.metadata.set({ ...bundle.metadata });
+    this.lastPersistedAt.set(savedAt);
+    this.isDirty.set(false);
+    if (source !== 'autosave') {
+      this.lastRecoveredAt.set(null);
+      this.lastRecoveredSource.set(null);
+    }
+  }
+
+  private isStoredProjectBundle(item: any): item is StoredProjectBundle {
+    return (
+      !!item &&
+      typeof item.id === 'string' &&
+      item.metadata &&
+      Array.isArray(item.tracks) &&
+      (item.id.startsWith('project_') ||
+        item.id.startsWith('autosave_') ||
+        item.id.startsWith('recovery_'))
+    );
+  }
+
+  private storedSavedAt(bundle: StoredProjectBundle): number {
+    return bundle.savedAt || bundle.metadata?.updatedAt || 0;
+  }
+
+  private detectPersistenceSource(id: string): ProjectPersistenceSource {
+    if (id.startsWith('autosave_')) return 'autosave';
+    if (id.startsWith('recovery_')) return 'recovery';
+    if (id.startsWith('project_')) return 'manual';
+    return 'manual';
   }
 }

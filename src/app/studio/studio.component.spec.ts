@@ -18,6 +18,8 @@ import { SnackbarService } from '../services/snackbar.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { signal, Component, NO_ERRORS_SCHEMA } from '@angular/core';
 import { of } from 'rxjs';
+import { ProjectWorkspaceService } from './project-workspace.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 
 describe('StudioComponent', () => {
   let component: StudioComponent;
@@ -45,6 +47,53 @@ describe('StudioComponent', () => {
     recipes: [],
   };
 
+  const mockProjectWorkspace = {
+    restoreLatestProjectState: jest.fn().mockResolvedValue(false),
+    startFreshProject: jest.fn(),
+    updateMetadata: jest.fn(),
+    isDirty: signal(false),
+    metadata: signal(null),
+    lastAutoSave: signal(0),
+    lastPersistedAt: signal(0),
+    lastRecoveredAt: signal(null),
+    lastRecoveredSource: signal(null),
+    autoSaveEnabled: signal(true),
+    genres: [],
+    moods: [],
+    keys: [],
+  };
+
+  const mockTemplateService = {
+    templates: [],
+    applyTemplate: jest.fn(),
+  };
+
+  const mockSnackbar = {
+    info: jest.fn(),
+    success: jest.fn(),
+    error: jest.fn(),
+  };
+
+  const mockEngineLatency = {
+    readSnapshot: jest.fn().mockReturnValue({
+      totalLatencyMs: 24,
+      masterWorkletActive: true,
+      sampleRateHz: 48000,
+      contextState: 'running',
+    }),
+    runOfflineBenchmark: jest.fn(),
+    profileSummary: () => ({
+      snapshot: {
+        performanceTier: 'ultra',
+        totalLatencyMs: 24,
+        sampleRateHz: 48000,
+        contextState: 'running',
+      },
+      recentBenchmarks: [],
+      recommendations: [],
+    }),
+  };
+
   const mockAudioEngine = {
     tempo: signal(124),
     performanceTier: signal('ultra'),
@@ -60,6 +109,9 @@ describe('StudioComponent', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockTemplateService.templates = [];
+    mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
     await TestBed.configureTestingModule({
       imports: [StudioComponent],
       providers: [
@@ -75,8 +127,10 @@ describe('StudioComponent', () => {
         { provide: TouchGestureService, useValue: {} },
         { provide: SequencerService, useValue: {} },
         { provide: InteractionDialogService, useValue: {} },
-        { provide: ProjectTemplateService, useValue: { templates: [] } },
-        { provide: SnackbarService, useValue: { info: jest.fn() } },
+        { provide: ProjectTemplateService, useValue: mockTemplateService },
+        { provide: ProjectWorkspaceService, useValue: mockProjectWorkspace },
+        { provide: AudioEngineLatencyService, useValue: mockEngineLatency },
+        { provide: SnackbarService, useValue: mockSnackbar },
         { provide: IdeasGeneratorService, useValue: mockIdeasGenerator },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
@@ -113,5 +167,20 @@ describe('StudioComponent', () => {
 
   it('exposes a templates collection backed by the ProjectTemplateService mock', () => {
     expect(component.templateService.templates).toEqual([]);
+  });
+
+  it('starts a fresh workspace when applying a template', () => {
+    mockTemplateService.templates = [
+      { id: 'trap-elite', name: 'Trap Elite', bpm: 140, genre: 'trap', tracks: [] },
+    ];
+
+    component.applyTemplate('trap-elite');
+
+    expect(mockTemplateService.applyTemplate).toHaveBeenCalledWith('trap-elite');
+    expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith({
+      name: 'Trap Elite',
+      bpm: 140,
+      genre: 'trap',
+    });
   });
 });

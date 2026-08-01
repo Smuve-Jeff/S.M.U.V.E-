@@ -168,6 +168,14 @@
           >
         </button>
         <button
+          (click)="quantizeSelected()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Quantize clip starts to the grid"
+        >
+          <span class="material-symbols-outlined text-[10px]">grid_guides</span>
+          Q
+        </button>
+        <button
           (click)="bounceSelected()"
           class="mini-btn tactile-v42 executive-glass bounce-btn"
           title="Bounce Track to Audio"

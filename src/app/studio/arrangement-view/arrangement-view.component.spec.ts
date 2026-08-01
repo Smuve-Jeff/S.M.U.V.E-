@@ -10,6 +10,7 @@ import { HistoryService } from '../../services/history.service';
 import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
 import { HapticService } from '../../services/haptic.service';
 import { AiService } from '../../services/ai.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 describe('ArrangementViewComponent', () => {
   let component: ArrangementViewComponent;
@@ -37,6 +38,7 @@ describe('ArrangementViewComponent', () => {
     toggleSolo: jest.fn(),
     takesExpanded: signal({}),
     addTrack: jest.fn(),
+    updateClip: jest.fn(),
   };
 
   const mockHistory = {
@@ -63,7 +65,16 @@ describe('ArrangementViewComponent', () => {
     getProductionSmartAssist: jest.fn(),
   };
 
+  const mockSnackbar = {
+    info: jest.fn(),
+    show: jest.fn(),
+  };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockMusicManager.tracks.set([
+      { id: '1', name: 'Lead', clips: [], mute: false, solo: false },
+    ]);
     await TestBed.configureTestingModule({
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
@@ -80,6 +91,7 @@ describe('ArrangementViewComponent', () => {
         },
         { provide: HapticService, useValue: mockHaptic },
         { provide: AiService, useValue: mockAiService },
+        { provide: SnackbarService, useValue: mockSnackbar },
       ],
     }).compileComponents();
 
@@ -96,5 +108,45 @@ describe('ArrangementViewComponent', () => {
     window.confirm = jest.fn().mockReturnValue(true);
     component.removeTrack('1', new MouseEvent('click') as any);
     expect(mockMusicManager.removeTrack).toHaveBeenCalledWith('1');
+  });
+
+  it('quantizes selected clip starts to the grid', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [{ id: 'clip-1', start: 1.18, length: 4, name: 'Clip', type: 'midi' }],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.quantizeSelected();
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      start: 1.25,
+    });
+    expect(mockSnackbar.info).toHaveBeenCalledWith('Quantized 1 clip to the grid');
+  });
+
+  it('reports when selected clips are already on the grid', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [{ id: 'clip-1', start: 1.25, length: 4, name: 'Clip', type: 'midi' }],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.quantizeSelected();
+
+    expect(mockMusicManager.updateClip).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      'Selected clips are already on the grid'
+    );
   });
 });

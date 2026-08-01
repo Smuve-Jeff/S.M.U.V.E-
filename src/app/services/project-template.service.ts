@@ -6,6 +6,7 @@ export interface ProjectTemplate {
   id: string;
   name: string;
   bpm: number;
+  genre: string;
   tracks: { name: string; instrumentId: string; type: 'midi' | 'audio' }[];
 }
 
@@ -21,6 +22,7 @@ export class ProjectTemplateService {
       id: 'elite-instrumental',
       name: 'Elite Instrumental',
       bpm: 128,
+      genre: 'house',
       tracks: [
         { name: 'Hybrid Lead', instrumentId: 'analog-warmth', type: 'midi' },
         { name: 'Elite Piano', instrumentId: 'grand-piano', type: 'midi' },
@@ -32,6 +34,7 @@ export class ProjectTemplateService {
       id: 'trap-elite',
       name: 'Trap Elite',
       bpm: 140,
+      genre: 'trap',
       tracks: [
         { name: '808 Bass', instrumentId: 'trap-808-elite', type: 'midi' },
         { name: 'Dark Keys', instrumentId: 'grand-piano', type: 'midi' },
@@ -43,6 +46,7 @@ export class ProjectTemplateService {
       id: 'rnb-platinum',
       name: 'R&B Platinum',
       bpm: 92,
+      genre: 'rnb',
       tracks: [
         { name: 'P-Bass', instrumentId: 'p-bass-elite', type: 'midi' },
         { name: 'Ethereal Keys', instrumentId: 'neon-shimmer', type: 'midi' },
@@ -58,6 +62,7 @@ export class ProjectTemplateService {
       id: 'synthwave-retro',
       name: 'Synthwave Retro',
       bpm: 115,
+      genre: 'ambient',
       tracks: [
         { name: 'Analog Pad', instrumentId: 'ethereal-wind', type: 'midi' },
         { name: 'Sub Bass', instrumentId: 'sub-commander', type: 'midi' },
