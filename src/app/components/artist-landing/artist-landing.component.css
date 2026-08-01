@@ -852,3 +852,143 @@
     margin: 0 auto;
   }
 }
+
+/* ============================================================
+   CINEMATIC VISUAL LAYER (additive; respects reduced motion).
+   Augments the existing header glow, rings, waveform, and social
+   tiles without modifying the template.
+   ============================================================ */
+
+/* Establish a positioning context for the overlay layer. */
+.artist-landing { position: relative; }
+
+/* 1. SVG film-grain overlay (animated; skipped in perf mode). */
+.artist-landing::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  mix-blend-mode: overlay;
+  opacity: 0.12;
+  animation: al-film-grain 8s steps(8) infinite;
+  will-change: transform;
+}
+.perf-mode-active .artist-landing::after {
+  display: none;
+}
+
+/* 2. Aurora mix on the existing radial glow. */
+.al-header-glow {
+  mix-blend-mode: screen;
+  animation: al-aurora 14s ease-in-out infinite alternate;
+}
+
+/* 3. Cinematic letterbox opening on header + footer. */
+.al-header::before,
+.al-footer::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6vh;
+  background: #000;
+  z-index: 50;
+  pointer-events: none;
+  animation: al-letterbox 1.4s cubic-bezier(0.22, 0.8, 0.2, 1) forwards;
+}
+.al-header::before { top: 0; transform-origin: top; }
+.al-footer::after  { bottom: 0; transform-origin: bottom; }
+
+/* 4. Subtle prism on the persona card score ring. */
+.al-ring-fill {
+  filter: drop-shadow(0 0 6px rgba(43, 160, 156, 0.55));
+  transition: filter 0.4s ease;
+}
+
+/* 5. Glow pulse on the badge initial letter. */
+.al-badge-initial {
+  text-shadow:
+    0 0 12px rgba(43, 160, 156, 0.35),
+    0 0 24px rgba(43, 160, 156, 0.15);
+}
+
+/* 6. Wave bars get a soft neon glow synced to playback. */
+.al-wave-bar {
+  box-shadow:
+    inset 0 0 4px rgba(43, 160, 156, 0.25),
+    0 0 8px rgba(43, 160, 156, 0.18);
+}
+
+@keyframes al-film-grain {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-2%, 1%); }
+  50%  { transform: translate(1%, -2%); }
+  75%  { transform: translate(-2%, 1%); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes al-aurora {
+  0%   { transform: translateX(-50%) scale(1)    rotate(0deg);  opacity: 0.55; }
+  50%  { transform: translateX(-42%) scale(1.15) rotate(6deg);  opacity: 0.85; }
+  100% { transform: translateX(-58%) scale(0.95) rotate(-6deg); opacity: 0.7;  }
+}
+@keyframes al-letterbox {
+  0%   { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0); opacity: 0; }
+}
+
+/* Mobile: smaller letterbox crop. */
+@media (max-width: 768px) {
+  .al-header::before,
+  .al-footer::after { height: 4vh; }
+}
+
+/* Reduced motion: kill transforms; keep a faint static grain. */
+@media (prefers-reduced-motion: reduce) {
+  .artist-landing::after { animation: none; opacity: 0.05; }
+  .al-header-glow        { animation: none; }
+  .al-header::before,
+  .al-footer::after      { display: none; }
+}
+
+/* ============================================================
+   PROFESSIONAL SMALL-FONT CREDIT (artist-landing footer)
+   Refines ".al-footer-text" + ".al-footer-sub" (which render the
+   public profile page's bottom credit) into a refined, end-credit
+   small-print feel. Uses the same cascade-overridden approach as
+   the global .app-footer-brand refactor.
+   ============================================================ */
+.al-footer {
+  padding: 36px 16px 28px;
+  text-align: center;
+}
+.al-footer-text {
+  font-family:
+    'Helvetica Neue', 'Inter', 'Public Sans', system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--ivory-400, #c2b295);
+  margin: 0 0 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.al-footer-sub {
+  font-family:
+    'Helvetica Neue', 'Inter', 'Public Sans', system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--teal-400, #2ba09c);
+  margin: 0;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  opacity: 0.82;
+  transition: opacity 0.3s ease;
+}
+.al-footer:hover .al-footer-sub {
+  opacity: 1;
+}

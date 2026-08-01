@@ -129,6 +129,157 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         opacity: 0.4;
         cursor: not-allowed;
       }
+      /* ============================================================
+         THA SPOT — Responsive / accessibility polish (D4 follow-up).
+         Inline here so it travels with the component and complements
+         the existing stylesheet. Purely additive; no above-the-fold
+         rule changes.
+         ============================================================ */
+      .spot-main-content {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+      @media (max-width: 768px) {
+        .spot-main-content {
+          padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        }
+      }
+      /* Catalog header / filters: wrap on tablet, horiz-scroll on mobile. */
+      @media (max-width: 1024px) {
+        .catalog-header,
+        .spot-header {
+          flex-wrap: wrap;
+          row-gap: 0.5rem;
+          column-gap: 0.5rem;
+        }
+        .catalog-filters,
+        .filters-rail {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          scrollbar-width: thin;
+        }
+        .catalog-filters::-webkit-scrollbar,
+        .filters-rail::-webkit-scrollbar { height: 4px; }
+        .catalog-filters::-webkit-scrollbar-thumb,
+        .filters-rail::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 2px;
+        }
+      }
+      @media (max-width: 768px) {
+        .catalog-filters { scroll-snap-type: x proximity; }
+        .catalog-filters .filter-chip { scroll-snap-align: start; }
+        /* Recommendation rails: snap-scroll on mobile, hidden bars. */
+        .recommendation-rail .rail-cards,
+        .recommendation-rails .rail-cards {
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .recommendation-rail .rail-cards::-webkit-scrollbar,
+        .recommendation-rails .rail-cards::-webkit-scrollbar { display: none; }
+        .recommendation-rail .game-card,
+        .recommendation-rails .game-card {
+          scroll-snap-align: start;
+          flex: 0 0 82%;
+        }
+        /* Sidebars: full-screen sheet on mobile. */
+        .executive-sidebar,
+        .rival-hub-sidebar {
+          position: fixed;
+          inset: 64px 0 0 0;
+          width: 100%;
+          height: calc(100dvh - 64px);
+          max-height: none;
+          z-index: 80;
+          border-radius: 0;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+        }
+        .executive-sidebar.is-open,
+        .rival-hub-sidebar.is-open { transform: translateX(0); }
+        .spot-main-content { margin-left: 0 !important; width: 100%; }
+        /* Challenge banner: safe-area aware, never overlap header. */
+        .challenge-banner {
+          top: auto;
+          bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          left: 12px;
+          right: 12px;
+          transform: none;
+          width: auto;
+          flex-direction: column;
+          align-items: stretch;
+          text-align: center;
+          gap: 0.5rem;
+          padding: 0.75rem;
+        }
+        .challenge-banner .challenge-actions { justify-content: center; }
+        /* Overlays: full-bleed sheet feel on mobile. */
+        .immersive-overlay,
+        .matchmaking-overlay,
+        .launch-mission-page,
+        .mission-overlay {
+          width: 100% !important;
+          max-width: none !important;
+          height: 100dvh;
+          border-radius: 0;
+          padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        }
+        .matchmaking-overlay .overlay-card,
+        .mission-overlay .overlay-card { padding: 1rem; }
+        /* Game console: full-bleed with safe-area aware footer. */
+        .game-console-window,
+        .console-window {
+          border-radius: 0;
+          width: 100%;
+          height: 100dvh;
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .console-header { padding: 0.5rem 0.75rem; }
+        .console-footer {
+          padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+        }
+        /* Touch targets: enforce 44px minimum on tappable elements. */
+        button,
+        .action-btn,
+        .nav-pill,
+        .tab,
+        .filter-chip,
+        .game-card,
+        .tab-button {
+          min-height: 44px;
+        }
+        .game-card { padding: 0.75rem; }
+      }
+      @media (max-width: 1024px) {
+        .executive-sidebar,
+        .rival-hub-sidebar {
+          position: sticky;
+          top: 64px;
+          align-self: start;
+          max-height: calc(100vh - 72px);
+        }
+      }
+      /* Focus rings for keyboard users; respects reduced-motion. */
+      :focus-visible {
+        outline: 2px solid #6ee7b7;
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+        .challenge-banner { animation: none !important; }
+      }
     `,
   ],
 })
@@ -233,6 +384,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private currentMatchmakingId: number | null = null;
   private matchmakingTimerId: any = null;
   private latestSearchQuery: string = '';
+  private pendingGameId: string | null = null;
+  private pendingRoomId: string | null = null;
   private readonly RECENT_GAMES_KEY = 'tha_spot_recent_games';
 
   // Social & Streaming Signals
@@ -248,6 +401,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('remoteAudio') remoteAudio?: ElementRef<HTMLAudioElement>;
 
   private feedSubscription?: Subscription;
+  private routeParamSubscription?: Subscription;
+  private queryParamSubscription?: Subscription;
   private clockId?: any;
   private feedRefreshId?: any;
   private readonly messageHandler = (event: MessageEvent) =>
@@ -554,8 +709,32 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.initCardObserver();
     this.startHeroBgRotation();
 
+    // Handle path deep links as well as the existing query-based share links.
+    // Nested Tha Spot routes are intentionally flat in the router, so the
+    // component always receives the params for the URL that was requested.
+    this.routeParamSubscription = this.route.paramMap?.subscribe((params) => {
+      const routePath = this.route.routeConfig?.path || '';
+      const pathId = params.get('id');
+      if (routePath === 'browse' || routePath.endsWith('/browse')) {
+        this.isBrowseView.set(true);
+      } else if (
+        (routePath === 'room/:id' || routePath.endsWith('/room/:id')) &&
+        pathId
+      ) {
+        this.isBrowseView.set(false);
+        this.pendingRoomId = pathId;
+      } else if (
+        (routePath === 'game/:id' || routePath.endsWith('/game/:id')) &&
+        pathId
+      ) {
+        this.isBrowseView.set(true);
+        this.pendingGameId = pathId;
+        this.applyPendingGameSelection();
+      }
+    });
+
     // Handle Deep Links
-    this.route.queryParamMap.subscribe((params) => {
+    this.queryParamSubscription = this.route.queryParamMap.subscribe((params) => {
       const gameId = params.get('gameId');
       const partyId = params.get('partyId');
       const mission = params.get('mission');
@@ -568,16 +747,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       }
 
       if (gameId) {
-        const game = this.games().find((g) => g.id === gameId);
-        if (game) {
-          this.selectedGame.set(game);
-        } else {
-          const sub = this.gameService.getThaSpotFeed().subscribe((feed) => {
-            const found = feed.games.find((g) => g.id === gameId);
-            if (found) this.selectedGame.set(found);
-            sub.unsubscribe();
-          });
-        }
+        this.pendingGameId = gameId;
+        this.applyPendingGameSelection();
       }
 
       // Handle challenge deep links: ?challenge=true&gameId=...&from=...
@@ -593,14 +764,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
             gameId: challengeGameId,
             timestamp: Date.now(),
           });
-          // Optionally auto-select the game
-          const game = this.games().find((g) => g.id === challengeGameId);
-          if (game) this.selectedGame.set(game);
+          this.pendingGameId = challengeGameId;
+          this.applyPendingGameSelection();
         }
       }
     });
 
-    this.setActiveRoom('co-op-link');
+    this.setActiveRoom(this.pendingRoomId || 'co-op-link');
 
     this.hubTimeoutId = setTimeout(() => {
       if (
@@ -617,6 +787,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.feedSubscription?.unsubscribe();
+    this.routeParamSubscription?.unsubscribe();
+    this.queryParamSubscription?.unsubscribe();
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
     if (this.hubTimeoutId) clearTimeout(this.hubTimeoutId);
@@ -662,6 +834,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedGame.set(game);
     this.gameIdToInvite.set(game.id);
     this.playSoundEffect('select');
+  }
+
+  onGameCardKeydown(game: Game, event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.onGameClick(game);
+    }
   }
 
   closePreview() {
@@ -987,8 +1166,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         this.promotions.set(feed.promotions);
         this.recommendationRails.set(feed.recommendationRails);
         this.isLoading.set(false);
+        this.applyPendingGameSelection();
         this.refreshCardObserver();
       });
+  }
+
+  private applyPendingGameSelection(): void {
+    const gameId = this.pendingGameId;
+    if (!gameId) return;
+
+    const game = this.games().find((candidate) => candidate.id === gameId);
+    if (game) {
+      this.selectedGame.set(game);
+      this.pendingGameId = null;
+    }
   }
 
   private startLiveClock(): void {

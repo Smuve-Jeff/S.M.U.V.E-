@@ -1,15 +1,17 @@
 import { SecurityService } from '../services/security.service';
 import {
+  AfterViewInit,
   Component,
-  OnInit,
   OnDestroy,
-  signal,
-  inject,
+  OnInit,
   computed,
+  inject,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { UserProfileService } from '../services/user-profile.service';
 import { DeckService } from '../services/deck.service';
 import { UIService } from '../services/ui.service';
@@ -17,15 +19,15 @@ import { AiService } from '../services/ai.service';
 import { FileLoaderService } from '../services/file-loader.service';
 import { ExportService } from '../services/export.service';
 import { AudioEngineService } from '../services/audio-engine.service';
-import { AfterViewInit } from '@angular/core';
 import { NotificationService } from '../services/notification.service';
 import { PlayerService } from '../services/player.service';
 import { MainViewMode } from '../services/user-context.service';
-import { OnboardingService } from '../services/onboarding.service';
-import { OnboardingStep } from '../services/onboarding.service';
+import { OnboardingService, OnboardingStep } from '../services/onboarding.service';
 import { CloudSyncService } from '../services/cloud-sync.service';
 import { OfflineSyncService } from '../services/offline-sync.service';
 import { SessionHistoryService } from '../services/session-history.service';
+import { ProjectService } from '../services/project.service';
+import { Project } from '../types';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -59,39 +61,30 @@ interface HomeBackdropMedia {
 })
 export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
+  private fileLoader = inject(FileLoaderService);
+  private exportService = inject(ExportService);
+  private notificationService = inject(NotificationService);
+  private projectSubscription: Subscription | null = null;
+  private pulseInterval: ReturnType<typeof setInterval> | null = null;
+  private animFrame: number | null = null;
+
   public uiService = inject(UIService);
   public deckService = inject(DeckService);
   public profileService = inject(UserProfileService);
   public aiService = inject(AiService);
-  private fileLoader = inject(FileLoaderService);
-  private exportService = inject(ExportService);
   public audioEngine = inject(AudioEngineService);
-  private notificationService = inject(NotificationService);
   public playerService = inject(PlayerService);
   public onboarding = inject(OnboardingService);
   public securityService = inject(SecurityService);
   public cloudSyncService = inject(CloudSyncService);
   public offlineSync = inject(OfflineSyncService);
   public sessionHistoryService = inject(SessionHistoryService);
+  public projectService = inject(ProjectService);
 
-  goToCloudVault(): void {
-    void this.router.navigate(['/cloud']);
-  }
-  goToTimeline(): void {
-    void this.router.navigate(['/timeline']);
-  }
-
-  get sessionProjectCount(): number {
-    return Object.keys(this.sessionHistoryService.branchesByProject()).length;
-  }
-
-  // Quick Start Form
-  quickProfile = signal({
-    artistName: '',
-    primaryGenre: 'Hip Hop',
-  });
-
-  private pulseInterval: ReturnType<typeof setInterval> | null = null;
+  quickProfile = signal({ artistName: '', primaryGenre: 'Hip Hop' });
+  projectList = signal<Project[]>([]);
+  visualizerData = signal<number[]>(new Array(24).fill(15));
+  currentBeat = this.audioEngine.currentBeat;
 
   genres = ['Hip Hop', 'R&B', 'Pop', 'Electronic', 'Rock', 'Jazz', 'Classical'];
   broadcastDuration = 320;
@@ -100,6 +93,8 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     'Club rotation up 24% this week',
     'Sync request: major placement',
   ];
+
+  /** Kept as a stable public surface for existing Hub specs and consumers. */
   featureSpotlights: LandingFeature[] = [
     {
       route: 'produce',
@@ -165,6 +160,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
       icon: 'sports_esports',
     },
   ];
+
   workflowStages: WorkflowStage[] = [
     {
       route: 'profile',
@@ -195,6 +191,8 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
         'Use the release pipeline, analytics, and project views to manage rollout and watch the numbers climb.',
     },
   ];
+
+  /** Preserved as a visual asset rail and used by the existing Hub spec. */
   homeBackdropMedia: HomeBackdropMedia[] = [
     {
       src: 'assets/hub/home-backdrop-studio.png',
@@ -221,67 +219,155 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
       layoutClass: 'panel-cinema',
     },
   ];
+
+  activeBackdropIndex = signal(0);
+  activeBackdrop = computed(() => this.homeBackdropMedia[this.activeBackdropIndex()] ?? this.homeBackdropMedia[0]);
+
   commandDeck = [
     {
       shortcut: 'Ctrl + K',
       title: 'Command Palette',
-      description:
-        'Jump to any module or quick action from anywhere in the label.',
+      description: 'Jump to any module or quick action from anywhere in the label.',
     },
     {
       shortcut: '?',
       title: 'Quick Reference',
-      description:
-        'Contextual tips for the current view — shortcuts, gestures, controls.',
+      description: 'Contextual tips for the current view — shortcuts, gestures, controls.',
     },
     {
       shortcut: 'Themes',
       title: 'City Modes',
-      description:
-        'Switch visual themes, scanlines, and performance settings on the fly.',
+      description: 'Switch visual themes, scanlines, and performance settings on the fly.',
     },
   ];
 
-  getCareerFocusProgress(): number {
-    return Math.min(
-      100,
-      this.profileService.profile().careerGoals.length * 20 || 20
+  recentProjects = computed(() =>
+    [...this.projectList()]
+      .sort((a, b) => (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt))
+      .slice(0, 3)
+  );
+
+  activeProject = computed(() =>
+    this.projectService.currentProject() ?? this.recentProjects()[0] ?? null
+  );
+
+  activeProjectName = computed(() => this.activeProject()?.name || 'No project selected');
+
+  sessionCheckpointCount = computed(() =>
+    Object.values(this.sessionHistoryService.checkpointsByBranch()).reduce(
+      (total, checkpoints) => total + checkpoints.length,
+      0
+    )
+  );
+
+  trackedProjectsCount = computed(
+    () => Object.keys(this.sessionHistoryService.branchesByProject()).length
+  );
+
+  activeBranchLabel = computed(() => {
+    const project = this.activeProject();
+    if (!project) return 'main';
+    const branchId = this.sessionHistoryService.activeBranch(project.id);
+    return (
+      this.sessionHistoryService
+        .branches(project.id)
+        .find((branch) => branch.id === branchId)?.name ?? 'main'
     );
-  }
+  });
 
-  updateQuickProfile(field: string, value: string) {
-    this.quickProfile.update((p) => ({ ...p, [field]: value }));
-  }
+  cloudStatusLabel = computed(() => {
+    if (this.cloudSyncService.conflictCount() > 0) return 'Needs attention';
+    if (this.cloudSyncService.isCloudReachable()) return 'Cloud synced';
+    return 'Offline queue';
+  });
 
-  constructor() {}
+  readinessScore = computed(() => {
+    const profile = this.profileService.profile();
+    const identity = profile.artistName !== 'New Artist' ? 25 : 0;
+    const catalog = profile.catalog.length > 0 ? 25 : 0;
+    const strategy = profile.careerGoals.length > 0 ? 25 : 0;
+    const creation = this.trackedProjectsCount() > 0 ? 25 : 0;
+    return identity + catalog + strategy + creation;
+  });
 
-  private animFrame: number | null = null;
-  visualizerData = signal<number[]>(new Array(24).fill(15));
-  currentBeat = this.audioEngine.currentBeat;
   globalStudioPulse = computed(() => {
-    const pulse = [];
-    if (this.aiService.isAIDrummerActive())
-      pulse.push('NEURAL DRUMMER: SYNCED');
+    const pulse: string[] = [];
+    if (this.aiService.isAIDrummerActive()) pulse.push('NEURAL DRUMMER: SYNCED');
     if (this.aiService.isAIBassistActive()) pulse.push('AI BASSIST: TRACKING');
-    if (this.aiService.isAIKeyboardistActive())
-      pulse.push('KEYBOARDIST: IMPROVISING');
+    if (this.aiService.isAIKeyboardistActive()) pulse.push('KEYBOARDIST: IMPROVISING');
     if (this.audioEngine.isRecording()) pulse.push('UPLINK: CAPTURING');
+    if (this.sessionCheckpointCount() > 0) pulse.push('SESSION GRAPH: RECORDING');
     if (pulse.length === 0) pulse.push('SYSTEM READY: STANDBY');
     return pulse;
   });
+
+  selectBackdrop(index: number): void {
+    if (index < 0 || index >= this.homeBackdropMedia.length) return;
+    this.activeBackdropIndex.set(index);
+    this.resetCinematicPointer();
+  }
+
+  cycleBackdrop(direction: 1 | -1 = 1): void {
+    const count = this.homeBackdropMedia.length;
+    if (!count) return;
+    this.selectBackdrop((this.activeBackdropIndex() + direction + count) % count);
+  }
+
+  onCinematicPointerMove(event: PointerEvent): void {
+    if (this.uiService.performanceMode() || this.prefersReducedMotion()) return;
+    const stage = event.currentTarget as HTMLElement | null;
+    if (!stage) return;
+    const bounds = stage.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+    stage.style.setProperty('--pointer-x', `${(x * 10).toFixed(2)}px`);
+    stage.style.setProperty('--pointer-y', `${(y * 7).toFixed(2)}px`);
+    stage.style.setProperty('--pointer-glow-x', `${50 + x * 18}%`);
+    stage.style.setProperty('--pointer-glow-y', `${46 + y * 18}%`);
+  }
+
+  resetCinematicPointer(): void {
+    const stage = document.querySelector<HTMLElement>('.cinematic-stage');
+    stage?.style.setProperty('--pointer-x', '0px');
+    stage?.style.setProperty('--pointer-y', '0px');
+    stage?.style.setProperty('--pointer-glow-x', '50%');
+    stage?.style.setProperty('--pointer-glow-y', '46%');
+  }
+
+  private prefersReducedMotion(): boolean {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  get sessionProjectCount(): number {
+    return this.trackedProjectsCount();
+  }
+
   getDynamicChecklist() {
     return this.aiService.getDynamicChecklist();
   }
+
+  getCareerFocusProgress(): number {
+    const profile = this.profileService.profile();
+    return Math.min(100, profile.careerGoals.length * 20 || (profile.catalog.length ? 35 : 12));
+  }
+
   isMobile() {
     return this.uiService.isCompactMobile();
   }
 
+  constructor() {}
+
   ngOnInit() {
+    this.projectSubscription = this.projectService.list$.subscribe((projects) => {
+      this.projectList.set(projects);
+    });
+
     if (this.uiService.isCompactMobile()) {
       this.aiService.proactiveSmuvePulse();
     }
+
     this.pulseInterval = setInterval(() => {
-      this.currentBeat.update((v) => v + 1);
+      this.currentBeat.update((value) => value + 1);
     }, 3000);
   }
 
@@ -296,21 +382,18 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
-
-        const newData = [];
-        const step = Math.floor(bufferLength / 24);
-        for (let i = 0; i < 24; i++) {
+        const step = Math.max(1, Math.floor(bufferLength / 24));
+        const next = [];
+        for (let index = 0; index < 24; index++) {
           let sum = 0;
-          for (let j = 0; j < step; j++) {
-            sum += dataArray[i * step + j];
+          for (let offset = 0; offset < step; offset++) {
+            sum += dataArray[index * step + offset] ?? 0;
           }
-          const average = sum / step;
-          newData.push(Math.max(20, (average / 255) * 100));
+          next.push(Math.max(20, (sum / step / 255) * 100));
         }
-        this.visualizerData.set(newData);
+        this.visualizerData.set(next);
       } else {
-        const idle = this.visualizerData().map((v) => Math.max(20, v * 0.95));
-        this.visualizerData.set(idle);
+        this.visualizerData.update((values) => values.map((value) => Math.max(20, value * 0.95)));
       }
       this.animFrame = requestAnimationFrame(update);
     };
@@ -318,78 +401,80 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
-    if (this.animFrame) cancelAnimationFrame(this.animFrame);
+    if (this.animFrame !== null) cancelAnimationFrame(this.animFrame);
     if (this.pulseInterval) clearInterval(this.pulseInterval);
+    this.projectSubscription?.unsubscribe();
   }
 
-  // Quick Start Actions
+  updateQuickProfile(field: string, value: string) {
+    this.quickProfile.update((profile) => ({ ...profile, [field]: value }));
+  }
+
   onQuickStart() {
     if (!this.quickProfile().artistName) {
-      this.notificationService.show(
-        'INPUT REQUIRED your Artist Name to begin!',
-        'warning'
-      );
+      this.notificationService.show('INPUT REQUIRED: your Artist Name to begin!', 'warning');
       return;
     }
-
     const current = this.profileService.profile();
     this.profileService.updateProfile({
       ...current,
       artistName: this.quickProfile().artistName,
       primaryGenre: this.quickProfile().primaryGenre,
     });
-
     this.notificationService.show('Profile Created Successfully!', 'success');
-    this.router.navigate(['/profile']);
+    void this.router.navigate(['/profile']);
   }
 
-  // AI Jam Actions
   toggleAIBassist() {
-    if (this.aiService.isAIBassistActive()) {
-      this.aiService.stopAIBassist();
-    } else {
-      this.aiService.startAIBassist();
-    }
+    this.aiService.isAIBassistActive()
+      ? this.aiService.stopAIBassist()
+      : this.aiService.startAIBassist();
   }
 
   toggleAIDrummer() {
-    if (this.aiService.isAIDrummerActive()) {
-      this.aiService.stopAIDrummer();
-    } else {
-      this.aiService.startAIDrummer();
-    }
+    this.aiService.isAIDrummerActive()
+      ? this.aiService.stopAIDrummer()
+      : this.aiService.startAIDrummer();
   }
 
   toggleAIKeyboardist() {
-    if (this.aiService.isAIKeyboardistActive()) {
-      this.aiService.stopAIKeyboardist();
-    } else {
-      this.aiService.startAIKeyboardist();
-    }
+    this.aiService.isAIKeyboardistActive()
+      ? this.aiService.stopAIKeyboardist()
+      : this.aiService.startAIKeyboardist();
   }
 
-  // Navigation INTELers
   goToStudio() {
-    this.router.navigate(['/studio']);
+    void this.router.navigate(['/studio']);
   }
 
   goToThaSpot() {
-    this.router.navigate(['/tha-spot']);
+    void this.router.navigate(['/tha-spot']);
+  }
+
+  browseThaSpot() {
+    void this.router.navigate(['/tha-spot/browse']);
+  }
+
+  goToCloudVault(): void {
+    void this.router.navigate(['/cloud']);
+  }
+
+  goToTimeline(): void {
+    void this.router.navigate(['/timeline']);
+  }
+
+  goToStore() {
+    void this.router.navigate(['/store']);
   }
 
   navigateToFeature(route: MainViewMode) {
-    this.router.navigate(['/' + route]);
+    void this.router.navigate(['/' + route]);
   }
 
   continueOnboarding() {
     const next = this.onboarding.nextStep();
-    if (!next) {
-      return;
-    }
-
-    this.router.navigate(['/' + next.route], {
-      queryParams: next.queryParams,
-    });
+    if (!next) return;
+    void this.router.navigate(['/' + next.route], { queryParams: next.queryParams });
   }
 
   resumeWorkspace() {
@@ -398,20 +483,22 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openOnboardingStep(step: OnboardingStep) {
-    this.router.navigate(['/' + step.route], {
-      queryParams: step.queryParams,
-    });
+    void this.router.navigate(['/' + step.route], { queryParams: step.queryParams });
   }
 
-  // Sprint C2 — storefront launcher.
-  goToStore() {
-    this.router.navigate(['/store']);
-  }
-
-  // Sprint C3 — first beat tour launcher: seeds the tour progress then
-  // routes to the dedicated overlay screen.
   startFirstBeatTour() {
     this.onboarding.startTour();
-    this.router.navigate(['/onboarding/tour']);
+    void this.router.navigate(['/onboarding/tour']);
+  }
+
+  openProject(project: Project) {
+    this.projectService.select(project.id);
+    this.uiService.navigateToView('studio');
+  }
+
+  exportCurrentTrack() {
+    void this.fileLoader;
+    void this.exportService;
+    this.playerService.loadExternalTrack();
   }
 }

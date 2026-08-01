@@ -16,6 +16,7 @@ import {
   Router,
   NavigationEnd,
 } from '@angular/router';
+import { trigger, transition, style, animate, query } from '@angular/animations';
 import { filter } from 'rxjs/operators';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 
@@ -70,6 +71,23 @@ interface NavigationGroup {
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
+  animations: [
+    trigger('routeAnim', [
+      transition('* <=> *', [
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateY(12px)' }),
+            animate(
+              '320ms cubic-bezier(0.22, 1, 0.36, 1)',
+              style({ opacity: 1, transform: 'translateY(0)' })
+            ),
+          ],
+          { optional: true }
+        ),
+      ]),
+    ]),
+  ],
 })
 export class AppComponent implements ErrorHandler {
   authService = inject(AuthService);
@@ -421,5 +439,12 @@ export class AppComponent implements ErrorHandler {
       this.isSidebarOpen.set(false);
       this.isMobileWorkspaceTrayOpen.set(false);
     }
+  }
+
+  routeAnimState(outlet: RouterOutlet): string {
+    if (!outlet || !outlet.isActivated) return '';
+    return (
+      outlet.activatedRoute?.snapshot?.url?.map((s) => s.path).join('/') ?? ''
+    );
   }
 }

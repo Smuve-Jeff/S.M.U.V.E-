@@ -1,836 +1,307 @@
-<div class="hub-wrapper" [class.playing]="playerService.isPlaying()">
-  <!-- Sprint D1 — Cloud Vault header status pill -->
+<div class="hub-command-center" [class.is-playing]="playerService.isPlaying()">
+  <div class="hub-orbit hub-orbit-one"></div>
+  <div class="hub-orbit hub-orbit-two"></div>
+  <div class="hub-noise"></div>
   <div
-    class="hub-cloud-pill"
-    role="status"
-    aria-live="polite"
-    (click)="goToCloudVault()"
-  >
-    <span
-      class="hub-cloud-dot"
-      [class.is-up]="cloudSyncService.isCloudReachable()"
-      [class.is-down]="!cloudSyncService.isCloudReachable()"
-    ></span>
-    <span class="hub-cloud-label">
-      {{
-        cloudSyncService.isCloudReachable()
-          ? 'Cloud synced'
-          : 'Offline queue'
-      }}
-    </span>
-    <span
-      class="hub-cloud-meta"
-      *ngIf="cloudSyncService.conflictCount() > 0"
-    >
-      {{ cloudSyncService.conflictCount() }} conflict{{
-        cloudSyncService.conflictCount() === 1 ? '' : 's'
-      }}
-    </span>
-  </div>
-  <!-- S.M.U.V.E 2.0 Mobile Executive HUD -->
-  @if (aiService.isMobile() && aiService.isScanning()) {
-    <div class="mobile-executive-hud animate-pulse">
-      <div class="hud-glow"></div>
-      <div class="flex items-center gap-4 px-4 py-3">
-        <span class="material-symbols-outlined text-primary spin"
-          >security_update_good</span
-        >
-        <div class="flex-1">
-          <p
-            class="text-[10px] font-black uppercase tracking-tighter text-primary"
-          >
-            CITY PULSE // LIVE SCANNING
-          </p>
-          <p class="text-xs font-bold">
-            {{ aiService.currentProcessStep() }} ({{
-              aiService.scanningProgress()
-            }}%)
-          </p>
+    class="hub-ambient"
+    aria-hidden="true"
+    [style.background-image]="'url(' + activeBackdrop().src + ')'"
+  ></div>
+
+  <div class="hub-shell">
+    <header class="hub-topline">
+      <div class="hub-brand-lockup">
+        <div class="hub-brand-mark">S</div>
+        <div>
+          <p class="hub-kicker">S.M.U.V.E. 2.0 // EXECUTIVE COMMAND</p>
+          <p class="hub-subline">Your studio, signal, and next move in one live surface.</p>
         </div>
       </div>
-    </div>
-  }
-
-  @if (
-    aiService.isMobile() &&
-    !aiService.isScanning() &&
-    aiService.strategicDecrees().length > 0
-  ) {
-    <div
-      class="mobile-directive-hud animate-enter"
-      (click)="uiService.navigateToView('knowledge-base')"
-    >
-      <div class="flex items-center gap-4 px-4 py-3">
-        <span class="material-symbols-outlined text-accent">priority_high</span>
-        <div class="flex-1">
-          <p
-            class="text-[10px] font-black uppercase tracking-tighter text-accent"
-          >
-            THA LABEL // URGENT DIRECTIVE
-          </p>
-          <p class="text-xs italic truncate">
-            "{{ aiService.strategicDecrees()[0] }}"
-          </p>
-        </div>
-        <span class="material-symbols-outlined text-sm opacity-40"
-          >chevron_right</span
-        >
-      </div>
-    </div>
-  }
-
-  <!-- Background Reactive Layers -->
-  <div class="hub-ambient-glow"></div>
-  <div class="hub-party-lights"></div>
-  <div class="hub-laser-beams"></div>
-  <div class="hub-reactive-grid"></div>
-  <div class="hub-particles"></div>
-  <div class="hub-media-montage" aria-hidden="true">
-    @for (panel of homeBackdropMedia; track panel.title) {
-      <figure class="media-panel" [ngClass]="panel.layoutClass">
-        <img
-          class="media-shot"
-          [src]="panel.src"
-          [attr.alt]="panel.title"
-          loading="eager"
-          decoding="async"
-        />
-        <div class="media-sheen"></div>
-        <figcaption class="media-caption">
-          <span class="media-label">{{ panel.label }}</span>
-          <strong class="media-title">{{ panel.title }}</strong>
-        </figcaption>
-      </figure>
-    }
-  </div>
-
-  <div class="hub-container animate-enter">
-    <!-- Marquee strip — nightlife banner -->
-    <div class="stage-marquee mb-4" aria-hidden="true">
-      <div class="stage-marquee-track">
-        <span>✦ SMUVE JEFF PRESENTS ✦ THA LABEL ✦ EST. MMXXVI ✦</span>
-        <span>✦ NOW SIGNING ✦ STUDIO LIVE ✦ CITY NEVER SLEEPS ✦</span>
-        <span>✦ INDEPENDENT ✦ UNSIGNED HEAT ✦ STREET CERTIFIED ✦</span>
-        <span>✦ PRESS PULSE ACTIVE ✦ DROP INCOMING ✦ LIGHTS ON ✦</span>
-        <span>✦ SMUVE JEFF PRESENTS ✦ THA LABEL ✦ EST. MMXXVI ✦</span>
-        <span>✦ NOW SIGNING ✦ STUDIO LIVE ✦ CITY NEVER SLEEPS ✦</span>
-        <span>✦ INDEPENDENT ✦ UNSIGNED HEAT ✦ STREET CERTIFIED ✦</span>
-        <span>✦ PRESS PULSE ACTIVE ✦ DROP INCOMING ✦ LIGHTS ON ✦</span>
-      </div>
-    </div>
-
-    <!-- Header: Label Executive Overview -->
-    <header class="hub-header">
-      <div class="header-left">
-        <p class="brand-eyebrow glimmer-text">
-          SMUVE JEFF PRESENTS // INDEPENDENT. UNSIGNED. LIMITLESS.
-        </p>
-        <h1 class="header-title glimmer-text">
-          WELCOME TO THE ROSTER,
-          {{ profileService.profile().artistName }} — THE CITY IS LISTENING.
-        </h1>
-      </div>
-      <div class="header-right">
-        <div class="executive-stat">
-          <span class="stat-label">Billboard Watch</span>
-          <span class="stat-value" style="color: var(--neon-cyan)"
-            >#{{
-              profileService.profile().knowledgeBase.strategicHealthScore
-            }}</span
-          >
-        </div>
-        <div class="executive-stat">
-          <span class="stat-label">Catalog Heat</span>
-          <span class="stat-value" style="color: var(--neon-magenta)">{{
-            profileService.profile().catalog.length
-          }}</span>
-        </div>
-        <div class="executive-stat">
-          <span class="stat-label">Studio Access</span>
-          <span class="stat-value" style="color: var(--amber-gold)">24/7</span>
-        </div>
+      <div class="hub-top-actions">
+        <span class="hub-system-state">
+          <span class="state-dot" [class.is-live]="cloudSyncService.isCloudReachable()"></span>
+          {{ cloudStatusLabel() }}
+        </span>
+        <button type="button" class="hub-icon-button" (click)="uiService.toggleTheme()" aria-label="Toggle theme">
+          <span class="material-symbols-outlined">brightness_6</span>
+        </button>
+        <button type="button" class="hub-icon-button" (click)="uiService.togglePerformanceMode()" aria-label="Toggle performance mode">
+          <span class="material-symbols-outlined">{{ uiService.performanceMode() ? 'speed' : 'bolt' }}</span>
+        </button>
       </div>
     </header>
 
-    <!-- First-Signing Path (Onboarding) -->
     <section
-      *ngIf="onboarding.shouldShow()"
-      class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-black/35 backdrop-blur-xl p-6 md:p-8 led-strip"
+      class="cinematic-stage"
+      aria-label="S.M.U.V.E. visual signal reel"
+      (pointermove)="onCinematicPointerMove($event)"
+      (pointerleave)="resetCinematicPointer()"
     >
-      <div
-        class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6"
+      <div class="cinematic-stage-backdrop" aria-hidden="true">
+        <img
+          *ngFor="let media of homeBackdropMedia; let index = index"
+          [ngClass]="['cinematic-image', media.layoutClass, index === activeBackdropIndex() ? 'is-active' : '']"
+          [src]="media.src"
+          alt=""
+          [attr.aria-hidden]="index === activeBackdropIndex() ? null : 'true'"
+        />
+      </div>
+      <div class="cinematic-stage-scrim" aria-hidden="true"></div>
+      <div class="cinematic-stage-grid" aria-hidden="true"></div>
+      <div class="cinematic-stage-glow" aria-hidden="true"></div>
+
+      <div class="cinematic-stage-content">
+        <div class="cinematic-eyebrow">
+          <span class="cinematic-live-dot"></span>
+          <span>VISUAL SIGNAL // {{ (activeBackdropIndex() + 1).toString().padStart(2, '0') }} / {{ homeBackdropMedia.length.toString().padStart(2, '0') }}</span>
+        </div>
+        <div class="cinematic-caption">
+          <p class="hub-kicker">{{ activeBackdrop().label }}</p>
+          <h2>{{ activeBackdrop().title }}</h2>
+          <p>{{ activeProjectName() === 'No project selected' ? 'A living surface for the next idea.' : 'Live from ' + activeProjectName() }}</p>
+        </div>
+        <button type="button" class="cinematic-stage-cta" (click)="navigateToFeature(activeBackdropIndex() === 3 ? 'image-video-lab' : activeBackdropIndex() === 2 ? 'strategy' : activeBackdropIndex() === 1 ? 'projects' : 'studio')">
+          Enter this room <span class="material-symbols-outlined">north_east</span>
+        </button>
+      </div>
+
+      <div class="cinematic-controls">
+        <button type="button" class="cinematic-arrow" (click)="cycleBackdrop(-1)" aria-label="Previous visual signal">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <div class="cinematic-thumbnails" role="tablist" aria-label="Choose visual signal">
+          <button
+            *ngFor="let media of homeBackdropMedia; let index = index"
+            type="button"
+            class="cinematic-thumb"
+            [class.is-active]="index === activeBackdropIndex()"
+            role="tab"
+            [attr.aria-selected]="index === activeBackdropIndex()"
+            [attr.aria-label]="'Show ' + media.title"
+            [attr.aria-controls]="'cinematic-panel-' + index"
+            (click)="selectBackdrop(index)"
+          >
+            <img [src]="media.src" alt="" aria-hidden="true" />
+            <span>{{ media.label }}</span>
+          </button>
+        </div>
+        <button type="button" class="cinematic-arrow" (click)="cycleBackdrop(1)" aria-label="Next visual signal">
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </button>
+      </div>
+      <span
+        *ngFor="let media of homeBackdropMedia; let index = index"
+        class="cinematic-sr-panel"
+        [id]="'cinematic-panel-' + index"
       >
-        <div class="max-w-2xl">
-          <p
-            class="text-[10px] font-black uppercase tracking-[0.35em] text-brand-primary"
-          >
-            First-Signing Path
-          </p>
-          <h2
-            class="text-2xl md:text-3xl font-black italic uppercase text-white tracking-tight mt-3"
-          >
-            Get signed, get in the booth, get heard tonight
-          </h2>
-          <p
-            class="text-sm opacity-60 leading-relaxed mt-3"
-            style="color: var(--silver-dim)"
-          >
-            Finish your artist profile, lock your sound, and jump straight to
-            the studio floor. The city is listening — make your move.
-          </p>
-        </div>
+        {{ media.title }}
+      </span>
+    </section>
 
-        <div class="flex flex-col sm:flex-row gap-3">
-          <button
-            (click)="continueOnboarding()"
-            class="px-5 py-3 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px]"
-            style="background: var(--neon-cyan); color: var(--city-midnight)"
-          >
-            Lock It In
+    <section class="hub-hero">
+      <div class="hero-copy">
+        <p class="hub-kicker accent-kicker">LIVE ROSTER // {{ profileService.profile().primaryGenre || 'UNSPECIFIED SOUND' }}</p>
+        <h1>Welcome back, <span>{{ profileService.profile().artistName || 'New Artist' }}</span>.</h1>
+        <p class="hero-lede">
+          The label is live. Resume the room you were shaping, run the next AI production pass,
+          or take the latest version straight into the booth.
+        </p>
+        <div class="hero-actions">
+          <button type="button" class="hub-primary-button" (click)="goToStudio()">
+            <span class="material-symbols-outlined">graphic_eq</span>
+            Open Studio
           </button>
-          <button
-            (click)="startFirstBeatTour()"
-            class="px-5 py-3 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px]"
-            style="background: var(--amber-gold); color: var(--city-midnight)"
-          >
-            Start First Beat Tour
+          <button type="button" class="hub-secondary-button" (click)="navigateToFeature('produce')">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            Run AI Produce
           </button>
-          <button
-            (click)="resumeWorkspace()"
-            class="px-5 py-3 rounded-2xl border font-black uppercase tracking-[0.2em] text-[11px] text-white"
-            style="border-color: rgba(255, 255, 255, 0.12)"
-          >
-            Back to the Booth
+          <button type="button" class="hub-text-button" (click)="resumeWorkspace()">
+            Resume last surface <span class="material-symbols-outlined">arrow_forward</span>
           </button>
         </div>
       </div>
 
-      <div class="mt-6 h-2 rounded-full bg-white/5 overflow-hidden">
-        <div
-          class="h-full"
-          [style.width.%]="onboarding.progress()"
-          style="
-            background: linear-gradient(
-              90deg,
-              var(--neon-cyan),
-              var(--neon-magenta),
-              var(--amber-gold)
-            );
-          "
-        ></div>
-      </div>
-
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
-        <article
-          *ngFor="let step of onboarding.steps()"
-          class="rounded-2xl border p-4 transition-all"
-          [class.border-brand-primary/30]="step.complete"
-          [class.bg-brand-primary/10]="step.complete"
-          [class.border-white/10]="!step.complete"
-          [class.bg-white/5]="!step.complete"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div
-                class="text-[10px] font-black uppercase tracking-[0.25em] opacity-50"
-              >
-                {{ step.complete ? 'Locked In' : 'Next Move' }}
-              </div>
-              <h3 class="text-sm font-black uppercase text-white mt-2">
-                {{ step.title }}
-              </h3>
-            </div>
-            <span
-              class="material-symbols-outlined"
-              [class.text-brand-primary]="step.complete"
-            >
-              {{ step.complete ? 'check_circle' : 'arrow_forward' }}
-            </span>
+      <div class="hero-readiness">
+        <div class="readiness-ring" [style.--readiness]="readinessScore() + '%'">
+          <div>
+            <strong>{{ readinessScore() }}%</strong>
+            <span>ready</span>
           </div>
-          <p
-            class="text-xs leading-relaxed mt-3"
-            style="color: var(--silver-dim)"
-          >
-            {{ step.description }}
+        </div>
+        <div class="readiness-copy">
+          <p class="hub-kicker">ROSTER READINESS</p>
+          <h2>{{ readinessScore() >= 75 ? 'Move with intent.' : 'Build your foundation.' }}</h2>
+          <p>
+            {{ readinessScore() >= 75
+              ? 'Your identity, catalog, strategy, and creative trail are lining up.'
+              : 'Complete one focused move and S.M.U.V.E. will sharpen the next recommendation.' }}
           </p>
-          <button
-            *ngIf="!step.complete"
-            (click)="openOnboardingStep(step)"
-            class="mt-4 text-[10px] font-black uppercase tracking-[0.2em]"
-            style="color: var(--neon-cyan)"
-            [attr.aria-label]="'Continue onboarding: ' + step.cta"
-          >
-            {{ step.cta }}
+          <button type="button" class="mini-link" (click)="navigateToFeature('profile')">
+            Tune artist identity <span class="material-symbols-outlined">north_east</span>
           </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="hub-signal-strip" aria-label="Live workspace signals">
+      <div class="signal-item">
+        <span class="material-symbols-outlined">folder_managed</span>
+        <div><span>Projects</span><strong>{{ projectList().length }}</strong></div>
+      </div>
+      <div class="signal-item">
+        <span class="material-symbols-outlined">history_edu</span>
+        <div><span>Checkpoints</span><strong>{{ sessionCheckpointCount() }}</strong></div>
+      </div>
+      <div class="signal-item">
+        <span class="material-symbols-outlined">account_tree</span>
+        <div><span>Tracked graphs</span><strong>{{ trackedProjectsCount() }}</strong></div>
+      </div>
+      <div class="signal-item">
+        <span class="material-symbols-outlined">cloud_done</span>
+        <div><span>Vault</span><strong>{{ cloudSyncService.cloudProjects().length }}</strong></div>
+      </div>
+      <div class="signal-item signal-item-wide">
+        <span class="material-symbols-outlined">alt_route</span>
+        <div><span>Active lane</span><strong>{{ activeBranchLabel() }}</strong></div>
+      </div>
+    </section>
+
+    <section *ngIf="onboarding.shouldShow()" class="hub-onboarding hub-panel">
+      <div class="section-heading">
+        <div>
+          <p class="hub-kicker">FIRST BEAT PATH</p>
+          <h2>Make your first move count.</h2>
+        </div>
+        <span class="progress-label">{{ onboarding.progress() }}% calibrated</span>
+      </div>
+      <div class="onboarding-progress"><span [style.width.%]="onboarding.progress()"></span></div>
+      <div class="onboarding-grid">
+        <button *ngFor="let step of onboarding.steps(); let index = index" type="button" class="onboarding-step" [class.is-complete]="step.complete" (click)="step.complete ? null : openOnboardingStep(step)">
+          <span class="step-number">{{ (index + 1).toString().padStart(2, '0') }}</span>
+          <span class="step-body"><strong>{{ step.title }}</strong><small>{{ step.complete ? 'Locked in' : step.description }}</small></span>
+          <span class="material-symbols-outlined">{{ step.complete ? 'check_circle' : 'arrow_forward' }}</span>
+        </button>
+      </div>
+      <div class="onboarding-actions">
+        <button type="button" class="hub-secondary-button" (click)="continueOnboarding()">Continue setup</button>
+        <button type="button" class="hub-text-button" (click)="startFirstBeatTour()">Start the 5-minute tour <span class="material-symbols-outlined">arrow_forward</span></button>
+      </div>
+    </section>
+
+    <section class="hub-section">
+      <div class="section-heading">
+        <div>
+          <p class="hub-kicker">CREATE // RESUME // SHIP</p>
+          <h2>Everything important is one move away.</h2>
+        </div>
+        <button type="button" class="hub-text-button" (click)="navigateToFeature('projects')">View all projects <span class="material-symbols-outlined">arrow_forward</span></button>
+      </div>
+
+      <div class="workspace-grid">
+        <article class="workspace-card workspace-card-produce" (click)="navigateToFeature('produce')" tabindex="0" role="button" (keydown.enter)="navigateToFeature('produce')">
+          <div class="card-glow"></div>
+          <div class="workspace-card-top"><span class="card-icon"><span class="material-symbols-outlined">auto_awesome</span></span><span class="card-status">B3 // LIVE</span></div>
+          <div class="workspace-card-copy"><p class="hub-kicker">AI PRODUCE</p><h3>Go from spark to master.</h3><p>One orchestrated pass for beat, lyrics, vocal preview, mix, and release intent.</p></div>
+          <div class="card-footer"><span>Open the producer</span><span class="material-symbols-outlined">north_east</span></div>
+        </article>
+
+        <article class="workspace-card workspace-card-studio" (click)="goToStudio()" tabindex="0" role="button" (keydown.enter)="goToStudio()">
+          <div class="workspace-card-top"><span class="card-icon"><span class="material-symbols-outlined">graphic_eq</span></span><span class="card-status">LOW-LATENCY</span></div>
+          <div class="workspace-card-copy"><p class="hub-kicker">THE BOOTH</p><h3>Cut the record.</h3><p>Real synths, live inserts, comping, takes, mastering, and a full performance surface.</p></div>
+          <div class="studio-mini-visual"><span *ngFor="let bar of visualizerData().slice(0, 14); let i = index" [style.height.%]="bar" [style.animationDelay.ms]="i * 35"></span></div>
+          <div class="card-footer"><span>Enter Studio</span><span class="material-symbols-outlined">north_east</span></div>
+        </article>
+
+        <article class="workspace-card workspace-card-timeline" (click)="goToTimeline()" tabindex="0" role="button" (keydown.enter)="goToTimeline()">
+          <div class="workspace-card-top"><span class="card-icon"><span class="material-symbols-outlined">account_tree</span></span><span class="card-status">D1 → D4</span></div>
+          <div class="workspace-card-copy"><p class="hub-kicker">SESSION GRAPH</p><h3>Every edit has a way back.</h3><p>Replay checkpoints, fork a branch, merge competing ideas, and rewind without leaving the DAW.</p></div>
+          <div class="branch-preview"><i></i><i></i><i></i><i></i><b></b><b></b><b></b></div>
+          <div class="card-footer"><span>{{ sessionCheckpointCount() }} checkpoints · {{ activeBranchLabel() }}</span><span class="material-symbols-outlined">north_east</span></div>
+        </article>
+
+        <article class="workspace-card workspace-card-cloud" (click)="goToCloudVault()" tabindex="0" role="button" (keydown.enter)="goToCloudVault()">
+          <div class="workspace-card-top"><span class="card-icon"><span class="material-symbols-outlined">cloud_sync</span></span><span class="card-status" [class.is-warning]="cloudSyncService.conflictCount() > 0">{{ cloudStatusLabel() }}</span></div>
+          <div class="workspace-card-copy"><p class="hub-kicker">CLOUD VAULT</p><h3>Keep the room portable.</h3><p>Sync snapshots across devices, queue edits offline, and resolve conflicts with confidence.</p></div>
+          <div class="cloud-meter"><span [class.is-warning]="cloudSyncService.conflictCount() > 0"></span><span [class.is-warning]="cloudSyncService.conflictCount() > 0"></span><span [class.is-warning]="cloudSyncService.conflictCount() > 0"></span><span></span></div>
+          <div class="card-footer"><span>{{ cloudSyncService.conflictCount() ? cloudSyncService.conflictCount() + ' conflicts to review' : 'Vault is in rhythm' }}</span><span class="material-symbols-outlined">north_east</span></div>
         </article>
       </div>
     </section>
 
-    <!-- Security Alert Banner -->
-    @if (securityService.getSecurityAudit().score < 80) {
-      <div
-        class="col-span-full mb-6 border-l-4 p-6 animate-enter"
-        style="
-          background: rgba(10, 9, 25, 0.7);
-          backdrop-filter: blur(16px);
-          border-color: #ef4444;
-          border-radius: 16px;
-        "
-        (click)="uiService.navigateToView('profile')"
-      >
-        <div class="flex items-center gap-6">
-          <div
-            class="w-12 h-12 rounded-full flex items-center justify-center"
-            style="background: rgba(239, 68, 68, 0.12); color: #ef4444"
-          >
-            <span class="material-symbols-outlined text-3xl">gpp_maybe</span>
-          </div>
-          <div class="flex-1">
-            <h3
-              class="text-sm font-black uppercase tracking-widest"
-              style="color: #ef4444"
-            >
-              Identity Check Required
-            </h3>
-            <p class="text-xs mt-1 font-bold" style="color: var(--silver-dim)">
-              Secure your roster spot.
-              {{ securityService.getSecurityAudit().alerts[0] }}
-            </p>
-          </div>
-          <button
-            class="h-10 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl border"
-            style="
-              color: #ef4444;
-              border-color: rgba(239, 68, 68, 0.3);
-              background: rgba(239, 68, 68, 0.06);
-            "
-          >
-            Verify Now
+    <section class="tha-spot-feature" aria-labelledby="tha-spot-heading">
+      <div class="tha-spot-art" aria-hidden="true">
+        <div class="tha-spot-scanline"></div>
+        <div class="tha-spot-orbit orbit-primary"></div>
+        <div class="tha-spot-orbit orbit-secondary"></div>
+        <span class="tha-spot-art-label">THA SPOT</span>
+        <span class="tha-spot-art-code">SOCIAL // ARCADE // RIVALS</span>
+      </div>
+      <div class="tha-spot-feature-copy">
+        <div class="workspace-card-top">
+          <div class="card-icon tha-spot-icon"><span class="material-symbols-outlined">sports_esports</span></div>
+          <span class="card-status tha-spot-status"><span class="state-dot is-live"></span> FLOOR OPEN</span>
+        </div>
+        <p class="hub-kicker">AFTER HOURS // COMMUNITY MATRIX</p>
+        <h2 id="tha-spot-heading">Make noise off the timeline.</h2>
+        <p class="tha-spot-description">Drop into arcade cabinets, challenge another artist, join a room, or catch the live pulse between sessions.</p>
+        <div class="tha-spot-capabilities" aria-label="Tha Spot capabilities">
+          <span><span class="material-symbols-outlined">sports_kabaddi</span> Rivals</span>
+          <span><span class="material-symbols-outlined">forum</span> Rooms</span>
+          <span><span class="material-symbols-outlined">emoji_events</span> Challenges</span>
+        </div>
+        <div class="tha-spot-actions">
+          <button type="button" class="hub-primary-button" (click)="goToThaSpot()"><span class="material-symbols-outlined">bolt</span> Enter Tha Spot</button>
+          <button type="button" class="hub-text-button" (click)="browseThaSpot()">Browse cabinets <span class="material-symbols-outlined">arrow_forward</span></button>
+        </div>
+      </div>
+      <div class="tha-spot-feature-side">
+        <div class="tha-spot-side-line"><span class="state-dot is-live"></span><span>LIVE FLOOR</span><strong>READY</strong></div>
+        <div class="tha-spot-side-line"><span class="material-symbols-outlined">hub</span><span>PLAY MODES</span><strong>ARCADE + CO-OP</strong></div>
+        <div class="tha-spot-side-line"><span class="material-symbols-outlined">share</span><span>DEEP LINKS</span><strong>ROOMS + GAMES</strong></div>
+      </div>
+    </section>
+
+    <section class="hub-lower-grid">
+      <div class="hub-panel resume-panel">
+        <div class="section-heading compact-heading"><div><p class="hub-kicker">RESUME WORK</p><h2>Recent projects</h2></div><span class="material-symbols-outlined panel-heading-icon">history</span></div>
+        <div *ngIf="recentProjects().length; else emptyProjects" class="recent-project-list">
+          <button *ngFor="let project of recentProjects()" type="button" class="recent-project" (click)="openProject(project)">
+            <span class="project-art"><span class="material-symbols-outlined">music_note</span></span>
+            <span class="project-info"><strong>{{ project.name }}</strong><small>{{ project.status }} · {{ project.tracks.length }} tracks · {{ project.bpm }} BPM</small></span>
+            <span class="material-symbols-outlined project-arrow">arrow_forward</span>
           </button>
         </div>
+        <ng-template #emptyProjects>
+          <div class="empty-projects"><span class="material-symbols-outlined">add_circle</span><p>Your first project becomes the first node in the session graph.</p><button type="button" class="mini-link" (click)="goToStudio()">Create in Studio <span class="material-symbols-outlined">arrow_forward</span></button></div>
+        </ng-template>
       </div>
-    }
 
-    <!-- ── Bento Grid ────────────────────────────────── -->
-    <div class="bento-grid">
-      <!-- Module 1: City Pulse / Nightlife Intel (2x2) -->
-      <div
-        class="bento-item bento-2x2 bento-card audit-module"
-        (click)="uiService.navigateToView('knowledge-base')"
-      >
-        <div class="card-overlay"></div>
-        <div class="card-content">
-          <div class="flex justify-between items-start mb-6">
-            <div
-              class="card-icon-box"
-              style="
-                background: rgba(0, 229, 255, 0.14);
-                color: var(--neon-cyan);
-              "
-            >
-              <span class="material-symbols-outlined">trending_up</span>
-            </div>
-            <span class="pill pill-live">CITY PULSE ON</span>
-          </div>
-          <h2 class="card-heading glimmer-text">The Label Desk</h2>
-          <p class="card-subtext mb-8">
-            Live scanning of street buzz, streaming signals, and chart momentum
-            across every borough.
-          </p>
+      <div class="hub-panel now-playing-panel">
+        <div class="section-heading compact-heading"><div><p class="hub-kicker">ON THE DECK</p><h2>Now spinning</h2></div><span class="live-chip"><span class="state-dot is-live"></span>{{ playerService.isPlaying() ? 'Playing' : 'Ready' }}</span></div>
+        <div class="now-playing-main">
+          <div class="record-art" [class.is-spinning]="playerService.isPlaying()"><span class="record-label">SM</span></div>
+          <div class="now-playing-copy"><strong>{{ playerService.currentTrack()?.title || 'No track loaded' }}</strong><span>{{ playerService.currentTrack()?.artist || 'Load a demo to start the signal' }}</span><div class="transport"><button type="button" (click)="playerService.previous()" aria-label="Previous track"><span class="material-symbols-outlined">skip_previous</span></button><button type="button" class="transport-main" (click)="playerService.togglePlay()" [attr.aria-label]="playerService.isPlaying() ? 'Pause track' : 'Play track'"><span class="material-symbols-outlined">{{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}</span></button><button type="button" (click)="playerService.next()" aria-label="Next track"><span class="material-symbols-outlined">skip_next</span></button></div></div>
+        </div>
+        <div class="now-playing-wave"><span *ngFor="let bar of visualizerData().slice(0, 20); let i = index" [style.height.%]="bar" [style.animationDelay.ms]="i * 20"></span></div>
+      </div>
 
-          <!-- Mobile Explicit Directives -->
-          <div class="mt-6 lg:hidden space-y-3">
-            <p
-              class="text-[9px] font-black uppercase tracking-widest"
-              style="color: var(--neon-magenta)"
-            >
-              Open Slot — Up Next
-            </p>
-            @for (
-              task of aiService.getDynamicChecklist().slice(0, 2);
-              track task.id
-            ) {
-              <div class="directive-item flex gap-3">
-                <span
-                  class="material-symbols-outlined text-sm"
-                  style="color: var(--neon-magenta)"
-                  >bolt</span
-                >
-                <div class="flex-1">
-                  <p class="text-[10px] font-bold uppercase">
-                    {{ task.label }}
-                  </p>
-                  <p class="text-[9px] opacity-50 leading-tight">
-                    {{ task.description }}
-                  </p>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div class="audit-scores space-y-4">
-            <div class="score-row">
-              <span class="score-label">Sonic Impact</span>
-              <div class="score-bar-track">
-                <div
-                  class="score-bar-fill"
-                  style="background: var(--neon-cyan)"
-                  [style.width.%]="85"
-                ></div>
-              </div>
-            </div>
-            <div class="score-row">
-              <span class="score-label">Chart Trajectory</span>
-              <div class="score-bar-track">
-                <div
-                  class="score-bar-fill"
-                  style="background: var(--neon-magenta)"
-                  [style.width.%]="72"
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-8">
-            <div class="mb-4 space-y-2">
-              <div
-                class="text-[8px] font-black uppercase tracking-widest flex items-center gap-2 opacity-50"
-              >
-                <span
-                  class="w-1.5 h-1.5 rounded-full animate-ping"
-                  style="background: var(--neon-cyan)"
-                ></span>
-                City Pulse — Live Feed
-              </div>
-              <div
-                class="h-10 overflow-hidden relative rounded-lg border"
-                style="
-                  background: rgba(0, 0, 0, 0.25);
-                  border-color: rgba(255, 255, 255, 0.04);
-                "
-              >
-                <div
-                  class="absolute inset-0 flex flex-col transition-all duration-1000"
-                  [style.transform]="
-                    'translateY(-' +
-                    (globalStudioPulse().length > 0
-                      ? (currentBeat() % globalStudioPulse().length) * 100
-                      : 0) +
-                    '%)'
-                  "
-                >
-                  <div
-                    *ngFor="let pulse of globalStudioPulse()"
-                    class="h-full flex items-center px-3 text-[9px] font-bold italic truncate"
-                    style="color: rgba(250, 249, 255, 0.7)"
-                  >
-                    {{ pulse }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="note-ticker">
-              <div class="note-bar" style="background: var(--neon-cyan)"></div>
-              <p class="note-text text-sm">
-                "{{
-                  aiService.strategicDecrees()[0] ||
-                    'The city is listening — make your next move count.'
-                }}"
-              </p>
-            </div>
-          </div>
+      <div class="hub-panel signals-panel">
+        <div class="section-heading compact-heading"><div><p class="hub-kicker">GROW // PROTECT</p><h2>Signal desk</h2></div><span class="material-symbols-outlined panel-heading-icon">insights</span></div>
+        <div class="signal-link-list">
+          <button type="button" (click)="navigateToFeature('career')"><span class="signal-link-icon warm"><span class="material-symbols-outlined">trending_up</span></span><span><strong>Career trajectory</strong><small>{{ profileService.profile().careerGoals[0] || 'Set the next career focus' }}</small></span><span class="material-symbols-outlined">arrow_forward</span></button>
+          <button type="button" (click)="navigateToFeature('strategy')"><span class="signal-link-icon violet"><span class="material-symbols-outlined">campaign</span></span><span><strong>Strategy & intel</strong><small>{{ profileService.profile().knowledgeBase.strategicDirectives?.length || 0 }} directives ready</small></span><span class="material-symbols-outlined">arrow_forward</span></button>
+          <button type="button" (click)="navigateToFeature('profile')"><span class="signal-link-icon teal"><span class="material-symbols-outlined">verified_user</span></span><span><strong>Identity protection</strong><small>{{ securityService.getSecurityAudit().score >= 80 ? 'Identity surface fortified' : 'Review your security audit' }}</small></span><span class="material-symbols-outlined">arrow_forward</span></button>
         </div>
       </div>
+    </section>
 
-      <!-- Module 2: Now Spinning (2x1 Wide) -->
-      <div
-        class="bento-item bento-2x1 bento-card interactive-playback playback-module"
-      >
-        <div class="card-content flex items-center gap-6">
-          <div
-            class="vinyl-display"
-            [class.spinning]="playerService.isPlaying()"
-          >
-            <div class="vinyl-outer"></div>
-            <div
-              class="vinyl-label overflow-hidden"
-              style="background: var(--neon-magenta)"
-            >
-              <img
-                *ngIf="profileService.profile().avatarImage"
-                [src]="profileService.profile().avatarImage"
-                class="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p
-              class="eyebrow glimmer-text"
-              style="
-                color: var(--neon-magenta);
-                font-size: 0.6rem;
-                font-weight: 800;
-                letter-spacing: 0.25em;
-                text-transform: uppercase;
-              "
-            >
-              On the Deck // Now Spinning
-            </p>
-            <h3 class="truncate text-xl font-black glimmer-text">
-              {{ playerService.currentTrack()?.title }}
-            </h3>
-            <p class="text-sm opacity-50">
-              {{ playerService.currentTrack()?.artist }}
-            </p>
-
-            <div class="mt-4 flex items-center gap-4">
-              <button class="control-btn" (click)="playerService.previous()">
-                <span class="material-symbols-outlined">skip_previous</span>
-              </button>
-              <button
-                class="play-main-btn"
-                (click)="playerService.togglePlay()"
-              >
-                <span class="material-symbols-outlined">{{
-                  playerService.isPlaying() ? 'pause' : 'play_arrow'
-                }}</span>
-              </button>
-              <button class="control-btn" (click)="playerService.next()">
-                <span class="material-symbols-outlined">skip_next</span>
-              </button>
-            </div>
-          </div>
-          <div class="audio-waves flex items-end gap-1 h-12">
-            @for (v of visualizerData().slice(0, 8); track $index) {
-              <div
-                class="wave-bar"
-                style="background: var(--neon-magenta)"
-                [style.height.%]="v"
-              ></div>
-            }
-          </div>
-        </div>
+    <section class="hub-explore">
+      <div class="section-heading"><div><p class="hub-kicker">THE FULL LABEL</p><h2>Choose your next room.</h2></div><span class="section-note">{{ featureSpotlights.length }} core surfaces online</span></div>
+      <div class="explore-grid">
+        <button *ngFor="let feature of featureSpotlights" type="button" class="explore-card" (click)="navigateToFeature(feature.route)"><span class="explore-icon"><span class="material-symbols-outlined">{{ feature.icon }}</span></span><span class="explore-copy"><strong>{{ feature.category }}</strong><small>{{ feature.title }}</small></span><span class="material-symbols-outlined">north_east</span></button>
       </div>
+    </section>
 
-      <!-- Module 3: Career Trajectory (1x2 Tall) -->
-      <div
-        class="bento-item bento-1x2 bento-card career-module"
-        (click)="uiService.navigateToView('career')"
-      >
-        <div class="card-content h-full flex flex-col">
-          <div
-            class="card-icon-box mb-4"
-            style="
-              background: rgba(255, 184, 0, 0.14);
-              color: var(--amber-gold);
-            "
-          >
-            <span class="material-symbols-outlined">insights</span>
-          </div>
-          <h2 class="card-heading glimmer-text">The Climb</h2>
-          <div class="flex-1 mt-6 space-y-6">
-            <div class="progress-circle-container">
-              <div class="level-badge">
-                {{ profileService.profile().catalog.length }} drops
-              </div>
-              <svg viewBox="0 0 36 36" class="circular-chart">
-                <path
-                  class="circle-bg"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  class="circle"
-                  style="stroke: var(--amber-gold)"
-                  [attr.stroke-dasharray]="getCareerFocusProgress() + ', 100'"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-            </div>
-            <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-45">
-                Active Focus
-              </p>
-              <p class="font-bold text-sm">
-                {{
-                  profileService.profile().careerGoals[0] ||
-                    'Lock the next drop'
-                }}
-              </p>
-            </div>
-            <div class="text-center">
-              <p class="text-xs uppercase tracking-widest opacity-45">
-                Roster Status
-              </p>
-              <p class="font-bold text-sm" style="color: var(--amber-gold)">
-                Every booth is unlocked. The city is yours.
-              </p>
-            </div>
-            <div class="space-y-2">
-              <div class="achievement-pill">
-                <span class="material-symbols-outlined text-xs">verified</span>
-                <span>Catalog shipped</span>
-              </div>
-              <div class="achievement-pill">
-                <span class="material-symbols-outlined text-xs">tune</span>
-                <span>{{ profileService.profile().primaryGenre }}</span>
-              </div>
-              <div class="achievement-pill">
-                <span class="material-symbols-outlined text-xs">apps</span>
-                <span>Booth, visuals, strategy — all open</span>
-              </div>
-            </div>
-          </div>
-          <button class="btn-pro-outline w-full mt-4">
-            Open the Label Desk
-          </button>
-        </div>
-      </div>
-
-      <!-- Module 4: Tha Spot / After Hours (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card club-module"
-        (click)="uiService.navigateToView('tha-spot')"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <div class="club-pulse"></div>
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--neon-cyan)"
-            >sports_esports</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            After Hours
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            The Floor
-          </p>
-        </div>
-      </div>
-
-      <!-- Module 5: Visual Suite / Cinema (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card cinema-module"
-        (click)="uiService.navigateToView('image-video-lab')"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <div class="cinema-scan"></div>
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--neon-magenta)"
-            >movie</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            Visual Suite
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            Press Visuals
-          </p>
-        </div>
-      </div>
-
-      <!-- Module 6: The Booth / Studio (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card studio-module"
-        (click)="uiService.navigateToView('studio')"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--amber-gold)"
-            >graphic_eq</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            The Booth
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            Cut the Record
-          </p>
-        </div>
-      </div>
-
-      <!-- Module 7: Street Team / Press Desk (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card intel-module"
-        (click)="uiService.navigateToView('strategy')"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--electric-violet)"
-            >campaign</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            Street Team
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            Campaigns
-          </p>
-        </div>
-      </div>
-
-      <!-- Sprint C2 — Storefront (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card store-module"
-        (click)="goToStore()"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--amber-gold)"
-            >shopping_bag</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            Storefront
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            Sound Packs · AI
-          </p>
-        </div>
-      </div>
-
-      <!-- Sprint C3 — First Beat Tour (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card tour-module"
-        (click)="startFirstBeatTour()"
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--brand-secondary, #5dc4c2)"
-            >rocket_launch</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            First Beat Tour
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            5-min walkthrough
-          </p>
-        </div>
-      </div>
-
-      <!-- Sprint D1 — Cloud Vault (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card cloud-vault-module"
-        (click)="goToCloudVault()"
-        [attr.aria-label]="
-          'Cloud vault — ' + cloudSyncService.cloudProjects().length + ' projects synced'
-        "
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--brand-secondary, #5dc4c2)"
-            >cloud_sync</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            Cloud Vault
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            <ng-container *ngIf="cloudSyncService.isCloudReachable()">
-              Sync · {{ cloudSyncService.cloudProjects().length }} project{{
-                cloudSyncService.cloudProjects().length === 1 ? '' : 's'
-              }}
-            </ng-container>
-            <ng-container *ngIf="!cloudSyncService.isCloudReachable()">
-              Offline queue · {{ offlineSync.pendingCount() }}
-            </ng-container>
-          </p>
-          <span
-            *ngIf="cloudSyncService.conflictCount() > 0"
-            class="cv-conflict-badge"
-            [attr.aria-label]="
-              cloudSyncService.conflictCount() + ' unsynced conflicts'
-            "
-          >
-            {{ cloudSyncService.conflictCount() }} conflict{{
-              cloudSyncService.conflictCount() === 1 ? '' : 's'
-            }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Sprint D2 — Session Timeline (1x1) -->
-      <div
-        class="bento-item bento-1x1 bento-card session-timeline-module"
-        (click)="goToTimeline()"
-        [attr.aria-label]="
-          'Session timeline — ' + sessionProjectCount + ' projects tracked'
-        "
-      >
-        <div
-          class="card-content flex flex-col items-center justify-center text-center h-full"
-        >
-          <span
-            class="material-symbols-outlined text-4xl mb-2"
-            style="color: var(--amber-gold, #ffb800)"
-            >history_edu</span
-          >
-          <h3
-            class="font-black text-sm uppercase tracking-tighter glimmer-text"
-          >
-            Session Timeline
-          </h3>
-          <p class="text-[10px] uppercase" style="color: var(--silver-dim)">
-            Git-style checkpoints
-          </p>
-          <span
-            class="cv-conflict-badge"
-            style="background: rgba(255, 184, 0, 0.18); border-color: rgba(255, 184, 0, 0.35); color: var(--amber-gold);"
-          >
-            {{ sessionProjectCount }} project{{
-              sessionProjectCount === 1 ? '' : 's'
-            }} tracked
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Secondary Bottom Actions -->
-    <div class="hub-footer">
-      <button class="pill-action" (click)="playerService.loadExternalTrack()">
-        <span class="material-symbols-outlined text-base">cloud_upload</span>
-        Submit Demo
-      </button>
-      <button
-        class="pill-action"
-        (click)="uiService.navigateToView('settings')"
-      >
-        <span class="material-symbols-outlined text-base">settings</span>
-        Booth Config
-      </button>
-      <div class="flex-1"></div>
-      <p class="elegant-footer-text">
-        &copy; Smuve Jeff Presents
-        <span class="flourish">&middot; est. mmxxvi &middot; the label</span>
-      </p>
-    </div>
+    <footer class="hub-footer"><button type="button" class="hub-text-button" (click)="goToStore()"><span class="material-symbols-outlined">storefront</span> Storefront</button><button type="button" class="hub-text-button" (click)="goToThaSpot()"><span class="material-symbols-outlined">sports_esports</span> Tha Spot</button><button type="button" class="hub-text-button" (click)="uiService.navigateToView('settings')"><span class="material-symbols-outlined">settings</span> Settings</button><span class="footer-spacer"></span><span>© Smuve Jeff Presents · est. mmxxvi</span></footer>
   </div>
 </div>

@@ -185,26 +185,40 @@ describe('HubComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/release-pipeline']);
   });
 
-  it('renders major quick actions as bento modules', () => {
+  it('selects and cycles the cinematic signal reel', () => {
+    expect(component.activeBackdropIndex()).toBe(0);
+    expect(component.activeBackdrop().label).toBe('The Booth');
+
+    component.selectBackdrop(2);
+    expect(component.activeBackdropIndex()).toBe(2);
+    expect(component.activeBackdrop().label).toBe('City Pulse');
+
+    component.cycleBackdrop(1);
+    expect(component.activeBackdropIndex()).toBe(3);
+    component.cycleBackdrop(1);
+    expect(component.activeBackdropIndex()).toBe(0);
+    component.selectBackdrop(99);
+    expect(component.activeBackdropIndex()).toBe(0);
+  });
+
+  it('renders the dynamic command-center surfaces', () => {
     const nativeElement = fixture.nativeElement as HTMLElement;
-
-    // Check for bento items
-    expect(
-      nativeElement.querySelectorAll('.bento-item').length
-    ).toBeGreaterThanOrEqual(7);
-
-    // Check for specialized modules by looking for unique text or material icons
     const text = nativeElement.textContent || '';
-    expect(text).toContain('Roster Status');
-    expect(text).toContain('Chart Trajectory');
-    expect(text).toContain('After Hours');
-    expect(text).toContain('Visual Suite');
-    expect(text).toContain('The Booth');
 
-    // Check for upload button (pill-action)
-    expect(nativeElement.querySelector('.pill-action')).not.toBeNull();
-    expect(nativeElement.querySelectorAll('.media-panel').length).toBe(
-      component.homeBackdropMedia.length
+    expect(nativeElement.querySelector('.hub-command-center')).not.toBeNull();
+    expect(nativeElement.querySelector('.workspace-card-produce')).not.toBeNull();
+    expect(nativeElement.querySelector('.workspace-card-studio')).not.toBeNull();
+    expect(nativeElement.querySelector('.workspace-card-timeline')).not.toBeNull();
+    expect(nativeElement.querySelector('.workspace-card-cloud')).not.toBeNull();
+    expect(nativeElement.querySelector('.recent-project-list, .empty-projects')).not.toBeNull();
+    expect(text).toContain('AI PRODUCE');
+    expect(text).toContain('THE BOOTH');
+    expect(text).toContain('SESSION GRAPH');
+    expect(text).toContain('CLOUD VAULT');
+    expect(text).toContain('Now spinning');
+    expect(text).toContain('Career trajectory');
+    expect(nativeElement.querySelectorAll('.explore-card').length).toBe(
+      component.featureSpotlights.length
     );
   });
 });

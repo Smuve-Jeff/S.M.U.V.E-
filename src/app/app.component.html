@@ -595,7 +595,13 @@
         [class.mobile-scroll-smooth]="isMobile()"
         [class.scroll-smooth]="!uiService.performanceMode()"
       >
-        <router-outlet></router-outlet>
+        <div
+          class="route-anim-host"
+          [@routeAnim]="routeAnimState(outlet)"
+          [@.disabled]="uiService.performanceMode()"
+        >
+          <router-outlet #outlet="outlet"></router-outlet>
+        </div>
       </div>
 
       <div

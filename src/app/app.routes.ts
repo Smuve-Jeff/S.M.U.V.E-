@@ -32,29 +32,27 @@ export const routes: Routes = [
       import('./components/tha-spot/tha-spot.component').then(
         (m) => m.ThaSpotComponent
       ),
-    children: [
-      {
-        path: 'browse',
-        loadComponent: () =>
-          import('./components/tha-spot/tha-spot.component').then(
-            (m) => m.ThaSpotComponent
-          ),
-      },
-      {
-        path: 'room/:id',
-        loadComponent: () =>
-          import('./components/tha-spot/tha-spot.component').then(
-            (m) => m.ThaSpotComponent
-          ),
-      },
-      {
-        path: 'game/:id',
-        loadComponent: () =>
-          import('./components/tha-spot/tha-spot.component').then(
-            (m) => m.ThaSpotComponent
-          ),
-      },
-    ],
+  },
+  {
+    path: 'tha-spot/browse',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'tha-spot/room/:id',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'tha-spot/game/:id',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
   },
   {
     path: 'gaming-hub',

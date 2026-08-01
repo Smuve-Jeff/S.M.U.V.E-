@@ -1,8 +1,6 @@
 <div
   class="tha-spot-container full-page no-scrollbar"
   [class.pluto-active]="displayMode() === 'pluto'"
-  (scroll)="onContentScroll($event)"
-  #contentViewport
 >
   <!-- Cosmic Background -->
   <div class="cosmic-bg">
@@ -23,10 +21,20 @@
       >
     </div>
     <div class="challenge-actions">
-      <button class="action-btn" (click)="acceptIncomingChallenge()">
+      <button
+        type="button"
+        class="action-btn"
+        aria-label="Accept challenge"
+        (click)="acceptIncomingChallenge()"
+      >
         ACCEPT
       </button>
-      <button class="action-btn danger" (click)="declineIncomingChallenge()">
+      <button
+        type="button"
+        class="action-btn danger"
+        aria-label="Decline challenge"
+        (click)="declineIncomingChallenge()"
+      >
         DECLINE
       </button>
     </div>
@@ -327,6 +335,7 @@
           [ngModel]="searchQuery()"
           (ngModelChange)="onSearchChange($event)"
           placeholder="LOCATE CABINET..."
+          aria-label="Search cabinets"
         />
       </div>
     </div>
@@ -395,7 +404,21 @@
     </div>
   </header>
 
-  <main class="spot-main-content">
+  <main
+    class="spot-main-content"
+    (scroll)="onContentScroll($event)"
+    #contentViewport
+  >
+    <div class="mobile-search-bar" *ngIf="displayMode() !== 'pluto'">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="onSearchChange($event)"
+        placeholder="LOCATE CABINET..."
+        aria-label="Search cabinets"
+      />
+    </div>
     <ng-container *ngIf="displayMode() === 'gaming'">
       <!-- Browse View -->
       <div class="browse-view" *ngIf="isBrowseView()">
@@ -515,7 +538,11 @@
               <div
                 class="game-card"
                 *ngFor="let game of getGamesForRail(rail)"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="'Open ' + game.name"
                 (click)="onGameClick(game)"
+                (keydown)="onGameCardKeydown(game, $event)"
                 [class.in-view]="true"
               >
                 <div class="card-media">
@@ -728,7 +755,11 @@
               <div
                 class="game-card"
                 *ngFor="let game of filteredGames(); let i = index"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="'Open ' + game.name"
                 (click)="onGameClick(game)"
+                (keydown)="onGameCardKeydown(game, $event)"
                 [style.animationDelay]="i * 0.05 + 's'"
               >
                 <div class="card-media">
@@ -806,7 +837,11 @@
             <div
               class="game-card"
               *ngFor="let game of filteredGames()"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="'Open ' + game.name"
               (click)="onGameClick(game)"
+              (keydown)="onGameCardKeydown(game, $event)"
             >
               <div class="card-media">
                 <img [src]="game.image" [alt]="game.name" loading="lazy" />

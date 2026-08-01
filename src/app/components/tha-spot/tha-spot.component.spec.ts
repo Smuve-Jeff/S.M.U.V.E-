@@ -8,7 +8,11 @@ import { ThaSpotComponent } from './tha-spot.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
-import { Router, ActivatedRoute } from '@angular/router';
+import {
+  Router,
+  ActivatedRoute,
+  convertToParamMap,
+} from '@angular/router';
 import { signal } from '@angular/core';
 
 describe('ThaSpotComponent', () => {
@@ -71,11 +75,13 @@ describe('ThaSpotComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            snapshot: { queryParamMap: new Map(), queryParams: {} },
-            queryParamMap: of({
-              get: (key: string) => null,
-              has: (key: string) => false,
-            }),
+            routeConfig: { path: 'tha-spot' },
+            snapshot: {
+              queryParamMap: convertToParamMap({}),
+              queryParams: {},
+            },
+            paramMap: of(convertToParamMap({})),
+            queryParamMap: of(convertToParamMap({})),
           },
         },
         { provide: UserProfileService, useValue: profileServiceMock },

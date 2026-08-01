@@ -41,7 +41,13 @@ export type MainViewMode =
   | 'mastering'
   | 'dj-deck'
   | 'performance'
-  | 'settings';
+  | 'settings'
+  | 'timeline'
+  | 'cloud'
+  | 'store'
+  | 'inbox'
+  | 'cowrite'
+  | 'artist-development';
 
 export interface Stems {
   vocals: AudioBuffer;
