@@ -288,8 +288,7 @@ export class StudioTelemetryService {
    * telemetry so the Insights backlog moves when the user actually closes gaps.
    */
   readonly liveScores = computed<Record<string, number>>(() => {
-    const base =
-      this.parity().find((r) => r.app === 'S.M.U.V.E')?.scores ?? {};
+    const base = this.parity().find((r) => r.app === 'S.M.U.V.E')?.scores ?? {};
     const m = this.northStarMetrics();
     const recent = this.recentEvents();
     const volume = (name: StudioTelemetryEventName) =>
@@ -410,10 +409,7 @@ export class StudioTelemetryService {
 
     // Prefer higher weighted gaps; stable secondary sort by id.
     return actions
-      .sort(
-        (a, b) =>
-          b.priority - a.priority || a.id.localeCompare(b.id)
-      )
+      .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))
       .slice(0, 4);
   });
 
@@ -490,16 +486,20 @@ export class StudioTelemetryService {
   }
 
   /** Mark a coach CTA as completed (taken) and hide it for the local week. */
-  completeCoachAction(id: StudioCoachActionId, data?: Record<string, unknown>): void {
-    this.trackEvent('coach_action_taken', { actionId: id, ...(data || {}) }, true);
+  completeCoachAction(
+    id: StudioCoachActionId,
+    data?: Record<string, unknown>
+  ): void {
+    this.trackEvent(
+      'coach_action_taken',
+      { actionId: id, ...(data || {}) },
+      true
+    );
     this.dismissCoachAction(id, false);
   }
 
   /** Soft-dismiss a coach CTA without treating it as completed. */
-  dismissCoachAction(
-    id: StudioCoachActionId,
-    track: boolean = true
-  ): void {
+  dismissCoachAction(id: StudioCoachActionId, track: boolean = true): void {
     if (track) {
       this.trackEvent('coach_action_dismissed', { actionId: id }, true);
     }
@@ -579,7 +579,9 @@ export class StudioTelemetryService {
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return new Set();
       return new Set(
-        parsed.filter((id: unknown): id is StudioCoachActionId => typeof id === 'string')
+        parsed.filter(
+          (id: unknown): id is StudioCoachActionId => typeof id === 'string'
+        )
       );
     } catch {
       return new Set();

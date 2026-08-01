@@ -156,7 +156,9 @@ describe('StudioTelemetryService', () => {
     // Top gap is latency — coach should offer a probe.
     expect(actions.some((a) => a.id === 'probe_latency')).toBe(true);
     for (let i = 1; i < actions.length; i++) {
-      expect(actions[i - 1].priority).toBeGreaterThanOrEqual(actions[i].priority);
+      expect(actions[i - 1].priority).toBeGreaterThanOrEqual(
+        actions[i].priority
+      );
     }
 
     const target = actions.find((a) => a.id === 'probe_latency')!;
@@ -164,9 +166,9 @@ describe('StudioTelemetryService', () => {
     expect(service.coachActions().some((a) => a.id === 'probe_latency')).toBe(
       false
     );
-    expect(
-      readStored().some((e) => e.name === 'coach_action_dismissed')
-    ).toBe(true);
+    expect(readStored().some((e) => e.name === 'coach_action_dismissed')).toBe(
+      true
+    );
   });
 
   it('completeCoachAction tracks taken event and hides the CTA', () => {
