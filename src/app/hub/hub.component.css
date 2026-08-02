@@ -610,3 +610,29 @@
     transform: scale(1.02);
   }
 }
+
+/* ── S.M.U.V.E 2.0 Master CTA — the AI Music Manager ──────────────── */
+.hub-smuve-button {
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 55%, #f59e0b 130%);
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+  animation: hub-smuve-breathe 3.2s ease-in-out infinite;
+}
+.hub-smuve-button:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 55%, #fbbf24 130%);
+  box-shadow: 0 18px 38px rgba(124, 58, 237, 0.45);
+}
+@keyframes hub-smuve-breathe {
+  0%,
+  100% {
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.3);
+  }
+  50% {
+    box-shadow: 0 12px 40px rgba(219, 39, 119, 0.45);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub-smuve-button {
+    animation: none;
+  }
+}

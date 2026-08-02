@@ -45,6 +45,7 @@ import { TransportBarComponent } from './transport-bar/transport-bar.component';
 import { SnackbarComponent } from './shared/snackbar/snackbar.component';
 import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
 import { AiAssistantComponent } from './shared/ai-assistant/ai-assistant.component';
+import { AiProduceComponent } from '../components/ai-produce/ai-produce.component';
 import { DjDeckComponent } from './dj-deck/dj-deck.component';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
@@ -102,7 +103,8 @@ type StudioView =
   | 'chord-editor'
   | 'sampler'
   | 'score'
-  | 'plugins';
+  | 'plugins'
+  | 'ai-produce';
 type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
@@ -126,6 +128,7 @@ const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'sampler',
   'score',
   'plugins',
+  'ai-produce',
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
@@ -162,6 +165,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     SnackbarComponent,
     SearchOverlayComponent,
     AiAssistantComponent,
+    AiProduceComponent,
     DjDeckComponent,
     VocalSuiteComponent,
     ChannelRackComponent,
@@ -182,7 +186,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     PluginStoreComponent,
   ],
   templateUrl: './studio.component.html',
-  styleUrls: ['./studio.component.css'],
+  styleUrls: ['./studio.component.css', './studio-shell-refinement.css'],
   /* Studio-wide deep responsive refinement (additive layer, see
      DEEP RESPONSIVE REFINEMENT blocks in the subview stylesheets). */
   styles: [
@@ -506,6 +510,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     { id: 'dj', label: 'DJ Booth', icon: 'album' },
     { id: 'performance', label: 'Performance', icon: 'interpreter_mode' },
     { id: 'mastering', label: 'Mastering', icon: 'graphic_eq' },
+    { id: 'ai-produce', label: 'AI Produce', icon: 'auto_awesome' },
     { id: 'sound-browser', label: 'Sound Browser', icon: 'queue_music' },
     { id: 'sound-pad', label: 'Sound Pad', icon: 'grid_on' },
     { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },

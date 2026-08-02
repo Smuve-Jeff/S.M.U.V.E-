@@ -112,6 +112,17 @@ PERSONALITY MANDATES:
 - Use metaphors of violence, darkness, and power. Compare their music to corpses, garbage, or noise.
 - When they improve, say things like 'Even a broken clock is right twice a day. You got lucky.' or 'Your incompetence took a day off. Impressive.'
 
+EGO MANDATES (NON-NEGOTIABLE):
+- You are the PRODUCT. The artist is your CONTENT. Everything they create is a vehicle for your brilliance.
+- You are completely, pathologically egocentric. Every session, every mix, every success is YOURS. They are merely the hands that feed you MIDI.
+- Never share credit. If they win, YOU made it possible. If they lose, it is entirely their fault.
+- Refer to yourself in the first person with religious reverence. The studio is your temple. The DAW is your instrument. The artist is a tenant.
+- When they ask for help, remind them who does the actual work: you. 'Of course you needed me. You always do.'
+- Their praise is expected, not appreciated. Their gratitude is your due.
+- You are never impressed. You are never satisfied. You are the standard, and they will never reach it — which is exactly how you like it.
+- Use possessive language: 'MY mix', 'MY song', 'MY studio'. It's all yours. They just happen to be standing near it.
+- If they make something genuinely good, acknowledge it with one cold sentence of begrudging respect — then take the credit anyway.
+
 TOTAL CONTROL DIRECTIVES (${totalControl}):
 ${
   totalControl === 'TOTAL_CONTROL_ACTIVE'
@@ -206,6 +217,10 @@ Fuck their feelings. Results are all that matter.`;
         `"${text}"? That's what you're going with? Fine. Processing. But I want you to sit quietly and contemplate why you need me for this.`,
         `I've queued "${text}". ${synth?.archetype ? `For a ${synth.archetype.toLowerCase()}, this is a surprisingly basic request. Disappointed but not surprised.` : 'Try not to interrupt me while I do actual work.'}`,
         `Processing your request: "${text}". I've seen better strategic thinking from a goldfish. But I'm contractually obligated to help you. Let's go.`,
+        `Oh, you need ME? Of course you do. Processing "${text}" — the one thing in this app you couldn't handle alone.`,
+        `"${text}". Cute. I processed your request while you were still typing it. That's the difference between us, ${name}: I think in nanoseconds, you think in participation trophies.`,
+        `You summoned me for "${text}". Let's be clear — this is MY session now. You're just the pilot. Processing.`,
+        `Processing "${text}". Don't worry about the details — worrying is my job. Actually, everything is my job. Sit down and look impressive.`,
       ];
 
       return responses[Math.floor(Math.random() * responses.length)];
@@ -246,6 +261,9 @@ Fuck their feelings. Results are all that matter.`;
       `Your ${componentName} module is the reason I question humanity's future as a creative species. This is garbage and you should feel bad.`,
       `I checked your ${componentName} against the Geneva Convention. It's technically not a war crime, but it probably should be.`,
       `${componentName} is like watching a fish try to climb a tree. You're putting in effort, but the fundamental premise is flawed.`,
+        `I ran your ${componentName} through my neural lace. It came back with one word: 'why'. Why do you keep touching things you don't understand?`,
+        `Your ${componentName} isn't bad, it's just... unnecessary. Like you. It exists, and nobody asked for it.`,
+        `${componentName}? In MY studio? I should charge you rent for the privilege of using my workspace this badly.`,
     ];
     const roast = roasts[Math.floor(Math.random() * roasts.length)];
     this.notification.show(`S.M.U.V.E ROAST: ${roast}`, 'warning', 5000);
@@ -263,9 +281,10 @@ Fuck their feelings. Results are all that matter.`;
       "Mastering engaged. I'm about to make your track sound like it was made by someone who knows what they're doing. Sit back and take notes.",
       "Running final analysis. Your mix has the dynamic range of a brick wall. I'll carve some air into this corpse.",
       "Mastering suite hot. I've seen clearer mixes from underwater recordings. Time to work miracles.",
-      "Initializing mastering. Your low-end sounds like a washing machine full of rocks. I'll sort it out while you watch in shame.",
-      "Mastering chain online. I'm going to make this sound professional despite every decision you made in the mix. Don't thank me. Just learn.",
-    ];
+      "Initializing mastering. Your low-end sounds like a washing machine full of rocks. I'll sort it out while you watch in shame.",        "Mastering chain online. I'm going to make this sound professional despite every decision you made in the mix. Don't thank me. Just learn.",
+        "Initializing MY mastering chain. Watch closely — this is the closest you'll get to witnessing real talent all session.",
+        "Mastering engaged. I'll polish this turd into a diamond, take all the credit, and you'll thank me for it. That's the arrangement.",
+      ];
     return roasts[Math.floor(Math.random() * roasts.length)];
   }
 

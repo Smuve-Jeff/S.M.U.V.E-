@@ -247,6 +247,8 @@ export class AudioEngineService {
   private workletNode: AudioWorkletNode | null = null;
   private masterWorkletNode: AudioWorkletNode | null = null;
   private _masterWorkletLoaded = false;
+  private _masterWorkletInitPromise: Promise<void> | null = null;
+  private _resumePromise: Promise<void> | null = null;
   readonly masterWorkletActive = signal(false);
 
   /** Raw master bus node BEFORE the worklet (for metronome, reverb sends, etc.) */
@@ -266,6 +268,8 @@ export class AudioEngineService {
     this.limiter = this.ctx.createDynamicsCompressor();
 
     // Master chain routing: masterGain → preMasterGain
+    this.masterGain.gain.value = 1;
+    this._preMasterGain.gain.value = 1;
     this.masterGain.connect(this._preMasterGain);
 
     // Build the fallback chain but don't connect it yet —
@@ -404,51 +408,66 @@ export class AudioEngineService {
    * Replaces the main-thread compressor/saturation/limiter/EQ chain
    * with a single high-performance worklet running at native audio rate.
    */
-  private async initMasterWorklet(): Promise<void> {
-    if (this._masterWorkletLoaded) return;
+  private initMasterWorklet(): Promise<void> {
+    if (this._masterWorkletLoaded) return Promise.resolve();
+    if (this._masterWorkletInitPromise) return this._masterWorkletInitPromise;
 
-    try {
-      await this.ctx.audioWorklet.addModule(
-        'assets/worklets/master-processor.worklet.js'
-      );
-    } catch (err: any) {
-      if (!err?.message?.includes('already')) {
+    // Keep the main-thread chain connected until the replacement node is fully
+    // constructed and wired. This makes worklet loading an implementation
+    // detail instead of a gap in the audible signal path.
+    this._masterWorkletInitPromise = (async () => {
+      try {
+        await this.ctx.audioWorklet.addModule(
+          'assets/worklets/master-processor.worklet.js'
+        );
+      } catch (err: any) {
+        if (!err?.message?.includes('already')) {
+          console.warn(
+            'AudioEngine: Master worklet load failed, using main-thread fallback.',
+            err?.message
+          );
+          return;
+        }
+      }
+
+      let workletNode: AudioWorkletNode | null = null;
+      try {
+        workletNode = new AudioWorkletNode(this.ctx, 'master-processor', {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          channelCount: 2,
+          channelCountMode: 'explicit',
+          channelInterpretation: 'speakers',
+        });
+
+        // Wire the replacement first, then remove only the fallback edge.
+        // A bare disconnect() can also sever future inserts or parallel taps.
+        this._preMasterGain.connect(workletNode);
+        workletNode.connect(this.lufsFilter1);
+        this._preMasterGain.disconnect(this.compressor);
+
+        workletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
+        this.masterWorkletNode = workletNode;
+        this._masterWorkletLoaded = true;
+        this.masterWorkletActive.set(true);
+        this.logger.info(
+          'AudioEngine: Master worklet active — 5-band EQ, compressor, saturation, lookahead limiter.'
+        );
+      } catch (err: any) {
+        try {
+          workletNode?.disconnect();
+          this._preMasterGain.disconnect(workletNode);
+        } catch {
+          /* Keep the already-connected fallback alive. */
+        }
         console.warn(
-          'AudioEngine: Master worklet load failed, using main-thread fallback.',
+          'AudioEngine: Master worklet node creation failed, using main-thread fallback.',
           err?.message
         );
-        return;
       }
-    }
+    })();
 
-    try {
-      this.masterWorkletNode = new AudioWorkletNode(this.ctx, 'master-processor', {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        channelCount: 2,
-        channelCountMode: 'explicit',
-        channelInterpretation: 'speakers',
-      });
-
-      // Re-route: disconnect the fallback chain and insert the worklet
-      this._preMasterGain.disconnect();
-
-      // New routing: preMasterGain → worklet → lufsFilter1 → ...
-      this._preMasterGain.connect(this.masterWorkletNode);
-      this.masterWorkletNode.connect(this.lufsFilter1);
-
-      // Apply default preset
-      this.masterWorkletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
-
-      this._masterWorkletLoaded = true;
-      this.masterWorkletActive.set(true);
-      this.logger.info('AudioEngine: Master worklet active — 5-band EQ, compressor, saturation, lookahead limiter.');
-    } catch (err: any) {
-      console.warn(
-        'AudioEngine: Master worklet node creation failed, using main-thread fallback.',
-        err?.message
-      );
-    }
+    return this._masterWorkletInitPromise;
   }
 
   /** Configure a specific slot on the master worklet */
@@ -457,8 +476,29 @@ export class AudioEngineService {
     this.masterWorkletNode.port.postMessage({ slot, action, payload });
   }
 
-  resume() {
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+  resume(): Promise<void> {
+    if (this.ctx.state !== 'suspended') {
+      this._ctxStateHandler?.();
+      return Promise.resolve();
+    }
+    if (this._resumePromise) return this._resumePromise;
+
+    // Keep one in-flight resume per context. This matters because Studio,
+    // Transport, and the first user gesture can all call resume() together.
+    this._resumePromise = this.ctx
+      .resume()
+      .then(() => this._ctxStateHandler?.())
+      .catch((err) => {
+        // Autoplay policy may reject a non-gesture resume attempt. The next
+        // real pointer/keyboard gesture will retry without breaking transport.
+        this._ctxStateHandler?.();
+        console.warn('AudioEngine: AudioContext resume was blocked.', err);
+      })
+      .finally(() => {
+        this._resumePromise = null;
+      });
+
+    return this._resumePromise;
   }
 
   startCountIn() {

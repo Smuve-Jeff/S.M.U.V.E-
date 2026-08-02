@@ -12,17 +12,40 @@
       <span class="material-symbols-outlined ai-header-icon">auto_awesome</span>
       <div>
         <p class="ai-header-name">Compose Assistant</p>
-        <p class="ai-header-sub">Context-aware AI · always-on tip</p>
+        <p class="ai-header-sub">Context-aware AI · session aware</p>
       </div>
     </div>
-    <button
-      type="button"
-      class="ai-close"
-      (click)="close.emit()"
-      aria-label="Close AI Assistant"
-    >
-      <span class="material-symbols-outlined">close</span>
-    </button>
+    <div class="ai-header-actions">
+      <span
+        class="ai-mode-chip"
+        [class.ai-mode-online]="aiMode() === 'online'"
+        [class.ai-mode-local]="aiMode() === 'local'"
+        [attr.aria-label]="
+          aiMode() === 'online'
+            ? 'Live AI connected'
+            : aiMode() === 'local'
+              ? 'Offline — local assistant active'
+              : 'Assistant ready'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          aiMode() === 'online'
+            ? 'wifi'
+            : aiMode() === 'local'
+              ? 'cloud_off'
+              : 'auto_awesome'
+        }}</span>
+        {{ aiMode() === 'online' ? 'LIVE' : aiMode() === 'local' ? 'LOCAL' : 'AI' }}
+      </span>
+      <button
+        type="button"
+        class="ai-close"
+        (click)="close.emit()"
+        aria-label="Close AI Assistant"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
   </header>
 
   <nav class="ai-tabs" role="tablist" aria-label="Assistant tabs">
@@ -80,6 +103,20 @@
 
   <!-- ============ CHAT ============ -->
   <div class="ai-body ai-chat" *ngIf="tab() === 'chat'" role="tabpanel">
+    <div class="ai-chat-toolbar">
+      <span class="ai-chat-memory">
+        <span class="material-symbols-outlined">history</span>
+        {{ messages().length }} in memory
+      </span>
+      <button
+        type="button"
+        class="ai-clear"
+        (click)="clearHistory()"
+        aria-label="Clear chat history"
+      >
+        Clear
+      </button>
+    </div>
     <div class="ai-chat-scroll no-scrollbar" #chatScroll>
       <div
         *ngFor="let m of messages()"
@@ -89,12 +126,42 @@
         <span class="ai-msg-role" *ngIf="m.role === 'assistant'">
           <span class="material-symbols-outlined">auto_awesome</span>
         </span>
-        <p>{{ m.text }}</p>
+        <div class="ai-msg-body">
+          <p>{{ m.text }}</p>
+          <div
+            class="ai-msg-actions"
+            *ngIf="m.role === 'assistant' && m.actions && m.actions.length"
+          >
+            <button
+              *ngFor="let a of m.actions"
+              type="button"
+              class="ai-action-btn"
+              (click)="runAssistantAction(a)"
+            >
+              {{ a.label }}
+            </button>
+          </div>
+          <span class="ai-msg-time">{{ m.ts | date: 'HH:mm' }}</span>
+        </div>
       </div>
       <div *ngIf="isThinking()" class="ai-msg ai-msg-assistant ai-msg-thinking">
         <span class="material-symbols-outlined">more_horiz</span>
         Composing…
       </div>
+    </div>
+    <div
+      class="ai-suggest"
+      *ngIf="suggestedFollowups().length > 0"
+      aria-label="Suggested follow-ups"
+    >
+      <button
+        *ngFor="let chip of suggestedFollowups()"
+        type="button"
+        class="ai-suggest-chip"
+        (click)="runSuggestedChip(chip)"
+      >
+        {{ chip }}
+      </button>
     </div>
     <form
       class="ai-input-row"

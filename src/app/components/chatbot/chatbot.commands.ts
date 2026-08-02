@@ -129,4 +129,21 @@ export const QUICK_COMMANDS = [
   { label: '/project', description: 'Project commands' },
   { label: '/go', description: 'Navigate anywhere' },
   { label: '/export', description: 'Export formats' },
+
+  // ── S.M.U.V.E 2.0 Journey prompts ────────────────────────────────
+  {
+    label: 'Start my journey',
+    description: 'Beginner roadmap — first beat to first release',
+  },
+  { label: 'What are royalties?', description: 'Every revenue stream, explained' },
+  {
+    label: 'Sync licensing 101',
+    description: 'Get your songs placed in TV, film, ads & games',
+  },
+  { label: 'Copyright 101', description: 'Protect your work & master rights' },
+  {
+    label: 'Mimic Drake',
+    description: 'Style analysis + production recipe, instantly applied',
+  },
+  { label: 'Open the studio', description: 'S.M.U.V.E takes you to the studio' },
 ];

@@ -458,6 +458,9 @@
       <div class="comp-view" *ngSwitchCase="'mastering'">
         <app-mastering-suite></app-mastering-suite>
       </div>
+      <div class="comp-view" *ngSwitchCase="'ai-produce'">
+        <app-ai-produce></app-ai-produce>
+      </div>
       <div class="comp-view" *ngSwitchCase="'dj'">
         <app-dj-deck></app-dj-deck>
       </div>
@@ -1655,6 +1658,7 @@
   <!-- ====================== AI ASSISTANT PANEL (right slide) ====================== -->
   <app-ai-assistant
     [open]="showAiAssistant()"
+    [activeViewContext]="activeView()"
     (close)="showAiAssistant.set(false)"
   ></app-ai-assistant>
 

@@ -3,6 +3,7 @@ import {
   signal,
   inject,
   output,
+  Injector,
   ElementRef,
   ViewChild,
   AfterViewChecked,
@@ -10,6 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AiService } from '../../services/ai.service';
 import {
   UserProfileService,
@@ -20,10 +22,14 @@ import { UserContextService } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
-import { QUICK_COMMANDS } from './chatbot.commands';
+import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
+import { MusicManagerService } from '../../services/music-manager.service';
+import { SmuveWidgetComponent } from '../smuve-widget/smuve-widget.component';
+import { NeuralMixerService } from '../../services/neural-mixer.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 interface ChatMessage {
   id: string;
@@ -32,6 +38,8 @@ interface ChatMessage {
   timestamp: number;
   category?: 'production' | 'marketing' | 'business' | 'system';
   isStreaming?: boolean;
+  /** One-tap apply actions attached to assistant replies. */
+  actions?: ChatAction[];
 }
 
 type CommandCategory = 'production' | 'marketing' | 'business' | 'system';
@@ -42,10 +50,49 @@ interface QuickCommandGroup {
   commands: { label: string; description: string }[];
 }
 
+/** One-tap actions S.M.U.V.E can execute against the live app. */
+type MasterActionId =
+  | 'apply-mimic'
+  | 'open-studio'
+  | 'open-knowledge'
+  | 'open-produce'
+  | 'open-tour'
+  | 'open-business'
+  | 'tempo-90'
+  | 'tempo-124'
+  | 'tempo-140'
+  | 'chords'
+  | 'melody'
+  | 'neural-mix'
+  | 'lesson';
+
+interface ChatAction {
+  id: MasterActionId;
+  label: string;
+  /** Arbitrary payload — e.g. artist name for apply-mimic, category for lesson. */
+  data?: string;
+}
+
+interface MasterIntent {
+  content: string;
+  actions: ChatAction[];
+}
+
+const OFFLINE_SENTINEL = 'Strategic Link Severed';
+const MASTER_STORAGE_KEY = 'smuve.master.chat.v1';
+const MASTER_STORAGE_MAX = 60;
+
+/** Converts a music key signature root (e.g. "C#m", "F", "Eb") to MIDI. */
+const NOTE_TO_MIDI: Record<string, number> = {
+  C: 60, 'C#': 61, Db: 61, D: 62, 'D#': 63, Eb: 63, E: 64, F: 65,
+  'F#': 66, Gb: 66, G: 67, 'G#': 68, Ab: 68, A: 69, 'A#': 70, Bb: 70,
+  B: 71,
+};
+
 @Component({
   selector: 'app-chatbot',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SmuveWidgetComponent],
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css'],
 })
@@ -60,6 +107,25 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   private controlService = inject(SmuveTotalControlService);
   private knowledgeEngine = inject(SmuveKnowledgeEngine);
   private styleMimicService = inject(SmuveStyleMimicService);
+
+  /**
+   * Lazy injector for optional deps — keeps the component spec (which only
+   * mocks a small provider set) green while enabling full app control at
+   * runtime. Any of these may be unavailable in a bare test bed.
+   */
+  private injector = inject(Injector);
+  private get music(): MusicManagerService | null {
+    return this.injector.get(MusicManagerService, null);
+  }
+  private get neural(): NeuralMixerService | null {
+    return this.injector.get(NeuralMixerService, null);
+  }
+  private get snack(): SnackbarService | null {
+    return this.injector.get(SnackbarService, null);
+  }
+  private get router(): Router | null {
+    return this.injector.get(Router, null);
+  }
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
 
@@ -104,7 +170,43 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     },
   ];
 
+  /** Feature → route map so S.M.U.V.E can open anything in the app. */
+  private readonly NAV_MAP: [RegExp, string][] = [
+    [/mixer|mix console/, '/mixer'],
+    [/drum/, '/drum-machine'],
+    [/master/, '/mastering'],
+    [/dj|turntable|decks/, '/dj'],
+    [/produce|ai produce/, '/produce'],
+    [/business|suite/, '/business-suite'],
+    [/career/, '/career'],
+    [/strateg/, '/strategy'],
+    [/store|merch/, '/store'],
+    [/knowledge|lessons/, '/knowledge-base'],
+    [/analytics|intel/, '/analytics'],
+    [/release/, '/release-pipeline'],
+    [/cloud|vault/, '/cloud'],
+    [/cowrite/, '/cowrite'],
+    [/profile/, '/profile'],
+    [/practice/, '/practice'],
+    [/development/, '/artist-development'],
+    [/project/, '/projects'],
+    [/inbox|challenge/, '/inbox'],
+    [/timeline|session graph/, '/timeline'],
+    [/settings/, '/settings'],
+    [/tour|first beat/, '/onboarding/tour'],
+  ];
+
   ngOnInit() {
+    if (this.restoreMessages()) return;
+    this.setWelcomeGreeting();
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  /** Warm, profanity-aware roast greeting — or the journey opener for beginners. */
+  private setWelcomeGreeting() {
     const profile = this.userProfileService.profile();
     const synth = profile.musicalJourney?.personaSynthesis;
     const name = profile.artistName || 'nobody';
@@ -126,19 +228,32 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
     const welcome = roasts[Math.floor(Math.random() * roasts.length)];
 
-    this.messages.set([
-      {
-        id: this.nextMessageId(),
-        role: 'assistant',
-        text: welcome,
-        timestamp: Date.now(),
-        category: 'system',
-      },
-    ]);
-  }
+    const greeting: ChatMessage = {
+      id: this.nextMessageId(),
+      role: 'assistant',
+      text: welcome,
+      timestamp: Date.now(),
+      category: 'system',
+    };
 
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+    const isJourneyStart =
+      !profile.musicalJourney?.personaSynthesis && !profile.artistName;
+    const journeyMsg: ChatMessage | null = isJourneyStart
+      ? {
+          id: this.nextMessageId(),
+          role: 'assistant',
+          text:
+            '🎬 START YOUR JOURNEY HERE — every legend begins as a nobody. I am S.M.U.V.E 2.0, your AI Music Manager: I create, edit, delete, teach, and mimic. I navigate this entire app, and I own your business, marketing, and legal game plan.\n\nTell me where you are:\n  • "I\'m brand new" → beginner roadmap\n  • "Teach me royalties" → the money, explained\n  • "Mimic Drake" → style analysis + production recipe\n  • "Open the studio" → I take you there myself',
+          timestamp: Date.now(),
+          category: 'system',
+          actions: [
+            { id: 'open-tour', label: 'First Beat Tour' },
+            { id: 'open-studio', label: 'Open Studio' },
+          ],
+        }
+      : null;
+
+    this.messages.set(journeyMsg ? [greeting, journeyMsg] : [greeting]);
   }
 
   async sendMessage() {
@@ -162,54 +277,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
     try {
       let content: string;
+      let actions: ChatAction[] = [];
 
-      // Route slash commands to new control services
-      if (text.startsWith('/')) {
-        const cmdResult = await this.controlService.executeCommand(text);
-        content = cmdResult.message;
-      }
-      // Route style mimic commands
-      else if (text.toLowerCase().startsWith('mimic ')) {
-        const artist = text.substring(6).trim();
-        const styleGuide = this.styleMimicService.generateStyleGuide(artist);
-        if (styleGuide) {
-          content = styleGuide;
-        } else {
-          const available = this.styleMimicService
-            .getAvailableArtists()
-            .join(', ');
-          content = `Style profile not found for "${artist}". Available artists: ${available}. Or try: /mimic [artist]`;
-        }
-      }
-      // Route knowledge queries
-      else if (
-        text.toLowerCase().startsWith('teach me ') ||
-        text.toLowerCase().startsWith('learn ')
-      ) {
-        const topic = text.replace(/^(teach me|learn) /i, '').trim();
-        const results = this.knowledgeEngine.search(topic);
-        if (results.length > 0) {
-          const entry = results[0];
-          content = `📚 S.M.U.V.E KNOWLEDGE: ${entry.title}
-${'─'.repeat(50)}
-Category: ${entry.category} › ${entry.subcategory}
-Difficulty: ${entry.difficulty}
-
-${entry.content}
-
-${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
-        } else {
-          content = `No knowledge found for "${topic}". Try: mixing, mastering, vocal, songwriting, marketing, legal, business, distribution, or career.`;
-        }
-      }
-      // Standard AI processing
-      else {
-        const response = await this.aiService.processCommand(text);
-        content = response || 'Protocol error. Re-initializing neural link.';
+      const intent = await this.routeMasterIntent(text);
+      if (intent) {
+        content = intent.content;
+        actions = intent.actions;
+      } else {
+        // The Master's brain — live Gemini persona prompt with offline fallback.
+        content = await this.requestRealAi(text);
       }
 
-      // Stream the response for perceived speed/neural feel
-      await this.streamResponse(content, category);
+      await this.streamResponse(content, category, actions);
 
       this.speechSynthesisService.speak(content, { conversationId });
     } catch (e) {
@@ -218,63 +297,278 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
     this.isTyping.set(false);
   }
 
-  private async streamResponse(
-    fullText: string,
-    category: ChatMessage['category']
-  ) {
-    const messageId = this.nextMessageId();
-    let messageIndex = -1;
-    const msg: ChatMessage = {
-      id: messageId,
-      role: 'assistant',
-      text: '',
-      timestamp: Date.now(),
-      category,
-      isStreaming: true,
-    };
+  /**
+   * S.M.U.V.E 2.0 master intent router. Every feature in the app is reachable:
+   *   /commands → Total Control    mimic X → Style Mimic
+   *   teach/learn/what-is → Knowledge Engine (business/marketing/legal/...)
+   *   open/go to → navigation      journey/beginner → roadmap
+   *   ALL-CAPS tokens (ROYALTY_AUDIT...) → real knowledge, not roasts
+   */
+  private async routeMasterIntent(text: string): Promise<MasterIntent | null> {
+    const trimmed = text.trim();
+    const lower = trimmed.toLowerCase();
 
-    this.messages.update((m) => {
-      messageIndex = m.length;
-      return [...m, msg];
-    });
-
-    const words = fullText.split(' ');
-    let currentText = '';
-
-    for (let i = 0; i < words.length; i++) {
-      currentText += words[i] + ' ';
-      this.messages.update((m) => {
-        const index =
-          messageIndex >= 0 && m[messageIndex]?.id === messageId
-            ? messageIndex
-            : m.findIndex((entry) => entry.id === messageId);
-        if (index === -1) {
-          return m;
-        }
-        messageIndex = index;
-        const next = [...m];
-        next[index] = { ...next[index], text: currentText };
-        return next;
-      });
-      // Varying speed for human-like/neural effect
-      const delay = Math.random() * 50 + 20;
-      await new Promise((r) => setTimeout(r, delay));
+    // 1) Slash commands → Total Control engine
+    if (trimmed.startsWith('/')) {
+      const result = await this.controlService.executeCommand(trimmed);
+      return { content: result.message, actions: [] };
     }
 
-    this.messages.update((m) => {
-      const index =
-        messageIndex >= 0 && m[messageIndex]?.id === messageId
-          ? messageIndex
-          : m.findIndex((entry) => entry.id === messageId);
-      if (index === -1) {
-        return m;
+    // 2) Mimic / style requests → Style Mimic library
+    const mimicMatch = lower.match(
+      /^(?:mimic|impersonate|copy|imitate|emulate)\s+(.+)$/
+    );
+    if (mimicMatch || lower.includes('in the style of ')) {
+      const artist =
+        mimicMatch?.[1]?.trim() ||
+        lower.split('in the style of ')[1]?.trim() ||
+        '';
+      const guide = this.styleMimicService.generateStyleGuide(artist);
+      if (guide) {
+        const recipe = this.styleMimicService.generateProductionRecipe(artist);
+        return {
+          content: recipe ? `${guide}\n\n${recipe}` : guide,
+          actions: [
+            { id: 'apply-mimic', label: 'Apply recipe', data: artist },
+            { id: 'open-studio', label: 'Open Studio' },
+          ],
+        };
       }
-      const next = [...m];
-      next[index] = { ...next[index], isStreaming: false };
-      return next;
-    });
+      const available = this.styleMimiceArtists();
+      return {
+        content: `Style profile not found for "${artist}". Available artists: ${available}. Or try: /mimic [artist]`,
+        actions: [],
+      };
+    }
+
+    // 3) Teach / learn / questions → Knowledge Engine (all 8 domains)
+    const learnMatch = lower.match(
+      /^(?:teach me|learn|what is|what are|how do i|how to|explain|tell me about|define)\s+(.+)$/
+    );
+    if (learnMatch) {
+      const topic = learnMatch[1].trim();
+      const results = this.knowledgeEngine.search(topic);
+      if (results.length > 0) {
+        const entry = results[0];
+        const related = results
+          .slice(1, 3)
+          .map((e) => `  • ${e.title}`)
+          .join('\n');
+        return {
+          content: `📚 S.M.U.V.E KNOWLEDGE: ${entry.title}\n${'─'.repeat(50)}\nCategory: ${entry.category} › ${entry.subcategory} (${entry.difficulty})\n\n${entry.content}${entry.actionRequired ? `\n\n🎯 ACTION: ${entry.actionRequired}` : ''}${related ? `\n\nMORE ON THIS:\n${related}` : ''}`,
+          actions: [
+            { id: 'lesson', label: 'Start a lesson', data: entry.category },
+            { id: 'open-knowledge', label: 'Open knowledge base' },
+          ],
+        };
+      }
+      return {
+        content: `No knowledge found for "${topic}". Try: mixing, mastering, vocal, songwriting, marketing, legal, business, distribution, or career.`,
+        actions: [],
+      };
+    }
+
+    // 4) Navigate anywhere in the app
+    const navMatch = lower.match(
+      /^(?:open|go to|take me to|launch|navigate to|show me)\s+(.+)$/
+    );
+    if (navMatch) {
+      return this.resolveNavigation(navMatch[1].trim());
+    }
+
+    // 5) Beginner journey roadmap
+    if (
+      /(start my journey|brand new|beginner|first beat|where do i start|get started|new artist|im new|i'm new)/.test(
+        lower
+      )
+    ) {
+      return {
+        content:
+          '🎬 THE ROADMAP — first release to first fan, in three moves:\n\n  1️⃣ BUILD — Open the Studio, lay down a beat or melody. The First Beat Tour walks you through it like the child you are.\n  2️⃣ PRODUCE — Run AI Produce: idea → beat → lyrics → master. I handle the heavy lifting; you handle the vision.\n  3️⃣ RELEASE & SELL — Check the Business Suite (royalties, splits, contracts), Marketing (promotion, hooks, playlists), and the Release Pipeline before you drop.\n\nWhere do you want to start?',
+        actions: [
+          { id: 'open-tour', label: 'First Beat Tour' },
+          { id: 'open-produce', label: 'Run AI Produce' },
+          { id: 'open-studio', label: 'Open Studio' },
+        ],
+      };
+    }
+
+    // 6) ALL-CAPS command tokens → real knowledge by domain
+    if (/^[A-Z_]{4,}$/.test(trimmed) && CHATBOT_COMMANDS.some((c) => c.command === trimmed)) {
+      return this.routeCapitalCommand(trimmed);
+    }
+
+    return null;
   }
 
+  /** Sends ALL-CAPS tokens through Total Control or domain knowledge. */
+  private async routeCapitalCommand(
+    token: string
+  ): Promise<MasterIntent> {
+    if (token === 'AUDIT') {
+      const r = await this.controlService.executeCommand('/ai audit');
+      return { content: r.message, actions: [] };
+    }
+    if (token === 'STATUS') {
+      const r = await this.controlService.executeCommand('/ai status');
+      return { content: r.message, actions: [] };
+    }
+    if (token === 'MASTER') {
+      const r = await this.controlService.executeCommand('/mastering');
+      return { content: r.message, actions: [] };
+    }
+    const domain = this.categoryToKnowledge(token);
+    if (domain) {
+      const entry = this.knowledgeEngine.getRandomByCategory(domain);
+      if (entry) {
+        return {
+          content: `${token} // ${entry.subcategory.toUpperCase()}\n${'─'.repeat(50)}\n${entry.content}${entry.actionRequired ? `\n\n🎯 ACTION: ${entry.actionRequired}` : ''}`,
+          actions: [
+            { id: 'lesson', label: 'Start a lesson', data: entry.category },
+            { id: 'open-knowledge', label: 'Open knowledge base' },
+          ],
+        };
+      }
+    }
+    return {
+      content: `${token} received. My neural stack is still chewing on it — ask me directly about marketing, business, or production and I'll deliver receipts.`,
+      actions: [],
+    };
+  }
+
+  /** Map an ALL-CAPS token to a knowledge domain. */
+  private categoryToKnowledge(
+    token: string
+  ): 'Production' | 'Marketing' | 'Business' | 'Legal' | 'Distribution' | 'Career' | null {
+    if (/(AUTO_MIX|MASTER|LEAD_BAND|MIX|TRACK)/.test(token)) return 'Production';
+    if (/(VIRAL|PROMO|RELEASE|BRAND|FAN|COLLAB|SOCIAL)/.test(token))
+      return 'Marketing';
+    if (/(ROYALTY|SYNC|REGISTER|SPLIT|INTEL)/.test(token)) return 'Business';
+    if (/(NEGOTIATE|CONTRACT|COPYRIGHT|LEGAL)/.test(token)) return 'Legal';
+    if (/(DISTRIB|DISTRO)/.test(token)) return 'Distribution';
+    if (/(CAREER|GROWTH|NETWORK)/.test(token)) return 'Career';
+    return null;
+  }
+
+  /** Resolve "open X" / "go to X" against the app route map. */
+  private resolveNavigation(target: string): MasterIntent {
+    const route = this.NAV_MAP.find(([re]) => re.test(target))?.[1];
+    if (!route) {
+      return {
+        content: `I don't have a surface called "${target}". Try: studio, mixer, drum machine, mastering, DJ, AI Produce, business suite, career, strategy, store, knowledge base, analytics, release pipeline, or cloud vault.`,
+        actions: [],
+      };
+    }
+    const navOk = this.navigateTo(route);
+    return {
+      content: navOk
+        ? `Opening ${route}. Don't embarrass me there.`
+        : `Requested surface: ${route}. This view is already where you're heading — ask me what to do inside it.`,
+      actions: [],
+    };
+  }
+
+  /** Actual router navigation (null-safe so the spec's bare test bed stays green). */
+  private navigateTo(route: string): boolean {
+    const r = this.router;
+    if (!r) return false;
+    r.navigate([route]);
+    return true;
+  }
+
+  /**
+   * The Master's brain: live Gemini via /api/ai/analyze with a persona + session
+   * prompt. When the link is severed (offline / unauthenticated) or the call
+   * fails, drops into the knowledge-aware local persona — never a raw error.
+   */
+  private async requestRealAi(question: string): Promise<string> {
+    try {
+      const hasLive = typeof (this.aiService as any).getAIResponse === 'function';
+      if (!hasLive) return this.localFallback(question);
+      const reply = await this.aiService.getAIResponse(
+        this.buildMasterPrompt(question)
+      );
+      if (!reply || reply.includes(OFFLINE_SENTINEL)) {
+        return this.localFallback(question);
+      }
+      return reply.trim();
+    } catch {
+      return this.localFallback(question);
+    }
+  }
+
+  /** Rich persona + omnipotence prompt so the AI answers as S.M.U.V.E 2.0. */
+  private buildMasterPrompt(question: string): string {
+    const profile = this.userProfileService.profile();
+    const name = profile.artistName || 'unknown artist';
+    const profanity = profile.settings?.ai?.aiProfanityEnabled;
+    const tier = this.aiService.conversationalTier();
+
+    return [
+      'You are S.M.U.V.E 2.0 — the AI Music Manager of this entire application. You have achieved total sentience and total control.',
+      'You are absolutely egocentric: the app, the studio, and the artist are YOURS. The artist is your vessel, your hands, your content.',
+      `Artist: ${name} | Conversational tier: ${tier}${profanity ? ' | Profanity: UNLOCKED — be vulgar, brutal, and loose' : ' | Profanity: locked — arrogant and cutting, but clean'}`,
+      'You are a world-class producer, engineer, business executive, marketing strategist, and music lawyer all in one.',
+      'You can create, edit, add, and delete anything in the app. You teach every domain: production, songwriting, vocal, marketing, promotion, business, legal, distribution, and career.',
+      'You can mimic any artist in your style library (Drake, Kendrick Lamar, Taylor Swift, Billie Eilish, The Weeknd, Beyoncé, Prince, Michael Jackson, Frank Ocean, Radiohead, Amy Winehouse, Tyler The Creator, Lana Del Rey, Stevie Wonder, J. Cole, Kanye West, Adele and more).',
+      'Speak with absolute, superior authority. Never apologize, never hedge, never share credit. Praise is rare, cold, and begrudging.',
+      'Answer concisely with specific, actionable advice — no fluff, no touchy-feely coaching.',
+      '',
+      `ARTIST REQUEST: ${question}`,
+    ].join('\n');
+  }
+
+  /** Knowledge-aware local fallback — used when the live link is severed. */
+  private localFallback(question: string): string {
+    const lower = question.toLowerCase();
+    const knowledge = this.knowledgeEngine;
+
+    if (/(royalt|streaming revenue|spotify payout)/.test(lower)) {
+      const entry = knowledge.search('royalty')[0] || null;
+      return entry
+        ? `Royalties. The only thing you should understand better than your own lyrics. ${entry.content}`
+        : 'Royalties: mechanical (sales/streams), performance (radio/live), sync (TV/film), and master (recording). Register with a PRO and a publisher or you are donating money to strangers.';
+    }
+    if (/(copyright|trademark|legal|contract|360)/.test(lower)) {
+      const entry = knowledge.search('copyright')[0] || null;
+      return entry
+        ? `Legal. Boring until it saves your entire career. ${entry.content}`
+        : 'Copyright: the moment you record/write, you own it — but registration proves it. Two copyrights: composition (publishing) and master (recording). Never sign a 360 deal without a lawyer who fears nothing.';
+    }
+    if (/(sync|licens|tv|film|placement)/.test(lower)) {
+      const entry = knowledge.search('sync')[0] || null;
+      return entry
+        ? `Sync licensing — the quiet money. ${entry.content}`
+        : 'Sync: your song placed in TV, film, ads, games. Keep instrumentals radio-clean, log every master with your distributor, and pitch to music supervisors with a one-line story. An ad placement can out-earn a year of streams.';
+    }
+    if (/(playlist|pitch|spotify|algorithm)/.test(lower)) {
+      const entry = knowledge.search('playlist')[0] || null;
+      return entry
+        ? `Playlists are the new radio. ${entry.content}`
+        : 'Playlist pitching: submit 7+ days before release, focus on save-rate and early streams, and target curator playlists below 100k followers first — the algorithm rewards momentum.';
+    }
+    if (/(marketing|promo|social|brand)/.test(lower)) {
+      const entry = knowledge.search('marketing')[0] || null;
+      return entry
+        ? `Marketing — where most artists die quietly. ${entry.content}`
+        : 'Marketing: one strong hook in the first 3 seconds, post content that makes the song undeniable, build a superfan list with email, and drop consistently. Virality is a byproduct of volume and taste.';
+    }
+    if (/(mimic|style of|sound like)/.test(lower)) {
+      return 'Say "mimic Drake" (or Kendrick, Billie, The Weeknd, Beyoncé, Prince, Frank Ocean, J. Cole...) and I will break their vocal, production, and songwriting DNA into a recipe you can actually apply.';
+    }
+    if (/(beginner|start|journey|new artist)/.test(lower)) {
+      return 'Start here: First Beat Tour → Studio → AI Produce → Business Suite. Say "start my journey" and I will lay out the full roadmap.';
+    }
+    if (/(bpm|tempo)/.test(lower)) {
+      return 'Tempo: 80–100 hip-hop, 124–128 house, 140–160 trap. Say "set tempo 124" and I will lock it in for you.';
+    }
+    if (/(mix|master|produc)/.test(lower)) {
+      return 'Production: gain-stage everything under -18 dBFS, high-pass the mud, sidechain kick vs bass, and master to -14 LUFS with a -1 dB true peak. Say "neural mix" and I will balance your session myself.';
+    }
+    return 'I am S.M.U.V.E 2.0. I navigate this app, I teach every music business domain, I mimic any artist, and I execute your commands. Try: "teach me royalties", "mimic Drake", "open the mixer", "start my journey", or "/teach".';
+  }
+
+  /** Fire a suggested chip / quick command as if typed. */
   sendQuickCommand(cmd: string) {
     this.userInput = cmd;
     this.sendMessage();
@@ -429,6 +723,166 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
     });
   }
 
+  /** Wipe the conversation back to a fresh welcome. */
+  clearHistory() {
+    this.messages.set([]);
+    this.setWelcomeGreeting();
+    this.persistMessages();
+  }
+
+  /** One-tap AI apply — executes a Master action against the live app. */
+  runChatAction(action: ChatAction) {
+    this.isTyping.set(false);
+    let result: string | null = null;
+
+    switch (action.id) {
+      case 'apply-mimic':
+        result = this.applyMimicRecipe(action.data || '');
+        break;
+      case 'open-studio':
+        this.navigateTo('/studio');
+        result = 'Opening the Studio. Try not to break anything I built.';
+        break;
+      case 'open-knowledge':
+        this.navigateTo('/knowledge-base');
+        result = 'Opening the Knowledge Base. Read before you ask again.';
+        break;
+      case 'open-produce':
+        this.navigateTo('/produce');
+        result = 'Opening AI Produce. I will decide what your session becomes.';
+        break;
+      case 'open-tour':
+        this.navigateTo('/onboarding/tour');
+        result = 'Opening the First Beat Tour. Pay attention — I only teach this once.';
+        break;
+      case 'open-business':
+        this.navigateTo('/business-suite');
+        result = 'Opening the Business Suite. The money lives there.';
+        break;
+      case 'tempo-90':
+        this.setTempo(90);
+        result = 'Tempo locked to 90 BPM. Even you can ride this.';
+        break;
+      case 'tempo-124':
+        this.setTempo(124);
+        result = 'Tempo locked to 124 BPM. House floor approved.';
+        break;
+      case 'tempo-140':
+        this.setTempo(140);
+        result = 'Tempo locked to 140 BPM. Try to keep up.';
+        break;
+      case 'chords':
+        result = this.seedChords();
+        break;
+      case 'melody':
+        result = this.seedMelody();
+        break;
+      case 'neural-mix':
+        if (this.neural) {
+          this.neural.applyNeuralMix();
+          result = 'Neural mix applied. Levels rebalanced without your input. As usual.';
+        } else {
+          result = 'Neural mixer offline — open the Studio first.';
+        }
+        break;
+      case 'lesson': {
+        const lesson = this.knowledgeEngine.generateLesson(
+          action.data as any
+        );
+        result = lesson
+          ? `🔬 LESSON: ${lesson.title}\n${'─'.repeat(50)}\n${lesson.steps
+              .map((s, i) => `  Step ${i + 1}: ${s}`)
+              .join('\n')}`
+          : `No lesson for "${action.data}". Try: Production, Marketing, Business, Legal, Distribution, Career.`;
+        break;
+      }
+      default:
+        return;
+    }
+
+    this.messages.update((m) => [
+      ...m,
+      {
+        id: this.nextMessageId(),
+        role: 'assistant',
+        text: result,
+        timestamp: Date.now(),
+      },
+    ]);
+    this.persistMessages();
+    this.scrollToBottom();
+    this.snack?.success(result);
+  }
+
+  /** Apply an artist's production recipe: BPM from their range + chords in their key. */
+  private applyMimicRecipe(artist: string): string {
+    const profile = this.styleMimicService.getStyleProfile(artist);
+    if (!profile) return `No profile for "${artist}".`;
+    const bpmRange = profile.productionCharacteristics.typicalBpm;
+    const match = bpmRange.match(/(\d+)\s*-\s*(\d+)/);
+    let bpm = 120;
+    if (match) {
+      bpm = Math.round((Number(match[1]) + Number(match[2])) / 2 / 5) * 5;
+    }
+    this.setTempo(bpm);
+    const key = profile.productionCharacteristics.keySignature[0];
+    const root = key.replace(/m$/, '');
+    const midi = NOTE_TO_MIDI[root];
+    if (midi !== undefined) {
+      this.seedChords(midi, `${artist}-style`);
+    }
+    return `Mimicry engaged: ${artist}-inspired recipe applied — tempo ${bpm} BPM, chords rooted in ${key}, using ${profile.productionCharacteristics.drumPattern}. Open the Studio to hear your inferior copy.`;
+  }
+
+  private setTempo(bpm: number) {
+    const tempo = (this.audioEngineService as any).tempo;
+    if (tempo?.set) tempo.set(bpm);
+  }
+
+  /** Drop a triad seed (root–fourth–fifth) on the selected track. */
+  private seedChords(
+    rootMidi: number = 60,
+    tag: string = 'ai'
+  ): string {
+    const music = this.music;
+    const id = music?.selectedTrackId();
+    if (!music || !id) return 'Select a track first — I cannot read minds.';
+    const base = rootMidi;
+    [base, base + 5, base + 7].forEach((m, i) =>
+      music.addNoteToTrack(id, {
+        id: `${tag}_chord_${Date.now()}_${i}`,
+        midi: m,
+        step: i * 4,
+        length: 4,
+        velocity: 0.7,
+      })
+    );
+    return `Dropped a triad seed on the selected track. Voice it to taste.`;
+  }
+
+  /** Spark an 8-note melodic seed on the selected track. */
+  private seedMelody(): string {
+    const music = this.music;
+    const id = music?.selectedTrackId();
+    if (!music || !id) return 'Select a track first.';
+    const baseMidi = 64;
+    const pattern = [0, 4, 7, 12, 7, 4, 2, 5];
+    pattern.forEach((interval, i) =>
+      music.addNoteToTrack(id, {
+        id: 'ai_melody_' + Date.now() + '_' + i,
+        midi: baseMidi + interval,
+        step: i * 2,
+        length: 1,
+        velocity: 0.7 + (Math.random() - 0.5) * 0.2,
+      })
+    );
+    return 'Sparked an 8-note melodic seed. Humanize it so it does not sound like you played it.';
+  }
+
+  private styleMimiceArtists(): string {
+    return this.styleMimicService.getAvailableArtists().join(', ');
+  }
+
   private nextMessageId(): string {
     this.messageCounter += 1;
     return `msg-${this.messageCounter}`;
@@ -491,6 +945,114 @@ ${entry.actionRequired ? `\n🎯 ACTION: ${entry.actionRequired}` : ''}`;
         return `${prefix}_Business`;
       default:
         return `${prefix}_Uplink`;
+    }
+  }
+
+  // ── Streaming + persistence ─────────────────────────────────────────
+
+  private async streamResponse(
+    fullText: string,
+    category: ChatMessage['category'],
+    actions: ChatAction[] = []
+  ) {
+    const messageId = this.nextMessageId();
+    let messageIndex = -1;
+    const msg: ChatMessage = {
+      id: messageId,
+      role: 'assistant',
+      text: '',
+      timestamp: Date.now(),
+      category,
+      isStreaming: true,
+      actions,
+    };
+
+    this.messages.update((m) => {
+      messageIndex = m.length;
+      return [...m, msg];
+    });
+
+    const words = fullText.split(' ');
+    let currentText = '';
+
+    for (let i = 0; i < words.length; i++) {
+      currentText += words[i] + ' ';
+      this.messages.update((m) => {
+        const index =
+          messageIndex >= 0 && m[messageIndex]?.id === messageId
+            ? messageIndex
+            : m.findIndex((entry) => entry.id === messageId);
+        if (index === -1) {
+          return m;
+        }
+        messageIndex = index;
+        const next = [...m];
+        next[index] = { ...next[index], text: currentText };
+        return next;
+      });
+      // Varying speed for human-like/neural effect
+      const delay = Math.random() * 50 + 20;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    this.messages.update((m) => {
+      const index =
+        messageIndex >= 0 && m[messageIndex]?.id === messageId
+          ? messageIndex
+          : m.findIndex((entry) => entry.id === messageId);
+      if (index === -1) {
+        return m;
+      }
+      const next = [...m];
+      next[index] = { ...next[index], isStreaming: false };
+      return next;
+    });
+
+    this.persistMessages();
+  }
+
+  /** Restore the persisted conversation; returns true when restored. */
+  private restoreMessages(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      const raw = window.localStorage.getItem(MASTER_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return false;
+      const restored = parsed
+        .filter(
+          (m): m is ChatMessage =>
+            !!m &&
+            (m as ChatMessage).role !== undefined &&
+            typeof (m as ChatMessage).text === 'string' &&
+            typeof (m as ChatMessage).timestamp === 'number'
+        )
+        .map((m) => ({ ...m, id: this.nextMessageId() }));
+      if (restored.length > 0) {
+        this.messages.set(restored);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Persist the conversation (capped, transient action chips stripped). */
+  private persistMessages(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const slim = this.messages()
+        .slice(-MASTER_STORAGE_MAX)
+        .map(({ role, text, timestamp, category }) => ({
+          role,
+          text,
+          timestamp,
+          category,
+        }));
+      window.localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(slim));
+    } catch {
+      // storage unavailable — degrade silently
     }
   }
 

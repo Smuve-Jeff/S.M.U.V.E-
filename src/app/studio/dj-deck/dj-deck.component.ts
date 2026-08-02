@@ -66,7 +66,7 @@ const LOOP_PRESET_BEAT_MAX = 32;
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
-  styleUrl: './dj-deck.component.css',
+  styleUrls: ['./dj-deck.component.css', './dj-booth-refinement.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule],
@@ -1302,6 +1302,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
           : `bumped to ${this.formatPct(next)}`
       }`
     );
+  }
+
+  scratchPercent(value: number): number {
+    return Math.abs(value) * 100;
   }
 
   private formatPct(rate: number) {

@@ -1,0 +1,94 @@
+<svg
+  class="smuve-widget-glyph"
+  viewBox="0 0 120 160"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="S.M.U.V.E brand mark"
+>
+  <defs>
+    <!-- Royal blue fluid gradient -->
+    <radialGradient id="blueFluid" cx="50%" cy="35%" r="55%" fx="40%" fy="30%">
+      <stop offset="0%" stop-color="#3366FF" />
+      <stop offset="35%" stop-color="#1A3FCC" />
+      <stop offset="70%" stop-color="#0A2AA0" />
+      <stop offset="100%" stop-color="#051D70" />
+    </radialGradient>
+    <!-- Highlight for 3D contour -->
+    <linearGradient id="blueHighlight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5588FF" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#3366EE" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#0A1A60" stop-opacity="0" />
+    </linearGradient>
+    <!-- Torn-paper edge filter -->
+    <filter id="tornEdge" x="-5%" y="-2%" width="110%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="7" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <!-- Subtle shadow on the blue shape -->
+    <filter id="fluidShadow" x="-10%" y="-5%" width="120%" height="115%">
+      <feDropShadow dx="1" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- BACKGROUND: Off-white / cream irregular region (top/right) -->
+  <g filter="url(#tornEdge)">
+    <path
+      d="M0 0 L120 0 L120 85 Q110 62 95 55 Q80 48 65 52 Q48 58 40 72 Q28 88 15 82 Q5 78 0 75 Z"
+      fill="#F5F0E6"
+    />
+  </g>
+
+  <!-- BACKGROUND: Black irregular region (bottom) -->
+  <g filter="url(#tornEdge)">
+    <path
+      d="M0 70 Q18 80 30 74 Q42 68 50 82 Q58 97 72 92 Q86 88 98 75 Q110 63 120 58 L120 160 L0 160 Z"
+      fill="#0A0A0E"
+    />
+  </g>
+
+  <!-- BLUE FLUID SHAPE (main body) — curving from top-center toward bottom-left -->
+  <g filter="url(#fluidShadow)">
+    <!-- Upper circular lobe -->
+    <ellipse cx="62" cy="28" rx="28" ry="22" fill="url(#blueFluid)" />
+    <!-- Upper highlight -->
+    <ellipse cx="58" cy="22" rx="14" ry="10" fill="url(#blueHighlight)" opacity="0.7" />
+
+    <!-- Main connecting body — sweeping downward and leftward -->
+    <path
+      d="M38 38 Q35 55 30 80 Q26 100 18 122 Q12 138 8 148 L68 148 Q62 130 58 108 Q54 88 56 68 Q58 52 62 42 Z"
+      fill="url(#blueFluid)"
+    />
+
+    <!-- Central body highlight streak -->
+    <path
+      d="M48 45 Q44 62 38 85 Q34 102 30 118 Q26 132 22 142 Q30 138 36 130 Q42 118 46 102 Q50 86 52 68 Q55 54 56 46 Z"
+      fill="url(#blueHighlight)"
+      opacity="0.5"
+    />
+
+    <!-- Downward leg-like appendage highlight -->
+    <path
+      d="M14 138 Q12 144 14 148 L28 148 Q24 140 22 134 Q20 128 18 124 Q16 120 14 138 Z"
+      fill="url(#blueHighlight)"
+      opacity="0.35"
+    />
+  </g>
+
+  <!-- Fine highlight edge on the upper lobe -->
+  <path
+    d="M40 18 Q48 10 62 8 Q76 8 84 18"
+    stroke="#80A8FF"
+    stroke-width="1.2"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.6"
+  />
+
+  <!-- Subtle dark edge on the lower body -->
+  <path
+    d="M8 148 Q12 140 18 122 Q26 100 30 80 Q35 55 38 38 Q32 60 28 82 Q24 104 18 126 Q14 140 8 148 Z"
+    fill="#020D40"
+    opacity="0.25"
+  />
+</svg>

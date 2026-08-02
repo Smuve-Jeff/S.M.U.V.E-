@@ -6,12 +6,9 @@
   >
     <div class="flex items-center gap-4">
       <div
-        class="w-10 h-10 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group"
+        class="w-12 h-12 rounded-2xl flex items-center justify-center group overflow-visible"
       >
-        <span
-          class="material-symbols-outlined text-2xl group-hover:scale-125 transition-transform duration-500"
-          >neurology</span
-        >
+        <app-smuve-widget class="w-full h-full"></app-smuve-widget>
       </div>
       <div class="flex flex-col">
         <h3
@@ -101,12 +98,25 @@
     >
       {{ group.label }}
     </button>
-    <div class="ml-auto flex items-center gap-1">
-      <div class="size-1.5 rounded-full bg-green-400 animate-pulse"></div>
-      <span
-        class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
-        >Neural Active</span
+    <div class="ml-auto flex items-center gap-2">
+      <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
+        >{{ messages().length }} in memory</span
       >
+      <button
+        type="button"
+        (click)="clearHistory()"
+        class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[7px] font-black text-slate-500 uppercase tracking-widest hover:border-red-500/40 hover:text-red-400 transition-all"
+        title="Wipe this conversation"
+      >
+        Clear
+      </button>
+      <div class="flex items-center gap-1">
+        <div class="size-1.5 rounded-full bg-green-400 animate-pulse"></div>
+        <span
+          class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
+          >Neural Active</span
+        >
+      </div>
     </div>
   </div>
 
@@ -152,7 +162,7 @@
         >
       </div>
       <div
-        class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg"
+        class="max-w-[85%] p-5 rounded-3xl text-xs font-medium leading-relaxed transition-all shadow-lg whitespace-pre-line"
         [class.bg-black/60]="msg.role === 'assistant'"
         [class.text-slate-300]="msg.role === 'assistant'"
         [class.border]="msg.role === 'assistant'"
@@ -162,6 +172,21 @@
         [class.font-black]="msg.role === 'user'"
       >
         {{ msg.text }}
+      </div>
+      <!-- One-tap AI apply actions -->
+      <div
+        *ngIf="msg.role === 'assistant' && msg.actions?.length"
+        class="flex flex-wrap gap-1.5 px-1"
+      >
+        <button
+          *ngFor="let act of msg.actions"
+          type="button"
+          (click)="runChatAction(act)"
+          class="px-2.5 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/30 text-[8px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/25 hover:scale-105 active:scale-95 transition-all flex items-center gap-1"
+        >
+          <span class="material-symbols-outlined text-[12px]">bolt</span>
+          {{ act.label }}
+        </button>
       </div>
       <span
         class="text-[7px] font-black text-slate-700 uppercase tracking-widest px-2"
