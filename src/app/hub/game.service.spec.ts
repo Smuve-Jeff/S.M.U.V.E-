@@ -106,6 +106,41 @@ describe('GameService', () => {
     );
   });
 
+  it('repairs known drifting cabinet titles and launch targets', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          ...mockFeed.games[0],
+          id: 'cyber-adventure',
+          name: 'Cyber Adventure',
+          url: 'https://www.gamepix.com/play/cyber-adventure',
+        },
+        {
+          ...mockFeed.games[0],
+          id: 'gta-san-andreas-elite',
+          name: 'GTA: San Andreas (Elite HD)',
+          url: '/assets/games/halo-ce-web/halo-ce-web.html',
+        },
+      ],
+    });
+    const games = await pending;
+
+    expect(games.map((game) => ({ id: game.id, name: game.name, url: game.url }))).toEqual([
+      {
+        id: 'cyber-adventure',
+        name: 'Cyber Cars Punk Racing',
+        url: 'https://www.gamepix.com/play/cyber-cars-punk-racing',
+      },
+      {
+        id: 'gta-san-andreas-elite',
+        name: 'Grand Theft Auto: San Andreas',
+        url: 'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
+      },
+    ]);
+  });
+
   it('filters games through data-driven room rules', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('weekend-clash'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);

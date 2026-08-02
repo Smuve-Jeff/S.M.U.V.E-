@@ -307,7 +307,7 @@
       "id": "presence-5",
       "name": "ComboSage",
       "status": "queueing",
-      "activity": "Queued for an Arena Clash X ladder set",
+      "activity": "Queued for an Clash of Armour X ladder set",
       "roomId": "fighting-pit",
       "gameId": "38",
       "relationship": "rival",
@@ -332,7 +332,7 @@
       "id": "presence-7",
       "name": "LootOracle",
       "status": "in-match",
-      "activity": "Deep in a Mythic Raid Online boss phase",
+      "activity": "Deep in a Raid Heroes: Total War boss phase",
       "roomId": "rpg-vault",
       "gameId": "44",
       "relationship": "friend",
@@ -443,9 +443,7 @@
         "approvedExternalUrl": "https://slowroads.io/"
       }
     },
-    {
-      "id": "battlefield",
-      "name": "Battlefield",
+    {"id":"battlefield","name":"Tha Battlefield",
       "url": "/assets/games/battlefield/battlefield.html",
       "description": "Executive rap battle arena with live bracket energy and hybrid queue support.",
       "genre": "FPS",
@@ -811,9 +809,7 @@
       },
       "image": "/assets/games/pac-man-elite.png"
     },
-    {
-      "id": "super-street-fighter",
-      "name": "Super Street Fighter II: The New Challengers",
+    {"id":"super-street-fighter","name":"Super Street Fighter II: The New Challengers",
       "url": "https://www.retrogames.cc/embed/22458-super-street-fighter-ii-snes.html",
       "description": "The legendary world warrior tournament returns with the New Challengers. Master the classic combat that defined a generation.",
       "genre": "Fighting",
@@ -1110,10 +1106,8 @@
       },
       "image": "/assets/games/kart-fight.png"
     },
-    {
-      "id": "rail-surfers",
-      "name": "Rail Surfers",
-      "url": "https://www.gamepix.com/play/rail-surfers",
+    {"id":"rail-surfers","name":"Temple Run 2",
+      "url": "https://www.gamepix.com/play/temple-run-2",
       "description": "A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.",
       "genre": "Runner",
       "rating": 4.8,
@@ -1142,7 +1136,7 @@
         "trustNote": "Allowlisted premium runner partner.",
         "embedMode": "inline",
         "approvedExternalUrl": "https://www.gamepix.com/play/temple-run-2",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/rail-surfers",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/temple-run-2",
         "telemetryMode": "origin",
         "telemetryOrigins": ["https://www.gamepix.com"],
         "secure_mode": "wasm"
@@ -1372,10 +1366,8 @@
       },
       "image": "/assets/games/mahjong.png"
     },
-    {
-      "id": "tactical-squad",
-      "name": "Tactical Squad",
-      "url": "https://www.gamepix.com/play/tactical-squad",
+    {"id":"tactical-squad","name":"Special Strike: Operations",
+      "url": "https://www.gamepix.com/play/special-strike-operations",
       "description": "First-person shooting precision with high-stakes tactical deployments.",
       "genre": "Shooting",
       "rating": 4.8,
@@ -1388,7 +1380,7 @@
         "controls": ["Keyboard", "Mouse"],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tactical-squad",
+        "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike-operations",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike-operations",
         "telemetryMode": "origin",
         "telemetryOrigins": ["https://www.gamepix.com"],
@@ -1490,9 +1482,7 @@
       },
       "image": "/assets/games/league-bowling.png"
     },
-    {
-      "id": "dungeon-fury",
-      "name": "Dungeon Fury",
+    {"id":"dungeon-fury","name":"Dungeon Field",
       "url": "https://www.gamepix.com/play/dungeon-field",
       "description": "Fast-paced action RPG through procedurally generated lethal corridors.",
       "genre": "RPG",

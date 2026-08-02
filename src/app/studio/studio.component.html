@@ -367,6 +367,57 @@
 
   <!-- ====================== MAIN WORKSPACE ====================== -->
   <main class="comp-main" role="main">
+    <!-- Mobile quick-start lane: keep the first musical action one tap away. -->
+    <section
+      class="comp-mobile-start"
+      *ngIf="uiService.isCompactMobile() && activeView() === 'arrangement'"
+      aria-labelledby="mobile-start-title"
+    >
+      <div class="comp-mobile-start-copy">
+        <span class="comp-mobile-start-kicker">QUICK START</span>
+        <h2 id="mobile-start-title">Make something in 30 seconds.</h2>
+        <p>Pick a starting point. S.M.U.V.E. keeps the controls simple until you ask for more.</p>
+      </div>
+      <div class="comp-mobile-start-actions" role="group" aria-label="Quick create actions">
+        <button
+          type="button"
+          class="comp-mobile-start-action comp-mobile-start-primary"
+          (click)="audioEngine.resume(); setActiveView('drum-machine')"
+          aria-label="Start a beat in the Drum Machine"
+        >
+          <span class="material-symbols-outlined">grid_view</span>
+          <span><strong>Start a beat</strong><small>Drum Machine</small></span>
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-start-action"
+          (click)="audioEngine.resume(); setActiveView('piano-roll')"
+          aria-label="Play keys in the Piano Roll"
+        >
+          <span class="material-symbols-outlined">piano</span>
+          <span><strong>Play keys</strong><small>Piano Roll</small></span>
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-start-action"
+          (click)="setActiveView('audio-recorder')"
+          aria-label="Record a vocal idea"
+        >
+          <span class="material-symbols-outlined">mic</span>
+          <span><strong>Capture a take</strong><small>Voice Recorder</small></span>
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-start-action"
+          (click)="setActiveView('ai-produce')"
+          aria-label="Open AI Produce for guided creation"
+        >
+          <span class="material-symbols-outlined">auto_awesome</span>
+          <span><strong>Ask S.M.U.V.E.</strong><small>AI Produce</small></span>
+        </button>
+      </div>
+    </section>
+
     <!-- Desktop view rail (FL Studio side rail pattern) -->
     <nav
       class="comp-rail"

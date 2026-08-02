@@ -351,7 +351,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       id: 'presence-7',
       name: 'LootOracle',
       status: 'in-match',
-      activity: 'Deep in a Mythic Raid Online boss phase',
+      activity: 'Deep in a Raid Heroes: Total War boss phase',
       roomId: 'rpg-vault',
       gameId: '44',
       relationship: 'friend',
@@ -468,7 +468,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'battlefield',
-      name: 'Battlefield',
+      name: 'Tha Battlefield',
       url: '/assets/games/battlefield/battlefield.html',
       description:
         'Executive rap battle arena with live bracket energy and hybrid queue support.',
@@ -842,7 +842,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'super-street-fighter',
-      name: 'Super Street Fighter II',
+      name: 'Super Street Fighter II: The New Challengers',
       url: 'https://www.retrogames.cc/embed/23550-super-street-fighter-ii-the-new-challengers-usa.html',
       description:
         'The legendary world warrior tournament returns with the New Challengers. Master the classic combat that defined a generation.',
@@ -1148,7 +1148,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'rail-surfers',
-      name: 'Rail Surfers',
+      name: 'Temple Run 2',
       url: 'https://www.gamepix.com/play/temple-run-2',
       description:
         'A polished endless runner with top-tier flow, vivid presentation, and instant arcade momentum.',
@@ -1418,7 +1418,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'tactical-squad',
-      name: 'Tactical Squad',
+      name: 'Special Strike: Operations',
       url: 'https://www.gamepix.com/play/special-strike-operations',
       description:
         'First-person shooting precision with high-stakes tactical deployments.',
@@ -1544,7 +1544,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'dungeon-fury',
-      name: 'Dungeon Fury',
+      name: 'Dungeon Field',
       url: 'https://www.gamepix.com/play/dungeon-field',
       description:
         'Fast-paced action RPG through procedurally generated lethal corridors.',
@@ -1677,7 +1677,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'cyber-adventure',
-      name: 'Cyber Adventure',
+      name: 'Cyber Cars Punk Racing',
       url: 'https://www.gamepix.com/play/cyber-cars-punk-racing',
       description:
         'Epic cyberpunk adventure with deep RPG mechanics and offline-first persistence.',
@@ -1708,7 +1708,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'sniper-mission',
-      name: 'Sniper Mission',
+      name: 'Sniper Clash 3D',
       url: 'https://www.gamepix.com/play/sniper-clash-3d',
       description: 'Long-range tactical shooting missions with ballistics.',
       genre: 'Shooting',
@@ -1835,7 +1835,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'arena-clash',
-      name: 'Arena Clash',
+      name: 'Clash of Armour',
       url: 'https://www.gamepix.com/play/clash-of-armour',
       description:
         'Neon tournament fighter with high-speed strings, ranked ladders, and online rematches.',

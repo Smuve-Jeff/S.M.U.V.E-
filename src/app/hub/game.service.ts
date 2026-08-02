@@ -29,12 +29,56 @@ function asStringArray(val: any): string[] {
   return Array.isArray(val) ? val.map((v) => asString(v)) : [];
 }
 
+/**
+ * Feed titles must describe the actual cabinet opened by their launch URL.
+ * Keep this small canonical map as a last line of defense when a cached or
+ * remote feed ships a marketing alias instead of the upstream title.
+ */
+const CANONICAL_GAME_TITLES: Record<string, string> = {
+  battlefield: 'Tha Battlefield',
+  'rail-surfers': 'Temple Run 2',
+  'tactical-squad': 'Special Strike: Operations',
+  'dungeon-fury': 'Dungeon Field',
+  'cyber-adventure': 'Cyber Cars Punk Racing',
+  'sniper-mission': 'Sniper Clash 3D',
+  'arena-clash': 'Clash of Armour',
+  'tag-team-titans': 'Teen Titans Go! Jump Jousts',
+  'mythic-raid-online': 'Raid Heroes: Total War',
+  'legends-of-the-rift': 'Hero Tower Wars',
+  'sonic-racing': 'Team Sonic Racing',
+  doom: 'DOOM',
+  'gta-elite-wasm': 'Grand Theft Auto',
+  'halo-combat-evolved': 'Halo: Combat Evolved',
+  'gta-san-andreas-elite': 'Grand Theft Auto: San Andreas',
+};
+
+/** Canonical launch targets for records whose feed IDs historically drifted. */
+const CANONICAL_GAME_URLS: Record<string, string> = {
+  'rail-surfers': 'https://www.gamepix.com/play/temple-run-2',
+  'tactical-squad': 'https://www.gamepix.com/play/special-strike-operations',
+  'dungeon-fury': 'https://www.gamepix.com/play/dungeon-field',
+  'cyber-adventure': 'https://www.gamepix.com/play/cyber-cars-punk-racing',
+  'sniper-mission': 'https://www.gamepix.com/play/sniper-clash-3d',
+  'arena-clash': 'https://www.gamepix.com/play/clash-of-armour',
+  'tag-team-titans': 'https://www.gamepix.com/play/teen-titans-go-jump-jousts',
+  'mythic-raid-online': 'https://www.gamepix.com/play/raid-heroes-total-war',
+  'legends-of-the-rift': 'https://www.gamepix.com/play/hero-tower-wars',
+  'sonic-racing': 'https://www.gamepix.com/play/sonic-racing',
+  doom: 'https://www.retrogames.cc/embed/5540-doom-dos.html',
+  'gta-elite-wasm': 'https://www.retrogames.cc/embed/41727-grand-theft-auto.html',
+  'halo-combat-evolved': '/assets/games/halo-ce-web/halo-ce-web.html',
+  'gta-san-andreas-elite':
+    'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
+};
+
 function normalizeGame(game: Game): Game {
+  const id = asString(game.id);
+  const canonicalUrl = CANONICAL_GAME_URLS[id];
   return {
     ...game,
-    id: asString(game.id),
-    name: asString(game.name, 'Untitled Cabinet'),
-    url: asString(game.url),
+    id,
+    name: CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet'),
+    url: canonicalUrl || asString(game.url),
     image: asString(game.image),
     description: asString(game.description),
     genre: asString(game.genre, 'Unknown'),
@@ -236,6 +280,17 @@ export function validateAndRepairGame(game: Game): Game {
   const url: string = game.url || '';
   const lc = game.launchConfig || ({} as any);
   const repaired: Game = { ...game, launchConfig: { ...(lc as any) } };
+  const canonicalUrl = CANONICAL_GAME_URLS[game.id];
+  if (canonicalUrl) {
+    repaired.url = canonicalUrl;
+    // Keep already-approved external targets aligned with the canonical cabinet.
+    for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {
+      const value = (repaired.launchConfig as any)[key];
+      if (typeof value === 'string' && value.trim()) {
+        (repaired.launchConfig as any)[key] = canonicalUrl;
+      }
+    }
+  }
 
   // ── Strip empty approved URLs that were intentionally blanked by the fix script ──
   for (const key of ['approvedEmbedUrl', 'approvedExternalUrl'] as const) {

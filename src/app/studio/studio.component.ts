@@ -222,6 +222,138 @@ const THEME_LABEL: Record<AppTheme, string> = {
         outline-offset: 2px;
         border-radius: 4px;
       }
+
+      /* Mobile quick-start lane — a calm, thumb-first entry point for new
+         sessions. The full Studio remains one tap away through the dock. */
+      .comp-mobile-start {
+        display: none;
+        grid-column: 1 / -1;
+      }
+      @media (max-width: 768px) {
+        .comp-main {
+          flex-direction: column;
+        }
+        .comp-mobile-start {
+          display: grid;
+          flex: 0 0 auto;
+          gap: 12px;
+          position: relative;
+          isolation: isolate;
+          padding: 14px;
+          border: 1px solid rgba(14, 124, 123, 0.18);
+          border-radius: 18px;
+          background: linear-gradient(135deg, rgba(251, 247, 236, 0.98), rgba(230, 245, 244, 0.92));
+          box-shadow: 0 10px 24px rgba(61, 53, 42, 0.08);
+          overflow: hidden;
+        }
+        .comp-mobile-start-copy {
+          display: grid;
+          gap: 4px;
+        }
+        .comp-mobile-start-kicker {
+          color: var(--stage-teal, #0e7c7b);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: 0.14em;
+        }
+        .comp-mobile-start h2 {
+          margin: 0;
+          color: var(--stage-ink, #1f1a12);
+          font-size: clamp(18px, 5vw, 23px);
+          line-height: 1.05;
+          letter-spacing: -0.03em;
+        }
+        .comp-mobile-start p {
+          max-width: 38rem;
+          margin: 0;
+          color: var(--stage-muted, #7e7259);
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        .comp-mobile-start-actions {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          position: relative;
+          z-index: 1;
+          gap: 8px;
+        }
+        .comp-mobile-start-action {
+          display: flex;
+          min-width: 0;
+          min-height: 62px;
+          align-items: center;
+          gap: 9px;
+          padding: 10px;
+          border: 1px solid rgba(61, 53, 42, 0.12);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.68);
+          color: var(--stage-ink, #1f1a12);
+          text-align: left;
+          cursor: pointer;
+          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        }
+        .comp-mobile-start-action:active {
+          transform: scale(0.98);
+        }
+        .comp-mobile-start-action:hover,
+        .comp-mobile-start-action:focus-visible {
+          border-color: rgba(14, 124, 123, 0.45);
+          box-shadow: 0 6px 14px rgba(14, 124, 123, 0.12);
+        }
+        .comp-mobile-start-action .material-symbols-outlined {
+          display: grid;
+          width: 34px;
+          height: 34px;
+          flex: 0 0 34px;
+          place-items: center;
+          border-radius: 10px;
+          background: rgba(14, 124, 123, 0.1);
+          color: var(--stage-teal, #0e7c7b);
+          font-size: 20px;
+        }
+        .comp-mobile-start-action span:last-child {
+          display: grid;
+          min-width: 0;
+          gap: 2px;
+        }
+        .comp-mobile-start-action strong,
+        .comp-mobile-start-action small {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .comp-mobile-start-action strong {
+          font-size: 11px;
+          line-height: 1.1;
+        }
+        .comp-mobile-start-action small {
+          color: var(--stage-muted, #7e7259);
+          font-size: 9px;
+        }
+        .comp-mobile-start-primary {
+          border-color: rgba(14, 124, 123, 0.32);
+          background: linear-gradient(135deg, rgba(14, 124, 123, 0.14), rgba(255, 255, 255, 0.72));
+        }
+      }
+      @media (max-width: 390px) {
+        .comp-mobile-start {
+          padding: 12px;
+        }
+        .comp-mobile-start-actions {
+          gap: 6px;
+        }
+        .comp-mobile-start-action {
+          min-height: 58px;
+          gap: 6px;
+          padding: 8px;
+        }
+        .comp-mobile-start-action .material-symbols-outlined {
+          width: 30px;
+          height: 30px;
+          flex-basis: 30px;
+          font-size: 18px;
+        }
+      }
     `,
   ],
 })
