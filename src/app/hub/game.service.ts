@@ -1,7 +1,7 @@
 export type GameSortMode = 'Popular' | 'Rating' | 'Newest' | 'Name' | 'Queue';
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, of, shareReplay } from 'rxjs';
 import {
   Game,
   GameBadge,
@@ -338,6 +338,10 @@ export class GameService {
   private http = inject(HttpClient);
   private feedCache$?: Observable<ThaSpotFeed>;
 
+  // Cached feed + quick lookup map to enable synchronous title resolution for UI
+  private cachedFeed: ThaSpotFeed | null = null;
+  private gameById = new Map<string, Game>();
+
   /**
    * Iframe sandbox attribute builder - omitted allow-same-origin by default for
    * security. Returns a stricter set of permissions aligned with Web Platform best
@@ -379,13 +383,59 @@ export class GameService {
           if (!normalized.games || normalized.games.length === 0) {
             return normalizeFeed(THA_SPOT_FALLBACK_FEED);
           }
+          // Keep the sync cache warm so getGameById()/listGamesSync() can
+          // resolve canonical titles without waiting on a new HTTP request.
+          this.cachedFeed = normalized;
+          this.gameById.clear();
+          normalized.games.forEach((game) =>
+            this.gameById.set(String(game.id), game)
+          );
           return normalized;
         }),
-        catchError(() => of(normalizeFeed(THA_SPOT_FALLBACK_FEED))),
+        catchError(() => {
+          const fallback = normalizeFeed(THA_SPOT_FALLBACK_FEED);
+          this.cachedFeed = fallback;
+          this.gameById.clear();
+          fallback.games.forEach((game) =>
+            this.gameById.set(String(game.id), game)
+          );
+          return of(fallback);
+        }),
         shareReplay(1)
       );
     }
     return this.feedCache$;
+  }
+
+  /** Synchronous lookup for a game by id. May return undefined if the feed
+   * hasn't been loaded yet. Components should call listGames() or loadFeedIfNeeded
+   * for guaranteed async resolution. */
+  getGameById(gameId: string): Game | undefined {
+    if (!gameId) return undefined;
+    return this.gameById.get(String(gameId));
+  }
+
+  /** Synchronous list of cached games (may be empty if feed hasn't loaded). */
+  listGamesSync(): Game[] {
+    return this.cachedFeed?.games ?? [];
+  }
+
+  /** Ensure the feed is loaded into the sync cache. Safe to call multiple times. */
+  async loadFeedIfNeeded(): Promise<void> {
+    if (this.cachedFeed) return;
+    try {
+      const feed = await firstValueFrom(
+        this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL)
+      );
+      this.cachedFeed = normalizeFeed(feed);
+      this.gameById.clear();
+      this.cachedFeed.games.forEach((game) =>
+        this.gameById.set(String(game.id), game)
+      );
+    } catch (e) {
+      // swallow: callers should fallback to remote fetchs already present in other methods
+      console.warn('[GameService] failed to pre-cache tha-spot feed', e);
+    }
   }
 
   listGames(

@@ -130,7 +130,10 @@ const SERVER_URL = (() => {
   return APP_SECURITY_CONFIG.api_url.replace(/\/api\/?$/, '');
 })();
 
-function serverToClientChallenge(sc: ServerChallenge): PlayerChallenge {
+function serverToClientChallenge(
+  sc: ServerChallenge,
+  resolveGameName?: (gameId: string) => string | undefined
+): PlayerChallenge {
   return {
     id: `chal-${sc.id}`,
     fromId: sc.fromUserId,
@@ -138,7 +141,7 @@ function serverToClientChallenge(sc: ServerChallenge): PlayerChallenge {
     toId: sc.toUserId,
     toName: sc.toUserId,
     gameId: sc.gameId,
-    gameName: sc.gameId,
+    gameName: resolveGameName?.(sc.gameId) || sc.gameId,
     status: sc.status as ChallengeStatus,
     message: sc.message || '',
     created: sc.timestamp,
@@ -289,7 +292,9 @@ export class MatchmakingService implements OnDestroy {
     });
 
     this.socket.on('challenge_inbox_sync', (challenges: ServerChallenge[]) => {
-      const mapped = challenges.map(serverToClientChallenge);
+      const mapped = challenges.map((c) =>
+        serverToClientChallenge(c, (id) => this.gameService.getGameById(id)?.name)
+      );
       this.myChallenges.set(mapped.filter((c) => c.toId === this.playerId()));
       this.outgoingChallenges.set(
         mapped.filter((c) => c.fromId === this.playerId())
@@ -297,11 +302,13 @@ export class MatchmakingService implements OnDestroy {
     });
 
     this.socket.on('incoming_challenge', (sc: ServerChallenge) => {
-      const challenge = serverToClientChallenge(sc);
+      const challenge = serverToClientChallenge(sc, (id) =>
+        this.gameService.getGameById(id)?.name
+      );
       this.myChallenges.update((c) => [...c, challenge]);
       this.haptic.medium();
       this.notify.show(
-        `${challenge.fromName} challenges you to ${challenge.gameId}!`,
+        `${challenge.fromName} challenges you to ${challenge.gameName}!`,
         'info'
       );
     });
@@ -334,7 +341,9 @@ export class MatchmakingService implements OnDestroy {
 
     this.socket.on('challenge_persisted', (sc: ServerChallenge) => {
       // Server confirmed persistence — update local ID
-      const challenge = serverToClientChallenge(sc);
+      const challenge = serverToClientChallenge(sc, (id) =>
+        this.gameService.getGameById(id)?.name
+      );
       this.outgoingChallenges.update((c) =>
         c.map((ch) =>
           ch.fromId === sc.fromUserId && !ch.id.startsWith('chal-')
@@ -817,6 +826,7 @@ export class MatchmakingService implements OnDestroy {
       toUserId,
       gameId,
       message,
+      gameName: this.gameService.getGameById(gameId)?.name || gameId,
     });
     const challenge: PlayerChallenge = {
       id: `pending-${Date.now()}`,
@@ -825,7 +835,7 @@ export class MatchmakingService implements OnDestroy {
       toId: toUserId,
       toName,
       gameId,
-      gameName: gameId,
+      gameName: this.gameService.getGameById(gameId)?.name || gameId,
       status: 'pending',
       message,
       created: Date.now(),
@@ -1171,12 +1181,14 @@ export class MatchmakingService implements OnDestroy {
   // ── Helpers ──
 
   private partyToLobby(party: ServerParty): CoOpLobby {
+    const gameId = party.gameId ?? 'global';
     return {
       id: party.partyId,
       hostId: party.leaderId,
       hostName: party.members[0]?.artistName ?? party.leaderId,
-      gameId: party.gameId ?? 'global',
-      gameName: party.gameId ?? 'Global',
+      gameId,
+      gameName: this.gameService.getGameById(gameId)?.name || gameId,
+
       status: 'searching',
       playerIds: party.members.map((m) => m.userId),
       maxPlayers: 4,

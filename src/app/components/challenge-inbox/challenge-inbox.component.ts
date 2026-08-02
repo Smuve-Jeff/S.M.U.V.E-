@@ -19,6 +19,7 @@ import { SocialNetworkingService } from '../../services/social-networking.servic
 import { UserProfileService } from '../../services/user-profile.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { TokenService } from '../../services/token.service';
+import { GameService } from '../../hub/game.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
 
 type Tab = 'pending' | 'accepted' | 'declined' | 'all';
@@ -36,6 +37,7 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   profileService = inject(UserProfileService);
   snackbarService = inject(SnackbarService);
   tokenService = inject(TokenService);
+  gameService = inject(GameService);
   router = inject(Router);
   route = inject(ActivatedRoute);
 
@@ -177,6 +179,12 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   }
 
   formatGameName(gameId: string): string {
-    return gameId.toUpperCase().replace(/-/g, ' ');
+    // Prefer canonical title from the GameService when available to avoid
+    // showing raw slugs or ids. Fall back to the legacy slug formatter.
+    const game = this.gameService.getGameById?.(gameId);
+    if (game && typeof game.name === 'string' && game.name.trim() !== '') {
+      return game.name;
+    }
+    return (gameId || '').toUpperCase().replace(/-/g, ' ');
   }
 }

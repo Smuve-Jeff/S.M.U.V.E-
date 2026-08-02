@@ -245,6 +245,7 @@ const initDb = async () => {
         from_user_name TEXT,
         to_user_id TEXT NOT NULL,
         game_id TEXT NOT NULL,
+        game_title TEXT,
         message TEXT,
         status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'expired')),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -622,7 +623,7 @@ const setupSocketIO = (server) => {
           [userId]
         );
         const { rows: chalRows } = await pool.query(
-          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, game_title, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
            FROM game_challenges
            WHERE (to_user_id = $1 OR from_user_id = $1)
              AND created_at > (CURRENT_TIMESTAMP - INTERVAL '7 days')
@@ -635,6 +636,7 @@ const setupSocketIO = (server) => {
           fromUserName: r.from_user_name,
           toUserId: r.to_user_id,
           gameId: r.game_id,
+          gameName: r.game_title || r.game_id,
           message: r.message,
           status: r.status,
           timestamp: Number(r.timestamp),
@@ -726,15 +728,18 @@ const setupSocketIO = (server) => {
 
     // --- Challenges (persisted, offline notifications) ---
     socket.on('challenge_player', async (data = {}) => {
-      const { toUserId, gameId, message } = data;
+      const { toUserId, gameId, message, gameName } = data;
       if (!toUserId || !gameId) return;
       const fromUserName = presence.get(userId)?.metadata?.artistName || userId;
+      // Prefer the resolved title sent by the client; fall back to the raw id.
+      const gameTitle =
+        typeof gameName === 'string' && gameName.trim() ? gameName : gameId;
       try {
         const { rows } = await pool.query(
-          `INSERT INTO game_challenges (from_user_id, from_user_name, to_user_id, game_id, message, status)
-           VALUES ($1, $2, $3, $4, $5, 'pending')
-           RETURNING id, from_user_id, from_user_name, to_user_id, game_id, message, status, created_at`,
-          [userId, fromUserName, toUserId, gameId, message || null]
+          `INSERT INTO game_challenges (from_user_id, from_user_name, to_user_id, game_id, game_title, message, status)
+           VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+           RETURNING id, from_user_id, from_user_name, to_user_id, game_id, game_title, message, status, created_at`,
+          [userId, fromUserName, toUserId, gameId, gameTitle, message || null]
         );
         const record = {
           id: rows[0].id,
@@ -742,6 +747,7 @@ const setupSocketIO = (server) => {
           fromUserName: rows[0].from_user_name,
           toUserId: rows[0].to_user_id,
           gameId: rows[0].game_id,
+          gameName: rows[0].game_title || rows[0].game_id,
           message: rows[0].message,
           status: rows[0].status,
           timestamp: new Date(rows[0].created_at).getTime(),
@@ -754,11 +760,12 @@ const setupSocketIO = (server) => {
           [
             toUserId,
             '🎮 Game Challenge',
-            `${fromUserName} challenged you to ${gameId}`,
+            `${fromUserName} challenged you to ${gameTitle}`,
             JSON.stringify({
               challengeId: record.id,
               fromUserId: userId,
               gameId,
+              gameTitle,
             }),
           ]
         );
@@ -790,7 +797,7 @@ const setupSocketIO = (server) => {
            WHERE status = 'pending' AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`
         );
         const { rows: chalRows } = await pool.query(
-          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
+          `SELECT id, from_user_id, from_user_name, to_user_id, game_id, game_title, message, status, EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
            FROM game_challenges
            WHERE to_user_id = $1 OR from_user_id = $1
            ORDER BY created_at DESC LIMIT 50`,
@@ -802,6 +809,7 @@ const setupSocketIO = (server) => {
           fromUserName: r.from_user_name,
           toUserId: r.to_user_id,
           gameId: r.game_id,
+          gameName: r.game_title || r.game_id,
           message: r.message,
           status: r.status,
           timestamp: Number(r.timestamp),
@@ -1782,7 +1790,7 @@ app.get(
          WHERE status = 'pending' AND to_user_id = $1 AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
         [userId]
       );
-      let query = `SELECT id, from_user_id, from_user_name, to_user_id, game_id, message, status,
+      let query = `SELECT id, from_user_id, from_user_name, to_user_id, game_id, game_title, message, status,
                 EXTRACT(EPOCH FROM created_at)::bigint * 1000 as timestamp
          FROM game_challenges
          WHERE (to_user_id = $1 OR from_user_id = $1)`;
@@ -1800,6 +1808,7 @@ app.get(
           fromUserName: r.from_user_name,
           toUserId: r.to_user_id,
           gameId: r.game_id,
+          gameName: r.game_title || r.game_id,
           message: r.message,
           status: r.status,
           timestamp: Number(r.timestamp),
@@ -1829,7 +1838,7 @@ app.post(
         `UPDATE game_challenges
          SET status = $1, updated_at = CURRENT_TIMESTAMP, responded_at = CURRENT_TIMESTAMP
          WHERE id = $2 AND to_user_id = $3
-         RETURNING id, from_user_id, from_user_name, to_user_id, game_id, message, status,
+         RETURNING id, from_user_id, from_user_name, to_user_id, game_id, game_title, message, status,
                    EXTRACT(EPOCH FROM responded_at)::bigint * 1000 as timestamp`,
         [newStatus, challengeId, userId]
       );
@@ -1843,13 +1852,14 @@ app.post(
           id: Number(updated.id),
           responderId: userId,
           gameId: updated.game_id,
+          gameName: updated.game_title || updated.game_id,
           status: updated.status,
           timestamp: Number(updated.timestamp),
         });
       }
       res.json({
         success: true,
-        challenge: { ...updated, id: Number(updated.id) },
+        challenge: { ...updated, id: Number(updated.id), gameName: updated.game_title || updated.game_id },
       });
     } catch (err) {
       console.error('Respond challenge error:', err);

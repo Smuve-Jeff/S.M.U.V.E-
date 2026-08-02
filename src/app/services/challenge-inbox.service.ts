@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
+import { GameService } from '../hub/game.service';
 
 export interface ChallengeRecord {
   id: number;
@@ -31,6 +32,7 @@ export class ChallengeInboxService {
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
   private profileService = inject(UserProfileService);
+  private gameService = inject(GameService);
 
   challenges = signal<ChallengeRecord[]>([]);
   notifications = signal<AppNotification[]>([]);
@@ -183,7 +185,10 @@ export class ChallengeInboxService {
   challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.currentUserId();
     if (!fromUserId || !toUserId || !gameId) return;
-    this.emitChallenge(toUserId, gameId);
+    // Include resolved game title when emitting so the recipient gets a human
+    // friendly name even if their client hasn't loaded the feed yet.
+    const gameName = this.gameService.getGameById(gameId)?.name || gameId;
+    this.emitChallenge(toUserId, gameId, gameName);
   }
 
   // direct emit helper so callers can also send via the existing socket
@@ -191,27 +196,35 @@ export class ChallengeInboxService {
   bindSocket(socket: any) {
     this.socket = socket;
   }
-  private emitChallenge(toUserId: string, gameId: string) {
+  private emitChallenge(toUserId: string, gameId: string, gameName?: string) {
     // Primary: emit via socket for real-time delivery
     if (this.socket && typeof this.socket.emit === 'function') {
-      this.socket.emit('challenge_player', { toUserId, gameId });
+      this.socket.emit('challenge_player', { toUserId, gameId, gameName });
     }
     // Backup: persist via REST so challenge survives socket drops
-    this.persistChallengeViaRest(toUserId, gameId);
+    this.persistChallengeViaRest(toUserId, gameId, gameName);
   }
 
   /**
    * REST fallback for challenge sending. Fires-and-forgets so the challenge
    * is persisted server-side even if the socket is unavailable.
    */
-  async persistChallengeViaRest(toUserId: string, gameId: string) {
+  async persistChallengeViaRest(
+    toUserId: string,
+    gameId: string,
+    gameName?: string
+  ) {
     const userId = this.currentUserId();
     if (!userId) return;
     try {
       await firstValueFrom(
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/challenges`,
-          { toUserId, gameId },
+          {
+            toUserId,
+            gameId,
+            gameName: gameName || this.gameService.getGameById(gameId)?.name || gameId,
+          },
           { headers: this.authHeaders() }
         )
       );
