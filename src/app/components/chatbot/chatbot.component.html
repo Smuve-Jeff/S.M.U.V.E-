@@ -42,6 +42,15 @@
         <span class="material-symbols-outlined text-lg">mood_bad</span>
       </button>
       <button
+        (click)="toggleVoiceShift()"
+        class="p-2 rounded-xl transition-all"
+        [class.text-brand-primary]="profile().settings.ai.aiVoiceShapeShiftEnabled"
+        [class.text-slate-600]="!profile().settings.ai.aiVoiceShapeShiftEnabled"
+        title="Voice Shape-Shift: every sentence speaks in a different voice (deep bass to soprano)"
+      >
+        <span class="material-symbols-outlined text-lg">record_voice_over</span>
+      </button>
+      <button
         (click)="toggleKbWriteAccess()"
         class="p-2 rounded-xl transition-all"
         [class.text-brand-primary]="profile().settings.ai.kbWriteAccess"
@@ -118,6 +127,23 @@
         >
       </div>
     </div>
+  </div>
+
+  <!-- Live voice readout -->
+  <div
+    *ngIf="voiceSpeaking() && voiceReadout()"
+    class="shrink-0 px-4 py-1.5 border-b border-white/5 flex items-center gap-2 bg-black/20"
+  >
+    <span class="size-1.5 rounded-full bg-brand-primary animate-pulse"></span>
+    <span
+      class="text-[7px] font-black text-brand-primary uppercase tracking-widest"
+      >VOICE // {{ voiceReadout()!.archetype }} · {{ voiceReadout()!.band }} ·
+      {{ voiceReadout()!.voiceName }}</span
+    >
+    <span
+      class="ml-auto text-[7px] font-black text-slate-600 uppercase tracking-widest"
+      >PITCH {{ voiceReadout()!.pitch.toFixed(2) }}</span
+    >
   </div>
 
   <!-- Contextual command drawer -->

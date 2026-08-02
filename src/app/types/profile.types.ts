@@ -26,6 +26,7 @@ export interface AppSettings {
     autoAuditEnabled: boolean;
     aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
     aiTotalControlEnabled: boolean;
+    aiVoiceShapeShiftEnabled: boolean;
   };
   studio: {
     defaultQuantize: string;
@@ -280,6 +281,7 @@ export const initialProfile: UserProfile = {
       autoAuditEnabled: false,
       aiTotalControlEnabled: false,
       aiConversationalTier: 'Standard',
+      aiVoiceShapeShiftEnabled: true,
     },
     studio: {
       defaultQuantize: '1/16',

@@ -38,6 +38,8 @@ describe('ChatbotComponent', () => {
     };
     const speechSynthesisServiceMock = {
       speak: jest.fn(),
+      liveVoice: signal(null),
+      isSpeaking: signal(false),
     };
     const loggingServiceMock = {
       error: jest.fn(),
@@ -104,6 +106,25 @@ describe('ChatbotComponent', () => {
         settings: expect.objectContaining({
           ai: expect.objectContaining({
             kbWriteAccess: false, // initial is true
+            commanderPersona: 'Elite',
+            aiConversationalTier: 'Standard',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('should toggle voice shape-shift off from its default true state', () => {
+    expect(
+      userProfileServiceMock.profile().settings.ai.aiVoiceShapeShiftEnabled
+    ).toBe(true);
+
+    component.toggleVoiceShift();
+    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ai: expect.objectContaining({
+            aiVoiceShapeShiftEnabled: false,
             commanderPersona: 'Elite',
             aiConversationalTier: 'Standard',
           }),

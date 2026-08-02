@@ -20,7 +20,10 @@ import {
 import { UIService } from '../../services/ui.service';
 import { UserContextService } from '../../services/user-context.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
-import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import {
+  SpeechSynthesisService,
+  VoiceArchetype,
+} from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
@@ -137,6 +140,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
   private messageCounter = 0;
+
+  /** Live voice readout surfaced from the speech engine. */
+  public voiceReadout = this.speechSynthesisService.liveVoice;
+  public voiceSpeaking = this.speechSynthesisService.isSpeaking;
+  /** Artist-matched archetype for the next spoken reply (mimic mode). */
+  private pendingVoiceArchetype: VoiceArchetype | null = null;
 
   readonly quickCommands = QUICK_COMMANDS;
 
@@ -290,7 +299,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
       await this.streamResponse(content, category, actions);
 
-      this.speechSynthesisService.speak(content, { conversationId });
+      this.speechSynthesisService.speak(content, {
+        conversationId,
+        shapeShift:
+          this.profile().settings?.ai?.aiVoiceShapeShiftEnabled ?? true,
+        forceArchetype: this.pendingVoiceArchetype ?? undefined,
+      });
+      this.pendingVoiceArchetype = null;
     } catch (e) {
       this.handleError(e, 'message generation');
     }
@@ -326,6 +341,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       const guide = this.styleMimicService.generateStyleGuide(artist);
       if (guide) {
         const recipe = this.styleMimicService.generateProductionRecipe(artist);
+        this.pendingVoiceArchetype = this.archetypeForArtist(artist);
         return {
           content: recipe ? `${guide}\n\n${recipe}` : guide,
           actions: [
@@ -626,6 +642,52 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     });
   }
 
+  /** Toggle constant per-sentence voice shape-shifting. */
+  toggleVoiceShift() {
+    const p = this.profile();
+    const aiSettings = this.resolveAiSettings(p);
+    const baseSettings = p.settings || initialProfile.settings;
+    this.userProfileService.updateProfile({
+      settings: {
+        ...baseSettings,
+        ai: {
+          ...aiSettings,
+          aiVoiceShapeShiftEnabled: !aiSettings.aiVoiceShapeShiftEnabled,
+        },
+      },
+    });
+  }
+
+  /** Maps a mimic artist to a matching S.M.U.V.E voice archetype. */
+  private archetypeForArtist(artist: string): VoiceArchetype | null {
+    const lower = artist.toLowerCase();
+    for (const key of Object.keys(this.ARTIST_VOICES)) {
+      if (lower.includes(key)) return this.ARTIST_VOICES[key];
+    }
+    return null;
+  }
+
+  /** Artist → vocal archetype mapping for mimic mode. */
+  private readonly ARTIST_VOICES: Record<string, VoiceArchetype> = {
+    drake: 'Baritone Authority (Male)',
+    'the weeknd': 'Mezzo Strategist (Female)',
+    'billie eilish': 'Soprano Elite (Female)',
+    'taylor swift': 'Soprano Elite (Female)',
+    'kendrick': 'Tenor Commander (Male)',
+    'j. cole': 'Baritone Authority (Male)',
+    'frank ocean': 'Mezzo Strategist (Female)',
+    'amy winehouse': 'Alto Dominance (Female)',
+    prince: 'Androgynous Oracle',
+    'michael jackson': 'Tenor Commander (Male)',
+    kanye: 'Tenor Commander (Male)',
+    'stevie wonder': 'Tenor Commander (Male)',
+    'lana del rey': 'Mezzo Strategist (Female)',
+    radiohead: 'Androgynous Oracle',
+    'tyler, the creator': 'Tenor Commander (Male)',
+    adele: 'Alto Dominance (Female)',
+    beyonce: 'Alto Dominance (Female)',
+  };
+
   private readonly CATEGORY_KEYWORDS: Record<
     ChatMessage['category'] & string,
     string[]
@@ -899,6 +961,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
         aiTotalControlEnabled: boolean;
         autoAuditEnabled: boolean;
         aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
+        aiVoiceShapeShiftEnabled: boolean;
       }>;
     };
   }) {
@@ -913,6 +976,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       aiTotalControlEnabled: aiSettings.aiTotalControlEnabled ?? false,
       aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
       autoAuditEnabled: aiSettings.autoAuditEnabled ?? false,
+      aiVoiceShapeShiftEnabled: aiSettings.aiVoiceShapeShiftEnabled ?? true,
     };
   }
 

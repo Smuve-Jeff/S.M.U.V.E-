@@ -74,27 +74,46 @@ describe('SpeechSynthesisService', () => {
     expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
   });
 
-  it('should avoid reusing the same voice when alternatives exist across conversations', () => {
-    mockSpeechSynthesis.getVoices.mockReturnValue([
-      { name: 'Voice A', lang: 'en-US' },
-      { name: 'Voice B', lang: 'en-US' },
-    ]);
+  it('should speak each sentence as its own utterance', () => {
     randomSpy.mockReturnValue(0);
 
-    service.speak('First', { conversationId: 'conv-1' });
-    service.speak('Second', { conversationId: 'conv-2' });
+    service.speak('One. Two! Three?');
 
-    expect(mockUtterances[0].voice).toEqual({
-      name: 'Voice A',
-      lang: 'en-US',
-    });
-    expect(mockUtterances[1].voice).toEqual({
-      name: 'Voice B',
-      lang: 'en-US',
+    expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(3);
+    expect(mockUtterances).toHaveLength(3);
+    mockUtterances.forEach((u) => {
+      expect(typeof u.pitch).toBe('number');
+      expect(typeof u.rate).toBe('number');
     });
   });
 
-  it('should keep the same voice inside a single conversation', () => {
+  it('should sweep pitch from deep male bass to high female soprano', () => {
+    randomSpy.mockReturnValue(0);
+    service.speak('Low bass sentence.');
+
+    randomSpy.mockReturnValue(0.99);
+    service.speak('High soprano sentence.');
+
+    expect(mockUtterances[0].pitch).toBeLessThan(0.5);
+    expect(mockUtterances[1].pitch).toBeGreaterThan(1.5);
+  });
+
+  it('should shift to a different voice on every sentence', () => {
+    mockSpeechSynthesis.getVoices.mockReturnValue([
+      { name: 'Microsoft David', lang: 'en-US' },
+      { name: 'Microsoft Zira', lang: 'en-US' },
+    ]);
+    randomSpy.mockReturnValue(0.99);
+
+    service.speak('Low bass. High soprano!');
+
+    expect(mockUtterances).toHaveLength(2);
+    expect(mockUtterances[0].voice.name).not.toBe(
+      mockUtterances[1].voice.name
+    );
+  });
+
+  it('should not lock a voice per conversation — shape-shifts on the next message', () => {
     mockSpeechSynthesis.getVoices.mockReturnValue([
       { name: 'Voice A', lang: 'en-US' },
       { name: 'Voice B', lang: 'en-US' },
@@ -104,14 +123,38 @@ describe('SpeechSynthesisService', () => {
     service.speak('First', { conversationId: 'conv-stable' });
     service.speak('Second', { conversationId: 'conv-stable' });
 
-    expect(mockUtterances[0].voice).toEqual({
-      name: 'Voice A',
-      lang: 'en-US',
+    expect(mockUtterances[0].voice).toEqual({ name: 'Voice A', lang: 'en-US' });
+    expect(mockUtterances[1].voice).toEqual({ name: 'Voice B', lang: 'en-US' });
+  });
+
+  it('should speak as a single stable voice when shape-shift is disabled', () => {
+    randomSpy.mockReturnValue(0);
+
+    service.speak('Stable mode. Two sentences here!', { shapeShift: false });
+
+    // Whole text collapses into ONE utterance with a single voice profile.
+    expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+    expect(mockUtterances).toHaveLength(1);
+    expect(typeof mockUtterances[0].pitch).toBe('number');
+    expect(typeof mockUtterances[0].rate).toBe('number');
+  });
+
+  it('should expose a live voice readout while speaking', () => {
+    randomSpy.mockReturnValue(0);
+
+    service.speak('Hello there.');
+
+    expect(service.liveVoice()).toBeNull();
+    mockUtterances[0].onstart();
+    expect(service.liveVoice()).toMatchObject({
+      archetype: 'Deep Bass (Male)',
+      band: 'low',
+      voiceName: 'Microsoft David',
     });
-    expect(mockUtterances[1].voice).toEqual({
-      name: 'Voice A',
-      lang: 'en-US',
-    });
+    expect(typeof service.liveVoice()?.pitch).toBe('number');
+    mockUtterances[0].onend();
+    expect(service.liveVoice()).toBeNull();
+    expect(service.isSpeaking()).toBe(false);
   });
 
   it('should continue speaking when explicit voice assignment is rejected', () => {

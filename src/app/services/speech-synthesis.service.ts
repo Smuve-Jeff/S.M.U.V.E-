@@ -26,6 +26,20 @@ interface SmuveArchetype {
 interface SpeakOptions {
   conversationId?: string;
   forceArchetype?: VoiceArchetype;
+  /** When false, the voice stays stable (single archetype, no per-sentence shifting). */
+  shapeShift?: boolean;
+}
+
+/** Pitch bands used to force constant full-spectrum change between sentences. */
+type PitchBand = 'low' | 'mid' | 'high';
+
+/** Live readout of the voice currently speaking — archetype, band, voice, pitch. */
+export interface VoiceReadout {
+  archetype: string;
+  band: PitchBand | 'stable';
+  voiceName: string;
+  pitch: number;
+  rate: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -167,44 +181,138 @@ export class SpeechSynthesisService {
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
-  private conversationVoices = new Map<string, SpeechSynthesisVoice>();
   private lastUsedVoice: SpeechSynthesisVoice | null = null;
+  private lastPitchBand: PitchBand | null = null;
   private archetypeHistory: number[] = [];
-  private modulationCount = 0;
+
+  /** Live voice readout — updated on every sentence as it begins speaking. */
+  liveVoice = signal<VoiceReadout | null>(null);
 
   constructor() {}
 
   /**
-   * Speaks text using a dynamically shifting S.M.U.V.E vocal profile.
-   * Every message can change gender, pitch, rate — from deep male bass
-   * to high female soprano — ensuring the voice NEVER sounds the same.
+   * Speaks text with per-sentence shape-shifting.
+   * EVERY sentence is spoken as its own utterance with a freshly rolled
+   * archetype, a full-spectrum pitch band (deep male bass → high female
+   * soprano) and a rotated voice — the voice NEVER stays the same.
    */
   speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis)
       return;
 
-    // Step 1: Select a dynamically changing archetype — shifts gender/pitch every call
-    this.currentArchetype = this.selectDynamicArchetype(options);
+    // Stable mode: one archetype, one voice, no per-sentence shifting.
+    if (options?.shapeShift === false) {
+      this.speakStable(text, options);
+      return;
+    }
 
-    // Step 2: Apply pronunciation rules
-    const processedText = this.applyAuthoritativePronunciation(text);
+    const sentences = this.splitSentences(text);
+    if (sentences.length === 0) return;
 
-    // Step 3: Create utterance with max modulation
     this.cancel();
-    const utterance = new SpeechSynthesisUtterance(processedText);
-    this.configureUltraWideUtterance(utterance, options);
 
-    utterance.onstart = () => this.isSpeaking.set(true);
-    utterance.onend = () => this.isSpeaking.set(false);
-    utterance.onerror = () => this.isSpeaking.set(false);
+    // Build one utterance per sentence (queued by the platform in order),
+    // each carrying its own voice meta for the live readout.
+    const utterances: {
+      utterance: SpeechSynthesisUtterance;
+      meta: VoiceReadout;
+    }[] = sentences
+      .map((sentence) => {
+        const processed = this.applyAuthoritativePronunciation(sentence);
+        const trimmed = processed.trim();
+        if (!trimmed) return null;
+        const utterance = new SpeechSynthesisUtterance(trimmed);
+        const meta = this.configureSentenceUtterance(utterance, options);
+        return { utterance, meta };
+      })
+      .filter((u): u is { utterance: SpeechSynthesisUtterance; meta: VoiceReadout } => u !== null);
 
+    utterances.forEach(({ utterance, meta }, index) => {
+      utterance.onstart = () => {
+        this.isSpeaking.set(true);
+        this.liveVoice.set(meta);
+      };
+      if (index === utterances.length - 1) {
+        utterance.onend = () => {
+          this.isSpeaking.set(false);
+          this.liveVoice.set(null);
+        };
+        utterance.onerror = () => {
+          this.isSpeaking.set(false);
+          this.liveVoice.set(null);
+        };
+      }
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+
+  /**
+   * Stable voice mode — the whole text is one utterance with a single
+   * archetype and no pitch-band sweeping (used when shape-shift is off).
+   */
+  private speakStable(text: string, options?: SpeakOptions): void {
+    this.cancel();
+    const processed = this.applyAuthoritativePronunciation(text).trim();
+    if (!processed) return;
+
+    this.currentArchetype = this.selectDynamicArchetype(options);
+    const utterance = new SpeechSynthesisUtterance(processed);
+    const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
+    const [minRate, maxRate] = this.currentArchetype.rateRange;
+    utterance.pitch = Math.max(
+      0.1,
+      Math.min(2.0, minPitch + Math.random() * (maxPitch - minPitch))
+    );
+    utterance.rate = Math.max(
+      0.1,
+      Math.min(2.0, minRate + Math.random() * (maxRate - minRate))
+    );
+    utterance.volume =
+      this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
+
+    const voice = this.pickVoiceForBand('mid');
+    if (voice) {
+      try {
+        utterance.voice = voice;
+      } catch {
+        // Ignore platform voice assignment failures.
+      }
+    }
+
+    const meta: VoiceReadout = {
+      archetype: this.currentArchetype.name,
+      band: 'stable',
+      voiceName: voice?.name ?? 'System voice',
+      pitch: utterance.pitch,
+      rate: utterance.rate,
+    };
+    utterance.onstart = () => {
+      this.isSpeaking.set(true);
+      this.liveVoice.set(meta);
+    };
+    utterance.onend = () => {
+      this.isSpeaking.set(false);
+      this.liveVoice.set(null);
+    };
+    utterance.onerror = () => {
+      this.isSpeaking.set(false);
+      this.liveVoice.set(null);
+    };
     window.speechSynthesis.speak(utterance);
-    this.modulationCount++;
+  }
+
+  /** Splits text on terminal punctuation + whitespace and newlines. */
+  private splitSentences(text: string): string[] {
+    return text
+      .split(/\n+/)
+      .flatMap((line) => line.split(/(?<=[.!?…])\s+/))
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
 
   /**
    * Selects archetype with full spectrum rotation.
-   * Cycles through male deep/female high every 2-4 calls for constant variety.
+   * Cycles through male deep / female high every 2-4 calls for constant variety.
    */
   private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
     if (options?.forceArchetype) {
@@ -261,75 +369,114 @@ export class SpeechSynthesisService {
   }
 
   /**
-   * Configures utterance with WIDE SPECTRUM modulation.
-   * Randomly shifts pitch and rate within the archetype's range,
-   * creating a unique voice nearly every call.
+   * Configures a single sentence's utterance with SHAPE-SHIFTING:
+   *  - fresh archetype roll
+   *  - pitch band biased AWAY from the previous band (deep bass ↔ soprano)
+   *  - voice rotated by band/gender so consecutive sentences differ
    */
-  private configureUltraWideUtterance(
+  private configureSentenceUtterance(
     utterance: SpeechSynthesisUtterance,
     options?: SpeakOptions
-  ) {
-    if (!this.currentArchetype) return;
-
-    const voices = window.speechSynthesis.getVoices();
-    const conversationId = options?.conversationId;
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-
-    // Voice selection with full gender spectrum support
-    if (conversationId && this.conversationVoices.has(conversationId)) {
-      selectedVoice = this.conversationVoices.get(conversationId)!;
+  ): VoiceReadout {
+    this.currentArchetype = this.selectDynamicArchetype(options);
+    if (!this.currentArchetype) {
+      return {
+        archetype: 'Unknown',
+        band: 'mid',
+        voiceName: 'System voice',
+        pitch: 1,
+        rate: 1,
+      };
     }
 
-    if (!selectedVoice) {
-      const englishVoices = voices.filter((v) =>
-        v.lang?.toLowerCase().startsWith('en')
-      );
-      const preferred = this.findVoiceByGender(
-        englishVoices,
-        this.currentArchetype.gender
-      );
-      if (preferred) {
-        selectedVoice = preferred;
-      } else if (englishVoices.length > 0) {
-        // Rotate through available voices
-        const index = this.conversationVoices.size % englishVoices.length;
-        selectedVoice = englishVoices[index];
-      }
-    }
-
-    if (selectedVoice) {
-      this.lastUsedVoice = selectedVoice;
-      if (conversationId && !this.conversationVoices.has(conversationId)) {
-        this.conversationVoices.set(conversationId, selectedVoice);
-      }
-      try {
-        utterance.voice = selectedVoice;
-      } catch {}
-    }
-
-    // WIDE SPECTRUM modulation: full range jitter within archetype bounds
-    const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
     const [minRate, maxRate] = this.currentArchetype.rateRange;
 
-    // Every 3-5 calls, jump to opposite end of the spectrum for maximum variety
-    const jumpMod = this.modulationCount % 4 === 0 ? 1 : 0;
-    const pitchJump = jumpMod === 1 ? (Math.random() > 0.5 ? 0.15 : -0.15) : 0;
+    // 1) Full-spectrum pitch band — avoid repeating the previous band.
+    const band = this.nextPitchBand();
+    if (band === 'low') {
+      // Deep male bass territory
+      utterance.pitch = 0.15 + Math.random() * 0.3;
+    } else if (band === 'high') {
+      // High female soprano territory
+      utterance.pitch = 1.45 + Math.random() * 0.55;
+    } else {
+      const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
+      utterance.pitch = minPitch + Math.random() * (maxPitch - minPitch);
+    }
+    utterance.pitch = Math.max(0.1, Math.min(2.0, utterance.pitch));
 
-    utterance.pitch = Math.max(
-      0.1,
-      Math.min(
-        2.0,
-        minPitch + Math.random() * (maxPitch - minPitch) + pitchJump
-      )
-    );
-
+    // 2) Rate + volume jitter within the archetype.
     utterance.rate = Math.max(
       0.1,
       Math.min(2.0, minRate + Math.random() * (maxRate - minRate))
     );
-
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
+
+    // 3) Voice rotation matched to the band's gender.
+    const voice = this.pickVoiceForBand(band);
+    if (voice) {
+      try {
+        utterance.voice = voice;
+      } catch {
+        // Voice assignment can throw on some platforms — keep speaking.
+      }
+    }
+
+    return {
+      archetype: this.currentArchetype.name,
+      band,
+      voiceName: voice?.name ?? 'System voice',
+      pitch: utterance.pitch,
+      rate: utterance.rate,
+    };
+  }
+
+  /** Picks low / mid / high, heavily biased away from the previous band. */
+  private nextPitchBand(): PitchBand {
+    const bands: PitchBand[] = ['low', 'mid', 'high'];
+    if (this.lastPitchBand && Math.random() < 0.7) {
+      const others = bands.filter((b) => b !== this.lastPitchBand);
+      this.lastPitchBand = others[Math.floor(Math.random() * others.length)];
+    } else {
+      this.lastPitchBand = bands[Math.floor(Math.random() * bands.length)];
+    }
+    return this.lastPitchBand;
+  }
+
+  /** Rotates voices by band/gender, avoiding the previously used voice. */
+  private pickVoiceForBand(band: PitchBand): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    const english = voices.filter((v) =>
+      v.lang?.toLowerCase().startsWith('en')
+    );
+    const pool = english.length > 0 ? english : voices;
+    if (pool.length === 0) return null;
+
+    const gender =
+      band === 'low'
+        ? 'male'
+        : band === 'high'
+          ? 'female'
+          : Math.random() > 0.5
+            ? 'male'
+            : 'female';
+
+    let preferred = this.findVoiceByGender(pool, gender);
+
+    if (!preferred) {
+      // Rotate to avoid the same voice twice in a row.
+      const candidates = pool.filter((v) => v !== this.lastUsedVoice);
+      preferred =
+        candidates.length > 0
+          ? candidates[Math.floor(Math.random() * candidates.length)]
+          : pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    if (preferred && preferred !== this.lastUsedVoice) {
+      this.lastUsedVoice = preferred;
+    }
+    return preferred;
   }
 
   private findVoiceByGender(
@@ -337,28 +484,30 @@ export class SpeechSynthesisService {
     gender: string
   ): SpeechSynthesisVoice | null {
     if (gender === 'male') {
-      return (
-        voices.find(
-          (v) =>
-            v.name.toLowerCase().includes('male') ||
-            v.name.toLowerCase().includes('guy') ||
-            v.name.toLowerCase().includes('david') ||
-            v.name.toLowerCase().includes('james') ||
-            v.name.toLowerCase().includes('daniel')
-        ) || null
+      const matches = voices.filter(
+        (v) =>
+          v.name.toLowerCase().includes('male') ||
+          v.name.toLowerCase().includes('guy') ||
+          v.name.toLowerCase().includes('david') ||
+          v.name.toLowerCase().includes('james') ||
+          v.name.toLowerCase().includes('daniel')
       );
+      return matches.length
+        ? matches[Math.floor(Math.random() * matches.length)]
+        : null;
     }
     if (gender === 'female') {
-      return (
-        voices.find(
-          (v) =>
-            v.name.toLowerCase().includes('female') ||
-            v.name.toLowerCase().includes('girl') ||
-            v.name.toLowerCase().includes('woman') ||
-            v.name.toLowerCase().includes('samantha') ||
-            v.name.toLowerCase().includes('zoe')
-        ) || null
+      const matches = voices.filter(
+        (v) =>
+          v.name.toLowerCase().includes('female') ||
+          v.name.toLowerCase().includes('girl') ||
+          v.name.toLowerCase().includes('woman') ||
+          v.name.toLowerCase().includes('samantha') ||
+          v.name.toLowerCase().includes('zoe')
       );
+      return matches.length
+        ? matches[Math.floor(Math.random() * matches.length)]
+        : null;
     }
     return null;
   }
