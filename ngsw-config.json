@@ -50,16 +50,6 @@
         "strategy": "freshness"
       }
     },
-    {
-      "name": "external-api",
-      "urls": ["https://s-m-u-v-e-2-0-fixed.onrender.com/api/**"],
-      "cacheConfig": {
-        "maxSize": 50,
-        "maxAge": "1d",
-        "timeout": "3s",
-        "strategy": "performance"
-      }
-    }
   ],
   "navigationUrls": ["/**", "!/**/*.*", "!/**/*__*", "!/**/*__*/**"],
   "navigationRequestStrategy": "performance"

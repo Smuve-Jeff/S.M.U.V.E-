@@ -868,102 +868,57 @@
             <div class="toggle-handle"></div>
           </button>
         </div>
-      </div>
-      <div class="setting-item">
-        <div>
-          <h3 class="setting-title">V8.2 PERSONA INTENSITY</h3>
-          <p class="text-xs text-text-dim">
-            ENABLE MAXIMUM ARROGANCE AND STRATEGIC INSULTS.
-          </p>
-        </div>
-        <div class="setting-group mt-6">
-          <label class="setting-label">Intelligence Conversational Tier</label>
-          <div class="grid grid-cols-3 gap-3 mt-2">
-            <button
-              *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
-              (click)="updateSetting('ai', 'aiConversationalTier', t)"
-              [class.persona-active]="settings().ai.aiConversationalTier === t"
-              class="persona-btn"
-            >
-              {{ t }}
-            </button>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Voice Shape-Shift</h3>
+            <p class="text-xs text-text-dim">
+              Spoken replies switch voice per sentence — from deep bass to high
+              soprano — every sentence a different speaker. Turn off for a
+              single stable voice.
+            </p>
           </div>
+          <button
+            (click)="
+              updateSetting(
+                'ai',
+                'aiVoiceShapeShiftEnabled',
+                !settings().ai.aiVoiceShapeShiftEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.aiVoiceShapeShiftEnabled"
+            [attr.aria-label]="
+              'Voice shape-shift ' +
+              (settings().ai.aiVoiceShapeShiftEnabled ? 'enabled' : 'disabled')
+            "
+          >
+            <div class="toggle-handle"></div>
+          </button>
         </div>
-        <button
-          (click)="
-            updateSetting(
-              'ai',
-              'aiPersonaIntensityEnabled',
-              !settings().ai.aiPersonaIntensityEnabled
-            )
-          "
-          class="toggle-btn"
-          [class.on]="settings().ai.aiPersonaIntensityEnabled"
-        >
-          <div class="toggle-handle"></div>
-        </button>
-      </div>
-    </div>
 
-    <div class="setting-item">
-      <div>
-        <h3 class="setting-title">V8.2 PERSONA INTENSITY</h3>
-        <p class="text-xs text-text-dim">
-          ENABLE MAXIMUM ARROGANCE AND STRATEGIC INSULTS.
-        </p>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Active Executive Audit</h3>
+            <p class="text-xs text-text-dim">
+              Background analysis during creative sessions.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'ai',
+                'autoAuditEnabled',
+                !settings().ai.autoAuditEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.autoAuditEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        (click)="
-          updateSetting(
-            'ai',
-            'aiPersonaIntensityEnabled',
-            !settings().ai.aiPersonaIntensityEnabled
-          )
-        "
-        class="toggle-btn"
-        [class.on]="settings().ai.aiPersonaIntensityEnabled"
-      >
-        <div class="toggle-handle"></div>
-      </button>
-    </div>
-
-    <div class="setting-group">
-      <label class="setting-label">Intelligence Conversational Tier</label>
-      <div class="grid grid-cols-3 gap-3 mt-2">
-        <button
-          type="button"
-          *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
-          (click)="updateSetting('ai', 'aiConversationalTier', t)"
-          [class.persona-active]="settings().ai.aiConversationalTier === t"
-          class="persona-btn"
-        >
-          {{ t }}
-        </button>
-      </div>
-    </div>
-    <div class="setting-item">
-      <div>
-        <h3 class="setting-title">Active Executive Audit</h3>
-        <p class="text-xs text-text-dim">
-          Background analysis during creative sessions.
-        </p>
-      </div>
-      <button
-        (click)="
-          updateSetting(
-            'ai',
-            'autoAuditEnabled',
-            !settings().ai.autoAuditEnabled
-          )
-        "
-        class="toggle-btn"
-        [class.on]="settings().ai.autoAuditEnabled"
-      >
-        <div class="toggle-handle"></div>
-      </button>
-    </div>
-  </div>
 
   <!-- Studio Preferences -->
   <!-- Studio Pro Section -->

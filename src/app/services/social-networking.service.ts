@@ -61,6 +61,18 @@ export interface StreamTelemetry {
   bitrate: string;
 }
 
+export type StreamQuality = '480p' | '720p' | '1080p';
+
+/** Resolution + bitrate targets per quality tier. */
+export const STREAM_QUALITY_PRESETS: Record<
+  StreamQuality,
+  { width: number; height: number; bitrate: number }
+> = {
+  '480p': { width: 854, height: 480, bitrate: 2500 },
+  '720p': { width: 1280, height: 720, bitrate: 4500 },
+  '1080p': { width: 1920, height: 1080, bitrate: 6000 },
+};
+
 @Injectable({ providedIn: 'root' })
 export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
@@ -93,6 +105,13 @@ export class SocialNetworkingService {
     bitrate: '0 kbps',
   });
   simulatedLiveChat = signal<RoomMessage[]>([]);
+
+  // ── Real media capture (getUserMedia) + quality tiers ──
+  localStream = signal<MediaStream | null>(null);
+  streamQuality = signal<StreamQuality>('720p');
+  cameraEnabled = signal(true);
+  micEnabled = signal(true);
+  streamError = signal<string | null>(null);
 
   neuralSyncStatus = signal<'idle' | 'syncing' | 'synced'>('idle');
   lastSyncedData = signal<any>(null);
@@ -509,11 +528,49 @@ export class SocialNetworkingService {
       { once: true }
     );
   }
-  startStream(platform: string) {
+  /**
+   * Start a live stream: acquires real camera + mic via getUserMedia,
+   * reports telemetry at the selected quality tier, and simulates an
+   * audience chat feed (no ingest server is configured client-side).
+   */
+  async startStream(platform: string): Promise<void> {
+    this.streamError.set(null);
+    if (!this.localStream()) {
+      try {
+        const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: preset.width },
+            height: { ideal: preset.height },
+            facingMode: 'user',
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+          },
+        });
+        this.localStream.set(stream);
+      } catch (err: any) {
+        this.streamError.set(
+          err?.name === 'NotAllowedError'
+            ? 'CAMERA_OR_MIC_DENIED — CHECK BROWSER PERMISSIONS'
+            : 'MEDIA_CAPTURE_UNAVAILABLE — USING SIMULATION ONLY'
+        );
+      }
+    }
+
     this.isStreaming.set(true);
     this.currentPlatform.set(platform);
     this.simulatedLiveChat.set([]);
+    const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
+    this.streamTelemetry.set({
+      viewers: Math.floor(this.getSecureRandom() * 24),
+      health: 'Good',
+      platform,
+      bitrate: `${preset.bitrate} kbps`,
+    });
 
+    if (this.streamInterval) clearInterval(this.streamInterval);
     this.streamInterval = setInterval(() => {
       this.updateStreamTelemetry(platform);
       if (this.getSecureRandom() > 0.6) {
@@ -522,18 +579,65 @@ export class SocialNetworkingService {
     }, 3000);
   }
 
+  /** Stop the stream and release camera/mic. */
   stopStream() {
     this.isStreaming.set(false);
     this.currentPlatform.set(null);
     if (this.streamInterval) clearInterval(this.streamInterval);
+    this.streamInterval = undefined;
+    this.localStream()?.getTracks().forEach((t) => t.stop());
+    this.localStream.set(null);
+    this.cameraEnabled.set(true);
+    this.micEnabled.set(true);
+  }
+
+  /** Switch quality tier live — re-negotiates the video track. */
+  async setStreamQuality(q: StreamQuality): Promise<void> {
+    this.streamQuality.set(q);
+    const stream = this.localStream();
+    if (!stream) return;
+    const preset = STREAM_QUALITY_PRESETS[q];
+    try {
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        await track.applyConstraints({
+          width: { ideal: preset.width },
+          height: { ideal: preset.height },
+        });
+      }
+      this.streamTelemetry.update((t) => ({
+        ...t,
+        bitrate: `${preset.bitrate} kbps`,
+      }));
+    } catch {
+      /* constraints not supported — keep current */
+    }
+  }
+
+  /** Toggle the camera track on the live stream. */
+  toggleCamera() {
+    const next = !this.cameraEnabled();
+    this.cameraEnabled.set(next);
+    this.localStream()?.getVideoTracks().forEach((t) => (t.enabled = next));
+  }
+
+  /** Toggle the microphone track on the live stream. */
+  toggleMic() {
+    const next = !this.micEnabled();
+    this.micEnabled.set(next);
+    this.localStream()?.getAudioTracks().forEach((t) => (t.enabled = next));
   }
 
   private updateStreamTelemetry(platform: string) {
+    const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
     this.streamTelemetry.update((t) => ({
       ...t,
       platform,
-      viewers: t.viewers + Math.floor(this.getSecureRandom() * 5),
-      bitrate: `${5500 + Math.floor(this.getSecureRandom() * 500)} kbps`,
+      viewers: Math.max(0, t.viewers + Math.floor(this.getSecureRandom() * 5)),
+      bitrate: `${Math.max(
+        500,
+        preset.bitrate + Math.floor(this.getSecureRandom() * 400) - 200
+      )} kbps`,
       health: this.getSecureRandom() > 0.9 ? 'Fair' : 'Good',
     }));
   }

@@ -2110,6 +2110,29 @@
         <div class="stream-view" *ngIf="activeHubTab() === 'stream'">
           <div class="stream-controls" *ngIf="!socialService.isStreaming()">
             <h4>PRE-STREAM CONFIG</h4>
+            <div class="stream-quality-row">
+              <button
+                class="quality-btn"
+                [class.active]="socialService.streamQuality() === '480p'"
+                (click)="socialService.setStreamQuality('480p')"
+              >
+                SMOOTH 480p
+              </button>
+              <button
+                class="quality-btn"
+                [class.active]="socialService.streamQuality() === '720p'"
+                (click)="socialService.setStreamQuality('720p')"
+              >
+                HD 720p
+              </button>
+              <button
+                class="quality-btn"
+                [class.active]="socialService.streamQuality() === '1080p'"
+                (click)="socialService.setStreamQuality('1080p')"
+              >
+                FULL 1080p
+              </button>
+            </div>
             <div class="platform-grid">
               <button
                 class="platform-btn twitch"
@@ -2168,6 +2191,35 @@
                 STOP
               </button>
             </div>
+            <div class="stream-av-controls">
+              <button
+                class="av-btn"
+                (click)="socialService.toggleCamera()"
+                title="Toggle camera"
+              >
+                <span class="material-symbols-outlined">videocam</span>
+                CAMERA
+              </button>
+              <button
+                class="av-btn"
+                (click)="socialService.toggleMicrophone()"
+                title="Toggle microphone"
+              >
+                <span class="material-symbols-outlined">mic</span>
+                MIC
+              </button>
+              <span class="quality-readout">{{
+                socialService.streamQuality() | uppercase
+              }}</span>
+            </div>
+            <video
+              *ngIf="socialService.localStream()"
+              class="stream-local-preview"
+              [srcObject]="socialService.localStream()"
+              autoplay
+              muted
+              playsinline
+            ></video>
             <div class="telemetry-grid">
               <div class="telemetry-item">
                 <label>VIEWERS</label>

@@ -23,11 +23,7 @@ private injector = inject(Injector);
 private get peerService() { return this.injector.get(PeerNetworkingService); }
 ```
 
-### 4. Render Deployment Optimization
-
-Ensure `npm install --legacy-peer-deps` is used in the build command on Render to handle legacy dependency conflicts common in Angular 18+ upgrades.
-
-### 5. Social Feature Integration
+### 4. Social Feature Integration
 
 The Socket.io backend should be configured with permissive CORS for the frontend origin and implement handlers for:
 

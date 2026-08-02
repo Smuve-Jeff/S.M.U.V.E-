@@ -460,6 +460,85 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           display: none;
         }
       }
+
+      /* ── Stream quality tiers + AV toggles (upgrade) ── */
+      .stream-quality-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+      }
+      .quality-btn {
+        flex: 1 1 auto;
+        min-height: 34px;
+        padding: 0.35rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        background: rgba(0, 229, 255, 0.06);
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .quality-btn:hover {
+        border-color: rgba(0, 229, 255, 0.5);
+        background: rgba(0, 229, 255, 0.12);
+        color: #fff;
+      }
+      .quality-btn.active {
+        border-color: #00e5ff;
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(139, 92, 246, 0.4));
+        color: #fff;
+        box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
+      }
+      .stream-av-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+      }
+      .av-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 34px;
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        background: rgba(16, 185, 129, 0.08);
+        color: #10b981;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .av-btn:hover {
+        background: rgba(16, 185, 129, 0.18);
+        border-color: rgba(16, 185, 129, 0.6);
+      }
+      .av-btn .material-symbols-outlined {
+        font-size: 0.85rem;
+      }
+      .quality-readout {
+        margin-left: auto;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: rgba(0, 229, 255, 0.85);
+        text-transform: uppercase;
+      }
+      .stream-local-preview {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 229, 255, 0.3);
+        margin-bottom: 0.5rem;
+        background: #000;
+      }
     `,
   ],
 })

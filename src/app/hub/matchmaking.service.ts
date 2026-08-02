@@ -7,6 +7,7 @@ import { NotificationService } from '../services/notification.service';
 import { HapticService } from '../services/haptic.service';
 import { TokenService } from '../services/token.service';
 import { Game } from './game';
+import { APP_SECURITY_CONFIG } from '../app.security';
 
 // ── Matchmaking Types (same shape as server-side payloads) ──
 
@@ -119,7 +120,15 @@ export interface PlayerChallenge {
   expiresAt: number;
 }
 
-const SERVER_URL = 'https://smuve-v4-backend-9951606049235487441.onrender.com';
+/**
+ * Matchmaking talks to the SAME backend as SocialNetworkingService.
+ * Previously this was a hardcoded, stale Render URL — a split-brain that
+ * made lobbies/presence/challenges live on a different server than chat.
+ */
+const SERVER_URL = (() => {
+  if (typeof window === 'undefined') return 'https://smuvejeffpresents.com';
+  return APP_SECURITY_CONFIG.api_url.replace(/\/api\/?$/, '');
+})();
 
 function serverToClientChallenge(sc: ServerChallenge): PlayerChallenge {
   return {
@@ -248,9 +257,17 @@ export class MatchmakingService implements OnDestroy {
     this.socket.on('connect', () => {
       console.log('[Matchmaking] Socket.io connected:', this.socket?.id);
       this.connected.set(true);
-      // Register presence + request inbox sync
+      // Register presence + request inbox sync.
+      // Same payload contract as SocialNetworkingService.register_presence
+      // (userId + metadata) so the backend indexes us on the same socket.
       this.socket?.emit('register_presence', {
-        metadata: { artistName: this.playerName(), status: 'online' },
+        userId: this.playerId(),
+        metadata: {
+          artistName: this.playerName(),
+          primaryGenre: this.profile.profile().primaryGenre,
+          avatarImage: this.profile.profile().avatarImage,
+          status: 'online',
+        },
       });
       this.socket?.emit('request_inbox_sync');
     });

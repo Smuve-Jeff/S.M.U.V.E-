@@ -117,7 +117,6 @@ app.use(
   cors({
     origin: [
       FRONTEND_ORIGIN,
-      'https://s-m-u-v-e-2-0.onrender.com',
       'http://localhost:4200',
     ],
     credentials: true,
@@ -385,7 +384,6 @@ const setupSocketIO = (server) => {
     cors: {
       origin: [
         FRONTEND_ORIGIN,
-        'https://s-m-u-v-e-2-0.onrender.com',
         'http://localhost:4200',
       ],
       methods: ['GET', 'POST'],
@@ -2275,7 +2273,7 @@ PLATFORMS.forEach((platform) => {
       process.env[platform.toUpperCase() + '_CLIENT_ID'] || 'MOCK_CLIENT_ID';
     const redirectUri =
       process.env[platform.toUpperCase() + '_REDIRECT_URI'] ||
-      'https://smuve-v4-backend-9951606049235487441.onrender.com/api/auth/' +
+      'https://smuvejeffpresents.com/api/auth/' +
         platform +
         '/callback';
 
