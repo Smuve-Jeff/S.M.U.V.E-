@@ -11,8 +11,32 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.spec.ts"]
+  "include": ["src/app", "src/main.ts", "src/polyfills.ts", "src/test.ts", "src/styles.css"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    // Server-side Express migration. Lives in src/app.ts + src/routes/** +
+    // src/services/**/*.ts (root-level, behind the frontend's src/app/services)
+    // + src/socket/** + src/database/** + src/entities/** + src/middleware/** +
+    // src/lib/** + src/types/** + src/config/**. TypeScript here uses `@/*`
+    // aliases which are configured in tsconfig.server.json. We exclude these
+    // from the frontend tsc / ng build walk so the Angular PWA build is not
+    // blocked by typeorm / express / socket.io, which only belong on the
+    // Node server. Run `tsc -p tsconfig.server.json` to compile the backend.
+    "src/app.ts",
+    "src/routes/**",
+    "src/services/**/*.ts",
+    "src/socket/**",
+    "src/database/**",
+    "src/entities/**",
+    "src/middleware/**",
+    "src/lib/**",
+    "src/types/**",
+    "src/config/**"
+  ]
 }

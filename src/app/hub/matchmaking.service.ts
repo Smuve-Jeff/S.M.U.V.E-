@@ -862,7 +862,7 @@ export class MatchmakingService implements OnDestroy {
     return lobby;
   }
 
-  joinLobbylobbyId: string): CoOpLobby | null {
+  joinLobby(lobbyId: string): CoOpLobby | null {
     this.haptic.light();
     if (!this.socket?.connected) {
       this.notify.show('Connection lost', 'warning');

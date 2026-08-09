@@ -48,15 +48,17 @@
 
   <section class="split-body">
     <div class="split-iframe-shell">
-      <iframe
-        *ngIf="game() as g && trustedIframeUrl() as trustedUrl"
-        [src]="trustedUrl"
-        [attr.sandbox]="iframeSandbox()"
-        [attr.allow]="iframeAllow()"
-        title="{{ g.name }} split-screen"
-        loading="lazy"
-        allowfullscreen
-      ></iframe>
+      <ng-container *ngIf="game() as g">
+        <iframe
+          *ngIf="trustedIframeUrl() as trustedUrl"
+          [src]="trustedUrl"
+          [attr.sandbox]="iframeSandbox()"
+          [attr.allow]="iframeAllow()"
+          title="{{ g.name }} split-screen"
+          loading="lazy"
+          allowfullscreen
+        ></iframe>
+      </ng-container>
       <div *ngIf="!game()" class="split-empty">
         <span class="material-symbols-outlined">sports_esports</span>
         <h3>NO CABINET LOADED</h3>
