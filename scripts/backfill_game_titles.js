@@ -1,50 +1,103 @@
 #!/usr/bin/env node
 /**
- * scripts/backfill_game_titles.js
- * Backfill the game_title column in game_challenges and notifications using
- * the local tha-spot feed. Requires PG connection environment variables.
+ * Backfill human-friendly game titles in game_challenges and notifications.
  *
  * Usage:
  *   NODE_ENV=production node scripts/backfill_game_titles.js
+ *
+ * The script reads DATABASE_URL from the environment. It never writes or
+ * prints credentials, and it only fills rows whose game_title is empty.
  */
-const fs = require('fs');
-const path = require('path');
-const { Client } = require('pg');
+import fs from 'node:fs';
+import path from 'node:path';
+import pg from 'pg';
 
-(async function main() {
-  try {
-    const feedPath = path.join(__dirname, '..', 'src', 'assets', 'data', 'tha-spot-feed.json');
-    const feedRaw = fs.readFileSync(feedPath, 'utf8');
-    const feed = JSON.parse(feedRaw);
-    const map = new Map();
-    (feed.games || []).forEach(g => map.set(String(g.id), g.name));
+const { Client } = pg;
 
-    const client = new Client();
-    await client.connect();
+const feedPath = path.join(
+  process.cwd(),
+  'src',
+  'assets',
+  'data',
+  'tha-spot-feed.json'
+);
 
-    // Backfill challenges
-    const res = await client.query(`SELECT id, game_id FROM game_challenges WHERE game_title IS NULL OR game_title = '';`);
-    for (const row of res.rows) {
-      const title = map.get(String(row.game_id)) || null;
-      if (title) {
-        await client.query(`UPDATE game_challenges SET game_title = $1 WHERE id = $2`, [title, row.id]);
-        console.log(`Updated challenge ${row.id} -> ${title}`);
-      }
-    }
+const feed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
+const gameTitles = new Map(
+  (feed.games || []).map((game) => [String(game.id), game.name])
+);
 
-    const res2 = await client.query(`SELECT id, payload, game_id FROM notifications WHERE game_title IS NULL OR game_title = '';`);
-    for (const row of res2.rows) {
-      const title = map.get(String(row.game_id)) || null;
-      if (title) {
-        await client.query(`UPDATE notifications SET game_title = $1 WHERE id = $2`, [title, row.id]);
-        console.log(`Updated notification ${row.id} -> ${title}`);
-      }
-    }
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? { rejectUnauthorized: false }
+      : false,
+});
 
-    await client.end();
-    console.log('Backfill complete.');
-  } catch (err) {
-    console.error('Backfill failed:', err);
-    process.exit(1);
+let transactionStarted = false;
+
+try {
+  await client.connect();
+  await client.query('BEGIN');
+  transactionStarted = true;
+
+  const challengeResult = await client.query(`
+    SELECT id, game_id
+    FROM game_challenges
+    WHERE game_title IS NULL OR game_title = ''
+    FOR UPDATE;
+  `);
+
+  let challengesUpdated = 0;
+  for (const row of challengeResult.rows) {
+    const title = gameTitles.get(String(row.game_id));
+    if (!title) continue;
+
+    const result = await client.query(
+      `UPDATE game_challenges
+       SET game_title = $1
+       WHERE id = $2 AND (game_title IS NULL OR game_title = '')`,
+      [title, row.id]
+    );
+    challengesUpdated += result.rowCount || 0;
   }
-})();
+
+  // Notifications store challenge game IDs in payload.gameId (JSONB), not
+  // in a top-level game_id column.
+  const notificationResult = await client.query(`
+    SELECT id, payload->>'gameId' AS game_id
+    FROM notifications
+    WHERE (game_title IS NULL OR game_title = '')
+      AND payload->>'gameId' IS NOT NULL
+    FOR UPDATE;
+  `);
+
+  let notificationsUpdated = 0;
+  for (const row of notificationResult.rows) {
+    const title = gameTitles.get(String(row.game_id));
+    if (!title) continue;
+
+    const result = await client.query(
+      `UPDATE notifications
+       SET game_title = $1
+       WHERE id = $2 AND (game_title IS NULL OR game_title = '')`,
+      [title, row.id]
+    );
+    notificationsUpdated += result.rowCount || 0;
+  }
+
+  await client.query('COMMIT');
+  transactionStarted = false;
+  console.log(
+    `Backfill complete. Challenges updated: ${challengesUpdated}; notifications updated: ${notificationsUpdated}.`
+  );
+} catch (error) {
+  if (transactionStarted) {
+    await client.query('ROLLBACK').catch(() => undefined);
+  }
+  console.error('Backfill failed:', error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+} finally {
+  await client.end().catch(() => undefined);
+}
