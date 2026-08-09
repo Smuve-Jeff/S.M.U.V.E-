@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "isolatedModules": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": ["node", "jest"]
+  },
+  "include": [
+    "src/app.ts",
+    "src/types/**/*",
+    "src/lib/**/*",
+    "src/config/**/*",
+    "src/middleware/**/*",
+    "src/database/**/*",
+    "src/entities/**/*",
+    "src/services/**/*",
+    "src/routes/**/*",
+    "src/socket/**/*"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/app/**/*",
+    "src/main.ts",
+    "src/polyfills.ts",
+    "src/test.ts",
+    "src/styles.css",
+    "src/index.html",
+    "src/manifest.webmanifest"
+  ]
+}
