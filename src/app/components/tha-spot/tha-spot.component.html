@@ -325,6 +325,23 @@
         <span class="status-indicator live"></span>
         <span class="status-text">NEURAL_UPLINK_ACTIVE</span>
       </div>
+      <!-- Live socket.io connection indicator (social uplink) -->
+      <div
+        class="socket-status-badge"
+        [class.is-live]="socialService.socketConnected()"
+        role="status"
+        aria-live="polite"
+        [attr.title]="
+          socialService.socketConnected()
+            ? 'SOCIAL UPLINK ACTIVE'
+            : 'SOCIAL UPLINK OFFLINE'
+        "
+      >
+        <span class="status-indicator"></span>
+        <span class="status-text">{{
+          socialService.socketConnected() ? 'UPLINK_ACTIVE' : 'UPLINK_OFFLINE'
+        }}</span>
+      </div>
     </div>
 
     <div class="header-center hide-mobile">
@@ -345,6 +362,7 @@
       <button
         type="button"
         class="header-btn gamepad-indicator"
+        aria-label="Controller status"
         [class.connected]="gamepadService.connectedGamepad() !== null"
         title="{{
           gamepadService.connectedGamepad()
@@ -363,14 +381,15 @@
         class="header-btn"
         (click)="copyShareLink()"
         title="Share Mission Link"
+        aria-label="Share mission link"
       >
         <span class="material-symbols-outlined">share</span>
       </button>
-      <div class="room-selector" style="display: flex; gap: 0.25rem">
-        <button
+      <div class="room-selector" style="display: flex; gap: 0.25rem">          <button
           type="button"
           class="header-btn"
           (click)="toggleIntel()"
+          aria-label="Open strategic intel"
           [class.has-alert]="true"
         >
           <span class="material-symbols-outlined">analytics</span>
@@ -379,6 +398,7 @@
           type="button"
           class="header-btn"
           (click)="toggleRivalHub()"
+          aria-label="Open rival hub"
           [class.has-alert]="socialService.roomMessages().length > 0"
         >
           <span class="material-symbols-outlined">groups</span>
@@ -627,6 +647,86 @@
                 {{ matchmaking.activeLobbies().length }} open lobbies — join a
                 squad and play together
               </div>
+            </div>
+          </div>
+          <!-- Share-with-friends actions for the most recent multiplayer card -->
+          <div
+            class="share-row"
+            *ngIf="selectedGame() as previewGame"
+            role="region"
+            aria-label="Share this game"
+          >
+            <span class="share-row-label">SHARE WITH FRIENDS</span>
+            <div class="share-row-actions">
+              <button
+                type="button"
+                class="share-row-btn"
+                (click)="shareSelectedGame('online')"
+                title="Share for online play"
+              >
+                <span class="material-symbols-outlined">sports_esports</span>
+                ONLINE
+              </button>
+              <button
+                type="button"
+                class="share-row-btn"
+                (click)="shareSelectedGame('co-op')"
+                title="Share for co-op play"
+                *ngIf="
+                  previewGame.multiplayerType &&
+                  previewGame.multiplayerType !== 'None'
+                "
+              >
+                <span class="material-symbols-outlined">groups</span>
+                CO-OP
+              </button>
+              <button
+                type="button"
+                class="share-row-btn"
+                (click)="shareSelectedGame('challenge')"
+                title="Issue a direct challenge"
+              >
+                <span class="material-symbols-outlined">swords</span>
+                CHALLENGE
+              </button>
+              <button
+                type="button"
+                class="share-row-btn accent"
+                (click)="enterSplitScreen()"
+                title="Open online synced split-screen"
+                *ngIf="
+                  previewGame.multiplayerType &&
+                  previewGame.multiplayerType !== 'None'
+                "
+              >
+                <span class="material-symbols-outlined">splitscreen_right</span>
+                SPLIT-SCREEN
+              </button>
+              <!-- GO LIVE / STOP LIVE CTA — Twitch, Kick, YouTube backed.
+                   The button toggles between Go-Live and Stop-Live so a
+                   single tap handles the full lifecycle. -->
+              <button
+                type="button"
+                class="go-live-btn"
+                [class.active]="!!liveStream.currentStream()"
+                (click)="onGoLiveClick($event)"
+                [title]="
+                  liveStream.currentStream()
+                    ? 'STOP LIVE STREAM ON ' +
+                      (liveStream.currentStream()?.platform | uppercase)
+                    : 'GO LIVE ON TWITCH / KICK / YOUTUBE'
+                "
+                aria-label="Go live"
+              >
+                <span class="material-symbols-outlined">{{
+                  liveStream.currentStream() ? 'stop_circle' : 'podcasts'
+                }}</span>
+                {{
+                  liveStream.currentStream()
+                    ? 'STOP LIVE'
+                    : 'GO LIVE'
+                }}
+              </button>
             </div>
           </div>
           <div class="live-lobbies-strip no-scrollbar">
@@ -930,6 +1030,288 @@
   </aside>
 
   <!-- Rival Hub Sidebar -->
+  <!-- ════════════ SPLIT-SCREEN MODE PANEL ════════════ -->
+  <section
+    class="split-screen-overlay"
+    *ngIf="splitScreenModeActive() && selectedGame() as spGame"
+    role="dialog"
+    aria-label="Split-screen co-op session"
+  >
+    <button
+      type="button"
+      class="split-screen-close"
+      (click)="exitSplitScreen()"
+      aria-label="Close split-screen"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <app-split-screen-panel
+      [game]="spGame"
+      [mode]="'split-screen'"
+    ></app-split-screen-panel>
+  </section>
+
+  <!-- ════════════ INBOUND INVITE MODAL ════════════ -->
+  <div
+    *ngIf="inboundInvite() as inv"
+    class="inbound-invite-modal"
+    role="dialog"
+    aria-label="Open invite"
+  >
+    <div class="inbound-invite-backdrop" (click)="declineInboundInvite()"></div>
+    <div class="inbound-invite-card glass-v42">
+      <header class="inbound-invite-header">
+        <span class="material-symbols-outlined">forward_to_inbox</span>
+        <h3>JOIN INVITE</h3>
+      </header>
+      <div class="inbound-invite-body">
+        <p class="inbound-invite-game">
+          {{ (selectedGame()?.name || inv.gameId) | uppercase }}
+        </p>
+        <p class="inbound-invite-mode">
+          MODE: <strong>{{ inv.mode | uppercase }}</strong>
+        </p>
+        <p
+          class="inbound-invite-from"
+          *ngIf="inv.fromUserId"
+        >
+          FROM: USER_{{ inv.fromUserId | slice: 0 : 6 | uppercase }}
+        </p>
+        <p class="inbound-invite-help">
+          You can review the game cabinet before joining.
+          {{ inv.mode === 'split-screen' ? 'Your friend will join automatically when they open this URL on their device.' : '' }}
+        </p>
+      </div>
+      <div class="inbound-invite-actions">
+        <button
+          type="button"
+          class="action-btn primary"
+          (click)="acceptInboundInvite()"
+        >
+          ACCEPT &amp; JOIN
+        </button>
+        <button
+          type="button"
+          class="action-btn danger"
+          (click)="declineInboundInvite()"
+        >
+          DECLINE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ GO-LIVE PLATFORM PICKER ════════════ -->
+  <div
+    *ngIf="showGoLivePicker()"
+    class="share-tray-modal"
+    role="dialog"
+    aria-label="Go-Live platform picker"
+  >
+    <div class="share-tray-backdrop" (click)="cancelGoLivePicker()"></div>
+    <div class="share-tray-card glass-v42">
+      <header class="share-tray-header">
+        <span class="material-symbols-outlined">podcasts</span>
+        <h3>GO LIVE</h3>
+        <button
+          type="button"
+          class="share-tray-close"
+          (click)="cancelGoLivePicker()"
+          aria-label="Close platform picker"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      <div class="share-tray-body">
+        <p class="share-tray-label">
+          Pick a platform. The OAuth popup opens immediately and your viewer
+          share link copies to the clipboard on success.
+        </p>
+        <div class="platform-picker" role="radiogroup" aria-label="Live platform">
+          <button
+            *ngFor="let p of livePlatforms"
+            type="button"
+            class="picker-chip"
+            [class.selected]="selectedGoLivePlatform() === p"
+            (click)="selectedGoLivePlatform.set(p)"
+            [attr.aria-pressed]="selectedGoLivePlatform() === p"
+          >
+            <span class="material-symbols-outlined" style="font-size: 0.85rem"
+              >{{
+                p === 'twitch'
+                  ? 'live_tv'
+                  : p === 'kick'
+                    ? 'flash_on'
+                    : 'smart_display'
+              }}</span
+            >
+            {{ p | uppercase }}
+          </button>
+        </div>
+      </div>
+      <div class="go-live-panel-actions">
+        <button
+          type="button"
+          class="action-btn primary"
+          (click)="confirmGoLive(selectedGoLivePlatform())"
+          [disabled]="!!liveStream.currentStream() || !!pendingGolive()"
+        >
+          {{
+            pendingGolive()
+              ? 'AUTH PENDING…'
+              : 'OPEN ' +
+                (selectedGoLivePlatform() | uppercase) +
+                ' AUTH &amp; GO LIVE'
+          }}
+        </button>
+        <button
+          type="button"
+          class="action-btn"
+          (click)="cancelGoLivePicker()"
+        >
+          CANCEL
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ LIVE PILL (shown when streaming) ════════════ -->
+  <div
+    *ngIf="liveStream.currentStream() as liveCur"
+    class="live-pill-bar"
+    role="status"
+    aria-live="polite"
+  >
+    <span class="live-pill">
+      <span class="live-dot"></span>
+      LIVE ON {{ liveCur.platform | uppercase }} ·
+      {{ liveCur.viewerJoins }} VIEWERS
+    </span>
+    <input
+      class="share-tray-input"
+      type="text"
+      readonly
+      [value]="liveCur.shareUrl"
+      (focus)="$any($event.target).select()"
+      (click)="$any($event.target).select()"
+      aria-label="Live stream share URL"
+    />
+    <button
+      type="button"
+      class="action-btn primary"
+      (click)="copyLiveShareUrl()"
+    >
+      COPY LINK
+    </button>
+    <button
+      type="button"
+      class="stop-live-btn"
+      (click)="liveStream.endStream()"
+      aria-label="Stop live stream"
+    >
+      STOP
+    </button>
+  </div>
+
+  <!-- ════════════ JOIN-LIVE OVERLAY (inbound live= link) ════════════ -->
+  <div
+    *ngIf="inboundLivePreview() as livePreview"
+    class="join-live-overlay"
+    role="dialog"
+    aria-label="Tap to join live stream"
+  >          <div class="join-live-card glass-v42">
+      <div class="live-platform">
+        <span class="material-symbols-outlined">live_tv</span>
+        {{ livePreview.platform | uppercase }} · LIVE STREAM
+      </div>
+      <h2>JOIN THIS LIVE MISSION</h2>
+      <p class="host">
+        HOSTED BY
+        <strong>{{
+          (livePreview.hostDisplayName || 'Anonymous') | uppercase
+        }}</strong>
+      </p>
+      <p class="host" *ngIf="livePreview.hostId">
+        HOST_ID: USER_{{ livePreview.hostId | slice: 0:6 | uppercase }}
+      </p>
+      <p class="host" *ngIf="livePreview.gameId">
+        NOW PLAYING:
+        <strong>{{ livePreview.gameId | uppercase }}</strong>
+      </p>
+      <p class="host" *ngIf="!livePreview.gameId">
+        A friend wants you to drop into their broadcast.
+      </p>
+      <p class="host" style="opacity: 0.6">
+        Tapping JOIN records your visit (the host sees the viewer count),
+        and if there's a co-op lobby attached you'll be bridged straight
+        into the split-screen session.
+      </p>
+      <div class="actions">
+        <button
+          type="button"
+          class="action-btn primary"
+          (click)="redeemInboundLiveToken()"
+        >
+          JOIN LIVE
+        </button>
+        <button
+          type="button"
+          class="action-btn"
+          (click)="declineInboundLiveToken()"
+        >
+          DECLINE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ SHARE-LINK TRAY ════════════ -->
+  <div
+    *ngIf="showShareLinkTray()"
+    class="share-tray-modal"
+    role="dialog"
+    aria-label="Share link"
+  >
+    <div class="share-tray-backdrop" (click)="closeShareLinkTray()"></div>
+    <div class="share-tray-card glass-v42">
+      <header class="share-tray-header">
+        <span class="material-symbols-outlined">share</span>
+        <h3>SHARE LINK</h3>
+        <button
+          type="button"
+          class="share-tray-close"
+          (click)="closeShareLinkTray()"
+          aria-label="Close share tray"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </header>
+      <div class="share-tray-body">
+        <p class="share-tray-label">Send this URL to a friend so they can play with you.</p>
+        <input
+          class="share-tray-input"
+          type="text"
+          readonly
+          [value]="shareLinkTrayUrl()"
+          aria-label="Share URL"
+          (focus)="$any($event.target).select()"
+          (click)="$any($event.target).select()"
+        />
+        <button
+          type="button"
+          class="action-btn primary"
+          (click)="copySavedShareLink()"
+        >
+          COPY AGAIN
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The share-row lives inside the live-lobbies-rail so a host with a
+       multiplayer cabinet open can one-tap invite / challenge / split-screen
+       / go-live from a single band. Don't move it into the rival-hub.   -->
+
   <aside
     class="rival-hub"
     [class.active]="showRivalHub() && displayMode() !== 'pluto'"

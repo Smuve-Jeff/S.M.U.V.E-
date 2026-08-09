@@ -77,6 +77,8 @@ export const STREAM_QUALITY_PRESETS: Record<
 export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
   private socket?: Socket;
+  /** True while the socket.io transport is connected and authenticated. */
+  socketConnected = signal(false);
 
   /** Public accessor so ChallengeInboxService can bind to socket without fragile `any` casts */
   getSocket(): Socket | undefined {
@@ -128,6 +130,8 @@ export class SocialNetworkingService {
   asyncCollaborationPackets = signal<AsyncCollaborationPacket[]>([]);
 
   private currentRoomId: string | null = null;
+  /** Token the server rejected — prevents an immediate rebuild hot-loop. */
+  private lastRejectedToken: string | null | undefined;
   private get peerService() {
     return this.injector.get(PeerNetworkingService);
   }
@@ -139,10 +143,32 @@ export class SocialNetworkingService {
   }
 
   constructor() {
+    // Open the socket once we have BOTH a profile id and an API token. The
+    // server verifies handshake.auth.token and disconnects token-less
+    // sockets, so waiting for the token avoids opening a doomed connection.
     effect(() => {
       const profile = this.profileService.profile();
-      if (profile.id && !this.socket) {
+      const token = this.tokenService.jwtToken();
+      if (
+        profile.id &&
+        token &&
+        !this.socket &&
+        token !== this.lastRejectedToken
+      ) {
         this.initializeSocket(profile.id);
+      }
+    });
+
+    // Tear the socket down on logout so a fresh one is built on next login.
+    // Also clear the rejection guard so a brand-new login always attempts.
+    effect(() => {
+      if (!this.tokenService.jwtToken()) {
+        this.lastRejectedToken = undefined;
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = undefined;
+          this.socketConnected.set(false);
+        }
       }
     });
 
@@ -161,13 +187,20 @@ export class SocialNetworkingService {
   }
 
   private initializeSocket(userId: string) {
-    const backendUrl = APP_SECURITY_CONFIG.api_url.replace('/api', '');
-    const token = this.tokenService.jwtToken();
-    this.socket = io(backendUrl, {
-      auth: { token },
+    // Fresh token on EVERY (re)connect attempt: `auth` as a function is
+    // re-invoked by socket.io for each connection attempt, so a login that
+    // happens after the socket is created is picked up automatically.
+    const sock = io(APP_SECURITY_CONFIG.socket_url, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
+      auth: (cb) => cb({ token: this.tokenService.jwtToken() ?? undefined }),
     });
+    this.socket = sock;
 
-    this.socket.on('connect', () => {
+    sock.on('connect', () => {
+      this.socketConnected.set(true);
       const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
@@ -183,6 +216,30 @@ export class SocialNetworkingService {
       });
       if (this.currentRoomId) {
         this.socket?.emit('join_room', this.currentRoomId);
+      }
+    });
+
+    sock.on('disconnect', (reason) => {
+      this.socketConnected.set(false);
+      // Server actively severed the connection (e.g. invalid/expired token).
+      // Drop the socket and remember the rejected token so the constructor
+      // effects do NOT immediately rebuild into the same rejection loop.
+      // The `this.socket === sock` guard ensures a stale handler can never
+      // tear down a newer socket created after a re-login.
+      if (reason === 'io server disconnect' && this.socket === sock) {
+        this.lastRejectedToken = this.tokenService.jwtToken();
+        this.socket = undefined;
+        sock.disconnect();
+      }
+    });
+
+    this.socket.on('connect_error', (err) => {
+      this.socketConnected.set(false);
+      // Transient transport errors are expected during reconnect storms.
+      const generic =
+        err?.message === 'websocket error' || err?.message === 'xhr poll error';
+      if (err?.message && !generic) {
+        console.warn('[Social] Socket connect_error:', err.message);
       }
     });
 

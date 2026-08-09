@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
+import { Injectable, inject, signal, computed, effect, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { io, Socket } from 'socket.io-client';
 import { GameService } from './game.service';
@@ -6,6 +6,7 @@ import { UserProfileService } from '../services/user-profile.service';
 import { NotificationService } from '../services/notification.service';
 import { HapticService } from '../services/haptic.service';
 import { TokenService } from '../services/token.service';
+import { ShareableInviteService, InviteMode } from '../services/shareable-invite.service';
 import { Game } from './game';
 import { APP_SECURITY_CONFIG } from '../app.security';
 
@@ -121,6 +122,32 @@ export interface PlayerChallenge {
 }
 
 /**
+ * Online split-screen session: each player runs the game on their own
+ * device; the server relays state snapshots between them so play feels
+ * synchronized. The "local" copy is the player on THIS device; snapshots
+ * from the peer arrive via the `split_screen_snapshot` socket event.
+ */
+export interface SplitScreenSession {
+  id: string;
+  gameId: string;
+  gameName: string;
+  hostId: string;
+  guestId: string;
+  role: 'host' | 'guest';
+  status: 'lobby' | 'ready' | 'in-progress' | 'ended';
+  created: number;
+}
+
+export interface SplitScreenSnapshot {
+  score?: number;
+  progress?: number;
+  level?: string;
+  position?: { x: number; y: number };
+  turn?: 'host' | 'guest';
+  ts: number;
+}
+
+/**
  * Matchmaking talks to the SAME backend as SocialNetworkingService.
  * Previously this was a hardcoded, stale Render URL — a split-brain that
  * made lobbies/presence/challenges live on a different server than chat.
@@ -157,10 +184,13 @@ export class MatchmakingService implements OnDestroy {
   private notify = inject(NotificationService);
   private haptic = inject(HapticService);
   private tokenService = inject(TokenService);
+  private shares = inject(ShareableInviteService);
 
   // ── Socket.io ──
   private socket: Socket | null = null;
   private connected = signal(false);
+  /** Token the server rejected — prevents an immediate rebuild hot-loop. */
+  private lastRejectedToken: string | null | undefined;
 
   // ── State (Angular Signals) ──
   readonly activeLobbies = signal<CoOpLobby[]>([]);
@@ -222,6 +252,12 @@ export class MatchmakingService implements OnDestroy {
   readonly spectatorReactions = signal<SpectatorReaction[]>([]);
   readonly spectatorChatMessages = signal<LobbyChatMessage[]>([]);
 
+  // ── Split-Screen (online synced co-op) ──
+  readonly activeSplitLobby = signal<SplitScreenSession | null>(null);
+  readonly latestSplitScreenSnapshots = signal<
+    Record<string, SplitScreenSnapshot | undefined>
+  >({});
+
   readonly playerId = computed(
     () => this.profile.profile().id || 'local-player'
   );
@@ -230,7 +266,26 @@ export class MatchmakingService implements OnDestroy {
   );
 
   constructor() {
-    this.connectSocket();
+    // Connect once an API token exists, and rebuild after logout → login.
+    // The server verifies handshake.auth.token and disconnects token-less
+    // sockets, so we never open a doomed connection.
+    effect(() => {
+      const token = this.tokenService.jwtToken();
+      if (token) {
+        // Skip tokens the server already rejected so we don't hot-loop.
+        if (!this.socket && token !== this.lastRejectedToken) {
+          this.connectSocket();
+        }
+      } else {
+        // Logout — tear down and clear the guard so a new login always tries.
+        this.lastRejectedToken = undefined;
+        if (this.socket) {
+          this.socket.disconnect();
+          this.socket = null;
+          this.connected.set(false);
+        }
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -238,26 +293,133 @@ export class MatchmakingService implements OnDestroy {
     this.socket = null;
   }
 
+  // ── Shareable link + split-screen helpers ──
+
+  /**
+   * Build a shareable URL for the given game + mode and dispatch it via
+   * the share intent pipeline (native share → clipboard fallback). Returns
+   * the URL.
+   */
+  async shareGame(
+    gameId: string,
+    mode: InviteMode = 'online'
+  ): Promise<string | null> {
+    const game = this.gameService.getGameById(gameId);
+    const intent = this.shares.buildShareIntent({
+      gameId,
+      gameName: game?.name,
+      mode,
+      fromName: this.playerName(),
+    });
+    const result = await this.shares.share(intent);
+    return result.url;
+  }
+
+  /** Always returns the URL string (no dispatch). Useful for QR or copy-only UIs. */
+  buildShareableGameLink(gameId: string, mode: InviteMode = 'online'): string {
+    return this.shares.buildPublicShareUrl({
+      gameId,
+      mode,
+      fromUserId: this.playerId() || undefined,
+    });
+  }
+
+  /** Host-side: open a split-screen session and emit register + share a link. */
+  startSplitScreenLobby(gameId: string): SplitScreenSession | null {
+    const game = this.gameService.getGameById(gameId);
+    if (!game) {
+      this.notify.show('GAME_NOT_FOUND — cannot start split-screen', 'warning');
+      return null;
+    }
+    if (!this.socket?.connected) {
+      this.notify.show('SOCKET OFFLINE — sharing link only', 'warning');
+    }
+    const lobbyId = `split_${Date.now()}_${this.playerId().slice(0, 8)}`;
+    const session: SplitScreenSession = {
+      id: lobbyId,
+      gameId,
+      gameName: game.name || gameId,
+      hostId: this.playerId(),
+      guestId: '',
+      role: 'host',
+      status: 'lobby',
+      created: Date.now(),
+    };
+    this.activeSplitLobby.set(session);
+    this.socket?.emit('split_screen_register', {
+      lobbyId,
+      role: 'host',
+    });
+    return session;
+  }
+
+  /** Guest-side: enter a split-screen session after redeeming a token. */
+  joinSplitScreenLobby(lobbyId: string): SplitScreenSession | null {
+    const gameIdFromLobby = this.activeLobbies().find(
+      (l) => l.id === lobbyId
+    )?.gameId;
+    const session: SplitScreenSession = {
+      id: lobbyId,
+      gameId: gameIdFromLobby ?? 'unknown',
+      gameName: this.gameService.getGameById(gameIdFromLobby ?? '')?.name ||
+        (gameIdFromLobby ?? 'Lobby'),
+      hostId: '',
+      guestId: this.playerId(),
+      role: 'guest',
+      status: 'lobby',
+      created: Date.now(),
+    };
+    this.activeSplitLobby.set(session);
+    this.socket?.emit('split_screen_register', {
+      lobbyId,
+      role: 'guest',
+    });
+    return session;
+  }
+
+  /** Leave any split-screen session in progress. */
+  exitSplitScreen(): void {
+    const cur = this.activeSplitLobby();
+    if (!cur) return;
+    this.socket?.emit('split_screen_drop', { lobbyId: cur.id });
+    this.activeSplitLobby.set(null);
+    this.latestSplitScreenSnapshots.set({});
+  }
+
+  /** Broadcast the local game-state snapshot to the split-screen peer. */
+  pushSplitScreenSnapshot(snapshot: Omit<SplitScreenSnapshot, 'ts'>): void {
+    const cur = this.activeSplitLobby();
+    if (!cur) {
+      console.debug('[SplitScreen] no active lobby — drop snapshot');
+      return;
+    }
+    if (!this.socket?.connected) {
+      console.debug('[SplitScreen] socket offline — drop snapshot');
+      return;
+    }
+    this.socket?.emit('split_screen_sync', {
+      lobbyId: cur.id,
+      snapshot: { ...snapshot, ts: Date.now() },
+    });
+  }
+
   // ── Socket Connection ──
 
   private connectSocket(): void {
-    const token = this.tokenService.jwtToken();
-    if (!token) {
-      console.warn(
-        '[Matchmaking] No auth token available — Socket.io will reject connection'
-      );
-      return;
-    }
+    if (this.socket) return;
 
-    this.socket = io(SERVER_URL, {
-      auth: { token },
+    const sock = io(APP_SECURITY_CONFIG.socket_url, {
+      // Fresh token on EVERY (re)connect attempt — the server verifies
+      // handshake.auth.token and disconnects unauthenticated sockets.
+      auth: (cb) => cb({ token: this.tokenService.jwtToken() ?? undefined }),
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
     });
+    this.socket = sock;
 
-    this.socket.on('connect', () => {
+    sock.on('connect', () => {
       console.log('[Matchmaking] Socket.io connected:', this.socket?.id);
       this.connected.set(true);
       // Register presence + request inbox sync.
@@ -275,9 +437,19 @@ export class MatchmakingService implements OnDestroy {
       this.socket?.emit('request_inbox_sync');
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('[Matchmaking] Socket.io disconnected');
+    sock.on('disconnect', (reason) => {
+      console.log('[Matchmaking] Socket.io disconnected:', reason);
       this.connected.set(false);
+      // Server severed the connection (invalid/expired token) — drop the
+      // socket and remember the rejected token so the constructor effect
+      // does NOT immediately rebuild into the same rejection loop.
+      // The `this.socket === sock` guard ensures a stale handler can never
+      // tear down a newer socket created after a re-login.
+      if (reason === 'io server disconnect' && this.socket === sock) {
+        this.lastRejectedToken = this.tokenService.jwtToken();
+        this.socket = null;
+        sock.disconnect();
+      }
     });
 
     this.socket.on('connect_error', (err) => {
@@ -569,6 +741,77 @@ export class MatchmakingService implements OnDestroy {
         return [...list, msg].slice(-100);
       });
     });
+
+    // ── Shareable game invite socket events (live path; mirrors REST) ──
+    sock.on('game_invite_issued', (record: any) => {
+      this.shares.lastIssued.set(record);
+      this.notify.show('INVITE READY — SEND IT TO A FRIEND', 'success');
+    });
+
+    sock.on(
+      'split_screen_snapshot',
+      (data: { lobbyId: string; fromUserId: string; snapshot: any }) => {
+        this.latestSplitScreenSnapshots.update((map) => ({
+          ...map,
+          [data.fromUserId]: data.snapshot,
+        }));
+      }
+    );
+
+    sock.on(
+      'split_screen_ready',
+      (data: { lobbyId: string; hostId: string; guestId: string }) => {
+        const cur = this.activeSplitLobby();
+        if (!cur || cur.id !== data.lobbyId) return;
+        this.activeSplitLobby.update((slot) =>
+          slot
+            ? {
+                ...slot,
+                hostId: data.hostId,
+                guestId: data.guestId,
+                status: 'ready',
+              }
+            : slot
+        );
+        this.notify.show('SPLIT-SCREEN PEER CONNECTED', 'success');
+      }
+    );
+
+    sock.on(
+      'split_screen_role_assigned',
+      (data: {
+        lobbyId: string;
+        role: 'host' | 'guest';
+        requestedRole: 'host' | 'guest';
+      }) => {
+        const cur = this.activeSplitLobby();
+        if (!cur || cur.id !== data.lobbyId) return;
+        if (data.role !== data.requestedRole) {
+          this.notify.show(
+            `HOST SLOT ALREADY TAKEN — JOINED AS ${data.role.toUpperCase()}`,
+            'warning'
+          );
+        }
+        this.activeSplitLobby.update((slot) =>
+          slot ? { ...slot, role: data.role } : slot
+        );
+      }
+    );
+
+    sock.on(
+      'split_screen_ended',
+      (data: { lobbyId: string; reason?: string }) => {
+        const cur = this.activeSplitLobby();
+        if (!cur || cur.id !== data.lobbyId) return;
+        this.activeSplitLobby.set(null);
+        this.notify.show(
+          data.reason === 'peer_disconnected'
+            ? 'SPLIT-SCREEN PEER DISCONNECTED'
+            : 'SPLIT-SCREEN SESSION ENDED',
+          'warning'
+        );
+      }
+    );
   }
 
   // ── Lobby Operations (backed by Socket.io parties) ──
@@ -619,7 +862,7 @@ export class MatchmakingService implements OnDestroy {
     return lobby;
   }
 
-  joinLobby(lobbyId: string): CoOpLobby | null {
+  joinLobbylobbyId: string): CoOpLobby | null {
     this.haptic.light();
     if (!this.socket?.connected) {
       this.notify.show('Connection lost', 'warning');

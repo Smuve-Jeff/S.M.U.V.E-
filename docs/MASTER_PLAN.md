@@ -47,25 +47,27 @@ AI + distribution tooling. No DAW on Play bundles a career engine.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Track count | 99+ (CPU) | ∞ | ∞ | ∞ | ∞ | 64 pads | ∞ (CPU) |
 | Piano roll depth | ★★★★★ slide notes | ★★★★ | ★★★ | ★★★ | ★★★ | ★★★ | ★★★★ (bezier CC, learn) |
-| **Slide / glide notes** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ **GAP** |
+| **Slide / glide notes** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ (pitch-bend glide lane) |
 | **Scale guessing** | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ⚠️ chord editor only |
-| **Time-stretch / pitch-shift** | ✅ (elastique-class) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ **GAP** |
-| Audio comping / takes | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ | ⚠️ comp view, no takes |
-| **Loop recording / live looping** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ **GAP** |
-| **Song mode / clip launcher** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ⚠️ arrangement only |
-| Score / notation view | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ **GAP** |
+| **Time-stretch / pitch-shift** | ✅ (elastique-class) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (WSOLA `AudioStretchService` + playback-rate remap) |
+| Audio comping / takes | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ (take lanes, punch-in, comp stack + sectional comp) |
+| **Loop recording / live looping** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (loop-pass take recording, punch-in/out) |
+| **Song mode / clip launcher** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ (song/pattern playback modes, structure-driven end) |
+| Score / notation view | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ (staves, clef, accidentals, velocity shading) |
 | VST/AU support | ❌ (iOS AUv3) | ✅ iOS AUv3 | ❌ | ❌ | ❌ | ✅ iOS | ⚠️ WASM plugins (ours is the Android answer) |
 | AI mastering | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ **LEAD** (genre presets) |
 | AI stem separation | ❌ | ❌ | ✅ cloud | ✅ | ❌ | ❌ | ✅ **LEAD** (on-device ONNX) |
-| Real-time collab | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ⚠️ peer-networking skeleton |
-| Cloud sync | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ⚠️ offline-sync |
+| Real-time collab | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ (project-sync, peer cursors, voice) |
+| Cloud sync | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ (3-way merge, offline queue, timeline) |
 | MIDI learn / out | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ **LEAD** (per-lane CH + learn) |
 | Undo history | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Export formats | WAV/MP3/FLAC/OGG/MIDI | WAV/AAC | WAV/MP3 | WAV/MP3/FLAC/OGG | WAV/MP3/FLAC/OGG | WAV | ⚠️ WAV/MIDI only |
+| Export formats | WAV/MP3/FLAC/OGG/MIDI | WAV/AAC | WAV/MP3 | WAV/MP3/FLAC/OGG | WAV/MP3/FLAC/OGG | WAV | ✅ WAV/MP3/M4A/Opus + MIDI (WebCodecs) |
 | Price | $14.99 | $29.99–49.99 | Free+ads | $4.99/mo | $11.99 | $4.99 | Free + Pro sub (planned) |
 
-**Where we lose today:** time-stretch/pitch, slide notes, loop recording, song
-mode, notation, export formats.
+**Where we lose today:** nothing structural in the core checklist — the only
+remaining amber cell is VST/AU-format support (we answer with WASM plugins;
+Android has no AUv3, so the WASM plugin framework is the format win). Scale
+guessing shipped in F3 (Krumhansl–Kessler ✨ Auto detect in the piano roll).
 
 **Where we already win:** AI mastering + stem split on-device, MIDI learn/CC
 depth, career ecosystem, WASM plugin path (no Android DAW has a WASM plugin
@@ -284,6 +286,9 @@ framework; this is our Apple-GarageBand-killer angle).
 | X3 | Engine Run Benchmark CTA on `/produce` — one-tap OfflineAudioContext probe via `AudioEngineLatencyService.runOfflineBenchmark(1)`, inline result card showing wall-clock ms + speedRatio (≤1 = real-time-or-better; >1 = slower-with-rationale phrasing), aria-busy state, new jest case asserting isBenchmarking + result signals | Production-truth engine metrics | ✅ |
 | E1 | Studio product telemetry + Insights panel — local event bus (`StudioTelemetryService`), north-star metrics (session length, idea→first loop, export success, crash-free, collab rate), weighted competitor gap backlog, topbar Insights slide-over, unit coverage | Data-driven Studio backlog vs BandLab/FL/Koala | ✅ |
 | E2 | Adaptive Studio Coach + live gap scoring — telemetry-adjusted S.M.U.V.E parity scores, latency probe events, ranked next-best coach CTAs (probe / starter / collab / export / AI mix / plugins / share), Insights coach rail + full engine probe, dismiss/complete persistence | Closes measured latency + onboarding + collab gaps with one-tap actions | ✅ |
+| F1 | MPC-style Groove Templates in Drum Machine — 6 named presets (Straight · MPC 54 · MPC 58 · Dilla · Shuffle · House) that set swing % + velocity humanization with on-beat accent protection, active-groove chip rail + clear action, haptics + snackbar feedback, dark-mode + mobile rules | FL Mobile / MPC swing presets (single-slider → named templates) | ✅ |
+| F2 | Pro audio clip editing — trim left/right edges (snap-aware, ¼-bar min clamp, bar-0 guard), fade-in/fade-out cycle (0 → ½ → 1 → 2 bars) on audio clips, delete selected; WebGL timeline renders fade shades + amber boundary lines and amber trim handles on selection; engine `triggerSampler` gained linear fade-in/fade-out gain envelopes (bars→seconds via tempo), history-aware via `updateClip`/`removeClip`; 8 new arrangement-view specs | Cubasis / FL Mobile waveform editing (trim/fade/delete) | ✅ |
+| F3 | Auto key/scale detection — `ScaleDetectionService` (Krumhansl–Kessler correlation over a duration-weighted pitch-class histogram, refined with pentatonic/blues subset detection), one-tap ✨ Auto button in the piano-roll key/scale bar that applies the detected key + scale with confidence readout; `isInScale()` upgraded from hardcoded C-major to honor the selected key + scale so the keyboard highlight follows detection; 9 new service specs | FL Mobile / Caustic / Koala scale guessing | ✅ |
 
 ### Phase D — Continuity cloud (Sprints D1–D2)
 *Goal: features competitors can't copy because they assume a single device. Every artist now works across phone, tablet, and desktop without losing the lab session in transit.*
@@ -446,6 +451,53 @@ competitor gap and real north-star movement, not gut feel.*
   `AudioEngineLatencyService` (live snapshot + 1s offline benchmark).
   Jest covers probe scoring, coach ranking, dismiss, complete, and
   dashboard payload shape.*
+
+### Phase F — Hands-on editing & groove feel (Sprints F1–F2)
+*Goal: beat the mobile DAW editing floor — named MPC groove templates and
+real audio clip trim/fade/delete that FL Mobile and Cubasis users expect.*
+
+- **F1 — MPC-style Groove Templates (Drum Machine)**: ✅ *SHIPPED. Six
+  named groove presets (Straight · MPC 54 · MPC 58 · Dilla · Shuffle ·
+  House) each carrying a swing % (0–66) and a velocity-humanization
+  variance. `applyGroove()` sets the existing swing slider and re-humanizes
+  note velocities while protecting on-beat accents (steps % 4 === 0) for
+  swing > 40%, so the beat stays anchored. UI: `dm-groove-block` chip rail
+  in the style bar with active-state gradient + glow, clear (×) action,
+  tooltips with each groove's hint, haptics + snackbar feedback, dark-mode
+  overrides and a 768px mobile rule that stacks the rail full-width with
+  taller 38px touch targets.*
+- **F2 — Pro audio clip editing (trim / fade / delete)**: ✅ *SHIPPED.
+  `StudioClip` gained `fadeIn`/`fadeOut` (bars). `trimSelected(edge,
+  deltaBars)` shrinks/grows either clip edge with a ¼-bar minimum length
+  and a bar-0 guard; `cycleFade(side)` cycles 0 → ½ → 1 → 2 bars on audio
+  clips (MIDI skipped with a hint) and falls forward from off-preset
+  values; `deleteSelected()` removes all selected clips and clears the
+  selection — all history-aware through `MusicManagerService.updateClip` /
+  `removeClip`. `AudioEngineService.triggerSampler()` gained optional
+  fade-in/fade-out linear gain envelopes (clamped to clip duration,
+  click-free hold at the tail); `MusicManager.playStep` converts bar fades
+  to seconds via `secPerBar = 4 * 60/tempo`. The WebGL `TimelineRenderer`
+  draws translucent fade shades + amber boundary lines on audio clips and
+  amber trim-handle tabs on selected clips (scaled with zoom via
+  fraction-of-width). Arrangement toolbar gained TRI ◀/▶, FI/FO (active
+  glow when a fade is set), and DEL buttons with dark-mode-safe styles.
+  8 new arrangement-view specs cover trim math, the ¼-bar clamp, fade
+  cycling, MIDI-skip hint, and delete flow.*
+- **F3 — Auto key/scale detection (piano roll)**: ✅ *SHIPPED.
+  `ScaleDetectionService` (root-provided, pure + deterministic) scores
+  every (root, mode) pair with the Krumhansl–Kessler major/minor
+  correlation profiles against a duration-weighted pitch-class histogram
+  of the track's notes (long held notes shape the key more), then refines
+  the mode with pentatonic/blues subset detection and returns key +
+  scale + a 0..1 confidence (margin over the runner-up candidate). UI:
+  one-tap ✨ Auto button in the piano-roll key/scale bar applies the
+  detected key + scale, haptic tick + snackbar confirmation with the
+  match %; empty tracks get a friendly hint. `isInScale()` (the keyboard
+  column highlight) was upgraded from a hardcoded C-major check to honor
+  the selected key + scale, so keys light up correctly in every tonality.
+  9 new service specs cover C major, A minor, F# pentatonic, A blues,
+  duration weighting, key/scale transposition, interval helpers, and
+  confidence clamping.*
 
 *Definition of done for each sprint: feature ships with unit tests, build
 clean, and the comparison-table cell flips to ✅.*

@@ -1,5 +1,8 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './services/auth.guard';
+
+// NOTE: The application is fully unlocked — no authGuard is applied to any
+// route. Auth is optional (login/register is available but never required).
+// If route protection is needed later, import and apply authGuard per-route.
 
 export const routes: Routes = [
   {
@@ -281,6 +284,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'products',
+    loadComponent: () =>
+      import('./components/products/products.component').then(
+        (m) => m.ProductsComponent
+      ),
+  },
+  {
     path: 'onboarding/tour',
     loadComponent: () =>
       import(
@@ -304,14 +314,3 @@ export const routes: Routes = [
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
 ];
-
-// Apply authGuard to all routes except 'login' and redirects
-for (const route of routes) {
-  if (!route.path || route.path === 'login' || route.redirectTo) {
-    continue;
-  }
-
-  route.canActivate = route.canActivate
-    ? [...route.canActivate, authGuard]
-    : [authGuard];
-}

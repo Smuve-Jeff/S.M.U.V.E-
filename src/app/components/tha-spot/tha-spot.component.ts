@@ -50,6 +50,16 @@ import {
   PlayResult,
 } from '../../services/game-ratings.service';
 import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
+import {
+  ShareableInviteService,
+  InviteMode,
+} from '../../services/shareable-invite.service';
+import {
+  LiveStreamService,
+  LiveStreamPlatform,
+  LIVE_STREAM_PLATFORMS,
+} from '../../services/live-stream.service';
+import { SplitScreenPanelComponent } from '../split-screen-panel/split-screen-panel.component';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -57,14 +67,14 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SplitScreenPanelComponent],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
   styles: [
     `
       .challenge-banner {
         position: fixed;
-        top: 72px;
+        top: calc(72px + env(safe-area-inset-top, 0px));
         left: 50%;
         transform: translateX(-50%);
         z-index: 110;
@@ -187,21 +197,6 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           scroll-snap-align: start;
           flex: 0 0 82%;
         }
-        /* Sidebars: full-screen sheet on mobile. */
-        .executive-sidebar,
-        .rival-hub-sidebar {
-          position: fixed;
-          inset: 64px 0 0 0;
-          width: 100%;
-          height: calc(100dvh - 64px);
-          max-height: none;
-          z-index: 80;
-          border-radius: 0;
-          transform: translateX(-100%);
-          transition: transform 0.25s ease;
-        }
-        .executive-sidebar.is-open,
-        .rival-hub-sidebar.is-open { transform: translateX(0); }
         .spot-main-content { margin-left: 0 !important; width: 100%; }
         /* Challenge banner: safe-area aware, never overlap header. */
         .challenge-banner {
@@ -243,26 +238,19 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .console-footer {
           padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
         }
-        /* Touch targets: enforce 44px minimum on tappable elements. */
-        button,
+        /* Touch targets: keep primary controls thumb-friendly without
+           inflating dense card/lobby internals. */
+        .header-btn,
+        .mode-btn,
+        .hero-btn-primary,
+        .hero-btn-secondary,
         .action-btn,
-        .nav-pill,
-        .tab,
         .filter-chip,
-        .game-card,
-        .tab-button {
+        .tab-button,
+        .clear-btn {
           min-height: 44px;
         }
         .game-card { padding: 0.75rem; }
-      }
-      @media (max-width: 1024px) {
-        .executive-sidebar,
-        .rival-hub-sidebar {
-          position: sticky;
-          top: 64px;
-          align-self: start;
-          max-height: calc(100vh - 72px);
-        }
       }
       /* Focus rings for keyboard users; respects reduced-motion. */
       :focus-visible {
@@ -318,13 +306,31 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
       @media (max-width: 768px) {
         .mobile-search-bar {
           display: flex;
+          position: sticky;
+          top: 0;
+          z-index: 6;
+          min-height: 48px;
+          padding: 0.5rem 0.75rem;
+          background: rgba(5, 8, 15, 0.94);
+          border-bottom: 1px solid var(--glass-border);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
         }
+
+        .mobile-search-bar input {
+          min-width: 0;
+          flex: 1;
+          font-size: 16px;
+        }
+
         .executive-sidebar,
         .rival-hub {
           position: fixed;
-          inset: 64px 0 0 0;
+          inset: calc(64px + env(safe-area-inset-top, 0px)) 0 0 0;
           width: 100%;
           max-width: none;
+          height: auto;
+          max-height: none;
           border-radius: 0;
           border-left: 0;
           transform: none;
@@ -338,8 +344,11 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           pointer-events: auto;
         }
         .sidebar-content {
+          min-height: 0;
           overflow-y: auto;
+          overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
+          padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
         }
         .hub-tabs {
           overflow-x: auto;
@@ -539,6 +548,495 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         margin-bottom: 0.5rem;
         background: #000;
       }
+      /* ── Live socket.io connection indicator ── */
+      .socket-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        background: rgba(239, 68, 68, 0.08);
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: rgba(248, 113, 113, 0.9);
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: all 0.25s ease;
+      }
+      .socket-status-badge.is-live {
+        border-color: rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+      }
+      .socket-status-badge .status-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #ef4444;
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+      }
+      .socket-status-badge.is-live .status-indicator {
+        background: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.9);
+        animation: socket-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes socket-pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.55;
+          transform: scale(0.8);
+        }
+      }
+      @media (max-width: 768px) {
+        .socket-status-badge .status-text {
+          display: none;
+        }
+        .socket-status-badge {
+          padding: 0.3rem;
+        }
+      }
+
+      /* ============================================================
+         THA SPOT — shareable invite + split-screen surfaces
+         (share-link tray modal, inbound invite modal, share-row in
+         launch preview, split-screen-overlay container)
+         ============================================================ */
+      .inbound-invite-modal,
+      .share-tray-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 220;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        animation: fade-in 0.25s ease;
+      }
+      .inbound-invite-backdrop,
+      .share-tray-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+      .inbound-invite-card,
+      .share-tray-card {
+        position: relative;
+        max-width: 460px;
+        width: 100%;
+        padding: 1.25rem;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        background: rgba(15, 12, 36, 0.92);
+        box-shadow: 0 22px 48px rgba(0, 0, 0, 0.55);
+      }
+      .inbound-invite-header,
+      .share-tray-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 900;
+        font-size: 0.85rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #00e5ff;
+        margin-bottom: 0.85rem;
+      }
+      .share-tray-header h3,
+      .inbound-invite-header h3 {
+        margin: 0;
+      }
+      .share-tray-close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 6px;
+        transition: background 0.2s ease;
+      }
+      .share-tray-close:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+      }
+      .inbound-invite-body,
+      .share-tray-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+      }
+      .inbound-invite-game {
+        font-size: 1.1rem;
+        font-weight: 900;
+        margin: 0;
+      }
+      .inbound-invite-mode,
+      .inbound-invite-from {
+        font-size: 0.75rem;
+        opacity: 0.85;
+        margin: 0;
+      }
+      .inbound-invite-help {
+        font-size: 0.7rem;
+        opacity: 0.6;
+        line-height: 1.4;
+        margin: 0;
+      }
+      .inbound-invite-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .share-tray-label {
+        font-size: 0.7rem;
+        opacity: 0.7;
+        margin: 0;
+        line-height: 1.4;
+      }
+      .share-tray-input {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(0, 229, 255, 0.4);
+        border-radius: 8px;
+        padding: 0.55rem 0.75rem;
+        color: #f1f5f9;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        outline: none;
+      }
+
+      /* Launch preview share-row (sits inside the existing preview card) */
+      .share-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(0, 229, 255, 0.06);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        flex-wrap: wrap;
+        margin: 0.5rem 0 0.75rem;
+      }
+      .share-row-label {
+        font-weight: 800;
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(0, 229, 255, 0.85);
+        margin-right: 0.25rem;
+      }
+      .share-row-actions {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+      }
+      .share-row-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.6rem;
+        border-radius: 7px;
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        background: rgba(0, 229, 255, 0.06);
+        color: #f1f5f9;
+        font-weight: 800;
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        text-transform: uppercase;
+      }
+      .share-row-btn:hover {
+        background: rgba(0, 229, 255, 0.18);
+        border-color: rgba(0, 229, 255, 0.5);
+      }
+      .share-row-btn.accent {
+        background: linear-gradient(
+          135deg,
+          rgba(139, 92, 246, 0.25),
+          rgba(0, 229, 255, 0.2)
+        );
+        border-color: rgba(139, 92, 246, 0.6);
+        color: #f0abfc;
+      }
+      .share-row-btn.accent:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(139, 92, 246, 0.4),
+          rgba(0, 229, 255, 0.32)
+        );
+      }
+      .share-row-btn .material-symbols-outlined {
+        font-size: 0.85rem;
+        color: inherit;
+      }
+
+      /* Split-screen-overlay container around app-split-screen-panel */
+      .split-screen-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 240;
+        background: rgba(2, 4, 10, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 1rem;
+        overflow-y: auto;
+      }
+      .split-screen-close {
+        position: fixed;
+        top: calc(14px + env(safe-area-inset-top, 0px));
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        z-index: 241;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .split-screen-close:hover {
+        background: rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.6);
+      }
+
+      /* ============================================================
+         THA SPOT — Go-Live / Live-stream surfaces
+         (per-cabinet GO LIVE CTA, live pill, platform picker, join-live
+         overlay). All scoped so they compose with the existing palette
+         without bleeding into the share-row / launch-preview surfaces.
+         ============================================================ */
+      .go-live-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid rgba(239, 68, 68, 0.55);
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.4) 0%,
+          rgba(124, 58, 237, 0.4) 100%
+        );
+        color: #fff;
+        font-weight: 900;
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+      }
+      .go-live-btn:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.6) 0%,
+          rgba(124, 58, 237, 0.6) 100%
+        );
+        transform: translateY(-1px);
+        box-shadow: 0 4px 18px rgba(239, 68, 68, 0.55);
+      }
+      .go-live-btn.active {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.4),
+          rgba(124, 58, 237, 0.4)
+        );
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+      }
+      .go-live-btn[disabled],
+      .go-live-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(239, 68, 68, 0.9);
+        color: #fff;
+        font-size: 0.55rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .live-pill .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #fff;
+        animation: live-pulse 1.4s ease-in-out infinite;
+      }
+      .live-pill-bar {
+        position: fixed;
+        top: calc(72px + env(safe-area-inset-top, 0px));
+        right: calc(16px + env(safe-area-inset-right, 0px));
+        z-index: 130;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 12px;
+        background: rgba(15, 12, 36, 0.94);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        flex-wrap: wrap;
+        max-width: 460px;
+      }
+      .live-pill-bar .share-tray-input {
+        max-width: 280px;
+        font-size: 0.65rem;
+      }
+      @media (max-width: 768px) {
+        .live-pill-bar {
+          top: calc(60px + env(safe-area-inset-top, 0px));
+          left: 12px;
+          right: 12px;
+          max-width: none;
+        }
+        .live-pill-bar .share-tray-input { display: none; }
+      }
+      .platform-picker {
+        display: flex;
+        gap: 0.4rem;
+      }
+      .picker-chip {
+        flex: 1 1 auto;
+        min-height: 40px;
+        padding: 0.4rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        text-transform: uppercase;
+      }
+      .picker-chip:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .picker-chip.selected {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.2);
+        color: #fff;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      }
+      .go-live-panel-actions {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+      }
+      .go-live-panel-actions button {
+        flex: 1 1 auto;
+        min-height: 40px;
+      }
+      .stop-live-btn {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.4),
+          rgba(56, 189, 248, 0.4)
+        );
+        border: 1px solid rgba(16, 185, 129, 0.6);
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        padding: 0.5rem 0.85rem;
+        text-transform: uppercase;
+        transition: all 0.18s ease;
+      }
+      .stop-live-btn:hover {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.6),
+          rgba(56, 189, 248, 0.55)
+        );
+      }
+      .join-live-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 235;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: rgba(2, 4, 10, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        animation: fade-in 0.25s ease;
+      }
+      .join-live-card {
+        max-width: 460px;
+        width: 100%;
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid rgba(239, 68, 68, 0.45);
+        background: rgba(15, 12, 36, 0.94);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+      }
+      .join-live-card .live-platform {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        background: rgba(239, 68, 68, 0.18);
+        color: #ef4444;
+        font-size: 0.6rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 0.6rem;
+      }
+      .join-live-card h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+      }
+      .join-live-card .host {
+        margin: 0 0 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+      .join-live-card .actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1.1rem;
+      }
+      @keyframes live-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(0.55); opacity: 0.55; }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .live-pill .live-dot,
+        .go-live-btn.active::before,
+        .join-live-overlay { animation: none !important; }
+      }
     `,
   ],
 })
@@ -559,6 +1057,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public dailyMissions = inject(DailyMissionsService);
   public gameRatings = inject(GameRatingsService);
   private orchestration = inject(StudioOrchestrationService);
+  private shareable = inject(ShareableInviteService);
+  public liveStream = inject(LiveStreamService);
 
   // Signals
   displayMode = signal<'gaming' | 'pluto'>('gaming');
@@ -635,6 +1135,30 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   externalTargetDomain = signal<string>('');
   isFullscreen = signal<boolean>(false);
   recentGames = signal<Game[]>([]);
+
+  // ── Shareable invite overlay state ──────────────────
+  readonly inboundInvite = signal<{
+    gameId: string;
+    mode: InviteMode;
+    inviteToken: string | null;
+    fromUserId: string | null;
+  } | null>(null);
+  readonly showShareLinkTray = signal(false);
+  readonly shareLinkTrayUrl = signal<string>('');
+  readonly splitScreenModeActive = signal(false);
+
+  // ── Go-Live / live-stream overlay state ─────────────
+  /** Local picker key: which platform the host wants to broadcast on. */
+  readonly selectedGoLivePlatform = signal<LiveStreamPlatform>('twitch');
+  readonly showGoLivePicker = signal(false);
+  /**
+   * Tap-to-join inbound preview from `?live=...`. Rendered as an overlay
+   * so the viewer can see what they're about to join before redeeming.
+   */
+  readonly inboundLivePreview = this.liveStream.inboundPreview;
+  /** True while the platform OAuth popup is open; flips the button to PENDING. */
+  readonly pendingGolive = this.liveStream.pendingGolive;
+  readonly livePlatforms = LIVE_STREAM_PLATFORMS;
 
   // ── Hub navigation (rival hub sidebar tabs) ──────────
   // 'rooms' | 'online' | 'rivals' | 'ops'
@@ -1028,6 +1552,50 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
           this.applyPendingGameSelection();
         }
       }
+
+      // Handle shareable invite deep links: ?game=halo&mode=split-screen&invite=tok
+      // Game-entry links resolve without auth; restricted invites pop the
+      // join modal so the recipient sees what they're being asked into.
+      const inbound = this.shareable.parseFromCurrentUrl();
+      if (inbound.gameId) {
+        this.pendingGameId = inbound.gameId;
+        this.applyPendingGameSelection();
+        if (inbound.inviteToken || inbound.mode) {
+          this.openInboundInviteModal({
+            gameId: inbound.gameId,
+            mode: inbound.mode ?? 'online',
+            inviteToken: inbound.inviteToken,
+            fromUserId: inbound.fromUserId,
+          });
+        }
+      }
+      // Live-stream tap-to-join link: ?live=<shareToken>&game=…&from=…
+      // Anyone with the share URL gets the join overlay; redeem is
+      // wired to a single tap so the host sees a viewer-count bump
+      // immediately. The `from` param surfaces the inviter's id on
+      // the overlay so the viewer knows whose session they're joining.
+      const liveToken = params.get('live');
+      if (liveToken) {
+        const lobbyId = params.get('lobby');
+        const gameId = params.get('game') || params.get('gameId');
+        const fromUserId = params.get('from');
+        if (gameId) {
+          this.pendingGameId = gameId;
+          this.applyPendingGameSelection();
+        }
+        // Defer until the stream row loads — the preview needs the host
+        // name + platform so the overlay reads sensibly. The host row
+        // (row.hostId / row.hostDisplayName) is what the overlay shows
+        // so the viewer knows whose session they're joining; we don't
+        // surface the from= param separately.
+        void this.liveStream.peekViewerToken(liveToken).then((row) => {
+          if (row && lobbyId) {
+            // Surface the lobby breadcrumb so the overlay shows
+            // "joining co-op lobby" once the preview is resolved.
+            this.matchmaking.activeLobbies();
+          }
+        });
+      }
     });
 
     this.setActiveRoom(this.pendingRoomId || 'co-op-link');
@@ -1150,6 +1718,223 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (game) this.matchmaking.cancelMatchQueue(game.id);
     this.isMatchmaking.set(false);
     this.currentMatchmakingId = null;
+  }
+
+  // ── Shareable invite helpers ─────────────────────────
+
+  /**
+   * Resolve an inbound share link into one of:
+   *   - a lobby join (partyId-ish payload in the token payload)
+   *   - a challenge (if mode === 'challenge', pre-fill the inbox banner)
+   *   - a quick-match queue
+   *   - a split-screen session (host starts here)
+   *   - a plain game entry (open the launch preview)
+   */
+  private applyInboundMode(mode: InviteMode): void {
+    switch (mode) {
+      case 'split-screen': {
+        const game = this.selectedGame();
+        if (game) {
+          this.matchmaking.startSplitScreenLobby(game.id);
+          this.splitScreenModeActive.set(true);
+        }
+        break;
+      }
+      case 'quick-match': {
+        const game = this.selectedGame();
+        if (game && this.matchmaking) {
+          this.matchmaking.queueForMatch(game.id);
+        }
+        break;
+      }
+      case 'challenge': {
+        const game = this.selectedGame();
+        if (game) {
+          this.incomingChallenge.set({
+            fromUserId: '',
+            fromUserName: 'A RIVAL',
+            gameId: game.id,
+            timestamp: Date.now(),
+          });
+        }
+        break;
+      }
+      case 'co-op':
+      case 'online':
+      case 'offline':
+      default:
+        // Surface the game preview so the user clicks PLAY themselves.
+        // Destructive join auto-actions live behind user confirmation.
+        break;
+    }
+  }
+
+  /** Modal flow that surfaces a per-invite preview before redemption. */
+  openInboundInviteModal(inbound: {
+    gameId: string;
+    mode: InviteMode;
+    inviteToken: string | null;
+    fromUserId: string | null;
+  }): void {
+    this.inboundInvite.set({
+      gameId: inbound.gameId,
+      mode: inbound.mode,
+      inviteToken: inbound.inviteToken,
+      fromUserId: inbound.fromUserId,
+    });
+  }
+
+  async acceptInboundInvite(): Promise<void> {
+    const inv = this.inboundInvite();
+    if (!inv) return;
+    try {
+      if (inv.inviteToken) {
+        await this.shareable.redeemServerInvite(inv.inviteToken);
+      }
+      this.applyInboundMode(inv.mode);
+    } finally {
+      this.inboundInvite.set(null);
+    }
+  }
+
+  declineInboundInvite(): void {
+    this.inboundInvite.set(null);
+    this.snackbarService.info('INVITE DECLINED');
+  }
+
+  /** Build + copy a share URL for the selected game using `InviteMode`. */
+  async shareSelectedGame(mode: InviteMode = 'online'): Promise<void> {
+    const game = this.selectedGame();
+    if (!game) {
+      this.snackbarService.info('SELECT A GAME TO SHARE FIRST');
+      return;
+    }
+    const intent = this.shareable.buildShareIntent({
+      gameId: game.id,
+      gameName: game.name,
+      mode,
+      fromName: this.profileService.profile().artistName,
+    });
+    const result = await this.shareable.share(intent);
+    this.shareLinkTrayUrl.set(result.url);
+    this.showShareLinkTray.set(true);
+  }
+
+  copySavedShareLink(): void {
+    const url = this.shareLinkTrayUrl();
+    if (!url) return;
+    this.shareable.copy({
+      url,
+      title: 'S.M.U.V.E. invite link',
+      text: url,
+      mode: 'online',
+      gameId: '',
+    });
+  }
+
+  closeShareLinkTray(): void {
+    this.showShareLinkTray.set(false);
+  }
+
+  /** Open the Split-Screen panel for the currently selected game. */
+  enterSplitScreen(): void {
+    const game = this.selectedGame();
+    if (!game) {
+      this.snackbarService.info('SELECT A GAME FIRST');
+      return;
+    }
+    this.matchmaking.startSplitScreenLobby(game.id);
+    this.splitScreenModeActive.set(true);
+  }
+
+  exitSplitScreen(): void {
+    this.matchmaking.exitSplitScreen();
+    this.splitScreenModeActive.set(false);
+  }
+
+  // ── Go-Live handlers ─────────────────────────────────
+
+  /**
+   * Single CTA that toggles between GO LIVE (when offline) and STOP
+   * LIVE (when the OAuth popup already produced a stream row). The
+   * STOP path clears local state without re-opening the popup so the
+   * viewer-count telemetry always converges.
+   */
+  async onGoLiveClick(event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const cur = this.liveStream.currentStream();
+    if (cur) {
+      const ok = await this.liveStream.endStream();
+      if (ok) {
+        this.showGoLivePicker.set(false);
+      }
+      return;
+    }
+    if (!this.selectedGame()) {
+      this.snackbarService.info('SELECT A CABINET TO GO LIVE FROM');
+      return;
+    }
+    this.showGoLivePicker.set(true);
+  }
+
+  /** Confirm platform pick: issue stream row + open OAuth popup. */
+  async confirmGoLive(platform: LiveStreamPlatform): Promise<void> {
+    this.selectedGoLivePlatform.set(platform);
+    const game = this.selectedGame();
+    // Only carry a lobby id when the host actually has one. A faceless
+    // broadcast (no game selected) ships lobbyId: null so the share URL
+    // never includes a bogus `lobby=undefined` fragment.
+    const lobbyId = this.matchmaking.activeSplitLobby() ?? null;
+    const payload =
+      game && this.splitScreenModeActive()
+        ? {
+            gameId: game.id,
+            level: 'open-lobby',
+            mode: 'split-screen',
+            hostId: this.profileService.profile().id,
+          }
+        : game
+          ? { gameId: game.id }
+          : null;
+    const issued = await this.liveStream.golive({
+      platform,
+      gameId: game?.id,
+      lobbyId,
+      payload,
+    });
+    if (issued) {
+      this.showGoLivePicker.set(false);
+    }
+  }
+
+  cancelGoLivePicker(): void {
+    this.showGoLivePicker.set(false);
+  }
+
+  /** Copy the platform share URL into the clipboard. */
+  async copyLiveShareUrl(): Promise<void> {
+    await this.liveStream.copyShareUrl();
+  }
+
+  /**
+   * Viewer taps "Join Live" — record the redeem (server bumps
+   * `viewerJoins`) and dismiss the overlay. The host-side socket
+   * bridges the viewer into the lobby automatically (server emits
+   * `live_stream_viewer_joined` to the host's
+   * stream.lobbyId room), so we don't race against the local lobby
+   * state here.
+   */
+  async redeemInboundLiveToken(): Promise<void> {
+    const preview = this.inboundLivePreview();
+    if (!preview) return;
+    const result = await this.liveStream.redeemViewerToken(preview.shareToken);
+    if (result) {
+      this.liveStream.clearInbound();
+    }
+  }
+
+  declineInboundLiveToken(): void {
+    this.liveStream.clearInbound();
   }
 
   async; /**

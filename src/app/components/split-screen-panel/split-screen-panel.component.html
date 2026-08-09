@@ -1,0 +1,142 @@
+<div class="split-screen-panel" (window:message)="receiveGameMessage($event)">
+  <header class="split-header glass-v42">
+    <div class="split-status">
+      <span class="material-symbols-outlined">splitscreen_right</span>
+      <span class="split-status-text">
+        SPLIT-SCREEN {{ isHost() ? 'HOST' : 'GUEST' }}
+      </span>
+      <span
+        class="split-peers-pill"
+        [attr.data-state]="activeLobby()?.status ?? 'lobby'"
+      >
+        {{ activeLobby()?.status?.toUpperCase() ?? 'LOBBY' }}
+      </span>
+    </div>
+    <div class="split-controls">
+      <button
+        type="button"
+        class="split-ctrl-btn"
+        (click)="copyShareLink()"
+        aria-label="Copy share link"
+        title="Copy share link"
+      >
+        <span class="material-symbols-outlined">content_copy</span>
+        COPY LINK
+      </button>
+      <button
+        type="button"
+        class="split-ctrl-btn"
+        (click)="nativeShare()"
+        aria-label="Native share"
+        title="Native share"
+      >
+        <span class="material-symbols-outlined">share</span>
+        SHARE
+      </button>
+      <button
+        type="button"
+        class="split-ctrl-btn danger"
+        (click)="leave()"
+        aria-label="Leave split-screen"
+        title="Leave split-screen"
+      >
+        <span class="material-symbols-outlined">close</span>
+        EXIT
+      </button>
+    </div>
+  </header>
+
+  <section class="split-body">
+    <div class="split-iframe-shell">
+      <iframe
+        *ngIf="game() as g && trustedIframeUrl() as trustedUrl"
+        [src]="trustedUrl"
+        [attr.sandbox]="iframeSandbox()"
+        [attr.allow]="iframeAllow()"
+        title="{{ g.name }} split-screen"
+        loading="lazy"
+        allowfullscreen
+      ></iframe>
+      <div *ngIf="!game()" class="split-empty">
+        <span class="material-symbols-outlined">sports_esports</span>
+        <h3>NO CABINET LOADED</h3>
+        <p>Pick a game from Tha Spot to enter split-screen mode.</p>
+      </div>
+
+      <!-- Local player HUD overlay -->
+      <div class="hud hud-local">
+        <div class="hud-row">
+          <span class="hud-label">YOU</span>
+          <span class="hud-score">{{ myScore() }}</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-label">{{ myLevel() }}</span>
+          <span class="hud-progress">{{ myProgress() }}%</span>
+        </div>
+        <button
+          class="hud-turn-btn"
+          type="button"
+          (click)="cycleTurn()"
+          aria-label="Cycle turn"
+          title="Cycle turn"
+        >
+          TURN: {{ myTurn() | uppercase }}
+        </button>
+      </div>
+
+      <!-- Peer HUD overlay -->
+      <div class="hud hud-peer" *ngIf="peerSnapshot() as snap">
+        <div class="hud-row">
+          <span class="hud-label">PEER</span>
+          <span class="hud-score"
+            >{{ snap?.score !== undefined ? snap.score : '—' }}</span
+          >
+        </div>
+        <div class="hud-row">
+          <span class="hud-label">{{ snap?.level ?? '—' }}</span>
+          <span class="hud-progress"
+            >{{
+              snap?.progress !== undefined ? snap.progress + '%' : '—'
+            }}</span
+          >
+        </div>
+        <span class="hud-turn-passive">
+          TURN: {{ (snap?.turn ?? 'host') | uppercase }}
+        </span>
+      </div>
+
+      <div class="gamepad-chip" *ngIf="hasGamepadConnection()">
+        <span class="material-symbols-outlined">stadia_controller</span>
+        GAMEPAD LIVE
+      </div>
+    </div>
+
+    <aside class="split-side">
+      <h3>HOW SPLIT-SCREEN WORKS HERE</h3>
+      <ol>
+        <li>
+          1. Copy the link from the header and send it to a friend — they
+          don't need an account to preview.
+        </li>
+        <li>
+          2. When the friend opens S.M.U.V.E. with the link, their browser
+          joins your split-screen room instantly.
+        </li>
+        <li>
+          3. Each of you runs the same game on your own device. The HUDs
+          mirror your scores and current turn in real time.
+        </li>
+        <li>
+          4. Voice chat rides the existing WebRTC relay
+          (<code>voice_signal</code>) — no plugin to install.
+        </li>
+      </ol>
+      <p class="split-disclaimer">
+        We can't reach inside third-party game sources (gamepix, retrogames,
+        etc.) on Android, so each device shows the full cabinet UI locally
+        and we sync gameplay metadata only. S.M.U.V.E.-native game builds
+        (WASM / internal cabinets) get the synchronized HUD.
+      </p>
+    </aside>
+  </section>
+</div>
