@@ -1884,7 +1884,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // Only carry a lobby id when the host actually has one. A faceless
     // broadcast (no game selected) ships lobbyId: null so the share URL
     // never includes a bogus `lobby=undefined` fragment.
-    const lobbyId = this.matchmaking.activeSplitLobby() ?? null;
+    const lobbyId: string | undefined = this.matchmaking.activeSplitLobby()?.id;
     const payload =
       game && this.splitScreenModeActive()
         ? {

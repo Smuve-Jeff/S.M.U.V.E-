@@ -1,22 +1,42 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    "target": "ES2022",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "types": ["node", "jest"],
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/app", "src/main.ts", "src/polyfills.ts", "src/test.ts", "src/styles.css"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    // Server-side Express migration. Lives in src/app.ts + src/routes/** +
+    // src/services/**/*.ts (root-level, behind the frontend's src/app/services)
+    // + src/socket/** + src/database/** + src/entities/** + src/middleware/** +
+    // src/lib/** + src/types/** + src/config/**. TypeScript here uses `@/*`
+    // aliases which are configured in tsconfig.server.json. We exclude these
+    // from the frontend tsc / ng build walk so the Angular PWA build is not
+    // blocked by typeorm / express / socket.io, which only belong on the
+    // Node server. Run `tsc -p tsconfig.server.json` to compile the backend.
+    "src/app.ts",
+    "src/routes/**",
+    "src/services/**/*.ts",
+    "src/socket/**",
+    "src/database/**",
+    "src/entities/**",
+    "src/middleware/**",
+    "src/lib/**",
+    "src/types/**",
+    "src/config/**"
+  ]
 }

@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import type { z } from "zod";
+import { z } from "zod";
 import { AppError } from "@/lib";
 
 const formatIssues = (error: z.ZodError) =>

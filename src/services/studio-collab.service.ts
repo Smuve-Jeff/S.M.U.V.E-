@@ -75,7 +75,7 @@ export const STUDIO_ROLE_PERMISSIONS: Record<
 
 export const resolveStudioPermissions = (
   role: string,
-  overrides: Record<string, unknown> | null = null,
+  overrides: Record<string, boolean> | null = null,
 ): Record<string, boolean> => ({
   ...(STUDIO_ROLE_PERMISSIONS[role] || STUDIO_ROLE_PERMISSIONS.viewer),
   ...(overrides || {}),
@@ -108,7 +108,7 @@ export const hasStudioPermission = async (
   if (!permission) return true;
   const perms = resolveStudioPermissions(
     member.role,
-    coerceJson(member.permissions, {}) as Record<string, unknown>,
+    coerceJson(member.permissions, {}) as Record<string, boolean>,
   );
   return !!perms[permission];
 };

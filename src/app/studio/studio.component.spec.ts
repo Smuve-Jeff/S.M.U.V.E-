@@ -180,6 +180,11 @@ describe('StudioComponent', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     localStorage.clear();
+    // Reset the profile signal: updateProfile() mutates it during tests,
+    // and without a reset the live-sync effect leaks FX state across tests.
+    mockUserProfileService.profile.set({
+      settings: { studio: { stageFxEnabled: true } },
+    });
     document.body.classList.remove('stage-fx-off');
     mockAudioEngine.performanceTier.set('ultra');
     mockTemplateService.templates = [];

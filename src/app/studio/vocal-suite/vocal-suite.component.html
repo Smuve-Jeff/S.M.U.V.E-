@@ -522,6 +522,10 @@
 
           <div class="vs-transport-row flex items-center justify-between">
             <div class="flex gap-4">
+              <button
+                (click)="toggleRecording()"
+                class="px-8 py-3 bg-fl-blue rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
+              >
                 {{
                   micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'
                 }}
