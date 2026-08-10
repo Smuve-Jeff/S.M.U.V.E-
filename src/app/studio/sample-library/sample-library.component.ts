@@ -309,24 +309,173 @@ export class SampleLibraryComponent implements OnInit {
     }
   }
 
+  /** Map library entry IDs to real InstrumentsService preset IDs so "Load"
+   *  produces an audible track (the catalog is metadata-only). Unknown IDs
+   *  fall back to ensureTrack's default instrument. */
+  private static readonly SAMPLE_TO_PRESET: Record<string, string> = {
+    kick: 'trap-kit-elite',
+    snare: 'trap-kit-elite',
+    clap: 'trap-kit-elite',
+    hat: 'trap-kit-elite',
+    crash: 'trap-kit-elite',
+    percussion: 'afro-cuban-kit',
+    'live-kick': 'acoustic-kit-pro',
+    'bass-sub': 'sub-commander',
+    'bass-reese': 'reese-bass-neuro',
+    'keys-rhodes': 'rhodes-mk2-stage',
+    'keys-wurli': 'wurlitzer-200a-ep',
+    'lead-saw': 'supersaw-stack',
+    'lead-pluck': 'pluck-marimba-hybrid',
+    'pad-glass': 'wavetable-dream',
+    'pad-strings': 'ob-xa-strings',
+    'fx-riser': 'cyber-stab',
+    'fx-impact': 'cyber-stab',
+    'fx-down': 'vhs-memory',
+    'loop-trap': 'trap-kit-elite',
+    'loop-rnb': 'rhodes-mk2-stage',
+    'loop-house': 'modern-kit-elite',
+  };
+
   loadSample(sampleId: string): void {
     this.haptic.medium();
     this.audioEngine.resume();
-    this.musicManager.ensureTrack(sampleId);
-    this.snackbar.success(`Sample loaded: ${sampleId}`);
+    const sample = this.rawSamples.find((s) => s.id === sampleId);
+    const presetId =
+      SampleLibraryComponent.SAMPLE_TO_PRESET[sampleId] ?? sampleId;
+    this.musicManager.ensureTrack(presetId);
+    this.snackbar.success(
+      `Sample loaded: ${sample?.name ?? sampleId} → ${presetId}`
+    );
   }
 
-  async previewSample(sampleId: string): Promise<void> {
+  /**
+   * Audible preview — synthesizes a short, category-appropriate one-shot
+   * through the live engine (drum thumps, tonal hits, FX sweeps). The library
+   * catalog is metadata-only, so this is the real audition path.
+   */
+  async previewSample(sampleId: string, event?: Event): Promise<void> {
     event?.stopPropagation?.();
+    if (this.previewingId() === sampleId) return;
     this.previewingId.set(sampleId);
-    // Use instruments service if available; fall back to engine.resume()
+    this.haptic.light();
+    const sample = this.rawSamples.find((s) => s.id === sampleId);
+    this.playSampleAudition(sample);
     setTimeout(() => {
       if (this.previewingId() === sampleId) {
         this.previewingId.set(null);
       }
-    }, 600);
-    this.snackbar.info(`Previewing ${sampleId}`);
+    }, 450);
+    this.snackbar.info(`Previewing ${sample?.name ?? sampleId}`);
   }
 
-  private event: any = null; // stub for build (TS will not complain due to optional method)
+  /** Short synthesized one-shot per category — never throws, mobile-safe. */
+  private playSampleAudition(sample?: {
+    id: string;
+    category: string;
+    name: string;
+  }): void {
+    const ctx = this.audioEngine.ctx;
+    if (!ctx) return;
+    try {
+      this.audioEngine.resume();
+    } catch {
+      /* context may be suspended — the source still gets scheduled */
+    }
+    const now = ctx.currentTime;
+    const cat = sample?.category ?? 'drum';
+    const id = sample?.id ?? '';
+    const dur = 0.35;
+
+    const out = ctx.createGain();
+    out.connect(this.audioEngine.masterGain ?? ctx.destination);
+    out.gain.setValueAtTime(0.0001, now);
+    out.gain.exponentialRampToValueAtTime(0.22, now + 0.012);
+    out.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    // ── Percussive hits ────────────────────────────────────
+    if (cat === 'drum' || cat === 'perc' || cat === 'loop') {
+      const thump = ctx.createOscillator();
+      thump.type = 'sine';
+      const isNoise =
+        id.includes('hat') || id.includes('crash') || id.includes('clap');
+      thump.frequency.setValueAtTime(
+        isNoise ? 220 : id.includes('snare') ? 180 : 140,
+        now
+      );
+      thump.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+      thump.connect(out);
+      thump.start(now);
+      thump.stop(now + 0.25);
+
+      if (isNoise) {
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 5000;
+        const nb = ctx.createBuffer(
+          1,
+          Math.max(1, Math.floor(ctx.sampleRate * 0.08)),
+          ctx.sampleRate
+        );
+        const data = nb.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.4;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = nb;
+        noise.connect(hp);
+        hp.connect(out);
+        noise.start(now);
+        noise.stop(now + 0.08);
+      }
+      return;
+    }
+
+    // ── Tonal hits ─────────────────────────────────────────
+    const BASE: Record<string, number> = {
+      bass: 55,
+      keys: 330,
+      lead: 440,
+      pad: 220,
+      vox: 392,
+      organ: 262,
+      guitar: 196,
+      strings: 294,
+      world: 294,
+      piano: 262,
+      brass: 233,
+      woodwind: 392,
+      choir: 392,
+      vfx: 660,
+    };
+    const freq = BASE[cat] ?? 330;
+    const osc = ctx.createOscillator();
+    osc.type =
+      cat === 'lead' || cat === 'vfx'
+        ? 'sawtooth'
+        : cat === 'pad' || cat === 'choir'
+          ? 'triangle'
+          : 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    const flt = ctx.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.value = cat === 'lead' ? 2500 : 1200;
+    osc.connect(flt);
+    flt.connect(out);
+    osc.start(now);
+    osc.stop(now + dur);
+
+    // Pads / choirs get a fifth for warmth
+    if (cat === 'pad' || cat === 'choir') {
+      const fifth = ctx.createOscillator();
+      fifth.type = 'triangle';
+      fifth.frequency.setValueAtTime(freq * 1.5, now);
+      fifth.connect(flt);
+      fifth.start(now);
+      fifth.stop(now + dur);
+    }
+    // FX get a downward sweep
+    if (cat === 'vfx') {
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.25, now + dur);
+    }
+  }
 }

@@ -1,6 +1,6 @@
 /* ===========================================================
-   S.M.U.V.E. Composer — Drum Machine (FL Studio Mobile pattern)
-   City Skylines After Dark — Stage Edition
+   S.M.U.V.E. Composer — Drum Machine 2.0
+   MPC-Style Velocity Pads · LED Feedback · Kit Haptics
    =========================================================== */
 
 :host {
@@ -99,7 +99,8 @@
   background: linear-gradient(
     180deg,
     var(--ivory-paper) 0%,
-    var(--ivory-panel) 100%
+    var(--ivory-panel) 85%,
+    rgba(14,124,123,0.06) 100%
   );
   border: 2px solid var(--ivory-line);
   border-radius: 14px;
@@ -113,37 +114,37 @@
   position: relative;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 0.1s,
-    box-shadow 0.15s,
-    border-color 0.15s;
+    transform 0.08s ease-out,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease,
+    background 0.08s ease;
   min-height: 64px;
+  overflow: hidden;
 }
 
 .dm-pad:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,0.15),
+    0 0 0 3px var(--pad-color, var(--teal-500));
 }
 
 .dm-pad.selected {
   border-color: var(--pad-color, var(--teal-500));
   box-shadow:
     0 0 0 2px var(--teal-soft-glow),
-    0 0 18px var(--teal-glow);
+    0 0 20px var(--teal-glow),
+    0 4px 12px rgba(14,124,123,0.2);
 }
 
 .dm-pad.playing {
-  animation: dm-pad-flash 0.18s ease-out;
+  animation: dm-pad-flash 0.15s ease-out;
 }
 
 @keyframes dm-pad-flash {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(0.98);
-    background: var(--pad-color, var(--teal-500));
-    color: var(--ivory-deep);
-  }
+  0% { transform: scale(1); background: var(--ivory-paper); }
+  40% { transform: scale(0.96); background: var(--pad-color, var(--teal-500)); color: white; }
+  100% { transform: scale(1); background: var(--ivory-paper); }
 }
 
 .dm-pad-led {
@@ -153,14 +154,21 @@
   background: var(--pad-color, var(--espresso-muted));
   box-shadow:
     0 0 0 2px var(--ivory-paper),
-    0 0 8px var(--pad-color);
+    0 0 8px var(--pad-color),
+    0 0 16px rgba(var(--pad-color-rgb, 14, 124, 123), 0.4);
   position: absolute;
   top: 8px;
   right: 8px;
+  animation: dm-led-glow 2s ease-in-out infinite;
+}
+@keyframes dm-led-glow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--ivory-paper), 0 0 6px var(--pad-color); }
+  50% { box-shadow: 0 0 0 2px var(--ivory-paper), 0 0 14px var(--pad-color), 0 0 22px rgba(14,124,123,0.3); }
 }
 .dm-pad-led.off {
   background: var(--espresso-line);
   box-shadow: none;
+  animation: none;
 }
 
 .dm-pad-name {
@@ -449,7 +457,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ---- MOBILE FLAT single-column ---- */
+/* ── MOBILE DRUM MACHINE 2.0 ── */
 @media (max-width: 768px) {
   .dm-body {
     flex-direction: column;
@@ -459,6 +467,7 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     flex: 0 0 auto;
+    padding: 8px;
   }
   .dm-step-grid {
     border-left: none;
@@ -468,16 +477,133 @@
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--ivory-line);
+    padding: 10px 8px;
+    gap: 10px;
+  }
+  .dm-pad {
+    min-height: 56px;
+    border-radius: 12px;
+  }
+  .dm-pad:active {
+    transform: scale(0.9);
+  }
+  .dm-step {
+    min-height: 32px;
   }
 }
 
 @media (max-width: 480px) {
   .dm-pads {
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: 4px;
   }
   .dm-step-row {
     grid-template-columns: 80px repeat(16, 1fr);
+  }
+  .dm-pad {
+    min-height: 48px;
+    padding: 6px 4px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHASE F1 — MPC-STYLE GROOVE TEMPLATES
+   Named swing presets (Straight · MPC 54 · Dilla · Shuffle)
+   ════════════════════════════════════════════════════════════ */
+.dm-groove-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.dm-groove-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-500, #0e7c7b);
+  white-space: nowrap;
+}
+.dm-groove-label .material-symbols-outlined {
+  font-size: 15px;
+}
+.dm-groove-chips {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.dm-groove-chips::-webkit-scrollbar {
+  display: none;
+}
+.dm-groove-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.12));
+  background: var(--ivory-paper, #1a1f35);
+  color: var(--espresso-muted, #94a3c8);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 32px;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.dm-groove-chip:hover {
+  border-color: var(--teal-500, #0e7c7b);
+  color: var(--teal-400, #2ba09c);
+  transform: translateY(-1px);
+}
+.dm-groove-chip.dm-groove-chip-active {
+  background: linear-gradient(135deg, var(--teal-500, #0e7c7b), var(--teal-700, #06403f));
+  color: #fff;
+  border-color: var(--teal-500, #0e7c7b);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 0 14px rgba(14, 124, 123, 0.35);
+}
+.dm-groove-glyph {
+  font-size: 13px;
+  line-height: 1;
+}
+.dm-groove-name {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.dm-groove-chip.dm-groove-clear {
+  border-style: dashed;
+  color: var(--espresso-muted, #94a3c8);
+  min-width: 32px;
+  justify-content: center;
+  padding: 5px 8px;
+}
+.dm-groove-chip.dm-groove-clear:hover {
+  border-color: var(--record, #e11d48);
+  color: var(--record, #e11d48);
+}
+
+@media (max-width: 768px) {
+  .dm-groove-block {
+    margin-left: 0;
+    width: 100%;
+  }
+  .dm-groove-chip {
+    min-height: 38px;
+    padding: 6px 12px;
+    font-size: 11px;
   }
 }
 
@@ -601,4 +727,345 @@
 .dm-take-chip-delete:hover {
   opacity: 1;
   color: var(--neon-pink);
+}
+
+/* ════════════════════════════════════════════════════════════
+   STAGE 2.0 — RHYTHM UNIT POLISH
+   Color-reactive pads · velocity readback on steps ·
+   machine-room ambience · elevated macro rail
+   ════════════════════════════════════════════════════════════ */
+
+/* Pad: color-tinted face + inner bevel so each drum feels tactile. */
+.dm-pad {
+  background:
+    radial-gradient(
+      circle at 30% 22%,
+      rgba(255, 255, 255, 0.75),
+      transparent 46%
+    ),
+    linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 88%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.06),
+    0 3px 8px rgba(61, 53, 42, 0.1);
+}
+.dm-pad.selected {
+  border-color: color-mix(in srgb, var(--pad-color, #0e7c7b) 70%, white);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--pad-color, #0e7c7b) 28%, transparent),
+    0 0 24px color-mix(in srgb, var(--pad-color, #0e7c7b) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.dm-pad.playing {
+  animation: dm-pad-flash-pro 0.16s ease-out;
+}
+@keyframes dm-pad-flash-pro {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(0.95);
+    background-color: color-mix(in srgb, var(--pad-color, #0e7c7b) 55%, white);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.dm-pad .dm-pad-name {
+  color: var(--espresso-text, #1f1a12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.dm-pad.selected .dm-pad-name {
+  color: var(--pad-color, #0e7c7b);
+}
+
+/* Pad LED — breathes in the pad's own color, double-ring on hit. */
+.dm-pad-led {
+  box-shadow:
+    0 0 0 2px var(--ivory-paper),
+    0 0 9px var(--pad-color, #0e7c7b),
+    0 0 18px color-mix(in srgb, var(--pad-color, #0e7c7b) 50%, transparent);
+  transition: transform 0.1s ease;
+}
+.dm-pad.playing .dm-pad-led {
+  transform: scale(1.45);
+  box-shadow:
+    0 0 0 2px var(--ivory-paper),
+    0 0 14px var(--pad-color, #0e7c7b),
+    0 0 30px color-mix(in srgb, var(--pad-color, #0e7c7b) 70%, transparent);
+}
+
+/* Step sequencer: current cell sweep + velocity-consistent fill. */
+.dm-step {
+  transition: background 0.08s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+.dm-step.current {
+  background:
+    linear-gradient(180deg, rgba(14, 124, 123, 0.3), rgba(14, 124, 123, 0.08));
+  box-shadow: inset 0 0 0 1px rgba(14, 124, 123, 0.45);
+}
+.dm-step.on {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--teal-300, #2ba09c) 85%, white) 0%,
+    var(--teal-600, #075e5d) 100%
+  );
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.45);
+}
+.dm-step.on.current {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset,
+    0 0 16px rgba(32, 215, 210, 0.8);
+  transform: scaleY(1.05);
+}
+
+/* Bar tabs: active tab gets the glow treatment. */
+.dm-bar-tab.active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 12px rgba(14, 124, 123, 0.35);
+}
+
+/* Style rail chips — brighter active state, calm hover lift. */
+.dm-style-chip {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+.dm-style-chip:hover {
+  transform: translateY(-1px);
+}
+.dm-style-chip.dm-style-chip-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.28) inset,
+    0 6px 16px rgba(14, 124, 123, 0.35);
+}
+.dm-style-apply {
+  position: relative;
+  overflow: hidden;
+}
+.dm-style-apply::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 120%,
+    rgba(255, 255, 255, 0.35) 0%,
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.dm-style-apply:hover::after {
+  opacity: 1;
+}
+
+/* Swing slider — teal track, glowing thumb. */
+.dm-swing-slider {
+  accent-color: var(--teal-500, #0e7c7b);
+  filter: drop-shadow(0 0 4px rgba(14, 124, 123, 0.25));
+}
+.dm-swing-readout {
+  font-family: var(--font-mono, monospace);
+  font-weight: 800;
+  color: var(--teal-500, #0e7c7b);
+}
+
+/* Macro rail — card-like actions with press feedback. */
+.dm-macro {
+  background: linear-gradient(
+    180deg,
+    var(--ivory-paper, #fbf7ec) 0%,
+    rgba(245, 239, 224, 0.6) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(61, 53, 42, 0.07);
+  transition: transform 0.14s ease, box-shadow 0.2s ease, background 0.14s ease;
+}
+.dm-macro:active {
+  transform: scale(0.97);
+}
+.dm-macro:hover {
+  box-shadow:
+    0 4px 12px rgba(14, 124, 123, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Kit chips inside the inspector — grounded dark wells. */
+.dm-kit-chip {
+  background: rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.dm-kit-chip.dm-kit-chip-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 4px 12px rgba(14, 124, 123, 0.4);
+}
+
+/* AI generate button — full-width hero action. */
+.dm-ai-generate {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--teal-500, #0e7c7b), var(--teal-700, #06403f));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 6px 18px rgba(14, 124, 123, 0.35);
+  transition: transform 0.14s ease, box-shadow 0.2s ease;
+}
+.dm-ai-generate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: dm-ai-sheen 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes dm-ai-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  45%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+.dm-ai-generate:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 10px 26px rgba(14, 124, 123, 0.45);
+}
+.dm-ai-generate:active {
+  transform: scale(0.97);
+}
+.dm-ai-generate .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Velocity strip — richer bars + hover glow. */
+.dm-vel-bar {
+  transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+.dm-vel-bar:hover {
+  filter: brightness(1.25);
+  box-shadow: 0 0 8px rgba(14, 124, 123, 0.5);
+}
+
+/* Piano-roll cross-link chip. */
+.dm-pr-jump {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed rgba(14, 124, 123, 0.4);
+  background: rgba(14, 124, 123, 0.06);
+  color: var(--teal-500, #0e7c7b);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.dm-pr-jump:hover {
+  background: rgba(14, 124, 123, 0.12);
+  border-style: solid;
+  box-shadow: 0 0 14px rgba(14, 124, 123, 0.25);
+}
+.dm-pr-jump:active {
+  transform: scale(0.97);
+}
+
+/* Take chips — mini hardware switches. */
+.dm-take-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.dm-take-chip.dm-take-chip-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 4px 12px rgba(255, 167, 38, 0.4);
+}
+.dm-takes-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 124, 123, 0.45);
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-500, #0e7c7b);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dm-takes-new-btn:hover {
+  background: var(--teal-500, #0e7c7b);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(14, 124, 123, 0.35);
+}
+
+/* Machine-room ambience behind the grid. */
+.dm-step-grid {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(14, 124, 123, 0.05), transparent 55%),
+    var(--ivory-deep, #f5efe0);
+}
+
+/* Dark theme: keep the machine moody but legible. */
+:host-context(.dark-mode) .dm-pad {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.1), transparent 46%),
+    linear-gradient(180deg, #1a1712 0%, #14110b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.35);
+}
+:host-context(.dark-mode) .dm-pad .dm-pad-name {
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: none;
+}
+:host-context(.dark-mode) .dm-pad.selected .dm-pad-name {
+  color: var(--teal-300, #5eead4);
+}
+:host-context(.dark-mode) .dm-step-grid {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(32, 215, 210, 0.06), transparent 55%),
+    #0d0a06;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-pad,
+  .dm-step,
+  .dm-macro,
+  .dm-kit-chip,
+  .dm-style-chip,
+  .dm-pr-jump {
+    transition: none !important;
+  }
+  .dm-ai-generate::after {
+    animation: none !important;
+  }
+  .dm-pad.playing {
+    animation: none !important;
+  }
 }

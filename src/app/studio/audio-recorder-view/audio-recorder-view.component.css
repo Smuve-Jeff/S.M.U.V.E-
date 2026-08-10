@@ -714,3 +714,130 @@
   font-size: 22px;
   opacity: 0.7;
 }
+
+/* ============================================================
+   STAGE 2.0 — RECORDER CHANNEL GLOW
+   Header halo · transport halo · take-card light
+   ============================================================ */
+
+/* Header: console slab with a live hairline. */
+.arv-header {
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 22px rgba(0, 0, 0, 0.22);
+}
+.arv-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 26, 77, 0.5),
+    rgba(0, 229, 255, 0.4),
+    transparent
+  );
+  pointer-events: none;
+}
+.arv-kpi-value {
+  text-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
+}
+
+/* Transport: soft neon frame + record halo. */
+.arv-transport {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 28px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(255, 26, 77, 0.05);
+}
+.arv-record-btn {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 22px rgba(0, 0, 0, 0.35);
+}
+.arv-record-btn-live {
+  animation: arv-record-breathe 1.6s ease-in-out infinite;
+}
+@keyframes arv-record-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(255, 26, 77, 0.18),
+      0 14px 36px rgba(255, 26, 77, 0.3),
+      0 0 24px rgba(255, 26, 77, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(255, 26, 77, 0.12),
+      0 14px 36px rgba(255, 26, 77, 0.3),
+      0 0 42px rgba(255, 26, 77, 0.45);
+  }
+}
+
+/* Meter strip: luminous fill floor. */
+.arv-meter-strip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.arv-meter-fill {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+.arv-meter-recording-pulse {
+  box-shadow: 0 0 12px rgba(255, 26, 77, 0.7);
+}
+
+/* Bank rows: hover lift + neon row echo. */
+.arv-row {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.22s ease;
+}
+.arv-row:hover {
+  transform: translateX(2px);
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Take cards: richer selected glow. */
+.arv-take-card {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.arv-take-card.selected {
+  box-shadow:
+    0 0 0 1px rgba(255, 213, 79, 0.4) inset,
+    0 6px 18px rgba(255, 213, 79, 0.28);
+}
+.arv-take-waveform {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.arv-tm-btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.arv-tm-btn:hover:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 12px rgba(255, 213, 79, 0.2);
+}
+
+/* Waveform well: dark instrument slab. */
+.arv-waveform {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arv-record-btn-live {
+    animation: none !important;
+  }
+  .arv-row,
+  .arv-take-card,
+  .arv-tm-btn {
+    transition: none !important;
+  }
+  .arv-row:hover {
+    transform: none !important;
+  }
+}

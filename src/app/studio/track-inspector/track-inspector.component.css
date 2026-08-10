@@ -259,3 +259,137 @@
     overflow-y: auto;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Track Inspector · Console polish
+   ═══════════════════════════════════════════════════════════ */
+.ti-header {
+  position: relative;
+}
+
+.ti-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 50%, transparent),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.ti-pill {
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.ti-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(14, 124, 123, 0.18);
+}
+
+.ti-pill:active {
+  transform: scale(0.94);
+}
+
+.ti-pill.active {
+  box-shadow: 0 3px 12px rgba(14, 124, 123, 0.35);
+}
+
+.ti-card {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ti-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--teal-500) 28%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+
+.ti-card-title .badge {
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.35);
+}
+
+.ti-fx-row {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ti-fx-row:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 30%, transparent);
+}
+
+.ti-fx-row .toggle.on {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.4);
+}
+
+.ti-fx-row .toggle.on::before {
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+}
+
+.ti-ai-chip {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    filter 140ms ease;
+}
+
+.ti-ai-chip:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow:
+    0 2px 8px rgba(14, 124, 123, 0.3),
+    0 0 16px rgba(14, 124, 123, 0.25);
+}
+
+.ti-ai-chip:active {
+  transform: scale(0.95);
+}
+
+.ti-row input[type='range'] {
+  accent-color: var(--teal-500);
+}
+
+.ti-row .value {
+  font-variant-numeric: tabular-nums;
+  transition: color 140ms ease;
+}
+
+.ti-row:hover .value {
+  color: var(--teal-300);
+}
+
+.ti-empty .material-symbols-outlined {
+  animation: ti-empty-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes ti-empty-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ti-empty .material-symbols-outlined {
+    animation: none;
+  }
+}

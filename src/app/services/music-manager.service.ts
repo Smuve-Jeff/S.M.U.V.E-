@@ -1,4 +1,11 @@
-import { Injectable, inject, signal, computed, effect } from '@angular/core';
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  effect,
+  Injector,
+} from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
@@ -9,6 +16,9 @@ import { IdeaRecipe } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import { TakeManagerService } from './take-manager.service';
+import { AutomationService } from '../studio/automation.service';
+import { OfflineBounceService } from '../studio/offline-bounce.service';
+import { AudioImportService } from '../studio/audio-import.service';
 import {
   Project,
   StudioTrack,
@@ -135,6 +145,19 @@ export class MusicManagerService {
   private logger = inject(LoggingService);
   /** Sprint A3 Phase 4 — comp/take source for active-take playback. */
   private takeManager = inject(TakeManagerService);
+  private automation = inject(AutomationService);
+  /**
+   * Lazy-resolved services that (transitively) depend on MusicManagerService
+   * (OfflineBounceService and AudioImportService both inject it). Resolving
+   * via the Injector at call time avoids the Angular circular-DI deadlock.
+   */
+  private readonly injector = inject(Injector);
+  private get offlineBounce(): OfflineBounceService {
+    return this.injector.get(OfflineBounceService);
+  }
+  private get audioImporter(): AudioImportService {
+    return this.injector.get(AudioImportService);
+  }
 
   /**
    * AudioBuffer cache for stem-derived audio clips.
@@ -1444,13 +1467,66 @@ export class MusicManagerService {
   launchScene(id: string) {
     this.activeSceneId.set(id);
   }
-  promoteTakeRegion(t: string, c: string, r: any) {}
-  async bounceTrack(id: string) {
-    this.logger.info('Bouncing track...');
+
+  /**
+   * Promote a take region into the arrangement as a comp section. The take
+   * assigned to the region (explicit, or the track's active take) now plays
+   * that step span during transport — the "bake region to timeline" action.
+   */
+  promoteTakeRegion(trackId: string, clipId: string, region: any) {
+    const takeId =
+      region?.takeId ?? this.takeManager.getActiveTake(trackId)()?.id ?? null;
+    const startStep = Number(region?.startStep ?? region?.start ?? 0);
+    const endStep = Number(
+      region?.endStep ?? region?.end ?? startStep + 16
+    );
+    if (
+      !trackId ||
+      !takeId ||
+      !Number.isFinite(startStep) ||
+      !Number.isFinite(endStep) ||
+      endStep <= startStep
+    ) {
+      this.logger.warn('promoteTakeRegion: invalid region/take', {
+        trackId,
+        clipId,
+        region,
+      });
+      return null;
+    }
+    const section = this.takeManager.setSection(
+      trackId,
+      Math.floor(startStep),
+      Math.ceil(endStep),
+      takeId
+    );
+    this.logger.info(
+      `Promoted take ${takeId} to section ${section.startStep}-${section.endStep}`
+    );
+    return section;
   }
 
-  importAudio() {
-    this.logger.info('Importing audio track...');
+  /**
+   * Bounce a single track to a WAV file through the offline render engine
+   * (synth notes + audio clips, respecting mute and clip fades). Returns the
+   * bounce result (blob/url/peak/RMS) or null when the track is unknown.
+   */
+  async bounceTrack(
+    id: string,
+    format: 'wav-16' | 'wav-32' | 'wav-32-float' = 'wav-32-float'
+  ) {
+    const track = this.tracks().find((t) => t.id === id);
+    if (!track) {
+      this.logger.warn('bounceTrack: unknown track', id);
+      return null;
+    }
+    this.logger.info(`Bouncing track: ${track.name}`);
+    return this.offlineBounce.bounceTrack(id, format);
+  }
+
+  /** Import audio files into the project (delegates to the import editor). */
+  importAudio(): Promise<void> {
+    return this.audioImporter.importFiles();
   }
   startRecording() {
     this.recordingEngine.startRecording();
@@ -1460,8 +1536,11 @@ export class MusicManagerService {
     return Promise.resolve(null);
   }
 
+  /** Create (or re-use) an automation lane for a track parameter. */
   addAutomationLane(trackId: string, param: string) {
-    this.logger.info(`Added automation lane for ${param}`);
+    const lane = this.automation.ensureLane(trackId, param);
+    this.logger.info(`Added automation lane for ${param} on ${trackId}`);
+    return lane;
   }
 
   // ── Generated recipes (blank-canvas killer) ───────────────────────
@@ -1723,8 +1802,11 @@ export class MusicManagerService {
     const swingOffset = isOffbeat ? (drumTrack as any)?.swingAmount || 0 : 0;
     const swungTime = time + swingOffset * duration * 0.5;
 
-    this.tracks().forEach((t) => {
-      if (t.muted) return;
+    const allTracks = this.tracks();
+    const hasSolo = allTracks.some((t) => t.soloed);
+    allTracks
+      .filter((t) => !t.muted && (!hasSolo || t.soloed))
+      .forEach((t) => {
 
       // Sprint A3 Phase 4/5 — comp playback: a section-assigned take wins for
       // this step (sectional comp), else the active take snapshot, else the
@@ -1732,7 +1814,15 @@ export class MusicManagerService {
       const takeNotes = this.takeManager.getCompNotesForStepNow(t.id, step);
       const playNotes = takeNotes.length > 0 ? takeNotes : t.notes;
 
-      t.clips.forEach((clip) => {
+      const clips = t.clips ?? [];
+      // Seeded MIDI tracks often have notes before they have arrangement
+      // clips. Treat that as an active pattern instead of silently producing
+      // no sound; explicit clips still gate playback as before.
+      const playableClips = clips.length > 0
+        ? clips
+        : [{ start: 0, length: Number.POSITIVE_INFINITY, type: 'midi' } as any];
+
+      playableClips.forEach((clip) => {
         if (bar >= clip.start && bar < clip.start + clip.length) {
           playNotes
             .filter((n) => Math.floor(n.step) === step % 64)
@@ -1798,14 +1888,25 @@ export class MusicManagerService {
               const rate = this.engine.calculatePlaybackRate(
                 (clip as any).originalBpm || this.engine.tempo()
               );
+              const clipDur =
+                clip.length * 4 * (60 / this.engine.tempo());
+              // Phase F2 — clip fade envelope. Fades are stored in bars on
+              // the clip (matching start/length units); convert to seconds.
+              const secPerBar = 4 * (60 / this.engine.tempo());
+              const fadeInSec =
+                Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
+              const fadeOutSec =
+                Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
               this.engine.triggerSampler(
                 t.id,
                 audioData,
                 swungTime,
                 t.gain,
                 t.pan,
-                clip.length * 4 * (60 / this.engine.tempo()),
-                rate
+                clipDur,
+                rate,
+                fadeInSec,
+                fadeOutSec
               );
             }
           }

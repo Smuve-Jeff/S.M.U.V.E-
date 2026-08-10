@@ -9,7 +9,9 @@
   bottom: 0;
   right: 0;
   width: min(420px, 100vw);
-  background: var(--ivory-paper);
+  background: rgba(252, 250, 245, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid var(--espresso-line);
   transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -17,6 +19,11 @@
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(61, 53, 42, 0.12);
   z-index: 70;
+}
+
+:host-context(.dark-mode) .ai-shell {
+  background: rgba(20, 17, 11, 0.9);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.35);
 }
 
 .ai-shell-open {
@@ -518,4 +525,186 @@
   .ai-action-btn {
     transition: none !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — AI Assistant · Console polish
+   ═══════════════════════════════════════════════════════════ */
+.ai-shell {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(14, 124, 123, 0.08) 0%,
+      transparent 45%
+    ),
+    rgba(252, 250, 245, 0.94);
+}
+
+:host-context(.dark-mode) .ai-shell {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(14, 124, 123, 0.1) 0%,
+      transparent 45%
+    ),
+    rgba(20, 17, 11, 0.9);
+}
+
+.ai-header {
+  position: relative;
+}
+
+.ai-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 50%, transparent),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.ai-header-icon {
+  filter: drop-shadow(0 0 8px rgba(14, 124, 123, 0.35));
+}
+
+.ai-close {
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.ai-close:hover {
+  transform: rotate(90deg);
+}
+
+.ai-tab {
+  transition:
+    transform 140ms ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-tab:active {
+  transform: scale(0.96);
+}
+
+.ai-tab.ai-tab-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 3px 12px rgba(14, 124, 123, 0.35);
+}
+
+.ai-hint {
+  box-shadow: inset 3px 0 0 var(--teal-500);
+}
+
+.ai-chip {
+  transition:
+    transform 160ms cubic-bezier(0.34, 1.3, 0.64, 1),
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-chip:hover {
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.14);
+}
+
+.ai-chip-icon {
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.3);
+  transition: transform 180ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.ai-chip:hover .ai-chip-icon {
+  transform: scale(1.08);
+}
+
+.ai-chip-arrow {
+  transition: transform 160ms ease;
+}
+
+.ai-chip:hover .ai-chip-arrow {
+  transform: translateX(3px);
+}
+
+.ai-msg {
+  transition: transform 160ms ease;
+}
+
+.ai-msg-role {
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.3);
+}
+
+.ai-msg-user {
+  box-shadow: 0 3px 12px rgba(14, 124, 123, 0.3);
+}
+
+.ai-send {
+  transition:
+    transform 140ms ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-send:not(:disabled):hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 4px 16px rgba(14, 124, 123, 0.45);
+}
+
+.ai-send:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.ai-action-btn {
+  transition:
+    transform 140ms ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ai-suggest-chip {
+  transition:
+    transform 140ms ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.ai-suggest-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(14, 124, 123, 0.15);
+}
+
+.ai-mode-chip {
+  transition: box-shadow 160ms ease;
+}
+
+.ai-mode-chip.ai-mode-online {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.2);
+}
+
+.ai-mode-chip.ai-mode-local {
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.2);
+}
+
+.ai-chat-scroll,
+.ai-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
 }

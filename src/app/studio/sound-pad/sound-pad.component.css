@@ -63,3 +63,74 @@
   text-shadow: 0 0 14px
     color-mix(in srgb, var(--pad-color, #00e5ff) 70%, transparent);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Sound Pad · Machined launchpad polish
+   ═══════════════════════════════════════════════════════════ */
+.sound-pad {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inner bezel ring — hardware pad face */
+.sound-pad::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 8px;
+  border: 1px solid
+    color-mix(in srgb, var(--pad-color, #00e5ff) 22%, transparent);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.sound-pad:hover::before {
+  opacity: 1;
+}
+
+.sound-pad:active::before,
+.sound-pad.active::before {
+  border-color: color-mix(in srgb, var(--pad-color, #00e5ff) 55%, transparent);
+}
+
+/* Bottom LED strip — pressed state echoes the pad color */
+.sound-pad::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--pad-color, #00e5ff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pad-color, #00e5ff) 60%, transparent);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  pointer-events: none;
+}
+
+.sound-pad:hover::after {
+  opacity: 0.6;
+  transform: scaleX(0.7);
+}
+
+.sound-pad:active::after,
+.sound-pad.active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.sp-label {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-pad {
+    transition: none;
+  }
+}

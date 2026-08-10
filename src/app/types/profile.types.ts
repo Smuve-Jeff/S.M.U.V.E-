@@ -16,7 +16,13 @@ export interface AppSettings {
     animationsEnabled: boolean;
     autoPianoRoll: boolean;
   };
-  audio: { masterVolume: number; autoSaveEnabled: boolean };
+  audio: {
+    masterVolume: number;
+    autoSaveEnabled: boolean;
+    sampleRate?: number;
+    bufferSize?: number;
+    defaultExportFormat?: string;
+  };
   ai: {
     kbWriteAccess: boolean;
     commanderPersona: string;
@@ -33,6 +39,10 @@ export interface AppSettings {
     autoMixEnabled: boolean;
     latencyCompensation: number;
     highFidelityExport: boolean;
+    /** Stage FX ambience (aurora / marquee / sheens / pulses). Mirrored to
+     *  localStorage `smuve_stage_fx` so the Studio shell and the global
+     *  `stage-fx-off` body-class kill-switch honor it everywhere. */
+    stageFxEnabled: boolean;
   };
   dj: {
     crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut';
@@ -271,7 +281,13 @@ export const initialProfile: UserProfile = {
       animationsEnabled: true,
       autoPianoRoll: false,
     },
-    audio: { masterVolume: 0.8, autoSaveEnabled: true },
+    audio: {
+      masterVolume: 0.8,
+      autoSaveEnabled: true,
+      sampleRate: 48000,
+      bufferSize: 256,
+      defaultExportFormat: 'wav',
+    },
     ai: {
       kbWriteAccess: true,
       commanderPersona: 'Elite',
@@ -288,6 +304,7 @@ export const initialProfile: UserProfile = {
       autoMixEnabled: false,
       latencyCompensation: 0,
       highFidelityExport: true,
+      stageFxEnabled: true,
     },
     dj: {
       crossfaderCurve: 'linear',

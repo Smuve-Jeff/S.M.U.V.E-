@@ -20,6 +20,7 @@
 
   /* Mobile guards */
   --mobile-nav-height: 64px;
+  --mobile-dock-height: 92px;
   --mobile-edge-padding: 16px;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -939,6 +940,38 @@ body.dark-mode::before {
   transition-duration: 0s !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* ============================================================
+   STAGE FX TOGGLE — body.stage-fx-off kill switch
+   Toggled from the Studio topbar (Stage FX button). Calm mode
+   for low-end Android devices / battery preservation: hides the
+   ambient aurora + marquee decor and freezes every decorative
+   animation app-wide. Audio / DAW behavior is untouched.
+   ============================================================ */
+body.stage-fx-off .comp-aurora,
+body.stage-fx-off .comp-stage-marquee,
+body.stage-fx-off .stage-marquee {
+  display: none !important;
+}
+
+body.stage-fx-off *,
+body.stage-fx-off *::before,
+body.stage-fx-off *::after {
+  animation-duration: 0.001s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+
+/* Keep the two animated-marquee helpers from painting a frozen
+   half-frame strip while the kill switch is active. */
+body.stage-fx-off .stage-marquee-track,
+body.stage-fx-off .led-strip::before {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  color: var(--espresso-muted, #94a3c8) !important;
+  text-shadow: none !important;
 }
 
 /* === Mobile-first overrides === */

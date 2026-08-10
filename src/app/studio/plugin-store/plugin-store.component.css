@@ -454,3 +454,202 @@
 .ps-community-remove .material-symbols-outlined {
   font-size: 16px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Plugin Store · Storefront polish
+   ═══════════════════════════════════════════════════════════ */
+:host {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500, #0e7c7b) transparent;
+}
+
+.ps-header {
+  position: relative;
+  overflow: hidden;
+}
+
+.ps-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: ps-sheen 5s ease-in-out infinite;
+}
+
+@keyframes ps-sheen {
+  0%,
+  60% {
+    transform: translateX(-100%);
+  }
+  85%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ps-header-icon {
+  box-shadow:
+    0 0 18px rgba(14, 124, 123, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.ps-runtime-badge {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.ps-runtime-badge:hover {
+  transform: translateY(-1px);
+}
+
+.ps-runtime-wasm {
+  box-shadow: 0 2px 10px rgba(14, 124, 123, 0.25);
+}
+
+.ps-runtime-js {
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2);
+}
+
+.ps-card {
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  position: relative;
+}
+
+.ps-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--teal-400, #2ba09c),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.ps-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.22),
+    0 0 18px rgba(14, 124, 123, 0.12);
+}
+
+.ps-card:hover::before,
+.ps-card-enabled::before {
+  opacity: 1;
+}
+
+.ps-card-enabled {
+  box-shadow:
+    0 0 0 1px rgba(14, 124, 123, 0.2),
+    0 6px 20px rgba(14, 124, 123, 0.12);
+}
+
+.ps-card-icon {
+  transition:
+    transform 180ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 180ms ease;
+}
+
+.ps-card:hover .ps-card-icon {
+  transform: scale(1.08);
+  box-shadow: 0 0 14px rgba(14, 124, 123, 0.4);
+}
+
+.ps-category {
+  transition: box-shadow 160ms ease;
+}
+
+.ps-card:hover .ps-category {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.25);
+}
+
+.ps-param input[type='range']::-webkit-slider-thumb {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.ps-param input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.5);
+}
+
+.ps-toggle {
+  transition:
+    transform 140ms ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ps-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.ps-toggle:active {
+  transform: scale(0.95);
+}
+
+.ps-toggle-on {
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.4);
+}
+
+.ps-export-btn {
+  transition:
+    transform 140ms ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.ps-export-btn:active {
+  transform: scale(0.95);
+}
+
+.ps-community {
+  transition: border-color 200ms ease;
+}
+
+.ps-community:hover {
+  border-color: rgba(14, 124, 123, 0.55);
+}
+
+.ps-community-row {
+  transition:
+    transform 140ms ease,
+    background 140ms ease;
+}
+
+.ps-community-row:hover {
+  transform: translateX(2px);
+  background: rgba(14, 124, 123, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-header::after {
+    animation: none;
+  }
+  .ps-card {
+    transition: none;
+  }
+}

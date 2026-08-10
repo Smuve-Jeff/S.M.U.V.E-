@@ -34,6 +34,10 @@ import { AuthService } from '../services/auth.service';
 import { CollaborationService } from '../services/collaboration.service';
 import { SnackbarService } from '../services/snackbar.service';
 import { LoggingService } from '../services/logging.service';
+import {
+  UserProfileService,
+  type UserProfile,
+} from '../services/user-profile.service';
 
 import { MixerComponent } from './mixer/mixer.component';
 import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
@@ -136,6 +140,8 @@ function isStudioView(value: string): value is StudioView {
 
 /** 3-way theme storage key. Persists across sessions. */
 const THEME_STORAGE_KEY = 'smuve_studio_theme';
+/** Stage FX ambience (aurora / marquee / sheens) storage key. */
+const STAGE_FX_STORAGE_KEY = 'smuve_stage_fx';
 type AppTheme = 'light' | 'focus' | 'dark';
 const THEME_ORDER: AppTheme[] = ['light', 'focus', 'dark'];
 const NEXT_THEME_ICON: Record<AppTheme, string> = {
@@ -186,7 +192,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
     PluginStoreComponent,
   ],
   templateUrl: './studio.component.html',
-  styleUrls: ['./studio.component.css', './studio-shell-refinement.css'],
+  styleUrls: [
+    './studio.component.css',
+    './studio-shell-refinement.css',
+    './stage-2.0-atmosphere.css',
+  ],
   /* Studio-wide deep responsive refinement (additive layer, see
      DEEP RESPONSIVE REFINEMENT blocks in the subview stylesheets). */
   styles: [
@@ -378,6 +388,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly musicManager = inject(MusicManagerService);
   public readonly aiService = inject(AiService);
   private readonly authService = inject(AuthService);
+  private readonly userProfile = inject(UserProfileService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private projectService = inject(ProjectService);
@@ -576,6 +587,43 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * Persisted in localStorage; applied via <body> class.
    */
   themeMode = signal<AppTheme>('light');
+  /**
+   * Stage FX ambience — aurora field, marquee, sheens & pulse animations.
+   * Defaults ON. Persisted in localStorage; OFF adds `stage-fx-off` to
+   * <body> so every Studio view (including child components) can drop
+   * decorative motion on low-end Android devices / battery saver.
+   *
+   * Adaptive defaults:
+   *  - an explicit stored choice always wins;
+   *  - otherwise users who prefer reduced motion start with FX OFF;
+   *  - the low-end engine tier ('performance') auto-disables ambience
+   *    until the user makes an explicit choice (never auto-enables).
+   */
+  stageFxEnabled = signal<boolean>(this.initialStageFxEnabled());
+  /** True once a stored choice or the user has made FX explicit. */
+  stageFxUserTouched =
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem(STAGE_FX_STORAGE_KEY) !== null;
+
+  /** Compute the first-load Stage FX state (storage → motion pref → on). */
+  private initialStageFxEnabled(): boolean {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(STAGE_FX_STORAGE_KEY);
+        if (stored !== null) return stored !== 'off';
+      }
+      if (
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        return false;
+      }
+    } catch {
+      /* storage / matchMedia unavailable — fall through to enabled */
+    }
+    return true;
+  }
   /** Next theme icon shown on the cycle button (affordance). */
   nextThemeIcon = computed(() => NEXT_THEME_ICON[this.themeMode()]);
   /** Current theme label — exposed for the tobtap chip. */
@@ -691,6 +739,61 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       document.body.classList.remove('light-mode', 'focus-mode', 'dark-mode');
       document.body.classList.add(theme + '-mode');
+    });
+
+    // ── Stage FX effect — sync body class so every view honors the toggle ──
+    effect(() => {
+      document.body.classList.toggle('stage-fx-off', !this.stageFxEnabled());
+    });
+
+    // ── Stage FX live-sync — the executive preference is the single source
+    // of truth. When it changes anywhere (Settings → Studio Pro, the tier
+    // guard, a cloud sync / profile restore) while the Studio stays mounted,
+    // the topbar FX button follows immediately instead of going stale.
+    // Writes only on divergence, so there is no feedback loop with
+    // toggleStageFx (which writes back the same value). ──
+    effect(() => {
+      try {
+        const pref =
+          this.userProfile.profile()?.settings?.studio?.stageFxEnabled;
+        if (pref !== undefined && pref !== this.stageFxEnabled()) {
+          this.stageFxEnabled.set(pref);
+        }
+      } catch {
+        // guard against test environment mocks
+      }
+    });
+
+    // ── Stage FX tier guard — the 'performance' (low-end) engine tier
+    // disables ambience until the user makes an explicit choice. Never
+    // auto-enables; manual toggles always win. API access is guarded so
+    // test mocks that lack `performanceTier` degrade silently (same
+    // convention as the punch-recording effect below). The snackbar
+    // explains WHY the ambience vanished — the service creates its own
+    // component on demand, so this is safe from a constructor effect. ──
+    effect(() => {
+      try {
+        const tier =
+          typeof this.audioEngine.performanceTier === 'function'
+            ? this.audioEngine.performanceTier()
+            : 'ultra';
+        if (
+          tier === 'performance' &&
+          !this.stageFxUserTouched &&
+          this.stageFxEnabled()
+        ) {
+          this.stageFxEnabled.set(false);
+          this.stageFxUserTouched = true;
+          // Persist the adaptive choice so the live-sync effect (which reads
+          // the profile) stays consistent instead of re-enabling ambience.
+          this.persistStageFxState(false);
+          this.snackbarService.info(
+            'Stage FX OFF · adaptive low-power mode — tap FX to re-enable'
+          );
+        }
+      } catch {
+        // guard against test environment mocks
+      }
     });
 
     // ── Audio arming: install one-time pointerdown/keydown listener ──
@@ -890,8 +993,100 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cycleTheme();
   }
 
+  // ── Stage FX ambience toggle ────────────────────────────────
+  /** Flip the Stage FX ambience (aurora / marquee / sheens / pulses). */
+  toggleStageFx() {
+    this.haptic.light();
+    // A manual tap ends adaptive behavior — the user's choice wins.
+    this.stageFxUserTouched = true;
+    const next = !this.stageFxEnabled();
+    this.stageFxEnabled.set(next);
+    this.persistStageFxState(next);
+    this.snackbarService.info(
+      next
+        ? 'Stage FX ON — full ambient lighting'
+        : 'Stage FX OFF — calm mode · saving battery & CPU'
+    );
+  }
+
+  /**
+   * Persist the FX state to both working stores: localStorage (the Studio
+   * shell's immediate store) and the executive profile (Settings → Studio
+   * Pro). The integration service applies it globally from the profile.
+   */
+  private persistStageFxState(enabled: boolean): void {
+    try {
+      localStorage.setItem(STAGE_FX_STORAGE_KEY, enabled ? 'on' : 'off');
+    } catch {
+      /* private mode / locked storage — degrade silently */
+    }
+    this.syncStageFxToProfile(enabled);
+  }
+
+  /** Persist the current FX choice into profile.settings.studio.stageFxEnabled. */
+  private syncStageFxToProfile(enabled: boolean): void {
+    try {
+      const profile = this.userProfile.profile();
+      const settings = profile?.settings as
+        | { studio?: { stageFxEnabled?: boolean } }
+        | undefined;
+      if (!settings) return;
+      // updateProfile sets the profile signal synchronously (live-sync
+      // observes it immediately) and swallows DB errors internally —
+      // intentional fire-and-forget.
+      void this.userProfile.updateProfile({
+        settings: {
+          ...settings,
+          studio: { ...(settings.studio ?? {}), stageFxEnabled: enabled },
+        },
+      } as Partial<UserProfile>);
+    } catch {
+      /* profile not ready / test mock — degrade silently */
+    }
+  }
+
+  // ── Keyboard shortcuts help ────────────────────────────────
+  /** Shortcuts help popover open state. */
+  showShortcuts = signal(false);
+
+  /** Toggle the keyboard-shortcuts help popover. */
+  toggleShortcuts(): void {
+    this.haptic.light();
+    this.showShortcuts.update((v) => !v);
+  }
+
+  /**
+   * Shift+F — Stage FX ambience toggle from anywhere in the Studio.
+   * Kept as its own document listener (separate from the shell keydown
+   * handler that owns the Ctrl+ combos) so neither interferes with the
+   * other. Never fires while typing.
+   */
+  @HostListener('document:keydown', ['$event'])
+  onStageFxShortcut(event: KeyboardEvent): void {
+    if (event.key !== 'f' && event.key !== 'F') return;
+    if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+    if (event.repeat) return;
+    const target = event.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      target?.isContentEditable
+    ) {
+      return;
+    }
+    event.preventDefault();
+    this.toggleStageFx();
+  }
+
   setActiveView(view: StudioView) {
-    this.mobileDrawerOpen.set(false);
+    if (this.mobileDrawerOpen()) {
+      this.mobileDrawerOpen.set(false);
+      this.syncPanelFocus('.comp-drawer', false);
+    }
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
@@ -997,6 +1192,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleMobileDrawer() {
     this.haptic.light();
     this.mobileDrawerOpen.update((v) => !v);
+    this.syncPanelFocus('.comp-drawer', this.mobileDrawerOpen());
   }
 
   toggleRail() {
@@ -1011,6 +1207,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleFooter() {
     this.haptic.light();
     this.footerCollapsed.update((v) => !v);
+  }
+
+  private panelTriggers = new Map<string, HTMLElement>();
+
+  /** Move focus into an opened slide-out surface and return it to the
+   * originating control when the surface closes. */
+  private syncPanelFocus(selector: string, open: boolean): void {
+    if (typeof document === 'undefined') return;
+    if (open) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) this.panelTriggers.set(selector, active);
+      setTimeout(() => {
+        const panel = document.querySelector<HTMLElement>(selector);
+        panel?.querySelector<HTMLElement>('button, input, select, textarea')?.focus();
+      }, 0);
+      return;
+    }
+    const trigger = this.panelTriggers.get(selector);
+    this.panelTriggers.delete(selector);
+    trigger?.focus();
   }
 
   toggleAiAssistant() {
@@ -1076,6 +1292,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleAiMixAssistant() {
     this.haptic.light();
     this.showAiMixAssistant.update((v) => !v);
+    this.syncPanelFocus('.comp-aimix-panel', this.showAiMixAssistant());
     if (this.showAiMixAssistant()) {
       this.studioTelemetry.trackEvent('ai_mix_panel_opened', undefined, true);
     }
@@ -1092,6 +1309,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleStudioInsights() {
     this.haptic.light();
     this.showStudioInsights.update((v) => !v);
+    this.syncPanelFocus('.comp-insights-panel', this.showStudioInsights());
     if (this.showStudioInsights()) {
       this.studioTelemetry.trackEvent('insights_panel_opened', undefined, true);
       // Cheap live snapshot so the coach has a latency sample without a full
@@ -1302,16 +1520,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleSmartRecordingPanel() {
     this.haptic.light();
     this.showSmartRecordingPanel.update((v) => !v);
+    this.syncPanelFocus('.comp-rec-panel', this.showSmartRecordingPanel());
   }
 
   toggleImportPanel() {
     this.haptic.light();
     this.showImportPanel.update((v) => !v);
+    this.syncPanelFocus('.comp-import-panel', this.showImportPanel());
   }
 
   toggleComponentRecording() {
     this.haptic.light();
     this.showComponentRecording.update((v) => !v);
+    this.syncPanelFocus('.comp-rec-src-panel', this.showComponentRecording());
   }
 
   selectComponentRecording(component: any) {
@@ -1333,6 +1554,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleProjectMetadata() {
     this.haptic.light();
     this.showProjectMetadata.update((v) => !v);
+    this.syncPanelFocus('.comp-meta-panel', this.showProjectMetadata());
   }
 
   async saveProject() {

@@ -178,6 +178,92 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   /** Swing 0..75% — pushes off-beat 16ths back */
   swingPercent = signal(20);
 
+  // ── Phase F1: MPC-style Groove Templates ───────────────────
+  /** Named groove presets (like MPC Swing, Dilla Feel, Shuffle)
+   *  that set swing % + a subtle velocity humanization profile.
+   *  Surpasses the single swing slider FL Mobile ships. */
+  grooveTemplates = [
+    {
+      id: 'straight',
+      label: 'Straight',
+      glyph: '▮',
+      hint: 'Tight · no swing · quantized grid',
+      swing: 0,
+      velocityVariance: 0.03,
+    },
+    {
+      id: 'mpc54',
+      label: 'MPC 54',
+      glyph: '🥁',
+      hint: 'Classic Akai MPC 54% — the hip-hop staple',
+      swing: 54,
+      velocityVariance: 0.08,
+    },
+    {
+      id: 'mpc58',
+      label: 'MPC 58',
+      glyph: '🔥',
+      hint: 'Heavier MPC swing · boom-bap bounce',
+      swing: 58,
+      velocityVariance: 0.1,
+    },
+    {
+      id: 'dilla',
+      label: 'Dilla',
+      glyph: '🎧',
+      hint: 'J Dilla-style 62% — loose, behind the beat',
+      swing: 62,
+      velocityVariance: 0.16,
+    },
+    {
+      id: 'shuffle',
+      label: 'Shuffle',
+      glyph: '♠',
+      hint: '66% triplet shuffle · blues & rock',
+      swing: 66,
+      velocityVariance: 0.05,
+    },
+    {
+      id: 'house',
+      label: 'House',
+      glyph: '🪩',
+      hint: 'Straight 4/4 · driving · minimal humanize',
+      swing: 8,
+      velocityVariance: 0.04,
+    },
+  ];
+  activeGrooveId = signal<string | null>(null);
+
+  /** Apply a named groove: sets swing % and re-humanizes velocities. */
+  applyGroove(groove: (typeof this.grooveTemplates)[number]): void {
+    this.haptic.medium();
+    this.swingPercent.set(groove.swing);
+    this.activeGrooveId.set(groove.id);
+    const track = this.getDrumTrack();
+    if (track) {
+      track.notes.forEach((n) => {
+        // Skip on-beat accents — keep groove subtle on strong hits
+        if (n.step % 4 === 0 && groove.swing > 40) return;
+        const variance = (Math.random() - 0.5) * 2 * groove.velocityVariance;
+        const velocity = Math.max(
+          0.12,
+          Math.min(1, n.velocity + variance)
+        );
+        this.musicManager.updateNote(track.id, n.id, { velocity });
+      });
+    }
+    this.snack.success(
+      `${groove.glyph} ${groove.label} · ${groove.swing}% swing · ${groove.hint}`
+    );
+  }
+
+  /** Detach the named groove — keep swing value but stop tracking. */
+  clearGroove(): void {
+    this.activeGrooveId.set(null);
+    this.haptic.light();
+    this.snack.info('Groove template cleared');
+  }
+
   private blueprints = [
     { name: 'KICK', midi: 36, color: '#ff4444', type: 'kick' },
     { name: 'SNARE', midi: 38, color: '#44ff44', type: 'snare' },

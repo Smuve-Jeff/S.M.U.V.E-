@@ -5,3 +5,17 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Swipe Container · Motion polish
+   ═══════════════════════════════════════════════════════════ */
+.swipe-container {
+  will-change: transform;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-container {
+    scroll-behavior: auto;
+  }
+}

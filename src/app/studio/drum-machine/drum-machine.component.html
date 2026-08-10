@@ -78,6 +78,41 @@
       />
       <span class="dm-swing-readout">{{ swingPercent() }}%</span>
     </div>
+
+    <!-- Phase F1: MPC-style Groove Templates -->
+    <div class="dm-groove-block" aria-label="Groove templates">
+      <div class="dm-groove-label">
+        <span class="material-symbols-outlined">music_note</span>
+        Groove
+      </div>
+      <div class="dm-groove-chips" role="group">
+        <button
+          *ngFor="let groove of grooveTemplates"
+          type="button"
+          class="dm-groove-chip"
+          [class.dm-groove-chip-active]="activeGrooveId() === groove.id"
+          (click)="applyGroove(groove)"
+          [attr.aria-pressed]="activeGrooveId() === groove.id"
+          [attr.aria-label]="'Apply ' + groove.label + ' groove: ' + groove.hint"
+          [title]="groove.hint"
+        >
+          <span class="dm-groove-glyph">{{ groove.glyph }}</span>
+          <span class="dm-groove-name">{{ groove.label }}</span>
+        </button>
+        <button
+          *ngIf="activeGrooveId()"
+          type="button"
+          class="dm-groove-chip dm-groove-clear"
+          (click)="clearGroove()"
+          aria-label="Clear groove template"
+          title="Clear groove template — keep swing %"
+        >
+          <span class="material-symbols-outlined" style="font-size: 13px"
+            >close</span
+          >
+        </button>
+      </div>
+    </div>
   </section>
 
   <div class="dm-body">

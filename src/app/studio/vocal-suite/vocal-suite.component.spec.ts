@@ -8,6 +8,7 @@ import { VocalAiService } from '../../services/vocal-ai.service';
 import { AiService } from '../../services/ai.service';
 import { AudioSessionService } from '../audio-session.service';
 import { StudioRecordingEngineService } from '../studio-recording-engine.service';
+import { PitchCorrectionService } from '../pitch-correction.service';
 
 describe('VocalSuiteComponent', () => {
   let component: VocalSuiteComponent;
@@ -90,6 +91,19 @@ describe('VocalSuiteComponent', () => {
         },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: VocalMasteringService, useValue: masteringMock },
+        {
+          provide: PitchCorrectionService,
+          useValue: {
+            // Real-time worklet chain unavailable in tests — the vocal suite
+            // falls back to the raw mic node, which the mastering assertion
+            // below still expects.
+            insertIntoChain: jest.fn().mockResolvedValue(null),
+            enabled: signal(false),
+            amount: signal(0.5),
+            retuneSpeed: signal(0.1),
+            scale: signal('C Major'),
+          },
+        },
         {
           provide: StudioRecordingEngineService,
           useValue: recordingEngineMock,

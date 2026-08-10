@@ -31,14 +31,26 @@ interface DeckChannel {
   eqHigh: BiquadFilterNode;
   filter: BiquadFilterNode;
   pan: StereoPannerNode;
+  /** Channel fader — driven by setDeckGain (per-deck level). */
+  channelGain: GainNode;
+  /** Crossfader gain — driven by setCrossfader (A/B balance). */
   gain: GainNode;
   sendA: GainNode;
   sendB: GainNode;
+  /** Pre-fader headphone tap for CUE monitoring. */
+  cueGain: GainNode;
   analyser: AnalyserNode;
   isPlaying: boolean;
   startTime: number;
   pauseOffset: number;
   rate: number;
+  /** Key-lock: preserve pitch while changing speed (source detune comp). */
+  keyLock: boolean;
+  isCueing: boolean;
+  loopStart: number;
+  loopEnd: number;
+  /** Precomputed max-abs peak buckets for the booth waveform. */
+  peaks: Float32Array;
   stems: Stems | null;
   loopEnabled: boolean;
   slipEnabled: boolean;
@@ -112,6 +124,19 @@ export class AudioEngineService {
   public masterEQ = this.ctx.createBiquadFilter();
   public masterShelf = this.ctx.createBiquadFilter();
   public masterWidener = this.ctx.createStereoPanner();
+
+  // ── Pro: Master stereo-width (M/S) network ────────────────
+  // Everything that feeds masterGain (tracks, decks, reverb, sends) funnels
+  // through this stage before the pre-master bus, so the WIDTH macro affects
+  // both the master-worklet path and the main-thread fallback chain.
+  private readonly masterWidthSplitter = this.ctx.createChannelSplitter(2);
+  private readonly masterWidthMid = this.ctx.createGain();
+  private readonly masterWidthSidePos = this.ctx.createGain();
+  private readonly masterWidthSideNeg = this.ctx.createGain();
+  private readonly masterWidthSide = this.ctx.createGain();
+  private readonly masterWidthSideL = this.ctx.createGain();
+  private readonly masterWidthSideR = this.ctx.createGain();
+  private readonly masterWidthMerger = this.ctx.createChannelMerger(2);
   private reverbConvolver = this.ctx.createConvolver();
   public reverbWet = this.ctx.createGain();
 
@@ -237,6 +262,8 @@ export class AudioEngineService {
   private deckB!: DeckChannel;
   private crossfaderValue = 0.5;
   private crossfaderHamster = false;
+  /** In-flight brake/spinback/transform intervals, keyed by deck id. */
+  private pendingDeckFx = new Map<DeckId, { interval?: any }>();
   private recordingDestination: MediaStreamAudioDestinationNode | null = null;
   private tracksMap = new Map<string, any>();
   private masteringTargets = { lufs: -14, truePeak: -0.1 };
@@ -270,7 +297,7 @@ export class AudioEngineService {
     // Master chain routing: masterGain → preMasterGain
     this.masterGain.gain.value = 1;
     this._preMasterGain.gain.value = 1;
-    this.masterGain.connect(this._preMasterGain);
+    this.wireMasterWidthNetwork();
 
     // Build the fallback chain but don't connect it yet —
     // the worklet will be preferred if it loads successfully
@@ -501,12 +528,13 @@ export class AudioEngineService {
     return this._resumePromise;
   }
 
-  startCountIn() {
+  startCountIn(bars: number = 1) {
     this.resume();
     if (this.isPlaying()) return;
     this.isCountIn.set(true);
     this.isPlaying.set(true);
-    this.countInRemainingSteps = this.stepsPerBeat() * 4;
+    const safeBars = Math.max(1, Math.floor(bars));
+    this.countInRemainingSteps = this.stepsPerBeat() * 4 * safeBars;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
 
     if (this.workletNode) {
@@ -730,7 +758,7 @@ export class AudioEngineService {
 
   private createDeck(id: DeckId): DeckChannel {
     const gains: any = {};
-    ['drums', 'bass', 'other', 'vocals'].forEach((s) => {
+    ['drums', 'bass', 'instrumental', 'other', 'vocals'].forEach((s) => {
       gains[s] = this.ctx.createGain();
       gains[s].gain.value = 1;
     });
@@ -744,14 +772,20 @@ export class AudioEngineService {
       eqHigh: this.ctx.createBiquadFilter(),
       filter: this.ctx.createBiquadFilter(),
       pan: this.ctx.createStereoPanner(),
+      channelGain: this.ctx.createGain(),
       gain: this.ctx.createGain(),
       sendA: this.ctx.createGain(),
       sendB: this.ctx.createGain(),
+      cueGain: this.ctx.createGain(),
       analyser: this.ctx.createAnalyser(),
       isPlaying: false,
       startTime: 0,
       pauseOffset: 0,
       rate: 1.0,
+      keyLock: false,
+      isCueing: false,
+      loopStart: 0,
+      loopEnd: 0,
       stems: null,
       loopEnabled: false,
       slipEnabled: false,
@@ -759,6 +793,7 @@ export class AudioEngineService {
       slipStartTime: 0,
       slipStartOffset: 0,
       hotCues: new Array(8).fill(null),
+      peaks: new Float32Array(0),
     };
     deck.eqLow.type = 'lowshelf';
     deck.eqLow.frequency.value = 250;
@@ -768,6 +803,27 @@ export class AudioEngineService {
     deck.eqHigh.frequency.value = 4000;
     deck.filter.type = 'lowpass';
     deck.filter.frequency.value = 20000;
+
+    // ── Deck signal chain ───────────────────────────────────────
+    // Stems (sources) → per-stem gains → EQ → filter → pan → fader →
+    // analyser → master. Pre-fader taps feed the A/B send returns and the
+    // CUE (headphone) bus. Crossfader + hamster live on the fader gain.
+    deck.eqLow.connect(deck.eqMid);
+    deck.eqMid.connect(deck.eqHigh);
+    deck.eqHigh.connect(deck.filter);
+    deck.filter.connect(deck.pan);
+    deck.filter.connect(deck.sendA);
+    deck.filter.connect(deck.sendB);
+    deck.filter.connect(deck.cueGain);
+    deck.sendA.connect(this.sendAReturn);
+    deck.sendB.connect(this.sendBReturn);
+    deck.cueGain.gain.value = 0;
+    deck.cueGain.connect(this.ctx.destination);
+    deck.channelGain.gain.value = 1;
+    deck.pan.connect(deck.channelGain);
+    deck.channelGain.connect(deck.gain);
+    deck.gain.connect(deck.analyser);
+    deck.analyser.connect(this.masterGain);
     return deck;
   }
 
@@ -778,6 +834,7 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     if (!deck) return;
     deck.isPlaying = false;
+    this.clearDeckFx(id);
     Object.values(deck.sources).forEach((s) => {
       if (s) {
         try {
@@ -787,45 +844,267 @@ export class AudioEngineService {
     });
     deck.sources = {};
   }
+
+  /**
+   * Real deck playback. Creates per-stem AudioBufferSourceNodes (or a single
+   * full-mix source when no stems are loaded) and starts them from the deck's
+   * current `pauseOffset`. Position is derived from `startTime` + wall-clock
+   * elapsed so the UI can poll cheaply without extra scheduling state.
+   */
   playDeck(id: DeckId) {
     const deck = this.getDeck(id);
-    if (deck) deck.isPlaying = true;
+    if (!deck || !deck.buffer) return;
+    if (deck.isPlaying) return;
+
+    // Re-engaging playback resolves a slip (scratch) back to the ghost playhead.
+    if (deck.slipActive) {
+      deck.pauseOffset =
+        deck.slipStartOffset +
+        (this.ctx.currentTime - deck.slipStartTime) * Math.max(0, deck.rate);
+      deck.slipActive = false;
+    }
+
+    this.stopDeck(id);
+    this.resume();
+
+    const buffer = deck.buffer;
+    const safeRate = Number.isFinite(deck.rate) ? deck.rate : 1;
+    const pos = Math.max(
+      0,
+      Math.min(deck.pauseOffset, Math.max(0, buffer.duration - 0.001))
+    );
+    const now = this.ctx.currentTime;
+    deck.startTime = now - pos / Math.max(0.001, Math.abs(safeRate) || 1);
+    deck.isPlaying = true;
+
+    const stems = deck.stems;
+    const hasStems = !!(
+      stems &&
+      (stems.vocals || stems.drums || stems.bass || stems.instrumental || stems.other)
+    );
+    const stemsToPlay: (keyof Stems)[] = hasStems
+      ? (['vocals', 'drums', 'bass', 'instrumental', 'other'] as (keyof Stems)[]).filter(
+          (s) => !!stems![s]
+        )
+      : ['other'];
+
+    stemsToPlay.forEach((stem, index) => {
+      const stemGain = deck.gains[stem];
+      if (!stemGain) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = stems && stems[stem] ? stems[stem]! : buffer;
+      src.playbackRate.value = safeRate;
+      src.detune.value = deck.keyLock
+        ? -1200 * Math.log2(Math.max(0.001, Math.abs(safeRate) || 1))
+        : 0;
+      if (deck.loopEnabled && deck.loopEnd > deck.loopStart) {
+        src.loop = true;
+        src.loopStart = deck.loopStart;
+        src.loopEnd = deck.loopEnd;
+      }
+      src.connect(stemGain);
+      src.start(now, pos);
+      deck.sources[stem] = src;
+
+      // Natural-end detection on the last scheduled source. Manual stops set
+      // isPlaying = false first, so this only fires on real track ends.
+      if (index === stemsToPlay.length - 1) {
+        src.onended = () => {
+          if (!deck.isPlaying) return;
+          if (deck.loopEnabled) return;
+          deck.isPlaying = false;
+          deck.pauseOffset = deck.loopEnd || buffer.duration;
+          deck.sources = {};
+        };
+      }
+    });
   }
+
   pauseDeck(id: DeckId) {
     const deck = this.getDeck(id);
-    if (deck) deck.isPlaying = false;
+    if (!deck || !deck.isPlaying) return;
+    this.clearDeckFx(id);
+    const progress = this.getDeckProgress(id);
+    deck.pauseOffset = progress.position;
+    if (deck.slipEnabled) {
+      // Freeze the ghost playhead while the platter is held.
+      deck.slipActive = true;
+      deck.slipStartTime = this.ctx.currentTime;
+      deck.slipStartOffset = deck.pauseOffset;
+    }
+    this.stopDeck(id);
   }
+
   seekDeck(id: DeckId, pos: number) {
-    /* seek logic */
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return;
+    const duration = deck.buffer.duration;
+    // With a loop engaged, keep the playhead inside the loop region.
+    const upper =
+      deck.loopEnabled && deck.loopEnd > deck.loopStart
+        ? Math.min(duration, deck.loopEnd)
+        : duration;
+    const safe = Number.isFinite(pos)
+      ? Math.max(0, Math.min(pos, upper))
+      : 0;
+    deck.pauseOffset = safe;
+    if (deck.isPlaying) {
+      this.stopDeck(id);
+      this.playDeck(id);
+    }
   }
+
   getDeckProgress(id: DeckId) {
-    return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) {
+      return { position: 0, duration: 0, isPlaying: false, slipPosition: 0 };
+    }
+    const duration = deck.buffer.duration;
+    let position = deck.isPlaying
+      ? deck.pauseOffset +
+        (this.ctx.currentTime - deck.startTime) * (deck.rate || 0)
+      : deck.pauseOffset;
+
+    // Wrap the playhead inside the active loop region for display purposes.
+    if (
+      deck.loopEnabled &&
+      deck.loopEnd > deck.loopStart &&
+      position >= deck.loopEnd
+    ) {
+      const span = deck.loopEnd - deck.loopStart;
+      position = deck.loopStart + ((position - deck.loopStart) % span);
+    }
+    position = Math.max(0, Math.min(position, duration));
+
+    let slipPosition = position;
+    if (deck.slipActive) {
+      slipPosition =
+        deck.slipStartOffset +
+        (this.ctx.currentTime - deck.slipStartTime) * Math.max(0, deck.rate);
+    }
+    return {
+      position,
+      duration,
+      isPlaying: deck.isPlaying,
+      slipPosition,
+    };
   }
+
   getDeckLevel(id: DeckId) {
-    return 0.5;
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return 0;
+    const data = new Float32Array(deck.analyser.fftSize);
+    deck.analyser.getFloatTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+    return Math.min(1, Math.sqrt(sum / data.length) * 3);
   }
+
   getDeckWaveformData(id: DeckId) {
-    return new Float32Array(0);
+    const deck = this.getDeck(id);
+    return deck?.peaks ?? new Float32Array(0);
   }
   setDeckGain(id: DeckId, val: number) {
     const deck = this.getDeck(id);
-    if (deck) deck.gain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.01);
+    if (deck)
+      deck.channelGain.gain.setTargetAtTime(
+        val,
+        this.ctx.currentTime,
+        0.01
+      );
   }
   setDeckRate(id: DeckId, rate: number, sync: boolean = false) {
     const deck = this.getDeck(id);
-    if (deck) deck.rate = rate;
+    if (!deck) return;
+    const safeRate = Number.isFinite(rate)
+      ? Math.max(-2, Math.min(2, rate))
+      : 1;
+    deck.rate = safeRate;
+    // The engine treats `sync` as key-lock: preserve pitch by compensating
+    // the source detune (classic tape-speed + pitch-correction model).
+    deck.keyLock = sync;
+    const detune = sync
+      ? -1200 * Math.log2(Math.max(0.001, Math.abs(safeRate) || 1))
+      : 0;
+    Object.values(deck.sources).forEach((s) => {
+      if (!s) return;
+      s.playbackRate.value = safeRate;
+      s.detune.value = detune;
+    });
   }
+
   setDeckLoop(id: DeckId, enabled: boolean) {
     const deck = this.getDeck(id);
-    if (deck) deck.loopEnabled = enabled;
+    if (!deck) return;
+    deck.loopEnabled = enabled;
+    if (!enabled) {
+      deck.loopStart = 0;
+      deck.loopEnd = deck.buffer ? deck.buffer.duration : 0;
+    }
+    Object.values(deck.sources).forEach((s) => {
+      if (!s) return;
+      s.loop = enabled;
+      if (enabled && deck.loopEnd > deck.loopStart) {
+        s.loopStart = deck.loopStart;
+        s.loopEnd = deck.loopEnd;
+      }
+    });
   }
-  setSlipMode(id: DeckId, enabled: boolean) {
+
+  /**
+   * Beat-quantized loop region — enables a loop between `start` and `end`
+   * seconds and keeps any running playback inside the region. Powers the
+   * DJ booth's loop-length presets (1/8, 1/4, 1/2, 1, 2, 4, 8 beats).
+   */
+  setDeckLoopRegion(id: DeckId, start: number, end: number): void {
     const deck = this.getDeck(id);
-    if (deck) {
-      deck.slipEnabled = enabled;
-      if (!enabled) deck.slipActive = false;
+    if (!deck || !deck.buffer) return;
+    const dur = deck.buffer.duration;
+    const s = Number.isFinite(start) ? Math.max(0, Math.min(start, dur)) : 0;
+    const e = Number.isFinite(end)
+      ? Math.max(s + 0.01, Math.min(end, dur))
+      : dur;
+    deck.loopStart = s;
+    deck.loopEnd = e;
+    deck.loopEnabled = true;
+    Object.values(deck.sources).forEach((src) => {
+      if (!src) return;
+      src.loop = true;
+      src.loopStart = s;
+      src.loopEnd = e;
+    });
+    // Keep the live playhead inside the loop region.
+    if (deck.isPlaying) {
+      const pos = this.getDeckProgress(id).position;
+      if (pos < s || pos >= e) this.seekDeck(id, s);
     }
   }
+
+  /** Release the deck's loop and restore full-track playback bounds. */
+  clearDeckLoop(id: DeckId): void {
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.loopEnabled = false;
+    deck.loopStart = 0;
+    deck.loopEnd = deck.buffer ? deck.buffer.duration : 0;
+    Object.values(deck.sources).forEach((src) => {
+      if (src) src.loop = false;
+    });
+  }
+
+  setSlipMode(id: DeckId, enabled: boolean) {
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    if (deck.slipEnabled && !enabled && deck.slipActive) {
+      // Disabling slip resolves the ghost playhead back into the real one.
+      deck.pauseOffset =
+        deck.slipStartOffset +
+        (this.ctx.currentTime - deck.slipStartTime) * Math.max(0, deck.rate);
+      deck.slipActive = false;
+    }
+    deck.slipEnabled = enabled;
+  }
+
   setDeckStemGain(id: DeckId, stem: string, gain: number) {
     const deck = this.getDeck(id);
     if (deck && (deck.gains as any)[stem]) {
@@ -836,20 +1115,65 @@ export class AudioEngineService {
       );
     }
   }
+
   setDeckCue(id: DeckId, active: boolean) {
-    /* cue logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    deck.isCueing = active;
+    // Pre-fader headphone tap on the deck's cue bus.
+    deck.cueGain.gain.setTargetAtTime(
+      active ? 0.9 : 0,
+      this.ctx.currentTime,
+      0.01
+    );
   }
   loadDeck(id: DeckId, buffer: AudioBuffer) {
-    /* load logic */
+    const deck = this.getDeck(id);
+    if (!deck || !buffer) return;
+    this.stopDeck(id);
+    deck.buffer = buffer;
+    deck.pauseOffset = 0;
+    deck.rate = 1;
+    deck.keyLock = false;
+    deck.isCueing = false;
+    deck.loopEnabled = false;
+    deck.loopStart = 0;
+    deck.loopEnd = buffer.duration;
+    deck.slipEnabled = false;
+    deck.slipActive = false;
+    deck.hotCues = new Array(8).fill(null);
+    deck.peaks = this.computeDeckPeaks(buffer);
+    Object.keys(deck.gains).forEach((k) => {
+      deck.gains[k as keyof Stems].gain.setTargetAtTime(
+        1,
+        this.ctx.currentTime,
+        0.01
+      );
+    });
+    deck.channelGain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.01);
+    deck.gain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.01);
+    deck.cueGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.01);
   }
+
   setHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck || slot < 0 || slot >= deck.hotCues.length) return;
+    deck.hotCues[slot] = this.getDeckProgress(id).position;
   }
+
   clearHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    if (!deck || slot < 0 || slot >= deck.hotCues.length) return;
+    deck.hotCues[slot] = null;
   }
+
   jumpToHotCue(id: DeckId, slot: number) {
-    /* hotcue logic */
+    const deck = this.getDeck(id);
+    const pos = deck?.hotCues[slot];
+    if (deck && pos !== undefined && pos !== null) {
+      this.seekDeck(id, pos);
+      if (!deck.isPlaying) this.playDeck(id);
+    }
   }
   setDeckEq(id: DeckId, high: number, mid: number, low: number) {
     const deck = this.getDeck(id);
@@ -872,19 +1196,146 @@ export class AudioEngineService {
     deck.filter.type = type;
   }
   setDeckSend(id: DeckId, send: 'A' | 'B', gain: number) {
-    /* send logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const node = send === 'A' ? deck.sendA : deck.sendB;
+    const safe = Number.isFinite(gain) ? Math.max(0, Math.min(1.5, gain)) : 0;
+    node.gain.setTargetAtTime(safe, this.ctx.currentTime, 0.01);
   }
+
+  /** Momentary platter nudge — directly overrides live source playback rates. */
   scratch(id: DeckId, delta: number) {
-    /* scratch logic */
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const speed = Number.isFinite(delta)
+      ? Math.max(-2, Math.min(2, delta * 4))
+      : 0;
+    Object.values(deck.sources).forEach((s) => {
+      if (s) s.playbackRate.value = speed;
+    });
   }
+
+  /** BRAKE — exponential rate decay to a halt, then pause. */
   brakeDeck(id: DeckId) {
-    /* brake logic */
+    const deck = this.getDeck(id);
+    if (!deck || !deck.isPlaying) return;
+    this.clearDeckFx(id);
+    const baseRate = Math.max(0.25, Math.abs(deck.rate) || 1);
+    const started = this.ctx.currentTime;
+    const interval = setInterval(() => {
+      const t = (this.ctx.currentTime - started) / 1.6;
+      if (t >= 1) {
+        this.clearDeckFx(id);
+        this.pauseDeck(id);
+        this.setDeckRate(id, baseRate, deck.keyLock);
+        return;
+      }
+      const rate = baseRate * Math.pow(1 - t, 2.2);
+      this.setDeckRate(id, Math.max(0.001, rate), deck.keyLock);
+    }, 30);
+    this.pendingDeckFx.set(id, { interval });
   }
+
+  /** SPINBACK — negative rate that decays toward zero, then resumes. */
   spinbackDeck(id: DeckId) {
-    /* spinback logic */
+    const deck = this.getDeck(id);
+    if (!deck || !deck.isPlaying) return;
+    this.clearDeckFx(id);
+    const baseRate = Math.max(0.25, Math.abs(deck.rate) || 1);
+    const started = this.ctx.currentTime;
+    const interval = setInterval(() => {
+      const t = (this.ctx.currentTime - started) / 1.1;
+      if (t >= 1) {
+        this.clearDeckFx(id);
+        this.setDeckRate(id, baseRate, deck.keyLock);
+        return;
+      }
+      this.setDeckRate(id, -baseRate * (1 - t), deck.keyLock);
+    }, 30);
+    this.pendingDeckFx.set(id, { interval });
   }
+
+  /** TRANSFORM — rapid forward/reverse rate jitter, then restore. */
   transformDeck(id: DeckId) {
-    /* transform logic */
+    const deck = this.getDeck(id);
+    if (!deck || !deck.isPlaying) return;
+    this.clearDeckFx(id);
+    const baseRate = Math.max(0.25, Math.abs(deck.rate) || 1);
+    const started = this.ctx.currentTime;
+    const interval = setInterval(() => {
+      const t = this.ctx.currentTime - started;
+      if (t >= 0.8) {
+        this.clearDeckFx(id);
+        this.setDeckRate(id, baseRate, deck.keyLock);
+        return;
+      }
+      const sign = Math.floor(t / 0.09) % 2 === 0 ? 1 : -1;
+      this.setDeckRate(id, baseRate * sign, deck.keyLock);
+    }, 45);
+    this.pendingDeckFx.set(id, { interval });
+  }
+
+  /** Tear down any in-flight deck FX interval. */
+  private clearDeckFx(id: DeckId) {
+    const fx = this.pendingDeckFx.get(id);
+    if (fx?.interval) clearInterval(fx.interval);
+    this.pendingDeckFx.delete(id);
+  }
+
+  /** Precompute max-abs peak buckets for the booth waveform. */
+  private computeDeckPeaks(buffer: AudioBuffer, buckets = 2048): Float32Array {
+    const peaks = new Float32Array(buckets);
+    const ch0 = buffer.getChannelData(0);
+    const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+    const samplesPerBucket = Math.max(1, Math.floor(ch0.length / buckets));
+    for (let b = 0; b < buckets; b++) {
+      const start = b * samplesPerBucket;
+      const end = Math.min(ch0.length, start + samplesPerBucket);
+      let max = 0;
+      for (let i = start; i < end; i++) {
+        const v = Math.max(Math.abs(ch0[i]), Math.abs(ch1[i]));
+        if (v > max) max = v;
+      }
+      peaks[b] = max;
+    }
+    return peaks;
+  }
+
+  /** Build the mid/side width stage between masterGain and the pre-master bus. */
+  private wireMasterWidthNetwork(): void {
+    this.masterWidthMid.gain.value = 0.5; // mid = (L+R)/2
+    this.masterWidthSidePos.gain.value = 0.5; // +L/2
+    this.masterWidthSideNeg.gain.value = -0.5; // -R/2
+    this.masterWidthSideL.gain.value = 1; // neutral full-width default
+    this.masterWidthSideR.gain.value = -1;
+
+    this.masterGain.disconnect(this._preMasterGain);
+    this.masterGain.connect(this.masterWidthSplitter);
+    this.masterWidthSplitter.connect(this.masterWidthMid, 0);
+    this.masterWidthSplitter.connect(this.masterWidthMid, 1);
+    this.masterWidthSplitter.connect(this.masterWidthSidePos, 0);
+    this.masterWidthSplitter.connect(this.masterWidthSideNeg, 1);
+    this.masterWidthSidePos.connect(this.masterWidthSide);
+    this.masterWidthSideNeg.connect(this.masterWidthSide);
+    // L' = mid + side·width, R' = mid − side·width
+    this.masterWidthMid.connect(this.masterWidthMerger, 0, 0);
+    this.masterWidthSideL.connect(this.masterWidthMerger, 0, 0);
+    this.masterWidthMid.connect(this.masterWidthMerger, 0, 1);
+    this.masterWidthSideR.connect(this.masterWidthMerger, 0, 1);
+    this.masterWidthMerger.connect(this._preMasterGain);
+  }
+
+  /**
+   * Master stereo-width macro. width = 1 → neutral, 0 → mono collapse,
+   * > 1 → widened (side emphasis). Clamped to [0, 2.5].
+   */
+  setMasterWidth(width: number): void {
+    const safe = Number.isFinite(width)
+      ? Math.max(0, Math.min(2.5, width))
+      : 1;
+    const now = this.ctx.currentTime;
+    this.masterWidthSideL.gain.setTargetAtTime(safe, now, 0.02);
+    this.masterWidthSideR.gain.setTargetAtTime(-safe, now, 0.02);
   }
 
   setCrossfader(
@@ -1110,6 +1561,12 @@ export class AudioEngineService {
     }
   }
 
+  /**
+   * Phase F2 — sampler trigger with optional clip fade-in / fade-out.
+   * Fades are expressed in seconds and applied as linear gain ramps on the
+   * per-trigger VCA, so arrangement clips with `fadeIn`/`fadeOut` set get a
+   * click-free envelope exactly like a professional DAW's clip fades.
+   */
   triggerSampler(
     trackId: string | number,
     buffer: AudioBuffer,
@@ -1117,7 +1574,9 @@ export class AudioEngineService {
     velocity: number,
     pan: number,
     duration: number,
-    playbackRate: number = 1
+    playbackRate: number = 1,
+    fadeInSec: number = 0,
+    fadeOutSec: number = 0
   ) {
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
@@ -1125,13 +1584,33 @@ export class AudioEngineService {
     const panner = this.ctx.createStereoPanner();
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
+
+    const safeDuration = Math.max(0.001, duration);
+    const fadeIn = Math.max(0, Math.min(fadeInSec || 0, safeDuration));
+    const fadeOut = Math.max(0, Math.min(fadeOutSec || 0, safeDuration));
+
     gain.gain.setValueAtTime(0, time);
-    gain.gain.setTargetAtTime(velocity, time, 0.005);
+    if (fadeIn > 0) {
+      // Linear fade-in to full velocity
+      gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
+    } else {
+      gain.gain.setTargetAtTime(velocity, time, 0.005);
+    }
+
+    if (fadeOut > 0) {
+      const fadeStart = time + Math.max(fadeIn, safeDuration - fadeOut);
+      gain.gain.setValueAtTime(velocity, fadeStart);
+      gain.gain.linearRampToValueAtTime(0, time + safeDuration);
+    } else {
+      // Ensure the sustain level holds until the very end to avoid a click
+      gain.gain.setValueAtTime(velocity, time + safeDuration - 0.001);
+    }
+
     source.connect(panner);
     panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId.toString()));
     source.start(time);
-    source.stop(time + duration);
+    source.stop(time + safeDuration + 0.01);
   }
 
   getTrackOutput(id: string): GainNode {

@@ -17,6 +17,7 @@
   --stage-paper: var(--ivory-paper, #fbf7ec);
   --stage-canvas: var(--ivory-bg, #f5efe0);
   --stage-shadow: 0 16px 38px rgba(61, 53, 42, 0.09);
+  --stage-focus: #075e5d;
   display: block;
   isolation: isolate;
 }
@@ -215,7 +216,6 @@
 .comp-panel,
 .comp-drawer {
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .comp-panel-body,
@@ -277,7 +277,6 @@
   .comp-shell {
     --shell-gap: 6px;
     min-height: 100dvh;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .comp-topbar {
@@ -543,6 +542,7 @@
   --stage-paper: #11161e;
   --stage-canvas: #080b10;
   --stage-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+  --stage-focus: #8ce8e3;
 }
 
 :host-context(.focus-mode) {
@@ -553,6 +553,7 @@
   --stage-paper: #171c25;
   --stage-canvas: #0d121a;
   --stage-shadow: 0 18px 42px rgba(0, 0, 0, 0.23);
+  --stage-focus: #a7f3ee;
 }
 
 :host-context(.dark-mode) .comp-shell,
@@ -577,8 +578,9 @@
 
 /* Keyboard and motion accessibility. */
 .comp-shell :focus-visible {
-  outline: 2px solid var(--stage-teal-bright);
-  outline-offset: 2px;
+  outline: 2px solid var(--stage-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--stage-paper);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -589,5 +591,94 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* Final Android pass: keep every scroll surface independently usable and
+   prevent the fixed dock/drawers from stealing the gesture area. */
+@media (max-width: 768px) {
+  .comp-shell {
+    min-height: 0;
+    height: 100svh;
+    height: 100dvh;
+  }
+
+  .comp-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .comp-canvas {
+    min-height: 0;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .comp-drawer {
+    height: 100svh;
+    height: 100dvh;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
+  }
+
+  .comp-drawer-nav {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 12px;
+  }
+
+  .comp-panel {
+    width: min(100vw, 380px);
+    max-width: 100%;
+    height: 100svh;
+    height: 100dvh;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .comp-panel-header {
+    min-height: 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-panel-body {
+    min-height: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .comp-mobile-start {
+    flex-shrink: 0;
+  }
+
+  .comp-shell {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .comp-canvas {
+    scroll-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .comp-mobile-start {
+    background: linear-gradient(135deg, rgba(17, 22, 30, 0.98), rgba(10, 35, 38, 0.94));
+    border-color: rgba(93, 196, 194, 0.24);
+  }
+
+  .comp-mobile-start h2,
+  .comp-mobile-start-action {
+    color: #f5f7fb;
+  }
+
+  .comp-mobile-start p,
+  .comp-mobile-start-action small {
+    color: #9aa5b5;
+  }
+
+  .comp-mobile-start-action {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 }

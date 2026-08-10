@@ -15,7 +15,7 @@ module.exports = {
     {
       displayName: 'angular',
       testEnvironment: 'jsdom',
-      testMatch: ['<rootDir>/src/**/*.spec.ts'],
+      testMatch: ['<rootDir>/src/app/**/*.spec.ts'],
       ...createCjsPreset({
         tsconfig: '<rootDir>/tsconfig.spec.json',
         stringifyContentPathRegex: '\\.html$',
@@ -33,8 +33,21 @@ module.exports = {
     {
       displayName: 'server',
       testEnvironment: 'node',
-      testMatch: ['<rootDir>/server/**/*.spec.js'],
-      transform: {},
+      testMatch: ['<rootDir>/src/**/*.spec.ts'],
+      testPathIgnorePatterns: [
+        '<rootDir>/src/app/',
+        '<rootDir>/node_modules/',
+        '<rootDir>/dist/',
+        '<rootDir>/src/test.ts',
+      ],
+      setupFilesAfterEnv: ['<rootDir>/setup-jest-server.ts'],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+      transform: {
+        '^.+\\.(ts|js)$': ['babel-jest', { configFile: './babel.config.cjs' }],
+      },
+      transformIgnorePatterns: ['node_modules/'],
     },
   ],
 };

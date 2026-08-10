@@ -161,8 +161,27 @@ describe('StudioComponent', () => {
     medium: jest.fn(),
   };
 
+  const mockUserProfileService = {
+    profile: signal({
+      settings: { studio: { stageFxEnabled: true } },
+    }),
+    // Faithful to the real service: merging the patch into the profile
+    // signal lets the Studio's live-sync effect observe the change.
+    updateProfile: jest.fn((patch: any) => {
+      const current = mockUserProfileService.profile();
+      mockUserProfileService.profile.set({
+        ...current,
+        ...patch,
+      });
+      return Promise.resolve(undefined);
+    }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+    localStorage.clear();
+    document.body.classList.remove('stage-fx-off');
+    mockAudioEngine.performanceTier.set('ultra');
     mockTemplateService.templates = [];
     mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
     await TestBed.configureTestingModule({
@@ -174,7 +193,7 @@ describe('StudioComponent', () => {
         { provide: UIService, useValue: { isCompactMobile: () => false } },
         { provide: NotificationService, useValue: {} },
         { provide: MusicManagerService, useValue: mockMusicManager },
-        { provide: UserProfileService, useValue: { profile: signal({}) } },
+        { provide: UserProfileService, useValue: mockUserProfileService },
         { provide: AiCopilotService, useValue: {} },
         { provide: HapticService, useValue: mockHaptic },
         { provide: TouchGestureService, useValue: {} },
@@ -273,5 +292,122 @@ describe('StudioComponent', () => {
     component.setActiveView('mixer');
     TestBed.flushEffects();
     expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith('mixer');
+  });
+
+  it('exposes Stage FX ambience enabled by default', () => {
+    expect(component.stageFxEnabled()).toBe(true);
+  });
+
+  it('toggles Stage FX and persists the choice to localStorage', () => {
+    component.toggleStageFx();
+    expect(component.stageFxEnabled()).toBe(false);
+    expect(localStorage.getItem('smuve_stage_fx')).toBe('off');
+    component.toggleStageFx();
+    expect(component.stageFxEnabled()).toBe(true);
+    expect(localStorage.getItem('smuve_stage_fx')).toBe('on');
+  });
+
+  it('syncs the stage-fx-off body class when FX is disabled', () => {
+    expect(document.body.classList.contains('stage-fx-off')).toBe(false);
+    component.toggleStageFx();
+    TestBed.flushEffects();
+    expect(document.body.classList.contains('stage-fx-off')).toBe(true);
+  });
+
+  it('auto-disables FX on the low-end tier until the user makes a choice', () => {
+    // Untouched user + low-end tier → guard fires and disables ambience.
+    expect(component.stageFxUserTouched).toBe(false);
+    mockAudioEngine.performanceTier.set('performance');
+    TestBed.flushEffects();
+    expect(component.stageFxEnabled()).toBe(false);
+    expect(component.stageFxUserTouched).toBe(true);
+  });
+
+  it('lets a manual toggle win — the tier guard never overrides an explicit choice', () => {
+    component.toggleStageFx();
+    expect(component.stageFxUserTouched).toBe(true);
+    // Low-end tier arrives after the manual choice — must stay OFF the
+    // way the user set it.
+    mockAudioEngine.performanceTier.set('performance');
+    TestBed.flushEffects();
+    expect(component.stageFxEnabled()).toBe(false);
+    // Then the user flips FX back ON — the guard must not re-disable.
+    component.toggleStageFx();
+    TestBed.flushEffects();
+    expect(component.stageFxEnabled()).toBe(true);
+  });
+
+  // ── Keyboard shortcuts (Studio-side: Shift+F + help popover) ──
+
+  it('toggles the keyboard-shortcuts help popover', () => {
+    expect(component.showShortcuts()).toBe(false);
+    component.toggleShortcuts();
+    expect(component.showShortcuts()).toBe(true);
+    component.toggleShortcuts();
+    expect(component.showShortcuts()).toBe(false);
+  });
+
+  it('toggles Stage FX with Shift+F from anywhere in the studio', () => {
+    const before = component.stageFxEnabled();
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'f', shiftKey: true })
+    );
+    expect(component.stageFxEnabled()).toBe(!before);
+  });
+
+  it('ignores Shift+F while typing in a text input', () => {
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    const before = component.stageFxEnabled();
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'f', shiftKey: true, bubbles: true })
+    );
+    expect(component.stageFxEnabled()).toBe(before);
+    document.body.removeChild(input);
+  });
+
+  it('ignores a plain F key without the Shift modifier', () => {
+    const before = component.stageFxEnabled();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
+    expect(component.stageFxEnabled()).toBe(before);
+  });
+
+  it('mirrors the Stage FX toggle into the executive preferences', () => {
+    component.toggleStageFx();
+    expect(mockUserProfileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ stageFxEnabled: false }),
+        }),
+      })
+    );
+  });
+
+  it('live-syncs the FX button when the preference changes while the studio is open', () => {
+    expect(component.stageFxEnabled()).toBe(true);
+    // A preference change from outside the Studio (Settings commit, cloud
+    // sync, profile restore) updates the topbar button immediately.
+    mockUserProfileService.profile.set({
+      settings: { studio: { stageFxEnabled: false } },
+    });
+    TestBed.flushEffects();
+    expect(component.stageFxEnabled()).toBe(false);
+    expect(document.body.classList.contains('stage-fx-off')).toBe(true);
+  });
+
+  it('persists the adaptive low-power FX auto-off to preferences', () => {
+    mockAudioEngine.performanceTier.set('performance');
+    TestBed.flushEffects();
+    expect(component.stageFxEnabled()).toBe(false);
+    // The guard's choice is written back so live-sync stays consistent and
+    // the off state survives a reload.
+    expect(mockUserProfileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ stageFxEnabled: false }),
+        }),
+      })
+    );
+    expect(localStorage.getItem('smuve_stage_fx')).toBe('off');
   });
 });

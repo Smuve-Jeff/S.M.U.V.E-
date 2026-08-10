@@ -154,6 +154,7 @@
         class="mix-strip"
         [class.mix-strip-selected]="isSelected(track.id)"
         [class.mix-strip-sidechain]="hasSidechain(track.id)"
+        [style.--track-color]="track.color || '#0E7C7B'"
         role="listitem"
         (click)="selectTrack(track.id)"
         (touchstart)="onStripTouchStart($event, track.id)"

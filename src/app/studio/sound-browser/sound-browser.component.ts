@@ -135,10 +135,6 @@ export class SoundBrowserComponent {
     this.searchQuery.set(this.searchQuery());
   }
 
-  async bulkExport() {
-    // Export current project tracks — cloud drive integration pending
-  }
-
   onDragStart(event: DragEvent, preset: InstrumentPreset) {
     event.dataTransfer?.setData(
       'application/json',

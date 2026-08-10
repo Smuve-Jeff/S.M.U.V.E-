@@ -289,6 +289,11 @@ export class UniversalMasterComponent
           this.audioEngine.ctx.currentTime
         );
       }
+    } else if (type === 'width') {
+      // Real mid/side stereo-width processor. The knob's neutral position
+      // (80) maps to 1.0x (full stereo); 0 collapses to mono; 100 widens to
+      // ~1.25x. Clamped inside the engine to [0, 2.5].
+      this.audioEngine.setMasterWidth(value / 80);
     }
   }
 }

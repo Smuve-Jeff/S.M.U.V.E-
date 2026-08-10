@@ -2032,3 +2032,356 @@
     transition: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Performer · Pro-instrument console polish
+   ═══════════════════════════════════════════════════════════ */
+.performer-shell {
+  background:
+    radial-gradient(
+      circle at 85% 0%,
+      rgba(0, 229, 255, 0.05) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      rgba(255, 0, 127, 0.05) 0%,
+      transparent 45%
+    ),
+    #0d0c1a;
+}
+
+.perf-header {
+  position: relative;
+}
+
+.perf-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 255, 0.4),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.spectrum-bar {
+  transition: height 0.08s ease;
+}
+
+.spectrum-strip {
+  box-shadow: inset 0 0 8px rgba(0, 229, 255, 0.25);
+}
+
+.layout-switcher button {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.layout-switcher button:hover {
+  transform: translateY(-1px);
+}
+
+.layout-switcher button.is-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 14px rgba(0, 229, 255, 0.25);
+}
+
+.rack-cell {
+  transition:
+    transform 140ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.rack-cell:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.rack-track-tag {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.rack-track-tag:hover {
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+}
+
+.rack-toggle {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.rack-toggle:active {
+  transform: scale(0.94);
+}
+
+.rack-toggle.is-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 3px 12px rgba(0, 229, 255, 0.25);
+}
+
+.meter-bar {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.meter-fill {
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.meter-fill.out-l,
+.meter-fill.out-r {
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.4);
+}
+
+.rec-arm-btn {
+  transition:
+    transform 140ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.rec-arm-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 229, 255, 0.4);
+}
+
+.rec-arm-btn.is-armed,
+.rec-arm-btn.is-rec {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 16px rgba(0, 229, 255, 0.3);
+}
+
+.rec-arm-btn.is-rec {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 16px rgba(255, 0, 127, 0.35);
+}
+
+.rec-util-btn {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.rec-util-btn:active {
+  transform: scale(0.94);
+}
+
+.rec-util-btn.is-on {
+  box-shadow: 0 3px 12px rgba(0, 229, 255, 0.25);
+}
+
+.kb-key {
+  transition:
+    background 0.06s ease,
+    transform 0.06s ease,
+    box-shadow 0.06s ease,
+    border-color 0.06s ease;
+}
+
+.kb-key.is-white.is-active {
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.4);
+}
+
+.kb-key.is-black.is-active {
+  box-shadow: 0 0 24px rgba(255, 184, 0, 0.4);
+}
+
+.vel-tag {
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.xb-slider::-webkit-slider-thumb {
+  transition:
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.xb-slider:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.oct-btn {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.oct-btn:active {
+  transform: scale(0.9);
+}
+
+.perf-pad {
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    border-color 0.1s,
+    background 0.1s;
+}
+
+.perf-pad::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+  transition: border-color 0.1s;
+}
+
+.perf-pad.is-active::before {
+  border-color: color-mix(in srgb, var(--pad-color, #00e5ff) 45%, transparent);
+}
+
+.pad-led {
+  transition: box-shadow 0.1s;
+}
+
+.perf-pad.is-active .pad-led {
+  box-shadow:
+    0 0 10px var(--pad-color),
+    0 0 20px var(--pad-color);
+}
+
+.scene-btn {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.scene-btn:active {
+  transform: scale(0.97);
+}
+
+.scene-btn.is-active {
+  box-shadow: 0 3px 12px rgba(0, 229, 255, 0.25);
+}
+
+.tc-card {
+  transition:
+    transform 140ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.tc-card:hover {
+  transform: translateY(-2px);
+}
+
+.tc-card.is-selected {
+  box-shadow:
+    0 0 0 2px rgba(0, 229, 255, 0.3),
+    0 6px 16px rgba(14, 124, 123, 0.25);
+}
+
+.tc-card-num {
+  transition: color 120ms ease;
+}
+
+.tc-card:hover .tc-card-num {
+  color: #ffb800;
+}
+
+.tc-mini {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.tc-mini:active {
+  transform: scale(0.9);
+}
+
+.macro-preset-chip {
+  transition:
+    transform 0.1s,
+    border-color 0.12s,
+    box-shadow 0.12s,
+    background 0.12s;
+}
+
+.macro-preset-chip.is-active {
+  animation: perf-chip-pop 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes perf-chip-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.xy-pad {
+  transition: border-color 160ms ease;
+}
+
+.xy-pad:hover {
+  border-color: rgba(0, 229, 255, 0.3);
+}
+
+.midi-picker-toggle,
+.midi-picker-edit-btn,
+.midi-mapping-delete,
+.midi-mapping-clear-all {
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.midi-picker-toggle:active,
+.midi-picker-edit-btn:active,
+.midi-mapping-delete:active,
+.midi-mapping-clear-all:active {
+  transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .macro-preset-chip.is-active {
+    animation: none;
+  }
+  .perf-pad,
+  .kb-key,
+  .tc-card,
+  .scene-btn,
+  .rack-cell {
+    transition: none;
+  }
+}

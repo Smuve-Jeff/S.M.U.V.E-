@@ -1,0 +1,69 @@
+/* ── Chatbot Mobile Polish ──────────────────────────── */
+
+/* Header: allow wrap on phones instead of clipping toggle buttons */
+@media (max-width: 768px) {
+  .chatbot-container header {
+    height: auto !important;
+    min-height: 56px !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem 0.75rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .chatbot-container header > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .chatbot-container header h3 {
+    font-size: 0.7rem !important;
+  }
+
+  /* Collapse the "S.M.U.V.E v2.0 · Production · Marketing · Business" tagline */
+  .chatbot-container header span[class*="tracking-\\[0"] {
+    display: none;
+  }
+
+  /* Category tabs row: scroll instead of cramming */
+  .chatbot-container > div:nth-child(2) {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    scrollbar-width: none;
+    gap: 0.35rem !important;
+  }
+  .chatbot-container > div:nth-child(2)::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chatbot-container > div:nth-child(2) > div[class*="ml-auto"] {
+    flex-shrink: 0;
+    margin-left: 0.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Hide memory counter, Clear, and Neural Active on narrow phones */
+  .chatbot-container > div:nth-child(2) > div[class*="ml-auto"] > span:first-child,
+  .chatbot-container > div:nth-child(2) > div[class*="ml-auto"] > button,
+  .chatbot-container > div:nth-child(2) > div[class*="ml-auto"] > div:last-child {
+    display: none;
+  }
+
+  /* Tighter message padding */
+  .messages-viewport {
+    padding: 0.75rem !important;
+  }
+
+  /* Full-width messages on phones */
+  .messages-viewport [class*="max-w-\\[85"] {
+    max-width: 95% !important;
+  }
+
+  /* Stack footer chips tighter */
+  :host footer > div:last-child {
+    gap: 0.25rem !important;
+  }
+}

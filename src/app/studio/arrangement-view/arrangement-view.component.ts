@@ -202,17 +202,22 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
       for (const clip of track.clips) {
         const color = clipColorFromId(clip.id);
+        const clipLen = Math.max(0.001, clip.length || 4);
         tlClips.push({
           id: clip.id,
           x: clip.start || 0,
           y,
-          width: clip.length || 4,
+          width: clipLen,
           height: th,
           color,
           label: clip.name || track.name,
           selected: this.selectedClipIds().has(clip.id),
           isCrosslinked: this.isClipCrosslinked(track, clip),
           type: (clip.type as TimelineClip['type']) || 'midi',
+          // Phase F2 — fade lengths as fractions of the clip width so the
+          // renderer can draw wedges that scale with zoom.
+          fadeIn: clip.type === 'audio' ? (clip.fadeIn || 0) / clipLen : 0,
+          fadeOut: clip.type === 'audio' ? (clip.fadeOut || 0) / clipLen : 0,
         });
       }
       y += th;
@@ -568,7 +573,150 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   async bounceSelected() {
     const tid = this.musicManager.selectedTrackId();
-    if (tid) await this.musicManager.bounceTrack(tid);
+    if (!tid) return;
+    const result = await this.musicManager.bounceTrack(tid);
+    if (!result) {
+      this.snackbar.show('🎚 Bounce failed — select a valid track');
+      return;
+    }
+    const name =
+      this.musicManager.selectedTrack?.()?.name ??
+      this.tracks().find((t) => t.id === tid)?.name ??
+      'track';
+    const a = document.createElement('a');
+    a.href = result.url;
+    a.download = `${name}-bounce.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    this.snackbar.show(`🎚 Bounced "${name}" → ${result.format}`);
+  }
+
+  // ── Phase F2: Clip Trim / Fade / Delete (pro audio editing) ──
+
+  /** Fade presets offered by the cycle button (bars). 0 = no fade. */
+  readonly FADE_PRESETS = [0, 0.5, 1, 2];
+
+  /**
+   * Trim every selected clip by `deltaBars` on the given edge.
+   * 'start' shrinks/grows the clip's left edge (start + length adjust),
+   * 'end' adjusts the right edge (length only). Clamped so a clip can
+   * never collapse below a quarter bar or start before bar 0.
+   */
+  trimSelected(edge: 'start' | 'end', deltaBars: number): void {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length === 0) return;
+    let changed = 0;
+    ids.forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      const { track, clip } = found;
+      const start = clip.start || 0;
+      const length = clip.length || 4;
+      let nextStart = start;
+      let nextLength = length;
+
+      if (edge === 'start') {
+        nextStart = Math.max(0, start + deltaBars);
+        const actualDelta = nextStart - start;
+        nextLength = Math.max(0.25, length - actualDelta);
+      } else {
+        nextLength = Math.max(0.25, length + deltaBars);
+      }
+
+      if (nextStart === start && nextLength === length) return;
+      this.musicManager.updateClip(track.id, id, {
+        start: nextStart,
+        length: nextLength,
+      });
+      changed++;
+    });
+    if (changed > 0) {
+      this.haptic.light();
+      this.markDirty();
+      this.snackbar.show(
+        `✂ Trimmed ${changed} clip${changed === 1 ? '' : 's'} ${
+          edge === 'start' ? 'left' : 'right'
+        }`
+      );
+    }
+  }
+
+  /**
+   * Cycle the fade-in/fade-out length (in bars) on selected audio clips:
+   * 0 → 0.5 → 1 → 2 → 0. MIDI clips are skipped with a hint.
+   */
+  cycleFade(side: 'in' | 'out'): void {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length === 0) return;
+    let changed = 0;
+    let skipped = 0;
+    ids.forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      const { track, clip } = found;
+      if (clip.type !== 'audio') {
+        skipped++;
+        return;
+      }
+      const current = side === 'in' ? clip.fadeIn || 0 : clip.fadeOut || 0;
+      const idx = this.FADE_PRESETS.indexOf(current);
+      // Off-preset values (e.g. 0.3) advance to the first real preset instead
+      // of silently resetting to 0.
+      const next =
+        idx === -1
+          ? this.FADE_PRESETS[1] ?? 0
+          : this.FADE_PRESETS[(idx + 1) % this.FADE_PRESETS.length];
+      this.musicManager.updateClip(track.id, id, {
+        [side === 'in' ? 'fadeIn' : 'fadeOut']: next,
+      });
+      changed++;
+    });
+    if (changed > 0) {
+      this.haptic.medium();
+      this.markDirty();
+      const nextVal =
+        side === 'in' ? this.firstSelectedFade('in') : this.firstSelectedFade('out');
+      this.snackbar.show(
+        `🎚 Fade-${side === 'in' ? 'in' : 'out'} → ${this.formatFade(
+          nextVal
+        )} on ${changed} clip${changed === 1 ? '' : 's'}`
+      );
+    } else if (skipped > 0) {
+      this.snackbar.info('Fades apply to audio clips only');
+    }
+  }
+
+  /** Fade value (bars) of the first selected clip, 0 when none. */
+  firstSelectedFade(side: 'in' | 'out'): number {
+    const clip = this.findFirstSelectedClip();
+    if (!clip || clip.type !== 'audio') return 0;
+    return side === 'in' ? clip.fadeIn || 0 : clip.fadeOut || 0;
+  }
+
+  /** Human label for a fade length in bars (0 = none). */
+  formatFade(bars: number): string {
+    if (!bars || bars <= 0) return 'none';
+    return bars === 0.5 ? '½ bar' : `${bars} bar${bars === 1 ? '' : 's'}`;
+  }
+
+  /** Delete all selected clips (history-aware). */
+  deleteSelected(): void {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length === 0) return;
+    let removed = 0;
+    ids.forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      this.musicManager.removeClip(found.track.id, id);
+      removed++;
+    });
+    this.selectedClipIds.set(new Set());
+    if (removed > 0) {
+      this.haptic.medium();
+      this.markDirty();
+      this.snackbar.show(`🗑 Deleted ${removed} clip${removed === 1 ? '' : 's'}`);
+    }
   }
 
   crossLinkToPianoRoll(track: TrackModel, clip: StudioClip) {

@@ -3,9 +3,18 @@
   [class.comp-compact]="uiService.isCompactMobile()"
   [class.comp-header-collapsed]="headerCollapsed()"
   [class.comp-footer-collapsed]="footerCollapsed()"
+  [class.comp-stage-live]="isLivePerforming()"
+  [class.comp-stage-fx-off]="!stageFxEnabled()"
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
   (keydown)="handleKeyboardShortcut($event)"
 >
+  <!-- Stage 2.0 ambient aurora field (pure decoration) -->
+  <div class="comp-aurora" aria-hidden="true">
+    <span class="comp-aurora-blob comp-aurora-a"></span>
+    <span class="comp-aurora-blob comp-aurora-b"></span>
+    <span class="comp-aurora-blob comp-aurora-c"></span>
+  </div>
+
   <!-- ====================== TOP TRANSPORT ====================== -->
   <header class="comp-topbar" role="banner">
     <div class="comp-topbar-left">
@@ -41,6 +50,8 @@
       <div
         class="comp-brand led-strip"
         (click)="newProject()"
+        (keydown.enter)="newProject()"
+        (keydown.space)="$event.preventDefault(); newProject()"
         tabindex="0"
         role="button"
         [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'"
@@ -155,6 +166,47 @@
           currentThemeLabel()
         }}</span>
       </button>
+
+      <!-- Stage FX ambience toggle (aurora / marquee / sheens / pulses) -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-fx-toggle"
+        [class.comp-fx-off]="!stageFxEnabled()"
+        (click)="toggleStageFx()"
+        [attr.aria-label]="
+          stageFxEnabled()
+            ? 'Disable Stage FX — calm mode for battery &amp; low-end devices'
+            : 'Enable Stage FX — full ambient lighting'
+        "
+        [attr.aria-pressed]="stageFxEnabled()"
+        title="Stage FX · currently: {{ stageFxEnabled() ? 'ON' : 'OFF' }}"
+      >
+        <span class="material-symbols-outlined">{{
+          stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
+        }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          stageFxEnabled() ? 'FX' : 'FX OFF'
+        }}</span>
+      </button>
+
+      <!-- Keyboard shortcuts help (Space play · R record · M metronome) -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-kbd-help-btn"
+        [class.comp-kbd-help-active]="showShortcuts()"
+        (click)="toggleShortcuts()"
+        [attr.aria-label]="
+          showShortcuts()
+            ? 'Hide the keyboard shortcuts list'
+            : 'Show the keyboard shortcuts list'
+        "
+        [attr.aria-expanded]="showShortcuts()"
+        title="Keyboard shortcuts — Space play · R record · M metronome · Ctrl+Z undo · Shift+F Stage FX"
+      >
+        <span class="material-symbols-outlined">keyboard</span>
+        <span class="comp-theme-chip" aria-hidden="true">?</span>
+      </button>
+
       <button
         type="button"
         class="comp-icon-btn"
@@ -237,6 +289,50 @@
       }
     </div>
   </header>
+
+  <!-- ====================== KEYBOARD SHORTCUTS HELP ====================== -->
+  <div
+    class="comp-kbd-backdrop"
+    *ngIf="showShortcuts()"
+    (click)="showShortcuts.set(false)"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="comp-kbd-popover glass-v42"
+    *ngIf="showShortcuts()"
+    role="dialog"
+    aria-label="Keyboard shortcuts"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="comp-kbd-popover-head">
+      <span class="material-symbols-outlined">keyboard</span>
+      <span>STUDIO SHORTCUTS</span>
+    </header>
+    <div class="comp-kbd-grid">
+      <span class="comp-kbd-key"><kbd>Space</kbd><em>Play / Pause</em></span>
+      <span class="comp-kbd-key"><kbd>R</kbd><em>Record</em></span>
+      <span class="comp-kbd-key"><kbd>M</kbd><em>Metronome</em></span>
+      <span class="comp-kbd-key"><kbd>Ctrl</kbd><kbd>Z</kbd><em>Undo</em></span>
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Z</kbd><em>Redo</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>I</kbd><em>AI Mix</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>S</kbd><em>Save</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>E</kbd><em>Export</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Shift</kbd><kbd>F</kbd><em>Stage FX</em></span
+      >
+    </div>
+    <p class="comp-kbd-popover-note">
+      Ctrl = Cmd on Mac · works anywhere in the Studio
+    </p>
+  </div>
 
   <!-- ====================== TOPBAR CONTROLS ====================== -->
   <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
@@ -736,6 +832,9 @@
     [class.comp-drawer-open]="mobileDrawerOpen()"
     *ngIf="uiService.isCompactMobile()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!mobileDrawerOpen()"
+    [attr.inert]="mobileDrawerOpen() ? null : ''"
     aria-label="Studio navigation"
   >
     <header class="comp-drawer-header">
@@ -752,7 +851,7 @@
     <nav class="comp-drawer-nav" aria-label="Mobile navigation">
       <button
         *ngFor="let item of allStudioViews()"
-        (click)="setActiveView(item.id); toggleMobileDrawer()"
+        (click)="setActiveView(item.id)"
         [class.comp-drawer-active]="activeView() === item.id"
         [class.comp-drawer-hidden]="item.hidden"
         class="comp-drawer-item"
@@ -817,6 +916,22 @@
               : 'Dark Mode'
         }}</span>
       </button>
+
+      <!-- Stage FX ambience toggle in drawer -->
+      <button
+        (click)="toggleStageFx()"
+        class="comp-drawer-item"
+        [class.comp-drawer-active]="stageFxEnabled()"
+      >
+        <span class="material-symbols-outlined">{{
+          stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
+        }}</span>
+        <span>{{
+          stageFxEnabled()
+            ? 'Stage FX (ON) — ambient lighting'
+            : 'Stage FX (OFF) — calm · save battery'
+        }}</span>
+      </button>
     </nav>
     <div class="comp-drawer-footer">
       <button
@@ -841,6 +956,9 @@
     class="comp-panel comp-aimix-panel"
     [class.comp-panel-open]="showAiMixAssistant()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showAiMixAssistant()"
+    [attr.inert]="showAiMixAssistant() ? null : ''"
     aria-label="AI Mix Assistant"
   >
     <header class="comp-panel-header">
@@ -1085,6 +1203,9 @@
     class="comp-panel comp-rec-panel"
     [class.comp-panel-open]="showSmartRecordingPanel()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showSmartRecordingPanel()"
+    [attr.inert]="showSmartRecordingPanel() ? null : ''"
     aria-label="Recording Mode"
   >
     <header class="comp-panel-header">
@@ -1305,6 +1426,9 @@
     class="comp-panel comp-meta-panel"
     [class.comp-panel-open]="showProjectMetadata()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showProjectMetadata()"
+    [attr.inert]="showProjectMetadata() ? null : ''"
     aria-label="Project Metadata"
   >
     <header class="comp-panel-header">
@@ -1458,6 +1582,9 @@
     class="comp-panel comp-insights-panel"
     [class.comp-panel-open]="showStudioInsights()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showStudioInsights()"
+    [attr.inert]="showStudioInsights() ? null : ''"
     aria-label="Studio Insights"
   >
     <header class="comp-panel-header">
@@ -1718,6 +1845,9 @@
     class="comp-panel comp-rec-src-panel"
     [class.comp-panel-open]="showComponentRecording()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showComponentRecording()"
+    [attr.inert]="showComponentRecording() ? null : ''"
     aria-label="Component Recording"
   >
     <header class="comp-panel-header">
@@ -1781,6 +1911,9 @@
     class="comp-panel comp-import-panel"
     [class.comp-panel-open]="showImportPanel()"
     role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showImportPanel()"
+    [attr.inert]="showImportPanel() ? null : ''"
     aria-label="Audio Import"
   >
     <header class="comp-panel-header">

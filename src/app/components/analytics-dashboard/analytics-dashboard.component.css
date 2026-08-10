@@ -1,0 +1,35 @@
+/* ── Mobile: prevent 32px padding from eating 64px on 360px screens ── */
+@media (max-width: 768px) {
+  /* Root container padding — use the max-width class to avoid nuking nested p-8 panels */
+  .max-w-\[1400px\].p-8 {
+    padding: 1rem;
+  }
+
+  /* Header: stack vertically on phones */
+  header.flex.items-center.justify-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  /* Stat cards: ensure they don't squish below 280px */
+  .grid.grid-cols-1.md\:grid-cols-3 {
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .max-w-\[1400px\].p-8 {
+    padding: 0.75rem;
+  }
+
+  .glass-panel.rounded-3xl.p-8 {
+    padding: 1rem;
+  }
+
+  /* IPI input row: stack on narrow phones */
+  .flex.gap-4:has(input) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

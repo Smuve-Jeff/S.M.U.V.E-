@@ -354,17 +354,46 @@ export class AudioImportService {
     ctx.setLineDash([]);
   }
 
-  /** Add imported audio as a track */
+  /**
+   * Add imported audio as a real arrangement track. Applies the trim/gain
+   * edits when the passed audio is the current edit target, re-decodes the
+   * edited WAV into an AudioBuffer, and adds it as an audio track with a
+   * playable clip (cached in the music manager's `stemAudioCache` so it
+   * survives undo/redo).
+   */
   addToProject(audio: ImportedAudio) {
-    // Apply edits first
-    this.applyEdits().then((blob) => {
-      const finalAudio = this.selectedAudio();
-      if (!finalAudio) return;
+    const addTrack = (buffer: AudioBuffer) => {
+      this.musicManager.addAudioTrack({
+        id: 'audio_' + Date.now(),
+        name: audio.name,
+        color: '#0E7C7B',
+        buffer,
+        offset: 0,
+      });
+      this.snackbar.success(`Added "${audio.name}" as new track`);
+    };
 
-      // Create a new sampler track with this audio
-      this.musicManager.addTrack(finalAudio.name, 'sampler', 'midi');
+    // Not the current edit target — add the raw buffer directly.
+    if (this.selectedAudio()?.id !== audio.id) {
+      addTrack(audio.buffer);
+      return;
+    }
 
-      this.snackbar.success(`Added "${finalAudio.name}" as new track`);
+    this.applyEdits().then(async (blob) => {
+      if (!blob) return;
+      let buffer = audio.buffer;
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      } catch (e) {
+        // Edited re-decode failed (rare) — fall back to the unedited buffer
+        // so the import still lands in the arrangement.
+        this.logger.warn(
+          'Re-decoding edited audio failed — using original buffer',
+          e
+        );
+      }
+      addTrack(buffer);
     });
   }
 

@@ -36,6 +36,12 @@ export interface StudioClip {
   compRegions?: StudioCompRegion[];
   notes?: any[];
   automation?: StudioAutomationLane[];
+  /** Phase F2 — audio clip fade-in length in bars (0 = none; converted to
+   *  seconds at playback via tempo). Matches the bar units of start/length. */
+  fadeIn?: number;
+  /** Phase F2 — audio clip fade-out length in bars (0 = none; converted to
+   *  seconds at playback via tempo). */
+  fadeOut?: number;
 }
 
 export interface StudioAutomationPoint {

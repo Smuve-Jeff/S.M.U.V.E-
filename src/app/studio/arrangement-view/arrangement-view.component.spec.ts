@@ -254,4 +254,178 @@ describe('ArrangementViewComponent', () => {
     ]);
     expect(component.selectedClipIds()).toEqual(new Set(['clip-glued']));
   });
+
+  // ── Phase F2: Clip Trim / Fade / Delete ────────────────────
+
+  it('trims the left edge of a selected clip (start later, shorter)', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 1, length: 4, name: 'Clip', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.trimSelected('start', 0.25);
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      start: 1.25,
+      length: 3.75,
+    });
+    expect(mockHaptic.light).toHaveBeenCalled();
+  });
+
+  it('trims the right edge of a selected clip (shorter)', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 4, name: 'Clip', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.trimSelected('end', -0.25);
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      start: 0,
+      length: 3.75,
+    });
+  });
+
+  it('never trims a clip below a quarter bar', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 0.5, name: 'Clip', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.trimSelected('end', -10);
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      start: 0,
+      length: 0.25,
+    });
+  });
+
+  it('cycles fade-in on an audio clip: 0 → ½ bar', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Audio',
+        clips: [
+          {
+            id: 'clip-1',
+            start: 0,
+            length: 4,
+            name: 'Clip',
+            type: 'audio',
+          },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.cycleFade('in');
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      fadeIn: 0.5,
+    });
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      expect.stringContaining('½ bar')
+    );
+  });
+
+  it('cycles fade-out forward through presets on an audio clip', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Audio',
+        clips: [
+          {
+            id: 'clip-1',
+            start: 0,
+            length: 4,
+            name: 'Clip',
+            type: 'audio',
+            fadeOut: 1,
+          },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.cycleFade('out');
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith('1', 'clip-1', {
+      fadeOut: 2,
+    });
+  });
+
+  it('hints that fades apply to audio clips only when a MIDI clip is selected', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 4, name: 'Clip', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1']));
+
+    component.cycleFade('in');
+
+    expect(mockMusicManager.updateClip).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      'Fades apply to audio clips only'
+    );
+  });
+
+  it('deletes all selected clips and clears the selection', () => {
+    mockMusicManager.tracks.set([
+      {
+        id: '1',
+        name: 'Lead',
+        clips: [
+          { id: 'clip-1', start: 0, length: 4, name: 'Clip A', type: 'midi' },
+          { id: 'clip-2', start: 4, length: 4, name: 'Clip B', type: 'midi' },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(['clip-1', 'clip-2']));
+
+    component.deleteSelected();
+
+    expect(mockMusicManager.removeClip).toHaveBeenCalledWith('1', 'clip-1');
+    expect(mockMusicManager.removeClip).toHaveBeenCalledWith('1', 'clip-2');
+    expect(component.selectedClipIds()).toEqual(new Set());
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      expect.stringContaining('Deleted 2 clips')
+    );
+  });
 });

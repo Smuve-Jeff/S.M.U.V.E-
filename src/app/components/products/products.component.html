@@ -1,0 +1,245 @@
+<div
+  class="min-h-screen w-full bg-[#020617] relative overflow-x-hidden"
+>
+  <div class="scan-line"></div>
+
+  <div
+    class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-blue-600/10 pointer-events-none"
+  ></div>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-4 py-8 md:py-12">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <a
+          routerLink="/hub"
+          class="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-silver-dim hover:text-brand-primary transition-colors"
+        >
+          <span class="material-symbols-outlined text-sm">arrow_back</span>
+          Return to Hub
+        </a>
+        <h1
+          class="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter mt-4"
+        >
+          The Vault<span class="text-brand-primary">.</span>
+        </h1>
+        <p
+          class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em] mt-3 opacity-70"
+        >
+          Product & Service Catalog — API Backed
+        </p>
+      </div>
+
+      @if (isAuthenticated()) {
+        <button
+          type="button"
+          (click)="toggleCreate()"
+          class="btn-elegant btn-elegant-primary h-12 px-6 text-[10px] font-black uppercase tracking-[0.25em] shadow-xl shadow-brand-primary/10 active:scale-[0.98] transition-transform"
+        >
+          <span class="material-symbols-outlined text-base align-middle mr-1">
+            {{ showCreate() ? 'close' : 'add' }}
+          </span>
+          {{ showCreate() ? 'Cancel' : 'Seal New Product' }}
+        </button>
+      }
+    </div>
+
+    <!-- Create form -->
+    @if (showCreate()) {
+      <form
+        (ngSubmit)="createProduct()"
+        #createForm="ngForm"
+        class="glass-v42-pro rounded-3xl border border-white/10 p-6 md:p-8 mb-10 space-y-4"
+      >
+        <p
+          class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em]"
+        >
+          Seal a new entry
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <label class="block">
+            <span
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Product Name *</span
+            >
+            <input
+              type="text"
+              [(ngModel)]="form.name"
+              name="productName"
+              required
+              placeholder="STAGE PLUGIN / SERVICE"
+              class="mt-2 w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
+            />
+          </label>
+
+          <label class="block">
+            <span
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Price (USD) *</span
+            >
+            <input
+              type="number"
+              [(ngModel)]="form.price"
+              name="productPrice"
+              required
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              class="mt-2 w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
+            />
+          </label>
+
+          <label class="block md:col-span-2">
+            <span
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Description</span
+            >
+            <textarea
+              [(ngModel)]="form.description"
+              name="productDescription"
+              rows="3"
+              placeholder="WHAT DOES THE VAULT DELIVER?"
+              class="mt-2 w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 resize-none"
+            ></textarea>
+          </label>
+
+          <label class="block">
+            <span
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Stock</span
+            >
+            <input
+              type="number"
+              [(ngModel)]="form.stock"
+              name="productStock"
+              min="0"
+              step="1"
+              placeholder="0"
+              class="mt-2 w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
+            />
+          </label>
+        </div>
+
+        <div class="flex items-center gap-4 pt-2">
+          <button
+            type="submit"
+            [disabled]="isSubmitting() || !createForm.form.valid"
+            class="btn-elegant btn-elegant-primary h-12 px-8 text-[10px] font-black uppercase tracking-[0.25em] disabled:opacity-50 active:scale-[0.98] transition-transform"
+          >
+            {{ isSubmitting() ? 'Sealing…' : 'Seal Product' }}
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- Error banner -->
+    @if (error()) {
+      <div
+        class="mb-8 p-5 rounded-2xl border border-brand-danger/40 bg-brand-danger/10 text-center text-[10px] font-black uppercase tracking-widest text-brand-danger animate-pulse-subtle"
+      >
+        {{ error() }}
+      </div>
+    }
+
+    <!-- Catalog -->
+    @if (isLoading()) {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (skeleton of [1, 2, 3, 4, 5, 6]; track skeleton) {
+          <div
+            class="h-56 rounded-3xl border border-white/5 bg-white/[0.02] animate-pulse"
+          ></div>
+        }
+      </div>
+    } @else if (products().length === 0) {
+      <div
+        class="text-center py-24 glass-v42-pro rounded-3xl border border-white/10"
+      >
+        <span
+          class="material-symbols-outlined text-5xl text-silver-dim/40 inline-block mb-4"
+          >inventory_2</span
+        >
+        <p class="text-[12px] font-black text-silver-dim uppercase tracking-[0.3em]">
+          The vault is empty.
+        </p>
+        @if (isAuthenticated()) {
+          <p class="text-[10px] text-silver-dim/60 mt-2 tracking-widest uppercase">
+            Seal the first product to claim your spot.
+          </p>
+        }
+      </div>
+    } @else {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (product of products(); track product.id) {
+          <div
+            class="glass-v42-pro rounded-3xl border border-white/10 p-6 flex flex-col hover:border-brand-primary/40 hover:shadow-[0_0_30px_rgba(16,185,129,0.08)] transition-all group"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div
+                class="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary group-hover:scale-110 transition-transform"
+              >
+                <span class="material-symbols-outlined text-2xl">
+                  inventory_2
+                </span>
+              </div>
+              @if (product.isActive) {
+                <span
+                  class="text-[8px] font-black uppercase tracking-widest text-brand-primary border border-brand-primary/30 rounded-full px-3 py-1"
+                  >Active</span
+                >
+              } @else {
+                <span
+                  class="text-[8px] font-black uppercase tracking-widest text-silver-dim border border-white/10 rounded-full px-3 py-1"
+                  >Draft</span
+                >
+              }
+            </div>
+
+            <h3
+              class="text-lg font-black text-white uppercase italic tracking-tight leading-tight"
+            >
+              {{ product.name }}
+            </h3>
+
+            <p
+              class="text-[11px] text-silver-dim/80 leading-relaxed mt-2 flex-1 vault-clamp"
+            >
+              {{ product.description || 'NO DESCRIPTION SEALED.' }}
+            </p>
+
+            <div
+              class="flex items-end justify-between mt-5 pt-4 border-t border-white/5"
+            >
+              <div>
+                <p
+                  class="text-[8px] font-black text-silver-dim uppercase tracking-widest opacity-60"
+                  >Price</p
+                >
+                <p class="text-xl font-black text-brand-primary">
+                  ${{ product.price.toFixed(2) }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p
+                  class="text-[8px] font-black text-silver-dim uppercase tracking-widest opacity-60"
+                  >Stock</p
+                >
+                <p class="text-sm font-black text-white">{{ product.stock }}</p>
+              </div>
+              @if (canDelete(product)) {
+                <button
+                  type="button"
+                  (click)="deleteProduct(product)"
+                  class="text-silver-dim/50 hover:text-brand-danger transition-colors"
+                  [attr.aria-label]="'Delete ' + product.name"
+                >
+                  <span class="material-symbols-outlined text-lg">delete</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

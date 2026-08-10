@@ -139,6 +139,17 @@
       />
       <span>Lock</span>
     </label>
+    <!-- Phase F3 — one-tap auto key/scale detection from the melody -->
+    <button
+      type="button"
+      class="pr-detect-btn"
+      (click)="autoDetectScale()"
+      [attr.aria-label]="'Auto-detect the key and scale from the notes on this track'"
+      title="✨ Detect key & scale from this track's notes"
+    >
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span>Auto</span>
+    </button>
     <span class="pr-grid-steps">Steps: {{ gridSteps() }}</span>
     <button
       type="button"

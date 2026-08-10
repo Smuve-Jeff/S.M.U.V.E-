@@ -1075,3 +1075,170 @@
   padding: 2px 4px;
   min-height: 20px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Session View · Clip launcher polish
+   ═══════════════════════════════════════════════════════════ */
+.sv-header {
+  position: relative;
+}
+
+.sv-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 50%, transparent),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.sv-action-btn {
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.sv-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.18);
+}
+
+.sv-action-btn:active {
+  transform: scale(0.94);
+}
+
+.sv-scene-item {
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.sv-scene-item:hover {
+  transform: translateX(2px);
+}
+
+.sv-scene-item.is-active {
+  box-shadow:
+    inset 3px 0 0 var(--teal-500),
+    inset 0 0 18px rgba(14, 124, 123, 0.1);
+}
+
+.sv-scene-pip {
+  transition: box-shadow 160ms ease;
+}
+
+.sv-scene-item.is-active .sv-scene-pip {
+  box-shadow:
+    0 0 8px var(--teal-soft-glow),
+    0 0 16px var(--teal-soft-glow);
+}
+
+.sv-scene-play {
+  transition:
+    opacity 150ms ease,
+    transform 150ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.sv-scene-item:hover .sv-scene-play {
+  transform: scale(1.08);
+}
+
+.sv-clip-slot {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    opacity 140ms ease,
+    color 140ms ease;
+}
+
+.sv-clip-slot:hover {
+  transform: translateY(-2px);
+}
+
+.sv-clip-slot.is-filled:hover {
+  box-shadow:
+    0 0 12px var(--teal-soft-glow),
+    0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.sv-clip-slot.is-playing {
+  animation: sv-slot-breathe 1s ease-in-out infinite;
+}
+
+@keyframes sv-slot-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.sv-clip-slot-play {
+  transition:
+    opacity 150ms ease,
+    transform 150ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    box-shadow 150ms ease;
+}
+
+.sv-clip-slot:hover .sv-clip-slot-play,
+.sv-clip-slot.is-filled .sv-clip-slot-play {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px var(--teal-soft-glow);
+}
+
+.sv-track-color-strip {
+  transition: box-shadow 160ms ease;
+}
+
+.sv-track-header:hover .sv-track-color-strip {
+  box-shadow: 0 0 8px var(--teal-soft-glow);
+}
+
+.sv-auto-add-btn {
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.3);
+}
+
+.sv-auto-add-btn:active {
+  transform: scale(0.94);
+}
+
+.sv-auto-slider::-webkit-slider-thumb {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.sv-auto-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow:
+    0 0 6px var(--teal-soft-glow),
+    0 0 14px var(--teal-soft-glow);
+}
+
+.sv-preset-save {
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-clip-slot.is-playing {
+    animation: none;
+  }
+  .sv-clip-slot {
+    transition: none;
+  }
+}

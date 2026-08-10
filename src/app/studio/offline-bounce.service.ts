@@ -99,42 +99,14 @@ export class OfflineBounceService {
       const renderedBuffer = await offlineCtx.startRendering();
 
       this.updateProgress('mixing', 75, 'Mixing down to stereo…', onProgress);
-
-      // Analyze peaks
-      let peakL = 0, peakR = 0, sumSq = 0;
-      const chL = renderedBuffer.getChannelData(0);
-      const chR = renderedBuffer.getChannelData(1);
-      const totalSamples = chL.length * 2;
-
-      for (let i = 0; i < chL.length; i++) {
-        const al = Math.abs(chL[i]);
-        const ar = Math.abs(chR[i]);
-        if (al > peakL) peakL = al;
-        if (ar > peakR) peakR = ar;
-        sumSq += chL[i] * chL[i] + chR[i] * chR[i];
-      }
-
-      const peak = Math.max(peakL, peakR);
-      const rms = Math.sqrt(sumSq / totalSamples);
-      const peakDb = 20 * Math.log10(Math.max(peak, 1e-10));
-      const rmsDb = 20 * Math.log10(Math.max(rms, 1e-10));
-
       this.updateProgress('encoding', 90, `Encoding to ${format}…`, onProgress);
 
-      // Encode to WAV
-      const channels = [chL, chR];
-      const blob = WavEncoder.encodeMultiChannel(channels, format, sampleRate);
-      const url = URL.createObjectURL(blob);
-
-      const result: BounceResult = {
-        blob,
-        url,
+      const result = this.buildResult(
+        renderedBuffer,
         format,
         sampleRate,
-        durationSeconds: totalDuration,
-        peakDb: Math.round(peakDb * 10) / 10,
-        rmsDb: Math.round(rmsDb * 10) / 10,
-      };
+        totalDuration
+      );
 
       this.lastResult.set(result);
       this.updateProgress('complete', 100, `Bounce complete · ${result.peakDb}dB peak · ${result.rmsDb}dB RMS`, onProgress);
@@ -157,7 +129,114 @@ export class OfflineBounceService {
     this.updateProgress('idle', 0, 'Cancelled');
   }
 
+  /**
+   * Render a single track (synth notes + audio clips) to a WAV file — the
+   * "Bounce Selected" action. Respects the track's mute/solo, clip fades
+   * and the shared offline mastering gain.
+   */
+  async bounceTrack(
+    trackId: string,
+    format: BounceFormat = 'wav-32-float',
+    tailSeconds = 1.0
+  ): Promise<BounceResult | null> {
+    const track = this.musicManager.tracks().find((t) => t.id === trackId);
+    if (!track) {
+      this.logger.warn('OfflineBounce: unknown track', trackId);
+      return null;
+    }
+    if (this.isBouncing()) {
+      this.logger.warn('OfflineBounce: Bounce already in progress');
+      return null;
+    }
+
+    this.isBouncing.set(true);
+    const trackName = (track as any).name ?? 'Track';
+    this.updateProgress('preparing', 0, `Preparing "${trackName}"…`);
+
+    try {
+      const sampleRate = this.getSampleRate(format);
+      const tempo = this.engine.tempo();
+      const totalSteps = this.computeTotalSteps(undefined, trackId);
+      const totalBars = totalSteps / 16;
+      const barDuration = (60 / tempo) * 4;
+      const totalDuration = totalBars * barDuration + tailSeconds;
+      const totalFrames = Math.ceil(totalDuration * sampleRate);
+
+      const offlineCtx = new OfflineAudioContext(2, totalFrames, sampleRate);
+      await this.renderArrangement(
+        offlineCtx,
+        totalSteps,
+        totalDuration,
+        sampleRate,
+        undefined,
+        trackId
+      );
+
+      const renderedBuffer = await offlineCtx.startRendering();
+      this.updateProgress('encoding', 90, `Encoding to ${format}…`, undefined);
+      const result = this.buildResult(
+        renderedBuffer,
+        format,
+        sampleRate,
+        totalDuration
+      );
+
+      this.lastResult.set(result);
+      this.updateProgress('complete', 100, `Bounced "${trackName}" · ${result.peakDb}dB peak`, undefined);
+      this.logger.info(`OfflineBounce: track ${trackId} (${totalBars.toFixed(1)} bars) → ${format}`);
+      return result;
+    } catch (err: any) {
+      this.updateProgress('error', 0, `Track bounce failed: ${err?.message ?? 'unknown'}`);
+      this.logger.error('OfflineBounce track render failed', err);
+      return null;
+    } finally {
+      this.isBouncing.set(false);
+    }
+  }
+
   // ---- Private helpers ----
+
+  /** Shared WAV encode + peak/RMS analysis for full and per-track bounces. */
+  private buildResult(
+    renderedBuffer: AudioBuffer,
+    format: BounceFormat,
+    sampleRate: number,
+    durationSeconds: number
+  ): BounceResult {
+    let peakL = 0,
+      peakR = 0,
+      sumSq = 0;
+    const chL = renderedBuffer.getChannelData(0);
+    const chR = renderedBuffer.getChannelData(1);
+    const totalSamples = chL.length * 2;
+
+    for (let i = 0; i < chL.length; i++) {
+      const al = Math.abs(chL[i]);
+      const ar = Math.abs(chR[i]);
+      if (al > peakL) peakL = al;
+      if (ar > peakR) peakR = ar;
+      sumSq += chL[i] * chL[i] + chR[i] * chR[i];
+    }
+
+    const peak = Math.max(peakL, peakR);
+    const rms = Math.sqrt(sumSq / totalSamples);
+    const peakDb = 20 * Math.log10(Math.max(peak, 1e-10));
+    const rmsDb = 20 * Math.log10(Math.max(rms, 1e-10));
+
+    const channels = [chL, chR];
+    const blob = WavEncoder.encodeMultiChannel(channels, format, sampleRate);
+    const url = URL.createObjectURL(blob);
+
+    return {
+      blob,
+      url,
+      format,
+      sampleRate,
+      durationSeconds,
+      peakDb: Math.round(peakDb * 10) / 10,
+      rmsDb: Math.round(rmsDb * 10) / 10,
+    };
+  }
 
   private getSampleRate(format: BounceFormat): number {
     switch (format) {
@@ -170,12 +249,16 @@ export class OfflineBounceService {
     }
   }
 
-  private computeTotalSteps(durationBars?: number): number {
+  private computeTotalSteps(durationBars?: number, onlyTrackId?: string): number {
     if (durationBars !== undefined) return durationBars * 16;
 
-    // Auto-detect from arrangement: find the last note/clip end
+    // Auto-detect from arrangement (or a single track for per-track bounce):
+    // find the last note/clip end
     let maxStep = 64; // minimum 4 bars
-    for (const track of this.musicManager.tracks()) {
+    const tracks = onlyTrackId
+      ? this.musicManager.tracks().filter((t) => t.id === onlyTrackId)
+      : this.musicManager.tracks();
+    for (const track of tracks) {
       for (const clip of track.clips) {
         const end = (clip.start || 0) + (clip.length || 4);
         const endSteps = Math.ceil(end * 16);
@@ -195,7 +278,8 @@ export class OfflineBounceService {
     totalSteps: number,
     totalDuration: number,
     sampleRate: number,
-    onProgress?: (p: BounceProgress) => void
+    onProgress?: (p: BounceProgress) => void,
+    onlyTrackId?: string
   ): Promise<void> {
     const tempo = this.engine.tempo();
     const stepsPerBeat = 4;
@@ -212,11 +296,18 @@ export class OfflineBounceService {
     const tracks = this.musicManager.tracks();
 
     // Respect solo/mute: if any track is soloed, only render soloed tracks;
-    // otherwise render all non-muted tracks.
-    const hasSolo = tracks.some((t: any) => t.soloed === true);
-    const activeTracks = hasSolo
-      ? tracks.filter((t: any) => t.soloed === true)
-      : tracks.filter((t: any) => !t.muted);
+    // otherwise render all non-muted tracks. A single-track bounce narrows
+    // the pool to the chosen track and renders it regardless of its own mute
+    // (the user explicitly selected it to bounce).
+    const pool = onlyTrackId
+      ? tracks.filter((t: any) => t.id === onlyTrackId)
+      : tracks;
+    const hasSolo = pool.some((t: any) => t.soloed === true);
+    const activeTracks = onlyTrackId
+      ? pool
+      : hasSolo
+        ? pool.filter((t: any) => t.soloed === true)
+        : pool.filter((t: any) => !t.muted);
 
     let trackCount = 0;
 
@@ -234,6 +325,31 @@ export class OfflineBounceService {
         this.renderNote(
           ctx, note, trackGain, waveform, masterGain, stepDuration, sampleRate
         );
+      }
+
+      // Audio clips — schedule the cached buffer (stem splits, recorded
+      // takes, imported audio) so bounced exports include sampled material
+      // instead of silently dropping it.
+      const clips = (track as any).clips ?? [];
+      if (clips.length > 0) {
+        const secPerBar = 4 * (60 / tempo);
+        for (const clip of clips) {
+          if (clip.type !== 'audio') continue;
+          const clipBuffer =
+            (clip as any).audioData ||
+            ((clip as any).audioRefId &&
+              this.musicManager.stemAudioCache?.get((clip as any).audioRefId));
+          if (!clipBuffer) continue;
+          this.renderAudioClip(
+            ctx,
+            clip,
+            clipBuffer,
+            trackGain,
+            masterGain,
+            secPerBar,
+            tempo
+          );
+        }
       }
     }
 
@@ -330,6 +446,64 @@ export class OfflineBounceService {
 
     osc.frequency.setValueAtTime(freq, startTime);
     return osc;
+  }
+
+  /**
+   * Schedule an audio clip into the offline render. Mirrors the live
+   * `AudioEngine.triggerSampler` path (rate = originalBpm time-stretch,
+   * clip fades converted from bar-length values to seconds).
+   */
+  private renderAudioClip(
+    ctx: OfflineAudioContext,
+    clip: {
+      start?: number;
+      length?: number;
+      fadeIn?: number;
+      fadeOut?: number;
+      originalBpm?: number;
+    },
+    buffer: AudioBuffer,
+    trackGain: number,
+    destination: AudioNode,
+    secPerBar: number,
+    tempo: number
+  ): void {
+    const startTime = (clip.start || 0) * secPerBar;
+    const clipDur = Math.max(0.001, (clip.length || 4) * secPerBar);
+    const rate =
+      typeof this.engine.calculatePlaybackRate === 'function'
+        ? this.engine.calculatePlaybackRate(clip.originalBpm || tempo)
+        : 1;
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.setValueAtTime(rate, startTime);
+
+    const gain = ctx.createGain();
+    const fadeIn = Math.min(clip.fadeIn || 0, clip.length || 4) * secPerBar;
+    const fadeOut = Math.min(clip.fadeOut || 0, clip.length || 4) * secPerBar;
+
+    gain.gain.setValueAtTime(0, startTime);
+    if (fadeIn > 0) {
+      gain.gain.linearRampToValueAtTime(trackGain, startTime + fadeIn);
+    } else {
+      gain.gain.setValueAtTime(trackGain, startTime);
+    }
+    if (fadeOut > 0) {
+      const fadeStart = startTime + Math.max(fadeIn, clipDur - fadeOut);
+      gain.gain.setValueAtTime(trackGain, fadeStart);
+      gain.gain.linearRampToValueAtTime(0, startTime + clipDur);
+    } else {
+      gain.gain.setValueAtTime(
+        trackGain,
+        startTime + Math.max(0.001, clipDur - 0.001)
+      );
+    }
+
+    src.connect(gain);
+    gain.connect(destination);
+    src.start(startTime);
+    src.stop(startTime + clipDur + 0.05);
   }
 
   private updateProgress(

@@ -1,6 +1,6 @@
 /* ===========================================================
-   S.M.U.V.E. Composer — Effects Rack
-   Professional parameter control — knob grid + slot list
+   S.M.U.V.E. Composer — Effects Rack 2.0
+   Premium Parameter Control · Glow Slots · Glass Knobs
    =========================================================== */
 
 :host {
@@ -260,11 +260,13 @@
 }
 
 .er-slot.active {
-  background: var(--teal-100);
+  background: linear-gradient(135deg, var(--teal-100), rgba(14,124,123,0.12));
   border-color: var(--teal-500);
   box-shadow:
     0 0 0 1px var(--teal-500),
-    0 0 18px var(--teal-soft-glow);
+    0 0 20px var(--teal-soft-glow),
+    0 2px 8px rgba(14,124,123,0.15);
+  transform: translateX(2px);
 }
 
 .er-slot-status {
@@ -595,4 +597,220 @@
 .er-params::-webkit-scrollbar-thumb {
   background: var(--teal-500);
   border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Effects Rack · Console strip polish
+   ═══════════════════════════════════════════════════════════ */
+.er-wasm {
+  position: relative;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.er-wasm:hover {
+  border-color: rgba(14, 124, 123, 0.6);
+  box-shadow: 0 6px 24px rgba(14, 124, 123, 0.12);
+}
+
+.er-wasm-chip {
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.er-wasm-chip:hover {
+  background: rgba(14, 124, 123, 0.25);
+  box-shadow: 0 2px 10px rgba(14, 124, 123, 0.2);
+}
+
+.er-wasm-item {
+  transition:
+    transform 140ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.er-wasm-item:hover {
+  transform: translateY(-2px);
+}
+
+.er-wasm-item.active {
+  box-shadow:
+    0 0 0 1px var(--teal-500) inset,
+    0 4px 16px rgba(14, 124, 123, 0.25);
+}
+
+.er-header {
+  position: relative;
+}
+
+.er-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 50%, transparent),
+    transparent
+  );
+  opacity: 0.55;
+}
+
+.er-header-chip {
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.er-header-chip:hover {
+  border-color: var(--teal-500);
+  color: var(--espresso-text);
+  box-shadow: 0 2px 10px rgba(14, 124, 123, 0.15);
+}
+
+.er-slot {
+  transition:
+    transform 140ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.er-slot:hover {
+  transform: translateX(2px);
+}
+
+.er-slot.active {
+  animation: er-slot-pop 220ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes er-slot-pop {
+  0% {
+    transform: translateX(2px) scale(0.98);
+  }
+  100% {
+    transform: translateX(2px) scale(1);
+  }
+}
+
+.er-slot-status {
+  box-shadow: 0 0 0 rgba(14, 124, 123, 0);
+}
+
+.er-slot-status.enabled {
+  animation: er-led-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes er-led-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--teal-glow);
+  }
+  50% {
+    box-shadow: 0 0 3px var(--teal-glow);
+  }
+}
+
+.er-slot-toggle {
+  transition:
+    transform 120ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.er-slot-toggle:active {
+  transform: scale(0.88);
+}
+
+.er-add-slot {
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 140ms ease;
+}
+
+.er-add-slot:hover {
+  transform: translateY(-1px);
+}
+
+.er-knob-cell {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.er-knob-cell:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.er-master {
+  position: relative;
+  overflow: hidden;
+}
+
+.er-master::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.04),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: er-master-sheen 5s ease-in-out infinite;
+}
+
+@keyframes er-master-sheen {
+  0%,
+  70% {
+    transform: translateX(-100%);
+  }
+  90%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.er-master-fill {
+  box-shadow:
+    0 0 6px var(--teal-glow),
+    0 0 16px rgba(14, 124, 123, 0.25);
+}
+
+.er-params-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.er-params-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--espresso-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .er-slot.active,
+  .er-slot-status.enabled,
+  .er-master::before {
+    animation: none;
+  }
 }

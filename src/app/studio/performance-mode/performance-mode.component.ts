@@ -181,6 +181,11 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   onPointerDown(pad: PerformancePad, event: PointerEvent): void {
     event.preventDefault();
     this.pressedPadId.set(pad.id);
+    try {
+      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    } catch {
+      /* Pointer capture is unavailable in some test/webview implementations. */
+    }
 
     // ── Pressure sensing ──
     // PointerEvent.pressure: 0 = no pressure, 0.5 = normal click,
@@ -202,6 +207,16 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
     this.activePressure.set(Math.max(0, Math.min(1, pressure)));
   }
 
+  onPointerCancel(pad: PerformancePad): void {
+    if (this.longPressTimer) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+    this.pressedPadId.set(null);
+    this.activePressure.set(0);
+    this.longPressPadId.set(null);
+  }
+
   onPointerUp(pad: PerformancePad, event: PointerEvent): void {
     event.preventDefault();
     this.pressedPadId.set(null);
@@ -212,6 +227,12 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
       this.longPressTimer = null;
     }
     if (this.longPressPadId() === pad.id) return;
+    this.triggerPad(pad);
+  }
+
+  onPadKeydown(pad: PerformancePad, event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
     this.triggerPad(pad);
   }
 

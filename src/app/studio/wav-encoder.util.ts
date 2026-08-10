@@ -7,6 +7,10 @@ export class WavEncoder {
     numChannels: number,
     sampleRate: number
   ): Blob {
+    if (buffer.length !== numChannels) {
+      throw new Error('WAV channel count does not match the provided buffer');
+    }
+    WavEncoder.validateChannels(buffer);
     return WavEncoder.encodeInternal(buffer, numChannels, sampleRate, 16, false);
   }
 
@@ -20,6 +24,7 @@ export class WavEncoder {
     sampleRate: number
   ): Blob {
     const numChannels = channels.length;
+    WavEncoder.validateChannels(channels);
     switch (format) {
       case 'wav-16':
         return WavEncoder.encodeInternal(channels, numChannels, sampleRate, 16, false);
@@ -35,7 +40,18 @@ export class WavEncoder {
     channels: Float32Array[],
     sampleRate: number
   ): Blob {
+    WavEncoder.validateChannels(channels);
     return WavEncoder.encodeInternal(channels, channels.length, sampleRate, 32, true);
+  }
+
+  private static validateChannels(channels: Float32Array[]): void {
+    if (channels.length === 0 || channels.some((channel) => !channel?.length)) {
+      throw new Error('Cannot encode an empty WAV channel set');
+    }
+    const frameCount = channels[0].length;
+    if (channels.some((channel) => channel.length !== frameCount)) {
+      throw new Error('WAV channels must contain the same number of frames');
+    }
   }
 
   private static encodeInternal(
@@ -77,18 +93,43 @@ export class WavEncoder {
       view.setUint16(36, 22, true); // extension size
       view.setUint16(38, bitDepth, true); // validBitsPerSample
       view.setUint32(40, numChannels === 2 ? 3 : 4, true); // channel mask
-      // SubFormat GUID: KSDATAFORMAT_SUBTYPE_IEEE_FLOAT
-      this.writeString(view, 44, '\u0003\u0000\u0000\u0000');
-      this.writeGuid(view, 48);
-      // data chunk
-      this.writeString(view, 64, 'data');
-      view.setUint32(68, dataLength, true);
+      // SubFormat GUID: KSDATAFORMAT_SUBTYPE_IEEE_FLOAT.
+      // The GUID occupies the complete 16-byte extension field; do not
+      // write a second four-byte tag over its first bytes.
+      this.writeGuid(view, 44);
+      // data chunk follows the 40-byte fmt chunk at offset 60.
+      this.writeString(view, 60, 'data');
+      view.setUint32(64, dataLength, true);
 
-      let offset = 72;
+      let offset = 68;
       for (let f = 0; f < numFrames; f++) {
         for (let ch = 0; ch < numChannels; ch++) {
           view.setFloat32(offset, channels[ch][f], true);
           offset += 4;
+        }
+      }
+    } else if (bitDepth === 24) {
+      // 24-bit PCM (packed little-endian samples)
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+      view.setUint16(32, numChannels * bytesPerSample, true);
+      view.setUint16(34, bitDepth, true);
+      this.writeString(view, 36, 'data');
+      view.setUint32(40, dataLength, true);
+
+      let offset = 44;
+      for (let f = 0; f < numFrames; f++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+          const sample = Math.max(-1, Math.min(1, channels[ch][f]));
+          const intSample = Math.round(
+            sample < 0 ? sample * 0x800000 : sample * 0x7fffff
+          );
+          view.setUint8(offset, intSample & 0xff);
+          view.setUint8(offset + 1, (intSample >> 8) & 0xff);
+          view.setUint8(offset + 2, (intSample >> 16) & 0xff);
+          offset += 3;
         }
       }
     } else if (bitDepth === 32) {

@@ -10,6 +10,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { MarketAlert } from '../types/ai.types';
+import { APP_SECURITY_CONFIG } from '../app.security';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -168,13 +169,17 @@ Fuck their feelings. Results are all that matter.`;
     this.isProcessing.set(true);
     try {
       const response = await firstValueFrom(
-        this.http.post<{ text: string }>('/api/ai/analyze', { prompt }).pipe(
-          catchError(() =>
-            of({
-              text: 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
-            })
+        this.http
+          .post<{ text: string }>(`${APP_SECURITY_CONFIG.auth_api_url}/ai/analyze`, {
+            prompt,
+          })
+          .pipe(
+            catchError(() =>
+              of({
+                text: 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
+              })
+            )
           )
-        )
       );
       return response?.text || '';
     } finally {

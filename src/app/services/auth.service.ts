@@ -6,6 +6,8 @@ import { UserStoreService, AuthUser } from './user-store.service';
 import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
 import { SecurityService } from './security.service';
 import { UserProfileService } from './user-profile.service';
+import { ApiAuthService } from './api-auth.service';
+import type { ApiAuthResponse } from './api-auth.service';
 
 export interface AuthCredentials {
   email: string;
@@ -24,6 +26,7 @@ export class AuthService {
 
   private securityService = inject(SecurityService);
   private profileService = inject(UserProfileService);
+  private apiAuthService = inject(ApiAuthService);
 
   currentUser = this.userStore.user;
   isAuthenticated = this.userStore.isAuthenticated;
@@ -91,6 +94,30 @@ export class AuthService {
     } catch {
       sessionStorage.removeItem('smuve_auth_session');
       this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
+    }
+    // If a real API JWT is present, refresh the session from the API when
+    // possible (silently ignores API-down / expired tokens).
+    await this.refreshApiSessionUser();
+  }
+
+  /**
+   * Best-effort refresh of a restored session from the S.M.U.V.E. API using
+   * GET /api/auth/me. No-ops when there is no JWT or the API is unreachable.
+   */
+  private async refreshApiSessionUser(): Promise<void> {
+    const token = this.tokenService.jwtToken();
+    const current = this.userStore.user();
+    if (!token || !current) return;
+    try {
+      const apiUser = await this.apiAuthService.me();
+      this.userStore.setUser({
+        ...current,
+        artistName: apiUser.name,
+        email: apiUser.email,
+        lastLogin: new Date(),
+      });
+    } catch {
+      // API offline or token invalid/expired — keep the local session as-is.
     }
   }
 
@@ -163,7 +190,7 @@ export class AuthService {
     const tempToken =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
       btoa(JSON.stringify({ sub: user.id, role: user.role }));
-    this.tokenService.setToken(tempToken);
+    this.tokenService.setToken(tempToken, 'legacy');
 
     const sessionStr =
       JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
@@ -252,6 +279,40 @@ export class AuthService {
 
     // Auto-login after registration for demo purposes
     return this.login(creds);
+  }
+
+  /**
+   * Persist a session issued by the S.M.U.V.E. API (real JWT + user).
+   * Mirrors the legacy demo session persistence so a page reload keeps the
+   * session alive via loadSession().
+   */
+  establishApiSession(response: ApiAuthResponse): AuthUser {
+    const user: AuthUser = {
+      id: String(response.user.id),
+      email: response.user.email,
+      artistName: response.user.name,
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(response.user.createdAt),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    };
+
+    this.userStore.setUser(user);
+    this.tokenService.setToken(response.token, 'api');
+
+    if (typeof sessionStorage !== 'undefined') {
+      const sessionStr =
+        JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
+      const salted = btoa(
+        String.fromCharCode(...new TextEncoder().encode(sessionStr))
+      );
+      sessionStorage.setItem('smuve_auth_session', salted);
+    }
+
+    this.logger.info('AUTH_LOG: API SESSION ESTABLISHED.');
+    return user;
   }
 
   logout() {

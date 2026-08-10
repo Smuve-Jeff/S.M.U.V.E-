@@ -325,105 +325,23 @@ footer {
   height: 100%;
 }
 
-/* ── Elegant Footer Branding — City Nightlife ───────── */
-.app-footer-brand {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  white-space: nowrap;
-  user-select: none;
-  position: relative;
-  cursor: default;
-}
-
-.app-footer-brand::before {
-  content: '';
-  display: inline-block;
-  width: 18px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #00e5ff, transparent);
-  opacity: 0.5;
-  align-self: center;
-  margin-right: 4px;
-  transition:
-    width 0.5s ease,
-    opacity 0.5s ease;
-}
-
-.app-footer-brand-mark {
-  font-family:
-    'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman',
-    serif;
-  font-size: 13px;
-  font-weight: 400;
-  color: #00e5ff;
-  line-height: 1;
-  opacity: 0.85;
-  transition: opacity 0.3s ease;
-}
-
-.app-footer-brand-name {
-  font-family:
-    'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman',
-    serif;
-  font-size: 13px;
-  font-weight: 600;
-  font-style: italic;
-  color: #faf9ff;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  transition: color 0.3s ease;
-}
-
-.app-footer-brand-byline {
-  font-family: 'Inter', 'Public Sans', system-ui, sans-serif;
-  font-size: 8px;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  color: rgba(250, 249, 255, 0.5);
-  opacity: 0.65;
-  line-height: 1;
-}
-
-.app-footer-brand:hover .app-footer-brand-mark {
-  opacity: 1;
-}
-.app-footer-brand:hover .app-footer-brand-name {
-  color: #00e5ff;
-}
-.app-footer-brand:hover::before {
-  width: 28px;
-  opacity: 0.8;
-}
-
-@media (max-width: 768px) {
-  .app-footer-brand .app-footer-brand-byline {
-    display: none;
-  }
-  .app-footer-brand::before {
-    width: 12px;
-  }
-}
-
 /* ============================================================
-   PROFESSIONAL SMALL-FONT BRAND MARK (end-credit feel).
-   Refines the existing Playfair Display italic treatment into a
-   refined teal-on-ivory small-print mark — same markup, new
-   cascade-overridden rules + a hairline hover underline.
+   FOOTER BRAND — Professional Cinzel serif mark (end-credit feel).
+   Keeps the original "© Smuve Jeff Presents" branding, set in the
+   engraved Cinzel serif already loaded in index.html, with wide
+   tracking and a hairline teal divider.
    ============================================================ */
 
 .app-footer-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   white-space: nowrap;
   user-select: none;
   position: relative;
   cursor: default;
   font-family:
-    'Helvetica Neue', 'Inter', 'Public Sans', system-ui, -apple-system,
-    'Segoe UI', Roboto, sans-serif;
+    'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
 }
 
 .app-footer-brand::before {
@@ -447,22 +365,22 @@ footer {
 
 .app-footer-brand-mark {
   font-family: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--teal-400, #2ba09c);
   line-height: 1;
-  letter-spacing: 0.08em;
-  opacity: 0.92;
+  letter-spacing: 0.12em;
+  opacity: 0.9;
   transition: opacity 0.3s ease;
 }
 
 .app-footer-brand-name {
   font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   font-style: normal;
   color: var(--ivory-100, #faf9ff);
-  letter-spacing: 0.18em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   line-height: 1;
   transition: color 0.3s ease;
@@ -471,11 +389,11 @@ footer {
 .app-footer-brand-byline {
   font-family: inherit;
   font-size: 8px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.34em;
-  color: rgba(250, 249, 255, 0.55);
-  opacity: 0.75;
+  letter-spacing: 0.42em;
+  color: rgba(250, 249, 255, 0.52);
+  opacity: 0.72;
   line-height: 1;
 }
 
@@ -497,4 +415,167 @@ footer {
   .app-footer-brand-mark { font-size: 10px; }
   .app-footer-brand-name { font-size: 10px; letter-spacing: 0.14em; }
   .app-footer-brand-byline { display: none; }
+}
+
+/* Android viewport guardrails: the mobile dock is part of the shell, so
+   content must reserve its full visual stack (branding + navigation + safe area). */
+@media (max-width: 1024px) {
+  :host {
+    width: 100%;
+    width: 100dvw;
+  }
+
+  .app-shell {
+    min-height: 100svh;
+    min-height: 100dvh;
+  }
+
+  .mobile-footer-container {
+    background: rgba(7, 6, 13, 0.98);
+  }
+
+  .mobile-footer-branding {
+    min-height: 24px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .mobile-nav-bar {
+    min-height: 64px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-content-offset {
+    padding-bottom: calc(var(--mobile-dock-height, 92px) + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(var(--mobile-dock-height, 92px) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  /* Full-page routes (Studio, Tha Spot, etc.) own the entire viewport and
+     do not render the app shell dock. */
+  .app-content.full-page,
+  .app-content.auth-page {
+    height: 100svh;
+    height: 100dvh;
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-footer-branding {
+    min-height: 22px;
+  }
+
+  .mobile-nav-bar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 2px;
+  }
+
+  .mobile-nav-button {
+    min-height: 48px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
+/* Android shell refinement: reserve the real dock stack and keep the
+   compact header usable on 360–430px devices. */
+@media (max-width: 1024px) {
+  .mobile-nav-bar {
+    min-height: var(--mobile-nav-height);
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-content-offset {
+    padding-bottom: calc(
+      var(--mobile-dock-height) + env(safe-area-inset-bottom, 0px) + 20px
+    );
+    scroll-padding-bottom: calc(
+      var(--mobile-dock-height) + env(safe-area-inset-bottom, 0px) + 28px
+    );
+  }
+
+  .content-scroll-container {
+    overscroll-behavior-y: contain;
+  }
+
+  .app-top-bar {
+    min-height: 60px;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+    padding-bottom: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .app-top-bar > div:first-child {
+    min-width: 0;
+  }
+
+  .app-top-bar > div:first-child > div:last-child {
+    min-width: 0;
+    max-width: min(42vw, 11rem);
+  }
+
+  .app-top-bar .shell-icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-compact-secondary,
+  .mobile-compact-tertiary,
+  .mobile-surface-card {
+    display: none !important;
+  }
+
+  /* Keep sign-in reachable on narrow phones: compact icon-only pill. */
+  .mobile-compact-login {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .mobile-compact-login .material-symbols-outlined {
+    font-size: 22px;
+  }
+
+  .mobile-footer-branding {
+    min-height: 24px;
+    padding: 4px 8px;
+  }
+
+  .mobile-nav-bar {
+    min-height: 64px;
+    padding: 6px 6px 8px;
+  }
+
+  .mobile-nav-button {
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  .app-top-bar > div:first-child > .mobile-surface-card {
+    display: flex !important;
+    max-width: 34vw;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .app-top-bar > div:first-child > .mobile-surface-card > div:first-child {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .app-top-bar > div:first-child > .mobile-surface-card h2 {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+  }
 }

@@ -1,5 +1,6 @@
 /* ===========================================================
-   S.M.U.V.E. Composer — Mixer (FL Studio Mobile pattern)
+   S.M.U.V.E. Composer — Mixer 2.0
+   Console-Grade · Premium VU Meters · Glow Faders
    =========================================================== */
 
 :host {
@@ -153,7 +154,7 @@
 .mix-strip {
   flex: 0 0 auto;
   width: 84px;
-  background: var(--ivory-paper);
+  background: linear-gradient(180deg, var(--ivory-paper) 0%, var(--ivory-panel) 100%);
   border: 1px solid var(--espresso-line);
   border-radius: 12px;
   display: flex;
@@ -161,11 +162,27 @@
   overflow: hidden;
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    box-shadow 0.15s,
-    transform 0.12s;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
   position: relative;
+}
+.mix-strip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+.mix-strip:hover::before,
+.mix-strip-selected::before {
+  opacity: 0.6;
 }
 
 .mix-strip:hover {
@@ -313,12 +330,21 @@
   right: 0;
   background: linear-gradient(
     180deg,
-    var(--orange) 0%,
-    var(--teal-500) 60%,
-    var(--teal-300) 100%
+    #ef4444 0%,
+    var(--orange) 25%,
+    var(--teal-500) 50%,
+    var(--teal-300) 80%,
+    #34f5c5 100%
   );
   transform-origin: bottom;
   transition: transform 0.06s linear;
+  box-shadow: 0 0 6px rgba(14, 124, 123, 0.3);
+}
+/* Glow when approaching peak */
+.mix-meter-bar.peaking {
+  box-shadow:
+    0 0 10px rgba(239, 68, 68, 0.6),
+    0 0 20px rgba(239, 68, 68, 0.3);
 }
 
 .mix-meter-peak {
@@ -383,23 +409,34 @@
   position: absolute;
   left: 50%;
   width: 32px;
-  height: 22px;
+  height: 24px;
   background: linear-gradient(
     180deg,
     var(--ivory-paper) 0%,
+    #e8e4d8 50%,
     var(--ivory-deep) 100%
   );
   border: 1px solid var(--espresso-line);
-  border-radius: 5px;
+  border-radius: 6px;
   transform: translate(-50%, 50%);
   cursor: ns-resize;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255,255,255,0.5) inset;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   z-index: 2;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.mix-fader-cap:hover {
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255,255,255,0.5) inset,
+    0 0 12px rgba(14,124,123,0.2);
+  border-color: var(--teal-500);
 }
 
 .mix-fader-cap::after {
@@ -551,23 +588,29 @@
   background-clip: padding-box;
 }
 
-/* ---------- MOBILE COMPACT (FL Mobile pattern) ---------- */
+/* ── MOBILE MIXER 2.0 ── */
 @media (max-width: 768px) {
   .mix-strips {
-    padding: 12px 8px;
+    padding: 10px 6px;
   }
 
   .mix-strip {
     width: 72px;
+    border-radius: 10px;
   }
 
   .mix-fader-area {
-    min-height: 100px;
+    min-height: 110px;
   }
 
   .mix-fader-cap {
     width: 36px;
-    height: 26px;
+    height: 28px;
+    border-radius: 7px;
+  }
+
+  .mix-strips-track {
+    gap: 4px;
   }
 }
 
@@ -580,6 +623,10 @@
   }
   .mix-strip-name {
     font-size: 9px;
+  }
+  .mix-fader-cap {
+    width: 32px;
+    height: 26px;
   }
 }
 
@@ -1014,4 +1061,227 @@
   outline: 2px solid var(--teal-400, #2ba09c);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   STAGE 2.0 — CONSOLE PRO POLISH
+   Track-color identity · meter glow floors · fader caps with
+   light pipes · VCA rack lift · phase meter clarity
+   ════════════════════════════════════════════════════════════ */
+
+/* Strip: inherit the track color as a soft identity wash. */
+.mix-strip {
+  position: relative;
+  isolation: isolate;
+}
+.mix-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--track-color, #0e7c7b) 7%, transparent) 0%,
+    transparent 42%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.mix-strip:hover::after,
+.mix-strip-selected::after {
+  opacity: 1;
+}
+
+/* Channel bar grows into a proper color pillar with glow. */
+.mix-strip-channel-bar {
+  width: 4px;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--track-color, #0e7c7b) 55%, transparent);
+}
+
+/* Meter: subtle neon floor so idle meters still read as hardware. */
+.mix-meter {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(0, 0, 0, 0.42)
+  );
+  box-shadow:
+    inset 0 0 6px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+.mix-meter-bar {
+  box-shadow:
+    0 0 8px rgba(14, 124, 123, 0.4),
+    0 0 16px rgba(14, 124, 123, 0.12);
+}
+.mix-meter-peak.show {
+  box-shadow: 0 0 6px var(--record-glow, rgba(220, 38, 38, 0.6));
+}
+
+/* Fader cap: light pipe on the stem + press states. */
+.mix-fader-cap {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    var(--ivory-paper, #fbf7ec) 45%,
+    var(--ivory-deep, #e8e4d8) 100%
+  );
+  border-radius: 7px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset,
+    0 0 10px rgba(14, 124, 123, 0.14);
+}
+.mix-fader-cap::after {
+  height: 3px;
+  box-shadow:
+    0 0 6px var(--teal-glow, rgba(14, 124, 123, 0.55)),
+    0 0 12px rgba(14, 124, 123, 0.25);
+}
+.mix-fader-area:active .mix-fader-cap {
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.2),
+    0 0 0 2px rgba(14, 124, 123, 0.45) inset,
+    0 0 16px rgba(14, 124, 123, 0.5);
+}
+
+/* MSR buttons: softer bevel, brighter engage states. */
+.mix-msr-btn {
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(61, 53, 42, 0.12);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.16s ease,
+    transform 0.1s ease;
+}
+.mix-msr-btn:active {
+  transform: scale(0.92);
+}
+.mix-msr-btn.on.mute {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 0 14px rgba(217, 119, 6, 0.45);
+}
+.mix-msr-btn.on.record {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 0 14px rgba(220, 38, 38, 0.5);
+}
+
+/* Master strip — premium dark console slab. */
+.mix-strip-master {
+  background:
+    radial-gradient(120% 40% at 50% 0%, rgba(43, 160, 156, 0.14), transparent 60%),
+    linear-gradient(180deg, #2d271f 0%, #1f1a12 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 10px 26px rgba(0, 0, 0, 0.28);
+}
+.mix-strip-master .mix-fader-cap {
+  background: linear-gradient(180deg, #3f3a2f 0%, #2d271f 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 10px rgba(32, 215, 210, 0.25);
+}
+.mix-strip-master .mix-fader-cap::after {
+  background: var(--teal-300, #2ba09c);
+}
+.mix-strip-master .mix-stat-row {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mix-strip-master .mix-stat-value {
+  color: var(--teal-300, #5eead4);
+}
+
+/* Phase meter — instrument-grade rail. */
+.mix-phase-bar {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 4px 14px rgba(61, 53, 42, 0.07);
+}
+.mix-phase-meter-indicator {
+  box-shadow: 0 0 12px color-mix(in srgb, currentColor 60%, transparent);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* VCA rack — lift + clearer hierarchy. */
+.mix-vca-rack {
+  box-shadow:
+    0 4px 12px rgba(14, 124, 123, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.mix-vca-row {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.14s ease;
+}
+.mix-vca-row:hover {
+  transform: translateX(2px);
+}
+
+/* AUX send knobs — glow on hover. */
+.mix-send-range {
+  box-shadow: 0 0 0 1px rgba(14, 124, 123, 0.12);
+}
+.mix-send-range:hover {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.35);
+}
+.mix-send-range-b:hover {
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.35);
+}
+
+/* Selected strip: elevation + color echo. */
+.mix-strip-selected {
+  box-shadow:
+    0 0 0 2px var(--teal-soft-glow, rgba(14, 124, 123, 0.3)),
+    0 10px 26px rgba(61, 53, 42, 0.2),
+    0 0 22px rgba(14, 124, 123, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Dark theme refinements. */
+:host-context(.dark-mode) .mix-fader-cap {
+  background: linear-gradient(180deg, #3a3f4a 0%, #232833 100%);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.09) inset,
+    0 0 10px rgba(14, 124, 123, 0.2);
+}
+:host-context(.dark-mode) .mix-fader-cap::after {
+  box-shadow: 0 0 8px rgba(32, 215, 210, 0.7);
+}
+:host-context(.dark-mode) .mix-msr-btn {
+  background: #161b24;
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:host-context(.dark-mode) .mix-phase-bar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+:host-context(.dark-mode) .mix-strip-master {
+  background:
+    radial-gradient(120% 40% at 50% 0%, rgba(43, 160, 156, 0.16), transparent 60%),
+    linear-gradient(180deg, #1a1e26 0%, #0d1015 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mix-strip,
+  .mix-msr-btn,
+  .mix-vca-row {
+    transition: none !important;
+  }
+  .mix-strip-selected {
+    transform: none;
+  }
 }

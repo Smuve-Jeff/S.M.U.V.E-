@@ -225,6 +225,45 @@
   color: var(--teal-500);
 }
 
+/* ── Phase F2 — clip trim / fade / delete controls ──────────── */
+.av-trim-btn {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--espresso-muted);
+}
+.av-trim-btn:hover {
+  color: var(--neon-gold, #facc15);
+  border-color: var(--neon-gold, #facc15);
+}
+.av-fade-btn {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--espresso-muted);
+}
+.av-fade-btn:hover {
+  color: var(--teal-500);
+  border-color: var(--teal-500);
+}
+.av-fade-btn.av-fade-active {
+  background: rgba(250, 204, 21, 0.14);
+  color: var(--neon-gold, #facc15);
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.25);
+}
+.av-del-btn {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--espresso-muted);
+}
+.av-del-btn:hover {
+  color: var(--record, #e11d48);
+  border-color: var(--record, #e11d48);
+  background: rgba(225, 29, 72, 0.08);
+}
+
 /* ── Main content area ────────────────────────────────────── */
 .playlist-content {
   flex: 1 1 auto;
@@ -506,5 +545,102 @@
 @media (max-width: 768px) {
   .playlist-container {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* STAGE 2.0 - PLAYLIST POLISH (ambient depth, track identity, tool states) */
+.playlist-container {
+  background:
+    radial-gradient(80% 45% at 85% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    radial-gradient(65% 40% at 0% 100%, rgba(217, 119, 6, 0.04), transparent 60%),
+    var(--ivory-bg, #f5efe0);
+}
+
+.track-header {
+  transition: background 0.14s ease, box-shadow 0.2s ease;
+}
+.track-header.selected {
+  box-shadow:
+    inset 3px 0 0 var(--teal-500, #0e7c7b),
+    0 2px 10px rgba(14, 124, 123, 0.12);
+}
+.track-header:hover {
+  box-shadow: inset 3px 0 0 rgba(14, 124, 123, 0.35);
+}
+.track-color-strip {
+  box-shadow: 0 0 8px rgba(14, 124, 123, 0.3);
+}
+
+.tab-btn {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 3px rgba(61, 53, 42, 0.08);
+}
+.mini-btn {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(61, 53, 42, 0.06);
+}
+.mini-btn.active-mute,
+.mini-btn.active-solo {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 3px 10px rgba(14, 124, 123, 0.3);
+}
+.mini-btn.active-mute {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 3px 10px rgba(217, 119, 6, 0.3);
+}
+
+.tool-btn.active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 2px 8px rgba(14, 124, 123, 0.35);
+}
+
+.m-btn.rec.active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 0 16px var(--record-glow, rgba(220, 38, 38, 0.5));
+}
+
+.play-mode-pill.play-mode-song .play-mode-toggle {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 2px 10px rgba(14, 124, 123, 0.35);
+}
+.play-mode-pill.play-mode-pattern .play-mode-toggle {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 2px 10px rgba(217, 119, 6, 0.35);
+}
+
+.grid-viewport {
+  background:
+    radial-gradient(100% 55% at 50% 0%, rgba(32, 215, 210, 0.04), transparent 60%),
+    var(--ivory-bg, #f5efe0);
+}
+
+:host-context(.dark-mode) .grid-viewport {
+  background:
+    radial-gradient(100% 55% at 50% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    #000208;
+}
+:host-context(.dark-mode) .playlist-container {
+  background:
+    radial-gradient(80% 45% at 85% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    #0a0f22;
+}
+:host-context(.dark-mode) .tab-btn,
+:host-context(.dark-mode) .mini-btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track-header,
+  .mini-btn,
+  .tool-btn {
+    transition: none !important;
   }
 }

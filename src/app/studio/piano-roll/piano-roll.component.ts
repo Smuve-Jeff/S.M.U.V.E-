@@ -27,6 +27,7 @@ import { HardwareService } from '../../services/hardware.service';
 import { HistoryService } from '../../services/history.service';
 import { AutomationService } from '../automation.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { ScaleDetectionService } from '../../services/scale-detection.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   PianoRollRenderer,
@@ -53,6 +54,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly history = inject(HistoryService);
   private readonly automation = inject(AutomationService);
   private readonly snackbar = inject(SnackbarService);
+  /** Phase F3 — one-tap auto key/scale detection (Krumhansl–Kessler). */
+  private readonly scaleDetection = inject(ScaleDetectionService);
 
   /** Sustain pedal state (CC64) surfaced from the hardware layer. */
   readonly sustainActive = this.hardware.sustainActive;
@@ -432,8 +435,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       this.sustainActive() && this.previewGlideSemitones !== 0
         ? freq * Math.pow(2, this.previewGlideSemitones / 12)
         : undefined;
+    const previewTime = this.musicManager.engine?.ctx?.currentTime ?? 0;
     this.musicManager.engine?.playSynth?.(
-      0,
+      previewTime,
       freq,
       duration,
       Math.max(0.05, velocity),
@@ -874,15 +878,40 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       const rect = container.getBoundingClientRect();
       const x = touch.clientX - rect.left + container.scrollLeft;
       const y = touch.clientY - rect.top + container.scrollTop;
-      const step = Math.max(0, Math.floor(x / this.cellWidth()));
+      const step = Math.max(0, x / this.cellWidth());
       const rowIndex = Math.floor(y / this.rowHeight());
-      const midi = 24 + (MAX_MIDI - 1 - rowIndex);
+      const midi = Math.max(24, Math.min(119, 24 + (MAX_MIDI - 1 - rowIndex)));
       const snappedStep = this.applySnap(step);
       const rowFraction = (y % this.rowHeight()) / this.rowHeight();
       const velocity = Math.max(0.15, Math.min(1.0, 1.0 - rowFraction * 0.6));
 
       const track = this.selectedTrack();
       if (track) {
+        // WebGL renders notes to a canvas, so there is no note element for
+        // pointer handlers to hit-test on Android. Resolve an existing note
+        // before creating one; this makes a tap on a note select it instead of
+        // silently stacking a duplicate.
+        const existing = track.notes.find(
+          (note) =>
+            note.midi === midi &&
+            snappedStep >= note.step &&
+            snappedStep <= note.step + Math.max(0.125, note.length)
+        );
+        if (existing) {
+          if (this.editMode() === 'erase') {
+            this.musicManager.removeNotes(track.id, [existing.id]);
+          } else {
+            this.selectedNoteIds.set(new Set([existing.id]));
+          }
+          this.haptic.light();
+          this.drawFromTouch = true;
+          this.markDirty();
+          return;
+        }
+        if (this.editMode() === 'erase' || this.editMode() === 'select') {
+          this.haptic.light();
+          return;
+        }
         this.musicManager.addNoteToTrack(track.id, {
           id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
           midi,
@@ -901,6 +930,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Pointer interaction on grid canvas ───────────────────
 
   onGridPointerDown(event: PointerEvent) {
+    // Touch screens also dispatch compatibility pointer events. Drawing here
+    // and again in touchend creates duplicate notes, so let the touch path own
+    // touch editing and reserve pointer handling for mouse/pen input.
+    if (event.pointerType === 'touch') return;
     this.dismissCrossLink();
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
@@ -916,6 +949,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onNotePointerDown(event: PointerEvent, note: TrackNote) {
+    // Touch taps are owned by the touch gesture path. Letting a compatibility
+    // pointer event also select/drag here makes mobile note editing race the
+    // grid touchend handler.
+    if (event.pointerType === 'touch') return;
     event.stopPropagation();
     this.dismissCrossLink();
     const track = this.selectedTrack();
@@ -1034,8 +1071,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     switch (this.snap()) {
       case '1/4': return Math.round(step / 4) * 4;
       case '1/8': return Math.round(step / 2) * 2;
-      case '1/16': return step;
-      case '1/32': return step;
+      case '1/16': return Math.round(step);
+      case '1/32': return Math.round(step * 2) / 2;
       default: return step;
     }
   }
@@ -1061,6 +1098,40 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   setScale(scale: string) { this.selectedScale.set(scale); this.haptic.light(); }
   toggleScaleLock() { this.scaleLockEnabled.update((v) => !v); this.haptic.light(); }
 
+  // ── Phase F3: Auto Key/Scale Detection ─────────────────────
+  /**
+   * Analyze the selected track's notes and apply the detected key + scale
+   * to the editor. Beats FL Mobile's manual scale picker — one tap guesses
+   * the key from the actual melody (Krumhansl–Kessler weighted histogram).
+   */
+  autoDetectScale(): void {
+    const track = this.selectedTrack();
+    const notes = track?.notes ?? [];
+    if (notes.length === 0) {
+      this.snackbar.info('Add some notes first — detection reads the melody');
+      return;
+    }
+    const result = this.scaleDetection.detectKeyAndScale(notes);
+    if (!result) return;
+    this.selectedKey.set(result.key);
+    this.selectedScale.set(result.scale);
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.success(
+      `✨ ${result.key} ${this.detectedScaleLabel(
+        result.scale
+      )} · ${Math.round(result.confidence * 100)}% match`
+    );
+  }
+
+  /** Friendly label for a detected scale value (mirrors scaleOptions). */
+  private detectedScaleLabel(scale: string): string {
+    return (
+      this.scaleOptions.find((s) => s.value === scale)?.label ??
+      scale.charAt(0).toUpperCase() + scale.slice(1)
+    );
+  }
+
   zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
   zoomIn() { this.zoomLevel.update((v) => Math.min(3.0, v + 0.25)); this.haptic.light(); this.markDirty(); }
   zoomOut() { this.zoomLevel.update((v) => Math.max(0.25, v - 0.25)); this.haptic.light(); this.markDirty(); }
@@ -1068,9 +1139,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   fitToPage(): void {
     const totalSteps = this.musicManager.tracks().reduce((max, track: any) => {
       const length = (track.notes ?? []).reduce(
-        (m: number, n: any) => Math.max(m, (n.start ?? 0) + (n.duration ?? 0)), 0
+        (m: number, n: any) => Math.max(m, (n.step ?? 0) + (n.length ?? 0)), 0
       );
-      return Math.max(max, length);
+      const clipLength = (track.clips ?? []).reduce(
+        (m: number, c: any) => Math.max(m, ((c.start ?? 0) + (c.length ?? 0)) * 16),
+        0
+      );
+      return Math.max(max, length, clipLength);
     }, 0) + 16;
     const targetZoom = Math.max(0.25, Math.min(3, 96 / Math.max(1, totalSteps)));
     this.zoomLevel.set(targetZoom);
@@ -1170,7 +1245,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isBlackKey(midi: number): boolean { return [1, 3, 6, 8, 10].includes(midi % 12); }
-  isInScale(midi: number): boolean { return [0, 2, 4, 5, 7, 9, 11].includes(midi % 12); }
+  /** True when the key is a member of the selected key + scale (F3 upgrade:
+   *  previously hardcoded to C major; now follows the key/scale selector). */
+  isInScale(midi: number): boolean {
+    return this.scaleDetection.isInScale(midi, this.selectedKey(), this.selectedScale());
+  }
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
   getOctaveLabel(midi: number): string { return Math.floor(midi / 12 - 1).toString(); }
 }

@@ -259,15 +259,21 @@ export class SmartRecordingService {
     let durationMs = 2000;
 
     if (left.length > 0 && right.length > 0) {
-      // Interleave left/right channel chunks and encode as WAV
-      const interleaved = this.interleaveChannels(left, right);
+      // The recording engine already stores separate channel chunks. Keep
+      // them separate for WAV encoding; splitting an interleaved buffer in
+      // half would turn time-order data into two corrupted channels.
+      const leftChannel = this.joinChunks(left);
+      const rightChannel = this.joinChunks(right);
+      const frameCount = Math.min(leftChannel.length, rightChannel.length);
+      const alignedLeft = leftChannel.slice(0, frameCount);
+      const alignedRight = rightChannel.slice(0, frameCount);
       const sampleRate = this.audioEngine.ctx.sampleRate;
       blob = WavEncoder.encodeMultiChannel(
-        [interleaved.slice(0, interleaved.length / 2), interleaved.slice(interleaved.length / 2)],
+        [alignedLeft, alignedRight],
         'wav-16',
         sampleRate
       );
-      durationMs = Math.round((interleaved.length / sampleRate) * 1000);
+      durationMs = Math.round((frameCount / sampleRate) * 1000);
     } else {
       // Fallback: no recording was active — synthesize minimal silent WAV
       blob = await this.synthesizeSilentWav(2000);
@@ -667,22 +673,22 @@ export class SmartRecordingService {
 
   // ── Utility ───────────────────────────────────────────────
 
-  /** Interleave two arrays of Float32Array chunks into a single interleaved Float32Array */
-  private interleaveChannels(
-    leftChunks: Float32Array[],
-    rightChunks: Float32Array[]
+  /** Join worklet chunks into one channel, padding a short companion channel. */
+  private joinChunks(
+    chunks: Float32Array[],
+    minimumLength = 0
   ): Float32Array {
-    let total = 0;
-    for (const c of leftChunks) total += c.length;
-    const result = new Float32Array(total * 2);
-    let off = 0;
-    for (let i = 0; i < leftChunks.length; i++) {
-      const l = leftChunks[i];
-      const r = rightChunks[i] ?? new Float32Array(l.length);
-      for (let j = 0; j < l.length; j++) {
-        result[off++] = l[j];
-        result[off++] = r[j];
-      }
+    const length = Math.max(
+      minimumLength,
+      chunks.reduce((total, chunk) => total + chunk.length, 0)
+    );
+    const result = new Float32Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      const writable = Math.min(chunk.length, result.length - offset);
+      if (writable <= 0) break;
+      result.set(chunk.subarray(0, writable), offset);
+      offset += writable;
     }
     return result;
   }

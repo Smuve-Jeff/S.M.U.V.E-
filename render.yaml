@@ -1,0 +1,41 @@
+# Render Blueprint — S.M.U.V.E. API (Express + TypeORM + PostgreSQL)
+#
+# Deploy steps:
+#   1. Push this repo to GitHub (git-push-main.sh).
+#   2. In Render: New → Blueprint → connect the GitHub repo.
+#   3. Render provisions the web service + Postgres below and deploys.
+#   4. After deploy, set src/index.html window.env.AUTH_API_URL to the service
+#      URL (https://<service-name>.onrender.com) and redeploy the frontend.
+#
+# Notes:
+#   - The free Postgres plan expires after 30 days — upgrade or re-provision
+#     for long-lived data.
+#   - Free web services sleep after ~15 min of inactivity (wakes on request).
+
+services:
+  - type: web
+    name: smuve-api
+    runtime: node
+    plan: free
+    rootDir: .
+    # install:legacy = npm install --legacy-peer-deps (more tolerant of
+    # peer-dep/lockfile drift than strict npm ci for this monorepo).
+    buildCommand: npm run install:legacy && npm run build
+    preDeployCommand: npm run mg:run:prod
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://smuvejeffpresents.com,https://www.smuvejeffpresents.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smuve-postgres
+          property: connectionString
+
+databases:
+  - name: smuve-postgres
+    plan: free

@@ -185,6 +185,62 @@
           <span class="material-symbols-outlined text-[10px]">grid_guides</span>
           Q
         </button>
+        <!-- Phase F2 — clip trim (shrink left / right edges) -->
+        <button
+          (click)="trimSelected('start', snapEnabled() ? 0.25 : 0.1)"
+          class="mini-btn tactile-v42 executive-glass av-trim-btn"
+          title="Trim left edge shorter (snap: ¼ bar)"
+          aria-label="Trim clip start later (shorter)"
+        >
+          <span class="material-symbols-outlined text-[10px]">chevron_left</span>
+          TRI
+        </button>
+        <button
+          (click)="trimSelected('end', snapEnabled() ? -0.25 : -0.1)"
+          class="mini-btn tactile-v42 executive-glass av-trim-btn"
+          title="Trim right edge shorter (snap: ¼ bar)"
+          aria-label="Trim clip end earlier (shorter)"
+        >
+          TRI
+          <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        </button>
+        <!-- Phase F2 — audio clip fades (cycle 0 → ½ → 1 → 2 bars) -->
+        <button
+          (click)="cycleFade('in')"
+          class="mini-btn tactile-v42 executive-glass av-fade-btn"
+          [title]="
+            'Fade-in: ' +
+            formatFade(firstSelectedFade('in')) +
+            ' (click to cycle)'
+          "
+          [class.av-fade-active]="firstSelectedFade('in') > 0"
+        >
+          <span class="material-symbols-outlined text-[10px]">trending_up</span>
+          FI
+        </button>
+        <button
+          (click)="cycleFade('out')"
+          class="mini-btn tactile-v42 executive-glass av-fade-btn"
+          [title]="
+            'Fade-out: ' +
+            formatFade(firstSelectedFade('out')) +
+            ' (click to cycle)'
+          "
+          [class.av-fade-active]="firstSelectedFade('out') > 0"
+        >
+          <span class="material-symbols-outlined text-[10px]">trending_down</span>
+          FO
+        </button>
+        <!-- Phase F2 — delete selected clips -->
+        <button
+          (click)="deleteSelected()"
+          class="mini-btn tactile-v42 executive-glass av-del-btn"
+          title="Delete selected clip(s)"
+          aria-label="Delete selected clips"
+        >
+          <span class="material-symbols-outlined text-[10px]">delete</span>
+          DEL
+        </button>
         <button
           (click)="bounceSelected()"
           class="mini-btn tactile-v42 executive-glass bounce-btn"

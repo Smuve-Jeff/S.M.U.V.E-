@@ -159,6 +159,15 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
       points: ['450+ game arcade', 'Co-op matchmaking & lobbies'],
       icon: 'sports_esports',
     },
+    {
+      route: 'products',
+      category: 'Commerce',
+      title: 'The Vault — product & service catalog',
+      description:
+        'Browse and manage the catalog served by the S.M.U.V.E. API. Seal new products and track stock from one command surface.',
+      points: ['API-backed catalog', 'Create & manage listings'],
+      icon: 'inventory_2',
+    },
   ];
 
   workflowStages: WorkflowStage[] = [

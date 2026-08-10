@@ -172,7 +172,7 @@ preview). Document this for the S.M.U.V.E.-as-PWA case.
 ## 10. Push-to-Play checklist
 
 ```
-[ ] npm run build
+[ ] npm run build:web
 [ ] npm run cap:sync
 [ ] cd android && ./gradlew bundleRelease
 [ ] upload .aab via Play Console (automatic via fastlane recommended)

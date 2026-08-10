@@ -292,6 +292,7 @@
           (click)="goBack()"
           class="shell-icon-button w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main transition-all flex items-center justify-center group shrink-0"
           title="Go Back"
+          aria-label="Go back"
         >
           <span class="material-symbols-outlined text-2xl">arrow_back</span>
         </button>
@@ -309,7 +310,7 @@
         </button>
         <div class="h-6 w-px bg-border mx-1 md:mx-2 hidden sm:block"></div>
         <div
-          class="flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"
+          class="mobile-surface-card flex items-center gap-3 md:gap-4 rounded-2xl border border-border bg-background-alt/40 px-3 md:px-4 py-2 min-w-0"
         >
           <div
             class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0"
@@ -371,7 +372,7 @@
         <button
           type="button"
           (click)="toggleSyncCenter()"
-          class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
+          class="shell-icon-button mobile-compact-secondary w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group"
           aria-label="Toggle sync center"
         >
           <span class="material-symbols-outlined text-xl md:text-2xl">
@@ -388,7 +389,7 @@
         <button
           type="button"
           (click)="uiService.togglePerformanceMode()"
-          class="shell-icon-button w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group lg:hidden"
+          class="shell-icon-button mobile-compact-secondary w-10 h-10 rounded-lg border border-border flex items-center justify-center text-text-dim hover:text-brand-primary transition-all group lg:hidden"
           aria-label="Toggle performance mode"
         >
           <span class="material-symbols-outlined text-xl md:text-2xl">
@@ -453,7 +454,7 @@
         <a
           *ngIf="!isAuthRoute()"
           routerLink="/inbox"
-          class="shell-icon-button relative group"
+          class="shell-icon-button mobile-compact-tertiary relative group"
           aria-label="Open challenge inbox"
           title="Inbox"
         >
@@ -502,9 +503,11 @@
         <button
           *ngIf="!authService.isAuthenticated()"
           routerLink="/login"
-          class="btn-pro btn-pro-primary h-10 px-4 md:px-6 text-[10px] md:text-[11px]"
+          class="mobile-compact-login btn-pro btn-pro-primary h-10 px-4 md:px-6 text-[10px] md:text-[11px]"
+          aria-label="Log in"
         >
-          LOGIN
+          <span class="material-symbols-outlined text-xl md:hidden">login</span>
+          <span class="hidden md:inline">LOGIN</span>
         </button>
         <button
           type="button"

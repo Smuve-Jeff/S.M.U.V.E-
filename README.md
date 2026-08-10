@@ -44,7 +44,7 @@ The AI system powers both ambient guidance and direct command-style workflows.
   - royalty and brand analysis
   - collaboration planning
 - knowledge-driven guidance for artist growth, campaigns, and production decisions
-- backend AI proxy support through the bundled Node/Express server
+- backend AI proxy support through the bundled Node/Express API (see CLOUDFLARE_TUNNEL.md for deployment)
 
 ### 3. Visual production
 

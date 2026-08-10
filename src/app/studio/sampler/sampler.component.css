@@ -712,3 +712,113 @@
     gap: 8px;
   }
 }
+
+/* ============================================================
+   STAGE 2.0 — SAMPLER RACK GLOW
+   Waveform well · key lamps · editor lift · routing pulse
+   ============================================================ */
+
+.sampler-shell {
+  background:
+    radial-gradient(80% 45% at 90% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    var(--ivory-paper, #f5efe0);
+}
+
+/* Waveform well: instrument-grade dark slab. */
+.sampler-waveform-container {
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.4),
+    0 0 22px rgba(14, 124, 123, 0.12);
+  border-color: rgba(14, 124, 123, 0.25);
+}
+
+/* Dropzone: teal promise on hover. */
+.sampler-dropzone {
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.22s ease, transform 0.14s ease;
+}
+.sampler-dropzone:hover,
+.sampler-dropzone-active {
+  box-shadow: 0 0 18px rgba(43, 160, 156, 0.18);
+}
+.sampler-dropzone:active {
+  transform: scale(0.99);
+}
+
+/* Keys: lit lamp on hover/active. */
+.sampler-key {
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease, box-shadow 0.18s ease;
+}
+.sampler-key:hover {
+  box-shadow: 0 3px 8px rgba(43, 160, 156, 0.15);
+}
+.sampler-key-selected {
+  box-shadow:
+    0 0 0 1px rgba(43, 160, 156, 0.3),
+    0 0 14px rgba(43, 160, 156, 0.2);
+}
+
+/* Editor: raised console card. */
+.sampler-editor {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.sampler-tab {
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
+}
+.sampler-tab-active {
+  box-shadow: inset 0 -2px 0 rgba(14, 124, 123, 0.25);
+}
+
+/* Sliders: glowing thumbs. */
+.sampler-mod-slider::-webkit-slider-thumb,
+.sampler-adsr-slider::-webkit-slider-thumb {
+  transition: transform 0.12s ease, box-shadow 0.16s ease;
+}
+.sampler-mod-slider:hover::-webkit-slider-thumb,
+.sampler-adsr-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px rgba(43, 160, 156, 0.6);
+}
+
+/* ADSR visual: subtle neon outline. */
+.sampler-adsr-visual {
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Routing bar: live pipe when connected. */
+.sampler-routing-bar {
+  transition: border-color 0.3s ease;
+}
+.sampler-routing-status {
+  gap: 8px;
+}
+
+/* Buttons: uniform press feedback. */
+.sampler-btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+.sampler-btn-import {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 12px rgba(14, 124, 123, 0.3);
+}
+
+/* Toggles: premium engaged state. */
+.sampler-toggle-on {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 3px 10px rgba(14, 124, 123, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sampler-dropzone,
+  .sampler-key,
+  .sampler-tab,
+  .sampler-btn {
+    transition: none !important;
+  }
+  .sampler-mod-slider::-webkit-slider-thumb,
+  .sampler-adsr-slider::-webkit-slider-thumb {
+    transition: none !important;
+  }
+}

@@ -1,12 +1,64 @@
 /* ===========================================================
-   S.M.U.V.E. Composer Ivory + Teal — Studio Shell
-   Inspired by FL Studio Mobile + Logic Pro panel layout
+   S.M.U.V.E. Composer Ivory + Teal — Studio Shell 2.0
+   Premium Aesthetics · Glassmorphism · Depth Layers
+   Inspired by FL Studio Mobile + Logic Pro + Ableton Live
    =========================================================== */
 
 /* ── Shared mobile UX base — applies to all sub-components ── */
 @import url('./shared/studio-mobile.css');
 /* ── Sprint 1 follow-up: panel-interior micro-interactions ── */
 @import url('./shell-panel-polish.css');
+
+/* ── PREMIUM AMBIENT BACKGROUND ── */
+:host {
+  --studio-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+.comp-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 50%, rgba(14, 124, 123, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(217, 119, 6, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 80%, rgba(14, 124, 123, 0.03) 0%, transparent 50%);
+}
+
+:host-context(.dark-mode) .comp-canvas::before,
+.dark-mode .comp-canvas::before {
+  opacity: 0.25;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 50%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(255, 149, 0, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 80%, rgba(0, 229, 255, 0.04) 0%, transparent 50%);
+}
+
+/* Keep interaction affordances consistent across desktop and touch layouts. */
+.comp-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 768px) {
+  .comp-shell input,
+  .comp-shell select,
+  .comp-shell textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comp-shell .comp-topbar,
+  .comp-shell .comp-topbar-left > *,
+  .comp-shell .comp-topbar-center,
+  .comp-shell .comp-topbar-right > *,
+  .comp-shell .comp-topbar-tools > * {
+    animation: none !important;
+  }
+}
 
 :host {
   display: block;
@@ -131,6 +183,11 @@
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.4) inset,
     0 4px 10px rgba(14, 124, 123, 0.25);
+  animation: brand-shimmer 4s ease-in-out infinite;
+}
+@keyframes brand-shimmer {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 4px 10px rgba(14,124,123,0.25); }
+  50% { box-shadow: 0 0 0 1px rgba(255,255,255,0.6) inset, 0 4px 16px rgba(14,124,123,0.4); }
 }
 .comp-brand-mark::after {
   content: '♪';
@@ -376,19 +433,40 @@
 }
 
 /* ---------- STAGE MARQUEE (concert visual) ---------- */
+/* ── STAGE MARQUEE GLOW ── */
 .comp-stage-marquee {
   margin: 0;
   padding: 8px 16px;
   background: linear-gradient(
-    180deg,
-    rgba(0, 229, 255, 0.04) 0%,
-    transparent 100%
+    90deg,
+    rgba(14, 124, 123, 0.04),
+    rgba(217, 119, 6, 0.03),
+    rgba(14, 124, 123, 0.04)
   );
   border-bottom: 1px solid rgba(180, 200, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(180, 200, 255, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(180, 200, 255, 0.04),
+    0 1px 8px rgba(14, 124, 123, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.comp-stage-marquee::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), var(--orange), var(--teal-500), transparent);
+  opacity: 0.35;
+  animation: marquee-shimmer 3s ease-in-out infinite;
+}
+@keyframes marquee-shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
 }
 
-/* ---------- CANVAS ---------- */
+/* ── CANVAS DEPTH GRID (subtle, ambient) ── */
 .comp-canvas {
   flex: 1 1 auto;
   overflow: auto;
@@ -398,6 +476,14 @@
   flex-direction: column;
   min-width: 0;
   -webkit-overflow-scrolling: touch;
+}
+:host-context(.dark-mode) .comp-canvas,
+.dark-mode .comp-canvas {
+  background:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+    #0d0b08;
+  background-size: 32px 32px;
 }
 .comp-view {
   flex: 1 1 auto;
@@ -435,12 +521,31 @@
   }
 }
 
+/* ── ENHANCED GLASS PANELS ── */
+.comp-panel {
+  background: rgba(252, 250, 245, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+:host-context(.dark-mode) .comp-panel,
+.dark-mode .comp-panel {
+  background: rgba(20, 17, 11, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
 /* ---------- BOTTOM TAB BAR (Mobile) ---------- */
 .comp-bottombar {
   display: flex;
   align-items: stretch;
   justify-content: space-around;
-  height: var(--mobile-nav-height);
+  /* Grow with the gesture/notch inset instead of clipping the 48px tabs:
+     a fixed height with border-box padding would shrink the tab content
+     area on phones with a large safe-area-inset-bottom. */
+  height: auto;
+  min-height: calc(
+    var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+  );
   padding: 6px 4px max(env(safe-area-inset-bottom, 6px), 8px);
   background: var(--ivory-paper);
   border-top: 1px solid var(--espresso-line);
@@ -448,10 +553,6 @@
   flex-shrink: 0;
   position: relative;
   z-index: 20;
-  /* Prevent overflow when safe-area is large (notched phones) */
-  max-height: calc(
-    var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 4px
-  );
 }
 .comp-tab {
   flex: 1 1 0;
@@ -497,11 +598,21 @@
 }
 .comp-tab-active {
   color: var(--teal-500);
+  background: linear-gradient(180deg, rgba(14,124,123,0.08) 0%, transparent 100%);
 }
 .comp-tab-active .comp-tab-indicator {
   width: 80%;
   left: 10%;
-  box-shadow: 0 0 8px var(--teal-glow);
+  box-shadow:
+    0 0 8px var(--teal-glow),
+    0 0 16px rgba(14, 124, 123, 0.2);
+}
+.comp-tab {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comp-tab:hover {
+  color: var(--teal-400);
+  background: rgba(14, 124, 123, 0.04);
 }
 
 /* ---------- MOBILE DRAWER ---------- */
@@ -596,7 +707,9 @@
 /* ---------- FAB ---------- */
 .comp-fab {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+  );
   right: 20px;
   width: 56px;
   height: 56px;
@@ -625,7 +738,9 @@
 }
 
 .comp-shell.comp-compact .comp-fab {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+  );
 }
 
 /* Desktop: push FAB up so it doesn't conflict with viewport */
@@ -929,11 +1044,15 @@
   }
 
   .comp-bottombar {
-    height: var(--mobile-nav-height);
+    min-height: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .comp-fab {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+    bottom: calc(
+      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+    );
   }
 }
 
@@ -974,11 +1093,15 @@
   }
 
   .comp-bottombar {
-    height: var(--mobile-nav-height);
+    min-height: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .comp-fab {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 70px);
+    bottom: calc(
+      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 10px
+    );
   }
 }
 
@@ -1122,6 +1245,106 @@
   .comp-view {
     border-radius: 12px;
     overflow: hidden;
+  }
+
+  /* Android phone header: keep the transport and one primary assistant
+     action reachable instead of letting the status/control cluster push the
+     brand off-screen. Secondary controls remain available in Stage Map. */
+  .comp-topbar {
+    min-width: 0;
+    gap: 6px;
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-topbar-left,
+  .comp-topbar-center,
+  .comp-topbar-right {
+    min-width: 0;
+  }
+
+  .comp-topbar-left {
+    flex: 1 1 auto;
+    gap: 6px;
+  }
+
+  .comp-topbar-right {
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .comp-topbar-right > .comp-now-performing,
+  .comp-topbar-right > .comp-hw-badge,
+  .comp-topbar-right > .comp-beginner-toggle,
+  .comp-topbar-right > .comp-icon-btn:not(.comp-ai-btn),
+  .comp-topbar-right > .comp-presence {
+    display: none;
+  }
+
+  .comp-topbar-right > .comp-arm-audio {
+    max-width: 44px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .comp-brand-text {
+    min-width: 0;
+  }
+
+  .comp-brand-name {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+
+  .comp-topbar-center {
+    flex: 0 1 auto;
+    max-width: 42vw;
+    overflow-x: auto;
+  }
+
+  .comp-topbar-tools {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 3px;
+  }
+
+  .comp-tool-btn {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+
+  .comp-kbd {
+    display: none;
+  }
+
+  .comp-panel,
+  .comp-drawer {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .comp-panel {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .comp-panel-header {
+    min-height: 56px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-panel-body {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-drawer {
+    width: min(86vw, 340px);
+  }
+
+  .comp-bottombar {
+    padding-left: max(4px, env(safe-area-inset-left, 0px));
+    padding-right: max(4px, env(safe-area-inset-right, 0px));
   }
 }
 

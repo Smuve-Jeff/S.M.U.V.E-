@@ -70,10 +70,11 @@
 
   <!-- PAD GRID -->
   <div class="performance-grid" role="grid" aria-label="Performance pad grid">
-    <button
+    <div
       *ngFor="let pad of pads; trackBy: trackByPad"
-      type="button"
       class="performance-pad"
+      tabindex="0"
+      (keydown)="onPadKeydown(pad, $event)"
       [ngClass]="{
         loop: pad.type === 'loop',
         'one-shot': pad.type === 'one-shot',
@@ -93,7 +94,7 @@
       (pointerdown)="onPointerDown(pad, $event)"
       (pointermove)="onPointerMove(pad, $event)"
       (pointerup)="onPointerUp(pad, $event)"
-      (pointerleave)="onPointerUp(pad, $event)"
+      (pointercancel)="onPointerCancel(pad)"
       (contextmenu)="onContextMenu(pad); $event.preventDefault()"
       [attr.aria-pressed]="pad.isPlaying"
       [attr.aria-label]="
@@ -102,7 +103,9 @@
         (pad.type === 'loop' ? 'Loop' : 'One-shot') +
         (pad.isPlaying ? ' — playing' : '')
       "
-      role="gridcell"
+      role="button"
+      (blur)="dismissLongPress()"
+      (aria-roledescription)="'Performance ' + (pad.type === 'loop' ? 'loop' : 'one-shot') + ' pad'"
     >
       <div class="pad-name">{{ pad.name || 'PAD' }}</div>
       <div class="pad-type">{{ pad.type === 'loop' ? 'LOOP' : '1-SHOT' }}</div>
@@ -139,7 +142,7 @@
 
       <!-- Long-press context menu -->
       @if (longPressPadId() === pad.id) {
-        <div class="pad-context-menu" (click)="$event.stopPropagation()">
+        <div class="pad-context-menu" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
           <button
             type="button"
             class="pad-ctx-btn"
@@ -163,7 +166,7 @@
           </button>
         </div>
       }
-    </button>
+    </div>
 
     <div *ngIf="pads.length === 0" class="empty-state">
       <span class="empty-icon">∿</span>

@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   untracked,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -74,6 +75,22 @@ export class TransportBarComponent {
   outputDb = computed(() => this.audioEngine.outputLevelDb());
   /** Active EQ profile chip label (driven by engine outputProfileLabel) */
   outputProfileLabel = this.audioEngine.outputProfileLabel;
+
+  /**
+   * Stage 2.0 — live position readout (Bar : Beat : Sixteenth).
+   * 4/4 mapping over the engine's 16-step bar so producers get a
+   * DAW-grade position display without new engine state.
+   */
+  positionReadout = computed(() => {
+    const step = Math.max(0, Math.floor(this.audioEngine.visualStep()));
+    const bar = Math.floor(step / 16) + 1;
+    const beat = Math.floor((step % 16) / 4) + 1;
+    const sixteenth = (step % 4) + 1;
+    return { bar, beat, sixteenth };
+  });
+
+  /** Stage 2.0 — time signature chip (editable future, display now). */
+  timeSignature = '4/4';
   /** Active monitor blend readout */
   monitorBlendPct = computed(() =>
     Math.round(this.audioEngine.monitorBlend() * 100)
@@ -254,7 +271,10 @@ export class TransportBarComponent {
 
     if (!this.isPlaying() && this.countInBars() > 0) {
       // Use the engine's built-in count-in
-      this.audioEngine.startCountIn();
+      this.audioEngine.startCountIn(this.countInBars());
+      // Count-in sets the engine rolling immediately; mirror that state so
+      // the transport cannot be pressed repeatedly during the count-in.
+      this.audioSession.playbackState.set('playing');
       this.snack.info(
         `Count-in: ${this.countInBars()} bar${
           this.countInBars() > 1 ? 's' : ''
@@ -542,5 +562,90 @@ export class TransportBarComponent {
   updateMetronomeVolume(event: Event): void {
     const val = (event.target as HTMLInputElement).valueAsNumber / 100;
     this.audioEngine.setMetronomeVolume(val);
+  }
+
+  // ── Global transport keyboard shortcuts ───────────────────────────
+  /**
+   * Makes the (Space) / (R) / Ctrl+Z hints advertised on the transport
+   * buttons REAL — professional DAW behavior from anywhere in the Studio:
+   *
+   *  Space            Play / Pause
+   *  R                Record
+   *  M                Metronome
+   *  Ctrl/Cmd+Z       Undo
+   *  Ctrl/Cmd+Shift+Z Redo (also Ctrl/Cmd+Y)
+   *
+   * Safety rules:
+   *  - never fires while typing in an input/textarea/select/contenteditable;
+   *  - auto-repeat is ignored (no accidental multi-undo / transport spam);
+   *  - Space yields to native button activation when a control is focused
+   *    so the focused button isn't double-triggered;
+   *  - all other combos need no modifiers, so Ctrl+I/S/E and the shell's
+   *    keydown handler stay untouched (piano roll's d/s/e/c edit modes are
+   *    also unaffected).
+   */
+  @HostListener('document:keydown', ['$event'])
+  onGlobalKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const tag = target.tagName;
+    if (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+    if (event.repeat) return;
+
+    const mod = event.ctrlKey || event.metaKey;
+
+    // ── Undo / Redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) ──
+    if (mod && (event.key === 'z' || event.key === 'Z')) {
+      event.preventDefault();
+      if (event.shiftKey) this.redo();
+      else this.undo();
+      return;
+    }
+    if (mod && (event.key === 'y' || event.key === 'Y')) {
+      event.preventDefault();
+      this.redo();
+      return;
+    }
+
+    // Transport shortcuts require no modifiers (never clobber Ctrl+ combos).
+    if (mod || event.altKey) return;
+
+    switch (event.key) {
+      case ' ':
+        // Space natively activates a focused control — let that win so the
+        // focused button (e.g. Play itself) isn't double-fired. Also yield
+        // for role=button / [tabindex] elements (e.g. the comp-brand div,
+        // which handles Space itself) — preventDefault does not stop
+        // propagation, so without this both actions would run.
+        if (
+          tag === 'BUTTON' ||
+          tag === 'A' ||
+          tag === 'SELECT' ||
+          target.hasAttribute('tabindex') ||
+          target.getAttribute('role') === 'button'
+        ) {
+          return;
+        }
+        event.preventDefault();
+        this.togglePlay();
+        break;
+      case 'r':
+      case 'R':
+        this.toggleRecord();
+        break;
+      case 'm':
+      case 'M':
+        this.toggleMetronome();
+        break;
+      default:
+        break;
+    }
   }
 }

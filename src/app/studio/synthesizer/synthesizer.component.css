@@ -834,3 +834,235 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Neural Synth · Hardware console polish
+   ═══════════════════════════════════════════════════════════ */
+.synth-container {
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(14, 124, 123, 0.08) 0%,
+      transparent 45%
+    ),
+    var(--ivory-deep, #06091a);
+}
+
+.synth-header {
+  position: relative;
+}
+
+.synth-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 55%, transparent),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.synth-patch-name {
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.synth-mode-toggle {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+}
+
+.synth-mode-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.25);
+}
+
+.synth-mode-toggle.is-beginner {
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.3);
+}
+
+.synth-mode-toggle.is-beginner:hover {
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.4);
+}
+
+.synth-patch-rail {
+  position: relative;
+}
+
+.synth-patch-btn {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.synth-patch-btn:hover {
+  transform: translateY(-2px);
+}
+
+.synth-patch-btn.is-active {
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--teal-500) 40%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.synth-mtab {
+  position: relative;
+}
+
+.synth-mtab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 30%;
+  right: 30%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--teal-500);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--teal-500) 60%, transparent);
+}
+
+.synth-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.synth-section {
+  position: relative;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.synth-section:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 30%, transparent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.section-title {
+  position: relative;
+}
+
+.section-title .material-symbols-outlined {
+  transition: transform 180ms ease;
+}
+
+.synth-section:hover .section-title .material-symbols-outlined {
+  transform: scale(1.12);
+}
+
+.synth-canvas-wrap {
+  transition: border-color 180ms ease;
+}
+
+.synth-canvas-wrap:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 45%, transparent);
+}
+
+.synth-canvas {
+  filter: drop-shadow(0 0 6px rgba(14, 124, 123, 0.25));
+}
+
+.wave-btn,
+.lfo-wave-btn {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.wave-btn:hover,
+.lfo-wave-btn:hover {
+  transform: translateY(-1px);
+}
+
+.wave-btn.active {
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--teal-500) 40%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.param-value {
+  font-variant-numeric: tabular-nums;
+  transition: color 140ms ease;
+}
+
+.param-header:hover .param-value {
+  color: var(--teal-300);
+}
+
+.param-help-icon {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.param-help-icon:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.synth-slider::-webkit-slider-thumb {
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.fader-well {
+  transition: border-color 160ms ease;
+}
+
+.fader-well:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.fader-fill {
+  box-shadow: 0 0 8px rgba(43, 160, 156, 0.35);
+}
+
+.lfo-wave-btn.is-active {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal-500) 35%, transparent);
+}
+
+.sub-osc-toggle {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.sub-osc-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.sub-osc-toggle.is-active {
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--teal-500) 30%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .synth-patch-btn,
+  .wave-btn,
+  .lfo-wave-btn,
+  .sub-osc-toggle {
+    transition: none;
+  }
+}

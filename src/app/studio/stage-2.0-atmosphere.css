@@ -1,0 +1,646 @@
+/* ============================================================
+   S.M.U.V.E. STAGE 2.0 — Ambient Atmosphere & Motion Layer
+   ------------------------------------------------------------
+   Additive design layer for the Studio shell (imported LAST in
+   studio.component styleUrls so it can polish the existing
+   layout system without breaking any bindings).
+
+   ● Drifting aurora blobs behind the workspace (GPU-composited)
+   ● Live-performance glow when the transport is rolling
+   ● Marquee shimmer + stage ticker refinement
+   ● Panel / drawer entrance choreography
+   ● Unified focus rings, refined scrollbars, micro-lifts
+   ============================================================ */
+
+/* ── Aurora field (pure decoration, absolutely layered) ── */
+/* Anchor the field to the shell without touching fixed-position
+   drawers/panels (relative positioning never re-parents fixed). */
+.comp-shell {
+  position: relative;
+}
+
+.comp-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.comp-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform, opacity;
+  opacity: 0;
+  animation: comp-aurora-in 1.4s ease-out forwards;
+}
+
+/* Blob A — teal sunrise (upper right) */
+.comp-aurora-a {
+  width: min(58vw, 720px);
+  height: min(58vw, 720px);
+  right: -14vw;
+  top: -16vh;
+  background: radial-gradient(
+    circle,
+    rgba(32, 215, 210, 0.5) 0%,
+    rgba(32, 215, 210, 0.12) 45%,
+    transparent 72%
+  );
+  animation:
+    comp-aurora-in 1.4s ease-out forwards,
+    comp-aurora-a-drift 26s ease-in-out infinite alternate;
+}
+
+/* Blob B — amber ember (lower left) */
+.comp-aurora-b {
+  width: min(52vw, 640px);
+  height: min(52vw, 640px);
+  left: -16vw;
+  bottom: -18vh;
+  background: radial-gradient(
+    circle,
+    rgba(217, 119, 6, 0.42) 0%,
+    rgba(217, 119, 6, 0.1) 45%,
+    transparent 72%
+  );
+  animation:
+    comp-aurora-in 1.8s 0.15s ease-out forwards,
+    comp-aurora-b-drift 32s ease-in-out infinite alternate;
+}
+
+/* Blob C — deep teal pool (center-bottom) */
+.comp-aurora-c {
+  width: min(46vw, 560px);
+  height: min(46vw, 560px);
+  left: 32%;
+  bottom: -22vh;
+  background: radial-gradient(
+    circle,
+    rgba(14, 124, 123, 0.38) 0%,
+    rgba(14, 124, 123, 0.1) 50%,
+    transparent 72%
+  );
+  animation:
+    comp-aurora-in 2s 0.3s ease-out forwards,
+    comp-aurora-c-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes comp-aurora-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes comp-aurora-a-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-7vw, 6vh, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(4vw, -5vh, 0) scale(0.96);
+  }
+}
+
+@keyframes comp-aurora-b-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6vw, -5vh, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-5vw, 4vh, 0) scale(0.94);
+  }
+}
+
+@keyframes comp-aurora-c-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4vw, -4vh, 0) scale(1.1);
+  }
+  100% {
+    transform: translate3d(5vw, 3vh, 0) scale(0.98);
+  }
+}
+
+/* ── Live-performance glow: aurora intensifies when rolling ──
+   Opacity-only pulse (GPU-composited) — animating filter would
+   repaint the large blurred layers every frame on low-end Android. */
+.comp-shell.comp-stage-live .comp-aurora-a {
+  animation:
+    comp-aurora-in 1.4s ease-out forwards,
+    comp-aurora-a-drift 12s ease-in-out infinite alternate,
+    comp-aurora-live-pulse 2.2s ease-in-out infinite;
+}
+.comp-shell.comp-stage-live .comp-aurora-b {
+  animation:
+    comp-aurora-in 1.8s 0.15s ease-out forwards,
+    comp-aurora-b-drift 16s ease-in-out infinite alternate,
+    comp-aurora-live-pulse 2.2s 0.4s ease-in-out infinite;
+}
+.comp-shell.comp-stage-live .comp-aurora-c {
+  animation:
+    comp-aurora-in 2s 0.3s ease-out forwards,
+    comp-aurora-c-drift 19s ease-in-out infinite alternate,
+    comp-aurora-live-pulse 2.2s 0.8s ease-in-out infinite;
+}
+
+@keyframes comp-aurora-live-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Workspace surfaces sit ABOVE the ambient field so the aurora
+   glows through the shell's negative space instead of washing
+   over the UI. Panels/drawers stay viewport-fixed (relative on
+   the shell never re-parents fixed elements). */
+.comp-topbar,
+.comp-main,
+.comp-footer,
+.comp-bottombar {
+  position: relative;
+}
+
+/* ── Theme-aware dimming for dark / focus modes ── */
+:host-context(.dark-mode) .comp-aurora-a {
+  background: radial-gradient(
+    circle,
+    rgba(32, 215, 210, 0.34) 0%,
+    rgba(32, 215, 210, 0.08) 45%,
+    transparent 72%
+  );
+}
+:host-context(.dark-mode) .comp-aurora-b {
+  background: radial-gradient(
+    circle,
+    rgba(255, 173, 71, 0.3) 0%,
+    rgba(255, 173, 71, 0.07) 45%,
+    transparent 72%
+  );
+}
+:host-context(.dark-mode) .comp-aurora-c {
+  background: radial-gradient(
+    circle,
+    rgba(43, 160, 156, 0.26) 0%,
+    rgba(43, 160, 156, 0.07) 50%,
+    transparent 72%
+  );
+}
+
+:host-context(.focus-mode) .comp-aurora-a {
+  background: radial-gradient(
+    circle,
+    rgba(32, 215, 210, 0.3) 0%,
+    rgba(32, 215, 210, 0.07) 45%,
+    transparent 72%
+  );
+}
+:host-context(.focus-mode) .comp-aurora-b {
+  background: radial-gradient(
+    circle,
+    rgba(255, 173, 71, 0.26) 0%,
+    rgba(255, 173, 71, 0.06) 45%,
+    transparent 72%
+  );
+}
+:host-context(.focus-mode) .comp-aurora-c {
+  background: radial-gradient(
+    circle,
+    rgba(43, 160, 156, 0.22) 0%,
+    rgba(43, 160, 156, 0.06) 50%,
+    transparent 72%
+  );
+}
+
+/* ── Stage marquee: shimmer sweep + refined ticker ── */
+.comp-stage-marquee {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.comp-stage-marquee::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: comp-marquee-sweep 7s ease-in-out infinite;
+  mix-blend-mode: soft-light;
+}
+@keyframes comp-marquee-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  55%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+.comp-stage-marquee .stage-marquee-track span {
+  transition: color 0.3s ease;
+}
+.comp-stage-marquee:hover .stage-marquee-track span {
+  color: var(--stage-teal, #0e7c7b);
+}
+
+/* ── Shell entrance choreography ── */
+.comp-shell:not(.comp-compact) .comp-topbar {
+  animation: comp-surface-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.comp-shell:not(.comp-compact) .comp-main {
+  animation: comp-surface-in 0.6s 0.06s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.comp-shell:not(.comp-compact) .comp-footer {
+  animation: comp-surface-in 0.55s 0.12s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes comp-surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Panel & drawer entrance (right slide-in surfaces) ── */
+.comp-panel,
+.comp-drawer {
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.26s ease;
+}
+.comp-panel:not(.comp-panel-open),
+.comp-drawer:not(.comp-drawer-open) {
+  visibility: hidden;
+  transition:
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.2s ease,
+    visibility 0s 0.32s;
+}
+
+/* ── Rail items: calm micro-lift ── */
+.comp-rail-item {
+  position: relative;
+}
+.comp-rail-item:not(.comp-rail-active):hover {
+  transform: translateX(2px);
+}
+.comp-rail-item.comp-rail-active {
+  transform: translateX(2px);
+}
+
+/* ── Tool buttons: press pop ── */
+.comp-tool-btn:active {
+  transform: scale(0.94);
+}
+.comp-icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* ── Refined scrollbars across the workspace ── */
+.comp-shell *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.comp-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.comp-shell *::-webkit-scrollbar-thumb {
+  background: rgba(14, 124, 123, 0.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.comp-shell *::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 124, 123, 0.5);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* ── Unified focus ring (keyboard nav) ── */
+.comp-shell button:focus-visible,
+.comp-shell [tabindex]:focus-visible {
+  outline: 2px solid var(--stage-teal-bright, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── Canvas inner glow — the instrument feels lit ── */
+.comp-canvas {
+  box-shadow:
+    var(--stage-shadow, 0 16px 38px rgba(61, 53, 42, 0.09)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 0 60px rgba(14, 124, 123, 0.035);
+}
+
+/* ── Quick-start lane: keep the hero copy magnetic ── */
+.comp-mobile-start {
+  box-shadow:
+    0 10px 24px rgba(61, 53, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 0 48px rgba(14, 124, 123, 0.05);
+}
+.comp-mobile-start-action {
+  position: relative;
+  overflow: hidden;
+}
+.comp-mobile-start-action::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 120%,
+    rgba(14, 124, 123, 0.14) 0%,
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.comp-mobile-start-action:hover::after {
+  opacity: 1;
+}
+
+/* ── Bottom tab bar: active tab glow ── */
+.comp-tab.comp-tab-active {
+  box-shadow: 0 6px 16px rgba(14, 124, 123, 0.14);
+}
+
+/* ── Reduced motion: freeze choreography, keep the stage calm ── */
+@media (prefers-reduced-motion: reduce) {
+  .comp-aurora-blob,
+  .comp-shell.comp-stage-live .comp-aurora-a,
+  .comp-shell.comp-stage-live .comp-aurora-b,
+  .comp-shell.comp-stage-live .comp-aurora-c,
+  .comp-stage-marquee::after,
+  .comp-shell:not(.comp-compact) .comp-topbar,
+  .comp-shell:not(.comp-compact) .comp-main,
+  .comp-shell:not(.comp-compact) .comp-footer,
+  .comp-rail-item:not(.comp-rail-active):hover {
+    animation: none !important;
+    transition: none !important;
+  }
+  .comp-aurora-blob {
+    opacity: 0.6;
+  }
+  .comp-shell.comp-stage-live .comp-aurora-blob {
+    opacity: 0.8;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE FX TOGGLE — topbar control + shell-wide calm mode
+   (body.stage-fx-off rules live in styles.css for global reach;
+   these scoped rules polish the button itself and guarantee the
+   Studio's own decor drops even before global CSS is parsed.)
+   ═══════════════════════════════════════════════════════════ */
+.comp-fx-toggle {
+  position: relative;
+}
+
+.comp-fx-toggle .material-symbols-outlined {
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    filter 200ms ease;
+}
+
+.comp-fx-toggle:hover .material-symbols-outlined {
+  transform: scale(1.12) rotate(-12deg);
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.55));
+}
+
+.comp-fx-toggle.comp-fx-off {
+  border-color: rgba(255, 26, 77, 0.35);
+}
+
+.comp-fx-toggle.comp-fx-off .material-symbols-outlined {
+  color: var(--record, #ff1a4d);
+}
+
+.comp-fx-toggle.comp-fx-off .comp-theme-chip {
+  color: var(--record, #ff1a4d);
+  border-color: rgba(255, 26, 77, 0.3);
+}
+
+/* Shell-scoped kill: the studio's own ambient decor vanishes. */
+.comp-shell.comp-stage-fx-off .comp-aurora {
+  display: none;
+}
+
+.comp-shell.comp-stage-fx-off .comp-stage-marquee {
+  display: none;
+}
+
+.comp-shell.comp-stage-fx-off .comp-stage-marquee::after {
+  animation: none;
+  opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS HELP — topbar button + glass popover
+   ═══════════════════════════════════════════════════════════ */
+.comp-kbd-help-btn {
+  position: relative;
+}
+
+.comp-kbd-help-btn .material-symbols-outlined {
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    filter 200ms ease;
+}
+
+.comp-kbd-help-btn:hover .material-symbols-outlined {
+  transform: scale(1.12) rotate(-6deg);
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
+}
+
+.comp-kbd-help-btn.comp-kbd-help-active {
+  border-color: rgba(14, 124, 123, 0.5);
+  box-shadow: 0 0 0 3px rgba(14, 124, 123, 0.15);
+}
+
+.comp-kbd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(15, 12, 8, 0.28);
+  backdrop-filter: blur(2px);
+  animation: comp-kbd-fade 0.18s ease-out both;
+}
+
+@keyframes comp-kbd-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.comp-kbd-popover {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  right: 16px;
+  z-index: 91;
+  width: min(320px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(14, 124, 123, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 252, 243, 0.97),
+    rgba(228, 244, 243, 0.94)
+  );
+  box-shadow:
+    0 18px 44px rgba(61, 53, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  animation: comp-kbd-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+}
+
+@keyframes comp-kbd-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.comp-kbd-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(14, 124, 123, 0.16);
+  color: var(--stage-ink, #1f1a12);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.comp-kbd-popover-head .material-symbols-outlined {
+  color: var(--stage-teal, #0e7c7b);
+  font-size: 18px;
+}
+
+.comp-kbd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.comp-kbd-key {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px solid rgba(61, 53, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.comp-kbd-key kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(61, 53, 42, 0.22);
+  border-bottom-width: 2px;
+  background: linear-gradient(180deg, #ffffff, #f0ede4);
+  color: #3d352a;
+  font: 800 10px/1.4 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.comp-kbd-key em {
+  flex-basis: 100%;
+  color: var(--stage-muted, #7e7259);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.comp-kbd-popover-note {
+  margin: 10px 0 0;
+  color: var(--stage-muted, #7e7259);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+/* Dark / focus theme tuning */
+:host-context(.dark-mode) .comp-kbd-popover,
+:host-context(.focus-mode) .comp-kbd-popover {
+  background: linear-gradient(
+    160deg,
+    rgba(24, 26, 33, 0.97),
+    rgba(16, 22, 26, 0.95)
+  );
+  border-color: rgba(0, 229, 255, 0.22);
+}
+
+:host-context(.dark-mode) .comp-kbd-popover-head,
+:host-context(.focus-mode) .comp-kbd-popover-head {
+  color: #f5f2e9;
+}
+
+:host-context(.dark-mode) .comp-kbd-key,
+:host-context(.focus-mode) .comp-kbd-key {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:host-context(.dark-mode) .comp-kbd-key kbd,
+:host-context(.focus-mode) .comp-kbd-key kbd {
+  background: linear-gradient(180deg, #2b2f3a, #1c1f27);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #e8f6f4;
+}
+
+/* Mobile: single-column list, closer to the top bar */
+@media (max-width: 480px) {
+  .comp-kbd-popover {
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    right: 10px;
+  }
+  .comp-kbd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comp-kbd-popover,
+  .comp-kbd-backdrop {
+    animation: none !important;
+  }
+}

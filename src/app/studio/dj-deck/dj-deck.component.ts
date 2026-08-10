@@ -1313,9 +1313,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** DiscDj-style loop length preset chips (1/8, 1/4, 1/2, 1, 2, 4, 8 beats).
-   *  Falls back to DeckService.toggleLoop() since the service exposes a
-   *  binary loop toggle rather than a length setter. We surface the
-   *  intended beat-quantized loop so the user gets the cuepoint intent. */
+   *  Engages a real beat-quantized loop region on the engine: the loop
+   *  snaps to the beat grid behind the playhead and spans exactly the
+   *  requested beat count (clamped to the track duration). */
   setLoopLengthPreset(deck: 'A' | 'B', beats: number) {
     const state = this.getDeckState(deck);
     if (!Number.isFinite(beats)) {
@@ -1327,10 +1327,31 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     const safeBeats = this.clampLoopBeats(beats);
-    const seconds = (60 / Math.max(1, state.bpm || 128)) * safeBeats;
-    this.deckService.toggleLoop(deck);
+    const bpm = Math.max(1, state.bpm || 128);
+    const beatSec = 60 / bpm;
+    const seconds = beatSec * safeBeats;
+    const progress = this.engine.getDeckProgress(deck);
+    const duration = progress.duration || state.duration || 0;
+    // Snap the loop start to the beat grid behind the playhead.
+    const start =
+      duration > 0
+        ? Math.max(0, Math.min(
+            Math.floor(progress.position / beatSec) * beatSec,
+            Math.max(0, duration - 0.01)
+          ))
+        : Math.max(0, Math.floor(progress.position / beatSec) * beatSec);
+    const end = duration > 0
+      ? Math.min(duration, start + seconds)
+      : start + seconds;
+    this.engine.setDeckLoopRegion(deck, start, end);
+    // Keep the booth's loop indicator in sync with the engine region.
+    const deckSignal =
+      deck === 'A' ? this.deckService.deckA : this.deckService.deckB;
+    if (typeof deckSignal?.update === 'function') {
+      deckSignal.update((d: any) => ({ ...d, loop: true }));
+    }
     this.sessionNotice.set(
-      `Deck ${deck} ${safeBeats}-beat loop engaged (≈${seconds.toFixed(2)}s).`
+      `Deck ${deck} ${safeBeats}-beat loop engaged (${seconds.toFixed(2)}s).`
     );
   }
 

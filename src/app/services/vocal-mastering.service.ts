@@ -74,6 +74,9 @@ export class VocalMasteringService {
 
   constructor() {
     this.buildChain();
+    // Vocal monitoring/rendering should use the same master bus as the rest
+    // of Studio, preserving output metering and the safety limiter.
+    this.outputNode.connect(this.audioEngine.masterGain);
   }
 
   private buildChain() {
@@ -223,7 +226,17 @@ export class VocalMasteringService {
   }
 
   applyToSource(source: AudioNode) {
+    if (source.context && source.context !== this.ctx) {
+      this.logger.warn('Vocal mastering source belongs to another AudioContext');
+      return false;
+    }
+    try {
+      source.disconnect();
+    } catch {
+      /* source may already be disconnected */
+    }
     source.connect(this.inputNode);
+    return true;
   }
 
   updateParams(newParams: Partial<MasteringParameters>) {

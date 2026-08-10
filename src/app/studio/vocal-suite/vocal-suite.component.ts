@@ -111,7 +111,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     await this.micService.initialize(deviceId || undefined);
     const node = this.micService.getAnalyserNode();
     if (node) {
-      this.mastering.applyToSource(node);
+      // Route the mic through the real-time pitch-correction stage first; the
+      // service falls back to a clean bypass when the worklet is unavailable.
+      const corrected = await this.pitchCorrection.insertIntoChain(node);
+      this.mastering.applyToSource(corrected ?? node);
     }
   }
 

@@ -1,15 +1,6 @@
 /* ============================================================
-   S.M.U.V.E DJ Booth 2.0 — Studio Slate & Tactical LED
-   Inspired by djay (Algoriddim), edjing Mix, Cross DJ Pro
-
-   Visual hierarchy:
-     1. Pitch Black / Deep Slate canvas (no wood grain)
-     2. Hardware-accurate 2D top-down jogwheel
-     3. Parallel stacked waveform bridge above decks
-     4. Dual-accent: Deck A = Laser Cyan, Deck B = Amber Orange
-     5. Industrial rectangular performance pads
-     6. Glassmorphic, dim surfaces — no neon structural glow
-     7. LED-lit only when active (true hardware simulator)
+   S.M.U.V.E DJ Booth 3.0 — Studio Slate & Tactical LED
+   Enhanced Mobile Landscape · Touch Crossfader · Pad Haptics
    ============================================================ */
 
 :host {
@@ -1805,7 +1796,7 @@
   cursor: ns-resize;
 }
 
-/* ─── Responsive layout ────────────────────────────────────────── */
+/* ─── RESPONSIVE 2.0 ────────────────────────────────────────── */
 @media (max-width: 1180px) {
   .dj-decks-region {
     grid-template-columns: 1fr 260px 1fr;
@@ -1855,8 +1846,18 @@
     height: 80px;
   }
   .mixer-section-hidden-mobile {
-    /* Hide the mixer column on phones to put controls safely above the pads */
     display: none;
+  }
+  /* ── Mobile crossfader touch enhancement ── */
+  .dj-crossfader-track {
+    height: 64px;
+  }
+  .dj-crossfader-track input[type='range']::-webkit-slider-thumb {
+    width: 44px;
+    height: 52px;
+  }
+  .dj-pitch-track {
+    height: 64px;
   }
 }
 @media (max-width: 480px) {
@@ -1892,6 +1893,48 @@
   }
   .dj-play-btn .material-symbols-outlined {
     font-size: 26px;
+  }
+}
+/* ── LANDSCAPE PHONE: side-by-side decks ── */
+@media (max-width: 932px) and (orientation: landscape) {
+  .dj-decks-region {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 6px max(6px, env(safe-area-inset-right, 0px)) 0 max(6px, env(safe-area-inset-left, 0px));
+  }
+  .dj-mixer {
+    display: none;
+  }
+  .dj-platter {
+    max-width: 140px;
+  }
+  .dj-top-bar {
+    height: 40px;
+    padding: 0 max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  }
+  .dj-wave-channel {
+    height: 60px;
+  }
+  .dj-deck {
+    padding: 6px;
+    gap: 4px;
+  }
+  .dj-cue-pad {
+    height: 40px;
+  }
+  .dj-transport-btn {
+    height: 40px;
+    font-size: 9px;
+  }
+  .dj-play-btn {
+    height: 44px;
+  }
+  .dj-pad-tile {
+    height: 38px;
+    font-size: 7px;
+  }
+  .dj-perf-bed {
+    padding: 6px max(6px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
   }
 }
 

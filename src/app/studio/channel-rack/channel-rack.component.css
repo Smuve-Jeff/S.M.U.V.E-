@@ -420,3 +420,117 @@
     min-height: 48px;
   }
 }
+
+/* ============================================================
+   STAGE 2.0 — CHANNEL RACK RACK LIGHT
+   Neon rack hairline · channel lift · LED fader glow
+   ============================================================ */
+
+.rack-container {
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(32, 215, 210, 0.06), transparent 60%),
+    var(--ivory-deep, #06091a);
+}
+
+/* Rack header: teal hairline + lit title. */
+.rack-header {
+  position: relative;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+.rack-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(43, 160, 156, 0.6),
+    rgba(255, 173, 71, 0.4),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Channels: calm lift + selected glow echo. */
+.channel-item {
+  transition:
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease,
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+.channel-item:hover:not(.selected) {
+  transform: translateX(2px);
+}
+.channel-item.selected {
+  transform: translateX(2px);
+  box-shadow:
+    0 0 0 1px var(--teal-500, #0e7c7b),
+    0 6px 18px rgba(14, 124, 123, 0.22),
+    0 0 22px rgba(14, 124, 123, 0.18);
+}
+.channel-item.selected .channel-name {
+  text-shadow: 0 0 10px rgba(14, 124, 123, 0.45);
+}
+
+/* Color strip: instrument-grade light pipe. */
+.channel-color-strip {
+  box-shadow: 0 0 8px rgba(14, 124, 123, 0.35);
+}
+
+/* Control buttons: brighter engaged states. */
+.channel-ctrl-btn {
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.16s ease,
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.channel-ctrl-btn:active {
+  transform: scale(0.9);
+}
+.channel-ctrl-btn.muted,
+.channel-ctrl-btn.soloed {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 0 12px rgba(217, 119, 6, 0.45);
+}
+.channel-ctrl-btn.soloed {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 0 12px rgba(14, 124, 123, 0.45);
+}
+
+/* Faders: glowing thumb on hover. */
+.rack-fader-pro::-webkit-slider-thumb {
+  transition: transform 0.14s ease, box-shadow 0.18s ease;
+}
+.rack-fader-pro:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+  box-shadow: 0 0 12px rgba(14, 124, 123, 0.7);
+}
+
+/* Dark theme: keep the rack moody but legible. */
+:host-context(.dark-mode) .channel-item.selected {
+  box-shadow:
+    0 0 0 1px var(--teal-500, #0e7c7b),
+    0 6px 18px rgba(0, 0, 0, 0.4),
+    0 0 26px rgba(14, 124, 123, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-item,
+  .channel-ctrl-btn {
+    transition: none !important;
+  }
+  .channel-item:hover:not(.selected) {
+    transform: none !important;
+  }
+  .rack-fader-pro::-webkit-slider-thumb:hover {
+    transform: none !important;
+  }
+}

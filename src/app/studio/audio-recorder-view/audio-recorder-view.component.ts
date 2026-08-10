@@ -17,6 +17,7 @@ import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
 interface RecordingListEntry {
   id: string;
@@ -40,6 +41,7 @@ export class AudioRecorderViewComponent
   private haptic = inject(HapticService);
   private snackbar = inject(SnackbarService);
   private logger = inject(LoggingService);
+  private dialog = inject(InteractionDialogService);
 
   @ViewChild('waveformCanvas')
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -269,13 +271,17 @@ export class AudioRecorderViewComponent
     this.haptic.medium();
   }
 
-  clearAllTakes(): void {
+  /** Clear every take behind a real confirmation — never a silent wipe. */
+  async clearAllTakes(): Promise<void> {
     if (this.takes().length === 0) return;
-    const ok = !!this.recordings().length; // simple confirmation
-    if (!ok) {
-      this.snackbar.error('No recordings to clear');
-      return;
-    }
+    const confirmed = await this.dialog.confirm({
+      title: 'Clear All Takes',
+      message: `Delete all ${this.takes().length} takes? This cannot be undone.`,
+      confirmLabel: 'Clear',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     this.takes.set([]);
     this.takeMuted.set({});
     this.haptic.heavy();

@@ -40,6 +40,12 @@ describe('SettingsComponent', () => {
             defaultQuantize: '1/16',
             autoMixEnabled: false,
           },
+          dj: {
+            crossfaderCurve: 'linear',
+            hamsterMode: false,
+            vinylMode: true,
+            visualCuePoints: true,
+          },
           security: {
             twoFactorEnabled: false,
             endToEndEncryption: false,
@@ -215,6 +221,29 @@ describe('SettingsComponent', () => {
     await component.updateSetting('ui' as any, 'theme', 'Light');
 
     expect(uiService.setTheme).toHaveBeenCalledWith('Light');
+  });
+
+  it('includes the Stage FX preference in the appearance summary', async () => {
+    const { component } = await createComponent();
+
+    const fx = component
+      .appearanceSummary()
+      .find((item) => item.label === 'Stage FX');
+
+    expect(fx).toBeDefined();
+    // Legacy / unset profiles default to the ambient (on) reading.
+    expect(fx!.value).toBe('Ambient');
+  });
+
+  it('live-previews the Stage FX toggle on the body class before commit', async () => {
+    const { component } = await createComponent();
+
+    document.body.classList.remove('stage-fx-off');
+    component.updateSetting('studio' as any, 'stageFxEnabled', false);
+    expect(document.body.classList.contains('stage-fx-off')).toBe(true);
+
+    component.updateSetting('studio' as any, 'stageFxEnabled', true);
+    expect(document.body.classList.contains('stage-fx-off')).toBe(false);
   });
 
   it('purgeProfile logs the event and calls logout when confirmed', async () => {

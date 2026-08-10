@@ -1,4 +1,5 @@
 import { LoggingService } from './logging.service';
+import { AudioEngineService } from './audio-engine.service';
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 
 export interface AudioInputDevice {
@@ -28,6 +29,7 @@ export interface AudioInputDevice {
 })
 export class MicrophoneService implements OnDestroy {
   private logger = inject(LoggingService);
+  private readonly audioEngine = inject(AudioEngineService);
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
   private mediaStream: MediaStream | null = null;
@@ -183,12 +185,11 @@ export class MicrophoneService implements OnDestroy {
       };
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.audioContext = new (
-        window.AudioContext || (window as any).webkitAudioContext
-      )({
-        latencyHint: 'interactive',
-        sampleRate: 48000,
-      });
+      // Use the Studio's shared context so the vocal processing graph can
+      // legally receive the microphone analyser node. Web Audio nodes from
+      // different contexts cannot be connected to one another.
+      this.audioContext = this.audioEngine.ctx;
+      await this.audioContext.resume().catch(() => undefined);
 
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 2048;
@@ -219,16 +220,29 @@ export class MicrophoneService implements OnDestroy {
   startRecording(): void {
     if (!this.mediaStream || !this.isInitialized()) return;
 
-    this.chunks = [];
-    const options = { mimeType: 'audio/webm;codecs=opus' };
+    this.chunks = [];    const mimeCandidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+    ];
+    const mimeType = mimeCandidates.find((type) =>
+      typeof MediaRecorder.isTypeSupported !== 'function' ||
+      MediaRecorder.isTypeSupported(type)
+    );
+    const options = mimeType ? { mimeType } : undefined;
 
     try {
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, options);
+      this.mediaRecorder = options
+        ? new MediaRecorder(this.mediaStream, options)
+        : new MediaRecorder(this.mediaStream);
       this.mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) this.chunks.push(e.data);
       };
       this.mediaRecorder.onstop = () => {
-        const blob = new Blob(this.chunks, { type: 'audio/webm' });
+        const blob = new Blob(this.chunks, {
+          type: this.mediaRecorder?.mimeType || mimeType || 'audio/webm',
+        });
         this.recordedBlob.set(blob);
         this.isRecording.set(false);
         this.isPaused.set(false);
@@ -304,9 +318,15 @@ export class MicrophoneService implements OnDestroy {
         /* already disconnected */
       }
     }
-    if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close();
+    if (this.analyserNode) {
+      try {
+        this.analyserNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
     }
+    // The shared Studio context belongs to AudioEngineService; close only the
+    // input graph, never the global transport context.
     this.isInitialized.set(false);
     this.mediaStream = null;
     this.audioContext = null;

@@ -73,3 +73,50 @@
   color: rgba(255, 255, 255, 0.35);
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Waveform Renderer · Console polish
+   ═══════════════════════════════════════════════════════════ */
+.wr-shell {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.wr-shell:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.22),
+    inset 0 0 24px rgba(14, 124, 123, 0.06);
+}
+
+.wr-rec-badge {
+  animation:
+    wrPulse 1.2s ease-in-out infinite,
+    wr-badge-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes wr-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(185, 28, 28, 0);
+  }
+}
+
+.wr-meta {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-rec-badge {
+    animation: none;
+  }
+}

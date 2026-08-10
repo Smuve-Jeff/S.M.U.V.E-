@@ -106,6 +106,9 @@ class RecordingProcessor extends AudioWorkletProcessor {
       this._rightQueue.push(rightChunk);
     }
     this._sendChunks();
+    // Acknowledge only after DATA has been posted so the main thread can
+    // safely finalize the WAV without relying on an arbitrary timeout.
+    this.port.postMessage({ command: 'FLUSHED' });
     this._leftPartial = [];
     this._rightPartial = [];
     this._leftQueue = [];

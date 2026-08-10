@@ -58,7 +58,9 @@ export class AudioSessionService {
   availableDevices = this.micService.availableDevices;
 
   constructor() {
-    this.instrumentService.connect(this.engine.getContext().destination);
+    // AudioEngineService already owns the instrument/master bus routing.
+    // Connecting the master gain directly to destination here would bypass
+    // the compressor, limiter, metering, and worklet chain.
     const armed = this.micChannels().find((ch) => ch.armed);
     if (armed) {
       this.initializeMic(armed.id);
@@ -161,7 +163,6 @@ export class AudioSessionService {
 
   onNoteClicked(note: { midi: number; velocity: number }): void {
     this.logger.info('AudioSession: Note clicked:', note);
-    this.instrumentService.play('0', note.midi || 60, note.velocity || 0.8);
     this.instrumentService.play('0', note.midi ?? 60, note.velocity ?? 0.8);
   }
 }

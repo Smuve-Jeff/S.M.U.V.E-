@@ -28,5 +28,24 @@ export class SettingsIntegrationService {
         );
       }
     });
+
+    // Stage FX Integration — the profile preference drives the global
+    // ambience. Mirrors into localStorage (`smuve_stage_fx`, the Studio
+    // shell's working store) and applies the `stage-fx-off` body class so
+    // every view honors the choice — even outside the Studio. Profiles
+    // saved before this field existed skip the sync (`undefined` guard).
+    effect(() => {
+      const stageFx =
+        this.profileService.profile().settings.studio?.stageFxEnabled;
+      if (stageFx === undefined) return;
+      if (typeof document !== 'undefined') {
+        document.body.classList.toggle('stage-fx-off', !stageFx);
+      }
+      try {
+        localStorage.setItem('smuve_stage_fx', stageFx ? 'on' : 'off');
+      } catch {
+        /* private mode / locked storage — degrade silently */
+      }
+    });
   }
 }

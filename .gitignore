@@ -56,4 +56,3 @@ Thumbs.db
 !.codebuddy/rules/
 !.codebuddy/prompts/
 !.codebuddy/config.json
-server/.env

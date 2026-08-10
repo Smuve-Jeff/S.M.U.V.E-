@@ -172,6 +172,25 @@
     </button>
   </div>
 
+  <!-- Stage 2.0 — Live position readout (Bar : Beat : Sixteenth) + time signature -->
+  <div
+    class="ctb-group ctb-position"
+    role="group"
+    aria-label="Playback position"
+  >
+    <span
+      class="ctb-timesig"
+      title="Time signature — 4/4"
+      aria-label="Time signature 4 over 4"
+      >{{ timeSignature }}</span
+    >
+    <span class="ctb-position-readout" aria-live="off" aria-hidden="false">
+      <b class="ctb-pos-bar">{{ positionReadout().bar }}</b
+      ><i>:</i><span class="ctb-pos-beat">{{ positionReadout().beat }}</span
+      ><i>:</i><span class="ctb-pos-six">{{ positionReadout().sixteenth }}</span>
+    </span>
+  </div>
+
   <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->
   <div
     class="ctb-group ctb-playmode"

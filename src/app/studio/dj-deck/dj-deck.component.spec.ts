@@ -144,6 +144,7 @@ describe('DjDeckComponent', () => {
             playDeck: jest.fn(),
             pauseDeck: jest.fn(),
             setDeckRate: jest.fn(),
+            setDeckLoopRegion: jest.fn(),
             setSaturation: jest.fn(),
             setMasterOutputLevel: jest.fn(),
             setDeckGain: jest.fn(),

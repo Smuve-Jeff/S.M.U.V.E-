@@ -6,6 +6,7 @@ import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   UserProfileService,
   AppSettings,
+  initialProfile,
 } from '../../services/user-profile.service';
 import { UIService } from '../../services/ui.service';
 import { NotificationService } from '../../services/notification.service';
@@ -40,9 +41,28 @@ export class SettingsComponent implements OnInit {
   dialog = inject(InteractionDialogService);
   showHowTo = signal(false);
 
-  settings = computed(
-    () => this.pendingSettings() || this.profileService.profile().settings
-  );
+  settings = computed(() => {
+    const current =
+      this.pendingSettings() || this.profileService.profile().settings;
+    return this.withSettingsDefaults(current);
+  });
+
+  /**
+   * Deep-merge the active settings over the canonical `initialProfile`
+   * defaults. Legacy or imported profiles that predate a settings section
+   * (e.g. `dj`) render safely instead of throwing on the template.
+   */
+  private withSettingsDefaults(current: AppSettings): AppSettings {
+    const defaults = initialProfile.settings;
+    return {
+      ui: { ...defaults.ui, ...(current?.ui ?? {}) },
+      audio: { ...defaults.audio, ...(current?.audio ?? {}) },
+      ai: { ...defaults.ai, ...(current?.ai ?? {}) },
+      studio: { ...defaults.studio, ...(current?.studio ?? {}) },
+      dj: { ...defaults.dj, ...(current?.dj ?? {}) },
+      security: { ...defaults.security, ...(current?.security ?? {}) },
+    };
+  }
   themeOptions = computed(() => this.uiService.getAvailableThemes());
   appearanceSummary = computed(() => {
     const ui = this.settings().ui;
@@ -68,6 +88,17 @@ export class SettingsComponent implements OnInit {
         detail: ui.showScanlines
           ? 'Legacy scanlines layered over the shell'
           : 'Clean glass surfaces and uncluttered panels',
+      },
+      {
+        label: 'Stage FX',
+        value:
+          this.settings().studio?.stageFxEnabled === false
+            ? 'Calm Mode'
+            : 'Ambient',
+        detail:
+          this.settings().studio?.stageFxEnabled === false
+            ? 'Aurora, marquee sheens & pulses OFF — battery saver'
+            : 'Full aurora, marquee sheens & pulse animations',
       },
     ];
   });
@@ -201,6 +232,19 @@ export class SettingsComponent implements OnInit {
     }
     if (category === 'ui' && key === 'performanceMode') {
       // Toggle locally for preview if possible
+    }
+    if (category === 'studio' && key === 'stageFxEnabled') {
+      // Live preview — the ambience follows the toggle before commit, and
+      // the Studio (which live-syncs from the profile on commit) stays in
+      // agreement via the shared localStorage mirror.
+      if (typeof document !== 'undefined') {
+        document.body.classList.toggle('stage-fx-off', !value);
+      }
+      try {
+        localStorage.setItem('smuve_stage_fx', value ? 'on' : 'off');
+      } catch {
+        /* locked storage — degrade silently */
+      }
     }
   }
 

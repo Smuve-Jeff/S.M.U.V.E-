@@ -422,3 +422,138 @@
     flex-wrap: wrap;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Take Lane · Tape-stack polish
+   ═══════════════════════════════════════════════════════════ */
+.take-lane {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 180ms ease;
+}
+
+.take-lane:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 45%, transparent);
+}
+
+.take-lane-head::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--teal-400), var(--teal-600));
+  box-shadow: 0 0 8px var(--teal-glow, rgba(43, 160, 156, 0.4));
+  flex-shrink: 0;
+}
+
+.take-lane-count {
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.take-lane:hover .take-lane-count {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(43, 160, 156, 0.25);
+}
+
+.tl-btn {
+  transition:
+    background 0.12s ease,
+    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
+    color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.tl-btn:hover {
+  transform: translateY(-1px);
+}
+
+.tl-btn:active {
+  transform: scale(0.88);
+}
+
+.tl-btn.tl-punch.armed {
+  animation: punchPulse 1.2s ease-in-out infinite;
+}
+
+.tl-btn.tl-comp.armed {
+  animation: punchPulse 1.2s ease-in-out infinite;
+}
+
+.take-chip {
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.12s ease;
+}
+
+.take-chip:hover {
+  transform: translateX(2px);
+}
+
+.take-chip.active {
+  box-shadow:
+    0 0 0 1px var(--teal-500, #0e7c7b) inset,
+    0 2px 10px rgba(43, 160, 156, 0.2);
+}
+
+.take-chip-meta {
+  transition: background 0.12s ease;
+}
+
+.take-chip.active .take-chip-meta {
+  background: var(--teal-500, #0e7c7b);
+  color: white;
+}
+
+.take-chip-del {
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    transform 0.12s ease;
+}
+
+.take-chip-del:hover {
+  transform: scale(1.1);
+}
+
+.comp-apply {
+  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.3);
+}
+
+.section-bar {
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.12s ease;
+}
+
+.section-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.section-bar.assigned {
+  box-shadow: 0 0 0 1px var(--teal-500, #0e7c7b) inset;
+}
+
+.section-bar.picked {
+  box-shadow:
+    0 0 0 2px var(--orange, #d97706) inset,
+    0 0 10px rgba(217, 119, 6, 0.2);
+}
+
+.comp-strip {
+  animation: takeLaneIn 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-btn.tl-punch.armed,
+  .tl-btn.tl-comp.armed,
+  .comp-strip {
+    animation: none;
+  }
+}

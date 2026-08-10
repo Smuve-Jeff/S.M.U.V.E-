@@ -45,6 +45,7 @@ export type MainViewMode =
   | 'timeline'
   | 'cloud'
   | 'store'
+  | 'products'
   | 'inbox'
   | 'cowrite'
   | 'artist-development';

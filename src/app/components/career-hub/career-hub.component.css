@@ -2,3 +2,29 @@
   display: block;
   height: 100%;
 }
+
+/* ── Mobile: collapse grids that overflow at 360px ── */
+@media (max-width: 768px) {
+  /* Revenue forecast: 3-col → stack vertically */
+  .grid.grid-cols-3 {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  /* Stat cards at bottom: keep 2-col but tighten padding */
+  .grid.grid-cols-2.gap-4 {
+    gap: 0.5rem;
+  }
+
+  /* Activity feed carousel cards: slightly narrower for 360px */
+  .min-w-\[260px\] {
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Bottom stat cards: full-width stack on narrow phones */
+  .col-span-12.lg\:col-span-6.grid.grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}

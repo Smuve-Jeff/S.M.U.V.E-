@@ -47,16 +47,6 @@
                 }
               ]
             },
-            "ghpages": {
-              "outputHashing": "all",
-              "optimization": {
-                "scripts": true,
-                "styles": true,
-                "fonts": false
-              },
-              "baseHref": "./",
-              "assets": ["src/assets"]
-            },
             "development": {
               "optimization": false,
               "extractLicenses": false,

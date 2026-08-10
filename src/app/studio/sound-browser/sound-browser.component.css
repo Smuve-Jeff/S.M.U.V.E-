@@ -829,3 +829,142 @@
 .sb-pack-filter-btn .material-symbols-outlined {
   font-size: 12px;
 }
+
+/* ============================================================
+   STAGE 2.0 — SOUND BROWSER SHELF GLOW
+   Card press glow · thumbnail light pipes · pack tiles
+   ============================================================ */
+
+.sb-shell {
+  background:
+    radial-gradient(80% 45% at 90% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    var(--ivory-bg, #f5efe0);
+}
+
+/* Cards: machined face + press glow. */
+.sb-card {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.7), transparent 40%),
+    var(--ivory-paper, #fbf7ec);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 2px 6px rgba(61, 53, 42, 0.06);
+  transition:
+    transform 0.14s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.14s ease,
+    background 0.14s ease,
+    box-shadow 0.22s ease;
+}
+.sb-card:hover,
+.sb-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 8px 20px rgba(14, 124, 123, 0.16);
+}
+.sb-card:active {
+  transform: scale(0.97);
+}
+
+/* Thumbnail: instrument-grade light pipe. */
+.sb-card-thumb {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.18),
+    0 0 12px rgba(14, 124, 123, 0.2);
+}
+
+/* Category chips: crisper active pulse. */
+.sb-cat {
+  transition: transform 0.14s ease, box-shadow 0.18s ease, background 0.14s ease;
+}
+.sb-cat:hover {
+  transform: translateY(-1px);
+}
+.sb-cat:active {
+  transform: scale(0.95);
+}
+.sb-cat.active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 12px rgba(14, 124, 123, 0.35);
+}
+
+/* Filter chips: matching feedback. */
+.sb-filter-chip,
+.sb-recent-chip,
+.sb-fav-btn {
+  transition: transform 0.12s ease, background 0.14s ease, box-shadow 0.16s ease;
+}
+.sb-filter-chip:hover,
+.sb-recent-chip:hover,
+.sb-fav-btn:hover {
+  transform: translateY(-1px);
+}
+.sb-filter-chip.active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 3px 10px rgba(14, 124, 123, 0.3);
+}
+
+/* Sound pack tiles: heavier presence. */
+.sb-pack-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.16s ease, background 0.16s ease;
+}
+.sb-pack-chip:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 22px rgba(14, 124, 123, 0.18);
+}
+.sb-pack-chip.installing {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 0 18px rgba(14, 124, 123, 0.25);
+}
+
+/* Play button on preview: warm halo. */
+.sb-card-play.previewing {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.35) inset,
+    0 0 16px rgba(217, 119, 6, 0.55);
+}
+
+/* Search field: calm focus halo. */
+.sb-search input {
+  transition: border-color 0.16s ease, box-shadow 0.2s ease;
+}
+
+/* Dark theme: moody shelf, legible cards. */
+:host-context(.dark-mode) .sb-card {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.05), transparent 40%),
+    #0a0f22;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+:host-context(.dark-mode) .sb-card:hover,
+:host-context(.dark-mode) .sb-card:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    0 0 16px rgba(14, 124, 123, 0.18);
+}
+:host-context(.dark-mode) .sb-pack-chip {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-card,
+  .sb-cat,
+  .sb-filter-chip,
+  .sb-recent-chip,
+  .sb-fav-btn,
+  .sb-pack-chip {
+    transition: none !important;
+  }
+  .sb-card:hover,
+  .sb-cat:hover,
+  .sb-pack-chip:hover {
+    transform: none !important;
+  }
+}

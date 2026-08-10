@@ -12,6 +12,10 @@ export interface TimelineClip {
   isCrosslinked: boolean;
   /** Clip type drives visual treatment */
   type: 'midi' | 'audio' | 'drum';
+  /** Phase F2 — fade-in length as fraction of clip width (0..1). */
+  fadeIn?: number;
+  /** Phase F2 — fade-out length as fraction of clip width (0..1). */
+  fadeOut?: number;
 }
 
 export interface TimelineTrack {
@@ -145,6 +149,16 @@ export class TimelineRenderer {
       // Type indicator stripe on left edge
       const typeColor = this.typeIndicatorColor(clip.type);
       renderer.drawQuad(cx, clip.y, 3, clip.height, typeColor, 1);
+
+      // ── Phase F2: fade wedges (audio clips) ─────────────────────
+      if (clip.type === 'audio') {
+        this.drawClipFades(renderer, clip, cx, cw);
+      }
+
+      // ── Phase F2: trim handles on selected clips ────────────────
+      if (clip.selected) {
+        this.drawTrimHandles(renderer, clip, cx, cw);
+      }
     }
 
     // -- Playhead --
@@ -192,6 +206,80 @@ export class TimelineRenderer {
       case 'drum':
         return { r: 0.9, g: 0.5, b: 0.3, a: 1.0 };
     }
+  }
+
+  /**
+   * Phase F2 — draw a clip fade as a translucent shade over the clip body.
+   * Fade-in shades from the left edge; fade-out shades from the right edge.
+   * A subtle amber marker line marks each fade boundary so producers can
+   * see exactly where the envelope begins/ends at a glance.
+   */
+  private drawClipFades(
+    renderer: WebGLRenderer,
+    clip: TimelineClip,
+    cx: number,
+    cw: number
+  ): void {
+    const h = clip.height;
+    const fadeIn = Math.max(0, Math.min(1, clip.fadeIn ?? 0));
+    const fadeOut = Math.max(0, Math.min(1, clip.fadeOut ?? 0));
+
+    if (fadeIn > 0.005) {
+      const w = cw * fadeIn;
+      // Translucent body wedge
+      renderer.drawQuad(cx, clip.y, w, h, { r: 0, g: 0, b: 0, a: 0.22 }, 2);
+      // Boundary marker line
+      renderer.drawVLine(cx + w, clip.y, clip.y + h, {
+        r: 1.0,
+        g: 0.66,
+        b: 0.2,
+        a: 0.75,
+      });
+    }
+
+    if (fadeOut > 0.005) {
+      const w = cw * fadeOut;
+      const x = cx + cw - w;
+      // Translucent body wedge
+      renderer.drawQuad(x, clip.y, w, h, { r: 0, g: 0, b: 0, a: 0.22 }, 2);
+      // Boundary marker line
+      renderer.drawVLine(x, clip.y, clip.y + h, {
+        r: 1.0,
+        g: 0.66,
+        b: 0.2,
+        a: 0.75,
+      });
+    }
+  }
+
+  /**
+   * Phase F2 — draw grab-able trim handles on a selected clip's edges.
+   * Two thin amber tabs (left = trim start, right = trim end) sit just
+   * inside the clip boundary so it's obvious the clip can be trimmed.
+   */
+  private drawTrimHandles(
+    renderer: WebGLRenderer,
+    clip: TimelineClip,
+    cx: number,
+    cw: number
+  ): void {
+    const h = clip.height;
+    const handleW = Math.min(6, Math.max(3, cw * 0.04));
+    // Semi-transparent so the handle reads as a grab tab rather than a
+    // solid band covering the selection border underneath.
+    const handleColor: GLColor = { r: 1.0, g: 0.85, b: 0.1, a: 0.55 };
+
+    // Left (start) handle — slightly inset so the edge stays visible
+    renderer.drawQuad(cx, clip.y, handleW, h, handleColor, 1);
+    // Right (end) handle
+    renderer.drawQuad(
+      cx + cw - handleW,
+      clip.y,
+      handleW,
+      h,
+      handleColor,
+      1
+    );
   }
 }
 
