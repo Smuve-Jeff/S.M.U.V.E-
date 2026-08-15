@@ -295,7 +295,61 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         transform: none;
       }
       .executive-sidebar { left: auto; right: 0; width: 350px; }
-      .rival-hub        { left: auto; right: 0; width: 380px; }
+      /* Keep the chat drawer inert while collapsed; otherwise the
+         responsive correction above leaves it covering the catalog. */
+      .rival-hub {
+        left: auto;
+        right: -400px;
+        width: 380px;
+        pointer-events: none;
+        visibility: hidden;
+      }
+      .rival-hub.active {
+        right: 0;
+        pointer-events: auto;
+        visibility: visible;
+      }
+
+      .rival-hub-toggle {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        z-index: 130;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        min-width: 40px;
+        min-height: 44px;
+        padding: 0.65rem 0.45rem;
+        border: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+        border-right: 0;
+        border-radius: 10px 0 0 10px;
+        background: rgba(5, 8, 15, 0.94);
+        color: var(--neon-cyan);
+        box-shadow: -6px 0 20px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        transform: translateY(-50%);
+        transition: right 0.35s ease, background 0.2s ease, color 0.2s ease;
+      }
+      .rival-hub-toggle.panel-open {
+        right: 380px;
+        border-right: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+        border-left: 0;
+        border-radius: 0 10px 10px 0;
+      }
+      .rival-hub-toggle:hover,
+      .rival-hub-toggle:focus-visible {
+        background: rgba(var(--neon-cyan-rgb), 0.16);
+        color: #fff;
+      }
+      .rival-hub-toggle-label {
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+      }
 
       /* ── Mobile search bar: real rules (desktop hidden, mobile flex) ── */
       .mobile-search-bar {
@@ -342,6 +396,18 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .rival-hub.active {
           opacity: 1;
           pointer-events: auto;
+        }
+        .rival-hub-toggle,
+        .rival-hub-toggle.panel-open {
+          top: calc(64px + env(safe-area-inset-top, 0px) + 0.5rem);
+          right: 0;
+          transform: none;
+          border-right: 0;
+          border-left: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+          border-radius: 10px 0 0 10px;
+        }
+        .rival-hub-toggle-label {
+          display: none;
         }
         .sidebar-content {
           min-height: 0;
@@ -1118,7 +1184,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   isBrowseView = signal<boolean>(true);
   showIntelPanel = signal<boolean>(false);
   readonly showRivalHub = signal<boolean>(false);
-  hubTimeoutId?: ReturnType<typeof setTimeout>;
   readonly isIncognito = this.socialService.isIncognito;
   now = signal<number>(Date.now());
   isMatchmaking = signal<boolean>(false);
@@ -1600,13 +1665,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     this.setActiveRoom(this.pendingRoomId || 'co-op-link');
 
-    this.hubTimeoutId = setTimeout(() => {
-      if (
-        !this.showRivalHub() &&
-        !this.route.snapshot.queryParamMap.has('partyId')
-      )
-        this.toggleRivalHub();
-    }, 1000);
   }
 
   ngAfterViewInit() {
@@ -1619,7 +1677,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.queryParamSubscription?.unsubscribe();
     if (this.clockId) clearInterval(this.clockId);
     if (this.feedRefreshId) clearInterval(this.feedRefreshId);
-    if (this.hubTimeoutId) clearTimeout(this.hubTimeoutId);
     if (this.particleInterval) clearInterval(this.particleInterval);
     if (this.heroBgInterval) clearInterval(this.heroBgInterval);
     this.cardObserver?.disconnect();

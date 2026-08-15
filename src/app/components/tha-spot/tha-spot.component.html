@@ -1312,9 +1312,30 @@
        multiplayer cabinet open can one-tap invite / challenge / split-screen
        / go-live from a single band. Don't move it into the rival-hub.   -->
 
+  <button
+    *ngIf="displayMode() !== 'pluto'"
+    type="button"
+    class="rival-hub-toggle"
+    [class.panel-open]="showRivalHub()"
+    (click)="toggleRivalHub()"
+    [attr.aria-expanded]="showRivalHub()"
+    aria-controls="rival-hub-panel"
+    [attr.aria-label]="showRivalHub() ? 'Collapse rival chat' : 'Open rival chat'"
+    [attr.title]="showRivalHub() ? 'Collapse rival chat' : 'Open rival chat'"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">{{
+      showRivalHub() ? 'chevron_right' : 'chat'
+    }}</span>
+    <span class="rival-hub-toggle-label">{{
+      showRivalHub() ? 'COLLAPSE CHAT' : 'CHAT'
+    }}</span>
+  </button>
+
   <aside
+    id="rival-hub-panel"
     class="rival-hub"
     [class.active]="showRivalHub() && displayMode() !== 'pluto'"
+    [attr.aria-hidden]="!showRivalHub() || displayMode() === 'pluto'"
   >
     <header class="sidebar-header">
       <div class="hub-tabs">
@@ -1366,7 +1387,12 @@
           🤖
         </button>
       </div>
-      <button class="close-intel" (click)="toggleRivalHub()">
+      <button
+        type="button"
+        class="close-intel"
+        (click)="toggleRivalHub()"
+        aria-label="Collapse rival chat"
+      >
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>

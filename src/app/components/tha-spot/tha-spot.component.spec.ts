@@ -217,6 +217,16 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('gaming');
   });
 
+  it('keeps the rival chat drawer collapsed until explicitly toggled', () => {
+    expect(component.showRivalHub()).toBe(false);
+
+    component.toggleRivalHub();
+    expect(component.showRivalHub()).toBe(true);
+
+    component.toggleRivalHub();
+    expect(component.showRivalHub()).toBe(false);
+  });
+
   it('routes untrusted embed hosts to external launch instead of erroring', () => {
     const untrusted = component.resolveLaunchMode({
       id: 'x',

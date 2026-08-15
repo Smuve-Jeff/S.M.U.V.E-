@@ -99,7 +99,6 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Athletic sims, head-to-head runs, and tournament ladders.',
       rules: {
         genres: ['Sports'],
-        tags: ['Basketball', 'Soccer', 'Football'],
       },
     },
     {

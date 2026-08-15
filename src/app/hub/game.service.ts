@@ -79,6 +79,54 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
     'https://www.retrogames.cc/embed/40253-metroid-fusion-usa.html',
   'excitebike-64-elite':
     'https://www.retrogames.cc/embed/32217-excitebike-64-usa.html',
+  // Sports catalog repairs: retrogames.cc embed IDs are authoritative; the
+  // decorative slug in the old feed pointed at unrelated cabinets.
+  'league-bowling':
+    'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
+  'track-and-field-nes':
+    'https://www.retrogames.cc/embed/19249-track-field-usa.html',
+  'madden-nfl-2000-elite':
+    'https://www.retrogames.cc/embed/32551-madden-nfl-2000-usa.html',
+  'thps2-ps1-elite':
+    'https://www.retrogames.cc/embed/42153-tony-hawks-pro-skater-2.html',
+  'tony-hawk-2-master-elite-master':
+    'https://www.retrogames.cc/embed/42153-tony-hawks-pro-skater-2.html',
+  'thps4-elite':
+    'https://www.retrogames.cc/embed/42359-tony-hawks-pro-skater-4.html',
+  'tony-hawk-3-elite-master':
+    'https://www.retrogames.cc/embed/42331-tony-hawks-pro-skater-3.html',
+  'fifa-2005-elite':
+    'https://www.retrogames.cc/embed/28105-fifa-2005-u-venom.html',
+  'ssx-tricky-elite':
+    'https://www.retrogames.cc/embed/26496-ssx-tricky-u-mode7.html',
+  'tiger-woods-2004-elite':
+    'https://www.retrogames.cc/embed/29409-tiger-woods-pga-tour-2004-u-eurasia.html',
+  'tecmo-bowl-elite':
+    'https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html',
+  'tecmo-bowl-classic':
+    'https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html',
+  'nba-jam-elite':
+    'https://www.retrogames.cc/embed/23562-nba-jam-usa.html',
+  'nba-live-2000-elite':
+    'https://www.retrogames.cc/embed/32503-nba-live-2000-usa-en-fr-de-es.html',
+  '10-yard-fight-classic-elite':
+    'https://www.retrogames.cc/embed/22294-10-yard-fight-usa-europe.html',
+  'punch-out-classic':
+    'https://www.retrogames.cc/embed/19272-mike-tyson-s-punch-out-usa.html',
+  'nba-hangtime-elite-master':
+    'https://www.retrogames.cc/embed/32691-nba-hangtime-usa.html',
+  'nfl-blitz-elite-master':
+    'https://www.retrogames.cc/embed/32827-nfl-blitz-usa.html',
+  'wave-race-64-elite-master':
+    'https://www.retrogames.cc/embed/32409-wave-race-64-usa.html',
+  '1080-snowboarding-elite-master':
+    'https://www.retrogames.cc/embed/32245-1080-teneighty-snowboarding-japan-usa-en-ja.html',
+  'windjammers-arcade-elite':
+    'https://www.retrogames.cc/embed/10668-windjammers-flying-power-disc.html',
+  'punch-out-nes-classic':
+    'https://www.retrogames.cc/embed/20466-punch-out-usa.html',
+  'ice-hockey-nes-elite':
+    'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html',
 };
 
 /**
@@ -88,12 +136,51 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
  * instead of inline. Enforced here so stale/cached feeds can't reintroduce the
  * wrong-game inline embed.
  */
+const HIDDEN_CATALOG_GAME_IDS = new Set([
+  // No verified source exists for these records; hiding them is safer than
+  // opening a retrogames cabinet known to resolve to another game.
+  'nba-2k1-elite',
+  'madden-2004-elite',
+  'nba-street-v2-elite',
+  'madden-2004-classic',
+  'mario-golf-elite-master',
+  'mario-tennis-elite-master',
+  // Duplicate records now share the canonical entries above them.
+  'tony-hawk-2-master-elite-master',
+  'tecmo-bowl-classic',
+]);
+
 const EXTERNAL_ONLY_GAME_IDS = new Set([
   'mgs3-snake-eater-ps2-elite',
   'umk3-elite-master',
   'contra-iii-elite-master',
   'metroid-fusion-gba-elite',
   'excitebike-64-elite',
+  // Keep corrected third-party sports cabinets in the explicit external
+  // flow; retrogames.cc can refuse nested framing even with a valid target.
+  'league-bowling',
+  'track-and-field-nes',
+  'madden-nfl-2000-elite',
+  'thps2-ps1-elite',
+  'tony-hawk-2-master-elite-master',
+  'thps4-elite',
+  'tony-hawk-3-elite-master',
+  'fifa-2005-elite',
+  'ssx-tricky-elite',
+  'tiger-woods-2004-elite',
+  'tecmo-bowl-elite',
+  'tecmo-bowl-classic',
+  'nba-jam-elite',
+  'nba-live-2000-elite',
+  '10-yard-fight-classic-elite',
+  'punch-out-classic',
+  'nba-hangtime-elite-master',
+  'nfl-blitz-elite-master',
+  'wave-race-64-elite-master',
+  '1080-snowboarding-elite-master',
+  'windjammers-arcade-elite',
+  'punch-out-nes-classic',
+  'ice-hockey-nes-elite',
 ]);
 
 function normalizeGame(game: Game): Game {
@@ -260,7 +347,12 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
   const rawGames = (feed.games || [])
     .map((game) => normalizeGame(game))
     .map((game) => validateAndRepairGame(game))
-    .filter((game) => !!game.id && !!game.url);
+    .filter(
+      (game) =>
+        !!game.id &&
+        !!game.url &&
+        !HIDDEN_CATALOG_GAME_IDS.has(game.id)
+    );
 
   // ── Deduplicate by ID: keep the FIRST occurrence, log warning ──
   const seenIds = new Set<string>();

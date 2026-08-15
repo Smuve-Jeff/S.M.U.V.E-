@@ -110,11 +110,6 @@
       "rules": {
         "genres": [
           "Sports"
-        ],
-        "tags": [
-          "Basketball",
-          "Soccer",
-          "Football"
         ]
       }
     },
@@ -1716,7 +1711,7 @@
     {
       "id": "league-bowling",
       "name": "League Bowling",
-      "url": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
+      "url": "https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html",
       "genre": "Sports",
       "description": "The most addictive bowling sim ever made. Elite Neo Geo performance with rhythmic physics.",
       "availability": "Online",
@@ -1733,13 +1728,13 @@
         "Arcade"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html",
         "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html"
       },
       "art": {
         "eyebrow": "SNK Elite",

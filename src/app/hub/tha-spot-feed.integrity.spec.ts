@@ -184,6 +184,19 @@ describe('Tha Spot feed integrity', () => {
     expect(roomIds.has('co-op-link')).toBe(true);
   });
 
+  it('keeps the Sports room inclusive of every Sports genre cabinet', () => {
+    const sportsRoom = rooms.find((room) => room.id === 'sports');
+    const sportsGames = games.filter((game) => game.genre === 'Sports');
+    const roomGenres = (sportsRoom?.rules?.genres ?? []).map((genre) =>
+      genre.toLowerCase()
+    );
+    const roomTags = sportsRoom?.rules?.tags ?? [];
+
+    expect(roomGenres).toContain('sports');
+    expect(roomTags).toHaveLength(0);
+    expect(sportsGames.length).toBeGreaterThanOrEqual(20);
+  });
+
   it('maintains multiple choices for the featured expansion categories', () => {
     const fightingGames = games.filter((game) => game.genre === 'Fighting');
     const sportsGames = games.filter((game) => game.genre === 'Sports');

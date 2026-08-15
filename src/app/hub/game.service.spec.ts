@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { GameService } from './game.service';
 import { ThaSpotFeed } from './game';
+import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 
 const mockFeed: ThaSpotFeed = {
   badges: [],
@@ -193,6 +194,42 @@ describe('GameService', () => {
 
     expect(games[0].id).toBe('15');
     expect(games[1].id).toBe('14');
+  });
+
+  it('repairs Sports launch targets and excludes unverified duplicate records', async () => {
+    const pending = firstValueFrom(service.getGamesForRoom('sports'));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const sports = await pending;
+    const byId = new Map(sports.map((game) => [game.id, game]));
+
+    expect(sports.length).toBeGreaterThanOrEqual(20);
+    expect(byId.get('league-bowling')?.url).toBe(
+      'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html'
+    );
+    expect(byId.get('nba-jam-elite')?.url).toBe(
+      'https://www.retrogames.cc/embed/23562-nba-jam-usa.html'
+    );
+    expect(byId.get('ice-hockey-nes-elite')?.url).toBe(
+      'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html'
+    );
+    expect(byId.get('nba-jam-elite')?.launchConfig?.embedMode).toBe(
+      'external-only'
+    );
+
+    for (const hiddenId of [
+      'nba-2k1-elite',
+      'madden-2004-elite',
+      'nba-street-v2-elite',
+      'madden-2004-classic',
+      'mario-golf-elite-master',
+      'mario-tennis-elite-master',
+      'tony-hawk-2-master-elite-master',
+      'tecmo-bowl-classic',
+    ]) {
+      expect(byId.has(hiddenId)).toBe(false);
+    }
   });
 
   it('refreshes the feed when forced', async () => {
