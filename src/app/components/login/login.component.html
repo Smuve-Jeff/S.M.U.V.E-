@@ -175,13 +175,13 @@
           <div class="px-2 pt-2 space-y-2">
             <p
               class="text-[9px] font-black uppercase tracking-widest"
-              [class.text-brand-primary]="passwordValidation().isValid"
-              [class.text-brand-danger]="!passwordValidation().isValid"
+              [class.text-brand-primary]="passwordValidation.isValid"
+              [class.text-brand-danger]="!passwordValidation.isValid"
             >
               Cipher Strength
             </p>
             <div class="space-y-1 text-silver-dim text-[10px] leading-tight">
-              @for (error of passwordValidation().errors; track error) {
+              @for (error of passwordValidation.errors; track error) {
                 <p class="text-brand-danger opacity-80 flex items-start gap-1">
                   <span class="mt-0.5 material-symbols-outlined text-[10px]"
                     >close</span

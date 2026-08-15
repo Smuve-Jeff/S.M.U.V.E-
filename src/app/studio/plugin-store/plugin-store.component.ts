@@ -53,6 +53,14 @@ export class PluginStoreComponent {
     this.snack.success(`${manifest.name} exported · shareable plugin file`);
   }
 
+  /** Keyboard-activate the hidden file input (label is the trigger). */
+  triggerImportKeyboard(event: Event): void {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement)
+      ?.querySelector('input[type="file"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }
+
   /** Import a .smuveplugin JSON file from disk. */
   importPlugin(event: Event): void {
     const input = event.target as HTMLInputElement;

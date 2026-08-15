@@ -84,14 +84,17 @@
       </button>
     </div>
 
-    <div class="pr-snap" role="group" aria-label="Snap-to-grid">
-      <span class="pr-snap-label">Snap</span>
+    <div class="pr-snap" role="radiogroup" aria-label="Snap-to-grid resolution">
+      <span class="pr-snap-label" id="pr-snap-label">Snap</span>
       <button
         *ngFor="let s of snapOptions"
         type="button"
+        role="radio"
         class="pr-snap-btn"
         [class.active]="snap() === s.value"
         (click)="setSnap(s.value)"
+        [attr.aria-checked]="snap() === s.value"
+        [attr.aria-label]="'Snap to ' + s.label"
       >
         {{ s.label }}
       </button>
@@ -119,14 +122,17 @@
     >
       <option *ngFor="let k of keyOptions" [value]="k">{{ k }}</option>
     </select>
-    <span class="pr-ks-label">Scale</span>
-    <div class="pr-scale-chips">
+    <span class="pr-ks-label" id="pr-scale-label">Scale</span>
+    <div class="pr-scale-chips" role="radiogroup" aria-labelledby="pr-scale-label">
       <button
         *ngFor="let s of scaleOptions"
         type="button"
+        role="radio"
         class="pr-scale-chip"
         [class.active]="selectedScale() === s.value"
         (click)="setScale(s.value)"
+        [attr.aria-checked]="selectedScale() === s.value"
+        [attr.aria-label]="'Use ' + s.label + ' scale'"
       >
         {{ s.label }}
       </button>
@@ -203,33 +209,49 @@
     <!-- Velocity lane + Automation toolbar -->
     <div class="pr-auto-toolbar">
       <span class="pr-auto-label">Automation</span>
-      <div class="pr-auto-params">
+      <div
+        class="pr-auto-params"
+        role="radiogroup"
+        aria-label="Automation lane parameter"
+      >
         <button
           type="button"
+          role="radio"
           class="pr-auto-param"
           [class.active]="automationParam() === 'velocity'"
           (click)="setAutomationParam('velocity')"
+          [attr.aria-checked]="automationParam() === 'velocity'"
+          aria-label="Velocity automation lane"
           title="Velocity"
         >Vel</button>
         <button
           type="button"
+          role="radio"
           class="pr-auto-param"
           [class.active]="automationParam() === 'cutoff'"
           (click)="setAutomationParam('cutoff')"
+          [attr.aria-checked]="automationParam() === 'cutoff'"
+          aria-label="Filter cutoff automation lane"
           title="Filter Cutoff"
         >Cut</button>
         <button
           type="button"
+          role="radio"
           class="pr-auto-param"
           [class.active]="automationParam() === 'pan'"
           (click)="setAutomationParam('pan')"
+          [attr.aria-checked]="automationParam() === 'pan'"
+          aria-label="Pan automation lane"
           title="Pan"
         >Pan</button>
         <button
           type="button"
+          role="radio"
           class="pr-auto-param"
           [class.active]="automationParam() === 'volume'"
           (click)="setAutomationParam('volume')"
+          [attr.aria-checked]="automationParam() === 'volume'"
+          aria-label="Volume automation lane"
           title="Volume"
         >Vol</button>
       </div>

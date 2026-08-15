@@ -8,6 +8,8 @@ import {
   HostListener,
   AfterViewInit,
   OnDestroy,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -52,6 +54,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly snackbar = inject(SnackbarService);
   /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
   public readonly takeManager = inject(TakeManagerService);
+
+  /**
+   * Fired from the empty-arrangement CTA so the Studio shell can switch
+   * to AI Produce (or another view) without this component knowing the
+   * shell's navigation mechanics.
+   */
+  @Output() requestViewChange = new EventEmitter<string>();
 
   // ── WebGL renderer ───────────────────────────────────────
   private glRenderer!: WebGLRenderer;

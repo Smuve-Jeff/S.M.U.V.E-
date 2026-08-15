@@ -528,22 +528,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   railCollapsed = signal(false);
 
   // ── Beginner Mode ─────────────────────────────────────
-  /** Persisted beginner mode — true by default for new users. */
-  isBeginnerMode = signal<boolean>(
-    localStorage.getItem('smuve_beginner_mode') !== 'false'
-  );
+  /**
+   * Cross-app beginner mode — the UIService owns the durable store
+   * (profile settings + localStorage mirror) so the Hub's mobile
+   * quick-start lanes and other views honor the same choice.
+   */
+  isBeginnerMode = this.uiService.beginnerMode;
 
   toggleBeginnerMode() {
     this.haptic.light();
-    this.isBeginnerMode.update((v) => !v);
-    try {
-      localStorage.setItem(
-        'smuve_beginner_mode',
-        String(this.isBeginnerMode())
-      );
-    } catch {}
+    const next = !this.isBeginnerMode();
+    this.uiService.setBeginnerMode(next);
     this.snackbarService.info(
-      this.isBeginnerMode()
+      next
         ? 'Beginner Mode ON — simplified controls with tips'
         : 'Pro Mode ON — full studio controls'
     );
@@ -730,15 +727,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.orchestration.setActiveStudioView(this.activeView());
     });
 
-    // Restore 3-way theme preference from localStorage
+    // Restore 3-way theme preference from localStorage; fall back to the
+    // cross-app profile theme (UIService) when no Studio-specific choice
+    // was ever made, so Studio and Hub stay in agreement on first visit.
     try {
       const stored = localStorage.getItem(THEME_STORAGE_KEY) as AppTheme | null;
       if (stored && (THEME_ORDER as string[]).includes(stored)) {
         this.themeMode.set(stored);
         document.body.classList.add(stored + '-mode');
+      } else {
+        const profileTheme = this.uiService.activeTheme().name;
+        const mapped: AppTheme = profileTheme === 'Light' ? 'light' : 'dark';
+        this.themeMode.set(mapped);
       }
     } catch {
-      // localStorage unavailable — ignore
+      // localStorage / profile unavailable — keep default
     }
 
     // ── Theme effect — sync body class for all 3 modes ──
@@ -993,6 +996,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const nextIdx = (idx + 1) % THEME_ORDER.length;
       const next = THEME_ORDER[nextIdx];
       this.snackbarService.info(`Theme · ${THEME_LABEL[next]} mode`);
+      // Keep the app-wide theme in sync so the Hub shell follows the
+      // Studio: light/focus → Light, dark → Dark (profile-backed).
+      this.uiService.setTheme(next === 'dark' ? 'Dark' : 'Light');
       return next;
     });
   }

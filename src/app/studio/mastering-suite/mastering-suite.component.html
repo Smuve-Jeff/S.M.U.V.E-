@@ -36,7 +36,9 @@
         {{ isRendering() ? 'RENDERING…' : 'RENDER & MASTER' }}
       </button>
       <button
+        type="button"
         (click)="processMastering()"
+        aria-label="Run automated mastering on the mix"
         class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all"
       >
         AUTO-PROCESS
@@ -98,6 +100,10 @@
       <button
         type="button"
         (click)="auditionToggle()"
+        [attr.aria-label]="
+          audioEngine.auditionPlaying() ? 'Stop audition' : 'Audition master'
+        "
+        [attr.aria-pressed]="audioEngine.auditionPlaying()"
         class="px-4 py-2 bg-emerald-500 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
       >
         <span class="material-symbols-outlined align-middle text-base mr-1">

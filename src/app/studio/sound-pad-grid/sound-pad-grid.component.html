@@ -17,8 +17,13 @@
           >{{ armedCount() }} / {{ pads().length }}</span
         >
       </div>
-      <button type="button" class="spg-clear-btn" (click)="clearAll()">
-        <span class="material-symbols-outlined">refresh</span>
+      <button
+        type="button"
+        class="spg-clear-btn"
+        (click)="clearAll()"
+        aria-label="Clear all pads"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         Clear
       </button>
     </div>
@@ -79,6 +84,7 @@
               type="button"
               class="spg-cell-picker-item"
               (click)="reassign(pad.index, preset.id)"
+              [attr.aria-label]="'Assign ' + preset.name + ' to pad ' + (pad.index + 1)"
             >
               <span class="material-symbols-outlined">{{
                 preset.icon || 'music_note'

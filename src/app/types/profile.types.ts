@@ -15,6 +15,10 @@ export interface AppSettings {
     showScanlines: boolean;
     animationsEnabled: boolean;
     autoPianoRoll: boolean;
+    /** Studio beginner mode — simplified controls with tips. Mirrored to
+     *  localStorage `smuve_beginner_mode` so it survives pre-auth sessions
+     *  and is readable by every view (Hub, Studio, mobile quick-start). */
+    beginnerMode: boolean;
   };
   audio: {
     masterVolume: number;
@@ -280,6 +284,7 @@ export const initialProfile: UserProfile = {
       showScanlines: false,
       animationsEnabled: true,
       autoPianoRoll: false,
+      beginnerMode: true,
     },
     audio: {
       masterVolume: 0.8,

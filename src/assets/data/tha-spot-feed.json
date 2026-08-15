@@ -8936,29 +8936,6 @@
       }
     },
     {
-      "id": "temple-run-2-web-elite",
-      "name": "Temple Run 2",
-      "url": "https://www.gamepix.com/play/temple-run-2",
-      "genre": "Runner",
-      "description": "The legendary endless runner. Run, slide, jump through ancient temples.",
-      "rating": 4.5,
-      "playersOnline": 45000,
-      "availability": "Online",
-      "tags": ["Runner", "Endless", "Web", "Mobile", "Classic"],
-      "badgeIds": ["modern", "featured"],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/temple-run-2",
-        "embedMode": "inline",
-        "telemetryMode": "origin",
-        "telemetryOrigins": ["https://www.gamepix.com"]
-      },
-      "art": {
-        "eyebrow": "Endless Runner",
-        "accentStart": "#00cc66",
-        "accentEnd": "#006633"
-      }
-    },
-    {
       "id": "crossy-road-web-elite",
       "name": "Crossy Road",
       "url": "https://www.gamepix.com/play/crossy-road",

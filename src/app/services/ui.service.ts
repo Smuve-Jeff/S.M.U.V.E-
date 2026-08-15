@@ -66,6 +66,14 @@ export class UIService {
   performanceMode = signal(false);
   showScanlines = signal(false);
   autoPianoRoll = signal(false);
+
+  /**
+   * Studio beginner mode (simplified controls + tips). Cross-app signal:
+   * the Studio writes it here, the Hub and mobile quick-start lanes read
+   * it, and the profile is the durable store (localStorage mirrors it for
+   * pre-auth sessions). Defaults to ON for new artists.
+   */
+  beginnerMode = signal<boolean>(this.readBeginnerMode());
   recentViewModes = signal<MainViewMode[]>(this.readModes(this.recentKey));
   pinnedViewModes = signal<MainViewMode[]>(this.readModes(this.pinnedKey));
   subtleGlow = signal<string | null>(null);
@@ -103,6 +111,9 @@ export class UIService {
               ? settings.autoPianoRoll
               : false
           );
+          if (settings.beginnerMode !== undefined) {
+            this.beginnerMode.set(settings.beginnerMode);
+          }
           this.setTheme(settings.theme || 'Dark');
         }
       });
@@ -142,6 +153,27 @@ export class UIService {
   togglePerformanceMode() {
     const newVal = !this.performanceMode();
     this.updateSetting('performanceMode', newVal);
+  }
+
+  /** Set Studio beginner mode and persist it across the app (profile +
+   *  localStorage mirror for pre-auth sessions). */
+  setBeginnerMode(value: boolean) {
+    this.beginnerMode.set(value);
+    try {
+      localStorage.setItem('smuve_beginner_mode', String(value));
+    } catch {
+      /* locked storage — degrade silently */
+    }
+    this.updateSetting('beginnerMode', value);
+  }
+
+  private readBeginnerMode(): boolean {
+    if (typeof localStorage === 'undefined') return true;
+    try {
+      return localStorage.getItem('smuve_beginner_mode') !== 'false';
+    } catch {
+      return true;
+    }
   }
 
   toggleHolographicMode() {

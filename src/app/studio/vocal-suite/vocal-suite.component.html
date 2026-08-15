@@ -36,19 +36,31 @@
         </div>
       </div>
 
-      <nav class="flex bg-white/5 rounded-lg p-1 border border-fl-border ml-4">
+      <nav
+        class="flex bg-white/5 rounded-lg p-1 border border-fl-border ml-4"
+        role="tablist"
+        aria-label="Vocal Suite view mode"
+      >
         <button
+          type="button"
+          role="tab"
           (click)="viewMode.set('pipeline')"
           [class.bg-vocal-primary]="viewMode() === 'pipeline'"
           [class.text-white]="viewMode() === 'pipeline'"
+          [attr.aria-selected]="viewMode() === 'pipeline'"
+          aria-label="Pipeline mode"
           class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
         >
           Pipeline
         </button>
         <button
+          type="button"
+          role="tab"
           (click)="viewMode.set('console')"
           [class.bg-vocal-primary]="viewMode() === 'console'"
           [class.text-white]="viewMode() === 'console'"
+          [attr.aria-selected]="viewMode() === 'console'"
+          aria-label="Console mode"
           class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
         >
           Console
@@ -60,7 +72,13 @@
       <!-- S.M.U.V.E. Mini HUD -->
       <div
         class="bg-vocal-titanium/40 border border-vocal-fl-blue/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"
+        role="button"
+        tabindex="0"
+        [attr.aria-pressed]="!vocalAi.isPassiveMode()"
+        [attr.aria-label]="'Toggle Neural Intelligence guidance · currently ' + (vocalAi.isPassiveMode() ? 'passive' : 'inclusive')"
         (click)="vocalAi.toggleFeedbackMode()"
+        (keydown.enter)="vocalAi.toggleFeedbackMode()"
+        (keydown.space)="$event.preventDefault(); vocalAi.toggleFeedbackMode()"
       >
         <div
           class="size-8 rounded-full bg-vocal-fl-blue/10 border border-vocal-primary flex items-center justify-center"
@@ -91,12 +109,20 @@
     <!-- Pipeline Mode -->
     <div *ngIf="viewMode() === 'pipeline'" class="max-w-6xl mx-auto space-y-8">
       <!-- Steps Indicator -->
-      <div class="vs-steps grid grid-cols-4 gap-4">
+      <div
+        class="vs-steps grid grid-cols-4 gap-4"
+        role="tablist"
+        aria-label="Vocal Suite pipeline steps"
+      >
         <button
+          type="button"
+          role="tab"
           *ngFor="let s of ['setup', 'record', 'edit', 'master']"
           (click)="setStep(s)"
           [class.border-vocal-primary]="currentStep() === s"
           [class.bg-vocal-fl-blue/10]="currentStep() === s"
+          [attr.aria-selected]="currentStep() === s"
+          [attr.aria-label]="'Step ' + (s === 'setup' ? '1' : s === 'record' ? '2' : s === 'edit' ? '3' : '4') + ': ' + s"
           class="border border-fl-border rounded-xl p-4 transition-all hover:bg-white/5 group text-left"
         >
           <div class="flex items-center gap-3">
@@ -136,7 +162,9 @@
             <app-microphone-interface></app-microphone-interface>
 
             <button
+              type="button"
               (click)="setStep('record')"
+              aria-label="Begin Strategic Capture"
               class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]"
             >
               Begin Strategic Capture
@@ -208,8 +236,11 @@
 
           <div class="flex justify-center gap-8 items-center">
             <button
+              type="button"
               (click)="toggleRecording()"
               [class.bg-fl-blue]="micService.isRecording()"
+              [attr.aria-label]="micService.isRecording() ? 'Stop recording' : 'Start recording'"
+              [attr.aria-pressed]="micService.isRecording()"
               class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all"
             >
               <span class="material-symbols-outlined text-4xl text-white">{{
@@ -217,12 +248,15 @@
               }}</span>
             </button>
             <button
+              type="button"
               *ngIf="micService.isRecording()"
               (click)="
                 micService.isPaused()
                   ? micService.resumeRecording()
                   : micService.pauseRecording()
               "
+              [attr.aria-label]="micService.isPaused() ? 'Resume recording' : 'Pause recording'"
+              [attr.aria-pressed]="micService.isPaused()"
               class="size-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
             >
               <span class="material-symbols-outlined text-white">{{
@@ -234,7 +268,9 @@
 
         <div class="flex justify-end" *ngIf="micService.recordedBlob()">
           <button
+            type="button"
             (click)="setStep('edit')"
+            aria-label="Commit recording to S.M.U.V.E. Lab for editing"
             class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
           >
             Commit to S.M.U.V.E. Lab
@@ -263,19 +299,25 @@
               class="absolute inset-y-0 left-1/3 w-[1px] bg-vocal-primary shadow-[0_0_10px_#a855f7]"
             ></div>
           </div>
-          <div class="vs-edit-actions flex gap-4">
+          <div class="vs-edit-actions flex gap-4" role="group" aria-label="Vocal edit actions">
             <button
+              type="button"
+              aria-label="Normalize recording loudness"
               class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
             >
               Normalize
             </button>
             <button
+              type="button"
+              aria-label="Trim silence from recording edges"
               class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
             >
               Trim Silence
             </button>
             <button
+              type="button"
               (click)="setStep('master')"
+              aria-label="Proceed to mastering step"
               class="px-6 py-2 bg-vocal-primary rounded text-[10px] font-black uppercase tracking-widest ml-auto"
             >
               Proceed to Mastering
@@ -294,12 +336,20 @@
             <div
               class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-6"
             >
-              <div class="vs-master-tabs flex gap-4 mb-8">
+              <div
+                class="vs-master-tabs flex gap-4 mb-8"
+                role="tablist"
+                aria-label="Mastering modules"
+              >
                 <button
+                  type="button"
+                  role="tab"
                   *ngFor="let t of ['eq', 'comp', 'exciter', 'limiter']"
                   (click)="activeMasteringTab.set(t)"
                   [class.border-vocal-primary]="activeMasteringTab() === t"
                   [class.text-vocal-primary]="activeMasteringTab() === t"
+                  [attr.aria-selected]="activeMasteringTab() === t"
+                  [attr.aria-label]="'Mastering module: ' + t.toUpperCase()"
                   class="px-6 py-2 border border-fl-border bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all"
                 >
                   {{ t }}
@@ -424,8 +474,11 @@
                     >
                   </div>
                   <button
+                    type="button"
                     class="w-10 h-6 rounded-full bg-slate-800 relative transition-all"
                     [class.bg-vocal-primary]="true"
+                    aria-label="AI Sibilance Reduction toggle"
+                    aria-pressed="true"
                   >
                     <div
                       class="absolute right-1 top-1 size-4 bg-white rounded-full shadow-lg"
@@ -476,7 +529,9 @@
             </div>
 
             <button
+              type="button"
               (click)="downloadRecording()"
+              aria-label="Finalize and export mastered recording"
               class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-fl-blue transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             >
               <span class="material-symbols-outlined">export_notes</span>
@@ -521,9 +576,12 @@
           </div>
 
           <div class="vs-transport-row flex items-center justify-between">
-            <div class="flex gap-4">
+            <div class="flex gap-4" role="group" aria-label="Vocal transport">
               <button
+                type="button"
                 (click)="toggleRecording()"
+                [attr.aria-pressed]="micService.isRecording()"
+                [attr.aria-label]="micService.isRecording() ? 'Stop vocal engine' : 'Ignite vocal capture'"
                 class="px-8 py-3 bg-fl-blue rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
               >
                 {{
@@ -531,6 +589,8 @@
                 }}
               </button>
               <button
+                type="button"
+                aria-label="Toggle monitor mode for input device"
                 class="px-8 py-3 bg-white/5 border border-fl-border rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
               >
                 Monitor
@@ -683,7 +743,9 @@
             </div>
 
             <button
+              type="button"
               (click)="downloadRecording()"
+              aria-label="Export vocal recording instantly"
               class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
             >
               Instant Export

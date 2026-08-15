@@ -66,8 +66,7 @@ const hapticMock = { light: jest.fn(), medium: jest.fn() };
 
 describe('ShareableInviteService', () => {
   let service: ShareableInviteService;
-  let originalLocation: Location;
-  let originalNavigator: any;
+  let originSpy: jest.SpyInstance;
   let clipboardWriteText: jest.Mock;
 
   beforeEach(() => {
@@ -91,13 +90,11 @@ describe('ShareableInviteService', () => {
     notifyMock.show.mockReset();
     hapticMock.light.mockReset();
     clipboardWriteText = jest.fn(async (text: string) => undefined);
-    originalLocation = window.location;
-    originalNavigator = global.navigator;
-    Object.defineProperty(window, 'location', {
-      value: { origin: 'https://smuvejeffpresents.com' },
-      writable: true,
-      configurable: true,
-    });
+    // jsdom's window.location is non-configurable, so pin the share origin
+    // through the service accessor instead of redefining window.location.
+    originSpy = jest
+      .spyOn(ShareableInviteService.prototype as any, 'shareOrigin', 'get')
+      .mockReturnValue('https://smuvejeffpresents.com');
     Object.defineProperty(global, 'navigator', {
       value: {
         clipboard: { writeText: clipboardWriteText },
@@ -119,8 +116,7 @@ describe('ShareableInviteService', () => {
   });
 
   afterEach(() => {
-    Object.defineProperty(window, 'location', { value: originalLocation });
-    Object.defineProperty(global, 'navigator', { value: originalNavigator });
+    originSpy.mockRestore();
   });
 
   describe('parseFromCurrentUrl', () => {

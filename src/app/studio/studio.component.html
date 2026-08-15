@@ -579,7 +579,9 @@
           ></app-beginner-wizard>
         </div>
         <div class="comp-view" *ngIf="!isBeginnerMode()">
-          <app-arrangement-view></app-arrangement-view>
+          <app-arrangement-view
+            (requestViewChange)="onWizardNavigate($event)"
+          ></app-arrangement-view>
         </div>
       </ng-container>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">

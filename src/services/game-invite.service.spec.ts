@@ -27,7 +27,7 @@ interface MockInviteLike {
   updatedAt?: Date;
 }
 
-const repoMock = {
+const mockRepo = {
   findOneBy: jest.fn(async ({ token }: { token: string }) => {
     return mockInviteStore.find((row) => row.token === token) ?? null;
   }),
@@ -54,19 +54,20 @@ const repoMock = {
       .sort((a, b) => (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0))
       .slice(0, 15);
   }),
+  createQueryBuilder: jest.fn(() => mockQueryBuilder),
 };
 
-const queryBuilderMock = {
-  delete: jest.fn(() => queryBuilderMock),
-  from: jest.fn(() => queryBuilderMock),
-  where: jest.fn(() => queryBuilderMock),
+const mockQueryBuilder = {
+  delete: jest.fn(() => mockQueryBuilder),
+  from: jest.fn(() => mockQueryBuilder),
+  where: jest.fn(() => mockQueryBuilder),
   execute: jest.fn(async () => ({ affected: 0 })),
 };
 
 jest.mock("@/database/data-source", () => ({
   AppDataSource: {
-    getRepository: jest.fn(() => repoMock),
-    createQueryBuilder: jest.fn(() => queryBuilderMock),
+    getRepository: jest.fn(() => mockRepo),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
   },
 }));
 
@@ -292,7 +293,7 @@ describe("game-invite service", () => {
     });
 
     it("purgeExpiredInvites forwards the executor affected-row count", async () => {
-      queryBuilderMock.execute.mockResolvedValueOnce({ affected: 4 });
+      mockQueryBuilder.execute.mockResolvedValueOnce({ affected: 4 });
       const purged = await purgeExpiredInvites();
       expect(purged).toBe(4);
     });

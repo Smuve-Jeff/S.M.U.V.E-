@@ -278,6 +278,7 @@
             <button
               type="button"
               (click)="confirmRename()"
+              aria-label="Confirm rename"
               style="
                 background: none;
                 border: none;
@@ -370,18 +371,24 @@
           class="arv-takes-promote"
           (click)="promoteToTake()"
           [disabled]="recordings().length === 0"
+          aria-label="Promote most recent recording as take"
           title="Promote the most recent recording as Take N+1"
         >
-          <span class="material-symbols-outlined">add</span> Promote Take
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          Promote Take
         </button>
         <button
           type="button"
           class="arv-takes-clear"
           (click)="clearAllTakes()"
           [disabled]="takes().length === 0"
+          aria-label="Clear all takes"
           title="Remove all takes"
         >
-          <span class="material-symbols-outlined">delete_sweep</span> Clear All
+          <span class="material-symbols-outlined" aria-hidden="true"
+            >delete_sweep</span
+          >
+          Clear All
         </button>
       </div>
     </div>

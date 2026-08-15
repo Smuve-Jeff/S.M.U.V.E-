@@ -21,7 +21,14 @@
           }}</span>
           {{ wasmSupported() ? 'WebAssembly ready' : 'JS fallback kernels' }}
         </span>
-        <label class="ps-import-btn" title="Import a .smuveplugin file from the community">
+        <label
+          class="ps-import-btn"
+          role="button"
+          tabindex="0"
+          title="Import a .smuveplugin file from the community"
+          (keydown.enter)="triggerImportKeyboard($event)"
+          (keydown.space)="triggerImportKeyboard($event)"
+        >
           <span class="material-symbols-outlined">file_open</span>
           Import Plugin
           <input type="file" accept=".smuveplugin,.json" (change)="importPlugin($event)" hidden />
@@ -92,6 +99,7 @@
           type="button"
           class="ps-export-btn"
           (click)="exportPlugin(plugin)"
+          [attr.aria-label]="'Export ' + plugin.name + ' as a shareable .smuveplugin file'"
           title="Export as a shareable .smuveplugin file"
         >
           <span class="material-symbols-outlined">ios_share</span>
@@ -125,6 +133,7 @@
           type="button"
           class="ps-community-remove"
           (click)="removeCommunity(item)"
+          [attr.aria-label]="'Remove community plugin ' + item.manifest.name"
           title="Remove this community plugin"
         >
           <span class="material-symbols-outlined">delete</span>

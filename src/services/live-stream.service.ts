@@ -72,7 +72,7 @@ const rowToWire = (row: LiveStream): LiveStreamRow => ({
   shareUrl: buildShareUrl(row),
 });
 
-const generateShareToken = (): string =>
+export const generateShareToken = (): string =>
   // 24 hex chars = 96 bits; matches the GameInvite token scheme.
   randomBytes(12).toString("hex");
 

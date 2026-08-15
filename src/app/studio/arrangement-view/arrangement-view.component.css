@@ -270,6 +270,7 @@
   display: flex;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 /* ── Left track headers ───────────────────────────────────── */
@@ -321,6 +322,100 @@
   display: flex;
   gap: 2px;
   padding: 2px 8px 8px;
+}
+
+/* ── Empty-arrangement CTA ───────────────────────────────── */
+.arr-empty-cta {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  background: var(--ivory-paper);
+  z-index: 5;
+}
+.arr-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal-500);
+  background: color-mix(in srgb, var(--teal-500) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teal-500) 30%, transparent);
+  margin-bottom: 4px;
+}
+.arr-empty-icon .material-symbols-outlined {
+  font-size: 28px;
+}
+.arr-empty-title {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--espresso-text);
+  margin: 0;
+}
+.arr-empty-sub {
+  font-size: 11px;
+  color: var(--espresso-muted);
+  max-width: 360px;
+  margin: 0;
+  line-height: 1.6;
+}
+.arr-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.arr-empty-primary,
+.arr-empty-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.arr-empty-primary {
+  background: var(--teal-500);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(43, 160, 156, 0.25);
+}
+.arr-empty-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+.arr-empty-secondary {
+  background: transparent;
+  color: var(--espresso-text);
+  border-color: var(--espresso-line);
+}
+.arr-empty-secondary:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+:host-context(.dark-mode) .arr-empty-cta {
+  background: var(--deep-bg, #0f172a);
+}
+:host-context(.dark-mode) .arr-empty-title {
+  color: var(--text-main, #f1f5f9);
+}
+:host-context(.dark-mode) .arr-empty-sub {
+  color: var(--text-dim, #94a3b8);
 }
 
 /* ── Grid viewport (WebGL canvas host) ──────────────────── */

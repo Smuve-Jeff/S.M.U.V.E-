@@ -294,6 +294,42 @@
   </div>
 
   <div class="playlist-content no-scrollbar">
+    <!-- Empty-arrangement CTA: guides a fresh session into AI Produce or a
+         beat-first start so the canvas is never a dead end. -->
+    <div
+      class="arr-empty-cta glass-v42"
+      *ngIf="tracks().length === 0"
+      role="region"
+      aria-label="Start your first arrangement"
+    >
+      <div class="arr-empty-icon" aria-hidden="true">
+        <span class="material-symbols-outlined">auto_awesome</span>
+      </div>
+      <h3 class="arr-empty-title">Your canvas is ready. Make the first move.</h3>
+      <p class="arr-empty-sub">
+        Ask S.M.U.V.E. to produce a full track from an idea, or drop in a beat
+        first and build from there.
+      </p>
+      <div class="arr-empty-actions">
+        <button
+          type="button"
+          class="arr-empty-primary"
+          (click)="requestViewChange.emit('ai-produce')"
+        >
+          <span class="material-symbols-outlined">auto_awesome</span>
+          Generate with AI Produce
+        </button>
+        <button
+          type="button"
+          class="arr-empty-secondary"
+          (click)="requestViewChange.emit('drum-machine')"
+        >
+          <span class="material-symbols-outlined">grid_view</span>
+          Start with a Beat
+        </button>
+      </div>
+    </div>
+
     <div class="track-headers no-scrollbar wood-panel">
       <div
         *ngFor="

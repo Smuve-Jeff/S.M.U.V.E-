@@ -6,7 +6,9 @@
       CHANNEL RACK
     </div>
     <button
+      type="button"
       (click)="addTrack()"
+      aria-label="Add new channel rack track"
       class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all"
     >
       + ADD CHANNEL
@@ -29,17 +31,23 @@
       <!-- Mute/Solo LED Controls -->
       <div class="flex flex-col gap-1.5">
         <button
+          type="button"
           (click)="toggleMute(track); $event.stopPropagation()"
           class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
           [class.muted]="track.muted"
           [style.background-color]="track.muted ? '#ef4444' : '#1a1a24'"
+          [attr.aria-label]="'Mute ' + track.name"
+          [attr.aria-pressed]="track.muted"
           title="Mute"
         ></button>
         <button
+          type="button"
           (click)="toggleSolo(track); $event.stopPropagation()"
           class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
           [class.soloed]="track.soloed"
           [style.background-color]="track.soloed ? '#fbbf24' : '#1a1a24'"
+          [attr.aria-label]="'Solo ' + track.name"
+          [attr.aria-pressed]="track.soloed"
           title="Solo"
         ></button>
       </div>
@@ -81,7 +89,9 @@
         >
           {{ track.name }}
           <button
+            type="button"
             (click)="openPianoRoll(track); $event.stopPropagation()"
+            [attr.aria-label]="'Open Piano Roll for ' + track.name"
             class="ml-2 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-all text-fl-blue"
           >
             <span class="material-symbols-outlined text-[12px]">piano</span>
@@ -97,9 +107,13 @@
       <!-- Quick Actions -->
       <div
         class="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-all"
+        role="group"
+        [attr.aria-label]="track.name + ' quick actions'"
       >
         <button
+          type="button"
           (click)="cloneTrack(track); $event.stopPropagation()"
+          [attr.aria-label]="'Clone ' + track.name"
           class="text-[10px] text-slate-500 hover:text-white"
           title="Clone"
         >
@@ -109,7 +123,9 @@
         </button>
         <div class="flex flex-col">
           <button
+            type="button"
             (click)="reorderTrack(i, 'up'); $event.stopPropagation()"
+            [attr.aria-label]="'Move ' + track.name + ' up'"
             class="text-[8px] text-slate-500 hover:text-white"
           >
             <span class="material-symbols-outlined text-[10px]"
@@ -117,7 +133,9 @@
             >
           </button>
           <button
+            type="button"
             (click)="reorderTrack(i, 'down'); $event.stopPropagation()"
+            [attr.aria-label]="'Move ' + track.name + ' down'"
             class="text-[8px] text-slate-500 hover:text-white"
           >
             <span class="material-symbols-outlined text-[10px]"
@@ -126,7 +144,9 @@
           </button>
         </div>
         <button
+          type="button"
           (click)="removeTrack(track.id); $event.stopPropagation()"
+          [attr.aria-label]="'Delete ' + track.name"
           class="text-[10px] text-red-900 hover:text-red-500"
           title="Delete"
         >
@@ -137,6 +157,8 @@
       <div
         class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
         *ngIf="track.type === 'midi'"
+        [attr.aria-label]="track.name + ' step sequencer'"
+        role="group"
       >
         <div
           *ngFor="let step of steps; let sIdx = index"
@@ -151,6 +173,16 @@
                 : 'rgba(255,255,255,0.02)'
           "
           (click)="toggleStep(track, sIdx); $event.stopPropagation()"
+          (keydown.enter)="toggleStep(track, sIdx); $event.stopPropagation()"
+          (keydown.space)="$event.preventDefault(); toggleStep(track, sIdx); $event.stopPropagation()"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="
+            track.name + ' step ' + (sIdx + 1) + ' of ' + steps.length +
+            (track.steps[sIdx] ? ' · active' : ' · empty') +
+            (currentStep() === sIdx ? ' · currently playing' : '')
+          "
+          [attr.aria-pressed]="track.steps[sIdx]"
         ></div>
       </div>
     </div>

@@ -191,8 +191,22 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   const getSenderMeta = (userId: string): PresenceMeta =>
     presence.get(userId)?.metadata || {};
 
-  io.on("connection", (socket) => {
+  // Authenticate the handshake in middleware so an unauthenticated or
+  // garbage-token client is rejected with `connect_error` instead of
+  // briefly connecting and then being disconnected from the connection
+  // handler. The verified identity is stashed on the socket for reuse.
+  io.use((socket, next) => {
     const user = getSender(socket);
+    if (!user) {
+      next(new Error("unauthorized"));
+      return;
+    }
+    (socket as unknown as { authUser?: AuthUser }).authUser = user;
+    next();
+  });
+
+  io.on("connection", (socket) => {
+    const user = (socket as unknown as { authUser?: AuthUser }).authUser;
     if (!user) {
       socket.disconnect();
       return;

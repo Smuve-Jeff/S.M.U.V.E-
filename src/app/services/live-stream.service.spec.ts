@@ -30,6 +30,7 @@ const openedPopups: Array<{ url: string; target: string; features: string }> =
 const messageListeners: Array<(event: any) => void> = [];
 let clipboardWrite: jest.Mock;
 let clipboardAvailable = true;
+let originalOpen: any;
 
 const httpStub = {
   post: jest.fn((url: string, body?: unknown, options?: any) => {
@@ -67,15 +68,11 @@ beforeEach(() => {
       ? { writeText: clipboardWrite }
       : undefined,
   });
-  const originalOpen = window.open;
+  originalOpen = window.open;
   window.open = jest.fn((url: string, target?: string, features?: string) => {
     openedPopups.push({ url, target: target ?? '', features: features ?? '' });
     return { closed: false, focus: jest.fn() };
   }) as any;
-  // Restore at the end so other specs aren't affected.
-  afterEach(() => {
-    window.open = originalOpen;
-  });
 
   const originalAdd = window.addEventListener.bind(window);
   const originalRemove = window.removeEventListener.bind(window);
@@ -117,6 +114,11 @@ beforeEach(() => {
       },
     ],
   });
+});
+
+afterEach(() => {
+  // Restore the popup opener so other specs aren't affected.
+  if (originalOpen) window.open = originalOpen;
 });
 
 describe('LiveStreamService', () => {
@@ -351,6 +353,9 @@ describe('LiveStreamService', () => {
 
     it('falls back to legacy textarea when navigator.clipboard is unavailable', async () => {
       clipboardAvailable = false;
+      // jsdom does not implement the legacy copy command; stub it so the
+      // textarea fallback path can be exercised end-to-end.
+      (document as any).execCommand = jest.fn(() => true);
       TestBed.resetTestingModule();
       Object.defineProperty(window.navigator, 'clipboard', {
         configurable: true,

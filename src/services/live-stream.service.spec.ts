@@ -27,7 +27,7 @@ interface MockStreamLike {
   updatedAt?: Date;
 }
 
-const repoMock = {
+const mockRepo = {
   findOne: jest.fn(async ({ where }: { where: Partial<MockStreamLike> }) => {
     if (where?.shareToken) {
       return mockStreamStore.find((r) => r.shareToken === where.shareToken) ?? null;
@@ -73,7 +73,7 @@ const repoMock = {
 
 jest.mock("@/database/data-source", () => ({
   AppDataSource: {
-    getRepository: jest.fn(() => repoMock),
+    getRepository: jest.fn(() => mockRepo),
   },
 }));
 
@@ -96,8 +96,8 @@ describe("live-stream service", () => {
     jest.clearAllMocks();
     // Reprovision findOne to also support getCurrentLiveStream's
     // { where, order } shape — we keep this simple by directly matching
-    // hostId + id lookups below via repoMock.findOne.
-    repoMock.findOne.mockImplementation(
+    // hostId + id lookups below via mockRepo.findOne.
+    mockRepo.findOne.mockImplementation(
       async (crit: { where: Partial<MockStreamLike>; order?: any }) => {
         if (!crit?.where) return null;
         const matches = mockStreamStore.filter((r) => {
