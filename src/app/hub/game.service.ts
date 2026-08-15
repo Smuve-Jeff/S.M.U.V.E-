@@ -69,14 +69,43 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
   'halo-combat-evolved': '/assets/games/halo-ce-web/halo-ce-web.html',
   'gta-san-andreas-elite':
     'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
+  'mgs3-snake-eater-ps2-elite':
+    'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html',
+  'umk3-elite-master':
+    'https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html',
+  'contra-iii-elite-master':
+    'https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html',
+  'metroid-fusion-gba-elite':
+    'https://www.retrogames.cc/embed/40253-metroid-fusion-usa.html',
+  'excitebike-64-elite':
+    'https://www.retrogames.cc/embed/32217-excitebike-64-usa.html',
 };
+
+/**
+ * Cabinets whose historical gamepix inline embed pointed at a *different*
+ * game than the title (e.g. "Metal Gear Solid 3" embedding the snake.io arcade).
+ * These must launch externally via their corrected retrogames.cc cabinet
+ * instead of inline. Enforced here so stale/cached feeds can't reintroduce the
+ * wrong-game inline embed.
+ */
+const EXTERNAL_ONLY_GAME_IDS = new Set([
+  'mgs3-snake-eater-ps2-elite',
+  'umk3-elite-master',
+  'contra-iii-elite-master',
+  'metroid-fusion-gba-elite',
+  'excitebike-64-elite',
+]);
 
 function normalizeGame(game: Game): Game {
   const id = asString(game.id);
   const canonicalUrl = CANONICAL_GAME_URLS[id];
+  const launchConfig = EXTERNAL_ONLY_GAME_IDS.has(id)
+    ? { ...game.launchConfig, embedMode: 'external-only' as const }
+    : game.launchConfig;
   return {
     ...game,
     id,
+    launchConfig,
     name: CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet'),
     url: canonicalUrl || asString(game.url),
     image: asString(game.image),

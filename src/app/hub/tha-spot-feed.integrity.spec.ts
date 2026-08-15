@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+
 const MINIMUM_EXPECTED_GAMES = 4;
 
 /** Extract the numeric ID from a retrogames.cc embed URL. */
@@ -129,6 +131,22 @@ describe('Tha Spot feed integrity', () => {
         approvedExternalUrl?: string;
       };
     }>;
+    recommendationRails?: Array<{
+      id?: string;
+      gameIds?: string[];
+    }>;
+    promotions?: Array<{
+      id?: string;
+      gameIds?: string[];
+    }>;
+    liveEvents?: Array<{
+      id?: string;
+      featuredGameId?: string;
+    }>;
+    socialPresence?: Array<{
+      id?: string;
+      gameId?: string;
+    }>;
   };
   const rooms = feed.rooms ?? [];
   const games = feed.games ?? [];
@@ -234,6 +252,41 @@ describe('Tha Spot feed integrity', () => {
     }
 
     expect(conflicts).toHaveLength(0);
+  });
+
+  it('keeps the compiled-in fallback feed in sync with the JSON asset', () => {
+    // The fallback is the offline mirror of the primary catalog. If these
+    // drift, users who fetch the asset off-cache get a different library.
+    const jsonIds = games.map((g) => g.id ?? '').sort();
+    const fallbackIds = THA_SPOT_FALLBACK_FEED.games.map((g) => g.id).sort();
+    expect(fallbackIds).toEqual(jsonIds);
+  });
+
+  it('has no dangling game references from rails, promotions, events, or presence', () => {
+    const gameIds = new Set(games.map((g) => g.id ?? '').filter(Boolean));
+    const dangling: string[] = [];
+    const check = (label: string, ids: Array<string | undefined>) => {
+      for (const id of ids) {
+        if (id && !gameIds.has(id)) dangling.push(`${label}: ${id}`);
+      }
+    };
+
+    for (const rail of feed.recommendationRails ?? []) {
+      check(`rail ${rail.id}`, rail.gameIds ?? []);
+    }
+    for (const promo of feed.promotions ?? []) {
+      check(`promo ${promo.id}`, promo.gameIds ?? []);
+    }
+    for (const event of feed.liveEvents ?? []) {
+      if (event.featuredGameId) {
+        check(`event ${event.id}`, [event.featuredGameId]);
+      }
+    }
+    for (const entry of feed.socialPresence ?? []) {
+      if (entry.gameId) check(`presence ${entry.id}`, [entry.gameId]);
+    }
+
+    expect(dangling).toHaveLength(0);
   });
 
   it('has no retrogames.cc URL slug that contradicts the game title', () => {

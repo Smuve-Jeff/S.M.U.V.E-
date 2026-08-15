@@ -2353,6 +2353,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     'krunker.io',
     'venge.io',
     'slowroads.io',
+    'shellshock.io',
+    'www.shellshock.io',
+    'ev.io',
+    'www.ev.io',
+    'classic.minecraft.net',
+    'princejs.com',
+    'www.princejs.com',
+    'moba.js.org',
     'www.roblox.com',
     'playvalorant.com',
     'www.crazygames.com',
@@ -2386,6 +2394,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     'www.emulatorgames.net',
     'classicgame.com',
     'www.classicgame.com',
+    'nytimes.com',
+    'www.nytimes.com',
   ];
 
   /**
@@ -2459,12 +2469,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Determine the effective launch mode for a game.
    * - 'external-only' from config always opens in a new tab.
    * - Known X-Frame/CSP blocking domains fall back to external.
+   * - Hosts outside the trusted embed allowlist fall back to external (they
+   *   can't be rendered in the sandboxed iframe anyway).
    * - Everything else attempts inline iframe launch.
    */
   resolveLaunchMode(game: Game): 'inline' | 'external' {
     if (game.launchConfig?.embedMode === 'external-only') return 'external';
     const url = game.launchConfig?.approvedEmbedUrl || game.url;
     if (this.isEmbedBlockedUrl(url)) return 'external';
+    // Anything outside the trusted embed allowlist cannot be rendered in the
+    // iframe (getSafeUrl would reject it), so route it to an external tab
+    // instead of surfacing a hard launch error.
+    if (!this.isTrustedEmbedUrl(url)) return 'external';
     return 'inline';
   }
 

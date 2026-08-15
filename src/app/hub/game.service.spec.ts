@@ -141,6 +141,33 @@ describe('GameService', () => {
     ]);
   });
 
+  it('forces wrong-game elite cabinets to launch externally', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          ...mockFeed.games[0],
+          id: 'mgs3-snake-eater-ps2-elite',
+          name: 'Metal Gear Solid 3: Snake Eater',
+          url: 'https://www.gamepix.com/play/snake',
+          launchConfig: {
+            embedMode: 'inline',
+            approvedEmbedUrl: 'https://www.gamepix.com/play/snake',
+            approvedExternalUrl:
+              'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html',
+          },
+        },
+      ],
+    });
+    const games = await pending;
+
+    expect(games[0].url).toBe(
+      'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html'
+    );
+    expect(games[0].launchConfig?.embedMode).toBe('external-only');
+  });
+
   it('filters games through data-driven room rules', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('weekend-clash'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);

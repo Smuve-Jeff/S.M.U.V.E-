@@ -217,6 +217,28 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('gaming');
   });
 
+  it('routes untrusted embed hosts to external launch instead of erroring', () => {
+    const untrusted = component.resolveLaunchMode({
+      id: 'x',
+      url: 'https://untrusted.example/game',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://untrusted.example/game',
+      },
+    } as any);
+    expect(untrusted).toBe('external');
+
+    const trusted = component.resolveLaunchMode({
+      id: 'y',
+      url: 'https://www.gamepix.com/play/pac-man',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.gamepix.com/play/pac-man',
+      },
+    } as any);
+    expect(trusted).toBe('inline');
+  });
+
   it('ignores game messages from untrusted origins', () => {
     const profileService = TestBed.inject(UserProfileService) as any;
     const frameWindow = {} as Window;
