@@ -1309,7 +1309,10 @@ export class AudioEngineService {
     this.masterWidthSideL.gain.value = 1; // neutral full-width default
     this.masterWidthSideR.gain.value = -1;
 
-    this.masterGain.disconnect(this._preMasterGain);
+    // masterGain → _preMasterGain isn't a direct edge on this graph (it flows
+    // through the splitter/merger), but defensively drop any prior edge so
+    // double-init during HMR doesn't throw `InvalidAccessError`.
+    try { this.masterGain.disconnect(this._preMasterGain); } catch { /* not connected */ }
     this.masterGain.connect(this.masterWidthSplitter);
     this.masterWidthSplitter.connect(this.masterWidthMid, 0);
     this.masterWidthSplitter.connect(this.masterWidthMid, 1);
