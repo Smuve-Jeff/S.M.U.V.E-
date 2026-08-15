@@ -82,6 +82,12 @@ describe('HubComponent', () => {
       createStereoPanner() {
         return { ...mockNode };
       }
+      createChannelSplitter() {
+        return { ...mockNode };
+      }
+      createChannelMerger() {
+        return { ...mockNode };
+      }
       createBufferSource() {
         return { ...mockNode };
       }

@@ -10,13 +10,17 @@ jest.mock("@/entities/User", () => ({
   User: class User {},
 }));
 
+// Stable query-builder mock so callers can stub `getOne` before the service
+// builds its own chain (createQueryBuilder returns the same object each call).
+const qb = {
+  addSelect: jest.fn().mockReturnThis(),
+  where: jest.fn().mockReturnThis(),
+  getOne: jest.fn(),
+};
+
 const mockRepo = {
   findOneBy: jest.fn(),
-  createQueryBuilder: jest.fn(() => ({
-    addSelect: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
-    getOne: jest.fn(),
-  })),
+  createQueryBuilder: jest.fn(() => qb),
   create: jest.fn((v: unknown) => v),
   save: jest.fn((v: unknown) => Promise.resolve(v)),
   find: jest.fn(),

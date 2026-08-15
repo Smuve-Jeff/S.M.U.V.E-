@@ -1,6 +1,5 @@
 interface SmuveEnv {
   AUTH_SALT?: string;
-  ENCRYPTION_KEY?: string;
   SESSION_TIMEOUT?: number;
   API_URL?: string;
   AUTH_API_URL?: string;
@@ -13,7 +12,6 @@ const normalizeBaseUrl = (url: string): string => url.replace(/\/+$/, '');
 
 export const APP_SECURITY_CONFIG = {
   auth_salt: env.AUTH_SALT || 'SMUVE_SALT_V4_SECURE_HASH',
-  encryption_key: env.ENCRYPTION_KEY || 'SMUVE_V4_ULTRA_ENCRYPTION_SECRET',
   session_timeout: env.SESSION_TIMEOUT || 3600000,
   // Local dev defaults: window.env in src/index.html overrides these with the
   // live tunnel URLs (https://api.smuvejeffpresents.com/api) in production.

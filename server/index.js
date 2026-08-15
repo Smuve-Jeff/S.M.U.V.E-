@@ -33,7 +33,11 @@ if (MISSING_VARS.length > 0) {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'SMUVE_SALT_V4_SECURE_HASH';
+// Never fall back to a committed secret. Production already exits above when
+// JWT_SECRET is missing; in development use an ephemeral per-boot secret so no
+// static key material lives in the repository.
+const JWT_SECRET =
+  process.env.JWT_SECRET || crypto.randomBytes(48).toString('hex');
 const FRONTEND_ORIGIN =
   process.env.FRONTEND_ORIGIN || 'https://www.smuvejeffpresents.com';
 let appIO = null;

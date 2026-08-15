@@ -651,6 +651,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (ids.length === 0) return;
     let changed = 0;
     let skipped = 0;
+    let nextVal = 0;
     ids.forEach((id) => {
       const found = this.findClipOwner(id);
       if (!found) return;
@@ -667,6 +668,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         idx === -1
           ? this.FADE_PRESETS[1] ?? 0
           : this.FADE_PRESETS[(idx + 1) % this.FADE_PRESETS.length];
+      if (changed === 0) nextVal = next;
       this.musicManager.updateClip(track.id, id, {
         [side === 'in' ? 'fadeIn' : 'fadeOut']: next,
       });
@@ -675,8 +677,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (changed > 0) {
       this.haptic.medium();
       this.markDirty();
-      const nextVal =
-        side === 'in' ? this.firstSelectedFade('in') : this.firstSelectedFade('out');
       this.snackbar.show(
         `🎚 Fade-${side === 'in' ? 'in' : 'out'} → ${this.formatFade(
           nextVal

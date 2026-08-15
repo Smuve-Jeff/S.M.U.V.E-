@@ -51,6 +51,8 @@ describe('StudioComponent', () => {
     selectedTrackId: signal<string | null>(null),
     applyGeneratedRecipe: jest.fn(),
     newProject: jest.fn(),
+    addTrack: jest.fn(() => 'track-1'),
+    replaceTrackNotes: jest.fn(),
     crossLinkRequest: signal(null),
     snapshotProject: jest.fn().mockReturnValue({ id: 'proj-1', tracks: [] }),
   };
@@ -84,6 +86,13 @@ describe('StudioComponent', () => {
     info: jest.fn(),
     success: jest.fn(),
     error: jest.fn(),
+  };
+
+  const mockHistory = {
+    undo: jest.fn(),
+    redo: jest.fn(),
+    canUndo: signal(false),
+    canRedo: signal(false),
   };
 
   const mockEngineLatency = {
@@ -228,7 +237,7 @@ describe('StudioComponent', () => {
             system: jest.fn(),
           },
         },
-        { provide: HistoryService, useValue: {} },
+        { provide: HistoryService, useValue: mockHistory },
         { provide: Router, useValue: { navigate: jest.fn() } },
         {
           provide: ActivatedRoute,
@@ -375,6 +384,101 @@ describe('StudioComponent', () => {
     const before = component.stageFxEnabled();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
     expect(component.stageFxEnabled()).toBe(before);
+  });
+
+  it('owns Ctrl+Z undo at the shell level and prevents the default', () => {
+    const event = {
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      key: 'z',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent;
+
+    expect(component.handleKeyboardShortcut(event)).toBe(true);
+    expect(mockHistory.undo).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('owns Ctrl+Shift+Z redo at the shell level and prevents the default', () => {
+    const event = {
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: true,
+      key: 'z',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent;
+
+    expect(component.handleKeyboardShortcut(event)).toBe(true);
+    expect(mockHistory.redo).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Ctrl+Y for the transport bar (returns false, no default action)', () => {
+    const event = {
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      key: 'y',
+      preventDefault: jest.fn(),
+    } as unknown as KeyboardEvent;
+
+    expect(component.handleKeyboardShortcut(event)).toBe(false);
+    expect(mockHistory.redo).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('yields Ctrl+Z to native text editing while typing in an input', () => {
+    mockHistory.undo.mockClear();
+    const event = {
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      key: 'z',
+      preventDefault: jest.fn(),
+      target: { tagName: 'INPUT', isContentEditable: false },
+    } as unknown as KeyboardEvent;
+
+    component.onShellKeydown(event);
+
+    expect(mockHistory.undo).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('delegates Ctrl+Z outside inputs to the shell shortcut handler', () => {
+    mockHistory.undo.mockClear();
+    const event = {
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+      key: 'z',
+      preventDefault: jest.fn(),
+      target: { tagName: 'DIV', isContentEditable: false },
+    } as unknown as KeyboardEvent;
+
+    component.onShellKeydown(event);
+
+    expect(mockHistory.undo).toHaveBeenCalledTimes(1);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('stamps an applied chord into a fresh keys track on the piano roll', () => {
+    mockMusicManager.selectedTrackId.set(null);
+    mockMusicManager.tracks.set([]);
+
+    component.applyChordToPianoRoll('Imaj7', 0);
+
+    expect(mockMusicManager.addTrack).toHaveBeenCalledWith(
+      'Chords',
+      'grand-piano'
+    );
+    expect(mockMusicManager.replaceTrackNotes).toHaveBeenCalledTimes(1);
+    const [trackIdArg, notesArg] =
+      mockMusicManager.replaceTrackNotes.mock.calls[0];
+    expect(trackIdArg).toBe('track-1');
+    expect(notesArg).toHaveLength(4);
+    expect(mockMusicManager.selectedTrackId()).toBe('track-1');
+    expect(mockSnackbar.success).toHaveBeenCalled();
   });
 
   it('mirrors the Stage FX toggle into the executive preferences', () => {

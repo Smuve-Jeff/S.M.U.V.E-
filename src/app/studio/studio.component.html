@@ -6,7 +6,7 @@
   [class.comp-stage-live]="isLivePerforming()"
   [class.comp-stage-fx-off]="!stageFxEnabled()"
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
-  (keydown)="handleKeyboardShortcut($event)"
+  (keydown)="onShellKeydown($event)"
 >
   <!-- Stage 2.0 ambient aurora field (pure decoration) -->
   <div class="comp-aurora" aria-hidden="true">

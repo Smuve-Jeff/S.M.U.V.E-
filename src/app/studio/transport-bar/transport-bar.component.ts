@@ -602,13 +602,18 @@ export class TransportBarComponent {
     const mod = event.ctrlKey || event.metaKey;
 
     // ── Undo / Redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) ──
+    // The Studio shell's root (keydown) handler fires first in the bubble
+    // phase and owns the same combos. If it already prevented the default,
+    // skip here so a single press never double-fires history.undo()/redo().
     if (mod && (event.key === 'z' || event.key === 'Z')) {
+      if (event.defaultPrevented) return;
       event.preventDefault();
       if (event.shiftKey) this.redo();
       else this.undo();
       return;
     }
     if (mod && (event.key === 'y' || event.key === 'Y')) {
+      if (event.defaultPrevented) return;
       event.preventDefault();
       this.redo();
       return;

@@ -25,7 +25,10 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { HardwareService } from '../services/hardware.service';
 import { AiService } from '../services/ai.service';
 import { UIService } from '../services/ui.service';
-import { MusicManagerService } from '../services/music-manager.service';
+import {
+  MusicManagerService,
+  type TrackNote,
+} from '../services/music-manager.service';
 import { ProjectService } from '../services/project.service';
 import { HapticService } from '../services/haptic.service';
 import { InteractionDialogService } from '../services/interaction-dialog.service';
@@ -478,8 +481,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     };
     const note = midiNotes[pad.name] || 48;
     if (!pad.isPlaying) {
-      // Hit it
+      // Hit it — actually sound the pad through the live engine (one-shot).
       this.audioEngine.resume();
+      try {
+        const freq = 440 * Math.pow(2, (note - 69) / 12);
+        const time = this.audioEngine.ctx?.currentTime ?? 0;
+        this.audioEngine.playSynth?.(time, freq, 0.4, 0.9, 0, {
+          type: 'sine',
+        });
+      } catch {
+        // test mock / suspended context — the visual toggle still lands
+      }
     }
     this.snackbarService.info(
       `Pad ${pad.isPlaying ? 'OFF' : 'HIT'}: ${pad.name}`
@@ -1080,6 +1092,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     event.preventDefault();
     this.toggleStageFx();
+  }
+
+  /**
+   * Shell keydown entry point. Yields to native text editing so Ctrl+Z/S/E/I
+   * inside an input or contenteditable never hijacks project history, save,
+   * export, or the AI Mix panel, then delegates to the Ctrl+ shortcut handler.
+   */
+  onShellKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    this.handleKeyboardShortcut(event);
   }
 
   setActiveView(view: StudioView) {
@@ -1701,7 +1732,38 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   applyChordToPianoRoll(chord: string, index: number) {
     this.haptic.light();
     const notes = this.chordToNotes(chord, index);
-    this.snackbarService.info(
+    if (notes.length === 0) {
+      this.snackbarService.error(`Could not parse chord: ${chord}`);
+      return;
+    }
+
+    // Stamp the chord onto the selected track, otherwise the first MIDI
+    // track, otherwise a fresh keys track — so the chord actually appears
+    // in the piano roll instead of only showing a toast.
+    let trackId = this.musicManager.selectedTrackId();
+    if (!trackId) {
+      const midiTrack = this.musicManager
+        .tracks()
+        .find((t) => t.type === 'midi');
+      trackId =
+        midiTrack?.id ?? this.musicManager.addTrack('Chords', 'grand-piano');
+    }
+    if (!trackId) return;
+
+    const stamped: TrackNote[] = notes.map((n, i) => ({
+      id: `chord_${Date.now()}_${index}_${i}`,
+      midi: n.note,
+      step: n.startStep,
+      length: n.durationSteps,
+      velocity: n.velocity,
+    }));
+    const existing = this.musicManager.tracks().find((t) => t.id === trackId);
+    this.musicManager.replaceTrackNotes(trackId, [
+      ...(existing?.notes ?? []),
+      ...stamped,
+    ]);
+    this.musicManager.selectedTrackId.set(trackId);
+    this.snackbarService.success(
       `Applied ${chord} — ${notes.length} notes at bar ${index + 1}`
     );
   }

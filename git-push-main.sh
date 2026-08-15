@@ -51,7 +51,9 @@ git add .gitignore .env.example .prettierrc package.json package-lock.json \
   src/app/
 
 # 7) Safety check — abort if secrets or clones got staged
-if git status --short | grep -Eq 'src/config/\.env|S\.M\.U\.V\.E-|nvchad'; then
+# Covers the local secrets file, the nested repo/phone clones (S.M.U.V.E-,
+# nvchad-termux, cli), and the private/public keypair files.
+if git status --short | grep -Eq 'src/config/\.env|S\.M\.U\.V\.E-|nvchad|(^|/)cli($|/)|private\.key|public\.key'; then
   echo "ABORTING: secrets or clones staged — inspect 'git status' and fix before retrying."
   exit 1
 fi

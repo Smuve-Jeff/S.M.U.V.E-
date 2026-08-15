@@ -141,7 +141,7 @@ describe('AiService', () => {
       'Provide a detailed analysis of the Test Upgrade upgrade.'
     );
 
-    const req = httpMock.expectOne('/api/ai/analyze');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
     req.flush({ text: 'The **Test Upgrade** is a **High**-impact upgrade' });
 
     const response = await requestPromise;
@@ -153,7 +153,7 @@ describe('AiService', () => {
 
   it('should handle getAIResponse when backend fails', async () => {
     const requestPromise = service.getAIResponse('Analyze this');
-    const req = httpMock.expectOne('/api/ai/analyze');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
     req.error(new ErrorEvent('Network error'));
 
     const response = await requestPromise;

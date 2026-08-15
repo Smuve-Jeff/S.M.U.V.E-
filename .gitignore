@@ -62,3 +62,10 @@ Thumbs.db
 !.codebuddy/prompts/
 !.codebuddy/config.json
 server/.env
+
+# Private keys & nested repo/phone clones (never commit)
+private.key
+public.key
+S.M.U.V.E-
+nvchad-termux
+cli
