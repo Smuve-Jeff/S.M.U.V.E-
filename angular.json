@@ -18,6 +18,7 @@
             "polyfills": ["src/polyfills.ts"],
             "allowedCommonJsDependencies": ["automation-events"],
             "assets": ["src/assets", "src/manifest.webmanifest"],
+            "serviceWorker": "ngsw-config.json",
             "styles": [
               "src/styles.css",
               "node_modules/animate.css/animate.min.css"

@@ -49,7 +49,7 @@
         "timeout": "10s",
         "strategy": "freshness"
       }
-    },
+    }
   ],
   "navigationUrls": ["/**", "!/**/*.*", "!/**/*__*", "!/**/*__*/**"],
   "navigationRequestStrategy": "performance"

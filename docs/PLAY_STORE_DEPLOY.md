@@ -15,18 +15,18 @@ for the Android packaging pipeline. Follow it top-down.
 | ---- | ----------- | ------- |
 | Node | 22.12 (matches `engines.node` in package.json) | Build pipeline |
 | npm | 10 | Package manager |
-| JDK | 17 (Temurin / Zulu) | Android Gradle Plugin 8.x |
-| Android SDK | API 34 (Android 14) | Target SDK |
-| Android Build-Tools | 34.0.0 | aapt2, d8, zipalign |
-| Gradle | 8.5 (Bundled — don't override) | Build orchestration |
+| JDK | 17 (Temurin / Zulu) | Android Gradle Plugin 8.13 |
+| Android SDK | API 36 (Android 16) | Target SDK |
+| Android Build-Tools | 36.0.0 | aapt2, d8, zipalign |
+| Gradle | 8.14.3 (Bundled — don't override) | Build orchestration |
 | Ruby | 3.x (Optional) | fastlane (Play upload) |
 | Docker | 24+ | Reproducible Emscripten builds (Sprint 3) |
 
 Install Android cmdline-tools:
 
 ```bash
-sdkmanager "platform-tools" "platforms;android-34" \
-           "build-tools;34.0.0" "extras;google-play-services"
+sdkmanager "platform-tools" "platforms;android-36" \
+           "build-tools;36.0.0" "extras;google-play-services"
 ```
 
 ---
@@ -35,21 +35,21 @@ sdkmanager "platform-tools" "platforms;android-34" \
 
 ```
 npm install --legacy-peer-deps \
-  @capacitor/core@^6 \
-  @capacitor/android@^6 \
+  @capacitor/core@^8 \
+  @capacitor/android@^8 \
   onnxruntime-web@^1.19 \
   --save
-npm install --save-dev @capacitor/cli@^6
+npm install --save-dev @capacitor/cli@^8
 ```
 
 `package.json` (this PR adds):
 
 | Field | Value |
 | ----- | ----- |
-| `dependencies."@capacitor/core"` | `^6.0.0` |
-| `dependencies."@capacitor/android"` | `^6.0.0` |
+| `dependencies."@capacitor/core"` | `^8.0.0` |
+| `dependencies."@capacitor/android"` | `^8.0.0` |
 | `dependencies."onnxruntime-web"` | `^1.19.0` |
-| `devDependencies."@capacitor/cli"` | `^6.0.0` |
+| `devDependencies."@capacitor/cli"` | `^8.0.0` |
 
 `scripts`:
 
@@ -71,7 +71,7 @@ npm run cap:add:android
 ```
 
 `cap add android` generates the entire `android/` tree (~80 files) using the
-official Capacitor 6 template including AGP 8.x and Gradle 8.5. **Do not
+official Capacitor 8 template including AGP 8.13 and Gradle 8.14.3. **Do not
 hand-author** anything inside `android/` once generated; modify via
 `capacitor.config.ts` and `MainActivity.java` overrides instead.
 
@@ -121,8 +121,7 @@ demo: 8-bar trap beat → 6-stem isolation → AI mix → master at -14 LUFS in 
 Add `cordova-plugin-purchase` or Capacitor's `@capacitor-community/purchase`
 plugin. For the visual-led subscription model (monthly Pro tier + lifetime + sound
 pack add-ons), Play Billing is mandatory on Play Store and **Apple will reject**
-your app if you funnel through alternate payment rails on iOS — so plan ahead for
-the Capacitor 7 iOS port.
+your app if you funnel through alternate paymentrails on iOS — so plan ahead for the Capacitor 8 iOS port.
 
 Subscription ids:
 

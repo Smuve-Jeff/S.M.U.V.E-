@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">S.M.U.V.E.</string>
+    <string name="title_activity_main">S.M.U.V.E.</string>
+    <string name="package_name">com.smuve.smuve2</string>
+    <string name="custom_url_scheme">com.smuve.smuve2</string>
+</resources>
