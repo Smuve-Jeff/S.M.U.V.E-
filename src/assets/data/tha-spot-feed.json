@@ -3365,42 +3365,6 @@
       "image": "/assets/games/tekken-4-tribute.png"
     },
     {
-      "id": "halo-ce-web",
-      "name": "Halo: Combat Evolved (Web)",
-      "url": "/assets/games/halo-ce-web/halo-ce-web.html",
-      "genre": "FPS",
-      "description": "Elite 3D FPS demo. WebGL combat link. Master Chief protocol.",
-      "availability": "Online",
-      "playersOnline": 2000,
-      "rating": 5,
-      "badgeIds": [
-        "elite",
-        "new-drop"
-      ],
-      "tags": [
-        "Shooting",
-        "Elite",
-        "ThreeJS"
-      ],
-      "launchConfig": {
-        "embedMode": "inline",
-        "controls": [
-          "WASD to move",
-          "Mouse to aim/shoot"
-        ],
-        "telemetryMode": "origin",
-        "approvedEmbedUrl": "/assets/games/halo-ce-web/halo-ce-web.html",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "/assets/games/halo-ce-web/halo-ce-web.html"
-      },
-      "art": {
-        "eyebrow": "Executive Classic",
-        "accentStart": "#22d3ee",
-        "accentEnd": "#0891b2"
-      },
-      "image": "/assets/games/halo-ce-web.png"
-    },
-    {
       "id": "final-fantasy-vii-elite",
       "name": "Final Fantasy VII (Elite)",
       "url": "https://www.retrogames.cc/embed/27830-final-fantasy-vii-ps1.html",
@@ -8167,30 +8131,6 @@
       "availability": "Online"
     },
     {
-      "id": "mario-kart-64-elite-master",
-      "name": "Mario Kart 64",
-      "url": "https://www.gamepix.com/play/mario-kart-64",
-      "genre": "Racing",
-      "description": "Absolute high-fidelity Racing action. Experience Mario Kart 64 in a stabilized browser environment.",
-      "tags": [
-        "Racing",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mario-kart-64",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32269-mario-kart-64-usa.html"
-      },
-      "availability": "Online"
-    },
-    {
       "id": "star-fox-64-elite-master",
       "name": "Star Fox 64",
       "url": "https://www.retrogames.cc/embed/18944-star-fox-64-n64.html",
@@ -11531,7 +11471,6 @@
         "1080-snowboarding-elite-master",
         "tony-hawk-2-master-elite-master",
         "jak-and-daxter-elite-master",
-        "mario-kart-64-elite-master",
         "star-fox-64-elite-master",
         "earthworm-jim-elite-master",
         "super-metroid-elite-master",
