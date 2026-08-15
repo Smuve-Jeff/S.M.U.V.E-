@@ -45,8 +45,7 @@ export class ProjectService {
 
   private async loadProjects() {
     try {
-      const projects =
-        (await this.storage.getAllItems('studio_projects')) || [];
+      const projects = (await this.storage.getAllItems('projects')) || [];
       this._list.next(projects);
     } catch (e) {
       this.logger.error(
@@ -117,7 +116,12 @@ export class ProjectService {
   }
 
   private async saveAll(projects: Project[]) {
-    await this.storage.saveItem('studio_projects', projects);
+    // The projects object store uses `id` as its keyPath, so persist each
+    // project as an item rather than trying to put the whole array into one
+    // record. This also keeps database.service and ProjectService consistent.
+    await Promise.all(
+      projects.map((project) => this.storage.saveItem('projects', project))
+    );
     this.logger.info('ProjectService: All projects synced to local storage.');
   }
 

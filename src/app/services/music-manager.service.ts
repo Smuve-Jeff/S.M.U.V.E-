@@ -258,8 +258,7 @@ export class MusicManagerService {
           this.engine.tempo.set(project.bpm || 120);
           this.history.clear();
         }
-      },
-      { allowSignalWrites: true }
+      }
     );
   }
 

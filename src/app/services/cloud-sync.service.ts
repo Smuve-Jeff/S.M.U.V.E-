@@ -16,6 +16,7 @@ import {
 const DEVICE_KEY = 'smuve_cloud_device';
 const TIMELINE_KEY = 'smuve_cloud_timeline';
 const PROJECTS_KEY = 'smuve_cloud_projects';
+const LOCAL_CACHE_STORE = 'offline_local_cache';
 const PLATFORM =
   typeof navigator !== 'undefined' && navigator.platform
     ? navigator.platform
@@ -173,17 +174,15 @@ export class CloudSyncService {
   /** Pull historical state out of LocalStorageService into the signals. */
   private async hydrate(): Promise<void> {
     try {
-      const stored = (await this.storage.getItem(
-        PROJECTS_KEY,
-        'manifests'
-      )) as Record<string, ProjectManifest> | null;
+      const stored = await this.readLocalValue<Record<string, ProjectManifest>>(
+        PROJECTS_KEY
+      );
       if (stored && typeof stored === 'object') {
         this.localManifests.set(stored);
       }
-      const timeline = (await this.storage.getItem(
-        TIMELINE_KEY,
-        'timeline'
-      )) as SyncTimelineEntry[] | null;
+      const timeline = await this.readLocalValue<SyncTimelineEntry[]>(
+        TIMELINE_KEY
+      );
       if (Array.isArray(timeline)) this.timeline.set(timeline);
     } catch (err) {
       this.logger.warn('CloudSync: hydrate failed', err);
@@ -447,7 +446,7 @@ export class CloudSyncService {
     const next = { ...this.localManifests(), [projectId]: manifest };
     this.localManifests.set(next);
     try {
-      await this.storage.saveItem(PROJECTS_KEY, next);
+      await this.writeLocalValue(PROJECTS_KEY, next);
     } catch (err) {
       this.logger.warn('CloudSync: persist manifest failed', err);
     }
@@ -456,7 +455,19 @@ export class CloudSyncService {
   private appendTimeline(entry: SyncTimelineEntry): void {
     const next = [entry, ...this.timeline()].slice(0, this.TIMELINE_CAP);
     this.timeline.set(next);
-    void this.storage.saveItem(TIMELINE_KEY, next).catch(() => undefined);
+    void this.writeLocalValue(TIMELINE_KEY, next).catch(() => undefined);
+  }
+
+  private async readLocalValue<T>(key: string): Promise<T | null> {
+    const stored = await this.storage.getItem(LOCAL_CACHE_STORE, key);
+    if (stored && typeof stored === 'object' && 'value' in stored) {
+      return (stored as { value: T }).value;
+    }
+    return (stored as T | null) ?? null;
+  }
+
+  private writeLocalValue(key: string, value: unknown): Promise<void> {
+    return this.storage.saveItem(LOCAL_CACHE_STORE, { id: key, value });
   }
 
   private timelineId(): string {

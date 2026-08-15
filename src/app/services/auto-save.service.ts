@@ -31,7 +31,10 @@ export class AutoSaveService {
       }
 
       const snapshot = this.musicManager.snapshotProject();
-      if (snapshot.tracks.length === 0) {
+      // A fresh session has no selected project yet. Keep the autosave
+      // effect idle instead of dereferencing the intentionally-null snapshot
+      // during application bootstrap (including the public login route).
+      if (!snapshot?.tracks?.length) {
         return;
       }
 
