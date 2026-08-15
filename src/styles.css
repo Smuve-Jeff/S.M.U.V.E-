@@ -3,6 +3,59 @@
 @tailwind utilities;
 
 /* ======================================================
+   SHARED UTILITIES (global) — consumed across pages that
+   historically copy-pasted scoped copies into their own
+   component CSS (products, business-pipeline-detail).
+   ====================================================== */
+
+/* Elegant CTA button base — used by login, The Vault,
+   analytics dashboard, career hub and practice space. */
+.btn-elegant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+.btn-elegant:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+.btn-elegant:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Primary (teal/cyan) variant of the elegant CTA. */
+.btn-elegant-primary {
+  background: linear-gradient(135deg, #10b981, #0e7c7b);
+  color: #ffffff;
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
+}
+
+.btn-elegant-primary:hover:not(:disabled) {
+  box-shadow: 0 0 44px rgba(16, 185, 129, 0.4);
+  filter: brightness(1.06);
+}
+
+/* Dim silver helper text — used across auth + dashboard surfaces. */
+.text-silver-dim {
+  color: var(--silver-dim, #cbd5e1);
+}
+
+/* ======================================================
    S.M.U.V.E — City Skylines After Dark
    Independent Label Hub (record exec) + Concert Stage Studio
    Variable names kept; values swapped for drop-in compatibility.

@@ -59,6 +59,10 @@ export default {
         'brand-warning': '#D97706',
         'brand-success': '#0E7C7B',
         'brand-muted': '#7E7259',
+        // Dim silver helper text (used with /NN opacity variants across
+        // the auth card and dashboards — was only ever defined as a CSS
+        // var in component styles, so Tailwind never generated it).
+        'silver-dim': '#CBD5E1',
         primary: '#0E7C7B',
         secondary: '#5DC4C2',
         accent: '#D97706',

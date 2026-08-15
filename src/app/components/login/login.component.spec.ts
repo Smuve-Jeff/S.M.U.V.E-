@@ -69,6 +69,20 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('S.M.U.V.E');
   });
 
+  it('renders the primary CTA for the default login mode', async () => {
+    const { fixture } = await build();
+    fixture.detectChanges();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('button')
+    ) as HTMLButtonElement[];
+    expect(buttons.some((b) => b.textContent?.includes('Authorize Access')))
+      .toBe(true);
+    // Registering flips the CTA label to the genesis action.
+    fixture.componentInstance.isRegistering.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Initialize Genesis');
+  });
+
   it('renders the password strength block while registering without throwing', async () => {
     const { fixture } = await build();
     fixture.componentInstance.isRegistering.set(true);
