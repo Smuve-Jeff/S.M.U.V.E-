@@ -117,6 +117,10 @@ describe('Tha Spot feed integrity', () => {
     rooms?: Array<{
       id?: string;
       name?: string;
+      rules?: {
+        genres?: string[];
+        tags?: string[];
+      };
     }>;
     games?: Array<{
       id?: string;
@@ -195,6 +199,68 @@ describe('Tha Spot feed integrity', () => {
     expect(roomGenres).toContain('sports');
     expect(roomTags).toHaveLength(0);
     expect(sportsGames.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('keeps room genre rules free of phantom genres', () => {
+    // Every genre a room references must exist somewhere in the catalog as a
+    // primary genre or a tag, otherwise the rule silently matches nothing
+    // (e.g. the retired "Music Battle" room genre).
+    const vocabulary = new Set<string>();
+    for (const game of games) {
+      if (game.genre) vocabulary.add(game.genre.toLowerCase());
+      for (const tag of game.tags ?? []) vocabulary.add(tag.toLowerCase());
+    }
+
+    const phantom: string[] = [];
+    for (const room of rooms) {
+      for (const genre of room.rules?.genres ?? []) {
+        if (!vocabulary.has(genre.toLowerCase())) {
+          phantom.push(`${room.id}: ${genre}`);
+        }
+      }
+    }
+    expect(phantom).toHaveLength(0);
+  });
+
+  it('keeps the Shooting room inclusive of FPS and Shooter cabinets', () => {
+    const shootingRoom = rooms.find((room) => room.id === 'shooting-range');
+    const roomGenres = (shootingRoom?.rules?.genres ?? []).map((genre) =>
+      genre.toLowerCase()
+    );
+
+    expect(roomGenres).toEqual(['shooting', 'fps', 'shooter']);
+
+    const shooterGames = games.filter((game) =>
+      ['Shooting', 'FPS', 'Shooter'].includes(game.genre ?? '')
+    );
+    const uncovered = shooterGames.filter(
+      (game) => !roomGenres.includes((game.genre ?? '').toLowerCase())
+    );
+
+    expect(shooterGames.length).toBeGreaterThanOrEqual(30);
+    expect(uncovered).toHaveLength(0);
+  });
+
+  it('keeps the RPG Vault inclusive of Action RPG and JRPG cabinets', () => {
+    const rpgRoom = rooms.find((room) => room.id === 'rpg-vault');
+    const roomTags = (rpgRoom?.rules?.tags ?? []).map((tag) =>
+      tag.toLowerCase()
+    );
+
+    expect(roomTags).toContain('rpg');
+    expect(roomTags).toContain('action rpg');
+    expect(roomTags).toContain('jrpg');
+
+    const rpgGames = games.filter((game) =>
+      ['RPG', 'Action RPG'].includes(game.genre ?? '')
+    );
+    const uncovered = rpgGames.filter(
+      (game) =>
+        !(game.tags ?? []).some((tag) => roomTags.includes(tag.toLowerCase()))
+    );
+
+    expect(rpgGames.length).toBeGreaterThanOrEqual(25);
+    expect(uncovered).toHaveLength(0);
   });
 
   it('maintains multiple choices for the featured expansion categories', () => {

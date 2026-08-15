@@ -227,6 +227,32 @@ describe('ThaSpotComponent', () => {
     expect(component.showRivalHub()).toBe(false);
   });
 
+  it('keeps strategic intel collapsed until explicitly toggled', () => {
+    expect(component.showIntelPanel()).toBe(false);
+
+    component.toggleIntel();
+    expect(component.showIntelPanel()).toBe(true);
+
+    component.toggleIntel();
+    expect(component.showIntelPanel()).toBe(false);
+  });
+
+  it('uses an existing fallback asset for stale local catalog art', () => {
+    expect(
+      component.getGameImage({
+        id: 'missing-art',
+        name: 'Missing Art',
+        genre: 'Arcade',
+        url: 'https://example.test/game',
+        image: '/assets/games/missing-art.png',
+      })
+    ).toBe('assets/hub/home-backdrop-command.png');
+
+    const image = document.createElement('img');
+    component.onGameImageError({ target: image } as unknown as Event);
+    expect(image.src).toContain('/assets/hub/home-backdrop-command.png');
+  });
+
   it('routes untrusted embed hosts to external launch instead of erroring', () => {
     const untrusted = component.resolveLaunchMode({
       id: 'x',

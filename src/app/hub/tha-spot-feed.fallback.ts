@@ -68,7 +68,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Music-first picks for creators moving between beats, sessions, and challenges.',
       spotlight: 'Best for artists coming straight from Studio.',
       rules: {
-        genres: ['Music Battle', 'Rhythm'],
+        genres: ['Rhythm'],
         tags: ['Original', 'Rhythm', 'AI'],
       },
     },
@@ -118,7 +118,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Aim drills, tactical firefights, and high-pressure ranged runs.',
       spotlight: 'Highlights tactical shooters, squad lanes, and live-fire rotations.',
       rules: {
-        genres: ['Shooting'],
+        genres: ['Shooting', 'FPS', 'Shooter'],
       },
     },
     {
@@ -128,7 +128,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Progression-heavy adventures, hero builds, raids, and campaign depth.',
       spotlight: 'Curates every cabinet tagged for RPG progression and boss-run depth.',
       rules: {
-        tags: ['RPG'],
+        tags: ['RPG', 'Action RPG', 'JRPG'],
       },
     },
     {
@@ -147,7 +147,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       icon: 'psychology',
       description: 'High-IQ play, puzzle solving, and room-based mind games.',
       rules: {
-        genres: ['Strategy', 'Puzzle', 'Classic'],
+        genres: ['Strategy', 'Puzzle', 'Classic', 'Card Game'],
       },
     },
     {
@@ -1166,7 +1166,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       id: 'league-bowling',
       name: 'League Bowling',
-      url: 'https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html',
+      url: 'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
       genre: 'Sports',
       description: 'The most addictive bowling sim ever made. Elite Neo Geo performance with rhythmic physics.',
       availability: 'Online',
@@ -1175,11 +1175,11 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['classic', 'elite'],
       tags: ['Sports', 'Retro', 'Neo Geo', 'Arcade'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
         embedMode: 'external-only',
         secure_mode: 'wasm',
         controls: ['Standard Keyboard'],
-        approvedExternalUrl: 'https://www.retrogames.cc/embed/10078-league-bowling-ngm-019.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
       },
       art: {
         eyebrow: 'SNK Elite',

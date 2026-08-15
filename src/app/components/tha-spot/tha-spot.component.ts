@@ -16,6 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
 import { GameService } from '../../hub/game.service';
+import { canonicalGenreFacet } from '../../hub/game.service';
 import { Game } from '../../hub/game';
 import { GameSortMode } from '../../hub/game.service';
 import { RecommendationRail, LiveEvent } from '../../hub/game';
@@ -294,7 +295,58 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         z-index: 120;
         transform: none;
       }
-      .executive-sidebar { left: auto; right: 0; width: 350px; }
+      .executive-sidebar {
+        left: auto;
+        right: -380px;
+        width: 350px;
+        pointer-events: none;
+        visibility: hidden;
+      }
+      .executive-sidebar.active {
+        right: 0;
+        pointer-events: auto;
+        visibility: visible;
+      }
+      .intel-toggle {
+        position: fixed;
+        top: calc(50% + 28px);
+        right: 0;
+        z-index: 130;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        min-width: 40px;
+        min-height: 44px;
+        padding: 0.65rem 0.45rem;
+        border: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+        border-right: 0;
+        border-radius: 10px 0 0 10px;
+        background: rgba(5, 8, 15, 0.94);
+        color: var(--neon-cyan);
+        box-shadow: -6px 0 20px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        transform: translateY(-50%);
+        transition: right 0.35s ease, background 0.2s ease, color 0.2s ease;
+      }
+      .intel-toggle.panel-open {
+        right: 350px;
+        border-right: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
+        border-left: 0;
+        border-radius: 0 10px 10px 0;
+      }
+      .intel-toggle:hover,
+      .intel-toggle:focus-visible {
+        background: rgba(var(--neon-cyan-rgb), 0.16);
+        color: #fff;
+      }
+      .intel-toggle-label {
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+      }
       /* Keep the chat drawer inert while collapsed; otherwise the
          responsive correction above leaves it covering the catalog. */
       .rival-hub {
@@ -398,7 +450,9 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           pointer-events: auto;
         }
         .rival-hub-toggle,
-        .rival-hub-toggle.panel-open {
+        .rival-hub-toggle.panel-open,
+        .intel-toggle,
+        .intel-toggle.panel-open {
           top: calc(64px + env(safe-area-inset-top, 0px) + 0.5rem);
           right: 0;
           transform: none;
@@ -406,7 +460,8 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
           border-left: 1px solid rgba(var(--neon-cyan-rgb), 0.35);
           border-radius: 10px 0 0 10px;
         }
-        .rival-hub-toggle-label {
+        .rival-hub-toggle-label,
+        .intel-toggle-label {
           display: none;
         }
         .sidebar-content {
@@ -1109,6 +1164,23 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
+  private readonly catalogImageFallback = 'assets/hub/home-backdrop-command.png';
+
+  /** Return usable catalog art and avoid stale local image paths in old feed rows. */
+  getGameImage(game: Game | null | undefined): string {
+    const image = game?.image?.trim();
+    if (!image || image.startsWith('/assets/games/') || image.startsWith('assets/games/')) {
+      return this.catalogImageFallback;
+    }
+    return image;
+  }
+
+  onGameImageError(event: Event): void {
+    const image = event.target as HTMLImageElement | null;
+    if (!image || image.dataset['catalogFallbackApplied'] === 'true') return;
+    image.dataset['catalogFallbackApplied'] = 'true';
+    image.src = this.catalogImageFallback;
+  }
   public profileService = inject(UserProfileService);
   private uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
@@ -1389,7 +1461,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   availableGenres = computed(() => {
     const genres = new Set<string>();
     this.games().forEach((g) => {
-      if (g.genre) genres.add(g.genre);
+      // Project primary genres through the synonym map so split facets
+      // (e.g. Shooting / FPS / Shooter) collapse to a single dropdown entry
+      // without mutating the underlying catalog genres.
+      const facet = canonicalGenreFacet(g.genre);
+      if (facet) genres.add(facet);
+      // Open World is a cross-genre catalog facet in the feed and is stored
+      // as a tag so Action/Racing primary genres remain accurate.
+      if (g.tags?.some((tag) => tag.trim().toLowerCase() === 'open world')) {
+        genres.add('Open World');
+      }
     });
     return Array.from(genres).sort();
   });
@@ -1685,6 +1766,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setMode(mode: 'gaming' | 'pluto'): void {
     this.displayMode.set(mode);
+    // The intel drawer is a utility surface, never part of a game or Pluto
+    // session. Close it before switching contexts so it cannot sit above the
+    // active experience or retain focusable controls off-canvas.
+    this.showIntelPanel.set(false);
     if (mode === 'pluto') this.closeGame();
   }
 
@@ -1716,6 +1801,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onGameClick(game: Game) {
+    // Selecting a cabinet hands the screen to the preview flow; do not leave
+    // the strategic drawer covering the preview or its launch controls.
+    this.showIntelPanel.set(false);
     this.selectedGame.set(game);
     this.gameIdToInvite.set(game.id);
     this.playSoundEffect('select');

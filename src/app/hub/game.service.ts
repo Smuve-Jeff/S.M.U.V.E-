@@ -30,6 +30,61 @@ function asStringArray(val: any): string[] {
 }
 
 /**
+ * Some genre facets are split across multiple primary genres in the feed
+ * (notably "Shooting", "FPS", and "Shooter"). Map every synonym and the
+ * canonical label to the same set so the dropdown shows one facet and the
+ * filter matches every variant — without rewriting the game's primary genre.
+ */
+const GENRE_SYNONYM_GROUPS: Record<string, readonly string[]> = {
+  Shooting: ['shooting', 'fps', 'shooter'],
+};
+
+export function canonicalGenreFacet(
+  genre: string | undefined | null
+): string | undefined {
+  if (!genre) return undefined;
+  const lower = genre.trim().toLowerCase();
+  for (const [canonical, alts] of Object.entries(GENRE_SYNONYM_GROUPS)) {
+    if (alts.includes(lower) || canonical.toLowerCase() === lower) {
+      return canonical;
+    }
+  }
+  return genre;
+}
+
+/**
+ * Return the lowercase set of primary genres that should match a requested
+ * facet. Pure identity for non-synonyms; expanded to the synonym family when
+ * the request is part of (or equal to) a synonym group.
+ */
+function matchingGenresForFacet(
+  requested: string | undefined
+): Set<string> | null {
+  if (!requested) return null;
+  const lower = requested.trim().toLowerCase();
+  if (lower === 'all') return null;
+  const matches = new Set<string>([lower]);
+  for (const [canonical, alts] of Object.entries(GENRE_SYNONYM_GROUPS)) {
+    if (
+      canonical.toLowerCase() === lower ||
+      alts.includes(lower)
+    ) {
+      for (const alt of alts) matches.add(alt);
+    }
+  }
+  return matches;
+}
+
+const CATALOG_IMAGE_FALLBACK = 'assets/hub/home-backdrop-command.png';
+
+function normalizeCatalogImage(val: any): string {
+  const image = asString(val);
+  return !image || image.startsWith('/assets/games/') || image.startsWith('assets/games/')
+    ? CATALOG_IMAGE_FALLBACK
+    : image;
+}
+
+/**
  * Feed titles must describe the actual cabinet opened by their launch URL.
  * Keep this small canonical map as a last line of defense when a cached or
  * remote feed ships a marketing alias instead of the upstream title.
@@ -50,6 +105,7 @@ const CANONICAL_GAME_TITLES: Record<string, string> = {
   'gta-elite-wasm': 'Grand Theft Auto',
   'halo-combat-evolved': 'Halo: Combat Evolved',
   'gta-san-andreas-elite': 'Grand Theft Auto: San Andreas',
+  'final-fantasy-vi-elite-master': 'Final Fantasy VI',
 };
 
 /** Canonical launch targets for records whose feed IDs historically drifted. */
@@ -69,6 +125,8 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
   'halo-combat-evolved': '/assets/games/halo-ce-web/halo-ce-web.html',
   'gta-san-andreas-elite':
     'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
+  'final-fantasy-vi-elite-master':
+    'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html',
   'mgs3-snake-eater-ps2-elite':
     'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html',
   'umk3-elite-master':
@@ -195,7 +253,7 @@ function normalizeGame(game: Game): Game {
     launchConfig,
     name: CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet'),
     url: canonicalUrl || asString(game.url),
-    image: asString(game.image),
+    image: normalizeCatalogImage(game.image),
     description: asString(game.description),
     genre: asString(game.genre, 'Unknown'),
     tags: asStringArray(game.tags),
@@ -501,31 +559,30 @@ export class GameService {
       this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
         map((feed) => {
           const normalized = normalizeFeed(feed);
-          if (!normalized.games || normalized.games.length === 0) {
-            return normalizeFeed(THA_SPOT_FALLBACK_FEED);
-          }
-          // Keep the sync cache warm so getGameById()/listGamesSync() can
-          // resolve canonical titles without waiting on a new HTTP request.
-          this.cachedFeed = normalized;
-          this.gameById.clear();
-          normalized.games.forEach((game) =>
-            this.gameById.set(String(game.id), game)
-          );
-          return normalized;
+          const resolvedFeed =
+            normalized.games.length > 0
+              ? normalized
+              : normalizeFeed(THA_SPOT_FALLBACK_FEED);
+          this.cacheFeed(resolvedFeed);
+          return resolvedFeed;
         }),
         catchError(() => {
           const fallback = normalizeFeed(THA_SPOT_FALLBACK_FEED);
-          this.cachedFeed = fallback;
-          this.gameById.clear();
-          fallback.games.forEach((game) =>
-            this.gameById.set(String(game.id), game)
-          );
+          this.cacheFeed(fallback);
           return of(fallback);
         }),
         shareReplay(1)
       );
     }
     return this.feedCache$;
+  }
+
+  private cacheFeed(feed: ThaSpotFeed): void {
+    // Keep the sync cache aligned for both the HTTP feed and the offline
+    // fallback, including the empty-feed path.
+    this.cachedFeed = feed;
+    this.gameById.clear();
+    feed.games.forEach((game) => this.gameById.set(String(game.id), game));
   }
 
   /** Synchronous lookup for a game by id. May return undefined if the feed
@@ -545,16 +602,12 @@ export class GameService {
   async loadFeedIfNeeded(): Promise<void> {
     if (this.cachedFeed) return;
     try {
-      const feed = await firstValueFrom(
-        this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL)
-      );
-      this.cachedFeed = normalizeFeed(feed);
-      this.gameById.clear();
-      this.cachedFeed.games.forEach((game) =>
-        this.gameById.set(String(game.id), game)
-      );
+      // Reuse the shared request so normalization, fallback handling, and the
+      // synchronous lookup cache cannot drift apart.
+      await firstValueFrom(this.getThaSpotFeed());
     } catch (e) {
-      // swallow: callers should fallback to remote fetchs already present in other methods
+      // The observable already has a fallback path; retain this guard for
+      // unexpected pipeline failures without breaking callers.
       console.warn('[GameService] failed to pre-cache tha-spot feed', e);
     }
   }
@@ -669,9 +722,19 @@ export class GameService {
       filtered = filtered.filter((g) => filters.favorites.includes(g.id));
     }
     if (filters.genre && filters.genre.toLowerCase() !== 'all') {
-      filtered = filtered.filter(
-        (game) => game.genre?.toLowerCase() === filters.genre.toLowerCase()
-      );
+      const matches = matchingGenresForFacet(filters.genre);
+      filtered = filtered.filter((game) => {
+        const gameGenre = (game.genre ?? '').trim().toLowerCase();
+        if (matches?.has(gameGenre)) return true;
+        // Some curated facets (notably Open World) are intentionally tags
+        // rather than the cabinet's primary genre. Treat those tags as
+        // searchable genre facets without overwriting the primary genre.
+        return (
+          game.tags?.some((tag) =>
+            matches?.has(tag.trim().toLowerCase()) ?? false
+          ) ?? false
+        );
+      });
     }
     if (filters.platform && filters.platform.toLowerCase() !== 'all') {
       const p = filters.platform.toLowerCase();

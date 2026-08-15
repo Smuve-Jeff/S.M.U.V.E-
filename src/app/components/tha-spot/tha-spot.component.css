@@ -1328,8 +1328,14 @@
   display: flex;
   flex-direction: column;
 }
+.executive-sidebar:not(.active) {
+  pointer-events: none;
+  visibility: hidden;
+}
 .executive-sidebar.active {
   right: 0;
+  visibility: visible;
+  pointer-events: auto;
   box-shadow: -15px 0 40px rgba(0, 0, 0, 0.5);
 }
 .sidebar-header {

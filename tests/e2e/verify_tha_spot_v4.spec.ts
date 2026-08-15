@@ -6,10 +6,7 @@ test('Verify Tha Spot live intelligence experience', async ({ page }) => {
   await page.goto('/tha-spot');
 
   await page.getByTestId('intel-toggle').click();
-  await expect(page.getByText('THA SPOT INTEL')).toBeVisible();
-  await expect(page.getByText('STRATEGIC DIRECTIVES')).toBeVisible();
-  await expect(page.getByText('ADVANTAGE METRICS')).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: /Cross-platform moves/i })
-  ).toBeVisible();
+  await expect(page.getByText('STRATEGIC INTEL')).toBeVisible();
+  await expect(page.getByText('OPERATIONAL DIRECTIVES')).toBeVisible();
+  await expect(page.getByText('NEURAL SYNC')).toBeVisible();
 });

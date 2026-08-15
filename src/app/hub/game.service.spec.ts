@@ -187,6 +187,118 @@ describe('GameService', () => {
     expect(games.map((game) => game.name)).toEqual(['Quest Relay']);
   });
 
+  it('merges the Shooting facet across Shooting, FPS, and Shooter genres', async () => {
+    const pending = firstValueFrom(
+      service.listGames({ genre: 'Shooting' }, 'Name')
+    );
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          id: 'shoot-arcade',
+          name: 'Aim Arcade',
+          genre: 'Shooting',
+          tags: [],
+          url: 'https://example.test/shoot-arcade',
+        },
+        {
+          id: 'fps-engine',
+          name: 'First-Person Engine',
+          genre: 'FPS',
+          tags: [],
+          url: 'https://example.test/fps-engine',
+        },
+        {
+          id: 'shmup',
+          name: 'Vertical Shmup',
+          genre: 'Shooter',
+          tags: [],
+          url: 'https://example.test/shmup',
+        },
+        {
+          id: 'platformer',
+          name: 'Side-Step Platformer',
+          genre: 'Platformer',
+          tags: [],
+          url: 'https://example.test/platformer',
+        },
+      ],
+    });
+    const games = await pending;
+
+    // The merged Shooting facet must surface every synonym variant without
+    // touching the game's primary genre.
+    expect(games.map((game) => game.id).sort()).toEqual([
+      'fps-engine',
+      'shmup',
+      'shoot-arcade',
+    ]);
+    expect(games.find((game) => game.id === 'fps-engine')?.genre).toBe('FPS');
+    expect(games.find((game) => game.id === 'shmup')?.genre).toBe('Shooter');
+  });
+
+  it('treats Open World tags as a filter facet without changing primary genres', async () => {
+    const pending = firstValueFrom(service.listGames({ genre: 'Open World' }, 'Name'));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        ...mockFeed.games,
+        {
+          id: '16',
+          name: 'Street Sandbox',
+          genre: 'Action',
+          tags: ['Open World', 'Action'],
+          url: 'https://example.test/street-sandbox',
+        },
+      ],
+    });
+    const games = await pending;
+
+    expect(games.map((game) => game.name)).toEqual(['Street Sandbox']);
+    expect(games[0].genre).toBe('Action');
+  });
+
+  it('repairs the Final Fantasy VI record instead of opening the Final Fantasy IV cabinet', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          ...mockFeed.games[0],
+          id: 'final-fantasy-vi-elite-master',
+          name: 'Final Fantasy VI',
+          url: 'https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html',
+          launchConfig: {
+            embedMode: 'inline',
+            approvedEmbedUrl:
+              'https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html',
+            approvedExternalUrl:
+              'https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html',
+          },
+        },
+      ],
+    });
+    const games = await pending;
+
+    expect(games[0].url).toBe(
+      'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html'
+    );
+    expect(games[0].launchConfig?.approvedEmbedUrl).toBe(games[0].url);
+    expect(games[0].launchConfig?.approvedExternalUrl).toBe(games[0].url);
+  });
+
+  it('caches the fallback feed when the asset is empty', async () => {
+    const pending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [],
+    });
+    const feed = await pending;
+
+    expect(service.listGamesSync()).toEqual(feed.games);
+    expect(service.getGameById(feed.games[0].id)).toEqual(feed.games[0]);
+  });
+
   it('returns the newest games first when requested', async () => {
     const pending = firstValueFrom(service.listGames({}, 'Newest'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
@@ -230,6 +342,50 @@ describe('GameService', () => {
     ]) {
       expect(byId.has(hiddenId)).toBe(false);
     }
+  });
+
+  it('routes FPS and shmup cabinets into the Shooting room', async () => {
+    const pending = firstValueFrom(service.getGamesForRoom('shooting-range'));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const shooters = await pending;
+    const ids = new Set(shooters.map((game) => game.id));
+
+    expect(shooters.length).toBeGreaterThanOrEqual(30);
+    // FPS and shoot-'em-up cabinets must not fall out of the Shooting room.
+    expect(ids.has('doom-ii-elite-master')).toBe(true);
+    expect(ids.has('rtype-arcade-elite')).toBe(true);
+  });
+
+  it('routes Action RPG cabinets into the RPG Vault room', async () => {
+    const pending = firstValueFrom(service.getGamesForRoom('rpg-vault'));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const rpgs = await pending;
+    const ids = new Set(rpgs.map((game) => game.id));
+
+    expect(ids.has('secret-of-mana-snes-elite')).toBe(true);
+    expect(ids.has('mega-man-legends-ps1-elite')).toBe(true);
+  });
+
+  it('replaces stale local art references across the full fallback catalog', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+
+    // The normalizer intentionally omits the eight unverified cabinets listed
+    // in HIDDEN_CATALOG_GAME_IDS rather than exposing known-bad launches.
+    expect(games).toHaveLength(316);
+    expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
+      true
+    );
+    expect(games.some((game) => game.image === 'assets/hub/home-backdrop-command.png')).toBe(
+      true
+    );
   });
 
   it('refreshes the feed when forced', async () => {

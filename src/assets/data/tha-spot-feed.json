@@ -61,7 +61,6 @@
       "spotlight": "Best for artists coming straight from Studio.",
       "rules": {
         "genres": [
-          "Music Battle",
           "Rhythm"
         ],
         "tags": [
@@ -133,7 +132,9 @@
       "spotlight": "Highlights tactical shooters, squad lanes, and live-fire rotations.",
       "rules": {
         "genres": [
-          "Shooting"
+          "Shooting",
+          "FPS",
+          "Shooter"
         ]
       }
     },
@@ -145,7 +146,9 @@
       "spotlight": "Curates every cabinet tagged for RPG progression and boss-run depth.",
       "rules": {
         "tags": [
-          "RPG"
+          "RPG",
+          "Action RPG",
+          "JRPG"
         ]
       }
     },
@@ -170,7 +173,8 @@
         "genres": [
           "Strategy",
           "Puzzle",
-          "Classic"
+          "Classic",
+          "Card Game"
         ]
       }
     },
