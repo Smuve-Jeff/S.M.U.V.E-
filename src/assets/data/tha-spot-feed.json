@@ -1012,7 +1012,7 @@
     {
       "id": "pac-man-elite",
       "name": "Pac-Man",
-      "url": "https://www.gamepix.com/play/pac-man",
+      "url": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
       "genre": "Arcade Classic",
       "description": "The most iconic arcade game in history. High-speed ghost chasing logic.",
       "availability": "Online",
@@ -1028,8 +1028,8 @@
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/pac-man",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10002-pac-man-midway.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
@@ -2481,7 +2481,7 @@
     {
       "id": "tekken-3-elite",
       "name": "Tekken 3",
-      "url": "https://www.gamepix.com/play/tekken-3",
+      "url": "https://www.retrogames.cc/embed/40238-tekken-3.html",
       "genre": "Fighting",
       "description": "The king of iron fist tournament. High-fidelity PS1 emulation with buttery smooth 60fps combat.",
       "availability": "Online",
@@ -2500,9 +2500,9 @@
         "Controller"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/tekken-3",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40238-tekken-3.html",
         "telemetryMode": "origin",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2558,7 +2558,7 @@
     {
       "id": "ctr-ps1-elite",
       "name": "Crash Team Racing",
-      "url": "https://www.gamepix.com/play/crash-team-racing",
+      "url": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
       "genre": "Racing",
       "description": "High-octane marsupial racing. PS1 speed with precision touch controls.",
       "availability": "Online",
@@ -2574,9 +2574,9 @@
         "Controller"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/crash-team-racing",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41687-crash-team-racing.html",
         "telemetryMode": "origin",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2706,7 +2706,7 @@
     {
       "id": "goldeneye-007-elite",
       "name": "GoldenEye 007",
-      "url": "https://www.gamepix.com/play/goldeneye-007",
+      "url": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
       "genre": "Shooting",
       "description": "The definitive N64 shooter. High-fidelity emulation with optimized mouse/touch mapping for runs.",
       "availability": "Online",
@@ -2724,9 +2724,9 @@
         "Controller"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/goldeneye-007",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html",
         "telemetryMode": "origin",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3228,7 +3228,7 @@
     {
       "id": "galaga-classic",
       "name": "Galaga",
-      "url": "https://www.gamepix.com/play/galaga",
+      "url": "https://www.retrogames.cc/embed/10052-galaga-namco.html",
       "genre": "Shooting",
       "description": "Defend the galaxy from the insect-like Galaga aliens in this quintessential fixed shooter.",
       "availability": "Online",
@@ -3243,9 +3243,9 @@
         "Arcade"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/galaga",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10052-galaga-namco.html",
         "telemetryMode": "none",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3263,7 +3263,7 @@
     {
       "id": "mortal-kombat-2-elite",
       "name": "Mortal Kombat II",
-      "url": "https://www.gamepix.com/play/mortal-kombat-2",
+      "url": "https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html",
       "genre": "Fighting",
       "description": "The peak of the MK series. Experience the fatalities and flawless victories in Elite WASM.",
       "availability": "Online",
@@ -3280,8 +3280,8 @@
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mortal-kombat-2",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard"
@@ -3298,7 +3298,7 @@
     {
       "id": "sonic-2-elite",
       "name": "Sonic the Hedgehog 2",
-      "url": "https://www.gamepix.com/play/sonic-the-hedgehog-2",
+      "url": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
       "genre": "Classic",
       "description": "Speed through Chemical Plant Zone with Tails. The definitive Sonic experience.",
       "availability": "Online",
@@ -3316,8 +3316,8 @@
         "WASM"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/sonic-the-hedgehog-2",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Arrow Keys",
@@ -4552,7 +4552,7 @@
     {
       "id": "frogger-arcade",
       "name": "Frogger (Arcade)",
-      "url": "https://www.gamepix.com/play/frogger",
+      "url": "https://www.retrogames.cc/embed/10129-frogger.html",
       "genre": "Arcade",
       "description": "Navigate the chaos or get flattened. S.M.U.V.E. values Absolute timing in the urban jungle.",
       "tags": [
@@ -4566,8 +4566,8 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/frogger",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10129-frogger.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
@@ -4588,7 +4588,7 @@
     {
       "id": "asteroids-arcade",
       "name": "Asteroids (Arcade)",
-      "url": "https://www.gamepix.com/play/asteroids",
+      "url": "https://www.retrogames.cc/embed/10007-asteroids-rev-4.html",
       "genre": "Arcade",
       "description": "Survival in deep space. Shoot everything or be destroyed. S.M.U.V.E. expects Absolute focus.",
       "tags": [
@@ -4602,8 +4602,8 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/asteroids",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10007-asteroids-rev-4.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
@@ -4804,7 +4804,7 @@
     {
       "id": "chrono-trigger-snes-elite",
       "name": "Chrono Trigger",
-      "url": "https://www.gamepix.com/play/chrono-trigger",
+      "url": "https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html",
       "genre": "RPG",
       "description": "A journey through time. Your actions ripple across history. S.M.U.V.E. demands Absolute causality control.",
       "tags": [
@@ -4818,8 +4818,8 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/chrono-trigger",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
@@ -5925,7 +5925,7 @@
     {
       "id": "mario-kart-64-elite",
       "name": "Mario Kart 64 (Elite)",
-      "url": "https://www.gamepix.com/play/mario-kart-64",
+      "url": "https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html",
       "description": "The Absolute racer. S.M.U.V.E. speed levels initialized.",
       "genre": "Racing",
       "rating": 4.9,
@@ -5942,8 +5942,8 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mario-kart-64",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html"
       }
@@ -7535,7 +7535,7 @@
     {
       "id": "super-metroid-elite-master",
       "name": "Super Metroid",
-      "url": "https://www.gamepix.com/play/super-metroid",
+      "url": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html",
       "genre": "Action",
       "description": "The Absolute foundation of the Metroidvania genre. High-fidelity exploration and atmospheric execution.",
       "tags": [
@@ -7551,8 +7551,8 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/super-metroid",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html"
       },
@@ -7586,7 +7586,7 @@
     {
       "id": "final-fantasy-vi-elite-master",
       "name": "Final Fantasy VI",
-      "url": "https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html",
+      "url": "https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html",
       "genre": "RPG",
       "description": "Absolute cinematic RPG storytelling. High-fidelity 16-bit journey through a world of magic and machines.",
       "tags": [
@@ -7602,10 +7602,10 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/4571-final-fantasy-iv-snes.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18817-final-fantasy-iii-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html"
       },
       "availability": "Online"
     },
@@ -7662,7 +7662,7 @@
     {
       "id": "duke-nukem-3d-elite-master",
       "name": "Duke Nukem 3D",
-      "url": "https://www.gamepix.com/play/duke-nukem-3d",
+      "url": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html",
       "genre": "FPS",
       "description": "Absolute interactive FPS attitude. High-fidelity alien-blasting action and urban exploration.",
       "tags": [
@@ -7677,8 +7677,8 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/duke-nukem-3d",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/41697-duke-nukem-3d.html"
       },
@@ -8824,7 +8824,7 @@
     {
       "id": "duck-hunt-nes-elite",
       "name": "Duck Hunt",
-      "url": "https://www.gamepix.com/play/duck-hunt",
+      "url": "https://www.retrogames.cc/embed/17905-duck-hunt-nes.html",
       "genre": "Shooting",
       "description": "The iconic NES light-gun classic. Shoot ducks and endure the laughing dog's taunts in this quintessential Nintendo launch title.",
       "rating": 4.6,
@@ -8842,8 +8842,8 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/duck-hunt",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17905-duck-hunt-nes.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17905-duck-hunt-nes.html"
       },
@@ -9739,7 +9739,7 @@
     {
       "id": "metal-slug-2-arcade-elite",
       "name": "Metal Slug 2",
-      "url": "https://www.gamepix.com/play/metal-slug-2",
+      "url": "https://www.retrogames.cc/embed/14871-metal-slug-2.html",
       "genre": "Action",
       "description": "Legendary run-and-gun with co-op action, humor, and explosive pixel art.",
       "rating": 4.8,
@@ -9756,8 +9756,8 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/metal-slug-2",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/14871-metal-slug-2.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/14871-metal-slug-2.html"
       },
@@ -9891,7 +9891,7 @@
     {
       "id": "gradius-arcade-elite",
       "name": "Gradius",
-      "url": "https://www.gamepix.com/play/gradius",
+      "url": "https://www.retrogames.cc/embed/14861-gradius.html",
       "genre": "Shooter",
       "description": "Konami's Vic Viper fights the Bacterion Empire in the definitive side-scroll shooter.",
       "rating": 4.5,
@@ -9907,8 +9907,8 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/gradius",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/14861-gradius.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/14861-gradius.html"
       },
@@ -10660,7 +10660,7 @@
     {
       "id": "kid-icarus-nes-elite",
       "name": "Kid Icarus",
-      "url": "https://www.gamepix.com/play/kid-icarus",
+      "url": "https://www.retrogames.cc/embed/17929-kid-icarus-usa.html",
       "genre": "Action",
       "description": "Pit flies through the underworld to defeat Medusa in this Nintendo cult classic.",
       "rating": 4.4,
@@ -10677,8 +10677,8 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/kid-icarus",
-        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17929-kid-icarus-usa.html",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17929-kid-icarus-usa.html"
       },

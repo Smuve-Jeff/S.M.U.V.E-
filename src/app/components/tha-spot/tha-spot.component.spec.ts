@@ -253,6 +253,34 @@ describe('ThaSpotComponent', () => {
     expect(image.src).toContain('/assets/hub/home-backdrop-command.png');
   });
 
+  it('only treats remote art as real card art so tiles avoid stale placeholders', () => {
+    const base = {
+      id: 'art-check',
+      name: 'Art Check',
+      genre: 'Arcade',
+      url: 'https://example.test/game',
+    };
+    expect(component.hasRealGameArt({ ...base, image: undefined })).toBe(false);
+    expect(
+      component.hasRealGameArt({
+        ...base,
+        image: '/assets/games/art-check.png',
+      })
+    ).toBe(false);
+    expect(
+      component.hasRealGameArt({
+        ...base,
+        image: 'assets/hub/home-backdrop-command.png',
+      })
+    ).toBe(false);
+    expect(
+      component.hasRealGameArt({
+        ...base,
+        image: 'https://cdn.example.test/art-check.png',
+      })
+    ).toBe(true);
+  });
+
   it('routes untrusted embed hosts to external launch instead of erroring', () => {
     const untrusted = component.resolveLaunchMode({
       id: 'x',

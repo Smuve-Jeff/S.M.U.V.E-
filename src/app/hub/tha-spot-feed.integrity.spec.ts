@@ -134,6 +134,7 @@ describe('Tha Spot feed integrity', () => {
       launchConfig?: {
         approvedEmbedUrl?: string;
         approvedExternalUrl?: string;
+        embedMode?: string;
       };
     }>;
     recommendationRails?: Array<{
@@ -355,6 +356,64 @@ describe('Tha Spot feed integrity', () => {
     }
 
     expect(conflicts).toHaveLength(0);
+  });
+
+  it('keeps the Final Fantasy VI cabinet pointed at Final Fantasy VI', () => {
+    const ff6 = games.find((game) => game.id === 'final-fantasy-vi-elite-master');
+    expect(ff6).toBeTruthy();
+
+    const urls = [
+      ff6?.url ?? '',
+      ff6?.launchConfig?.approvedEmbedUrl ?? '',
+      ff6?.launchConfig?.approvedExternalUrl ?? '',
+    ];
+    for (const url of urls) {
+      expect(url).toContain('24572-final-fantasy-vi');
+      expect(url).not.toContain('final-fantasy-iv');
+    }
+  });
+
+  it('keeps classic-franchise cabinets off gamepix lookalike hosts', () => {
+    // Gamepix hosts fan remakes of these classic franchise titles; each
+    // record must point its primary launch at the authentic retrogames.cc
+    // cabinet and force the explicit external flow.
+    const lookalikeIds = [
+      'pac-man-elite',
+      'galaga-classic',
+      'frogger-arcade',
+      'asteroids-arcade',
+      'gradius-arcade-elite',
+      'metal-slug-2-arcade-elite',
+      'tekken-3-elite',
+      'mortal-kombat-2-elite',
+      'ctr-ps1-elite',
+      'goldeneye-007-elite',
+      'chrono-trigger-snes-elite',
+      'sonic-2-elite',
+      'super-metroid-elite-master',
+      'duke-nukem-3d-elite-master',
+      'duck-hunt-nes-elite',
+      'kid-icarus-nes-elite',
+    ];
+    for (const id of lookalikeIds) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      expect(game?.url).not.toContain('gamepix');
+      expect(game?.launchConfig?.embedMode).toBe('external-only');
+      expect(game?.launchConfig?.approvedEmbedUrl).toContain('retrogames.cc');
+    }
+  });
+
+  it('keeps Mario Kart 64 on the authentic cabinet instead of a fan remake', () => {
+    const mk = games.find((game) => game.id === 'mario-kart-64-elite');
+    expect(mk).toBeTruthy();
+
+    expect(mk?.url).toBe('https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html');
+    expect(mk?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html'
+    );
+    expect(mk?.launchConfig?.embedMode).toBe('external-only');
+    expect(mk?.url).not.toContain('gamepix');
   });
 
   it('keeps the compiled-in fallback feed in sync with the JSON asset', () => {

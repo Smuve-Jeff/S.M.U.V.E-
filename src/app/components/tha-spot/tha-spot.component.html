@@ -568,11 +568,23 @@
               >
                 <div class="card-media">
                   <img
+                    *ngIf="hasRealGameArt(game)"
                     [src]="getGameImage(game)"
                     (error)="onGameImageError($event)"
                     [alt]="game.name"
                     loading="lazy"
                   />
+                  <div
+                    class="card-art-tile"
+                    *ngIf="!hasRealGameArt(game)"
+                    [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
+                    [style.--tile-end]="game.art?.accentEnd || '#04302F'"
+                  >
+                    <span class="card-monogram">{{
+                      game.name.charAt(0)
+                    }}</span>
+                    <span class="card-tile-genre">{{ game.genre }}</span>
+                  </div>
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
@@ -868,11 +880,23 @@
               >
                 <div class="card-media">
                   <img
+                    *ngIf="hasRealGameArt(game)"
                     [src]="getGameImage(game)"
                     (error)="onGameImageError($event)"
                     [alt]="game.name"
                     loading="lazy"
                   />
+                  <div
+                    class="card-art-tile"
+                    *ngIf="!hasRealGameArt(game)"
+                    [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
+                    [style.--tile-end]="game.art?.accentEnd || '#04302F'"
+                  >
+                    <span class="card-monogram">{{
+                      game.name.charAt(0)
+                    }}</span>
+                    <span class="card-tile-genre">{{ game.genre }}</span>
+                  </div>
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
@@ -950,11 +974,21 @@
             >
               <div class="card-media">
                 <img
+                  *ngIf="hasRealGameArt(game)"
                   [src]="getGameImage(game)"
                   (error)="onGameImageError($event)"
                   [alt]="game.name"
                   loading="lazy"
                 />
+                <div
+                  class="card-art-tile"
+                  *ngIf="!hasRealGameArt(game)"
+                  [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
+                  [style.--tile-end]="game.art?.accentEnd || '#04302F'"
+                >
+                  <span class="card-monogram">{{ game.name.charAt(0) }}</span>
+                  <span class="card-tile-genre">{{ game.genre }}</span>
+                </div>
                 <div class="card-overlay">
                   <span class="material-symbols-outlined">play_circle</span>
                 </div>
@@ -2729,7 +2763,7 @@
     <div
       class="mission-background"
       [style.backgroundImage]="
-        'url(' + (selected.image || 'assets/desktop_hub.png') + ')'
+        'url(' + getGameImage(selected) + ')'
       "
     ></div>
     <div class="mission-content animate-enter-mission fit-screen">
@@ -2757,7 +2791,7 @@
         <div class="mission-hero-visual-compact">
           <div class="hero-frame-compact glass-v42-pro">
             <img
-              [src]="selected.image || 'assets/desktop_hub.png'"
+              [src]="getGameImage(selected)"
               [alt]="selected.name"
             />
             <div class="scan-overlay"></div>

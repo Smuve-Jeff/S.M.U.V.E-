@@ -185,6 +185,32 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
     'https://www.retrogames.cc/embed/20466-punch-out-usa.html',
   'ice-hockey-nes-elite':
     'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html',
+  // Classic franchise cabinets: gamepix hosts fan remakes, so the display
+  // URL points at the authentic retrogames.cc cabinet.
+  'pac-man-elite': 'https://www.retrogames.cc/embed/10002-pac-man-midway.html',
+  'galaga-classic': 'https://www.retrogames.cc/embed/10052-galaga-namco.html',
+  'frogger-arcade': 'https://www.retrogames.cc/embed/10129-frogger.html',
+  'asteroids-arcade': 'https://www.retrogames.cc/embed/10007-asteroids-rev-4.html',
+  'gradius-arcade-elite': 'https://www.retrogames.cc/embed/14861-gradius.html',
+  'metal-slug-2-arcade-elite':
+    'https://www.retrogames.cc/embed/14871-metal-slug-2.html',
+  'tekken-3-elite': 'https://www.retrogames.cc/embed/40238-tekken-3.html',
+  'mortal-kombat-2-elite':
+    'https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html',
+  'ctr-ps1-elite': 'https://www.retrogames.cc/embed/41687-crash-team-racing.html',
+  'goldeneye-007-elite':
+    'https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html',
+  'chrono-trigger-snes-elite':
+    'https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html',
+  'sonic-2-elite':
+    'https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html',
+  'super-metroid-elite-master':
+    'https://www.retrogames.cc/embed/18841-super-metroid-usa.html',
+  'duke-nukem-3d-elite-master':
+    'https://www.retrogames.cc/embed/41697-duke-nukem-3d.html',
+  'duck-hunt-nes-elite': 'https://www.retrogames.cc/embed/17905-duck-hunt-nes.html',
+  'kid-icarus-nes-elite':
+    'https://www.retrogames.cc/embed/17929-kid-icarus-usa.html',
 };
 
 /**
@@ -214,6 +240,25 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
   'contra-iii-elite-master',
   'metroid-fusion-gba-elite',
   'excitebike-64-elite',
+  // Gamepix only hosts fan remakes of these classic franchise cabinets;
+  // open the authentic retrogames.cc cabinet instead.
+  'mario-kart-64-elite',
+  'pac-man-elite',
+  'galaga-classic',
+  'frogger-arcade',
+  'asteroids-arcade',
+  'gradius-arcade-elite',
+  'metal-slug-2-arcade-elite',
+  'tekken-3-elite',
+  'mortal-kombat-2-elite',
+  'ctr-ps1-elite',
+  'goldeneye-007-elite',
+  'chrono-trigger-snes-elite',
+  'sonic-2-elite',
+  'super-metroid-elite-master',
+  'duke-nukem-3d-elite-master',
+  'duck-hunt-nes-elite',
+  'kid-icarus-nes-elite',
   // Keep corrected third-party sports cabinets in the explicit external
   // flow; retrogames.cc can refuse nested framing even with a valid target.
   'league-bowling',

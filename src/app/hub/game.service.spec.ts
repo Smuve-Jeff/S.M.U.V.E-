@@ -344,6 +344,32 @@ describe('GameService', () => {
     }
   });
 
+  it('demotes classic-franchise gamepix remakes to authentic external cabinets', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const byId = new Map(games.map((game) => [game.id, game]));
+
+    for (const id of [
+      'pac-man-elite',
+      'galaga-classic',
+      'chrono-trigger-snes-elite',
+      'goldeneye-007-elite',
+      'super-metroid-elite-master',
+      'metal-slug-2-arcade-elite',
+      'tekken-3-elite',
+      'sonic-2-elite',
+    ]) {
+      const game = byId.get(id);
+      expect(game).toBeTruthy();
+      expect(game?.launchConfig?.embedMode).toBe('external-only');
+      expect(game?.url).toContain('retrogames.cc/embed/');
+      expect(game?.url).not.toContain('gamepix');
+    }
+  });
+
   it('routes FPS and shmup cabinets into the Shooting room', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('shooting-range'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(

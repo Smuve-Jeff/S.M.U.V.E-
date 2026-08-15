@@ -1175,6 +1175,20 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return image;
   }
 
+  /**
+   * True only when the catalog row carries real remote art. Stale local paths
+   * and the shared backdrop are not "real" art, so cards render a themed tile
+   * instead of repeating the same dashboard image across the library.
+   */
+  hasRealGameArt(game: Game | null | undefined): boolean {
+    const image = game?.image?.trim();
+    if (!image) return false;
+    if (image.startsWith('/assets/games/') || image.startsWith('assets/games/')) {
+      return false;
+    }
+    return image.startsWith('http');
+  }
+
   onGameImageError(event: Event): void {
     const image = event.target as HTMLImageElement | null;
     if (!image || image.dataset['catalogFallbackApplied'] === 'true') return;
