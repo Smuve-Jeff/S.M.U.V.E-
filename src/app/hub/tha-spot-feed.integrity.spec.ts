@@ -124,6 +124,7 @@ describe('Tha Spot feed integrity', () => {
       description?: string;
       genre?: string;
       availability?: string;
+      multiplayerType?: string;
       tags?: string[];
       url?: string;
       launchConfig?: {
@@ -214,6 +215,29 @@ describe('Tha Spot feed integrity', () => {
   it('has no duplicate game IDs in the catalog', () => {
     const ids = games.map((g) => g.id ?? '');
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('tags every Server-multiplayer cabinet for the PvP / co-op rooms', () => {
+    // Server-multiplayer cabinets surface the quick-lobby, challenge, and
+    // split-screen surfaces. Each one must also carry a room-facing tag so
+    // Versus Night (PvP/Multiplayer) and/or Online Co-op (Co-op) can surface
+    // them, otherwise a live multiplayer game would be invisible to both
+    // multiplayer rooms.
+    const multiplayerGames = games.filter(
+      (g) => g.multiplayerType === 'Server'
+    );
+    expect(multiplayerGames.length).toBeGreaterThanOrEqual(10);
+
+    const untagged: string[] = [];
+    for (const game of multiplayerGames) {
+      const tags = new Set((game.tags ?? []).map((t) => t.toLowerCase()));
+      const roomFacing =
+        tags.has('multiplayer') || tags.has('pvp') || tags.has('co-op');
+      if (!roomFacing) {
+        untagged.push(`${game.id} (${game.name})`);
+      }
+    }
+    expect(untagged).toHaveLength(0);
   });
 
   it('has no retrogames.cc embed URL ID shared between different game entries', () => {

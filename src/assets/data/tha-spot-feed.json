@@ -503,7 +503,8 @@
         "FPS",
         "Multiplayer",
         "WebGL",
-        "Modern"
+        "Modern",
+        "PvP"
       ],
       "badgeIds": [
         "modern"
@@ -511,7 +512,8 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://venge.io/",
         "embedMode": "inline"
-      }
+      },
+      "multiplayerType": "Server"
     },
     {
       "id": "slow-roads-webgl",
@@ -1056,7 +1058,9 @@
         "Arcade",
         "Classic",
         "Fighting",
-        "station-cabinet"
+        "station-cabinet",
+        "Multiplayer",
+        "PvP"
       ],
       "badgeIds": [
         "tournament-live"
@@ -5169,7 +5173,8 @@
         "Multiplayer",
         "Modern",
         "WebGL",
-        "Elite"
+        "Elite",
+        "PvP"
       ],
       "badgeIds": [
         "featured",
@@ -5192,7 +5197,8 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/krunker-io-web-elite.png"
+      "image": "/assets/games/krunker-io-web-elite.png",
+      "multiplayerType": "Server"
     },
     {
       "id": "venge-io-web-elite",
@@ -5205,7 +5211,8 @@
         "Multiplayer",
         "Modern",
         "WebGL",
-        "Elite"
+        "Elite",
+        "PvP"
       ],
       "badgeIds": [
         "featured",
@@ -5228,7 +5235,8 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/venge-io-web-elite.png"
+      "image": "/assets/games/venge-io-web-elite.png",
+      "multiplayerType": "Server"
     },
     {
       "id": "shell-shockers-web-elite",
@@ -5241,7 +5249,8 @@
         "Multiplayer",
         "Modern",
         "WebGL",
-        "Elite"
+        "Elite",
+        "PvP"
       ],
       "badgeIds": [
         "featured",
@@ -5264,7 +5273,8 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/shell-shockers-web-elite.png"
+      "image": "/assets/games/shell-shockers-web-elite.png",
+      "multiplayerType": "Server"
     },
     {
       "id": "ev-io-web-elite",
@@ -5277,7 +5287,8 @@
         "Multiplayer",
         "Modern",
         "WebGL",
-        "Elite"
+        "Elite",
+        "PvP"
       ],
       "badgeIds": [
         "featured",
@@ -5300,7 +5311,8 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/ev-io-web-elite.png"
+      "image": "/assets/games/ev-io-web-elite.png",
+      "multiplayerType": "Server"
     },
     {
       "id": "slow-roads-web-elite",
@@ -5816,7 +5828,10 @@
         "MOBA",
         "Strategy",
         "Community",
-        "Elite"
+        "Elite",
+        "Multiplayer",
+        "PvP",
+        "Co-op"
       ],
       "badgeIds": [
         "new-drop",
@@ -5825,7 +5840,8 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://moba.js.org/",
         "embedMode": "inline"
-      }
+      },
+      "multiplayerType": "Server"
     },
     {
       "id": "god-of-war-ps2-elite",
@@ -7806,7 +7822,8 @@
         "Multiplayer",
         "WebGL",
         "Elite",
-        "Modern"
+        "Modern",
+        "PvP"
       ],
       "badgeIds": [
         "elite",
@@ -7817,7 +7834,8 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/venge-io",
         "embedMode": "inline"
       },
-      "availability": "Online"
+      "availability": "Online",
+      "multiplayerType": "Server"
     },
     {
       "id": "shell-shockers-pro-elite",
@@ -7830,7 +7848,8 @@
         "Multiplayer",
         "WebGL",
         "Elite",
-        "Modern"
+        "Modern",
+        "PvP"
       ],
       "badgeIds": [
         "elite",
@@ -7840,7 +7859,8 @@
         "approvedEmbedUrl": "https://www.gamepix.com/play/shell-shockers",
         "embedMode": "inline"
       },
-      "availability": "Online"
+      "availability": "Online",
+      "multiplayerType": "Server"
     },
     {
       "id": "contra-iii-elite-master",
@@ -10745,7 +10765,8 @@
         "Multiplayer",
         "Web",
         "Kart",
-        "Combat"
+        "Combat",
+        "PvP"
       ],
       "badgeIds": [
         "modern",
@@ -10763,7 +10784,8 @@
         "eyebrow": "Multiplayer",
         "accentStart": "#ff3366",
         "accentEnd": "#cc0033"
-      }
+      },
+      "multiplayerType": "Server"
     },
     {
       "id": "drift-hunters-web-elite",
@@ -10813,7 +10835,8 @@
         "io",
         "Multiplayer",
         "Web",
-        "Competitive"
+        "Competitive",
+        "PvP"
       ],
       "badgeIds": [
         "modern",
@@ -10831,7 +10854,8 @@
         "eyebrow": "io Games",
         "accentStart": "#3399ff",
         "accentEnd": "#0066cc"
-      }
+      },
+      "multiplayerType": "Server"
     },
     {
       "id": "fruit-ninja-web-elite",
@@ -11186,6 +11210,221 @@
         "accentStart": "#ff66cc",
         "accentEnd": "#cc3399"
       }
+    },
+    {
+      "genre": "Arcade",
+      "availability": "Online",
+      "playersOnline": 9000,
+      "rating": 4.8,
+      "tags": [
+        "IO",
+        "Multiplayer",
+        "PvP",
+        "Casual",
+        "Arcade"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://slither.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "LIVE ARENA",
+        "accentStart": "#22c55e",
+        "accentEnd": "#0e7c7b"
+      },
+      "id": "slither-io-multiplayer",
+      "name": "Slither.io",
+      "url": "https://slither.io/",
+      "description": "Grow your serpent, outmaneuver rivals, and top the live leaderboard. Massively multiplayer arcade dominance.",
+      "badgeIds": [
+        "classic",
+        "trending"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Arcade",
+      "availability": "Online",
+      "playersOnline": 7500,
+      "rating": 4.7,
+      "tags": [
+        "IO",
+        "Multiplayer",
+        "PvP",
+        "Casual",
+        "Arcade"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://agar.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "CELLULAR WARFARE",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#22c55e"
+      },
+      "id": "agar-io-multiplayer",
+      "name": "Agar.io",
+      "url": "https://agar.io/",
+      "description": "Absorb cells, split to hunt, and dominate the real-time multiplayer grid. The original .io battle royale.",
+      "badgeIds": [
+        "classic"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Arcade",
+      "availability": "Online",
+      "playersOnline": 6000,
+      "rating": 4.7,
+      "tags": [
+        "IO",
+        "Multiplayer",
+        "PvP",
+        "Shooting",
+        "Arcade"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://diep.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "TANK COMMAND",
+        "accentStart": "#3b82f6",
+        "accentEnd": "#0e7c7b"
+      },
+      "id": "diep-io-multiplayer",
+      "name": "Diep.io",
+      "url": "https://diep.io/",
+      "description": "Upgrade your tank, hunt shapes, and battle real players in a persistent online arena.",
+      "badgeIds": [
+        "trending"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Party",
+      "availability": "Online",
+      "playersOnline": 12000,
+      "rating": 4.9,
+      "tags": [
+        "Multiplayer",
+        "PvP",
+        "Party",
+        "Drawing",
+        "Casual"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://skribbl.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "DRAW-OFF",
+        "accentStart": "#ec4899",
+        "accentEnd": "#f59e0b"
+      },
+      "id": "skribbl-io-multiplayer",
+      "name": "Skribbl.io",
+      "url": "https://skribbl.io/",
+      "description": "Draw and guess with friends in rotating word rounds. Live party lobby, real-time guesses.",
+      "badgeIds": [
+        "trending",
+        "staff-pick"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Party",
+      "availability": "Online",
+      "playersOnline": 8000,
+      "rating": 4.8,
+      "tags": [
+        "Multiplayer",
+        "Co-op",
+        "Party",
+        "Drawing",
+        "Casual"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://garticphone.com/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "PARTY CHAOS",
+        "accentStart": "#a855f7",
+        "accentEnd": "#ec4899"
+      },
+      "id": "gartic-phone-multiplayer",
+      "name": "Gartic Phone",
+      "url": "https://garticphone.com/",
+      "description": "Whisper-down-the-lane drawing game for big lobbies. Miscommunication = maximum chaos.",
+      "badgeIds": [
+        "staff-pick",
+        "new-drop"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Survival",
+      "availability": "Online",
+      "playersOnline": 5500,
+      "rating": 4.6,
+      "tags": [
+        "IO",
+        "Multiplayer",
+        "PvP",
+        "Co-op",
+        "Survival"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://taming.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "WILD LANDS",
+        "accentStart": "#84cc16",
+        "accentEnd": "#0e7c7b"
+      },
+      "id": "taming-io-multiplayer",
+      "name": "Taming.io",
+      "url": "https://taming.io/",
+      "description": "Survive, build, tame pets, and battle rivals in a living online wilderness.",
+      "badgeIds": [
+        "new-drop"
+      ],
+      "multiplayerType": "Server"
+    },
+    {
+      "genre": "Shooting",
+      "availability": "Online",
+      "playersOnline": 11000,
+      "rating": 4.8,
+      "tags": [
+        "IO",
+        "Multiplayer",
+        "PvP",
+        "Battle Royale",
+        "Shooting",
+        "Co-op"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://zombsroyale.io/",
+        "embedMode": "inline"
+      },
+      "art": {
+        "eyebrow": "100-PLAYER DROP",
+        "accentStart": "#ef4444",
+        "accentEnd": "#f59e0b"
+      },
+      "id": "zombsroyale-io-multiplayer",
+      "name": "ZombsRoyale.io",
+      "url": "https://zombsroyale.io/",
+      "description": "Drop in, loot up, and outlast 100 real players. 2D battle royale with squad queues.",
+      "badgeIds": [
+        "trending",
+        "tournament-live"
+      ],
+      "multiplayerType": "Server"
     }
   ],
   "recommendationRails": [
