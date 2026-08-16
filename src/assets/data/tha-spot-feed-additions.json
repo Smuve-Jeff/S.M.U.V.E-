@@ -1,0 +1,259 @@
+{
+  "games": [
+    {
+      "id": "valorant",
+      "name": "VALORANT",
+      "url": "https://playvalorant.com/",
+      "description": "Team-based tactical FPS with agent abilities and competitive ranked ladders.",
+      "genre": "FPS",
+      "rating": 4.6,
+      "playersOnline": 120000,
+      "availability": "Online",
+      "tags": ["FPS", "Multiplayer", "Competitive", "PvP", "Tactical"],
+      "badgeIds": ["next-gen", "modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://playvalorant.com/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "league-of-legends",
+      "name": "League of Legends",
+      "url": "https://www.leagueoflegends.com/",
+      "description": "Fast-paced 5v5 MOBA focusing on team play, strategy, and meta-driven champions.",
+      "genre": "MOBA",
+      "rating": 4.5,
+      "playersOnline": 800000,
+      "availability": "Online",
+      "tags": ["MOBA", "Multiplayer", "Competitive", "Teamplay"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.leagueoflegends.com/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "dota2",
+      "name": "Dota 2",
+      "url": "https://www.dota2.com/",
+      "description": "Deep, strategic 5v5 MOBA with large hero pool and competitive scene.",
+      "genre": "MOBA",
+      "rating": 4.4,
+      "playersOnline": 500000,
+      "availability": "Online",
+      "tags": ["MOBA", "Competitive", "Teamplay"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.dota2.com/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "apex-legends",
+      "name": "Apex Legends",
+      "url": "https://www.ea.com/games/apex-legends",
+      "description": "Hero-based battle royale with fast movement, squad play, and seasonal content.",
+      "genre": "Battle Royale",
+      "rating": 4.4,
+      "playersOnline": 300000,
+      "availability": "Online",
+      "tags": ["Battle Royale", "Squad", "Multiplayer"],
+      "badgeIds": ["next-gen"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.ea.com/games/apex-legends",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "rocket-league",
+      "name": "Rocket League",
+      "url": "https://www.rocketleague.com/",
+      "description": "High-skill vehicular soccer with fast online matches and crossplay support.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 200000,
+      "availability": "Online",
+      "tags": ["Sports", "Multiplayer", "Competitive", "Crossplay"],
+      "badgeIds": ["modern", "featured"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.rocketleague.com/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "fortnite",
+      "name": "Fortnite",
+      "url": "https://www.epicgames.com/fortnite/",
+      "description": "Iconic battle royale with building, creative modes, and crossplatform social features.",
+      "genre": "Battle Royale",
+      "rating": 4.3,
+      "playersOnline": 1000000,
+      "availability": "Online",
+      "tags": ["Battle Royale", "Multiplayer", "Creative", "Crossplay"],
+      "badgeIds": ["next-gen"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.epicgames.com/fortnite/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "minecraft",
+      "name": "Minecraft",
+      "url": "https://www.minecraft.net/",
+      "description": "Sandbox world-building, shared servers, and endless cooperative/slash competitive play.",
+      "genre": "Sandbox",
+      "rating": 4.8,
+      "playersOnline": 1400000,
+      "availability": "Online",
+      "tags": ["Sandbox", "Multiplayer", "Co-op", "Creative"],
+      "badgeIds": ["classic", "next-gen"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.minecraft.net/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "among-us",
+      "name": "Among Us",
+      "url": "https://www.innersloth.com/gameAmongUs.php",
+      "description": "Social deduction multiplayer for casual groups — great for parties and community events.",
+      "genre": "Social",
+      "rating": 4.2,
+      "playersOnline": 90000,
+      "availability": "Online",
+      "tags": ["Social", "Party", "Multiplayer"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.innersloth.com/gameAmongUs.php",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "gta-online",
+      "name": "GTA Online",
+      "url": "https://www.rockstargames.com/GTAOnline",
+      "description": "Open-world multiplayer with missions, heists, and emergent social gameplay.",
+      "genre": "Open World",
+      "rating": 4.1,
+      "playersOnline": 250000,
+      "availability": "Online",
+      "tags": ["Open World", "Multiplayer", "Social"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.rockstargames.com/GTAOnline",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "sea-of-thieves",
+      "name": "Sea of Thieves",
+      "url": "https://www.seaofthieves.com/",
+      "description": "Shared-world pirate co-op with emergent encounters and crew-based progression.",
+      "genre": "Co-op",
+      "rating": 4.0,
+      "playersOnline": 40000,
+      "availability": "Online",
+      "tags": ["Co-op", "Open World", "Multiplayer"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.seaofthieves.com/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "destiny-2",
+      "name": "Destiny 2",
+      "url": "https://www.bungie.net/",
+      "description": "Shared-world shooter with PvE raids, PvP arenas, and seasonal live content.",
+      "genre": "MMO Shooter",
+      "rating": 4.2,
+      "playersOnline": 120000,
+      "availability": "Online",
+      "tags": ["MMO", "Shooter", "Co-op", "PvE", "PvP"],
+      "badgeIds": ["next-gen"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.bungie.net/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "rainbow-six-siege",
+      "name": "Tom Clancy's Rainbow Six Siege",
+      "url": "https://www.ubisoft.com/en-us/game/rainbow-six/siege",
+      "description": "Tactical 5v5 sieges emphasizing team coordination and gadget-driven meta.",
+      "genre": "Tactical Shooter",
+      "rating": 4.3,
+      "playersOnline": 70000,
+      "availability": "Online",
+      "tags": ["Tactical", "FPS", "Multiplayer", "Competitive"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.ubisoft.com/en-us/game/rainbow-six/siege",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "cs2",
+      "name": "Counter-Strike 2",
+      "url": "https://www.counter-strike.net/",
+      "description": "Precision-driven team shooter with high-skill ceiling and deep competitive systems.",
+      "genre": "FPS",
+      "rating": 4.7,
+      "playersOnline": 600000,
+      "availability": "Online",
+      "tags": ["FPS", "Competitive", "Multiplayer"],
+      "badgeIds": ["next-gen"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.counter-strike.net/",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "fifa-24",
+      "name": "FIFA 24",
+      "url": "https://www.ea.com/games/fifa",
+      "description": "Realistic football simulation with online seasons, clubs, and competitive matchmaking.",
+      "genre": "Sports",
+      "rating": 4.0,
+      "playersOnline": 150000,
+      "availability": "Online",
+      "tags": ["Sports", "Multiplayer", "Competitive"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.ea.com/games/fifa",
+        "embedMode": "external"
+      }
+    },
+    {
+      "id": "warframe",
+      "name": "Warframe",
+      "url": "https://www.warframe.com/",
+      "description": "Cooperative action-looter with deep progression, frequent updates, and community events.",
+      "genre": "Co-op",
+      "rating": 4.3,
+      "playersOnline": 90000,
+      "availability": "Online",
+      "tags": ["Co-op", "Action", "MMO"],
+      "badgeIds": ["modern"],
+      "multiplayerType": "Server",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.warframe.com/",
+        "embedMode": "external"
+      }
+    }
+  ]
+}
