@@ -43,7 +43,7 @@
       "rating": 4.4,
       "playersOnline": 500000,
       "availability": "Online",
-      "tags": ["MOBA", "Competitive", "Teamplay"],
+      "tags": ["MOBA", "Competitive", "Teamplay", "PvP"],
       "badgeIds": ["modern"],
       "multiplayerType": "Server",
       "launchConfig": {

@@ -416,6 +416,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40424-final-fantasy-ix-usa-disc-1.html',
       },
       availability: 'Online',
+      image: '/assets/games/final-fantasy-ix-elite-master.svg',
     },
     {
       id: 'venge-io-webgl',
@@ -433,6 +434,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
       },
       multiplayerType: 'Server',
+      image: '/assets/games/venge-io-webgl.svg',
     },
     {
       id: 'slow-roads-webgl',
@@ -450,6 +452,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedExternalUrl: 'https://slowroads.io/',
       },
+      image: '/assets/games/slow-roads-webgl.svg',
     },
     {
       id: 'battlefield',
@@ -486,7 +489,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#10b981',
         accentEnd: '#064e3b',
       },
-      image: '/assets/games/battlefield.png',
+      image: '/assets/games/battlefield.svg',
     },
     {
       id: 'remix-arena',
@@ -523,7 +526,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#22c55e',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/remix-arena.png',
+      image: '/assets/games/remix-arena.svg',
     },
     {
       id: 'neon-drift',
@@ -557,7 +560,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#38bdf8',
         accentEnd: '#0c4a6e',
       },
-      image: '/assets/games/neon-drift.png',
+      image: '/assets/games/neon-drift.svg',
     },
     {
       id: 'vinyl-vault',
@@ -591,7 +594,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f59e0b',
         accentEnd: '#78350f',
       },
-      image: '/assets/games/vinyl-vault.png',
+      image: '/assets/games/vinyl-vault.svg',
     },
     {
       id: 'tempo-lockdown',
@@ -625,7 +628,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#34d399',
         accentEnd: '#065f46',
       },
-      image: '/assets/games/tempo-lockdown.png',
+      image: '/assets/games/tempo-lockdown.svg',
     },
     {
       id: 'hextris',
@@ -660,7 +663,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#06b6d4',
         accentEnd: '#2563eb',
       },
-      image: '/assets/games/hextris.png',
+      image: '/assets/games/hextris.svg',
     },
     {
       id: 'game-2048',
@@ -696,7 +699,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f97316',
         accentEnd: '#ea580c',
       },
-      image: '/assets/games/game-2048.png',
+      image: '/assets/games/game-2048.svg',
     },
     {
       id: 'music-rush',
@@ -731,7 +734,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec4899',
         accentEnd: '#db2777',
       },
-      image: '/assets/games/music-rush.png',
+      image: '/assets/games/music-rush.svg',
     },
     {
       id: 'pac-man-elite',
@@ -756,7 +759,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#facc15',
         accentEnd: '#a16207',
       },
-      image: '/assets/games/pac-man-elite.png',
+      image: '/assets/games/pac-man-elite.svg',
     },
     {
       id: 'super-street-fighter',
@@ -792,7 +795,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentEnd: '#c2410c',
       },
       multiplayerType: 'Server',
-      image: '/assets/games/super-street-fighter.png',
+      image: '/assets/games/super-street-fighter.svg',
     },
     {
       id: 'chess-classic',
@@ -826,7 +829,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f8fafc',
         accentEnd: '#1e293b',
       },
-      image: '/assets/games/chess-classic.png',
+      image: '/assets/games/chess-classic.svg',
     },
     {
       id: 'basket-random',
@@ -860,7 +863,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f97316',
         accentEnd: '#7c2d12',
       },
-      image: '/assets/games/basket-random.png',
+      image: '/assets/games/basket-random.svg',
     },
     {
       id: 'soccer-random',
@@ -895,7 +898,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentEnd: '#064e3b',
       },
       multiplayerType: 'Server',
-      image: '/assets/games/soccer-random.png',
+      image: '/assets/games/soccer-random.svg',
     },
     {
       id: 'solitaire-classic',
@@ -929,7 +932,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#b91c1c',
       },
-      image: '/assets/games/solitaire-classic.png',
+      image: '/assets/games/solitaire-classic.svg',
     },
     {
       id: 'cipher-surge',
@@ -965,7 +968,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#8b5cf6',
         accentEnd: '#4c1d95',
       },
-      image: '/assets/games/cipher-surge.png',
+      image: '/assets/games/cipher-surge.svg',
     },
     {
       id: 'moto-x3m',
@@ -1000,7 +1003,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f97316',
         accentEnd: '#9a3412',
       },
-      image: '/assets/games/moto-x3m.png',
+      image: '/assets/games/moto-x3m.svg',
     },
     {
       id: 'tomb-runner',
@@ -1035,7 +1038,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#14b8a6',
         accentEnd: '#155e75',
       },
-      image: '/assets/games/tomb-runner.png',
+      image: '/assets/games/tomb-runner.svg',
     },
     {
       id: '8-ball-billiards',
@@ -1069,7 +1072,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#14b8a6',
         accentEnd: '#164e63',
       },
-      image: '/assets/games/8-ball-billiards.png',
+      image: '/assets/games/8-ball-billiards.svg',
     },
     {
       id: 'mahjong',
@@ -1103,7 +1106,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#a855f7',
         accentEnd: '#312e81',
       },
-      image: '/assets/games/mahjong.png',
+      image: '/assets/games/mahjong.svg',
     },
     {
       id: 'tactical-squad',
@@ -1136,7 +1139,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/tactical-squad.png',
+      image: '/assets/games/tactical-squad.svg',
     },
     {
       id: 'battle-city',
@@ -1161,7 +1164,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fbbf24',
         accentEnd: '#78350f',
       },
-      image: '/assets/games/battle-city.png',
+      image: '/assets/games/battle-city.svg',
     },
     {
       id: 'league-bowling',
@@ -1186,7 +1189,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#60a5fa',
         accentEnd: '#1d4ed8',
       },
-      image: '/assets/games/league-bowling.png',
+      image: '/assets/games/league-bowling.svg',
     },
     {
       id: 'special-strike',
@@ -1219,7 +1222,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/special-strike.png',
+      image: '/assets/games/special-strike.svg',
     },
     {
       id: 'retro-space-invaders',
@@ -1248,7 +1251,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/retro-space-invaders.png',
+      image: '/assets/games/retro-space-invaders.svg',
     },
     {
       id: 'basketball-master',
@@ -1276,7 +1279,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/basketball-master.png',
+      image: '/assets/games/basketball-master.svg',
     },
     {
       id: 'sniper-mission',
@@ -1304,7 +1307,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/sniper-mission.png',
+      image: '/assets/games/sniper-mission.svg',
     },
     {
       id: 'tower-defense',
@@ -1331,7 +1334,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/tower-defense.png',
+      image: '/assets/games/tower-defense.svg',
     },
     {
       id: 'ludo-legend',
@@ -1359,7 +1362,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/ludo-legend.png',
+      image: '/assets/games/ludo-legend.svg',
     },
     {
       id: 'zombie-idle-defense',
@@ -1390,7 +1393,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/zombie-idle-defense.png',
+      image: '/assets/games/zombie-idle-defense.svg',
     },
     {
       id: 'arena-clash',
@@ -1425,7 +1428,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/arena-clash.png',
+      image: '/assets/games/arena-clash.svg',
     },
     {
       id: 'mythic-raid-online',
@@ -1460,7 +1463,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#8b5cf6',
         accentEnd: '#4c1d95',
       },
-      image: '/assets/games/mythic-raid-online.png',
+      image: '/assets/games/mythic-raid-online.svg',
     },
     {
       id: 'doom',
@@ -1487,7 +1490,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/doom.png',
+      image: '/assets/games/doom.svg',
     },
     {
       id: 'mario-classic',
@@ -1514,7 +1517,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/mario-classic.png',
+      image: '/assets/games/mario-classic.svg',
     },
     {
       id: 'gta-elite-wasm',
@@ -1541,7 +1544,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#facc15',
         accentEnd: '#713f12',
       },
-      image: '/assets/games/gta-elite-wasm.png',
+      image: '/assets/games/gta-elite-wasm.svg',
     },
     {
       id: 'nba-pro-3d',
@@ -1568,7 +1571,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ea580c',
         accentEnd: '#7c2d12',
       },
-      image: '/assets/games/nba-pro-3d.png',
+      image: '/assets/games/nba-pro-3d.svg',
     },
     {
       id: 'nfl-redzone-rush',
@@ -1595,7 +1598,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#2563eb',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/nfl-redzone-rush.png',
+      image: '/assets/games/nfl-redzone-rush.svg',
     },
     {
       id: 'dbz-elite-wasm',
@@ -1622,7 +1625,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f97316',
         accentEnd: '#7c2d12',
       },
-      image: '/assets/games/dbz-elite-wasm.png',
+      image: '/assets/games/dbz-elite-wasm.svg',
     },
     {
       id: 'halo-combat-evolved',
@@ -1651,7 +1654,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#16a34a',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/halo-combat-evolved.png',
+      image: '/assets/games/halo-combat-evolved.svg',
     },
     {
       id: 'boxing-heavyweight',
@@ -1678,7 +1681,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#dc2626',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/boxing-heavyweight.png',
+      image: '/assets/games/boxing-heavyweight.svg',
     },
     {
       id: 'tekken-3-elite',
@@ -1705,7 +1708,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/tekken-3-elite.png',
+      image: '/assets/games/tekken-3-elite.svg',
     },
     {
       id: 'smash-bros-elite',
@@ -1732,7 +1735,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#3b82f6',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/smash-bros-elite.png',
+      image: '/assets/games/smash-bros-elite.svg',
     },
     {
       id: 'ctr-ps1-elite',
@@ -1759,7 +1762,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f97316',
         accentEnd: '#7c2d12',
       },
-      image: '/assets/games/ctr-ps1-elite.png',
+      image: '/assets/games/ctr-ps1-elite.svg',
     },
     {
       id: 'zelda-oot-elite',
@@ -1786,7 +1789,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#16a34a',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/zelda-oot-elite.png',
+      image: '/assets/games/zelda-oot-elite.svg',
     },
     {
       id: 'sfii-world-warrior',
@@ -1811,7 +1814,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f87171',
         accentEnd: '#b91c1c',
       },
-      image: '/assets/games/sfii-world-warrior.png',
+      image: '/assets/games/sfii-world-warrior.svg',
     },
     {
       id: '3d-chess-elite',
@@ -1838,7 +1841,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/3d-chess-elite.png',
+      image: '/assets/games/3d-chess-elite.svg',
     },
     {
       id: 'goldeneye-007-elite',
@@ -1865,7 +1868,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fbbf24',
         accentEnd: '#92400e',
       },
-      image: '/assets/games/goldeneye-007-elite.png',
+      image: '/assets/games/goldeneye-007-elite.svg',
     },
     {
       id: 'thps2-ps1-elite',
@@ -1892,7 +1895,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#8b5cf6',
         accentEnd: '#4c1d95',
       },
-      image: '/assets/games/thps2-ps1-elite.png',
+      image: '/assets/games/thps2-ps1-elite.svg',
     },
     {
       id: 'parappa-ps1-elite',
@@ -1919,7 +1922,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec4899',
         accentEnd: '#831843',
       },
-      image: '/assets/games/parappa-ps1-elite.png',
+      image: '/assets/games/parappa-ps1-elite.svg',
     },
     {
       id: 'sonic-genesis-elite',
@@ -1946,7 +1949,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#3b82f6',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/sonic-genesis-elite.png',
+      image: '/assets/games/sonic-genesis-elite.svg',
     },
     {
       id: 'tetris-classic-elite',
@@ -1973,7 +1976,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ec5b13',
         accentEnd: '#a855f7',
       },
-      image: '/assets/games/tetris-classic-elite.png',
+      image: '/assets/games/tetris-classic-elite.svg',
     },
     {
       id: 'castlevania-sotn-elite',
@@ -2000,7 +2003,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#7f1d1d',
         accentEnd: '#450a0a',
       },
-      image: '/assets/games/castlevania-sotn-elite.png',
+      image: '/assets/games/castlevania-sotn-elite.svg',
     },
     {
       id: 'wipeout-ps1-elite',
@@ -2027,7 +2030,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0ea5e9',
         accentEnd: '#0c4a6e',
       },
-      image: '/assets/games/wipeout-ps1-elite.png',
+      image: '/assets/games/wipeout-ps1-elite.svg',
     },
     {
       id: 'sf2-genesis-elite',
@@ -2054,7 +2057,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fbbf24',
         accentEnd: '#b45309',
       },
-      image: '/assets/games/sf2-genesis-elite.png',
+      image: '/assets/games/sf2-genesis-elite.svg',
     },
     {
       id: 'wolf3d-inline-elite',
@@ -2081,7 +2084,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/wolf3d-inline-elite.png',
+      image: '/assets/games/wolf3d-inline-elite.svg',
     },
     {
       id: 'double-dragon-nes',
@@ -2108,7 +2111,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#b91c1c',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/double-dragon-nes.png',
+      image: '/assets/games/double-dragon-nes.svg',
     },
     {
       id: 'track-and-field-nes',
@@ -2135,7 +2138,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#991b1b',
       },
-      image: '/assets/games/track-and-field-nes.png',
+      image: '/assets/games/track-and-field-nes.svg',
     },
     {
       id: 'pokemon-yellow-elite',
@@ -2162,7 +2165,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f87171',
         accentEnd: '#dc2626',
       },
-      image: '/assets/games/pokemon-yellow-elite.png',
+      image: '/assets/games/pokemon-yellow-elite.svg',
     },
     {
       id: 'final-fantasy-nes',
@@ -2189,7 +2192,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#60a5fa',
         accentEnd: '#1d4ed8',
       },
-      image: '/assets/games/final-fantasy-nes.png',
+      image: '/assets/games/final-fantasy-nes.svg',
     },
     {
       id: 'mike-tyson-punch-out',
@@ -2216,7 +2219,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fbbf24',
         accentEnd: '#b45309',
       },
-      image: '/assets/games/mike-tyson-punch-out.png',
+      image: '/assets/games/mike-tyson-punch-out.svg',
     },
     {
       id: 'galaga-classic',
@@ -2243,7 +2246,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#3b82f6',
         accentEnd: '#1e40af',
       },
-      image: '/assets/games/galaga-classic.png',
+      image: '/assets/games/galaga-classic.svg',
     },
     {
       id: 'mortal-kombat-2-elite',
@@ -2268,7 +2271,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#b91c1c',
         accentEnd: '#450a0a',
       },
-      image: '/assets/games/mortal-kombat-2-elite.png',
+      image: '/assets/games/mortal-kombat-2-elite.svg',
     },
     {
       id: 'sonic-2-elite',
@@ -2293,7 +2296,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#2563eb',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/sonic-2-elite.png',
+      image: '/assets/games/sonic-2-elite.svg',
     },
     {
       id: 'tekken-4-tribute',
@@ -2318,7 +2321,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#7c3aed',
       },
-      image: '/assets/games/tekken-4-tribute.png',
+      image: '/assets/games/tekken-4-tribute.svg',
     },
     {
       id: 'final-fantasy-vii-elite',
@@ -2343,7 +2346,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#38bdf8',
         accentEnd: '#075985',
       },
-      image: '/assets/games/final-fantasy-vii-elite.png',
+      image: '/assets/games/final-fantasy-vii-elite.svg',
     },
     {
       id: 'gta-san-andreas-elite',
@@ -2368,7 +2371,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fb7185',
         accentEnd: '#e11d48',
       },
-      image: '/assets/games/gta-san-andreas-elite.png',
+      image: '/assets/games/gta-san-andreas-elite.svg',
     },
     {
       id: 'madden-nfl-2000-elite',
@@ -2393,7 +2396,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#60a5fa',
         accentEnd: '#1d4ed8',
       },
-      image: '/assets/games/madden-nfl-2000-elite.png',
+      image: '/assets/games/madden-nfl-2000-elite.svg',
     },
     {
       id: 'nba-2k1-elite',
@@ -2418,7 +2421,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f87171',
         accentEnd: '#b91c1c',
       },
-      image: '/assets/games/nba-2k1-elite.png',
+      image: '/assets/games/nba-2k1-elite.svg',
     },
     {
       id: 'wwf-no-mercy-elite',
@@ -2443,7 +2446,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#a78bfa',
         accentEnd: '#5b21b6',
       },
-      image: '/assets/games/wwf-no-mercy-elite.png',
+      image: '/assets/games/wwf-no-mercy-elite.svg',
     },
     {
       id: 'marvel-vs-capcom-elite',
@@ -2468,7 +2471,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#fbbf24',
         accentEnd: '#78350f',
       },
-      image: '/assets/games/marvel-vs-capcom-elite.png',
+      image: '/assets/games/marvel-vs-capcom-elite.svg',
     },
     {
       id: 'tmnt-turtles-in-time-elite',
@@ -2493,7 +2496,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#10b981',
         accentEnd: '#064e3b',
       },
-      image: '/assets/games/tmnt-turtles-in-time-elite.png',
+      image: '/assets/games/tmnt-turtles-in-time-elite.svg',
     },
     {
       id: 'tekken-5-elite',
@@ -2518,7 +2521,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/tekken-5-elite.png',
+      image: '/assets/games/tekken-5-elite.svg',
     },
     {
       id: 'mgs2-elite',
@@ -2543,7 +2546,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/mgs2-elite.png',
+      image: '/assets/games/mgs2-elite.svg',
     },
     {
       id: 'sonic-adventure-2-elite',
@@ -2568,7 +2571,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/sonic-adventure-2-elite.png',
+      image: '/assets/games/sonic-adventure-2-elite.svg',
     },
     {
       id: 'crazy-taxi-elite',
@@ -2593,7 +2596,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/crazy-taxi-elite.png',
+      image: '/assets/games/crazy-taxi-elite.svg',
     },
     {
       id: 'shadow-colossus-elite',
@@ -2618,7 +2621,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/shadow-colossus-elite.png',
+      image: '/assets/games/shadow-colossus-elite.svg',
     },
     {
       id: 'thps4-elite',
@@ -2643,7 +2646,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/thps4-elite.png',
+      image: '/assets/games/thps4-elite.svg',
     },
     {
       id: 'soulcalibur-2-elite',
@@ -2668,7 +2671,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/soulcalibur-2-elite.png',
+      image: '/assets/games/soulcalibur-2-elite.svg',
     },
     {
       id: 'sfiii-3rd-strike-elite',
@@ -2693,7 +2696,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/sfiii-3rd-strike-elite.png',
+      image: '/assets/games/sfiii-3rd-strike-elite.svg',
     },
     {
       id: 'mvc2-elite',
@@ -2718,7 +2721,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/mvc2-elite.png',
+      image: '/assets/games/mvc2-elite.svg',
     },
     {
       id: 'mgs-elite',
@@ -2743,7 +2746,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/mgs-elite.png',
+      image: '/assets/games/mgs-elite.svg',
     },
     {
       id: 'gt2-elite',
@@ -2768,7 +2771,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/gt2-elite.png',
+      image: '/assets/games/gt2-elite.svg',
     },
     {
       id: 'gta-vice-city-elite',
@@ -2793,7 +2796,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/gta-vice-city-elite.png',
+      image: '/assets/games/gta-vice-city-elite.svg',
     },
     {
       id: 'ffx-elite',
@@ -2818,7 +2821,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ffx-elite.png',
+      image: '/assets/games/ffx-elite.svg',
     },
     {
       id: 're4-elite',
@@ -2843,7 +2846,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/re4-elite.png',
+      image: '/assets/games/re4-elite.svg',
     },
     {
       id: 'burnout-3-elite',
@@ -2868,7 +2871,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/burnout-3-elite.png',
+      image: '/assets/games/burnout-3-elite.svg',
     },
     {
       id: 'gta-iii-elite',
@@ -2893,7 +2896,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/gta-iii-elite.png',
+      image: '/assets/games/gta-iii-elite.svg',
     },
     {
       id: 'spider-man-2-elite',
@@ -2918,7 +2921,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/spider-man-2-elite.png',
+      image: '/assets/games/spider-man-2-elite.svg',
     },
     {
       id: 'jak-and-daxter-elite',
@@ -2943,7 +2946,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/jak-and-daxter-elite.png',
+      image: '/assets/games/jak-and-daxter-elite.svg',
     },
     {
       id: 'driver-parallel-lines-elite',
@@ -2968,7 +2971,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/driver-parallel-lines-elite.png',
+      image: '/assets/games/driver-parallel-lines-elite.svg',
     },
     {
       id: 'true-crime-la-elite',
@@ -2993,7 +2996,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/true-crime-la-elite.png',
+      image: '/assets/games/true-crime-la-elite.svg',
     },
     {
       id: 'majoras-mask-elite',
@@ -3018,7 +3021,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/majoras-mask-elite.png',
+      image: '/assets/games/majoras-mask-elite.svg',
     },
     {
       id: 'prince-of-persia-sands-elite',
@@ -3043,7 +3046,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/prince-of-persia-sands-elite.png',
+      image: '/assets/games/prince-of-persia-sands-elite.svg',
     },
     {
       id: 'beyond-good-evil-elite',
@@ -3068,7 +3071,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/beyond-good-evil-elite.png',
+      image: '/assets/games/beyond-good-evil-elite.svg',
     },
     {
       id: 'ico-elite',
@@ -3093,7 +3096,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ico-elite.png',
+      image: '/assets/games/ico-elite.svg',
     },
     {
       id: 'okami-elite',
@@ -3118,7 +3121,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/okami-elite.png',
+      image: '/assets/games/okami-elite.svg',
     },
     {
       id: 'donkey-kong-arcade',
@@ -3143,7 +3146,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/donkey-kong-arcade.png',
+      image: '/assets/games/donkey-kong-arcade.svg',
     },
     {
       id: 'frogger-arcade',
@@ -3168,7 +3171,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/frogger-arcade.png',
+      image: '/assets/games/frogger-arcade.svg',
     },
     {
       id: 'asteroids-arcade',
@@ -3193,7 +3196,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/asteroids-arcade.png',
+      image: '/assets/games/asteroids-arcade.svg',
     },
     {
       id: 'space-invaders-arcade',
@@ -3218,7 +3221,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/space-invaders-arcade.png',
+      image: '/assets/games/space-invaders-arcade.svg',
     },
     {
       id: 'madden-2004-elite',
@@ -3243,7 +3246,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/madden-2004-elite.png',
+      image: '/assets/games/madden-2004-elite.svg',
     },
     {
       id: 'fifa-2005-elite',
@@ -3268,7 +3271,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/fifa-2005-elite.png',
+      image: '/assets/games/fifa-2005-elite.svg',
     },
     {
       id: 'ssx-tricky-elite',
@@ -3293,7 +3296,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ssx-tricky-elite.png',
+      image: '/assets/games/ssx-tricky-elite.svg',
     },
     {
       id: 'tiger-woods-2004-elite',
@@ -3318,7 +3321,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/tiger-woods-2004-elite.png',
+      image: '/assets/games/tiger-woods-2004-elite.svg',
     },
     {
       id: 'chrono-trigger-snes-elite',
@@ -3343,7 +3346,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/chrono-trigger-snes-elite.png',
+      image: '/assets/games/chrono-trigger-snes-elite.svg',
     },
     {
       id: 'smt-nocturne-ps2-elite',
@@ -3368,7 +3371,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/smt-nocturne-ps2-elite.png',
+      image: '/assets/games/smt-nocturne-ps2-elite.svg',
     },
     {
       id: 'nfs-most-wanted-ps2-elite',
@@ -3393,7 +3396,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/nfs-most-wanted-ps2-elite.png',
+      image: '/assets/games/nfs-most-wanted-ps2-elite.svg',
     },
     {
       id: 'mgs3-snake-eater-ps2-elite',
@@ -3418,7 +3421,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/mgs3-snake-eater-ps2-elite.png',
+      image: '/assets/games/mgs3-snake-eater-ps2-elite.svg',
     },
     {
       id: 'gt4-ps2-sim-elite',
@@ -3443,7 +3446,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/gt4-ps2-sim-elite.png',
+      image: '/assets/games/gt4-ps2-sim-elite.svg',
     },
     {
       id: 'kingdom-hearts-2-ps2-elite',
@@ -3468,7 +3471,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/kingdom-hearts-2-ps2-elite.png',
+      image: '/assets/games/kingdom-hearts-2-ps2-elite.svg',
     },
     {
       id: 'devil-may-cry-3-ps2-elite',
@@ -3493,7 +3496,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/devil-may-cry-3-ps2-elite.png',
+      image: '/assets/games/devil-may-cry-3-ps2-elite.svg',
     },
     {
       id: 'half-life-ps2-elite',
@@ -3518,7 +3521,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/half-life-ps2-elite.png',
+      image: '/assets/games/half-life-ps2-elite.svg',
     },
     {
       id: 'unreal-tournament-dc-elite',
@@ -3543,7 +3546,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/unreal-tournament-dc-elite.png',
+      image: '/assets/games/unreal-tournament-dc-elite.svg',
     },
     {
       id: 'moh-frontline-ps2-elite',
@@ -3568,7 +3571,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/moh-frontline-ps2-elite.png',
+      image: '/assets/games/moh-frontline-ps2-elite.svg',
     },
     {
       id: 'krunker-io-web-elite',
@@ -3592,7 +3595,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/krunker-io-web-elite.png',
+      image: '/assets/games/krunker-io-web-elite.svg',
       multiplayerType: 'Server',
     },
     {
@@ -3617,7 +3620,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/venge-io-web-elite.png',
+      image: '/assets/games/venge-io-web-elite.svg',
       multiplayerType: 'Server',
     },
     {
@@ -3642,7 +3645,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/shell-shockers-web-elite.png',
+      image: '/assets/games/shell-shockers-web-elite.svg',
       multiplayerType: 'Server',
     },
     {
@@ -3667,7 +3670,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ev-io-web-elite.png',
+      image: '/assets/games/ev-io-web-elite.svg',
       multiplayerType: 'Server',
     },
     {
@@ -3692,7 +3695,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/slow-roads-web-elite.png',
+      image: '/assets/games/slow-roads-web-elite.svg',
     },
     {
       id: 'halo-2-xbox-elite',
@@ -3717,7 +3720,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/halo-2-xbox-elite.png',
+      image: '/assets/games/halo-2-xbox-elite.svg',
     },
     {
       id: 'kotor-xbox-elite',
@@ -3742,7 +3745,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/kotor-xbox-elite.png',
+      image: '/assets/games/kotor-xbox-elite.svg',
     },
     {
       id: 'ninja-gaiden-xbox-elite',
@@ -3767,7 +3770,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ninja-gaiden-xbox-elite.png',
+      image: '/assets/games/ninja-gaiden-xbox-elite.svg',
     },
     {
       id: 'ratchet-uy-ps2-elite',
@@ -3792,7 +3795,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/ratchet-uy-ps2-elite.png',
+      image: '/assets/games/ratchet-uy-ps2-elite.svg',
     },
     {
       id: 'sly2-ps2-elite',
@@ -3817,7 +3820,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/sly2-ps2-elite.png',
+      image: '/assets/games/sly2-ps2-elite.svg',
     },
     {
       id: 'katamari-ps2-elite',
@@ -3842,7 +3845,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/katamari-ps2-elite.png',
+      image: '/assets/games/katamari-ps2-elite.svg',
     },
     {
       id: 'persona4-ps2-elite',
@@ -3867,7 +3870,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#af25f4',
         accentEnd: '#3d2b1f',
       },
-      image: '/assets/games/persona4-ps2-elite.png',
+      image: '/assets/games/persona4-ps2-elite.svg',
     },
     {
       id: 'silent-hill-2-elite',
@@ -3892,7 +3895,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4b5563',
         accentEnd: '#111827',
       },
-      image: '/assets/games/silent-hill-2-elite.png',
+      image: '/assets/games/silent-hill-2-elite.svg',
     },
     {
       id: 'def-jam-ffny-elite',
@@ -3917,7 +3920,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#b91c1c',
         accentEnd: '#450a0a',
       },
-      image: '/assets/games/def-jam-ffny-elite.png',
+      image: '/assets/games/def-jam-ffny-elite.svg',
     },
     {
       id: 'need-for-speed-underground-2-elite',
@@ -3942,7 +3945,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#3b82f6',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/need-for-speed-underground-2-elite.png',
+      image: '/assets/games/need-for-speed-underground-2-elite.svg',
     },
     {
       id: 'minecraft-classic',
@@ -3955,7 +3958,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       availability: 'Online',
       tags: ['Multiplayer', 'Creative', 'Sandbox'],
       badgeIds: ['classic', 'featured'],
-      image: '/assets/games/minecraft-classic.png',
+      image: '/assets/games/minecraft-classic.svg',
       launchConfig: {
         approvedEmbedUrl: 'https://classic.minecraft.net/',
         embedMode: 'inline',
@@ -3972,7 +3975,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       availability: 'Online',
       tags: ['Classic', 'Retro', 'Adventure'],
       badgeIds: ['classic'],
-      image: '/assets/games/prince-of-persia.png',
+      image: '/assets/games/prince-of-persia.svg',
       launchConfig: {
         approvedEmbedUrl: 'https://princejs.com/',
         embedMode: 'inline',
@@ -3989,7 +3992,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       availability: 'Online',
       tags: ['Fighting', 'Versus', 'Classic'],
       badgeIds: ['classic', 'tournament-live'],
-      image: '/assets/games/street-fighter-2-ce.png',
+      image: '/assets/games/street-fighter-2-ce.svg',
       launchConfig: {
         approvedEmbedUrl: 'https://www.retrogames.cc/embed/21891-street-fighter-ii-champion-edition-snes.html',
         embedMode: 'inline',
@@ -4013,6 +4016,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41231-nba-street-vol-2-usa.html',
       },
+      image: '/assets/games/nba-street-v2-elite.svg',
     },
     {
       id: 'moba-legends-community',
@@ -4030,6 +4034,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
       },
       multiplayerType: 'Server',
+      image: '/assets/games/moba-legends-community.svg',
     },
     {
       id: 'god-of-war-ps2-elite',
@@ -4048,6 +4053,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41220-god-of-war-usa.html',
       },
+      image: '/assets/games/god-of-war-ps2-elite.svg',
     },
     {
       id: 'tekken-5-elite-alt',
@@ -4066,6 +4072,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41258-tekken-5-usa.html',
       },
+      image: '/assets/games/tekken-5-elite-alt.svg',
     },
     {
       id: 'dragon-ball-z-budokai-3-elite',
@@ -4084,6 +4091,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41261-dragon-ball-z-budokai-3-usa.html',
       },
+      image: '/assets/games/dragon-ball-z-budokai-3-elite.svg',
     },
     {
       id: 'mario-kart-64-elite',
@@ -4102,6 +4110,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         secure_mode: 'wasm',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html',
       },
+      image: '/assets/games/mario-kart-64-elite.svg',
     },
     {
       id: 'gta-2-elite',
@@ -4119,7 +4128,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#22c55e',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/gta2-elite.png',
+      image: '/assets/games/gta-2-elite.svg',
       launchConfig: {
         approvedEmbedUrl: 'https://www.retrogames.cc/embed/28676-grand-theft-auto-2-ps1.html',
         embedMode: 'inline',
@@ -4143,7 +4152,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/gta-london-elite.png',
+      image: '/assets/games/gta-london-1969-elite.svg',
       launchConfig: {
         approvedEmbedUrl: 'https://www.retrogames.cc/embed/28674-grand-theft-auto-london-1969-ps1.html',
         embedMode: 'inline',
@@ -4166,6 +4175,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40579-resident-evil-3-nemesis.html',
       },
       availability: 'Online',
+      image: '/assets/games/resident-evil-3-elite-master.svg',
     },
     {
       id: 'marvel-vs-capcom-2-elite-master',
@@ -4182,6 +4192,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10055-marvel-vs-capcom-2-new-age-of-heroes.html',
       },
       availability: 'Online',
+      image: '/assets/games/marvel-vs-capcom-2-elite-master.svg',
     },
     {
       id: 'tekken-tag-tournament-elite-master',
@@ -4198,6 +4209,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10043-tekken-tag-tournament.html',
       },
       availability: 'Online',
+      image: '/assets/games/tekken-tag-tournament-elite-master.svg',
     },
     {
       id: 'capcom-vs-snk-2-elite-master',
@@ -4214,6 +4226,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10061-capcom-vs-snk-2-millionaire-fighting-2001.html',
       },
       availability: 'Online',
+      image: '/assets/games/capcom-vs-snk-2-elite-master.svg',
     },
     {
       id: 'soulcalibur-ii-elite-master',
@@ -4230,6 +4243,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10071-soulcalibur-ii.html',
       },
       availability: 'Online',
+      image: '/assets/games/soulcalibur-ii-elite-master.svg',
     },
     {
       id: 'metal-gear-solid-2-elite-master',
@@ -4246,6 +4260,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/42774-metal-gear-solid-2-sons-of-liberty.html',
       },
       availability: 'Online',
+      image: '/assets/games/metal-gear-solid-2-elite-master.svg',
     },
     {
       id: 'final-fantasy-x-elite-master',
@@ -4262,6 +4277,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/42778-final-fantasy-x.html',
       },
       availability: 'Online',
+      image: '/assets/games/final-fantasy-x-elite-master.svg',
     },
     {
       id: 'tekken8-tribute-elite',
@@ -4279,7 +4295,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/tekken8-elite.png',
+      image: '/assets/games/tekken8-tribute-elite.svg',
       launchConfig: {
         approvedExternalUrl: '',
         embedMode: 'inline',
@@ -4301,6 +4317,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41030-tony-hawk-s-pro-skater-3.html',
       },
       availability: 'Online',
+      image: '/assets/games/tony-hawk-3-elite-master.svg',
     },
     {
       id: 'jak-and-daxter-elite-master',
@@ -4317,6 +4334,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/42784-jak-and-daxter-the-precursor-legacy.html',
       },
       availability: 'Online',
+      image: '/assets/games/jak-and-daxter-elite-master.svg',
     },
     {
       id: 'mortal-kombat-1-tribute-elite',
@@ -4334,7 +4352,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#b91c1c',
         accentEnd: '#450a0a',
       },
-      image: '/assets/games/mk1-elite.png',
+      image: '/assets/games/mortal-kombat-1-tribute-elite.svg',
       launchConfig: {
         approvedExternalUrl: '',
         embedMode: 'inline',
@@ -4356,6 +4374,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html',
       },
       availability: 'Online',
+      image: '/assets/games/splinter-cell-elite-master.svg',
     },
     {
       id: 'halo-2-elite-elite-master',
@@ -4372,6 +4391,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/42793-halo-2.html',
       },
       availability: 'Online',
+      image: '/assets/games/halo-2-elite-elite-master.svg',
     },
     {
       id: 'metal-gear-msx-elite',
@@ -4389,6 +4409,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'external-only',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/19318-metal-gear-japan.html',
       },
+      image: '/assets/games/metal-gear-msx-elite.svg',
     },
     {
       id: 'vampire-killer-msx-elite',
@@ -4406,6 +4427,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'external-only',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html',
       },
+      image: '/assets/games/vampire-killer-msx-elite.svg',
     },
     {
       id: 'tecmo-bowl-elite',
@@ -4429,7 +4451,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ef4444',
         accentEnd: '#991b1b',
       },
-      image: 'https://www.retrogames.cc/assets/images/screenshots/nes/tecmo-bowl-usa.png',
+      image: '/assets/games/tecmo-bowl-elite.svg',
     },
     {
       id: 'nba-jam-elite',
@@ -4453,7 +4475,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#f59e0b',
         accentEnd: '#b45309',
       },
-      image: 'https://www.retrogames.cc/assets/images/screenshots/arcade/nba-jam-usa.png',
+      image: '/assets/games/nba-jam-elite.svg',
     },
     {
       id: 'nba-live-2000-elite',
@@ -4477,7 +4499,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#3b82f6',
         accentEnd: '#1d4ed8',
       },
-      image: 'https://www.retrogames.cc/assets/images/screenshots/psx/nba-live-2000-usa.png',
+      image: '/assets/games/nba-live-2000-elite.svg',
     },
     {
       id: 'double-dragon-classic-elite',
@@ -4505,7 +4527,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#b91c1c',
         accentEnd: '#7f1d1d',
       },
-      image: '/assets/games/double-dragon.png',
+      image: '/assets/games/double-dragon-classic-elite.svg',
     },
     {
       id: 'dbz-buus-fury-classic-elite',
@@ -4533,7 +4555,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ea580c',
         accentEnd: '#9a3412',
       },
-      image: '/assets/games/dbz-buu.png',
+      image: '/assets/games/dbz-buus-fury-classic-elite.svg',
     },
     {
       id: '10-yard-fight-classic-elite',
@@ -4561,7 +4583,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#15803d',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/10-yard-fight.png',
+      image: '/assets/games/10-yard-fight-classic-elite.svg',
     },
     {
       id: 'megaman-classic-elite',
@@ -4589,7 +4611,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#2563eb',
         accentEnd: '#1e3a8a',
       },
-      image: '/assets/games/mega-man.png',
+      image: '/assets/games/megaman-classic-elite.svg',
     },
     {
       id: 'zelda-1-classic-elite',
@@ -4617,7 +4639,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#16a34a',
         accentEnd: '#14532d',
       },
-      image: '/assets/games/zelda-1.png',
+      image: '/assets/games/zelda-1-classic-elite.svg',
     },
     {
       id: 'gta-1-classic',
@@ -4645,7 +4667,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/gta-1-classic.png',
+      image: '/assets/games/gta-1-classic.svg',
     },
     {
       id: 'gta-2-classic',
@@ -4673,7 +4695,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/gta-2-classic.png',
+      image: '/assets/games/gta-2-classic.svg',
     },
     {
       id: 'gta-sa-classic',
@@ -4701,7 +4723,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/gta-sa-classic.png',
+      image: '/assets/games/gta-sa-classic.svg',
     },
     {
       id: 'ff1-classic',
@@ -4729,7 +4751,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/ff1-classic.png',
+      image: '/assets/games/ff1-classic.svg',
     },
     {
       id: 'ff7-classic',
@@ -4757,7 +4779,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/ff7-classic.png',
+      image: '/assets/games/ff7-classic.svg',
     },
     {
       id: 'ff10-classic',
@@ -4785,7 +4807,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/ff10-classic.png',
+      image: '/assets/games/ff10-classic.svg',
     },
     {
       id: 'sf2-classic',
@@ -4813,7 +4835,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/sf2-classic.png',
+      image: '/assets/games/sf2-classic.svg',
     },
     {
       id: 'sf3-classic',
@@ -4841,7 +4863,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/sf3-classic.png',
+      image: '/assets/games/sf3-classic.svg',
     },
     {
       id: 'dd2-classic',
@@ -4869,7 +4891,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/dd2-classic.png',
+      image: '/assets/games/dd2-classic.svg',
     },
     {
       id: 'dbz-sw-classic',
@@ -4897,7 +4919,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/dbz-sw-classic.png',
+      image: '/assets/games/dbz-sw-classic.svg',
     },
     {
       id: 'mmx-classic',
@@ -4925,7 +4947,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/mmx-classic.png',
+      image: '/assets/games/mmx-classic.svg',
     },
     {
       id: 'zelda-oot-classic',
@@ -4953,7 +4975,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/zelda-oot-classic.png',
+      image: '/assets/games/zelda-oot-classic.svg',
     },
     {
       id: 'sonic1-classic',
@@ -4981,7 +5003,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/sonic1-classic.png',
+      image: '/assets/games/sonic1-classic.svg',
     },
     {
       id: 'sonic2-classic',
@@ -5009,7 +5031,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/sonic2-classic.png',
+      image: '/assets/games/sonic2-classic.svg',
     },
     {
       id: 'madden-2004-classic',
@@ -5037,7 +5059,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/madden-2004-classic.png',
+      image: '/assets/games/madden-2004-classic.svg',
     },
     {
       id: 'tecmo-bowl-classic',
@@ -5065,7 +5087,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/tecmo-bowl-classic.png',
+      image: '/assets/games/tecmo-bowl-classic.svg',
     },
     {
       id: 'punch-out-classic',
@@ -5093,7 +5115,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#4ade80',
         accentEnd: '#166534',
       },
-      image: '/assets/games/punch-out-classic.png',
+      image: '/assets/games/punch-out-classic.svg',
     },
     {
       id: 'pokemon-emerald-elite-master',
@@ -5110,6 +5132,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/22421-pokemon-emerald-version-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/pokemon-emerald-elite-master.svg',
     },
     {
       id: 'doom-ii-elite-master',
@@ -5126,6 +5149,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41696-doom-ii.html',
       },
       availability: 'Online',
+      image: '/assets/games/doom-ii-elite-master.svg',
     },
     {
       id: 'metal-slug-3-elite-master',
@@ -5142,6 +5166,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/9084-metal-slug-3.html',
       },
       availability: 'Online',
+      image: '/assets/games/metal-slug-3-elite-master.svg',
     },
     {
       id: 'umk3-elite-master',
@@ -5158,6 +5183,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html',
       },
       availability: 'Online',
+      image: '/assets/games/umk3-elite-master.svg',
     },
     {
       id: 'zelda-alttp-elite-master',
@@ -5174,6 +5200,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18826-legend-of-zelda-the-a-link-to-the-past-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/zelda-alttp-elite-master.svg',
     },
     {
       id: 'nba-hangtime-elite-master',
@@ -5190,6 +5217,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/17391-nba-hangtime-usa-rev-l1-1.html',
       },
       availability: 'Online',
+      image: '/assets/games/nba-hangtime-elite-master.svg',
     },
     {
       id: 'super-metroid-elite-master',
@@ -5206,6 +5234,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18841-super-metroid-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/super-metroid-elite-master.svg',
     },
     {
       id: 'pokemon-fire-red-elite-master',
@@ -5222,6 +5251,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/22422-pokemon-fire-red-version-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/pokemon-fire-red-elite-master.svg',
     },
     {
       id: 'final-fantasy-vi-elite-master',
@@ -5238,6 +5268,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html',
       },
       availability: 'Online',
+      image: '/assets/games/final-fantasy-vi-elite-master.svg',
     },
     {
       id: 'megaman-x-elite-master',
@@ -5254,6 +5285,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/17302-mega-man-x-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/megaman-x-elite-master.svg',
     },
     {
       id: 'sonic-cd-elite-master',
@@ -5270,6 +5302,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18991-sonic-the-hedgehog-cd-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/sonic-cd-elite-master.svg',
     },
     {
       id: 'duke-nukem-3d-elite-master',
@@ -5286,6 +5319,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41697-duke-nukem-3d.html',
       },
       availability: 'Online',
+      image: '/assets/games/duke-nukem-3d-elite-master.svg',
     },
     {
       id: 'metal-slug-x-elite-master',
@@ -5302,6 +5336,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html',
       },
       availability: 'Online',
+      image: '/assets/games/metal-slug-x-elite-master.svg',
     },
     {
       id: 'golden-axe-elite-master',
@@ -5318,6 +5353,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8682-golden-axe.html',
       },
       availability: 'Online',
+      image: '/assets/games/golden-axe-elite-master.svg',
     },
     {
       id: 'streets-of-rage-2-elite-master',
@@ -5334,6 +5370,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/19020-streets-of-rage-2-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/streets-of-rage-2-elite-master.svg',
     },
     {
       id: 'nfl-blitz-elite-master',
@@ -5350,6 +5387,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/17395-nfl-blitz-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/nfl-blitz-elite-master.svg',
     },
     {
       id: 'castlevania-aria-elite-master',
@@ -5366,6 +5404,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/22402-castlevania-aria-of-sorrow-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/castlevania-aria-elite-master.svg',
     },
     {
       id: 'venge-io-pro-elite',
@@ -5381,6 +5420,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       availability: 'Online',
       multiplayerType: 'Server',
+      image: '/assets/games/venge-io-pro-elite.svg',
     },
     {
       id: 'shell-shockers-pro-elite',
@@ -5396,6 +5436,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
       availability: 'Online',
       multiplayerType: 'Server',
+      image: '/assets/games/shell-shockers-pro-elite.svg',
     },
     {
       id: 'contra-iii-elite-master',
@@ -5412,6 +5453,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/contra-iii-elite-master.svg',
     },
     {
       id: 'castlevania-iv-elite-master',
@@ -5428,6 +5470,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/castlevania-iv-elite-master.svg',
     },
     {
       id: 'mega-man-x3-elite-master',
@@ -5444,6 +5487,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/mega-man-x3-elite-master.svg',
     },
     {
       id: 'kirby-super-star-elite-master',
@@ -5460,6 +5504,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/kirby-super-star-elite-master.svg',
     },
     {
       id: 'super-mario-world-elite-master',
@@ -5476,6 +5521,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18842-super-mario-world-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/super-mario-world-elite-master.svg',
     },
     {
       id: 'donkey-kong-country-elite-master',
@@ -5492,6 +5538,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/donkey-kong-country-elite-master.svg',
     },
     {
       id: 'sonic-the-hedgehog-3-elite-master',
@@ -5508,6 +5555,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18848-sonic-the-hedgehog-3-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/sonic-the-hedgehog-3-elite-master.svg',
     },
     {
       id: 'aladdin-elite-master',
@@ -5524,6 +5572,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18821-disney-s-aladdin-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/aladdin-elite-master.svg',
     },
     {
       id: 'the-lion-king-elite-master',
@@ -5540,6 +5589,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18822-disney-s-the-lion-king-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/the-lion-king-elite-master.svg',
     },
     {
       id: 'earthworm-jim-elite-master',
@@ -5556,6 +5606,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18810-earthworm-jim-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/earthworm-jim-elite-master.svg',
     },
     {
       id: 'star-fox-elite-master',
@@ -5572,6 +5623,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18836-star-fox-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/star-fox-elite-master.svg',
     },
     {
       id: 'f-zero-elite-master',
@@ -5588,6 +5640,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/18815-f-zero-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/f-zero-elite-master.svg',
     },
     {
       id: 'star-fox-64-elite-master',
@@ -5604,6 +5657,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32356-star-fox-64-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/star-fox-64-elite-master.svg',
     },
     {
       id: 'banjo-kazooie-elite-master',
@@ -5620,6 +5674,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/banjo-kazooie-elite-master.svg',
     },
     {
       id: 'crash-bandicoot-elite-master',
@@ -5636,6 +5691,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41684-crash-bandicoot.html',
       },
       availability: 'Online',
+      image: '/assets/games/crash-bandicoot-elite-master.svg',
     },
     {
       id: 'spyro-the-dragon-elite-master',
@@ -5652,6 +5708,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40645-spyro-the-dragon.html',
       },
       availability: 'Online',
+      image: '/assets/games/spyro-the-dragon-elite-master.svg',
     },
     {
       id: 'resident-evil-2-elite-master',
@@ -5668,6 +5725,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40578-resident-evil-2-dual-shock-edition.html',
       },
       availability: 'Online',
+      image: '/assets/games/resident-evil-2-elite-master.svg',
     },
     {
       id: 'silent-hill-elite-master',
@@ -5684,6 +5742,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40590-silent-hill.html',
       },
       availability: 'Online',
+      image: '/assets/games/silent-hill-elite-master.svg',
     },
     {
       id: 'metal-gear-solid-elite-master',
@@ -5700,6 +5759,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40552-metal-gear-solid.html',
       },
       availability: 'Online',
+      image: '/assets/games/metal-gear-solid-elite-master.svg',
     },
     {
       id: 'gran-turismo-2-elite-master',
@@ -5716,6 +5776,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41460-gran-turismo-2.html',
       },
       availability: 'Online',
+      image: '/assets/games/gran-turismo-2-elite-master.svg',
     },
     {
       id: 'dino-crisis-elite-master',
@@ -5732,6 +5793,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40191-dino-crisis.html',
       },
       availability: 'Online',
+      image: '/assets/games/dino-crisis-elite-master.svg',
     },
     {
       id: 'medievil-elite-master',
@@ -5748,6 +5810,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41026-medievil.html',
       },
       availability: 'Online',
+      image: '/assets/games/medievil-elite-master.svg',
     },
     {
       id: 'twisted-metal-2-elite-master',
@@ -5764,6 +5827,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40623-twisted-metal-2.html',
       },
       availability: 'Online',
+      image: '/assets/games/twisted-metal-2-elite-master.svg',
     },
     {
       id: 'doom-64-elite-master',
@@ -5780,6 +5844,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32168-doom-64-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/doom-64-elite-master.svg',
     },
     {
       id: 'perfect-dark-elite-master',
@@ -5796,6 +5861,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32351-perfect-dark-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/perfect-dark-elite-master.svg',
     },
     {
       id: 'turok-2-elite-master',
@@ -5812,6 +5878,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32419-turok-2-seeds-of-evil-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/turok-2-elite-master.svg',
     },
     {
       id: 'wave-race-64-elite-master',
@@ -5828,6 +5895,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32431-wave-race-64-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/wave-race-64-elite-master.svg',
     },
     {
       id: '1080-snowboarding-elite-master',
@@ -5844,6 +5912,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32098-1080-snowboarding-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/1080-snowboarding-elite-master.svg',
     },
     {
       id: 'mario-golf-elite-master',
@@ -5860,6 +5929,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32267-mario-golf-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/mario-golf-elite-master.svg',
     },
     {
       id: 'mario-tennis-elite-master',
@@ -5876,6 +5946,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32268-mario-tennis-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/mario-tennis-elite-master.svg',
     },
     {
       id: 'pokemon-stadium-2-elite-master',
@@ -5892,6 +5963,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/32336-pokemon-stadium-2-usa.html',
       },
       availability: 'Online',
+      image: '/assets/games/pokemon-stadium-2-elite-master.svg',
     },
     {
       id: 'tony-hawk-2-master-elite-master',
@@ -5908,6 +5980,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html',
       },
       availability: 'Online',
+      image: '/assets/games/tony-hawk-2-master-elite-master.svg',
     },
     {
       id: 'spider-man-ps1-elite-master',
@@ -5924,6 +5997,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/40595-spider-man.html',
       },
       availability: 'Online',
+      image: '/assets/games/spider-man-ps1-elite-master.svg',
     },
     {
       id: 'x-men-vs-street-fighter-elite-master',
@@ -5940,6 +6014,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8407-x-men-vs-street-fighter-961004.html',
       },
       availability: 'Online',
+      image: '/assets/games/x-men-vs-street-fighter-elite-master.svg',
     },
     {
       id: 'marvel-super-heroes-elite-master',
@@ -5956,6 +6031,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8403-marvel-super-heroes-951024.html',
       },
       availability: 'Online',
+      image: '/assets/games/marvel-super-heroes-elite-master.svg',
     },
     {
       id: 'street-fighter-alpha-3-elite-master',
@@ -5972,6 +6048,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/10006-street-fighter-alpha-3-980904.html',
       },
       availability: 'Online',
+      image: '/assets/games/street-fighter-alpha-3-elite-master.svg',
     },
     {
       id: 'darkstalkers-elite-master',
@@ -5988,6 +6065,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8401-darkstalkers-the-night-warriors-940705.html',
       },
       availability: 'Online',
+      image: '/assets/games/darkstalkers-elite-master.svg',
     },
     {
       id: 'cadillacs-and-dinosaurs-elite-master',
@@ -6004,6 +6082,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8489-cadillacs-and-dinosaurs-930201.html',
       },
       availability: 'Online',
+      image: '/assets/games/cadillacs-and-dinosaurs-elite-master.svg',
     },
     {
       id: 'captain-commando-elite-master',
@@ -6020,6 +6099,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8491-captain-commando-911101.html',
       },
       availability: 'Online',
+      image: '/assets/games/captain-commando-elite-master.svg',
     },
     {
       id: 'the-punisher-elite-master',
@@ -6036,6 +6116,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.retrogames.cc/embed/8515-the-punisher-930422.html',
       },
       availability: 'Online',
+      image: '/assets/games/the-punisher-elite-master.svg',
     },
     {
       id: 'duck-hunt-nes-elite',
@@ -6059,7 +6140,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#228B22',
         accentEnd: '#8B4513',
       },
-      image: '/assets/games/duck-hunt.png',
+      image: '/assets/games/duck-hunt-nes-elite.svg',
     },
     {
       id: 'wordle-daily',
@@ -6083,7 +6164,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#6AAA64',
         accentEnd: '#C9B458',
       },
-      image: '/assets/games/wordle-daily.png',
+      image: '/assets/games/wordle-daily.svg',
     },
     {
       id: '1v1-lol-elite',
@@ -6110,7 +6191,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#FF4500',
         accentEnd: '#1E90FF',
       },
-      image: '/assets/games/1v1-lol.png',
+      image: '/assets/games/1v1-lol-elite.svg',
     },
     {
       id: 'helix-jump-frenzy',
@@ -6134,7 +6215,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#FF1493',
         accentEnd: '#00BFFF',
       },
-      image: '/assets/games/helix-jump.png',
+      image: '/assets/games/helix-jump-frenzy.svg',
     },
     {
       id: 'super-mario-kart-snes-elite',
@@ -6158,6 +6239,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#e60012',
         accentEnd: '#1a5bb5',
       },
+      image: '/assets/games/super-mario-kart-snes-elite.svg',
     },
     {
       id: 'dk-country-2-snes-elite',
@@ -6181,6 +6263,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#336600',
       },
+      image: '/assets/games/dk-country-2-snes-elite.svg',
     },
     {
       id: 'secret-of-mana-snes-elite',
@@ -6204,6 +6287,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00cc66',
         accentEnd: '#003300',
       },
+      image: '/assets/games/secret-of-mana-snes-elite.svg',
     },
     {
       id: 'sf-alpha-2-snes-elite',
@@ -6227,6 +6311,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0000',
         accentEnd: '#cc0000',
       },
+      image: '/assets/games/sf-alpha-2-snes-elite.svg',
     },
     {
       id: 'earthbound-snes-elite',
@@ -6250,6 +6335,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff3366',
         accentEnd: '#660033',
       },
+      image: '/assets/games/earthbound-snes-elite.svg',
     },
     {
       id: 'super-bomberman-snes-elite',
@@ -6273,6 +6359,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff9900',
         accentEnd: '#cc6600',
       },
+      image: '/assets/games/super-bomberman-snes-elite.svg',
     },
     {
       id: 'comix-zone-genesis-elite',
@@ -6296,6 +6383,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0066',
         accentEnd: '#330033',
       },
+      image: '/assets/games/comix-zone-genesis-elite.svg',
     },
     {
       id: 'vectorman-genesis-elite',
@@ -6319,6 +6407,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00ff00',
         accentEnd: '#003300',
       },
+      image: '/assets/games/vectorman-genesis-elite.svg',
     },
     {
       id: 'altered-beast-genesis-elite',
@@ -6342,6 +6431,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#9900ff',
         accentEnd: '#1a0033',
       },
+      image: '/assets/games/altered-beast-genesis-elite.svg',
     },
     {
       id: 'ps4-genesis-elite',
@@ -6365,6 +6455,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00ccff',
         accentEnd: '#003366',
       },
+      image: '/assets/games/ps4-genesis-elite.svg',
     },
     {
       id: 'ecco-genesis-elite',
@@ -6388,6 +6479,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099cc',
         accentEnd: '#003344',
       },
+      image: '/assets/games/ecco-genesis-elite.svg',
     },
     {
       id: 'toejam-earl-genesis-elite',
@@ -6411,6 +6503,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff00ff',
         accentEnd: '#330033',
       },
+      image: '/assets/games/toejam-earl-genesis-elite.svg',
     },
     {
       id: 'shinobi3-genesis-elite',
@@ -6434,6 +6527,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#1a0000',
       },
+      image: '/assets/games/shinobi3-genesis-elite.svg',
     },
     {
       id: 'rocket-knight-genesis-elite',
@@ -6457,6 +6551,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00cc99',
         accentEnd: '#003322',
       },
+      image: '/assets/games/rocket-knight-genesis-elite.svg',
     },
     {
       id: 'metroid-fusion-gba-elite',
@@ -6480,6 +6575,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#330000',
       },
+      image: '/assets/games/metroid-fusion-gba-elite.svg',
     },
     {
       id: 'advance-wars-gba-elite',
@@ -6503,6 +6599,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#339933',
         accentEnd: '#003300',
       },
+      image: '/assets/games/advance-wars-gba-elite.svg',
     },
     {
       id: 'golden-sun-gba-elite',
@@ -6526,6 +6623,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#663300',
       },
+      image: '/assets/games/golden-sun-gba-elite.svg',
     },
     {
       id: 'mario-kart-sc-gba-elite',
@@ -6549,6 +6647,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0066',
         accentEnd: '#660033',
       },
+      image: '/assets/games/mario-kart-sc-gba-elite.svg',
     },
     {
       id: 'fire-emblem-gba-elite',
@@ -6572,6 +6671,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#330000',
       },
+      image: '/assets/games/fire-emblem-gba-elite.svg',
     },
     {
       id: 'warioware-gba-elite',
@@ -6595,6 +6695,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#666600',
       },
+      image: '/assets/games/warioware-gba-elite.svg',
     },
     {
       id: 'fzero-x-n64-elite',
@@ -6618,6 +6719,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066ff',
         accentEnd: '#000066',
       },
+      image: '/assets/games/fzero-x-n64-elite.svg',
     },
     {
       id: 'paper-mario-n64-elite',
@@ -6641,6 +6743,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff3333',
         accentEnd: '#cc0000',
       },
+      image: '/assets/games/paper-mario-n64-elite.svg',
     },
     {
       id: 'kirby-64-n64-elite',
@@ -6664,6 +6767,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff66cc',
         accentEnd: '#cc0066',
       },
+      image: '/assets/games/kirby-64-n64-elite.svg',
     },
     {
       id: 'excitebike-64-elite',
@@ -6687,6 +6791,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#cc3300',
       },
+      image: '/assets/games/excitebike-64-elite.svg',
     },
     {
       id: 'bomberman-64-n64-elite',
@@ -6710,6 +6815,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff9900',
         accentEnd: '#cc6600',
       },
+      image: '/assets/games/bomberman-64-n64-elite.svg',
     },
     {
       id: 'metal-slug-2-arcade-elite',
@@ -6733,6 +6839,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#33cc33',
         accentEnd: '#003300',
       },
+      image: '/assets/games/metal-slug-2-arcade-elite.svg',
     },
     {
       id: 'kof-98-arcade-elite',
@@ -6756,6 +6863,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0000',
         accentEnd: '#660000',
       },
+      image: '/assets/games/kof-98-arcade-elite.svg',
     },
     {
       id: 'samsho2-arcade-elite',
@@ -6779,6 +6887,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc6600',
         accentEnd: '#330000',
       },
+      image: '/assets/games/samsho2-arcade-elite.svg',
     },
     {
       id: 'puzzle-bobble-arcade-elite',
@@ -6802,6 +6911,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00ccff',
         accentEnd: '#0066cc',
       },
+      image: '/assets/games/puzzle-bobble-arcade-elite.svg',
     },
     {
       id: 'rtype-arcade-elite',
@@ -6825,6 +6935,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066ff',
         accentEnd: '#000066',
       },
+      image: '/assets/games/rtype-arcade-elite.svg',
     },
     {
       id: 'gradius-arcade-elite',
@@ -6848,6 +6959,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099ff',
         accentEnd: '#003366',
       },
+      image: '/assets/games/gradius-arcade-elite.svg',
     },
     {
       id: 'fatal-fury-special-arcade-elite',
@@ -6871,6 +6983,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff3300',
         accentEnd: '#660000',
       },
+      image: '/assets/games/fatal-fury-special-arcade-elite.svg',
     },
     {
       id: 'blazing-star-arcade-elite',
@@ -6894,6 +7007,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#ff6600',
       },
+      image: '/assets/games/blazing-star-arcade-elite.svg',
     },
     {
       id: 'garou-motw-arcade-elite',
@@ -6917,6 +7031,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#6633cc',
         accentEnd: '#1a0033',
       },
+      image: '/assets/games/garou-motw-arcade-elite.svg',
     },
     {
       id: 'windjammers-arcade-elite',
@@ -6940,6 +7055,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00cc66',
         accentEnd: '#006633',
       },
+      image: '/assets/games/windjammers-arcade-elite.svg',
     },
     {
       id: 'crash-2-ps1-elite',
@@ -6963,6 +7079,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#cc3300',
       },
+      image: '/assets/games/crash-2-ps1-elite.svg',
     },
     {
       id: 'mega-man-legends-ps1-elite',
@@ -6986,6 +7103,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066cc',
         accentEnd: '#003366',
       },
+      image: '/assets/games/mega-man-legends-ps1-elite.svg',
     },
     {
       id: 'tomb-raider-2-ps1-elite',
@@ -7009,6 +7127,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099cc',
         accentEnd: '#003344',
       },
+      image: '/assets/games/tomb-raider-2-ps1-elite.svg',
     },
     {
       id: 'syphon-filter-ps1-elite',
@@ -7032,6 +7151,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#333333',
         accentEnd: '#000000',
       },
+      image: '/assets/games/syphon-filter-ps1-elite.svg',
     },
     {
       id: 'jet-moto-ps1-elite',
@@ -7055,6 +7175,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00ccff',
         accentEnd: '#0066cc',
       },
+      image: '/assets/games/jet-moto-ps1-elite.svg',
     },
     {
       id: 'pokemon-red-gb-elite',
@@ -7078,6 +7199,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#660000',
       },
+      image: '/assets/games/pokemon-red-gb-elite.svg',
     },
     {
       id: 'zelda-la-dx-gbc-elite',
@@ -7101,6 +7223,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#009900',
         accentEnd: '#003300',
       },
+      image: '/assets/games/zelda-la-dx-gbc-elite.svg',
     },
     {
       id: 'wario-land-gb-elite',
@@ -7124,6 +7247,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#cc9900',
       },
+      image: '/assets/games/wario-land-gb-elite.svg',
     },
     {
       id: 'kirby-dl-gb-elite',
@@ -7147,6 +7271,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff99cc',
         accentEnd: '#cc6699',
       },
+      image: '/assets/games/kirby-dl-gb-elite.svg',
     },
     {
       id: 'tetris-gb-elite',
@@ -7170,6 +7295,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#333333',
         accentEnd: '#000000',
       },
+      image: '/assets/games/tetris-gb-elite.svg',
     },
     {
       id: 'pokemon-tcg-gbc-elite',
@@ -7193,6 +7319,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#ff6600',
       },
+      image: '/assets/games/pokemon-tcg-gbc-elite.svg',
     },
     {
       id: 'bonks-adventure-tg16-elite',
@@ -7216,6 +7343,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#cc3300',
       },
+      image: '/assets/games/bonks-adventure-tg16-elite.svg',
     },
     {
       id: 'blazing-lazers-tg16-elite',
@@ -7239,6 +7367,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0066',
         accentEnd: '#990033',
       },
+      image: '/assets/games/blazing-lazers-tg16-elite.svg',
     },
     {
       id: 'splatterhouse-tg16-elite',
@@ -7262,6 +7391,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#990000',
         accentEnd: '#330000',
       },
+      image: '/assets/games/splatterhouse-tg16-elite.svg',
     },
     {
       id: 'soldier-blade-tg16-elite',
@@ -7285,6 +7415,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099ff',
         accentEnd: '#003366',
       },
+      image: '/assets/games/soldier-blade-tg16-elite.svg',
     },
     {
       id: 'lords-of-thunder-tg16-elite',
@@ -7308,6 +7439,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#660000',
       },
+      image: '/assets/games/lords-of-thunder-tg16-elite.svg',
     },
     {
       id: 'ninja-gaiden-nes-elite',
@@ -7331,6 +7463,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#330000',
       },
+      image: '/assets/games/ninja-gaiden-nes-elite.svg',
     },
     {
       id: 'battletoads-nes-elite',
@@ -7354,6 +7487,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#33cc33',
         accentEnd: '#003300',
       },
+      image: '/assets/games/battletoads-nes-elite.svg',
     },
     {
       id: 'punch-out-nes-classic',
@@ -7377,6 +7511,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#cc0000',
         accentEnd: '#660000',
       },
+      image: '/assets/games/punch-out-nes-classic.svg',
     },
     {
       id: 'river-city-ransom-nes-elite',
@@ -7400,6 +7535,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#cc3300',
       },
+      image: '/assets/games/river-city-ransom-nes-elite.svg',
     },
     {
       id: 'kid-icarus-nes-elite',
@@ -7423,6 +7559,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#cc9900',
       },
+      image: '/assets/games/kid-icarus-nes-elite.svg',
     },
     {
       id: 'blaster-master-nes-elite',
@@ -7446,6 +7583,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066cc',
         accentEnd: '#003366',
       },
+      image: '/assets/games/blaster-master-nes-elite.svg',
     },
     {
       id: 'ice-hockey-nes-elite',
@@ -7469,6 +7607,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099cc',
         accentEnd: '#003344',
       },
+      image: '/assets/games/ice-hockey-nes-elite.svg',
     },
     {
       id: 'smash-karts-web-elite',
@@ -7493,6 +7632,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentEnd: '#cc0033',
       },
       multiplayerType: 'Server',
+      image: '/assets/games/smash-karts-web-elite.svg',
     },
     {
       id: 'drift-hunters-web-elite',
@@ -7516,6 +7656,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff6600',
         accentEnd: '#cc3300',
       },
+      image: '/assets/games/drift-hunters-web-elite.svg',
     },
     {
       id: 'paper-io-2-web-elite',
@@ -7540,6 +7681,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentEnd: '#0066cc',
       },
       multiplayerType: 'Server',
+      image: '/assets/games/paper-io-2-web-elite.svg',
     },
     {
       id: 'fruit-ninja-web-elite',
@@ -7563,6 +7705,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff3333',
         accentEnd: '#cc0000',
       },
+      image: '/assets/games/fruit-ninja-web-elite.svg',
     },
     {
       id: 'cut-the-rope-web-elite',
@@ -7586,6 +7729,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00cc99',
         accentEnd: '#006644',
       },
+      image: '/assets/games/cut-the-rope-web-elite.svg',
     },
     {
       id: 'slope-web-elite',
@@ -7609,6 +7753,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00ff66',
         accentEnd: '#00cc33',
       },
+      image: '/assets/games/slope-web-elite.svg',
     },
     {
       id: 'alex-kidd-ms-elite',
@@ -7632,6 +7777,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066cc',
         accentEnd: '#003366',
       },
+      image: '/assets/games/alex-kidd-ms-elite.svg',
     },
     {
       id: 'wonder-boy-ms-elite',
@@ -7655,6 +7801,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ffcc00',
         accentEnd: '#cc9900',
       },
+      image: '/assets/games/wonder-boy-ms-elite.svg',
     },
     {
       id: 'phantasy-star-ms-elite',
@@ -7678,6 +7825,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0099cc',
         accentEnd: '#003344',
       },
+      image: '/assets/games/phantasy-star-ms-elite.svg',
     },
     {
       id: 'vf2-saturn-elite',
@@ -7701,6 +7849,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#0066ff',
         accentEnd: '#000066',
       },
+      image: '/assets/games/vf2-saturn-elite.svg',
     },
     {
       id: 'daytona-saturn-elite',
@@ -7724,6 +7873,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff0000',
         accentEnd: '#cc0000',
       },
+      image: '/assets/games/daytona-saturn-elite.svg',
     },
     {
       id: 'panzer-saga-saturn-elite',
@@ -7747,6 +7897,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#9966cc',
         accentEnd: '#330066',
       },
+      image: '/assets/games/panzer-saga-saturn-elite.svg',
     },
     {
       id: 'sega-rally-saturn-elite',
@@ -7770,6 +7921,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#00cc66',
         accentEnd: '#006633',
       },
+      image: '/assets/games/sega-rally-saturn-elite.svg',
     },
     {
       id: 'nights-saturn-elite',
@@ -7793,6 +7945,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         accentStart: '#ff66cc',
         accentEnd: '#cc3399',
       },
+      image: '/assets/games/nights-saturn-elite.svg',
     },
     {
       genre: 'Arcade',
@@ -7815,6 +7968,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Grow your serpent, outmaneuver rivals, and top the live leaderboard. Massively multiplayer arcade dominance.',
       badgeIds: ['classic', 'trending'],
       multiplayerType: 'Server',
+      image: '/assets/games/slither-io-multiplayer.svg',
     },
     {
       genre: 'Arcade',
@@ -7837,6 +7991,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Absorb cells, split to hunt, and dominate the real-time multiplayer grid. The original .io battle royale.',
       badgeIds: ['classic'],
       multiplayerType: 'Server',
+      image: '/assets/games/agar-io-multiplayer.svg',
     },
     {
       genre: 'Arcade',
@@ -7859,6 +8014,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Upgrade your tank, hunt shapes, and battle real players in a persistent online arena.',
       badgeIds: ['trending'],
       multiplayerType: 'Server',
+      image: '/assets/games/diep-io-multiplayer.svg',
     },
     {
       genre: 'Party',
@@ -7881,6 +8037,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Draw and guess with friends in rotating word rounds. Live party lobby, real-time guesses.',
       badgeIds: ['trending', 'staff-pick'],
       multiplayerType: 'Server',
+      image: '/assets/games/skribbl-io-multiplayer.svg',
     },
     {
       genre: 'Party',
@@ -7903,6 +8060,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Whisper-down-the-lane drawing game for big lobbies. Miscommunication = maximum chaos.',
       badgeIds: ['staff-pick', 'new-drop'],
       multiplayerType: 'Server',
+      image: '/assets/games/gartic-phone-multiplayer.svg',
     },
     {
       genre: 'Survival',
@@ -7925,6 +8083,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Survive, build, tame pets, and battle rivals in a living online wilderness.',
       badgeIds: ['new-drop'],
       multiplayerType: 'Server',
+      image: '/assets/games/taming-io-multiplayer.svg',
     },
     {
       genre: 'Shooting',
@@ -7947,6 +8106,277 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       description: 'Drop in, loot up, and outlast 100 real players. 2D battle royale with squad queues.',
       badgeIds: ['trending', 'tournament-live'],
       multiplayerType: 'Server',
+      image: '/assets/games/zombsroyale-io-multiplayer.svg',
+    },
+    {
+      id: 'valorant',
+      name: 'VALORANT',
+      url: 'https://playvalorant.com/',
+      description: 'Team-based tactical FPS with agent abilities and competitive ranked ladders.',
+      genre: 'FPS',
+      rating: 4.6,
+      playersOnline: 120000,
+      availability: 'Online',
+      tags: ['FPS', 'Multiplayer', 'Competitive', 'PvP', 'Tactical'],
+      badgeIds: ['next-gen', 'modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://playvalorant.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/valorant.svg',
+    },
+    {
+      id: 'league-of-legends',
+      name: 'League of Legends',
+      url: 'https://www.leagueoflegends.com/',
+      description: 'Fast-paced 5v5 MOBA focusing on team play, strategy, and meta-driven champions.',
+      genre: 'MOBA',
+      rating: 4.5,
+      playersOnline: 800000,
+      availability: 'Online',
+      tags: ['MOBA', 'Multiplayer', 'Competitive', 'Teamplay'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.leagueoflegends.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/league-of-legends.svg',
+    },
+    {
+      id: 'dota2',
+      name: 'Dota 2',
+      url: 'https://www.dota2.com/',
+      description: 'Deep, strategic 5v5 MOBA with large hero pool and competitive scene.',
+      genre: 'MOBA',
+      rating: 4.4,
+      playersOnline: 500000,
+      availability: 'Online',
+      tags: ['MOBA', 'Competitive', 'Teamplay', 'PvP'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.dota2.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/dota2.svg',
+    },
+    {
+      id: 'apex-legends',
+      name: 'Apex Legends',
+      url: 'https://www.ea.com/games/apex-legends',
+      description: 'Hero-based battle royale with fast movement, squad play, and seasonal content.',
+      genre: 'Battle Royale',
+      rating: 4.4,
+      playersOnline: 300000,
+      availability: 'Online',
+      tags: ['Battle Royale', 'Squad', 'Multiplayer'],
+      badgeIds: ['next-gen'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.ea.com/games/apex-legends',
+        embedMode: 'external',
+      },
+      image: '/assets/games/apex-legends.svg',
+    },
+    {
+      id: 'rocket-league',
+      name: 'Rocket League',
+      url: 'https://www.rocketleague.com/',
+      description: 'High-skill vehicular soccer with fast online matches and crossplay support.',
+      genre: 'Sports',
+      rating: 4.6,
+      playersOnline: 200000,
+      availability: 'Online',
+      tags: ['Sports', 'Multiplayer', 'Competitive', 'Crossplay'],
+      badgeIds: ['modern', 'featured'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.rocketleague.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/rocket-league.svg',
+    },
+    {
+      id: 'fortnite',
+      name: 'Fortnite',
+      url: 'https://www.epicgames.com/fortnite/',
+      description: 'Iconic battle royale with building, creative modes, and crossplatform social features.',
+      genre: 'Battle Royale',
+      rating: 4.3,
+      playersOnline: 1000000,
+      availability: 'Online',
+      tags: ['Battle Royale', 'Multiplayer', 'Creative', 'Crossplay'],
+      badgeIds: ['next-gen'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.epicgames.com/fortnite/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/fortnite.svg',
+    },
+    {
+      id: 'minecraft',
+      name: 'Minecraft',
+      url: 'https://www.minecraft.net/',
+      description: 'Sandbox world-building, shared servers, and endless cooperative/slash competitive play.',
+      genre: 'Sandbox',
+      rating: 4.8,
+      playersOnline: 1400000,
+      availability: 'Online',
+      tags: ['Sandbox', 'Multiplayer', 'Co-op', 'Creative'],
+      badgeIds: ['classic', 'next-gen'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.minecraft.net/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/minecraft.svg',
+    },
+    {
+      id: 'among-us',
+      name: 'Among Us',
+      url: 'https://www.innersloth.com/gameAmongUs.php',
+      description: 'Social deduction multiplayer for casual groups — great for parties and community events.',
+      genre: 'Social',
+      rating: 4.2,
+      playersOnline: 90000,
+      availability: 'Online',
+      tags: ['Social', 'Party', 'Multiplayer'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.innersloth.com/gameAmongUs.php',
+        embedMode: 'external',
+      },
+      image: '/assets/games/among-us.svg',
+    },
+    {
+      id: 'gta-online',
+      name: 'GTA Online',
+      url: 'https://www.rockstargames.com/GTAOnline',
+      description: 'Open-world multiplayer with missions, heists, and emergent social gameplay.',
+      genre: 'Open World',
+      rating: 4.1,
+      playersOnline: 250000,
+      availability: 'Online',
+      tags: ['Open World', 'Multiplayer', 'Social'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.rockstargames.com/GTAOnline',
+        embedMode: 'external',
+      },
+      image: '/assets/games/gta-online.svg',
+    },
+    {
+      id: 'sea-of-thieves',
+      name: 'Sea of Thieves',
+      url: 'https://www.seaofthieves.com/',
+      description: 'Shared-world pirate co-op with emergent encounters and crew-based progression.',
+      genre: 'Co-op',
+      rating: 4,
+      playersOnline: 40000,
+      availability: 'Online',
+      tags: ['Co-op', 'Open World', 'Multiplayer'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.seaofthieves.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/sea-of-thieves.svg',
+    },
+    {
+      id: 'destiny-2',
+      name: 'Destiny 2',
+      url: 'https://www.bungie.net/',
+      description: 'Shared-world shooter with PvE raids, PvP arenas, and seasonal live content.',
+      genre: 'MMO Shooter',
+      rating: 4.2,
+      playersOnline: 120000,
+      availability: 'Online',
+      tags: ['MMO', 'Shooter', 'Co-op', 'PvE', 'PvP'],
+      badgeIds: ['next-gen'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.bungie.net/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/destiny-2.svg',
+    },
+    {
+      id: 'rainbow-six-siege',
+      name: 'Tom Clancy\'s Rainbow Six Siege',
+      url: 'https://www.ubisoft.com/en-us/game/rainbow-six/siege',
+      description: 'Tactical 5v5 sieges emphasizing team coordination and gadget-driven meta.',
+      genre: 'Tactical Shooter',
+      rating: 4.3,
+      playersOnline: 70000,
+      availability: 'Online',
+      tags: ['Tactical', 'FPS', 'Multiplayer', 'Competitive'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.ubisoft.com/en-us/game/rainbow-six/siege',
+        embedMode: 'external',
+      },
+      image: '/assets/games/rainbow-six-siege.svg',
+    },
+    {
+      id: 'cs2',
+      name: 'Counter-Strike 2',
+      url: 'https://www.counter-strike.net/',
+      description: 'Precision-driven team shooter with high-skill ceiling and deep competitive systems.',
+      genre: 'FPS',
+      rating: 4.7,
+      playersOnline: 600000,
+      availability: 'Online',
+      tags: ['FPS', 'Competitive', 'Multiplayer'],
+      badgeIds: ['next-gen'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.counter-strike.net/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/cs2.svg',
+    },
+    {
+      id: 'fifa-24',
+      name: 'FIFA 24',
+      url: 'https://www.ea.com/games/fifa',
+      description: 'Realistic football simulation with online seasons, clubs, and competitive matchmaking.',
+      genre: 'Sports',
+      rating: 4,
+      playersOnline: 150000,
+      availability: 'Online',
+      tags: ['Sports', 'Multiplayer', 'Competitive'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.ea.com/games/fifa',
+        embedMode: 'external',
+      },
+      image: '/assets/games/fifa-24.svg',
+    },
+    {
+      id: 'warframe',
+      name: 'Warframe',
+      url: 'https://www.warframe.com/',
+      description: 'Cooperative action-looter with deep progression, frequent updates, and community events.',
+      genre: 'Co-op',
+      rating: 4.3,
+      playersOnline: 90000,
+      availability: 'Online',
+      tags: ['Co-op', 'Action', 'MMO'],
+      badgeIds: ['modern'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        approvedExternalUrl: 'https://www.warframe.com/',
+        embedMode: 'external',
+      },
+      image: '/assets/games/warframe.svg',
     },
   ],
   recommendationRails: [
