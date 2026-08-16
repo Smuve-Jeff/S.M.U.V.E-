@@ -1,5 +1,6 @@
 <div
   class="ctb-shell"
+  [class.is-playing]="isPlaying()"
   role="toolbar"
   aria-label="Transport controls"
   (touchstart)="onTouchStart($event)"

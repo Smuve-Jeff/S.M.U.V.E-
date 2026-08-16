@@ -204,7 +204,10 @@ describe('StudioComponent', () => {
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: AiService, useValue: {} },
-        { provide: UIService, useValue: { isCompactMobile: () => false } },
+        {
+          provide: UIService,
+          useValue: { isCompactMobile: () => false, showMobileNav: () => false },
+        },
         { provide: NotificationService, useValue: {} },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: UserProfileService, useValue: mockUserProfileService },

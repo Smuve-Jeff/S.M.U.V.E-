@@ -138,4 +138,55 @@ describe('DrumMachineComponent', () => {
     const activeCount = steps.filter((s) => s).length;
     expect(activeCount).toBe(4);
   });
+
+  describe('Stage 2.1 touch performance', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('auditions a pad on pointerdown at full velocity for neutral pressure', () => {
+      const pad = component.pads()[0];
+      component.onPadPress(pad, { pressure: 0.5 } as PointerEvent);
+
+      expect(component.selectedPadId()).toBe(pad.id);
+      expect(mockAudioEngine.triggerAttack).toHaveBeenCalledWith(
+        MusicManagerService.DRUM_TRACK_ID,
+        expect.any(Number),
+        0,
+        1,
+        expect.any(Number),
+        1,
+        expect.any(Number),
+        0,
+        0,
+        expect.any(Object)
+      );
+      expect(mockHaptic.drumHit).toHaveBeenCalledWith(1);
+    });
+
+    it('maps soft force-touch pressure to a softer strike velocity', () => {
+      const pad = component.pads()[0];
+      component.onPadPress(pad, { pressure: 0.25 } as PointerEvent);
+
+      expect(mockHaptic.drumHit).toHaveBeenCalledWith(0.5);
+      expect(mockAudioEngine.triggerAttack.mock.calls[0][3]).toBe(0.5);
+    });
+
+    it('does not double-audition when a pointer click follows pointerdown', () => {
+      const pad = component.pads()[0];
+      component.onPadClick(pad, { detail: 1 } as MouseEvent);
+
+      expect(component.selectedPadId()).toBe(pad.id);
+      expect(mockAudioEngine.triggerAttack).not.toHaveBeenCalled();
+      expect(mockHaptic.drumHit).not.toHaveBeenCalled();
+    });
+
+    it('auditions a pad when activated from the keyboard (click detail 0)', () => {
+      const pad = component.pads()[0];
+      component.onPadClick(pad, { detail: 0 } as MouseEvent);
+
+      expect(mockAudioEngine.triggerAttack).toHaveBeenCalled();
+      expect(mockHaptic.drumHit).toHaveBeenCalledWith(1);
+    });
+  });
 });

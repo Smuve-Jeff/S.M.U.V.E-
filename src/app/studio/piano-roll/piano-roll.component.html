@@ -182,6 +182,8 @@
         [class.black]="isBlackKey(midi)"
         [class.in-scale]="isInScale(midi)"
         [style.height.px]="isBlackKey(midi) ? rowHeight() * 0.55 : rowHeight()"
+        (pointerdown)="auditionKey(midi, $event)"
+        title="Audition {{ getKeyName(midi) + getOctaveLabel(midi) }}"
       >
         <span>{{ getKeyName(midi) + getOctaveLabel(midi) }}</span>
       </div>

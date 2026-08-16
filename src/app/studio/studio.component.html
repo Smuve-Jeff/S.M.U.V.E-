@@ -585,15 +585,29 @@
         </div>
       </ng-container>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">
-        <app-piano-roll
-          (openBezierEditor)="toggleBezierEditor($event)"
-        ></app-piano-roll>
+        @defer (on viewport) {
+          <app-piano-roll
+            (openBezierEditor)="toggleBezierEditor($event)"
+          ></app-piano-roll>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">piano</span>
+            Tuning the Piano Roll…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'drum-machine'">
         <app-drum-machine></app-drum-machine>
       </div>
       <div class="comp-view" *ngSwitchCase="'mixer'">
-        <app-mixer></app-mixer>
+        @defer (on viewport) {
+          <app-mixer></app-mixer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">tune</span>
+            Routing the Mixer…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'performance'">
         <app-performance-mode
@@ -611,10 +625,24 @@
         <app-ai-produce></app-ai-produce>
       </div>
       <div class="comp-view" *ngSwitchCase="'dj'">
-        <app-dj-deck></app-dj-deck>
+        @defer (on viewport) {
+          <app-dj-deck></app-dj-deck>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">album</span>
+            Warming up the DJ Booth…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'vocal-suite'">
-        <app-vocal-suite></app-vocal-suite>
+        @defer (on viewport) {
+          <app-vocal-suite></app-vocal-suite>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">mic</span>
+            Patching the Vocal Suite…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'channel-rack'">
         <app-channel-rack></app-channel-rack>
@@ -779,7 +807,7 @@
   <!-- ====================== BOTTOM TAB BAR (Mobile FL pattern) ====================== -->
   <nav
     class="comp-bottombar"
-    *ngIf="uiService.isCompactMobile()"
+    *ngIf="uiService.showMobileNav()"
     role="tablist"
     aria-label="Studio modules"
   >
@@ -832,7 +860,7 @@
   <aside
     class="comp-drawer"
     [class.comp-drawer-open]="mobileDrawerOpen()"
-    *ngIf="uiService.isCompactMobile()"
+    *ngIf="uiService.showMobileNav()"
     role="dialog"
     aria-modal="true"
     [attr.aria-hidden]="!mobileDrawerOpen()"
@@ -948,7 +976,7 @@
   </aside>
   <div
     class="comp-backdrop"
-    *ngIf="mobileDrawerOpen() && uiService.isCompactMobile()"
+    *ngIf="mobileDrawerOpen() && uiService.showMobileNav()"
     (click)="toggleMobileDrawer()"
     aria-hidden="true"
   ></div>

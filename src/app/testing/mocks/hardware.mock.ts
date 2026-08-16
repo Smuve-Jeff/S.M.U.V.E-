@@ -9,6 +9,7 @@ export const createMockHapticService = () => ({
   error: jest.fn(),
   success: jest.fn(),
   warning: jest.fn(),
+  drumHit: jest.fn(),
 });
 
 export const createMockAudioSession = () => ({

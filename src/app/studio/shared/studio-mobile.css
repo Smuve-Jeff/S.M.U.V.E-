@@ -34,7 +34,7 @@ canvas,
   margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
-/* ── Minimum 44px touch targets (Apple HIG / Material) ── */
+/* ── Touch targets: 32px base on desktop, 44px floor on phones ── */
 button {
   min-height: 32px;
 }
@@ -243,6 +243,18 @@ button {
 
 /* Compact mobile: enforce 44px targets on critical controls */
 @media (max-width: 768px) {
+  /* 44px touch-target floor on phones (Apple HIG / Material). Dense
+     instrument grids (step/key cells) opt out so 16-step rows stay usable. */
+  button {
+    min-height: 44px;
+  }
+  .dense button,
+  .dense-grid button,
+  .step-cell,
+  .pr-cell {
+    min-height: 32px;
+  }
+
   button.touch-critical,
   .fab,
   .rec-arm-btn,

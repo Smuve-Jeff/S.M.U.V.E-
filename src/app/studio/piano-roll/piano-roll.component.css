@@ -402,6 +402,18 @@
 }
 /* .pr-key styles now globally in styles.css for consistency */
 
+/* Stage 2.1 — key sidebar is tap-to-audition: fire on pointerdown without
+   double-tap-zoom latency, and never select the key label text. */
+.pr-key {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.pr-key:active {
+  filter: brightness(1.12);
+}
+
 /* ----- GRID ----- */
 .pr-grid {
   flex: 1 1 auto;

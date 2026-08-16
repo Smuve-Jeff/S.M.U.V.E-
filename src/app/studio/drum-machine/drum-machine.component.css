@@ -1069,3 +1069,23 @@
     animation: none !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   STAGE 2.1 — TOUCH PERFORMANCE
+   Tap-to-audition pads · no double-tap-zoom latency
+   ════════════════════════════════════════════════════════════ */
+
+/* Pads and steps must never wait on a double-tap-zoom timeout — sound fires
+   on pointer-down, so the browser's tap-delay would add audible latency. */
+.dm-pad,
+.dm-step {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Velocity press feel — deepen the existing pad dip on touch. */
+.dm-pad:active {
+  filter: brightness(1.12);
+}

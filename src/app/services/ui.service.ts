@@ -52,6 +52,7 @@ export class UIService {
   private readonly recentKey = 'smuve_recent_workspaces';
   private readonly handleOnline = () => this.updateOnlineStatus(true);
   private readonly handleOffline = () => this.updateOnlineStatus(false);
+  private readonly handleResize = () => this.applyBreakpoints();
 
   mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
@@ -60,6 +61,8 @@ export class UIService {
   isChatbotOpen = signal(false);
   visualIntensity = signal(0);
   isCompactMobile = signal(false);
+  /** Portrait tablets (769–1024px, taller than wide) get the mobile shell. */
+  isPortraitTablet = signal(false);
   holographicMode = signal(false);
 
   isOnline = signal(true);
@@ -81,6 +84,10 @@ export class UIService {
   // Derived signals for UI state
   isLowPower = computed(() => this.performanceMode());
   isUplinkActive = computed(() => this.isOnline());
+  /** Phones + portrait tablets use the bottom nav / drawer shell. */
+  showMobileNav = computed(
+    () => this.isCompactMobile() || this.isPortraitTablet()
+  );
 
   private viewConfigs: ViewConfig[] = WORKSPACE_REGISTRY.filter(
     (workspace) => !workspace.hidden && !workspace.aliasOf
@@ -89,13 +96,12 @@ export class UIService {
   constructor() {
     if (typeof window !== 'undefined') {
       this.isOnline.set(navigator.onLine);
-      this.isCompactMobile.set(window.innerWidth <= 768);
-      window.addEventListener('resize', () =>
-        this.isCompactMobile.set(window.innerWidth <= 768)
-      );
+      this.applyBreakpoints();
+      window.addEventListener('resize', this.handleResize);
       window.addEventListener('online', this.handleOnline);
       window.addEventListener('offline', this.handleOffline);
       this.destroyRef.onDestroy(() => {
+        window.removeEventListener('resize', this.handleResize);
         window.removeEventListener('online', this.handleOnline);
         window.removeEventListener('offline', this.handleOffline);
       });
@@ -214,6 +220,19 @@ export class UIService {
 
   private updateOnlineStatus(status: boolean) {
     this.isOnline.set(status);
+  }
+
+  /**
+   * Responsive tiering:
+   *  - ≤768px → phone (compact shell)
+   *  - 769–1024px in portrait → tablet (mobile nav/drawer, desktop canvas)
+   *  - everything else → desktop shell
+   */
+  private applyBreakpoints(): void {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.isCompactMobile.set(width <= 768);
+    this.isPortraitTablet.set(width > 768 && width <= 1024 && height > width);
   }
 
   private readModes(key: string): MainViewMode[] {

@@ -92,6 +92,7 @@ import {
 } from './studio-telemetry.service';
 import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 import { StudioOrchestrationService } from '../services/studio-orchestration.service';
+import { buildZip, type ZipEntry } from './zip.util';
 
 type StudioView =
   | 'arrangement'
@@ -208,6 +209,22 @@ const THEME_LABEL: Record<AppTheme, string> = {
   styles: [
     `
       /* DEEP RESPONSIVE REFINEMENT — Studio-wide */
+      .comp-view-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        height: 100%;
+        min-height: 220px;
+        color: var(--espresso-muted, #6b6255);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      .comp-view-loading .material-symbols-outlined {
+        font-size: 22px;
+        color: var(--teal-500, #0e7c7b);
+      }
       @media (max-width: 768px) {
         .comp-tab,
         .comp-icon-btn,
@@ -716,7 +733,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       id: 'performer',
       label: 'Performer',
       icon: 'piano_off',
-      hidden: !this.uiService.isCompactMobile(),
+      hidden: !this.uiService.showMobileNav(),
     },
   ]);
 
@@ -1904,8 +1921,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.previewingTakeId.set(null);
   }
 
-  /** Export all comp takes as downloadable WAV files */
-  exportCompTakes() {
+  /**
+   * Export all comp takes as a single .zip download. Bundling into one file
+   * avoids the browser's automatic-multi-download block that silently dropped
+   * every take after the first in the old per-take loop.
+   */
+  async exportCompTakes(): Promise<void> {
     this.haptic.light();
     const groupId = this.smartRecording.activeCompGroupId();
     const takes = this.smartRecording.activeCompGroupTakes();
@@ -1913,35 +1934,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info('No comp takes to export');
       return;
     }
-    let exported = 0;
     try {
+      const entries: ZipEntry[] = [];
       for (const take of takes) {
-        let href: string | null = null;
-        if (take.blob) {
-          href = URL.createObjectURL(take.blob);
-        } else if (take.url) {
-          href = take.url;
-        }
-        if (!href) continue;
-        const a = document.createElement('a');
-        a.href = href;
+        const bytes = await this.compTakeBytes(take);
+        if (!bytes) continue;
         const safeLabel = (take.label || `Take ${take.takeNumber}`).replace(
           /[^\w\d-]+/g,
           '_'
         );
-        a.download = `${safeLabel}.wav`;
-        a.click();
-        if (take.blob) URL.revokeObjectURL(href);
-        exported++;
+        entries.push({ name: `${safeLabel}.wav`, data: bytes });
       }
+      if (entries.length === 0) {
+        this.snackbarService.info('No take audio available');
+        return;
+      }
+      const blob = buildZip(entries);
+      const projectName = (
+        this.projectWorkspace.metadata()?.name || 'smuve_takes'
+      ).replace(/[^a-zA-Z0-9_-]+/g, '_');
+      this.downloadBlob(blob, `${projectName}_comp_takes.zip`);
       this.snackbarService.success(
-        exported
-          ? `Exported ${exported} take${exported === 1 ? '' : 's'}`
-          : 'No take audio available'
+        `Exported ${entries.length} take${entries.length === 1 ? '' : 's'} · ZIP`
       );
       this.studioTelemetry.trackEvent(
         'comp_takes_exported',
-        { count: exported, groupId },
+        { count: entries.length, groupId, format: 'zip' },
         true
       );
     } catch (e) {
@@ -1955,6 +1973,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       );
       this.snackbarService.error('Take export failed');
     }
+  }
+
+  /** Resolve a comp take to raw bytes (stored blob first, URL fetch fallback). */
+  private async compTakeBytes(take: CompTake): Promise<Uint8Array | null> {
+    if (take.blob) {
+      return new Uint8Array(await take.blob.arrayBuffer());
+    }
+    if (take.url) {
+      const response = await fetch(take.url);
+      if (!response.ok) return null;
+      return new Uint8Array(await response.arrayBuffer());
+    }
+    return null;
   }
 
   /** Helper: trigger a file download from a Blob */

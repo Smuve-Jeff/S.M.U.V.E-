@@ -458,6 +458,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
+   * Tap-to-audition for the key sidebar — the same zero-latency pointer feel
+   * as the drum pads. Pointer pressure maps to strike velocity (neutral
+   * pressure from a plain mouse/touch is a full strike; force-touch scales
+   * down toward a soft tap).
+   */
+  auditionKey(midi: number, event: PointerEvent): void {
+    const pressure = event.pressure;
+    const velocity =
+      !pressure || pressure <= 0
+        ? 1
+        : Math.max(0.25, Math.min(1, pressure / 0.5));
+    this.previewNoteOn(midi, velocity);
+    this.haptic.drumHit(velocity);
+  }
+
+  /**
    * Write a CC keyframe for a lane at the current playhead step.
    * Target parameter uses the lane's stable param key (e.g. `cc_pan`).
    */
@@ -902,6 +918,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
             this.musicManager.removeNotes(track.id, [existing.id]);
           } else {
             this.selectedNoteIds.set(new Set([existing.id]));
+            // Audition the tapped note — instant aural feedback, FL Mobile style.
+            this.previewNoteOn(existing.midi, existing.velocity ?? 0.8);
           }
           this.haptic.light();
           this.drawFromTouch = true;
@@ -919,6 +937,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
           length: this.lengthFromSnap(),
           velocity: Number(velocity.toFixed(2)),
         });
+        // Sound the note the instant it lands — drawing feels like an instrument.
+        this.previewNoteOn(midi, velocity);
         this.haptic.velocity(velocity);
         this.drawFromTouch = true;
         this.markDirty();
@@ -1051,6 +1071,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
             length: this.lengthFromSnap(),
             velocity: idx === 0 ? 0.9 : 0.75,
           });
+          // Audition each chord voice so the stamped chord is heard immediately.
+          this.previewNoteOn(noteMidi, idx === 0 ? 0.9 : 0.75);
         }
       });
       this.haptic.medium();
@@ -1062,6 +1084,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         length: this.lengthFromSnap(),
         velocity: 0.8,
       });
+      // Mouse/pen draw — audition the note the instant it lands.
+      this.previewNoteOn(midi, 0.8);
       this.haptic.light();
     }
     this.markDirty();

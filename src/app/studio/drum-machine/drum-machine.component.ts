@@ -1190,7 +1190,48 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.haptic.light();
   }
 
-  triggerPad(pad: DrumPad) {
+  /**
+   * Tap-to-audition entry point. Sound fires on pointer-down (not click) so
+   * pads feel like real hardware — zero tap latency — and the inspector opens
+   * at the same instant. Pointer pressure maps to strike velocity and the
+   * haptic pulse tracks it (soft tap → subtle tick, hard hit → full rumble).
+   */
+  onPadPress(pad: DrumPad, event: PointerEvent): void {
+    this.selectPad(pad.id);
+    const velocity = this.resolvePadVelocity(event);
+    this.triggerPad(pad, velocity);
+    this.haptic.drumHit(velocity);
+  }
+
+  /**
+   * Click fallback that keeps pads playable from the keyboard. Pointer
+   * presses audition on pointerdown (zero tap latency), and the browser
+   * still dispatches a click afterwards — so the click path must not
+   * double-trigger for pointers. Keyboard activation (Enter/Space) fires a
+   * click with `detail === 0`, which is the signal to sound the pad here.
+   */
+  onPadClick(pad: DrumPad, event: MouseEvent): void {
+    this.selectPad(pad.id);
+    if (event.detail === 0) {
+      this.triggerPad(pad, 1);
+      this.haptic.drumHit(1);
+    }
+  }
+
+  /**
+   * Map PointerEvent.pressure to a musical velocity. Neutral pressure (0.5 —
+   * the value plain mouse/touch report) is a full strike; pen and force-touch
+   * values scale down toward a soft tap at 0.25. Devices that report no
+   * pressure always play at full velocity.
+   */
+  private resolvePadVelocity(event: PointerEvent): number {
+    const pressure = event.pressure;
+    if (!pressure || pressure <= 0) return 1;
+    const centered = pressure / 0.5;
+    return Math.max(0.25, Math.min(1, centered));
+  }
+
+  triggerPad(pad: DrumPad, velocity = 1) {
     this.haptic.impact('light');
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
     if (pad.sampleBuffer) {
@@ -1198,7 +1239,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         MusicManagerService.DRUM_TRACK_ID,
         pad.sampleBuffer,
         this.audioEngine.ctx.currentTime,
-        1.0,
+        velocity,
         pad.params.pan,
         pad.params.decay || 0.3
       );
@@ -1207,7 +1248,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         MusicManagerService.DRUM_TRACK_ID,
         freq,
         this.audioEngine.ctx.currentTime,
-        1.0,
+        velocity,
         pad.params.decay || 0.3,
         1,
         pad.params.pan,

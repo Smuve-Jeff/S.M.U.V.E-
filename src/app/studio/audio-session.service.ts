@@ -1,5 +1,11 @@
 import { LoggingService } from '../services/logging.service';
-import { Injectable, signal, computed, inject } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  computed,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { InstrumentService } from './instrument.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { PlaybackState } from './playback-state';
@@ -29,6 +35,7 @@ export class AudioSessionService {
   private readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly musicManager = inject(MusicManagerService);
   private readonly recordingStatus = inject(RecordingStatusService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -65,7 +72,32 @@ export class AudioSessionService {
     if (armed) {
       this.initializeMic(armed.id);
     }
+
+    // Mobile audio hygiene: stop playback when the app/tab is backgrounded so
+    // the engine doesn't keep consuming battery or resume mid-bar unannounced.
+    if (typeof document !== 'undefined') {
+      document.addEventListener(
+        'visibilitychange',
+        this.handleVisibilityChange
+      );
+      this.destroyRef.onDestroy(() => {
+        document.removeEventListener(
+          'visibilitychange',
+          this.handleVisibilityChange
+        );
+      });
+    }
   }
+
+  private handleVisibilityChange = (): void => {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'hidden' &&
+      (this.isPlaying() || this.isRecording())
+    ) {
+      this.stop();
+    }
+  };
 
   async initializeMic(channelId: string, deviceId?: string): Promise<void> {
     const channel = this.micChannels().find((ch) => ch.id === channelId);
