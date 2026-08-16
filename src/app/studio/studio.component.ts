@@ -60,7 +60,10 @@ import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.compon
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { HistoryService } from '../services/history.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
-import { SmartRecordingService } from './smart-recording.service';
+import {
+  SmartRecordingService,
+  type CompTake,
+} from './smart-recording.service';
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { AudioImportService } from './audio-import.service';
@@ -1842,7 +1845,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private previewSource: AudioBufferSourceNode | null = null;
 
   /** Preview a comp take through the audio engine */
-  async previewCompTake(take: { id: string; blob: Blob | null; url: string }) {
+  async previewCompTake(take: CompTake) {
     this.haptic.light();
 
     // Stop if already previewing this take
@@ -1904,41 +1907,54 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Export all comp takes as downloadable WAV files */
   exportCompTakes() {
     this.haptic.light();
+    const groupId = this.smartRecording.activeCompGroupId();
     const takes = this.smartRecording.activeCompGroupTakes();
-    if (takes.length === 0) {
+    if (!groupId || takes.length === 0) {
       this.snackbarService.info('No comp takes to export');
-      this.studioTelemetry.trackEvent(
-        'comp_takes_exported',
-        { count: 0 },
-        false
-      );
       return;
     }
-
-    const projectName = (
-      this.projectWorkspace.metadata()?.name || 'project'
-    ).replace(/[^a-zA-Z0-9_-]/g, '_');
-
-    // Export each take — use the existing blob if available, or synthesize a silent one
-    takes.forEach((take, idx) => {
-      const label = `take_${take.takeNumber}`;
-      const filename = `${projectName}_${label}.wav`;
-
-      if (take.blob) {
-        this.downloadBlob(take.blob, filename);
-      } else {
-        // Create a minimal silent WAV as placeholder
-        const silentWav = this.createSilentWav();
-        this.downloadBlob(silentWav, filename);
+    let exported = 0;
+    try {
+      for (const take of takes) {
+        let href: string | null = null;
+        if (take.blob) {
+          href = URL.createObjectURL(take.blob);
+        } else if (take.url) {
+          href = take.url;
+        }
+        if (!href) continue;
+        const a = document.createElement('a');
+        a.href = href;
+        const safeLabel = (take.label || `Take ${take.takeNumber}`).replace(
+          /[^\w\d-]+/g,
+          '_'
+        );
+        a.download = `${safeLabel}.wav`;
+        a.click();
+        if (take.blob) URL.revokeObjectURL(href);
+        exported++;
       }
-    });
-
-    this.snackbarService.success(`Exported ${takes.length} take(s) as WAV`);
-    this.studioTelemetry.trackEvent(
-      'comp_takes_exported',
-      { count: takes.length },
-      true
-    );
+      this.snackbarService.success(
+        exported
+          ? `Exported ${exported} take${exported === 1 ? '' : 's'}`
+          : 'No take audio available'
+      );
+      this.studioTelemetry.trackEvent(
+        'comp_takes_exported',
+        { count: exported, groupId },
+        true
+      );
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        'studio_error',
+        {
+          action: 'comp_takes_export',
+          error: e instanceof Error ? e.message : 'unknown',
+        },
+        false
+      );
+      this.snackbarService.error('Take export failed');
+    }
   }
 
   /** Helper: trigger a file download from a Blob */
@@ -1953,31 +1969,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
-  /** Helper: create a silent 44.1kHz 16-bit mono WAV Blob */
-  private createSilentWav(): Blob {
-    const sampleRate = 44100;
-    const numSamples = sampleRate; // 1 second
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-    const w = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++)
-        view.setUint8(offset + i, str.charCodeAt(i));
-    };
-    w(0, 'RIFF');
-    view.setUint32(4, 36 + numSamples * 2, true);
-    w(8, 'WAVE');
-    w(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, 1, true); // mono
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    w(36, 'data');
-    view.setUint32(40, numSamples * 2, true);
-    return new Blob([buffer], { type: 'audio/wav' });
-  }
 
   // ── Smart Sound ───────────────────────────────────────
 
