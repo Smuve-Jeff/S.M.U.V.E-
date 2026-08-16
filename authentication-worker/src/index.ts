@@ -1,5 +1,4 @@
 import { jwtVerify } from 'jose';
-import { isTokenRevoked, logAuthEvent, type AuthOutcome } from './db';
 
 export interface Env {
 	JWT_SECRET: string;
@@ -7,9 +6,6 @@ export interface Env {
 	ENVIRONMENT: string;
 	CF_ACCESS_CLIENT_ID: string;
 	CF_ACCESS_CLIENT_SECRET: string;
-	// Cloudflare D1 (SQLite) binding. Optional so `wrangler dev` keeps working
-	// before the database has been created and bound.
-	DB?: D1Database;
 }
 
 export default {
@@ -21,21 +17,13 @@ export default {
 			return new Response('OK', { status: 200 });
 		}
 
-		const method = request.method;
-		const path = url.pathname;
-
-		const unauthorized = (reason: string, outcome: AuthOutcome = 'deny', userId: string | null = null) => {
-			ctx.waitUntil(logAuthEvent(env, { outcome, userId, method, path, reason }));
-			return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-				status: 401,
-				headers: { 'Content-Type': 'application/json' },
-			});
-		};
-
 		// 2. Extract Authorization Header
 		const authHeader = request.headers.get('Authorization');
 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
-			return unauthorized('missing-header');
+			return new Response(JSON.stringify({ error: 'Missing or invalid Authorization header' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' },
+			});
 		}
 
 		const token = authHeader.substring(7);
@@ -48,13 +36,6 @@ export default {
 			if (env.ENVIRONMENT === 'development') {
 				console.log(`Authenticated user: ${payload.sub}`);
 			}
-
-			// D1-backed revocation check for tokens that carry a `jti` claim.
-			if (env.DB && payload.jti && (await isTokenRevoked(env.DB, String(payload.jti)))) {
-				return unauthorized('revoked', 'deny', payload.sub ?? null);
-			}
-
-			ctx.waitUntil(logAuthEvent(env, { outcome: 'allow', userId: payload.sub ?? null, method, path, reason: null }));
 
 			// 4. Forward request to the origin (Worker -> Protected Origin)
 			const originUrl = new URL(env.ORIGIN_URL);
@@ -81,7 +62,10 @@ export default {
 			return await fetch(modifiedRequest);
 		} catch (e) {
 			console.error(`Auth failure: ${e instanceof Error ? e.message : String(e)}`);
-			return unauthorized('verify-failed', 'invalid');
+			return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' },
+			});
 		}
 	},
 };
