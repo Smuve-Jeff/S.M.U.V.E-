@@ -10,7 +10,8 @@ export type VoiceArchetype =
   | 'Childlike Glitch'
   | 'Creature'
   | 'Choir (Layered)'
-  | 'Androgynous Oracle';
+  | 'Androgynous Oracle'
+  | 'Ominous Protocol';
 
 interface SmuveArchetype {
   name: VoiceArchetype;
@@ -28,6 +29,8 @@ interface SpeakOptions {
   forceArchetype?: VoiceArchetype;
   /** When false, the voice stays stable (single archetype, no per-sentence shifting). */
   shapeShift?: boolean;
+  /** Allow vulgar language (default: true). When false, the text is sanitized. */
+  allowVulgarLanguage?: boolean;
 }
 
 /** Pitch bands used to force constant full-spectrum change between sentences. */
@@ -46,7 +49,11 @@ export interface VoiceReadout {
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
 
-  // 12 Elite S.M.U.V.E. Vocal Archetypes — Full Spectrum
+  // Default behaviour: automatically use the Ominous persona unless the user
+  // explicitly forces a different archetype or disables the feature.
+  public defaultToOminous = true;
+
+  // 12+ Elite S.M.U.V.E. Vocal Archetypes — Full Spectrum
   private readonly SMUVE_ARCHETYPES: SmuveArchetype[] = [
     {
       name: 'Deep Bass (Male)',
@@ -178,6 +185,18 @@ export class SpeechSynthesisService {
       rateRange: [0.5, 0.72],
       description: 'Phantom protocol. The voice from the bottom of the ocean.',
     },
+    // Ominous Protocol — the custom persona requested by the product owner.
+    {
+      name: 'Ominous Protocol',
+      gender: 'neutral',
+      basePitch: 0.85,
+      baseRate: 0.9,
+      baseVolume: 1.0,
+      pitchRange: [0.15, 1.7],
+      rateRange: [0.5, 1.25],
+      description:
+        'A malleable, ominous persona that sweeps the full vocal spectrum — from subterranean bass to piercing soprano. Deliberately unpredictable and authoritative.',
+    },
   ];
 
   private currentArchetype: SmuveArchetype | null = null;
@@ -194,19 +213,25 @@ export class SpeechSynthesisService {
    * Speaks text with per-sentence shape-shifting.
    * EVERY sentence is spoken as its own utterance with a freshly rolled
    * archetype, a full-spectrum pitch band (deep male bass → high female
-   * soprano) and a rotated voice — the voice NEVER stays the same.
+   * soprano) and a rotated voice — the voice NEVER stays the same by default
+   * unless the caller passes shapeShift: false or forceArchetype.
    */
   speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis)
       return;
 
+    // Apply vulgar language preference (default: allow). If the caller opts
+    // out, sanitize the text.
+    const allowVulgar = options?.allowVulgarLanguage !== undefined ? options.allowVulgarLanguage : true;
+    const processedInput = allowVulgar ? text : this.sanitizeText(text);
+
     // Stable mode: one archetype, one voice, no per-sentence shifting.
     if (options?.shapeShift === false) {
-      this.speakStable(text, options);
+      this.speakStable(processedInput, options);
       return;
     }
 
-    const sentences = this.splitSentences(text);
+    const sentences = this.splitSentences(processedInput);
     if (sentences.length === 0) return;
 
     this.cancel();
@@ -312,7 +337,10 @@ export class SpeechSynthesisService {
 
   /**
    * Selects archetype with full spectrum rotation.
-   * Cycles through male deep / female high every 2-4 calls for constant variety.
+   * By default the service chooses the Ominous Protocol persona unless the
+   * caller explicitly forces a different archetype (forceArchetype) — this
+   * keeps the product behaviour consistent with the request "use its custom
+   * ominous persona ... unless explicitly changed by the user".
    */
   private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
     if (options?.forceArchetype) {
@@ -322,11 +350,24 @@ export class SpeechSynthesisService {
       if (forced) return forced;
     }
 
-    // Rotate across the full spectrum: 0-2 male, 3-5 female, 6-11 neutral/creature
+    // If the app is configured to default to ominous, pick that archetype.
+    if (this.defaultToOminous && !options?.forceArchetype) {
+      const ominous = this.SMUVE_ARCHETYPES.find(
+        (a) => a.name === 'Ominous Protocol'
+      );
+      if (ominous) {
+        // Still record history for gender balancing logic.
+        this.archetypeHistory = [
+          ...this.archetypeHistory.slice(-5),
+          this.SMUVE_ARCHETYPES.indexOf(ominous),
+        ];
+        return ominous;
+      }
+    }
+
+    // Fallback random selection with light biasing to cover the full spectrum.
     const genderWeights =
-      this.archetypeHistory.length > 3
-        ? this.getUnderrepresentedGender()
-        : null;
+      this.archetypeHistory.length > 3 ? this.getUnderrepresentedGender() : null;
 
     let pool: SmuveArchetype[];
     if (genderWeights === 'female' && Math.random() < 0.7) {
@@ -391,7 +432,8 @@ export class SpeechSynthesisService {
 
     const [minRate, maxRate] = this.currentArchetype.rateRange;
 
-    // 1) Full-spectrum pitch band — avoid repeating the previous band.
+    // 1) Full-spectrum pitch band — always change away from the previous band
+    // to ensure constant vocal-range shifting as requested.
     const band = this.nextPitchBand();
     if (band === 'low') {
       // Deep male bass territory
@@ -432,15 +474,16 @@ export class SpeechSynthesisService {
     };
   }
 
-  /** Picks low / mid / high, heavily biased away from the previous band. */
+  /** Picks low / mid / high, NEVER repeats the previous band to create a
+   *  constantly changing vocal range across sentences. */
   private nextPitchBand(): PitchBand {
     const bands: PitchBand[] = ['low', 'mid', 'high'];
-    if (this.lastPitchBand && Math.random() < 0.7) {
-      const others = bands.filter((b) => b !== this.lastPitchBand);
-      this.lastPitchBand = others[Math.floor(Math.random() * others.length)];
-    } else {
+    if (!this.lastPitchBand) {
       this.lastPitchBand = bands[Math.floor(Math.random() * bands.length)];
+      return this.lastPitchBand;
     }
+    const others = bands.filter((b) => b !== this.lastPitchBand);
+    this.lastPitchBand = others[Math.floor(Math.random() * others.length)];
     return this.lastPitchBand;
   }
 
@@ -528,5 +571,24 @@ export class SpeechSynthesisService {
       window.speechSynthesis.cancel();
       this.isSpeaking.set(false);
     }
+  }
+
+  // ----- Helper: profanity sanitization (opt-out) -----
+  private sanitizeText(text: string): string {
+    // Minimal profanity list — callers can opt out to allow full language.
+    const profanities = [
+      'fuck',
+      'shit',
+      'bitch',
+      'damn',
+      'asshole',
+      'bastard',
+      'crap',
+      'piss',
+      'dick',
+      'cunt',
+    ];
+    const regex = new RegExp(`\\b(${profanities.join('|')})\\b`, 'gi');
+    return text.replace(regex, (m) => '*'.repeat(m.length));
   }
 }
