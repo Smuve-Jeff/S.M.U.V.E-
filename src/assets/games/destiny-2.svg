@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="600" viewBox="0 0 1600 600">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ffd89b" />
+      <stop offset="100%" stop-color="#19547b" />
+    </linearGradient>
+    <style>
+      .bg{fill:url(#g)}
+      .title{font-family:Inter, Roboto, system-ui, -apple-system, sans-serif;font-weight:800;fill:#fff;font-size:48px}
+      .sub{font-family:Inter, Roboto, system-ui, -apple-system, sans-serif;fill:rgba(255,255,255,0.95);font-size:16px}
+    </style>
+  </defs>
+  <rect class="bg" width="1600" height="600" rx="18"/>
+  <g transform="translate(80,360)">
+    <text class="title">Destiny 2</text>
+    <text class="sub" y="48">Shared-world Shooter · Raids & PvP</text>
+  </g>
+</svg>
