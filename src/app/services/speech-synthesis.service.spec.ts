@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { SpeechSynthesisService } from './speech-synthesis.service';
+import { UserProfileService } from './user-profile.service';
 
 describe('SpeechSynthesisService', () => {
   let service: SpeechSynthesisService;
@@ -147,7 +148,7 @@ describe('SpeechSynthesisService', () => {
     expect(service.liveVoice()).toBeNull();
     mockUtterances[0].onstart();
     expect(service.liveVoice()).toMatchObject({
-      archetype: 'Deep Bass (Male)',
+      archetype: 'Ominous Protocol',
       band: 'low',
       voiceName: 'Microsoft David',
     });
@@ -155,6 +156,68 @@ describe('SpeechSynthesisService', () => {
     mockUtterances[0].onend();
     expect(service.liveVoice()).toBeNull();
     expect(service.isSpeaking()).toBe(false);
+  });
+
+  it('should default to the Ominous Protocol persona unless an archetype is forced', () => {
+    randomSpy.mockReturnValue(0);
+
+    service.speak('Test sentence.');
+    mockUtterances[0].onstart();
+    expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
+
+    service.speak('Forced deep bass.', { forceArchetype: 'Deep Bass (Male)' });
+    mockUtterances[1].onstart();
+    expect(service.liveVoice()?.archetype).toBe('Deep Bass (Male)');
+  });
+
+  it('should never repeat the same pitch band on consecutive sentences', () => {
+    randomSpy.mockReturnValue(0.99);
+
+    service.speak('One. Two! Three?');
+
+    const readouts: string[] = [];
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      readouts.push(service.liveVoice()!.band);
+    });
+    expect(readouts).toHaveLength(3);
+    readouts.forEach((band, i) => {
+      if (i > 0) expect(band).not.toBe(readouts[i - 1]);
+    });
+  });
+
+  it('should censor profanity when allowVulgarLanguage is false', () => {
+    randomSpy.mockReturnValue(0);
+
+    service.speak('Shut the fuck up, bitch.', { allowVulgarLanguage: false });
+
+    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
+      'Shut the **** up, *****.'
+    );
+  });
+
+  it('should honor the user profile profanity preference', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: () => ({
+              settings: { ai: { aiProfanityEnabled: false } },
+            }),
+          },
+        },
+      ],
+    });
+    service = TestBed.inject(SpeechSynthesisService);
+    randomSpy.mockReturnValue(0);
+
+    service.speak('You damn piece of crap.');
+
+    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
+      'You **** piece of ****.'
+    );
   });
 
   it('should continue speaking when explicit voice assignment is rejected', () => {

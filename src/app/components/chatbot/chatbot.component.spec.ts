@@ -76,7 +76,7 @@ describe('ChatbotComponent', () => {
         settings: expect.objectContaining({
           ai: expect.objectContaining({
             aiMimicEnabled: true,
-            commanderPersona: 'Elite',
+            commanderPersona: 'Ominous Dominator',
             aiConversationalTier: 'Standard',
           }),
         }),
@@ -90,8 +90,8 @@ describe('ChatbotComponent', () => {
       expect.objectContaining({
         settings: expect.objectContaining({
           ai: expect.objectContaining({
-            aiProfanityEnabled: true,
-            commanderPersona: 'Elite',
+            aiProfanityEnabled: false, // default is now true — toggle turns it off
+            commanderPersona: 'Ominous Dominator',
             aiConversationalTier: 'Standard',
           }),
         }),
@@ -106,7 +106,7 @@ describe('ChatbotComponent', () => {
         settings: expect.objectContaining({
           ai: expect.objectContaining({
             kbWriteAccess: false, // initial is true
-            commanderPersona: 'Elite',
+            commanderPersona: 'Ominous Dominator',
             aiConversationalTier: 'Standard',
           }),
         }),
@@ -125,7 +125,7 @@ describe('ChatbotComponent', () => {
         settings: expect.objectContaining({
           ai: expect.objectContaining({
             aiVoiceShapeShiftEnabled: false,
-            commanderPersona: 'Elite',
+            commanderPersona: 'Ominous Dominator',
             aiConversationalTier: 'Standard',
           }),
         }),
