@@ -9,12 +9,21 @@
       "rating": 4.6,
       "playersOnline": 120000,
       "availability": "Online",
-      "tags": ["FPS", "Multiplayer", "Competitive", "PvP", "Tactical"],
-      "badgeIds": ["next-gen", "modern"],
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "Competitive",
+        "PvP",
+        "Tactical"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -26,12 +35,19 @@
       "rating": 4.5,
       "playersOnline": 800000,
       "availability": "Online",
-      "tags": ["MOBA", "Multiplayer", "Competitive", "Teamplay"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "MOBA",
+        "Multiplayer",
+        "Competitive",
+        "Teamplay"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -43,12 +59,19 @@
       "rating": 4.4,
       "playersOnline": 500000,
       "availability": "Online",
-      "tags": ["MOBA", "Competitive", "Teamplay", "PvP"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "MOBA",
+        "Competitive",
+        "Teamplay",
+        "PvP"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.dota2.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -60,12 +83,18 @@
       "rating": 4.4,
       "playersOnline": 300000,
       "availability": "Online",
-      "tags": ["Battle Royale", "Squad", "Multiplayer"],
-      "badgeIds": ["next-gen"],
+      "tags": [
+        "Battle Royale",
+        "Squad",
+        "Multiplayer"
+      ],
+      "badgeIds": [
+        "next-gen"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/apex-legends",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -77,12 +106,20 @@
       "rating": 4.6,
       "playersOnline": 200000,
       "availability": "Online",
-      "tags": ["Sports", "Multiplayer", "Competitive", "Crossplay"],
-      "badgeIds": ["modern", "featured"],
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "Competitive",
+        "Crossplay"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -94,12 +131,19 @@
       "rating": 4.3,
       "playersOnline": 1000000,
       "availability": "Online",
-      "tags": ["Battle Royale", "Multiplayer", "Creative", "Crossplay"],
-      "badgeIds": ["next-gen"],
+      "tags": [
+        "Battle Royale",
+        "Multiplayer",
+        "Creative",
+        "Crossplay"
+      ],
+      "badgeIds": [
+        "next-gen"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.epicgames.com/fortnite/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -111,12 +155,20 @@
       "rating": 4.8,
       "playersOnline": 1400000,
       "availability": "Online",
-      "tags": ["Sandbox", "Multiplayer", "Co-op", "Creative"],
-      "badgeIds": ["classic", "next-gen"],
+      "tags": [
+        "Sandbox",
+        "Multiplayer",
+        "Co-op",
+        "Creative"
+      ],
+      "badgeIds": [
+        "classic",
+        "next-gen"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.minecraft.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -128,12 +180,18 @@
       "rating": 4.2,
       "playersOnline": 90000,
       "availability": "Online",
-      "tags": ["Social", "Party", "Multiplayer"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Social",
+        "Party",
+        "Multiplayer"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.innersloth.com/gameAmongUs.php",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -145,12 +203,18 @@
       "rating": 4.1,
       "playersOnline": 250000,
       "availability": "Online",
-      "tags": ["Open World", "Multiplayer", "Social"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Open World",
+        "Multiplayer",
+        "Social"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rockstargames.com/GTAOnline",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -159,15 +223,21 @@
       "url": "https://www.seaofthieves.com/",
       "description": "Shared-world pirate co-op with emergent encounters and crew-based progression.",
       "genre": "Co-op",
-      "rating": 4.0,
+      "rating": 4,
       "playersOnline": 40000,
       "availability": "Online",
-      "tags": ["Co-op", "Open World", "Multiplayer"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Co-op",
+        "Open World",
+        "Multiplayer"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.seaofthieves.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -179,12 +249,20 @@
       "rating": 4.2,
       "playersOnline": 120000,
       "availability": "Online",
-      "tags": ["MMO", "Shooter", "Co-op", "PvE", "PvP"],
-      "badgeIds": ["next-gen"],
+      "tags": [
+        "MMO",
+        "Shooter",
+        "Co-op",
+        "PvE",
+        "PvP"
+      ],
+      "badgeIds": [
+        "next-gen"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.bungie.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -196,12 +274,19 @@
       "rating": 4.3,
       "playersOnline": 70000,
       "availability": "Online",
-      "tags": ["Tactical", "FPS", "Multiplayer", "Competitive"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Tactical",
+        "FPS",
+        "Multiplayer",
+        "Competitive"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ubisoft.com/en-us/game/rainbow-six/siege",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -213,12 +298,18 @@
       "rating": 4.7,
       "playersOnline": 600000,
       "availability": "Online",
-      "tags": ["FPS", "Competitive", "Multiplayer"],
-      "badgeIds": ["next-gen"],
+      "tags": [
+        "FPS",
+        "Competitive",
+        "Multiplayer"
+      ],
+      "badgeIds": [
+        "next-gen"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.counter-strike.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -227,15 +318,21 @@
       "url": "https://www.ea.com/games/fifa",
       "description": "Realistic football simulation with online seasons, clubs, and competitive matchmaking.",
       "genre": "Sports",
-      "rating": 4.0,
+      "rating": 4,
       "playersOnline": 150000,
       "availability": "Online",
-      "tags": ["Sports", "Multiplayer", "Competitive"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "Competitive"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/fifa",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     },
     {
@@ -247,12 +344,18 @@
       "rating": 4.3,
       "playersOnline": 90000,
       "availability": "Online",
-      "tags": ["Co-op", "Action", "MMO"],
-      "badgeIds": ["modern"],
+      "tags": [
+        "Co-op",
+        "Action",
+        "MMO"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.warframe.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       }
     }
   ]

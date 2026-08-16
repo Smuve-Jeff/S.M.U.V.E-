@@ -8122,7 +8122,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://playvalorant.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/valorant.svg',
     },
@@ -8140,7 +8140,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.leagueoflegends.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/league-of-legends.svg',
     },
@@ -8158,7 +8158,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.dota2.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/dota2.svg',
     },
@@ -8176,7 +8176,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.ea.com/games/apex-legends',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/apex-legends.svg',
     },
@@ -8194,7 +8194,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.rocketleague.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/rocket-league.svg',
     },
@@ -8212,7 +8212,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.epicgames.com/fortnite/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/fortnite.svg',
     },
@@ -8230,7 +8230,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.minecraft.net/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/minecraft.svg',
     },
@@ -8248,7 +8248,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.innersloth.com/gameAmongUs.php',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/among-us.svg',
     },
@@ -8266,7 +8266,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.rockstargames.com/GTAOnline',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/gta-online.svg',
     },
@@ -8284,7 +8284,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.seaofthieves.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/sea-of-thieves.svg',
     },
@@ -8302,7 +8302,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.bungie.net/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/destiny-2.svg',
     },
@@ -8320,7 +8320,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.ubisoft.com/en-us/game/rainbow-six/siege',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/rainbow-six-siege.svg',
     },
@@ -8338,7 +8338,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.counter-strike.net/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/cs2.svg',
     },
@@ -8356,7 +8356,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.ea.com/games/fifa',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/fifa-24.svg',
     },
@@ -8374,7 +8374,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       multiplayerType: 'Server',
       launchConfig: {
         approvedExternalUrl: 'https://www.warframe.com/',
-        embedMode: 'external',
+        embedMode: 'external-only',
       },
       image: '/assets/games/warframe.svg',
     },

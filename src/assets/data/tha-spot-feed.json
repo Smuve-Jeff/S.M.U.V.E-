@@ -11608,7 +11608,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://playvalorant.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/valorant.svg"
     },
@@ -11633,7 +11633,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.leagueoflegends.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/league-of-legends.svg"
     },
@@ -11658,7 +11658,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.dota2.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/dota2.svg"
     },
@@ -11682,7 +11682,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/apex-legends",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/apex-legends.svg"
     },
@@ -11708,7 +11708,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rocketleague.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/rocket-league.svg"
     },
@@ -11733,7 +11733,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.epicgames.com/fortnite/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/fortnite.svg"
     },
@@ -11759,7 +11759,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.minecraft.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/minecraft.svg"
     },
@@ -11783,7 +11783,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.innersloth.com/gameAmongUs.php",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/among-us.svg"
     },
@@ -11807,7 +11807,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.rockstargames.com/GTAOnline",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/gta-online.svg"
     },
@@ -11831,7 +11831,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.seaofthieves.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/sea-of-thieves.svg"
     },
@@ -11857,7 +11857,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.bungie.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/destiny-2.svg"
     },
@@ -11882,7 +11882,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ubisoft.com/en-us/game/rainbow-six/siege",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/rainbow-six-siege.svg"
     },
@@ -11906,7 +11906,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.counter-strike.net/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/cs2.svg"
     },
@@ -11930,7 +11930,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.ea.com/games/fifa",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/fifa-24.svg"
     },
@@ -11954,7 +11954,7 @@
       "multiplayerType": "Server",
       "launchConfig": {
         "approvedExternalUrl": "https://www.warframe.com/",
-        "embedMode": "external"
+        "embedMode": "external-only"
       },
       "image": "/assets/games/warframe.svg"
     }
