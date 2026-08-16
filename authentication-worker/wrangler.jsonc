@@ -1,8 +1,21 @@
 {
-	"name": "<WORKER_NAME>",
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "authentication-worker",
 	"main": "src/index.ts",
-	"compatibility_date": "<COMPATIBILITY_DATE>",
+	"compatibility_date": "2026-07-11",
 	"observability": {
-		"enabled": true,
+		"enabled": true
 	},
+	"vars": {
+		"ENVIRONMENT": "production"
+	},
+	// Cloudflare D1 (SQLite) binding.
+	// Run `npx wrangler d1 create smuve` and paste the returned database_id below.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "smuve",
+			"database_id": "REPLACE_WITH_D1_DATABASE_ID"
+		}
+	]
 }
