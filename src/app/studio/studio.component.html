@@ -1,34 +1,19 @@
-  </main>
-
-  <!-- ====================== STUDIO FOOTER ====================== -->
-  <footer class="comp-footer" role="contentinfo">
-    <div class="comp-footer-left">
-      <button
-        type="button"
-        class="comp-icon-btn comp-footer-toggle"
-        (click)="toggleFooter()"
-        [attr.aria-label]="
-          footerCollapsed()
-            ? 'Show bottom status bar'
-            : 'Hide bottom status bar · maximize workspace'
-        "
-        [attr.aria-pressed]="footerCollapsed()"
-        [attr.title]="
-          footerCollapsed()
-            ? 'Click to SHOW bottom status bar'
-            : 'Click to HIDE bottom status bar &amp; maximize canvas'
-        "
-      >
-        <span class="material-symbols-outlined">{{
-          footerCollapsed() ? 'expand_less' : 'expand_more'
-        }}</span>
-      </button>
-      <span class="comp-footer-brand footer-brand-global" aria-label="Smuve Jeff Presents — S.M.U.V.E. 2.0 footer branding">©️ Smuve Jeff Presents</span>
     </div>
 
-    <div class="comp-footer-center">
-      <span class="comp-footer-chip" title="Current view">
-        <span class="material-symbols-outlined">view_quilt</span>
-        {{ activeView() | titlecase }}
-      </span>
+    <!-- ====================== STUDIO FOOTER ====================== -->
+    <footer class="comp-footer" role="contentinfo">
+      <div class="comp-footer-left">
 @@
+      </div>
+
+      <div class="comp-footer-right">
+@@
+      </div>
+    </footer>
+
+    <!-- Unified branding line for Studio footer -->
+    <div style="display:none" aria-hidden="true">
+      <!-- Keep markup for visual brand but unify text node for accessibility -->
+      <span class="comp-footer-brand">©️ Smuve Jeff Presents</span>
+    </div>
+  </main>
