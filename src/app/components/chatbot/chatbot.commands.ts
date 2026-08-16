@@ -6,6 +6,26 @@ export const CHATBOT_COMMANDS = [
     category: 'Production',
   },
   {
+    command: 'MAKE_BEAT',
+    description: 'Chat-driven beat: drums, bass, chords, melody at any BPM/key.',
+    category: 'Production',
+  },
+  {
+    command: 'CHORD_PROGRESSION',
+    description: 'Play a chord progression, e.g. "play C - Am - F - G".',
+    category: 'Production',
+  },
+  {
+    command: 'PREVIEW_MUSIC',
+    description: 'Hear the last thing I created — offline audition.',
+    category: 'Production',
+  },
+  {
+    command: 'UNDO_MUSIC',
+    description: 'Rewind the last music edit.',
+    category: 'Production',
+  },
+  {
     command: 'MASTER',
     description: 'Deploy the Mastering Suite interface.',
     category: 'Production',
@@ -123,6 +143,10 @@ export const QUICK_COMMANDS = [
   { label: '/knowledge', description: 'Browse all domains' },
   { label: '/studio', description: 'Studio control' },
   { label: '/studio tempo', description: 'Set BPM' },
+  { label: '/music', description: 'Chat Music Engine commands' },
+  { label: '/make beat', description: 'Build a beat in chat' },
+  { label: '/preview', description: 'Hear the last creation' },
+  { label: '/undo', description: 'Rewind the last edit' },
   { label: '/tracks', description: 'Track manager' },
   { label: '/vocal', description: 'Vocal techniques' },
   { label: '/mixer', description: 'Mixer control' },

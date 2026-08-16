@@ -33,6 +33,7 @@ import { MusicManagerService } from '../../services/music-manager.service';
 import { SmuveWidgetComponent } from '../smuve-widget/smuve-widget.component';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { ChatMusicCommandEngineService } from '../../services/chat-music-command-engine.service';
 
 interface ChatMessage {
   id: string;
@@ -67,7 +68,11 @@ type MasterActionId =
   | 'chords'
   | 'melody'
   | 'neural-mix'
-  | 'lesson';
+  | 'lesson'
+  | 'music-preview'
+  | 'music-undo'
+  | 'music-stop'
+  | 'music-help';
 
 interface ChatAction {
   id: MasterActionId;
@@ -128,6 +133,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   }
   private get router(): Router | null {
     return this.injector.get(Router, null);
+  }
+  /** Chat Music Command Engine — chat-driven creation / preview / undo / tempo. */
+  private get chatMusic(): ChatMusicCommandEngineService | null {
+    return this.injector.get(ChatMusicCommandEngineService, null);
   }
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
@@ -322,6 +331,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   private async routeMasterIntent(text: string): Promise<MasterIntent | null> {
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
+
+    // 0) Chat Music Command Engine — chat-driven music creation, preview,
+    //    undo, tempo and stop. Handles its own slash + natural-language forms.
+    const musicResult = this.chatMusic?.tryExecute(trimmed);
+    if (musicResult) {
+      return { content: musicResult.content, actions: musicResult.actions };
+    }
 
     // 1) Slash commands → Total Control engine
     if (trimmed.startsWith('/')) {
@@ -885,6 +901,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
           : `No lesson for "${action.data}". Try: Production, Marketing, Business, Legal, Distribution, Career.`;
         break;
       }
+      case 'music-preview':
+        result = this.chatMusic?.preview().content ?? 'Music engine offline.';
+        break;
+      case 'music-undo':
+        result = this.chatMusic?.undo().content ?? 'Music engine offline.';
+        break;
+      case 'music-stop':
+        result = this.chatMusic?.stop().content ?? 'Music engine offline.';
+        break;
+      case 'music-help':
+        result = this.chatMusic?.help().content ?? 'Music engine offline.';
+        break;
       default:
         return;
     }
