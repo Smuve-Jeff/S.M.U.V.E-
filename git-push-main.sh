@@ -14,8 +14,9 @@ fi
 # 2) Switch to main
 git checkout main
 
-# 3) Remove GitHub Pages / Render deployment artifacts
-rm -f render.yaml CNAME
+# 3) Remove legacy GitHub Pages artifacts (no longer used)
+#    render.yaml is KEPT — it is the canonical Render Blueprint for the API backend.
+rm -f CNAME
 # CNAME is a tracked GitHub Pages custom-domain marker — stage its removal
 # (no-op if it was never tracked).
 git add -A -- CNAME 2>/dev/null || true
@@ -71,7 +72,7 @@ else
 - Remove authGuard from all routes (app fully unlocked); catalog public, write ops API-gated
 - Delete old server/ backend (superseded by new src/ API); remove workspace + jest/eslint references
 - Point AUTH_API_URL + api_url at https://api.smuvejeffpresents.com/api via the smuve-connect tunnel
-- Deployment: erase GitHub Pages (CNAME, ghpages config, deploy script, angular-cli-ghpages) and Render (render.yaml); Cloudflare tunnel smuve-connect is the canonical path (web + API)"
+- Deployment: erase GitHub Pages (CNAME, ghpages config, deploy script, angular-cli-ghpages); Render blueprint (render.yaml) is the canonical API backend; Cloudflare tunnel smuve-connect is an alternative self-hosted path"
 fi
 
 # 9) Update from remote, then push

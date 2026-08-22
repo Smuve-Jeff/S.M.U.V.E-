@@ -1,8 +1,11 @@
 # Cloudflare Tunnel Configuration (smuve-connect)
 
-**This is the canonical deployment path for S.M.U.V.E. 2.0.** Both the web app
-and the API are served from this machine through the `smuve-connect` Cloudflare
-Tunnel — no GitHub Pages, no Render, no third-party hosting.
+Alternative local-dev / self-hosted deployment path for S.M.U.V.E. 2.0.
+Both the web app and the API can be served from this machine through the
+`smuve-connect` Cloudflare Tunnel.
+
+**Production backend:** Render (https://smuve-api.onrender.com) — see `render.yaml`.
+The frontend is configured to point at the Render API by default.
 
 ## Tunnel Details
 
