@@ -15,6 +15,7 @@
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",
     "deploy": "ng build --configuration=ghpages && cp Build/browser/index.html Build/browser/404.html && npx angular-cli-ghpages --dir=Build/browser",
+    "deploy:render": "bash scripts/render-deploy.sh",
     "cap:init": "cap init \"S.M.U.V.E.\" com.smuve.smuve2 --web-dir=Build/browser",
     "cap:add:android": "cap add android",
     "cap:sync": "cap sync android",
