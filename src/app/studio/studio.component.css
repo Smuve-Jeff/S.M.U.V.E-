@@ -863,13 +863,13 @@
 /* ── Elegant brand name ── */
 .comp-footer-brand .comp-footer-brand-name {
   font-family:
-    'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman',
-    serif;
-  font-size: 13px;
-  font-weight: 600;
-  font-style: italic;
+    'Italiana', 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 400;
+  font-style: normal;
   color: var(--espresso-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   line-height: 1;
   transition: color 0.3s ease;
 }

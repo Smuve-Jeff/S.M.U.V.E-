@@ -813,7 +813,8 @@
 }
 
 .al-footer-sub {
-  font-size: 9px;
+  font-family: 'Italiana', 'Cinzel', serif;
+  font-size: 13px;
   color: var(--ivory-500, #9e8e76);
   margin: 0;
 }
@@ -977,14 +978,12 @@
   opacity: 0.85;
 }
 .al-footer-sub {
-  font-family:
-    'Helvetica Neue', 'Inter', 'Public Sans', system-ui, -apple-system,
-    'Segoe UI', Roboto, sans-serif;
-  font-size: 8px;
-  font-weight: 600;
+  font-family: 'Italiana', 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 400;
   color: var(--teal-400, #2ba09c);
   margin: 0;
-  letter-spacing: 0.34em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.82;
   transition: opacity 0.3s ease;

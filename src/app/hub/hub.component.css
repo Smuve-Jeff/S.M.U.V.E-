@@ -666,6 +666,14 @@
 .hub-footer .material-symbols-outlined { font-size: 14px; }
 .hub-footer:hover { color: rgba(220, 235, 229, 0.78); }
 
+.hub-footer-brand {
+  font-family: 'Italiana', 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* ============================================================
    HOME — full-page ambient background image.
    Renders the active cinematic backdrop behind the whole hub

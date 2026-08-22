@@ -326,9 +326,9 @@ footer {
 }
 
 /* ============================================================
-   FOOTER BRAND — Professional Cinzel serif mark (end-credit feel).
+   FOOTER BRAND — Professional elegant serif mark (end-credit feel).
    Keeps the original "© Smuve Jeff Presents" branding, set in the
-   engraved Cinzel serif already loaded in index.html, with wide
+   elegant Italiana serif already loaded in index.html, with wide
    tracking and a hairline teal divider.
    ============================================================ */
 
@@ -341,7 +341,7 @@ footer {
   position: relative;
   cursor: default;
   font-family:
-    'Cinzel', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+    'Italiana', 'Cinzel', serif;
 }
 
 .app-footer-brand::before {
