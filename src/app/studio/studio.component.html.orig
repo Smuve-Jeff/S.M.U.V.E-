@@ -75,9 +75,6 @@
         <button type="button" class="comp-project-menu-item" (click)="saveProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">save</span> Save Project
         </button>
-        <button type="button" class="comp-project-menu-item" (click)="toggleProjectMetadata(); toggleProjectMenu()">
-          <span class="material-symbols-outlined">edit_document</span> Project Details
-        </button>
         <button type="button" class="comp-project-menu-item" (click)="exportProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">download</span> Export Project Bundle
         </button>
@@ -954,10 +951,6 @@
       <button (click)="saveProject(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">save</span>
         <span>Save Project</span>
-      </button>
-      <button (click)="toggleProjectMetadata(); toggleMobileDrawer()" class="comp-drawer-item">
-        <span class="material-symbols-outlined">edit_document</span>
-        <span>Project Details</span>
       </button>
       <button (click)="exportProject(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">download</span>

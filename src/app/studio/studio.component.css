@@ -3283,3 +3283,58 @@
   color: rgba(72, 57, 35, 0.74);
   text-align: right;
 }
+
+/* ==============================================
+   PROJECT MENU (Desktop Dropdown)
+   ============================================== */
+.comp-project-menu {
+  position: absolute;
+  top: 100%;
+  left: 64px;
+  background: rgba(20, 17, 11, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.comp-project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--espresso-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.comp-project-menu-item:hover,
+.comp-project-menu-item:focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  outline: none;
+}
+
+.comp-project-menu-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.comp-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
