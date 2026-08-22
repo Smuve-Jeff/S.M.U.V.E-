@@ -29,6 +29,22 @@ describe("authSchemas", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects a password that passes length but fails strength", () => {
+    const result = authSchemas.register.safeParse({
+      name: "Jeff",
+      email: "jeff@example.com",
+      password: "password1", // length OK, no uppercase/special
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("update schema enforces the same strength policy", () => {
+    const result = userSchemas.update.safeParse({
+      password: "weakpass1",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects unknown extra fields (strict)", () => {
     const result = authSchemas.register.safeParse({
       name: "Jeff",

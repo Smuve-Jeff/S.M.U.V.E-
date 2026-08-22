@@ -35,6 +35,19 @@ const emailField = () =>
     .max(100)
     .pipe(z.email("A valid email is required"));
 
+// Mirrors the frontend strength policy (AuthService.validatePassword):
+// 8+ chars with upper, lower, digit, and special — enforced server-side so
+// API clients cannot bypass the UI's password rules.
+const passwordField = () =>
+  z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100)
+    .regex(/[A-Z]/, "Password must contain an uppercase letter")
+    .regex(/[a-z]/, "Password must contain a lowercase letter")
+    .regex(/[0-9]/, "Password must contain a number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain a special character");
+
 export const authSchemas = {
   register: z
     .object({
@@ -44,10 +57,7 @@ export const authSchemas = {
         .min(2, "Name must be at least 2 characters")
         .max(100),
       email: emailField(),
-      password: z
-        .string()
-        .min(8, "Password must be at least 8 characters")
-        .max(100),
+      password: passwordField(),
     })
     .strict(),
 
@@ -69,11 +79,7 @@ export const userSchemas = {
         .max(100)
         .optional(),
       email: emailField().optional(),
-      password: z
-        .string()
-        .min(8, "Password must be at least 8 characters")
-        .max(100)
-        .optional(),
+      password: passwordField().optional(),
       role: z.enum(["user", "admin"]).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
