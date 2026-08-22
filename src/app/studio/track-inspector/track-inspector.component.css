@@ -4,7 +4,7 @@
 
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
   background: var(--ivory-bg);
   color: var(--espresso-text);
 }
@@ -12,7 +12,7 @@
 .ti-shell {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
   background: var(--ivory-bg);
 }
 

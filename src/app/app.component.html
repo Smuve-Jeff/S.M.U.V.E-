@@ -1,5 +1,5 @@
 <div
-  class="app-shell pro-blend min-h-screen flex flex-col md:flex-row overflow-hidden"
+  class="app-shell pro-blend min-h-screen flex flex-col md:flex-row"
   [class.dark-mode]="uiService.activeTheme().name === 'Dark'"
   [class.perf-mode-active]="uiService.performanceMode()"
   [class.show-scanlines]="uiService.showScanlines()"
@@ -588,7 +588,7 @@
     </section>
 
     <main
-      class="app-content relative overflow-hidden flex-grow"
+      class="app-content relative flex-grow"
       [class.full-page]="isFullPageMode()"
       [class.auth-page]="isAuthRoute()"
     >

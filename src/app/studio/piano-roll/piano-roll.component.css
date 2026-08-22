@@ -5,11 +5,11 @@
 
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
   background-color: #080b18;
   color: var(--espresso-text);
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   --pr-cell: 32px;
   --pr-row: 22px;
 }
@@ -17,8 +17,8 @@
 .pr-shell {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-y: auto; overflow-x: hidden;
   background: linear-gradient(180deg, #0a0e1c 0%, #05070f 100%);
   position: relative;
 }

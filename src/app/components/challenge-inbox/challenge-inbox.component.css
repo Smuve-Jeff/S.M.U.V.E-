@@ -5,7 +5,7 @@
 
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
   background: var(--ivory-deep, #06091a);
   color: var(--espresso-text, #f1f5ff);

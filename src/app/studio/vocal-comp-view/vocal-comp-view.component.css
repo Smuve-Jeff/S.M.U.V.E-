@@ -1,7 +1,7 @@
 :host {
   display: block;
   background: var(--vocal-obsidian, #07070a);
-  min-height: 100%;
+  min-min-height: 100%;
 }
 
 .comp-container {

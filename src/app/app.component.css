@@ -1,15 +1,15 @@
 :host {
   display: block;
-  height: 100vh;
-  height: 100dvh;
+  min-min-height: 100vh;
+  min-height: 100dvh;
   width: 100vw;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   background-color: #07060d;
   color: #faf9ff;
 }
 
 .app-shell {
-  height: 100%;
+  min-height: 100%;
   background: linear-gradient(160deg, #07060d, #0d0c1a, #07060d);
 }
 
@@ -287,14 +287,14 @@ footer {
 }
 
 .app-content {
-  height: calc(100vh - 64px);
-  height: calc(100dvh - 64px);
+  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
 }
 
 @media (max-width: 1024px) {
   .app-content {
-    height: calc(100vh - var(--mobile-nav-height, 64px) - 36px);
-    height: calc(100dvh - var(--mobile-nav-height, 64px) - 36px);
+    min-height: calc(100vh - var(--mobile-nav-height, 64px) - 36px);
+    min-height: calc(100dvh - var(--mobile-nav-height, 64px) - 36px);
   }
 }
 
@@ -454,8 +454,8 @@ footer {
      do not render the app shell dock. */
   .app-content.full-page,
   .app-content.auth-page {
-    height: 100svh;
-    height: 100dvh;
+    min-height: 100svh;
+    min-height: 100dvh;
   }
 
   .sidebar {

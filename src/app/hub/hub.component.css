@@ -14,7 +14,7 @@
   --hub-rose: #fb6b9d;
   --hub-gold: #fcd34d;
   display: block;
-  min-height: 100%;
+  min-min-height: 100%;
 }
 
 .hub-command-center {
@@ -208,7 +208,7 @@
   --pointer-glow-y: 46%;
   position: relative;
   min-height: clamp(270px, 32vw, 430px);
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   margin: 0 0 42px;
   border: 1px solid rgba(152, 235, 224, 0.28);
   border-radius: 28px;

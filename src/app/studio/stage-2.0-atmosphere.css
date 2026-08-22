@@ -229,7 +229,7 @@
 /* ── Stage marquee: shimmer sweep + refined ticker ── */
 .comp-stage-marquee {
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   isolation: isolate;
 }
 .comp-stage-marquee::after {

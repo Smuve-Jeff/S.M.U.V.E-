@@ -29,7 +29,7 @@
   background:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(175, 37, 244, 0.12), transparent 60%),
     linear-gradient(180deg, var(--bg-deep), #0a061c);
-  min-height: 100vh;
+  min-min-height: 100vh;
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
 }
@@ -391,7 +391,7 @@
   flex-direction: column;
   gap: 0.85rem;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
 }
 
 .stage-card::before {

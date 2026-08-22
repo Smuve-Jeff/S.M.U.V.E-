@@ -6,7 +6,7 @@
 
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
   background: var(--ivory-deep, #06091a);
   color: var(--espresso-text);
   font-family: var(--font-sans);
@@ -16,7 +16,7 @@
 .mastering-suite-container {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  min-min-height: 100%;
   padding: 1.5rem;
   gap: 1.5rem;
   background: var(--ivory-deep);

@@ -9,7 +9,7 @@
   width: 100%;
   background: var(--ivory-panel);
   border-bottom: 1px solid var(--ivory-line);
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   position: relative;
   flex-shrink: 0;
   height: 30px;
