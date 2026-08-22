@@ -214,6 +214,7 @@ describe('LiveStreamService', () => {
       messageListeners[0](
         new MessageEvent('message', {
           data: { type: 'TWITCH_AUTH_SUCCESS', platform: 'twitch' },
+          origin: 'http://localhost',
         })
       );
       expect(service.currentStream()?.active).toBe(true);
