@@ -132,7 +132,9 @@ export class SettingsComponent implements OnInit {
    *  instantly through UserProfileService.updateProfile(). */
   async forceSync() {
     const profile = this.profileService.profile();
-    await this.databaseService.saveUserProfile(profile, 'current');
+    // Use the profile's stamped owner id (real account) instead of the legacy
+    // 'current' key so forced sync passes the backend's ownership check.
+    await this.databaseService.saveUserProfile(profile, profile.id || 'current');
     this.notificationService.show('Cloud synchronization forced.', 'success');
   }
 

@@ -1,6 +1,7 @@
-import { Injectable, inject, signal, Injector } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { DatabaseService } from './database.service';
+import { AuthService } from './auth.service';
 import { ProfileStoreService } from './profile-store.service';
 import {
   initialProfile,
@@ -27,15 +28,40 @@ export class UserProfileService {
   private logger = inject(LoggingService);
   private store = inject(ProfileStoreService);
   private db = inject(DatabaseService);
+  private injector = inject(Injector);
 
   profile = this.store.profile;
 
-  constructor() {}
+  // AuthService imports this service, so resolve it lazily to avoid a
+  // circular-instantiation error (see AGENTS.md pattern #3).
+  private get authService() {
+    return this.injector.get(AuthService);
+  }
+
+  /**
+   * User id used to key profile persistence (local backup + cloud sync).
+   * Falls back to 'current' when no session is active or auth is unavailable.
+   */
+  private activeUserId(): string {
+    try {
+      const user = this.authService.currentUser();
+      if (user && user.id) return String(user.id);
+    } catch {
+      // Auth service not ready — fall through to the legacy key.
+    }
+    return 'current';
+  }
 
   async loadProfile(id: string = 'current') {
     try {
-      const saved = await this.db.loadUserProfile(id);
-      if (saved) this.store.setProfile(saved);
+      const key = id || this.activeUserId();
+      const saved = await this.db.loadUserProfile(key);
+      if (saved) {
+        // Stamp the owning user id into the in-memory profile so downstream
+        // sync (auto-save, artist identity, DJ sessions) keys cloud writes
+        // under the real account instead of 'current'/'anonymous'.
+        this.store.setProfile({ ...saved, id: key });
+      }
     } catch (e) {
       this.logger.error('Profile load failed', e);
     }
@@ -43,9 +69,16 @@ export class UserProfileService {
 
   async updateProfile(p: Partial<UserProfile>) {
     const next = { ...this.profile(), ...p } as UserProfile;
+    // Stamp the active user id so the profile always carries the account it
+    // belongs to, and the local backup + cloud sync share one key.
+    next.id = this.activeUserId();
     this.store.setProfile(next);
     try {
-      await this.db.saveUserProfile(next, 'current');
+      // Save under the real user id so the local backup and the cloud sync
+      // (which enforces ownership on the backend) use the same key. Previously
+      // this hardcoded 'current', which made cloud saves 403 and orphaned the
+      // local backup from the id-keyed load path.
+      await this.db.saveUserProfile(next, this.activeUserId());
     } catch (e) {
       this.logger.error('Profile save failed', e);
     }

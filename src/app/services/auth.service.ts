@@ -184,6 +184,9 @@ export class AuthService {
     };
 
     this.userStore.setUser(user);
+    // Load the profile under the real user id so profile.id is stamped from
+    // the first session (needed for correct cloud-sync keys).
+    await this.profileService.loadProfile(user.id);
 
     // ARCHITECTURAL NOTE: Mock token used for local session persistence.
     // In production/integrated flow, this token MUST be returned by the backend
@@ -303,6 +306,9 @@ export class AuthService {
 
     this.userStore.setUser(user);
     this.tokenService.setToken(response.token, 'api');
+    // Stamp profile.id with the API user id immediately so auto-save and
+    // artist-identity sync use the real account key.
+    void this.profileService.loadProfile(user.id);
 
     if (typeof sessionStorage !== 'undefined') {
       const sessionStr =

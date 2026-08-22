@@ -87,8 +87,11 @@ export class DatabaseService {
     }
 
     if (typeof localStorage === 'undefined') return null;
+    // Backwards compatibility: older builds saved under the generic
+    // 'current' key, so fall back to it when the id-keyed backup is absent.
     const backup =
       localStorage.getItem(this.getProfileBackupKey(userId)) ||
+      localStorage.getItem(this.getProfileBackupKey('current')) ||
       localStorage.getItem(this.getProfileBackupKey());
     return backup ? JSON.parse(backup) : null;
   }
