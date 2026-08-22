@@ -171,13 +171,15 @@ export class LiveStreamService {
     }
 
     if (!this.goLiveListenerInstalled) {
+      let apiOrigin = '';
+      try {
+        apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
+      } catch (e) {
+        console.error('[LiveStream] Invalid API URL configuration', APP_SECURITY_CONFIG.api_url, e);
+        apiOrigin = window.location.origin;
+      }
+
       const handler = (event: MessageEvent) => {
-        let apiOrigin = '';
-        try {
-          apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
-        } catch (e) {
-          // fallback
-        }
         if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
           return;
         }

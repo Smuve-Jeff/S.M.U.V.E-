@@ -68,7 +68,7 @@
   <main class="booth-console">
     <!-- DECK A -->
     <section class="deck-chassis deck-a-transform deck-a" [class.mobile-hidden]="isMobile() && activeMobileDeck() !== 'A'" aria-labelledby="deck-a-title">
-      <app-swipe-container (swipeLeft)="activeMobileDeck.set('B')" [threshold]="40">
+      <app-swipe-container (swipeLeft)="activeMobileDeck.set('B')" [threshold]="40" [disabled]="!isMobile()">
         <div class="deck-header">
           <div class="deck-title-block"><div class="deck-badge">A</div><div><p class="eyebrow">PLAYER 01</p><span class="deck-name">DECK A</span><h2 id="deck-a-title">{{ deckService.deckA().track?.name || 'Turntable A' }}</h2></div></div>
           <div class="deck-header-actions"><button class="mini-status" type="button" [class.is-active]="deckService.deckA().keyLock" (click)="toggleKeyLock('A')"><span class="material-symbols-outlined">lock</span> KEY</button><button class="mini-status" type="button" [class.is-active]="deckService.deckA().loop" (click)="toggleLoop('A')"><span class="material-symbols-outlined">repeat</span> LOOP</button></div>
@@ -113,7 +113,7 @@
 
     <!-- DECK B -->
     <section class="deck-chassis deck-b-transform deck-b" [class.mobile-hidden]="isMobile() && activeMobileDeck() !== 'B'" aria-labelledby="deck-b-title">
-      <app-swipe-container (swipeRight)="activeMobileDeck.set('A')" [threshold]="40">
+      <app-swipe-container (swipeRight)="activeMobileDeck.set('A')" [threshold]="40" [disabled]="!isMobile()">
         <div class="deck-header"><div class="deck-title-block"><div class="deck-badge">B</div><div><p class="eyebrow">PLAYER 02</p><span class="deck-name">DECK B</span><h2 id="deck-b-title">{{ deckService.deckB().track?.name || 'Turntable B' }}</h2></div></div><div class="deck-header-actions"><button class="mini-status" type="button" [class.is-active]="deckService.deckB().keyLock" (click)="toggleKeyLock('B')"><span class="material-symbols-outlined">lock</span> KEY</button><button class="mini-status" type="button" [class.is-active]="deckService.deckB().loop" (click)="toggleLoop('B')"><span class="material-symbols-outlined">repeat</span> LOOP</button></div></div>
         <div class="deck-metrics"><div><span class="metric-label">BPM</span><strong>{{ deckBTempo() | number:'1.0-1' }}</strong></div><div><span class="metric-label">PITCH</span><strong>{{ pitchBPercentage() }}</strong></div><button type="button" class="tap-button" (click)="tapBpm('B')">TAP TEMPO</button></div>
         <div class="hotcue-strip" role="group" aria-label="Deck B hot cues"><button *ngFor="let i of [0,1,2,3]" type="button" class="cue-button" [class.is-set]="isCuePadSet('B', i)" [class.is-fired]="isCuePadSet('B', i) && deckService.deckB().isPlaying" [style.--cue-color]="'var(--cue-' + (i + 4) + ')'" (click)="handlePadPress('B', i)" (contextmenu)="clearPad('B', i, $event)" [attr.aria-label]="'Deck B hot cue ' + (i + 1)"><small>CUE {{ i + 1 }}</small><b>{{ isCuePadSet('B', i) ? '●' : '＋' }}</b></button></div>

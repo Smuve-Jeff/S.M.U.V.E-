@@ -26,6 +26,7 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   swipeDown = output<void>();
 
   threshold = input<number>(50);
+  disabled = input<boolean>(false);
 
   private startX = 0;
   private startY = 0;
@@ -50,12 +51,14 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   private onTouchStart(e: TouchEvent) {
+    if (this.disabled()) return;
     this.startX = e.touches[0].clientX;
     this.startY = e.touches[0].clientY;
     this.startTime = Date.now();
   }
 
   private onTouchEnd(e: TouchEvent) {
+    if (this.disabled()) return;
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
     const deltaX = endX - this.startX;
