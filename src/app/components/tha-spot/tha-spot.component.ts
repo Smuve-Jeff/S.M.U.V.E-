@@ -2096,7 +2096,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.liveStream.clearInbound();
   }
 
-  async; /**
+  /**
    * Main game launch entry point. Handles:
    *  - External-only games: shows domain confirmation before opening
    *  - Inline games: URL validation → multiplayer matchmaking → multi-stage loading → iframe
@@ -2675,13 +2675,50 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.resolveLaunchMode(game);
   }
 
+  private isTrustedMessageOrigin(origin: string): boolean {
+    if (!origin) return false;
+    const normalizedOrigin = origin.toLowerCase();
+    const localOrigin = window.location.origin.toLowerCase();
+    if (normalizedOrigin === localOrigin) return true;
+
+    const active = this.currentGame();
+    const candidateUrls = [
+      active?.launchConfig?.approvedEmbedUrl,
+      active?.launchConfig?.approvedExternalUrl,
+      active?.url,
+    ].filter((value): value is string => !!value);
+
+    for (const entry of candidateUrls) {
+      try {
+        const parsed = new URL(entry, window.location.origin);
+        if (parsed.origin.toLowerCase() === normalizedOrigin) {
+          return true;
+        }
+      } catch {
+        // ignore malformed URLs; callers are still gated by the source window.
+      }
+    }
+
+    try {
+      const originHost = new URL(origin).hostname.toLowerCase();
+      return ThaSpotComponent.TRUSTED_EMBED_DOMAINS.some(
+        (domain) =>
+          originHost === domain ||
+          originHost.endsWith(`.${domain}`)
+      );
+    } catch {
+      return false;
+    }
+  }
+
   private onMessage(event: MessageEvent): void {
     const active = this.currentGame();
+    const iframeWindow = this.gameIframe?.nativeElement?.contentWindow;
     if (
-      event.origin !== window.location.origin ||
+      !this.isTrustedMessageOrigin(event.origin) ||
       !active ||
-      !this.gameIframe?.nativeElement?.contentWindow ||
-      event.source !== this.gameIframe.nativeElement.contentWindow
+      !iframeWindow ||
+      event.source !== iframeWindow
     )
       return;
 
