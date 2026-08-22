@@ -326,6 +326,40 @@ describe('ThaSpotComponent', () => {
     expect(profileService.recordGameResult).not.toHaveBeenCalled();
   });
 
+  it('accepts trusted cabinet telemetry from the active iframe origin', () => {
+    const matchmaking = TestBed.inject(MatchmakingService) as any;
+    const frameWindow = {} as Window;
+    component.gameIframe = {
+      nativeElement: { contentWindow: frameWindow },
+    } as any;
+    component.currentGame.set({
+      id: '2',
+      name: 'Gamepix Title',
+      url: 'https://www.gamepix.com/play/arcade',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.gamepix.com/play/arcade',
+      },
+    } as any);
+
+    const message = {
+      origin: 'https://www.gamepix.com',
+      source: frameWindow,
+      data: { type: 'GAME_STATE_UPDATE', data: { score: 12, level: 2 } },
+    } as MessageEvent;
+
+    component.onMessage(message);
+
+    expect(matchmaking.broadcastGameState).toHaveBeenCalledWith({
+      score: 12,
+      progress: undefined,
+      level: 2,
+      alive: undefined,
+      position: undefined,
+      custom: undefined,
+    });
+  });
+
   it('removes the exact message listener on destroy', () => {
     component.ngOnDestroy();
     const removeCall = removeListenerSpy.mock.calls.find(
