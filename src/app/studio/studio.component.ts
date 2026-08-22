@@ -394,6 +394,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
   ],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
   @ViewChild('spectrumCanvas', { static: false })
@@ -450,8 +451,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   importWaveformZoom = signal(1);
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
-  toggleProjectMenu() { this.showProjectMenu.update(v => !v); }
   showProjectMenu = signal(false);
+  toggleProjectMenu() { this.showProjectMenu.update(v => !v); }
   /** True while an Insights engine probe is in-flight. */
   insightsProbeRunning = signal(false);
 
@@ -1672,6 +1673,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
         this.snackbarService.success('Project loaded successfully');
+        this.studioTelemetry.trackEvent('project_imported', { format: 'smuve' }, true);
         
       } else {
         this.snackbarService.error('Failed to load project bundle');

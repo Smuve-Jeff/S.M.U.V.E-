@@ -8,7 +8,7 @@
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
   (keydown)="onShellKeydown($event)"
 >
-  <input type="file" id="smuve-project-upload" style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
+  <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
 
   <!-- Stage 2.0 ambient aurora field (pure decoration) -->
   <div class="comp-aurora" aria-hidden="true">
@@ -52,6 +52,8 @@
       <div
         class="comp-brand led-strip"
         (click)="toggleProjectMenu()"
+        (keydown.enter)="toggleProjectMenu()"
+        (keydown.space)="$event.preventDefault(); toggleProjectMenu()"
         tabindex="0"
         role="button"
         [attr.aria-label]="'S.M.U.V.E. Stage — tap to open project menu'"

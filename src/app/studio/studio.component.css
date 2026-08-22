@@ -3325,7 +3325,10 @@
 .comp-project-menu-item:focus {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  outline: none;
+}
+.comp-project-menu-item:focus {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: -2px;
 }
 
 .comp-project-menu-item .material-symbols-outlined {
