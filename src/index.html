@@ -78,12 +78,13 @@
     <script>
       window.env = {
         SESSION_TIMEOUT: 3600000,
-        // Live API base URL via the smuve-connect Cloudflare tunnel.
-        // See CLOUDFLARE_TUNNEL.md.
-        API_URL: 'https://api.smuvejeffpresents.com/api',
-        AUTH_API_URL: 'https://api.smuvejeffpresents.com/api',
-        // Socket.io endpoint (same host as the API, minus /api).
-        SOCKET_URL: 'https://api.smuvejeffpresents.com',
+        // Live API base URL via Render (smuve-api.onrender.com).
+        // See render.yaml for the blueprint; CLOUDFLARE_TUNNEL.md for the
+        // Cloudflare tunnel access-control layer.
+        API_URL: 'https://smuve-api.onrender.com/api',
+        AUTH_API_URL: 'https://smuve-api.onrender.com/api',
+        // Socket.io endpoint (same host as the API, minus /api path).
+        SOCKET_URL: 'https://smuve-api.onrender.com',
       };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
