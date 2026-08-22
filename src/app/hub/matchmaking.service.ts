@@ -217,6 +217,9 @@ export class MatchmakingService implements OnDestroy {
   });
   readonly readyCount = computed(() => this.readyPlayers().size);
 
+  /** Quick-play: true while auto-searching for the fastest available lobby. */
+  readonly isQuickPlaying = signal(false);
+
   // ── Auto-Launch Countdown ──
   readonly countdownSeconds = signal(0);
   readonly countdownActive = signal(false);
@@ -860,6 +863,94 @@ export class MatchmakingService implements OnDestroy {
     this.initLobbyChat(lobby.id);
     this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
     return lobby;
+  }
+
+  // ── Quick-Play: auto-join the fastest available multiplayer lobby ──
+
+  /**
+   * Quick-play: finds the fastest game to join by scanning active lobbies
+   * for one with open slots, falling back to creating a new lobby for the
+   * most popular multiplayer title.
+   */
+  quickPlay(): void {
+    if (this.isQuickPlaying()) return;
+    this.isQuickPlaying.set(true);
+    this.haptic.medium();
+
+    // 1) Look for an existing lobby with open slots
+    const openLobbies = this.activeLobbies()
+      .filter((l) => l.status !== 'in-progress' && l.status !== 'cancelled')
+      .filter((l) => l.playerIds.length < l.maxPlayers)
+      .sort((a, b) => b.playerIds.length - a.playerIds.length); // most full first
+
+    if (openLobbies.length > 0) {
+      const target = openLobbies[0];
+      this.joinLobby(target.id);
+      this.isQuickPlaying.set(false);
+      this.notify.show(`Quick-play: joined ${target.gameName}`, 'success');
+      return;
+    }
+
+    // 2) No open lobby — create one for a popular multiplayer title
+    const popularMultiGames = ['shell-shockers-elite', 'bullet-force-elite', 'basketball-stars-elite', '1v1-lol-elite'];
+    const gameId = popularMultiGames[Math.floor(Math.random() * popularMultiGames.length)];
+    this.createLobby(gameId, 4);
+    // Auto-ready after creating
+    setTimeout(() => {
+      this.isReady.set(true);
+      this.readyPlayers.update((s) => {
+        const ns = new Set(s);
+        ns.add(this.playerId());
+        return ns;
+      });
+    }, 500);
+
+    this.isQuickPlaying.set(false);
+  }
+
+  /**
+   * Lobby ready-check: host starts a 5-second countdown. If all players
+   * are ready when it expires, launch the game.
+   */
+  startReadyCheck(): void {
+    const lobby = this.myLobby();
+    if (!lobby || !this.isHost()) {
+      this.notify.show('Only the host can start the ready check', 'warning');
+      return;
+    }
+    if (lobby.playerIds.length < 2) {
+      this.notify.show('Need at least 2 players for a match', 'warning');
+      return;
+    }
+    // Auto-set host ready
+    if (!this.isReady()) {
+      this.toggleReady();
+    }
+    // Emit ready-check signal to all lobby members
+    this.socket?.emit('ready_check_start', {
+      partyId: lobby.id,
+      hostId: this.playerId(),
+    });
+    this.startCountdown();
+    this.notify.show('Ready check started — 5 seconds!', 'info');
+  }
+
+  /**
+   * Join spectate mode for an in-progress lobby. Viewers can watch game
+   * state updates and send emoji reactions.
+   */
+  joinSpectate(lobbyId: string): void {
+    const lobby = this.inProgressLobbies().find((l) => l.id === lobbyId);
+    if (!lobby) {
+      this.notify.show('Lobby not found or no longer in progress', 'warning');
+      return;
+    }
+    this.isSpectating.set(true);
+    this.spectateTargetLobby.set(lobby);
+    this.socket?.emit('join_spectate', { lobbyId, userId: this.playerId() });
+    this.spectatorReactions.set([]);
+    this.spectatorChatMessages.set([]);
+    this.notify.show(`Spectating ${lobby.gameName}`, 'info');
   }
 
   joinLobby(lobbyId: string): CoOpLobby | null {

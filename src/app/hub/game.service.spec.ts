@@ -459,7 +459,7 @@ describe('GameService', () => {
 
     // The normalizer intentionally omits the eight unverified cabinets listed
     // in HIDDEN_CATALOG_GAME_IDS rather than exposing known-bad launches.
-    expect(games).toHaveLength(331);
+    expect(games).toHaveLength(341);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );

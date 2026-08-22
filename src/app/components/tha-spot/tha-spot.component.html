@@ -1021,7 +1021,7 @@
       </div>
     </ng-container>
 
-    <!-- Pluto TV Integration -->
+    <!-- Pluto TV Integration — external launch (Pluto blocks iframe embedding with X-Frame-Options: DENY) -->
     <div
       class="pluto-standalone-experience animate-enter full-standalone"
       *ngIf="displayMode() === 'pluto'"
@@ -1029,17 +1029,45 @@
       <button class="exit-pluto-btn glass-v42" (click)="setMode('gaming')">
         <span class="material-symbols-outlined">arrow_back</span> EXIT PLUTO TV
       </button>
-      <div class="hud-decorative-line left"></div>
-      <div class="hud-decorative-line right"></div>
-      <div class="iframe-glitch-wrapper">
-        <iframe
-          src="https://pluto.tv"
-          class="pluto-standalone-frame"
-          allow="autoplay; fullscreen"
-        ></iframe>
-        <div class="hud-glitch-overlay"></div>
+      <div class="pluto-landing-card glass-v42-pro">
+        <!-- Hero section -->
+        <div class="pluto-hero">
+          <div class="pluto-logo-glow"></div>
+          <h1 class="pluto-title">PLUTO TV</h1>
+          <p class="pluto-tagline">250+ Free Live TV Channels &amp; On-Demand Movies</p>
+          <div class="pluto-featured-channels">
+            <span class="pluto-channel-badge">📺 Live Sports</span>
+            <span class="pluto-channel-badge">🎬 Movies</span>
+            <span class="pluto-channel-badge">🎮 Gaming</span>
+            <span class="pluto-channel-badge">🎵 Music</span>
+            <span class="pluto-channel-badge">📰 News</span>
+            <span class="pluto-channel-badge">😂 Comedy</span>
+            <span class="pluto-channel-badge">🔬 Science</span>
+            <span class="pluto-channel-badge">👶 Kids</span>
+          </div>
+          <a
+            href="https://pluto.tv"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="pluto-launch-btn hero-btn-primary"
+            (click)="logPlutoLaunch()"
+          >
+            <span class="material-symbols-outlined">open_in_new</span>
+            LAUNCH PLUTO TV
+          </a>
+          <p class="pluto-disclaimer">Opens in a new tab — Pluto TV is free and requires no account</p>
+        </div>
+        <!-- Popular channels quick-reference -->
+        <div class="pluto-channel-grid">
+          <div class="pluto-channel-card" *ngFor="let ch of plutoHighlightChannels">
+            <span class="pluto-ch-icon">{{ ch.icon }}</span>
+            <div class="pluto-ch-info">
+              <span class="pluto-ch-name">{{ ch.name }}</span>
+              <span class="pluto-ch-category">{{ ch.category }}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="hud-overlay-scanner"></div>
     </div>
   </main>
 
