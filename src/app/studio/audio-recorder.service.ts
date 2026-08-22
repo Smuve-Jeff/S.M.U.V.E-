@@ -1,5 +1,5 @@
 import { Subject } from 'rxjs';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { LocalStorageService } from '../services/local-storage.service';
 import { LoggingService } from '../services/logging.service';
 
@@ -20,7 +20,7 @@ export interface RecordingItem {
 @Injectable({
   providedIn: 'root',
 })
-export class AudioRecorderService {
+export class AudioRecorderService implements OnDestroy {
   private localStorageService = inject(LocalStorageService);
   private logger = inject(LoggingService);
 

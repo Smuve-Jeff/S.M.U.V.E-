@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { LoggingService } from '../services/logging.service';
-import type { TrackNote } from '../models/track.model';
+import type { TrackNote } from '../services/music-manager.service';
 
 export interface QuantizePreset {
   id: string;
@@ -31,7 +31,8 @@ export class QuantizationService {
     { id: 'straight_1_32', name: 'Straight 1/32 Note', grid: 0.03125, swing: 0, humanize: 0, category: 'straight' },
     { id: 'straight_1_64', name: 'Straight 1/64 Note', grid: 0.015625, swing: 0, humanize: 0, category: 'straight' },
 
-    // Swing presets (50% = even, 66% = shuffle, 75% = heavy swing)
+    // Swing presets
+    // swing=0 → no delay (straight); swing=50 → moderate shuffle; swing=75 → heavy swing
     { id: 'swing_1_8_50', name: 'Swing 1/8 (50%)', grid: 0.125, swing: 50, humanize: 0, category: 'swing' },
     { id: 'swing_1_8_66', name: 'Swing 1/8 (66%)', grid: 0.125, swing: 66, humanize: 0, category: 'swing' },
     { id: 'swing_1_8_75', name: 'Swing 1/8 (75%)', grid: 0.125, swing: 75, humanize: 0, category: 'swing' },
@@ -96,12 +97,19 @@ export class QuantizationService {
       let snappedStep = Math.round(note.step / preset.grid) * preset.grid;
 
       // Step 2: Apply swing
-      // Swing affects notes at odd grid positions (every 2nd note in the grid)
+      // Swing delay is applied to odd-grid-indexed notes (the "offbeat" position
+      // in each pair of subdivisions).  The delay amount is scaled so that:
+      //   swing = 0   → no delay   (perfectly straight timing)
+      //   swing = 50  → half a grid step added  (moderate shuffle)
+      //   swing = 100 → one full grid step added (maximum triplet feel)
+      // This matches industry-standard DAW behaviour where 0% = no swing and
+      // higher values progressively push the offbeat later.
       if (preset.swing && preset.swing > 0) {
         const gridIndex = Math.round(note.step / preset.grid);
-        // Apply swing to odd-numbered grid positions
+        // Apply swing delay to odd-numbered grid positions (the offbeat of each pair)
         if (gridIndex % 2 === 1) {
-          const swingAmount = (preset.grid * preset.swing) / 100;
+          // Maximum delay at swing=100 is one full grid interval; scale linearly.
+          const swingAmount = preset.grid * (preset.swing / 100);
           snappedStep += swingAmount;
         }
       }

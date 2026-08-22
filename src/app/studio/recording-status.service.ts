@@ -130,38 +130,92 @@ export class RecordingStatusService implements OnDestroy {
 
   // ── Internal meter loop ─────────────────────────────────────
   private meterRaf: number | null = null;
-  private analyserBuf = new Uint8Array(2048);
+  private analyserBufL = new Uint8Array(2048);
+  private analyserBufR = new Uint8Array(2048);
+  /**
+   * Per-channel analysers derived from the master node via a
+   * ChannelSplitterNode.  Created lazily when the audio context is ready.
+   */
+  private analyserL: AnalyserNode | null = null;
+  private analyserR: AnalyserNode | null = null;
+  /** Splitter node used to feed analyserL/analyserR. Stored so it can be
+   *  disconnected when the master analyser changes. */
+  private _splitter: ChannelSplitterNode | null = null;
+  /** The master AnalyserNode we last wired the splitter from. */
+  private lastWiredMasterAnalyser: AnalyserNode | null = null;
 
   constructor() {
     this.startRealMeterLoop();
   }
 
   /**
+   * Builds (or rebuilds) a stereo split from the master analyser into two
+   * dedicated per-channel analysers.  Safe to call repeatedly; it is a no-op
+   * when the master analyser has not changed.  Disconnects the previous
+   * splitter and per-channel analysers before replacing them to avoid leaking
+   * Web Audio nodes when the master analyser context changes.
+   */
+  private ensureStereoAnalysers(masterAnalyser: AnalyserNode): void {
+    if (masterAnalyser === this.lastWiredMasterAnalyser) return;
+
+    // Disconnect and release previous nodes before creating new ones.
+    this._splitter?.disconnect();
+    this.analyserL?.disconnect();
+    this.analyserR?.disconnect();
+
+    const ctx = masterAnalyser.context;
+    const splitter = ctx.createChannelSplitter(2);
+
+    this.analyserL = ctx.createAnalyser();
+    this.analyserR = ctx.createAnalyser();
+    this.analyserL.fftSize = 2048;
+    this.analyserR.fftSize = 2048;
+
+    masterAnalyser.connect(splitter);
+    splitter.connect(this.analyserL, 0 /* left channel output */);
+    splitter.connect(this.analyserR, 1 /* right channel output */);
+
+    this._splitter = splitter;
+    this.lastWiredMasterAnalyser = masterAnalyser;
+    // Resize buffers to match fftSize / 2
+    const binCount = this.analyserL.frequencyBinCount;
+    this.analyserBufL = new Uint8Array(binCount);
+    this.analyserBufR = new Uint8Array(binCount);
+  }
+
+  /**
    * Pulls real audio data from the AudioEngine master analyser.
-   * No simulated sine wave -- this is actual output metering.
+   * Uses a ChannelSplitterNode to obtain genuine L/R peak readings.
    */
   private startRealMeterLoop() {
     if (this.meterRaf) return;
+    const DECAY_PER_FRAME = 0.012; // ~2.2s from full to zero at 60fps
     const tick = () => {
       try {
-        const analyser = this.audioEngine.masterAnalyser as AnalyserNode | null;
-        if (analyser) {
-          // Time-domain data gives us amplitude peaks
-          analyser.getByteTimeDomainData(this.analyserBuf);
+        const masterAnalyser = this.audioEngine.masterAnalyser as AnalyserNode | null;
+        if (masterAnalyser) {
+          this.ensureStereoAnalysers(masterAnalyser);
+          const aL = this.analyserL!;
+          const aR = this.analyserR!;
+
+          aL.getByteTimeDomainData(this.analyserBufL);
+          aR.getByteTimeDomainData(this.analyserBufR);
+
           let peakL = 0;
           let peakR = 0;
-          // Stereo: even samples = L, odd samples = R
-          for (let i = 0; i < this.analyserBuf.length; i += 2) {
-            const vl = Math.abs((this.analyserBuf[i] - 128) / 128);
-            const vr = Math.abs((this.analyserBuf[i + 1] - 128) / 128);
+          for (let i = 0; i < this.analyserBufL.length; i++) {
+            const vl = Math.abs((this.analyserBufL[i] - 128) / 128);
             if (vl > peakL) peakL = vl;
+          }
+          for (let i = 0; i < this.analyserBufR.length; i++) {
+            const vr = Math.abs((this.analyserBufR[i] - 128) / 128);
             if (vr > peakR) peakR = vr;
           }
+
           this.masterDbL.set(this.linearToDb(peakL));
           this.masterDbR.set(this.linearToDb(peakR));
 
           // Peak-hold: latch up instantly, decay slowly
-          const DECAY_PER_FRAME = 0.012; // ~2.2s from full to zero at 60fps
           this.masterPeakHoldL.update((v) =>
             Math.max(peakL, v - DECAY_PER_FRAME)
           );
@@ -197,5 +251,8 @@ export class RecordingStatusService implements OnDestroy {
 
   ngOnDestroy() {
     if (this.meterRaf) cancelAnimationFrame(this.meterRaf);
+    this._splitter?.disconnect();
+    this.analyserL?.disconnect();
+    this.analyserR?.disconnect();
   }
 }

@@ -7,6 +7,7 @@ import {
   ElementRef,
   AfterViewInit,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,7 +19,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './waveform-renderer.component.html',
   styleUrls: ['./waveform-renderer.component.css'],
 })
-export class WaveformRendererComponent implements AfterViewInit, OnChanges {
+export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDestroy {
   /** Raw PCM data (Float32Array, -1..1). Null = placeholder / empty. */
   @Input() audioData: Float32Array | null = null;
   /** Duration in seconds. Used for playhead positioning. */
@@ -50,21 +51,38 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges {
   // ── Draggable loop handle state ───────────────────
   private draggingHandle: 'start' | 'end' | null = null;
 
+  // Stored bound handlers so they can be removed in ngOnDestroy
+  private readonly _onMouseDown = this.onCanvasMouseDown.bind(this);
+  private readonly _onMouseMove = this.onCanvasMouseMove.bind(this);
+  private readonly _onMouseUp = this.onCanvasMouseUp.bind(this);
+
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d');
     this.draw();
 
     if (this.loopInteractive) {
-      canvas.addEventListener('mousedown', this.onCanvasMouseDown.bind(this));
-      canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this));
-      canvas.addEventListener('mouseup', this.onCanvasMouseUp.bind(this));
-      canvas.addEventListener('mouseleave', this.onCanvasMouseUp.bind(this));
+      canvas.addEventListener('mousedown', this._onMouseDown);
+      canvas.addEventListener('mousemove', this._onMouseMove);
+      canvas.addEventListener('mouseup', this._onMouseUp);
+      canvas.addEventListener('mouseleave', this._onMouseUp);
     }
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.ctx) this.draw();
+  }
+
+  ngOnDestroy() {
+    if (this.loopInteractive) {
+      const canvas = this.canvasRef?.nativeElement;
+      if (canvas) {
+        canvas.removeEventListener('mousedown', this._onMouseDown);
+        canvas.removeEventListener('mousemove', this._onMouseMove);
+        canvas.removeEventListener('mouseup', this._onMouseUp);
+        canvas.removeEventListener('mouseleave', this._onMouseUp);
+      }
+    }
   }
 
   // ── Draggable loop handle interaction ─────────────
