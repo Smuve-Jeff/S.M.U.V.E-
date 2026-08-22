@@ -172,6 +172,16 @@ export class LiveStreamService {
 
     if (!this.goLiveListenerInstalled) {
       const handler = (event: MessageEvent) => {
+        let apiOrigin = '';
+        try {
+          apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
+        } catch (e) {
+          // fallback
+        }
+        if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+          return;
+        }
+
         if (typeof event?.data !== 'object' || !event.data) return;
         const t = (event.data as { type?: string }).type;
         if (
