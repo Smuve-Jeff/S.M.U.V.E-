@@ -256,19 +256,8 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
  * instead of inline. Enforced here so stale/cached feeds can't reintroduce the
  * wrong-game inline embed.
  */
-const HIDDEN_CATALOG_GAME_IDS = new Set([
-  // No verified source exists for these records; hiding them is safer than
-  // opening a retrogames cabinet known to resolve to another game.
-  'nba-2k1-elite',
-  'madden-2004-elite',
-  'nba-street-v2-elite',
-  'madden-2004-classic',
-  'mario-golf-elite-master',
-  'mario-tennis-elite-master',
-  // Duplicate records now share the canonical entries above them.
-  'tony-hawk-2-master-elite-master',
-  'tecmo-bowl-classic',
-]);
+/** All games visible — no entries hidden. Formerly excluded unverified cabinets. */
+const HIDDEN_CATALOG_GAME_IDS = new Set<string>([]);
 
 const EXTERNAL_ONLY_GAME_IDS = new Set([
   'mgs3-snake-eater-ps2-elite',

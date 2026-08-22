@@ -384,7 +384,7 @@ describe('GameService', () => {
       'external-only'
     );
 
-    for (const hiddenId of [
+    for (const expectedId of [
       'nba-2k1-elite',
       'madden-2004-elite',
       'nba-street-v2-elite',
@@ -394,7 +394,7 @@ describe('GameService', () => {
       'tony-hawk-2-master-elite-master',
       'tecmo-bowl-classic',
     ]) {
-      expect(byId.has(hiddenId)).toBe(false);
+      expect(byId.has(expectedId)).toBe(true);
     }
   });
 
@@ -458,8 +458,8 @@ describe('GameService', () => {
     const games = await pending;
 
     // The normalizer intentionally omits the eight unverified cabinets listed
-    // in HIDDEN_CATALOG_GAME_IDS rather than exposing known-bad launches.
-    expect(games).toHaveLength(341);
+    // in EXTERNAL_ONLY_GAME_IDS rather than exposing known-bad inline launches.
+    expect(games).toHaveLength(349);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );
