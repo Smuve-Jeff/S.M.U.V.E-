@@ -11,6 +11,7 @@ import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { MarketAlert } from '../types/ai.types';
 import { APP_SECURITY_CONFIG } from '../app.security';
+import { TokenService } from './token.service';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -42,6 +43,7 @@ export class AiService {
   isProcessing = signal(false);
   private loggingService = inject(LoggingService);
   private http = inject(HttpClient);
+  private tokenService = inject(TokenService);
   private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
@@ -168,11 +170,20 @@ Fuck their feelings. Results are all that matter.`;
   async getAIResponse(prompt: string): Promise<string> {
     this.isProcessing.set(true);
     try {
+      // The backend now requires a valid API session for /ai/analyze; attach
+      // the JWT only for real API tokens (legacy demo tokens are never sent).
+      const token = this.tokenService.jwtToken();
+      const headers =
+        token && this.tokenService.isApiToken()
+          ? { Authorization: 'Bearer ' + token }
+          : {};
       const response = await firstValueFrom(
         this.http
-          .post<{ text: string }>(`${APP_SECURITY_CONFIG.auth_api_url}/ai/analyze`, {
-            prompt,
-          })
+          .post<{ text: string }>(
+            `${APP_SECURITY_CONFIG.auth_api_url}/ai/analyze`,
+            { prompt },
+            { headers }
+          )
           .pipe(
             catchError(() =>
               of({

@@ -34,7 +34,10 @@ export const uploadToStorage = async (
   const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
 
   const userId = req.user?.userId ?? "anon";
-  const fileName = `${userId}_${Date.now()}_${file.originalname}`;
+  // Sanitize the client-supplied name: strip path separators and whitespace
+  // so the value can only ever be a single flat object key in the bucket.
+  const safeName = file.originalname.replace(/[\\/]/g, "_").replace(/\s+/g, "_");
+  const fileName = `${userId}_${Date.now()}_${safeName}`;
 
   const s3Client = new S3Client({
     region: "auto",

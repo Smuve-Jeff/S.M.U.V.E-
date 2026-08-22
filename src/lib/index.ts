@@ -44,6 +44,18 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     });
   }
 
+  // Multer upload errors (e.g. LIMIT_FILE_SIZE from the size limit) arrive
+  // here via Express 5 forwarding. Map them to clean client-facing statuses.
+  if (err && typeof err === "object" && "code" in err) {
+    const code = String((err as { code?: unknown }).code);
+    if (code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: "File too large." });
+    }
+    if (code.startsWith("LIMIT_")) {
+      return res.status(400).json({ error: "Invalid upload." });
+    }
+  }
+
   console.error("Unhandled error:", err);
   return res.status(500).json({ error: "Internal server error" });
 };
