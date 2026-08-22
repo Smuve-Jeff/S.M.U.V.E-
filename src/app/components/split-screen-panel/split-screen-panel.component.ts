@@ -10,6 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Game } from '../../hub/game';
+import { isOnlineMultiplayerGame } from '../../hub/game.service';
 import { MatchmakingService } from '../../hub/matchmaking.service';
 import { ShareableInviteService, InviteMode } from '../../services/shareable-invite.service';
 import { GamepadService } from '../../services/gamepad.service';
@@ -94,8 +95,7 @@ export class SplitScreenPanelComponent {
     const base =
       'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
     if (!g) return base;
-    const tags = (g.tags || []).map((t) => t.toLowerCase());
-    if (tags.includes('multiplayer') || tags.includes('versus')) {
+    if (isOnlineMultiplayerGame(g)) {
       return base + '; microphone; camera; display-capture';
     }
     return base;

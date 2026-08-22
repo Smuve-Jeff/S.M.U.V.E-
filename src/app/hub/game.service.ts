@@ -52,6 +52,42 @@ export function canonicalGenreFacet(
   return genre;
 }
 
+const ONLINE_MULTIPLAYER_TAGS = new Set([
+  'multiplayer',
+  'co-op',
+  'coop',
+  'pvp',
+  'versus',
+  'competitive',
+  'teamplay',
+  'social',
+  'party',
+  'duel',
+]);
+const ROOM_MULTIPLAYER_RULE_TAGS = new Set([
+  'multiplayer',
+  'co-op',
+  'coop',
+  'pvp',
+  'versus',
+  'competitive',
+  'teamplay',
+  'social',
+  'party',
+]);
+
+export function isOnlineMultiplayerGame(
+  game?: Pick<Game, 'multiplayerType' | 'tags'>
+): boolean {
+  if (!game) return false;
+  if (game.multiplayerType && game.multiplayerType.toLowerCase() !== 'none') {
+    return true;
+  }
+  return (game.tags ?? []).some((tag) =>
+    ONLINE_MULTIPLAYER_TAGS.has(tag.trim().toLowerCase())
+  );
+}
+
 /**
  * Return the lowercase set of primary genres that should match a requested
  * facet. Pure identity for non-synonyms; expanded to the synonym family when
@@ -592,8 +628,7 @@ export class GameService {
     const base =
       'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
     if (!game) return base;
-    const tags = (game.tags || []).map((t) => t.toLowerCase());
-    if (tags.includes('multiplayer') || tags.includes('versus')) {
+    if (isOnlineMultiplayerGame(game)) {
       return base + '; microphone; camera; display-capture';
     }
     return base;
@@ -723,12 +758,16 @@ export class GameService {
     const normalizedBadges = (game.badgeIds || []).map((badge) =>
       badge.toLowerCase()
     );
+    const multiplayerRoomTagMatch =
+      isOnlineMultiplayerGame(game) &&
+      normalizedRuleTags.some((tag) => ROOM_MULTIPLAYER_RULE_TAGS.has(tag));
     const genreMatch =
       !normalizedGenres.length ||
       normalizedGenres.includes((game.genre || '').toLowerCase());
     const tagMatch =
       !normalizedRuleTags.length ||
-      normalizedRuleTags.some((tag) => normalizedTags.includes(tag));
+      normalizedRuleTags.some((tag) => normalizedTags.includes(tag)) ||
+      multiplayerRoomTagMatch;
     const availabilityMatch =
       !rules.availability?.length ||
       (!!game.availability && rules.availability.includes(game.availability));

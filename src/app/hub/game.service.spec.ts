@@ -187,6 +187,60 @@ describe('GameService', () => {
     expect(games.map((game) => game.name)).toEqual(['Quest Relay']);
   });
 
+  it('allows online multiplayer cabinets to match co-op and PvP room rules even without a tag', async () => {
+    const pending = firstValueFrom(service.getGamesForRoom('co-op-link'));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          id: 'server-match',
+          name: 'Server Match',
+          genre: 'FPS',
+          tags: ['Arena'],
+          multiplayerType: 'Server',
+          url: 'https://example.test/server-match',
+        },
+      ],
+    });
+    const games = await pending;
+
+    expect(games.map((game) => game.id)).toEqual(['server-match']);
+  });
+
+  it('grants live audio/video permissions to real online multiplayer sessions', () => {
+    const game = {
+      id: 'server-match',
+      name: 'Server Match',
+      genre: 'FPS',
+      tags: ['Arena'],
+      multiplayerType: 'Server',
+      url: 'https://example.test/server-match',
+    } as any;
+
+    const allowAttr = service.buildIframeAllowAttr(game);
+
+    expect(allowAttr).toContain('microphone');
+    expect(allowAttr).toContain('camera');
+    expect(allowAttr).toContain('display-capture');
+  });
+
+  it('keeps non-multiplayer cabinets on the strict iframe permissions policy', () => {
+    const game = {
+      id: 'solo-puzzle',
+      name: 'Solo Puzzle',
+      genre: 'Puzzle',
+      tags: ['Solo'],
+      multiplayerType: 'None',
+      url: 'https://example.test/solo-puzzle',
+    } as any;
+
+    const allowAttr = service.buildIframeAllowAttr(game);
+
+    expect(allowAttr).not.toContain('microphone');
+    expect(allowAttr).not.toContain('camera');
+    expect(allowAttr).not.toContain('display-capture');
+  });
+
   it('merges the Shooting facet across Shooting, FPS, and Shooter genres', async () => {
     const pending = firstValueFrom(
       service.listGames({ genre: 'Shooting' }, 'Name')
