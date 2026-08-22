@@ -215,6 +215,10 @@ export class SettingsComponent implements OnInit {
   }
 
   updateSetting(category: keyof AppSettings, key: string, value: any) {
+    // S.M.U.V.E. voice morph is permanently locked on — core identity feature
+    if (category === 'ai' && key === 'aiVoiceShapeShiftEnabled') {
+      value = true;
+    }
     const current =
       this.pendingSettings() || this.profileService.profile().settings;
     const updated = {

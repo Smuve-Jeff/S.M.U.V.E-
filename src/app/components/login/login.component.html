@@ -81,8 +81,11 @@
         <button
           type="submit"
           [disabled]="isLoading() || verificationCode.length !== 6"
-          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-transform"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-transform disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
         >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
           Establish Link
         </button>
 
@@ -119,8 +122,11 @@
             !credentials.twoFactorCode ||
             credentials.twoFactorCode.length !== 6
           "
-          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
         >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
           Confirm Identity
         </button>
       } @else {
@@ -136,6 +142,7 @@
               name="artistName"
               required
               placeholder="STAGE NAME"
+              autocomplete="name"
               class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
             />
           </div>
@@ -151,6 +158,7 @@
             [(ngModel)]="credentials.email"
             name="email"
             required
+            autocomplete="email"
             placeholder="EMAIL ADDRESS"
             class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
           />
@@ -161,14 +169,27 @@
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
             >Access Cipher</label
           >
-          <input
-            type="password"
-            [(ngModel)]="credentials.password"
-            name="password"
-            required
-            placeholder="PASSWORD"
-            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
-          />
+          <div class="relative">
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              [(ngModel)]="credentials.password"
+              name="password"
+              required
+              [autocomplete]="isRegistering() ? 'new-password' : 'current-password'"
+              placeholder="PASSWORD"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 pr-14 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
+            />
+            <button
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-silver-dim/50 hover:text-brand-primary transition-colors"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            >
+              <span class="material-symbols-outlined text-xl">{{
+                showPassword() ? 'visibility_off' : 'visibility'
+              }}</span>
+            </button>
+          </div>
         </div>
 
         @if (isRegistering() && credentials.password) {
@@ -195,9 +216,12 @@
 
         <button
           type="submit"
-          [disabled]="isLoading() || !loginForm.form.valid"
-          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-primary/10"
+          [disabled]="isLoading()"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-primary/10 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
         >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
           {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
         </button>
       }

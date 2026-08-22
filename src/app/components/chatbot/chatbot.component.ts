@@ -658,20 +658,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     });
   }
 
-  /** Toggle constant per-sentence voice shape-shifting. */
+  /** Voice shape-shifting is permanently enabled — core S.M.U.V.E. identity.
+   *  Not toggleable; kept as a no-op for template/API compatibility. */
   toggleVoiceShift() {
-    const p = this.profile();
-    const aiSettings = this.resolveAiSettings(p);
-    const baseSettings = p.settings || initialProfile.settings;
-    this.userProfileService.updateProfile({
-      settings: {
-        ...baseSettings,
-        ai: {
-          ...aiSettings,
-          aiVoiceShapeShiftEnabled: !aiSettings.aiVoiceShapeShiftEnabled,
-        },
-      },
-    });
+    // no-op: voice morph is always active
   }
 
   /** Maps a mimic artist to a matching S.M.U.V.E voice archetype. */

@@ -596,32 +596,21 @@
           </button>
         </div>
 
-        <div class="setting-item">
+        <!-- Voice Shape-Shift is permanent & default — S.M.U.V.E. identity -->
+        <div class="setting-item bg-brand-primary/5 border-brand-primary/20">
           <div>
-            <h3 class="setting-title">Voice Shape-Shift</h3>
-            <p class="text-xs text-text-dim">
-              Spoken replies switch voice per sentence — from deep bass to high
-              soprano — every sentence a different speaker. Turn off for a
-              single stable voice.
+            <h3 class="setting-title">Voice Shape-Shift <span class="text-[9px] text-brand-primary font-black uppercase tracking-widest ml-2">Permanent</span></h3>
+            <p class="text-xs text-text-dim mt-1">
+              S.M.U.V.E. dynamically cycles vocal pitch, timbre, and tone on every
+              spoken reply — deep bass to high soprano, every sentence a different
+              speaker. This signature voice-morphing engine is always active and
+              cannot be disabled.
             </p>
           </div>
-          <button
-            (click)="
-              updateSetting(
-                'ai',
-                'aiVoiceShapeShiftEnabled',
-                !settings().ai.aiVoiceShapeShiftEnabled
-              )
-            "
-            class="toggle-btn"
-            [class.on]="settings().ai.aiVoiceShapeShiftEnabled"
-            [attr.aria-label]="
-              'Voice shape-shift ' +
-              (settings().ai.aiVoiceShapeShiftEnabled ? 'enabled' : 'disabled')
-            "
-          >
-            <div class="toggle-handle"></div>
-          </button>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-v42-sm"></span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">Active</span>
+          </div>
         </div>
 
         <div class="setting-item">

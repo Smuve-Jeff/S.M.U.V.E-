@@ -41,15 +41,13 @@
       >
         <span class="material-symbols-outlined text-lg">mood_bad</span>
       </button>
-      <button
-        (click)="toggleVoiceShift()"
-        class="p-2 rounded-xl transition-all"
-        [class.text-brand-primary]="profile().settings.ai.aiVoiceShapeShiftEnabled"
-        [class.text-slate-600]="!profile().settings.ai.aiVoiceShapeShiftEnabled"
-        title="Voice Shape-Shift: every sentence speaks in a different voice (deep bass to soprano)"
+      <!-- Voice morph is permanent — S.M.U.V.E. identity feature, always active -->
+      <span
+        class="p-2 rounded-xl text-brand-primary cursor-default"
+        title="Voice Morph: active — S.M.U.V.E. dynamically cycles vocal pitch every sentence"
       >
         <span class="material-symbols-outlined text-lg">record_voice_over</span>
-      </button>
+      </span>
       <button
         (click)="toggleKbWriteAccess()"
         class="p-2 rounded-xl transition-all"

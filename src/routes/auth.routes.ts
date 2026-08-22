@@ -38,7 +38,7 @@ router.get("/:platform", (req, res) => {
     window.opener && window.opener.postMessage({
       type: '${platform}_AUTH_SUCCESS',
       platform: '${platform.toLowerCase()}'
-    }, '*');
+    }, window.location.origin);
     setTimeout(function () { window.close(); }, 400);
   </script>
 </body></html>`);

@@ -147,7 +147,8 @@ export class AuthService {
       await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
       return {
         success: false,
-        message: 'IDENTIFICATION FAILURE. YOU ARE UNKNOWN TO THIS SYSTEM.',
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
       };
     }
 
@@ -268,11 +269,12 @@ export class AuthService {
     );
 
     if (typeof window !== 'undefined') {
-      setTimeout(() => {
-        alert(
-          `S.M.U.V.E. TRANSMISSION:\nYour verification cipher is: ${verificationCode}`
-        );
-      }, 500);
+      // In production, verification codes are sent via email/SMS.
+      // The demo stores it locally; we surface it through the registration
+      // result so the login component can display it inline.
+      console.log(
+        `[demo] Verification code for ${creds.email}: ${verificationCode}`
+      );
     }
 
     await new Promise((r) => setTimeout(r, registrationDelay));

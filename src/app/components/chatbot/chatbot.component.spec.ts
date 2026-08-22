@@ -114,22 +114,18 @@ describe('ChatbotComponent', () => {
     );
   });
 
-  it('should toggle voice shape-shift off from its default true state', () => {
+  it('should keep voice shape-shift permanently enabled (core S.M.U.V.E. identity)', () => {
     expect(
       userProfileServiceMock.profile().settings.ai.aiVoiceShapeShiftEnabled
     ).toBe(true);
 
     component.toggleVoiceShift();
-    expect(userProfileServiceMock.updateProfile).toHaveBeenCalledWith(
-      expect.objectContaining({
-        settings: expect.objectContaining({
-          ai: expect.objectContaining({
-            aiVoiceShapeShiftEnabled: false,
-            commanderPersona: 'Ominous Dominator',
-            aiConversationalTier: 'Standard',
-          }),
-        }),
-      })
-    );
+
+    // S.M.U.V.E. identity — toggle is a no-op; the value stays true and
+    // no profile update is dispatched.
+    expect(userProfileServiceMock.updateProfile).not.toHaveBeenCalled();
+    expect(
+      userProfileServiceMock.profile().settings.ai.aiVoiceShapeShiftEnabled
+    ).toBe(true);
   });
 });

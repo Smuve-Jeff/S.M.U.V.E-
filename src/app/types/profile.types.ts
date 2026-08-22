@@ -36,6 +36,7 @@ export interface AppSettings {
     autoAuditEnabled: boolean;
     aiConversationalTier: 'Standard' | 'Elite' | 'SUPREME';
     aiTotalControlEnabled: boolean;
+    /** Permanently enabled — S.M.U.V.E. identity. Always true, never toggleable. */
     aiVoiceShapeShiftEnabled: boolean;
   };
   studio: {
@@ -296,10 +297,8 @@ export const initialProfile: UserProfile = {
     ai: {
       kbWriteAccess: true,
       // Default commander persona changed to the platform's ominous persona
-      // so the S.M.U.V.E voice uses the intended character unless the user
-      // explicitly changes it in Settings. Profanity and intensity are
-      // enabled by default to match the requested behavior; voice
-      // shape-shifting remains enabled.
+      // so the S.M.U.V.E voice uses the intended character; voice
+      // shape-shifting is permanent core identity (not toggleable).
       commanderPersona: 'Ominous Dominator',
       aiMimicEnabled: false,
       aiProfanityEnabled: true,
@@ -307,6 +306,7 @@ export const initialProfile: UserProfile = {
       autoAuditEnabled: false,
       aiTotalControlEnabled: false,
       aiConversationalTier: 'Standard',
+      // S.M.U.V.E. identity — permanently active, never toggleable
       aiVoiceShapeShiftEnabled: true,
     },
     studio: {

@@ -27,6 +27,7 @@ export class LoginComponent implements OnInit {
 
   /** True when the active session was issued by the API (skips demo email verification). */
   private usesApiAuth = signal(false);
+  showPassword = signal(false);
 
   isRegistering = signal(false);
   isLoading = signal(false);

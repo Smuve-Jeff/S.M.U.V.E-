@@ -28,7 +28,9 @@ interface SmuveArchetype {
 interface SpeakOptions {
   conversationId?: string;
   forceArchetype?: VoiceArchetype;
-  /** When false, the voice stays stable (single archetype, no per-sentence shifting). */
+  /** When false, the voice stays stable (single archetype, no per-sentence shifting).
+   *  Note: shape-shifting is the permanent S.M.U.V.E. identity — callers should
+   *  not pass false under normal operation. */
   shapeShift?: boolean;
   /**
    * When false, profanity in the spoken text is censored. Defaults to the
@@ -234,7 +236,9 @@ export class SpeechSynthesisService {
       true;
     const processedInput = allowVulgar ? text : this.sanitizeText(text);
 
-    // Stable mode: one archetype, one voice, no per-sentence shifting.
+    // Shape-shifting is the permanent S.M.U.V.E. identity.
+    // The `shapeShift: false` path exists only for internal callers that
+    // need a single stable utterance (e.g. accessibility fallback).
     if (options?.shapeShift === false) {
       this.speakStable(processedInput, options);
       return;
