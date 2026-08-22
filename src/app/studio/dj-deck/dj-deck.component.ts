@@ -27,6 +27,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { PlayerService } from '../../services/player.service';
 import { AiService } from '../../services/ai.service';
 import { RecordingStatusService } from '../recording-status.service';
+import { SwipeContainerComponent } from '../shared/swipe-container/swipe-container.component';
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -69,7 +70,7 @@ const LOOP_PRESET_BEAT_MAX = 32;
   styleUrls: ['./dj-deck.component.css', './dj-booth-refinement.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SwipeContainerComponent],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   samplerCategory = signal<'drums' | 'fx' | 'vocals'>('drums');
