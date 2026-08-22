@@ -2688,12 +2688,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       active?.url,
     ].filter((value): value is string => !!value);
 
+    const activeHosts = new Set<string>();
     for (const entry of candidateUrls) {
       try {
         const parsed = new URL(entry, window.location.origin);
         if (parsed.origin.toLowerCase() === normalizedOrigin) {
           return true;
         }
+        const hostname = parsed.hostname.toLowerCase();
+        if (hostname) activeHosts.add(hostname);
       } catch {
         // ignore malformed URLs; callers are still gated by the source window.
       }
@@ -2701,6 +2704,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
     try {
       const originHost = new URL(origin).hostname.toLowerCase();
+      if ([...activeHosts].some((host) => host === originHost || host.endsWith(`.${originHost}`) || originHost.endsWith(`.${host}`))) {
+        return true;
+      }
       return ThaSpotComponent.TRUSTED_EMBED_DOMAINS.some(
         (domain) =>
           originHost === domain ||
