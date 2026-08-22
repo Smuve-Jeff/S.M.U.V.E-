@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import { GameService } from './game.service';
 import { ThaSpotFeed } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
 
 const mockFeed: ThaSpotFeed = {
   badges: [],
@@ -128,7 +129,13 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games.map((game) => ({ id: game.id, name: game.name, url: game.url }))).toEqual([
+    expect(
+      games
+        .filter((game) =>
+          ['cyber-adventure', 'gta-san-andreas-elite'].includes(game.id)
+        )
+        .map((game) => ({ id: game.id, name: game.name, url: game.url }))
+    ).toEqual([
       {
         id: 'cyber-adventure',
         name: 'Cyber Cars Punk Racing',
@@ -163,10 +170,13 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games[0].url).toBe(
+    const repairedGame = games.find(
+      (game) => game.id === 'mgs3-snake-eater-ps2-elite'
+    );
+    expect(repairedGame?.url).toBe(
       'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html'
     );
-    expect(games[0].launchConfig?.embedMode).toBe('external-only');
+    expect(repairedGame?.launchConfig?.embedMode).toBe('external-only');
   });
 
   it('filters games through data-driven room rules', async () => {
@@ -204,7 +214,8 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games.map((game) => game.id)).toEqual(['server-match']);
+    expect(games.map((game) => game.id)).toContain('server-match');
+    expect(games.filter((game) => game.id === 'server-match')).toHaveLength(1);
   });
 
   it('grants live audio/video permissions to real online multiplayer sessions', () => {
@@ -334,11 +345,17 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games[0].url).toBe(
+    const repairedGame = games.find(
+      (game) => game.id === 'final-fantasy-vi-elite-master'
+    );
+    expect(repairedGame?.url).toBe(
       'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html'
     );
-    expect(games[0].launchConfig?.approvedEmbedUrl).toBe(games[0].url);
-    expect(games[0].launchConfig?.approvedExternalUrl).toBe(games[0].url);
+    expect(repairedGame?.launchConfig?.approvedEmbedUrl).toBeUndefined();
+    expect(repairedGame?.launchConfig?.approvedExternalUrl).toBe(
+      'https://www.retrogames.cc/search?q=Final%20Fantasy%20VI'
+    );
+    expect(repairedGame?.launchConfig?.embedMode).toBe('external-only');
   });
 
   it('caches the fallback feed when the asset is empty', async () => {
@@ -424,6 +441,52 @@ describe('GameService', () => {
     }
   });
 
+  it('fails closed for every RetroGames cabinet instead of opening unreliable iframe ids', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const retroGames = games.filter((game) =>
+      [game.url, game.launchConfig?.approvedEmbedUrl].some((url) =>
+        url?.includes('retrogames.cc/')
+      )
+    );
+
+    expect(retroGames.length).toBeGreaterThan(20);
+    expect(
+      retroGames.filter((game) => /mario|wario/i.test(game.name)).length
+    ).toBeGreaterThanOrEqual(10);
+
+    for (const game of retroGames) {
+      expect(game.launchConfig?.embedMode).toBe('external-only');
+      expect(game.launchConfig?.approvedEmbedUrl).toBeUndefined();
+      expect(game.launchConfig?.approvedExternalUrl).toMatch(
+        /^https:\/\/www\.retrogames\.cc\/search\?q=/
+      );
+    }
+  });
+
+  it('exposes the curated Poki catalog as truthful external launches', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const byId = new Map(games.map((game) => [game.id, game]));
+
+    expect(CURATED_POKI_GAMES).toHaveLength(8);
+    for (const expected of CURATED_POKI_GAMES) {
+      const game = byId.get(expected.id);
+      expect(game).toBeTruthy();
+      expect(game?.url).toBe(expected.url);
+      expect(game?.launchConfig?.embedMode).toBe('external-only');
+      expect(game?.launchConfig?.approvedExternalUrl).toBe(expected.url);
+      expect(game?.launchConfig?.approvedEmbedUrl).toBeUndefined();
+      expect(game?.tags).toContain('Poki');
+    }
+  });
+
   it('routes FPS and shmup cabinets into the Shooting room', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('shooting-range'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
@@ -457,9 +520,9 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    // The normalizer intentionally omits the eight unverified cabinets listed
-    // in EXTERNAL_ONLY_GAME_IDS rather than exposing known-bad inline launches.
-    expect(games).toHaveLength(349);
+    // The normalized fallback includes the full visible catalog plus the
+    // curated Poki additions; no catalog entries are hidden by this service.
+    expect(games).toHaveLength(357);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );

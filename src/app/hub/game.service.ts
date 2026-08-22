@@ -13,6 +13,7 @@ import {
   ThaSpotFeed,
 } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
 
 const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
 
@@ -27,6 +28,20 @@ function asNumber(val: any, fallback = 0): number {
 
 function asStringArray(val: any): string[] {
   return Array.isArray(val) ? val.map((v) => asString(v)) : [];
+}
+
+/**
+ * RetroGames numeric embed ids are not stable: the provider has returned
+ * unrelated cabinets for multiple valid-looking ids. Keep these records in
+ * the catalog, but route them to a title search in the user's browser rather
+ * than presenting a blank or wrong-game iframe.
+ */
+function isRetroGamesUrl(value: unknown): boolean {
+  return typeof value === 'string' && value.includes('retrogames.cc/');
+}
+
+function buildRetroGamesSearchUrl(name: string): string {
+  return `https://www.retrogames.cc/search?q=${encodeURIComponent(name.trim())}`;
 }
 
 /**
@@ -313,15 +328,28 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
 
 function normalizeGame(game: Game): Game {
   const id = asString(game.id);
+  const name = CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet');
   const canonicalUrl = CANONICAL_GAME_URLS[id];
-  const launchConfig = EXTERNAL_ONLY_GAME_IDS.has(id)
-    ? { ...game.launchConfig, embedMode: 'external-only' as const }
-    : game.launchConfig;
+  const retroBacked = [
+    game.url,
+    game.launchConfig?.approvedEmbedUrl,
+    game.launchConfig?.approvedExternalUrl,
+  ].some(isRetroGamesUrl);
+  const launchConfig = { ...(game.launchConfig || {}) };
+  if (retroBacked) {
+    launchConfig.embedMode = 'external-only';
+    launchConfig.approvedExternalUrl = buildRetroGamesSearchUrl(name);
+    delete launchConfig.approvedEmbedUrl;
+    launchConfig.trustNote =
+      'RetroGames title search is used because numeric cabinet IDs are not stable.';
+  } else if (EXTERNAL_ONLY_GAME_IDS.has(id)) {
+    launchConfig.embedMode = 'external-only';
+  }
   return {
     ...game,
     id,
-    launchConfig,
-    name: CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet'),
+    launchConfig: Object.keys(launchConfig).length ? launchConfig : undefined,
+    name,
     url: canonicalUrl || asString(game.url),
     image: normalizeCatalogImage(game.image),
     description: asString(game.description),
@@ -468,7 +496,19 @@ function normalizeRecommendationRail(
   };
 }
 
+function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
+  const existingIds = new Set((feed.games || []).map((game) => game.id));
+  return {
+    ...feed,
+    games: [
+      ...(feed.games || []),
+      ...CURATED_POKI_GAMES.filter((game) => !existingIds.has(game.id)),
+    ],
+  };
+}
+
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
+  feed = mergeCuratedGames(feed);
   // Defense-in-depth: normalize first, then auto-repair any cabinet URL mismatches.
   // This catches both curated JSON feeds and corruption that creeps into the
   // fallback TS feed so a game whose id is "battlefield" cannot load halo-ce-web.
@@ -539,6 +579,24 @@ export function validateAndRepairGame(game: Game): Game {
         (repaired.launchConfig as any)[key] = canonicalUrl;
       }
     }
+  }
+
+  // RetroGames numeric ids are not a reliable inline launch contract. Always
+  // use a title search as the external target so the user can choose the
+  // matching provider cabinet instead of opening an unrelated game.
+  const retroBacked = [
+    repaired.url,
+    (repaired.launchConfig as any).approvedEmbedUrl,
+    (repaired.launchConfig as any).approvedExternalUrl,
+  ].some(isRetroGamesUrl);
+  if (retroBacked) {
+    repaired.launchConfig.embedMode = 'external-only';
+    repaired.launchConfig.approvedExternalUrl = buildRetroGamesSearchUrl(
+      repaired.name
+    );
+    delete (repaired.launchConfig as any).approvedEmbedUrl;
+    repaired.launchConfig.trustNote =
+      'RetroGames title search is used because numeric cabinet IDs are not stable.';
   }
 
   // ── Strip empty approved URLs that were intentionally blanked by the fix script ──
@@ -628,6 +686,7 @@ export class GameService {
       this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
         map((feed) => {
           const normalized = normalizeFeed(feed);
+
           const resolvedFeed =
             normalized.games.length > 0
               ? normalized
