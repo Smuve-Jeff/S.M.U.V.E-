@@ -16,7 +16,7 @@
 .mastering-suite-container {
   display: flex;
   flex-direction: column;
-  min-min-height: 100%;
+  min-height: 100%;
   padding: 1.5rem;
   gap: 1.5rem;
   background: var(--ivory-deep);

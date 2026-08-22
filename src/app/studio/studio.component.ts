@@ -1658,7 +1658,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   triggerLoadProject() {
-    const fileInput = document.getElementById('smuve-project-upload') as HTMLInputElement;
+    const fileInput = this.fileInput?.nativeElement;
     if (fileInput) fileInput.click();
   }
 
