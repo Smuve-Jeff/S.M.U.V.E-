@@ -24,6 +24,8 @@ describe('AudioImportService (stretch engine)', () => {
   }
 
   beforeEach(() => {
+    (globalThis.URL as any).createObjectURL ??= jest.fn(() => 'blob:mock');
+    (globalThis.URL as any).revokeObjectURL ??= jest.fn();
     const ctx = {
       sampleRate: 44100,
       currentTime: 0,
@@ -108,5 +110,100 @@ describe('AudioImportService (stretch engine)', () => {
     expect(service.importedAudio().length).toBe(0);
     expect(service.totalDuration()).toBe(0);
     expect(service.isLoading()).toBe(false);
+  });
+
+  it('applies stretch/pitch/fade metadata when rendering edits', async () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 22050);
+    const imported: any = {
+      id: 'a1',
+      name: 'clip',
+      buffer: buf,
+      blob: new Blob(),
+      url: 'blob:raw',
+      duration: buf.duration,
+      sampleRate: buf.sampleRate,
+      channels: buf.numberOfChannels,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1.25,
+      pitchSemitones: 2,
+      fadeIn: 0.05,
+      fadeOut: 0.05,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: true,
+      editedBlob: null,
+      editedUrl: null,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+    const blob = await service.applyEdits();
+    expect(blob).toBeTruthy();
+    expect(service.selectedAudio()?.editedBlob).toBeTruthy();
+  });
+
+  it('cancelEdits restores the last applied settings', async () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 4096);
+    const imported: any = {
+      id: 'a2',
+      name: 'clip',
+      buffer: buf,
+      blob: new Blob(),
+      url: 'blob:raw2',
+      duration: buf.duration,
+      sampleRate: buf.sampleRate,
+      channels: buf.numberOfChannels,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: null,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+    await service.applyEdits();
+    service.setGain(1.8);
+    expect(service.selectedAudio()?.gain).toBeCloseTo(1.8);
+    service.cancelEdits();
+    expect(service.selectedAudio()?.gain).toBeCloseTo(1);
+  });
+
+  it('removeAudio revokes urls for cleanup', () => {
+    const revokeSpy = jest.spyOn(URL, 'revokeObjectURL');
+    const imported: any = {
+      id: 'a3',
+      name: 'clip',
+      buffer: makeBuffer(service.audioEngine.ctx, 1024),
+      blob: new Blob(),
+      url: 'blob:raw3',
+      duration: 1,
+      sampleRate: 44100,
+      channels: 1,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: 'blob:edited3',
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+    service.removeAudio('a3');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:raw3');
+    expect(revokeSpy).toHaveBeenCalledWith('blob:edited3');
   });
 });

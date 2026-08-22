@@ -2003,12 +2003,40 @@
       >
         <span class="comp-aimix-section-title">{{ selAudio.name }}</span>
         <div class="comp-import-waveform">
-          <canvas
-            #importWaveformCanvas
-            class="comp-import-canvas"
-            width="280"
-            height="60"
-          ></canvas>
+          <app-waveform-renderer
+            [audioData]="selectedImportWaveform()"
+            [duration]="selAudio.duration"
+            [progress]="0"
+            mode="envelope"
+            [loopStart]="selAudio.loopStart"
+            [loopEnd]="selAudio.loopEnd"
+            [loopInteractive]="true"
+            (loopStartChange)="audioImport.setLoopStart($event)"
+            (loopEndChange)="audioImport.setLoopEnd($event)"
+          ></app-waveform-renderer>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Zoom</label>
+          <input
+            type="range"
+            min="1"
+            max="8"
+            step="1"
+            [value]="importWaveformZoom()"
+            (input)="importWaveformZoom.set(+$any($event.target).value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ importWaveformZoom() }}x</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Snap</label>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="toggleImportSnap()"
+          >
+            {{ importSnapEnabled() ? 'ON' : 'OFF' }}
+          </button>
         </div>
 
         <!-- Trim controls -->
@@ -2018,7 +2046,7 @@
             type="range"
             min="0"
             max="0.95"
-            step="0.01"
+            [step]="importSnapEnabled() ? 0.0625 : 0.01"
             [value]="selAudio.trimStart"
             (input)="audioImport.setTrimStart($event.target.value)"
             class="comp-import-slider"
@@ -2033,7 +2061,7 @@
             type="range"
             min="0.05"
             max="1"
-            step="0.01"
+            [step]="importSnapEnabled() ? 0.0625 : 0.01"
             [value]="selAudio.trimEnd"
             (input)="audioImport.setTrimEnd($event.target.value)"
             class="comp-import-slider"
@@ -2057,6 +2085,81 @@
             >{{ (selAudio.gain * 100).toFixed(0) }}%</span
           >
         </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Stretch</label>
+          <input
+            type="range"
+            min="0.25"
+            max="4"
+            step="0.05"
+            [value]="selAudio.stretchRatio"
+            (input)="audioImport.setStretchRatio($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ selAudio.stretchRatio.toFixed(2) }}x</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Pitch</label>
+          <input
+            type="range"
+            min="-12"
+            max="12"
+            step="1"
+            [value]="selAudio.pitchSemitones"
+            (input)="audioImport.setPitchSemitones($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ selAudio.pitchSemitones }} st</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Fade In</label>
+          <input
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.01"
+            [value]="selAudio.fadeIn"
+            (input)="audioImport.setFadeIn($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ (selAudio.fadeIn * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Fade Out</label>
+          <input
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.01"
+            [value]="selAudio.fadeOut"
+            (input)="audioImport.setFadeOut($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ (selAudio.fadeOut * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Normalize</label>
+          <input
+            type="checkbox"
+            [checked]="selAudio.normalize"
+            (change)="audioImport.toggleNormalize($any($event.target).checked)"
+          />
+        </div>
+        <audio
+          controls
+          class="comp-import-preview"
+          [src]="selAudio.editedUrl || selAudio.url"
+        ></audio>
+        <div class="comp-import-smart">
+          <span class="comp-aimix-section-title">Smart Production</span>
+          <div class="comp-import-smart-row" *ngFor="let cap of smartProduction.capabilities()">
+            <span>{{ cap.label }}</span>
+            <span *ngIf="cap.status === 'ready'" class="comp-import-smart-ready">Ready</span>
+            <span *ngIf="cap.status !== 'ready'" class="comp-import-smart-disabled" [title]="cap.reason">
+              {{ cap.reason }}
+            </span>
+          </div>
+        </div>
 
         <!-- Actions -->
         <div class="comp-meta-actions">
@@ -2067,6 +2170,22 @@
           >
             <span class="material-symbols-outlined">check_circle</span>
             Apply Edits
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.cancelEdits()"
+          >
+            <span class="material-symbols-outlined">undo</span>
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.resetEdits()"
+          >
+            <span class="material-symbols-outlined">restart_alt</span>
+            Reset
           </button>
           <button
             type="button"

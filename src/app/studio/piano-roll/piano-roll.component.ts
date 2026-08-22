@@ -28,6 +28,7 @@ import { HistoryService } from '../../services/history.service';
 import { AutomationService } from '../automation.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ScaleDetectionService } from '../../services/scale-detection.service';
+import { QuantizationService } from '../quantization.service';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
 import {
   PianoRollRenderer,
@@ -54,6 +55,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly history = inject(HistoryService);
   private readonly automation = inject(AutomationService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly quantization = inject(QuantizationService);
   /** Phase F3 — one-tap auto key/scale detection (Krumhansl–Kessler). */
   private readonly scaleDetection = inject(ScaleDetectionService);
 
@@ -119,6 +121,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
+  quantizePresetId = signal<string>(this.quantization.selectedPresetId());
   zoomLevel = signal(1.0);
   gridSteps = signal(64);
   selectedKey = signal('C');
@@ -131,6 +134,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: '1/32', value: '1/32' as const },
     { label: 'Off', value: 'off' as const },
   ];
+  quantizePresets = this.quantization.presets;
 
   selectedNoteIds = signal<Set<string>>(new Set());
   private draggingNotes: {
@@ -1059,10 +1063,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     if (!track) return;
     const snappedStep = this.applySnap(step);
+    const constrainedMidi = this.scaleLockEnabled()
+      ? this.constrainMidiToScale(midi)
+      : midi;
     if (this.editMode() === 'chord') {
       const intervals = this.getChordIntervals();
       intervals.forEach((interval, idx) => {
-        const noteMidi = midi + interval;
+        const noteMidi = constrainedMidi + interval;
         if (noteMidi >= 0 && noteMidi <= 127) {
           this.musicManager.addNoteToTrack(track.id, {
             id: 'chord-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
@@ -1079,13 +1086,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.musicManager.addNoteToTrack(track.id, {
         id: 'note-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-        midi,
+        midi: constrainedMidi,
         step: snappedStep,
         length: this.lengthFromSnap(),
         velocity: 0.8,
       });
       // Mouse/pen draw — audition the note the instant it lands.
-      this.previewNoteOn(midi, 0.8);
+      this.previewNoteOn(constrainedMidi, 0.8);
       this.haptic.light();
     }
     this.markDirty();
@@ -1198,6 +1205,40 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   setSnap(snap: '1/4' | '1/8' | '1/16' | '1/32' | 'off') { this.snap.set(snap); this.haptic.light(); }
+  setQuantizePreset(presetId: string): void {
+    this.quantizePresetId.set(presetId);
+    this.quantization.selectedPresetId.set(presetId);
+    this.haptic.light();
+  }
+
+  quantizeSelection(): void {
+    this.quantizeByIds(Array.from(this.selectedNoteIds()));
+  }
+
+  quantizeTrack(): void {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.quantizeByIds(track.notes.map((n) => n.id));
+  }
+
+  duplicateSelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.musicManager.duplicateNotes(track.id, ids, this.lengthFromSnap());
+    this.haptic.light();
+    this.markDirty();
+  }
+
+  deleteSelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.musicManager.removeNotes(track.id, ids);
+    this.selectedNoteIds.set(new Set());
+    this.haptic.medium();
+    this.markDirty();
+  }
 
   setSelectedVelocity(value: number) {
     const track = this.selectedTrack(); if (!track) return;
@@ -1276,4 +1317,65 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   getKeyName(midi: number): string { return ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][midi % 12]; }
   getOctaveLabel(midi: number): string { return Math.floor(midi / 12 - 1).toString(); }
+
+  private constrainMidiToScale(midi: number): number {
+    if (this.scaleDetection.isInScale(midi, this.selectedKey(), this.selectedScale())) {
+      return midi;
+    }
+    for (let distance = 1; distance <= 6; distance++) {
+      const up = midi + distance;
+      if (
+        up <= 127 &&
+        this.scaleDetection.isInScale(up, this.selectedKey(), this.selectedScale())
+      ) {
+        return up;
+      }
+      const down = midi - distance;
+      if (
+        down >= 0 &&
+        this.scaleDetection.isInScale(down, this.selectedKey(), this.selectedScale())
+      ) {
+        return down;
+      }
+    }
+    return midi;
+  }
+
+  private quantizeByIds(noteIds: string[]): void {
+    const track = this.selectedTrack();
+    if (!track || noteIds.length === 0) return;
+    const selectedSet = new Set(noteIds);
+    const targetNotes = track.notes.filter((n) => selectedSet.has(n.id));
+    const result = this.quantization.quantizeNotes(
+      targetNotes,
+      this.quantizePresetId()
+    );
+    if (result.changedCount === 0) {
+      this.snackbar.info('Notes already on grid');
+      return;
+    }
+    const before = track.notes.map((n) => ({ ...n }));
+    const quantizedById = new Map(result.quantized.map((n) => [n.id, n]));
+    const after = track.notes.map((note) => {
+      const q = quantizedById.get(note.id);
+      return q ? { ...note, step: q.step } : note;
+    });
+
+    this.history.execute({
+      name: `Quantize · ${targetNotes.length} note${targetNotes.length === 1 ? '' : 's'}`,
+      execute: () =>
+        this.musicManager.tracks.update((tracks) =>
+          tracks.map((t) => (t.id === track.id ? { ...t, notes: after } : t))
+        ),
+      undo: () =>
+        this.musicManager.tracks.update((tracks) =>
+          tracks.map((t) => (t.id === track.id ? { ...t, notes: before } : t))
+        ),
+    });
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.success(
+      `Quantized ${result.changedCount}/${targetNotes.length} note${targetNotes.length === 1 ? '' : 's'}`
+    );
+  }
 }

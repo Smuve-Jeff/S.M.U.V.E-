@@ -18,9 +18,28 @@ export interface QuantizeResult {
   averageOffset: number; // average movement in steps
 }
 
+export interface QuantizeOptions {
+  /**
+   * Optional deterministic seed for humanize jitter.
+   * Uses a tiny Mulberry32 PRNG so tests can assert exact output.
+   */
+  seed?: number;
+  /**
+   * Optional groove offsets (normalized to grid units).
+   * Example: [0, 0.08, -0.03, 0.05] repeats every 4 grid positions.
+   */
+  grooveOffsets?: number[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class QuantizationService {
   private logger = inject(LoggingService);
+  private readonly grooveTemplates: Record<string, number[]> = {
+    mpc_16_light: [0, 0.06, -0.02, 0.03],
+    mpc_16_heavy: [0, 0.1, -0.04, 0.06],
+    laid_back: [0, 0.08, 0.04, 0.1],
+    push_pull: [0, -0.04, 0.05, -0.02],
+  };
 
   // Predefined quantization presets (competitive with FL Studio Mobile, Cubasis)
   readonly presets: QuantizePreset[] = [
@@ -32,7 +51,6 @@ export class QuantizationService {
     { id: 'straight_1_64', name: 'Straight 1/64 Note', grid: 0.015625, swing: 0, humanize: 0, category: 'straight' },
 
     // Swing presets
-    // swing=0 → no delay (straight); swing=50 → moderate shuffle; swing=75 → heavy swing
     { id: 'swing_1_8_50', name: 'Swing 1/8 (50%)', grid: 0.125, swing: 50, humanize: 0, category: 'swing' },
     { id: 'swing_1_8_66', name: 'Swing 1/8 (66%)', grid: 0.125, swing: 66, humanize: 0, category: 'swing' },
     { id: 'swing_1_8_75', name: 'Swing 1/8 (75%)', grid: 0.125, swing: 75, humanize: 0, category: 'swing' },
@@ -79,7 +97,8 @@ export class QuantizationService {
    */
   quantizeNotes(
     notes: TrackNote[],
-    presetId: string
+    presetId: string,
+    options: QuantizeOptions = {}
   ): QuantizeResult {
     const preset = this.getPreset(presetId);
     if (!preset) {
@@ -90,22 +109,20 @@ export class QuantizationService {
     let changedCount = 0;
     let totalOffset = 0;
 
-    const quantized = notes.map(note => {
+    const random = this.createRandomSource(options.seed);
+
+    const quantized = notes.map((note, index) => {
       const originalStep = note.step;
 
       // Step 1: Snap to grid
       let snappedStep = Math.round(note.step / preset.grid) * preset.grid;
 
+      const gridIndex = Math.round(note.step / preset.grid);
+
       // Step 2: Apply swing
-      // Swing delay is applied to odd-grid-indexed notes (the "offbeat" position
-      // in each pair of subdivisions).  The delay amount is scaled so that:
-      //   swing = 0   → no delay   (perfectly straight timing)
-      //   swing = 50  → half a grid step added  (moderate shuffle)
-      //   swing = 100 → one full grid step added (maximum triplet feel)
-      // This matches industry-standard DAW behaviour where 0% = no swing and
-      // higher values progressively push the offbeat later.
+      // Swing delay is applied to odd-grid-indexed notes (the offbeat position
+      // in each pair of subdivisions). Higher swing values push those notes later.
       if (preset.swing && preset.swing > 0) {
-        const gridIndex = Math.round(note.step / preset.grid);
         // Apply swing delay to odd-numbered grid positions (the offbeat of each pair)
         if (gridIndex % 2 === 1) {
           // Maximum delay at swing=100 is one full grid interval; scale linearly.
@@ -114,12 +131,23 @@ export class QuantizationService {
         }
       }
 
+      // Step 2.5: Optional groove template
+      const groovePattern =
+        options.grooveOffsets ??
+        (preset.groove ? this.grooveTemplates[preset.groove] : undefined);
+      if (groovePattern && groovePattern.length > 0) {
+        const groove = groovePattern[Math.abs(gridIndex) % groovePattern.length] ?? 0;
+        snappedStep += groove * preset.grid;
+      }
+
       // Step 3: Apply humanization (random jitter)
       if (preset.humanize && preset.humanize > 0) {
         const humanAmount = (preset.grid / 4) * (preset.humanize / 100);
-        const jitter = (Math.random() - 0.5) * 2 * humanAmount;
+        const jitter = (random(index) - 0.5) * 2 * humanAmount;
         snappedStep += jitter;
       }
+
+      snappedStep = Math.max(0, snappedStep);
 
       // Track changes
       const offset = Math.abs(snappedStep - originalStep);
@@ -176,9 +204,13 @@ export class QuantizationService {
    * Retroactive quantize: quantize already-recorded notes
    * (as opposed to quantizing during input)
    */
-  retroactiveQuantize(notes: TrackNote[], presetId: string): QuantizeResult {
+  retroactiveQuantize(
+    notes: TrackNote[],
+    presetId: string,
+    options: QuantizeOptions = {}
+  ): QuantizeResult {
     // Same as quantizeNotes, but with extra logging
-    const result = this.quantizeNotes(notes, presetId);
+    const result = this.quantizeNotes(notes, presetId, options);
     this.logger.info(
       `Retroactive quantize: ${result.changedCount}/${notes.length} notes adjusted`
     );
@@ -201,5 +233,18 @@ export class QuantizationService {
     const preset = this.getPreset(presetId);
     if (!preset) return 16;
     return Math.round(1 / preset.grid);
+  }
+
+  private createRandomSource(seed?: number): (index: number) => number {
+    if (!Number.isFinite(seed)) {
+      return () => Math.random();
+    }
+    return (index: number) => {
+      let t = (((seed as number) >>> 0) ^ ((index + 1) * 0x9e3779b9)) >>> 0;
+      t = (t + 0x6d2b79f5) >>> 0;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
   }
 }

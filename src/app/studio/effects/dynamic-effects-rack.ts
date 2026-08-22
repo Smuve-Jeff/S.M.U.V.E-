@@ -283,6 +283,7 @@ export class DynamicEffectsRack {
         this._sendGainMap.set(slot.id, sendGain);
       }
       sendGain.gain.value = slot.sendLevel;
+      sendGain.disconnect();
       this._sendBus.connect(sendGain);
       sendGain.connect(slot.plugin.input);
       slot.plugin.output.connect(bus.gain);
@@ -464,7 +465,12 @@ export class DynamicEffectsRack {
   /** Export the rack state for project saving */
   getSnapshot(): {
     inserts: Array<{ pluginId: string; enabled: boolean }>;
-    sends: Array<{ pluginId: string; auxBus: string; sendLevel: number }>;
+    sends: Array<{
+      pluginId: string;
+      auxBus: string;
+      sendLevel: number;
+      enabled: boolean;
+    }>;
     master: Array<{ pluginId: string; enabled: boolean }>;
   } {
     return {
@@ -476,6 +482,7 @@ export class DynamicEffectsRack {
         pluginId: s.plugin.id,
         auxBus: s.auxBus ?? 'A',
         sendLevel: s.sendLevel,
+        enabled: s.plugin.enabled,
       })),
       master: this._masterSlots.map((s) => ({
         pluginId: s.plugin.id,
@@ -486,9 +493,14 @@ export class DynamicEffectsRack {
 
   /** Restore from a saved snapshot */
   hydrateSnapshot(snapshot: {
-    inserts?: Array<{ pluginId: string }>;
-    sends?: Array<{ pluginId: string; auxBus: string; sendLevel: number }>;
-    master?: Array<{ pluginId: string }>;
+    inserts?: Array<{ pluginId: string; enabled?: boolean }>;
+    sends?: Array<{
+      pluginId: string;
+      auxBus: string;
+      sendLevel: number;
+      enabled?: boolean;
+    }>;
+    master?: Array<{ pluginId: string; enabled?: boolean }>;
   }): void {
     // Clear existing
     this.dispose();
@@ -500,19 +512,23 @@ export class DynamicEffectsRack {
     // Rebuild from snapshot
     if (snapshot.inserts) {
       for (const ins of snapshot.inserts) {
-        this.addInsert(ins.pluginId);
+        const slot = this.addInsert(ins.pluginId);
+        if (slot) slot.plugin.enabled = ins.enabled ?? true;
       }
     }
     if (snapshot.sends) {
       for (const snd of snapshot.sends) {
-        this.addSend(snd.pluginId, snd.auxBus, snd.sendLevel);
+        const slot = this.addSend(snd.pluginId, snd.auxBus, snd.sendLevel);
+        if (slot) slot.plugin.enabled = snd.enabled ?? true;
       }
     }
     if (snapshot.master) {
       for (const mst of snapshot.master) {
-        this.addMaster(mst.pluginId);
+        const slot = this.addMaster(mst.pluginId);
+        if (slot) slot.plugin.enabled = mst.enabled ?? true;
       }
     }
+    this.rebuildChain();
   }
 }
 

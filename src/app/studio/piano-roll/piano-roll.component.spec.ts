@@ -13,6 +13,7 @@ import { HardwareService } from '../../services/hardware.service';
 import { HistoryService } from '../../services/history.service';
 import { AutomationService } from '../automation.service';
 import { Subject } from 'rxjs';
+import { QuantizationService } from '../quantization.service';
 
 @Component({
   selector: 'app-channel-rack',
@@ -148,6 +149,15 @@ describe('PianoRollComponent', () => {
   const mockHistory = {
     execute: jest.fn(),
   };
+  const mockQuantization = {
+    presets: [{ id: 'straight_1_16', name: 'Straight 1/16' }],
+    selectedPresetId: signal('straight_1_16'),
+    quantizeNotes: jest.fn((notes: any[]) => ({
+      quantized: notes.map((n) => ({ ...n, step: Math.round(n.step) })),
+      changedCount: notes.length,
+      averageOffset: 0.25,
+    })),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -171,6 +181,7 @@ describe('PianoRollComponent', () => {
         { provide: AutomationService, useValue: mockAutomation },
         { provide: HardwareService, useValue: mockHardware },
         { provide: HistoryService, useValue: mockHistory },
+        { provide: QuantizationService, useValue: mockQuantization },
       ],
     }).compileComponents();
 
@@ -188,6 +199,7 @@ describe('PianoRollComponent', () => {
     mockDjMidi.startPerformerLearn.mockClear();
     mockDjMidi.cancelPerformerLearn.mockClear();
     mockHistory.execute.mockClear();
+    mockQuantization.quantizeNotes.mockClear();
     mockHardware.sustainActive.set(false);
     mockHardware.sustainHalfPedal.set(false);
     mockHardware.sustainAmount.set(127);
@@ -428,6 +440,41 @@ describe('PianoRollComponent', () => {
     component.selectedNoteIds.set(new Set());
     component.toggleSlideOnSelection();
     expect(mockMusicManager.updateNote).not.toHaveBeenCalled();
+  });
+
+  it('should quantize selected notes through history', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: 'n1', midi: 60, step: 1.4, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(['n1']));
+    component.quantizeSelection();
+    expect(mockQuantization.quantizeNotes).toHaveBeenCalled();
+    expect(mockHistory.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ name: expect.stringContaining('Quantize') })
+    );
+    const cmd = mockHistory.execute.mock.calls[0][0];
+    cmd.execute();
+    expect(mockMusicManager.tracks()[0].notes[0].step).toBe(1);
+  });
+
+  it('should duplicate selected notes', () => {
+    component.selectedNoteIds.set(new Set(['n1', 'n2']));
+    component.duplicateSelection();
+    expect(mockMusicManager.duplicateNotes).toHaveBeenCalledWith(
+      '1',
+      ['n1', 'n2'],
+      1
+    );
+  });
+
+  it('should delete selected notes and clear selection', () => {
+    component.selectedNoteIds.set(new Set(['n1']));
+    component.deleteSelection();
+    expect(mockMusicManager.removeNotes).toHaveBeenCalledWith('1', ['n1']);
+    expect(component.selectedNoteIds().size).toBe(0);
   });
 
   // ── Sprint A2 — slide-note data path ─────────────────────

@@ -159,6 +159,9 @@ export class RecordingStatusService implements OnDestroy {
     if (masterAnalyser === this.lastWiredMasterAnalyser) return;
 
     // Disconnect and release previous nodes before creating new ones.
+    if (this.lastWiredMasterAnalyser && this._splitter) {
+      this.lastWiredMasterAnalyser.disconnect(this._splitter);
+    }
     this._splitter?.disconnect();
     this.analyserL?.disconnect();
     this.analyserR?.disconnect();
