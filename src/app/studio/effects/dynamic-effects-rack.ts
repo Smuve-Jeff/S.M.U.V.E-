@@ -41,6 +41,9 @@ export class DynamicEffectsRack {
   /** Named aux buses: busName → { gainNode, slots } */
   private _auxBuses = new Map<string, { gain: GainNode; slots: PluginSlot[] }>();
 
+  /** Per-send-slot GainNode for level control — reused across rebuildChain calls to prevent leaks. */
+  private _sendGainMap = new Map<string, GainNode>();
+
   // Audio routing nodes
   private readonly _input: GainNode;
   private readonly _output: GainNode;
@@ -158,6 +161,12 @@ export class DynamicEffectsRack {
     if (idx >= 0) {
       this._sends[idx].plugin.dispose();
       this._sends.splice(idx, 1);
+      // Disconnect and remove the cached send-level GainNode for this slot.
+      const sendGain = this._sendGainMap.get(slotId);
+      if (sendGain) {
+        sendGain.disconnect();
+        this._sendGainMap.delete(slotId);
+      }
       this.rebuildChain();
     }
   }
@@ -266,8 +275,15 @@ export class DynamicEffectsRack {
       const bus = this._auxBuses.get(slot.auxBus);
       if (!bus) continue;
 
-      const sendGain = this.ctx.createGain();
+      // Reuse the existing GainNode for this slot to avoid leaking a new
+      // AudioNode on every rebuildChain() call.
+      let sendGain = this._sendGainMap.get(slot.id);
+      if (!sendGain) {
+        sendGain = this.ctx.createGain();
+        this._sendGainMap.set(slot.id, sendGain);
+      }
       sendGain.gain.value = slot.sendLevel;
+      sendGain.disconnect();
       this._sendBus.connect(sendGain);
       sendGain.connect(slot.plugin.input);
       slot.plugin.output.connect(bus.gain);
@@ -428,6 +444,11 @@ export class DynamicEffectsRack {
     this._sends = [];
     this._masterSlots = [];
     this._auxBuses.clear();
+    // Disconnect and release all cached send-level GainNodes.
+    for (const gain of this._sendGainMap.values()) {
+      gain.disconnect();
+    }
+    this._sendGainMap.clear();
     this._input.disconnect();
     this._output.disconnect();
     this._sendBus.disconnect();
