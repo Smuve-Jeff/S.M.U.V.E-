@@ -5,10 +5,13 @@ import {
   computed,
   effect,
   OnDestroy,
+  Injector,
 } from '@angular/core';
 import { LoggingService } from '../services/logging.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { LocalStorageService } from '../services/local-storage.service';
+import { StudioRecordingEngineService } from './studio-recording-engine.service';
+import { WavEncoder } from './wav-encoder.util';
 import { Subject } from 'rxjs';
 
 /**
@@ -42,6 +45,16 @@ export class PerformanceRecordingService implements OnDestroy {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
   private localStorage = inject(LocalStorageService);
+  private injector = inject(Injector);
+
+  /** Lazy access to the recording engine via DI injector — avoids startup-order coupling. */
+  private get recordingEngine(): StudioRecordingEngineService | null {
+    try {
+      return this.injector.get(StudioRecordingEngineService);
+    } catch {
+      return null;
+    }
+  }
 
   /** All takes across the current session */
   takes = signal<PerformanceTake[]>([]);
@@ -194,13 +207,40 @@ export class PerformanceRecordingService implements OnDestroy {
     trackName?: string
   ): Promise<PerformanceTake | null> {
     if (!this.isRecording()) return null;
-    const durationMs = performance.now() - this.startTimestampMs;
+    let durationMs = performance.now() - this.startTimestampMs;
     const takeNumber = this.armedTakeNumber();
 
-    // Synthesize a WAV blob with a quick tone-stub: in production this
-    // would be the AudioWorklet-buffer-capture. For UI-completeness we
-    // emit an empty WAV so the take exists in the carousel.
-    const blob = await this.synthesizeWavStub(durationMs);
+    // ── Real capture via StudioRecordingEngine AudioWorklet ──
+    let blob: Blob;
+    const engine = this.recordingEngine;
+    if (engine) {
+      const { left, right } = engine.getRecordedBuffers();
+      if (left.length > 0 && right.length > 0) {
+        try {
+          const leftChannel = this.joinChunks(left);
+          const rightChannel = this.joinChunks(right);
+          const sampleRate = this.audioEngine.ctx.sampleRate;
+          blob = WavEncoder.encodeMultiChannel(
+            [leftChannel, rightChannel],
+            'wav-16',
+            sampleRate
+          );
+          durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
+        } catch (e) {
+          this.logger.warn(
+            'PerformanceRecording: WAV encode from buffers failed; falling back to stub.',
+            e
+          );
+          blob = await this.synthesizeWavStub(durationMs);
+        }
+      } else {
+        // No buffers captured — stub as fallback
+        blob = await this.synthesizeWavStub(durationMs);
+      }
+    } else {
+      // Recording engine not available — stub only
+      blob = await this.synthesizeWavStub(durationMs);
+    }
     const url = URL.createObjectURL(blob);
 
     const take: PerformanceTake = {
@@ -256,6 +296,23 @@ export class PerformanceRecordingService implements OnDestroy {
     a.href = take.url;
     a.download = `${take.name.replace(/\s+/g, '_')}.${format.split('-')[0]}`;
     a.click();
+  }
+
+  /** Join Float32Array chunks into a single contiguous buffer (mirrors StudioRecordingEngine). */
+  private joinChunks(chunks: Float32Array[], minimumLength = 0): Float32Array {
+    const length = Math.max(
+      minimumLength,
+      chunks.reduce((total, chunk) => total + chunk.length, 0)
+    );
+    const result = new Float32Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      const writable = Math.min(chunk.length, result.length - offset);
+      if (writable <= 0) break;
+      result.set(chunk.subarray(0, writable), offset);
+      offset += writable;
+    }
+    return result;
   }
 
   /** Convert linear amplitude to dBFS */

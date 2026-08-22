@@ -42,9 +42,7 @@ export class SettingsComponent implements OnInit {
   showHowTo = signal(false);
 
   settings = computed(() => {
-    const current =
-      this.pendingSettings() || this.profileService.profile().settings;
-    return this.withSettingsDefaults(current);
+    return this.withSettingsDefaults(this.profileService.profile().settings);
   });
 
   /**
@@ -116,7 +114,6 @@ export class SettingsComponent implements OnInit {
   >('ui');
   audioInputDevices = this.microphoneService.availableDevices;
   selectedAudioInputId = this.microphoneService.selectedDeviceId;
-  pendingSettings = signal<AppSettings | null>(null);
   storageStats = signal<{
     usedBytes: number;
     totalBytes: number;
@@ -130,6 +127,9 @@ export class SettingsComponent implements OnInit {
     this.updateStorageStats();
   }
 
+  /** Consolidated write path — settings write through profile service immediately.
+   *  The old deferred-commit dialog path has been removed; all toggles now persist
+   *  instantly through UserProfileService.updateProfile(). */
   async forceSync() {
     const profile = this.profileService.profile();
     await this.databaseService.saveUserProfile(profile, 'current');
@@ -219,8 +219,8 @@ export class SettingsComponent implements OnInit {
     if (category === 'ai' && key === 'aiVoiceShapeShiftEnabled') {
       value = true;
     }
-    const current =
-      this.pendingSettings() || this.profileService.profile().settings;
+    const currentProfile = this.profileService.profile();
+    const current = currentProfile.settings;
     const updated = {
       ...current,
       [category]: {
@@ -228,19 +228,18 @@ export class SettingsComponent implements OnInit {
         [key]: value,
       },
     };
-    this.pendingSettings.set(updated);
+
+    // Write immediately — no deferred commit dialog
+    this.profileService.updateProfile({
+      ...currentProfile,
+      settings: updated,
+    });
 
     // Preview side effects
     if (category === 'ui' && key === 'theme') {
       this.uiService.setTheme(value);
     }
-    if (category === 'ui' && key === 'performanceMode') {
-      // Toggle locally for preview if possible
-    }
     if (category === 'studio' && key === 'stageFxEnabled') {
-      // Live preview — the ambience follows the toggle before commit, and
-      // the Studio (which live-syncs from the profile on commit) stays in
-      // agreement via the shared localStorage mirror.
       if (typeof document !== 'undefined') {
         document.body.classList.toggle('stage-fx-off', !value);
       }
@@ -252,34 +251,11 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  async commitSettings() {
-    const pending = this.pendingSettings();
-    if (!pending) return;
 
-    const confirmed = await this.dialog.confirm({
-      title: 'COMMIT_SETTINGS_TO_CLOUD',
-      message: 'Authorize synchronization of updated executive parameters?',
-      confirmLabel: 'AUTHORIZE',
-      cancelLabel: 'ABORT',
-    });
 
-    if (!confirmed) return;
-
-    try {
-      const currentProfile = this.profileService.profile();
-      await this.profileService.updateProfile({
-        ...currentProfile,
-        settings: pending,
-      });
-      this.pendingSettings.set(null);
-      this.notificationService.show(
-        'EXECUTIVE_SETTINGS_SYNC_COMPLETE',
-        'success'
-      );
-    } catch (e) {
-      this.notificationService.show('SYNC_FAILED', 'error');
-    }
-  }
+  // Removed: commitSettings() + pendingSettings deferred-write path.
+  // All settings now persist immediately through updateSetting() →
+  // UserProfileService.updateProfile() with no confirmation dialog.
 
   setTab(
     tab:
