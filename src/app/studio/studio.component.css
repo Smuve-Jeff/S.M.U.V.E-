@@ -3254,3 +3254,32 @@
   );
   border-color: rgba(255, 255, 255, 0.08);
 }
+.comp-import-preview {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.comp-import-smart {
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid rgba(14, 124, 123, 0.2);
+  border-radius: 10px;
+}
+
+.comp-import-smart-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.comp-import-smart-ready {
+  color: #0e7c7b;
+  font-weight: 700;
+}
+
+.comp-import-smart-disabled {
+  color: rgba(72, 57, 35, 0.74);
+  text-align: right;
+}

@@ -20,10 +20,36 @@ export interface ImportedAudio {
   trimEnd: number;
   /** Gain multiplier 0-2 */
   gain: number;
+  /** Non-destructive stretch metadata (1 = original) */
+  stretchRatio: number;
+  /** Non-destructive pitch metadata in semitones */
+  pitchSemitones: number;
+  /** Fade in/out (0..0.5 of clip length) */
+  fadeIn: number;
+  fadeOut: number;
+  /** Loop region metadata (0..1 normalized) */
+  loopStart: number;
+  loopEnd: number;
+  /** Peak normalize after processing */
+  normalize: boolean;
   /** Edited buffer after applying trim + gain */
   editedBlob: Blob | null;
   editedUrl: string | null;
 }
+
+type EditSnapshot = Pick<
+  ImportedAudio,
+  | 'trimStart'
+  | 'trimEnd'
+  | 'gain'
+  | 'stretchRatio'
+  | 'pitchSemitones'
+  | 'fadeIn'
+  | 'fadeOut'
+  | 'loopStart'
+  | 'loopEnd'
+  | 'normalize'
+>;
 
 @Injectable({ providedIn: 'root' })
 export class AudioImportService {
@@ -42,6 +68,7 @@ export class AudioImportService {
 
   /** Loading state */
   isLoading = signal(false);
+  private appliedEditState = new Map<string, EditSnapshot>();
 
   /** Total imported duration summary */
   totalDuration = computed(() => {
@@ -80,10 +107,18 @@ export class AudioImportService {
             trimStart: 0,
             trimEnd: 1,
             gain: 1.0,
+            stretchRatio: 1,
+            pitchSemitones: 0,
+            fadeIn: 0,
+            fadeOut: 0,
+            loopStart: 0,
+            loopEnd: 1,
+            normalize: false,
             editedBlob: null,
             editedUrl: null,
           };
           results.push(imported);
+          this.appliedEditState.set(imported.id, this.snapshot(imported));
         } catch (e) {
           this.logger.warn(`Failed to import ${file.name}`, e);
           this.snackbar.warning(`Could not import ${file.name}`);
@@ -172,6 +207,12 @@ export class AudioImportService {
 
   /** Remove an imported audio */
   removeAudio(id: string) {
+    const target = this.importedAudio().find((a) => a.id === id);
+    if (target) {
+      URL.revokeObjectURL(target.url);
+      if (target.editedUrl) URL.revokeObjectURL(target.editedUrl);
+      this.appliedEditState.delete(id);
+    }
     this.importedAudio.update((prev) => prev.filter((a) => a.id !== id));
     if (this.selectedAudio()?.id === id) {
       this.selectedAudio.set(this.importedAudio()[0] || null);
@@ -200,6 +241,68 @@ export class AudioImportService {
     this.updateCurrentAudio({ gain: Math.max(0, Math.min(2, num)) });
   }
 
+  setStretchRatio(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({ stretchRatio: Math.max(0.25, Math.min(4, num)) });
+  }
+
+  setPitchSemitones(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({ pitchSemitones: Math.max(-12, Math.min(12, num)) });
+  }
+
+  setFadeIn(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({ fadeIn: Math.max(0, Math.min(0.5, num)) });
+  }
+
+  setFadeOut(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({ fadeOut: Math.max(0, Math.min(0.5, num)) });
+  }
+
+  setLoopStart(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      loopStart: Math.max(0, Math.min(num, this.selectedAudio()?.loopEnd ?? 1)),
+    });
+  }
+
+  setLoopEnd(value: number | string) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      loopEnd: Math.max(this.selectedAudio()?.loopStart ?? 0, Math.min(num, 1)),
+    });
+  }
+
+  toggleNormalize(value?: boolean) {
+    const next = value ?? !this.selectedAudio()?.normalize;
+    this.updateCurrentAudio({ normalize: !!next });
+  }
+
+  cancelEdits(): void {
+    const current = this.selectedAudio();
+    if (!current) return;
+    const applied = this.appliedEditState.get(current.id);
+    if (!applied) return;
+    this.updateCurrentAudio(applied);
+  }
+
+  resetEdits(): void {
+    this.updateCurrentAudio({
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+    });
+  }
+
   /** Apply current trim + gain edits and produce edited Blob */
   applyEdits(): Promise<Blob | null> {
     const audio = this.selectedAudio();
@@ -218,20 +321,35 @@ export class AudioImportService {
 
     if (newLength <= 0) return Promise.resolve(null);
 
-    // Create new buffer with trimmed + gained audio
-    const newBuffer = ctx.createBuffer(channels, newLength, sr);
+    // Create new buffer with trimmed audio
+    const trimmedBuffer = ctx.createBuffer(channels, newLength, sr);
     for (let ch = 0; ch < channels; ch++) {
       const srcData = buffer.getChannelData(ch);
-      const dstData = newBuffer.getChannelData(ch);
+      const dstData = trimmedBuffer.getChannelData(ch);
       for (let i = 0; i < newLength; i++) {
-        dstData[i] = srcData[startSample + i] * audio.gain;
+        dstData[i] = srcData[startSample + i];
       }
     }
 
+    let processedBuffer = trimmedBuffer;
+    if (Math.abs(audio.stretchRatio - 1) > 0.001) {
+      processedBuffer = this.stretchBuffer(processedBuffer, audio.stretchRatio);
+    }
+    if (Math.abs(audio.pitchSemitones) > 0.001) {
+      processedBuffer = this.pitchShiftBuffer(processedBuffer, audio.pitchSemitones);
+    }
+
+    this.applyGainFadeAndNormalize(processedBuffer, audio);
+
     // Encode to WAV
-    const interleaved = this.interleaveChannels(newBuffer);
-    const wavBlob = this.createWavBlob(interleaved, sr);
+    const interleaved = this.interleaveChannels(processedBuffer);
+    const wavBlob = this.createWavBlob(
+      interleaved,
+      processedBuffer.sampleRate,
+      processedBuffer.numberOfChannels
+    );
     const editedUrl = URL.createObjectURL(wavBlob);
+    if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
 
     const edited = {
       ...audio,
@@ -246,6 +364,7 @@ export class AudioImportService {
     this.importedAudio.update((prev) =>
       prev.map((a) => (a.id === audio.id ? edited : a))
     );
+    this.appliedEditState.set(audio.id, this.snapshot(edited));
 
     this.snackbar.success('Audio edits applied');
     return Promise.resolve(wavBlob);
@@ -399,8 +518,13 @@ export class AudioImportService {
 
   /** Clear all imported audio */
   clearAll() {
+    this.importedAudio().forEach((audio) => {
+      URL.revokeObjectURL(audio.url);
+      if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+    });
     this.importedAudio.set([]);
     this.selectedAudio.set(null);
+    this.appliedEditState.clear();
   }
 
   // ── Private helpers ─────────────────────────────────
@@ -428,7 +552,11 @@ export class AudioImportService {
     return result;
   }
 
-  private createWavBlob(interleaved: Float32Array, sampleRate: number): Blob {
+  private createWavBlob(
+    interleaved: Float32Array,
+    sampleRate: number,
+    channels: number
+  ): Blob {
     const numSamples = interleaved.length;
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
@@ -442,10 +570,10 @@ export class AudioImportService {
     w(12, 'fmt ');
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
-    view.setUint16(22, 2, true);
+    view.setUint16(22, channels, true);
     view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2 * 2, true);
-    view.setUint16(32, 4, true);
+    view.setUint32(28, sampleRate * channels * 2, true);
+    view.setUint16(32, channels * 2, true);
     view.setUint16(34, 16, true);
     w(36, 'data');
     view.setUint32(40, numSamples * 2, true);
@@ -454,5 +582,64 @@ export class AudioImportService {
       view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
     return new Blob([buffer], { type: 'audio/wav' });
+  }
+
+  private applyGainFadeAndNormalize(
+    buffer: AudioBuffer,
+    settings: ImportedAudio
+  ): void {
+    const fadeInSamples = Math.floor(buffer.length * settings.fadeIn);
+    const fadeOutSamples = Math.floor(buffer.length * settings.fadeOut);
+
+    const applyShaping = (sample: number, index: number, total: number): number => {
+      let value = sample * settings.gain;
+      if (fadeInSamples > 0 && index < fadeInSamples) {
+        value *= index / fadeInSamples;
+      }
+      if (fadeOutSamples > 0 && index >= total - fadeOutSamples) {
+        value *= (total - index) / fadeOutSamples;
+      }
+      return value;
+    };
+
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = applyShaping(data[i], i, data.length);
+      }
+    }
+
+    if (settings.normalize) {
+      let peak = 0;
+      for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+        const data = buffer.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) {
+          const abs = Math.abs(data[i]);
+          if (abs > peak) peak = abs;
+        }
+      }
+      if (peak > 0.00001) {
+        const norm = 1 / peak;
+        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+          const data = buffer.getChannelData(ch);
+          for (let i = 0; i < data.length; i++) data[i] *= norm;
+        }
+      }
+    }
+  }
+
+  private snapshot(audio: ImportedAudio): EditSnapshot {
+    return {
+      trimStart: audio.trimStart,
+      trimEnd: audio.trimEnd,
+      gain: audio.gain,
+      stretchRatio: audio.stretchRatio,
+      pitchSemitones: audio.pitchSemitones,
+      fadeIn: audio.fadeIn,
+      fadeOut: audio.fadeOut,
+      loopStart: audio.loopStart,
+      loopEnd: audio.loopEnd,
+      normalize: audio.normalize,
+    };
   }
 }

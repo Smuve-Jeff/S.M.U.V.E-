@@ -137,6 +137,7 @@ describe('DynamicEffectsRack', () => {
       rack.addInsert('smuve.compressor.v1');
       rack.addSend('smuve.reverb.v1', 'Reverb', 0.5);
       rack.addMaster('smuve.compressor.v1');
+      rack.toggleInsert(rack.inserts[0].id);
 
       const snapshot = rack.getSnapshot();
       expect(snapshot.inserts.length).toBe(2);
@@ -147,6 +148,7 @@ describe('DynamicEffectsRack', () => {
       expect(rack.inserts.length).toBe(2);
       expect(rack.sends.length).toBe(1);
       expect(rack.masterSlots.length).toBe(1);
+      expect(rack.inserts[0].plugin.enabled).toBe(false);
     });
 
     it('should handle empty snapshot', () => {

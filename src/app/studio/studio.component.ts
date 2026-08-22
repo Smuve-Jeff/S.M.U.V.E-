@@ -67,6 +67,7 @@ import {
 import { ProjectWorkspaceService } from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { AudioImportService } from './audio-import.service';
+import { SmartProductionFoundationsService } from './smart-production-foundations.service';
 import { ComponentRecordingService } from './component-recording.service';
 import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
 import { SynthesizerComponent } from './synthesizer/synthesizer.component';
@@ -85,6 +86,7 @@ import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.compon
 import { BezierEditorComponent } from './automation/bezier-editor.component';
 import { ScoreViewComponent } from './score-view/score-view.component';
 import { PluginStoreComponent } from './plugin-store/plugin-store.component';
+import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
 import {
   StudioCoachAction,
   StudioCoachActionId,
@@ -197,6 +199,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     BezierEditorComponent,
     ScoreViewComponent,
     PluginStoreComponent,
+    WaveformRendererComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: [
@@ -427,6 +430,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly projectWorkspace = inject(ProjectWorkspaceService);
   public readonly smartSound = inject(SmartSoundService);
   public readonly audioImport = inject(AudioImportService);
+  public readonly smartProduction = inject(SmartProductionFoundationsService);
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
   public readonly engineLatency = inject(AudioEngineLatencyService);
@@ -442,6 +446,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showProjectMetadata = signal(false);
   showSmartRecordingPanel = signal(false);
   showImportPanel = signal(false);
+  importSnapEnabled = signal(true);
+  importWaveformZoom = signal(1);
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
   /** True while an Insights engine probe is in-flight. */
@@ -463,6 +469,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleVocalComp(): void {
     this.haptic.light();
     this.showVocalComp.update((v) => !v);
+  }
+
+  toggleImportSnap(): void {
+    this.importSnapEnabled.update((v) => !v);
+    this.haptic.light();
+  }
+
+  selectedImportWaveform(): Float32Array | null {
+    const audio = this.audioImport.selectedAudio();
+    if (!audio) return null;
+    const source = audio.buffer.getChannelData(0);
+    const zoom = Math.max(1, this.importWaveformZoom());
+    if (zoom === 1) return source;
+    const length = Math.max(256, Math.floor(source.length / zoom));
+    return source.subarray(0, length);
   }
 
   onBezierCurveChanged(curve: any): void {

@@ -109,6 +109,35 @@
       <span class="material-symbols-outlined">auto_awesome</span>
       <span>Humanize</span>
     </button>
+    <div class="pr-snap" role="group" aria-label="Quantization controls">
+      <select
+        class="pr-ks-select"
+        [ngModel]="quantizePresetId()"
+        (ngModelChange)="setQuantizePreset($event)"
+        aria-label="Quantize preset"
+      >
+        <option *ngFor="let preset of quantizePresets" [value]="preset.id">
+          {{ preset.name }}
+        </option>
+      </select>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="quantizeSelection()"
+        [disabled]="selectionCount() === 0"
+        title="Quantize selected notes"
+      >
+        Q Sel
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="quantizeTrack()"
+        title="Quantize whole track"
+      >
+        Q All
+      </button>
+    </div>
   </header>
 
   <!-- KEY / SCALE SELECTOR BAR -->
@@ -471,6 +500,24 @@
       >
         <span class="material-symbols-outlined">trending_up</span>
         <span>Slide</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="duplicateSelection()"
+        title="Duplicate selected notes"
+      >
+        <span class="material-symbols-outlined">content_copy</span>
+        <span>Duplicate</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="deleteSelection()"
+        title="Delete selected notes"
+      >
+        <span class="material-symbols-outlined">delete</span>
+        <span>Delete</span>
       </button>
       <div class="pr-inspector-pill">
         <div class="pr-inspector-pill-label">Velocity</div>
