@@ -1026,6 +1026,122 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Note creation ────────────────────────────────────────
 
+  private getGridPosition(
+    container: HTMLElement,
+    clientX: number,
+    clientY: number
+  ): { step: number; midi: number; rowFraction: number } {
+    const rect = container.getBoundingClientRect();
+    const x = clientX - rect.left + container.scrollLeft;
+    const y = clientY - rect.top + container.scrollTop;
+    const step = Math.max(0, x / this.cellWidth());
+    const rowHeight = this.rowHeight();
+    const rowIndex = Math.floor(y / rowHeight);
+    const midi = Math.max(24, Math.min(119, 24 + (MAX_MIDI - 1 - rowIndex)));
+    const rowFraction = (y % rowHeight) / rowHeight;
+    return { step, midi, rowFraction };
+  }
+
+  private findNoteAt(step: number, midi: number): TrackNote | undefined {
+    return this.selectedTrack()?.notes.find(
+      (note) =>
+        note.midi === midi &&
+        step >= note.step &&
+        step <= note.step + Math.max(0.125, note.length)
+    );
+  }
+
+  private startDraggingSelection(clientX: number, clientY: number): void {
+    const originalPositions = new Map<string, { step: number; midi: number }>();
+    this.selectedNoteIds().forEach((id) => {
+      const note = this.selectedTrack()?.notes.find((candidate) => candidate.id === id);
+      if (note) originalPositions.set(id, { step: note.step, midi: note.midi });
+    });
+    this.draggingNotes = {
+      startX: clientX,
+      startY: clientY,
+      originalPositions,
+    };
+  }
+
+  private updateSelectionForNote(note: TrackNote, append = false): void {
+    if (!append) {
+      this.selectedNoteIds.set(new Set([note.id]));
+      return;
+    }
+    const next = new Set(this.selectedNoteIds());
+    if (next.has(note.id)) next.delete(note.id);
+    else next.add(note.id);
+    this.selectedNoteIds.set(next);
+  }
+
+  private handleGridInteraction(
+    step: number,
+    midi: number,
+    options: {
+      shiftKey?: boolean;
+      rowFraction?: number;
+      dragStart?: { x: number; y: number };
+      previewExisting?: boolean;
+    } = {}
+  ): void {
+    const track = this.selectedTrack();
+    if (!track) return;
+    const normalizedStep = Math.max(0, step);
+    const normalizedMidi = Math.max(24, Math.min(119, midi));
+    this.focusedStep.set(
+      Math.max(0, Math.min(this.gridSteps() - 1, Math.round(normalizedStep)))
+    );
+    this.focusedMidi.set(normalizedMidi);
+
+    const existing = this.findNoteAt(normalizedStep, normalizedMidi);
+    if (existing) {
+      if (this.editMode() === 'erase') {
+        this.musicManager.removeNotes(track.id, [existing.id]);
+      } else {
+        this.updateSelectionForNote(existing, !!options.shiftKey);
+        if (options.previewExisting) {
+          this.previewNoteOn(existing.midi, existing.velocity ?? 0.8);
+        }
+        if (this.editMode() === 'select' && options.dragStart) {
+          this.startDraggingSelection(options.dragStart.x, options.dragStart.y);
+        }
+      }
+      this.haptic.light();
+      this.markDirty();
+      return;
+    }
+
+    if (this.editMode() === 'select') {
+      if (!options.shiftKey) {
+        this.selectedNoteIds.set(new Set());
+        this.markDirty();
+      }
+      return;
+    }
+
+    if (this.editMode() === 'erase') {
+      this.haptic.light();
+      return;
+    }
+
+    const velocity = Math.max(
+      0.15,
+      Math.min(1, 1 - (options.rowFraction ?? 0.35) * 0.6)
+    );
+    this.createNoteAt(normalizedStep, normalizedMidi);
+    if (this.editMode() !== 'chord') {
+      const created = this.findNoteAt(this.applySnap(normalizedStep), normalizedMidi);
+      if (created) {
+        this.musicManager.updateNote(track.id, created.id, {
+          velocity: Number(velocity.toFixed(2)),
+        });
+        this.selectedNoteIds.set(new Set([created.id]));
+      }
+    }
+    this.markDirty();
+  }
+
   private createNoteAt(step: number, midi: number) {
     const track = this.selectedTrack();
     if (!track) return;
@@ -1039,130 +1155,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         const noteMidi = constrainedMidi + interval;
         if (noteMidi >= 0 && noteMidi <= 127) {
           this.musicManager.addNoteToTrack(track.id, {
-            id: 'chord-' + Date.now() + '-' + idx + '-' + Math.floor(Math.random() * 1000),
+            id:
+              'chord-' +
+              Date.now() +
+              '-' +
+              idx +
+              '-' +
+              Math.floor(Math.random() * 1000),
             midi: noteMidi,
             step: snappedStep,
             length: this.lengthFromSnap(),
             velocity: idx === 0 ? 0.9 : 0.75,
           });
-          // Audition each chord voice so the stamped chord is heard immediately.
           this.previewNoteOn(noteMidi, idx === 0 ? 0.9 : 0.75);
-        }
-
-        private getGridPosition(
-          container: HTMLElement,
-          clientX: number,
-          clientY: number
-        ): { step: number; midi: number; rowFraction: number } {
-          const rect = container.getBoundingClientRect();
-          const x = clientX - rect.left + container.scrollLeft;
-          const y = clientY - rect.top + container.scrollTop;
-          const step = Math.max(0, x / this.cellWidth());
-          const rowHeight = this.rowHeight();
-          const rowIndex = Math.floor(y / rowHeight);
-          const midi = Math.max(24, Math.min(119, 24 + (MAX_MIDI - 1 - rowIndex)));
-          const rowFraction = (y % rowHeight) / rowHeight;
-          return { step, midi, rowFraction };
-        }
-
-        private findNoteAt(step: number, midi: number): TrackNote | undefined {
-          return this.selectedTrack()?.notes.find(
-            (note) =>
-              note.midi === midi &&
-              step >= note.step &&
-              step <= note.step + Math.max(0.125, note.length)
-          );
-        }
-
-        private startDraggingSelection(clientX: number, clientY: number): void {
-          const originalPositions = new Map<string, { step: number; midi: number }>();
-          this.selectedNoteIds().forEach((id) => {
-            const note = this.selectedTrack()?.notes.find((candidate) => candidate.id === id);
-            if (note) originalPositions.set(id, { step: note.step, midi: note.midi });
-          });
-          this.draggingNotes = {
-            startX: clientX,
-            startY: clientY,
-            originalPositions,
-          };
-        }
-
-        private updateSelectionForNote(note: TrackNote, append = false): void {
-          if (!append) {
-            this.selectedNoteIds.set(new Set([note.id]));
-            return;
-          }
-          const next = new Set(this.selectedNoteIds());
-          if (next.has(note.id)) next.delete(note.id);
-          else next.add(note.id);
-          this.selectedNoteIds.set(next);
-        }
-
-        private handleGridInteraction(
-          step: number,
-          midi: number,
-          options: {
-            shiftKey?: boolean;
-            rowFraction?: number;
-            dragStart?: { x: number; y: number };
-            previewExisting?: boolean;
-          } = {}
-        ): void {
-          const track = this.selectedTrack();
-          if (!track) return;
-          const normalizedStep = Math.max(0, step);
-          const normalizedMidi = Math.max(24, Math.min(119, midi));
-          this.focusedStep.set(
-            Math.max(0, Math.min(this.gridSteps() - 1, Math.round(normalizedStep)))
-          );
-          this.focusedMidi.set(normalizedMidi);
-
-          const existing = this.findNoteAt(normalizedStep, normalizedMidi);
-          if (existing) {
-            if (this.editMode() === 'erase') {
-              this.musicManager.removeNotes(track.id, [existing.id]);
-            } else {
-              this.updateSelectionForNote(existing, !!options.shiftKey);
-              if (options.previewExisting) {
-                this.previewNoteOn(existing.midi, existing.velocity ?? 0.8);
-              }
-              if (this.editMode() === 'select' && options.dragStart) {
-                this.startDraggingSelection(options.dragStart.x, options.dragStart.y);
-              }
-            }
-            this.haptic.light();
-            this.markDirty();
-            return;
-          }
-
-          if (this.editMode() === 'select') {
-            if (!options.shiftKey) {
-              this.selectedNoteIds.set(new Set());
-              this.markDirty();
-            }
-            return;
-          }
-
-          if (this.editMode() === 'erase') {
-            this.haptic.light();
-            return;
-          }
-
-          const velocity = Math.max(
-            0.15,
-            Math.min(1, 1 - (options.rowFraction ?? 0.35) * 0.6)
-          );
-          this.createNoteAt(normalizedStep, normalizedMidi);
-          if (this.editMode() !== 'chord') {
-            const created = this.findNoteAt(this.applySnap(normalizedStep), normalizedMidi);
-            if (created) {
-              this.musicManager.updateNote(track.id, created.id, {
-                velocity: Number(velocity.toFixed(2)),
-              });
-              this.selectedNoteIds.set(new Set([created.id]));
-            }
-          }
-          this.markDirty();
         }
       });
       this.haptic.medium();
@@ -1174,7 +1179,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         length: this.lengthFromSnap(),
         velocity: 0.8,
       });
-      // Mouse/pen draw — audition the note the instant it lands.
       this.previewNoteOn(constrainedMidi, 0.8);
       this.haptic.light();
     }
