@@ -12,6 +12,7 @@ export type StudioTelemetryEventName =
   | 'collab_joined'
   | 'collab_left'
   | 'project_saved'
+  | 'project_imported'
   | 'project_recovered'
   | 'project_exported'
   | 'midi_exported'

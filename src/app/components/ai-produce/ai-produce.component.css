@@ -391,7 +391,7 @@
   flex-direction: column;
   gap: 0.85rem;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
 }
 
 .stage-card::before {

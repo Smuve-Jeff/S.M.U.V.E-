@@ -8,6 +8,8 @@
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
   (keydown)="onShellKeydown($event)"
 >
+  <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
+
   <!-- Stage 2.0 ambient aurora field (pure decoration) -->
   <div class="comp-aurora" aria-hidden="true">
     <span class="comp-aurora-blob comp-aurora-a"></span>
@@ -49,21 +51,44 @@
       </button>
       <div
         class="comp-brand led-strip"
-        (click)="newProject()"
-        (keydown.enter)="newProject()"
-        (keydown.space)="$event.preventDefault(); newProject()"
+        (click)="toggleProjectMenu()"
+        (keydown.enter)="toggleProjectMenu()"
+        (keydown.space)="$event.preventDefault(); toggleProjectMenu()"
         tabindex="0"
         role="button"
-        [attr.aria-label]="'S.M.U.V.E. Stage — tap to start a new performance'"
+        [attr.aria-label]="'S.M.U.V.E. Stage — tap to open project menu'"
       >
         <div class="comp-brand-mark" aria-hidden="true">
           <span class="comp-brand-pulse"></span>
         </div>
         <div class="comp-brand-text">
           <span class="comp-brand-name">S.M.U.V.E.</span>
-          <span class="comp-brand-tag">STAGE</span>
+          <span class="comp-brand-tag">{{ projectWorkspace.metadata()?.name || 'Untitled Set' }}</span>
         </div>
       </div>
+      <!-- Desktop Project Menu Dropdown -->
+      <div class="comp-project-menu" *ngIf="showProjectMenu()">
+        <button type="button" class="comp-project-menu-item" (click)="newProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">add_circle</span> New Set
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">folder_open</span> Load Project
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="saveProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">save</span> Save Project
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleProjectMetadata(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">edit_document</span> Project Details
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="exportProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">download</span> Export Project Bundle
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="exportMidi(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">music_note</span> Export MIDI
+        </button>
+      </div>
+      <!-- Invisible backdrop to close the project menu -->
+      <div class="comp-menu-backdrop" *ngIf="showProjectMenu()" (click)="toggleProjectMenu()"></div>
     </div>
 
     <app-transport-bar class="comp-topbar-center"></app-transport-bar>
@@ -921,6 +946,30 @@
         <span class="material-symbols-outlined">home</span>
         <span>Back to Home Hub</span>
       </button>
+
+      <!-- Project Management (Mobile) -->
+      <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
+      <button (click)="triggerLoadProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">folder_open</span>
+        <span>Load Project</span>
+      </button>
+      <button (click)="saveProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">save</span>
+        <span>Save Project</span>
+      </button>
+      <button (click)="toggleProjectMetadata(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">edit_document</span>
+        <span>Project Details</span>
+      </button>
+      <button (click)="exportProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">download</span>
+        <span>Export .smuve Bundle</span>
+      </button>
+      <button (click)="exportMidi(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">music_note</span>
+        <span>Export MIDI</span>
+      </button>
+      <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
 
       <!-- 3-way theme picker in drawer (more explicit than cycle) -->
       <button

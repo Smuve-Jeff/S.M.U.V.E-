@@ -119,7 +119,7 @@
 .split-iframe-shell {
   position: relative;
   border-radius: 14px;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   background: #000;
   aspect-ratio: 16 / 9;
   border: 1px solid rgba(175, 37, 244, 0.45);

@@ -1,6 +1,6 @@
 :host {
   display: block;
-  height: 100%;
+  min-height: 100%;
 }
 .bg-background {
   background-color: #0d0d0d;

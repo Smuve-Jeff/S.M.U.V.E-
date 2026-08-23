@@ -37,6 +37,7 @@ import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogComponent } from './components/interaction-dialog/interaction-dialog.component';
 import { InteractionDialogService } from './services/interaction-dialog.service';
+import { AudioEngineService } from './services/audio-engine.service';
 import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { ViewConfig } from './services/workspace-registry';
 
@@ -101,6 +102,7 @@ export class AppComponent implements ErrorHandler {
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
+  audioEngine = inject(AudioEngineService);
   dialog = inject(InteractionDialogService);
   inboxService = inject(ChallengeInboxService);
   swUpdate = inject(SwUpdate, { optional: true });
@@ -161,6 +163,7 @@ export class AppComponent implements ErrorHandler {
     this.setupPwaListeners();
     this.setupAppUpdateNotifications();
     this.updateShellFromUrl(this.router.url);
+    this.audioEngine.armOnFirstUserGesture();
 
     this.router.events
       .pipe(

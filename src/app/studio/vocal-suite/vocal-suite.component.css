@@ -19,7 +19,7 @@
   --vs-glass: rgba(255, 255, 255, 0.03);
 
   display: block;
-  height: 100%;
+  min-height: 100%;
   background: var(--vs-obsidian);
   color: var(--vs-text);
   padding: 1.5rem;
@@ -43,7 +43,7 @@
 .vocal-suite-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
   gap: 1.5rem;
 }
 
@@ -106,7 +106,7 @@
   border-radius: 16px;
   border: 1px solid var(--studio-border);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
 }
 
 .control-panel {

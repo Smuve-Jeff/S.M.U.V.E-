@@ -182,7 +182,7 @@ h1 {
 }
 
 .score-staff-viewport {
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   padding: 18px 0;
 }
 

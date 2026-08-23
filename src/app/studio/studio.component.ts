@@ -394,6 +394,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
   ],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
   @ViewChild('spectrumCanvas', { static: false })
@@ -450,6 +451,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   importWaveformZoom = signal(1);
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
+  showProjectMenu = signal(false);
+  toggleProjectMenu() { this.showProjectMenu.update(v => !v); }
   /** True while an Insights engine probe is in-flight. */
   insightsProbeRunning = signal(false);
 
@@ -1651,6 +1654,32 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         false
       );
       throw e;
+    }
+  }
+
+  triggerLoadProject() {
+    const fileInput = this.fileInput?.nativeElement;
+    if (fileInput) fileInput.click();
+  }
+
+  async loadProjectFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    
+    try {
+      const text = await file.text();
+      const bundle = JSON.parse(text);
+      const success = await this.projectWorkspace.importProjectBundle(bundle);
+      if (success) {
+        this.snackbarService.success('Project loaded successfully');
+        this.studioTelemetry.trackEvent('project_imported', { format: 'smuve' }, true);
+        
+      } else {
+        this.snackbarService.error('Failed to load project bundle');
+      }
+    } catch (e) {
+      this.snackbarService.error('Invalid project file format');
     }
   }
 

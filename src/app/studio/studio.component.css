@@ -66,7 +66,7 @@
   width: 100vw;
   background-color: var(--ivory-bg);
   color: var(--espresso-text);
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
   position: relative;
   -webkit-tap-highlight-color: transparent;
 }
@@ -448,7 +448,7 @@
     inset 0 1px 0 rgba(180, 200, 255, 0.04),
     0 1px 8px rgba(14, 124, 123, 0.06);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; overflow-x: hidden;
 }
 .comp-stage-marquee::after {
   content: '';
@@ -863,13 +863,13 @@
 /* ── Elegant brand name ── */
 .comp-footer-brand .comp-footer-brand-name {
   font-family:
-    'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman',
-    serif;
-  font-size: 13px;
-  font-weight: 600;
-  font-style: italic;
+    'Italiana', 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: 400;
+  font-style: normal;
   color: var(--espresso-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   line-height: 1;
   transition: color 0.3s ease;
 }
@@ -1244,7 +1244,7 @@
   /* High-density grid for mobile production */
   .comp-view {
     border-radius: 12px;
-    overflow: hidden;
+    overflow-y: auto; overflow-x: hidden;
   }
 
   /* Android phone header: keep the transport and one primary assistant
@@ -2793,8 +2793,8 @@
 
 /* ═══ BEGINNER WIZARD VIEW ════════════════════════════════ */
 .comp-beginner-view {
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-y: auto; overflow-x: hidden;
 }
 
 /* ═══ MOBILE HOME TAB ═════════════════════════════════════ */
@@ -3282,4 +3282,62 @@
 .comp-import-smart-disabled {
   color: rgba(72, 57, 35, 0.74);
   text-align: right;
+}
+
+/* ==============================================
+   PROJECT MENU (Desktop Dropdown)
+   ============================================== */
+.comp-project-menu {
+  position: absolute;
+  top: 100%;
+  left: 64px;
+  background: rgba(20, 17, 11, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.comp-project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--espresso-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.comp-project-menu-item:hover,
+.comp-project-menu-item:focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.comp-project-menu-item:focus {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: -2px;
+}
+
+.comp-project-menu-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.comp-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
 }
