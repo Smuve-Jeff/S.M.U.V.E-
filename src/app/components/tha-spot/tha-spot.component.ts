@@ -2473,6 +2473,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Escape hatch for a cabinet that refuses inline framing: offer the game's
+   * external target in a new tab instead of leaving the player at retry.
+   */
+  openCurrentGameExternally() {
+    const game = this.currentGame();
+    if (!game) return;
+    const url =
+      game.launchConfig?.approvedExternalUrl ||
+      game.launchConfig?.approvedEmbedUrl ||
+      game.url;
+    if (!url) return;
+    try {
+      const domain = new URL(url, window.location.origin).hostname;
+      this.externalTargetDomain.set(domain);
+    } catch {
+      this.externalTargetDomain.set(url);
+    }
+    this.externalTargetUrl.set(url);
+    this.showExternalConfirm.set(true);
+  }
+
+  /**
    * Strong iframe sandbox policy driven by GameService.buildIframeSandbox.
    * 'internal' cabinets (our own WASM files) keep allow-same-origin for boot.
    * External trusted partners get a strict sandbox without same-origin so the
@@ -2733,8 +2755,18 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * These games are launched externally instead of in an iframe.
    */
   private static readonly EMBED_BLOCKED_DOMAINS: string[] = [
-    'retrogames.cc',
-    'www.retrogames.cc',
+    // Gamepix /play/ pages send X-Frame-Options: SAMEORIGIN + CSP
+    // frame-ancestors 'self' — they cannot render inside the cabinet iframe.
+    'gamepix.com',
+    'www.gamepix.com',
+    'embed.gamepix.com',
+    // Verified X-Frame-Options / CSP frame blockers on their game pages.
+    'krunker.io',
+    'play2048.co',
+    'diep.io',
+    'slowroads.io',
+    '1v1.lol',
+    'www.1v1.lol',
     'emulatorgames.net',
     'www.emulatorgames.net',
     'playretrogames.com',

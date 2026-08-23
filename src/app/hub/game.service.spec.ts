@@ -351,11 +351,13 @@ describe('GameService', () => {
     expect(repairedGame?.url).toBe(
       'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html'
     );
-    expect(repairedGame?.launchConfig?.approvedEmbedUrl).toBeUndefined();
-    expect(repairedGame?.launchConfig?.approvedExternalUrl).toBe(
-      'https://www.retrogames.cc/search?q=Final%20Fantasy%20VI'
+    expect(repairedGame?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html'
     );
-    expect(repairedGame?.launchConfig?.embedMode).toBe('external-only');
+    expect(repairedGame?.launchConfig?.approvedExternalUrl).toBe(
+      'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html'
+    );
+    expect(repairedGame?.launchConfig?.embedMode).toBe('inline');
   });
 
   it('caches the fallback feed when the asset is empty', async () => {
@@ -441,16 +443,18 @@ describe('GameService', () => {
     }
   });
 
-  it('fails closed for every RetroGames cabinet instead of opening unreliable iframe ids', async () => {
+  it('plays every RetroGames cabinet from its direct /embed/ target', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
       THA_SPOT_FALLBACK_FEED
     );
     const games = await pending;
     const retroGames = games.filter((game) =>
-      [game.url, game.launchConfig?.approvedEmbedUrl].some((url) =>
-        url?.includes('retrogames.cc/')
-      )
+      [
+        game.url,
+        game.launchConfig?.approvedEmbedUrl,
+        game.launchConfig?.approvedExternalUrl,
+      ].some((url) => url?.includes('retrogames.cc/'))
     );
 
     expect(retroGames.length).toBeGreaterThan(20);
@@ -459,11 +463,32 @@ describe('GameService', () => {
     ).toBeGreaterThanOrEqual(10);
 
     for (const game of retroGames) {
-      expect(game.launchConfig?.embedMode).toBe('external-only');
-      expect(game.launchConfig?.approvedEmbedUrl).toBeUndefined();
-      expect(game.launchConfig?.approvedExternalUrl).toMatch(
-        /^https:\/\/www\.retrogames\.cc\/search\?q=/
+      const targets = [
+        game.url,
+        game.launchConfig?.approvedEmbedUrl,
+        game.launchConfig?.approvedExternalUrl,
+      ];
+      // Every Retro cabinet targets a direct /embed/ URL — never the search
+      // discovery page, which is what made these games appear broken.
+      expect(targets.some((u) => u?.includes('retrogames.cc/embed/'))).toBe(
+        true
       );
+      expect(targets.some((u) => u?.includes('retrogames.cc/search'))).toBe(
+        false
+      );
+      // Cabinets without the explicit external-only flag play inline from
+      // their /embed/ URL; flagged ones keep the same cabinet as the external
+      // fallback instead of a search page.
+      if (game.launchConfig?.embedMode === 'inline') {
+        expect(game.launchConfig?.approvedEmbedUrl).toMatch(
+        /^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/
+        );
+      } else {
+        expect(game.launchConfig?.embedMode).toBe('external-only');
+        expect(game.launchConfig?.approvedExternalUrl).toMatch(
+          /^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/
+        );
+      }
     }
   });
 
@@ -522,7 +547,7 @@ describe('GameService', () => {
 
     // The normalized fallback includes the full visible catalog plus the
     // curated Poki additions; no catalog entries are hidden by this service.
-    expect(games).toHaveLength(357);
+    expect(games).toHaveLength(347);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );

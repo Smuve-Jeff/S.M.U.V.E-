@@ -281,7 +281,7 @@ describe('ThaSpotComponent', () => {
     ).toBe(true);
   });
 
-  it('routes untrusted embed hosts to external launch instead of erroring', () => {
+  it('routes untrusted and X-Frame-blocked embed hosts to external launch', () => {
     const untrusted = component.resolveLaunchMode({
       id: 'x',
       url: 'https://untrusted.example/game',
@@ -292,7 +292,9 @@ describe('ThaSpotComponent', () => {
     } as any);
     expect(untrusted).toBe('external');
 
-    const trusted = component.resolveLaunchMode({
+    // Gamepix /play/ pages send X-Frame-Options: SAMEORIGIN + CSP
+    // frame-ancestors 'self', so they must open externally, not inline.
+    const gamepix = component.resolveLaunchMode({
       id: 'y',
       url: 'https://www.gamepix.com/play/pac-man',
       launchConfig: {
@@ -300,7 +302,20 @@ describe('ThaSpotComponent', () => {
         approvedEmbedUrl: 'https://www.gamepix.com/play/pac-man',
       },
     } as any);
-    expect(trusted).toBe('inline');
+    expect(gamepix).toBe('external');
+
+    // retrogames.cc /embed/ endpoints carry no framing headers, so the
+    // provider's iframe contract plays inline.
+    const retro = component.resolveLaunchMode({
+      id: 'z',
+      url: 'https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl:
+          'https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html',
+      },
+    } as any);
+    expect(retro).toBe('inline');
   });
 
   it('ignores game messages from untrusted origins', () => {

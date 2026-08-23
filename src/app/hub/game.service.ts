@@ -40,8 +40,53 @@ function isRetroGamesUrl(value: unknown): boolean {
   return typeof value === 'string' && value.includes('retrogames.cc/');
 }
 
+/** True when the value is a direct retrogames.cc /embed/ cabinet URL. */
+function isRetroEmbedUrl(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    /^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/.test(value)
+  );
+}
+
 function buildRetroGamesSearchUrl(name: string): string {
   return `https://www.retrogames.cc/search?q=${encodeURIComponent(name.trim())}`;
+}
+
+/**
+ * Decide the launch contract for a RetroGames-backed record.
+ *
+ * RetroGames /embed/ endpoints are the provider's iframe contract: they answer
+ * HTTP 200 with no X-Frame-Options / CSP frame-ancestors headers, so they are
+ * embeddable inline. Records that point at an /embed/ cabinet (or have a
+ * verified canonical one) launch that exact cabinet inline, keeping the same
+ * URL as the external fallback. Only records with no direct /embed/ target
+ * fall back to the provider title search (opened externally).
+ */
+function applyRetroLaunchContract(
+  launchConfig: Record<string, any>,
+  gameId: string,
+  gameName: string,
+  candidates: Array<string | undefined>
+): void {
+  const embedTarget = candidates.find(isRetroEmbedUrl);
+  if (embedTarget) {
+    launchConfig.approvedEmbedUrl = embedTarget;
+    launchConfig.approvedExternalUrl = embedTarget;
+    launchConfig.embedMode = EXTERNAL_ONLY_GAME_IDS.has(gameId)
+      ? 'external-only'
+      : 'inline';
+    if (launchConfig.embedMode === 'external-only') {
+      delete launchConfig.approvedEmbedUrl;
+    }
+    launchConfig.trustNote =
+      'RetroGames /embed/ cabinet; the same URL serves as the external fallback.';
+  } else {
+    launchConfig.embedMode = 'external-only';
+    delete launchConfig.approvedEmbedUrl;
+    launchConfig.approvedExternalUrl = buildRetroGamesSearchUrl(gameName);
+    launchConfig.trustNote =
+      'RetroGames title search is used because this record has no direct embed target.';
+  }
 }
 
 /**
@@ -337,11 +382,12 @@ function normalizeGame(game: Game): Game {
   ].some(isRetroGamesUrl);
   const launchConfig = { ...(game.launchConfig || {}) };
   if (retroBacked) {
-    launchConfig.embedMode = 'external-only';
-    launchConfig.approvedExternalUrl = buildRetroGamesSearchUrl(name);
-    delete launchConfig.approvedEmbedUrl;
-    launchConfig.trustNote =
-      'RetroGames title search is used because numeric cabinet IDs are not stable.';
+    applyRetroLaunchContract(launchConfig, id, name, [
+      canonicalUrl,
+      game.url,
+      launchConfig.approvedEmbedUrl,
+      launchConfig.approvedExternalUrl,
+    ]);
   } else if (EXTERNAL_ONLY_GAME_IDS.has(id)) {
     launchConfig.embedMode = 'external-only';
   }
@@ -581,22 +627,22 @@ export function validateAndRepairGame(game: Game): Game {
     }
   }
 
-  // RetroGames numeric ids are not a reliable inline launch contract. Always
-  // use a title search as the external target so the user can choose the
-  // matching provider cabinet instead of opening an unrelated game.
   const retroBacked = [
     repaired.url,
     (repaired.launchConfig as any).approvedEmbedUrl,
     (repaired.launchConfig as any).approvedExternalUrl,
   ].some(isRetroGamesUrl);
   if (retroBacked) {
-    repaired.launchConfig.embedMode = 'external-only';
-    repaired.launchConfig.approvedExternalUrl = buildRetroGamesSearchUrl(
-      repaired.name
+    applyRetroLaunchContract(
+      repaired.launchConfig as any,
+      repaired.id,
+      repaired.name,
+      [
+        repaired.url,
+        (repaired.launchConfig as any).approvedEmbedUrl,
+        (repaired.launchConfig as any).approvedExternalUrl,
+      ]
     );
-    delete (repaired.launchConfig as any).approvedEmbedUrl;
-    repaired.launchConfig.trustNote =
-      'RetroGames title search is used because numeric cabinet IDs are not stable.';
   }
 
   // ── Strip empty approved URLs that were intentionally blanked by the fix script ──
