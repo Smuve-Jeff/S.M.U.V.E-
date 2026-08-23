@@ -20,9 +20,9 @@ services:
     rootDir: .
     # install:legacy = npm install --legacy-peer-deps (more tolerant of
     # peer-dep/lockfile drift than strict npm ci for this monorepo).
-    buildCommand: npm run install:legacy && npm run build
-    preDeployCommand: npm run mg:run:prod
-    startCommand: npm start
+    buildCommand: npm run install:legacy && npm run build:server
+    preDeployCommand: npm run mg:run:render
+    startCommand: npm run start:server
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

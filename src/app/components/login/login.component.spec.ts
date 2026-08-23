@@ -98,6 +98,54 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Cipher Strength');
   });
 
+  it('establishes the API session after successful credential login', async () => {
+    jest.useFakeTimers();
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    const response = {
+      token: 'api-jwt-token',
+      user: {
+        id: 7,
+        name: 'API Artist',
+        email: 'artist@example.com',
+        role: 'user',
+        createdAt: '2026-08-23T00:00:00.000Z',
+        updatedAt: '2026-08-23T00:00:00.000Z',
+      },
+    };
+    const apiUser = {
+      id: '7',
+      email: response.user.email,
+      artistName: response.user.name,
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(response.user.createdAt),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    };
+    apiAuth.login.mockResolvedValue(response);
+    authMock.establishApiSession.mockReturnValue(apiUser);
+
+    fixture.componentInstance.credentials = {
+      email: response.user.email,
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    jest.runOnlyPendingTimers();
+
+    expect(apiAuth.login).toHaveBeenCalledWith({
+      email: response.user.email,
+      password: 'Password1!',
+    });
+    expect(authMock.establishApiSession).toHaveBeenCalledWith(response);
+    expect(authMock.login).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
   it('sends a login confirmation before navigating after successful auth', async () => {
     jest.useFakeTimers();
     const { fixture, authMock, loginConfirmationMock } = await build();

@@ -5,10 +5,12 @@
   "type": "module",
   "workspaces": [],
   "scripts": {
-    "install:legacy": "npm install --legacy-peer-deps",
+    "install:legacy": "npm install --legacy-peer-deps --include=dev",
     "dev": "ng serve --host 0.0.0.0 --port ${PORT:-4200} --configuration development",
     "build": "ng build",
     "typecheck:server": "tsc --noEmit -p tsconfig.server.json",
+    "build:server": "tsc -p tsconfig.server.json && tsc-alias -p tsconfig.server.json && node scripts/write-server-package.mjs",
+    "start:server": "node Build/api/index.js",
     "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
     "test": "jest",
@@ -32,7 +34,8 @@
     "mg:gen": "npx typeorm -- migration:generate -d src/database/data-source.ts",
     "mg:create": "npm run typeorm -- migration:create",
     "mg:run": "npx typeorm -- migration:run -d src/database/data-source.ts",
-    "mg:run:prod": "typeorm migration:run -d dist/database/data-source.js",
+    "mg:run:prod": "typeorm migration:run -d Build/api/database/data-source.js",
+    "mg:run:render": "npm run mg:run:prod",
     "mg:revert": "npx typeorm -- migration:revert -d src/database/data-source.ts",
     "mg:show": "npx typeorm -- migration:show -d src/database/data-source.ts"
   },
