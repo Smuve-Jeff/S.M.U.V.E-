@@ -154,6 +154,16 @@ describe('SamplerComponent', () => {
     expect(samplerMock.stop).toHaveBeenCalledWith(60);
   });
 
+  it('does not suppress the next click after a zone pointer cancel', () => {
+    component.onZonePointerDown({ pointerType: 'touch', button: 0 } as any, 60);
+    component.onZonePointerCancel(60);
+    component.selectedPitch.set(null);
+
+    component.onZoneClick(60);
+
+    expect(component.selectedPitch()).toBe(60);
+  });
+
   it('should start with stretch controls at defaults', () => {
     expect(component.stretchSemitones()).toBe(0);
     expect(component.stretchSourceBpm()).toBe(120);

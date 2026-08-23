@@ -435,6 +435,9 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   onZonePointerCancel(pitch: number): void {
+    if (this.suppressZoneClickPitch === pitch) {
+      this.suppressZoneClickPitch = null;
+    }
     this.stopNote(pitch);
   }
 
