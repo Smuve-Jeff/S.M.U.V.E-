@@ -1,7 +1,9 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineLatencyService } from './audio-engine-latency.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
+import { UserProfileService } from './user-profile.service';
 
 class StubEngine {
   ctx = {
@@ -135,5 +137,106 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
     expect(m.sampleRateHz).toBe(48000);
     expect(Array.isArray([])).toBe(true); // sanity
     expect(typeof m.totalLatencyMs).toBe('number');
+  });
+
+  it('reads applied compensation from profile settings and trims recorded channels', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        AudioEngineLatencyService,
+        { provide: AudioEngineService, useValue: new StubEngine() },
+        { provide: LoggingService, useValue: new StubLogger() },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({
+              settings: { studio: { latencyCompensation: 20 } },
+            }),
+          },
+        },
+      ],
+    });
+    sut = TestBed.inject(AudioEngineLatencyService);
+
+    const trimmed = sut.trimChannels([Float32Array.from([1, 2, 3, 4])], 100);
+
+    expect(sut.getAppliedCompensationMs()).toBe(20);
+    expect(Array.from(trimmed[0])).toEqual([3, 4]);
+  });
+
+  it('returns empty channels when compensation exceeds the channel length', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        AudioEngineLatencyService,
+        { provide: AudioEngineService, useValue: new StubEngine() },
+        { provide: LoggingService, useValue: new StubLogger() },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({
+              settings: { studio: { latencyCompensation: 100 } },
+            }),
+          },
+        },
+      ],
+    });
+    sut = TestBed.inject(AudioEngineLatencyService);
+
+    const trimmed = sut.trimChannels([Float32Array.from([1, 2, 3, 4])], 100);
+
+    expect(trimmed).toHaveLength(1);
+    expect(trimmed[0]).toEqual(new Float32Array(0));
+  });
+
+  it('returns a silent one-frame audio buffer when compensation exceeds the buffer length', () => {
+    const createMockBuffer = (
+      channelData: number[][],
+      sampleRate: number
+    ): AudioBuffer =>
+      ({
+        numberOfChannels: channelData.length,
+        length: channelData[0]?.length ?? 0,
+        sampleRate,
+        getChannelData: (channel: number) => Float32Array.from(channelData[channel] ?? []),
+        copyToChannel: jest.fn(),
+      }) as unknown as AudioBuffer;
+
+    const engine = new StubEngine();
+    engine.ctx = {
+      ...engine.ctx,
+      sampleRate: 100,
+      createBuffer: jest.fn((channels: number, length: number, sampleRate: number) =>
+        createMockBuffer(
+          Array.from({ length: channels }, () => Array.from({ length }, () => 0)),
+          sampleRate
+        )
+      ),
+    } as any;
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        AudioEngineLatencyService,
+        { provide: AudioEngineService, useValue: engine },
+        { provide: LoggingService, useValue: new StubLogger() },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({
+              settings: { studio: { latencyCompensation: 100 } },
+            }),
+          },
+        },
+      ],
+    });
+    sut = TestBed.inject(AudioEngineLatencyService);
+
+    const trimmed = sut.trimAudioBuffer(
+      createMockBuffer([[1, 2, 3, 4]], 100)
+    );
+
+    expect(trimmed.length).toBe(1);
+    expect(Array.from(trimmed.getChannelData(0))).toEqual([0]);
   });
 });

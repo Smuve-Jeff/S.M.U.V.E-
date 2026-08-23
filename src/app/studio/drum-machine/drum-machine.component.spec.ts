@@ -128,6 +128,15 @@ describe('DrumMachineComponent', () => {
     expect(component.getPadStep(padId, 32).active).toBe(true);
   });
 
+  it('updates tempo and toggles metronome from the compact transport controls', () => {
+    component.nudgeTempo(4);
+    expect(mockAudioEngine.tempo()).toBe(124);
+
+    component.toggleMetronome();
+    expect(mockAudioEngine.resume).toHaveBeenCalled();
+    expect(mockAudioEngine.toggleMetronome).toHaveBeenCalled();
+  });
+
   it('generateEuclidean creates patterns', () => {
     const padId = component.pads()[0].id;
     component.generateEuclidean(4, 16);

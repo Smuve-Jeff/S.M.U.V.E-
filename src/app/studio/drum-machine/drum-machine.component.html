@@ -30,6 +30,78 @@
     </div>
   </header>
 
+  <section class="dm-transport-mini" aria-label="Tempo and metronome">
+    <button
+      type="button"
+      class="dm-transport-btn"
+      (click)="togglePlay()"
+      [attr.aria-label]="audioSession.isPlaying() ? 'Pause playback' : 'Start playback'"
+    >
+      <span class="material-symbols-outlined">{{
+        audioSession.isPlaying() ? 'pause' : 'play_arrow'
+      }}</span>
+    </button>
+    <button
+      type="button"
+      class="dm-transport-btn"
+      [class.active]="metronomeEnabled()"
+      (click)="toggleMetronome()"
+      [attr.aria-pressed]="metronomeEnabled()"
+      aria-label="Toggle metronome"
+    >
+      <span class="material-symbols-outlined">metronome</span>
+    </button>
+    <button
+      type="button"
+      class="dm-tempo-chip"
+      (click)="showTempoMenu.set(!showTempoMenu())"
+      [attr.aria-expanded]="showTempoMenu()"
+      aria-haspopup="menu"
+      [attr.aria-label]="'Tempo ' + audioEngine.tempo() + ' BPM'"
+    >
+      {{ audioEngine.tempo() }} BPM
+    </button>
+    <button
+      type="button"
+      class="dm-transport-btn"
+      (click)="nudgeTempo(-1)"
+      [attr.aria-label]="'Decrease tempo to ' + (audioEngine.tempo() - 1) + ' BPM'"
+    >
+      −
+    </button>
+    <button
+      type="button"
+      class="dm-transport-btn"
+      (click)="nudgeTempo(1)"
+      [attr.aria-label]="'Increase tempo to ' + (audioEngine.tempo() + 1) + ' BPM'"
+    >
+      +
+    </button>
+    <button
+      type="button"
+      class="dm-transport-btn"
+      (click)="tapTempo()"
+      [attr.aria-label]="
+        tapBpmGuess() === null
+          ? 'Tap tempo'
+          : 'Tap tempo locked at ' + tapBpmGuess() + ' BPM'
+      "
+    >
+      Tap
+    </button>
+    <div class="dm-tempo-menu" *ngIf="showTempoMenu()" role="menu">
+      <button
+        *ngFor="let preset of tempoPresets"
+        type="button"
+        class="dm-tempo-preset"
+        (click)="setTempo(preset)"
+        role="menuitem"
+      >
+        {{ preset }} BPM
+      </button>
+    </div>
+  </section>
+
   <!-- Pro: AI Style picker (chip rail) + Swing slider -->
   <section class="dm-style-bar" aria-label="AI style generator">
     <div class="dm-style-bar-label">

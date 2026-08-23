@@ -81,6 +81,7 @@ describe('SoundBrowserComponent', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockMusicManager.selectedTrackId.set(null);
     await TestBed.configureTestingModule({
       imports: [SoundBrowserComponent],
       providers: [
@@ -170,6 +171,44 @@ describe('SoundBrowserComponent', () => {
     jest.advanceTimersByTime(600);
     expect(component.previewingId()).toBeNull();
     jest.useRealTimers();
+  });
+
+  it('selects a touch card once and suppresses the synthetic click', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[0]);
+    component.onCardPointerUp(event, presets[0]);
+    component.onCardClick({ target: document.createElement('div') } as any, presets[0]);
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('deep-bass');
+  });
+
+  it('uses long-press on touch cards to preview instead of selecting', async () => {
+    jest.useFakeTimers();
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[1]);
+    jest.advanceTimersByTime(450);
+    await Promise.resolve();
+    component.onCardPointerUp(event, presets[1]);
+    component.onCardClick({ target: document.createElement('div') } as any, presets[1]);
+
+    expect(mockInstruments.audition).toHaveBeenCalledWith('saw-lead');
+    expect(mockMusicManager.ensureTrack).not.toHaveBeenCalled();
+    expect(mockMusicManager.setInstrument).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('does not suppress the next tap after a touch gesture is cancelled', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[0]);
+    component.onCardPointerCancel();
+    component.onCardClick({ target: document.createElement('div') } as any, presets[0]);
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('deep-bass');
   });
 
   it('toggles a preset favorite and records usage', () => {

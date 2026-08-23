@@ -138,7 +138,82 @@
         Q All
       </button>
     </div>
+    <div class="pr-transport-mini" role="group" aria-label="Tempo and metronome">
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="togglePlay()"
+        [attr.aria-label]="audioSession.isPlaying() ? 'Pause playback' : 'Start playback'"
+      >
+        <span class="material-symbols-outlined">{{
+          audioSession.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        [class.active]="metronomeEnabled()"
+        (click)="toggleMetronome()"
+        [attr.aria-pressed]="metronomeEnabled()"
+        aria-label="Toggle metronome"
+      >
+        <span class="material-symbols-outlined">metronome</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tempo-chip"
+        (click)="showTempoMenu.set(!showTempoMenu())"
+        [attr.aria-expanded]="showTempoMenu()"
+        aria-haspopup="menu"
+        [attr.aria-label]="'Tempo ' + audioEngine.tempo() + ' BPM'"
+      >
+        {{ audioEngine.tempo() }} BPM
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="nudgeTempo(-1)"
+        [attr.aria-label]="'Decrease tempo to ' + (audioEngine.tempo() - 1) + ' BPM'"
+      >
+        −
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="nudgeTempo(1)"
+        [attr.aria-label]="'Increase tempo to ' + (audioEngine.tempo() + 1) + ' BPM'"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="tapTempo()"
+        [attr.aria-label]="
+          tapBpmGuess() === null
+            ? 'Tap tempo'
+            : 'Tap tempo locked at ' + tapBpmGuess() + ' BPM'
+        "
+      >
+        Tap
+      </button>
+      <div class="pr-tempo-menu" *ngIf="showTempoMenu()" role="menu">
+        <button
+          *ngFor="let preset of tempoPresets"
+          type="button"
+          class="pr-tempo-preset"
+          (click)="setTempo(preset)"
+          role="menuitem"
+        >
+          {{ preset }} BPM
+        </button>
+      </div>
+    </div>
   </header>
+
+  <div class="pr-selection-status" aria-live="polite">
+    {{ selectionAnnouncement() }}
+  </div>
 
   <!-- KEY / SCALE SELECTOR BAR -->
   <div class="pr-key-scale-bar" role="group" aria-label="Key and scale">
@@ -222,10 +297,22 @@
     <div
       class="pr-grid no-scrollbar"
       #scrollContainer
+      tabindex="0"
+      role="grid"
+      [attr.aria-label]="
+        'Piano roll grid at step ' +
+        (focusedStep() + 1) +
+        ', note ' +
+        getKeyName(focusedMidi()) +
+        getOctaveLabel(focusedMidi())
+      "
       (pointerdown)="onGridPointerDown($event)"
       (touchstart)="onGridTouchStart($event)"
       (touchmove)="onGridTouchMove($event)"
       (touchend)="onGridTouchEnd($event)"
+      (keydown)="onGridKeydown($event)"
+      (focus)="gridHasFocus.set(true)"
+      (blur)="gridHasFocus.set(false)"
       (scroll)="syncKeyScroll()"
       (wheel)="onGridWheel($event)"
     >
@@ -235,6 +322,15 @@
         [style.width.px]="gridWidth()"
         [style.height.px]="canvasHeight()"
       ></canvas>
+      <div
+        class="pr-grid-focus-cell"
+        *ngIf="gridHasFocus()"
+        [style.left.px]="focusedStep() * cellWidth()"
+        [style.top.px]="rowTopPx(focusedMidi())"
+        [style.width.px]="cellWidth()"
+        [style.height.px]="rowHeight()"
+        aria-hidden="true"
+      ></div>
     </div>
 
     <!-- Velocity lane + Automation toolbar -->

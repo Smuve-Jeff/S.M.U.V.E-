@@ -21,9 +21,19 @@ export interface ProjectMetadata {
   version: number;
 }
 
+export interface SerializedAudioAsset {
+  id: string;
+  sampleRate: number;
+  channelCount: number;
+  frameCount: number;
+  duration: number;
+  channels: SerializedAudioChannel[];
+}
+
 export interface ProjectBundle {
   metadata: ProjectMetadata;
   tracks: any[];
+  audioAssets?: SerializedAudioAsset[];
   automation: any;
   mixState: any;
   notes: string;
@@ -41,6 +51,9 @@ interface StoredProjectBundle extends ProjectBundle {
   savedAt: number;
   source: ProjectPersistenceSource;
 }
+
+type AudioAssetSerializationMode = 'binary' | 'json';
+type SerializedAudioChannel = Float32Array | number[];
 
 @Injectable({ providedIn: 'root' })
 export class ProjectWorkspaceService {
@@ -279,10 +292,10 @@ export class ProjectWorkspaceService {
 
   async autoSave() {
     try {
-      const snapshot = this.createSnapshot();
+      const snapshot = this.createStoredSnapshot();
       const stored = this.toStoredBundle(snapshot, 'autosave');
       await this.storage.saveItem('projects', stored);
-      await this.queueCloudSync(snapshot);
+      await this.queueCurrentSnapshotCloudSync(snapshot.metadata);
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, 'autosave', stored.savedAt);
       this.versionCount.update((v) => v + 1);
@@ -298,7 +311,7 @@ export class ProjectWorkspaceService {
   }
 
   async manualSave(): Promise<ProjectBundle> {
-    const bundle = this.createSnapshot();
+    const bundle = this.createStoredSnapshot();
     try {
       const stored = this.toStoredBundle(bundle, 'manual');
       // Persist the complete bundle locally before attempting any network work.
@@ -308,7 +321,7 @@ export class ProjectWorkspaceService {
         payload: bundle.metadata.id,
         savedAt: stored.savedAt,
       });
-      await this.queueCloudSync(bundle);
+      await this.queueCurrentSnapshotCloudSync(bundle.metadata);
       this.markPersistenceClean(bundle, 'manual', stored.savedAt);
       this.versionCount.update((v) => v + 1);
       this.logger.info('ProjectWorkspace: Saved ' + bundle.metadata.name);
@@ -459,14 +472,29 @@ export class ProjectWorkspaceService {
   // ── Snapshot ───────────────────────────────────────────
 
   createSnapshot(metadata: ProjectMetadata = this.currentSyncedMetadata()): ProjectBundle {
+    return this.buildSnapshot(metadata, 'json');
+  }
+
+  private createStoredSnapshot(
+    metadata: ProjectMetadata = this.currentSyncedMetadata()
+  ): ProjectBundle {
+    return this.buildSnapshot(metadata, 'binary');
+  }
+
+  private buildSnapshot(
+    metadata: ProjectMetadata,
+    audioAssetMode: AudioAssetSerializationMode
+  ): ProjectBundle {
     const meta = {
       ...metadata,
       bpm: metadata.bpm || this.currentTempo() || 120,
     };
+    const { tracks, audioAssets } = this.captureSnapshotTracks(audioAssetMode);
 
     return {
       metadata: meta,
-      tracks: this.musicManager.tracks(),
+      tracks,
+      audioAssets,
       automation: {},
       mixState: {
         masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
@@ -481,6 +509,7 @@ export class ProjectWorkspaceService {
       ...bundle.metadata,
       lastOpenedAt: Date.now(),
     });
+    this.restoreAudioAssets(bundle);
     if (bundle.tracks) {
       this.musicManager.tracks.set(bundle.tracks as any);
       this.isDirty.set(false);
@@ -546,7 +575,7 @@ export class ProjectWorkspaceService {
     if (!this.metadata() || this.musicManager.tracks().length === 0) return;
 
     try {
-      const bundle = this.toStoredBundle(this.createSnapshot(), 'recovery');
+      const bundle = this.toStoredBundle(this.createStoredSnapshot(), 'recovery');
       await this.storage.saveItem('projects', bundle);
       await this.storage.saveItem('offline_local_cache', {
         id: 'last_saved_project_id',
@@ -646,5 +675,148 @@ export class ProjectWorkspaceService {
     if (id.startsWith('recovery_')) return 'recovery';
     if (id.startsWith('project_')) return 'manual';
     return 'manual';
+  }
+
+  private async queueCurrentSnapshotCloudSync(
+    metadata: ProjectMetadata
+  ): Promise<void> {
+    if (!this.auth.currentUser()?.id) {
+      this.cloudSyncQueued.set(false);
+      return;
+    }
+    await this.queueCloudSync(this.createSnapshot(metadata));
+  }
+
+  private captureSnapshotTracks(
+    audioAssetMode: AudioAssetSerializationMode
+  ): {
+    tracks: any[];
+    audioAssets: SerializedAudioAsset[];
+  } {
+    const audioAssets = new Map<string, SerializedAudioAsset>();
+    const tracks = this.musicManager.tracks().map((track) =>
+      JSON.parse(
+        JSON.stringify({
+          ...track,
+          ...(Array.isArray(track.clips)
+            ? {
+                clips: track.clips.map((clip: any) => {
+                  if (clip?.type !== 'audio') {
+                    return { ...clip };
+                  }
+                  const refId =
+                    typeof clip.audioRefId === 'string' &&
+                    clip.audioRefId.trim().length > 0
+                      ? clip.audioRefId
+                      : clip.id;
+                  const persistedClip = {
+                    ...clip,
+                    ...(refId ? { audioRefId: refId } : {}),
+                  };
+                  delete persistedClip.audioData;
+                  const buffer = this.resolveClipAudioBuffer(clip);
+                  if (buffer && refId && !audioAssets.has(refId)) {
+                    audioAssets.set(
+                      refId,
+                      this.serializeAudioAsset(refId, buffer, audioAssetMode)
+                    );
+                  }
+                  return persistedClip;
+                }),
+              }
+            : {}),
+        })
+      )
+    );
+    return { tracks, audioAssets: Array.from(audioAssets.values()) };
+  }
+
+  private restoreAudioAssets(bundle: ProjectBundle): void {
+    this.musicManager.stemAudioCache?.clear?.();
+    for (const asset of bundle.audioAssets ?? []) {
+      const buffer = this.deserializeAudioAsset(asset);
+      if (buffer) {
+        this.musicManager.stemAudioCache?.set(asset.id, buffer);
+      }
+    }
+  }
+
+  private resolveClipAudioBuffer(clip: any): {
+    numberOfChannels: number;
+    length: number;
+    sampleRate: number;
+    duration: number;
+    getChannelData(channel: number): Float32Array;
+  } | null {
+    if (this.isAudioBufferLike(clip?.audioData)) {
+      return clip.audioData;
+    }
+    const refId = clip?.audioRefId;
+    if (typeof refId === 'string' && refId.trim().length > 0) {
+      const cached = this.musicManager.stemAudioCache?.get(refId);
+      if (this.isAudioBufferLike(cached)) {
+        return cached;
+      }
+    }
+    return null;
+  }
+
+  private serializeAudioAsset(
+    id: string,
+    buffer: {
+      numberOfChannels: number;
+      length: number;
+      sampleRate: number;
+      duration: number;
+      getChannelData(channel: number): Float32Array;
+    },
+    audioAssetMode: AudioAssetSerializationMode
+  ): SerializedAudioAsset {
+    return {
+      id,
+      sampleRate: buffer.sampleRate,
+      channelCount: buffer.numberOfChannels,
+      frameCount: buffer.length,
+      duration: buffer.duration,
+      channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
+        audioAssetMode === 'binary'
+          ? buffer.getChannelData(channel).slice()
+          : Array.from(buffer.getChannelData(channel))
+      ),
+    };
+  }
+
+  private deserializeAudioAsset(asset: SerializedAudioAsset): AudioBuffer | null {
+    const ctx = this.musicManager.engine?.ctx;
+    if (!ctx?.createBuffer) {
+      return null;
+    }
+    const channelCount = Math.max(1, Number(asset.channelCount) || 1);
+    const frameCount = Math.max(1, Number(asset.frameCount) || 1);
+    const sampleRate = Math.max(1, Number(asset.sampleRate) || 44100);
+    const buffer = ctx.createBuffer(channelCount, frameCount, sampleRate);
+    for (let channel = 0; channel < channelCount; channel++) {
+      const source = asset.channels?.[channel];
+      if (!(Array.isArray(source) || source instanceof Float32Array)) continue;
+      buffer.copyToChannel(Float32Array.from(source), channel);
+    }
+    return buffer;
+  }
+
+  private isAudioBufferLike(value: any): value is {
+    numberOfChannels: number;
+    length: number;
+    sampleRate: number;
+    duration: number;
+    getChannelData(channel: number): Float32Array;
+  } {
+    return (
+      !!value &&
+      typeof value.numberOfChannels === 'number' &&
+      typeof value.length === 'number' &&
+      typeof value.sampleRate === 'number' &&
+      typeof value.duration === 'number' &&
+      typeof value.getChannelData === 'function'
+    );
   }
 }

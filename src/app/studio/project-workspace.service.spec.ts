@@ -8,9 +8,21 @@ import { OfflineSyncService } from '../services/offline-sync.service';
 import { ProjectService } from '../services/project.service';
 import { ProjectBundle, ProjectWorkspaceService } from './project-workspace.service';
 
+const createFakeAudioBuffer = (
+  channels: number[][],
+  sampleRate = 48000
+): any => ({
+  numberOfChannels: channels.length,
+  length: channels[0]?.length ?? 0,
+  sampleRate,
+  duration: (channels[0]?.length ?? 0) / sampleRate,
+  getChannelData: (channel: number) => Float32Array.from(channels[channel] ?? []),
+});
+
 describe('ProjectWorkspaceService', () => {
   let service: ProjectWorkspaceService;
   let tracks: ReturnType<typeof signal<any[]>>;
+  let stemAudioCache: Map<string, any>;
   let saveItem: jest.Mock;
   let queueOperation: jest.Mock;
   let tempoSet: jest.Mock;
@@ -42,6 +54,7 @@ describe('ProjectWorkspaceService', () => {
 
   beforeEach(() => {
     tracks = signal([{ id: 'track-1', notes: [] }]);
+    stemAudioCache = new Map<string, any>();
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue('sync_test_1');
     tempoSet = jest.fn();
@@ -59,9 +72,29 @@ describe('ProjectWorkspaceService', () => {
           provide: MusicManagerService,
           useValue: {
             tracks,
+            stemAudioCache,
             engine: {
               tempo: { set: tempoSet },
               masterGain: { gain: { value: 0.8 } },
+              ctx: {
+                createBuffer: jest.fn(
+                  (channelCount: number, frameCount: number, sampleRate: number) => {
+                    const data = Array.from(
+                      { length: channelCount },
+                      () => new Float32Array(frameCount)
+                    );
+                    return {
+                      numberOfChannels: channelCount,
+                      length: frameCount,
+                      sampleRate,
+                      duration: frameCount / sampleRate,
+                      getChannelData: (channel: number) => data[channel],
+                      copyToChannel: (source: Float32Array, channel: number) =>
+                        data[channel].set(source),
+                    };
+                  }
+                ),
+              },
             },
           },
         },
@@ -103,8 +136,70 @@ describe('ProjectWorkspaceService', () => {
 
     expect(snapshot.metadata.name).toBe('Night Drive');
     expect(snapshot.metadata.genre).toBe('house');
-    expect(snapshot.tracks).toBe(tracks());
+    expect(snapshot.tracks).toEqual(tracks());
     expect(tempoSet).toHaveBeenCalledWith(124);
+  });
+
+  it('serializes cached audio clips and restores them into the stem cache', () => {
+    const clipId = 'clip-audio-1';
+    const buffer = createFakeAudioBuffer([[0.1, -0.1, 0.25], [0.2, -0.2, 0.5]]);
+    stemAudioCache.set(clipId, buffer);
+    tracks.set([
+      {
+        id: 'track-audio',
+        type: 'audio',
+        notes: [],
+        clips: [{ id: clipId, type: 'audio', start: 0, length: 1, audioRefId: clipId }],
+      },
+    ]);
+
+    const snapshot = service.createSnapshot();
+    expect(snapshot.audioAssets).toEqual([
+      expect.objectContaining({
+        id: clipId,
+        channelCount: 2,
+        frameCount: 3,
+      }),
+    ]);
+
+    stemAudioCache.clear();
+    service.restoreFromSnapshot(snapshot);
+    expect(stemAudioCache.has(clipId)).toBe(true);
+    const restored = Array.from(stemAudioCache.get(clipId).getChannelData(0));
+    expect(restored[0]).toBeCloseTo(0.1, 5);
+    expect(restored[1]).toBeCloseTo(-0.1, 5);
+    expect(restored[2]).toBeCloseTo(0.25, 5);
+  });
+
+  it('stores binary audio channels locally while keeping export snapshots JSON-friendly', async () => {
+    const clipId = 'clip-audio-2';
+    const buffer = createFakeAudioBuffer([[0.15, -0.25, 0.35]]);
+    stemAudioCache.set(clipId, buffer);
+    tracks.set([
+      {
+        id: 'track-audio',
+        type: 'audio',
+        notes: [],
+        clips: [{ id: clipId, type: 'audio', start: 0, length: 1, audioRefId: clipId }],
+      },
+    ]);
+
+    const exportSnapshot = service.createSnapshot();
+    expect(Array.isArray(exportSnapshot.audioAssets?.[0]?.channels?.[0])).toBe(true);
+
+    await service.manualSave();
+
+    const storedBundle = saveItem.mock.calls[0][1];
+    expect(storedBundle.audioAssets?.[0]?.channels?.[0]).toBeInstanceOf(
+      Float32Array
+    );
+
+    stemAudioCache.clear();
+    service.restoreFromSnapshot(storedBundle);
+    const restored = Array.from(stemAudioCache.get(clipId).getChannelData(0));
+    expect(restored[0]).toBeCloseTo(0.15, 5);
+    expect(restored[1]).toBeCloseTo(-0.25, 5);
+    expect(restored[2]).toBeCloseTo(0.35, 5);
   });
 
   it('persists manual saves locally before returning the bundle', async () => {

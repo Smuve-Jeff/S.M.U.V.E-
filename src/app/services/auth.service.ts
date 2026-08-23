@@ -34,6 +34,16 @@ export class AuthService {
 
   constructor() {}
 
+  private persistSession(user: AuthUser): void {
+    if (typeof sessionStorage === 'undefined') return;
+    const sessionStr =
+      JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
+    const salted = btoa(
+      String.fromCharCode(...new TextEncoder().encode(sessionStr))
+    );
+    sessionStorage.setItem('smuve_auth_session', salted);
+  }
+
   private async deriveKey(password: string, salt: string): Promise<string> {
     if (
       typeof password !== 'string' ||
@@ -196,12 +206,7 @@ export class AuthService {
       btoa(JSON.stringify({ sub: user.id, role: user.role }));
     this.tokenService.setToken(tempToken, 'legacy');
 
-    const sessionStr =
-      JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
-    const salted = btoa(
-      String.fromCharCode(...new TextEncoder().encode(sessionStr))
-    );
-    sessionStorage.setItem('smuve_auth_session', salted);
+    this.persistSession(user);
 
     return {
       success: true,
@@ -310,14 +315,7 @@ export class AuthService {
     // artist-identity sync use the real account key.
     void this.profileService.loadProfile(user.id);
 
-    if (typeof sessionStorage !== 'undefined') {
-      const sessionStr =
-        JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
-      const salted = btoa(
-        String.fromCharCode(...new TextEncoder().encode(sessionStr))
-      );
-      sessionStorage.setItem('smuve_auth_session', salted);
-    }
+    this.persistSession(user);
 
     this.logger.info('AUTH_LOG: API SESSION ESTABLISHED.');
     return user;
@@ -349,9 +347,10 @@ export class AuthService {
   async verifyEmail(code: string, email?: string) {
     await new Promise((r) => setTimeout(r, 800));
 
+    const normalizedEmail = email?.toLowerCase().trim();
     if (email) {
       const storedCode = localStorage.getItem(
-        `smuve_verification_${email.toLowerCase()}`
+        `smuve_verification_${normalizedEmail}`
       );
       if (storedCode && code !== storedCode) {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
@@ -360,6 +359,25 @@ export class AuthService {
       if (code === '000000') {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
       }
+    }
+
+    if (normalizedEmail) {
+      const userKey = `smuve_db_user_${normalizedEmail}`;
+      const storedUserStr = localStorage.getItem(userKey);
+      if (storedUserStr) {
+        const storedUser = JSON.parse(storedUserStr);
+        storedUser.emailVerified = true;
+        localStorage.setItem(userKey, JSON.stringify(storedUser));
+      }
+
+      const currentUser = this.userStore.user();
+      if (currentUser?.email.toLowerCase() === normalizedEmail) {
+        const verifiedUser = { ...currentUser, emailVerified: true };
+        this.userStore.setUser(verifiedUser);
+        this.persistSession(verifiedUser);
+      }
+
+      localStorage.removeItem(`smuve_verification_${normalizedEmail}`);
     }
 
     return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };

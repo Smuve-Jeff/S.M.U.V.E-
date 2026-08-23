@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 import { LoggingService } from '../services/logging.service';
 import { LocalStorageService } from '../services/local-storage.service';
 
@@ -8,6 +9,7 @@ describe('StudioRecordingEngineService', () => {
   let service: StudioRecordingEngineService;
   let audioCtxMock: any;
   let mediaStreamMock: MediaStream;
+  let latencyMock: { getAppliedCompensationMs: jest.Mock<number, []> };
 
   beforeEach(() => {
     // Mock AudioContext
@@ -39,6 +41,9 @@ describe('StudioRecordingEngineService', () => {
       getAudioTracks: () => [{ kind: 'audio', stop: jest.fn() } as unknown as MediaStreamTrack],
       getTracks: () => [{ kind: 'audio', stop: jest.fn() } as unknown as MediaStreamTrack],
     } as unknown as MediaStream;
+    latencyMock = {
+      getAppliedCompensationMs: jest.fn(() => 0),
+    };
 
     // Mock getUserMedia
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -51,6 +56,7 @@ describe('StudioRecordingEngineService', () => {
       providers: [
         StudioRecordingEngineService,
         { provide: AudioEngineService, useValue: { ctx: audioCtxMock } },
+        { provide: AudioEngineLatencyService, useValue: latencyMock },
         { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } },
         { provide: LocalStorageService, useValue: { saveItem: jest.fn(), getItem: jest.fn() } },
       ],
@@ -68,6 +74,17 @@ describe('StudioRecordingEngineService', () => {
 
   it('should return empty buffers when not recording', () => {
     const buffers = service.getRecordedBuffers();
+    expect(buffers.left).toEqual([]);
+    expect(buffers.right).toEqual([]);
+  });
+
+  it('should fully trim recorded buffers when compensation exceeds the take length', () => {
+    latencyMock.getAppliedCompensationMs.mockReturnValue(1000);
+    (service as any).leftChannel = [Float32Array.from([1, 2])];
+    (service as any).rightChannel = [Float32Array.from([3, 4])];
+
+    const buffers = service.getRecordedBuffers();
+
     expect(buffers.left).toEqual([]);
     expect(buffers.right).toEqual([]);
   });

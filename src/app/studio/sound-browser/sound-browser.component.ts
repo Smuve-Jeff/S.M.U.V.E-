@@ -18,6 +18,8 @@ import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
   styleUrls: ['./sound-browser.component.css'],
 })
 export class SoundBrowserComponent {
+  private static readonly TOUCH_HOLD_MS = 420;
+
   private instruments = inject(InstrumentsService);
   public musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
@@ -30,6 +32,9 @@ export class SoundBrowserComponent {
   previewingId = signal<string | null>(null);
   showFavs = signal(false);
   similarToId = signal<string | null>(null);
+  private cardPreviewTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressPresetId: string | null = null;
+  private suppressCardClickId: string | null = null;
 
   allPresets = computed(() => this.instruments.getPresets());
 
@@ -105,8 +110,8 @@ export class SoundBrowserComponent {
     this.musicManager.ensureTrack(preset.id);
   }
 
-  async previewPreset(preset: InstrumentPreset, event: MouseEvent) {
-    event.stopPropagation();
+  async previewPreset(preset: InstrumentPreset, event?: Event) {
+    event?.stopPropagation?.();
     this.previewingId.set(preset.id);
 
     await this.instruments.audition(preset.id);
@@ -143,6 +148,39 @@ export class SoundBrowserComponent {
         presetId: preset.id,
       })
     );
+  }
+
+  onCardPointerDown(event: PointerEvent, preset: InstrumentPreset) {
+    if (!this.isTouchCardGesture(event)) return;
+    this.clearCardPressState();
+    this.cardPreviewTimer = setTimeout(() => {
+      this.longPressPresetId = preset.id;
+      this.suppressCardClickId = preset.id;
+      void this.previewPreset(preset);
+    }, SoundBrowserComponent.TOUCH_HOLD_MS);
+  }
+
+  onCardPointerUp(event: PointerEvent, preset: InstrumentPreset) {
+    if (!this.isTouchCardGesture(event)) return;
+    const wasLongPress = this.longPressPresetId === preset.id;
+    this.clearCardPressState();
+    this.suppressCardClickId = preset.id;
+    if (!wasLongPress) {
+      this.selectPreset(preset);
+    }
+  }
+
+  onCardPointerCancel() {
+    this.clearCardPressState();
+  }
+
+  onCardClick(event: Event, preset: InstrumentPreset) {
+    if (this.isInteractiveTarget(event.target)) return;
+    if (this.suppressCardClickId === preset.id) {
+      this.suppressCardClickId = null;
+      return;
+    }
+    this.selectPreset(preset);
   }
 
   // ── Smart Sound Integration ────────────────────────────────
@@ -192,5 +230,24 @@ export class SoundBrowserComponent {
     if (preset) {
       this.selectPreset(preset);
     }
+  }
+
+  private clearCardPressState(): void {
+    if (this.cardPreviewTimer) {
+      clearTimeout(this.cardPreviewTimer);
+      this.cardPreviewTimer = null;
+    }
+    this.longPressPresetId = null;
+    this.suppressCardClickId = null;
+  }
+
+  private isTouchCardGesture(event: PointerEvent): boolean {
+    return event.pointerType !== 'mouse' && !this.isInteractiveTarget(event.target);
+  }
+
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof Element
+      ? !!target.closest('button,input,select,textarea,a')
+      : false;
   }
 }

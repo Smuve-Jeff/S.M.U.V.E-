@@ -85,6 +85,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   // Waveform data for the selected zone
   waveformData = signal<Float32Array | null>(null);
   waveformDuration = signal(0);
+  private suppressZoneClickPitch: number | null = null;
 
   // Output channel names
   outputChannels = ['Master', 'Ch 1', 'Ch 2', 'Ch 3', 'Ch 4', 'Ch 5', 'Ch 6', 'Ch 7'];
@@ -243,6 +244,12 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
 
   onDragLeave(): void {
     this.dragOver.set(false);
+  }
+
+  onDropZoneKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    void this.importSample();
   }
 
   async onDrop(event: DragEvent): Promise<void> {
@@ -414,6 +421,32 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     if (!this.sampler) return;
     this.audioEngine.resume();
     this.sampler.play(pitch, 0.8);
+  }
+
+  onZonePointerDown(event: PointerEvent, pitch: number): void {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    this.suppressZoneClickPitch = pitch;
+    this.selectZone(pitch);
+    this.playNote(pitch);
+  }
+
+  onZonePointerUp(pitch: number): void {
+    this.stopNote(pitch);
+  }
+
+  onZonePointerCancel(pitch: number): void {
+    if (this.suppressZoneClickPitch === pitch) {
+      this.suppressZoneClickPitch = null;
+    }
+    this.stopNote(pitch);
+  }
+
+  onZoneClick(pitch: number): void {
+    if (this.suppressZoneClickPitch === pitch) {
+      this.suppressZoneClickPitch = null;
+      return;
+    }
+    this.selectZone(pitch);
   }
 
   stopNote(pitch: number): void {

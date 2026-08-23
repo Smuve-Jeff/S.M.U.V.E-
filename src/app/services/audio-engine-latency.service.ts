@@ -1,6 +1,7 @@
 import { Injectable, signal, inject, computed } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
+import { UserProfileService } from './user-profile.service';
 
 /**
  * Sprint C1 — Engine latency profile + on-demand audit.
@@ -52,19 +53,37 @@ export interface ProfileSummary {
   recommendations: string[];
 }
 
+export interface LatencyCalibrationResult {
+  measuredLatencyMs: number;
+  recommendedCompensationMs: number;
+  benchmarkSpeedRatio: number;
+  capturedAt: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AudioEngineLatencyService {
   private engine = inject(AudioEngineService);
   private logger = inject(LoggingService);
+  private userProfile = inject(UserProfileService, { optional: true });
 
   /** Latest live snapshot derived from the engine surface. */
   readonly snapshot = signal<LatencySnapshot>(this.captureSnapshot());
   /** Last up-to-10 offline render benchmarks. */
   readonly recentBenchmarks = signal<BenchmarkResult[]>([]);
+  /** Most recent per-device calibration run. */
+  readonly lastCalibration = signal<LatencyCalibrationResult | null>(null);
   /** Latest full profile summary — recomputed on demand. */
   readonly profileSummary = computed<ProfileSummary>(() =>
     this.buildSummary()
   );
+  /** Active record-offset compensation pulled from profile settings. */
+  readonly appliedCompensationMs = computed(() => {
+    const raw =
+      this.userProfile?.profile()?.settings?.studio?.latencyCompensation ?? 0;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.round(parsed));
+  });
 
   constructor() {
     // Cheap signal refresh every time the engine's profile-relevant
@@ -84,11 +103,23 @@ export class AudioEngineLatencyService {
    * test fixtures (no AudioContext work happens here).
    */
   captureSnapshot(): LatencySnapshot {
-    const ctx = this.engine.ctx;
+    const ctx = this.engine?.ctx as Partial<AudioContext> | undefined;
     const base =
-      typeof ctx.baseLatency === 'number' ? ctx.baseLatency : 0;
+      typeof ctx?.baseLatency === 'number' ? ctx.baseLatency : 0;
     const out =
-      typeof ctx.outputLatency === 'number' ? ctx.outputLatency : 0;
+      typeof ctx?.outputLatency === 'number' ? ctx.outputLatency : 0;
+    const sampleRate =
+      Number(this.engine?.nativeSampleRate) ||
+      Number(ctx?.sampleRate) ||
+      44100;
+    const masterWorkletActive =
+      typeof this.engine?.masterWorkletActive === 'function'
+        ? this.engine.masterWorkletActive()
+        : false;
+    const performanceTier =
+      typeof this.engine?.performanceTier === 'function'
+        ? this.engine.performanceTier()
+        : 'performance';
     // Heads-up: if the engine's native sample rate is below 44.1kHz OR
     // base+output latency > 60ms, the device is on the wire-thin side.
     const totalLatencyMs = (base + out) * 1000;
@@ -99,7 +130,7 @@ export class AudioEngineLatencyService {
           ? 'near'
           : 'tight';
     return {
-      sampleRateHz: this.engine.nativeSampleRate,
+      sampleRateHz: sampleRate,
       baseLatencySec: base,
       outputLatencySec: out,
       totalLatencyMs: totalLatencyMs,
@@ -107,10 +138,10 @@ export class AudioEngineLatencyService {
         AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS * 1000,
       schedulerIntervalMs:
         AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS,
-      masterWorkletActive: this.engine.masterWorkletActive(),
-      performanceTier: this.engine.performanceTier(),
+      masterWorkletActive,
+      performanceTier,
       cpuHeadroomHint,
-      contextState: ctx.state,
+      contextState: ctx?.state ?? 'suspended',
     };
   }
 
@@ -125,7 +156,7 @@ export class AudioEngineLatencyService {
   async runOfflineBenchmark(
     durationSec: number = 1
   ): Promise<BenchmarkResult> {
-    const ctx = this.engine.ctx;
+    const ctx = this.engine?.ctx as Partial<AudioContext> | undefined;
     if (typeof OfflineAudioContext === 'undefined') {
       const result: BenchmarkResult = {
         durationSec,
@@ -136,7 +167,10 @@ export class AudioEngineLatencyService {
       this.appendBenchmark(result);
       return result;
     }
-    const sampleRate = ctx.sampleRate || 44100;
+    const sampleRate =
+      Number(ctx?.sampleRate) ||
+      Number(this.engine?.nativeSampleRate) ||
+      44100;
     // Sprint C1 — keep the OfflineAudioContext constructor signature
     // normalised. (channels, frames, sampleRate)
     const offline = new OfflineAudioContext(
@@ -206,6 +240,67 @@ export class AudioEngineLatencyService {
     return this.snapshot();
   }
 
+  getAppliedCompensationMs(): number {
+    return this.appliedCompensationMs();
+  }
+
+  async calibrateFromCurrentDevice(
+    durationSec: number = 1
+  ): Promise<LatencyCalibrationResult> {
+    const snap = this.captureSnapshot();
+    const bench = await this.runOfflineBenchmark(durationSec);
+    const result: LatencyCalibrationResult = {
+      measuredLatencyMs: Math.max(0, Math.round(snap.totalLatencyMs || 0)),
+      recommendedCompensationMs: Math.max(
+        0,
+        Math.round(snap.totalLatencyMs || 0)
+      ),
+      benchmarkSpeedRatio: bench.speedRatio,
+      capturedAt: Date.now(),
+    };
+    this.lastCalibration.set(result);
+    return result;
+  }
+
+  trimChannels(channels: Float32Array[], sampleRate: number): Float32Array[] {
+    const framesToTrim = this.compensationFrames(sampleRate);
+    if (framesToTrim <= 0 || channels.length === 0) {
+      return channels.map((channel) => channel.slice());
+    }
+    const frameCount = Math.max(...channels.map((channel) => channel.length));
+    if (framesToTrim >= frameCount) {
+      return channels.map(() => new Float32Array(0));
+    }
+    return channels.map((channel) => channel.subarray(framesToTrim).slice());
+  }
+
+  trimAudioBuffer(buffer: AudioBuffer): AudioBuffer {
+    const framesToTrim = this.compensationFrames(buffer.sampleRate);
+    if (framesToTrim <= 0) {
+      return buffer;
+    }
+    const createBuffer = this.engine?.ctx?.createBuffer?.bind(this.engine.ctx);
+    if (!createBuffer) {
+      return buffer;
+    }
+    if (framesToTrim >= buffer.length) {
+      return createBuffer(buffer.numberOfChannels, 1, buffer.sampleRate);
+    }
+    const nextLength = Math.max(1, buffer.length - framesToTrim);
+    const trimmed = createBuffer(
+      buffer.numberOfChannels,
+      nextLength,
+      buffer.sampleRate
+    );
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      trimmed.copyToChannel(
+        buffer.getChannelData(channel).subarray(framesToTrim),
+        channel
+      );
+    }
+    return trimmed;
+  }
+
   /**
    * Build a human-readable profile summary, including actionable
    * recommendations keyed off the live snapshot + benchmark history.
@@ -250,10 +345,24 @@ export class AudioEngineLatencyService {
         `Master worklet is off — the limiter/audio chain is on the main thread.`
       );
     }
+    if (this.appliedCompensationMs() > 0) {
+      recommendations.push(
+        `Record compensation is active at ${this.appliedCompensationMs()} ms for this device.`
+      );
+    }
     return {
       snapshot: snap,
       recentBenchmarks: bench,
       recommendations,
     };
+  }
+
+  private compensationFrames(sampleRate: number): number {
+    const sr = Number(sampleRate) || 0;
+    if (sr <= 0) return 0;
+    return Math.max(
+      0,
+      Math.round((this.appliedCompensationMs() / 1000) * sr)
+    );
   }
 }

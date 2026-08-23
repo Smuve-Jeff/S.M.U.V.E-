@@ -1,10 +1,7 @@
 import { Routes } from '@angular/router';
+import { authChildGuard } from './services/auth.guard';
 
-// NOTE: The application is fully unlocked — no authGuard is applied to any
-// route. Auth is optional (login/register is available but never required).
-// If route protection is needed later, import and apply authGuard per-route.
-
-export const routes: Routes = [
+const protectedRoutes: Routes = [
   {
     path: 'hub',
     loadComponent: () =>
@@ -168,13 +165,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'login',
-    loadComponent: () =>
-      import('./components/login/login.component').then(
-        (m) => m.LoginComponent
-      ),
-  },
-  {
     path: 'turntable',
     redirectTo: 'dj',
     pathMatch: 'full',
@@ -313,4 +303,19 @@ export const routes: Routes = [
   },
   { path: '', redirectTo: 'hub', pathMatch: 'full' },
   { path: '**', redirectTo: 'hub' },
+];
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./components/login/login.component').then(
+        (m) => m.LoginComponent
+      ),
+  },
+  {
+    path: '',
+    canActivateChild: [authChildGuard],
+    children: protectedRoutes,
+  },
 ];

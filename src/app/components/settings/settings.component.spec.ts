@@ -12,6 +12,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { PermissionService } from '../../services/permission.service';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { DatabaseService } from '../../services/database.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 
 describe('SettingsComponent', () => {
   const createComponent = async () => {
@@ -78,6 +79,18 @@ describe('SettingsComponent', () => {
       setOutputMode: jest.fn(),
     };
 
+    const latencyServiceMock = {
+      snapshot: signal({ totalLatencyMs: 42 }),
+      appliedCompensationMs: signal(0),
+      lastCalibration: signal(null),
+      calibrateFromCurrentDevice: jest.fn().mockResolvedValue({
+        measuredLatencyMs: 42,
+        recommendedCompensationMs: 42,
+        benchmarkSpeedRatio: 1.25,
+        capturedAt: Date.now(),
+      }),
+    };
+
     const securityServiceMock = {
       fetchLogs: jest.fn(),
       fetchSessions: jest.fn(),
@@ -138,6 +151,7 @@ describe('SettingsComponent', () => {
         { provide: SecurityService, useValue: securityServiceMock },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
         { provide: AudioEngineService, useValue: audioEngineMock },
+        { provide: AudioEngineLatencyService, useValue: latencyServiceMock },
         { provide: AuthService, useValue: authServiceMock },
         { provide: InteractionDialogService, useValue: dialogMock },
         {
@@ -175,6 +189,7 @@ describe('SettingsComponent', () => {
       component,
       microphoneServiceMock,
       audioEngineMock,
+      latencyServiceMock,
       securityServiceMock,
       authServiceMock,
       dialogMock,
@@ -203,6 +218,24 @@ describe('SettingsComponent', () => {
     component.setOutputMode('headphones');
 
     expect(audioEngineMock.setOutputMode).toHaveBeenCalledWith('headphones');
+  });
+
+  it('calibrates latency compensation and persists the measured device offset', async () => {
+    const { component, latencyServiceMock } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as {
+      updateProfile: jest.Mock;
+    };
+
+    await component.calibrateLatencyCompensation();
+
+    expect(latencyServiceMock.calibrateFromCurrentDevice).toHaveBeenCalledWith(1);
+    expect(profileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ latencyCompensation: 42 }),
+        }),
+      })
+    );
   });
 
   it('loads security data on initialization', async () => {

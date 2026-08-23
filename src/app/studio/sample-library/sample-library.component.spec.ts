@@ -157,6 +157,42 @@ describe('SampleLibraryComponent', () => {
     expect(mockSnackbar.info).not.toHaveBeenCalled();
   });
 
+  it('loads a touch card once and suppresses the follow-up click event', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, 'kick');
+    component.onCardPointerUp(event, 'kick');
+    component.onCardClick({ target: document.createElement('div') } as any, 'kick');
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('trap-kit-elite');
+  });
+
+  it('uses long-press on touch cards for preview instead of loading', () => {
+    jest.useFakeTimers();
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, 'snare');
+    jest.advanceTimersByTime(450);
+    component.onCardPointerUp(event, 'snare');
+    component.onCardClick({ target: document.createElement('div') } as any, 'snare');
+
+    expect(mockSnackbar.info).toHaveBeenCalledWith('Previewing SNARE 909');
+    expect(mockMusicManager.ensureTrack).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('does not suppress the next tap after a touch gesture is cancelled', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, 'kick');
+    component.onCardPointerCancel();
+    component.onCardClick({ target: document.createElement('div') } as any, 'kick');
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('trap-kit-elite');
+  });
+
   it('sets drag payload metadata for drag-to-track', () => {
     const setData = jest.fn();
     const dt = {

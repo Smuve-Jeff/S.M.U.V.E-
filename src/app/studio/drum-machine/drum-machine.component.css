@@ -94,6 +94,50 @@
   align-content: start;
 }
 
+.dm-transport-mini {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(10, 16, 30, 0.7);
+  border: 1px solid rgba(129, 140, 248, 0.18);
+}
+
+.dm-transport-btn,
+.dm-tempo-chip,
+.dm-tempo-preset {
+  border: 1px solid rgba(129, 140, 248, 0.24);
+  background: rgba(15, 23, 42, 0.82);
+  color: var(--ivory-deep);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.dm-transport-btn.active {
+  border-color: rgba(94, 234, 212, 0.65);
+  box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.22);
+}
+
+.dm-tempo-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.96);
+  border: 1px solid rgba(129, 140, 248, 0.18);
+  z-index: 3;
+}
+
 .dm-pad {
   aspect-ratio: 1;
   background: linear-gradient(

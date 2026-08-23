@@ -89,6 +89,12 @@ describe('PianoRollComponent', () => {
   const mockAudioEngine = {
     tempo: signal(120),
     visualStep: signal(0),
+    metronomeEnabled: signal(false),
+    resume: jest.fn(),
+    toggleMetronome: jest.fn(() => {
+      mockAudioEngine.metronomeEnabled.update((value) => !value);
+      return mockAudioEngine.metronomeEnabled();
+    }),
   };
 
   const mockEnhancedTouchGestures = {
@@ -475,6 +481,55 @@ describe('PianoRollComponent', () => {
     component.deleteSelection();
     expect(mockMusicManager.removeNotes).toHaveBeenCalledWith('1', ['n1']);
     expect(component.selectedNoteIds().size).toBe(0);
+  });
+
+  it('selects an existing note from the WebGL grid hit-test path', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: 'hit-note', midi: 60, step: 4, length: 1, velocity: 0.7 }],
+      },
+    ]);
+
+    component.setEditMode('select');
+    (component as any).handleGridInteraction(4, 60, { previewExisting: true });
+
+    expect(component.selectedNoteIds()).toEqual(new Set(['hit-note']));
+  });
+
+  it('supports keyboard selection and deletion on the grid', () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: 'grid-note', midi: 60, step: 2, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    component.focusedStep.set(2);
+    component.focusedMidi.set(60);
+    component.setEditMode('select');
+
+    component.onGridKeydown({
+      key: 'Enter',
+      preventDefault: jest.fn(),
+      target: document.createElement('div'),
+    } as any);
+    expect(component.selectedNoteIds()).toEqual(new Set(['grid-note']));
+
+    component.onGridKeydown({
+      key: 'Delete',
+      preventDefault: jest.fn(),
+      target: document.createElement('div'),
+    } as any);
+    expect(mockMusicManager.removeNotes).toHaveBeenCalledWith('1', ['grid-note']);
+  });
+
+  it('updates tempo and toggles metronome from the compact transport controls', () => {
+    component.nudgeTempo(2);
+    expect(mockAudioEngine.tempo()).toBe(122);
+
+    component.toggleMetronome();
+    expect(mockAudioEngine.resume).toHaveBeenCalled();
+    expect(mockAudioEngine.toggleMetronome).toHaveBeenCalled();
   });
 
   // ── Sprint A2 — slide-note data path ─────────────────────

@@ -8,11 +8,13 @@ import { ApiAuthService } from '../../services/api-auth.service';
 import { SecurityService } from '../../services/security.service';
 import { OnboardingService } from '../../services/onboarding.service';
 import { LoggingService } from '../../services/logging.service';
+import { LoginConfirmationService } from '../../services/login-confirmation.service';
 
 describe('LoginComponent', () => {
   const build = async () => {
     const authMock = {
       isAuthenticated: jest.fn().mockReturnValue(false),
+      currentUser: jest.fn().mockReturnValue(null),
       validatePassword: jest.fn().mockReturnValue({
         isValid: false,
         errors: ['PASSWORD TOO SHORT.'],
@@ -37,6 +39,9 @@ describe('LoginComponent', () => {
       system: jest.fn(),
       error: jest.fn(),
     };
+    const loginConfirmationMock = {
+      sendLoginConfirmation: jest.fn().mockResolvedValue(undefined),
+    };
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent, HttpClientTestingModule],
@@ -46,6 +51,7 @@ describe('LoginComponent', () => {
         { provide: SecurityService, useValue: securityMock },
         { provide: OnboardingService, useValue: onboardingMock },
         { provide: LoggingService, useValue: loggerMock },
+        { provide: LoginConfirmationService, useValue: loginConfirmationMock },
         {
           provide: Router,
           useValue: { navigate: jest.fn(), navigateByUrl: jest.fn() },
@@ -60,7 +66,7 @@ describe('LoginComponent', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(LoginComponent);
-    return { fixture, authMock };
+    return { fixture, authMock, loginConfirmationMock };
   };
 
   it('renders the authorization form without throwing', async () => {
@@ -90,5 +96,30 @@ describe('LoginComponent', () => {
 
     expect(() => fixture.detectChanges()).not.toThrow();
     expect(fixture.nativeElement.textContent).toContain('Cipher Strength');
+  });
+
+  it('sends a login confirmation before navigating after successful auth', async () => {
+    jest.useFakeTimers();
+    const { fixture, authMock, loginConfirmationMock } = await build();
+    const router = TestBed.inject(Router);
+    authMock.login.mockResolvedValue({ success: true, message: 'ok' });
+    authMock.currentUser = jest.fn(() => ({
+      id: 'u1',
+      email: 'artist@example.com',
+      artistName: 'Artist',
+      lastLogin: new Date(),
+    }));
+
+    fixture.componentInstance.credentials = {
+      email: 'artist@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    jest.advanceTimersByTime(1000);
+
+    expect(loginConfirmationMock.sendLoginConfirmation).toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/hub');
+    jest.useRealTimers();
   });
 });
