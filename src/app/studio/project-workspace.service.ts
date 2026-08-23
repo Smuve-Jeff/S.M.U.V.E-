@@ -670,25 +670,33 @@ export class ProjectWorkspaceService {
       JSON.parse(
         JSON.stringify({
           ...track,
-          clips: (track.clips ?? []).map((clip: any) => {
-            if (clip?.type !== 'audio') {
-              return { ...clip };
-            }
-            const refId =
-              typeof clip.audioRefId === 'string' && clip.audioRefId.trim().length > 0
-                ? clip.audioRefId
-                : clip.id;
-            const persistedClip = {
-              ...clip,
-              ...(refId ? { audioRefId: refId } : {}),
-            };
-            delete persistedClip.audioData;
-            const buffer = this.resolveClipAudioBuffer(clip);
-            if (buffer && refId && !audioAssets.has(refId)) {
-              audioAssets.set(refId, this.serializeAudioAsset(refId, buffer));
-            }
-            return persistedClip;
-          }),
+          ...(Array.isArray(track.clips)
+            ? {
+                clips: track.clips.map((clip: any) => {
+                  if (clip?.type !== 'audio') {
+                    return { ...clip };
+                  }
+                  const refId =
+                    typeof clip.audioRefId === 'string' &&
+                    clip.audioRefId.trim().length > 0
+                      ? clip.audioRefId
+                      : clip.id;
+                  const persistedClip = {
+                    ...clip,
+                    ...(refId ? { audioRefId: refId } : {}),
+                  };
+                  delete persistedClip.audioData;
+                  const buffer = this.resolveClipAudioBuffer(clip);
+                  if (buffer && refId && !audioAssets.has(refId)) {
+                    audioAssets.set(
+                      refId,
+                      this.serializeAudioAsset(refId, buffer)
+                    );
+                  }
+                  return persistedClip;
+                }),
+              }
+            : {}),
         })
       )
     );

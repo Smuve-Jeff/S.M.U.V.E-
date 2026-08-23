@@ -81,6 +81,7 @@ describe('SoundBrowserComponent', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockMusicManager.selectedTrackId.set(null);
     await TestBed.configureTestingModule({
       imports: [SoundBrowserComponent],
       providers: [

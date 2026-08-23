@@ -140,6 +140,8 @@ describe('SamplerComponent', () => {
     const samplerMock = {
       play: jest.fn(),
       stop: jest.fn(),
+      getZone: jest.fn().mockReturnValue({ sampleBuffers: [] }),
+      dispose: jest.fn(),
     };
     (component as any).sampler = samplerMock;
 

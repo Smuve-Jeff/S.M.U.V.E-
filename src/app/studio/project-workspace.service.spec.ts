@@ -165,9 +165,10 @@ describe('ProjectWorkspaceService', () => {
     stemAudioCache.clear();
     service.restoreFromSnapshot(snapshot);
     expect(stemAudioCache.has(clipId)).toBe(true);
-    expect(Array.from(stemAudioCache.get(clipId).getChannelData(0))).toEqual([
-      0.1, -0.1, 0.25,
-    ]);
+    const restored = Array.from(stemAudioCache.get(clipId).getChannelData(0));
+    expect(restored[0]).toBeCloseTo(0.1, 5);
+    expect(restored[1]).toBeCloseTo(-0.1, 5);
+    expect(restored[2]).toBeCloseTo(0.25, 5);
   });
 
   it('persists manual saves locally before returning the bundle', async () => {

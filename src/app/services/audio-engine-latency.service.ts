@@ -103,11 +103,23 @@ export class AudioEngineLatencyService {
    * test fixtures (no AudioContext work happens here).
    */
   captureSnapshot(): LatencySnapshot {
-    const ctx = this.engine.ctx;
+    const ctx = this.engine?.ctx as Partial<AudioContext> | undefined;
     const base =
-      typeof ctx.baseLatency === 'number' ? ctx.baseLatency : 0;
+      typeof ctx?.baseLatency === 'number' ? ctx.baseLatency : 0;
     const out =
-      typeof ctx.outputLatency === 'number' ? ctx.outputLatency : 0;
+      typeof ctx?.outputLatency === 'number' ? ctx.outputLatency : 0;
+    const sampleRate =
+      Number(this.engine?.nativeSampleRate) ||
+      Number(ctx?.sampleRate) ||
+      44100;
+    const masterWorkletActive =
+      typeof this.engine?.masterWorkletActive === 'function'
+        ? this.engine.masterWorkletActive()
+        : false;
+    const performanceTier =
+      typeof this.engine?.performanceTier === 'function'
+        ? this.engine.performanceTier()
+        : 'performance';
     // Heads-up: if the engine's native sample rate is below 44.1kHz OR
     // base+output latency > 60ms, the device is on the wire-thin side.
     const totalLatencyMs = (base + out) * 1000;
@@ -118,7 +130,7 @@ export class AudioEngineLatencyService {
           ? 'near'
           : 'tight';
     return {
-      sampleRateHz: this.engine.nativeSampleRate,
+      sampleRateHz: sampleRate,
       baseLatencySec: base,
       outputLatencySec: out,
       totalLatencyMs: totalLatencyMs,
@@ -126,10 +138,10 @@ export class AudioEngineLatencyService {
         AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS * 1000,
       schedulerIntervalMs:
         AudioEngineService.DEFAULT_SCHEDULER_INTERVAL_MS,
-      masterWorkletActive: this.engine.masterWorkletActive(),
-      performanceTier: this.engine.performanceTier(),
+      masterWorkletActive,
+      performanceTier,
       cpuHeadroomHint,
-      contextState: ctx.state,
+      contextState: ctx?.state ?? 'suspended',
     };
   }
 
@@ -144,7 +156,7 @@ export class AudioEngineLatencyService {
   async runOfflineBenchmark(
     durationSec: number = 1
   ): Promise<BenchmarkResult> {
-    const ctx = this.engine.ctx;
+    const ctx = this.engine?.ctx as Partial<AudioContext> | undefined;
     if (typeof OfflineAudioContext === 'undefined') {
       const result: BenchmarkResult = {
         durationSec,
@@ -155,7 +167,10 @@ export class AudioEngineLatencyService {
       this.appendBenchmark(result);
       return result;
     }
-    const sampleRate = ctx.sampleRate || 44100;
+    const sampleRate =
+      Number(ctx?.sampleRate) ||
+      Number(this.engine?.nativeSampleRate) ||
+      44100;
     // Sprint C1 — keep the OfflineAudioContext constructor signature
     // normalised. (channels, frames, sampleRate)
     const offline = new OfflineAudioContext(
@@ -264,8 +279,12 @@ export class AudioEngineLatencyService {
     if (framesToTrim <= 0 || framesToTrim >= buffer.length) {
       return buffer;
     }
+    const createBuffer = this.engine?.ctx?.createBuffer?.bind(this.engine.ctx);
+    if (!createBuffer) {
+      return buffer;
+    }
     const nextLength = Math.max(1, buffer.length - framesToTrim);
-    const trimmed = this.engine.ctx.createBuffer(
+    const trimmed = createBuffer(
       buffer.numberOfChannels,
       nextLength,
       buffer.sampleRate
