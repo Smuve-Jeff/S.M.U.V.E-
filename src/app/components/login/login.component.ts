@@ -7,6 +7,7 @@ import { ApiAuthError, ApiAuthService } from '../../services/api-auth.service';
 import { SecurityService } from '../../services/security.service';
 import { OnboardingService } from '../../services/onboarding.service';
 import { LoggingService } from '../../services/logging.service';
+import { LoginConfirmationService } from '../../services/login-confirmation.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
 
 @Component({
@@ -24,6 +25,7 @@ export class LoginComponent implements OnInit {
   private securityService = inject(SecurityService);
   private onboarding = inject(OnboardingService);
   private logger = inject(LoggingService);
+  private loginConfirmation = inject(LoginConfirmationService);
 
   /** True when the active session was issued by the API (skips demo email verification). */
   private usesApiAuth = signal(false);
@@ -115,6 +117,10 @@ export class LoginComponent implements OnInit {
       this.isVerifying.set(true);
       this.isLoading.set(false);
       return;
+    }
+    const currentUser = this.authService.currentUser();
+    if (currentUser) {
+      void this.loginConfirmation.sendLoginConfirmation(currentUser);
     }
     setTimeout(() => {
       void this.navigateAfterAuth();

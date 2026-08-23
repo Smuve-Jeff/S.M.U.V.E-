@@ -75,6 +75,17 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public highDensity = computed(
     () => this.padsCollapsed() && this.inspectorCollapsed()
   );
+  public readonly metronomeEnabled = this.audioEngine.metronomeEnabled;
+  public readonly tempoPresets = [80, 90, 100, 110, 120, 124, 128, 140, 150, 160];
+  public showTempoMenu = signal(false);
+  public tapTempoBuffer = signal<number[]>([]);
+  public tapBpmGuess = computed(() => {
+    const taps = this.tapTempoBuffer();
+    if (taps.length < 2) return null;
+    const intervals = taps.slice(1).map((tap, index) => tap - taps[index]);
+    const average = intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
+    return Math.max(20, Math.min(300, Math.round(60000 / average)));
+  });
 
   public selectedPadSteps = computed(() => {
     const pad = this.selectedPad();
@@ -817,6 +828,42 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   resolveStepIdx(stepIdx: number) {
     return this.highDensity() ? stepIdx : stepIdx + this.currentBar() * 16;
+  }
+
+  togglePlay(): void {
+    this.audioEngine.resume();
+    this.audioSession.togglePlay();
+  }
+
+  toggleMetronome(): void {
+    this.audioEngine.resume();
+    this.audioEngine.toggleMetronome();
+  }
+
+  nudgeTempo(delta: number): void {
+    const next = Math.max(20, Math.min(300, this.audioEngine.tempo() + delta));
+    this.audioEngine.tempo.set(next);
+  }
+
+  setTempo(bpm: number): void {
+    this.audioEngine.tempo.set(bpm);
+    this.showTempoMenu.set(false);
+  }
+
+  tapTempo(): void {
+    const now = performance.now();
+    this.tapTempoBuffer.update((buffer) => {
+      const fresh = buffer.filter((tap) => tap > now - 2500);
+      fresh.push(now);
+      return fresh.slice(-8);
+    });
+    const guess = this.tapBpmGuess();
+    if (guess !== null) {
+      this.audioEngine.tempo.set(guess);
+      this.haptic.light();
+    } else {
+      this.haptic.medium();
+    }
   }
 
   evolveRhythm() {

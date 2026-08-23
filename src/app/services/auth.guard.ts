@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { Router, CanActivateFn } from '@angular/router';
+import { Router, CanActivateFn, CanActivateChildFn } from '@angular/router';
 import { AuthService } from './auth.service';
 
 export const authGuard: CanActivateFn = (route, state) => {
@@ -38,3 +38,6 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   return true;
 };
+
+export const authChildGuard: CanActivateChildFn = (route, state) =>
+  authGuard(route, state);

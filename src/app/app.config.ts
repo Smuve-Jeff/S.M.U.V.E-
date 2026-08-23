@@ -39,11 +39,7 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (logger: LoggingService, injector: Injector) => () => {
         logger.system('S.M.U.V.E 2.0 INITIALIZED');
-        setTimeout(() => {
-          try {
-            injector.get(AuthService).loadSession();
-          } catch (e) {}
-        }, 0);
+        return injector.get(AuthService).loadSession().catch(() => undefined);
       },
       deps: [LoggingService, Injector],
       multi: true,
