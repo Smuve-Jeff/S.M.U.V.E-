@@ -27,7 +27,7 @@ export interface SerializedAudioAsset {
   channelCount: number;
   frameCount: number;
   duration: number;
-  channels: number[][];
+  channels: SerializedAudioChannel[];
 }
 
 export interface ProjectBundle {
@@ -51,6 +51,9 @@ interface StoredProjectBundle extends ProjectBundle {
   savedAt: number;
   source: ProjectPersistenceSource;
 }
+
+type AudioAssetSerializationMode = 'binary' | 'json';
+type SerializedAudioChannel = Float32Array | number[];
 
 @Injectable({ providedIn: 'root' })
 export class ProjectWorkspaceService {
@@ -289,10 +292,10 @@ export class ProjectWorkspaceService {
 
   async autoSave() {
     try {
-      const snapshot = this.createSnapshot();
+      const snapshot = this.createStoredSnapshot();
       const stored = this.toStoredBundle(snapshot, 'autosave');
       await this.storage.saveItem('projects', stored);
-      await this.queueCloudSync(snapshot);
+      await this.queueCurrentSnapshotCloudSync(snapshot.metadata);
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, 'autosave', stored.savedAt);
       this.versionCount.update((v) => v + 1);
@@ -308,7 +311,7 @@ export class ProjectWorkspaceService {
   }
 
   async manualSave(): Promise<ProjectBundle> {
-    const bundle = this.createSnapshot();
+    const bundle = this.createStoredSnapshot();
     try {
       const stored = this.toStoredBundle(bundle, 'manual');
       // Persist the complete bundle locally before attempting any network work.
@@ -318,7 +321,7 @@ export class ProjectWorkspaceService {
         payload: bundle.metadata.id,
         savedAt: stored.savedAt,
       });
-      await this.queueCloudSync(bundle);
+      await this.queueCurrentSnapshotCloudSync(bundle.metadata);
       this.markPersistenceClean(bundle, 'manual', stored.savedAt);
       this.versionCount.update((v) => v + 1);
       this.logger.info('ProjectWorkspace: Saved ' + bundle.metadata.name);
@@ -469,11 +472,24 @@ export class ProjectWorkspaceService {
   // ── Snapshot ───────────────────────────────────────────
 
   createSnapshot(metadata: ProjectMetadata = this.currentSyncedMetadata()): ProjectBundle {
+    return this.buildSnapshot(metadata, 'json');
+  }
+
+  private createStoredSnapshot(
+    metadata: ProjectMetadata = this.currentSyncedMetadata()
+  ): ProjectBundle {
+    return this.buildSnapshot(metadata, 'binary');
+  }
+
+  private buildSnapshot(
+    metadata: ProjectMetadata,
+    audioAssetMode: AudioAssetSerializationMode
+  ): ProjectBundle {
     const meta = {
       ...metadata,
       bpm: metadata.bpm || this.currentTempo() || 120,
     };
-    const { tracks, audioAssets } = this.captureSnapshotTracks();
+    const { tracks, audioAssets } = this.captureSnapshotTracks(audioAssetMode);
 
     return {
       metadata: meta,
@@ -559,7 +575,7 @@ export class ProjectWorkspaceService {
     if (!this.metadata() || this.musicManager.tracks().length === 0) return;
 
     try {
-      const bundle = this.toStoredBundle(this.createSnapshot(), 'recovery');
+      const bundle = this.toStoredBundle(this.createStoredSnapshot(), 'recovery');
       await this.storage.saveItem('projects', bundle);
       await this.storage.saveItem('offline_local_cache', {
         id: 'last_saved_project_id',
@@ -661,7 +677,19 @@ export class ProjectWorkspaceService {
     return 'manual';
   }
 
-  private captureSnapshotTracks(): {
+  private async queueCurrentSnapshotCloudSync(
+    metadata: ProjectMetadata
+  ): Promise<void> {
+    if (!this.auth.currentUser()?.id) {
+      this.cloudSyncQueued.set(false);
+      return;
+    }
+    await this.queueCloudSync(this.createSnapshot(metadata));
+  }
+
+  private captureSnapshotTracks(
+    audioAssetMode: AudioAssetSerializationMode
+  ): {
     tracks: any[];
     audioAssets: SerializedAudioAsset[];
   } {
@@ -690,7 +718,7 @@ export class ProjectWorkspaceService {
                   if (buffer && refId && !audioAssets.has(refId)) {
                     audioAssets.set(
                       refId,
-                      this.serializeAudioAsset(refId, buffer)
+                      this.serializeAudioAsset(refId, buffer, audioAssetMode)
                     );
                   }
                   return persistedClip;
@@ -741,7 +769,8 @@ export class ProjectWorkspaceService {
       sampleRate: number;
       duration: number;
       getChannelData(channel: number): Float32Array;
-    }
+    },
+    audioAssetMode: AudioAssetSerializationMode
   ): SerializedAudioAsset {
     return {
       id,
@@ -750,7 +779,9 @@ export class ProjectWorkspaceService {
       frameCount: buffer.length,
       duration: buffer.duration,
       channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
-        Array.from(buffer.getChannelData(channel))
+        audioAssetMode === 'binary'
+          ? buffer.getChannelData(channel).slice()
+          : Array.from(buffer.getChannelData(channel))
       ),
     };
   }
@@ -766,7 +797,7 @@ export class ProjectWorkspaceService {
     const buffer = ctx.createBuffer(channelCount, frameCount, sampleRate);
     for (let channel = 0; channel < channelCount; channel++) {
       const source = asset.channels?.[channel];
-      if (!Array.isArray(source)) continue;
+      if (!(Array.isArray(source) || source instanceof Float32Array)) continue;
       buffer.copyToChannel(Float32Array.from(source), channel);
     }
     return buffer;

@@ -171,6 +171,37 @@ describe('ProjectWorkspaceService', () => {
     expect(restored[2]).toBeCloseTo(0.25, 5);
   });
 
+  it('stores binary audio channels locally while keeping export snapshots JSON-friendly', async () => {
+    const clipId = 'clip-audio-2';
+    const buffer = createFakeAudioBuffer([[0.15, -0.25, 0.35]]);
+    stemAudioCache.set(clipId, buffer);
+    tracks.set([
+      {
+        id: 'track-audio',
+        type: 'audio',
+        notes: [],
+        clips: [{ id: clipId, type: 'audio', start: 0, length: 1, audioRefId: clipId }],
+      },
+    ]);
+
+    const exportSnapshot = service.createSnapshot();
+    expect(Array.isArray(exportSnapshot.audioAssets?.[0]?.channels?.[0])).toBe(true);
+
+    await service.manualSave();
+
+    const storedBundle = saveItem.mock.calls[0][1];
+    expect(storedBundle.audioAssets?.[0]?.channels?.[0]).toBeInstanceOf(
+      Float32Array
+    );
+
+    stemAudioCache.clear();
+    service.restoreFromSnapshot(storedBundle);
+    const restored = Array.from(stemAudioCache.get(clipId).getChannelData(0));
+    expect(restored[0]).toBeCloseTo(0.15, 5);
+    expect(restored[1]).toBeCloseTo(-0.25, 5);
+    expect(restored[2]).toBeCloseTo(0.35, 5);
+  });
+
   it('persists manual saves locally before returning the bundle', async () => {
     const bundle = await service.manualSave();
 
