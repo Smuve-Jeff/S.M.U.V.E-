@@ -78,15 +78,14 @@
     <script>
       window.env = {
         SESSION_TIMEOUT: 3600000,
-        // Live Render web service (service name "S.M.U.V.E2-0" → default
-        // onrender.com subdomain). The unified server hosts both this Angular
-        // bundle and the Express API on the SAME origin, so API calls are
-        // same-origin and CORS never blocks login. Do not use
-        // smuve-api.onrender.com — that hostname is no longer bound.
-        API_URL: 'https://s-m-u-v-e2-0.onrender.com/api',
-        AUTH_API_URL: 'https://s-m-u-v-e2-0.onrender.com/api',
+        // The unified server hosts this Angular bundle AND the Express API on
+        // the SAME origin, so every endpoint is derived from location.origin at
+        // runtime. This can never point at a dead or renamed hostname, works on
+        // any custom domain, and keeps same-origin calls free of CORS.
+        API_URL: window.location.origin + '/api',
+        AUTH_API_URL: window.location.origin + '/api',
         // Socket.io endpoint (same host as the API, minus /api path).
-        SOCKET_URL: 'https://s-m-u-v-e2-0.onrender.com',
+        SOCKET_URL: window.location.origin,
       };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
