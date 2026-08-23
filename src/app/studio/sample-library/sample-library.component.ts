@@ -523,6 +523,7 @@ export class SampleLibraryComponent implements OnInit {
       this.cardPreviewTimer = null;
     }
     this.longPressSampleId = null;
+    this.suppressCardClickId = null;
   }
 
   private isTouchCardGesture(event: PointerEvent): boolean {

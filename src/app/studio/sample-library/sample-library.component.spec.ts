@@ -182,6 +182,17 @@ describe('SampleLibraryComponent', () => {
     jest.useRealTimers();
   });
 
+  it('does not suppress the next tap after a touch gesture is cancelled', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, 'kick');
+    component.onCardPointerCancel();
+    component.onCardClick({ target: document.createElement('div') } as any, 'kick');
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('trap-kit-elite');
+  });
+
   it('sets drag payload metadata for drag-to-track', () => {
     const setData = jest.fn();
     const dt = {

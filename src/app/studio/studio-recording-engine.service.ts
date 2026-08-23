@@ -299,7 +299,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     }
     const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
     if (framesToTrim >= totalLength) {
-      return chunks;
+      return [];
     }
     const trimmed: Float32Array[] = [];
     let remaining = framesToTrim;

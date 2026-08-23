@@ -269,19 +269,22 @@ export class AudioEngineLatencyService {
     }
     const frameCount = Math.max(...channels.map((channel) => channel.length));
     if (framesToTrim >= frameCount) {
-      return channels.map((channel) => channel.slice());
+      return channels.map(() => new Float32Array(0));
     }
     return channels.map((channel) => channel.subarray(framesToTrim).slice());
   }
 
   trimAudioBuffer(buffer: AudioBuffer): AudioBuffer {
     const framesToTrim = this.compensationFrames(buffer.sampleRate);
-    if (framesToTrim <= 0 || framesToTrim >= buffer.length) {
+    if (framesToTrim <= 0) {
       return buffer;
     }
     const createBuffer = this.engine?.ctx?.createBuffer?.bind(this.engine.ctx);
     if (!createBuffer) {
       return buffer;
+    }
+    if (framesToTrim >= buffer.length) {
+      return createBuffer(buffer.numberOfChannels, 1, buffer.sampleRate);
     }
     const nextLength = Math.max(1, buffer.length - framesToTrim);
     const trimmed = createBuffer(

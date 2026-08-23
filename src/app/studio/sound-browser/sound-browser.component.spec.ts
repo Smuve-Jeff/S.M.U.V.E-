@@ -200,6 +200,17 @@ describe('SoundBrowserComponent', () => {
     jest.useRealTimers();
   });
 
+  it('does not suppress the next tap after a touch gesture is cancelled', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[0]);
+    component.onCardPointerCancel();
+    component.onCardClick({ target: document.createElement('div') } as any, presets[0]);
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('deep-bass');
+  });
+
   it('toggles a preset favorite and records usage', () => {
     component.toggleFavorite('deep-bass');
     expect(mockSmartSound.toggleFavorite).toHaveBeenCalledWith('deep-bass');

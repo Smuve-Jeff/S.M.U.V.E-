@@ -238,6 +238,7 @@ export class SoundBrowserComponent {
       this.cardPreviewTimer = null;
     }
     this.longPressPresetId = null;
+    this.suppressCardClickId = null;
   }
 
   private isTouchCardGesture(event: PointerEvent): boolean {
