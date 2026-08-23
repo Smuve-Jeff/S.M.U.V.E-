@@ -285,26 +285,11 @@ export class AppComponent implements ErrorHandler {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => {
-        void this.dialog
-          .confirm({
-            title: 'Update Ready',
-            message:
-              'A new version of S.M.U.V.E. is available. Refresh now to load the latest workspace updates?',
-            confirmLabel: 'Refresh now',
-            cancelLabel: 'Later',
-          })
-          .then((shouldRefresh) => {
-            if (shouldRefresh) {
-              window.location.reload();
-              return;
-            }
-
-            this.notificationService.show(
-              'Update staged. Refresh when ready.',
-              'info',
-              8000
-            );
-          });
+        // Activate the new service worker immediately and reload.
+        // No dialog — returning users always get the latest build.
+        this.swUpdate!.activateUpdate().then(() => {
+          window.location.reload();
+        });
       });
   }
 
