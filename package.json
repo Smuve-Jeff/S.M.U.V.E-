@@ -11,6 +11,7 @@
     "typecheck:server": "tsc --noEmit -p tsconfig.server.json",
     "build:server": "tsc -p tsconfig.server.json && tsc-alias -p tsconfig.server.json && node scripts/write-server-package.mjs",
     "start:server": "node Build/api/index.js",
+    "start:unified": "node Build/api/server.js",
     "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
     "test": "jest",

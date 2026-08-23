@@ -78,13 +78,15 @@
     <script>
       window.env = {
         SESSION_TIMEOUT: 3600000,
-        // Live API base URL via Render (smuve-api.onrender.com).
-        // See render.yaml for the blueprint; CLOUDFLARE_TUNNEL.md for the
-        // Cloudflare tunnel access-control layer.
-        API_URL: 'https://smuve-api.onrender.com/api',
-        AUTH_API_URL: 'https://smuve-api.onrender.com/api',
+        // Live Render web service (service name "S.M.U.V.E2-0" → default
+        // onrender.com subdomain). The unified server hosts both this Angular
+        // bundle and the Express API on the SAME origin, so API calls are
+        // same-origin and CORS never blocks login. Do not use
+        // smuve-api.onrender.com — that hostname is no longer bound.
+        API_URL: 'https://s-m-u-v-e2-0.onrender.com/api',
+        AUTH_API_URL: 'https://s-m-u-v-e2-0.onrender.com/api',
         // Socket.io endpoint (same host as the API, minus /api path).
-        SOCKET_URL: 'https://smuve-api.onrender.com',
+        SOCKET_URL: 'https://s-m-u-v-e2-0.onrender.com',
       };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
