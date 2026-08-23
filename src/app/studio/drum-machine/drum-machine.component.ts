@@ -78,7 +78,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public readonly metronomeEnabled = this.audioEngine.metronomeEnabled;
   public readonly tempoPresets = [80, 90, 100, 110, 120, 124, 128, 140, 150, 160];
   public showTempoMenu = signal(false);
-  public tapTempoBuffer = signal<number[]>([]);
+  private readonly tapTempoBuffer = signal<number[]>([]);
   public tapBpmGuess = computed(() => {
     const taps = this.tapTempoBuffer();
     if (taps.length < 2) return null;
