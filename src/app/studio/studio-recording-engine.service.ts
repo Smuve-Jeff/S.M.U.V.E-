@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, OnDestroy } from '@angular/core';
 import { LoggingService } from '../services/logging.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 import { LocalStorageService } from '../services/local-storage.service';
 import { WavEncoder } from './wav-encoder.util';
 import { Subject } from 'rxjs';
@@ -21,6 +22,7 @@ export interface RecordingMetadata {
 export class StudioRecordingEngineService implements OnDestroy {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
+  private latency = inject(AudioEngineLatencyService);
   private localStorage = inject(LocalStorageService);
 
   isInitialized = signal(false);
@@ -213,13 +215,15 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.workletNode?.disconnect();
 
     const sampleRate = this.audioEngine.ctx.sampleRate;
-    let channels = this.joinChannels(this.leftChannel, this.rightChannel);
+    const recorded = this.getRecordedBuffers();
+    let channels = this.joinChannels(recorded.left, recorded.right);
     // A user can stop before the first render quantum arrives. Keep that
     // zero-duration take exportable as a valid (silent) WAV instead of
     // throwing from the channel validator.
     if (channels[0].length === 0) {
       channels = [new Float32Array(1), new Float32Array(1)];
     }
+    this.recordingTime.set(channels[0].length / sampleRate);
     const wavBlob = WavEncoder.encodeMultiChannel(channels, 'wav-16', sampleRate);
     this.recordedBlob.set(wavBlob);
 
@@ -228,7 +232,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       id,
       name: `Studio Session ${new Date().toLocaleTimeString()}`,
       timestamp: Date.now(),
-      duration: this.recordingTime(),
+      duration: channels[0].length / sampleRate,
       format: 'wav',
       bitDepth: 16,
       sampleRate,
@@ -247,8 +251,25 @@ export class StudioRecordingEngineService implements OnDestroy {
   }
 
   /** Return the current left/right channel buffers for SmartRecordingService to pull real comp takes */
-  getRecordedBuffers(): { left: Float32Array[]; right: Float32Array[] } {
-    return { left: this.leftChannel, right: this.rightChannel };
+  getRecordedBuffers(
+    applyCompensation: boolean = true
+  ): { left: Float32Array[]; right: Float32Array[] } {
+    const left = this.leftChannel.map((chunk) => chunk.slice());
+    const right = this.rightChannel.map((chunk) => chunk.slice());
+    if (!applyCompensation) {
+      return { left, right };
+    }
+    const framesToTrim = Math.max(
+      0,
+      Math.round(
+        (this.latency.getAppliedCompensationMs() / 1000) *
+          this.audioEngine.ctx.sampleRate
+      )
+    );
+    return {
+      left: this.trimChunkList(left, framesToTrim),
+      right: this.trimChunkList(right, framesToTrim),
+    };
   }
 
   private joinChannels(
@@ -267,6 +288,34 @@ export class StudioRecordingEngineService implements OnDestroy {
       offset += leftChunk.length;
     }
     return [leftChannel, rightChannel];
+  }
+
+  private trimChunkList(
+    chunks: Float32Array[],
+    framesToTrim: number
+  ): Float32Array[] {
+    if (framesToTrim <= 0 || chunks.length === 0) {
+      return chunks;
+    }
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    if (framesToTrim >= totalLength) {
+      return chunks;
+    }
+    const trimmed: Float32Array[] = [];
+    let remaining = framesToTrim;
+    for (const chunk of chunks) {
+      if (remaining >= chunk.length) {
+        remaining -= chunk.length;
+        continue;
+      }
+      if (remaining > 0) {
+        trimmed.push(chunk.subarray(remaining).slice());
+        remaining = 0;
+        continue;
+      }
+      trimmed.push(chunk);
+    }
+    return trimmed;
   }
 
   private startLevelMonitoring() {

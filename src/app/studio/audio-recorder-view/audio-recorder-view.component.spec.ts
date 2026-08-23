@@ -6,6 +6,7 @@ import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
@@ -68,6 +69,10 @@ describe('AudioRecorderViewComponent', () => {
         { provide: SnackbarService, useValue: mockSnackbar },
         { provide: LoggingService, useValue: mockLogger },
         { provide: AudioEngineService, useValue: mockAudioEngine },
+        {
+          provide: AudioEngineLatencyService,
+          useValue: { trimAudioBuffer: jest.fn((buffer: AudioBuffer) => buffer) },
+        },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: InteractionDialogService, useValue: mockDialog },
       ],

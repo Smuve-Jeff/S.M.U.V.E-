@@ -172,6 +172,33 @@ describe('SoundBrowserComponent', () => {
     jest.useRealTimers();
   });
 
+  it('selects a touch card once and suppresses the synthetic click', () => {
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[0]);
+    component.onCardPointerUp(event, presets[0]);
+    component.onCardClick({ target: document.createElement('div') } as any, presets[0]);
+
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledTimes(1);
+    expect(mockMusicManager.ensureTrack).toHaveBeenCalledWith('deep-bass');
+  });
+
+  it('uses long-press on touch cards to preview instead of selecting', async () => {
+    jest.useFakeTimers();
+    const event = { pointerType: 'touch', target: document.createElement('div') } as any;
+
+    component.onCardPointerDown(event, presets[1]);
+    jest.advanceTimersByTime(450);
+    await Promise.resolve();
+    component.onCardPointerUp(event, presets[1]);
+    component.onCardClick({ target: document.createElement('div') } as any, presets[1]);
+
+    expect(mockInstruments.audition).toHaveBeenCalledWith('saw-lead');
+    expect(mockMusicManager.ensureTrack).not.toHaveBeenCalled();
+    expect(mockMusicManager.setInstrument).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
   it('toggles a preset favorite and records usage', () => {
     component.toggleFavorite('deep-bass');
     expect(mockSmartSound.toggleFavorite).toHaveBeenCalledWith('deep-bass');

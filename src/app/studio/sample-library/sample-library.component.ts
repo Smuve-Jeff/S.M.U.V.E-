@@ -22,6 +22,8 @@ interface LibraryCategory {
   styleUrls: ['./sample-library.component.css'],
 })
 export class SampleLibraryComponent implements OnInit {
+  private static readonly TOUCH_HOLD_MS = 420;
+
   private recorder = inject(AudioRecorderService);
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
@@ -271,6 +273,9 @@ export class SampleLibraryComponent implements OnInit {
 
   previewingId = signal<string | null>(null);
   dragSampleId = signal<string | null>(null);
+  private cardPreviewTimer: ReturnType<typeof setTimeout> | null = null;
+  private longPressSampleId: string | null = null;
+  private suppressCardClickId: string | null = null;
 
   ngOnInit(): void {
     // Touch recorder to pull any offline takes metadata on mount
@@ -298,6 +303,39 @@ export class SampleLibraryComponent implements OnInit {
 
   onDragEnd(): void {
     this.dragSampleId.set(null);
+  }
+
+  onCardPointerDown(event: PointerEvent, sampleId: string): void {
+    if (!this.isTouchCardGesture(event)) return;
+    this.clearCardPressState();
+    this.cardPreviewTimer = setTimeout(() => {
+      this.longPressSampleId = sampleId;
+      this.suppressCardClickId = sampleId;
+      void this.previewSample(sampleId);
+    }, SampleLibraryComponent.TOUCH_HOLD_MS);
+  }
+
+  onCardPointerUp(event: PointerEvent, sampleId: string): void {
+    if (!this.isTouchCardGesture(event)) return;
+    const wasLongPress = this.longPressSampleId === sampleId;
+    this.clearCardPressState();
+    this.suppressCardClickId = sampleId;
+    if (!wasLongPress) {
+      this.loadSample(sampleId);
+    }
+  }
+
+  onCardPointerCancel(): void {
+    this.clearCardPressState();
+  }
+
+  onCardClick(event: Event, sampleId: string): void {
+    if (this.isInteractiveTarget(event.target)) return;
+    if (this.suppressCardClickId === sampleId) {
+      this.suppressCardClickId = null;
+      return;
+    }
+    this.loadSample(sampleId);
   }
 
   toggleTag(tag: string): void {
@@ -477,5 +515,23 @@ export class SampleLibraryComponent implements OnInit {
     if (cat === 'vfx') {
       osc.frequency.exponentialRampToValueAtTime(freq * 0.25, now + dur);
     }
+  }
+
+  private clearCardPressState(): void {
+    if (this.cardPreviewTimer) {
+      clearTimeout(this.cardPreviewTimer);
+      this.cardPreviewTimer = null;
+    }
+    this.longPressSampleId = null;
+  }
+
+  private isTouchCardGesture(event: PointerEvent): boolean {
+    return event.pointerType !== 'mouse' && !this.isInteractiveTarget(event.target);
+  }
+
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof Element
+      ? !!target.closest('button,input,select,textarea,a')
+      : false;
   }
 }

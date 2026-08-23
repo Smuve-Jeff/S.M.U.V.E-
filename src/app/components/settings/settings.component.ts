@@ -18,6 +18,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { PermissionService } from '../../services/permission.service';
 import { HardwareService } from '../../services/hardware.service';
 import { LocalStorageService } from '../../services/local-storage.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 
 @Component({
   selector: 'app-settings',
@@ -38,8 +39,10 @@ export class SettingsComponent implements OnInit {
   hardwareService = inject(HardwareService);
   localStorageService = inject(LocalStorageService);
   databaseService = inject(DatabaseService);
+  audioLatency = inject(AudioEngineLatencyService);
   dialog = inject(InteractionDialogService);
   showHowTo = signal(false);
+  latencyCalibrationRunning = signal(false);
 
   settings = computed(() => {
     return this.withSettingsDefaults(this.profileService.profile().settings);
@@ -214,6 +217,27 @@ export class SettingsComponent implements OnInit {
 
   setOutputMode(mode: 'speakers' | 'headphones') {
     this.audioEngine.setOutputMode(mode);
+  }
+
+  async calibrateLatencyCompensation() {
+    if (this.latencyCalibrationRunning()) return;
+    this.latencyCalibrationRunning.set(true);
+    try {
+      const calibration = await this.audioLatency.calibrateFromCurrentDevice(1);
+      this.updateSetting(
+        'studio',
+        'latencyCompensation',
+        calibration.recommendedCompensationMs
+      );
+      this.notificationService.show(
+        `Latency calibrated to ${calibration.recommendedCompensationMs} ms.`,
+        'success'
+      );
+    } catch {
+      this.notificationService.show('Latency calibration failed.', 'error');
+    } finally {
+      this.latencyCalibrationRunning.set(false);
+    }
   }
 
   updateSetting(category: keyof AppSettings, key: string, value: any) {

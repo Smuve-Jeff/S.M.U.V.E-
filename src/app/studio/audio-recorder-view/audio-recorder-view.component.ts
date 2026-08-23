@@ -18,6 +18,7 @@ import { LoggingService } from '../../services/logging.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 
 interface RecordingListEntry {
   id: string;
@@ -42,6 +43,7 @@ export class AudioRecorderViewComponent
   private snackbar = inject(SnackbarService);
   private logger = inject(LoggingService);
   private dialog = inject(InteractionDialogService);
+  private engineLatency = inject(AudioEngineLatencyService);
 
   @ViewChild('waveformCanvas')
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -132,13 +134,15 @@ export class AudioRecorderViewComponent
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer =
         await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      const compensatedBuffer =
+        this.engineLatency.trimAudioBuffer(audioBuffer);
       // Create a new audio track in the music manager
       const trackName = rec.name || `Take ${rec.id.slice(-4)}`;
       this.musicManager.addAudioTrack({
         id: 'audio_' + Date.now(),
         name: trackName,
         color: '#E11D48',
-        buffer: audioBuffer,
+        buffer: compensatedBuffer,
         offset: 0,
       });
       this.snackbar.success(`"${trackName}" added to arrangement`);

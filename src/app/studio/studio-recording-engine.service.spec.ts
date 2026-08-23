@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
 import { AudioEngineService } from '../services/audio-engine.service';
+import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 import { LoggingService } from '../services/logging.service';
 import { LocalStorageService } from '../services/local-storage.service';
 
@@ -51,6 +52,7 @@ describe('StudioRecordingEngineService', () => {
       providers: [
         StudioRecordingEngineService,
         { provide: AudioEngineService, useValue: { ctx: audioCtxMock } },
+        { provide: AudioEngineLatencyService, useValue: { getAppliedCompensationMs: () => 0 } },
         { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } },
         { provide: LocalStorageService, useValue: { saveItem: jest.fn(), getItem: jest.fn() } },
       ],

@@ -1,7 +1,9 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineLatencyService } from './audio-engine-latency.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
+import { UserProfileService } from './user-profile.service';
 
 class StubEngine {
   ctx = {
@@ -135,5 +137,30 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
     expect(m.sampleRateHz).toBe(48000);
     expect(Array.isArray([])).toBe(true); // sanity
     expect(typeof m.totalLatencyMs).toBe('number');
+  });
+
+  it('reads applied compensation from profile settings and trims recorded channels', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        AudioEngineLatencyService,
+        { provide: AudioEngineService, useValue: new StubEngine() },
+        { provide: LoggingService, useValue: new StubLogger() },
+        {
+          provide: UserProfileService,
+          useValue: {
+            profile: signal({
+              settings: { studio: { latencyCompensation: 20 } },
+            }),
+          },
+        },
+      ],
+    });
+    sut = TestBed.inject(AudioEngineLatencyService);
+
+    const trimmed = sut.trimChannels([Float32Array.from([1, 2, 3, 4])], 100);
+
+    expect(sut.getAppliedCompensationMs()).toBe(20);
+    expect(Array.from(trimmed[0])).toEqual([3, 4]);
   });
 });

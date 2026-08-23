@@ -78,6 +78,11 @@
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave()"
     (drop)="onDrop($event)"
+    (click)="importSample()"
+    (keydown)="onDropZoneKeydown($event)"
+    tabindex="0"
+    role="button"
+    aria-label="Import audio into sampler"
   >
     <span class="material-symbols-outlined">cloud_upload</span>
     <span>Drop audio files here or click Import</span>
@@ -113,10 +118,11 @@
           class="sampler-key"
           [class.sampler-key-selected]="selectedPitch() === z.pitch"
           [class.sampler-key-active]="selectedPitch() === z.pitch"
-          (mousedown)="playNote(z.pitch)"
-          (mouseup)="stopNote(z.pitch)"
-          (mouseleave)="stopNote(z.pitch)"
-          (click)="selectZone(z.pitch)"
+          (pointerdown)="onZonePointerDown($event, z.pitch)"
+          (pointerup)="onZonePointerUp(z.pitch)"
+          (pointercancel)="onZonePointerCancel(z.pitch)"
+          (pointerleave)="onZonePointerCancel(z.pitch)"
+          (click)="onZoneClick(z.pitch)"
           [title]="z.noteName + ' (' + z.sampleCount + ' samples)'"
         >
           <span class="sampler-key-note">{{ z.noteName }}</span>

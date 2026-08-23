@@ -136,6 +136,22 @@ describe('SamplerComponent', () => {
     expect(hapticMock.light).toHaveBeenCalled();
   });
 
+  it('should use pointer interactions for sampler keys', () => {
+    const samplerMock = {
+      play: jest.fn(),
+      stop: jest.fn(),
+    };
+    (component as any).sampler = samplerMock;
+
+    component.onZonePointerDown({ pointerType: 'touch', button: 0 } as any, 60);
+    component.onZonePointerUp(60);
+    component.onZoneClick(60);
+
+    expect(component.selectedPitch()).toBe(60);
+    expect(samplerMock.play).toHaveBeenCalledWith(60, 0.8);
+    expect(samplerMock.stop).toHaveBeenCalledWith(60);
+  });
+
   it('should start with stretch controls at defaults', () => {
     expect(component.stretchSemitones()).toBe(0);
     expect(component.stretchSourceBpm()).toBe(120);

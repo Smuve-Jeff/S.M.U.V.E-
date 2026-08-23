@@ -1,6 +1,7 @@
 import { Injectable, signal, inject, computed } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
+import { UserProfileService } from './user-profile.service';
 
 /**
  * Sprint C1 — Engine latency profile + on-demand audit.
@@ -52,19 +53,37 @@ export interface ProfileSummary {
   recommendations: string[];
 }
 
+export interface LatencyCalibrationResult {
+  measuredLatencyMs: number;
+  recommendedCompensationMs: number;
+  benchmarkSpeedRatio: number;
+  capturedAt: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AudioEngineLatencyService {
   private engine = inject(AudioEngineService);
   private logger = inject(LoggingService);
+  private userProfile = inject(UserProfileService, { optional: true });
 
   /** Latest live snapshot derived from the engine surface. */
   readonly snapshot = signal<LatencySnapshot>(this.captureSnapshot());
   /** Last up-to-10 offline render benchmarks. */
   readonly recentBenchmarks = signal<BenchmarkResult[]>([]);
+  /** Most recent per-device calibration run. */
+  readonly lastCalibration = signal<LatencyCalibrationResult | null>(null);
   /** Latest full profile summary — recomputed on demand. */
   readonly profileSummary = computed<ProfileSummary>(() =>
     this.buildSummary()
   );
+  /** Active record-offset compensation pulled from profile settings. */
+  readonly appliedCompensationMs = computed(() => {
+    const raw =
+      this.userProfile?.profile()?.settings?.studio?.latencyCompensation ?? 0;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.round(parsed));
+  });
 
   constructor() {
     // Cheap signal refresh every time the engine's profile-relevant
@@ -206,6 +225,60 @@ export class AudioEngineLatencyService {
     return this.snapshot();
   }
 
+  getAppliedCompensationMs(): number {
+    return this.appliedCompensationMs();
+  }
+
+  async calibrateFromCurrentDevice(
+    durationSec: number = 1
+  ): Promise<LatencyCalibrationResult> {
+    const snap = this.captureSnapshot();
+    const bench = await this.runOfflineBenchmark(durationSec);
+    const result: LatencyCalibrationResult = {
+      measuredLatencyMs: Math.max(0, Math.round(snap.totalLatencyMs || 0)),
+      recommendedCompensationMs: Math.max(
+        0,
+        Math.round(snap.totalLatencyMs || 0)
+      ),
+      benchmarkSpeedRatio: bench.speedRatio,
+      capturedAt: Date.now(),
+    };
+    this.lastCalibration.set(result);
+    return result;
+  }
+
+  trimChannels(channels: Float32Array[], sampleRate: number): Float32Array[] {
+    const framesToTrim = this.compensationFrames(sampleRate);
+    if (framesToTrim <= 0 || channels.length === 0) {
+      return channels.map((channel) => channel.slice());
+    }
+    const frameCount = Math.max(...channels.map((channel) => channel.length));
+    if (framesToTrim >= frameCount) {
+      return channels.map((channel) => channel.slice());
+    }
+    return channels.map((channel) => channel.subarray(framesToTrim).slice());
+  }
+
+  trimAudioBuffer(buffer: AudioBuffer): AudioBuffer {
+    const framesToTrim = this.compensationFrames(buffer.sampleRate);
+    if (framesToTrim <= 0 || framesToTrim >= buffer.length) {
+      return buffer;
+    }
+    const nextLength = Math.max(1, buffer.length - framesToTrim);
+    const trimmed = this.engine.ctx.createBuffer(
+      buffer.numberOfChannels,
+      nextLength,
+      buffer.sampleRate
+    );
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      trimmed.copyToChannel(
+        buffer.getChannelData(channel).subarray(framesToTrim),
+        channel
+      );
+    }
+    return trimmed;
+  }
+
   /**
    * Build a human-readable profile summary, including actionable
    * recommendations keyed off the live snapshot + benchmark history.
@@ -250,10 +323,24 @@ export class AudioEngineLatencyService {
         `Master worklet is off — the limiter/audio chain is on the main thread.`
       );
     }
+    if (this.appliedCompensationMs() > 0) {
+      recommendations.push(
+        `Record compensation is active at ${this.appliedCompensationMs()} ms for this device.`
+      );
+    }
     return {
       snapshot: snap,
       recentBenchmarks: bench,
       recommendations,
     };
+  }
+
+  private compensationFrames(sampleRate: number): number {
+    const sr = Number(sampleRate) || 0;
+    if (sr <= 0) return 0;
+    return Math.max(
+      0,
+      Math.round((this.appliedCompensationMs() / 1000) * sr)
+    );
   }
 }
