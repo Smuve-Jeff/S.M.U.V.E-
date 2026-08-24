@@ -2832,12 +2832,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private isRetroEmbedCabinetUrl(url: string): boolean {
     if (!url) return false;
+    if (!/^https?:\/\//i.test(url)) return false;
     try {
-      const parsed = new URL(url, window.location.origin);
+      const parsed = new URL(url);
       const host = parsed.hostname.toLowerCase();
+      const path = parsed.pathname.toLowerCase();
       return (
         (host === 'retrogames.cc' || host === 'www.retrogames.cc') &&
-        /^\/embed\/\d+-.+\.html$/i.test(parsed.pathname)
+        /^\/embed\/\d+-.+\.html$/.test(path)
       );
     } catch {
       return false;
@@ -2858,10 +2860,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // Legacy feed records often mark RetroGames /embed/ cabinets as
     // external-only even though those endpoints are embeddable. Keep those
     // cabinets inline so launch opens gameplay instead of redirecting out.
-    if (
-      game.launchConfig?.embedMode === 'external-only' &&
-      !this.isRetroEmbedCabinetUrl(url)
-    ) {
+    if (game.launchConfig?.embedMode === 'external-only') {
+      if (this.isRetroEmbedCabinetUrl(url)) return 'inline';
       return 'external';
     }
     if (this.isEmbedBlockedUrl(url)) return 'external';
