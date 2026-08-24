@@ -2828,16 +2828,42 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * True when the URL is a direct RetroGames embed cabinet.
+   */
+  private isRetroEmbedCabinetUrl(url: string): boolean {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      const host = parsed.hostname.toLowerCase();
+      return (
+        (host === 'retrogames.cc' || host === 'www.retrogames.cc') &&
+        /^\/embed\/\d+-.+\.html$/i.test(parsed.pathname)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Determine the effective launch mode for a game.
-   * - 'external-only' from config always opens in a new tab.
+   * - 'external-only' from config opens externally except direct
+   *   retrogames.cc /embed/ cabinets (legacy records that are safe inline).
    * - Known X-Frame/CSP blocking domains fall back to external.
    * - Hosts outside the trusted embed allowlist fall back to external (they
    *   can't be rendered in the sandboxed iframe anyway).
    * - Everything else attempts inline iframe launch.
    */
   resolveLaunchMode(game: Game): 'inline' | 'external' {
-    if (game.launchConfig?.embedMode === 'external-only') return 'external';
     const url = game.launchConfig?.approvedEmbedUrl || game.url;
+    // Legacy feed records often mark RetroGames /embed/ cabinets as
+    // external-only even though those endpoints are embeddable. Keep those
+    // cabinets inline so launch opens gameplay instead of redirecting out.
+    if (
+      game.launchConfig?.embedMode === 'external-only' &&
+      !this.isRetroEmbedCabinetUrl(url)
+    ) {
+      return 'external';
+    }
     if (this.isEmbedBlockedUrl(url)) return 'external';
     // Anything outside the trusted embed allowlist cannot be rendered in the
     // iframe (getSafeUrl would reject it), so route it to an external tab
@@ -2975,7 +3001,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private resolveLaunchWarning(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only'
+    return this.resolveLaunchMode(game) === 'external'
       ? 'External governance required.'
       : 'Verified.';
   }
@@ -3003,7 +3029,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   launchActionLabel(game: Game): string {
-    return game.launchConfig?.embedMode === 'external-only'
+    return this.resolveLaunchMode(game) === 'external'
       ? 'LAUNCH MISSION'
       : 'PLAY NOW';
   }

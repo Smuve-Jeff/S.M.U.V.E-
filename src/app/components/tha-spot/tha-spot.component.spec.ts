@@ -281,7 +281,7 @@ describe('ThaSpotComponent', () => {
     ).toBe(true);
   });
 
-  it('routes untrusted and X-Frame-blocked embed hosts to external launch', () => {
+  it('routes untrusted and X-Frame-blocked hosts externally while keeping RetroGames cabinets inline', () => {
     const untrusted = component.resolveLaunchMode({
       id: 'x',
       url: 'https://untrusted.example/game',
@@ -316,6 +316,27 @@ describe('ThaSpotComponent', () => {
       },
     } as any);
     expect(retro).toBe('inline');
+
+    const retroExternalOnly = component.resolveLaunchMode({
+      id: 'z2',
+      url: 'https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html',
+      launchConfig: {
+        embedMode: 'external-only',
+        approvedEmbedUrl:
+          'https://www.retrogames.cc/embed/3654-super-mario-bros-nes.html',
+      },
+    } as any);
+    expect(retroExternalOnly).toBe('inline');
+
+    const forcedExternal = component.resolveLaunchMode({
+      id: 'z3',
+      url: 'https://poki.com/en/g/subway-surfers',
+      launchConfig: {
+        embedMode: 'external-only',
+        approvedExternalUrl: 'https://poki.com/en/g/subway-surfers',
+      },
+    } as any);
+    expect(forcedExternal).toBe('external');
   });
 
   it('ignores game messages from untrusted origins', () => {
