@@ -186,127 +186,30 @@ function normalizeCatalogImage(val: any): string {
  * remote feed ships a marketing alias instead of the upstream title.
  */
 const CANONICAL_GAME_TITLES: Record<string, string> = {
-  battlefield: 'Tha Battlefield',
-  'rail-surfers': 'Temple Run 2',
   'tactical-squad': 'Special Strike: Operations',
-  'dungeon-fury': 'Dungeon Field',
-  'cyber-adventure': 'Cyber Cars Punk Racing',
   'sniper-mission': 'Sniper Clash 3D',
   'arena-clash': 'Clash of Armour',
-  'tag-team-titans': 'Teen Titans Go! Jump Jousts',
   'mythic-raid-online': 'Raid Heroes: Total War',
-  'legends-of-the-rift': 'Hero Tower Wars',
-  'sonic-racing': 'Team Sonic Racing',
-  doom: 'DOOM',
-  'gta-elite-wasm': 'Grand Theft Auto',
-  'halo-combat-evolved': 'Halo: Combat Evolved',
-  'gta-san-andreas-elite': 'Grand Theft Auto: San Andreas',
-  'final-fantasy-vi-elite-master': 'Final Fantasy VI',
 };
 
 /** Canonical launch targets for records whose feed IDs historically drifted. */
 const CANONICAL_GAME_URLS: Record<string, string> = {
-  'rail-surfers': 'https://www.gamepix.com/play/temple-run-2',
   'tactical-squad': 'https://www.gamepix.com/play/special-strike-operations',
-  'dungeon-fury': 'https://www.gamepix.com/play/dungeon-field',
-  'cyber-adventure': 'https://www.gamepix.com/play/cyber-cars-punk-racing',
   'sniper-mission': 'https://www.gamepix.com/play/sniper-clash-3d',
   'arena-clash': 'https://www.gamepix.com/play/clash-of-armour',
-  'tag-team-titans': 'https://www.gamepix.com/play/teen-titans-go-jump-jousts',
   'mythic-raid-online': 'https://www.gamepix.com/play/raid-heroes-total-war',
-  'legends-of-the-rift': 'https://www.gamepix.com/play/hero-tower-wars',
-  'sonic-racing': 'https://www.gamepix.com/play/sonic-racing',
-  doom: 'https://www.retrogames.cc/embed/5540-doom-dos.html',
-  'gta-elite-wasm': 'https://www.retrogames.cc/embed/41727-grand-theft-auto.html',
   'halo-combat-evolved': '/assets/games/halo-ce-web/halo-ce-web.html',
-  'gta-san-andreas-elite':
-    'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
-  'final-fantasy-vi-elite-master':
-    'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html',
-  'mgs3-snake-eater-ps2-elite':
-    'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html',
-  'umk3-elite-master':
-    'https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html',
-  'contra-iii-elite-master':
-    'https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html',
-  'metroid-fusion-gba-elite':
-    'https://www.retrogames.cc/embed/40253-metroid-fusion-usa.html',
-  'excitebike-64-elite':
-    'https://www.retrogames.cc/embed/32217-excitebike-64-usa.html',
-  // Sports catalog repairs: retrogames.cc embed IDs are authoritative; the
-  // decorative slug in the old feed pointed at unrelated cabinets.
-  'league-bowling':
-    'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
-  'track-and-field-nes':
-    'https://www.retrogames.cc/embed/19249-track-field-usa.html',
-  'madden-nfl-2000-elite':
-    'https://www.retrogames.cc/embed/32551-madden-nfl-2000-usa.html',
-  'thps2-ps1-elite':
-    'https://www.retrogames.cc/embed/42153-tony-hawks-pro-skater-2.html',
-  'tony-hawk-2-master-elite-master':
-    'https://www.retrogames.cc/embed/42153-tony-hawks-pro-skater-2.html',
-  'thps4-elite':
-    'https://www.retrogames.cc/embed/42359-tony-hawks-pro-skater-4.html',
-  'tony-hawk-3-elite-master':
-    'https://www.retrogames.cc/embed/42331-tony-hawks-pro-skater-3.html',
-  'fifa-2005-elite':
-    'https://www.retrogames.cc/embed/28105-fifa-2005-u-venom.html',
-  'ssx-tricky-elite':
-    'https://www.retrogames.cc/embed/26496-ssx-tricky-u-mode7.html',
-  'tiger-woods-2004-elite':
-    'https://www.retrogames.cc/embed/29409-tiger-woods-pga-tour-2004-u-eurasia.html',
-  'tecmo-bowl-elite':
-    'https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html',
-  'tecmo-bowl-classic':
-    'https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html',
-  'nba-jam-elite':
-    'https://www.retrogames.cc/embed/23562-nba-jam-usa.html',
-  'nba-live-2000-elite':
-    'https://www.retrogames.cc/embed/32503-nba-live-2000-usa-en-fr-de-es.html',
-  '10-yard-fight-classic-elite':
-    'https://www.retrogames.cc/embed/22294-10-yard-fight-usa-europe.html',
-  'punch-out-classic':
-    'https://www.retrogames.cc/embed/19272-mike-tyson-s-punch-out-usa.html',
-  'nba-hangtime-elite-master':
-    'https://www.retrogames.cc/embed/32691-nba-hangtime-usa.html',
-  'nfl-blitz-elite-master':
-    'https://www.retrogames.cc/embed/32827-nfl-blitz-usa.html',
-  'wave-race-64-elite-master':
-    'https://www.retrogames.cc/embed/32409-wave-race-64-usa.html',
-  '1080-snowboarding-elite-master':
-    'https://www.retrogames.cc/embed/32245-1080-teneighty-snowboarding-japan-usa-en-ja.html',
-  'windjammers-arcade-elite':
-    'https://www.retrogames.cc/embed/10668-windjammers-flying-power-disc.html',
-  'punch-out-nes-classic':
-    'https://www.retrogames.cc/embed/20466-punch-out-usa.html',
-  'ice-hockey-nes-elite':
-    'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html',
-  // Classic franchise cabinets: gamepix hosts fan remakes, so the display
-  // URL points at the authentic retrogames.cc cabinet.
-  'pac-man-elite': 'https://www.retrogames.cc/embed/10002-pac-man-midway.html',
-  'galaga-classic': 'https://www.retrogames.cc/embed/10052-galaga-namco.html',
-  'frogger-arcade': 'https://www.retrogames.cc/embed/10129-frogger.html',
-  'asteroids-arcade': 'https://www.retrogames.cc/embed/10007-asteroids-rev-4.html',
-  'gradius-arcade-elite': 'https://www.retrogames.cc/embed/14861-gradius.html',
-  'metal-slug-2-arcade-elite':
-    'https://www.retrogames.cc/embed/14871-metal-slug-2.html',
+  'final-fantasy-vi-elite-master': 'https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html',
+  'league-bowling': 'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html',
+  'fifa-2005-elite': 'https://www.retrogames.cc/embed/28105-fifa-2005-u-venom.html',
+  'ssx-tricky-elite': 'https://www.retrogames.cc/embed/26496-ssx-tricky-u-mode7.html',
+  'tiger-woods-2004-elite': 'https://www.retrogames.cc/embed/29409-tiger-woods-pga-tour-2004-u-eurasia.html',
+  'tecmo-bowl-elite': 'https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html',
+  'windjammers-arcade-elite': 'https://www.retrogames.cc/embed/10668-windjammers-flying-power-disc.html',
+  'punch-out-nes-classic': 'https://www.retrogames.cc/embed/20466-punch-out-usa.html',
+  'ice-hockey-nes-elite': 'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html',
   'tekken-3-elite': 'https://www.retrogames.cc/embed/40238-tekken-3.html',
-  'mortal-kombat-2-elite':
-    'https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html',
   'ctr-ps1-elite': 'https://www.retrogames.cc/embed/41687-crash-team-racing.html',
-  'goldeneye-007-elite':
-    'https://www.retrogames.cc/embed/32197-007-goldeneye-usa.html',
-  'chrono-trigger-snes-elite':
-    'https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html',
-  'sonic-2-elite':
-    'https://www.retrogames.cc/embed/24220-sonic-the-hedgehog-2-world.html',
-  'super-metroid-elite-master':
-    'https://www.retrogames.cc/embed/18841-super-metroid-usa.html',
-  'duke-nukem-3d-elite-master':
-    'https://www.retrogames.cc/embed/41697-duke-nukem-3d.html',
-  'duck-hunt-nes-elite': 'https://www.retrogames.cc/embed/17905-duck-hunt-nes.html',
-  'kid-icarus-nes-elite':
-    'https://www.retrogames.cc/embed/17929-kid-icarus-usa.html',
 };
 
 /**

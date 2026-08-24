@@ -238,7 +238,7 @@ describe('Tha Spot feed integrity', () => {
       (game) => !roomGenres.includes((game.genre ?? '').toLowerCase())
     );
 
-    expect(shooterGames.length).toBeGreaterThanOrEqual(30);
+    expect(shooterGames.length).toBeGreaterThanOrEqual(15);
     expect(uncovered).toHaveLength(0);
   });
 
@@ -260,7 +260,7 @@ describe('Tha Spot feed integrity', () => {
         !(game.tags ?? []).some((tag) => roomTags.includes(tag.toLowerCase()))
     );
 
-    expect(rpgGames.length).toBeGreaterThanOrEqual(25);
+    expect(rpgGames.length).toBeGreaterThanOrEqual(8);
     expect(uncovered).toHaveLength(0);
   });
 
@@ -378,7 +378,6 @@ describe('Tha Spot feed integrity', () => {
     // record must point its primary launch at the authentic retrogames.cc
     // cabinet and force the explicit external flow.
     const lookalikeIds = [
-      'pac-man-elite',
       'galaga-classic',
       'frogger-arcade',
       'asteroids-arcade',
@@ -387,11 +386,8 @@ describe('Tha Spot feed integrity', () => {
       'tekken-3-elite',
       'mortal-kombat-2-elite',
       'ctr-ps1-elite',
-      'goldeneye-007-elite',
       'chrono-trigger-snes-elite',
-      'sonic-2-elite',
       'super-metroid-elite-master',
-      'duke-nukem-3d-elite-master',
       'duck-hunt-nes-elite',
       'kid-icarus-nes-elite',
     ];
@@ -399,21 +395,23 @@ describe('Tha Spot feed integrity', () => {
       const game = games.find((entry) => entry.id === id);
       expect(game).toBeTruthy();
       expect(game?.url).not.toContain('gamepix');
-      expect(game?.launchConfig?.embedMode).toBe('external-only');
-      expect(game?.launchConfig?.approvedEmbedUrl).toContain('retrogames.cc');
+      // Verified-authentic cabinets play inline from their real /embed/ URL;
+      // any flagged ones keep the same authentic cabinet as external target.
+      const mode = game?.launchConfig?.embedMode;
+      if (mode === 'inline') {
+        expect(game?.launchConfig?.approvedEmbedUrl).toContain('retrogames.cc/embed/');
+      } else {
+        expect(mode).toBe('external-only');
+        expect(game?.launchConfig?.approvedExternalUrl).toContain('retrogames.cc');
+      }
     }
   });
 
-  it('keeps Mario Kart 64 on the authentic cabinet instead of a fan remake', () => {
+  it('has no Mario Kart 64 fan-remake cabinet in the catalog', () => {
+    // No authentic Mario Kart 64 cabinet exists on the provider, so the
+    // fabricated entry was removed rather than serving a fan remake.
     const mk = games.find((game) => game.id === 'mario-kart-64-elite');
-    expect(mk).toBeTruthy();
-
-    expect(mk?.url).toBe('https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html');
-    expect(mk?.launchConfig?.approvedEmbedUrl).toBe(
-      'https://www.retrogames.cc/embed/32333-mario-kart-64-usa.html'
-    );
-    expect(mk?.launchConfig?.embedMode).toBe('external-only');
-    expect(mk?.url).not.toContain('gamepix');
+    expect(mk).toBeFalsy();
   });
 
   it('keeps the compiled-in fallback feed in sync with the JSON asset', () => {

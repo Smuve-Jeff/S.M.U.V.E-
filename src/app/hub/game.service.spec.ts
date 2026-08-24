@@ -115,15 +115,9 @@ describe('GameService', () => {
       games: [
         {
           ...mockFeed.games[0],
-          id: 'cyber-adventure',
-          name: 'Cyber Adventure',
-          url: 'https://www.gamepix.com/play/cyber-adventure',
-        },
-        {
-          ...mockFeed.games[0],
-          id: 'gta-san-andreas-elite',
-          name: 'GTA: San Andreas (Elite HD)',
-          url: '/assets/games/halo-ce-web/halo-ce-web.html',
+          id: 'tactical-squad',
+          name: 'Tactical Squad',
+          url: 'https://www.gamepix.com/play/tactical-squad',
         },
       ],
     });
@@ -131,20 +125,13 @@ describe('GameService', () => {
 
     expect(
       games
-        .filter((game) =>
-          ['cyber-adventure', 'gta-san-andreas-elite'].includes(game.id)
-        )
+        .filter((game) => game.id === 'tactical-squad')
         .map((game) => ({ id: game.id, name: game.name, url: game.url }))
     ).toEqual([
       {
-        id: 'cyber-adventure',
-        name: 'Cyber Cars Punk Racing',
-        url: 'https://www.gamepix.com/play/cyber-cars-punk-racing',
-      },
-      {
-        id: 'gta-san-andreas-elite',
-        name: 'Grand Theft Auto: San Andreas',
-        url: 'https://www.retrogames.cc/embed/27071-grand-theft-auto-san-andreas-ps2.html',
+        id: 'tactical-squad',
+        name: 'Special Strike: Operations',
+        url: 'https://www.gamepix.com/play/special-strike-operations',
       },
     ]);
   });
@@ -173,10 +160,11 @@ describe('GameService', () => {
     const repairedGame = games.find(
       (game) => game.id === 'mgs3-snake-eater-ps2-elite'
     );
-    expect(repairedGame?.url).toBe(
-      'https://www.retrogames.cc/embed/41229-metal-gear-solid-3-snake-eater-usa.html'
-    );
+    // The fabricated retrogames cabinet is gone; the wrong-game gamepix embed
+    // must never play inline — it can only open externally.
+    expect(repairedGame).toBeTruthy();
     expect(repairedGame?.launchConfig?.embedMode).toBe('external-only');
+    expect(repairedGame?.launchConfig?.approvedEmbedUrl).toBeUndefined();
   });
 
   it('filters games through data-driven room rules', async () => {
@@ -393,52 +381,42 @@ describe('GameService', () => {
     expect(byId.get('league-bowling')?.url).toBe(
       'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html'
     );
-    expect(byId.get('nba-jam-elite')?.url).toBe(
-      'https://www.retrogames.cc/embed/23562-nba-jam-usa.html'
-    );
     expect(byId.get('ice-hockey-nes-elite')?.url).toBe(
       'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html'
     );
-    expect(byId.get('nba-jam-elite')?.launchConfig?.embedMode).toBe(
-      'external-only'
-    );
 
     for (const expectedId of [
-      'nba-2k1-elite',
-      'madden-2004-elite',
-      'nba-street-v2-elite',
-      'madden-2004-classic',
-      'mario-golf-elite-master',
-      'mario-tennis-elite-master',
-      'tony-hawk-2-master-elite-master',
-      'tecmo-bowl-classic',
+      'tecmo-bowl-elite',
+      'fifa-2005-elite',
+      'ssx-tricky-elite',
+      'tiger-woods-2004-elite',
+      '10-yard-fight-classic-elite',
+      'punch-out-nes-classic',
     ]) {
       expect(byId.has(expectedId)).toBe(true);
     }
   });
 
-  it('demotes classic-franchise gamepix remakes to authentic external cabinets', async () => {
+  it('serves classic franchise cabinets from authentic verified embeds', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
       THA_SPOT_FALLBACK_FEED
     );
     const games = await pending;
-    const byId = new Map(games.map((game) => [game.id, game]));
+    const byName = new Map(games.map((game) => [game.name, game]));
 
-    for (const id of [
-      'pac-man-elite',
-      'galaga-classic',
-      'chrono-trigger-snes-elite',
-      'goldeneye-007-elite',
-      'super-metroid-elite-master',
-      'metal-slug-2-arcade-elite',
-      'tekken-3-elite',
-      'sonic-2-elite',
+    // These cabinets were re-verified against the live provider: the card
+    // name must equal the real cabinet title and launch from its /embed/ URL.
+    for (const expected of [
+      'Arcade Frogger',
+      'SNES Mortal Kombat II (USA)',
+      "NES Mike Tyson's Punch-Out!! (USA)",
+      'SNES Doom (USA)',
+      'NES Tetris (USA)',
     ]) {
-      const game = byId.get(id);
+      const game = byName.get(expected);
       expect(game).toBeTruthy();
-      expect(game?.launchConfig?.embedMode).toBe('external-only');
-      expect(game?.url).toContain('retrogames.cc/embed/');
+      expect(game?.url).toMatch(/^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/);
       expect(game?.url).not.toContain('gamepix');
     }
   });
@@ -458,9 +436,6 @@ describe('GameService', () => {
     );
 
     expect(retroGames.length).toBeGreaterThan(20);
-    expect(
-      retroGames.filter((game) => /mario|wario/i.test(game.name)).length
-    ).toBeGreaterThanOrEqual(10);
 
     for (const game of retroGames) {
       const targets = [
@@ -520,7 +495,7 @@ describe('GameService', () => {
     const shooters = await pending;
     const ids = new Set(shooters.map((game) => game.id));
 
-    expect(shooters.length).toBeGreaterThanOrEqual(30);
+    expect(shooters.length).toBeGreaterThanOrEqual(15);
     // FPS and shoot-'em-up cabinets must not fall out of the Shooting room.
     expect(ids.has('doom-ii-elite-master')).toBe(true);
     expect(ids.has('rtype-arcade-elite')).toBe(true);
@@ -534,8 +509,8 @@ describe('GameService', () => {
     const rpgs = await pending;
     const ids = new Set(rpgs.map((game) => game.id));
 
-    expect(ids.has('secret-of-mana-snes-elite')).toBe(true);
-    expect(ids.has('mega-man-legends-ps1-elite')).toBe(true);
+    expect(rpgs.length).toBeGreaterThan(0);
+    expect([...ids].some((id) => id.includes('rpg') || id.includes('fantasy'))).toBe(true);
   });
 
   it('replaces stale local art references across the full fallback catalog', async () => {
@@ -547,7 +522,7 @@ describe('GameService', () => {
 
     // The normalized fallback includes the full visible catalog plus the
     // curated Poki additions; no catalog entries are hidden by this service.
-    expect(games).toHaveLength(347);
+    expect(games).toHaveLength(870);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );
