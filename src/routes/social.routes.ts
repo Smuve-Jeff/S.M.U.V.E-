@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import { parseIdParam } from "@/lib";
 import { authenticate } from "@/middleware/auth";
+import { emitChallengeResponse } from "@/socket";
 import {
   addFriend,
   assertOwnershipOrAdmin,
@@ -106,12 +107,18 @@ router.post(
   "/:userId/challenges/:challengeId/respond",
   own,
   async (req, res) => {
-    res.json(
-      await respondToChallenge(
-        parseIdParam(req.params.challengeId, "challengeId"),
-        req.body?.status,
-      ),
+    const updated = await respondToChallenge(
+      parseIdParam(req.params.challengeId, "challengeId"),
+      req.body?.status,
+      req.params.userId,
     );
+    // Realtime: converge the challenger's + recipient's inboxes.
+    try {
+      emitChallengeResponse(updated);
+    } catch (err) {
+      console.error("Challenge response emit failed:", err);
+    }
+    res.json(updated);
   },
 );
 

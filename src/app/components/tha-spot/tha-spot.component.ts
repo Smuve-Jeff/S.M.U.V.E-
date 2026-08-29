@@ -1445,6 +1445,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     mode: InviteMode;
     inviteToken: string | null;
     fromUserId: string | null;
+    lobbyId: string | null;
   } | null>(null);
   readonly showShareLinkTray = signal(false);
   readonly shareLinkTrayUrl = signal<string>('');
@@ -1873,6 +1874,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   inGame = signal(false);
   gameIdToInvite = signal<string | null>(null);
   incomingChallenge = signal<{
+    id?: number;
     fromUserId: string;
     fromUserName?: string;
     gameId: string;
@@ -2051,6 +2053,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
             mode: inbound.mode ?? 'online',
             inviteToken: inbound.inviteToken,
             fromUserId: inbound.fromUserId,
+            lobbyId: inbound.lobbyId,
           });
         }
       }
@@ -2278,11 +2281,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    *   - a split-screen session (host starts here)
    *   - a plain game entry (open the launch preview)
    */
-  private applyInboundMode(mode: InviteMode): void {
+  private applyInboundMode(mode: InviteMode, lobbyId?: string | null): void {
     switch (mode) {
       case 'split-screen': {
         const game = this.selectedGame();
-        if (game) {
+        if (lobbyId) {
+          // Guest path: pair with the host's live lobby.
+          this.matchmaking.joinSplitScreenLobby(lobbyId);
+          this.splitScreenModeActive.set(true);
+        } else if (game) {
+          // No lobby shared — host a fresh session.
           this.matchmaking.startSplitScreenLobby(game.id);
           this.splitScreenModeActive.set(true);
         }
@@ -2323,12 +2331,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     mode: InviteMode;
     inviteToken: string | null;
     fromUserId: string | null;
+    lobbyId: string | null;
   }): void {
     this.inboundInvite.set({
       gameId: inbound.gameId,
       mode: inbound.mode,
       inviteToken: inbound.inviteToken,
       fromUserId: inbound.fromUserId,
+      lobbyId: inbound.lobbyId,
     });
   }
 
@@ -2339,7 +2349,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       if (inv.inviteToken) {
         await this.shareable.redeemServerInvite(inv.inviteToken);
       }
-      this.applyInboundMode(inv.mode);
+      this.applyInboundMode(inv.mode, inv.lobbyId);
     } finally {
       this.inboundInvite.set(null);
     }
@@ -2362,6 +2372,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       gameName: game.name,
       mode,
       fromName: this.profileService.profile().artistName,
+      // Split-screen invites must reference the host's live lobby or the
+      // recipient would start a brand-new session instead of joining.
+      lobbyId:
+        mode === 'split-screen'
+          ? this.matchmaking.activeSplitLobby()?.id
+          : undefined,
     });
     const result = await this.shareable.share(intent);
     this.shareLinkTrayUrl.set(result.url);
@@ -3406,13 +3422,42 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (game) {
       this.selectedGame.set(game);
     }
-    this.incomingChallenge.set(null);
+    this.respondToIncomingChallenge('accepted');
     this.snackbarService.success('CHALLENGE ACCEPTED — INITIALIZING');
     this.playSoundEffect('challenge');
   }
 
   declineIncomingChallenge() {
+    this.respondToIncomingChallenge('declined');
+    this.snackbarService.info('CHALLENGE DECLINED');
+  }
+
+  /**
+   * Persist the banner response via the inbox REST endpoint when a server
+   * record exists (socket-delivered challenges). Deep-link-only challenges
+   * have no record, so local dismissal is all there is to do — the sender
+   * never created a server challenge for those.
+   */
+  private respondToIncomingChallenge(status: 'accepted' | 'declined'): void {
+    const challenge = this.incomingChallenge();
+    if (!challenge) return;
     this.incomingChallenge.set(null);
+    if (challenge.id !== undefined) {
+      this.inboxService.respondToChallenge(challenge.id, status);
+      return;
+    }
+    const record = this.inboxService
+      .challenges()
+      .find(
+        (c) =>
+          c.status === 'pending' &&
+          c.toUserId === this.profileService.profile().id &&
+          c.gameId === challenge.gameId &&
+          (!challenge.fromUserId || c.fromUserId === challenge.fromUserId)
+      );
+    if (record) {
+      this.inboxService.respondToChallenge(record.id, status);
+    }
   }
 
   startVoiceChat(userId: string) {

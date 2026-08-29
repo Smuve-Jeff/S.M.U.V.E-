@@ -141,6 +141,22 @@ describe('ShareableInviteService', () => {
       expect(result.hasLink).toBe(true);
     });
 
+    it('extracts the split-screen lobby id from the URL', () => {
+      const result = service.parseFromCurrentUrl(
+        'https://smuvejeffpresents.com/tha-spot?game=halo&mode=split-screen&lobby=split_42'
+      );
+      expect(result.lobbyId).toBe('split_42');
+      expect(result.hasLink).toBe(true);
+    });
+
+    it('treats a lobby-only link as a share link', () => {
+      const result = service.parseFromCurrentUrl(
+        'https://smuvejeffpresents.com/tha-spot?lobby=split_42'
+      );
+      expect(result.lobbyId).toBe('split_42');
+      expect(result.hasLink).toBe(true);
+    });
+
     it('flags hasLink=false when no relevant params are present', () => {
       const result = service.parseFromCurrentUrl(
         'https://smuvejeffpresents.com/tha-spot?other=12'
@@ -162,6 +178,21 @@ describe('ShareableInviteService', () => {
       expect(url).toMatch(/mode=split-screen/);
       expect(url).toMatch(/invite=tok_x/);
       expect(url).toMatch(/from=42/);
+    });
+
+    it('includes the lobby id in split-screen share URLs', () => {
+      const url = service.buildPublicShareUrl({
+        gameId: 'halo',
+        mode: 'split-screen' as InviteMode,
+        lobbyId: 'split_42',
+      });
+      expect(url).toMatch(/mode=split-screen/);
+      expect(url).toMatch(/lobby=split_42/);
+      // Round-trip: parsing the built URL recovers the lobby id.
+      const parsed = service.parseFromCurrentUrl(url);
+      expect(parsed.lobbyId).toBe('split_42');
+      expect(parsed.mode).toBe('split-screen');
+      expect(parsed.gameId).toBe('halo');
     });
 
     it('buildDeepLink returns the path-only form', () => {

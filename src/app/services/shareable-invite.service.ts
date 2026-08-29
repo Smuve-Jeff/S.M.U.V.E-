@@ -46,6 +46,8 @@ export interface InboundShareLink {
   inviteToken: string | null;
   fromUserId: string | null;
   toUserId: string | null;
+  /** Split-screen lobby the inviter is hosting (link is a join-invite). */
+  lobbyId: string | null;
   hasLink: boolean;
 }
 
@@ -86,6 +88,7 @@ export class ShareableInviteService {
     inviteToken: null,
     fromUserId: null,
     toUserId: null,
+    lobbyId: null,
     hasLink: false,
   });
 
@@ -109,13 +112,15 @@ export class ShareableInviteService {
     const inviteToken = parsed.searchParams.get('invite');
     const fromUserId = parsed.searchParams.get('from');
     const toUserId = parsed.searchParams.get('to');
+    const lobbyId = parsed.searchParams.get('lobby');
     const link: InboundShareLink = {
       gameId,
       mode,
       inviteToken,
       fromUserId,
       toUserId,
-      hasLink: !!(gameId || mode || inviteToken),
+      lobbyId,
+      hasLink: !!(gameId || mode || inviteToken || lobbyId),
     };
     this.inbound.set(link);
     return link;
@@ -132,12 +137,16 @@ export class ShareableInviteService {
     fromUserId?: string;
     toUserId?: string;
     inviteToken?: string;
+    lobbyId?: string;
   }): string {
     const params = new URLSearchParams();
     params.set('game', opts.gameId);
     params.set('mode', opts.mode);
     if (opts.inviteToken) params.set('invite', opts.inviteToken);
     if (opts.fromUserId) params.set('from', opts.fromUserId);
+    // Split-screen invites must carry the host's lobby id or the recipient
+    // cannot join the actual paired session.
+    if (opts.lobbyId) params.set('lobby', opts.lobbyId);
     if (opts.toUserId) params.set('to', opts.toUserId);
     return `${this.shareOrigin}/tha-spot?${params.toString()}`;
   }
@@ -166,6 +175,7 @@ export class ShareableInviteService {
     mode: InviteMode;
     fromName?: string;
     inviteToken?: string;
+    lobbyId?: string;
   }): ShareIntent {
     const url = this.buildPublicShareUrl({
       gameId: args.gameId,
@@ -174,6 +184,7 @@ export class ShareableInviteService {
       // a URL param — so the URL stays clean for clipboard readability.
       fromUserId: undefined,
       inviteToken: args.inviteToken,
+      lobbyId: args.lobbyId,
     });
     const verboseMode: Record<InviteMode, string> = {
       online: 'Online',

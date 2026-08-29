@@ -337,12 +337,18 @@ export const createChallenge = async (
 export const respondToChallenge = async (
   challengeId: number,
   status: string,
+  userId?: string,
 ): Promise<ChallengeRow> => {
   if (!["accepted", "declined"].includes(status)) {
     throw new AppError(400, "status must be accepted or declined");
   }
   const challenge = await repo().challenges.findOneBy({ id: challengeId });
   if (!challenge) throw new AppError(404, "Challenge not found");
+  // Only the challenge recipient may resolve it — anyone else gets a 403
+  // even if they can name the challenge id.
+  if (userId && challenge.toUserId !== userId) {
+    throw new AppError(403, "Only the challenge recipient may respond");
+  }
   challenge.status = status;
   challenge.respondedAt = new Date();
   await repo().challenges.save(challenge);

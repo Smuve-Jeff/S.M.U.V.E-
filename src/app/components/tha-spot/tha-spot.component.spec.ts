@@ -11,6 +11,7 @@ import { ChallengeInboxService } from '../../services/challenge-inbox.service';
 import { PeerNetworkingService } from '../../services/peer-networking.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { MatchmakingService } from '../../hub/matchmaking.service';
+import { ShareableInviteService } from '../../services/shareable-invite.service';
 import { DailyMissionsService } from '../../services/daily-missions.service';
 import { GameRatingsService } from '../../services/game-ratings.service';
 import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
@@ -29,6 +30,9 @@ describe('ThaSpotComponent', () => {
   let routerMock: { navigate: jest.Mock };
   let routeQueryParamMap: BehaviorSubject<ParamMap>;
   let socialServiceMock: any;
+  let inboxServiceMock: any;
+  let matchmakingMock: any;
+  let profileServiceMock: any;
 
   const mockFeed = {
     games: [
@@ -57,7 +61,7 @@ describe('ThaSpotComponent', () => {
 
   beforeEach(async () => {
     (navigator as any).getGamepads = jest.fn().mockReturnValue([]);
-    const profileServiceMock = {
+    profileServiceMock = {
       profile: signal({
         primaryGenre: 'Action',
         gameStats: {},
@@ -110,9 +114,10 @@ describe('ThaSpotComponent', () => {
       stopStream: jest.fn(),
       loadMessageHistory: jest.fn(),
     };
-    const inboxServiceMock = {
+    inboxServiceMock = {
       challenges: signal([]),
       challengePlayer: jest.fn(),
+      respondToChallenge: jest.fn(),
     };
     const peerServiceMock = {
       isKnocking: signal(false),
@@ -124,7 +129,7 @@ describe('ThaSpotComponent', () => {
       endCall: jest.fn(),
       toggleMute: jest.fn(),
     };
-    const matchmakingMock = {
+    matchmakingMock = {
       cancelMatchQueue: jest.fn(),
       queueForMatch: jest.fn(),
       createLobby: jest
@@ -266,6 +271,79 @@ describe('ThaSpotComponent', () => {
     routeQueryParamMap.next(convertToParamMap({}));
     fixture.detectChanges();
     expect(component.activeRoom()).toBe('all');
+  });
+
+  it('persists an accepted banner challenge so the challenger is notified', () => {
+    component.incomingChallenge.set({
+      id: 7,
+      fromUserId: 'rival-1',
+      fromUserName: 'RIVAL',
+      gameId: 'game-1',
+      timestamp: 1,
+    });
+    component.acceptIncomingChallenge();
+    expect(inboxServiceMock.respondToChallenge).toHaveBeenCalledWith(
+      7,
+      'accepted'
+    );
+    expect(component.incomingChallenge()).toBeNull();
+  });
+
+  it('persists a declined banner challenge so the challenger is notified', () => {
+    component.incomingChallenge.set({
+      id: 8,
+      fromUserId: 'rival-1',
+      gameId: 'game-1',
+      timestamp: 1,
+    });
+    component.declineIncomingChallenge();
+    expect(inboxServiceMock.respondToChallenge).toHaveBeenCalledWith(
+      8,
+      'declined'
+    );
+    expect(component.incomingChallenge()).toBeNull();
+  });
+
+  it('falls back to the matching pending record for id-less deep-link challenges', () => {
+    inboxServiceMock.challenges.set([
+      {
+        id: 42,
+        fromUserId: 'rival-1',
+        fromUserName: 'RIVAL',
+        toUserId: profileServiceMock.profile().id,
+        gameId: 'game-1',
+        status: 'pending',
+        timestamp: 1,
+      },
+    ]);
+    component.incomingChallenge.set({
+      fromUserId: 'rival-1',
+      gameId: 'game-1',
+      timestamp: 1,
+    });
+    component.acceptIncomingChallenge();
+    expect(inboxServiceMock.respondToChallenge).toHaveBeenCalledWith(
+      42,
+      'accepted'
+    );
+  });
+
+  it('carries the active split-screen lobby id into split-screen share links', async () => {
+    const shareable = TestBed.inject(ShareableInviteService);
+    const buildSpy = jest.spyOn(shareable, 'buildShareIntent');
+    matchmakingMock.activeSplitLobby = jest
+      .fn()
+      .mockReturnValue({ id: 'split_abc' });
+    component.selectedGame.set({ id: 'game-1', name: 'Game One' } as any);
+    await component.shareSelectedGame('split-screen');
+    expect(buildSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'split-screen',
+        gameId: 'game-1',
+        lobbyId: 'split_abc',
+      })
+    );
+    buildSpy.mockRestore();
   });
 
   it('keeps the rival chat drawer collapsed until explicitly toggled', () => {

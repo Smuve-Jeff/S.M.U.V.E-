@@ -73,6 +73,37 @@ function validSocketId(value: unknown): value is string {
 }
 
 /**
+ * Module-scoped reference to the active Socket.io server. HTTP routes push
+ * realtime events to users through this handle (e.g. challenge responses).
+ */
+let ioServer: Server | null = null;
+
+/**
+ * Emit a challenge-response update to both the challenger and the recipient
+ * so their inboxes/outgoing-challenge state converge in realtime.
+ */
+export const emitChallengeResponse = (challenge: {
+  id: number;
+  fromUserId: string;
+  toUserId: string;
+  gameId: string;
+  status: string;
+  timestamp: number;
+}): void => {
+  if (!ioServer) return;
+  const payload = {
+    id: challenge.id,
+    fromUserId: challenge.fromUserId,
+    toUserId: challenge.toUserId,
+    gameId: challenge.gameId,
+    status: challenge.status,
+    timestamp: challenge.timestamp,
+  };
+  ioServer.to(challenge.fromUserId).emit("challenge_response", payload);
+  ioServer.to(challenge.toUserId).emit("challenge_response", payload);
+};
+
+/*
  * Socket.io social + studio-collaboration server, ported from the legacy
  * server/ backend. Attach to the same HTTP server as the REST API.
  */
@@ -87,6 +118,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       methods: ["GET", "POST"],
     },
   });
+  // Keep the module-level handle in sync so HTTP routes can emit to users.
+  ioServer = io;
 
   const presence = new Map<string, { socketId: string; metadata: PresenceMeta }>();
   // Every live socket per user. A user may hold multiple sockets (social +
