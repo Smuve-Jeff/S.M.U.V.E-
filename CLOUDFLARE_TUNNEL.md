@@ -4,8 +4,10 @@ Alternative local-dev / self-hosted deployment path for S.M.U.V.E. 2.0.
 Both the web app and the API can be served from this machine through the
 `smuve-connect` Cloudflare Tunnel.
 
-**Production backend:** Render (https://smuve-api.onrender.com) — see `render.yaml`.
-The frontend is configured to point at the Render API by default.
+**Production:** one unified Render service (see `render.yaml`) serves the
+compiled Angular bundle and the Express API on the same origin
+(https://smuvejeffpresents.com). The frontend derives `window.env.API_URL` from
+`location.origin` at runtime, so there is no separate API hostname anymore.
 
 ## Tunnel Details
 

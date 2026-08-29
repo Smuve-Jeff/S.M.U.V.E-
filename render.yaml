@@ -1,11 +1,16 @@
-# Render Blueprint — S.M.U.V.E. API (Express + TypeORM + PostgreSQL)
+# Render Blueprint — S.M.U.V.E. unified web service (Angular + Express API)
+#
+# One Render service hosts BOTH the compiled Angular bundle (Build/browser) and
+# the Express API (Build/api) through the unified entrypoint src/server.ts, so
+# the frontend and API share one origin. window.env derives API_URL from
+# location.origin at runtime — no CORS, no separate API hostname.
 #
 # Deploy steps:
-#   1. Push this repo to GitHub (git-push-main.sh).
+#   1. Push this repo to GitHub.
 #   2. In Render: New → Blueprint → connect the GitHub repo.
 #   3. Render provisions the web service + Postgres below and deploys.
-#   4. After deploy, set src/index.html window.env.AUTH_API_URL to the service
-#      URL (https://<service-name>.onrender.com) and redeploy the frontend.
+#   4. Attach the custom domains (smuvejeffpresents.com / www.smuvejeffpresents.com)
+#      in the service's Settings → Custom Domains so the app is served same-origin.
 #
 # Notes:
 #   - The free Postgres plan expires after 30 days — upgrade or re-provision
@@ -20,9 +25,9 @@ services:
     rootDir: .
     # install:legacy = npm install --legacy-peer-deps (more tolerant of
     # peer-dep/lockfile drift than strict npm ci for this monorepo).
-    buildCommand: npm run install:legacy && npm run build:server
+    buildCommand: npm run install:legacy && npm run build && npm run build:server
     preDeployCommand: npm run mg:run:render
-    startCommand: npm run start:server
+    startCommand: npm run start:unified
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
