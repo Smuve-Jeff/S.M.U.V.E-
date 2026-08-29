@@ -373,6 +373,36 @@ describe('Tha Spot feed integrity', () => {
     }
   });
 
+  it('keeps franchise launch targets aligned with their primary cabinet', () => {
+    const franchiseIds = [
+      'gta-elite-wasm',
+      'final-fantasy-nes',
+      'final-fantasy-vii-elite',
+      'final-fantasy-vi-elite-master',
+      'sf2-classic',
+      'sf3-classic',
+      'x-men-vs-street-fighter-elite-master',
+      'street-fighter-alpha-3-elite-master',
+      'sf-alpha-2-snes-elite',
+      'double-dragon-nes',
+      'dd2-classic',
+      'rg-30347-double-dragon-usa-europe',
+      'rg-16964-battletoads-double-dragon-usa',
+    ];
+
+    for (const id of franchiseIds) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      const primary = game?.launchConfig?.approvedEmbedUrl || game?.url || '';
+      const external = game?.launchConfig?.approvedExternalUrl || '';
+      expect(external).toBe(primary);
+    }
+
+    const alpha3 = games.find((entry) => entry.id === 'street-fighter-alpha-3-elite-master');
+    expect(alpha3?.url).toContain('9974-street-fighter-alpha-3-980904-usa');
+    expect(alpha3?.url).not.toContain('10006-');
+  });
+
   it('keeps classic-franchise cabinets off gamepix lookalike hosts', () => {
     // Gamepix hosts fan remakes of these classic franchise titles; each
     // record must point its primary launch at the authentic retrogames.cc

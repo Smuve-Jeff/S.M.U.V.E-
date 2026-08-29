@@ -553,7 +553,7 @@ describe('GameService', () => {
 
     // The normalized fallback includes the full visible catalog plus the
     // curated Poki additions; no catalog entries are hidden by this service.
-    expect(games).toHaveLength(870);
+    expect(games).toHaveLength(872);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );
