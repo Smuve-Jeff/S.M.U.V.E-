@@ -174,14 +174,13 @@ export class LoginComponent implements OnInit {
 
   /**
    * API statuses that may fall through to the legacy demo store when the
-   * fallback is permitted: transport failure (0), server failure (5xx), a
-   * missing endpoint (404), or an authoritative 401 — the account may exist
-   * only in the local demo store, and a hard denial would lock legacy users
-   * out whenever the API is reachable. 400/409/429 stay denials: they are
-   * real answers about the request, not access failures.
+   * fallback is permitted: transport failure (0), server failure (5xx), or a
+   * missing endpoint (404). An authoritative 401 stays a strict denial even
+   * in local development. 400/409/429 stay denials: they are real answers
+   * about the request, not access failures.
    */
   private isLegacyFallbackStatus(status: number): boolean {
-    return this.isApiUnavailable(status) || status === 401 || status === 404;
+    return this.isApiUnavailable(status) || status === 404;
   }
 
   private canUseLegacyFallback(): boolean {
@@ -190,9 +189,8 @@ export class LoginComponent implements OnInit {
 
   /**
    * Try the S.M.U.V.E. API first. Only local development may fall back to
-   * the legacy demo auth (transport/server failure, missing endpoint, or a
-   * 401 for an account that exists only in the local demo store); production
-   * and tunnel URLs remain authoritative.
+   * the legacy demo auth (transport/server failure or a missing endpoint);
+   * production, tunnel URLs and real 401 denials remain authoritative.
    */
   private async submitLogin() {
     try {
@@ -211,10 +209,18 @@ export class LoginComponent implements OnInit {
         this.canUseLegacyFallback() &&
         (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
       ) {
-        // Dev only: transport/server failure, missing endpoint, or a 401 for
-        // an account that exists only in the local demo store.
+        // Dev only: transport/server failure or a missing endpoint. A real
+        // 401 stays a strict denial, and an unexpected legacy-store throw is
+        // swallowed so no unhandled rejection escapes the form.
         this.usesApiAuth.set(false);
-        return this.authService.login(this.credentials);
+        try {
+          return await this.authService.login(this.credentials);
+        } catch {
+          return {
+            success: false,
+            message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
+          };
+        }
       }
       if (err instanceof ApiAuthError) {
         return { success: false, message: this.apiErrorMessage(err) };
@@ -245,7 +251,17 @@ export class LoginComponent implements OnInit {
         (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
       ) {
         this.usesApiAuth.set(false);
-        return this.authService.register(this.credentials, this.artistName);
+        try {
+          return await this.authService.register(
+            this.credentials,
+            this.artistName
+          );
+        } catch {
+          return {
+            success: false,
+            message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
+          };
+        }
       }
       if (err instanceof ApiAuthError) {
         return { success: false, message: this.apiErrorMessage(err) };

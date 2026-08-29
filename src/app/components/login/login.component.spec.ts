@@ -222,13 +222,13 @@ describe('LoginComponent', () => {
     jest.useRealTimers();
   });
 
-  it('falls back to the local demo store when the API rejects a legacy account with 401', async () => {
+  it('falls back to the local demo store when the API is unreachable (server error)', async () => {
     const { fixture, authMock } = await build();
     const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
       login: jest.Mock;
     };
     apiAuth.login.mockRejectedValue(
-      new ApiAuthError(401, 'Invalid email or password')
+      new ApiAuthError(503, 'Server unavailable')
     );
     authMock.login.mockResolvedValue({
       success: true,
@@ -246,6 +246,66 @@ describe('LoginComponent', () => {
     );
     expect(fixture.componentInstance.isError()).toBe(false);
     expect(fixture.componentInstance.message()).toContain('ACCESS GRANTED');
+  });
+
+  it('keeps a 401 a strict denial even when the legacy fallback is enabled', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = true;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(401, 'Invalid email or password')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain(
+        'AUTHORIZATION DENIED'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('swallows an unexpected legacy-store failure during fallback', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = true;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(503, 'Server unavailable')
+      );
+      authMock.login.mockRejectedValue(new Error('legacy store down'));
+
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await expect(
+        fixture.componentInstance.onSubmit()
+      ).resolves.toBeUndefined();
+
+      expect(authMock.login).toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain('UNAVAILABLE');
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
   });
 
   it('keeps a 401 as a denial when the legacy fallback is disabled', async () => {
@@ -283,7 +343,7 @@ describe('LoginComponent', () => {
       login: jest.Mock;
     };
     apiAuth.login.mockRejectedValue(
-      new ApiAuthError(401, 'Invalid email or password')
+      new ApiAuthError(503, 'Server unavailable')
     );
     authMock.login
       .mockResolvedValueOnce({
