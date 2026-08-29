@@ -4,6 +4,7 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
 import { LocalStorageService } from '../services/local-storage.service';
 import { WavEncoder } from './wav-encoder.util';
+import { RecordingLimiterService } from './recording-limiter.service';
 import { Subject } from 'rxjs';
 
 export interface RecordingMetadata {
@@ -24,6 +25,7 @@ export class StudioRecordingEngineService implements OnDestroy {
   private audioEngine = inject(AudioEngineService);
   private latency = inject(AudioEngineLatencyService);
   private localStorage = inject(LocalStorageService);
+  private limiter = inject(RecordingLimiterService);
 
   isInitialized = signal(false);
   isRecording = signal(false);
@@ -176,7 +178,12 @@ export class StudioRecordingEngineService implements OnDestroy {
       }
     };
 
-    this.sourceNode?.connect(this.workletNode);
+    if (this.sourceNode) {
+      // Route capture through the headroom limiter when enabled. Falls back to
+      // a direct connection if it can't engage, so capture never breaks.
+      const workletInput = this.limiter.connectToRecordingChain(this.sourceNode);
+      workletInput.connect(this.workletNode);
+    }
     // Keep the AudioWorklet active while preventing microphone feedback.
     this.workletNode.connect(this.silentSink ?? ctx.destination);
     this.workletNode.port.postMessage({ command: 'START' });
@@ -339,6 +346,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.sourceNode?.disconnect();
     this.analyserNode?.disconnect();
     this.silentSink?.disconnect();
+    this.limiter.disconnect();
     this.mediaStream?.getTracks().forEach((t) => t.stop());
     this.isInitialized.set(false);
     this.isRecording.set(false);

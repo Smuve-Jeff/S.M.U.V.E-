@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { VocalCompViewComponent } from './vocal-comp-view.component';
 import { SmartRecordingService, CompGroup, CompTake } from '../smart-recording.service';
+import { VocalCompSuggesterService } from '../vocal-comp-suggester.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
@@ -10,6 +11,7 @@ describe('VocalCompViewComponent', () => {
   let fixture: ComponentFixture<VocalCompViewComponent>;
   let smartRecording: jest.Mocked<SmartRecordingService>;
   let snackbar: jest.Mocked<SnackbarService>;
+  let suggester: any;
 
   const mockTakes: CompTake[] = [
     {
@@ -89,6 +91,12 @@ describe('VocalCompViewComponent', () => {
       error: jest.fn(),
     } as any;
 
+    suggester = {
+      suggestBestTake: jest.fn(() => null),
+      suggestActiveGroup: jest.fn(() => null),
+      applySuggestion: jest.fn(() => null),
+    };
+
     await TestBed.configureTestingModule({
       imports: [VocalCompViewComponent],
       providers: [
@@ -96,6 +104,7 @@ describe('VocalCompViewComponent', () => {
         { provide: AudioEngineService, useValue: audioEngine },
         { provide: SnackbarService, useValue: snackbar },
         { provide: LoggingService, useValue: logging },
+        { provide: VocalCompSuggesterService, useValue: suggester },
       ],
     }).compileComponents();
 
@@ -237,5 +246,57 @@ describe('VocalCompViewComponent', () => {
     expect(audioMock.pause).toHaveBeenCalled();
     expect((component as any)._currentAudio).toBeNull();
     expect(component.playingTakeId()).toBeNull();
+  });
+
+  it('should run a suggestion and populate the suggestion signal', () => {
+    suggester.suggestBestTake.mockReturnValue({
+      takeId: 'take-1',
+      takeNumber: 1,
+      score: 88,
+      reasons: ['Clean headroom', 'Length matches median'],
+      excludedMuted: 0,
+    });
+    component.suggestBestTake();
+    expect(suggester.suggestBestTake).toHaveBeenCalledWith('group-1');
+    expect(component.suggestion()?.takeNumber).toBe(1);
+    expect(component.suggestion()?.score).toBe(88);
+    expect(snackbar.info).toHaveBeenCalled();
+  });
+
+  it('should warn when nothing usable to suggest from', () => {
+    component.suggestBestTake();
+    expect(component.suggestion()).toBeNull();
+    expect(snackbar.warning).toHaveBeenCalled();
+  });
+
+  it('should apply the suggested take to the comp selection', () => {
+    component.suggestion.set({
+      takeId: 'take-2',
+      takeNumber: 2,
+      score: 90,
+      reasons: ['x'],
+      excludedMuted: 0,
+    });
+    component.applySuggestedTake();
+    expect(smartRecording.selectCompTake).toHaveBeenCalledWith('group-1', 'take-2');
+    expect(snackbar.success).toHaveBeenCalled();
+  });
+
+  it('should not apply without a suggestion', () => {
+    component.suggestion.set(null);
+    component.applySuggestedTake();
+    expect(smartRecording.selectCompTake).not.toHaveBeenCalled();
+  });
+
+  it('should clear a suggestion', () => {
+    component.suggestion.set({
+      takeId: 'take-2',
+      takeNumber: 2,
+      score: 90,
+      reasons: ['x'],
+      excludedMuted: 0,
+    });
+    component.clearSuggestion();
+    expect(component.suggestion()).toBeNull();
   });
 });

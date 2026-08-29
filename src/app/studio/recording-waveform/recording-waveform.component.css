@@ -1,0 +1,188 @@
+.rec-waveform-container {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, #0a0e27 0%, #12162e 100%);
+  transition: border-color 0.2s ease;
+}
+
+.rec-waveform-container.recording {
+  border-color: rgba(220, 38, 38, 0.45);
+}
+
+.rec-waveform-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.flex {
+  display: flex;
+}
+.items-center {
+  align-items: center;
+}
+.gap-2 {
+  gap: 8px;
+}
+
+.rec-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: #4b5563;
+}
+
+.rec-pulse.active {
+  background: #ef4444;
+  animation: rec-blink 1s infinite;
+}
+
+@keyframes rec-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.rec-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+}
+
+.rec-waveform-container.recording .rec-label {
+  color: #ef4444;
+}
+
+.rec-time {
+  font-size: 13px;
+  color: #2ba09c;
+}
+
+.rec-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(43, 160, 156, 0.3);
+  border-radius: 6px;
+  color: #2ba09c;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.rec-action:hover:not(:disabled) {
+  background: rgba(43, 160, 156, 0.15);
+}
+
+.rec-action:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.rec-waveform-canvas {
+  height: 84px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.rec-waveform-canvas app-waveform-renderer {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rec-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rec-meter {
+  flex: 1;
+  min-width: 0;
+}
+
+.rec-meter-label {
+  display: block;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.rec-meter-track {
+  position: relative;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.rec-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #2ba09c 60%, #eab308);
+  border-radius: 9999px;
+  transition: width 0.08s linear;
+}
+
+.rec-meter-fill.hot {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.rec-meter-marker {
+  position: absolute;
+  top: 0;
+  height: 6px;
+  width: 2px;
+  background: #ef4444;
+  opacity: 0.7;
+  transform: translateX(-1px);
+}
+
+.rec-meter-marker.clip {
+  opacity: 1;
+}
+
+.rec-limiter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rec-limiter-toggle.on {
+  color: #2ba09c;
+  border-color: rgba(43, 160, 156, 0.4);
+  background: rgba(43, 160, 156, 0.12);
+}
+
+.rec-limiter-state {
+  font-size: 8px;
+  font-weight: 900;
+  color: #ef4444;
+}
+
+.rec-limiter-toggle.on .rec-limiter-state {
+  color: #2ba09c;
+}

@@ -6,6 +6,10 @@ import {
   CompGroup,
   CompTake,
 } from '../smart-recording.service';
+import {
+  VocalCompSuggesterService,
+  CompSuggestion,
+} from '../vocal-comp-suggester.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { LoggingService } from '../../services/logging.service';
@@ -24,6 +28,7 @@ export class VocalCompViewComponent {
   private audioEngine = inject(AudioEngineService);
   private snackbar = inject(SnackbarService);
   private logger = inject(LoggingService);
+  private suggester = inject(VocalCompSuggesterService);
 
   // ── State ──────────────────────────────────────────────
   selectedGroupId = signal<string | null>(null);
@@ -32,6 +37,10 @@ export class VocalCompViewComponent {
   playingTakeId = signal<string | null>(null);
   isExporting = signal(false);
   searchQuery = signal('');
+
+  /** Suggested "best" take from the AI comp suggester for the selected group. */
+  suggestion = signal<CompSuggestion | null>(null);
+  searchingSuggestion = signal(false);
 
   // ── Computed ───────────────────────────────────────────
   compGroups = computed(() => this.smartRecording.compGroups());
@@ -186,6 +195,35 @@ export class VocalCompViewComponent {
     if (compTake?.url) return compTake.url;
 
     return activeTakes[activeTakes.length - 1]?.url || '';
+  }
+
+  // ── AI comp suggestion ─────────────────────────────────
+  suggestBestTake() {
+    const group = this.selectedGroup();
+    if (!group) return;
+    this.searchingSuggestion.set(true);
+    const found = this.suggester.suggestBestTake(group.id);
+    this.suggestion.set(found);
+    this.searchingSuggestion.set(false);
+    if (found) {
+      this.snackbar.info(
+        `AI suggests Take ${found.takeNumber} (${found.score}/100)`
+      );
+    } else {
+      this.snackbar.warning('No usable takes to suggest from — record at least one');
+    }
+  }
+
+  applySuggestedTake() {
+    const group = this.selectedGroup();
+    const s = this.suggestion();
+    if (!group || !s) return;
+    this.smartRecording.selectCompTake(group.id, s.takeId);
+    this.snackbar.success(`Applied suggested Take ${s.takeNumber} as the comp`);
+  }
+
+  clearSuggestion() {
+    this.suggestion.set(null);
   }
 
   // ── Export ────────────────────────────────────────────

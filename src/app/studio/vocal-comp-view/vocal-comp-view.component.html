@@ -118,6 +118,13 @@
           </div>
           <div class="flex items-center gap-2">
             <button
+              (click)="suggestBestTake()"
+              class="flex items-center gap-2 px-3 py-1.5 bg-fl-blue/15 text-fl-blue border border-fl-blue/30 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-fl-blue/30 transition-all"
+            >
+              <span class="material-symbols-outlined text-xs">auto_awesome</span>
+              Suggest
+            </button>
+            <button
               (click)="exportComp()"
               [disabled]="isExporting()"
               class="flex items-center gap-2 px-3 py-1.5 bg-vocal-primary/20 text-vocal-primary border border-vocal-primary/30 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-vocal-primary/40 transition-all disabled:opacity-30"
@@ -137,6 +144,49 @@
             </button>
           </div>
         </div>
+
+        <!-- AI Suggestion Banner -->
+        @if (suggestion(); as suggestion) {
+          <div
+            class="rounded-2xl p-4 border border-fl-blue/40 bg-gradient-to-br from-fl-blue/15 to-vocal-primary/10"
+          >
+            <div class="flex items-center start gap-3">
+              <span class="material-symbols-outlined text-fl-blue"
+                >auto_awesome</span
+              >
+              <div class="flex-1 min-w-0">
+                <div class="text-[10px] font-black uppercase tracking-widest text-fl-blue">
+                  AI suggests Take {{ suggestion.takeNumber }}
+                  <span class="text-slate-400 normal-case">· {{ suggestion.score }}/100</span>
+                </div>
+                <div class="text-[8px] text-slate-400 mt-1 leading-relaxed">
+                  {{ suggestion.reasons.join(' · ') }}
+                </div>
+                @if (suggestion.excludedMuted > 0) {
+                  <div class="text-[8px] text-slate-500 mt-0.5">
+                    ({{ suggestion.excludedMuted }} muted take{{
+                      suggestion.excludedMuted > 1 ? 's' : ''
+                    }} excluded)
+                  </div>
+                }
+              </div>
+              <div class="flex flex-col gap-1">
+                <button
+                  (click)="applySuggestedTake()"
+                  class="px-3 py-1 bg-fl-blue text-black rounded-lg text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
+                >
+                  Use
+                </button>
+                <button
+                  (click)="clearSuggestion()"
+                  class="text-[9px] text-slate-400 hover:text-white px-1 uppercase font-bold"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        }
 
         <!-- Take Cards -->
         <div
@@ -195,7 +245,7 @@
                     class="mt-2 h-8 bg-vocal-oled rounded-lg overflow-hidden relative"
                   >
                     <div class="absolute inset-0 flex items-end px-1 gap-[1px]">
-                      @for (bar of generateWaveformBars(); track bar) {
+                      @for (bar of generateWaveformBars(); track $index) {
                         <div
                           class="flex-1 rounded-t-sm transition-all duration-200"
                           [style.background]="getTakeColor(take.takeNumber)"
