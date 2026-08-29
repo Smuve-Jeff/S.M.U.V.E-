@@ -166,7 +166,15 @@ export class AuthService {
     }
 
     const emailKey = (creds.email || '').trim().toLowerCase();
-    const storedUserStr = localStorage.getItem(`smuve_db_user_${emailKey}`);
+    let storedUserStr: string | null = null;
+    try {
+      storedUserStr = localStorage.getItem(`smuve_db_user_${emailKey}`);
+    } catch {
+      return {
+        success: false,
+        message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
+      };
+    }
 
     // To prevent timing attacks, always perform key derivation even if user doesn't exist
     const passwordToDerive =

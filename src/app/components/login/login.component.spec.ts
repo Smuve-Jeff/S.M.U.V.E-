@@ -98,6 +98,38 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Cipher Strength');
   });
 
+  it('normalizes the email before submitting credentials to the API', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    const response = {
+      token: 'api-jwt-token',
+      user: {
+        id: 7,
+        name: 'API Artist',
+        email: 'artist@example.com',
+        role: 'user',
+        createdAt: '2026-08-23T00:00:00.000Z',
+        updatedAt: '2026-08-23T00:00:00.000Z',
+      },
+    };
+    apiAuth.login.mockResolvedValue(response);
+    authMock.establishApiSession.mockReturnValue({ artistName: 'API Artist' });
+    fixture.componentInstance.credentials = {
+      email: '  ARTIST@EXAMPLE.COM  ',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(apiAuth.login).toHaveBeenCalledWith({
+      email: 'artist@example.com',
+      password: 'Password1!',
+    });
+    expect(fixture.componentInstance.credentials.email).toBe('artist@example.com');
+  });
+
   it('establishes the API session after successful credential login', async () => {
     jest.useFakeTimers();
     const { fixture, authMock } = await build();
@@ -144,6 +176,24 @@ describe('LoginComponent', () => {
     expect(authMock.establishApiSession).toHaveBeenCalledWith(response);
     expect(authMock.login).not.toHaveBeenCalled();
     jest.useRealTimers();
+  });
+
+  it('makes the second-factor form available after a 2FA challenge', async () => {
+    const { fixture, authMock } = await build();
+    authMock.login.mockResolvedValue({
+      success: false,
+      requires2FA: true,
+      message: 'SECOND FACTOR REQUIRED.',
+    });
+    fixture.componentInstance.credentials = {
+      email: 'artist@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(fixture.componentInstance.requires2FA()).toBe(true);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
   });
 
   it('sends a login confirmation before navigating after successful auth', async () => {

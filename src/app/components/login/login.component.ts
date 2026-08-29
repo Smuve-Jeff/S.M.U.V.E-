@@ -68,6 +68,9 @@ export class LoginComponent implements OnInit {
   async onSubmit() {
     if (this.isLoading()) return;
 
+    // Normalize identity input once at the boundary so API auth, demo auth,
+    // verification, and redirect state all refer to the same account.
+    this.credentials.email = (this.credentials.email || '').trim().toLowerCase();
     this.isLoading.set(true);
     this.message.set('');
     this.isError.set(false);
@@ -131,7 +134,8 @@ export class LoginComponent implements OnInit {
     this.isError.set(true);
     if (result.requires2FA) {
       this.requires2FA.set(true);
-      this.isLoading.set(true);
+      // The next submit must be available for the second-factor code.
+      this.isLoading.set(false);
     } else {
       this.isLoading.set(false);
     }
