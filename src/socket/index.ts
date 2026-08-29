@@ -60,6 +60,17 @@ interface QueueEntry {
 
 const getStudioRoom = (sessionId: string) => `session:${sessionId}`;
 const getPartyRoom = (partyId: string) => `party:${partyId}`;
+const MAX_CHAT_MESSAGE_LENGTH = 2000;
+
+function normalizeChatMessage(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const message = value.trim();
+  return message ? message.slice(0, MAX_CHAT_MESSAGE_LENGTH) : null;
+}
+
+function validSocketId(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 128;
+}
 
 /**
  * Socket.io social + studio-collaboration server, ported from the legacy
@@ -234,19 +245,26 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
 
     // ── Rooms ──
     socket.on("join_room", (roomId: string) => {
-      if (!roomId) return;
+      if (!validSocketId(roomId)) return;
+      for (const [joinedRoomId, members] of rooms) {
+        if (members.delete(userId)) socket.leave(joinedRoomId);
+        if (members.size === 0) rooms.delete(joinedRoomId);
+      }
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
       rooms.get(roomId)!.add(userId);
       socket.join(roomId);
     });
 
     socket.on("send_room_message", (data: { roomId?: string; message?: string; fromUserName?: string } = {}) => {
-      const { roomId, message, fromUserName } = data;
-      if (!roomId || !message) return;
+      const { roomId, fromUserName } = data;
+      const message = normalizeChatMessage(data.message);
+      if (!validSocketId(roomId) || !message) return;
+      const members = rooms.get(roomId);
+      if (!members?.has(userId)) return;
       io.to(roomId).emit("room_message", {
         roomId,
         fromUserId: userId,
-        fromUserName: fromUserName || userId,
+        fromUserName: typeof fromUserName === "string" ? fromUserName.slice(0, 80) : userId,
         message,
         timestamp: Date.now(),
       });
@@ -254,8 +272,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
 
     // ── Private messages ──
     socket.on("send_message", async (data: { toUserId?: string; message?: string } = {}) => {
-      const { toUserId, message } = data;
-      if (!toUserId || !message) return;
+      const { toUserId } = data;
+      const message = normalizeChatMessage(data.message);
+      if (!validSocketId(toUserId) || !message) return;
       try {
         await persistMessage({ fromUserId: userId, toUserId, message });
         const payload = { fromUserId: userId, toUserId, message, timestamp: Date.now() };
@@ -268,7 +287,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
 
     socket.on("typing", (data: { toUserId?: string; isTyping?: boolean } = {}) => {
       const { toUserId, isTyping } = data;
-      if (!toUserId) return;
+      if (!validSocketId(toUserId)) return;
       io.to(toUserId).emit("user_typing", { fromUserId: userId, isTyping: !!isTyping });
     });
 
@@ -760,8 +779,10 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     });
 
     socket.on("send_party_message", (data: { partyId?: string; message?: string } = {}) => {
-      const { partyId, message } = data;
-      if (!partyId || !message) return;
+      const { partyId } = data;
+      const message = normalizeChatMessage(data.message);
+      const party = partyId ? parties.get(partyId) : undefined;
+      if (!validSocketId(partyId) || !message || !party?.members.some((member) => member.userId === userId)) return;
       io.to(getPartyRoom(partyId)).emit("party_message", {
         roomId: partyId,
         fromUserId: userId,
@@ -1110,8 +1131,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     });
 
     socket.on("SEND_DIRECT_MESSAGE", async (data: { toUserId?: string; message?: string } = {}) => {
-      const { toUserId, message } = data;
-      if (!toUserId || !message) return;
+      const { toUserId } = data;
+      const message = normalizeChatMessage(data.message);
+      if (!validSocketId(toUserId) || !message) return;
       try {
         await persistMessage({ fromUserId: userId, toUserId, message });
         io.to(toUserId).emit("RECEIVE_DIRECT_MESSAGE", {
