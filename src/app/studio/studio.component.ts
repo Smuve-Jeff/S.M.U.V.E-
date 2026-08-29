@@ -64,7 +64,10 @@ import {
   SmartRecordingService,
   type CompTake,
 } from './smart-recording.service';
-import { ProjectWorkspaceService } from './project-workspace.service';
+import {
+  ProjectWorkspaceService,
+  type ProjectBundle,
+} from './project-workspace.service';
 import { SmartSoundService } from './smart-sound.service';
 import { AudioImportService } from './audio-import.service';
 import { SmartProductionFoundationsService } from './smart-production-foundations.service';
@@ -1644,16 +1647,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       await this.projectWorkspace.manualSave();
       this.snackbarService.success('Project saved');
       this.studioTelemetry.trackEvent('project_saved', undefined, true);
-    } catch (e) {
+    } catch (error) {
       this.studioTelemetry.trackEvent(
         'studio_error',
         {
           action: 'project_save',
-          error: e instanceof Error ? e.message : 'unknown',
+          error: error instanceof Error ? error.message : 'unknown',
         },
         false
       );
-      throw e;
+      this.snackbarService.error('Could not save project');
     }
   }
 
@@ -1664,22 +1667,34 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async loadProjectFile(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    
+    const file = input.files?.[0];
+    if (!file) return;
+
     try {
       const text = await file.text();
-      const bundle = JSON.parse(text);
+      const bundle = JSON.parse(text) as ProjectBundle;
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
         this.snackbarService.success('Project loaded successfully');
         this.studioTelemetry.trackEvent('project_imported', { format: 'smuve' }, true);
-        
       } else {
+        this.studioTelemetry.trackEvent(
+          'project_imported',
+          { format: 'smuve', reason: 'rejected' },
+          false
+        );
         this.snackbarService.error('Failed to load project bundle');
       }
-    } catch (e) {
+    } catch (error) {
+      this.studioTelemetry.trackEvent(
+        'project_imported',
+        { format: 'smuve', error: error instanceof Error ? error.message : 'invalid_json' },
+        false
+      );
       this.snackbarService.error('Invalid project file format');
+    } finally {
+      // Reset the input so selecting the same file again emits a change event.
+      input.value = '';
     }
   }
 

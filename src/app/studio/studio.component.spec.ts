@@ -484,6 +484,46 @@ describe('StudioComponent', () => {
     expect(mockSnackbar.success).toHaveBeenCalled();
   });
 
+  it('resets the file input after a successful import so the same file can be selected again', async () => {
+    (component as any).projectWorkspace.importProjectBundle = jest.fn().mockResolvedValue(true);
+    const input = document.createElement('input');
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [new File([JSON.stringify({ metadata: {}, tracks: [] })], 'session.smuve', { type: 'application/json' })],
+    });
+    const event = { target: input } as unknown as Event;
+
+    await component.loadProjectFile(event);
+
+    expect(input.value).toBe('');
+  });
+
+  it('reports rejected project bundles without throwing', async () => {
+    (component as any).projectWorkspace.importProjectBundle = jest.fn().mockResolvedValue(false);
+    const input = document.createElement('input');
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [new File([JSON.stringify({ metadata: {}, tracks: [] })], 'session.smuve')],
+    });
+
+    await component.loadProjectFile({ target: input } as unknown as Event);
+
+    expect(mockSnackbar.error).toHaveBeenCalledWith('Invalid project file format');
+  });
+
+  it('reports save failures to the user without creating an unhandled rejection', async () => {
+    mockProjectWorkspace.manualSave = jest.fn().mockRejectedValue(new Error('disk full'));
+
+    await expect(component.saveProject()).resolves.toBeUndefined();
+
+    expect(mockSnackbar.error).toHaveBeenCalledWith('Could not save project');
+    expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+      'studio_error',
+      expect.objectContaining({ action: 'project_save' }),
+      false
+    );
+  });
+
   it('mirrors the Stage FX toggle into the executive preferences', () => {
     component.toggleStageFx();
     expect(mockUserProfileService.updateProfile).toHaveBeenCalledWith(

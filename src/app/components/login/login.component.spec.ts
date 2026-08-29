@@ -4,7 +4,8 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../services/auth.service';
-import { ApiAuthService } from '../../services/api-auth.service';
+import { ApiAuthError, ApiAuthService } from '../../services/api-auth.service';
+import { APP_SECURITY_CONFIG } from '../../app.security';
 import { SecurityService } from '../../services/security.service';
 import { OnboardingService } from '../../services/onboarding.service';
 import { LoggingService } from '../../services/logging.service';
@@ -219,5 +220,98 @@ describe('LoginComponent', () => {
     expect(loginConfirmationMock.sendLoginConfirmation).toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/hub');
     jest.useRealTimers();
+  });
+
+  it('falls back to the local demo store when the API rejects a legacy account with 401', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    apiAuth.login.mockRejectedValue(
+      new ApiAuthError(401, 'Invalid email or password')
+    );
+    authMock.login.mockResolvedValue({
+      success: true,
+      message: 'ACCESS GRANTED, LEGACY ARTIST.',
+    });
+    fixture.componentInstance.credentials = {
+      email: 'legacy@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(authMock.login).toHaveBeenCalledWith(
+      fixture.componentInstance.credentials
+    );
+    expect(fixture.componentInstance.isError()).toBe(false);
+    expect(fixture.componentInstance.message()).toContain('ACCESS GRANTED');
+  });
+
+  it('keeps a 401 as a denial when the legacy fallback is disabled', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(401, 'Invalid email or password')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain(
+        'AUTHORIZATION DENIED'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('completes a legacy 2FA login through the fallback on resubmit', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    apiAuth.login.mockRejectedValue(
+      new ApiAuthError(401, 'Invalid email or password')
+    );
+    authMock.login
+      .mockResolvedValueOnce({
+        success: false,
+        requires2FA: true,
+        message: 'SECOND FACTOR REQUIRED. SECURE YOUR TRANSMISSION.',
+      })
+      .mockResolvedValueOnce({ success: true, message: 'ACCESS GRANTED.' });
+
+    fixture.componentInstance.credentials = {
+      email: 'legacy@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    expect(fixture.componentInstance.requires2FA()).toBe(true);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
+
+    fixture.componentInstance.credentials.twoFactorCode = '123456';
+    await fixture.componentInstance.onSubmit();
+
+    expect(authMock.login).toHaveBeenCalledTimes(2);
+    expect(authMock.login).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        email: 'legacy@example.com',
+        twoFactorCode: '123456',
+      })
+    );
+    expect(fixture.componentInstance.isError()).toBe(false);
   });
 });

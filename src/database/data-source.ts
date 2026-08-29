@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { DATABASE_URL, NODE_ENV } from "@/config/env";
+import { DATABASE_DRIVER, DATABASE_URL, NODE_ENV } from "@/config/env";
 import { User } from "@/entities/User";
 import { Product } from "@/entities/Product";
 import { UserProfile } from "@/entities/UserProfile";
@@ -23,10 +23,14 @@ import { LiveStream } from "@/entities/LiveStream";
 const isDevelopment = NODE_ENV === "development";
 const isProduction = NODE_ENV === "production";
 
+const isPlanetScale = DATABASE_DRIVER === "mysql";
+
 export const AppDataSource = new DataSource({
-  type: "postgres",
+  type: isPlanetScale ? "mysql" : "postgres",
   url: DATABASE_URL,
-  ssl: isDevelopment ? false : { rejectUnauthorized: false },
+  ...(isPlanetScale
+    ? { charset: "utf8mb4", ssl: isDevelopment ? false : { rejectUnauthorized: true } }
+    : { ssl: isDevelopment ? false : { rejectUnauthorized: false } }),
   synchronize: false,
   logging: isDevelopment ? ["query", "error"] : false,
   entities: [
@@ -55,5 +59,6 @@ export const AppDataSource = new DataSource({
   migrationsRun: isDevelopment,
   extra: {
     max: isProduction ? 10 : 20,
+    ...(isPlanetScale ? { enableKeepAlive: true } : {}),
   },
 });

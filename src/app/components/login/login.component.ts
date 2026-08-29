@@ -172,13 +172,27 @@ export class LoginComponent implements OnInit {
     return status === 0 || status >= 500;
   }
 
+  /**
+   * API statuses that may fall through to the legacy demo store when the
+   * fallback is permitted: transport failure (0), server failure (5xx), a
+   * missing endpoint (404), or an authoritative 401 — the account may exist
+   * only in the local demo store, and a hard denial would lock legacy users
+   * out whenever the API is reachable. 400/409/429 stay denials: they are
+   * real answers about the request, not access failures.
+   */
+  private isLegacyFallbackStatus(status: number): boolean {
+    return this.isApiUnavailable(status) || status === 401 || status === 404;
+  }
+
   private canUseLegacyFallback(): boolean {
     return APP_SECURITY_CONFIG.legacy_auth_fallback;
   }
 
   /**
    * Try the S.M.U.V.E. API first. Only local development may fall back to
-   * the legacy demo auth; production and tunnel URLs remain authoritative.
+   * the legacy demo auth (transport/server failure, missing endpoint, or a
+   * 401 for an account that exists only in the local demo store); production
+   * and tunnel URLs remain authoritative.
    */
   private async submitLogin() {
     try {
@@ -193,17 +207,22 @@ export class LoginComponent implements OnInit {
         message: `ACCESS GRANTED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.`,
       };
     } catch (err) {
-      if (err instanceof ApiAuthError && !this.isApiUnavailable(err.status)) {
+      if (
+        this.canUseLegacyFallback() &&
+        (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
+      ) {
+        // Dev only: transport/server failure, missing endpoint, or a 401 for
+        // an account that exists only in the local demo store.
+        this.usesApiAuth.set(false);
+        return this.authService.login(this.credentials);
+      }
+      if (err instanceof ApiAuthError) {
         return { success: false, message: this.apiErrorMessage(err) };
       }
-      if (!this.canUseLegacyFallback()) {
-        return {
-          success: false,
-          message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
-        };
-      }
-      this.usesApiAuth.set(false);
-      return this.authService.login(this.credentials);
+      return {
+        success: false,
+        message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
+      };
     }
   }
 
@@ -221,17 +240,20 @@ export class LoginComponent implements OnInit {
         message: `IDENTITY SEALED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.`,
       };
     } catch (err) {
-      if (err instanceof ApiAuthError && !this.isApiUnavailable(err.status)) {
+      if (
+        this.canUseLegacyFallback() &&
+        (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
+      ) {
+        this.usesApiAuth.set(false);
+        return this.authService.register(this.credentials, this.artistName);
+      }
+      if (err instanceof ApiAuthError) {
         return { success: false, message: this.apiErrorMessage(err) };
       }
-      if (!this.canUseLegacyFallback()) {
-        return {
-          success: false,
-          message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
-        };
-      }
-      this.usesApiAuth.set(false);
-      return this.authService.register(this.credentials, this.artistName);
+      return {
+        success: false,
+        message: 'AUTHENTICATION SERVICE UNAVAILABLE. TRY AGAIN LATER.',
+      };
     }
   }
 
