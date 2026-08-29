@@ -6,6 +6,12 @@ import { setupSocketIO } from "@/socket";
 import { AppDataSource } from "@/database/data-source";
 import { DB_NAME, NODE_ENV, PORT } from "@/config/env";
 
+async function runProductionMigrations(): Promise<void> {
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.runMigrations();
+  }
+}
+
 /**
  * Unified production entrypoint: serves the compiled Angular bundle
  * (Build/browser) and the Express API on a single HTTP server so one Render
@@ -49,6 +55,7 @@ export function createUnifiedApp(options: UnifiedAppOptions = {}): express.Expre
 async function main(): Promise<void> {
   try {
     await AppDataSource.initialize();
+    await runProductionMigrations();
     console.log(`[api] Connected to database: ${DB_NAME}`);
 
     const unified = createUnifiedApp();
