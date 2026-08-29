@@ -154,4 +154,58 @@ describe('AuthService (Hardened)', () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain('AUTHORIZATION DENIED');
   });
+
+  it('treats corrupt local credentials as a controlled login failure', async () => {
+    localStorage.setItem('smuve_db_user_corrupt@example.com', '{not-json');
+
+    const result = await service.login({
+      email: 'corrupt@example.com',
+      password: 'Password123!@#',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('AUTHORIZATION DENIED');
+    expect(userStore.isAuthenticated()).toBe(false);
+  });
+
+  it('clears the user and token when a persisted session is tampered with', async () => {
+    userStore.setUser({
+      id: 'u1',
+      email: 'artist@example.com',
+      artistName: 'Artist',
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    });
+    const tokenService = TestBed.inject(TokenService);
+    tokenService.setToken('stale-token', 'legacy');
+    const tamperedUser = {
+      id: 'u1',
+      email: 'artist@example.com',
+      artistName: 'Artist',
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    };
+    const encodedSession = btoa(
+      String.fromCharCode(
+        ...new TextEncoder().encode(
+          JSON.stringify(tamperedUser) + '|wrong-salt'
+        )
+      )
+    );
+    sessionStorage.setItem('smuve_auth_session', encodedSession);
+
+    await service.loadSession();
+
+    expect(userStore.isAuthenticated()).toBe(false);
+    expect(tokenService.jwtToken()).toBeNull();
+    expect(sessionStorage.getItem('smuve_auth_session')).toBeNull();
+  });
 });

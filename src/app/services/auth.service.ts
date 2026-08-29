@@ -79,8 +79,18 @@ export class AuthService {
   }
 
   async loadSession() {
-    if (typeof localStorage === 'undefined') return;
-    const session = sessionStorage.getItem('smuve_auth_session');
+    // Sessions are intentionally stored in sessionStorage, not localStorage.
+    // Check the actual store before touching it because private/restricted
+    // browser contexts can expose one storage API while denying the other.
+    if (typeof sessionStorage === 'undefined') return;
+    let session: string | null = null;
+    try {
+      session = sessionStorage.getItem('smuve_auth_session');
+    } catch {
+      this.userStore.setUser(null);
+      this.tokenService.setToken(null);
+      return;
+    }
     if (!session) return;
     try {
       const decodedBytes = Uint8Array.from(atob(session), (c) =>
@@ -89,6 +99,13 @@ export class AuthService {
       const decoded = new TextDecoder().decode(decodedBytes);
       const [data, key] = decoded.split('|');
       if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) {
+        try {
+          sessionStorage.removeItem('smuve_auth_session');
+        } catch {
+          // Storage may be readable but not writable in private mode.
+        }
+        this.userStore.setUser(null);
+        this.tokenService.setToken(null);
         this.logger.error('AUTH_ALERT: SESSION INTEGRITY COMPROMISED.');
         return;
       }
@@ -102,7 +119,13 @@ export class AuthService {
       this.userStore.setUser(user);
       await this.profileService.loadProfile(user.id);
     } catch {
-      sessionStorage.removeItem('smuve_auth_session');
+      try {
+        sessionStorage.removeItem('smuve_auth_session');
+      } catch {
+        // Storage may be readable but not writable in private mode.
+      }
+      this.userStore.setUser(null);
+      this.tokenService.setToken(null);
       this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
     }
     // If a real API JWT is present, refresh the session from the API when
@@ -162,7 +185,26 @@ export class AuthService {
       };
     }
 
-    const storedUser = JSON.parse(storedUserStr);
+    let storedUser: any;
+    try {
+      storedUser = JSON.parse(storedUserStr);
+    } catch {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
+
+    if (!storedUser || typeof storedUser !== 'object' || typeof storedUser.passwordHash !== 'string') {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
 
     if (hashedInput !== storedUser.passwordHash) {
       await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
