@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { PerformanceRecordingService } from './performance-recording.service';
+import { StudioRecordingEngineService } from './studio-recording-engine.service';
 import { LoggingService } from '../services/logging.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { LocalStorageService } from '../services/local-storage.service';
@@ -10,6 +11,38 @@ describe('PerformanceRecordingService', () => {
   let audioEngineMock: any;
   let localStorageMock: any;
   let rafSpy: jest.SpyInstance;
+  let fakeEngine: any;
+
+  function provideRealEngineHook() {
+    // Re-provision TestBed with a fake recording engine so startRecording()
+    // is observed to boot the real worklet capture path instead of the stub.
+    fakeEngine = {
+      initialize: jest.fn(async () => true),
+      isInitialized: jest.fn(() => true),
+      isRecording: jest.fn(() => true),
+      startRecording: jest.fn(),
+      stopRecording: jest.fn(async () => {
+        fakeEngine._captured = new Blob(['real-captured'], {
+          type: 'audio/wav',
+        });
+        fakeEngine.recordedBlob.mockReturnValue(fakeEngine._captured);
+      }),
+      recordingTime: jest.fn(() => 0.5),
+      recordedBlob: jest.fn(() => null),
+      getRecordedBuffers: jest.fn(() => ({ left: [], right: [] })),
+    };
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        PerformanceRecordingService,
+        { provide: LoggingService, useValue: loggerMock },
+        { provide: AudioEngineService, useValue: audioEngineMock },
+        { provide: LocalStorageService, useValue: localStorageMock },
+        { provide: StudioRecordingEngineService, useValue: fakeEngine },
+      ],
+    });
+    service = TestBed.inject(PerformanceRecordingService);
+  }
 
   beforeEach(() => {
     loggerMock = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
@@ -138,6 +171,37 @@ describe('PerformanceRecordingService', () => {
   it('should return null from finishTake when not recording', async () => {
     const take = await service.finishTake();
     expect(take).toBeNull();
+  });
+
+  it('should boot the recording engine and capture real audio on finishTake', async () => {
+    // Reload the service with a fake engine injected via the DI injector the
+    // service lazy-resolves — proving startRecording starts real capture and
+    // finishTake consumes the flushed blob instead of the silent stub.
+    provideRealEngineHook();
+    service.arm(1);
+    service.startRecording('track-1', 'Vocal');
+    await new Promise((r) => setTimeout(r, 5));
+
+    expect(fakeEngine.startRecording).toHaveBeenCalled();
+
+    const take = await service.finishTake('track-1', 'Vocal');
+    expect(take).not.toBeNull();
+    // Real engine capture was stopped + flushed
+    expect(fakeEngine.stopRecording).toHaveBeenCalled();
+    // The flushed blob instance (not the stub) is used directly
+    expect(take!.blob).toBe(fakeEngine._captured);
+    // Duration is reconciled from the engine's real captured length
+    expect(take!.durationMs).toBe(500);
+    expect(service.isRecording()).toBe(false);
+    expect(service.armedTakeNumber()).toBe(2);
+  });
+
+  it('should not boot the engine on a second start while already recording', async () => {
+    provideRealEngineHook();
+    service.arm(1);
+    service.startRecording();
+    service.startRecording();
+    expect(fakeEngine.startRecording).toHaveBeenCalledTimes(1);
   });
 
   it('should delete a take and clear selection', () => {

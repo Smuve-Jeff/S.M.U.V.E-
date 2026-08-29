@@ -97,6 +97,8 @@ export class PerformanceRecordingService implements OnDestroy {
   private peakL = -Infinity;
   private peakR = -Infinity;
   private inited = false;
+  /** Pending async engine boot started in startRecording(); awaited in finishTake(). */
+  private engineStartPromise: Promise<boolean> | null = null;
 
   recordingFinished$ = new Subject<PerformanceTake>();
   takeArmed$ = new Subject<number>();
@@ -189,8 +191,20 @@ export class PerformanceRecordingService implements OnDestroy {
     this.peakR = -Infinity;
     this.startTimestampMs = performance.now();
     this.isRecording.set(true);
-    // Trigger the worklet capture via the AudioRecorder / Recording engine
-    // (We mirror the activity here so the UI has its own lifecycle.)
+    // Actually start the AudioWorklet capture on the shared recording
+    // engine so finishTake() can pull real buffers instead of a silent
+    // stub. Initialization is async, so stash the promise to await in
+    // finishTake() before flushing buffers.
+    const engine = this.recordingEngine;
+    if (engine && !this.engineStartPromise) {
+      this.engineStartPromise = (async () => {
+        if (!engine.isInitialized()) {
+          await engine.initialize();
+        }
+        engine.startRecording();
+        return engine.isRecording();
+      })();
+    }
   }
 
   recordMidi(midi: number, velocity: number) {
@@ -214,27 +228,51 @@ export class PerformanceRecordingService implements OnDestroy {
     let blob: Blob;
     const engine = this.recordingEngine;
     if (engine) {
-      const { left, right } = engine.getRecordedBuffers();
-      if (left.length > 0 && right.length > 0) {
-        try {
-          const leftChannel = this.joinChunks(left);
-          const rightChannel = this.joinChunks(right);
-          const sampleRate = this.audioEngine.ctx.sampleRate;
-          blob = WavEncoder.encodeMultiChannel(
-            [leftChannel, rightChannel],
-            'wav-16',
-            sampleRate
-          );
-          durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
-        } catch (e) {
-          this.logger.warn(
-            'PerformanceRecording: WAV encode from buffers failed; falling back to stub.',
-            e
-          );
-          blob = await this.synthesizeWavStub(durationMs);
+      // Make sure the async engine boot from startRecording() settled and
+      // then flush the worklet so the channel buffers are finalized.
+      try {
+        if (this.engineStartPromise) {
+          await this.engineStartPromise;
         }
-      } else {
-        // No buffers captured — stub as fallback
+        this.engineStartPromise = null;
+        if (engine.isRecording()) {
+          await engine.stopRecording();
+        }
+        const flushed = engine.recordedBlob();
+        if (flushed) {
+          blob = flushed;
+          // Reconcile the take duration with the actual captured length.
+          durationMs = Math.round(engine.recordingTime() * 1000);
+        } else {
+          const { left, right } = engine.getRecordedBuffers();
+          if (left.length > 0 && right.length > 0) {
+            try {
+              const leftChannel = this.joinChunks(left);
+              const rightChannel = this.joinChunks(right);
+              const sampleRate = this.audioEngine.ctx.sampleRate;
+              blob = WavEncoder.encodeMultiChannel(
+                [leftChannel, rightChannel],
+                'wav-16',
+                sampleRate
+              );
+              durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
+            } catch (e) {
+              this.logger.warn(
+                'PerformanceRecording: WAV encode from buffers failed; falling back to stub.',
+                e
+              );
+              blob = await this.synthesizeWavStub(durationMs);
+            }
+          } else {
+            // No buffers captured — stub as fallback
+            blob = await this.synthesizeWavStub(durationMs);
+          }
+        }
+      } catch (e) {
+        this.logger.warn(
+          'PerformanceRecording: engine capture failed; falling back to stub.',
+          e
+        );
         blob = await this.synthesizeWavStub(durationMs);
       }
     } else {
