@@ -3136,7 +3136,7 @@
               isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
             }}</span>
           </button>
-          <button class="icon-btn" (click)="reloadGame()" title="Reload Game">
+          <button class="icon-btn" (click)="retryGameLoad()" title="Reload Game">
             <span class="material-symbols-outlined">refresh</span>
           </button>
           <button class="icon-btn" (click)="closeGame()" title="Close Game">
@@ -3207,7 +3207,7 @@
             <div style="display: flex; gap: 0.75rem">
               <button
                 class="launch-btn mini"
-                (click)="reloadGame(); gameLoadError.set(false)"
+                (click)="retryGameLoad()"
                 style="font-size: 0.7rem; padding: 0.5rem 1rem"
               >
                 RETRY CONNECTION

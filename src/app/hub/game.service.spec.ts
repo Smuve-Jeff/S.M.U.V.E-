@@ -167,6 +167,37 @@ describe('GameService', () => {
     expect(repairedGame?.launchConfig?.approvedEmbedUrl).toBeUndefined();
   });
 
+  it('swaps a blocked primary provider for its verified RetroGames fallback', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush({
+      ...mockFeed,
+      games: [
+        {
+          id: 'nba-jam-elite',
+          name: 'NBA Jam',
+          genre: 'Sports',
+          url: 'https://www.gamepix.com/play/nba-jam',
+          launchConfig: {
+            embedMode: 'inline',
+            approvedEmbedUrl: 'https://www.gamepix.com/play/nba-jam',
+            approvedExternalUrl:
+              'https://www.retrogames.cc/embed/17392-nba-jam-usa.html',
+          },
+        },
+      ],
+    });
+    const games = await pending;
+
+    const game = games.find((entry) => entry.id === 'nba-jam-elite');
+    // The gamepix /play/ page sends X-Frame-Options, so the verified
+    // RetroGames embed must become the external target instead.
+    expect(game?.launchConfig?.embedMode).toBe('external-only');
+    expect(game?.launchConfig?.approvedEmbedUrl).toBeUndefined();
+    expect(game?.launchConfig?.approvedExternalUrl).toBe(
+      'https://www.retrogames.cc/embed/17392-nba-jam-usa.html'
+    );
+  });
+
   it('filters games through data-driven room rules', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('weekend-clash'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);

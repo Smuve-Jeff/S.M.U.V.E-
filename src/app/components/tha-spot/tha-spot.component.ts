@@ -15,8 +15,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subscription } from 'rxjs';
-import { GameService } from '../../hub/game.service';
-import { canonicalGenreFacet } from '../../hub/game.service';
+import {
+  GameService,
+  canonicalGenreFacet,
+  isKnownEmbedBlockedUrl,
+} from '../../hub/game.service';
 import { Game } from '../../hub/game';
 import { GameSortMode } from '../../hub/game.service';
 import { RecommendationRail, LiveEvent } from '../../hub/game';
@@ -1494,6 +1497,154 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private cardObserver?: IntersectionObserver;
   private heroBgInterval?: any;
   private heroBgIndex = 0;
+  private gameLoadWatchdogId: number | null = null;
+  private gameReloadTimerId: number | null = null;
+  private guardedGameFrame: HTMLIFrameElement | null = null;
+  private readonly gameFrameLoadHandler = () => this.handleGameIframeLoad();
+  private readonly gameFrameErrorHandler = () => this.handleGameIframeError();
+  private readonly legacyLaunchCompatibility = (() => {
+    this.onGameIframeLoad = () => this.handleGameIframeLoad();
+    this.onGameIframeError = () => this.handleGameIframeError();
+    this.isEmbedBlockedUrl = (url: string) => isKnownEmbedBlockedUrl(url);
+    const confirmExternalLaunch = this.confirmExternalLaunch.bind(this);
+    this.confirmExternalLaunch = () => {
+      confirmExternalLaunch();
+      if (this.currentGame()) this.closeGame();
+    };
+    const closeGame = this.closeGame.bind(this);
+    this.closeGame = () => {
+      this.clearGameLoadWatchdog();
+      this.clearGameReloadTimer();
+      this.removeGameFrameGuards();
+      this.gameFrameReady.set(false);
+      closeGame();
+    };
+    const ngOnDestroy = this.ngOnDestroy.bind(this);
+    this.ngOnDestroy = () => {
+      this.clearGameLoadWatchdog();
+      this.clearGameReloadTimer();
+      this.removeGameFrameGuards();
+      ngOnDestroy();
+    };
+    return true;
+  })();
+  private gameFrameReady = signal(false);
+  private readonly GAME_LOAD_WATCHDOG_MS = 15000;
+  private gameLoadLifecycle = effect((onCleanup) => {
+    const activeGame = this.currentGame();
+    const hasLoadError = this.gameLoadError();
+    if (activeGame && !hasLoadError && !this.gameFrameReady()) {
+      this.startGameLoadWatchdog();
+      window.setTimeout(() => this.installGameFrameGuards(), 0);
+    }
+    onCleanup(() => {
+      this.clearGameLoadWatchdog();
+    });
+  });
+
+  private blockedLaunchPolicy = effect(() => {
+    const game = this.selectedGame();
+    const target = game?.launchConfig?.approvedEmbedUrl || game?.url;
+    if (!game || !target || !isKnownEmbedBlockedUrl(target)) return;
+    if (game.launchConfig?.embedMode === 'external-only') return;
+
+    this.selectedGame.update((current) => {
+      if (!current || current.id !== game.id) return current;
+      const launchConfig = { ...(current.launchConfig || {}) };
+      launchConfig.embedMode = 'external-only';
+      launchConfig.approvedExternalUrl =
+        launchConfig.approvedExternalUrl || target;
+      delete launchConfig.approvedEmbedUrl;
+      return { ...current, launchConfig };
+    });
+  });
+
+  private installGameFrameGuards(): void {
+    const iframe = this.gameIframe?.nativeElement;
+    if (!iframe || iframe === this.guardedGameFrame) return;
+    this.removeGameFrameGuards();
+    this.guardedGameFrame = iframe;
+    iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+    iframe.addEventListener('load', this.gameFrameLoadHandler);
+    iframe.addEventListener('error', this.gameFrameErrorHandler);
+  }
+
+  private removeGameFrameGuards(): void {
+    if (!this.guardedGameFrame) return;
+    this.guardedGameFrame.removeEventListener('load', this.gameFrameLoadHandler);
+    this.guardedGameFrame.removeEventListener('error', this.gameFrameErrorHandler);
+    this.guardedGameFrame = null;
+  }
+
+  private clearGameLoadWatchdog(): void {
+    if (this.gameLoadWatchdogId !== null) {
+      window.clearTimeout(this.gameLoadWatchdogId);
+      this.gameLoadWatchdogId = null;
+    }
+  }
+
+  private clearGameReloadTimer(): void {
+    if (this.gameReloadTimerId !== null) {
+      window.clearTimeout(this.gameReloadTimerId);
+      this.gameReloadTimerId = null;
+    }
+  }
+
+  private startGameLoadWatchdog(): void {
+    this.clearGameLoadWatchdog();
+    this.clearGameReloadTimer();
+    this.gameFrameReady.set(false);
+    this.gameLoadWatchdogId = window.setTimeout(() => {
+      this.gameLoadWatchdogId = null;
+      if (
+        !this.currentGame() ||
+        this.gameFrameReady()
+      ) return;
+      this.onGameIframeError();
+      this.snackbarService.error(
+        'GAME CABINET DID NOT RESPOND. RETRY OR OPEN IT EXTERNALLY.'
+      );
+    }, this.GAME_LOAD_WATCHDOG_MS);
+  }
+
+  handleGameIframeLoad(): void {
+    const iframe = this.gameIframe?.nativeElement;
+    if (iframe?.src === 'about:blank') return;
+    this.gameFrameReady.set(true);
+    this.clearGameLoadWatchdog();
+    this.gameLoadStage.set('ready');
+    this.gameLoadError.set(false);
+    if (iframe) {
+      iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+    }
+  }
+
+  handleGameIframeError(): void {
+    this.clearGameLoadWatchdog();
+    this.gameFrameReady.set(false);
+    this.gameLoadError.set(true);
+    this.gameLoadStage.set('idle');
+  }
+
+  retryGameLoad(): void {
+    if (!this.currentGame()) return;
+    this.clearGameLoadWatchdog();
+    this.clearGameReloadTimer();
+    this.gameFrameReady.set(false);
+    this.gameLoadStage.set('loading');
+    this.gameLoadError.set(true);
+    this.gameReloadTimerId = window.setTimeout(() => {
+      this.gameReloadTimerId = null;
+      if (!this.currentGame()) return;
+      this.gameLoadError.set(false);
+      this.startGameLoadWatchdog();
+    }, 0);
+  }
+
+  confirmExternalGameLaunch(): void {
+    this.confirmExternalLaunch();
+    if (this.currentGame()) this.closeGame();
+  }
 
   // ── Upgrade Signals ──────────────────────────────────
   aiRecommendations = signal<Game[]>([]);
@@ -2513,12 +2664,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   reloadGame() {
-    const iframe = this.gameIframe?.nativeElement;
-    if (iframe) {
-      const src = iframe.src;
-      iframe.src = '';
-      iframe.src = src;
-    }
+    // Defer to the state-driven retry: *ngIf removes the iframe on error,
+    // so mutating this detached node would reload nothing.
+    this.retryGameLoad();
   }
 
   getActiveRoomName(): string {

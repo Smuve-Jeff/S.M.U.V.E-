@@ -17,6 +17,53 @@ import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
 
 const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
 
+/**
+ * Providers audited to reject iframe embedding with X-Frame-Options, CSP, or
+ * an interstitial that cannot boot as a game cabinet. Keep this policy shared
+ * with the component so normalization and the launch UI make the same choice.
+ */
+const EMBED_BLOCKED_DOMAINS = [
+  'gamepix.com',
+  'krunker.io',
+  'play2048.co',
+  'diep.io',
+  'slowroads.io',
+  '1v1.lol',
+  'nytimes.com',
+  'garticphone.com',
+  'agar.io',
+  'slither.io',
+  'skribbl.io',
+  'dota2.com',
+  'ea.com',
+  'rocketleague.com',
+  'epicgames.com',
+  'minecraft.net',
+  'innersloth.com',
+  'bungie.net',
+  'ubisoft.com',
+  'warframe.com',
+  'emulatorgames.net',
+  'playretrogames.com',
+  'classicgame.com',
+] as const;
+
+export function isKnownEmbedBlockedUrl(value: unknown): boolean {
+  if (typeof value !== 'string' || !value) return true;
+  if (value.startsWith('//')) return true;
+  if (value.startsWith('/') || value.startsWith('assets/') || value.startsWith('./')) {
+    return false;
+  }
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return EMBED_BLOCKED_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return true;
+  }
+}
+
 function asString(val: any, fallback = ''): string {
   return typeof val === 'string' ? val : fallback;
 }
@@ -192,6 +239,77 @@ const CANONICAL_GAME_TITLES: Record<string, string> = {
   'mythic-raid-online': 'Raid Heroes: Total War',
 };
 
+/**
+ * The GameDistribution feed uses the provider's stable slug as its row ID,
+ * while older harvests sometimes copied a neighboring game's marketing name.
+ * Prefer the stable slug for the common case and keep only the live-title
+ * exceptions here (typos, numeric suffixes, and punctuation differences).
+ */
+const GAME_DISTRIBUTION_TITLE_OVERRIDES: Record<string, string> = {
+  'gd-alion-storm': 'Alien Storm',
+  'gd-box-monster%3A-unbox-and-dress-up': 'Box Monster: Unbox & Dress Up',
+  'gd-castle-defense-2': 'Castle Defense',
+  'gd-crab-and-fish': 'Crab & Fish',
+  'gd-cross-the-road-1': 'Cross the Road',
+  'gd-crossy-bridge-1': 'Crossy Bridge',
+  'gd-drag-and-match-maze-tile': 'DRAG & Match Maze - TILE',
+  'gd-falling-asleep-weird-and-fun-game':
+    'Falling Asleep - Weird & Fun Game',
+  'gd-formula-drag-1': 'Formula Drag',
+  'gd-guns-and-bottles': 'Guns & Bottles',
+  'gd-hoop-stars-1': 'Hoop Stars',
+  'gd-house-paint-2': 'House Paint',
+  'gd-knight-in-love-1': 'Knight in Love',
+  'gd-monster-ecape': 'Monster Escape',
+  'gd-open-world-crime-city-shooting':
+    'Gangster Hero Open World Crime Shooting',
+  'gd-peg-solitaire-1': 'Peg Solitaire',
+  'gd-princess-royal-wedding-1': 'Princess Royal Wedding',
+  'gd-scorpion-solitaire-2': 'Scorpion Solitaire',
+  'gd-screw-nuts-and-bolts%3A-wood-solve':
+    'Screw Nuts & Bolts: Wood Solve',
+  'gd-vegamix%3A-wild-west-puzzle': 'VegaMix2 Wild West',
+  'gd-word-cross-1': 'Word Cross',
+};
+
+function gameDistributionTitle(gameId: string): string | undefined {
+  if (!gameId.toLowerCase().startsWith('gd-')) return undefined;
+  const override = GAME_DISTRIBUTION_TITLE_OVERRIDES[gameId];
+  if (override) return override;
+
+  let slug = gameId.slice(3);
+  try {
+    slug = decodeURIComponent(slug);
+  } catch {
+    // Keep the encoded slug if a malformed feed ID reaches normalization.
+  }
+
+  const words = slug
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+\d+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
+  if (!words.length) return undefined;
+
+  const smallWords = new Set(['a', 'an', 'and', 'in', 'of', 'the', 'to']);
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      if (index > 0 && smallWords.has(lower)) return lower;
+      if (lower === '3d') return '3D';
+      if (lower === '4x4') return '4X4';
+      if (lower === 'ai') return 'AI';
+      if (lower === 'dx') return 'DX';
+      if (lower === 'io') return 'io';
+      if (lower === 'pvp') return 'PvP';
+      if (lower === 'vr') return 'VR';
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 /** Canonical launch targets for records whose feed IDs historically drifted. */
 const CANONICAL_GAME_URLS: Record<string, string> = {
   'tactical-squad': 'https://www.gamepix.com/play/special-strike-operations',
@@ -276,14 +394,18 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
 
 function normalizeGame(game: Game): Game {
   const id = asString(game.id);
-  const name = CANONICAL_GAME_TITLES[id] || asString(game.name, 'Untitled Cabinet');
+  const name =
+    CANONICAL_GAME_TITLES[id] ||
+    gameDistributionTitle(id) ||
+    asString(game.name, 'Untitled Cabinet');
   const canonicalUrl = CANONICAL_GAME_URLS[id];
-  const retroBacked = [
-    game.url,
-    game.launchConfig?.approvedEmbedUrl,
-    game.launchConfig?.approvedExternalUrl,
-  ].some(isRetroGamesUrl);
   const launchConfig = { ...(game.launchConfig || {}) };
+  const retroBacked = [
+    canonicalUrl,
+    game.url,
+    launchConfig.approvedEmbedUrl,
+    launchConfig.approvedExternalUrl,
+  ].some(isRetroGamesUrl);
   if (retroBacked) {
     applyRetroLaunchContract(launchConfig, id, name, [
       canonicalUrl,
@@ -291,8 +413,19 @@ function normalizeGame(game: Game): Game {
       launchConfig.approvedEmbedUrl,
       launchConfig.approvedExternalUrl,
     ]);
-  } else if (EXTERNAL_ONLY_GAME_IDS.has(id)) {
-    launchConfig.embedMode = 'external-only';
+  } else {
+    const embedTarget =
+      launchConfig.approvedEmbedUrl || canonicalUrl || asString(game.url);
+    if (
+      EXTERNAL_ONLY_GAME_IDS.has(id) ||
+      isKnownEmbedBlockedUrl(embedTarget)
+    ) {
+      launchConfig.embedMode = 'external-only';
+      if (!launchConfig.approvedExternalUrl) {
+        launchConfig.approvedExternalUrl = embedTarget;
+      }
+      delete launchConfig.approvedEmbedUrl;
+    }
   }
   return {
     ...game,
@@ -515,7 +648,6 @@ function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
  * than the game's primary `url`. Returns a corrected clone (never mutates the input).
  */
 export function validateAndRepairGame(game: Game): Game {
-  const url: string = game.url || '';
   const lc = game.launchConfig || ({} as any);
   const repaired: Game = { ...game, launchConfig: { ...(lc as any) } };
   const canonicalUrl = CANONICAL_GAME_URLS[game.id];
@@ -530,6 +662,7 @@ export function validateAndRepairGame(game: Game): Game {
     }
   }
 
+  const url: string = repaired.url || '';
   const retroBacked = [
     repaired.url,
     (repaired.launchConfig as any).approvedEmbedUrl,
@@ -554,6 +687,21 @@ export function validateAndRepairGame(game: Game): Game {
     if (typeof val === 'string' && val.trim() === '') {
       delete (repaired.launchConfig as any)[key];
     }
+  }
+
+  // Apply the same blocked-provider policy when this helper is called
+  // directly, outside the normal feed pipeline.
+  const embedTarget =
+    (repaired.launchConfig as any).approvedEmbedUrl || repaired.url || '';
+  if (
+    EXTERNAL_ONLY_GAME_IDS.has(repaired.id) ||
+    isKnownEmbedBlockedUrl(embedTarget)
+  ) {
+    (repaired.launchConfig as any).embedMode = 'external-only';
+    if (!(repaired.launchConfig as any).approvedExternalUrl) {
+      (repaired.launchConfig as any).approvedExternalUrl = embedTarget;
+    }
+    delete (repaired.launchConfig as any).approvedEmbedUrl;
   }
 
   // ── Internal cabinet validation ──
@@ -599,20 +747,25 @@ export class GameService {
   private gameById = new Map<string, Game>();
 
   /**
-   * Iframe sandbox attribute builder - omitted allow-same-origin by default for
-   * security. Returns a stricter set of permissions aligned with Web Platform best
-   * practices. Callers may extend for legacy game sources that require same-origin.
+   * Iframe sandbox attribute builder. Browser runtimes need their own origin
+   * preserved for localStorage, IndexedDB, WebGL workers, and emulator assets;
+   * the sandbox still prevents access to the parent application.
    */
   buildIframeSandbox(game?: Game): string {
-    if (!game) {
-      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
-    }
-    const tags = (game.tags || []).map((t) => t.toLowerCase());
-    // Elite internal WASM cabinets explicitly need more privileges to boot
-    if (game.id && tags.includes('internal')) {
-      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads allow-same-origin';
-    }
-    return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
+    const base =
+      'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
+    if (!game) return base;
+
+    const embedUrl = game.launchConfig?.approvedEmbedUrl || game.url || '';
+    const isLocalCabinet =
+      embedUrl.startsWith('/') ||
+      embedUrl.startsWith('assets/') ||
+      embedUrl.startsWith('./');
+    const isRemoteCabinet = /^https?:\/\//i.test(embedUrl);
+
+    return isLocalCabinet || isRemoteCabinet
+      ? `${base} allow-same-origin`
+      : base;
   }
 
   /**

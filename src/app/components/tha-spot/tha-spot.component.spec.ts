@@ -318,6 +318,31 @@ describe('ThaSpotComponent', () => {
     expect(retro).toBe('inline');
   });
 
+  it('recreates the game frame through the state-driven retry machine', () => {
+    jest.useFakeTimers();
+    try {
+      component.currentGame.set({
+        id: 'retry-1',
+        url: '/assets/games/demo.html',
+        launchConfig: { embedMode: 'inline' },
+      } as any);
+      component.gameLoadError.set(true);
+
+      component.retryGameLoad();
+
+      // Error held during the swap window so *ngIf removes the dead iframe
+      expect(component.gameLoadError()).toBe(true);
+      expect(component.gameLoadStage()).toBe('loading');
+
+      jest.advanceTimersByTime(1);
+
+      // Error cleared -> *ngIf recreates a FRESH iframe; watchdog re-armed
+      expect(component.gameLoadError()).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('ignores game messages from untrusted origins', () => {
     const profileService = TestBed.inject(UserProfileService) as any;
     const frameWindow = {} as Window;
