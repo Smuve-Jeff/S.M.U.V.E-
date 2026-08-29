@@ -318,6 +318,78 @@ describe('ThaSpotComponent', () => {
     expect(retro).toBe('inline');
   });
 
+  it('offers an external launch dialog only for safe web URLs', () => {
+    component.selectedGame.set({
+      id: 'ext-safe',
+      name: 'External Safe',
+      genre: 'Arcade',
+      url: 'https://untrusted.example/game',
+      launchConfig: { embedMode: 'external-only' },
+    } as any);
+
+    component.confirmLaunch();
+
+    expect(component.showExternalConfirm()).toBe(true);
+    expect(component.externalTargetUrl()).toBe('https://untrusted.example/game');
+    expect(component.externalTargetDomain()).toBe('untrusted.example');
+  });
+
+  it('refuses non-web external launch URLs before showing the dialog', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      component.selectedGame.set({
+        id: 'ext-evil',
+        name: 'External Evil',
+        genre: 'Arcade',
+        url: 'javascript:alert(1)',
+        launchConfig: { embedMode: 'external-only' },
+      } as any);
+
+      component.confirmLaunch();
+
+      expect(component.showExternalConfirm()).toBe(false);
+      expect(component.externalTargetUrl()).toBe('');
+      expect(warnSpy).toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('opens only http(s) targets from the external-launch dialog', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      component.externalTargetUrl.set('https://example.test/game');
+      component.showExternalConfirm.set(true);
+
+      component.confirmExternalLaunch();
+
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://example.test/game',
+        '_blank',
+        'noopener,noreferrer'
+      );
+      expect(component.showExternalConfirm()).toBe(false);
+      expect(component.selectedGame()).toBeNull();
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
+  it('never opens non-web targets from the external-launch dialog', () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    try {
+      component.externalTargetUrl.set('javascript:alert(1)');
+      component.showExternalConfirm.set(true);
+
+      component.confirmExternalLaunch();
+
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(component.showExternalConfirm()).toBe(false);
+    } finally {
+      openSpy.mockRestore();
+    }
+  });
+
   it('recreates the game frame through the state-driven retry machine', () => {
     jest.useFakeTimers();
     try {

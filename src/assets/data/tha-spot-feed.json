@@ -508,7 +508,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://slowroads.io/",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://slowroads.io/"
       },
       "image": "/assets/games/slow-roads-webgl.svg"
@@ -537,8 +537,7 @@
       "badgeIds": [
         "featured",
         "tournament-live",
-        "elite",
-        "internal"
+        "elite"
       ],
       "queueEstimateMinutes": 3,
       "sessionObjectives": [
@@ -601,8 +600,7 @@
       "aiSupportLevel": "Neural",
       "aiBriefing": "Collaborative remix engine is live. S.M.U.V.E. is balancing the sonic stems.",
       "badgeIds": [
-        "elite",
-        "internal"
+        "elite"
       ],
       "queueEstimateMinutes": 2,
       "sessionObjectives": [
@@ -661,8 +659,7 @@
       ],
       "badgeIds": [
         "elite",
-        "trending",
-        "internal"
+        "trending"
       ],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
@@ -718,8 +715,7 @@
         "WASM"
       ],
       "badgeIds": [
-        "elite",
-        "internal"
+        "elite"
       ],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
@@ -776,8 +772,7 @@
       ],
       "badgeIds": [
         "elite",
-        "new-drop",
-        "internal"
+        "new-drop"
       ],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
@@ -913,7 +908,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted logic partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://play2048.co/",
         "approvedEmbedUrl": "https://play2048.co/",
         "telemetryMode": "origin",
@@ -968,7 +963,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted arcade partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/music-rush",
         "approvedEmbedUrl": "https://www.gamepix.com/play/music-rush",
         "telemetryMode": "origin",
@@ -1026,7 +1021,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted strategy partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/chess-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/chess-classic",
         "telemetryMode": "origin",
@@ -1083,7 +1078,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted sports partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/basket-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basket-random",
         "telemetryMode": "origin",
@@ -1143,7 +1138,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted tournament partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/soccer-random",
         "approvedEmbedUrl": "https://www.gamepix.com/play/soccer-random",
         "telemetryMode": "origin",
@@ -1200,7 +1195,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted classic partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/solitaire-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/solitaire-classic",
         "telemetryMode": "origin",
@@ -1237,8 +1232,7 @@
       "aiSupportLevel": "Advanced",
       "aiBriefing": "Adaptive sequence logic sharpens each round and rewards clean recall under pressure.",
       "badgeIds": [
-        "elite",
-        "internal"
+        "elite"
       ],
       "queueEstimateMinutes": 0,
       "sessionObjectives": [
@@ -1317,7 +1311,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted stunt racing partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/moto-x3m",
         "approvedEmbedUrl": "https://www.gamepix.com/play/moto-x3m",
         "telemetryMode": "origin",
@@ -1374,7 +1368,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted endless runner partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/tomb-runner",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tomb-runner",
         "telemetryMode": "origin",
@@ -1433,7 +1427,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted precision sports partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/8-ball-billiards-classic",
         "telemetryMode": "origin",
@@ -1490,7 +1484,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted puzzle partner with inline launch support.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/mahjong-classic",
         "approvedEmbedUrl": "https://www.gamepix.com/play/mahjong-classic",
         "telemetryMode": "origin",
@@ -1531,7 +1525,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike-operations",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike-operations",
         "telemetryMode": "origin",
@@ -1652,7 +1646,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/special-strike",
         "approvedExternalUrl": "https://www.gamepix.com/play/special-strike",
         "telemetryMode": "origin",
@@ -1701,7 +1695,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/basketball-master",
         "approvedExternalUrl": "https://www.gamepix.com/play/basketball-master",
         "telemetryMode": "origin",
@@ -1738,7 +1732,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/sniper-clash-3d",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -1777,7 +1771,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/tower-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -1815,7 +1809,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/ludo-legend",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -1854,7 +1848,7 @@
           "Mouse"
         ],
         "inlinePolicy": "trusted",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedEmbedUrl": "https://www.gamepix.com/play/zombie-idle-defense",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -1925,7 +1919,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted fight-night partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/clash-of-armour",
         "approvedEmbedUrl": "https://www.gamepix.com/play/clash-of-armour",
         "telemetryMode": "origin",
@@ -1987,7 +1981,7 @@
         ],
         "inlinePolicy": "trusted",
         "trustNote": "Allowlisted co-op RPG partner.",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "approvedExternalUrl": "https://www.gamepix.com/play/raid-heroes-total-war",
         "approvedEmbedUrl": "https://www.gamepix.com/play/raid-heroes-total-war",
         "telemetryMode": "origin",
@@ -2103,7 +2097,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2142,7 +2136,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2265,7 +2259,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -2415,7 +2409,7 @@
         "telemetryOrigins": [
           "https://www.gamepix.com"
         ],
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "controls": [
           "Standard Keyboard"
         ],
@@ -3323,7 +3317,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://krunker.io/",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
@@ -3686,7 +3680,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/nba-jam",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "secure_mode": "wasm",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/17392-nba-jam-usa.html"
       },
@@ -4257,7 +4251,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/venge-io",
-        "embedMode": "inline"
+        "embedMode": "external-only"
       },
       "availability": "Online",
       "multiplayerType": "Server",
@@ -4283,7 +4277,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/shell-shockers",
-        "embedMode": "inline"
+        "embedMode": "external-only"
       },
       "availability": "Online",
       "multiplayerType": "Server",
@@ -4917,7 +4911,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://1v1.lol/",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin"
       },
       "art": {
@@ -4948,7 +4942,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/helix-jump",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6093,7 +6087,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/smash-karts",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6129,7 +6123,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/drift-hunters",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6165,7 +6159,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/paper-io-2",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6200,7 +6194,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/fruit-ninja",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6234,7 +6228,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/cut-the-rope",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6269,7 +6263,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://www.gamepix.com/play/slope",
-        "embedMode": "inline",
+        "embedMode": "external-only",
         "telemetryMode": "origin",
         "telemetryOrigins": [
           "https://www.gamepix.com"
@@ -6457,7 +6451,7 @@
       ],
       "launchConfig": {
         "approvedEmbedUrl": "https://diep.io/",
-        "embedMode": "inline"
+        "embedMode": "external-only"
       },
       "art": {
         "eyebrow": "TANK COMMAND",

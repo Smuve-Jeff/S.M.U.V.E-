@@ -2432,6 +2432,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         game.launchConfig?.approvedExternalUrl ||
         game.launchConfig?.approvedEmbedUrl ||
         game.url;
+      // Only offer to open web URLs in a new tab; refuse anything else.
+      if (!this.isSafeExternalUrl(url)) {
+        console.warn(`[ThaSpot] Refusing to launch non-web URL for "${game.id}".`);
+        return;
+      }
       try {
         const domain = new URL(url, window.location.origin).hostname;
         this.externalTargetDomain.set(domain);
@@ -2556,10 +2561,27 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   confirmExternalLaunch() {
     const url = this.externalTargetUrl();
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      if (this.isSafeExternalUrl(url)) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
     }
     this.showExternalConfirm.set(false);
     this.closePreview();
+  }
+
+  /**
+   * Only http(s) URLs may be opened from the external-launch confirm dialog.
+   * Guards against any catalog entry carrying a non-web scheme (e.g. a
+   * javascript: URL) from executing in a new tab.
+   */
+  private isSafeExternalUrl(url: string): boolean {
+    if (!url) return false;
+    try {
+      const protocol = new URL(url, window.location.origin).protocol;
+      return protocol === 'https:' || protocol === 'http:';
+    } catch {
+      return false;
+    }
   }
 
   cancelExternalLaunch() {
