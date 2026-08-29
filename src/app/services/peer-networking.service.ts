@@ -11,6 +11,10 @@ export class PeerNetworkingService {
   private pendingCandidates: RTCIceCandidateInit[] = [];
   private targetUserId: string | null = null;
 
+  /** Timer that expires an unanswered KNOCK so the UI never hangs "calling". */
+  private knockTimeoutId: any = null;
+  private readonly KNOCK_TIMEOUT_MS = 30000;
+
   remoteStream = signal<MediaStream | null>(null);
   isCallActive = signal(false);
   callState = signal<'idle' | 'calling' | 'ringing' | 'connected' | 'failed'>(
@@ -30,6 +34,24 @@ export class PeerNetworkingService {
     this.targetUserId = toUserId;
     this.social.sendVoiceSignal(toUserId, { type: 'KNOCK' });
     this.isCallActive.set(true);
+    // Auto-expire unanswered knocks so the caller's UI doesn't sit on
+    // "calling" forever when the callee is away or offline.
+    this.clearKnockTimeout();
+    this.knockTimeoutId = setTimeout(() => {
+      this.knockTimeoutId = null;
+      if (this.callState() === 'calling' || this.callState() === 'ringing') {
+        this.callState.set('idle');
+        this.isCallActive.set(false);
+        this.targetUserId = null;
+      }
+    }, this.KNOCK_TIMEOUT_MS);
+  }
+
+  private clearKnockTimeout(): void {
+    if (this.knockTimeoutId !== null) {
+      clearTimeout(this.knockTimeoutId);
+      this.knockTimeoutId = null;
+    }
   }
 
   async handleSignal(fromUserId: string, data: any) {
@@ -42,6 +64,7 @@ export class PeerNetworkingService {
 
     if (data.type === 'KNOCK_ACCEPTED') {
       try {
+        this.clearKnockTimeout();
         await this.initializePeerConnection(fromUserId);
         const offer = await this.peerConnection!.createOffer();
         await this.peerConnection!.setLocalDescription(offer);
@@ -52,6 +75,7 @@ export class PeerNetworkingService {
           err
         );
         this.callState.set('failed');
+        this.isCallActive.set(false);
       }
       return;
     }
@@ -84,6 +108,7 @@ export class PeerNetworkingService {
         this.isCallActive.set(true);
         this.callState.set('connected');
       } else if (data.answer) {
+        this.clearKnockTimeout();
         await this.peerConnection!.setRemoteDescription(
           new RTCSessionDescription(data.answer)
         );
@@ -125,11 +150,15 @@ export class PeerNetworkingService {
     this.isKnocking.set(false);
     this.knockFromUserId.set(null);
     this.targetUserId = fromUserId;
+    this.clearKnockTimeout();
     try {
       await this.initializePeerConnection(fromUserId);
       this.social.sendVoiceSignal(fromUserId, { type: 'KNOCK_ACCEPTED' });
       this.isCallActive.set(true);
-      this.callState.set('connected');
+      // Not connected yet — the caller still has to answer with an SDP
+      // offer. Reporting 'connected' here would show a live uplink before
+      // any media path exists.
+      this.callState.set('calling');
     } catch (err) {
       console.error('[Peer] Failed to accept knock', err);
       this.callState.set('failed');
@@ -162,6 +191,7 @@ export class PeerNetworkingService {
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection?.connectionState;
       if (state === 'connected') {
+        this.clearKnockTimeout();
         this.callState.set('connected');
       } else if (
         state === 'disconnected' ||
@@ -242,6 +272,7 @@ export class PeerNetworkingService {
   }
 
   endCall() {
+    this.clearKnockTimeout();
     if (this.activityInterval) {
       clearInterval(this.activityInterval);
       this.activityInterval = null;

@@ -40,6 +40,88 @@
     </div>
   </div>
 
+  <!-- Incoming Squad (Party) Invite Banner -->
+  <div
+    class="challenge-banner glass-v42-pro"
+    *ngIf="socialService.pendingPartyInvite() as invite"
+    style="
+      border-color: rgba(139, 92, 246, 0.4);
+      background: linear-gradient(
+        135deg,
+        rgba(139, 92, 246, 0.2) 0%,
+        rgba(16, 185, 129, 0.2) 100%
+      );
+    "
+  >
+    <div class="challenge-info">
+      <span class="material-symbols-outlined" style="color: #a78bfa"
+        >groups</span
+      >
+      <span
+        >{{ invite.fromUserName }} INVITES YOU TO A SQUAD{{
+          invite.gameId ? ' — ' + (invite.gameId | uppercase) : ''
+        }}</span
+      >
+    </div>
+    <div class="challenge-actions">
+      <button
+        type="button"
+        class="action-btn"
+        aria-label="Accept squad invite"
+        (click)="acceptPartyInvite(invite.partyId)"
+      >
+        JOIN
+      </button>
+      <button
+        type="button"
+        class="action-btn danger"
+        aria-label="Decline squad invite"
+        (click)="declinePartyInvite()"
+      >
+        DECLINE
+      </button>
+    </div>
+  </div>
+
+  <!-- Incoming Neural Sync Request Banner -->
+  <div
+    class="challenge-banner glass-v42-pro"
+    *ngIf="socialService.pendingNeuralSync() as syncReq"
+    style="
+      border-color: rgba(0, 229, 255, 0.4);
+      background: linear-gradient(
+        135deg,
+        rgba(0, 229, 255, 0.15) 0%,
+        rgba(139, 92, 246, 0.2) 100%
+      );
+    "
+  >
+    <div class="challenge-info">
+      <span class="material-symbols-outlined" style="color: #00e5ff"
+        >psychology</span
+      >
+      <span>{{ syncReq.fromUserName }} REQUESTS NEURAL SYNC</span>
+    </div>
+    <div class="challenge-actions">
+      <button
+        type="button"
+        class="action-btn"
+        aria-label="Accept neural sync request"
+        (click)="acceptNeuralSync(syncReq.fromUserId)"
+      >
+        LINK
+      </button>
+      <button
+        type="button"
+        class="action-btn danger"
+        aria-label="Decline neural sync request"
+        (click)="declineNeuralSync()"
+      >
+        DECLINE
+      </button>
+    </div>
+  </div>
+
   <!-- ════════════ DAILY OPS PANEL (rival-hub sidebar tab) ════════════ -->
   <ng-container *ngIf="rivalHubOpen() && hubTab() === 'ops'">
     <div class="daily-ops-panel">
@@ -1678,6 +1760,14 @@
               </button>
             </div>
           </div>
+          <div class="typing-indicator" *ngIf="dmTyping()">
+            <span class="typing-dots" aria-hidden="true"
+              ><span></span><span></span><span></span></span
+            >
+            <span class="typing-text"
+              >{{ selectedDmUser()?.artistName || 'RIVAL' }} IS TYPING...</span
+            >
+          </div>
           <div class="message-list">
             <div
               class="msg-bubble"
@@ -2097,13 +2187,13 @@
                   type="text"
                   class="lobby-chat-input"
                   placeholder="Squad message..."
-                  [ngModel]="chatInput()"
-                  (ngModelChange)="chatInput.set($event)"
-                  (keyup.enter)="sendLobbyChat(chatInput()); chatInput.set('')"
+                  [ngModel]="lobbyChatInput()"
+                  (ngModelChange)="lobbyChatInput.set($event)"
+                  (keyup.enter)="sendLobbyChat(lobbyChatInput()); lobbyChatInput.set('')"
                 />
                 <button
                   class="lobby-chat-send"
-                  (click)="sendLobbyChat(chatInput()); chatInput.set('')"
+                  (click)="sendLobbyChat(lobbyChatInput()); lobbyChatInput.set('')"
                 >
                   <span
                     class="material-symbols-outlined"

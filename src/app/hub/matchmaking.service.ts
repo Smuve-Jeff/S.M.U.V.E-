@@ -1256,8 +1256,14 @@ export class MatchmakingService implements OnDestroy {
     this.notify.show(`Searching for opponent in ${gameId}...`, 'info');
   }
 
-  cancelMatchQueue(gameId: string): void {
+  /** Clear stale match-found/searching state so a new queue starts clean. */
+  clearMatchState(): void {
+    this.matchFound.set(null);
     this.isSearching.set(false);
+  }
+
+  cancelMatchQueue(gameId: string): void {
+    this.clearMatchState();
     this.socket?.emit('cancel_match', { gameId });
   }
 

@@ -1309,6 +1309,54 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
       @media (prefers-reduced-motion: reduce) {
         .pluto-logo-glow, .pluto-landing-card { animation: none !important; }
       }
+      /* ── Live "typing" indicator for DMs ── */
+      .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(0, 229, 255, 0.85);
+      }
+      .typing-dots {
+        display: inline-flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .typing-dots span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #00e5ff;
+        animation: typing-bounce 1.2s ease-in-out infinite;
+      }
+      .typing-dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing-dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes typing-bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        30% {
+          transform: translateY(-4px);
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .typing-dots span {
+          animation: none;
+          opacity: 0.6;
+        }
+      }
     `,
   ],
 })
@@ -1482,6 +1530,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   );
   dmTargetUserId = signal<string | null>(null);
   chatInput = signal<string>('');
+  /** Dedicated composer for in-lobby chat so it never bleeds into the
+   *  shared hub footer input (room/DM/party) and vice-versa. */
+  lobbyChatInput = signal<string>('');
 
   @ViewChild('gameIframe') gameIframe?: ElementRef<HTMLIFrameElement>;
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
@@ -1869,6 +1920,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         (m.fromUserId === targetId && m.toUserId === myId) ||
         (m.fromUserId === myId && m.toUserId === targetId)
     );
+  });
+  /** Live "is typing" indicator for the currently selected DM target. */
+  dmTyping = computed(() => {
+    const targetId = this.dmTargetUserId();
+    return !!targetId && !!this.socialService.typingUsers()[targetId];
   });
   isCallActive = this.peerService.isCallActive;
   inGame = signal(false);
@@ -2267,6 +2323,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   cancelMatchmaking() {
     const game = this.selectedGame();
     if (game) this.matchmaking.cancelMatchQueue(game.id);
+    // Wipe stale match state so a future queue never resolves instantly
+    // against the previous match's signals.
+    this.socialService.matchmakingStatus.set('idle');
+    this.matchmaking.clearMatchState();
     this.isMatchmaking.set(false);
     this.currentMatchmakingId = null;
   }
@@ -2587,6 +2647,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         // Show visual bot option instead of browser confirm()
         this.matchmakingStatus.set('NO RIVALS FOUND');
         this.matchmakingProgress.set(100);
+        // Clear stale match state so the next queue starts clean.
+        this.socialService.matchmakingStatus.set('idle');
+        this.matchmaking.clearMatchState();
         this.showBotOption.set(true);
         this.isMatchmaking.set(false);
         this.currentMatchmakingId = null;
@@ -2680,6 +2743,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   engageAiBot() {
     const game = this.selectedGame();
     if (game) this.matchmaking.cancelMatchQueue(game.id);
+    // Reset match state before solo launch so a later multiplayer queue
+    // never resolves instantly against the stale match_found payload.
+    this.socialService.matchmakingStatus.set('idle');
+    this.matchmaking.clearMatchState();
     this.showBotOption.set(false);
     this.isMatchmaking.set(false);
     // Proceed to launch the game in solo mode
@@ -3502,6 +3569,32 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => this.scrollToBottom(), 50);
   }
 
+  /** Accept a pending squad invite and jump into the party tab. */
+  acceptPartyInvite(partyId: string): void {
+    this.socialService.acceptPartyInvite(partyId);
+    this.setHubTab('party');
+    if (!this.showRivalHub()) this.toggleRivalHub();
+    this.playSoundEffect('select');
+  }
+
+  /** Decline a pending squad invite. */
+  declinePartyInvite(): void {
+    this.socialService.declinePartyInvite();
+    this.snackbarService.info('SQUAD INVITE DECLINED');
+  }
+
+  /** Accept an incoming neural-sync request. */
+  acceptNeuralSync(fromUserId: string): void {
+    this.socialService.acceptNeuralSyncRequest(fromUserId);
+    this.snackbarService.success('NEURAL SYNC APPROVED — EXCHANGING DATA');
+  }
+
+  /** Decline an incoming neural-sync request. */
+  declineNeuralSync(): void {
+    this.socialService.declineNeuralSyncRequest();
+    this.snackbarService.info('NEURAL SYNC REQUEST DECLINED');
+  }
+
   setDmTarget(userId: string) {
     this.dmTargetUserId.set(userId);
     this.socialService.loadMessageHistory(userId);
@@ -3516,7 +3609,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.socialService.sendRoomMessage(this.activeRoom(), msg);
     } else if (this.activeHubTab() === 'dm' && this.dmTargetUserId()) {
       this.socialService.sendMessage(this.dmTargetUserId()!, msg);
+      // Kill the live typing indicator — otherwise the peer sees us
+      // "typing" forever after the message lands.
+      this.socialService.sendTypingStatus(this.dmTargetUserId()!, false);
     } else if (this.activeHubTab() === 'party') {
+      if (!this.socialService.currentPartyId()) {
+        // No squad yet — the old code silently dropped the message.
+        this.snackbarService.info('JOIN OR CREATE A SQUAD BEFORE CHATTING');
+        this.chatInput.set('');
+        return;
+      }
       this.socialService.sendPartyMessage(msg);
     }
 

@@ -99,12 +99,19 @@ describe('ThaSpotComponent', () => {
       ),
       simulatedLiveChat: signal([]),
       matchmakingStatus: signal<'idle' | 'searching' | 'matched'>('idle'),
+      typingUsers: signal<Record<string, boolean>>({}),
+      pendingPartyInvite: signal(null),
+      pendingNeuralSync: signal(null),
       currentPartyId: jest.fn().mockReturnValue(null),
       updateStatus: jest.fn(),
       loadFriends: jest.fn(),
       joinParty: jest.fn(),
       joinRoom: jest.fn(),
       sendTypingStatus: jest.fn(),
+      acceptPartyInvite: jest.fn(),
+      declinePartyInvite: jest.fn(),
+      acceptNeuralSyncRequest: jest.fn(),
+      declineNeuralSyncRequest: jest.fn(),
       getFeaturedUsers: jest.fn().mockResolvedValue([]),
       searchUsers: jest.fn().mockResolvedValue([]),
       sendRoomMessage: jest.fn(),
@@ -136,6 +143,7 @@ describe('ThaSpotComponent', () => {
         .fn()
         .mockReturnValue({ gameName: 'Test Game', id: 'lobby-1' }),
       toggleReady: jest.fn(),
+      clearMatchState: jest.fn(),
       startCountdown: jest.fn(),
       cancelCountdown: jest.fn(),
       sendLobbyChatMessage: jest.fn(),
@@ -616,5 +624,99 @@ describe('ThaSpotComponent', () => {
     await component.sendRemixRequest('peer-1');
 
     expect(orchestration.requestRemix).toHaveBeenCalledWith('peer-1');
+  });
+
+  it('clears the live typing indicator when a DM is submitted', () => {
+    component.activeHubTab.set('dm');
+    component.dmTargetUserId.set('peer-1');
+    component.chatInput.set('yo');
+
+    component.handleChatSubmit();
+
+    expect(socialServiceMock.sendMessage).toHaveBeenCalledWith('peer-1', 'yo');
+    expect(socialServiceMock.sendTypingStatus).toHaveBeenCalledWith(
+      'peer-1',
+      false
+    );
+    expect(component.chatInput()).toBe('');
+  });
+
+  it('never silently drops squad chat when no squad exists', () => {
+    const snackbar = TestBed.inject(SnackbarService) as any;
+    component.activeHubTab.set('party');
+    component.chatInput.set('lets run it');
+
+    component.handleChatSubmit();
+
+    expect(socialServiceMock.sendPartyMessage).not.toHaveBeenCalled();
+    expect(snackbar.info).toHaveBeenCalledWith(
+      'JOIN OR CREATE A SQUAD BEFORE CHATTING'
+    );
+    expect(component.chatInput()).toBe('');
+  });
+
+  it('reports the DM typing state for the active target reactively', () => {
+    component.dmTargetUserId.set('peer-1');
+    fixture.detectChanges();
+    expect(component.dmTyping()).toBe(false);
+
+    socialServiceMock.typingUsers.set({ 'peer-1': true });
+    fixture.detectChanges();
+    expect(component.dmTyping()).toBe(true);
+
+    socialServiceMock.typingUsers.set({ 'peer-1': false });
+    fixture.detectChanges();
+    expect(component.dmTyping()).toBe(false);
+  });
+
+  it('resets stale matchmaking state when the queue is cancelled', () => {
+    component.selectedGame.set({ id: 'game-1' } as any);
+    socialServiceMock.matchmakingStatus.set('matched');
+    component.isMatchmaking.set(true);
+
+    component.cancelMatchmaking();
+
+    expect(matchmakingMock.cancelMatchQueue).toHaveBeenCalledWith('game-1');
+    expect(matchmakingMock.clearMatchState).toHaveBeenCalled();
+    expect(socialServiceMock.matchmakingStatus()).toBe('idle');
+    expect(component.isMatchmaking()).toBe(false);
+  });
+
+  it('clears stale match state when engaging the AI bot after no rivals found', () => {
+    component.selectedGame.set({ id: 'game-1' } as any);
+    socialServiceMock.matchmakingStatus.set('searching');
+
+    component.engageAiBot();
+
+    expect(matchmakingMock.clearMatchState).toHaveBeenCalled();
+    expect(socialServiceMock.matchmakingStatus()).toBe('idle');
+    expect(component.showBotOption()).toBe(false);
+  });
+
+  it('accepts a squad invite through the social layer and opens the party tab', () => {
+    component.acceptPartyInvite('party-9');
+
+    expect(socialServiceMock.acceptPartyInvite).toHaveBeenCalledWith('party-9');
+    expect(component.activeHubTab()).toBe('party');
+    expect(component.showRivalHub()).toBe(true);
+  });
+
+  it('declines a squad invite and notifies the user', () => {
+    const snackbar = TestBed.inject(SnackbarService) as any;
+
+    component.declinePartyInvite();
+
+    expect(socialServiceMock.declinePartyInvite).toHaveBeenCalled();
+    expect(snackbar.info).toHaveBeenCalledWith('SQUAD INVITE DECLINED');
+  });
+
+  it('routes neural sync accept/decline through the social layer', () => {
+    component.acceptNeuralSync('peer-2');
+    expect(socialServiceMock.acceptNeuralSyncRequest).toHaveBeenCalledWith(
+      'peer-2'
+    );
+
+    component.declineNeuralSync();
+    expect(socialServiceMock.declineNeuralSyncRequest).toHaveBeenCalled();
   });
 });

@@ -219,10 +219,7 @@
           </button>
         </div>
         <div class="sv-auto-points-list">
-          @let filtered =
-            selClip.automation?.filter(
-              (a) => a.target === automationEditTarget()
-            ) ?? [];
+          @let filtered = visibleAutomationPoints(selClip);
           @if (filtered.length === 0) {
             <div class="sv-auto-empty">
               No automation points for "{{ automationEditTarget() }}". Tap "+
@@ -233,17 +230,16 @@
             </div>
           }
           @for (
-            point of filtered;
-            track trackByPoint($index, point);
+            entry of filtered;
+            track trackByPoint($index, entry);
             let i = $index
           ) {
             <div class="sv-auto-point-row">
-              <span class="sv-auto-point-idx">{{ 'P' + (i + 1) }}</span>
-              <span
+              <span class="sv-auto-point-idx">{{ 'P' + (i + 1) }}</span>                <span
                 class="sv-auto-curve-icon"
-                [title]="'Curve: ' + (point.curveType || 'linear')"
+                [title]="'Curve: ' + (entry.point.curveType || 'linear')"
               >
-                {{ curveIcon(point.curveType) }}
+                {{ curveIcon(entry.point.curveType) }}
               </span>
               <div class="sv-auto-point-fields">
                 <label class="sv-auto-field">
@@ -251,7 +247,7 @@
                   <input
                     type="number"
                     class="sv-auto-input"
-                    [value]="point.position"
+                    [value]="entry.point.position"
                     min="0"
                     step="0.5"
                     (input)="
@@ -269,7 +265,7 @@
                     <input
                       type="range"
                       class="sv-auto-slider"
-                      [value]="point.value"
+                      [value]="entry.point.value"
                       min="0"
                       max="1"
                       step="0.01"
@@ -282,7 +278,7 @@
                       "
                     />
                     <span class="sv-auto-val"
-                      >{{ roundPct(point.value) }}%</span
+                      >{{ roundPct(entry.point.value) }}%</span
                     >
                   </div>
                 </label>
@@ -290,7 +286,7 @@
                   <span class="sv-auto-field-label">Curve</span>
                   <select
                     class="sv-auto-curve-select"
-                    [value]="point.curveType || 'linear'"
+                    [value]="entry.point.curveType || 'linear'"
                     (change)="
                       updateAutomationCurve(
                         selClip.id,
@@ -382,10 +378,10 @@
             <button
               type="button"
               class="sv-track-mute"
-              [class.is-muted]="track.isMuted"
-              (click)="muteTrack(track.id)"
+              [class.is-muted]="mutedTrackIds().has(track.id)"
+              (click)="$event.stopPropagation(); muteTrack(track.id)"
               [attr.aria-label]="
-                track.isMuted ? 'Unmute ' + track.name : 'Mute ' + track.name
+                mutedTrackIds().has(track.id) ? 'Unmute ' + track.name : 'Mute ' + track.name
               "
             >
               M
@@ -415,6 +411,7 @@
               [class.is-filled]="!!clip"
               [class.is-empty]="!clip"
               [class.is-playing]="clip?.isPlaying"
+              [class.is-muted]="track.isMuted || mutedTrackIds().has(track.id)"
               [class.is-queued]="clip && queuedClipIds().has(clip.id)"
               [class.sv-clip-slot-dragover]="
                 dragOverSlotKey() === scene.id + '|' + track.id

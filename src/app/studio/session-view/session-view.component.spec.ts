@@ -159,6 +159,31 @@ describe('SessionViewComponent', () => {
     expect(tracks[0].id).toBe('t1');
   });
 
+  it('should edit and delete the visible automation point without affecting other targets', () => {
+    component.toggleAutomation('c1');
+    component.addAutomationPoint('c1');
+    component.automationEditTarget.set('filter');
+    component.addAutomationPoint('c1');
+
+    component.updateAutomationValue('c1', 0, 0.25);
+    const clip = component.clips().find((c) => c.id === 'c1')!;
+    expect(clip.automation?.find((point) => point.target === 'volume')?.value).toBe(0.5);
+    expect(clip.automation?.find((point) => point.target === 'filter')?.value).toBe(0.25);
+
+    component.automationEditTarget.set('filter');
+    component.deleteAutomationPoint('c1', 0);
+    expect(component.clips().find((c) => c.id === 'c1')?.automation).toHaveLength(2);
+    expect(component.clips().find((c) => c.id === 'c1')?.automation?.filter((point) => point.target === 'filter')).toHaveLength(1);
+  });
+
+  it('should toggle track mute state', () => {
+    expect(component.mutedTrackIds().has('t1')).toBe(false);
+    component.muteTrack('t1');
+    expect(component.mutedTrackIds().has('t1')).toBe(true);
+    component.muteTrack('t1');
+    expect(component.mutedTrackIds().has('t1')).toBe(false);
+  });
+
   it('should follow-on to the next scene when enabled', () => {
     jest.useFakeTimers();
     component.followOnEnabled.set(true);

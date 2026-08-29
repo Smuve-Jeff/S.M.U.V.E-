@@ -94,4 +94,90 @@ describe('SocialNetworkingService', () => {
 
     expect(service.sessionSyncState()).toEqual(syncPayload);
   });
+
+  it('surfaces squad invites as a non-blocking banner instead of a native confirm', () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false);
+    try {
+      socketHandlers.get('party_invite')?.({
+        partyId: 'party-1',
+        fromUserId: 'rival-1',
+        fromUserName: 'RIVAL',
+        gameId: 'mk2',
+      });
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(service.pendingPartyInvite()).toEqual({
+        partyId: 'party-1',
+        fromUserId: 'rival-1',
+        fromUserName: 'RIVAL',
+        gameId: 'mk2',
+      });
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
+  it('accepts a squad invite by joining the party and opening the party tab', () => {
+    socketHandlers.get('party_invite')?.({
+      partyId: 'party-1',
+      fromUserId: 'rival-1',
+      fromUserName: 'RIVAL',
+    });
+
+    service.acceptPartyInvite('party-1');
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('join_party', {
+      partyId: 'party-1',
+    });
+    expect(service.currentPartyId()).toBe('party-1');
+    expect(service.activeHubTab()).toBe('party');
+    expect(service.pendingPartyInvite()).toBeNull();
+  });
+
+  it('declines a squad invite without joining', () => {
+    socketHandlers.get('party_invite')?.({
+      partyId: 'party-1',
+      fromUserId: 'rival-1',
+      fromUserName: 'RIVAL',
+    });
+
+    service.declinePartyInvite();
+
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('join_party', expect.anything());
+    expect(service.pendingPartyInvite()).toBeNull();
+    expect(service.currentPartyId()).toBeNull();
+  });
+
+  it('surfaces neural sync requests as a non-blocking banner', () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false);
+    try {
+      socketHandlers.get('neural_sync_invite')?.({
+        fromUserId: 'rival-1',
+        fromUserName: 'RIVAL',
+      });
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(service.pendingNeuralSync()).toEqual({
+        fromUserId: 'rival-1',
+        fromUserName: 'RIVAL',
+      });
+    } finally {
+      confirmSpy.mockRestore();
+    }
+  });
+
+  it('approves a neural sync request through the socket', () => {
+    socketHandlers.get('neural_sync_invite')?.({
+      fromUserId: 'rival-1',
+      fromUserName: 'RIVAL',
+    });
+
+    service.acceptNeuralSyncRequest('rival-1');
+
+    expect(mockSocket.emit).toHaveBeenCalledWith(
+      'neural_sync_approve',
+      expect.objectContaining({ toUserId: 'rival-1' })
+    );
+    expect(service.pendingNeuralSync()).toBeNull();
+  });
 });

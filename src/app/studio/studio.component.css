@@ -509,6 +509,18 @@
 
 /* ── Mobile panel safe-area adjustment ── */
 @media (max-width: 768px) {
+  /* Keep the full-screen Studio usable beneath Android's gesture/navigation bar. */
+  :host {
+    height: 100svh;
+    height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .comp-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
   .comp-panel {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -1244,7 +1256,10 @@
   /* High-density grid for mobile production */
   .comp-view {
     border-radius: 12px;
-    overflow-y: auto; overflow-x: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
 
   /* Android phone header: keep the transport and one primary assistant
@@ -1343,6 +1358,7 @@
   }
 
   .comp-bottombar {
+    touch-action: manipulation;
     padding-left: max(4px, env(safe-area-inset-left, 0px));
     padding-right: max(4px, env(safe-area-inset-right, 0px));
   }

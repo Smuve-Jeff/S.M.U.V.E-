@@ -78,6 +78,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.followTimer) clearTimeout(this.followTimer);
     if (this.quantizeTimer) clearTimeout(this.quantizeTimer);
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
   }
 
   /** Seconds until the next quantized bar boundary (0 when off/stopped). */
@@ -454,19 +455,10 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     pointIdx: number,
     curve: AutomationCurveType
   ): void {
-    this.clips.update((list) =>
-      list.map((c) =>
-        c.id === clipId && c.automation
-          ? {
-              ...c,
-              automation: c.automation.map((p, i) =>
-                i === pointIdx ? { ...p, curveType: curve } : p
-              ),
-            }
-          : c
-      )
-    );
-    this.scheduleAutoSave();
+    this.updateAutomationPoint(clipId, pointIdx, (point) => ({
+      ...point,
+      curveType: curve,
+    }));
   }
 
   /** Visual icon for curve type */
@@ -482,15 +474,27 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   deleteAutomationPoint(clipId: string, pointIdx: number): void {
+    const clip = this.clips().find((candidate) => candidate.id === clipId);
+    if (!clip?.automation) return;
+
+    const target = this.visibleAutomationPoints(clip).find(
+      (entry) => entry.index === pointIdx
+    );
+    if (!target) return;
+
     this.clips.update((list) =>
-      list.map((c) =>
-        c.id === clipId && c.automation
-          ? { ...c, automation: c.automation.filter((_, i) => i !== pointIdx) }
-          : c
+      list.map((candidate) =>
+        candidate.id === clipId && candidate.automation
+          ? {
+              ...candidate,
+              automation: candidate.automation.filter(
+                (_, index) => index !== target.index
+              ),
+            }
+          : candidate
       )
     );
     this.haptic.light();
-    this.scheduleAutoSave();
     this.scheduleAutoSave();
   }
 
@@ -500,19 +504,10 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     newValue: number
   ): void {
     const clamped = Math.max(0, Math.min(1, Math.round(newValue * 100) / 100));
-    this.clips.update((list) =>
-      list.map((c) =>
-        c.id === clipId && c.automation
-          ? {
-              ...c,
-              automation: c.automation.map((p, i) =>
-                i === pointIdx ? { ...p, value: clamped } : p
-              ),
-            }
-          : c
-      )
-    );
-    this.scheduleAutoSave();
+    this.updateAutomationPoint(clipId, pointIdx, (point) => ({
+      ...point,
+      value: clamped,
+    }));
   }
 
   updateAutomationPosition(
@@ -521,18 +516,45 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     newPos: number
   ): void {
     const clamped = Math.max(0, Math.round(newPos * 10) / 10);
+    this.updateAutomationPoint(clipId, pointIdx, (point) => ({
+      ...point,
+      position: clamped,
+    }));
+  }
+
+  /** Return visible automation points with their source-array index.
+   * Keeping the index explicit prevents filtered lanes from editing the
+   * wrong point when multiple targets share one clip. */
+  visibleAutomationPoints(clip: SessionClip): Array<{ point: AutomationPoint; index: number }> {
+    const target = this.automationEditTarget();
+    return (clip.automation ?? [])
+      .map((point, index) => ({ point, index }))
+      .filter(({ point }) => point.target === target);
+  }
+
+  private updateAutomationPoint(
+    clipId: string,
+    visiblePointIndex: number,
+    update: (point: AutomationPoint) => AutomationPoint
+  ): void {
+    const clip = this.clips().find((candidate) => candidate.id === clipId);
+    if (!clip?.automation) return;
+    const target = this.visibleAutomationPoints(clip)[visiblePointIndex];
+    if (!target) return;
+
     this.clips.update((list) =>
-      list.map((c) =>
-        c.id === clipId && c.automation
+      list.map((candidate) =>
+        candidate.id === clipId && candidate.automation
           ? {
-              ...c,
-              automation: c.automation.map((p, i) =>
-                i === pointIdx ? { ...p, position: clamped } : p
+              ...candidate,
+              automation: candidate.automation.map((point, index) =>
+                index === target.index ? update(point) : point
               ),
             }
-          : c
+          : candidate
       )
     );
+    this.scheduleAutoSave();
   }
 
   addScene(): void {
@@ -692,10 +714,19 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.snackbar.info(`Preset "${name}" deleted`);
   }
 
+  mutedTrackIds = signal<Set<string>>(new Set());
+
   muteTrack(trackId: string): void {
     this.haptic.light();
+    this.mutedTrackIds.update((muted) => {
+      const next = new Set(muted);
+      if (next.has(trackId)) next.delete(trackId);
+      else next.add(trackId);
+      return next;
+    });
     this.scheduleAutoSave();
-    this.snackbar.info(`Track ${trackId} muted`);
+    const muted = this.mutedTrackIds().has(trackId);
+    this.snackbar.info(`Track ${trackId} ${muted ? 'muted' : 'unmuted'}`);
   }
 
   // ── Auto-Save on Reload ────────────────────────────
@@ -878,6 +909,6 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   trackByScene = (_i: number, s: SessionScene) => s.id;
   trackByClip = (_i: number, c: SessionClip) => c.id;
   trackByTrackId = (_i: number, t: { id: string }) => t.id;
-  trackByPoint = (_i: number, p: AutomationPoint) =>
-    `${p.target}-${p.position}-${p.curveType || 'linear'}`;
+  trackByPoint = (i: number, entry: { point: AutomationPoint; index: number }) =>
+    `${entry.point.target}-${entry.index}-${i}`;
 }

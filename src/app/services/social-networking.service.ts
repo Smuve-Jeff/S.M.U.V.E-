@@ -124,6 +124,20 @@ export class SocialNetworkingService {
   remoteSignals = signal<any[]>([]);
   typingUsers = signal<Record<string, boolean>>({});
   isIncognito = signal(false);
+
+  // ── Inbound user-to-user invites (non-blocking, banner-driven) ──
+  /** Pending squad (party) invite awaiting an accept/decline decision. */
+  readonly pendingPartyInvite = signal<{
+    partyId: string;
+    fromUserId: string;
+    fromUserName: string;
+    gameId?: string;
+  } | null>(null);
+  /** Pending neural-sync request awaiting an accept/decline decision. */
+  readonly pendingNeuralSync = signal<{
+    fromUserId: string;
+    fromUserName: string;
+  } | null>(null);
   studioSessionEvents = signal<StudioSessionEventEnvelope[]>([]);
   sessionSyncState = signal<StudioSessionSyncState | null>(null);
   studioSessionInvites = signal<any[]>([]);
@@ -260,20 +274,14 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('neural_sync_invite', (data: any) => {
-      if (
-        confirm(
-          `INCOMING NEURAL SYNC REQUEST FROM ${data.fromUserName}. PROCEED?`
-        )
-      ) {
-        const currentProfile = this.profileService.profile();
-        this.socket?.emit('neural_sync_approve', {
-          toUserId: data.fromUserId,
-          syncData: {
-            eliteScore: (currentProfile as any).eliteScore,
-            squadCount: (currentProfile as any).squadCount,
-          },
-        });
-      }
+      if (!data?.fromUserId) return;
+      // Surface as a non-blocking in-app banner instead of a native
+      // confirm() — native dialogs freeze the whole WebView and are
+      // janky on Android, and they offer no way to review the request.
+      this.pendingNeuralSync.set({
+        fromUserId: data.fromUserId,
+        fromUserName: data.fromUserName || 'A RIVAL',
+      });
     });
 
     this.socket.on('neural_sync_complete', (data: any) => {
@@ -467,12 +475,16 @@ export class SocialNetworkingService {
     });
 
     this.socket.on('party_invite', (data: any) => {
-      if (
-        confirm(`INCOMING SQUAD INVITE FROM ${data.fromUserName}. JOIN SQUAD?`)
-      ) {
-        this.joinParty(data.partyId);
-        this.activeHubTab.set('party');
-      }
+      if (!data?.partyId) return;
+      // Surface as a non-blocking in-app banner (accept/decline) instead of
+      // a native confirm() so the invite never freezes the WebView and the
+      // recipient can review who is asking before committing.
+      this.pendingPartyInvite.set({
+        partyId: data.partyId,
+        fromUserId: data.fromUserId,
+        fromUserName: data.fromUserName || 'A RIVAL',
+        gameId: data.gameId,
+      });
     });
     this.socket.on('user_left_party', (data: any) => {
       this.partyMembers.update((members) =>
@@ -884,6 +896,40 @@ export class SocialNetworkingService {
   joinParty(partyId: string) {
     this.socket?.emit('join_party', { partyId });
     this.currentPartyId.set(partyId);
+  }
+
+  /** Accept a pending squad invite: join the party and open the squad tab. */
+  acceptPartyInvite(partyId: string) {
+    if (!partyId) return;
+    this.joinParty(partyId);
+    this.activeHubTab.set('party');
+    this.pendingPartyInvite.set(null);
+  }
+
+  /** Decline a pending squad invite without joining. */
+  declinePartyInvite() {
+    this.pendingPartyInvite.set(null);
+  }
+
+  /** Accept an incoming neural-sync request and exchange profile data. */
+  acceptNeuralSyncRequest(fromUserId: string) {
+    if (!fromUserId) return;
+    this.pendingNeuralSync.set(null);
+    const currentProfile = this.profileService.profile();
+    this.socket?.emit('neural_sync_approve', {
+      toUserId: fromUserId,
+      syncData: {
+        eliteScore: (currentProfile as any).eliteScore,
+        squadCount: (currentProfile as any).squadCount,
+      },
+    });
+    this.neuralSyncStatus.set('syncing');
+  }
+
+  /** Decline an incoming neural-sync request. */
+  declineNeuralSyncRequest() {
+    this.pendingNeuralSync.set(null);
+    this.neuralSyncStatus.set('idle');
   }
 
   leaveParty() {
