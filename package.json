@@ -71,7 +71,6 @@
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
     "onnxruntime-web": "^1.19.2",
-    "mysql2": "^3.14.1",
     "pg": "^8.22.0",
     "playwright": "^1.59.1",
     "postcss": "^8.5.10",

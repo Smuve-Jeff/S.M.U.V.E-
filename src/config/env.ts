@@ -3,12 +3,6 @@ import { randomBytes } from "crypto";
 export const NODE_ENV = process.env.NODE_ENV || "development";
 export const PORT = Number(process.env.PORT) || 4000;
 export const DATABASE_URL = process.env.DATABASE_URL || "";
-/** PlanetScale uses a MySQL-compatible connection URL. */
-export const DATABASE_DRIVER =
-  process.env.DATABASE_DRIVER ||
-  (DATABASE_URL.startsWith("mysql://") || DATABASE_URL.startsWith("mysql2://")
-    ? "mysql"
-    : "postgres");
 export const DB_NAME = process.env.DATABASE_URL?.split("/").pop() || "dbname";
 // No committed secret fallback. Production must provide a stable JWT_SECRET;
 // development derives an ephemeral per-boot secret so no key material is
