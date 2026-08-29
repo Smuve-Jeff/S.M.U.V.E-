@@ -451,6 +451,117 @@ describe('Tha Spot feed integrity', () => {
     }
   });
 
+  it('never ships a cabinet pointed at a dead launch domain', () => {
+    // "Instant death" cabinets: launch targets whose domains no longer
+    // resolve (1v1.lol -> NXDOMAIN) or redirect to a dead host
+    // (hextris.github.io/hextris/ 301 -> hextris.io -> NXDOMAIN).
+    const deadDomainIds = ['1v1-lol-elite'];
+    for (const id of deadDomainIds) {
+      expect(games.some((entry) => entry.id === id)).toBe(false);
+    }
+
+    const deadDomains = ['1v1.lol', 'hextris.io'];
+    for (const game of games) {
+      const lc = game.launchConfig ?? {};
+      const urls = [
+        game.url,
+        lc.url,
+        lc.approvedEmbedUrl,
+        lc.approvedExternalUrl,
+      ];
+      for (const url of urls) {
+        if (typeof url !== 'string' || !url) continue;
+        for (const dead of deadDomains) {
+          expect(url).not.toContain(dead);
+        }
+      }
+    }
+
+    // Hextris must launch from the working GitHub-repo mirror, not the
+    // /hextris/ subpath that redirects to dead hextris.io.
+    const hextris = games.find((entry) => entry.id === 'hextris');
+    expect(hextris).toBeTruthy();
+    const hextrisTarget =
+      hextris?.launchConfig?.approvedEmbedUrl || hextris?.url || '';
+    expect(hextrisTarget).toBe(
+      'https://raw.githack.com/Hextris/hextris/master/index.html'
+    );
+  });
+
+  it('never claims inline play for hosts that block iframe embedding', () => {
+    // "Silent external" trap: a cabinet marked embedMode inline whose host
+    // the runtime policy blocks from the cabinet (X-Frame-Options / CSP or an
+    // interstitial that cannot boot) renders blank or silently opens a tab.
+    // Inline claims for these hosts are a lie — the list mirrors the service
+    // blocklist that repairs such cabinets to external-only at runtime.
+    const frameBlockingHosts = [
+      'gamepix.com',
+      'krunker.io',
+      'play2048.co',
+      'diep.io',
+      'slowroads.io',
+      '1v1.lol',
+      'nytimes.com',
+      'garticphone.com',
+      'agar.io',
+      'slither.io',
+      'skribbl.io',
+      'dota2.com',
+      'ea.com',
+      'rocketleague.com',
+      'epicgames.com',
+      'minecraft.net',
+      'innersloth.com',
+      'bungie.net',
+      'ubisoft.com',
+      'warframe.com',
+      'emulatorgames.net',
+      'playretrogames.com',
+      'classicgame.com',
+    ];
+    const offenders: string[] = [];
+    for (const game of games) {
+      const lc = game.launchConfig ?? {};
+      if (lc.embedMode !== 'inline') continue;
+      const target = lc.approvedEmbedUrl || game.url || '';
+      if (!/^https?:\/\//.test(target)) continue; // local assets embed fine
+      const host = new URL(target).hostname.toLowerCase();
+      // classic.minecraft.net is a deliberate trusted-allowlist member that
+      // sends no frame-blocking headers — it is exempt from the minecraft.net
+      // suffix entry (which targets the main site).
+      if (host === 'classic.minecraft.net') continue;
+      if (
+        frameBlockingHosts.some(
+          (d) => host === d || host.endsWith('.' + d)
+        )
+      ) {
+        offenders.push(`${game.id} (${game.name}) -> ${host}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+
+    // Previously mismarked cabinets must now be explicit external launches
+    // with a real target.
+    for (const id of [
+      'wordle-daily',
+      'skribbl-io-multiplayer',
+      'gartic-phone-multiplayer',
+      'slither-io-multiplayer',
+      'agar-io-multiplayer',
+    ]) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      expect(game?.launchConfig?.embedMode).toBe('external-only');
+      expect(game?.launchConfig?.approvedExternalUrl).toBeTruthy();
+    }
+
+    // Every external-only cabinet must carry a real external target.
+    for (const game of games) {
+      if (game.launchConfig?.embedMode !== 'external-only') continue;
+      expect(game.launchConfig?.approvedExternalUrl).toBeTruthy();
+    }
+  });
+
   it('keeps classic-franchise cabinets off gamepix lookalike hosts', () => {
     // Gamepix hosts fan remakes of these classic franchise titles; each
     // record must point its primary launch at the authentic retrogames.cc

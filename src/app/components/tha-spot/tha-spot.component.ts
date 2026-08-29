@@ -2963,6 +2963,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     'slowroads.io',
     'shellshock.io',
     'www.shellshock.io',
+    // GitHub-repo mirror serving the Hextris game (original host is dead).
+    'raw.githack.com',
     'ev.io',
     'www.ev.io',
     'classic.minecraft.net',

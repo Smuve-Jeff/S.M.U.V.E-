@@ -6,7 +6,7 @@ import {
 import { provideHttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
-import { GameService } from './game.service';
+import { GameService, isKnownEmbedBlockedUrl } from './game.service';
 import { ThaSpotFeed } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
@@ -544,6 +544,24 @@ describe('GameService', () => {
     expect([...ids].some((id) => id.includes('rpg') || id.includes('fantasy'))).toBe(true);
   });
 
+  it('keeps the embeddable Minecraft Classic cabinet inline while blocking the main site', () => {
+    // classic.minecraft.net is a trusted, embeddable browser classic — the
+    // minecraft.net blocklist entry targets the main site only.
+    expect(isKnownEmbedBlockedUrl('https://classic.minecraft.net/')).toBe(
+      false
+    );
+    expect(isKnownEmbedBlockedUrl('https://www.minecraft.net/')).toBe(true);
+
+    // The feed keeps the classic cabinet inline.
+    const minecraftClassic = THA_SPOT_FALLBACK_FEED.games.find(
+      (g) => g.id === 'minecraft-classic'
+    );
+    expect(minecraftClassic?.launchConfig?.embedMode).toBe('inline');
+    expect(minecraftClassic?.launchConfig?.approvedEmbedUrl).toContain(
+      'classic.minecraft.net'
+    );
+  });
+
   it('replaces stale local art references across the full fallback catalog', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
@@ -553,7 +571,7 @@ describe('GameService', () => {
 
     // The normalized fallback includes the full visible catalog plus the
     // curated Poki additions; no catalog entries are hidden by this service.
-    expect(games).toHaveLength(867);
+    expect(games).toHaveLength(866);
     expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
       true
     );

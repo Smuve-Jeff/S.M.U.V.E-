@@ -616,7 +616,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     {
       id: 'hextris',
       name: 'Hextris',
-      url: 'https://hextris.github.io/hextris/',
+      url: 'https://raw.githack.com/Hextris/hextris/master/index.html',
       description: 'Trusted online arcade puzzler with premium hex-stack gameplay.',
       genre: 'Classic',
       rating: 4.8,
@@ -633,12 +633,12 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         objectives: ['Beat the daily board', 'Stabilize after speed spikes'],
         modes: ['Solo'],
         inlinePolicy: 'trusted',
-        trustNote: 'Embedded from an allowlisted partner domain.',
+        trustNote: 'Mirrored from the official Hextris GitHub repo via raw.githack.com — the original hextris.github.io/hextris/ page now redirects to a dead host.',
         embedMode: 'inline',
-        approvedExternalUrl: 'https://hextris.github.io/hextris/',
-        approvedEmbedUrl: 'https://hextris.github.io/hextris/',
+        approvedExternalUrl: 'https://raw.githack.com/Hextris/hextris/master/index.html',
+        approvedEmbedUrl: 'https://raw.githack.com/Hextris/hextris/master/index.html',
         telemetryMode: 'origin',
-        telemetryOrigins: ['https://hextris.github.io'],
+        telemetryOrigins: ['https://raw.githack.com'],
         secure_mode: 'wasm',
       },
       art: {
@@ -1217,10 +1217,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         controls: ['Touch', 'Mouse'],
         inlinePolicy: 'trusted',
         embedMode: 'external-only',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/tower-defense',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         telemetryMode: 'origin',
+        approvedExternalUrl: 'https://www.gamepix.com/play/tower-defense',
       },
       art: {
         eyebrow: 'Executive Cabinet',
@@ -1244,10 +1244,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         controls: ['Touch', 'Mouse'],
         inlinePolicy: 'trusted',
         embedMode: 'external-only',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/ludo-legend',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         telemetryMode: 'origin',
+        approvedExternalUrl: 'https://www.gamepix.com/play/ludo-legend',
       },
       multiplayerType: 'Server',
       art: {
@@ -1272,10 +1272,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         controls: ['Touch', 'Mouse'],
         inlinePolicy: 'trusted',
         embedMode: 'external-only',
-        approvedEmbedUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
         telemetryOrigins: ['https://www.gamepix.com'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         telemetryMode: 'origin',
+        approvedExternalUrl: 'https://www.gamepix.com/play/zombie-idle-defense',
       },
       multiplayerType: 'Server',
       queueEstimateMinutes: 3,
@@ -1424,13 +1424,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured', 'staff-pick'],
       tags: ['Sports', 'Basketball', '3D', 'station-pod'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/basketball-stars',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         embedMode: 'external-only',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         inlinePolicy: 'trusted',
+        approvedExternalUrl: 'https://www.gamepix.com/play/basketball-stars',
       },
       art: {
         eyebrow: 'Pro League',
@@ -1451,13 +1451,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured', 'staff-pick'],
       tags: ['Sports', 'Football', 'Action', 'station-pod'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/touchdown-rush',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         embedMode: 'external-only',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         inlinePolicy: 'trusted',
+        approvedExternalUrl: 'https://www.gamepix.com/play/touchdown-rush',
       },
       art: {
         eyebrow: 'Gridiron Elite',
@@ -1534,13 +1534,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['featured', 'staff-pick'],
       tags: ['Fighting', 'Sports', '3D', 'station-pod'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/boxing-stars',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         embedMode: 'external-only',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         inlinePolicy: 'trusted',
+        approvedExternalUrl: 'https://www.gamepix.com/play/boxing-stars',
       },
       art: {
         eyebrow: 'Main Event',
@@ -1642,13 +1642,13 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       badgeIds: ['staff-pick'],
       tags: ['Strategy', 'Puzzle', '3D'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/chess-grandmaster',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
         embedMode: 'external-only',
         controls: ['Standard Keyboard'],
         trustNote: 'Elite emulation verified. Auto-save states enabled via cloud uplink.',
         inlinePolicy: 'trusted',
+        approvedExternalUrl: 'https://www.gamepix.com/play/chess-grandmaster',
       },
       art: {
         eyebrow: 'Executive Cabinet',
@@ -2282,10 +2282,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['FPS', 'Multiplayer', 'Modern', 'WebGL', 'Elite', 'PvP'],
       badgeIds: ['featured', 'elite'],
       launchConfig: {
-        approvedEmbedUrl: 'https://krunker.io/',
         embedMode: 'external-only',
         secure_mode: 'wasm',
         controls: ['Standard Keyboard', 'Gamepad Support'],
+        approvedExternalUrl: 'https://krunker.io/',
       },
       availability: 'Online',
       playersOnline: 6000,
@@ -2880,8 +2880,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['FPS', 'Multiplayer', 'WebGL', 'Elite', 'Modern', 'PvP'],
       badgeIds: ['elite', 'trending', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/venge-io',
         embedMode: 'external-only',
+        approvedExternalUrl: 'https://www.gamepix.com/play/venge-io',
       },
       availability: 'Online',
       multiplayerType: 'Server',
@@ -2897,8 +2897,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['FPS', 'Multiplayer', 'WebGL', 'Elite', 'Modern', 'PvP'],
       badgeIds: ['elite', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/shell-shockers',
         embedMode: 'external-only',
+        approvedExternalUrl: 'https://www.gamepix.com/play/shell-shockers',
       },
       availability: 'Online',
       multiplayerType: 'Server',
@@ -3301,42 +3301,15 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Puzzle', 'Words', 'Daily', 'Logic', 'Trending', 'Social'],
       badgeIds: ['trending', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.nytimes.com/games/wordle/index.html',
-        embedMode: 'inline',
+        embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.nytimes.com'],
+        approvedExternalUrl: 'https://www.nytimes.com/games/wordle/index.html',
       },
       art: {
         eyebrow: 'Daily Puzzle',
         accentStart: '#6AAA64',
         accentEnd: '#C9B458',
-      },
-      image: 'assets/hub/home-backdrop-command.png',
-    },
-    {
-      id: '1v1-lol-elite',
-      name: '1v1.LOL',
-      url: 'https://1v1.lol/',
-      genre: 'FPS',
-      description: 'The most popular browser-based building and shooting battle arena. Build structures, edit walls, and outgun opponents in real-time competitive matches. Fortnite-style mechanics in your browser.',
-      rating: 4.7,
-      playersOnline: 62000,
-      availability: 'Online',
-      multiplayerType: 'Server',
-      tags: ['FPS', 'Multiplayer', 'WebGL', 'Modern', 'Battle Royale', 'Building'],
-      badgeIds: ['modern', 'featured', 'tournament-live'],
-      queueEstimateMinutes: 1,
-      sessionObjectives: ['Win 3 build battles', 'Land a 200+ pump shot'],
-      controlHints: ['Master 90s for quick vertical cover', 'Edit doorways before peeking'],
-      launchConfig: {
-        approvedEmbedUrl: 'https://1v1.lol/',
-        embedMode: 'external-only',
-        telemetryMode: 'origin',
-      },
-      art: {
-        eyebrow: 'WebGL Elite',
-        accentStart: '#FF4500',
-        accentEnd: '#1E90FF',
       },
       image: 'assets/hub/home-backdrop-command.png',
     },
@@ -3352,10 +3325,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Arcade', 'Reflex', 'Casual', 'Mobile', 'Trending'],
       badgeIds: ['trending'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/helix-jump',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/helix-jump',
       },
       art: {
         eyebrow: 'Reflex Arcade',
@@ -4168,10 +4141,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Racing', 'Multiplayer', 'Web', 'Kart', 'Combat', 'PvP'],
       badgeIds: ['modern', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/smash-karts',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/smash-karts',
       },
       art: {
         eyebrow: 'Multiplayer',
@@ -4193,10 +4166,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Racing', 'Drifting', 'Web', '3D', 'Tuning'],
       badgeIds: ['modern', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/drift-hunters',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/drift-hunters',
       },
       art: {
         eyebrow: 'Drift Racing',
@@ -4217,10 +4190,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Strategy', 'io', 'Multiplayer', 'Web', 'Competitive', 'PvP'],
       badgeIds: ['modern', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/paper-io-2',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/paper-io-2',
       },
       art: {
         eyebrow: 'io Games',
@@ -4242,10 +4215,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Action', 'Casual', 'Web', 'Mobile', 'Slicing'],
       badgeIds: ['modern'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/fruit-ninja',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/fruit-ninja',
       },
       art: {
         eyebrow: 'Mobile Classic',
@@ -4266,10 +4239,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Puzzle', 'Physics', 'Web', 'Mobile', 'Casual'],
       badgeIds: ['modern'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/cut-the-rope',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/cut-the-rope',
       },
       art: {
         eyebrow: 'Puzzle Hit',
@@ -4290,10 +4263,10 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       tags: ['Runner', 'Speed', 'Web', 'Neon', 'Addictive'],
       badgeIds: ['modern', 'featured'],
       launchConfig: {
-        approvedEmbedUrl: 'https://www.gamepix.com/play/slope',
         embedMode: 'external-only',
         telemetryMode: 'origin',
         telemetryOrigins: ['https://www.gamepix.com'],
+        approvedExternalUrl: 'https://www.gamepix.com/play/slope',
       },
       art: {
         eyebrow: 'Speed Runner',
@@ -4381,8 +4354,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 4.8,
       tags: ['IO', 'Multiplayer', 'PvP', 'Casual', 'Arcade'],
       launchConfig: {
-        approvedEmbedUrl: 'https://slither.io/',
-        embedMode: 'inline',
+        embedMode: 'external-only',
+        approvedExternalUrl: 'https://slither.io/',
       },
       art: {
         eyebrow: 'LIVE ARENA',
@@ -4404,8 +4377,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 4.7,
       tags: ['IO', 'Multiplayer', 'PvP', 'Casual', 'Arcade'],
       launchConfig: {
-        approvedEmbedUrl: 'https://agar.io/',
-        embedMode: 'inline',
+        embedMode: 'external-only',
+        approvedExternalUrl: 'https://agar.io/',
       },
       art: {
         eyebrow: 'CELLULAR WARFARE',
@@ -4427,8 +4400,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 4.7,
       tags: ['IO', 'Multiplayer', 'PvP', 'Shooting', 'Arcade'],
       launchConfig: {
-        approvedEmbedUrl: 'https://diep.io/',
         embedMode: 'external-only',
+        approvedExternalUrl: 'https://diep.io/',
       },
       art: {
         eyebrow: 'TANK COMMAND',
@@ -4450,8 +4423,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 4.9,
       tags: ['Multiplayer', 'PvP', 'Party', 'Drawing', 'Casual'],
       launchConfig: {
-        approvedEmbedUrl: 'https://skribbl.io/',
-        embedMode: 'inline',
+        embedMode: 'external-only',
+        approvedExternalUrl: 'https://skribbl.io/',
       },
       art: {
         eyebrow: 'DRAW-OFF',
@@ -4473,8 +4446,8 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       rating: 4.8,
       tags: ['Multiplayer', 'Co-op', 'Party', 'Drawing', 'Casual'],
       launchConfig: {
-        approvedEmbedUrl: 'https://garticphone.com/',
-        embedMode: 'inline',
+        embedMode: 'external-only',
+        approvedExternalUrl: 'https://garticphone.com/',
       },
       art: {
         eyebrow: 'PARTY CHAOS',

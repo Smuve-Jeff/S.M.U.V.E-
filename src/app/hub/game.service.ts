@@ -56,6 +56,11 @@ export function isKnownEmbedBlockedUrl(value: unknown): boolean {
   }
   try {
     const hostname = new URL(value).hostname.toLowerCase();
+    // classic.minecraft.net is the embeddable browser classic — it is a
+    // deliberate member of the trusted embed allowlist and sends no
+    // frame-blocking headers. The 'minecraft.net' blocklist entry targets
+    // the main site, so exempt the classic subdomain from that suffix match.
+    if (hostname === 'classic.minecraft.net') return false;
     return EMBED_BLOCKED_DOMAINS.some(
       (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
     );
