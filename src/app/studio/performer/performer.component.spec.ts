@@ -10,6 +10,8 @@ import { DjMidiService } from '../../services/dj-midi.service';
 import { PerformanceRecordingService } from '../performance-recording.service';
 import { RecordingStatusService } from '../recording-status.service';
 import { FxMacrosService } from '../../services/fx-macros.service';
+import { StudioRecordingEngineService } from '../studio-recording-engine.service';
+import { RecordingLimiterService } from '../recording-limiter.service';
 import { Subject } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { signal, Component } from '@angular/core';
@@ -77,6 +79,24 @@ describe('PerformerComponent', () => {
           },
         },
         { provide: AudioEngineService, useValue: { ctx: { currentTime: 0 } } },
+        {
+          provide: StudioRecordingEngineService,
+          useValue: {
+            isRecording: signal(false),
+            recordingTime: signal(0),
+            getAnalyserNode: () => null,
+          },
+        },
+        {
+          provide: RecordingLimiterService,
+          useValue: {
+            headroomPercent: signal(0),
+            peakInputDb: signal(-60),
+            isLimitingActive: signal(false),
+            enabled: signal(true),
+            setEnabled: jest.fn(),
+          },
+        },
         { provide: LiveEngineService, useValue: mockLiveEngine },
         {
           provide: HapticService,

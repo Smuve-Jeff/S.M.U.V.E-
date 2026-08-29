@@ -23,6 +23,7 @@ import {
 import { PerformanceGridComponent } from '../performance-grid/performance-grid.component';
 import { PerformanceRecordingService } from '../performance-recording.service';
 import { RecordingStatusService } from '../recording-status.service';
+import { RecordingWaveformComponent } from '../recording-waveform/recording-waveform.component';
 import { FxMacrosService } from '../../services/fx-macros.service';
 import { DjMidiService } from '../../services/dj-midi.service';
 import { Subscription } from 'rxjs';
@@ -43,6 +44,7 @@ function toFiniteNumber(value: unknown, fallback: number): number {
     FormsModule,
     KnobComponent,
     PerformanceGridComponent,
+    RecordingWaveformComponent,
     DecimalPipe,
   ],
   templateUrl: './performer.component.html',

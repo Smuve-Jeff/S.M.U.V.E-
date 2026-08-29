@@ -362,6 +362,13 @@
 }
 
 /* ── RECORD TRANSPORT ─────────────────────────────────────── */
+.perf-rec-waveform {
+  display: block;
+  width: 100%;
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
 .rec-transport {
   display: flex;
   align-items: center;
