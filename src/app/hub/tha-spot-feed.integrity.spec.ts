@@ -425,6 +425,32 @@ describe('Tha Spot feed integrity', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('replaces broken Gamepix primaries with verified working cabinet URLs', () => {
+    const removedBrokenDuplicates = [
+      'nba-jam-elite',
+      'umk3-elite-master',
+      'contra-iii-elite-master',
+      'metroid-fusion-gba-elite',
+      'excitebike-64-elite',
+    ];
+
+    for (const id of removedBrokenDuplicates) {
+      expect(games.some((entry) => entry.id === id)).toBe(false);
+    }
+
+    // Each replacement remains available exactly once under an existing,
+    // verified catalog entry.
+    for (const id of [
+      'rg-23562-nba-jam-usa',
+      'rg-23432-ultimate-mortal-kombat-3-usa',
+      'rg-23268-contra-iii-the-alien-wars-usa',
+      'super-metroid-elite-master',
+      'rg-20552-excitebike-japan-usa',
+    ]) {
+      expect(games.filter((entry) => entry.id === id)).toHaveLength(1);
+    }
+  });
+
   it('keeps classic-franchise cabinets off gamepix lookalike hosts', () => {
     // Gamepix hosts fan remakes of these classic franchise titles; each
     // record must point its primary launch at the authentic retrogames.cc

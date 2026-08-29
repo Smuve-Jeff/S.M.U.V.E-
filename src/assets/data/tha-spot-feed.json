@@ -3662,38 +3662,6 @@
       "image": "assets/hub/home-backdrop-command.png"
     },
     {
-      "id": "nba-jam-elite",
-      "name": "NBA Jam",
-      "url": "https://www.gamepix.com/play/nba-jam",
-      "genre": "Sports",
-      "description": "HE'S ON FIRE! The definitive arcade basketball experience. High-flying dunks and intense 2-on-2 action.",
-      "availability": "Online",
-      "playersOnline": 15600,
-      "rating": 5,
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "tags": [
-        "Sports",
-        "Retro",
-        "Arcade",
-        "Basketball"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/nba-jam",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17392-nba-jam-usa.html"
-      },
-      "art": {
-        "eyebrow": "Arcade Classic",
-        "accentStart": "#f59e0b",
-        "accentEnd": "#b45309"
-      },
-      "image": "assets/hub/home-backdrop-command.png"
-    },
-    {
       "id": "dbz-buus-fury-classic-elite",
       "name": "Game Boy Advance Dragon Ball Z - Buu's Fury (U)(Psychosis)",
       "url": "https://www.retrogames.cc/embed/28935-dragon-ball-z-buu-s-fury-u-psychosis.html",
@@ -4076,33 +4044,6 @@
       "rating": 4.7
     },
     {
-      "id": "umk3-elite-master",
-      "name": "Ultimate Mortal Kombat 3",
-      "url": "https://www.gamepix.com/play/mortal-kombat",
-      "genre": "Fighting",
-      "description": "The Absolute fighting classic. Fatalities, combos, and high-fidelity arcade execution.",
-      "tags": [
-        "Fighting",
-        "Retro",
-        "Arcade",
-        "Elite",
-        "Combat"
-      ],
-      "badgeIds": [
-        "elite",
-        "tournament-live"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/mortal-kombat",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html"
-      },
-      "availability": "Online",
-      "image": "assets/hub/home-backdrop-command.png",
-      "rating": 4.5
-    },
-    {
       "id": "super-metroid-elite-master",
       "name": "SNES Super Metroid - V I T A L I T Y",
       "url": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html",
@@ -4294,32 +4235,6 @@
       "multiplayerType": "Server",
       "image": "assets/hub/home-backdrop-command.png",
       "rating": 4.3
-    },
-    {
-      "id": "contra-iii-elite-master",
-      "name": "Contra III",
-      "url": "https://www.gamepix.com/play/contra",
-      "genre": "Action",
-      "description": "Absolute high-fidelity Action action. Experience Contra III in a stabilized browser environment.",
-      "tags": [
-        "Action",
-        "Retro",
-        "Elite",
-        "Stabilized"
-      ],
-      "badgeIds": [
-        "elite",
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/contra",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html"
-      },
-      "availability": "Online",
-      "image": "assets/hub/home-backdrop-command.png",
-      "rating": 4.7
     },
     {
       "id": "castlevania-iv-elite-master",
@@ -5305,39 +5220,6 @@
       "image": "assets/hub/home-backdrop-command.png"
     },
     {
-      "id": "metroid-fusion-gba-elite",
-      "name": "Metroid Fusion",
-      "url": "https://www.gamepix.com/play/metroid",
-      "genre": "Action",
-      "description": "Samus faces the SA-X parasite in this intense GBA Metroid chapter.",
-      "rating": 4.7,
-      "playersOnline": 5200,
-      "availability": "Online",
-      "tags": [
-        "Action",
-        "GBA",
-        "Metroid",
-        "Platformer",
-        "Sci-Fi"
-      ],
-      "badgeIds": [
-        "classic",
-        "elite"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/metroid",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40253-metroid-fusion-usa.html"
-      },
-      "art": {
-        "eyebrow": "GBA Action",
-        "accentStart": "#ff6600",
-        "accentEnd": "#330000"
-      },
-      "image": "assets/hub/home-backdrop-command.png"
-    },
-    {
       "id": "advance-wars-gba-elite",
       "name": "Game Boy Advance Advance Wars (U)(Mode7)",
       "url": "https://www.retrogames.cc/embed/27968-advance-wars-u-mode7.html",
@@ -5461,37 +5343,6 @@
         "eyebrow": "GBA Tactical",
         "accentStart": "#cc0000",
         "accentEnd": "#330000"
-      },
-      "image": "assets/hub/home-backdrop-command.png"
-    },
-    {
-      "id": "excitebike-64-elite",
-      "name": "Excitebike 64",
-      "url": "https://www.gamepix.com/play/excitebike",
-      "genre": "Racing",
-      "description": "The classic motocross racer returns in full 3D with wild tricks and stunts.",
-      "rating": 4.4,
-      "playersOnline": 2200,
-      "availability": "Online",
-      "tags": [
-        "Racing",
-        "N64",
-        "Motocross",
-        "Sports"
-      ],
-      "badgeIds": [
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.gamepix.com/play/excitebike",
-        "embedMode": "external-only",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32217-excitebike-64-usa.html"
-      },
-      "art": {
-        "eyebrow": "N64 Racing",
-        "accentStart": "#ff6600",
-        "accentEnd": "#cc3300"
       },
       "image": "assets/hub/home-backdrop-command.png"
     },
@@ -26403,7 +26254,6 @@
         "mega-man-x3-elite-master",
         "doom-ii-elite-master",
         "metal-slug-3-elite-master",
-        "umk3-elite-master",
         "tekken-tag-tournament-elite-master",
         "slow-roads-webgl",
         "venge-io-webgl"
@@ -26720,7 +26570,6 @@
       ],
       "gameIds": [
         "tecmo-bowl-elite",
-        "nba-jam-elite",
         "ssx-tricky-elite",
         "fifa-2005-elite",
         "thps2-ps1-elite",
