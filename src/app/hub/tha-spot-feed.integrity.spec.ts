@@ -403,6 +403,28 @@ describe('Tha Spot feed integrity', () => {
     expect(alpha3?.url).not.toContain('10006-');
   });
 
+  it('never points an external target at a different cabinet than the primary embed', () => {
+    // Systemic rule (generalizes the franchise guard): a game's
+    // approvedExternalUrl must resolve to the SAME retrogames.cc cabinet as
+    // its primary launch embed. Earlier catalog entries opened completely
+    // unrelated games (e.g. Star Fox 2 -> Ultimate Brain Games) when the
+    // external target drifted from the primary embed ID.
+    const offenders: string[] = [];
+    for (const game of games) {
+      const primary =
+        game.launchConfig?.approvedEmbedUrl || game.url || '';
+      const external = game.launchConfig?.approvedExternalUrl || '';
+      const primaryId = extractRetroId(primary);
+      const externalId = extractRetroId(external);
+      if (primaryId && externalId && primaryId !== externalId) {
+        offenders.push(
+          `${game.id}: primary=${primaryId} external=${externalId}`
+        );
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('keeps classic-franchise cabinets off gamepix lookalike hosts', () => {
     // Gamepix hosts fan remakes of these classic franchise titles; each
     // record must point its primary launch at the authentic retrogames.cc

@@ -486,7 +486,7 @@
         "embedMode": "inline"
       },
       "multiplayerType": "Server",
-      "image": "/assets/games/venge-io-webgl.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "slow-roads-webgl",
@@ -511,7 +511,7 @@
         "embedMode": "external-only",
         "approvedExternalUrl": "https://slowroads.io/"
       },
-      "image": "/assets/games/slow-roads-webgl.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "battlefield",
@@ -576,7 +576,7 @@
         "accentStart": "#10b981",
         "accentEnd": "#064e3b"
       },
-      "image": "/assets/games/battlefield.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "remix-arena",
@@ -638,7 +638,7 @@
         "accentStart": "#22c55e",
         "accentEnd": "#14532d"
       },
-      "image": "/assets/games/remix-arena.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "neon-drift",
@@ -695,7 +695,7 @@
         "accentStart": "#38bdf8",
         "accentEnd": "#0c4a6e"
       },
-      "image": "/assets/games/neon-drift.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "vinyl-vault",
@@ -751,7 +751,7 @@
         "accentStart": "#f59e0b",
         "accentEnd": "#78350f"
       },
-      "image": "/assets/games/vinyl-vault.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tempo-lockdown",
@@ -808,7 +808,7 @@
         "accentStart": "#34d399",
         "accentEnd": "#065f46"
       },
-      "image": "/assets/games/tempo-lockdown.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "hextris",
@@ -864,7 +864,7 @@
         "accentStart": "#06b6d4",
         "accentEnd": "#2563eb"
       },
-      "image": "/assets/games/hextris.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "game-2048",
@@ -921,7 +921,7 @@
         "accentStart": "#f97316",
         "accentEnd": "#ea580c"
       },
-      "image": "/assets/games/game-2048.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "music-rush",
@@ -977,7 +977,7 @@
         "accentStart": "#ec4899",
         "accentEnd": "#db2777"
       },
-      "image": "/assets/games/music-rush.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "chess-classic",
@@ -1034,7 +1034,7 @@
         "accentStart": "#f8fafc",
         "accentEnd": "#1e293b"
       },
-      "image": "/assets/games/chess-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "basket-random",
@@ -1091,7 +1091,7 @@
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "/assets/games/basket-random.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "soccer-random",
@@ -1152,7 +1152,7 @@
         "accentEnd": "#064e3b"
       },
       "multiplayerType": "Server",
-      "image": "/assets/games/soccer-random.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "solitaire-classic",
@@ -1208,7 +1208,7 @@
         "accentStart": "#ef4444",
         "accentEnd": "#b91c1c"
       },
-      "image": "/assets/games/solitaire-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "cipher-surge",
@@ -1268,7 +1268,7 @@
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "/assets/games/cipher-surge.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "moto-x3m",
@@ -1325,7 +1325,7 @@
         "accentStart": "#f97316",
         "accentEnd": "#9a3412"
       },
-      "image": "/assets/games/moto-x3m.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tomb-runner",
@@ -1382,7 +1382,7 @@
         "accentStart": "#14b8a6",
         "accentEnd": "#155e75"
       },
-      "image": "/assets/games/tomb-runner.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "8-ball-billiards",
@@ -1440,7 +1440,7 @@
         "accentStart": "#14b8a6",
         "accentEnd": "#164e63"
       },
-      "image": "/assets/games/8-ball-billiards.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mahjong",
@@ -1497,7 +1497,7 @@
         "accentStart": "#a855f7",
         "accentEnd": "#312e81"
       },
-      "image": "/assets/games/mahjong.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tactical-squad",
@@ -1549,7 +1549,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/tactical-squad.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "battle-city",
@@ -1576,14 +1576,14 @@
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18785-battle-city-japan.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16882-battle-city-japan.html"
       },
       "art": {
         "eyebrow": "Namco Elite",
         "accentStart": "#fbbf24",
         "accentEnd": "#78350f"
       },
-      "image": "/assets/games/battle-city.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "league-bowling",
@@ -1618,7 +1618,7 @@
         "accentStart": "#60a5fa",
         "accentEnd": "#1d4ed8"
       },
-      "image": "/assets/games/league-bowling.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "special-strike",
@@ -1670,7 +1670,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/special-strike.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "basketball-master",
@@ -1709,7 +1709,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/basketball-master.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "sniper-mission",
@@ -1746,7 +1746,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/sniper-mission.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tower-defense",
@@ -1784,7 +1784,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/tower-defense.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ludo-legend",
@@ -1823,7 +1823,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/ludo-legend.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "zombie-idle-defense",
@@ -1871,7 +1871,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/zombie-idle-defense.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "arena-clash",
@@ -1932,7 +1932,7 @@
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "/assets/games/arena-clash.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mythic-raid-online",
@@ -1994,7 +1994,7 @@
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "/assets/games/mythic-raid-online.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "doom",
@@ -2017,7 +2017,7 @@
           "Standard Keyboard"
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41695-doom-v1-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22868-doom-usa.html",
         "secure_mode": "wasm"
       },
       "tags": [
@@ -2030,7 +2030,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/doom.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "gta-elite-wasm",
@@ -2070,7 +2070,7 @@
         "accentStart": "#facc15",
         "accentEnd": "#713f12"
       },
-      "image": "/assets/games/gta-elite-wasm.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "nba-pro-3d",
@@ -2109,7 +2109,7 @@
         "accentStart": "#ea580c",
         "accentEnd": "#7c2d12"
       },
-      "image": "/assets/games/nba-pro-3d.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "nfl-redzone-rush",
@@ -2148,7 +2148,7 @@
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
       },
-      "image": "/assets/games/nfl-redzone-rush.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "dbz-elite-wasm",
@@ -2181,14 +2181,14 @@
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/20261-dragon-ball-z-buyuu-retsuden-japan.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16913-dragon-ball-z-buyuu-retsuden-japan.html"
       },
       "art": {
         "eyebrow": "Saiyan Saga",
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "/assets/games/dbz-elite-wasm.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "halo-combat-evolved",
@@ -2232,7 +2232,7 @@
         "accentStart": "#16a34a",
         "accentEnd": "#14532d"
       },
-      "image": "/assets/games/halo-combat-evolved.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "boxing-heavyweight",
@@ -2271,7 +2271,7 @@
         "accentStart": "#dc2626",
         "accentEnd": "#7f1d1d"
       },
-      "image": "/assets/games/boxing-heavyweight.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tekken-3-elite",
@@ -2310,7 +2310,7 @@
         "accentStart": "#ef4444",
         "accentEnd": "#7f1d1d"
       },
-      "image": "/assets/games/tekken-3-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "smash-bros-elite",
@@ -2348,7 +2348,7 @@
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "/assets/games/smash-bros-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ctr-ps1-elite",
@@ -2384,7 +2384,7 @@
         "accentStart": "#f97316",
         "accentEnd": "#7c2d12"
       },
-      "image": "/assets/games/ctr-ps1-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "3d-chess-elite",
@@ -2421,7 +2421,7 @@
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/3d-chess-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "thps2-ps1-elite",
@@ -2451,14 +2451,14 @@
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41029-tony-hawk-s-pro-skater-2.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26448-tony-hawk-s-pro-skater-2-f-cezar.html"
       },
       "art": {
         "eyebrow": "Neversoft Legacy",
         "accentStart": "#8b5cf6",
         "accentEnd": "#4c1d95"
       },
-      "image": "/assets/games/thps2-ps1-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tetris-classic-elite",
@@ -2488,14 +2488,14 @@
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18814-tetris-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17612-tetris-usa.html"
       },
       "art": {
         "eyebrow": "Executive Cabinet",
         "accentStart": "#ec5b13",
         "accentEnd": "#a855f7"
       },
-      "image": "/assets/games/tetris-classic-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "wolf3d-inline-elite",
@@ -2532,7 +2532,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/wolf3d-inline-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "double-dragon-nes",
@@ -2571,7 +2571,7 @@
         "accentStart": "#b91c1c",
         "accentEnd": "#7f1d1d"
       },
-      "image": "/assets/games/double-dragon-nes.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "track-and-field-nes",
@@ -2599,14 +2599,14 @@
         ],
         "trustNote": "Konami classic emulation verified.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19022-track-field-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/34609-track-field.html"
       },
       "art": {
         "eyebrow": "Konami Elite",
         "accentStart": "#ef4444",
         "accentEnd": "#991b1b"
       },
-      "image": "/assets/games/track-and-field-nes.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "final-fantasy-nes",
@@ -2643,7 +2643,7 @@
         "accentStart": "#60a5fa",
         "accentEnd": "#1d4ed8"
       },
-      "image": "/assets/games/final-fantasy-nes.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mike-tyson-punch-out",
@@ -2676,14 +2676,14 @@
         ],
         "trustNote": "Elite NES combat protocol verified.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19002-mike-tyson-s-punch-out-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19272-mike-tyson-s-punch-out-usa.html"
       },
       "art": {
         "eyebrow": "Nintendo Elite",
         "accentStart": "#fbbf24",
         "accentEnd": "#b45309"
       },
-      "image": "/assets/games/mike-tyson-punch-out.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "galaga-classic",
@@ -2711,14 +2711,14 @@
         ],
         "trustNote": "Arcade logic verified.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10052-galaga-namco.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/33542-galaga-88.html"
       },
       "art": {
         "eyebrow": "Namco Elite",
         "accentStart": "#3b82f6",
         "accentEnd": "#1e40af"
       },
-      "image": "/assets/games/galaga-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mortal-kombat-2-elite",
@@ -2746,14 +2746,14 @@
         "controls": [
           "Standard Keyboard"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/23616-mortal-kombat-ii-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22440-mortal-kombat-ii-usa.html"
       },
       "art": {
         "eyebrow": "Midway Elite",
         "accentStart": "#b91c1c",
         "accentEnd": "#450a0a"
       },
-      "image": "/assets/games/mortal-kombat-2-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tekken-4-tribute",
@@ -2788,7 +2788,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#7c3aed"
       },
-      "image": "/assets/games/tekken-4-tribute.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "final-fantasy-vii-elite",
@@ -2826,7 +2826,7 @@
         "accentStart": "#38bdf8",
         "accentEnd": "#075985"
       },
-      "image": "/assets/games/final-fantasy-vii-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "crazy-taxi-elite",
@@ -2852,7 +2852,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41199-crazy-taxi-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28808-crazy-taxi-catch-a-ride-u-venom.html"
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -2862,7 +2862,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/crazy-taxi-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "thps4-elite",
@@ -2888,7 +2888,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/43328-tony-hawk-s-pro-skater-4.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28651-tony-hawk-s-pro-skater-4-u-rapid-fire.html"
       },
       "availability": "Online",
       "playersOnline": 12000,
@@ -2898,7 +2898,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/thps4-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "spider-man-2-elite",
@@ -2934,7 +2934,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/spider-man-2-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "okami-elite",
@@ -2960,7 +2960,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41254-okami-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19455-kami-no-kijutsu-illusion-of-the-evil-eyes-j-rapid-fire.html"
       },
       "availability": "Online",
       "playersOnline": 5500,
@@ -2970,7 +2970,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/okami-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "donkey-kong-arcade",
@@ -2996,7 +2996,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10123-donkey-kong-us-set-1.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/45280-donkey-kong-duel.html"
       },
       "availability": "Online",
       "playersOnline": 7000,
@@ -3006,7 +3006,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/donkey-kong-arcade.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "frogger-arcade",
@@ -3032,7 +3032,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10129-frogger.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8553-frogger.html"
       },
       "availability": "Online",
       "playersOnline": 6600,
@@ -3042,7 +3042,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/frogger-arcade.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "asteroids-arcade",
@@ -3068,7 +3068,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10007-asteroids-rev-4.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/25095-asteroids-usa-europe.html"
       },
       "availability": "Online",
       "playersOnline": 6800,
@@ -3078,7 +3078,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/asteroids-arcade.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "space-invaders-arcade",
@@ -3104,7 +3104,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10255-space-invaders-original.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18571-space-invaders-usa.html"
       },
       "availability": "Online",
       "playersOnline": 7300,
@@ -3114,7 +3114,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/space-invaders-arcade.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "fifa-2005-elite",
@@ -3150,7 +3150,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/fifa-2005-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ssx-tricky-elite",
@@ -3176,7 +3176,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41230-ssx-tricky-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26496-ssx-tricky-u-mode7.html"
       },
       "availability": "Online",
       "playersOnline": 6000,
@@ -3186,7 +3186,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/ssx-tricky-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tiger-woods-2004-elite",
@@ -3212,7 +3212,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41241-tiger-woods-pga-tour-2004-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/29409-tiger-woods-pga-tour-2004-u-eurasia.html"
       },
       "availability": "Online",
       "playersOnline": 7500,
@@ -3222,7 +3222,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/tiger-woods-2004-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "chrono-trigger-snes-elite",
@@ -3249,7 +3249,7 @@
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/21434-chrono-trigger-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21643-chrono-trigger-c.html"
       },
       "availability": "Online",
       "playersOnline": 6400,
@@ -3259,7 +3259,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/chrono-trigger-snes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "nfs-most-wanted-ps2-elite",
@@ -3295,7 +3295,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/nfs-most-wanted-ps2-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "krunker-io-web-elite",
@@ -3332,7 +3332,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/krunker-io-web-elite.svg",
+      "image": "assets/hub/home-backdrop-command.png",
       "multiplayerType": "Server"
     },
     {
@@ -3370,7 +3370,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/shell-shockers-web-elite.svg",
+      "image": "assets/hub/home-backdrop-command.png",
       "multiplayerType": "Server"
     },
     {
@@ -3408,7 +3408,7 @@
         "accentStart": "#af25f4",
         "accentEnd": "#3d2b1f"
       },
-      "image": "/assets/games/ev-io-web-elite.svg",
+      "image": "assets/hub/home-backdrop-command.png",
       "multiplayerType": "Server"
     },
     {
@@ -3445,7 +3445,7 @@
         "accentStart": "#3b82f6",
         "accentEnd": "#1e3a8a"
       },
-      "image": "/assets/games/need-for-speed-underground-2-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "minecraft-classic",
@@ -3465,7 +3465,7 @@
         "classic",
         "featured"
       ],
-      "image": "/assets/games/minecraft-classic.svg",
+      "image": "assets/hub/home-backdrop-command.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://classic.minecraft.net/",
         "embedMode": "inline"
@@ -3488,7 +3488,7 @@
       "badgeIds": [
         "classic"
       ],
-      "image": "/assets/games/prince-of-persia.svg",
+      "image": "assets/hub/home-backdrop-command.png",
       "launchConfig": {
         "approvedEmbedUrl": "https://princejs.com/",
         "embedMode": "inline"
@@ -3521,7 +3521,7 @@
         "embedMode": "inline"
       },
       "multiplayerType": "Server",
-      "image": "/assets/games/moba-legends-community.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tekken-tag-tournament-elite-master",
@@ -3543,10 +3543,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/42722-tekken-tag-tournament-world-teg2-ver-c1-set-1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10043-tekken-tag-tournament.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/42722-tekken-tag-tournament-world-teg2-ver-c1-set-1.html"
       },
       "availability": "Online",
-      "image": "/assets/games/tekken-tag-tournament-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "splinter-cell-elite-master",
@@ -3568,10 +3569,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/26152-tom-clancy-s-splinter-cell-u-gbatemp.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/42791-tom-clancy-s-splinter-cell.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26152-tom-clancy-s-splinter-cell-u-gbatemp.html"
       },
       "availability": "Online",
-      "image": "/assets/games/splinter-cell-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "metal-gear-msx-elite",
@@ -3596,9 +3598,9 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17916-metal-gear-usa.html",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19318-metal-gear-japan.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17916-metal-gear-usa.html"
       },
-      "image": "/assets/games/metal-gear-msx-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "vampire-killer-msx-elite",
@@ -3623,9 +3625,9 @@
       "launchConfig": {
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/30355-akumajou-dracula-vampire-killer-japan.html",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19321-vampire-killer-japan-europe.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/30355-akumajou-dracula-vampire-killer-japan.html"
       },
-      "image": "/assets/games/vampire-killer-msx-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "tecmo-bowl-elite",
@@ -3650,14 +3652,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18844-tecmo-bowl-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22225-tecmo-bowl-usa.html"
       },
       "art": {
         "eyebrow": "8-Bit Legend",
         "accentStart": "#ef4444",
         "accentEnd": "#991b1b"
       },
-      "image": "/assets/games/tecmo-bowl-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "nba-jam-elite",
@@ -3689,7 +3691,7 @@
         "accentStart": "#f59e0b",
         "accentEnd": "#b45309"
       },
-      "image": "/assets/games/nba-jam-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "dbz-buus-fury-classic-elite",
@@ -3724,7 +3726,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22409-dragon-ball-z-buu-s-fury-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28935-dragon-ball-z-buu-s-fury-u-psychosis.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28935-dragon-ball-z-buu-s-fury-u-psychosis.html",
         "secure_mode": "wasm"
       },
@@ -3733,7 +3735,7 @@
         "accentStart": "#ea580c",
         "accentEnd": "#9a3412"
       },
-      "image": "/assets/games/dbz-buus-fury-classic-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "10-yard-fight-classic-elite",
@@ -3766,7 +3768,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/16599-10-yard-fight-usa-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21091-10-yard-fight-japan.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21091-10-yard-fight-japan.html",
         "secure_mode": "wasm"
       },
@@ -3775,7 +3777,7 @@
         "accentStart": "#15803d",
         "accentEnd": "#14532d"
       },
-      "image": "/assets/games/10-yard-fight-classic-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "megaman-classic-elite",
@@ -3808,7 +3810,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17300-mega-man-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16698-mega-man-usa.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/16698-mega-man-usa.html",
         "secure_mode": "wasm"
       },
@@ -3817,7 +3819,7 @@
         "accentStart": "#2563eb",
         "accentEnd": "#1e3a8a"
       },
-      "image": "/assets/games/megaman-classic-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "sf2-classic",
@@ -3857,7 +3859,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/sf2-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "sf3-classic",
@@ -3897,7 +3899,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/sf3-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "dd2-classic",
@@ -3937,7 +3939,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/dd2-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "dbz-sw-classic",
@@ -3968,7 +3970,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22415-dragon-ball-z-supersonic-warriors-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28096-dragon-ball-z-supersonic-warriors-k-projectg.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28096-dragon-ball-z-supersonic-warriors-k-projectg.html",
         "secure_mode": "wasm"
       },
@@ -3977,7 +3979,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/dbz-sw-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mmx-classic",
@@ -4008,7 +4010,7 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17302-mega-man-x-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/44592-mega-man-x-hard-type.html",
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/44592-mega-man-x-hard-type.html",
         "secure_mode": "wasm"
       },
@@ -4017,7 +4019,7 @@
         "accentStart": "#4ade80",
         "accentEnd": "#166534"
       },
-      "image": "/assets/games/mmx-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "doom-ii-elite-master",
@@ -4040,10 +4042,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/29265-doom-ii-u-mode7.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41696-doom-ii.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/29265-doom-ii-u-mode7.html"
       },
       "availability": "Online",
-      "image": "/assets/games/doom-ii-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "metal-slug-3-elite-master",
@@ -4066,10 +4069,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9159-metal-slug-3-ngh-2560.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/9084-metal-slug-3.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9159-metal-slug-3-ngh-2560.html"
       },
       "availability": "Online",
-      "image": "/assets/games/metal-slug-3-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "umk3-elite-master",
@@ -4095,7 +4099,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/10041-ultimate-mortal-kombat-3-rev-1-2.html"
       },
       "availability": "Online",
-      "image": "/assets/games/umk3-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "super-metroid-elite-master",
@@ -4119,10 +4124,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18841-super-metroid-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html"
       },
       "availability": "Online",
-      "image": "/assets/games/super-metroid-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.8
     },
     {
       "id": "final-fantasy-vi-elite-master",
@@ -4150,7 +4156,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/24572-final-fantasy-vi-japan-en-by-rpgone-v1-2b.html"
       },
       "availability": "Online",
-      "image": "/assets/games/final-fantasy-vi-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.8
     },
     {
       "id": "metal-slug-x-elite-master",
@@ -4173,10 +4180,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9170-metal-slug-x-super-vehicle-001-ngm-2500-ngh-2500.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/9089-metal-slug-x-super-vehicle-001.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9170-metal-slug-x-super-vehicle-001-ngm-2500-ngh-2500.html"
       },
       "availability": "Online",
-      "image": "/assets/games/metal-slug-x-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "golden-axe-elite-master",
@@ -4202,7 +4210,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/8682-golden-axe.html"
       },
       "availability": "Online",
-      "image": "/assets/games/golden-axe-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "nfl-blitz-elite-master",
@@ -4225,10 +4234,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/43816-nfl-blitz.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17395-nfl-blitz-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43816-nfl-blitz.html"
       },
       "availability": "Online",
-      "image": "/assets/games/nfl-blitz-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "venge-io-pro-elite",
@@ -4255,7 +4265,8 @@
       },
       "availability": "Online",
       "multiplayerType": "Server",
-      "image": "/assets/games/venge-io-pro-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.3
     },
     {
       "id": "shell-shockers-pro-elite",
@@ -4281,7 +4292,8 @@
       },
       "availability": "Online",
       "multiplayerType": "Server",
-      "image": "/assets/games/shell-shockers-pro-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.3
     },
     {
       "id": "contra-iii-elite-master",
@@ -4306,7 +4318,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/18806-contra-iii-the-alien-wars-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/contra-iii-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "castlevania-iv-elite-master",
@@ -4328,10 +4341,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23973-super-castlevania-iv-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18824-super-castlevania-iv-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23973-super-castlevania-iv-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/castlevania-iv-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "mega-man-x3-elite-master",
@@ -4353,10 +4367,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/44783-mega-man-x3-shadow-armor.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18833-mega-man-x3-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/44783-mega-man-x3-shadow-armor.html"
       },
       "availability": "Online",
-      "image": "/assets/games/mega-man-x3-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "kirby-super-star-elite-master",
@@ -4378,10 +4393,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/24938-kirby-super-star-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18825-kirby-super-star-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24938-kirby-super-star-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/kirby-super-star-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "super-mario-world-elite-master",
@@ -4429,10 +4445,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23005-donkey-kong-country-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18808-donkey-kong-country-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23005-donkey-kong-country-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/donkey-kong-country-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.8
     },
     {
       "id": "aladdin-elite-master",
@@ -4454,10 +4471,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/43853-aladdin-ii.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18821-disney-s-aladdin-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43853-aladdin-ii.html"
       },
       "availability": "Online",
-      "image": "/assets/games/aladdin-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "the-lion-king-elite-master",
@@ -4479,10 +4497,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19874-lion-king-the-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18822-disney-s-the-lion-king-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19874-lion-king-the-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/the-lion-king-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "earthworm-jim-elite-master",
@@ -4504,10 +4523,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23592-earthworm-jim-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18810-earthworm-jim-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23592-earthworm-jim-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/earthworm-jim-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "star-fox-elite-master",
@@ -4529,10 +4549,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/32106-star-fox-2.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18836-star-fox-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32106-star-fox-2.html"
       },
       "availability": "Online",
-      "image": "/assets/games/star-fox-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "f-zero-elite-master",
@@ -4554,10 +4575,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20082-f-zero-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18815-f-zero-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/20082-f-zero-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/f-zero-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "banjo-kazooie-elite-master",
@@ -4579,10 +4601,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28899-banjo-kazooie-grunty-s-revenge-u-venom.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32111-banjo-kazooie-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28899-banjo-kazooie-grunty-s-revenge-u-venom.html"
       },
       "availability": "Online",
-      "image": "/assets/games/banjo-kazooie-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "crash-bandicoot-elite-master",
@@ -4604,10 +4627,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/26660-crash-bandicoot-xs-e-paracox.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/41684-crash-bandicoot.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26660-crash-bandicoot-xs-e-paracox.html"
       },
       "availability": "Online",
-      "image": "/assets/games/crash-bandicoot-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "silent-hill-elite-master",
@@ -4629,10 +4653,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17259-play-novel-silent-hill-j-rapid-fire.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40590-silent-hill.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17259-play-novel-silent-hill-j-rapid-fire.html"
       },
       "availability": "Online",
-      "image": "/assets/games/silent-hill-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "x-men-vs-street-fighter-elite-master",
@@ -4657,7 +4682,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/34755-x-men-vs-street-fighter-960910-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/x-men-vs-street-fighter-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "marvel-super-heroes-elite-master",
@@ -4679,10 +4705,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9096-marvel-super-heroes-951024-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/8403-marvel-super-heroes-951024.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9096-marvel-super-heroes-951024-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/marvel-super-heroes-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "street-fighter-alpha-3-elite-master",
@@ -4707,7 +4734,8 @@
         "approvedExternalUrl": "https://www.retrogames.cc/embed/9974-street-fighter-alpha-3-980904-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/street-fighter-alpha-3-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.7
     },
     {
       "id": "darkstalkers-elite-master",
@@ -4729,10 +4757,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8229-darkstalkers-the-night-warriors-940705-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/8401-darkstalkers-the-night-warriors-940705.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8229-darkstalkers-the-night-warriors-940705-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/darkstalkers-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.6
     },
     {
       "id": "cadillacs-and-dinosaurs-elite-master",
@@ -4754,10 +4783,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/8037-cadillacs-dinosaurs-930201-etc.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/8489-cadillacs-and-dinosaurs-930201.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8037-cadillacs-dinosaurs-930201-etc.html"
       },
       "availability": "Online",
-      "image": "/assets/games/cadillacs-and-dinosaurs-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.5
     },
     {
       "id": "captain-commando-elite-master",
@@ -4779,10 +4809,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/24501-captain-commando-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/8491-captain-commando-911101.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24501-captain-commando-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/captain-commando-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "the-punisher-elite-master",
@@ -4804,10 +4835,11 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21406-punisher-the-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/8515-the-punisher-930422.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21406-punisher-the-usa.html"
       },
       "availability": "Online",
-      "image": "/assets/games/the-punisher-elite-master.svg"
+      "image": "assets/hub/home-backdrop-command.png",
+      "rating": 4.4
     },
     {
       "id": "duck-hunt-nes-elite",
@@ -4833,14 +4865,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/43671-vs-duck-hunt-set-dh3-e.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17905-duck-hunt-nes.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43671-vs-duck-hunt-set-dh3-e.html"
       },
       "art": {
         "eyebrow": "Nintendo Classic",
         "accentStart": "#228B22",
         "accentEnd": "#8B4513"
       },
-      "image": "/assets/games/duck-hunt-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "wordle-daily",
@@ -4876,7 +4908,7 @@
         "accentStart": "#6AAA64",
         "accentEnd": "#C9B458"
       },
-      "image": "/assets/games/wordle-daily.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "1v1-lol-elite",
@@ -4920,7 +4952,7 @@
         "accentStart": "#FF4500",
         "accentEnd": "#1E90FF"
       },
-      "image": "/assets/games/1v1-lol-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "helix-jump-frenzy",
@@ -4954,7 +4986,7 @@
         "accentStart": "#FF1493",
         "accentEnd": "#00BFFF"
       },
-      "image": "/assets/games/helix-jump-frenzy.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "dk-country-2-snes-elite",
@@ -4979,14 +5011,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/44668-donkey-kong-country-2-unveiled.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32011-donkey-kong-country-2-diddys-kong-quest-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/44668-donkey-kong-country-2-unveiled.html"
       },
       "art": {
         "eyebrow": "SNES Classic",
         "accentStart": "#ff6600",
         "accentEnd": "#336600"
       },
-      "image": "/assets/games/dk-country-2-snes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "sf-alpha-2-snes-elite",
@@ -5017,7 +5049,7 @@
         "accentStart": "#ff0000",
         "accentEnd": "#cc0000"
       },
-      "image": "/assets/games/sf-alpha-2-snes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "earthbound-snes-elite",
@@ -5043,14 +5075,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/24789-earthbound-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32016-earthbound-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24789-earthbound-usa.html"
       },
       "art": {
         "eyebrow": "Cult Classic",
         "accentStart": "#ff3366",
         "accentEnd": "#660033"
       },
-      "image": "/assets/games/earthbound-snes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "super-bomberman-snes-elite",
@@ -5075,14 +5107,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17398-super-bomberman-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/32131-super-bomberman-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17398-super-bomberman-usa.html"
       },
       "art": {
         "eyebrow": "Party Classic",
         "accentStart": "#ff9900",
         "accentEnd": "#cc6600"
       },
-      "image": "/assets/games/super-bomberman-snes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "comix-zone-genesis-elite",
@@ -5106,14 +5138,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/29773-comix-zone-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29006-comix-zone-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/29773-comix-zone-usa.html"
       },
       "art": {
         "eyebrow": "Genesis Gem",
         "accentStart": "#ff0066",
         "accentEnd": "#330033"
       },
-      "image": "/assets/games/comix-zone-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "vectorman-genesis-elite",
@@ -5137,14 +5169,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/30199-vectorman-2-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29041-vectorman-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/30199-vectorman-2-usa.html"
       },
       "art": {
         "eyebrow": "Genesis Action",
         "accentStart": "#00ff00",
         "accentEnd": "#003300"
       },
-      "image": "/assets/games/vectorman-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "altered-beast-genesis-elite",
@@ -5168,14 +5200,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/29647-altered-beast-usa-europe.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29001-altered-beast-w-world.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/29647-altered-beast-usa-europe.html"
       },
       "art": {
         "eyebrow": "Genesis Launch",
         "accentStart": "#9900ff",
         "accentEnd": "#1a0033"
       },
-      "image": "/assets/games/altered-beast-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ps4-genesis-elite",
@@ -5201,14 +5233,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28283-phantasy-star-iv-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29033-phantasy-star-iv-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28283-phantasy-star-iv-usa.html"
       },
       "art": {
         "eyebrow": "Genesis RPG",
         "accentStart": "#00ccff",
         "accentEnd": "#003366"
       },
-      "image": "/assets/games/ps4-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "shinobi3-genesis-elite",
@@ -5232,14 +5264,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/30503-shinobi-iii-return-of-the-ninja-master-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29037-shinobi-iii-return-of-the-ninja-master-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/30503-shinobi-iii-return-of-the-ninja-master-usa.html"
       },
       "art": {
         "eyebrow": "Genesis Ninja",
         "accentStart": "#cc0000",
         "accentEnd": "#1a0000"
       },
-      "image": "/assets/games/shinobi3-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "rocket-knight-genesis-elite",
@@ -5263,14 +5295,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/28400-rocket-knight-adventures-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29035-rocket-knight-adventures-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28400-rocket-knight-adventures-usa.html"
       },
       "art": {
         "eyebrow": "Genesis Platformer",
         "accentStart": "#00cc99",
         "accentEnd": "#003322"
       },
-      "image": "/assets/games/rocket-knight-genesis-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "metroid-fusion-gba-elite",
@@ -5303,7 +5335,7 @@
         "accentStart": "#ff6600",
         "accentEnd": "#330000"
       },
-      "image": "/assets/games/metroid-fusion-gba-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "advance-wars-gba-elite",
@@ -5328,14 +5360,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/27968-advance-wars-u-mode7.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40009-advance-wars-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/27968-advance-wars-u-mode7.html"
       },
       "art": {
         "eyebrow": "GBA Strategy",
         "accentStart": "#339933",
         "accentEnd": "#003300"
       },
-      "image": "/assets/games/advance-wars-gba-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "golden-sun-gba-elite",
@@ -5360,14 +5392,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19277-golden-sun-c.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40147-golden-sun-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19277-golden-sun-c.html"
       },
       "art": {
         "eyebrow": "GBA RPG",
         "accentStart": "#ffcc00",
         "accentEnd": "#663300"
       },
-      "image": "/assets/games/golden-sun-gba-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "mario-kart-sc-gba-elite",
@@ -5423,14 +5455,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/26190-fire-emblem-u-venom.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40135-fire-emblem-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26190-fire-emblem-u-venom.html"
       },
       "art": {
         "eyebrow": "GBA Tactical",
         "accentStart": "#cc0000",
         "accentEnd": "#330000"
       },
-      "image": "/assets/games/fire-emblem-gba-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "excitebike-64-elite",
@@ -5461,7 +5493,7 @@
         "accentStart": "#ff6600",
         "accentEnd": "#cc3300"
       },
-      "image": "/assets/games/excitebike-64-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "metal-slug-2-arcade-elite",
@@ -5486,14 +5518,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/33883-metal-slug-2-turbo-ngm-9410.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/14871-metal-slug-2.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/33883-metal-slug-2-turbo-ngm-9410.html"
       },
       "art": {
         "eyebrow": "Neo Geo Legend",
         "accentStart": "#33cc33",
         "accentEnd": "#003300"
       },
-      "image": "/assets/games/metal-slug-2-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "samsho2-arcade-elite",
@@ -5517,14 +5549,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19432-samurai-shodown-ii.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j.html"
       },
       "art": {
         "eyebrow": "Neo Geo Fighter",
         "accentStart": "#cc6600",
         "accentEnd": "#330000"
       },
-      "image": "/assets/games/samsho2-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "puzzle-bobble-arcade-elite",
@@ -5548,14 +5580,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/24456-puzzle-bobble-japan.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19423-puzzle-bobble.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24456-puzzle-bobble-japan.html"
       },
       "art": {
         "eyebrow": "Arcade Puzzle",
         "accentStart": "#00ccff",
         "accentEnd": "#0066cc"
       },
-      "image": "/assets/games/puzzle-bobble-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "rtype-arcade-elite",
@@ -5579,14 +5611,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9597-r-type-us.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/14894-r-type.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9597-r-type-us.html"
       },
       "art": {
         "eyebrow": "Arcade Shooter",
         "accentStart": "#0066ff",
         "accentEnd": "#000066"
       },
-      "image": "/assets/games/rtype-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "gradius-arcade-elite",
@@ -5610,14 +5642,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/22045-gradius-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/14861-gradius.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22045-gradius-usa.html"
       },
       "art": {
         "eyebrow": "Arcade Classic",
         "accentStart": "#0099ff",
         "accentEnd": "#003366"
       },
-      "image": "/assets/games/gradius-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "fatal-fury-special-arcade-elite",
@@ -5641,14 +5673,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23561-fatal-fury-special-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19405-fatal-fury-special.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23561-fatal-fury-special-usa.html"
       },
       "art": {
         "eyebrow": "Neo Geo Fighter",
         "accentStart": "#ff3300",
         "accentEnd": "#660000"
       },
-      "image": "/assets/games/fatal-fury-special-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "blazing-star-arcade-elite",
@@ -5672,14 +5704,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/7955-blazing-star.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19397-blazing-star.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/7955-blazing-star.html"
       },
       "art": {
         "eyebrow": "Neo Geo Shmup",
         "accentStart": "#ffcc00",
         "accentEnd": "#ff6600"
       },
-      "image": "/assets/games/blazing-star-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "windjammers-arcade-elite",
@@ -5705,14 +5737,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/10668-windjammers-flying-power-disc.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19453-windjammers.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10668-windjammers-flying-power-disc.html"
       },
       "art": {
         "eyebrow": "Neo Geo Sports",
         "accentStart": "#00cc66",
         "accentEnd": "#006633"
       },
-      "image": "/assets/games/windjammers-arcade-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "crash-2-ps1-elite",
@@ -5738,14 +5770,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/26435-crash-bandicoot-2-n-tranced-u-noitami.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/40208-crash-bandicoot-2-cortex-strikes-back.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26435-crash-bandicoot-2-n-tranced-u-noitami.html"
       },
       "art": {
         "eyebrow": "PS1 Classic",
         "accentStart": "#ff6600",
         "accentEnd": "#cc3300"
       },
-      "image": "/assets/games/crash-2-ps1-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "kirby-dl-gb-elite",
@@ -5769,14 +5801,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/23267-kirby-s-dream-land-3-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/20015-kirbys-dream-land-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23267-kirby-s-dream-land-3-usa.html"
       },
       "art": {
         "eyebrow": "GB Classic",
         "accentStart": "#ff99cc",
         "accentEnd": "#cc6699"
       },
-      "image": "/assets/games/kirby-dl-gb-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "bonks-adventure-tg16-elite",
@@ -5800,14 +5832,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/17643-bonk-s-adventure-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10033-bonks-adventure.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17643-bonk-s-adventure-usa.html"
       },
       "art": {
         "eyebrow": "TurboGrafx Classic",
         "accentStart": "#ff6600",
         "accentEnd": "#cc3300"
       },
-      "image": "/assets/games/bonks-adventure-tg16-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "splatterhouse-tg16-elite",
@@ -5831,14 +5863,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/30091-splatterhouse-2-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/10060-splatterhouse.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/30091-splatterhouse-2-usa.html"
       },
       "art": {
         "eyebrow": "TurboGrafx Horror",
         "accentStart": "#990000",
         "accentEnd": "#330000"
       },
-      "image": "/assets/games/splatterhouse-tg16-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ninja-gaiden-nes-elite",
@@ -5863,14 +5895,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/9335-ninja-gaiden-us.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17950-ninja-gaiden-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9335-ninja-gaiden-us.html"
       },
       "art": {
         "eyebrow": "NES Action",
         "accentStart": "#cc0000",
         "accentEnd": "#330000"
       },
-      "image": "/assets/games/ninja-gaiden-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "battletoads-nes-elite",
@@ -5895,14 +5927,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/43385-battletoads.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17868-battletoads-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43385-battletoads.html"
       },
       "art": {
         "eyebrow": "NES Hardcore",
         "accentStart": "#33cc33",
         "accentEnd": "#003300"
       },
-      "image": "/assets/games/battletoads-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "punch-out-nes-classic",
@@ -5928,14 +5960,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20466-punch-out-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17960-punch-out-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/20466-punch-out-usa.html"
       },
       "art": {
         "eyebrow": "NES Boxing",
         "accentStart": "#cc0000",
         "accentEnd": "#660000"
       },
-      "image": "/assets/games/punch-out-nes-classic.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "river-city-ransom-nes-elite",
@@ -5960,14 +5992,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21949-river-city-ransom-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17967-river-city-ransom-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21949-river-city-ransom-usa.html"
       },
       "art": {
         "eyebrow": "NES Co-op",
         "accentStart": "#ff6600",
         "accentEnd": "#cc3300"
       },
-      "image": "/assets/games/river-city-ransom-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "kid-icarus-nes-elite",
@@ -5992,14 +6024,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21256-kid-icarus-angel-land-story-usa-europe.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17929-kid-icarus-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21256-kid-icarus-angel-land-story-usa-europe.html"
       },
       "art": {
         "eyebrow": "NES Classic",
         "accentStart": "#ffcc00",
         "accentEnd": "#cc9900"
       },
-      "image": "/assets/games/kid-icarus-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "blaster-master-nes-elite",
@@ -6024,14 +6056,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/20561-blaster-master-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17870-blaster-master-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/20561-blaster-master-usa.html"
       },
       "art": {
         "eyebrow": "NES Adventure",
         "accentStart": "#0066cc",
         "accentEnd": "#003366"
       },
-      "image": "/assets/games/blaster-master-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "ice-hockey-nes-elite",
@@ -6056,14 +6088,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/21659-ice-hockey-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/17924-ice-hockey-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/21659-ice-hockey-usa.html"
       },
       "art": {
         "eyebrow": "NES Sports",
         "accentStart": "#0099cc",
         "accentEnd": "#003344"
       },
-      "image": "/assets/games/ice-hockey-nes-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "smash-karts-web-elite",
@@ -6100,7 +6132,7 @@
         "accentEnd": "#cc0033"
       },
       "multiplayerType": "Server",
-      "image": "/assets/games/smash-karts-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "drift-hunters-web-elite",
@@ -6135,7 +6167,7 @@
         "accentStart": "#ff6600",
         "accentEnd": "#cc3300"
       },
-      "image": "/assets/games/drift-hunters-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "paper-io-2-web-elite",
@@ -6172,7 +6204,7 @@
         "accentEnd": "#0066cc"
       },
       "multiplayerType": "Server",
-      "image": "/assets/games/paper-io-2-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "fruit-ninja-web-elite",
@@ -6206,7 +6238,7 @@
         "accentStart": "#ff3333",
         "accentEnd": "#cc0000"
       },
-      "image": "/assets/games/fruit-ninja-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "cut-the-rope-web-elite",
@@ -6240,7 +6272,7 @@
         "accentStart": "#00cc99",
         "accentEnd": "#006644"
       },
-      "image": "/assets/games/cut-the-rope-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "slope-web-elite",
@@ -6275,7 +6307,7 @@
         "accentStart": "#00ff66",
         "accentEnd": "#00cc33"
       },
-      "image": "/assets/games/slope-web-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "vf2-saturn-elite",
@@ -6301,14 +6333,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/30491-virtua-fighter-2-usa-europe.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/30104-virtua-fighter-2.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/30491-virtua-fighter-2-usa-europe.html"
       },
       "art": {
         "eyebrow": "Saturn Fighter",
         "accentStart": "#0066ff",
         "accentEnd": "#000066"
       },
-      "image": "/assets/games/vf2-saturn-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "daytona-saturn-elite",
@@ -6334,14 +6366,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/43757-daytona-usa-revision-a.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/30007-daytona-usa.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43757-daytona-usa-revision-a.html"
       },
       "art": {
         "eyebrow": "Saturn Racing",
         "accentStart": "#ff0000",
         "accentEnd": "#cc0000"
       },
-      "image": "/assets/games/daytona-saturn-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "sega-rally-saturn-elite",
@@ -6366,14 +6398,14 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/19458-sega-rally-championship-u-venom.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/30027-sega-rally-championship.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19458-sega-rally-championship-u-venom.html"
       },
       "art": {
         "eyebrow": "Saturn Racing",
         "accentStart": "#00cc66",
         "accentEnd": "#006633"
       },
-      "image": "/assets/games/sega-rally-saturn-elite.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Arcade",
@@ -6405,7 +6437,7 @@
         "trending"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/slither-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Arcade",
@@ -6436,7 +6468,7 @@
         "classic"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/agar-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Arcade",
@@ -6467,7 +6499,7 @@
         "trending"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/diep-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Party",
@@ -6499,7 +6531,7 @@
         "staff-pick"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/skribbl-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Party",
@@ -6531,7 +6563,7 @@
         "new-drop"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/gartic-phone-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Survival",
@@ -6562,7 +6594,7 @@
         "new-drop"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/taming-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "genre": "Shooting",
@@ -6595,7 +6627,7 @@
         "tournament-live"
       ],
       "multiplayerType": "Server",
-      "image": "/assets/games/zombsroyale-io-multiplayer.svg"
+      "image": "assets/hub/home-backdrop-command.png"
     },
     {
       "id": "valorant",
