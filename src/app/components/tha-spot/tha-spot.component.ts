@@ -43,7 +43,7 @@ import {
   SpectatorReaction,
   LobbyChatMessage,
 } from '../../hub/matchmaking.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   DailyMissionsService,
   DailyMission,
@@ -1350,6 +1350,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private uiService = inject(UIService);
   private sanitizer = inject(DomSanitizer);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private gamepadService = inject(GamepadService);
   private securityService = inject(SecurityService);
   public socialService = inject(SocialNetworkingService);
@@ -1958,14 +1959,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.routeParamSubscription = this.route.paramMap?.subscribe((params) => {
       const routePath = this.route.routeConfig?.path || '';
       const pathId = params.get('id');
-      if (routePath === 'browse' || routePath.endsWith('/browse')) {
+      if (
+        routePath === 'browse' ||
+        routePath.endsWith('/browse') ||
+        routePath === 'tha-spot'
+      ) {
         this.isBrowseView.set(true);
+        this.pendingRoomId = null;
       } else if (
         (routePath === 'room/:id' || routePath.endsWith('/room/:id')) &&
         pathId
       ) {
         this.isBrowseView.set(false);
         this.pendingRoomId = pathId;
+        // Apply the room immediately so in-app navigation between room pages
+        // switches the active filter; previously the room only applied once
+        // at initial load, leaving SPA room navigation stuck on the old room.
+        this.setActiveRoom(pathId);
       } else if (
         (routePath === 'game/:id' || routePath.endsWith('/game/:id')) &&
         pathId
@@ -1982,6 +1992,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       const partyId = params.get('partyId');
       const mission = params.get('mission');
       if (mission) this.snackbarService.info(`MISSION ASSIGNMENT: ${mission}`);
+
+      // Filter-state deep links: ?room=…&genre=…&platform=…&q=… keep the
+      // browse filters reactive to the URL so back/forward, refresh, and
+      // shared links restore the exact filtered view. Room/:id paths own the
+      // room via their path param, so they are left untouched here.
+      const routePathForFilters = this.route.routeConfig?.path || '';
+      const isRoomPath =
+        routePathForFilters === 'room/:id' ||
+        routePathForFilters.endsWith('/room/:id');
+      if (!isRoomPath) {
+        const targetRoom = params.get('room') || 'all';
+        if (targetRoom !== this.activeRoom()) this.setActiveRoom(targetRoom);
+      }
+      this.activeGenre.set(params.get('genre') || 'all');
+      this.activePlatform.set(params.get('platform') || 'all');
+      this.searchQuery.set(params.get('q') || '');
 
       if (partyId) {
         this.socialService.joinParty(partyId);
@@ -2057,8 +2083,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
 
-    this.setActiveRoom(this.pendingRoomId || 'co-op-link');
-
+    // Default to the full catalog (room 'all'). The old 'co-op-link'
+    // fallback silently filtered the grid to 16 co-op games on every visit.
+    const initialRoom =
+      this.pendingRoomId ||
+      this.route.snapshot.queryParamMap.get('room') ||
+      'all';
+    this.setActiveRoom(initialRoom);
   }
 
   ngAfterViewInit() {
@@ -2111,12 +2142,49 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.socialService.joinRoom(id);
   }
 
+  /** User-facing room pick: applies the room and mirrors it into the URL. */
+  selectRoom(id: string) {
+    if (id === this.activeRoom()) return;
+    this.setActiveRoom(id);
+    this.syncFiltersToUrl();
+  }
+
+  onGenreChange(genre: string) {
+    this.activeGenre.set(genre);
+    this.syncFiltersToUrl();
+  }
+
+  onPlatformChange(platform: string) {
+    this.activePlatform.set(platform);
+    this.syncFiltersToUrl();
+  }
+
+  /**
+   * Mirror the active browse filters into query params (?room=&genre=&platform=&q=)
+   * so a filtered view is navigable, shareable, and survives refresh/back-forward.
+   */
+  private syncFiltersToUrl(replace = false) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        room: this.activeRoom() !== 'all' ? this.activeRoom() : null,
+        genre: this.activeGenre() !== 'all' ? this.activeGenre() : null,
+        platform:
+          this.activePlatform() !== 'all' ? this.activePlatform() : null,
+        q: this.searchQuery().trim() ? this.searchQuery().trim() : null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: replace,
+    });
+  }
+
   clearFilters() {
     this.activeGenre.set('all');
     this.activePlatform.set('all');
     this.searchQuery.set('');
     this.showFavoritesOnly.set(false);
     this.quickFilters.set([]);
+    this.syncFiltersToUrl(true);
   }
 
   onChatInput(val: string) {
@@ -2131,6 +2199,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onSearchChange(val: string) {
     this.searchQuery.set(val);
+    // replaceUrl keeps per-keystroke search out of browser history.
+    this.syncFiltersToUrl(true);
   }
 
   onGameClick(game: Game) {

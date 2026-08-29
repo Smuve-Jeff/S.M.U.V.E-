@@ -1,4 +1,4 @@
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ThaSpotComponent } from './tha-spot.component';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -14,13 +14,21 @@ import { MatchmakingService } from '../../hub/matchmaking.service';
 import { DailyMissionsService } from '../../services/daily-missions.service';
 import { GameRatingsService } from '../../services/game-ratings.service';
 import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
-import { Router, ActivatedRoute, convertToParamMap } from '@angular/router';
+import {
+  Router,
+  ActivatedRoute,
+  convertToParamMap,
+  ParamMap,
+} from '@angular/router';
 import { signal } from '@angular/core';
 
 describe('ThaSpotComponent', () => {
   let component: ThaSpotComponent;
   let fixture: ComponentFixture<ThaSpotComponent>;
   let removeListenerSpy: jest.SpyInstance;
+  let routerMock: { navigate: jest.Mock };
+  let routeQueryParamMap: BehaviorSubject<ParamMap>;
+  let socialServiceMock: any;
 
   const mockFeed = {
     games: [
@@ -75,7 +83,9 @@ describe('ThaSpotComponent', () => {
       buildIframeSandbox: jest.fn().mockReturnValue('allow-scripts'),
       buildIframeAllowAttr: jest.fn().mockReturnValue('fullscreen'),
     };
-    const socialServiceMock = {
+    routerMock = { navigate: jest.fn() };
+    routeQueryParamMap = new BehaviorSubject(convertToParamMap({}));
+    socialServiceMock = {
       isIncognito: signal(false),
       onlineUsers: signal([]),
       messages: signal([]),
@@ -150,7 +160,7 @@ describe('ThaSpotComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ThaSpotComponent],
       providers: [
-        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: Router, useValue: routerMock },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -160,7 +170,7 @@ describe('ThaSpotComponent', () => {
               queryParams: {},
             },
             paramMap: of(convertToParamMap({})),
-            queryParamMap: of(convertToParamMap({})),
+            queryParamMap: routeQueryParamMap,
           },
         },
         { provide: UserProfileService, useValue: profileServiceMock },
@@ -215,6 +225,47 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('pluto');
     component.setMode('gaming');
     expect(component.displayMode()).toBe('gaming');
+  });
+
+  it('defaults to the full catalog (room all) on load', () => {
+    expect(component.activeRoom()).toBe('all');
+    expect(socialServiceMock.joinRoom).toHaveBeenCalledWith('all');
+  });
+
+  it('mirrors a room selection into the URL as a navigable filter', () => {
+    component.selectRoom('arcade');
+    expect(component.activeRoom()).toBe('arcade');
+    expect(routerMock.navigate).toHaveBeenCalledWith(
+      [],
+      expect.objectContaining({
+        queryParams: expect.objectContaining({ room: 'arcade' }),
+        queryParamsHandling: 'merge',
+      })
+    );
+  });
+
+  it('restores the room filter from the URL reactively', () => {
+    routeQueryParamMap.next(convertToParamMap({ room: 'arcade' }));
+    fixture.detectChanges();
+    expect(component.activeRoom()).toBe('arcade');
+  });
+
+  it('restores genre/platform/search filters from the URL', () => {
+    routeQueryParamMap.next(
+      convertToParamMap({ genre: 'RPG', platform: 'SNES', q: 'mario' })
+    );
+    fixture.detectChanges();
+    expect(component.activeGenre()).toBe('RPG');
+    expect(component.activePlatform()).toBe('SNES');
+    expect(component.searchQuery()).toBe('mario');
+  });
+
+  it('resets filters back to the full catalog when the URL drops them', () => {
+    component.selectRoom('arcade');
+    expect(component.activeRoom()).toBe('arcade');
+    routeQueryParamMap.next(convertToParamMap({}));
+    fixture.detectChanges();
+    expect(component.activeRoom()).toBe('all');
   });
 
   it('keeps the rival chat drawer collapsed until explicitly toggled', () => {

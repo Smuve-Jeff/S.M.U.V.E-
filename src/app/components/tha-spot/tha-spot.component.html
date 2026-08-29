@@ -466,7 +466,7 @@
             <div class="hero-actions">
               <button
                 class="hero-btn-primary"
-                (click)="setActiveRoom('arcade')"
+                (click)="selectRoom('arcade')"
               >
                 <span class="material-symbols-outlined" style="font-size: 1rem"
                   >videogame_asset</span
@@ -475,7 +475,7 @@
               </button>
               <button
                 class="hero-btn-secondary"
-                (click)="setActiveRoom('neo-zone')"
+                (click)="selectRoom('neo-zone')"
               >
                 <span class="material-symbols-outlined" style="font-size: 1rem"
                   >flash_on</span
@@ -514,7 +514,7 @@
             <label>ROOM</label>
             <select
               [ngModel]="activeRoom()"
-              (ngModelChange)="setActiveRoom($event)"
+              (ngModelChange)="selectRoom($event)"
             >
               <option *ngFor="let room of gamingRooms()" [value]="room.id">
                 {{ room.name }}
@@ -526,7 +526,7 @@
             <select
               data-testid="genre-select"
               [ngModel]="activeGenre()"
-              (ngModelChange)="activeGenre.set($event)"
+              (ngModelChange)="onGenreChange($event)"
             >
               <option value="all">ALL_GENRES</option>
               <option *ngFor="let g of availableGenres()" [value]="g">
@@ -538,7 +538,7 @@
             <label>PLATFORM</label>
             <select
               [ngModel]="activePlatform()"
-              (ngModelChange)="activePlatform.set($event)"
+              (ngModelChange)="onPlatformChange($event)"
             >
               <option value="all">ALL_PLATFORMS</option>
               <option *ngFor="let p of allPlatforms()" [value]="p">
