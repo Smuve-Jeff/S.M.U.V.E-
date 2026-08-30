@@ -337,9 +337,28 @@
               *ngIf="currentQuestion()!.type === 'select'"
               class="eq-options-grid"
             >
+              <!-- Genre catalog search (question q6, 40+ genres) -->
+              <div
+                class="eq-genre-search"
+                *ngIf="isGenreQuestion()"
+              >
+                <span class="eq-genre-search-icon">🔍</span>
+                <input
+                  type="text"
+                  [ngModel]="genreSearch()"
+                  (ngModelChange)="genreSearch.set($event)"
+                  placeholder="Search {{ genreOptions.length }} genres…"
+                  class="eq-genre-search-input"
+                  aria-label="Search genres"
+                />
+              </div>
               <button
-                *ngFor="let opt of currentQuestion()!.options"
-                (click)="updateValue(currentQuestion()!.field, opt.value)"
+                *ngFor="let opt of getOptionsForCurrentQuestion()"
+                (click)="
+                  isGenreQuestion()
+                    ? selectGenreOption(opt.value)
+                    : updateValue(currentQuestion()!.field, opt.value)
+                "
                 class="eq-option-card"
                 [class.eq-option-selected]="
                   getValue(currentQuestion()!.field) === opt.value
@@ -357,6 +376,14 @@
                   >✓</span
                 >
               </button>
+              <div
+                class="eq-genre-empty"
+                *ngIf="
+                  isGenreQuestion() && getOptionsForCurrentQuestion().length === 0
+                "
+              >
+                No genres match “{{ genreSearch() }}” — try another term.
+              </div>
             </div>
 
             <!-- MULTI-SELECT / CHIP-GROUP type -->

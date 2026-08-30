@@ -23,6 +23,7 @@ import { FormFieldComponent } from './form-field.component';
 import { CatalogManagerComponent } from '../catalog-manager/catalog-manager.component';
 import { AiService } from '../../services/ai.service';
 import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-questionnaire.component';
+import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine';
 import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
@@ -101,21 +102,8 @@ export class ProfileEditorComponent implements OnInit {
   saveStatus = signal<'idle' | 'saving' | 'saved'>('idle');
   activeSection = signal<string>('basic');
 
-  readonly allGenres = [
-    'Hip Hop',
-    'R&B',
-    'Pop',
-    'Rock',
-    'Electronic',
-    'Jazz',
-    'Classical',
-    'Country',
-    'Latin',
-    'Afrobeats',
-    'Metal',
-    'Folk',
-    'Reggae',
-  ];
+  /** Shared with the Artist DNA Uplink questionnaire — one catalog, no drift. */
+  readonly allGenres = ALL_GENRES;
   readonly experienceLevels = [
     'Beginner',
     'Intermediate',

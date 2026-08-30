@@ -213,6 +213,26 @@ export interface MusicalJourney {
   ultimateVision?: string;
   autoGenerateEpk?: boolean;
   roles?: string[];
+  /** What makes the artist's sound unmistakably theirs — the uniqueness core. */
+  signatureSound?: string;
+  /** First song the artist ever made or performed — journey anchor. */
+  firstSong?: string;
+  /** The moment that changed the trajectory of the artist's career. */
+  breakthroughMoment?: string;
+  /** Vocal register / range descriptor (e.g. 'Tenor (C3–C5)'). */
+  vocalRange?: string;
+  /** Active revenue streams (streaming, sync, merch, sessions, shows...). */
+  incomeStreams?: string[];
+  /** Self-identified experience band ('Beginner' | 'Intermediate' | ...). */
+  experienceLevel?: string;
+  /** Preferred tempo zone (e.g. '90-120'). */
+  preferredBpmRange?: string;
+  /** The current mission — what the artist is building right now. */
+  currentFocus?: string;
+  /** The single biggest obstacle the artist is fighting. */
+  biggestChallenge?: string;
+  /** Who the artist wants to work with and why. */
+  collaborationGoals?: string;
   personaSynthesis?: {
     archetype: string;
     signatureTone: string;

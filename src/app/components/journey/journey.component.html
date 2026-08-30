@@ -76,7 +76,7 @@
             >Experience Level</label
           >
           <select
-            [(ngModel)]="profile().experienceLevel"
+            [(ngModel)]="profile().musicalJourney.experienceLevel"
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           >
             <option value="" disabled>SELECT YOUR LEVEL...</option>
@@ -110,7 +110,7 @@
             >The Unique Frequency</label
           >
           <textarea
-            [(ngModel)]="profile().uniqueSound"
+            [(ngModel)]="profile().musicalJourney.signatureSound"
             placeholder="WHAT VIBRATES DIFFERENTLY?..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-32 resize-none"
           ></textarea>
@@ -122,8 +122,9 @@
           >
           <input
             type="text"
-            [(ngModel)]="profile().influences"
-            placeholder="ARTISTS THAT SHAPED YOUR SOUND..."
+            [ngModel]="influencesText()"
+            (ngModelChange)="influencesText.set($event)"
+            placeholder="ARTISTS THAT SHAPED YOUR SOUND (SEPARATE WITH COMMAS)..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           />
         </div>
@@ -137,7 +138,7 @@
             >Preferred BPM Range</label
           >
           <select
-            [(ngModel)]="profile().preferredBpmRange"
+            [(ngModel)]="profile().musicalJourney.preferredBpmRange"
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           >
             <option value="" disabled>SELECT YOUR TEMPO ZONE...</option>
@@ -195,8 +196,9 @@
           >
           <input
             type="text"
-            [(ngModel)]="profile().primaryDaw"
-            placeholder="E.G., ABLETON, FL STUDIO, LOGIC..."
+            [ngModel]="dawText()"
+            (ngModelChange)="dawText.set($event)"
+            placeholder="E.G., ABLETON, FL STUDIO, LOGIC (SEPARATE WITH COMMAS)..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           />
         </div>
@@ -211,7 +213,7 @@
           >
           <input
             type="text"
-            [(ngModel)]="profile().currentFocus"
+            [(ngModel)]="profile().musicalJourney.currentFocus"
             placeholder="THE CURRENT MISSION..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           />
@@ -223,7 +225,7 @@
           >
           <input
             type="text"
-            [(ngModel)]="profile().biggestChallenge"
+            [(ngModel)]="profile().musicalJourney.biggestChallenge"
             placeholder="WHAT STANDS IN THE WAY?..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
           />
@@ -234,7 +236,7 @@
             >Collaboration Interest</label
           >
           <textarea
-            [(ngModel)]="profile().collaborationGoals"
+            [(ngModel)]="profile().musicalJourney.collaborationGoals"
             placeholder="WHO DO YOU WANT TO WORK WITH?..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-24 resize-none"
           ></textarea>
@@ -276,7 +278,7 @@
               >
               <span
                 class="text-sm font-black text-text-main uppercase italic"
-                >{{ profile().preferredBpmRange || 'Not Set' }}</span
+                >{{ profile().musicalJourney.preferredBpmRange || 'Not Set' }}</span
               >
             </div>
             <div>
@@ -285,7 +287,7 @@
               >
               <span
                 class="text-sm font-black text-text-main uppercase italic"
-                >{{ profile().experienceLevel || 'Not Set' }}</span
+                >{{ profile().musicalJourney.experienceLevel || 'Not Set' }}</span
               >
             </div>
           </div>
@@ -302,6 +304,17 @@
                 {{ skill }}
               </span>
             </div>
+          </div>
+          <div *ngIf="profile().musicalJourney.signatureSound" class="pt-2">
+            <span
+              class="text-[8px] font-bold text-text-dim uppercase block mb-1"
+              >Unique Frequency</span
+            >
+            <p
+              class="text-[10px] text-brand-primary italic leading-relaxed"
+            >
+              "{{ profile().musicalJourney.signatureSound }}"
+            </p>
           </div>
           <p class="text-[10px] text-text-dim italic leading-relaxed pt-2">
             "{{ profile().bio }}"

@@ -96,6 +96,60 @@ export interface GenreDeepDive {
   syncPotential: string;
 }
 
+/* ── The complete genre catalog ───────────────────────────────── */
+
+/**
+ * Every genre the questionnaire can tune toward. Single source of truth —
+ * profile-editor and the questionnaire both consume this so the catalog can
+ * never drift between surfaces.
+ */
+export const GENRE_OPTIONS: QuestionOption[] = [
+  { label: 'Hip Hop', value: 'Hip Hop', icon: '🎤' },
+  { label: 'R&B / Soul', value: 'R&B', icon: '🎵' },
+  { label: 'Pop', value: 'Pop', icon: '🌟' },
+  { label: 'Rock / Alternative', value: 'Rock', icon: '🎸' },
+  { label: 'Electronic / Dance', value: 'Electronic', icon: '⚡' },
+  { label: 'Jazz / Blues', value: 'Jazz', icon: '🎷' },
+  { label: 'Classical / Orchestral', value: 'Classical', icon: '🎻' },
+  { label: 'Country / Americana', value: 'Country', icon: '🤠' },
+  { label: 'Latin / Reggaeton', value: 'Latin', icon: '🕺' },
+  { label: 'Afrobeats / World', value: 'Afrobeats', icon: '🌍' },
+  { label: 'Metal / Hardcore', value: 'Metal', icon: '🤘' },
+  { label: 'Folk / Acoustic', value: 'Folk', icon: '🪕' },
+  { label: 'Reggae / Dancehall', value: 'Reggae', icon: '🌴' },
+  { label: 'Gospel / Worship', value: 'Gospel', icon: '✝️' },
+  { label: 'Blues', value: 'Blues', icon: '🎸' },
+  { label: 'Soul', value: 'Soul', icon: '🎙️' },
+  { label: 'Funk', value: 'Funk', icon: '🕺' },
+  { label: 'Disco', value: 'Disco', icon: '🪩' },
+  { label: 'House', value: 'House', icon: '🏠' },
+  { label: 'Techno', value: 'Techno', icon: '🤖' },
+  { label: 'Drum & Bass', value: 'Drum & Bass', icon: '🥁' },
+  { label: 'Dubstep', value: 'Dubstep', icon: '💥' },
+  { label: 'Ambient', value: 'Ambient', icon: '🌌' },
+  { label: 'Lo-Fi / Chill', value: 'Lo-Fi', icon: '🛋️' },
+  { label: 'K-Pop', value: 'K-Pop', icon: '💜' },
+  { label: 'J-Pop', value: 'J-Pop', icon: '🌸' },
+  { label: 'Indie', value: 'Indie', icon: '🎪' },
+  { label: 'Punk', value: 'Punk', icon: '🧷' },
+  { label: 'Grunge', value: 'Grunge', icon: '🌀' },
+  { label: 'Emo / Screamo', value: 'Emo', icon: '🖤' },
+  { label: 'Hyperpop', value: 'Hyperpop', icon: '💿' },
+  { label: 'Phonk', value: 'Phonk', icon: '🚗' },
+  { label: 'Amapiano', value: 'Amapiano', icon: '🪗' },
+  { label: 'Dancehall', value: 'Dancehall', icon: '🎉' },
+  { label: 'Samba / Bossa Nova', value: 'Samba / Bossa Nova', icon: '🥁' },
+  { label: 'Cumbia', value: 'Cumbia', icon: '🎺' },
+  { label: 'Opera / Choral', value: 'Opera', icon: '🎭' },
+  { label: 'Film Score', value: 'Film Score', icon: '🎬' },
+  { label: 'Video Game Music', value: 'Video Game Music', icon: '🕹️' },
+  { label: 'Bluegrass', value: 'Bluegrass', icon: '🪕' },
+  { label: 'New Age', value: 'New Age', icon: '🔮' },
+  { label: "Children's / Family", value: "Children's", icon: '🧸' },
+];
+
+export const ALL_GENRES: string[] = GENRE_OPTIONS.map((g) => String(g.value));
+
 /* ── Phase definitions ───────────────────────────────────────── */
 
 export const PHASES: PhaseInfo[] = [
@@ -500,16 +554,395 @@ export function getGenreDeepDive(genre: string): GenreDeepDive {
         'Emotional depth',
         'Live performance',
         'Interpretation',
-      ],
-      competitiveLandscape:
-        'Prestige market. Strong in film/TV/game composition.',
+      ],      competitiveLandscape: 'Prestige market. Strong in film/TV/game composition.',
       syncPotential:
         'Very high for film, documentaries, luxury, and dramatic media.',
     },
   };
 
+  // Compact deep-dive factory keeps the extended genre catalog readable.
+  function dive(
+    genre: string,
+    subgenres: string[],
+    recommendedBpmRange: [number, number],
+    typicalKeySet: string[],
+    productionEssentials: string[],
+    sonicSignatures: string[],
+    audienceExpectations: string[],
+    competitiveLandscape: string,
+    syncPotential: string
+  ): GenreDeepDive {
+    return {
+      genre,
+      subgenres,
+      recommendedBpmRange,
+      typicalKeySet,
+      productionEssentials,
+      sonicSignatures,
+      audienceExpectations,
+      competitiveLandscape,
+      syncPotential,
+    };
+  }
+
+  const extended: Record<string, GenreDeepDive> = {
+    Metal: dive(
+      'Metal',
+      ['Thrash', 'Death Metal', 'Black Metal', 'Metalcore', 'Nu Metal', 'Doom'],
+      [90, 220],
+      ['E', 'Em', 'D', 'Bm'],
+      ['Dual guitar layers', 'Drop-tuned riffs', 'Blast beats', 'Amp sims / cabs'],
+      ['Palm-muted chugs', 'Screamed/growled vocals', 'Sweeping solos', 'Double-kick drums'],
+      ['Aggression', 'Technical precision', 'Live intensity', 'Loyal subculture'],
+      'Niche but fiercely loyal. Technical skill and live presence earn the community.',
+      'Growing for action sports, gaming, and workout media.'
+    ),
+    Folk: dive(
+      'Folk',
+      ['Contemporary Folk', 'Indie Folk', 'Folk Rock', 'Traditional', 'Singer-Songwriter'],
+      [60, 120],
+      ['G', 'C', 'D', 'Am', 'Em'],
+      ['Acoustic guitar', 'Vocal intimacy', 'Natural room tone', 'Story lyrics'],
+      ['Fingerpicking', 'Harmonies', 'Field recordings', 'Conversational delivery'],
+      ['Storytelling', 'Authenticity', 'Community', 'Emotional truth'],
+      'Crowded but values genuine voices. Songwriting is the differentiator.',
+      'Strong for lifestyle, outdoor, and documentary placements.'
+    ),
+    Reggae: dive(
+      'Reggae',
+      ['Roots Reggae', 'Dub', 'Dancehall', 'Lovers Rock', 'Reggaeton'],
+      [70, 100],
+      ['A', 'D', 'G', 'E'],
+      ['Offbeat skank guitar', 'Heavy bass line', 'One-drop drums', 'Spring reverb'],
+      ['Off-beat rhythm', 'Deep sub bass', 'Choppy guitar stabs', 'Smooth vocal flow'],
+      ['Positive vibration', 'Social consciousness', 'Groove', 'Heat'],
+      'Global community with strong festival culture. Authenticity is everything.',
+      'High for summer, travel, beverage, and lifestyle campaigns.'
+    ),
+    Gospel: dive(
+      'Gospel',
+      ['Traditional Gospel', 'Contemporary Gospel', 'Urban Gospel', 'Worship', 'Choir'],
+      [60, 120],
+      ['F', 'Bb', 'Eb', 'C'],
+      ['Choir arrangements', 'Organ/piano', 'Claps & stomps', 'Dynamic builds'],
+      ['Call-and-response', 'Big vocal stacks', 'Modulations', 'Sincere delivery'],
+      ['Spirit', 'Powerful vocals', 'Community', 'Hope'],
+      'Deep-rooted audience with strong live demand and crossover reach.',
+      'Rising for inspirational media and brand storytelling.'
+    ),
+    Blues: dive(
+      'Blues',
+      ['Delta Blues', 'Chicago Blues', 'Electric Blues', 'Soul Blues', 'Blues Rock'],
+      [60, 110],
+      ['E', 'A', 'B', 'G'],
+      ['Tube amps', 'Slide guitar', 'Call-and-response', '12-bar form'],
+      ['Bent notes', 'Raw vocal grit', 'Conversational phrasing', 'Feel over precision'],
+      ['Authentic emotion', 'Storytelling', 'Live feel', 'Instrumental mastery'],
+      'Respected heritage genre. Modern fusions keep it alive.',
+      'Great for whiskey, automotive, and heritage brand campaigns.'
+    ),
+    Soul: dive(
+      'Soul',
+      ['Classic Soul', 'Neo Soul', 'Motown', 'Philly Soul', 'Psychedelic Soul'],
+      [70, 110],
+      ['F', 'Bb', 'Eb', 'Cm'],
+      ['Horn sections', 'String arrangements', 'Analog tape', 'Backing vocals'],
+      ['Gospel-rooted leads', 'Warm harmonies', 'Groove bass', 'Emotional build'],
+      ['Deep feeling', 'Vocal mastery', 'Timeless quality', 'Groove'],
+      'Competitive, but authentic vocal soul is always in demand.',
+      'Strong for film, prestige TV, and premium brand campaigns.'
+    ),
+    Funk: dive(
+      'Funk',
+      ['P-Funk', 'Funk Rock', 'G-Funk', 'Synth Funk', 'Nu-Funk'],
+      [90, 120],
+      ['E', 'A', 'D', 'G'],
+      ['Slap bass', 'Clavinet', 'Tight horn stabs', 'Drum pocket'],
+      ['Syncopated bass', 'Rhythm guitar chops', 'Talk-box', 'One-chord vamps'],
+      ['Danceability', 'Rhythm mastery', 'Personality', 'Live energy'],
+      'Underground respect with massive influence on modern pop and hip hop.',
+      'Strong for commercials, comedy, and high-energy media.'
+    ),
+    Disco: dive(
+      'Disco',
+      ['Classic Disco', 'Nu-Disco', 'Italo Disco', 'Boogie', 'Space Disco'],
+      [110, 128],
+      ['Am', 'F', 'C', 'G'],
+      ['Four-on-the-floor', 'String sections', 'Bass octaves', 'Percussion shakers'],
+      ['Glossy strings', 'Pulsing bass', 'Diva vocals', 'Dramatic breakdowns'],
+      ['Dance euphoria', 'Glamour', 'Nostalgia', 'Escapism'],
+      'Revival energy in fashion and nightlife. Curated playlists love it.',
+      'Excellent for fashion, nightlife, and retro-brand campaigns.'
+    ),
+    House: dive(
+      'House',
+      ['Deep House', 'Tech House', 'Progressive House', 'Afro House', 'Garage'],
+      [118, 128],
+      ['Am', 'Fm', 'Cm', 'Gm'],
+      ['Four-on-the-floor kick', 'Sidechain pumping', 'Soulful samples', 'Filter sweeps'],
+      ['Rolling bassline', 'Conga layers', 'Pad stabs', 'Groove loops'],
+      ['Peak-time energy', 'DJ utility', 'Groove', 'Soulful moments'],
+      'Massive global scene. DJ support and club plays drive discovery.',
+      'Very high for fitness, nightlife, and fashion campaigns.'
+    ),
+    Techno: dive(
+      'Techno',
+      ['Minimal Techno', 'Industrial', 'Acid Techno', 'Melodic Techno', 'Hard Techno'],
+      [125, 145],
+      ['D', 'A', 'E', 'G'],
+      ['909 drums', 'Analog synthesis', 'Long buildups', 'Modular textures'],
+      ['Hypnotic repetition', 'Industrial percussion', 'Acid lines', 'Sparse atmosphere'],
+      ['Forward motion', 'Immersive club experience', 'Darkness', 'Precision'],
+      'Underground authority. Strong regional scenes and festival circuit.',
+      'High for automotive, technology, and nightlife media.'
+    ),
+    'Drum & Bass': dive(
+      'Drum & Bass',
+      ['Liquid', 'Neurofunk', 'Jump Up', 'Jungle', 'Roller'],
+      [170, 180],
+      ['Am', 'Fm', 'Dm', 'Cm'],
+      ['Fast breakbeats', 'Sub bass', 'Reese bass', 'Tight drum programming'],
+      ['Amen breaks', 'Deep sub drops', 'Atmospheric pads', 'High-energy rolls'],
+      ['Energy', 'Sub bass weight', 'DJ utility', 'Intricate drums'],
+      'Dedicated global underground. Skilled producers earn rapid respect.',
+      'High for gaming, action sports, and urban-energy campaigns.'
+    ),
+    Dubstep: dive(
+      'Dubstep',
+      ['Brostep', 'Deep Dubstep', 'Riddim', 'Melodic Dubstep', 'Chillstep'],
+      [70, 150],
+      ['F#m', 'C#m', 'G#m', 'Bm'],
+      ['Wobble bass', 'LFO modulation', 'Huge drops', 'Sound design'],
+      ['Bass wobbles', 'Half-time drums', 'Tension drops', 'Evolving textures'],
+      ['Bass impact', 'Drops', 'Sound design mastery', 'Headphone detail'],
+      'Saturated but rewards signature bass design. Melodic crossover grows.',
+      'High for gaming, esports, and bass-heavy advertising.'
+    ),
+    Ambient: dive(
+      'Ambient',
+      ['Dark Ambient', 'Drone', 'Ambient Pop', 'Soundscape', 'Space Music'],
+      [40, 90],
+      ['Dm', 'Am', 'Cm', 'F'],
+      ['Granular synthesis', 'Field recordings', 'Long reverbs', 'Slow modulation'],
+      ['Evolving textures', 'Space and silence', 'Meditative pacing', 'Organic layers'],
+      ['Atmosphere', 'Focus utility', 'Emotional space', 'Sonic depth'],
+      'Peaceful niche with huge functional-playlist demand.',
+      'Excellent for wellness, sleep, meditation, and film scoring.'
+    ),
+    'Lo-Fi': dive(
+      'Lo-Fi',
+      ['Lo-Fi Hip Hop', 'Chillhop', 'Bedroom Pop', 'Study Beats', 'Jazztronica'],
+      [70, 100],
+      ['Am', 'Cm', 'Dm', 'Fm'],
+      ['Vinyl crackle', 'Dusty samples', 'Tape saturation', 'Soft piano loops'],
+      ['Warm hiss', 'Choppy samples', 'Mellow keys', 'Relaxed drums'],
+      ['Calm focus', 'Nostalgia', 'Study utility', 'Gentle emotion'],
+      'Massive playlisting ecosystem. Consistency and mood win.',
+      'High for study, chill, lifestyle, and branded relaxation.'
+    ),
+    'K-Pop': dive(
+      'K-Pop',
+      ['K-R&B', 'K-Hip Hop', 'K-Rock', 'Girl Group Pop', 'Boy Group Pop'],
+      [90, 130],
+      ['Am', 'F', 'C', 'G'],
+      ['Polished vocal production', 'Switch-ups', 'Chant hooks', 'Tight choreo edits'],
+      ['Genre mashups', 'Signature hooks', 'Precision tuning', 'Visual-driven sound'],
+      ['Production polish', 'Hooks', 'Fandom energy', 'Visual identity'],
+      'Global powerhouse with extreme production standards.',
+      'High for fashion, beauty, and global youth brands.'
+    ),
+    'J-Pop': dive(
+      'J-Pop',
+      ['City Pop', 'Anisong', 'Shibuya-kei', 'Idol Pop', 'J-Rock'],
+      [90, 140],
+      ['C', 'G', 'Am', 'F'],
+      ['Bright synths', 'Jazz chords', 'Catchy melodies', 'Studio sheen'],
+      ['Whimsical melodies', 'City-pop warmth', 'Energetic delivery', 'Nostalgic tones'],
+      ['Melody first', 'Playfulness', 'Emotion', 'Craft'],
+      'Deep domestic loyalty with growing global anime crossover.',
+      'Good for gaming, anime, and youth-lifestyle brands.'
+    ),
+    Indie: dive(
+      'Indie',
+      ['Indie Rock', 'Indie Pop', 'Bedroom Pop', 'Dream Pop', 'Art Rock'],
+      [80, 140],
+      ['G', 'C', 'Am', 'E'],
+      ['DIY ethos', 'Lo-fi textures', 'Chorus pedals', 'Raw takes'],
+      ['Jangly guitars', 'Honest vocals', 'Quirky arrangements', 'Warm noise'],
+      ['Authenticity', 'Originality', 'Relatability', 'Discovery energy'],
+      'Discovery-heavy ecosystem. Playlists and sync reward originality.',
+      'Very strong for film, TV, and lifestyle placements.'
+    ),
+    Punk: dive(
+      'Punk',
+      ['Pop Punk', 'Hardcore', 'Skate Punk', 'Post-Punk', 'Anarcho Punk'],
+      [140, 220],
+      ['E', 'A', 'D', 'G'],
+      ['Overdriven amps', 'Fast power chords', 'Minimal production', 'Live energy'],
+      ['Angular riffs', 'Shouted hooks', 'Raw drums', 'Tight-fast verses'],
+      ['Energy', 'Attitude', 'Authenticity', 'DIY culture'],
+      'Underground respect with loyal festivals and scenes.',
+      'Good for sports, rebellion-era branding, and youth media.'
+    ),
+    Grunge: dive(
+      'Grunge',
+      ['Classic Grunge', 'Post-Grunge', 'Sludge', 'Alternative 90s'],
+      [80, 120],
+      ['E', 'Eb', 'D', 'C'],
+      ['Fuzz pedals', 'Dropped tunings', 'Dynamic verses/choruses', 'Muted strums'],
+      ['Quiet-loud dynamics', 'Gritty distortion', 'Angst-driven vocals', 'Big choruses'],
+      ['Emotion', 'Authenticity', 'Raw power', 'Nostalgia'],
+      '90s nostalgia is evergreen in sync and rock media.',
+      'Strong for automotive, sports, and coming-of-age media.'
+    ),
+    Emo: dive(
+      'Emo',
+      ['Midwest Emo', 'Emo Pop', 'Screamo', 'Post-Hardcore', 'Emo Rap'],
+      [120, 180],
+      ['E', 'C#m', 'A', 'B'],
+      ['Twinkly guitar lines', 'Emotional vocals', 'Breakdowns', 'Drum fills'],
+      ['Tapped melodies', 'Confessional lyrics', 'Dynamic screams', 'Tight emo riffs'],
+      ['Emotional catharsis', 'Lyric depth', 'Community', 'Live passion'],
+      'Strong digital community and TikTok rediscovery cycles.',
+      'Good for teen/young-adult drama and coming-of-age content.'
+    ),
+    Hyperpop: dive(
+      'Hyperpop',
+      ['Digicore', 'Glitchcore', 'Rage', 'PC Music', 'SoundCloud Pop'],
+      [100, 180],
+      ['Am', 'F', 'G', 'Cm'],
+      ['Pitch-shifted vocals', 'Aggressive sidechain', 'Maximalist glitch', 'Internet samples'],
+      ['Distorted pop hooks', 'Chaotic drops', 'Saturated textures', 'Irony and sincerity'],
+      ['Innovation', 'Extreme energy', 'Online-native culture', 'Pushing boundaries'],
+      'Online-native movement. TikTok and playlists drive rapid discovery.',
+      'Good for gaming, youth culture, and digital-native brands.'
+    ),
+    Phonk: dive(
+      'Phonk',
+      ['Drift Phonk', 'Brazilian Phonk', 'Memphis Phonk', 'Cowbell Phonk', 'Wave'],
+      [120, 140],
+      ['F#m', 'C#m', 'G#m', 'Bm'],
+      ['Cowbell loops', 'Distorted 808s', 'Memphis vocal chops', 'Dark synths'],
+      ['Gritty drums', 'Lo-fi horror samples', 'Aggressive bass', 'Racing energy'],
+      ['Dark energy', 'Drifting culture', 'Car audio impact', 'Memes'],
+      'Explosive underground growth via car culture and TikTok.',
+      'Growing for automotive, gaming, and adrenaline media.'
+    ),
+    Amapiano: dive(
+      'Amapiano',
+      ['Log Drum Piano', 'Kwaito Fusion', 'Afro Tech', 'Private School Amapiano', 'Soulful Amapiano'],
+      [106, 118],
+      ['F', 'C', 'G', 'Dm'],
+      ['Log drums', 'Shakers', 'Rhodes piano', 'Bass grooves'],
+      ['Log-drum rhythm', 'Warm keys', 'Vocal chants', 'Swinging percussion'],
+      ['Danceability', 'Joy', 'African pride', 'Groove'],
+      'Global takeover in dance music. Fresh fusion opportunities abound.',
+      'Fast-rising for lifestyle, travel, and global youth brands.'
+    ),
+    Dancehall: dive(
+      'Dancehall',
+      ['Reggae Dancehall', 'Afro Dancehall', 'Riddim Style', 'Digital Dancehall'],
+      [90, 110],
+      ['Dm', 'Gm', 'Am', 'F'],
+      ['Riddim loops', 'Heavy kick patterns', 'Vocal FX', 'Percussion layers'],
+      ['Chatty flows', 'Bouncy riddims', 'Ad-lib energy', 'Party atmosphere'],
+      ['Party energy', 'Charisma', 'Rhythm', 'Heat'],
+      'Caribbean-rooted with global pop crossover reach.',
+      'Strong for summer, travel, and celebratory brands.'
+    ),
+    'Samba / Bossa Nova': dive(
+      'Samba / Bossa Nova',
+      ['Samba', 'Bossa Nova', 'Samba Rock', 'MPB', 'Pagode'],
+      [70, 120],
+      ['C', 'G', 'Dm', 'F'],
+      ['Nylon guitar', 'Shakers', 'Soft percussion', 'Room mics'],
+      ['Syncopated rhythm', 'Smooth vocals', 'Jazz harmonies', 'Sunlit warmth'],
+      ['Elegance', 'Rhythm', 'Romance', 'Warmth'],
+      'Timeless sophistication with global café and lounge demand.',
+      'Excellent for hospitality, travel, and premium lifestyle.'
+    ),
+    Cumbia: dive(
+      'Cumbia',
+      ['Cumbia Sonidera', 'Andean Cumbia', 'Cumbia Villera', 'Chicha', 'Cumbia Pop'],
+      [80, 110],
+      ['Dm', 'Gm', 'Am', 'F'],
+      ['Accordion', 'Güiro', 'Bass guajeo', 'Brass stabs'],
+      ['Driving bass rhythm', 'Bright accordion', 'Call-and-response', 'Dance energy'],
+      ['Danceability', 'Fiesta energy', 'Cultural pride', 'Tradition'],
+      'Massive Latin-American party music with global crossover.',
+      'Strong for Latin markets, travel, and celebration campaigns.'
+    ),
+    Opera: dive(
+      'Opera',
+      ['Bel Canto', 'Verismo', 'Baroque Opera', 'Art Song', 'Choral'],
+      [60, 180],
+      ['C', 'F', 'G', 'D'],
+      ['Unamplified technique', 'Orchestral arrangement', 'Acoustic halls', 'Diction mastery'],
+      ['Full vibrato', 'Dramatic dynamics', 'Coloratura', 'Legato lines'],
+      ['Technical mastery', 'Emotional drama', 'Presence', 'Tradition'],
+      'Prestige market with strong institutional and film demand.',
+      'Very high for luxury, historical drama, and cinematic media.'
+    ),
+    'Film Score': dive(
+      'Film Score',
+      ['Cinematic', 'Trailer Music', 'Drama Score', 'Comedy Score', 'Ambient Score'],
+      [60, 140],
+      ['Dm', 'Cm', 'Am', 'F'],
+      ['Orchestral mockups', 'Cinematic percussion', 'Theme writing', 'Hybrid design'],
+      ['Emotional arcs', 'Leitmotifs', 'Epic builds', 'Texture and tension'],
+      ['Emotion', 'Timing', 'Thematic clarity', 'Immersive power'],
+      'High-barrier, high-reward. Sync libraries are the indie entry point.',
+      'The sync genre — built for licensing across all media.'
+    ),
+    'Video Game Music': dive(
+      'Video Game Music',
+      ['Chiptune', 'Orchestral Game Score', 'Synthwave', 'JRPG Soundtrack', 'Ambient Game'],
+      [80, 160],
+      ['C', 'Am', 'F', 'G'],
+      ['Loopable design', 'Adaptive layers', 'Retro synthesis', 'Theme motifs'],
+      ['Catchy loops', 'Pixel-era sounds', 'Epic boss themes', 'Nostalgic hooks'],
+      ['Immersion', 'Memorability', 'Loopability', 'Gaming culture'],
+      'Exploding indie game market. Direct game partnerships are achievable.',
+      'High for gaming, tech, and streaming content.'
+    ),
+    Bluegrass: dive(
+      'Bluegrass',
+      ['Traditional Bluegrass', 'Newgrass', 'Progressive Bluegrass', 'Jam Grass'],
+      [100, 160],
+      ['G', 'C', 'D', 'A'],
+      ['Banjo rolls', 'Mandolin chops', 'Fiddle', 'Acoustic clarity'],
+      ['Breakneck picking', 'High-lonesome vocals', 'Instrumental breaks', 'Tight ensemble'],
+      ['Instrumental mastery', 'Speed', 'Authenticity', 'Tradition'],
+      'Dedicated festival circuit with roots-music credibility.',
+      'Good for outdoor, heritage, and Americana brands.'
+    ),
+    'New Age': dive(
+      'New Age',
+      ['Meditation', 'Healing', 'Celtic New Age', 'Space Music', 'World Fusion'],
+      [50, 90],
+      ['D', 'A', 'G', 'Em'],
+      ['Flutes', 'Soft pads', 'Nature sounds', 'Slow arpeggios'],
+      ['Serenity', 'Repetitive calm', 'Spa textures', 'Timeless space'],
+      ['Calm', 'Healing utility', 'Atmosphere', 'Stillness'],
+      'Functional-playlist goldmine for wellness and mindfulness.',
+      'Excellent for wellness, spa, meditation, and therapy media.'
+    ),
+    "Children's": dive(
+      "Children's",
+      ['Kids Pop', 'Lullabies', 'Educational', 'Nursery Rhymes', 'Family'],
+      [80, 130],
+      ['C', 'G', 'F', 'Am'],
+      ['Bright timbres', 'Simple melodies', 'Call-and-response', 'Playful percussion'],
+      ['Bouncy hooks', 'Clear diction', 'Playful characters', 'Gentle repetition'],
+      ['Joy', 'Singability', 'Education', 'Safety'],
+      'Consistent evergreen demand from parents, schools, and streaming.',
+      'High for kids media, education, and family brands.'
+    ),
+  };
+
   return (
-    db[genre] || {
+    db[genre] ||
+    extended[genre] || {
       genre,
       subgenres: [genre],
       recommendedBpmRange: [80, 140],
@@ -655,21 +1088,7 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     description:
       "Your core sonic foundation. S.M.U.V.E will deep-dive into this genre's specific requirements.",
     field: 'primaryGenre',
-    options: [
-      { label: 'Hip Hop', value: 'Hip Hop', icon: '🎤' },
-      { label: 'R&B / Soul', value: 'R&B', icon: '🎵' },
-      { label: 'Electronic / Dance', value: 'Electronic', icon: '⚡' },
-      { label: 'Rock / Alternative', value: 'Rock', icon: '🎸' },
-      { label: 'Pop', value: 'Pop', icon: '🌟' },
-      { label: 'Jazz / Blues', value: 'Jazz', icon: '🎷' },
-      { label: 'Latin / Reggaeton', value: 'Latin', icon: '🕺' },
-      { label: 'Country / Americana', value: 'Country', icon: '🤠' },
-      { label: 'Afrobeats / World', value: 'Afrobeats', icon: '🌍' },
-      { label: 'Classical / Orchestral', value: 'Classical', icon: '🎻' },
-      { label: 'Metal / Hardcore', value: 'Metal', icon: '🤘' },
-      { label: 'Folk / Acoustic', value: 'Folk', icon: '🪕' },
-      { label: 'Reggae / Dancehall', value: 'Reggae', icon: '🌴' },
-    ],
+    options: GENRE_OPTIONS,
   },
   {
     id: 'q7',
@@ -1264,11 +1683,11 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
   {
     id: 'q31',
     phase: 'business-infra',
-    type: 'toggle',
+    type: 'text',
     weight: 5,
-    text: 'Do you have an official artist website?',
+    text: 'What is your official artist website?',
     description:
-      'A central hub for your identity, press kit, and direct fan connection.',
+      'A central hub for your identity, press kit, and direct fan connection. Leave blank if you have none yet.',
     field: 'website',
     placeholder: 'https://yourwebsite.com',
   },
@@ -1493,6 +1912,144 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
       'A professional EPK (Electronic Press Kit) helps you book shows and get press coverage.',
     field: 'musicalJourney.autoGenerateEpk',
   },
+
+  // ── v2.1 ADDITIONS: Uniqueness · Expertise · Journey · Income ──
+  {
+    id: 'q45',
+    phase: 'musical-dna',
+    type: 'select',
+    weight: 6,
+    text: 'What is your vocal range or register?',
+    description:
+      'Helps S.M.U.V.E recommend keys, harmonies, and vocal production presets tuned to your instrument.',
+    field: 'musicalJourney.vocalRange',
+    options: [
+      { label: 'Bass (E2–E4)', value: 'Bass (E2–E4)', icon: '📉' },
+      { label: 'Baritone (A2–A4)', value: 'Baritone (A2–A4)', icon: '🎙️' },
+      { label: 'Tenor (C3–C5)', value: 'Tenor (C3–C5)', icon: '🎤' },
+      { label: 'Alto (F3–F5)', value: 'Alto (F3–F5)', icon: '🎵' },
+      { label: 'Mezzo-Soprano (A3–A5)', value: 'Mezzo-Soprano (A3–A5)', icon: '🎶' },
+      { label: 'Soprano (C4–C6)', value: 'Soprano (C4–C6)', icon: '📈' },
+      { label: 'Falsetto / Head Voice Focus', value: 'Falsetto', icon: '🌙' },
+      { label: 'Rapper / Spoken Delivery', value: 'Spoken / Rap', icon: '🎤' },
+      { label: "I don't sing", value: 'Non-Vocalist', icon: '🎹' },
+    ],
+  },
+  {
+    id: 'q46',
+    phase: 'genre-intelligence',
+    type: 'textarea',
+    weight: 9,
+    text: 'What makes your sound unmistakably YOU?',
+    description:
+      'Your uniqueness is your moat. Describe the signature texture, delivery, or production trait no one else can copy. S.M.U.V.E will protect and market it.',
+    field: 'musicalJourney.signatureSound',
+    aiContextHint:
+      'This uniqueness statement drives branding, AI persona, and marketing differentiation.',
+  },
+  {
+    id: 'q47',
+    phase: 'identity',
+    type: 'text',
+    weight: 5,
+    text: 'What was your first song or first musical memory?',
+    description:
+      'The seed of the journey. S.M.U.V.E uses it to ground your artist narrative and origin story.',
+    field: 'musicalJourney.firstSong',
+    aiContextHint: 'First-song memories humanize bios, EPKs, and press angles.',
+  },
+  {
+    id: 'q48',
+    phase: 'identity',
+    type: 'textarea',
+    weight: 6,
+    text: 'What was your breakthrough moment?',
+    description:
+      'The show, track, or moment that changed your trajectory. This becomes your proof-of-momentum story.',
+    field: 'musicalJourney.breakthroughMoment',
+    aiContextHint:
+      'Breakthrough moments anchor press narratives and social proof.',
+  },
+  {
+    id: 'q49',
+    phase: 'production-mindset',
+    type: 'range',
+    weight: 6,
+    text: 'Rate your production expertise.',
+    description: '1 = Just starting · 10 = World-class producer others pay to learn from.',
+    field: 'expertise.production',
+    min: 1,
+    max: 10,
+  },
+  {
+    id: 'q50',
+    phase: 'production-mindset',
+    type: 'range',
+    weight: 6,
+    text: 'Rate your songwriting expertise.',
+    description: '1 = First lyrics · 10 = Songwriter whose hooks define eras.',
+    field: 'expertise.songwriting',
+    min: 1,
+    max: 10,
+  },
+  {
+    id: 'q51',
+    phase: 'production-mindset',
+    type: 'range',
+    weight: 5,
+    text: 'Rate your live performance expertise.',
+    description: '1 = Never played live · 10 = Headliner with a stage show that sells rooms.',
+    field: 'expertise.performance',
+    min: 1,
+    max: 10,
+  },
+  {
+    id: 'q52',
+    phase: 'business-infra',
+    type: 'range',
+    weight: 6,
+    text: 'Rate your music business expertise.',
+    description: '1 = No clue about royalties · 10 = Deal-maker fluent in publishing, licensing, and rights.',
+    field: 'expertise.business',
+    min: 1,
+    max: 10,
+  },
+  {
+    id: 'q53',
+    phase: 'platform-strategy',
+    type: 'range',
+    weight: 5,
+    text: 'Rate your marketing expertise.',
+    description: '1 = Posting when I remember · 10 = Campaign architect with a growth engine.',
+    field: 'expertise.marketing',
+    min: 1,
+    max: 10,
+  },
+  {
+    id: 'q54',
+    phase: 'business-infra',
+    type: 'chip-group',
+    weight: 7,
+    text: 'Which income streams are you actively building?',
+    description:
+      'Independent artists need multiple engines. S.M.U.V.E will map a revenue strategy around your picks.',
+    field: 'musicalJourney.incomeStreams',
+    maxSelections: 6,
+    options: [
+      { label: 'Streaming Royalties', value: 'Streaming', icon: '📱' },
+      { label: 'Sync & Licensing', value: 'Sync Licensing', icon: '🎬' },
+      { label: 'Live Shows / Touring', value: 'Live Shows', icon: '🎫' },
+      { label: 'Merch', value: 'Merch', icon: '👕' },
+      { label: 'Beat / Production Sales', value: 'Beat Sales', icon: '🥁' },
+      { label: 'Session Work', value: 'Session Work', icon: '🎧' },
+      { label: 'Teaching / Coaching', value: 'Teaching', icon: '📚' },
+      { label: 'Patreon / Fan Subscriptions', value: 'Fan Subscriptions', icon: '💜' },
+      { label: 'Sample Packs', value: 'Sample Packs', icon: '🗂️' },
+      { label: 'Brand Deals', value: 'Brand Deals', icon: '🏷️' },
+      { label: 'Distribution Services', value: 'Distribution', icon: '📦' },
+      { label: 'Publishing / Placements', value: 'Publishing', icon: '📝' },
+    ],
+  },
 ];
 
 /* ── Enhanced Questionnaire Engine ────────────────────────────── */
@@ -1581,18 +2138,35 @@ export class EnhancedArtistQuestionnaireEngine {
     const journey = profile.musicalJourney || ({} as any);
     const genre = profile.primaryGenre || 'Electronic';
     const dive = getGenreDeepDive(genre);
-    const roles = journey.roles || [];
+    const roles = profile.expertise?.roles ?? journey.roles ?? [];
 
     const archetype = this.detectArchetype(profile);
     const tone = this.detectSignatureTone(profile);
     const strategy = this.detectStrategy(profile);
 
+    const sonicSignature = journey.signatureSound
+      ? journey.signatureSound
+      : `${genre} with ${journey.productionPhilosophy || 'hybrid'} production, driven by ${journey.creativeCatalyst || 'creative passion'}`;
+    const journeyThread = [
+      journey.originStory ? `Origin: ${journey.originStory}` : '',
+      journey.firstSong ? `First song: ${journey.firstSong}` : '',
+      journey.breakthroughMoment
+        ? `Breakthrough: ${journey.breakthroughMoment}`
+        : '',
+      journey.experienceLevel ? `Band: ${journey.experienceLevel}` : '',
+      journey.preferredBpmRange
+        ? `Tempo zone: ${journey.preferredBpmRange} BPM`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
     return {
       archetype,
       signatureTone: tone,
-      sonicSignature: `${genre} with ${journey.productionPhilosophy || 'hybrid'} production, driven by ${journey.creativeCatalyst || 'creative passion'}`,
+      sonicSignature,
       marketPosition: journey.marketPosition || 'Emerging',
-      aiPersonaProfile: `S.M.U.V.E recognizes you as: ${archetype}. ${tone}. Your journey: ${journey.originStory || 'self-discovery'}. ${strategy}`,
+      aiPersonaProfile: `S.M.U.V.E recognizes you as: ${archetype}. ${tone} ${journeyThread ? '| ' + journeyThread : ''} ${strategy}`,
       recommendedStrategy: strategy,
       suggestedGenres: dive.subgenres.slice(0, 3),
       productionAphorism: this.generateAphorism(profile, dive),
@@ -1642,10 +2216,54 @@ export class EnhancedArtistQuestionnaireEngine {
 
     const recommendations = [
       ...this.generateProfileRecommendations(profile, breakdown),
+      ...this.generateGenreInsights(profile),
       ...(insights || []),
     ];
 
     return { persona, breakdown, recommendations, insights: insights || [] };
+  }
+
+  /**
+   * Genre-aware strategic intelligence derived from the deep-dive database.
+   * Independent artists get actionable, genre-specific directives — sync
+   * potential, competitive positioning, and BPM alignment — without needing
+   * a paid model call.
+   */
+  private generateGenreInsights(profile: UserProfile): any[] {
+    const genre = profile.primaryGenre || 'Hip Hop';
+    const dive = getGenreDeepDive(genre);
+    const insights: any[] = [];
+    const journey = profile.musicalJourney || ({} as any);
+
+    insights.push({
+      title: `${genre} Sync Potential`,
+      content: dive.syncPotential,
+      impact: 'High',
+    });
+
+    insights.push({
+      title: `${genre} Competitive Angle`,
+      content: dive.competitiveLandscape,
+      impact: 'Medium',
+    });
+
+    if (journey.preferredBpmRange && journey.preferredBpmRange !== 'variable') {
+      const [low, high] = String(journey.preferredBpmRange).split('-').map(Number);
+      if (low && high) {
+        const [genLow, genHigh] = dive.recommendedBpmRange;
+        const aligned =
+          low >= genLow - 10 && high <= genHigh + 10;
+        insights.push({
+          title: 'Tempo Zone Alignment',
+          content: aligned
+            ? `Your preferred tempo (${low}-${high} BPM) sits squarely in the ${genre} pocket (${genLow}-${genHigh} BPM). Producers and playlists will recognize you instantly.`
+            : `Your preferred tempo (${low}-${high} BPM) drifts from the ${genre} pocket (${genLow}-${genHigh} BPM). That is either your signature or your blind spot — test both.`,
+          impact: aligned ? 'High' : 'Critical',
+        });
+      }
+    }
+
+    return insights;
   }
 
   /* ── Private helpers ──────────────────────────── */
@@ -1668,7 +2286,7 @@ export class EnhancedArtistQuestionnaireEngine {
 
   private detectArchetype(profile: UserProfile): string {
     const journey = profile.musicalJourney || ({} as any);
-    const roles = journey.roles || [];
+    const roles = profile.expertise?.roles ?? journey.roles ?? [];
     const catalyst = journey.creativeCatalyst || '';
 
     if (
@@ -1727,6 +2345,16 @@ export class EnhancedArtistQuestionnaireEngine {
       return 'Priority: Live show development and routing.';
     if (velocity === 'Waterfall (Weekly)')
       return 'Priority: High-velocity release schedule with automated marketing.';
+    const journey = profile.musicalJourney || ({} as any);
+    if (journey.biggestChallenge) {
+      return `Priority: Break through your stated barrier — ${journey.biggestChallenge}. S.M.U.V.E will route resources and coaching there first.`;
+    }
+    if (journey.currentFocus) {
+      return `Priority: Execute your current mission — ${journey.currentFocus}. Every recommendation is subordinated to it.`;
+    }
+    if (journey.collaborationGoals) {
+      return `Priority: Activate your collaboration strategy — ${journey.collaborationGoals}.`;
+    }
     return 'Priority: Establish foundational identity before scaling.';
   }
 
@@ -1767,6 +2395,54 @@ export class EnhancedArtistQuestionnaireEngine {
           'A defined brand voice and aesthetic increase fan connection by 60%.',
         impact: 'High',
       });
+    if (!profile.musicalJourney?.signatureSound) {
+      recs.push({
+        title: 'Claim Your Signature Sound',
+        content:
+          'You have not yet defined what makes your sound unmistakably yours. Articulate it — it becomes your marketing moat and AI persona anchor.',
+        impact: 'High',
+      });
+    } else {
+      recs.push({
+        title: 'Signature Sound Locked',
+        content:
+          `Your uniqueness statement ("${profile.musicalJourney.signatureSound.slice(0, 90)}${profile.musicalJourney.signatureSound.length > 90 ? '…' : ''}") is protected as your differentiation core.`,
+        impact: 'High',
+      });
+    }
+    const expertise = profile.expertise || ({} as any);
+    const core = [
+      expertise.production,
+      expertise.songwriting,
+      expertise.performance,
+      expertise.marketing,
+      expertise.business,
+    ].filter((v): v is number => typeof v === 'number' && v > 0);
+    if (core.length > 0 && core.every((v) => v < 4)) {
+      recs.push({
+        title: 'Build Expert Foundation',
+        content:
+          'Your self-rated expertise is early-stage across the board. S.M.U.V.E will prioritize skill-building resources before heavy marketing spend.',
+        impact: 'High',
+      });
+    }
+    const challenge = (profile.musicalJourney as any)?.biggestChallenge;
+    if (challenge && typeof challenge === 'string' && challenge.trim()) {
+      recs.push({
+        title: 'Route Around Your Biggest Barrier',
+        content: `You named "${challenge.trim().slice(0, 120)}" as your biggest obstacle. S.M.U.V.E will prioritize coaching, tools, and tactical moves that attack it directly.`,
+        impact: 'Critical',
+      });
+    }
+    const income = profile.musicalJourney?.incomeStreams || [];
+    if (income.length > 0 && income.length < 3) {
+      recs.push({
+        title: 'Diversify Income Streams',
+        content:
+          `You currently build ${income.length} revenue engine${income.length === 1 ? '' : 's'}. Independent artists thrive with 3+ — consider sync licensing, beat sales, or fan subscriptions.`,
+        impact: 'Medium',
+      });
+    }
     if (breakdown.aiIntegration < 50)
       recs.push({
         title: 'Deepen AI Integration',

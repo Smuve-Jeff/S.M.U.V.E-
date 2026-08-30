@@ -20,6 +20,7 @@ import type { StrategicSignals } from '../../types/profile.types';
 import {
   EnhancedArtistQuestionnaireEngine,
   PHASES,
+  GENRE_OPTIONS,
   type QuestionnaireQuestion,
   type QuestionnairePhase,
   type PhaseInfo,
@@ -83,6 +84,10 @@ export class ArtistQuestionnaireComponent {
   showPersonaCard = signal(false);
   completedPhases = signal<Set<QuestionnairePhase>>(new Set());
 
+  /** Live filter for the 40+ genre catalog (question q6). */
+  genreSearch = signal('');
+  readonly genreOptions = GENRE_OPTIONS;
+
   // ── AI Chat Log ─────────────────────────────────────────────
   aiChatLog = signal<
     Array<{ type: 'observation' | 'adaptation' | 'system'; text: string }>
@@ -135,7 +140,7 @@ export class ArtistQuestionnaireComponent {
     return isLastInPhase && isLastPhase;
   });
 
-  /** Get options for current question (handles dynamic subgenres) */
+  /** Get options for current question (handles dynamic subgenres + genre search) */
   getOptionsForCurrentQuestion(): any[] {
     const q = this.currentQuestion();
     if (!q) return [];
@@ -143,7 +148,24 @@ export class ArtistQuestionnaireComponent {
     if (q.id === 'q7') {
       return this.subgenreOptions();
     }
+    // For the primary-genre question, filter the full catalog by search text
+    if (q.id === 'q6') {
+      const query = this.genreSearch().trim().toLowerCase();
+      if (!query) return q.options || [];
+      return (q.options || []).filter((opt: any) =>
+        String(opt.label).toLowerCase().includes(query)
+      );
+    }
     return q.options || [];
+  }
+
+  /** Whether the current question is the genre picker (shows search box) */
+  isGenreQuestion = computed(() => this.currentQuestion()?.id === 'q6');
+
+  /** Reset the genre search whenever a genre is chosen. */
+  selectGenreOption(value: string) {
+    this.updateValue('primaryGenre', value);
+    this.genreSearch.set('');
   }
 
   /** Check if a chip value is selected */
@@ -254,7 +276,9 @@ export class ArtistQuestionnaireComponent {
           target[lastPart] = [...target[lastPart], value].slice(-max);
         }
       } else if (q?.type === 'toggle') {
-        target[lastPart] = value === 'true' || value === true ? 'true' : '';
+        // Store a real boolean so downstream consumers (`settings.ai.*`,
+        // `autoGenerateEpk`, etc.) don't receive stringified flags.
+        target[lastPart] = value === 'true' || value === true;
       } else if (q?.type === 'range') {
         target[lastPart] = Number(value);
       } else {
@@ -414,11 +438,15 @@ export class ArtistQuestionnaireComponent {
       touringStability: 0,
     };
 
-    if (p.primaryGenre) s.marketReadiness += 20;
+    if (p.primaryGenre) s.marketReadiness += 15;
     if (p.musicalJourney?.yearsInIndustry > 5) s.marketReadiness += 10;
     if (p.website) s.marketReadiness += 10;
-    if (p.brandVoices?.length) s.marketReadiness += 20;
-    if (p.strategicGoals?.length) s.marketReadiness += 20;
+    if (p.brandVoices?.length) s.marketReadiness += 15;
+    if (p.strategicGoals?.length) s.marketReadiness += 15;
+    if (p.musicalJourney?.signatureSound) s.marketReadiness += 15;
+    if ((p.musicalJourney?.incomeStreams?.length || 0) >= 3)
+      s.marketReadiness += 10;
+    if (p.musicalJourney?.vocalRange) s.identityTrust += 10;
 
     if (p.expertise) {
       s.technicalAuthority =
@@ -426,12 +454,18 @@ export class ArtistQuestionnaireComponent {
         (p.expertise.technical_mastery || 0) * 5;
       if (p.expertise.songwriting)
         s.technicalAuthority += p.expertise.songwriting * 3;
+      if (p.expertise.performance)
+        s.touringStability += p.expertise.performance * 3;
+      if (p.expertise.business) s.identityTrust += p.expertise.business * 3;
     }
 
     if (p.catalog?.length) s.careerMomentum += 20;
     if (p.musicalJourney?.releaseVelocity === 'Waterfall (Weekly)')
       s.careerMomentum += 20;
     if (p.strategicGoals?.length > 2) s.careerMomentum += 20;
+    if (p.musicalJourney?.breakthroughMoment) s.careerMomentum += 10;
+    if ((p.musicalJourney?.incomeStreams?.length || 0) >= 3)
+      s.careerMomentum += 10;
 
     if (p.syncDetails?.hasStems === 'Everything Archived')
       s.syncViability += 25;

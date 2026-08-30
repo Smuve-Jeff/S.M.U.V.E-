@@ -7,6 +7,7 @@ import {
   UserProfile,
 } from '../../services/user-profile.service';
 import { AuthService } from '../../services/auth.service';
+import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine';
 
 @Component({
   selector: 'app-journey',
@@ -31,22 +32,15 @@ export class JourneyComponent {
     { title: 'The Legacy', subtitle: 'Finalizing the dossier' },
   ];
 
-  // Genre options
-  readonly genres = [
-    'Hip Hop',
-    'R&B',
-    'Pop',
-    'Electronic',
-    'Rock',
-    'Jazz',
-    'Classical',
-    'Country',
-    'Latin',
-    'Afrobeats',
-    'Metal',
-    'Folk',
-    'Reggae',
-  ];
+  // Genre options — shared with the Artist DNA Uplink questionnaire so the
+  // catalog can never drift between the two surfaces.
+  readonly genres = ALL_GENRES;
+
+  // Free-text inputs that map onto canonical string[] profile fields.
+  // (musicalJourney.musicalInfluences and daw are arrays; the wizard edits
+  // them as comma-separated text so the profile model stays clean.)
+  influencesText = signal('');
+  dawText = signal('');
 
   // BPM range presets
   readonly bpmRanges = [
@@ -88,7 +82,10 @@ export class JourneyComponent {
 
   constructor() {
     effect(() => {
-      this.profile.set({ ...this.userProfileService.profile() });
+      const p = this.userProfileService.profile();
+      this.profile.set({ ...p });
+      this.influencesText.set((p.musicalJourney?.musicalInfluences || []).join(', '));
+      this.dawText.set((p.daw || []).join(', '));
     });
   }
 
@@ -100,8 +97,29 @@ export class JourneyComponent {
     if (this.activeStep() > 0) this.activeStep.update((s) => s - 1);
   }
 
+  /** Split comma-separated text into a trimmed, de-duplicated string array. */
+  private toList(text: string): string[] {
+    return Array.from(
+      new Set(
+        text
+          .split(/[,;\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+  }
+
   updateProfile() {
-    this.userProfileService.updateProfile(this.profile());
+    const p = this.profile();
+    const next: UserProfile = {
+      ...p,
+      musicalJourney: {
+        ...p.musicalJourney,
+        musicalInfluences: this.toList(this.influencesText()),
+      },
+      daw: this.toList(this.dawText()),
+    };
+    this.userProfileService.updateProfile(next);
   }
 
   toggleSkill(skill: string) {
