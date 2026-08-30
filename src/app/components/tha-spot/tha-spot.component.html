@@ -3221,7 +3221,9 @@
             class="game-frame"
             [attr.sandbox]="getSandboxAttr(currentGame())"
             allowfullscreen
+            title="{{ active.name }} game cabinet"
             (load)="onGameIframeLoad()"
+            (error)="onGameIframeError()"
           ></iframe>
           <!-- Error fallback UI -->
           <div
@@ -3286,10 +3288,10 @@
               </button>
               <button
                 class="terminate-btn mini"
-                (click)="closeGame()"
+                (click)="exitGame()"
                 style="font-size: 0.7rem; padding: 0.5rem 1rem"
               >
-                TERMINATE
+                EXIT TO ALL GAMES
               </button>
             </div>
           </div>
@@ -3317,8 +3319,8 @@
           >
           {{ count }}/{{ achievements().length }} ACHIEVEMENTS
         </div>
-        <button class="terminate-btn" (click)="closeGame()">
-          TERMINATE PROCESS
+        <button class="terminate-btn" (click)="exitGame()">
+          EXIT TO ALL GAMES
         </button>
       </footer>
     </div>

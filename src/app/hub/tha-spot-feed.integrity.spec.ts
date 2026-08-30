@@ -596,6 +596,62 @@ describe('Tha Spot feed integrity', () => {
     }
   });
 
+  it('keeps the Super Mario series complete and correctly targeted', () => {
+    // Core Super Mario series entries must exist and point at their authentic
+    // retrogames.cc cabinets. No fan hacks or lookalikes substituted.
+    const marioSeriesIds = [
+      'rg-44097-super-mario-bros',
+      'rg-46228-super-mario-bros-2-lost-levels',
+      'super-mario-world-elite-master',
+      'rg-44214-super-mario-kart-world',
+      'rg-43860-super-mario-kart-deluxe',
+      'mario-kart-sc-gba-elite',
+      'rg-43686-vs-super-mario-bros',
+      'rg-45027-super-mario-rpg-enhanced',
+      'rg-43447-paper-mario-multiplayer',
+      'rg-44138-mario-party-3-starstruck',
+      'rg-24978-wario-land-ii',
+      'rg-20337-yoshis-cookie',
+      'rg-46481-vs-dr-mario',
+    ];
+
+    for (const id of marioSeriesIds) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      const primary = game?.launchConfig?.approvedEmbedUrl || game?.url || '';
+      expect(primary).toContain('retrogames.cc/embed/');
+      const external = game?.launchConfig?.approvedExternalUrl || '';
+      expect(external).toBe(primary);
+    }
+
+    // Super Mario RPG must not point at a fan hack (e.g. Armageddon).
+    const smrpg = games.find((entry) => entry.id === 'rg-45027-super-mario-rpg-enhanced');
+    expect(smrpg?.url).toContain('45027-super-mario-rpg-enhanced');
+    expect(smrpg?.url).not.toContain('armageddon');
+    expect(smrpg?.url).not.toContain('revolution');
+
+    // VS. Super Mario Bros must be the arcade VS. System cabinet.
+    const vsmb = games.find((entry) => entry.id === 'rg-43686-vs-super-mario-bros');
+    expect(vsmb?.url).toContain('43686-vs-super-mario-bros');
+
+    // Paper Mario must be the N64 version, not a randomizer or hack.
+    const pmario = games.find((entry) => entry.id === 'rg-43447-paper-mario-multiplayer');
+    expect(pmario?.url).toContain('43447-paper-mario-multiplayer');
+    expect(pmario?.url).not.toContain('randomizer');
+    expect(pmario?.url).not.toContain('master-quest');
+
+    // Mario Party 3 must be the actual cabinet, not a character mod.
+    const mp3 = games.find((entry) => entry.id === 'rg-44138-mario-party-3-starstruck');
+    expect(mp3?.url).toContain('44138-mario-party-3-starstruck');
+    expect(mp3?.url).not.toContain('playable-');
+
+    // Dr. Mario must be the arcade VS. System version.
+    const drmario = games.find((entry) => entry.id === 'rg-46481-vs-dr-mario');
+    expect(drmario?.url).toContain('46481-vs-dr-mario');
+    expect(drmario?.url).not.toContain('dr-garfield');
+    expect(drmario?.url).not.toContain('dr-smol');
+  });
+
   it('has no Mario Kart 64 fan-remake cabinet in the catalog', () => {
     // No authentic Mario Kart 64 cabinet exists on the provider, so the
     // fabricated entry was removed rather than serving a fan remake.

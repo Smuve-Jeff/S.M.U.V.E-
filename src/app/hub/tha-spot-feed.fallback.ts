@@ -1524,7 +1524,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'boxing-heavyweight',
-      name: 'Boxing Stars',
+      name: 'Boxing Stars — Heavyweight',
       url: 'https://www.gamepix.com/play/boxing-stars',
       genre: 'Fighting',
       description: 'Heavyweight boxing. Master the sweet science with realistic 3D WebGL physics and career depth.',
@@ -7309,7 +7309,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       },
     },
     {
-      id: 'rg-44178-super-mario-kart',
+      id: 'rg-44178-super-simple-kart-3',
       name: 'SNES Super Simple Kart 3',
       genre: 'Racing',
       description: 'The authentic SNES original — play SNES Super Simple Kart 3 in your browser with full keyboard/touch controls.',
@@ -8069,7 +8069,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-animals-arrow',
-      name: 'Duotrace',
+      name: 'Animals Arrow',
       genre: 'Puzzle',
       description: 'Animals Arrows is a fun and addictive minimalist puzzle game that challenges your logic, memory, and focus with brain-teasing levels.',
       tags: ['Puzzle', 'HTML5'],
@@ -8092,9 +8092,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-block-slide',
-      name: 'Threads',
+      name: 'Block Slide',
       genre: 'Puzzle',
-      description: 'Play Threads online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Block Slide online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8115,9 +8115,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-archer-vs-monsters',
-      name: 'Drone Wars',
+      name: 'Archer vs Monsters',
       genre: 'Agility',
-      description: 'Play Drone Wars online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Archer vs Monsters online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Agility', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8184,7 +8184,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-shadows-of-the-forest-reign-of-triduja',
-      name: '2048 Ball Arena',
+      name: 'Shadows of the Forest: Reign of Triduja',
       genre: 'Adventure',
       description: 'Shadows of the Forest, reign of Triduja is a first-person casual horror game. Stranded after a vehicle breakdown, you are trapped in the eerie Realm of Triduya. Your only way out is to complete a mysterious Totem. Explore the surrounding woods to locate the hidden fragments and solve the puzzle. Stay alert—you aren’t alone in these woods.',
       tags: ['Adventure', 'HTML5'],
@@ -8322,9 +8322,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cozy-sort%3A-theme-collect',
-      name: 'Animals Arrow',
+      name: 'Cozy Sort: Theme Collect',
       genre: 'Puzzle',
-      description: 'Play Animals Arrow online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Cozy Sort: Theme Collect online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8391,9 +8391,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-order-of-operation-challenge',
-      name: 'Block Slide',
+      name: 'Order of Operation Challenge',
       genre: 'Puzzle',
-      description: 'Play Block Slide online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Order of Operation Challenge online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Educational', 'Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8414,9 +8414,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-forest-tile-match',
-      name: 'Grand Fruit Connect',
+      name: 'Forest Tile Match',
       genre: 'Match-3',
-      description: 'Play Grand Fruit Connect online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Forest Tile Match online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Match-3', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8575,7 +8575,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-super-slime%3A-black-hole',
-      name: 'BeesPuzzle',
+      name: 'Super Slime: Black Hole',
       genre: 'Casual',
       description: 'Super Slime: Black Hole invites you to become a powerful slime predator in a world full of objects waiting to be swallowed! In this exciting black hole game, your slime acts like a living black hole that can absorb anything smaller than itself. This relaxing eat-and-grow game experience combines simple controls with satisfying growth mechanics, similar to the fun style of Hole.io.',
       tags: ['Casual', 'HTML5'],
@@ -8644,9 +8644,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-up-hero',
-      name: 'Goblin Mine',
+      name: 'Up Hero',
       genre: 'Adventure',
-      description: 'Play Goblin Mine online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Up Hero online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8690,9 +8690,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-african-princesses%3A-style-island',
-      name: 'Glam Guru Puzzle Collection',
+      name: 'African Princesses: Style Island',
       genre: 'Dress-Up',
-      description: 'Play Glam Guru Puzzle Collection online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play African Princesses: Style Island online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Dress-up', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -8736,7 +8736,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-arrow-legend',
-      name: 'Archer vs Monsters',
+      name: 'Arrow Legend',
       genre: 'Puzzle',
       description: 'Guide the arrows in the right order and clear the board without getting stuck. Arrow Legend is a colorful logic puzzle game where every direction matters. Study the paths, choose the correct arrows, and solve each level with smart moves.',
       tags: ['Casual', 'Puzzle', 'HTML5'],
@@ -8759,7 +8759,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-12-minute-escape',
-      name: 'Shadows of the Forest: Reign of Triduja',
+      name: '12 Minute Escape',
       genre: 'Adventure',
       description: 'Repair the ancient portal and escape before time runs out! Defeat slimes, gather magical resources, build powerful structures, unlock new wizard characters, and survive exciting world events. Every minute brings new opportunities with Golden Rush, Treasure Hunt, and Wizard Frenzy. Plan your upgrades wisely, grow stronger, and see if you can escape within 12 minutes! Beware the Slime King!',
       tags: ['Adventure', 'HTML5'],
@@ -8828,7 +8828,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-build-a-rollercoaster%3A-simulator',
-      name: 'Prison Break',
+      name: 'Build a Rollercoaster: Simulator',
       genre: 'Simulation',
       description: 'Create and ride awesome roller coasters! ? Buy tracks and build your own rides. Get rare tracks and create the longest roller coasters! Ride and travel along your tracks!',
       tags: ['Simulation', 'HTML5'],
@@ -8874,7 +8874,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-vegamix%3A-wild-west-puzzle',
-      name: 'Cozy Sort: Theme Collect',
+      name: 'VegaMix2 Wild West',
       genre: 'Match-3',
       description: 'VegaMix: Wild West Puzzle — an exciting adventure where match-3 puzzles meet the spirit of the Wild West. The heroes find themselves in Lostown, a mysterious town lost in time. A ruined bridge, a ghost train, mysterious silver, and the hunt for the outlaw Dirty Nick — just part of the challenges ahead.',
       tags: ['Match-3', 'HTML5'],
@@ -9081,9 +9081,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hospital-surgeon-doctor-game',
-      name: 'ASMR Beauty Clinic',
+      name: 'Hospital Surgeon Doctor Game',
       genre: 'Strategy',
-      description: 'Play ASMR Beauty Clinic online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Hospital Surgeon Doctor Game online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Strategy', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9104,9 +9104,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mate-in-chess',
-      name: 'Chess Multiplayer Online',
+      name: 'Mate in Chess',
       genre: 'Boardgames',
-      description: 'Play Chess Multiplayer Online online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Mate in Chess online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Boardgames', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9173,9 +9173,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-zen-solitaire',
-      name: 'Rummy Classic',
+      name: 'Zen Solitaire',
       genre: 'Cards',
-      description: 'Play Rummy Classic online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Zen Solitaire online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Cards', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9357,7 +9357,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-steal-a-fish',
-      name: 'Crazy Aunty : Slap \\u0026 Punch',
+      name: 'Steal A Fish',
       genre: 'Casual',
       description: 'Dive straight into a thrilling underwater world in Steal A Fish, where stealth meets chaos in a fast-paced adventure and action experience! This unique simulator challenges you to sneak through the deep sea, steal valuable fish, and escape before danger strikes. The deeper you go, the greater the risk and the reward!',
       tags: ['Casual', 'Simulation', 'HTML5'],
@@ -9380,7 +9380,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mob-rush',
-      name: 'Animals Merge',
+      name: 'Mob Rush',
       genre: 'Casual',
       description: 'Fun and strategy unite under one roof. Navigate a path filled with obstacles and guide your army through the right gates. Multiply your units and conquer enemy territory. Defend your empire and advance to the next level. Victory or defeat!',
       tags: ['Casual', 'HTML5'],
@@ -9426,9 +9426,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sweet-match',
-      name: 'Candy Match Move',
+      name: 'Sweet Match',
       genre: 'Merge',
-      description: 'Play Candy Match Move online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Sweet Match online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Merge', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9449,7 +9449,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kompot\'s-kitchen',
-      name: 'Screwloose Cats: Tail Rescue',
+      name: 'Kompot\'s Kitchen',
       genre: 'Casual',
       description: 'Flip the cards, cook up tasty combos and pay the kitchen rent! A cozy roguelike with chef cat Kompot and hundreds of culinary synergies. Free to play!',
       tags: ['Casual', 'HTML5'],
@@ -9518,7 +9518,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-chic-wedding-salon',
-      name: 'Furry Wedding Proposal',
+      name: 'Chic Wedding Salon',
       genre: 'Racing \\U0026 Driving',
       description: 'Planning a wedding can be really hard. Become a wedding planner and be part of a beautiful story in one of the cutest wedding games for girls!',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -9541,9 +9541,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-2-player-games-design-salon',
-      name: 'Color Screw Rescue Puzzle',
+      name: '2 Player Games Design Salon',
       genre: 'Art',
-      description: 'Play Color Screw Rescue Puzzle online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play 2 Player Games Design Salon online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Art', 'Dress-up', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9564,7 +9564,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princesses-casting-rush',
-      name: 'K-Wedding Dream',
+      name: 'Princesses Casting Rush',
       genre: 'Dress-Up',
       description: 'Oh no What time is it It is  AM and princesses are still in bed Wake them up and help princess to get ready for the casting Help princesses Aurora Elsa and Cinderella get ready for the important casting they have been waiting for a long time Choose the best and unique outfits makeup and hairstyle for each princess Hurry up to the casting and let them get their casts We are sure they go',
       tags: ['Dress-up', 'HTML5'],
@@ -9587,7 +9587,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-offroad-4x4-heavy-drive',
-      name: 'Zombie Road',
+      name: 'Offroad 4x4 Heavy Drive',
       genre: 'Action',
       description: 'Are you ready for drive in forest with a heavy offroad 4×4 car ? Well... here is your chance to test your skill. Win every level and be the best. Enjoy!',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -9610,7 +9610,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-unicycle-balance-3d',
-      name: 'Pogo Masters',
+      name: 'Unicycle Balance 3D',
       genre: 'Agility',
       description: 'Balance, Pedal \\u0026 Survive.  Enter the wacky and challenging world of Unicycle Balance 3D, a physics-based balancing game that tests your skill, patience, and reflexes! Guide your unicyclist across surreal landscapes, avoiding obstacles and mastering the delicate art of staying upright.',
       tags: ['Agility', 'Casual', 'HTML5'],
@@ -9633,9 +9633,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kids-drum-drum-piano',
-      name: 'Cute Animal World',
+      name: 'Kids Drum Drum Piano',
       genre: 'Educational',
-      description: 'Play Cute Animal World online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Kids Drum Drum Piano online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Educational', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9656,7 +9656,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-eternal-fury',
-      name: 'Golden Frontier',
+      name: 'Eternal Fury',
       genre: 'Strategy',
       description: 'A strategic turn-based RPG in Html 5 that combines SLG action and classic interactions. Players can summon random acquisitions of different quality mercenaries and customize the base attributes of the mercenary growth system. The game with different genres perfectly combined, will definitely blow your mind!',
       tags: ['Strategy', 'HTML5'],
@@ -9702,7 +9702,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-boat-rescue',
-      name: 'Boat Game: Racing Simulator 3D',
+      name: 'Boat Rescue',
       genre: 'Racing \\U0026 Driving',
       description: 'Boat Rescue features: - multiple levels - fun gameplay',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -9725,7 +9725,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kids-coloring-halloween',
-      name: 'Cake Merge 2',
+      name: 'Kids Coloring Halloween',
       genre: 'Art',
       description: 'Halloween themed coloring game that encourages kids to color within the lines. Includes 4 different coloring pages where kids can have fun coloring Halloween cake, spooky castle, scary Halloween mask, witch\'s cat and cauldron. Finally kids can decorate their art with cool Halloween stickers.',
       tags: ['Art', 'HTML5'],
@@ -9748,7 +9748,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-tower-vs-tower',
-      name: 'Tennis Masters 2026',
+      name: 'Tower vs Tower',
       genre: 'Battle',
       description: 'How many cubes can you order over and over as balanced by dropping the cubes with your plane from a certain distance? Three or four? This much will not be enough for you to win the game. You should place five cubes over and over and then you should place the pentagon over the tower and then you can win the game. Let the tower race begin against a friend!',
       tags: ['Battle', 'HTML5'],
@@ -9771,7 +9771,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-office-fight',
-      name: 'Crystal Circuit',
+      name: 'Office Fight',
       genre: 'Battle',
       description: 'Its time to destress and have fun at the office Throw stuff at your colleagues Hit them before they hit youFeatures Unlimited gameplay Earn coins for each successful hit A shop to unlock more items  types of items to throw around paper balls pencils erasers books and yes inch monitors too Bonus for hitting the cute mouse that scrambles around every now and then',
       tags: ['Battle', 'HTML5'],
@@ -9794,7 +9794,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-baby-hazel-spa-makeover',
-      name: 'Baby Dress Up',
+      name: 'Baby Hazel Spa Makeover',
       genre: 'Dress-Up',
       description: 'Baby Hazel is invited for Kayla\'s birthday party. Help mom to give a great home spa treatment to her little princess. Treat her nails and toes to make them shinny and neat. Apply light makeup to Baby Hazel and dress her up in good looking party costume and accessories. Make sure she gets ready on time as Ashley will be at home any time now to pick her.',
       tags: ['Dress-up', 'HTML5'],
@@ -9817,9 +9817,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-noob-vs-pro-3',
-      name: 'Duel',
+      name: 'Noob Vs Pro 3',
       genre: 'Adventure',
-      description: 'Play Duel online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Noob Vs Pro 3 online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -9840,7 +9840,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-counting-squirrel',
-      name: 'Order of Operation Challenge',
+      name: 'Counting Squirrel',
       genre: 'Educational',
       description: 'Drag the squirrel towards the numbers that sums the numbers and equals to the number on top of the hole',
       tags: ['Educational', 'HTML5'],
@@ -9863,7 +9863,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-aquapark-fun-loop',
-      name: 'Build an Aquapark',
+      name: 'AquaPark Fun Loop',
       genre: 'Casual',
       description: 'You are an aquapark operator in the Aquapark Fun Loop game. In order for the pool to receive more customers, you must make it make more profit. Continue making upgrades with the money you earn to make Aqupark bigger and better. You can finally have a very big and fancy Aquapark!',
       tags: ['Casual', 'Simulation', 'HTML5'],
@@ -9886,7 +9886,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-final-countdown',
-      name: 'Metal Bay Top Blade Power',
+      name: 'Final Countdown',
       genre: 'Adventure',
       description: 'Move your character using arrow keys. Do not fall! Push enemies to the edges and try to be the last one standing.',
       tags: ['Adventure', 'HTML5'],
@@ -9909,7 +9909,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-zrist',
-      name: 'Mega Ramps Ultimate Car Races',
+      name: 'Zrist',
       genre: 'Agility',
       description: 'Dodge endless obstacles while you get used to constantly shifting rules!  Features:  -Over 70 levels. -7 different rules. -High difficulty. -Cool Music.',
       tags: ['Agility', 'HTML5'],
@@ -9932,7 +9932,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-house-paint-2',
-      name: 'Landing Hero',
+      name: 'House Paint',
       genre: 'Art',
       description: 'White houses are boring. Bring the colors in and paint everything in seconds! To complete every level, paint all white spaces. Swipe left, right, up and down and fill all the empty spots! Endless levels are waiting for you. Can you complete 200, 300, 400 levels or even more?',
       tags: ['Art', 'HTML5'],
@@ -9955,7 +9955,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-baby-taylor-in-the-airport',
-      name: 'Childcare Master Online',
+      name: 'Baby Taylor In The Airport',
       genre: 'Adventure',
       description: 'Baby Taylor and her family decide to go traveling by airplane. This is the first time that Taylor take an airplane. She is exciting and curious about the travel. Can you help her to prepare the luggage? And make sure Taylor’s family take the airplane successfully.',
       tags: ['Adventure', 'HTML5'],
@@ -9978,7 +9978,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-drag-and-drop-clothing',
-      name: 'Sprunki Easter Coloring',
+      name: 'Drag and Drop Clothing',
       genre: 'Educational',
       description: 'Drag and Drop Clothing  Drag and Drop Clothing is a game developed for children in which they learn the difference between the shapes of objects in a fun way, using their mobile phone, tablet, or computer.  Game developed by:  Nau.kids',
       tags: ['Educational', 'HTML5'],
@@ -10001,9 +10001,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bike-jump',
-      name: 'Grandfather Road Chase Realistic Shooter Guns',
+      name: 'Bike jump',
       genre: 'Racing \\U0026 Driving',
-      description: 'Play Grandfather Road Chase Realistic Shooter Guns online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Bike jump online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10024,7 +10024,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-detective-loupe-puzzle',
-      name: 'Spot Differences Bird Adventure',
+      name: 'Detective Loupe Puzzle',
       genre: 'Puzzle',
       description: 'Hello detective! Please help, we have dozens of unsolved mysteries, filled with riddles, hidden objects, differences that need to be found, and similar stuff. Who\'s a murderer, who\'s a vampire, who is not a zombie, who\'s in love...? Only one person can solve it - detective Loupe!',
       tags: ['Puzzle', 'HTML5'],
@@ -10047,7 +10047,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princess-in-circus-show',
-      name: 'Digital Circus Find The Differences',
+      name: 'Princess In Circus Show',
       genre: 'Dress-Up',
       description: 'Disney princess Elsa, Ariel and Rapunzel are working in the circus. Each and every day they are rocking in their shows with their awesome performance and wonderful outfits. Today, They have to get ready for the show. Could you help them to get dressed for the show and help them to perform on stage?',
       tags: ['Dress-up', 'HTML5'],
@@ -10070,7 +10070,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-pumpkin-catcher',
-      name: 'Break a Lucky Block!',
+      name: 'Pumpkin Catcher',
       genre: 'Casual',
       description: 'Fly on a jetpack between walls and avoid rotating traps. Catch pumpkins using your favorite monster: zombie, vampire, devil or even a cat!  Try this challenging Halloween game and set a new world record in catching pumpkins. Compete with your friends on the online leaderboard! Collect them all!',
       tags: ['Casual', 'HTML5'],
@@ -10093,7 +10093,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-go-up-dash',
-      name: 'Jump Dash',
+      name: 'Go Up Dash',
       genre: 'Agility',
       description: 'Try to dash up to the top to complete each challenge.',
       tags: ['Agility', 'Casual', 'HTML5'],
@@ -10116,9 +10116,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-valentines-day-cinema',
-      name: 'Kawaii Realm Adventure',
+      name: 'Valentines Day Cinema',
       genre: 'Dress-Up',
-      description: 'Play Kawaii Realm Adventure online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Valentines Day Cinema online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Dress-up', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10139,9 +10139,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-easy-kids-coloring-mineblox',
-      name: 'UFO IO Armada!',
+      name: 'Easy Kids Coloring Mineblox',
       genre: 'Art',
-      description: 'Play UFO IO Armada! online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Easy Kids Coloring Mineblox online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Art', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10162,7 +10162,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-eyes-go-travel-netherlands-slide',
-      name: 'Treasure Hunt Puzzle',
+      name: 'Eyes Go Travel Netherlands Slide',
       genre: 'Puzzle',
       description: 'Play this slide puzzle games of the Netherlands. It\'s include 3 images and 3 modes to play.',
       tags: ['Puzzle', 'HTML5'],
@@ -10185,9 +10185,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-heroes-of-mangara.-the-frost-crown',
-      name: 'Lucky Fisherman',
+      name: 'Heroes of Mangara. The Frost Crown',
       genre: 'Adventure',
-      description: 'Play Lucky Fisherman online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Heroes of Mangara. The Frost Crown online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10208,7 +10208,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bicycle-simulator',
-      name: 'Unicycle Balance 3D',
+      name: 'Bicycle Simulator',
       genre: 'Simulation',
       description: 'Get a ride around the city on your bike to perform cool stunts and tricks',
       tags: ['Simulation', 'HTML5'],
@@ -10231,7 +10231,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princesses-on-ibiza',
-      name: 'African Princesses: Style Island',
+      name: 'Princesses on Ibiza',
       genre: 'Dress-Up',
       description: 'The winter is a fun season indeed Skiing skating snowmens building But it is cold windy and cold again Princesses decided to make a vacation and go to Ibiza Get tanned enjoy the sun buy some sute summer clothes What can be better than going to summer in the middle of the winter',
       tags: ['Dress-up', 'HTML5'],
@@ -10254,7 +10254,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-physics-balls',
-      name: 'Pyramidz2',
+      name: 'Physics Balls',
       genre: 'Puzzle',
       description: 'Physics Balls is a creative and challenging math and physics puzzle game. Here has numbers and ball elements. Improve your logical thinking and hands-on skills while having fun. Your aim is to break all bricks in one shoot. Throw balls to make them roll among the bricks. You can apply physical principles to control the balls cleverly.',
       tags: ['Casual', 'Puzzle', 'HTML5'],
@@ -10277,7 +10277,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-Halloween-Face-Art',
-      name: 'Celebrity Face Dance',
+      name: 'Halloween Face Art',
       genre: 'Dress-Up',
       description: 'Our Princess had decided to celebrate the Halloween season. This time she goes with a Horror face Art and some spooky outfits.Hope you will give her a terror look.',
       tags: ['Dress-up', 'HTML5'],
@@ -10300,7 +10300,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-rocketate',
-      name: 'Hole Digger',
+      name: 'Rocketate',
       genre: 'Puzzle',
       description: 'Rotate the world and use your jetpack to get to the finish Move wood boxes and sticks avoid electric cables Use your fuel wisely',
       tags: ['Puzzle', 'HTML5'],
@@ -10323,7 +10323,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-screw-nuts-and-bolts%3A-wood-solve',
-      name: 'Wood Hexa Factory',
+      name: 'Screw Nuts & Bolts: Wood Solve',
       genre: 'Puzzle',
       description: 'Embark on a Brain-Twisting Journey with Screw Nuts \\u0026 Bolts: Wood Solve, an exceptional wood puzzle game about nuts and bolts to test your IQ brain power. For nuts and bolts lovers who likes challenge and innovative gameplay, the right game for you - the ultimate puzzle game - is here.',
       tags: ['Puzzle', 'HTML5'],
@@ -10346,7 +10346,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fz-tripolygon',
-      name: 'Fox Adventure',
+      name: 'FZ Tripolygon',
       genre: 'Match-3',
       description: 'Rotate the triangle, to match the color of the line. How high can you score? Foxzin.com with tons of games for all ages and bringing fun to player Play free online games.',
       tags: ['Match-3', 'HTML5'],
@@ -10369,7 +10369,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sudo-tetroid-daily',
-      name: 'Merge Lagoon',
+      name: 'Sudo Tetroid Daily',
       genre: 'Puzzle',
       description: 'A new fresh way of playing your favorite sudoku puzzles have just arrived! Play your way through all levels or challenge yourself in the daily mode! Come back everyday for new challenges!',
       tags: ['Educational', 'Puzzle', 'HTML5'],
@@ -10392,7 +10392,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-scorpion-solitaire-2',
-      name: 'Solitaire Summer: Klondike',
+      name: 'Scorpion Solitaire',
       genre: 'Cards',
       description: 'If you are a big fan of Klondike and Spider solitaires but you are looking for new variations, you\'ll surely like Scorpion Solitaire. Choose among three different game\'s difficulty: Easy Medium and Hard and complete the solitaire with the least number of moves.',
       tags: ['Cards', 'HTML5'],
@@ -10415,7 +10415,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-3-in-1-puzzle-game',
-      name: 'Hot \\u0026 Cold Winter Style',
+      name: '3 in 1 Puzzle Game',
       genre: 'Puzzle',
       description: '3 in 1 puzzle game is fun addictive puzzle game.Play 3 puzzle game in 1 game .3 in 1 puzzle game merged best puzzles like Cray number, Merge Plus and Line Connect in 1 game collection.',
       tags: ['Puzzle', 'HTML5'],
@@ -10461,7 +10461,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-balls-and-bricks',
-      name: 'Prism Match 3D',
+      name: 'Balls and Bricks',
       genre: 'Casual',
       description: 'If you\'re looking for a simple and no frills fun, then you\'re in the right place. Bricks vs. Balls is a relaxing game where you just aim and watch as everything gets destroyed. That is, if your aim is on point, but that\'s about the only catch. Are your ready to try your aim and have lots of fun? Then jump in and play!',
       tags: ['Casual', 'HTML5'],
@@ -10484,7 +10484,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-crab-and-fish',
-      name: 'Hopnova',
+      name: 'Crab & Fish',
       genre: 'Puzzle',
       description: 'A simple and addictive physics puzzle. Free Fishes and compete with friends, the more friends, the more chances to win! Don\'t lose your opportunity to save the ocean!',
       tags: ['Puzzle', 'HTML5'],
@@ -10507,7 +10507,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-peg-solitaire-1',
-      name: 'English Checkers',
+      name: 'Peg Solitaire',
       genre: 'Cards',
       description: 'This puzzle game is over 300 years old. Can you find the right moves to get down to one piece in this logic and strategy classic?',
       tags: ['Cards', 'HTML5'],
@@ -10530,7 +10530,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-chicken-shooter',
-      name: 'ChickZ Stack',
+      name: 'Chicken Shooter',
       genre: 'Shooter',
       description: 'Chicken Shooter features: - good graphics - multiple levels',
       tags: ['Shooter', 'HTML5'],
@@ -10553,7 +10553,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-robby-the-lava-tsunami',
-      name: 'Italian Animals: Create Your Own Brainrot!',
+      name: 'Robby The Lava Tsunami',
       genre: 'Casual',
       description: 'In this game, you have to get to the finish line and not get caught in the lava tsunami. The game is similar to the popular mode from roblox, but there are unique abilities waiting for you. Use them to be better than your opponents. This is a game for fans of jumping, speed, parkour. The game has many skins for your character, and you can also buy a fashionable hat.',
       tags: ['Casual', 'HTML5'],
@@ -10576,7 +10576,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-tight-and-bright-party',
-      name: 'Fashion Valkyries Saga of Style',
+      name: 'Tight And Bright Party',
       genre: 'Dress-Up',
       description: 'Vincy and Princy are excited about the today’s party. It’s Tight and bright party. Wow! This is awesome! Usually all are very much fond of colors and party. Choosing of colors and style of dress for this party is very important. This is time for choosing outfits for the girls.  Could you help them for the best?',
       tags: ['Dress-up', 'HTML5'],
@@ -10599,7 +10599,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-train-bandit',
-      name: 'Chicken Wild Run',
+      name: 'Train Bandit',
       genre: 'Shooter',
       description: 'Become a fearless outlaw in the wild west.  Engage in heart-pounding shootouts with sheriffs, amass stolen treasures, evade bullets with precision, and master the art of jumping from wagon to wagon with strategic prowess.',
       tags: ['Shooter', 'HTML5'],
@@ -10622,7 +10622,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-pregnant-princesses-catwalk-show',
-      name: 'Fashion Challenge: Catwalk Run',
+      name: 'Pregnant Princesses Catwalk Show',
       genre: 'Dress-Up',
       description: 'You received an exclusive invitation to a special fashion showIt is all about pregnant mommys fashionwhere two beautiful pregnant princesses are competing to win the pregnant fashion show competitionYou will help them pick the perfect outfits for the competition and with your help one of our two princesses will winHave fun',
       tags: ['Dress-up', 'HTML5'],
@@ -10645,7 +10645,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-rugby-rush',
-      name: 'Rugby Kicks Game',
+      name: 'Rugby Rush',
       genre: 'Agility',
       description: 'Rugby Rush is a HTML5 Sport Game. Run the field and pass all the defenders to score the winning try! Collect power ups and bonus to become stronger and get more points!',
       tags: ['Agility', 'HTML5'],
@@ -10668,7 +10668,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-valentines-hidden-stars',
-      name: 'Legend of Fireball',
+      name: 'Valentines Hidden Stars',
       genre: 'Puzzle',
       description: 'Valentines hidden Stars is a fun hidden objects html game for kids that you can play for free You need to find all five hidden stars on the image to enter a new level No time no rush Have fun',
       tags: ['Puzzle', 'HTML5'],
@@ -10691,7 +10691,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cartoon-flight',
-      name: 'Anime Couple: Avatar Maker',
+      name: 'Cartoon Flight',
       genre: 'Agility',
       description: 'Get ready for a breathtaking flight with the fearless Miss Pilot! Fly, collect coins, overcome obstacles and receive rewards!',
       tags: ['Agility', 'HTML5'],
@@ -10714,7 +10714,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-demon-killer',
-      name: 'Fashion Heroes Academy',
+      name: 'Demon Killer',
       genre: 'Battle',
       description: 'You are the only one who can save the world! Arm yourself with an arsenal of weapons and stop the invasion of demons. Don\'t stop and use your shooting potential.',
       tags: ['Battle', 'HTML5'],
@@ -10737,7 +10737,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jewel-pop',
-      name: 'Super Ninja Balloon',
+      name: 'Jewel Pop',
       genre: 'Puzzle',
       description: 'Match triplets of cute colourful balloons in lots of levels',
       tags: ['Puzzle', 'HTML5'],
@@ -10760,7 +10760,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-tie-dye',
-      name: 'Hidden Paint 3D',
+      name: 'Tie Dye',
       genre: 'Art',
       description: 'What style of shirts, skirts, etc do you like? You can dye it whatever you like. There are many styles of clothes waiting for you to tie-dye. You can also dye according to the tips.  Sell them!',
       tags: ['Art', 'HTML5'],
@@ -10783,7 +10783,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-highway-motorcycle',
-      name: 'GT Traffic Racer',
+      name: 'Highway Motorcycle',
       genre: 'Racing \\U0026 Driving',
       description: 'Are you ready for limitless speed and too much adrenaline on the roads Unity presents you an unique experience with Highway Motorcycle and also it is freeforall It has energetic and thrilling musics and easy access on main menu',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -10806,9 +10806,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-angry-snake-io',
-      name: 'Mononinja',
+      name: 'angry snake io',
       genre: 'Adventure',
-      description: 'Play Mononinja online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play angry snake io online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['.IO', 'Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10829,9 +10829,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-dotted-girl-new-year-makeup',
-      name: 'Stylish Nail Art',
+      name: 'Dotted Girl New Year Makeup',
       genre: 'Dress-Up',
-      description: 'Play Stylish Nail Art online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Dotted Girl New Year Makeup online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Dress-up', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10852,7 +10852,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-gold-seeker',
-      name: 'Mansion Story Match',
+      name: 'Gold Seeker',
       genre: 'Puzzle',
       description: 'Do you like the Wild West Are you a greedy passionate of the gold rush Then this game is for youIn gold seeker you take the role of a miner in the Wild West looking for precious metals and stones Get your hook and your dynamite and prepare be the richest miner of the west',
       tags: ['Puzzle', 'HTML5'],
@@ -10875,9 +10875,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-harness-racing',
-      name: 'ROYAL COIN RUSH',
+      name: 'Harness Racing',
       genre: 'Racing \\U0026 Driving',
-      description: 'Play ROYAL COIN RUSH online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Harness Racing online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -10898,7 +10898,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-boys-names-hangman',
-      name: 'Pentaword',
+      name: 'Boys Names Hangman',
       genre: 'Puzzle',
       description: 'Guess the BoysNames Hangman is fun html game that you can play online for free The aim of the game is simple just try to guess the names  and avoid to be hanged Play around and check if your name is in the game Have fun',
       tags: ['Puzzle', 'HTML5'],
@@ -10921,7 +10921,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-omg-word-pop',
-      name: 'Word Search Universe Animals',
+      name: 'OMG Word Pop',
       genre: 'Puzzle',
       description: 'Tap and drag to form words How good is your vocabulary Is the word too difficult Earn a better score to unlock hintsFeatures Intuitive swipe mechanic to form English words Challenging levels Start with one word then two and more Words get more complicated as you progress',
       tags: ['Puzzle', 'HTML5'],
@@ -10944,7 +10944,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-the-frog-prince-jigsaw',
-      name: 'Valentines Hidden Alphawords',
+      name: 'The Frog Prince Jigsaw',
       genre: 'Puzzle',
       description: 'Everyone knows the story of the Frog Prince, right? In this puzzle game we recreate this legendary love story. Play with pleasure by choosing the beautiful graphics with the difficulty you want. When the game is over, if a frog appears in front of you, kiss it, maybe it will be a prince.',
       tags: ['Puzzle', 'HTML5'],
@@ -10967,7 +10967,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princess-royal-wedding-1',
-      name: 'Cute Craft Lab',
+      name: 'Princess Royal Wedding',
       genre: 'Dress-Up',
       description: 'Welcome to the princess Royal Wedding game. Princesses are getting ready for their wedding with Kristoff and Jack. They waiting so long for this occassion. They need some hand to get ready. Come and join the girls! And make this occassion most beautiful one in their life!',
       tags: ['Dress-up', 'HTML5'],
@@ -10990,7 +10990,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-farming-simulator-2',
-      name: 'Real Drive 3D',
+      name: 'Farming Simulator 2',
       genre: 'Simulation',
       description: 'Farming Simulator 2 features: - simulation gameplay - multiple levels',
       tags: ['Simulation', 'HTML5'],
@@ -11036,9 +11036,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-eg-flags-memory',
-      name: 'Flag Master: World Flags Quiz',
+      name: 'EG Flags Memory',
       genre: 'Puzzle',
-      description: 'Play Flag Master: World Flags Quiz online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play EG Flags Memory online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -11059,7 +11059,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-alphabet-game',
-      name: 'Word Hunt',
+      name: 'Alphabet Game',
       genre: 'Casual',
       description: 'Alphabet game is a game where the player learns and exercises his knowledge with letters, alphabet and objects. Perfect for children who have learned or are starting to learn to read and write.',
       tags: ['Casual', 'HTML5'],
@@ -11082,7 +11082,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-squid-mahjong-connect',
-      name: 'Tile Pair Match',
+      name: 'Squid Mahjong Connect',
       genre: 'Mahjong \\U0026 Connect',
       description: 'Connect all the among us squid mahjong tiles and clear the board in this html5 mahjong connection games. You can only connect 2 tiles with the same items with a path with no more than two 90 degree angles. What\'s the max level can you play?',
       tags: ['Mahjong \\u0026 Connect', 'HTML5'],
@@ -11105,9 +11105,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-tap-cricket',
-      name: 'Cricket Clash Pong',
+      name: 'Tap Cricket',
       genre: 'Sports',
-      description: 'Play Cricket Clash Pong online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Tap Cricket online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Sports', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -11128,7 +11128,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-goldblade-and-the-dangerous-water',
-      name: 'Chicken Banana Quest',
+      name: 'Goldblade and the dangerous water',
       genre: 'Adventure',
       description: 'Help the goldblade to fight the water monsters and free the kingdom',
       tags: ['Adventure', 'HTML5'],
@@ -11151,7 +11151,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-effing-worms-xmas',
-      name: 'Cars vs Zombies',
+      name: 'Effing Worms Xmas',
       genre: 'Action',
       description: 'Eat elves, yeti, and reindeer! Santa gave you a crap present, now you’re out for revenge! The hungriest and cruelest beast is coming back for christmas. It lives underground but when it needs food, it gets out to the surface. Help it to have the best banquet eating fresh meat, be careful because it can get indomitable!',
       tags: ['Casual', 'HTML5'],
@@ -11174,9 +11174,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-traitor-beaver!',
-      name: 'Color Sort: Impostor Edition',
+      name: 'Traitor Beaver!',
       genre: 'Casual',
-      description: 'Play Color Sort: Impostor Edition online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Traitor Beaver! online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Casual', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -11197,7 +11197,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-Top-10-Soccer-Managers',
-      name: 'Goose Cup',
+      name: 'Top 10 Soccer Managers',
       genre: 'Football',
       description: 'Can you decipher the stats, have an eye for talent and have nerves and discipline of steel to be a top soccer manager? Lead your club to the top of the European football scene by buying and selling players, getting teams match ready and schedule match days on the sports calendar. If you have what it takes then a good strategy is your game plan!',
       tags: ['Football', 'HTML5'],
@@ -11220,9 +11220,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-space-blaze-2',
-      name: 'Astro Kitty Rush',
+      name: 'Space Blaze 2',
       genre: 'Shooter',
-      description: 'Play Astro Kitty Rush online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Space Blaze 2 online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Shooter', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16303,7 +16303,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-Under-the-Sea',
-      name: 'Float for Brainrots',
+      name: 'Under the sea',
       genre: 'Adventure',
       description: 'The game acts as an effective simulator. Develops concentration, patience, perseverance, commitment, responsiveness, improves memory, broadens the mind through acquaintance with the underwater world.',
       tags: ['Adventure', 'HTML5'],
@@ -16326,7 +16326,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-emoji-snakes',
-      name: 'Emoji Frenzy',
+      name: 'Emoji Snakes',
       genre: 'Arcade',
       description: 'Now play the snakes slithering game in emoji style with Emoji Snakes a game developed by Beedo Games You can pick the various stylish emoji snakes There is only rule to play this game dont run into the other snakes and eat others to grow longer Good Luck',
       tags: ['.IO', 'HTML5'],
@@ -16349,9 +16349,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fall-friends',
-      name: 'Lost Things - Hidden Objects',
+      name: 'Fall Friends',
       genre: 'Agility',
-      description: 'Play Lost Things - Hidden Objects online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Fall Friends online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Agility', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16372,9 +16372,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-billiard-diamond-challenge',
-      name: 'Brick Breaker',
+      name: 'Billiard Diamond Challenge',
       genre: 'Sports',
-      description: 'Play Brick Breaker online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Billiard Diamond Challenge online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Casual', 'Sports', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16395,7 +16395,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-new-platform',
-      name: 'Pyramid Jewels',
+      name: 'New Platform',
       genre: 'Adventure',
       description: 'Match jewel clusters to clear the pyramid in this fast-paced HTML5 puzzle game.',
       tags: ['Adventure', 'HTML5'],
@@ -16418,7 +16418,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-how-many%3A-quiz-game',
-      name: 'INCOWORD',
+      name: 'How many: Quiz game',
       genre: 'Quiz',
       description: 'How many can win this game? This is the most entertaining trivia game ever  Challenge yourself with how smart you are. The rules are simple, guess the closest answer or get eaten by a shark or boiled in the hot water! Carefully read the quiz questions and type the correct answer on the board.',
       tags: ['Quiz', 'HTML5'],
@@ -16441,7 +16441,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-extreme-craft',
-      name: 'Tappy Bird - Avoid the Spikes',
+      name: 'Extreme Craft',
       genre: 'Casual',
       description: 'An exciting action game for air plane',
       tags: ['Casual', 'HTML5'],
@@ -16464,7 +16464,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-geometry-jump-sketchy',
-      name: 'Mirror Shape',
+      name: 'Geometry Jump Sketchy',
       genre: 'Battle',
       description: 'Welcome to Geometry Jump Sketchy, a fun arcade game where you are in a sketch world and your focus is to try and jump over all the obstacles in order to win. These obstacles are full of challenges, and you really need to push the boundaries as you try to reach the highest possible score.',
       tags: ['Battle', 'HTML5'],
@@ -16487,7 +16487,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-castle-blocks',
-      name: 'Build a Rollercoaster: Simulator',
+      name: 'Castle Blocks',
       genre: 'Puzzle',
       description: 'In this construction puzzle game, drop and drag blocks to build the perfect castle. Use your mouse or touchscreen to move objects. Add different building blocks inspired by different cultures and civilizations.',
       tags: ['Puzzle', 'HTML5'],
@@ -16510,9 +16510,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-falling-asleep-weird-and-fun-game',
-      name: 'Metaxis',
+      name: 'Falling Asleep - Weird & Fun Game',
       genre: 'Adventure',
-      description: 'Play Metaxis online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Falling Asleep - Weird & Fun Game online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16533,7 +16533,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-angry-shark-online',
-      name: 'Eat And Grow Fish',
+      name: 'Angry Shark Online',
       genre: 'Adventure',
       description: 'Take control of a very Angry Shark in this action packed aquatic Madness, Survive to the end of the travel, and destroy everything in your way.Take down boats, planes, eat the people and destroy all the city',
       tags: ['Adventure', 'Battle', 'HTML5'],
@@ -16556,7 +16556,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-my-dream-dentist',
-      name: 'Little Dentist Dash',
+      name: 'My Dream Dentist',
       genre: 'Care',
       description: 'This is a fun and interesting dentist game. If you want to be a dentist doctor, this is a best game for you. In this dentist game, you will cure the teeth of your little patients. Be careful and make use of the right tools.',
       tags: ['Care', 'HTML5'],
@@ -16579,7 +16579,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hippo-supermarket',
-      name: 'Aha World Dream Town',
+      name: 'Hippo Supermarket',
       genre: 'Arcade',
       description: 'Meet Jack Ma, a cute hippo who dreams of opening his own supermarket. But he doesn\'t know how to do it. He needs your help to make his dream come true.In this fun and addictive game, you need to merge the same items to get higher-level items, and then sell them to earn money. The more money you make, the more you can help Jack Ma build his store.',
       tags: ['.IO', 'Casual', 'HTML5'],
@@ -16602,7 +16602,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-escape-it!',
-      name: 'Safari Story Mahjong',
+      name: 'Escape It!',
       genre: 'Adventure',
       description: 'Escape It! is a point and click game. A story is attached to this game, and this is just the beginning. Made with ❤️ by Realinspirer!',
       tags: ['Adventure', 'HTML5'],
@@ -16625,7 +16625,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cool-castle-match-3',
-      name: 'Heroic Knight',
+      name: 'Cool Castle Match 3',
       genre: 'Match-3',
       description: 'Travel to the far away lands that existed in the medieval times, where castles were built as high as the clouds to defend their cities within. Match these castles to get the best possible score and to be the knight in shining armor. Defend your city, fellow citizen, and don\'t forget to have fun on the way!',
       tags: ['Match-3', 'HTML5'],
@@ -16648,7 +16648,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-candy-tile-blast',
-      name: 'Blocks and that\'s it',
+      name: 'Candy Tile Blast',
       genre: 'Casual',
       description: 'Candy Tile Blast is a fun and addictive matching game. Tap two or more of the same tiles to blast them out. Collect all the required tiles to pass the levels!',
       tags: ['Casual', 'HTML5'],
@@ -16671,7 +16671,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-lovie-chics-black-friday-shopping',
-      name: 'Black pink Black Friday Fever',
+      name: 'Lovie Chics Black Friday Shopping',
       genre: 'Dress-Up',
       description: 'Indulge in the ultimate Lovie Chics Black Friday Shopping spree! BFF girls are excited to go out for shopping on Black Friday. Explore exclusive deals, trendy fashion finds, and must-have accessories. Elevate your style and make the most of this exciting shopping extravaganza. Join us for a day of style and savings! Play and enjoy the new shopping adventure!',
       tags: ['Dress-up', 'HTML5'],
@@ -16694,7 +16694,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-blocky-squad',
-      name: 'Battle Shot Elite',
+      name: 'Blocky Squad',
       genre: 'Puzzle',
       description: 'Take control of your batallion to survive from epic war. Build your own army and move strategically to seize the day.',
       tags: ['Puzzle', 'HTML5'],
@@ -16717,9 +16717,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-head-sports-volleyball',
-      name: 'Head Runner Dash',
+      name: 'Head Sports Volleyball',
       genre: 'Football',
-      description: 'Play Head Runner Dash online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Head Sports Volleyball online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Football', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16763,7 +16763,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-leo-the-truck-jigsaw',
-      name: 'Mojicon Garden JigSolitaire',
+      name: 'Leo The Truck Jigsaw',
       genre: 'Jigsaw',
       description: 'Jigsaw game with Leo The Truck . You can choose one of five images and to solve this jigsaw game. Use mouse to play this game. Choose one of 3 modes to play with 25.49 or 100 pieces.',
       tags: ['Jigsaw', 'HTML5'],
@@ -16786,9 +16786,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-civilization',
-      name: 'Noob: Skyblock Survival',
+      name: 'Civilization',
       genre: 'Adventure',
-      description: 'Play Noob: Skyblock Survival online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Civilization online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16809,7 +16809,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-dolphin-dice-race',
-      name: 'Ludo Star',
+      name: 'Dolphin Dice Race',
       genre: 'Racing \\U0026 Driving',
       description: 'An interesting dice game which you can play with you mobile or tablet or computer or just a friend on hot-seat.  Shuffle the dice when you turn comes.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -16832,7 +16832,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-unicorns-jumper',
-      name: 'Hyper Wave Challenge',
+      name: 'Unicorns Jumper',
       genre: 'Casual',
       description: 'An addicted hypercasual game, simple to control, nice design, fun and relax-able. Jump as high as possible to unlock more cute characters. How high can you reach! PLAY NOW!',
       tags: ['Casual', 'HTML5'],
@@ -16855,7 +16855,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-castle-defense-2',
-      name: 'Spread',
+      name: 'Castle Defense',
       genre: 'Strategy',
       description: 'Play this epic tower defense game. Develop your castles into massive fortresses! 40+ map levels with four different themes and various types of magical skills with awesome powers to take out the monsters! It will keep you playing for hours.',
       tags: ['Strategy', 'HTML5'],
@@ -16878,7 +16878,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-eye-doctor',
-      name: 'Hospital Surgeon Doctor Game',
+      name: 'Eye Doctor',
       genre: 'Care',
       description: 'Eye Doctor is a free hospital game for kids! Some children’s eye vision is becoming more sensitive and weak. Your task is to check up their eye vision and perform different medical examinations on their eyes.',
       tags: ['Care', 'HTML5'],
@@ -16901,9 +16901,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-real-construction-excavator-simulator',
-      name: 'Countryside Driving Quest',
+      name: 'Real Construction Excavator Simulator',
       genre: 'Racing \\U0026 Driving',
-      description: 'Play Countryside Driving Quest online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Real Construction Excavator Simulator online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Racing \\u0026 Driving', 'Simulation', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -16924,7 +16924,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-knife-master-%3A-ball-racing',
-      name: 'Happy Jump',
+      name: 'Knife Master : Ball Racing',
       genre: 'Agility',
       description: 'Chop chop chop, throw the knife, but don\'t hit the ball~! It\'s like the mastery of circus performer. Which means, it\'s fun! Let\'s be the master of throwing knives and bounce the ball to the sky!',
       tags: ['Agility', 'Casual', 'HTML5'],
@@ -16947,7 +16947,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-squarehead-hero',
-      name: 'Dungeon Master – Cult \\u0026 Craft',
+      name: 'Squarehead Hero',
       genre: 'Adventure',
       description: 'Squarehead Hero is a fun, turn-based puzzle game where you help a brave, square-headed hero explore dangerous dungeons full of monsters and treasure. Plan your moves carefully on a grid board — fight enemies, grab loot, and gear up for the next challenge. Think you’ve got what it takes to lead Squarehead to victory? Jump in and find out!',
       tags: ['Adventure', 'HTML5'],
@@ -16970,7 +16970,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-blackjack-game',
-      name: 'С21A',
+      name: 'Blackjack Game',
       genre: 'Cards',
       description: 'Blackjack is a card game that aims to beat the dealer without passing 21',
       tags: ['Cards', 'HTML5'],
@@ -16993,9 +16993,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-maze-escape-%3A-craft-man',
-      name: 'Color Ring Sorting Match',
+      name: 'Maze Escape : Craft Man',
       genre: 'Adventure',
-      description: 'Play Color Ring Sorting Match online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Maze Escape : Craft Man online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17016,7 +17016,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cameraman-vs-toilets-puzzle',
-      name: 'Fury Tanks',
+      name: 'Cameraman vs Toilets Puzzle',
       genre: 'Puzzle',
       description: 'Cameraman vs Toilets Puzzle is an exciting game in which you play as Cameraman\'s Agent, whose task is to destroy all the toilets with the heads of rainbow friends. You have to use your shooting skills to accurately hit each toilet bowl and avoid hitting a Nubian friend.',
       tags: ['Puzzle', 'HTML5'],
@@ -17039,7 +17039,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jolly-volley',
-      name: 'Goal io',
+      name: 'Jolly Volley',
       genre: 'Sports',
       description: 'The blobs are playing volley',
       tags: ['Sports', 'HTML5'],
@@ -17062,7 +17062,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-impossible-ski',
-      name: 'Music Tiles: Fluffy Hop Beat',
+      name: 'Impossible Ski',
       genre: 'Agility',
       description: 'impossible skiing is a game where you must show how well your reflexes work Where you need to avoid obstacles collect points to unlock the characters',
       tags: ['Agility', 'HTML5'],
@@ -17085,7 +17085,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-my-ice-cream-truck',
-      name: 'Grass Defense',
+      name: 'My Ice Cream Truck',
       genre: 'Cooking',
       description: 'Want to make a strawberry shortcake ice cream? Or do you love milkshake games? What are your favorite sweet treats? You can have an Ice Cream Truck and be an ice cream maker to serve all of the desserts you love the most!!',
       tags: ['Cooking', 'HTML5'],
@@ -17108,7 +17108,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-flow-laser-quest',
-      name: 'SuperPixelint',
+      name: 'Flow Laser Quest',
       genre: 'Puzzle',
       description: 'Fans of digital worlds Tron and of brain games come and see  Flow Laser quest is an ingenious puzzle game in a computer world that will put your neurons to the trials  Link the points of the same color through a hundred of levelsFlow Laser Quest is a puzzle game in which you must link points of the same color in a hundred of levels',
       tags: ['Puzzle', 'HTML5'],
@@ -17131,7 +17131,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-oil-tanker-transport-truck',
-      name: 'Racing in City',
+      name: 'Oil Tanker Transport Truck',
       genre: 'Arcade',
       description: 'Let\'s go on to ride with an oil tanker transporter truck across all the continents like the Euro, Asia, and America oil transporter truck game has real features in the Euro and American cargo systems of the fuel truck.',
       tags: ['.IO', 'Simulation', 'HTML5'],
@@ -17154,7 +17154,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-count-master-match-color-run',
-      name: 'Downtown Parkour Drive',
+      name: 'Count Master Match Color Run',
       genre: 'Adventure',
       description: 'Count Master: Match Color Run is a colorful running game where you lead a group of little characters in a color-matching race! In this exciting arcade challenge, collect characters of the same color to grow your team. Merge them for a bigger squad, aiming for the highest score. Avoid hammers, spikes, etc. Collect characters of the same color to expand your team.',
       tags: ['Adventure', 'HTML5'],
@@ -17177,7 +17177,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fireman-jet',
-      name: 'Siege Break',
+      name: 'Fireman Jet',
       genre: 'Casual',
       description: 'Consider that the resolution is adapted to mobile and PC.  Put out fires and rescue the people and pets. The more fires that you put out the higher your score will be. Collect coins as you travel high into the sky saving the building from burning down. Use your coins to unlock new skins.',
       tags: ['Casual', 'HTML5'],
@@ -17200,9 +17200,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-two-lambo-rivals%3A-drift',
-      name: 'Jump Ball Classic',
+      name: 'Two Lambo Rivals: Drift',
       genre: 'Casual',
-      description: 'Play Jump Ball Classic online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Two Lambo Rivals: Drift online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Casual', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17223,7 +17223,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-formula-drag-1',
-      name: 'Nitro Speed 2 Underground',
+      name: 'Formula Drag',
       genre: 'Racing \\U0026 Driving',
       description: 'Drive Formula the best you can. 4 different formula bolids in this skill game. Use your finger to control formula in this great drifting game. Stay on track and make best resault.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -17246,9 +17246,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-haunted-house-hidden-ghost',
-      name: 'Robby: Bomberman',
+      name: 'Haunted House Hidden Ghost',
       genre: 'Adventure',
-      description: 'Play Robby: Bomberman online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Haunted House Hidden Ghost online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17269,9 +17269,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-space.io',
-      name: 'Bubbits',
+      name: 'Space.io',
       genre: 'Arcade',
-      description: 'Play Bubbits online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Space.io online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['.IO', 'Shooter', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17292,7 +17292,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-little-princess-hair-treatment',
-      name: 'Hair Salon: Beauty Salon',
+      name: 'Little Princess Hair Treatment',
       genre: 'Care',
       description: 'The newest and most exciting girl game is now live in html format and is about princess Sofia who needs a hair treatmentTo be able to do the right treatment you need tools so the first level must find the hidden tools Once found the game automatically moves to level two and here follow the instructions of each item and the little princess will again have beautiful hair Have fun girls',
       tags: ['Care', 'HTML5'],
@@ -17315,7 +17315,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jewel-legend-quest',
-      name: 'Jewel Coloring',
+      name: 'Jewel Legend Quest',
       genre: 'Puzzle',
       description: 'The most legendary quest of your life begins! Miners from all around the world have come to get their hands on these precious gems. Join them in the effort and engage in various challenges while trying to dig out as many diamonds as possible.',
       tags: ['Puzzle', 'HTML5'],
@@ -17338,7 +17338,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-angry-flying-zombie',
-      name: 'Mega Shark',
+      name: 'Angry Flying Zombie',
       genre: 'Shooter',
       description: 'What should you do with a stone-laden catapult? Shoot zombies of course! Angry Flying Zombie is a completely fun action game.',
       tags: ['Shooter', 'HTML5'],
@@ -17361,9 +17361,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-barbiecore-aesthetics',
-      name: 'Darling Doll',
+      name: 'Barbiecore Aesthetics',
       genre: 'Dress-Up',
-      description: 'Play Darling Doll online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Barbiecore Aesthetics online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Dress-up', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17384,9 +17384,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bubble-pop',
-      name: 'Forest Tile Match',
+      name: 'Bubble Pop',
       genre: 'Match-3',
-      description: 'Play Forest Tile Match online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Bubble Pop online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Match-3', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17407,7 +17407,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-steam-rocket',
-      name: 'Vex Try To Fly',
+      name: 'Steam Rocket',
       genre: 'Casual',
       description: 'Ride your steam rocket and avoid all obstacles!Avoid obstacles and try to reach the highest score. Be careful with fuel! You\'re stranded on an alien planet and your rocket is in bits! Use your jetpack and re-construct your rocket so you can escape, then fill the boiler with coal and get ready for blast off!',
       tags: ['Casual', 'HTML5'],
@@ -17430,7 +17430,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-subtraction-math-challenge',
-      name: 'High School Teacher Games Life',
+      name: 'Subtraction Math Challenge',
       genre: 'Educational',
       description: 'Subtraction Math Challenge is fun math game suitable for all ages. I hope you like math and this game is just to test your math skills. Ten seconds to answer each quastion. Have fun playing.',
       tags: ['Educational', 'HTML5'],
@@ -17453,7 +17453,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kitty-wedding-day',
-      name: 'Funny Angela Haircut',
+      name: 'Kitty Wedding Day',
       genre: 'Dress-Up',
       description: 'Kitty is preparing for her wedding day and all her friends are invited to the weddingHelp Kitty prepare for her dream weddingpick the best wedding dressnice shoes and accesoriesAfter you finish creating Kittys outfithelp her decorate the garden for the weddingHave fun playing Marry Me Kitty',
       tags: ['Dress-up', 'HTML5'],
@@ -17476,9 +17476,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-gangster-war',
-      name: 'Gangsta Duel',
+      name: 'Gangster War',
       genre: 'Battle',
-      description: 'Play Gangsta Duel online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Gangster War online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Battle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17499,7 +17499,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-flappy-dragon',
-      name: 'Dino Hunter King',
+      name: 'Flappy Dragon',
       genre: 'Casual',
       description: 'Flappy Dragon is a fun casual game where you control a dragon and avoid obstacles. Play Flappy Dragon now for a fun casual gameplay and great graphics!',
       tags: ['Casual', 'HTML5'],
@@ -17522,7 +17522,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-idle-hypermart-empire',
-      name: 'Money Factory: Tycoon Idle Game',
+      name: 'Idle Hypermart Empire',
       genre: 'Simulation',
       description: 'Tap on your workers to start producing goods to sell. Next, transport profits to the cash counter office with an elevator. Finally, transport your earnings to your account.  Use your earnings to upgrade your Hypermart, elevator and warehouse. Automate tasks by hiring managers at each facility.',
       tags: ['Simulation', 'HTML5'],
@@ -17545,7 +17545,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cartoon-ambulance-puzzle',
-      name: 'Emergency Jam',
+      name: 'Cartoon Ambulance Puzzle',
       genre: 'Puzzle',
       description: 'Play with 6 images in this perfect jigsaw puzzle game: Cartoon Ambulance Puzzle. All images is with the cartoon ambulance. Solve all puzzles and keep your brain sharp. You have four modes for each picture, 16 pieces, 36 pieces, 64 pieces and 100 pieces. Enjoy and have fun.',
       tags: ['Puzzle', 'HTML5'],
@@ -17568,7 +17568,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-ducky-duckie',
-      name: 'Duck Luck',
+      name: 'Ducky Duckie',
       genre: 'Casual',
       description: 'The ducks need to reach the safe zone. Complete tasks and make the highest score.',
       tags: ['Casual', 'HTML5'],
@@ -17591,7 +17591,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-laps',
-      name: 'Dinosaurs vs Asteroids',
+      name: 'Laps',
       genre: 'Casual',
       description: 'Get a different excitement in every click with simple and fun graphicsQuickly adjust the bars with different click combinationsPlay more for high scores',
       tags: ['Casual', 'HTML5'],
@@ -17614,7 +17614,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-stickman-school-run',
-      name: 'Survive Lava for Brainrots!',
+      name: 'Stickman School Run',
       genre: 'Agility',
       description: 'PLAYTOUCH is happy to show you its brandnew game Stickman School Run Feel like you went back to school and take control of a little wire man whos also trying to run away from his homework and save his girlfriend Come and test your skills in this obstacle race',
       tags: ['Agility', 'HTML5'],
@@ -17637,7 +17637,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-twins-health-care',
-      name: 'Idle Bathroom Empire Tycoon',
+      name: 'Twins Health Care',
       genre: 'Care',
       description: 'Let\'s help our twin sisters Clara and Sophie need health care today. So, please help them to take a bath and eat the food and drink. Later focus on their health, Clara has some issues in her throat and Sophie has some ear problems. Could you help them to recover from their health issues and make them absolutely happy. Have fun!',
       tags: ['Care', 'HTML5'],
@@ -17660,7 +17660,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-against-coronavirus-slide',
-      name: 'Eliza Winter Coronation',
+      name: 'Against Coronavirus Slide',
       genre: 'Puzzle',
       description: 'Play this slide puzzle games of the against coronavirus. It\'s include 3 images and 3 modes to play.',
       tags: ['Puzzle', 'HTML5'],
@@ -17683,7 +17683,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bench-press-the-barbarian',
-      name: 'Garten Of BanBan 1 Escape',
+      name: 'Bench Press The Barbarian',
       genre: 'Sports',
       description: 'Bench Pressing isn\'t easy when your right arm is twice as strong as your left!  Can you even lift the bare bar in this physics based button basher?',
       tags: ['Sports', 'HTML5'],
@@ -17706,7 +17706,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-ultimate-swish-game',
-      name: 'Basket Swap',
+      name: 'Ultimate Swish Game',
       genre: 'Basketball',
       description: 'Ultimate Swish is a HTML5 Basketball game. Click the screen or press spacebar to stop the ball indicators and shot the ball.\\r Your goal is to make as many points as possible within 1 minute!',
       tags: ['Basketball', 'HTML5'],
@@ -17729,7 +17729,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-home-design-match-3',
-      name: 'Light Bulb Puzzle',
+      name: 'Home Design - Match 3',
       genre: 'Match-3',
       description: 'Enjoy a perfect blend of home design and match-3 fun! Solve colorful puzzles, create your ideal home, and activate powerful boosters. Take on rewarding challenges, collect prizes, and personalize your interiors. Play anytime, anywhere!',
       tags: ['Match-3', 'HTML5'],
@@ -17775,7 +17775,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fast-euro-train-driver-sim',
-      name: 'Super Brain',
+      name: 'Fast Euro Train Driver Sim',
       genre: 'Racing \\U0026 Driving',
       description: 'Fast Euro Train Driver Sim: Train Games 3D 2020 is new train driving simulator game that’ll give experience of real subway train sim world.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -17798,7 +17798,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princesses-quarantine-trends',
-      name: 'Iconic Halloween Costumes',
+      name: 'Princesses quarantine Trends',
       genre: 'Dress-Up',
       description: 'Let\'s our lovely princesses Emma, Mia and Clara decide to make the new trends in this quarantine situation. So, They have to choose their outfits and accessories carefully, Would you be interested in their fashion adviser today? Then get ready and make new trends and fashion. Have fun!',
       tags: ['Dress-up', 'HTML5'],
@@ -17821,7 +17821,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sokoban-3d-chapter-3',
-      name: 'Pixel Journey',
+      name: 'Sokoban 3D Chapter 3',
       genre: 'Puzzle',
       description: 'Sokoban 3d is classical maze puzzle game in 3d world. You need to move all blue blocks to market sports. Making the right move is key to win the level. One wrong move will result into dead lock. Good luck',
       tags: ['Puzzle', 'HTML5'],
@@ -17844,7 +17844,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-number-sequences',
-      name: 'Mind Games: Math Crosswords',
+      name: 'Number Sequences',
       genre: 'Casual',
       description: 'Number Sequences is an educational puzzle game in which you have to work out the next number in the sequence. If you find the pattern that links the numbers, you can work out the next numbers in the sequence. The game is not time-limited but an incorrect answer or revealing the answer will reduce your score. Challenge your mathematical skills and have fun.',
       tags: ['Casual', 'HTML5'],
@@ -17867,7 +17867,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-dinosaurs-vs-asteroids',
-      name: 'Space Cleaner',
+      name: 'Dinosaurs vs Asteroids',
       genre: 'Agility',
       description: 'Giant asteroids are crashing down on Earth. But the dinosaurs have a plan! They have special mounts on their backs where you can attach a variety of weapons: from miniguns and flamethrowers to alien shotguns and blasters. Additionally, there are special species of dinosaurs that can shoot powerful spikes or break asteroids with their claws.',
       tags: ['Agility', 'HTML5'],
@@ -17890,9 +17890,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-gorilla-adventure',
-      name: 'Climb Up!',
+      name: 'Gorilla Adventure',
       genre: 'Adventure',
-      description: 'Play Climb Up! online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Gorilla Adventure online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Adventure', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17913,7 +17913,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kick-master-3d',
-      name: 'Flick Shot Soccer',
+      name: 'Kick Master 3D',
       genre: 'Football',
       description: 'Kick Master 3D is fun addictive action hyper casual game. Click  to Kick the opponents and Throw out the opponents before the opponent throw you out. Enjoy this wonderful hyper casual game.',
       tags: ['Football', 'HTML5'],
@@ -17936,9 +17936,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-open-world-crime-city-shooting',
-      name: 'Aventador Vice Crime City',
+      name: 'Gangster Hero Open World Crime Shooting',
       genre: 'Shooter',
-      description: 'Play Aventador Vice Crime City online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Gangster Hero Open World Crime Shooting online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Shooter', 'Simulation', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17959,9 +17959,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-the-great-zombie-warzone',
-      name: 'Battle Arena',
+      name: 'The Great Zombie Warzone',
       genre: 'Shooter',
-      description: 'Play Battle Arena online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play The Great Zombie Warzone online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Shooter', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -17982,7 +17982,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-climb-hero',
-      name: 'Cars with Guns: Wasteland Showdown',
+      name: 'Climb Hero',
       genre: 'Sports',
       description: 'He trained and gained strength for years and now he wants to show everyone that he is the climb hero. Help him choose the right stones and climb together to the very top of the mountain. Can you do it with one try?',
       tags: ['Sports', 'HTML5'],
@@ -18005,7 +18005,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-killer-city',
-      name: 'Mr Stickman Gunner',
+      name: 'Killer City',
       genre: 'Action',
       description: 'Avoid the killers as you try to grab as much cash as possible. The sequel to Stick City, this time you need to avoid the killers and the vehicles for as long as possible. Pick up the baseball bat to help defend yourself.',
       tags: ['Shooter', 'HTML5'],
@@ -18028,7 +18028,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hacked-ship',
-      name: 'Ship \\u0026 Fish',
+      name: 'Hacked Ship',
       genre: 'Puzzle',
       description: 'Bad news your space ship was hacked and you are under attack Try to defend yourself from your enemies You need to be focused and to watch the switches on the colors',
       tags: ['Puzzle', 'HTML5'],
@@ -18051,7 +18051,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-polar-bear-merge',
-      name: 'Gummy merge',
+      name: 'Polar Bear Merge',
       genre: 'Bubble Shooter',
       description: 'Match numbers to make big numbers. Drag to aim and throw ice! Ice is added over time. The game ends when the ice reaches the bottom',
       tags: ['Bubble Shooter', 'Merge', 'HTML5'],
@@ -18074,7 +18074,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-angel-or-demon-avatar-dress-up-game',
-      name: '11 Kisses',
+      name: 'Angel or Demon Avatar Dress Up Game',
       genre: 'Dress-Up',
       description: 'In Angel or Demon Avatar Dress Up Game you can create your angel or demon girl in anime version! You have tons of options to create your angel or demon character however you want. Make a super cute angel girl or a evil demon. You can save your creation with full-body or avatar mode. It\'s perfect to create your original characters or try to create yourself as an angel or demon girl!',
       tags: ['Dress-up', 'HTML5'],
@@ -18097,7 +18097,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mr-bullet-2-online',
-      name: 'Obby - Escape Barry\'s jail parkour',
+      name: 'Mr Bullet 2 Online',
       genre: 'Shooter',
       description: 'Are you ready to become a true marksman hero? You are a spy and you are alone, defeat all the villains in the different areas. As a shooter, it\'s time to start the shooting carnival! Don\'t hesitate, choose your favorite hero, collect a powerful weapon and start this adventure now!',
       tags: ['Shooter', 'HTML5'],
@@ -18120,7 +18120,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-15-puzzle',
-      name: 'Cyber Rolling Going Ball 3D',
+      name: '15 Puzzle',
       genre: 'Puzzle',
       description: '15 Puzzle is a Logic Game. Choose your favorite image among those available. Move the tiles in grid in order to compose the image selected in the least time possible!',
       tags: ['Puzzle', 'HTML5'],
@@ -18143,7 +18143,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-tank-game-online',
-      name: 'Tank Strike Wasteland Rogue',
+      name: 'Tank Game Online',
       genre: 'Shooter',
       description: 'Do you like tank games Tank Game Online is a realistic and exciting multiplayer game Protect your region and achieve victoryAre you ready for a great war soldier Do you like tank games too Great start playing Super Tank Game and enter the world of tanks now for free Play tank game now',
       tags: ['Shooter', 'HTML5'],
@@ -18166,7 +18166,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-magic-adventure-school',
-      name: 'Escape from the Portal',
+      name: 'Magic Adventure School',
       genre: 'Adventure',
       description: 'Welcome to our school of magic, witchcraft and wizardry! Set up your own magic shop and make potions all day long until you become a real witch! Magic potion making in magical school games is not easy – it requires concentration and a lot of skills!',
       tags: ['Adventure', 'HTML5'],
@@ -18189,7 +18189,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-pac-game',
-      name: 'Ball Eating Simulator',
+      name: 'Pac Game',
       genre: 'Agility',
       description: 'Do you like the Pacman game style? If yes, this game is dedicated to you. Avoid the monsters at all costs, collect all the dots to complete a map. Eating a magic potion will help increasing your hero\'s power and weaken the monsters; During this magic period, your hero can kill the monsters. Try to make high scores and raise your name on the leaderboard. Enjoy!',
       tags: ['Agility', 'HTML5'],
@@ -18212,7 +18212,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mini-coins',
-      name: 'Jewels Coloring Puzzle',
+      name: 'Mini Coins',
       genre: 'Agility',
       description: 'Jump over the stage evading obstacles and enemies to collect coins that are everywhere!  You can also test your skills by collecting coins on the speedrun mode.',
       tags: ['Agility', 'HTML5'],
@@ -18235,7 +18235,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-crossy-bridge-1',
-      name: 'Brainrot Bridge Race 3D',
+      name: 'Crossy Bridge',
       genre: 'Casual',
       description: 'Do you like arcade games? Crossy Bridge is waiting for you.',
       tags: ['Casual', 'HTML5'],
@@ -18258,7 +18258,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cs-clone',
-      name: 'Grenade Simulator',
+      name: 'CS Clone',
       genre: 'Battle',
       description: 'Would you like to get in the action in the middle of the great desert or in the ancient temples, you can also choose the factory or a fight on the ship containers, is your choice now. Enjoy this multiplayer shooting game where you will have a great combat with players worldwide.  Features  • Multiplayer game rooms  • Multiple environments  • Good graphics',
       tags: ['Battle', 'HTML5'],
@@ -18281,7 +18281,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-girls-easter-chocolate-eggs',
-      name: 'Sweet Match',
+      name: 'Girls Easter Chocolate Eggs',
       genre: 'Cooking',
       description: 'Easter is here and our beautiful girls are ready for this big event They opened an egg magazine in the central park but they have still so much to do before they will finish with the preparation So help them finish the last eggs for this big event Have fun',
       tags: ['Cooking', 'HTML5'],
@@ -18304,7 +18304,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-casual-soccer',
-      name: 'Bubble Trouble 2: Rebubbled',
+      name: 'Casual Soccer',
       genre: 'Football',
       description: 'Shoot and score as many goals as you can in this fun soccer game Easy and intuitive Nice graphics BSO Original For all ages One touch control',
       tags: ['Football', 'HTML5'],
@@ -18327,7 +18327,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bingo-royal',
-      name: 'Bingo Halloween',
+      name: 'Bingo Royal',
       genre: 'Boardgames',
       description: 'Want to try your luck and skills? The new classic Bingo game comes with beautiful graphics and big wins. Choose your difficulty and number of cards. Mark the right numbers and wait for right time for Bingo. Start your free bingo tour and adventure anytime anywhere! Bingo has never been better!',
       tags: ['Boardgames', 'HTML5'],
@@ -18350,9 +18350,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-crazy-axe',
-      name: 'Axe Throw',
+      name: 'Crazy Axe',
       genre: 'Battle',
-      description: 'Play Axe Throw online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Crazy Axe online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Battle', 'Shooter', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -18373,7 +18373,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hit-knock-down',
-      name: 'Smash Defense',
+      name: 'Hit Knock Down',
       genre: 'Casual',
       description: 'Hit \\u0026 Knock Down is a fun casual game where you aim to throw baseballs. Shoot as many targets as possible. Test your precision, reaction speed, and throwing skills. You aim to hit the right targets in each level. The goals at the level are very varied, such as wood, stone, etc. Each level presents different targets. You should hit with a baseball.',
       tags: ['Casual', 'HTML5'],
@@ -18396,7 +18396,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bajaj-pulsar-125-puzzle',
-      name: 'Moto X3M Dead Ahead',
+      name: 'Bajaj Pulsar 125 Puzzle',
       genre: 'Puzzle',
       description: 'Play with 6 images in this perfect jigsaw puzzle game: Bajaj Pulsar 125 Puzzle. All images is with the bajaj pulsar 125. Solve all puzzles and keep your brain sharp. You have four modes for each picture, 16 pieces, 36 pieces, 64 pieces and 100 pieces. Enjoy and have fun.',
       tags: ['Puzzle', 'HTML5'],
@@ -18419,9 +18419,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-the-immersion',
-      name: 'Submarine Attack',
+      name: 'The Immersion',
       genre: 'Casual',
-      description: 'Play Submarine Attack online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play The Immersion online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Casual', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -18442,7 +18442,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-ludo',
-      name: 'Onu Live',
+      name: 'Ludo',
       genre: 'Boardgames',
       description: 'Get ready for the toughest battle with the Ludo game against three friends of you with the most classic board game. You should get your four characters to the area which is in the middle of the board and in the color of your tokens. You should roll six number with the dice to start moving with one of your tokens.  The Ludo game which can be played up to four players, begins!',
       tags: ['Boardgames', 'HTML5'],
@@ -18465,7 +18465,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-butterflies-puzzle',
-      name: 'Butterfly Sort Puzzle',
+      name: 'Butterflies Puzzle',
       genre: 'Puzzle',
       description: 'Play with 6 images in this perfect jigsaw puzzle game: Butterflies Puzzle. All images is with the anime girl with the butterfly. Solve all puzzles and keep your brain sharp. You have four modes for each picture, 16 pieces, 36 pieces, 64 pieces and 100 pieces. Enjoy and have fun.',
       tags: ['Puzzle', 'HTML5'],
@@ -18488,7 +18488,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-helix-jump-2020',
-      name: 'Stack Fall',
+      name: 'Helix Jump 2020',
       genre: 'Casual',
       description: 'Helix Jump 2020 is a fun and addictive game where all you have to do is to jump down as much platforms as you can without touching the colored tiles on an endless generated set of platforms. This is a fun with no end game.',
       tags: ['Casual', 'HTML5'],
@@ -18511,7 +18511,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-superhero-tower',
-      name: 'Dark Myth: Monkey Merge',
+      name: 'Superhero Tower',
       genre: 'Casual',
       description: 'Superhero Tower features: - 100 levels - good graphics',
       tags: ['Casual', 'HTML5'],
@@ -18534,7 +18534,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-dab-unicorns-puzzle',
-      name: 'Unicorn Find The Differences',
+      name: 'DAB Unicorns Puzzle',
       genre: 'Puzzle',
       description: 'You will love these unicorns. The dab movement suits them most. Complete 12 different unicorns, have fun.',
       tags: ['Puzzle', 'HTML5'],
@@ -18557,7 +18557,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princess-daily-fun',
-      name: 'Boyfriend For Hire',
+      name: 'Princess Daily Fun',
       genre: 'Casual',
       description: 'Princess Rapunzel has got a day off and shes going to spend it with her BFFs  Kristoff is asking her to join him in the morning walk at the city park so choose the most cute and comfortable outfit for the princess Ariel wants to go shopping and Rapunzel should look very stylish And in the evening the princess has a date a beautiful gown and brilliant accessories will help her to look gorgeous',
       tags: ['Casual', 'HTML5'],
@@ -18580,7 +18580,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-halloween-pizzeria',
-      name: 'Cookie Land',
+      name: 'Halloween Pizzeria',
       genre: 'Cooking',
       description: 'Prepare delicious pizza for hungry little monsters',
       tags: ['Cooking', 'HTML5'],
@@ -18603,7 +18603,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sliding-panda',
-      name: 'Panda Lu Treehouse',
+      name: 'Sliding Panda',
       genre: 'Casual',
       description: 'Your job is to guide the charismatic panda, in search of all the coins scattered throughout the phases! use the “jump” key to make the character jump in front of the obstacle of snow, being careful of the postages.',
       tags: ['Casual', 'HTML5'],
@@ -18626,7 +18626,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-push-to-go',
-      name: 'Slicer Duo',
+      name: 'Push To Go',
       genre: 'Puzzle',
       description: 'Push to Go – A Fun \\u0026 Addictive Puzzle Adventure! Get ready for an exciting brain-teasing experience with Push to Go, a 2D puzzle platformer built in Unity! Perfect for fans of logic games, button-based mechanics, and minimalist brain challenges, this game will test your timing, planning, and puzzle-solving skills.',
       tags: ['Casual', 'Puzzle', 'HTML5'],
@@ -18649,7 +18649,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-war-gun-commando',
-      name: 'Family Pet Dog Games',
+      name: 'War Gun Commando',
       genre: 'Shooter',
       description: 'Soldier, you’re under attack! The enemy troops have defeated the majority of our soldiers and surrounded you. Use your weapons and try to escape. You can use different objects that surrounds you (oil cans) as a weapon against the enemy or to hide.',
       tags: ['Shooter', 'HTML5'],
@@ -18672,9 +18672,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-monster-ecape',
-      name: 'Dragon Egg Master',
+      name: 'Monster Escape',
       genre: 'Puzzle',
-      description: 'Play Dragon Egg Master online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Monster Escape online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -18695,7 +18695,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-monster-truck-port-stunt',
-      name: 'Car Collision Master',
+      name: 'Monster Truck Port Stunt',
       genre: 'Battle',
       description: 'Would you like to test your driving skills in a unique Stunt game? You need to take monster trucks to the port through a way made out of shipping containers. But, it is not as easy as it seems; there are several traps on the road and some containers are placed in an inclination.',
       tags: ['Battle', 'HTML5'],
@@ -18718,7 +18718,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-rack\'em-8-ball-pool',
-      name: 'Pool Duel',
+      name: 'Rack\'em 8 Ball Pool',
       genre: 'Arcade',
       description: 'Try to defeat an online opponent or friend in RackEm a fun  ball pool style game',
       tags: ['.IO', 'HTML5'],
@@ -18741,7 +18741,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-craftbox-jigsaw-puzzle',
-      name: 'Sniper for Brainrot',
+      name: 'CraftBox Jigsaw Puzzle',
       genre: 'Puzzle',
       description: 'CraftBox Jigsaw Puzzle is Free online jigsaw puzzle game with six beautiful pictures. Control the level of difficulty for fun by all the family, or a quick distraction at work. Have fun playing.',
       tags: ['Puzzle', 'HTML5'],
@@ -18764,9 +18764,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-baby-hazel-swimming-time',
-      name: 'Hunter Underwater Spearfishing',
+      name: 'Baby Hazel Swimming Time',
       genre: 'Sports',
-      description: 'Play Hunter Underwater Spearfishing online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Baby Hazel Swimming Time online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Sports', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -18787,7 +18787,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cross-the-road-1',
-      name: 'Falling Dummy',
+      name: 'Cross the Road',
       genre: 'Agility',
       description: 'Experience the classic arcade action of Crossy Road in Roblox style! Navigate through endless roads, rivers, and train tracks, dodging obstacles and aiming for the highest score. With its vibrant voxel-style graphics and simple yet challenging gameplay, it\'s a nostalgic journey for both new and seasoned players.',
       tags: ['Agility', 'Casual', 'HTML5'],
@@ -18810,7 +18810,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-shot-shot',
-      name: 'Bounce Dunk Basketball',
+      name: 'Shot Shot',
       genre: 'Basketball',
       description: 'Shot Shot brings the most popular street basketball machine to you. Tap as fast and accurate as you can in limited time to make a high score.What\'s more, the majority of all, beat different players high scores far and wide to demonstrate that you are the best!',
       tags: ['Basketball', 'HTML5'],
@@ -18833,7 +18833,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fill-maze',
-      name: 'Word Game 2026',
+      name: 'Fill Maze',
       genre: 'Casual',
       description: 'Branding and external link free with 80 levels.  Optimized to play extremely well on all devices.  Slide the ball around the maze to fill it with color in this casual and super satisfying puzzle game.',
       tags: ['Casual', 'HTML5'],
@@ -18856,7 +18856,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mineblox-puzzle',
-      name: 'Chain Puzzle',
+      name: 'Mineblox Puzzle',
       genre: 'Puzzle',
       description: 'Mineblox Puzzle is fun and addictive game to play in this time of year. Make a chain of the mine food to make points and money for our lovley Steve. Think fast and do your best. Have fun playing.',
       tags: ['Puzzle', 'HTML5'],
@@ -18902,7 +18902,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-1010-diamonds-rush',
-      name: 'Fruit Block Tetra Puzzle',
+      name: '1010 Diamonds Rush',
       genre: 'Puzzle',
       description: '100 DIAMONDS RUSH is a unique puzzle game in which you need to collect all the diamond blocks from the board. In order to collect them, you need to fill the row or the column which is containing the diamonds block. For filling the row or column, pick and drop the available block sets from the left panel.',
       tags: ['Puzzle', 'HTML5'],
@@ -18925,7 +18925,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-snowboard-kings-2022',
-      name: 'Frost Defense',
+      name: 'Snowboard Kings 2022',
       genre: 'Sports',
       description: 'Ready for the slopes? Carve your way through mountains. Avoid trees and rocks and skid over icy snow. Explore every slope and find the shortest way down the hill. Can you also escape the avalanche?',
       tags: ['Sports', 'HTML5'],
@@ -18948,7 +18948,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-repair-it',
-      name: 'Home Block Story',
+      name: 'Repair It',
       genre: 'Casual',
       description: 'Well, unfortunately, electronics do break easily. But this is where you come in! Open up the electronics, switch the damaged parts, clean up the dust, apply some thermal paste, reassemble, and voila, like brand new! Level up your expertise and unlock new devices to repair!',
       tags: ['Casual', 'HTML5'],
@@ -18971,7 +18971,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-stickman-peacekeeper',
-      name: 'Stickman Dismount Simulator',
+      name: 'Stickman Peacekeeper',
       genre: 'Action',
       description: 'In dystopian future, the world is in brink of war. It is time when humanity need the peace keeper. Fight hordes of terrorists, enhance your war gears, and regain peace back on earth again!',
       tags: ['Shooter', 'HTML5'],
@@ -19017,7 +19017,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-street-racing%3A-moto-drift',
-      name: 'Pato Vs Cops',
+      name: 'Street Racing: Moto Drift',
       genre: 'Casual',
       description: 'Become the king of drifting! Win extreme street motorcycle races, escape from the police and make your way to victory!  **Feel the extreme and drive:** Incredible motorcycle races, chases, drifting and crazy stunts are waiting for you. Feel the drive, enjoy the speed, make exciting drifts and win the race!  **Avoid the chase:** Beware of the police who are trying to catch you!',
       tags: ['Casual', 'Racing \\u0026 Driving', 'HTML5'],
@@ -19040,9 +19040,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-color-circle-puzzle',
-      name: '2048 Merge Circle',
+      name: 'Color Circle Puzzle',
       genre: 'Puzzle',
-      description: 'Play 2048 Merge Circle online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Color Circle Puzzle online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -19063,7 +19063,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jungle-jam',
-      name: 'Jungle Solitaire',
+      name: 'Jungle Jam',
       genre: 'Match-3',
       description: 'Jungle Jam  Match Puzzle',
       tags: ['Match-3', 'HTML5'],
@@ -19086,7 +19086,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mr.-noob-eat-burger',
-      name: 'Papas Burger Cook',
+      name: 'Mr. Noob EAT Burger',
       genre: 'Adventure',
       description: 'This place has a lot of burgers, you need to find and eat them all. But they are guarded by the terrible Mr. Noob! Arm yourself with a torch and a burger detector to find them all, trick Noob and escape his estate.',
       tags: ['Adventure', 'HTML5'],
@@ -19109,7 +19109,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-4x4-offroad-monster-truck',
-      name: 'Offroad Crash Climber 4X4',
+      name: '4x4 Offroad Monster Truck',
       genre: 'Agility',
       description: 'Drive the most amazing off-road vehicles in this extreme trial madness!  Cross the barriers with Monster Trucks, 4x4 off-roaders and six wheeled Behemoths!',
       tags: ['Agility', 'HTML5'],
@@ -19132,7 +19132,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cold-drink-mahjong-connection',
-      name: 'Juice Merge',
+      name: 'Cold Drink Mahjong Connection',
       genre: 'Mahjong \\U0026 Connect',
       description: 'Connect all the cold drink mahjong tiles and clear the board in this html5 mahjong connection games. You can only connect 2 tiles with the same items with a path with no more than two 90 degree angles. What\'s the max level can you play?',
       tags: ['Mahjong \\u0026 Connect', 'HTML5'],
@@ -19155,7 +19155,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-drawariaonline',
-      name: 'sprunki character maker OC',
+      name: 'Drawaria.online',
       genre: 'Arcade',
       description: 'Drawaria.online is amazing multiplayer game in which players draw and guess random words. A group of players takes turns drawing an image of a secret word, while others try to guess the word before the time expires. Player what guesses the word gets a score point, and the fastest also gets additional bonus points. Person who scores the most points in a series of rounds wins the game.',
       tags: ['.IO', 'HTML5'],
@@ -19178,7 +19178,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cyber-surfer-skateboard',
-      name: 'Cyber Highway Escape',
+      name: 'Cyber Surfer Skateboard',
       genre: 'Racing \\U0026 Driving',
       description: 'Do you like cyberpunk? Do you like skateboarding? Then this game is for you! Welcome to the world where skateboarding belongs! In Cyber Surfer Skateboard, you can show off your skateboarding skills! Exciting music, fun obstacles, and sound effects will make you love this game! If you are a fan of skateboarding games, don\'t miss it! Have fun!',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -19201,7 +19201,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cute-mermaid-dress-up',
-      name: 'Princess vs Shark',
+      name: 'Cute Mermaid Dress Up',
       genre: 'Dress-Up',
       description: 'Mermaids-fabulous inhabitants of the amazing underwater world! They have wonderful hair, beautiful swimsuits and unusual fish tails. Mermaids can sing wonderfully and, as they say, love to lure sailors to the seabed with their sweet voice and enchanting beauty. But most of all, like all girls, mermaids love games-dress up and choose a new, the most fashionable and stylish outfits!',
       tags: ['Dress-up', 'HTML5'],
@@ -19224,7 +19224,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-babysitter-madness',
-      name: 'Komaru cat',
+      name: 'Babysitter Madness',
       genre: 'Art',
       description: 'It’s babysitter madness! Take these wild and fun babies to play at the Gymboree, make delicious frozen yogurt, and when night falls, get them ready for bed. You can even jump into the pool for a full day of fun with the babies! Who knew taking care of kids could be so exciting?',
       tags: ['Art', 'HTML5'],
@@ -19247,7 +19247,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-octopus-invasion',
-      name: 'Human Leap Evolution',
+      name: 'Octopus Invasion',
       genre: 'Casual',
       description: 'Dive into the ocean and control a hungry octopus on its journey to become the ultimate sea predator! Hunt fish, evolve new abilities, and unlock deeper, more dangerous zones in this addictive underwater adventure.',
       tags: ['Casual', 'Simulation', 'HTML5'],
@@ -19270,7 +19270,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jump-jelly-jump',
-      name: 'Bimka Drive - Smash cars into splinters!',
+      name: 'Jump Jelly Jump',
       genre: 'Agility',
       description: 'Time to put your skills to test with Jump Jelly Jump! Try to control these super-fast slimy characters as you glide and jump over narrow floating platforms. Collect all sorts of boosters that will help you jump further and avoid falling. There are over 50 funny characters to unlock and 28 different challenges where you can test yourself for high scores.',
       tags: ['Agility', 'HTML5'],
@@ -19293,7 +19293,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hoop-stars-1',
-      name: 'Free Hoops',
+      name: 'Hoop Stars',
       genre: 'Casual',
       description: 'This is a very interesting mini game.At your fingertips, swimming rings will keep jumping, and under your command, they will run to their target.Challenge the world and collect all the trophies!',
       tags: ['Casual', 'HTML5'],
@@ -19316,7 +19316,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-miami-taxi-driver-3d',
-      name: 'Parking Fury 3D: Night City',
+      name: 'Miami Taxi Driver 3D',
       genre: 'Racing \\U0026 Driving',
       description: 'Make a good living driving a cap. Pick up passengers in the inner city of Miami and drop them off their destination. Avoid to damage your taxi. Have fun! More then 90 levels are wating for you!',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -19339,7 +19339,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-paint-pop-3d',
-      name: 'Love Colors',
+      name: 'Paint Pop 3D',
       genre: 'Casual',
       description: 'Paint Pop D features  levels fun gameplay',
       tags: ['Casual', 'HTML5'],
@@ -19362,7 +19362,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-match-mart',
-      name: 'Busy Bee Hive',
+      name: 'Match Mart',
       genre: 'Puzzle',
       description: 'Arrange 3 of the same goods on 1 shelf. Goods can be moved to any available shelf. If the goods at the front is removed, the goods at the back comes to the front.',
       tags: ['Puzzle', 'HTML5'],
@@ -19385,7 +19385,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-test-your-love',
-      name: 'Marie Prepares Treat',
+      name: 'Test Your Love',
       genre: 'Casual',
       description: 'Write your names on the boxes and test how strong your love is. Remember that this is just a fun game. This has nothing to do with reality. By chance, the numbers come out. Have fun!',
       tags: ['Casual', 'HTML5'],
@@ -19408,7 +19408,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cupcakes-chef',
-      name: 'Desert Rover Survival',
+      name: 'Cupcakes Chef',
       genre: 'Cooking',
       description: 'Become a great Deserts Chef and help our princess cook and decorate some delicious cupcakesHave fun playing our latest cooking and decoration game',
       tags: ['Cooking', 'HTML5'],
@@ -19431,7 +19431,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kissing-in-music-class',
-      name: 'Teacher Simulator Christmas Exam',
+      name: 'Kissing in Music Class',
       genre: 'Puzzle',
       description: 'Those two students have fallen in love. Help them to kiss each other without getting caught.',
       tags: ['Puzzle', 'HTML5'],
@@ -19454,7 +19454,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-easter-rabbit-style',
-      name: 'Bunnies Sort',
+      name: 'Easter Rabbit Style',
       genre: 'Dress-Up',
       description: 'The joyful Easter holiday is approaching. Join cute girls for Easter fun. Try to find all the Easter eggs. Choose outfits for girls that are suitable for the theme of the holiday. Don\'t forget about funny bags and hats with rabbit ears. Have fun with your friends by playing «Easter Rabbit Style»!',
       tags: ['Dress-up', 'HTML5'],
@@ -19477,7 +19477,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-ping-pong-battle-table-tennis',
-      name: '2 Player Battle',
+      name: 'Ping Pong Battle Table Tennis',
       genre: 'Sports',
       description: 'Want to have an intense table tennis battle? In Ping Pong Battle - Table Tennis, you will become a ping pong pro and compete with your opponents in a fierce competition! This game combines realistic paddle manipulation with exciting match simulation.',
       tags: ['Casual', 'Sports', 'HTML5'],
@@ -19500,7 +19500,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sery-actress-dolly-makeup',
-      name: 'Starry Style Dorama of Dream',
+      name: 'Sery Actress Dolly Makeup',
       genre: 'Dress-Up',
       description: 'Sery has a lot of art related hobbies and one of them is theatre She always dreamed of acting on stage and tonight is her big moment She wants her makeup to be flawless so start opening up those mystery boxes to find the most amazing eyelashes eye shadows and even face paintings Create the most stunning makeup look for Sery and make sure she will shine in the spotlight like a true actress',
       tags: ['Dress-up', 'HTML5'],
@@ -19569,7 +19569,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-swimming-pro',
-      name: 'Archery King',
+      name: 'Swimming Pro',
       genre: 'Sports',
       description: 'Swimming pro is a HTML5 swimming game. Challenge the best swimmers in the world and beat their time! Collect medals to increase your energy and step to the podium of champions!',
       tags: ['Sports', 'HTML5'],
@@ -19592,7 +19592,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-mine-quest-daily',
-      name: 'Sudoku - Pin.Games',
+      name: 'Mine Quest Daily',
       genre: 'Puzzle',
       description: 'Uncover safe squares, avoid mines, and test your strategic insight in this massively addicting puzzle game!',
       tags: ['Puzzle', 'Strategy', 'HTML5'],
@@ -19615,7 +19615,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-drift-scooter',
-      name: 'Slap Man',
+      name: 'Drift Scooter',
       genre: 'Racing \\U0026 Driving',
       description: 'Drift Scooter, the busy streets collect all the coins to score your points, and avoid all incoming obstacles in this 3D scooter driving game in perspective!',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -19638,7 +19638,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-donuts-bakery',
-      name: 'Fall Bean 2',
+      name: 'Donuts Bakery',
       genre: 'Cooking',
       description: 'Our girl just opened a donuts bakery and she needs your help in cooking some delicious donutsHave fun helping her in our latest game called Donuts Bakery',
       tags: ['Cooking', 'HTML5'],
@@ -19661,7 +19661,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-knight-in-love-1',
-      name: 'Office Knight 3D: Castle Defense',
+      name: 'Knight in Love',
       genre: 'Adventure',
       description: 'The princess was arrested by the dragon. Knight needs to rescue his lover the princess. Now you control the knight to whack the castle and collect gold and diamonds to update his weapons and equipment. Press and tap the screen to move and update.',
       tags: ['Adventure', 'HTML5'],
@@ -19684,7 +19684,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-bubble-classic',
-      name: 'Paradise Journey: Match3',
+      name: 'Bubble classic',
       genre: 'Bubble Shooter',
       description: 'The goal of the game is not to lose as early as possible and to score as many points as possible. Improve your accuracy thanks to very competent rolling of balls. The more blocks with balls you destroy, the more points you accumulate. Check your results in the world rankings, maybe you are already number 1.',
       tags: ['Bubble Shooter', 'HTML5'],
@@ -19707,7 +19707,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-boxing-stars',
-      name: 'TapKO',
+      name: 'Boxing Stars',
       genre: 'Battle',
       description: 'Rise from the box underground to the championship and become a boxing star. Improve your skills with rewards to compete in better tournaments. Put your boxing gloves on and box like there’s no tomorrow. Defeat all your opponents in fights and collect all trophies.',
       tags: ['Battle', 'HTML5'],
@@ -19730,9 +19730,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-9x9-rotate-and-flip',
-      name: 'Choco Blast : Block Merge',
+      name: '9x9 Rotate and Flip',
       genre: 'Puzzle',
-      description: 'Play Choco Blast : Block Merge online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play 9x9 Rotate and Flip online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Puzzle', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -19753,7 +19753,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-skibidi-in-the-backrooms',
-      name: 'Cut the Grass 3D',
+      name: 'Skibidi in the Backrooms',
       genre: 'Adventure',
       description: 'Skibidi in the Backrooms is a game where you have to collect as many video tapes as you can without being spotted by the evil Skibidi wandering around the backrooms. Use the map to find your way, and collect all the tapes as fast as you can!',
       tags: ['Adventure', 'HTML5'],
@@ -19776,9 +19776,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-noob%3A-parkour-tricks',
-      name: 'Fire Ball and Water Ball: Parkour Love Balls',
+      name: 'Noob: parkour tricks',
       genre: 'Agility',
-      description: 'Play Fire Ball and Water Ball: Parkour Love Balls online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Noob: parkour tricks online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Agility', 'Casual', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -19799,7 +19799,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-the-hidden-objects-game',
-      name: 'Maldives Hidden Objects',
+      name: 'The Hidden Objects Game',
       genre: 'Puzzle',
       description: 'Play the classical hidden object game in an homely fashion Angelinas mother is out of house Angelina needs to find the missing objects before her mother arrival she dont have much time left She needs your help',
       tags: ['Puzzle', 'HTML5'],
@@ -19822,7 +19822,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-yeggman',
-      name: 'Zenith Rush',
+      name: 'Yeggman',
       genre: 'Casual',
       description: 'Help yeggman open safe',
       tags: ['Casual', 'HTML5'],
@@ -19845,7 +19845,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-princess-ballerina-bullet-rush',
-      name: 'Bottle Shooting Game',
+      name: 'Princess Ballerina Bullet Rush',
       genre: 'Dress-Up',
       description: 'A ballet performance is almost starting and the star of the show is not ready because she needs to have her stuff with her and an appropriate outfit for this kind of event Come in this dress up game to get her off the trouble in this rush she is and find the hidden things from her room Make sure you choose a special costume for a real ballerina and put some cute accessories and delicate shoes on',
       tags: ['Dress-up', 'HTML5'],
@@ -19868,7 +19868,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-sudoku-village',
-      name: 'Sudoku Classic – Daily Brain Puzzle',
+      name: 'Sudoku Village',
       genre: 'Puzzle',
       description: 'How good are your sudoku skills?  In Sudoku, a 9x9 grid is given with any amount of numbers already filled in.  To solve the puzzle, fill in the empty square with any number from 1- 9.  The puzzle is complete when each row, each column and each 3x3 square within the puzzle contains the numbers 1-9, with each number appearing only once.',
       tags: ['Puzzle', 'HTML5'],
@@ -19891,7 +19891,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-super-bike-wild-race',
-      name: 'Crazy Bike Stunts PvP',
+      name: 'Super Bike Wild Race',
       genre: 'Agility',
       description: 'Super Bike - Wild Race is Super bike racing game with high speed and an Amazing 3d graphics: Riders, bikes, circuits will get you to a real racing competition. Easy to control and challenging. Upgrade your bikes and rider skills and evolve to become the best!',
       tags: ['Agility', 'Racing \\u0026 Driving', 'HTML5'],
@@ -19914,7 +19914,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-cupcake-puzzle',
-      name: 'SUGAR POP LAND',
+      name: 'Cupcake Puzzle',
       genre: 'Puzzle',
       description: 'While completing the delicious Cupcake Puzzle game, it will keep you hard not to eat them. Complete these beautiful cupcake graphics, you will love them all.',
       tags: ['Puzzle', 'HTML5'],
@@ -19937,7 +19937,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-rocket-stars-dx',
-      name: 'Rocket Fest',
+      name: 'Rocket Stars DX',
       genre: 'Casual',
       description: 'Sweep with your finger or your mouse and guide your rocket through the sky. Improves this one to propel it further.',
       tags: ['Casual', 'HTML5'],
@@ -19960,7 +19960,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-kids-vehicles-memory',
-      name: 'Good to drive',
+      name: 'Kids Vehicles Memory',
       genre: 'Puzzle',
       description: 'Kids Vehicles Memory is a game where you have to memorize the positions of the pictures with kids vehicles when they appear in a short time. After that you need to find the pictures from the previous ones. After each level you will have less time to guess all the pictures. So be focused and memorize the positions of the pictures well before the start of the level.',
       tags: ['Puzzle', 'HTML5'],
@@ -19983,7 +19983,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-fidget-spinner-revolution',
-      name: 'Pop It Master',
+      name: 'Fidget Spinner Revolution',
       genre: 'Casual',
       description: 'Fidget Spinner Revolution is a Skill Game. How long can you spin your spinner? Test your skills, collect coins and buy all the spinners in the Shop!',
       tags: ['Casual', 'HTML5'],
@@ -20006,7 +20006,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-letters-match',
-      name: 'WordMix',
+      name: 'Letters Match',
       genre: 'Puzzle',
       description: 'Letters Match combines the best of the games you love. This is a mixture of matching games, word search and clearing the playing field. We took all these ingredients and spiced it up with exciting gameplay. If you like to stretch your brain with puzzles, then Letters Match is what you need!',
       tags: ['Puzzle', 'HTML5'],
@@ -20029,7 +20029,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-spin-master',
-      name: 'Blade Forge 3D',
+      name: 'Spin Master',
       genre: 'Battle',
       description: 'Using the skills of the hero, the user will travel through a variety of levels. There it will wait for monsters and monsters that must be destroyed. To eliminate the gamer has to move, rotating the blades around. In this case the hero should not touch opponents.',
       tags: ['Battle', 'Casual', 'HTML5'],
@@ -20052,9 +20052,9 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-idle-coffee-business',
-      name: 'Cooking Empire',
+      name: 'Idle Coffee Business',
       genre: 'Simulation',
-      description: 'Play Cooking Empire online — instant HTML5 action streamed straight into the cabinet.',
+      description: 'Play Idle Coffee Business online — instant HTML5 action streamed straight into the cabinet.',
       tags: ['Simulation', 'HTML5'],
       availability: 'Online',
       rating: 4.7,
@@ -20075,7 +20075,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-penguin-dive',
-      name: 'Hunting underwater spearfishing',
+      name: 'Penguin Dive',
       genre: 'Casual',
       description: 'Dive deep into the ocean and explore the underwater world! Hunt as many Fishes as possible. Make sure to avoid the dangerous Jellyfishes! Upgrade your Pick-ups to get more advantage on your next journey!',
       tags: ['Casual', 'HTML5'],
@@ -20098,7 +20098,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-granny-jigsaw-puzzle',
-      name: 'Scary Shawarma Kiosk: The Anomaly',
+      name: 'Granny Jigsaw Puzzle',
       genre: 'Jigsaw',
       description: 'Granny Jigsaw Puzzle is a fun horror puzzle game. You can select one of the nine images and then select one of the four modes (16, 36, 64 and 100 pieces). Select your favorite picture and complete the jigsaw in the shortest time possible! Have fun and enjoy!',
       tags: ['Jigsaw', 'HTML5'],
@@ -20121,7 +20121,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-hamsternikus',
-      name: 'Guinea Piggy Matching',
+      name: 'Hamsternikus',
       genre: 'Puzzle',
       description: 'Mind relocation experiment went completely wrong  a scientist is trapped inside a hamsters body Help science and save this hapless fellowTake control of a hamster and help it go through  levels of mazes with movable walls portal brainteasers and spoiler alert even extraterrestrial threat',
       tags: ['Puzzle', 'HTML5'],
@@ -20144,7 +20144,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-horse-ride-racing',
-      name: 'My horse is amazing',
+      name: 'Horse Ride Racing',
       genre: 'Racing \\U0026 Driving',
       description: 'Horse Ride Racing features: - fun gameplay - multiple horse skins',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -20167,7 +20167,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-stack-the-boxes',
-      name: 'Sort Works: Nuts \\u0026 Order',
+      name: 'Stack The Boxes',
       genre: 'Adventure',
       description: 'Stack the boxes over boxes and do not fall off.',
       tags: ['Adventure', 'HTML5'],
@@ -20190,7 +20190,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-rescue-helicopter',
-      name: 'Stickman Archer: Shooting Arrows at Reds',
+      name: 'Rescue Helicopter',
       genre: 'Action',
       description: 'Do you want to save people while flying a helicopter ? Rescue Helicopter is a fun casual game where the player can rescue people. Play Rescue Helicopter now for a lot of fun!',
       tags: ['Casual', 'HTML5'],
@@ -20213,7 +20213,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-jet-ski-slide',
-      name: 'Air Strike 2D',
+      name: 'Jet Ski Slide',
       genre: 'Puzzle',
       description: 'Play this slide puzzle games of the jet ski. It\'s include 3 images and 3 modes to play.',
       tags: ['Puzzle', 'HTML5'],
@@ -20236,7 +20236,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-one-button-speedway',
-      name: 'Vex X3M 3',
+      name: 'One Button Speedway',
       genre: 'Racing \\U0026 Driving',
       description: 'Get on your bike and take part in the high octane sport of Speedway. This is a fast paced sport that requires skill and timing to win! Tight turns on the corners and speed on the straights are what is needed to win.',
       tags: ['Racing \\u0026 Driving', 'HTML5'],
@@ -20259,7 +20259,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-gas-station%3A-junkyard-tycoon',
-      name: 'EQ Test Puzzle',
+      name: 'Gas Station: Junkyard Tycoon',
       genre: 'Simulation',
       description: 'Build Your Dream Gas Station and Garage Tycoon Empire! Take charge in Gas Station Simulator Inc., the ultimate game for oil tycoon enthusiasts, idle games managers, and aspiring entrepreneurs! Manage, rebuild, and expand the gas station simulator, clean up your junkyard, and fix cars in this immersive and rewarding gas station simulator.',
       tags: ['Simulation', 'HTML5'],
@@ -20282,7 +20282,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
     },
     {
       id: 'gd-solitaire-tripeaks-garden',
-      name: 'Match Dream Garden',
+      name: 'Solitaire TriPeaks Garden',
       genre: 'Cards',
       description: 'In Solitaire TriPeaks Garden you can play hundreds of levels filled with the most addictive version of solitaire there is! And you can do that along with your trusty cat companion that shall help you along the journey of filling your greenhouses with the most beautiful flowers of all colors! Playful and relaxed experience awaits!',
       tags: ['Cards', 'HTML5'],
@@ -20335,6 +20335,125 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         embedMode: 'inline',
         approvedEmbedUrl: 'https://www.retrogames.cc/embed/46228-super-mario-bros-2-lost-levels.html',
         approvedExternalUrl: 'https://www.retrogames.cc/embed/46228-super-mario-bros-2-lost-levels.html',
+      },
+    },
+    {
+      id: 'rg-43686-vs-super-mario-bros',
+      name: 'VS. Super Mario Bros',
+      genre: 'Platformer',
+      description: 'The arcade VS. System version of Super Mario Bros — faster, harder, with competitive score attack. Play it online in your browser via the RetroGames emulator.',
+      tags: ['Platformer', 'Retro', 'Arcade', 'Classic'],
+      availability: 'Online',
+      rating: 4.6,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/43686-vs-super-mario-bros.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/43686-vs-super-mario-bros.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/43686-vs-super-mario-bros.html',
+      },
+    },
+    {
+      id: 'rg-45027-super-mario-rpg-enhanced',
+      name: 'Super Mario RPG',
+      genre: 'RPG',
+      description: 'The beloved SNES collaboration between Square and Nintendo — turn-based Mario RPG with timed hits, isometric exploration, and a whimsical story. Play it online via the RetroGames emulator.',
+      tags: ['RPG', 'Retro', 'SNES', 'Classic'],
+      availability: 'Online',
+      rating: 4.9,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html',
+      },
+    },
+    {
+      id: 'rg-43447-paper-mario-multiplayer',
+      name: 'Paper Mario',
+      genre: 'RPG',
+      description: 'The N64 cult classic — turn-based combat with stylish action commands, a paper-thin world, and a heartwarming story. Play it online via the RetroGames emulator.',
+      tags: ['RPG', 'Retro', 'N64', 'Classic'],
+      availability: 'Online',
+      rating: 4.7,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html',
+      },
+    },
+    {
+      id: 'rg-44138-mario-party-3-starstruck',
+      name: 'Mario Party 3',
+      genre: 'Party',
+      description: 'The N64 board-game party classic — roll dice, steal stars, and sabotage friends across 70+ mini-games. Play it online via the RetroGames emulator.',
+      tags: ['Party', 'Retro', 'N64', 'Multiplayer'],
+      availability: 'Online',
+      rating: 4.6,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html',
+      },
+    },
+    {
+      id: 'rg-24978-wario-land-ii',
+      name: 'Wario Land II',
+      genre: 'Platformer',
+      description: "Wario's greedy Game Boy adventure — treasure hunting, invincibility mechanics, and multiple endings. Play it online via the RetroGames emulator.",
+      tags: ['Platformer', 'Retro', 'Game Boy', 'Classic'],
+      availability: 'Online',
+      rating: 4.4,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/24978-wario-land-ii-usa-europe.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/24978-wario-land-ii-usa-europe.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/24978-wario-land-ii-usa-europe.html',
+      },
+    },
+    {
+      id: 'rg-20337-yoshis-cookie',
+      name: "Yoshi's Cookie",
+      genre: 'Puzzle',
+      description: 'The sweet tile-matching puzzle featuring Yoshi — rotate and match cookies across increasingly tricky grids. Play it online via the RetroGames emulator.',
+      tags: ['Puzzle', 'Retro', 'SNES', 'Classic'],
+      availability: 'Online',
+      rating: 4.3,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/20337-yoshi-s-cookie-usa.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/20337-yoshi-s-cookie-usa.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/20337-yoshi-s-cookie-usa.html',
+      },
+    },
+    {
+      id: 'rg-46481-vs-dr-mario',
+      name: 'Vs. Dr. Mario',
+      genre: 'Puzzle',
+      description: 'The arcade VS. System version of Dr. Mario — match capsule colors to eliminate viruses in this addictive puzzle classic. Play it online via the RetroGames emulator.',
+      tags: ['Puzzle', 'Retro', 'Arcade', 'Classic'],
+      availability: 'Online',
+      rating: 4.5,
+      badgeIds: ['classic'],
+      image: 'assets/hub/home-backdrop-command.png',
+      url: 'https://www.retrogames.cc/embed/46481-vs-dr-mario.html',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/46481-vs-dr-mario.html',
+        approvedExternalUrl: 'https://www.retrogames.cc/embed/46481-vs-dr-mario.html',
       },
     },
   ],

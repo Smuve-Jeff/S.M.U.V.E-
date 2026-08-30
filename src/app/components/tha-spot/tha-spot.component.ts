@@ -1653,9 +1653,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         !this.currentGame() ||
         this.gameFrameReady()
       ) return;
-      this.onGameIframeError();
-      this.snackbarService.error(
-        'GAME CABINET DID NOT RESPOND. RETRY OR OPEN IT EXTERNALLY.'
+      // A delayed iframe load is not proof that the cabinet exited. Keep the
+      // cabinet mounted so Android/WebView and slower emulator hosts can
+      // finish booting; expose recovery without destroying the game state.
+      this.gameLoadStage.set('connecting');
+      this.snackbarService.info(
+        'CABINET IS TAKING LONGER THAN USUAL. KEEPING THE SESSION OPEN.'
       );
     }, this.GAME_LOAD_WATCHDOG_MS);
   }
@@ -1675,6 +1678,8 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   handleGameIframeError(): void {
     this.clearGameLoadWatchdog();
     this.gameFrameReady.set(false);
+    // Only a real iframe error should show the fallback. A timeout is handled
+    // non-destructively by the watchdog above.
     this.gameLoadError.set(true);
     this.gameLoadStage.set('idle');
   }
@@ -2156,6 +2161,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    this.clearGameLoadWatchdog();
+    this.clearGameReloadTimer();
+    this.removeGameFrameGuards();
     this.feedSubscription?.unsubscribe();
     this.routeParamSubscription?.unsubscribe();
     this.queryParamSubscription?.unsubscribe();
@@ -2282,6 +2290,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedGame.set(null);
   }
 
+  /** Explicitly leave the cabinet without navigating away from Tha Spot. */
+  exitGame(): void {
+    this.closeGame();
+    this.closePreview();
+  }
+
   closeGame() {
     // Check session duration achievement before resetting
     if (this.sessionStartTime > 0) {
@@ -2301,6 +2315,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.inGame.set(false);
     this.currentGame.set(null);
+    this.gameLoadError.set(false);
+    this.gameLoadStage.set('idle');
+    this.gameFrameReady.set(false);
     this.isFullscreen.set(false);
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
