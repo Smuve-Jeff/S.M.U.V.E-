@@ -53,6 +53,19 @@ function makeRunner(type: "postgres" | "mysql"): { queries: string[]; runner: Qu
   return { queries, runner };
 }
 
+/** Run a migration's `up` and return the concatenated SQL it emitted. */
+async function runUp(
+  migration: { up: (q: QueryRunner) => Promise<void> },
+  type: "postgres" | "mysql",
+): Promise<string> {
+  const { queries, runner } = makeRunner(type);
+  await migration.up(runner);
+  return queries.join("\n");
+}
+
+/** Collapse whitespace so multi-line template DDL matches single-line strings. */
+const normalizeSql = (sql: string): string => sql.replace(/\s+/g, " ").trim();
+
 describe("database migrations (dialect-aware)", () => {
   it("are uniquely named", () => {
     const names = migrations.map((m) => m.migration.name);
@@ -94,5 +107,43 @@ describe("database migrations (dialect-aware)", () => {
         await expect(entry.migration.down(runner)).resolves.toBeUndefined();
       }
     }
+  });
+
+  it("emits the exact critical DDL fragments for the new migrations", async () => {
+    // 0004 — user_blocks: composite PK + reverse-direction index.
+    const pg4 = normalizeSql(await runUp(new CreateUserBlocks1786243200004(), "postgres"));
+    expect(pg4).toContain('PRIMARY KEY ("user_id", "blocked_user_id")');
+    expect(pg4).toContain(
+      'CREATE INDEX IF NOT EXISTS "user_blocks_blocked_idx" ON "user_blocks" ("blocked_user_id")',
+    );
+    const my4 = normalizeSql(await runUp(new CreateUserBlocks1786243200004(), "mysql"));
+    expect(my4).toContain("PRIMARY KEY (user_id, blocked_user_id)");
+    expect(my4).toContain(
+      "CREATE INDEX IF NOT EXISTS user_blocks_blocked_idx ON user_blocks (blocked_user_id)",
+    );
+
+    // 0005 — challenge dedupe: the PG partial index MUST stay scoped to
+    // pending rows (a global unique index would wrongly block re-issuing a
+    // resolved challenge); the MySQL branch must use the NULL-able
+    // generated-column trick (no partial-index support).
+    const pg5 = normalizeSql(await runUp(new CreateChallengeDedupeIndex1786243200005(), "postgres"));
+    expect(pg5).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "uq_game_challenges_pending"',
+    );
+    expect(pg5).toContain('WHERE "status" = \'pending\'');
+    const my5 = normalizeSql(await runUp(new CreateChallengeDedupeIndex1786243200005(), "mysql"));
+    expect(my5).toContain("GENERATED ALWAYS AS");
+    expect(my5).toContain("CASE WHEN status = 'pending'");
+    expect(my5).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_game_challenges_pending ON game_challenges (pending_key)",
+    );
+
+    // 0006 — room_messages: history lookup index (room_id, created_at).
+    const pg6 = normalizeSql(await runUp(new CreateRoomMessages1786243200006(), "postgres"));
+    expect(pg6).toContain('"id" SERIAL PRIMARY KEY');
+    expect(pg6).toContain('ON "room_messages" ("room_id", "created_at")');
+    const my6 = normalizeSql(await runUp(new CreateRoomMessages1786243200006(), "mysql"));
+    expect(my6).toContain("id int AUTO_INCREMENT PRIMARY KEY");
+    expect(my6).toContain("ON room_messages (room_id, created_at)");
   });
 });
