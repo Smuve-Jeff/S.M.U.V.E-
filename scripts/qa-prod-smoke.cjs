@@ -41,21 +41,29 @@ function ok(name, cond, detail = "") {
   }
 }
 
-async function api(method, path, { token, body } = {}) {
+async function api(method, path, { token, body } = {}, retries = 5) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  let json = null;
-  try {
-    json = await res.json();
-  } catch {
-    /* no body */
+  for (let attempt = 0; ; attempt += 1) {
+    const res = await fetch(`${API}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    // Render runs several instances, each with its OWN in-memory rate-limit
+    // counter; a capped instance returns 429 while peers accept traffic.
+    // Retrying lands on a healthy instance, so treat 429 as transient.
+    if (res.status !== 429 || attempt >= retries) {
+      let json = null;
+      try {
+        json = await res.json();
+      } catch {
+        /* no body */
+      }
+      return { status: res.status, json };
+    }
+    await sleep(800 + attempt * 400);
   }
-  return { status: res.status, json };
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -64,8 +72,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function openSocket(token) {
   return new Promise((resolve, reject) => {
     const events = {}; // event name -> array of payloads
+    // Eagerly create each bucket so `.length` reads never hit undefined.
+    for (const ev of [
+      "users_online",
+      "lobby_list",
+      "room_message",
+      "room_history",
+      "private_message",
+      "incoming_challenge",
+      "challenge_persisted",
+      "party_created",
+      "user_joined_party",
+      "user_left_party",
+    ]) {
+      events[ev] = [];
+    }
     const capture = (name) => (payload) => {
-      (events[name] ??= []).push(payload);
+      events[name].push(payload);
     };
     const socket = io(BASE, {
       auth: { token },
@@ -95,9 +118,34 @@ function openSocket(token) {
 
 const emit = (socket, ev, payload) => socket.emit(ev, payload);
 
-async function main() {
-  let tokenA, tokenB, idA, idB, sockA1, sockA2, sockB;
+// Module-scope volatile state so the error-path cleanup can reach it.
+let tokenA, tokenB, idA, idB;
+let sockA1, sockA2, sockB;
 
+/** Best-effort removal of the throwaway QA users (never throws). */
+async function cleanupUsers() {
+  try {
+    for (const s of [sockA1, sockA2, sockB]) {
+      if (s?.socket) s.socket.disconnect();
+    }
+  } catch {
+    /* best-effort */
+  }
+  try {
+    if (tokenA && idA) await api("DELETE", `/user/${idA}`, { token: tokenA });
+  } catch {
+    /* best-effort */
+  }
+  try {
+    if (tokenB && idB) await api("DELETE", `/user/${idB}`, { token: tokenB });
+  } catch {
+    /* best-effort */
+  }
+  tokenA = tokenB = idA = idB = null;
+}
+
+async function main() {
+  try {
   // ── Phase 1: REST ───────────────────────────────────────────────────────────
   console.log("\n== Phase 1: REST ==");
 
@@ -190,7 +238,8 @@ async function main() {
     const add = await api("POST", `/users/${idA}/friends/${idB}`, { token: tokenA });
     ok("add friend (200)", add.status === 200 && add.json?.success === true, `status=${add.status} ${JSON.stringify(add.json)}`);
 
-    const accept = await api("PATCH", `/users/${idA}/friends/${idB}`, { token: tokenB, body: { status: "accepted" } });
+    // Responder acts on their OWN route (matches social-networking.service.ts).
+    const accept = await api("PATCH", `/users/${idB}/friends/${idA}`, { token: tokenB, body: { status: "accepted" } });
     ok("accept friend request (200)", accept.status === 200 && accept.json?.success === true, `status=${accept.status} ${JSON.stringify(accept.json)}`);
 
     const fr = await api("GET", `/users/${idA}/friends`, { token: tokenA });
@@ -364,6 +413,10 @@ async function main() {
   const delB = await api("DELETE", `/user/${idB}`, { token: tokenB });
   ok("test user A deleted (204)", delA.status === 204, `status=${delA.status}`);
   ok("test user B deleted (204)", delB.status === 204, `status=${delB.status}`);
+  tokenA = tokenB = idA = idB = null;
+  } finally {
+    await cleanupUsers(); // no-op after a clean Phase 3, rescues on mid-run errors
+  }
 }
 
 main()
@@ -373,10 +426,9 @@ main()
     console.error("\n❌ ERROR:", err.message);
   })
   .finally(async () => {
+    // Belt-and-braces: never leak throwaway users, even on uncaught errors.
+    await cleanupUsers();
     console.log(`\n===== SMOKE SUMMARY: ${pass} passed, ${fail} failed =====`);
-    if (failures.length) {
-      console.log(failures.join("\n"));
-      process.exit(1);
-    }
-    process.exit(0);
+    if (failures.length) console.log(failures.join("\n"));
+    process.exit(fail ? 1 : 0);
   });

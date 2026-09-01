@@ -14,6 +14,7 @@ const mockRootQb = {
   select: jest.fn().mockReturnThis(),
   from: jest.fn().mockReturnThis(),
   innerJoin: jest.fn().mockReturnThis(),
+  leftJoin: jest.fn().mockReturnThis(),
   where: jest.fn().mockReturnThis(),
   andWhere: jest.fn().mockReturnThis(),
   orderBy: jest.fn().mockReturnThis(),
@@ -96,6 +97,7 @@ import {
   isUserBlocked,
   listBlockedUsers,
   listChallenges,
+  listFriends,
   listNotifications,
   listRoomMessages,
   markNotificationRead,
@@ -286,10 +288,11 @@ describe("blocklist service", () => {
   });
 
   it("maps blocked rows to online-user shape", async () => {
-    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+    const builder = {
       select: jest.fn().mockReturnThis(),
       from: jest.fn().mockReturnThis(),
-      innerJoin: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn(),
+      leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       getRawMany: jest.fn().mockResolvedValue([
@@ -299,13 +302,99 @@ describe("blocklist service", () => {
           primaryGenre: "Hip Hop",
           avatarImage: null,
           location: null,
+          fallbackName: null,
         },
       ]),
-    } as never);
+    };
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
     const rows = await listBlockedUsers("u1");
     expect(rows).toEqual([
       { userId: "u2", artistName: "Rival", primaryGenre: "Hip Hop" },
     ]);
+    // Regression guard (prod bug): the list joined user_profiles with INNER
+    // JOIN, so blocking a user with no saved profile produced a silent empty
+    // list despite a successful PUT. Profiles must be LEFT JOINed and the
+    // account name selected as a display fallback.
+    expect(builder.leftJoin).toHaveBeenCalledWith(
+      "user_profiles",
+      "u",
+      "b.blocked_user_id = u.user_id",
+    );
+    expect(builder.leftJoin).toHaveBeenCalledWith(
+      "users",
+      "usr",
+      "b.blocked_user_id = usr.id::text",
+    );
+    expect(builder.innerJoin).not.toHaveBeenCalled();
+  });
+
+  it("keeps a block visible when the blocked user has no profile (fallback name)", async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          userId: "u9",
+          artistName: null,
+          primaryGenre: null,
+          avatarImage: null,
+          location: null,
+          fallbackName: "Cheap Spam Bot",
+        },
+      ]),
+    };
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
+    const rows = await listBlockedUsers("u1");
+    expect(rows[0]).toEqual({
+      userId: "u9",
+      artistName: "Cheap Spam Bot",
+      primaryGenre: undefined,
+      avatarImage: undefined,
+      location: undefined,
+    });
+  });
+
+  it("lists friends LEFT-joining profiles, keeping profile-less friends with a fallback name", async () => {
+    const builder = {
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          userId: "u2",
+          artistName: null,
+          primaryGenre: null,
+          avatarImage: null,
+          location: null,
+          fallbackName: "Friend No-Profile",
+          status: "accepted",
+        },
+      ]),
+    };
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
+    setBlockRows([]); // block cache consulted by filterBlocked inside listFriends
+    const rows = await listFriends("u1");
+    expect(rows).toEqual([
+      {
+        userId: "u2",
+        artistName: "Friend No-Profile",
+        primaryGenre: undefined,
+        avatarImage: undefined,
+        location: undefined,
+        status: "accepted",
+      },
+    ]);
+    expect(builder.leftJoin).toHaveBeenCalledWith(
+      "user_profiles",
+      "u",
+      "f.friend_id = u.user_id",
+    );
+    expect(builder.innerJoin).not.toHaveBeenCalled();
   });
 
   it("isEitherBlocked resolves mutual direction", async () => {

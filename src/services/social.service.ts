@@ -162,6 +162,10 @@ export const unblockUser = async (
 export const listBlockedUsers = async (
   userId: string,
 ): Promise<OnlineUserRow[]> => {
+  // LEFT JOIN user_profiles so a block is never invisible: a blocked user who
+  // hasn't saved a profile yet (no user_profiles row) must still appear in the
+  // list (falling back to their account name) — otherwise a successful PUT would
+  // silently vanish from GET and be impossible to unblock from the UI.
   const rows = await AppDataSource.createQueryBuilder()
     .select([
       `b.blocked_user_id as "userId"`,
@@ -169,15 +173,17 @@ export const listBlockedUsers = async (
       `u.profile_data->>'primaryGenre' as "primaryGenre"`,
       `u.profile_data->>'avatarImage' as "avatarImage"`,
       `u.profile_data->>'location' as "location"`,
+      `usr.name as "fallbackName"`,
     ])
     .from("user_blocks", "b")
-    .innerJoin("user_profiles", "u", "b.blocked_user_id = u.user_id")
+    .leftJoin("user_profiles", "u", "b.blocked_user_id = u.user_id")
+    .leftJoin("users", "usr", "b.blocked_user_id = usr.id::text")
     .where("b.user_id = :userId", { userId })
     .orderBy("b.created_at", "DESC")
     .getRawMany();
   return rows.map((row) => ({
     userId: String(row.userId),
-    artistName: row.artistName || undefined,
+    artistName: row.artistName || row.fallbackName || undefined,
     primaryGenre: row.primaryGenre || undefined,
     avatarImage: row.avatarImage || undefined,
     location: row.location || undefined,
@@ -259,6 +265,9 @@ export interface FriendRow extends OnlineUserRow {
 
 /** GET /api/users/:userId/friends */
 export const listFriends = async (userId: string): Promise<FriendRow[]> => {
+  // LEFT JOIN user_profiles: a friend who hasn't saved a profile yet must still
+  // appear (falling back to their account name) instead of being silently
+  // dropped from the list by an INNER JOIN.
   const qb = await AppDataSource.createQueryBuilder()
     .select([
       `u.user_id as "userId"`,
@@ -266,17 +275,19 @@ export const listFriends = async (userId: string): Promise<FriendRow[]> => {
       `u.profile_data->>'primaryGenre' as "primaryGenre"`,
       `u.profile_data->>'avatarImage' as "avatarImage"`,
       `u.profile_data->>'location' as "location"`,
+      `usr.name as "fallbackName"`,
       `f.status as "status"`,
     ])
     .from("friends", "f")
-    .innerJoin("user_profiles", "u", "f.friend_id = u.user_id")
+    .leftJoin("user_profiles", "u", "f.friend_id = u.user_id")
+    .leftJoin("users", "usr", "f.friend_id = usr.id::text")
     .where("f.user_id = :userId", { userId })
     .getRawMany();
   return filterBlocked(
     userId,
     qb.map((r) => ({
       userId: r.userId,
-      artistName: r.artistName || undefined,
+      artistName: r.artistName || r.fallbackName || undefined,
       primaryGenre: r.primaryGenre || undefined,
       avatarImage: r.avatarImage || undefined,
       location: r.location || undefined,
