@@ -270,7 +270,7 @@ export const listFriends = async (userId: string): Promise<FriendRow[]> => {
   // dropped from the list by an INNER JOIN.
   const qb = await AppDataSource.createQueryBuilder()
     .select([
-      `u.user_id as "userId"`,
+      `COALESCE(u.user_id, usr.id::text) as "userId"`,
       `u.profile_data->>'artistName' as "artistName"`,
       `u.profile_data->>'primaryGenre' as "primaryGenre"`,
       `u.profile_data->>'avatarImage' as "avatarImage"`,

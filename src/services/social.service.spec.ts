@@ -395,6 +395,12 @@ describe("blocklist service", () => {
       "f.friend_id = u.user_id",
     );
     expect(builder.innerJoin).not.toHaveBeenCalled();
+    // Regression guard: the id must come from the friends row / users fallback
+    // (COALESCE), never from the profile join alone — profile-less friends
+    // would otherwise surface with userId: null.
+    expect(builder.select.mock.calls[0][0] as string[]).toContain(
+      `COALESCE(u.user_id, usr.id::text) as "userId"`,
+    );
   });
 
   it("isEitherBlocked resolves mutual direction", async () => {
