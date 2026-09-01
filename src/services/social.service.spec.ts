@@ -10,30 +10,32 @@ jest.mock("@/entities", () => ({
   RoomMessage: class RoomMessage {},
 }));
 
+const mockRootQb = {
+  select: jest.fn().mockReturnThis(),
+  from: jest.fn().mockReturnThis(),
+  innerJoin: jest.fn().mockReturnThis(),
+  where: jest.fn().mockReturnThis(),
+  andWhere: jest.fn().mockReturnThis(),
+  orderBy: jest.fn().mockReturnThis(),
+  limit: jest.fn().mockReturnThis(),
+  take: jest.fn().mockReturnThis(),
+  getRawMany: jest.fn().mockResolvedValue([]),
+  getMany: jest.fn().mockResolvedValue([]),
+  update: jest.fn().mockReturnThis(),
+  set: jest.fn().mockReturnThis(),
+  delete: jest.fn().mockReturnThis(),
+  insert: jest.fn().mockReturnThis(),
+  into: jest.fn().mockReturnThis(),
+  values: jest.fn().mockReturnThis(),
+  orUpdate: jest.fn().mockReturnThis(),
+  orIgnore: jest.fn().mockReturnThis(),
+  execute: jest.fn().mockResolvedValue({ affected: 1 }),
+};
+
 jest.mock("@/database/data-source", () => ({
   AppDataSource: {
     getRepository: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      from: jest.fn().mockReturnThis(),
-      innerJoin: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      take: jest.fn().mockReturnThis(),
-      getRawMany: jest.fn().mockResolvedValue([]),
-      getMany: jest.fn().mockResolvedValue([]),
-      update: jest.fn().mockReturnThis(),
-      set: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      into: jest.fn().mockReturnThis(),
-      values: jest.fn().mockReturnThis(),
-      orUpdate: jest.fn().mockReturnThis(),
-      orIgnore: jest.fn().mockReturnThis(),
-      execute: jest.fn().mockResolvedValue({ affected: 1 }),
-    })),
+    createQueryBuilder: jest.fn(() => mockRootQb),
   },
 }));
 
@@ -50,6 +52,11 @@ const makeRepo = () => ({
     getOne: jest.fn().mockResolvedValue(null),
     getMany: jest.fn().mockResolvedValue([]),
     getRawMany: jest.fn().mockResolvedValue([]),
+    // Write paths (insert/update) used by blockUser / upsertFriend.
+    insert: jest.fn().mockReturnThis(),
+    values: jest.fn().mockReturnThis(),
+    orIgnore: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue({ raw: [], affected: 1 }),
   })),
 });
 
@@ -91,6 +98,7 @@ import {
   listChallenges,
   listNotifications,
   listRoomMessages,
+  markNotificationRead,
   persistRoomMessage,
   saveProfile,
   searchUsers,
@@ -167,6 +175,17 @@ describe("challenge service", () => {
     ).rejects.toMatchObject({ statusCode: 400 });
   });
 
+  it("expires stale challenges with the updatedAt property key", async () => {
+    // Regression guard: TypeORM 1.x throws on column-name keys in
+    // update().set() (Property "updated_at" not found) → GET /challenges 500.
+    await listChallenges("u1");
+    expect(mockRootQb.update).toHaveBeenCalledWith("game_challenges");
+    expect(mockRootQb.set).toHaveBeenCalledWith({
+      status: "expired",
+      updatedAt: expect.any(Date),
+    });
+  });
+
   it("returns the existing pending challenge instead of double-writing", async () => {
     const existing = {
       id: 9,
@@ -241,10 +260,22 @@ describe("blocklist service", () => {
     });
   });
 
-  it("inserts a block row and invalidates the cache", async () => {
+  it("inserts the block row with ENTITY-PROPERTY keys", async () => {
+    // Regression guard: TypeORM 1.x silently drops column-name keys in
+    // insert().values() (emitting DEFAULT → NOT NULL violation, HTTP 500).
+    // The query builder must receive { userId, blockedUserId }.
+    const builder = {
+      insert: jest.fn().mockReturnThis(),
+      values: jest.fn().mockReturnThis(),
+      orIgnore: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+    (repos.blocks.createQueryBuilder as jest.Mock).mockReturnValue(builder);
     await blockUser("u1", "u2");
-    expect(AppDataSource.createQueryBuilder).toHaveBeenCalled();
-    expect(repos.blocks).toBeDefined();
+    expect(repos.blocks.createQueryBuilder).toHaveBeenCalled();
+    expect(builder.values).toHaveBeenCalledWith({ userId: "u1", blockedUserId: "u2" });
+    expect(builder.orIgnore).toHaveBeenCalled();
+    expect(builder.execute).toHaveBeenCalled();
   });
 
   it("deletes a block row on unblock", async () => {
@@ -344,6 +375,14 @@ describe("notification service", () => {
       order: { createdAt: "DESC" },
       take: 30,
     });
+  });
+
+  it("marks a notification read with the isRead property key", async () => {
+    // Regression guard: column-name key (is_read) throws under TypeORM 1.x.
+    mockRootQb.execute.mockResolvedValueOnce({ affected: 1 });
+    await markNotificationRead("u1", 42);
+    expect(mockRootQb.update).toHaveBeenCalledWith("notifications");
+    expect(mockRootQb.set).toHaveBeenCalledWith({ isRead: true });
   });
 });
 

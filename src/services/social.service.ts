@@ -127,10 +127,14 @@ export const blockUser = async (
   if (userId === blockedUserId) {
     throw new AppError(400, "Cannot block yourself");
   }
-  await AppDataSource.createQueryBuilder()
+  // Entity-property keys (not snake_case column names): TypeORM validates
+  // raw insert values against the entity metadata, so column-name keys are
+  // silently dropped and every column is emitted as DEFAULT (NOT NULL
+  // violation). Property names map through the metadata to real columns.
+  await repo().blocks
+    .createQueryBuilder()
     .insert()
-    .into("user_blocks")
-    .values({ user_id: userId, blocked_user_id: blockedUserId })
+    .values({ userId, blockedUserId })
     .orIgnore()
     .execute();
   invalidateBlockCache();
@@ -296,6 +300,27 @@ export const addFriend = async (
     );
   }
   return { success: true };
+}
+
+// Upsert the reverse row with ENTITY-PROPERTY keys (column-name keys would
+// be dropped by TypeORM's metadata validation and inserted as DEFAULT).
+const upsertFriend = async (params: {
+  userId: string;
+  friendId: string;
+  status: string;
+}): Promise<void> => {
+  await AppDataSource.createQueryBuilder()
+    .insert()
+    .into("friends")
+    .values({
+      userId: params.userId,
+      friendId: params.friendId,
+      status: params.status,
+    })
+    // Insert values map via entity PROPERTY names; orUpdate arrays are
+    // emitted verbatim, so they must be DATABASE column names.
+    .orUpdate(["status"], ["user_id", "friend_id"])
+    .execute();
 };
 
 const FRIEND_STATUSES = ["pending", "accepted", "declined"] as const;
@@ -333,12 +358,7 @@ export const respondToFriendRequest = async (
       friendId: userId,
     })
     .execute();
-  await AppDataSource.createQueryBuilder()
-    .insert()
-    .into("friends")
-    .values({ user_id: userId, friend_id: friendId, status })
-    .orUpdate(["status"], ["user_id", "friend_id"])
-    .execute();
+  await upsertFriend({ userId, friendId, status });
   return { success: true };
 };
 
@@ -421,7 +441,9 @@ const challengeToRow = (c: GameChallenge): ChallengeRow => ({
 const expireStaleChallenges = async (userId: string): Promise<void> => {
   await AppDataSource.createQueryBuilder()
     .update("game_challenges")
-    .set({ status: "expired", updated_at: new Date() })
+    // Property keys — TypeORM throws on column-name keys (e.g. updated_at)
+    // for entity-backed updates.
+    .set({ status: "expired", updatedAt: new Date() })
     .where(
       `status = 'pending' AND to_user_id = :userId AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
       { userId },
@@ -622,7 +644,8 @@ export const markNotificationRead = async (
 ): Promise<{ success: boolean }> => {
   const result = await AppDataSource.createQueryBuilder()
     .update("notifications")
-    .set({ is_read: true })
+    // Property key (isRead) — see note in expireStaleChallenges.
+    .set({ isRead: true })
     .where("id = :id AND user_id = :userId", { id: notifId, userId })
     .execute();
   if (!result.affected) {

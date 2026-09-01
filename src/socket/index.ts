@@ -226,7 +226,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     try {
       await AppDataSource.createQueryBuilder()
         .update("game_challenges")
-        .set({ status: "expired", updated_at: new Date() })
+        // Property keys — TypeORM throws on column-name keys (e.g. updated_at)
+        // for entity-backed updates.
+        .set({ status: "expired", updatedAt: new Date() })
         .where(
           `status = 'pending' AND to_user_id = :userId AND created_at < (CURRENT_TIMESTAMP - INTERVAL '7 days')`,
           { userId },
@@ -602,15 +604,17 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         await AppDataSource.createQueryBuilder()
           .insert()
           .into("studio_comments")
+          // Entity-property keys (column-name keys are dropped by TypeORM's
+          // metadata validation and inserted as DEFAULT → NOT NULL errors).
           .values({
             id: commentId,
-            session_id: sessionId,
-            project_id: projectId,
-            branch_id: branchId || null,
-            checkpoint_id: checkpointId || null,
-            track_id: trackId || null,
-            clip_id: clipId || null,
-            user_id: userId,
+            sessionId,
+            projectId,
+            branchId: branchId || null,
+            checkpointId: checkpointId || null,
+            trackId: trackId || null,
+            clipId: clipId || null,
+            userId,
             content,
           })
           .execute();
@@ -637,7 +641,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         if (!(await hasStudioPermission(sessionId, userId, "comment"))) return;
         await AppDataSource.createQueryBuilder()
           .update("studio_comments")
-          .set({ resolved: true, updated_at: new Date() })
+          .set({ resolved: true, updatedAt: new Date() })
           .where("id = :commentId AND session_id = :sessionId", { commentId, sessionId })
           .execute();
         io.to(getStudioRoom(sessionId)).emit("studio_comment_resolved", { commentId, sessionId });
@@ -664,12 +668,12 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           .into("studio_approvals")
           .values({
             id: approvalId,
-            session_id: sessionId,
-            project_id: projectId,
-            branch_id: branchId || null,
-            checkpoint_id: checkpointId || null,
-            created_by_id: userId,
-            approver_ids: approverIds,
+            sessionId,
+            projectId,
+            branchId: branchId || null,
+            checkpointId: checkpointId || null,
+            createdById: userId,
+            approverIds,
           })
           .execute();
         for (const approverId of approverIds) {
@@ -718,7 +722,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
               : "pending";
         await AppDataSource.createQueryBuilder()
           .update("studio_approvals")
-          .set({ approval_status: nextStatus, overall_status: overallStatus, updated_at: new Date() })
+          .set({
+            approvalStatus: nextStatus,
+            overallStatus,
+            updatedAt: new Date(),
+          })
           .where("id = :approvalId", { approvalId })
           .execute();
         io.to(getStudioRoom(sessionId)).emit("studio_approval_updated", {
@@ -758,10 +766,10 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           .into("async_collaboration_packets")
           .values({
             id: packetId,
-            session_id: sessionId,
-            from_user_id: userId,
-            to_user_id: toUserId,
-            packet_type: packetType,
+            sessionId,
+            fromUserId: userId,
+            toUserId,
+            packetType,
             payload: payload || {},
           })
           .execute();
@@ -790,8 +798,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           .update("async_collaboration_packets")
           .set({
             status: status || "applied",
-            response_payload: responsePayload ?? null,
-            applied_at: new Date(),
+            responsePayload: responsePayload ?? null,
+            appliedAt: new Date(),
           })
           .where("id = :packetId AND to_user_id = :userId", { packetId, userId })
           .returning(["session_id", "from_user_id"])
@@ -824,13 +832,15 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           .into("remix_lineage")
           .values({
             id: lineageId,
-            remix_project_id: remixProjectId,
-            source_project_id: sourceProjectId || null,
-            remixer_id: userId,
+            remixProjectId,
+            sourceProjectId: sourceProjectId || null,
+            remixerId: userId,
             lineage,
             depth: Math.max(1, lineage.length || 1),
             attribution: { remixer: getSenderMeta(userId).artistName || userId },
           })
+          // Insert values map via entity PROPERTY names; orUpdate arrays are
+          // emitted verbatim, so they must be DATABASE column names.
           .orUpdate(
             ["source_project_id", "remixer_id", "lineage", "depth", "attribution"],
             ["remix_project_id"],

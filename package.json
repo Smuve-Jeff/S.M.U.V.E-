@@ -38,7 +38,8 @@
     "mg:run:prod": "typeorm migration:run -d Build/api/database/data-source.js",
     "mg:run:render": "npm run mg:run:prod",
     "mg:revert": "npx typeorm -- migration:revert -d src/database/data-source.ts",
-    "mg:show": "npx typeorm -- migration:show -d src/database/data-source.ts"
+    "mg:show": "npx typeorm -- migration:show -d src/database/data-source.ts",
+    "qa:sql": "node scripts/repro-500.cjs"
   },
   "dependencies": {
     "@angular-devkit/build-angular": "21.2.22",
