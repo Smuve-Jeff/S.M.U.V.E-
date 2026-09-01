@@ -5,6 +5,8 @@ import {
   DirectMessage,
   GameChallenge,
   Notification,
+  UserBlock,
+  RoomMessage,
 } from "@/entities";
 import { AppError } from "@/lib";
 import type { AuthUser } from "@/types";
@@ -15,6 +17,8 @@ const repo = () => ({
   messages: AppDataSource.getRepository(DirectMessage),
   challenges: AppDataSource.getRepository(GameChallenge),
   notifications: AppDataSource.getRepository(Notification),
+  blocks: AppDataSource.getRepository(UserBlock),
+  roomMessages: AppDataSource.getRepository(RoomMessage),
 });
 
 // ─── Profiles ────────────────────────────────────────────────────────────────
@@ -58,6 +62,135 @@ export interface OnlineUserRow {
   online?: boolean;
 }
 
+// ─── Blocklist ───────────────────────────────────────────────────────────────
+// Directional rows in `user_blocks`. Enforcement is MUTUAL: a block in either
+// direction suppresses user-to-user delivery (DMs, challenges, voice signals,
+// invites). A short-lived in-memory cache keeps socket hot-path lookups off
+// the database; REST block/unblock invalidates it immediately.
+
+const BLOCK_CACHE_TTL_MS = 30_000;
+const blockCache = new Map<string, Set<string>>();
+let blockCacheLoadedAt = 0;
+
+/** Drop the in-memory block cache (called by block/unblock write paths). */
+export const invalidateBlockCache = (): void => {
+  blockCache.clear();
+  blockCacheLoadedAt = 0;
+};
+
+/** Load all directional block rows into the cache (TTL-bounded). */
+const loadBlockedPairs = async (): Promise<Map<string, Set<string>>> => {
+  if (blockCacheLoadedAt && Date.now() - blockCacheLoadedAt < BLOCK_CACHE_TTL_MS) {
+    return blockCache;
+  }
+  const rows = await AppDataSource.createQueryBuilder()
+    .select([`b.user_id as "userId"`, `b.blocked_user_id as "blockedUserId"`])
+    .from("user_blocks", "b")
+    .getRawMany();
+  blockCache.clear();
+  for (const row of rows) {
+    const set = blockCache.get(String(row.userId)) ?? new Set<string>();
+    set.add(String(row.blockedUserId));
+    blockCache.set(String(row.userId), set);
+  }
+  blockCacheLoadedAt = Date.now();
+  return blockCache;
+};
+
+/** Does `userId` block `targetId`? (directional) */
+export const isUserBlocked = async (
+  userId: string,
+  targetId: string,
+): Promise<boolean> => {
+  if (userId === targetId) return false;
+  const cache = await loadBlockedPairs();
+  return cache.get(userId)?.has(targetId) ?? false;
+};
+
+/** Mutual check: blocked in EITHER direction. */
+export const isEitherBlocked = async (
+  a: string,
+  b: string,
+): Promise<boolean> => {
+  if (a === b) return false;
+  const cache = await loadBlockedPairs();
+  return (
+    (cache.get(a)?.has(b) ?? false) || (cache.get(b)?.has(a) ?? false)
+  );
+};
+
+/** PUT /api/users/:userId/blocks/:blockedUserId */
+export const blockUser = async (
+  userId: string,
+  blockedUserId: string,
+): Promise<{ success: boolean; blockedUserId: string }> => {
+  if (userId === blockedUserId) {
+    throw new AppError(400, "Cannot block yourself");
+  }
+  await AppDataSource.createQueryBuilder()
+    .insert()
+    .into("user_blocks")
+    .values({ user_id: userId, blocked_user_id: blockedUserId })
+    .orIgnore()
+    .execute();
+  invalidateBlockCache();
+  return { success: true, blockedUserId };
+};
+
+/** DELETE /api/users/:userId/blocks/:blockedUserId */
+export const unblockUser = async (
+  userId: string,
+  blockedUserId: string,
+): Promise<{ success: boolean; blockedUserId: string }> => {
+  await AppDataSource.createQueryBuilder()
+    .delete()
+    .from("user_blocks")
+    .where("user_id = :a AND blocked_user_id = :b", {
+      a: userId,
+      b: blockedUserId,
+    })
+    .execute();
+  invalidateBlockCache();
+  return { success: true, blockedUserId };
+};
+
+/** GET /api/users/:userId/blocks */
+export const listBlockedUsers = async (
+  userId: string,
+): Promise<OnlineUserRow[]> => {
+  const rows = await AppDataSource.createQueryBuilder()
+    .select([
+      `b.blocked_user_id as "userId"`,
+      `u.profile_data->>'artistName' as "artistName"`,
+      `u.profile_data->>'primaryGenre' as "primaryGenre"`,
+      `u.profile_data->>'avatarImage' as "avatarImage"`,
+      `u.profile_data->>'location' as "location"`,
+    ])
+    .from("user_blocks", "b")
+    .innerJoin("user_profiles", "u", "b.blocked_user_id = u.user_id")
+    .where("b.user_id = :userId", { userId })
+    .orderBy("b.created_at", "DESC")
+    .getRawMany();
+  return rows.map((row) => ({
+    userId: String(row.userId),
+    artistName: row.artistName || undefined,
+    primaryGenre: row.primaryGenre || undefined,
+    avatarImage: row.avatarImage || undefined,
+    location: row.location || undefined,
+  }));
+};
+
+/** Strip users the actor has blocked from a discovery list. */
+export const filterBlocked = async (
+  userId: string,
+  users: OnlineUserRow[],
+): Promise<OnlineUserRow[]> => {
+  const cache = await loadBlockedPairs();
+  const myBlocks = cache.get(userId);
+  if (!myBlocks || myBlocks.size === 0) return users;
+  return users.filter((user) => !myBlocks.has(user.userId));
+};
+
 const profileToOnlineUser = (
   p: UserProfile,
   extra: Partial<OnlineUserRow> = {},
@@ -78,6 +211,7 @@ const profileToOnlineUser = (
 export const searchUsers = async (opts: {
   q?: string;
   location?: string;
+  actorUserId?: string;
 }): Promise<OnlineUserRow[]> => {
   const qb = repo().profiles.createQueryBuilder("p");
   if (opts.q && typeof opts.q === "string") {
@@ -97,18 +231,20 @@ export const searchUsers = async (opts: {
     "NULLS LAST",
   ).take(20);
   const rows = await qb.getMany();
-  return rows.map((r) => profileToOnlineUser(r));
+  return filterBlocked(opts.actorUserId || "", rows.map((r) => profileToOnlineUser(r)));
 };
 
 /** GET /api/users/featured */
-export const featuredUsers = async (): Promise<OnlineUserRow[]> => {
+export const featuredUsers = async (
+  actorUserId?: string,
+): Promise<OnlineUserRow[]> => {
   const rows = await repo().profiles.createQueryBuilder("p")
     .where(`p.profile_data->>'profileSetupCompleted' = 'true'`)
     .andWhere(`p.profile_data->>'artistName' != 'Incognito'`)
     .orderBy("p.updated_at", "DESC")
     .take(10)
     .getMany();
-  return rows.map((r) => profileToOnlineUser(r));
+  return filterBlocked(actorUserId || "", rows.map((r) => profileToOnlineUser(r)));
 };
 
 // ─── Friends ─────────────────────────────────────────────────────────────────
@@ -132,14 +268,17 @@ export const listFriends = async (userId: string): Promise<FriendRow[]> => {
     .innerJoin("user_profiles", "u", "f.friend_id = u.user_id")
     .where("f.user_id = :userId", { userId })
     .getRawMany();
-  return qb.map((r) => ({
-    userId: r.userId,
-    artistName: r.artistName || undefined,
-    primaryGenre: r.primaryGenre || undefined,
-    avatarImage: r.avatarImage || undefined,
-    location: r.location || undefined,
-    status: r.status || undefined,
-  }));
+  return filterBlocked(
+    userId,
+    qb.map((r) => ({
+      userId: r.userId,
+      artistName: r.artistName || undefined,
+      primaryGenre: r.primaryGenre || undefined,
+      avatarImage: r.avatarImage || undefined,
+      location: r.location || undefined,
+      status: r.status || undefined,
+    })),
+  );
 };
 
 /** POST /api/users/:userId/friends/:friendId */
@@ -307,7 +446,14 @@ export const listChallenges = async (
   return rows.map(challengeToRow);
 };
 
-/** POST /api/users/:userId/challenges — { toUserId, gameId, gameName } */
+/**
+ * POST /api/users/:userId/challenges — { toUserId, gameId, gameName }
+ *
+ * Dedupe: a player may hold at most ONE pending challenge against a given
+ * opponent for a given game. App-level check returns the existing record;
+ * the partial unique index (migration 1786243200005) is the hard guard
+ * against concurrent double-submits (socket + REST racing).
+ */
 export const createChallenge = async (
   fromUserId: string,
   fromUserName: string | undefined,
@@ -316,21 +462,48 @@ export const createChallenge = async (
   if (!input.toUserId || !input.gameId) {
     throw new AppError(400, "toUserId and gameId are required");
   }
+  if (fromUserId === input.toUserId) {
+    throw new AppError(400, "Cannot challenge yourself");
+  }
+  // Mutual blocklist: either direction blocks challenge delivery.
+  if (await isEitherBlocked(fromUserId, input.toUserId)) {
+    throw new AppError(403, "Cannot challenge a blocked user");
+  }
   const gameTitle =
     typeof input.gameName === "string" && input.gameName.trim()
       ? input.gameName
       : input.gameId;
-  const saved = await repo().challenges.save(
-    repo().challenges.create({
-      fromUserId,
-      fromUserName: fromUserName || null,
-      toUserId: input.toUserId,
-      gameId: input.gameId,
-      gameTitle,
-      status: "pending",
-    }),
-  );
-  return challengeToRow(saved);
+  const existing = await repo().challenges.createQueryBuilder("c")
+    .where(
+      `c.from_user_id = :from AND c.to_user_id = :to AND c.game_id = :game AND c.status = 'pending'`,
+      { from: fromUserId, to: input.toUserId, game: input.gameId },
+    )
+    .getOne();
+  if (existing) return challengeToRow(existing);
+  try {
+    const saved = await repo().challenges.save(
+      repo().challenges.create({
+        fromUserId,
+        fromUserName: fromUserName || null,
+        toUserId: input.toUserId,
+        gameId: input.gameId,
+        gameTitle,
+        status: "pending",
+      }),
+    );
+    return challengeToRow(saved);
+  } catch (err) {
+    // Unique-violation race (socket + REST fired concurrently): return the
+    // row the other writer won with instead of surfacing a 500.
+    const winner = await repo().challenges.createQueryBuilder("c")
+      .where(
+        `c.from_user_id = :from AND c.to_user_id = :to AND c.game_id = :game AND c.status = 'pending'`,
+        { from: fromUserId, to: input.toUserId, game: input.gameId },
+      )
+      .getOne();
+    if (winner) return challengeToRow(winner);
+    throw err;
+  }
 };
 
 /** POST /api/users/:userId/challenges/:challengeId/respond — { status } */
@@ -353,6 +526,58 @@ export const respondToChallenge = async (
   challenge.respondedAt = new Date();
   await repo().challenges.save(challenge);
   return challengeToRow(challenge);
+};
+
+// ─── Room chat (persisted) ──────────────────────────────────────────────────
+
+export interface RoomMessageRow {
+  id: number;
+  roomId: string;
+  userId: string;
+  userName: string;
+  message: string;
+  timestamp: number;
+}
+
+const roomMessageToRow = (m: RoomMessage): RoomMessageRow => ({
+  id: m.id,
+  roomId: m.roomId,
+  userId: m.userId,
+  userName: m.userName ?? m.userId,
+  message: m.message,
+  timestamp: new Date(m.createdAt).getTime(),
+});
+
+/** Persist a room-chat message (socket handler routes here). */
+export const persistRoomMessage = async (input: {
+  roomId: string;
+  userId: string;
+  userName?: string;
+  message: string;
+}): Promise<RoomMessageRow> => {
+  const saved = await repo().roomMessages.save(
+    repo().roomMessages.create({
+      roomId: input.roomId,
+      userId: input.userId,
+      userName: input.userName ?? null,
+      message: input.message,
+    }),
+  );
+  return roomMessageToRow(saved);
+};
+
+/** Recent room history, oldest-first (cap 200). */
+export const listRoomMessages = async (
+  roomId: string,
+  limit = 50,
+): Promise<RoomMessageRow[]> => {
+  const capped = Math.min(Math.max(Math.trunc(limit) || 50, 1), 200);
+  const rows = await repo().roomMessages.find({
+    where: { roomId },
+    order: { createdAt: "DESC" },
+    take: capped,
+  });
+  return rows.reverse().map(roomMessageToRow);
 };
 
 // ─── Notifications ───────────────────────────────────────────────────────────

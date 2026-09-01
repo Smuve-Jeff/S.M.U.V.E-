@@ -6,8 +6,10 @@ import { emitChallengeResponse } from "@/socket";
 import {
   addFriend,
   assertOwnershipOrAdmin,
+  blockUser,
   createChallenge,
   featuredUsers,
+  listBlockedUsers,
   listChallenges,
   listFriends,
   listMessageThread,
@@ -17,6 +19,7 @@ import {
   respondToChallenge,
   respondToFriendRequest,
   searchUsers,
+  unblockUser,
 } from "@/services";
 import type { AuthUser } from "@/types";
 
@@ -42,13 +45,14 @@ router.get("/search", async (req, res) => {
       q: typeof req.query.q === "string" ? req.query.q : undefined,
       location:
         typeof req.query.location === "string" ? req.query.location : undefined,
+      actorUserId: String((req.user as AuthUser).userId),
     }),
   );
 });
 
 // GET /api/users/featured
-router.get("/featured", async (_req, res) => {
-  res.json(await featuredUsers());
+router.get("/featured", async (req, res) => {
+  res.json(await featuredUsers(String((req.user as AuthUser).userId)));
 });
 
 // GET /api/users/:userId/messages/:friendId
@@ -59,6 +63,21 @@ router.get("/:userId/messages/:friendId", own, async (req, res) => {
 // GET /api/users/:userId/friends
 router.get("/:userId/friends", own, async (req, res) => {
   res.json(await listFriends(req.params.userId));
+});
+
+// GET /api/users/:userId/blocks
+router.get("/:userId/blocks", own, async (req, res) => {
+  res.json(await listBlockedUsers(req.params.userId));
+});
+
+// PUT /api/users/:userId/blocks/:blockedUserId — block a player
+router.put("/:userId/blocks/:blockedUserId", own, async (req, res) => {
+  res.json(await blockUser(req.params.userId, req.params.blockedUserId));
+});
+
+// DELETE /api/users/:userId/blocks/:blockedUserId — unblock a player
+router.delete("/:userId/blocks/:blockedUserId", own, async (req, res) => {
+  res.json(await unblockUser(req.params.userId, req.params.blockedUserId));
 });
 
 // POST /api/users/:userId/friends/:friendId

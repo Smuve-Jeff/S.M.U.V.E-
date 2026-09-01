@@ -18,6 +18,7 @@ import uploadRoutes from "@/routes/upload.routes";
 import projectsRouter, { identityRouter } from "@/routes/project.routes";
 import gameInviteRoutes from "@/routes/game-invite.routes";
 import liveStreamRoutes from "@/routes/live-stream.routes";
+import roomRoutes from "@/routes/room.routes";
 
 const app = express();
 
@@ -87,6 +88,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/projects", projectsRouter);
 app.use("/api/identity", identityRouter);
 app.use("/api/games", gameInviteRoutes);
+app.use("/api/rooms", roomRoutes);
 // Live-stream / Go-Live surfaces. Mounted at /api/users for per-host
 // authorization, plus a public /api/live-streams prefix for the
 // viewer tap-to-join lookup.

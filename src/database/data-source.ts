@@ -19,6 +19,8 @@ import { Project } from "@/entities/Project";
 import { ArtistIdentity } from "@/entities/ArtistIdentity";
 import { GameInvite } from "@/entities/GameInvite";
 import { LiveStream } from "@/entities/LiveStream";
+import { UserBlock } from "@/entities/UserBlock";
+import { RoomMessage } from "@/entities/RoomMessage";
 
 const isDevelopment = NODE_ENV === "development";
 const isProduction = NODE_ENV === "production";
@@ -48,6 +50,8 @@ export const AppDataSource = new DataSource({
     ArtistIdentity,
     GameInvite,
     LiveStream,
+    UserBlock,
+    RoomMessage,
   ],
   migrations: isDevelopment
     ? [__dirname + "/migrations/*.ts"]

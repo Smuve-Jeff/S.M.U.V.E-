@@ -10,8 +10,11 @@ import {
   createChallenge,
   createStudioSession,
   hasStudioPermission,
+  isEitherBlocked,
+  listRoomMessages,
   persistMessage,
   persistNotification,
+  persistRoomMessage,
   upsertSessionMember,
 } from "@/services";
 import { getStudioMember } from "@/services/studio-collab.service";
@@ -61,6 +64,47 @@ interface QueueEntry {
 const getStudioRoom = (sessionId: string) => `session:${sessionId}`;
 const getPartyRoom = (partyId: string) => `party:${partyId}`;
 const MAX_CHAT_MESSAGE_LENGTH = 2000;
+
+// ── Per-user rate limiting (shared across ALL of a user's sockets so
+// opening N sockets cannot multiply the budget) ──
+const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
+  send_message: { windowMs: 5_000, max: 8 },
+  send_room_message: { windowMs: 5_000, max: 10 },
+  send_party_message: { windowMs: 5_000, max: 10 },
+  typing: { windowMs: 1_000, max: 3 },
+  voice_signal: { windowMs: 1_000, max: 15 },
+  challenge_player: { windowMs: 10_000, max: 5 },
+  neural_sync_request: { windowMs: 10_000, max: 5 },
+  neural_sync_approve: { windowMs: 10_000, max: 5 },
+  invite_to_party: { windowMs: 10_000, max: 10 },
+  invite_to_studio_session: { windowMs: 10_000, max: 10 },
+  send_async_packet: { windowMs: 10_000, max: 10 },
+  create_party: { windowMs: 10_000, max: 5 },
+  queue_for_match: { windowMs: 10_000, max: 5 },
+};
+const rateBuckets = new Map<string, Record<string, number[]>>();
+
+/** Sliding-window check; returns true when the user exceeded their budget. */
+const isRateLimited = (userId: string, event: string): boolean => {
+  const limit = RATE_LIMITS[event];
+  if (!limit) return false;
+  const now = Date.now();
+  let userBuckets = rateBuckets.get(userId);
+  if (!userBuckets) {
+    userBuckets = {};
+    rateBuckets.set(userId, userBuckets);
+  }
+  const hits = (userBuckets[event] ?? []).filter(
+    (t) => now - t < limit.windowMs,
+  );
+  if (hits.length >= limit.max) {
+    userBuckets[event] = hits;
+    return true;
+  }
+  hits.push(now);
+  userBuckets[event] = hits;
+  return false;
+};
 
 function normalizeChatMessage(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -157,6 +201,25 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       online: true,
     }));
     io.emit("users_online", users);
+  };
+
+  /**
+   * Authoritative lobby directory. The server owns party/lobby state, so
+   * every create/join/leave/launch re-broadcasts the full list and clients
+   * REPLACE their local accumulation (no client-side ghost lobbies).
+   */
+  const broadcastLobbyList = () => {
+    const lobbies = Array.from(parties.entries()).map(([partyId, party]) => ({
+      partyId,
+      gameId: party.gameId,
+      leaderId: party.leaderId,
+      leaderName: getSenderMeta(party.leaderId).artistName || party.leaderId,
+      memberCount: party.members.length,
+      maxPlayers: 4,
+      status: "open",
+      members: party.members,
+    }));
+    io.emit("lobby_list", lobbies);
   };
 
   const syncInbox = async (userId: string) => {
@@ -260,6 +323,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     const userSockets = socketIdsByUser.get(userId) ?? new Set<string>();
     userSockets.add(socket.id);
     socketIdsByUser.set(userId, userSockets);
+    // Give every fresh client the authoritative lobby directory immediately
+    // so discovery never depends on receiving a future mutation event.
+    broadcastLobbyList();
 
     // ── Presence ──
     socket.on("register_presence", (data: { metadata?: PresenceMeta } = {}) => {
@@ -277,7 +343,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     });
 
     // ── Rooms ──
-    socket.on("join_room", (roomId: string) => {
+    socket.on("join_room", async (roomId: string) => {
       if (!validSocketId(roomId)) return;
       for (const [joinedRoomId, members] of rooms) {
         if (members.delete(userId)) socket.leave(joinedRoomId);
@@ -286,21 +352,51 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
       rooms.get(roomId)!.add(userId);
       socket.join(roomId);
+      // Deliver persisted history to the joining client only.
+      try {
+        const history = await listRoomMessages(roomId, 50);
+        io.to(userId).emit("room_history", { roomId, messages: history });
+      } catch (err) {
+        console.error("Room history load error:", err);
+      }
     });
 
-    socket.on("send_room_message", (data: { roomId?: string; message?: string; fromUserName?: string } = {}) => {
+    socket.on("request_room_history", async (data: { roomId?: string } = {}) => {
+      const { roomId } = data;
+      if (!validSocketId(roomId)) return;
+      try {
+        const history = await listRoomMessages(roomId, 50);
+        io.to(userId).emit("room_history", { roomId, messages: history });
+      } catch (err) {
+        console.error("Room history load error:", err);
+      }
+    });
+
+    socket.on("send_room_message", async (data: { roomId?: string; message?: string; fromUserName?: string } = {}) => {
       const { roomId, fromUserName } = data;
       const message = normalizeChatMessage(data.message);
       if (!validSocketId(roomId) || !message) return;
+      if (isRateLimited(userId, "send_room_message")) return;
       const members = rooms.get(roomId);
       if (!members?.has(userId)) return;
-      io.to(roomId).emit("room_message", {
-        roomId,
-        fromUserId: userId,
-        fromUserName: typeof fromUserName === "string" ? fromUserName.slice(0, 80) : userId,
-        message,
-        timestamp: Date.now(),
-      });
+      try {
+        const saved = await persistRoomMessage({
+          roomId,
+          userId,
+          userName: typeof fromUserName === "string" ? fromUserName.slice(0, 80) : undefined,
+          message,
+        });
+        io.to(roomId).emit("room_message", {
+          id: saved.id,
+          roomId,
+          fromUserId: userId,
+          fromUserName: saved.userName,
+          message: saved.message,
+          timestamp: saved.timestamp,
+        });
+      } catch (err) {
+        console.error("Room message persist error:", err);
+      }
     });
 
     // ── Private messages ──
@@ -308,6 +404,10 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       const { toUserId } = data;
       const message = normalizeChatMessage(data.message);
       if (!validSocketId(toUserId) || !message) return;
+      if (isRateLimited(userId, "send_message")) return;
+      // Mutual blocklist: a block in either direction silently drops DMs
+      // (no error echo — never reveal block state to the sender).
+      if (await isEitherBlocked(userId, toUserId)) return;
       try {
         await persistMessage({ fromUserId: userId, toUserId, message });
         const payload = { fromUserId: userId, toUserId, message, timestamp: Date.now() };
@@ -318,9 +418,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       }
     });
 
-    socket.on("typing", (data: { toUserId?: string; isTyping?: boolean } = {}) => {
+    socket.on("typing", async (data: { toUserId?: string; isTyping?: boolean } = {}) => {
       const { toUserId, isTyping } = data;
       if (!validSocketId(toUserId)) return;
+      if (isRateLimited(userId, "typing")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       io.to(toUserId).emit("user_typing", { fromUserId: userId, isTyping: !!isTyping });
     });
 
@@ -328,6 +430,10 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     socket.on("challenge_player", async (data: { toUserId?: string; gameId?: string; message?: string; gameName?: string } = {}) => {
       const { toUserId, gameId, message, gameName } = data;
       if (!toUserId || !gameId) return;
+      if (isRateLimited(userId, "challenge_player")) return;
+      // Mutual blocklist — createChallenge enforces this too, but dropping
+      // at the socket layer avoids pointless DB writes from spammers.
+      if (await isEitherBlocked(userId, toUserId)) return;
       const fromUserName = getSenderMeta(userId).artistName || userId;
       try {
         const record = await createChallenge(userId, fromUserName, {
@@ -362,9 +468,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     });
 
     // ── Voice signaling (WebRTC relay) ──
-    socket.on("voice_signal", (data: { toUserId?: string; signal?: unknown } = {}) => {
+    socket.on("voice_signal", async (data: { toUserId?: string; signal?: unknown } = {}) => {
       const { toUserId, signal } = data;
       if (!toUserId || !signal) return;
+      if (isRateLimited(userId, "voice_signal")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       io.to(toUserId).emit("voice_signal", { fromUserId: userId, signal });
     });
 
@@ -400,6 +508,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         ? (data.role as string)
         : "viewer";
       if (!sessionId || !toUserId) return;
+      if (isRateLimited(userId, "invite_to_studio_session")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       try {
         if (!(await hasStudioPermission(sessionId, userId, "invite"))) return;
         await upsertSessionMember({ sessionId, userId: toUserId, role, status: "invited" });
@@ -632,6 +742,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     } = {}) => {
       const { sessionId, toUserId, packetType, payload } = data;
       if (!sessionId || !toUserId || !packetType) return;
+      if (isRateLimited(userId, "send_async_packet")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       try {
         const requiredPermission =
           packetType === "remix_request"
@@ -747,6 +859,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
 
     // ── Parties / Squads ──
     socket.on("create_party", (data: { partyId?: string; gameId?: string } = {}) => {
+      if (isRateLimited(userId, "create_party")) return;
       const partyId = data.partyId || `party_${randomUUID()}`;
       const leaderMeta = getSenderMeta(userId);
       parties.set(partyId, {
@@ -760,11 +873,14 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         leaderId: userId,
         members: [{ userId, artistName: leaderMeta.artistName || userId }],
       });
+      broadcastLobbyList();
     });
 
-    socket.on("invite_to_party", (data: { toUserId?: string; partyId?: string; gameId?: string } = {}) => {
+    socket.on("invite_to_party", async (data: { toUserId?: string; partyId?: string; gameId?: string } = {}) => {
       const { toUserId, partyId, gameId } = data;
       if (!toUserId || !partyId) return;
+      if (isRateLimited(userId, "invite_to_party")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       const party = parties.get(partyId);
       if (!party) return;
       io.to(toUserId).emit("party_invite", {
@@ -789,6 +905,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         userId,
         artistName: memberMeta.artistName || userId,
       });
+      broadcastLobbyList();
     });
 
     socket.on("leave_party", (data: { partyId?: string } = {}) => {
@@ -797,10 +914,15 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       const party = parties.get(partyId);
       if (party) {
         party.members = party.members.filter((m) => m.userId !== userId);
+        // Host transfer: promote the next member so the lobby stays valid.
+        if (party.members.length > 0 && party.leaderId === userId) {
+          party.leaderId = party.members[0].userId;
+        }
         if (party.members.length === 0) parties.delete(partyId);
       }
       socket.leave(getPartyRoom(partyId));
       io.to(getPartyRoom(partyId)).emit("user_left_party", { userId });
+      broadcastLobbyList();
     });
 
     socket.on("party_launch_game", (data: { partyId?: string; gameId?: string } = {}) => {
@@ -809,6 +931,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       const party = parties.get(partyId);
       if (!party || party.leaderId !== userId) return;
       io.to(getPartyRoom(partyId)).emit("party_launch_game", { partyId, gameId });
+      broadcastLobbyList();
     });
 
     socket.on("send_party_message", (data: { partyId?: string; message?: string } = {}) => {
@@ -829,6 +952,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     socket.on("queue_for_match", (data: { gameId?: string } = {}) => {
       const { gameId } = data;
       if (!gameId) return;
+      if (isRateLimited(userId, "queue_for_match")) return;
       if (!matchmakingQueues.has(gameId)) matchmakingQueues.set(gameId, []);
       const queue = matchmakingQueues.get(gameId)!;
       if (!queue.find((q) => q.userId === userId)) {
@@ -854,9 +978,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     });
 
     // ── Neural sync ──
-    socket.on("neural_sync_request", (data: { toUserId?: string; syncType?: string } = {}) => {
+    socket.on("neural_sync_request", async (data: { toUserId?: string; syncType?: string } = {}) => {
       const { toUserId, syncType } = data;
       if (!toUserId) return;
+      if (isRateLimited(userId, "neural_sync_request")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       io.to(toUserId).emit("neural_sync_invite", {
         fromUserId: userId,
         fromUserName: getSenderMeta(userId).artistName || userId,
@@ -864,9 +990,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       });
     });
 
-    socket.on("neural_sync_approve", (data: { toUserId?: string; syncData?: unknown } = {}) => {
+    socket.on("neural_sync_approve", async (data: { toUserId?: string; syncData?: unknown } = {}) => {
       const { toUserId, syncData } = data;
       if (!toUserId) return;
+      if (isRateLimited(userId, "neural_sync_approve")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       io.to(toUserId).emit("neural_sync_complete", {
         fromUserId: userId,
         fromUserName: getSenderMeta(userId).artistName || userId,
@@ -1167,6 +1295,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       const { toUserId } = data;
       const message = normalizeChatMessage(data.message);
       if (!validSocketId(toUserId) || !message) return;
+      if (isRateLimited(userId, "send_message")) return;
+      if (await isEitherBlocked(userId, toUserId)) return;
       try {
         await persistMessage({ fromUserId: userId, toUserId, message });
         io.to(toUserId).emit("RECEIVE_DIRECT_MESSAGE", {
@@ -1188,11 +1318,32 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (!userSockets || userSockets.size === 0) {
         socketIdsByUser.delete(userId);
         presence.delete(userId);
+        rateBuckets.delete(userId);
         broadcastOnlineUsers();
       }
       matchmakingQueues.forEach((queue, gameId) => {
         matchmakingQueues.set(gameId, queue.filter((q) => q.userId !== userId));
       });
+      // Remove the user from any parties/lobbies so the authoritative lobby
+      // directory never shows ghost lobbies for disconnected players, and
+      // promote the next member when the leader drops.
+      let partyChanged = false;
+      parties.forEach((party, partyId) => {
+        if (!party.members.some((m) => m.userId === userId)) return;
+        partyChanged = true;
+        party.members = party.members.filter((m) => m.userId !== userId);
+        if (party.members.length === 0) {
+          parties.delete(partyId);
+        } else if (party.leaderId === userId) {
+          party.leaderId = party.members[0].userId;
+          io.to(getPartyRoom(partyId)).emit("host_transferred", {
+            partyId,
+            newHostId: party.leaderId,
+            newHostName: party.members[0].artistName || party.leaderId,
+          });
+        }
+      });
+      if (partyChanged) broadcastLobbyList();
       // Clean up any split-screen session this user was hosting or joining
       // so the orphan peer immediately gets a split_screen_ended event.
       splitScreenPeers.forEach((pair, lobbyId) => {

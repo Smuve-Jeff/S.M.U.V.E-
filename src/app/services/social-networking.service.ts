@@ -91,6 +91,8 @@ export class SocialNetworkingService {
   onlineUsers = signal<OnlineUser[]>([]);
   messages = signal<PrivateMessage[]>([]);
   roomMessages = signal<RoomMessage[]>([]);
+  /** Players the current user has blocked (server-authoritative list). */
+  blockedUsers = signal<OnlineUser[]>([]);
   // challenges moved to ChallengeInboxService (single source of truth)
   friends = signal<OnlineUser[]>([]);
   partyMembers = signal<OnlineUser[]>([]);
@@ -305,6 +307,15 @@ export class SocialNetworkingService {
 
     this.socket.on('room_message', (data: any) => {
       this.roomMessages.update((msgs) => [...msgs, data]);
+    });
+
+    // Server persists room chat; `room_history` replaces the local buffer
+    // with authoritative history (oldest-first) on join/refresh.
+    this.socket.on('room_history', (data: any) => {
+      if (!data?.roomId || !Array.isArray(data.messages)) return;
+      if (this.currentRoomId === data.roomId) {
+        this.roomMessages.set(data.messages);
+      }
     });
 
     // incoming_challenge + challenge_inbox_sync are dispatched by ChallengeInboxComponent
@@ -528,6 +539,29 @@ export class SocialNetworkingService {
     this.currentRoomId = roomId;
     this.roomMessages.set([]);
     this.socket?.emit('join_room', roomId);
+  }
+
+  /** Fetch persisted room history on demand (survives reloads). */
+  async loadRoomHistory(roomId: string): Promise<RoomMessage[]> {
+    const userId = this.profileService.profile().id;
+    if (!userId || !roomId) return [];
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const history = await firstValueFrom(
+        this.http.get<RoomMessage[]>(
+          `${APP_SECURITY_CONFIG.api_url}/rooms/${encodeURIComponent(roomId)}/messages`,
+          { headers }
+        )
+      );
+      if (this.currentRoomId === roomId) {
+        this.roomMessages.set(history);
+      }
+      return history;
+    } catch (e) {
+      console.error('Failed to load room history', e);
+      return [];
+    }
   }
 
   sendRoomMessage(roomId: string, message: string) {
@@ -799,6 +833,80 @@ export class SocialNetworkingService {
       console.error('Failed to load message history', e);
     }
   }
+  /** Load the server-authoritative blocklist for the current user. */
+  async loadBlockedUsers(): Promise<OnlineUser[]> {
+    const userId = this.profileService.profile().id;
+    if (!userId) return [];
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const blocked = await firstValueFrom(
+        this.http.get<OnlineUser[]>(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks`,
+          { headers }
+        )
+      );
+      this.blockedUsers.set(blocked);
+      return blocked;
+    } catch (e) {
+      console.error('Failed to load blocked users', e);
+      return [];
+    }
+  }
+
+  /** Block a player: REST persists the record and invalidates the server cache. */
+  async blockUser(targetUserId: string): Promise<boolean> {
+    const userId = this.profileService.profile().id;
+    if (!userId || !targetUserId || targetUserId === userId) return false;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await firstValueFrom(
+        this.http.put(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks/${targetUserId}`,
+          {},
+          { headers }
+        )
+      );
+      // Reflect locally: remove from discovery surfaces + drop their DMs.
+      this.onlineUsers.update((users) =>
+        users.filter((u) => u.userId !== targetUserId)
+      );
+      this.friends.update((users) =>
+        users.filter((u) => u.userId !== targetUserId)
+      );
+      this.messages.update((msgs) =>
+        msgs.filter((m) => m.fromUserId !== targetUserId)
+      );
+      await this.loadBlockedUsers();
+      return true;
+    } catch (e) {
+      console.error('Failed to block user', e);
+      return false;
+    }
+  }
+
+  /** Unblock a player. */
+  async unblockUser(targetUserId: string): Promise<boolean> {
+    const userId = this.profileService.profile().id;
+    if (!userId || !targetUserId) return false;
+    try {
+      const token = this.tokenService.jwtToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await firstValueFrom(
+        this.http.delete(
+          `${APP_SECURITY_CONFIG.api_url}/users/${userId}/blocks/${targetUserId}`,
+          { headers }
+        )
+      );
+      await this.loadBlockedUsers();
+      return true;
+    } catch (e) {
+      console.error('Failed to unblock user', e);
+      return false;
+    }
+  }
+
   async loadFriends() {
     const userId = this.profileService.profile().id;
     if (!userId) return;

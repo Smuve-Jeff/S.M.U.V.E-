@@ -16,3 +16,5 @@ export * from "./Project";
 export * from "./ArtistIdentity";
 export * from "./GameInvite";
 export * from "./LiveStream";
+export * from "./UserBlock";
+export * from "./RoomMessage";

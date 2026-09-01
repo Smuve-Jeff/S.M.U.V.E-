@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { SocialNetworkingService } from './social-networking.service';
 import { UserProfileService } from './user-profile.service';
 import { PeerNetworkingService } from './peer-networking.service';
@@ -64,6 +67,10 @@ describe('SocialNetworkingService', () => {
     });
     service = TestBed.inject(SocialNetworkingService);
     TestBed.flushEffects();
+  });
+
+  afterEach(() => {
+    TestBed.inject(HttpTestingController, null)?.verify();
   });
 
   it('should be created and initialize the socket for an authenticated profile', () => {
@@ -179,5 +186,109 @@ describe('SocialNetworkingService', () => {
       expect.objectContaining({ toUserId: 'rival-1' })
     );
     expect(service.pendingNeuralSync()).toBeNull();
+  });
+
+  it('replaces the room buffer with server history on room_history', () => {
+    service.joinRoom('lobby-1');
+    expect(mockSocket.emit).toHaveBeenCalledWith('join_room', 'lobby-1');
+
+    socketHandlers.get('room_history')?.({
+      roomId: 'lobby-1',
+      messages: [
+        { id: 1, roomId: 'lobby-1', fromUserId: 'u2', fromUserName: 'Rival', message: 'gg', timestamp: 1 },
+        { id: 2, roomId: 'lobby-1', fromUserId: 'u1', fromUserName: 'Test Artist', message: 'wp', timestamp: 2 },
+      ],
+    });
+
+    expect(service.roomMessages()).toHaveLength(2);
+    expect(service.roomMessages()[0].message).toBe('gg');
+  });
+
+  it('ignores room_history for a room the client is not viewing', () => {
+    service.joinRoom('lobby-1');
+    service.roomMessages.set([{ roomId: 'stale', fromUserId: 'x', message: 'keep', timestamp: 0 }]);
+
+    socketHandlers.get('room_history')?.({
+      roomId: 'lobby-OTHER',
+      messages: [{ roomId: 'lobby-OTHER', fromUserId: 'x', message: 'nope', timestamp: 0 }],
+    });
+
+    expect(service.roomMessages().every((m) => m.roomId !== 'lobby-OTHER')).toBe(true);
+  });
+
+  it('loads persisted room history via REST', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    service.joinRoom('lobby-1');
+
+    const promise = service.loadRoomHistory('lobby-1');
+    const req = httpMock.expectOne((r) =>
+      r.method === 'GET' && r.url.includes('/rooms/lobby-1/messages')
+    );
+    req.flush([
+      { id: 1, roomId: 'lobby-1', fromUserId: 'u2', message: 'hello', timestamp: 10 },
+    ]);
+    const history = await promise;
+
+    expect(history).toHaveLength(1);
+    expect(service.roomMessages()[0].message).toBe('hello');
+  });
+
+  it('loads the server-authoritative blocklist', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    const promise = service.loadBlockedUsers();
+    const req = httpMock.expectOne((r) =>
+      r.method === 'GET' && r.url.includes('/users/test-id/blocks')
+    );
+    req.flush([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+    await promise;
+
+    expect(service.blockedUsers()).toEqual([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+  });
+
+  it('blocks a user via REST and scrubs them from discovery surfaces', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    service.onlineUsers.set([
+      { userId: 'rival-1', artistName: 'RIVAL' },
+      { userId: 'keep-1', artistName: 'KEEP' },
+    ]);
+    service.friends.set([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+
+    const promise = service.blockUser('rival-1');
+    const putReq = httpMock.expectOne((r) =>
+      r.method === 'PUT' && r.url.includes('/users/test-id/blocks/rival-1')
+    );
+    putReq.flush({ success: true });
+    // blockUser awaits the PUT, then issues the blocklist GET — yield to the
+    // microtask queue so that follow-up request is registered.
+    await Promise.resolve();
+    const getReq = httpMock.expectOne((r) =>
+      r.method === 'GET' && r.url.includes('/users/test-id/blocks')
+    );
+    getReq.flush([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+    await promise;
+
+    expect(service.onlineUsers().map((u) => u.userId)).toEqual(['keep-1']);
+    expect(service.friends()).toHaveLength(0);
+    expect(service.blockedUsers()).toEqual([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+  });
+
+  it('unblocks a user via REST', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    service.blockedUsers.set([{ userId: 'rival-1', artistName: 'RIVAL' }]);
+
+    const promise = service.unblockUser('rival-1');
+    const delReq = httpMock.expectOne((r) =>
+      r.method === 'DELETE' && r.url.includes('/users/test-id/blocks/rival-1')
+    );
+    delReq.flush({ success: true });
+    await Promise.resolve();
+    const getReq = httpMock.expectOne((r) =>
+      r.method === 'GET' && r.url.includes('/users/test-id/blocks')
+    );
+    getReq.flush([]);
+    await promise;
+
+    expect(service.blockedUsers()).toHaveLength(0);
   });
 });

@@ -6,6 +6,8 @@ jest.mock("@/entities", () => ({
   DirectMessage: class DirectMessage {},
   GameChallenge: class GameChallenge {},
   Notification: class Notification {},
+  UserBlock: class UserBlock {},
+  RoomMessage: class RoomMessage {},
 }));
 
 jest.mock("@/database/data-source", () => ({
@@ -26,8 +28,10 @@ jest.mock("@/database/data-source", () => ({
       set: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
+      into: jest.fn().mockReturnThis(),
       values: jest.fn().mockReturnThis(),
       orUpdate: jest.fn().mockReturnThis(),
+      orIgnore: jest.fn().mockReturnThis(),
       execute: jest.fn().mockResolvedValue({ affected: 1 }),
     })),
   },
@@ -43,6 +47,7 @@ const makeRepo = () => ({
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(null),
     getMany: jest.fn().mockResolvedValue([]),
     getRawMany: jest.fn().mockResolvedValue([]),
   })),
@@ -54,30 +59,52 @@ const repos = {
   messages: makeRepo(),
   challenges: makeRepo(),
   notifications: makeRepo(),
+  blocks: makeRepo(),
+  roomMessages: makeRepo(),
 };
 (AppDataSource.getRepository as jest.Mock).mockImplementation(
-  (entity: unknown) =>
-    repos[
-      (entity as { name: string }).name === "UserProfile"
-        ? "profiles"
-        : (entity as { name: string }).name === "Friend"
-          ? "friends"
-          : (entity as { name: string }).name === "DirectMessage"
-            ? "messages"
-            : (entity as { name: string }).name === "GameChallenge"
-              ? "challenges"
-              : "notifications"
-    ],
+  (entity: unknown) => {
+    const name = (entity as { name: string }).name;
+    const map: Record<string, keyof typeof repos> = {
+      UserProfile: "profiles",
+      Friend: "friends",
+      DirectMessage: "messages",
+      GameChallenge: "challenges",
+      Notification: "notifications",
+      UserBlock: "blocks",
+      RoomMessage: "roomMessages",
+    };
+    return repos[map[name] ?? "notifications"];
+  },
 );
 
 import {
   assertOwnershipOrAdmin,
+  blockUser,
   createChallenge,
+  filterBlocked,
   getProfile,
+  invalidateBlockCache,
+  isEitherBlocked,
+  isUserBlocked,
+  listBlockedUsers,
   listChallenges,
   listNotifications,
+  listRoomMessages,
+  persistRoomMessage,
   saveProfile,
+  searchUsers,
+  unblockUser,
 } from "./social.service";
+
+/** Mock the block-cache loader rows returned by the shared query-builder chain. */
+const setBlockRows = (rows: Array<{ userId: string; blockedUserId: string }>) => {
+  (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+    select: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(rows),
+  } as never);
+};
 
 describe("profile service", () => {
   beforeEach(() => jest.clearAllMocks());
@@ -100,7 +127,10 @@ describe("profile service", () => {
 });
 
 describe("challenge service", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    invalidateBlockCache();
+  });
 
   it("creates a challenge with the resolved game title", async () => {
     repos.challenges.save.mockResolvedValue({
@@ -129,6 +159,177 @@ describe("challenge service", () => {
     await expect(
       createChallenge("u1", "Jeff", { toUserId: "", gameId: "pacman" }),
     ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("rejects self-challenges", async () => {
+    await expect(
+      createChallenge("u1", "Jeff", { toUserId: "u1", gameId: "pacman" }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("returns the existing pending challenge instead of double-writing", async () => {
+    const existing = {
+      id: 9,
+      fromUserId: "u1",
+      fromUserName: "Jeff",
+      toUserId: "u2",
+      gameId: "pacman",
+      gameTitle: "PAC-MAN",
+      message: null,
+      status: "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      respondedAt: null,
+    };
+    (repos.challenges.createQueryBuilder as jest.Mock).mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(existing),
+    });
+    const record = await createChallenge("u1", "Jeff", {
+      toUserId: "u2",
+      gameId: "pacman",
+      gameName: "PAC-MAN",
+    });
+    expect(record.id).toBe(9);
+    expect(repos.challenges.save).not.toHaveBeenCalled();
+  });
+
+  it("recovers the winner row when a unique-violation race loses", async () => {
+    repos.challenges.save.mockRejectedValueOnce(new Error("duplicate key"));
+    const winner = {
+      id: 12,
+      fromUserId: "u1",
+      fromUserName: "Jeff",
+      toUserId: "u2",
+      gameId: "pacman",
+      gameTitle: "PAC-MAN",
+      message: null,
+      status: "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      respondedAt: null,
+    };
+    (repos.challenges.createQueryBuilder as jest.Mock).mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(winner),
+    });
+    const record = await createChallenge("u1", "Jeff", {
+      toUserId: "u2",
+      gameId: "pacman",
+      gameName: "PAC-MAN",
+    });
+    expect(record.id).toBe(12);
+  });
+
+  it("rejects challenges against a blocked player (mutual)", async () => {
+    setBlockRows([{ userId: "u2", blockedUserId: "u1" }]);
+    await expect(
+      createChallenge("u1", "Jeff", { toUserId: "u2", gameId: "pacman" }),
+    ).rejects.toMatchObject({ statusCode: 403 });
+  });
+});
+
+describe("blocklist service", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    invalidateBlockCache();
+  });
+
+  it("rejects self-blocking", async () => {
+    await expect(blockUser("u1", "u1")).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it("inserts a block row and invalidates the cache", async () => {
+    await blockUser("u1", "u2");
+    expect(AppDataSource.createQueryBuilder).toHaveBeenCalled();
+    expect(repos.blocks).toBeDefined();
+  });
+
+  it("deletes a block row on unblock", async () => {
+    await expect(unblockUser("u1", "u2")).resolves.toMatchObject({
+      success: true,
+      blockedUserId: "u2",
+    });
+  });
+
+  it("maps blocked rows to online-user shape", async () => {
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce({
+      select: jest.fn().mockReturnThis(),
+      from: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          userId: "u2",
+          artistName: "Rival",
+          primaryGenre: "Hip Hop",
+          avatarImage: null,
+          location: null,
+        },
+      ]),
+    } as never);
+    const rows = await listBlockedUsers("u1");
+    expect(rows).toEqual([
+      { userId: "u2", artistName: "Rival", primaryGenre: "Hip Hop" },
+    ]);
+  });
+
+  it("isEitherBlocked resolves mutual direction", async () => {
+    setBlockRows([{ userId: "u2", blockedUserId: "u1" }]);
+    await expect(isEitherBlocked("u1", "u2")).resolves.toBe(true);
+    await expect(isUserBlocked("u2", "u1")).resolves.toBe(true);
+  });
+
+  it("filterBlocked strips the actor's blocks from discovery", async () => {
+    setBlockRows([{ userId: "u1", blockedUserId: "u2" }]);
+    const result = await filterBlocked("u1", [
+      { userId: "u2" },
+      { userId: "u3" },
+    ]);
+    expect(result.map((u) => u.userId)).toEqual(["u3"]);
+  });
+
+  it("searchUsers hides blocked users from results", async () => {
+    setBlockRows([{ userId: "u1", blockedUserId: "u2" }]);
+    repos.profiles.createQueryBuilder = jest.fn(() => ({
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        { userId: "u2", profileData: {} },
+        { userId: "u3", profileData: {} },
+      ]),
+    }));
+    const results = await searchUsers({ actorUserId: "u1" });
+    expect(results.map((u) => u.userId)).toEqual(["u3"]);
+  });
+});
+
+describe("room chat service", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("persists a room message and maps the row", async () => {
+    const saved = await persistRoomMessage({
+      roomId: "lobby-1",
+      userId: "u1",
+      userName: "Jeff",
+      message: "yo",
+    });
+    expect(saved.userName).toBe("Jeff");
+    expect(saved.message).toBe("yo");
+    expect(repos.roomMessages.save).toHaveBeenCalled();
+  });
+
+  it("lists history oldest-first with a cap", async () => {
+    repos.roomMessages.find.mockResolvedValue([
+      { id: 2, createdAt: new Date(2000), message: "b" },
+      { id: 1, createdAt: new Date(1000), message: "a" },
+    ]);
+    const rows = await listRoomMessages("lobby-1", 50);
+    expect(rows.map((r) => r.id)).toEqual([1, 2]);
   });
 });
 

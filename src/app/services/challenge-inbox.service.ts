@@ -197,11 +197,21 @@ export class ChallengeInboxService {
     this.socket = socket;
   }
   private emitChallenge(toUserId: string, gameId: string, gameName?: string) {
-    // Primary: emit via socket for real-time delivery
-    if (this.socket && typeof this.socket.emit === 'function') {
+    const socketLive =
+      !!this.socket &&
+      typeof this.socket.emit === 'function' &&
+      this.socket.connected !== false;
+    if (socketLive) {
+      // PRIMARY path only: the socket handler persists the challenge
+      // server-side. REST is NOT also fired here — doing both creates a
+      // duplicate challenge row (double-write) since both call
+      // createChallenge. The server-side dedupe (pending-unique guard) is
+      // the backstop for any concurrent retry.
       this.socket.emit('challenge_player', { toUserId, gameId, gameName });
+      return;
     }
-    // Backup: persist via REST so challenge survives socket drops
+    // Fallback: socket unavailable — persist via REST so the challenge
+    // survives and is delivered when the recipient next syncs.
     this.persistChallengeViaRest(toUserId, gameId, gameName);
   }
 

@@ -466,6 +466,33 @@ export class MatchmakingService implements OnDestroy {
       this.onlineUsers.set(users);
     });
 
+    // Authoritative lobby directory. The server owns party state and
+    // broadcasts the FULL list on every mutation + on connect; we REPLACE
+    // local accumulation so stale/ghost lobbies can never linger.
+    this.socket.on('lobby_list', (lobbies: ServerParty[]) => {
+      if (!Array.isArray(lobbies)) return;
+      const mapped = lobbies.map((party) => this.partyToLobby(party));
+      this.activeLobbies.set(mapped);
+      const mine = this.myLobby();
+      if (mine) {
+        const serverCopy = mapped.find((l) => l.id === mine.id);
+        if (serverCopy) {
+          this.myLobby.set(serverCopy);
+          this.partyMembers.set(
+            serverCopy.playerIds.map((userId, index) => ({
+              userId,
+              artistName:
+                index === 0 ? serverCopy.hostName : 'PLAYER_' + userId.slice(0, 6),
+            }))
+          );
+        } else {
+          // Server no longer knows our lobby — it was closed/expired.
+          this.myLobby.set(null);
+          this.isSearching.set(false);
+        }
+      }
+    });
+
     this.socket.on('challenge_inbox_sync', (challenges: ServerChallenge[]) => {
       const mapped = challenges.map((c) =>
         serverToClientChallenge(c, (id) => this.gameService.getGameById(id)?.name)
