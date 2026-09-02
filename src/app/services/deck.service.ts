@@ -17,7 +17,7 @@ export class DeckService {
   deckB = signal<DeckState>({ ...initialDeckState, playbackRate: 1 });
   crossfade = signal(0);
   automix = signal(false);
-  xfCurve = signal<'linear' | 'power' | 'exp' | 'cut'>('linear');
+  xfCurve = signal<'linear' | 'power' | 'exp' | 'cut'>('power');
   hamster = signal(false);
   viewMode = signal<'functional' | 'flat'>('functional');
 
@@ -91,9 +91,57 @@ export class DeckService {
     this.engine.setDeckCue(deck, newState);
   }
 
+  /**
+   * Sync a deck to the other one. `deck` is the deck being pulled into
+   * tempo/phase alignment with its counterpart.
+   *
+   * 1. Tempo match: sets `deck`'s playback rate so its effective BPM
+   *    (native BPM × rate) equals the master's effective BPM.
+   * 2. Phase alignment: snaps the slave playhead to the equivalent beat
+   *    phase within its own beat grid so downbeats land together.
+   */
   autoSync(deck: DeckId) {
-    const other = deck === 'A' ? 'B' : 'A';
-    this.engine.syncDecks(other, deck);
+    const masterId = deck === 'A' ? 'B' : 'A';
+    const master = masterId === 'A' ? this.deckA() : this.deckB();
+    const slave = deck === 'A' ? this.deckA() : this.deckB();
+
+    const masterBpm = master.bpm || 0;
+    const slaveBpm = slave.bpm || 0;
+    if (!master.duration || !slave.duration || masterBpm <= 0 || slaveBpm <= 0) {
+      return;
+    }
+
+    // Match effective tempo: masterEff = nativeBpm × rate.
+    const masterEff = masterBpm * (master.playbackRate || 1);
+    const targetRate = this.clamp(masterEff / slaveBpm, 0.5, 2);
+    if (Math.abs((slave.playbackRate || 1) - targetRate) > 0.0005) {
+      this.setPlaybackRate(deck, targetRate);
+    }
+
+    // Phase-align both decks on their own beat grids (source-seconds).
+    const masterProg = this.engine.getDeckProgress(masterId);
+    const slaveProg = this.engine.getDeckProgress(deck);
+    if (masterProg.duration <= 0 || slaveProg.duration <= 0) return;
+    const masterBeat = 60 / masterBpm;
+    const slaveBeat = 60 / slaveBpm;
+    const phase = (masterProg.position % masterBeat) - (slaveProg.position % slaveBeat);
+    const target = this.clamp(
+      slaveProg.position + phase,
+      0,
+      Math.max(0, slaveProg.duration - 0.001)
+    );
+    if (Math.abs(slaveProg.position - target) > 0.002) {
+      this.engine.seekDeck(deck, target);
+    }
+  }
+
+  setXfCurve(curve: 'linear' | 'power' | 'exp' | 'cut') {
+    if (curve !== 'linear' && curve !== 'power' && curve !== 'exp' && curve !== 'cut') return;
+    this.xfCurve.set(curve);
+  }
+
+  setHamster(enabled: boolean) {
+    this.hamster.set(!!enabled);
   }
 
   scratch(deck: DeckId, delta: number) {

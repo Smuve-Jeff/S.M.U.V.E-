@@ -258,6 +258,84 @@ describe('DjDeckComponent', () => {
     expect(component.isRollPadActive('A', 2)).toBe(false);
   });
 
+  it('window release clears a roll whose pad mouseup was missed (drag-off)', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    engine.getDeckProgress.mockReturnValue({
+      position: 32,
+      duration: 120,
+      isPlaying: true,
+      slipPosition: 32,
+    });
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      bpm: 128,
+      playbackRate: 1,
+      duration: 120,
+      isPlaying: true,
+    }));
+
+    component.performanceMode.set('roll');
+    component.handlePadDown('A', 0, {
+      preventDefault: jest.fn(),
+    } as unknown as MouseEvent);
+    expect(component.isRollPadActive('A', 0)).toBe(true);
+
+    // No handlePadRelease — the pointer left the pad; the window listener fires.
+    component.onGlobalPointerRelease();
+
+    expect(component.isRollPadActive('A', 0)).toBe(false);
+    expect(engine.playDeck).toHaveBeenCalledWith('A'); // groove resumed
+  });
+
+  it('touchcancel clears an active roll instead of leaving it looping', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    engine.getDeckProgress.mockReturnValue({
+      position: 32,
+      duration: 120,
+      isPlaying: true,
+      slipPosition: 32,
+    });
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      bpm: 128,
+      playbackRate: 1,
+      duration: 120,
+      isPlaying: true,
+    }));
+
+    component.performanceMode.set('roll');
+    component.handlePadDown('A', 1, {
+      preventDefault: jest.fn(),
+    } as unknown as TouchEvent);
+    expect(component.isRollPadActive('A', 1)).toBe(true);
+
+    component.onGlobalPointerRelease(); // simulates window:touchcancel
+
+    expect(component.isRollPadActive('A', 1)).toBe(false);
+  });
+
+  it('touchcancel releases a platter scratch and resumes playback', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      isPlaying: true,
+      slip: false,
+    }));
+
+    component.onPlatterDown('A', {
+      preventDefault: jest.fn(),
+      changedTouches: [{ identifier: 7 }],
+      touches: [{ identifier: 7 }],
+    } as unknown as TouchEvent);
+    expect(component.isScratchingA()).toBe(true);
+
+    component.onPlatterUp(); // simulates window:touchcancel
+
+    expect(component.isScratchingA()).toBe(false);
+    expect(component.scratchVelocityA()).toBe(0);
+    expect(engine.playDeck).toHaveBeenCalledWith('A');
+  });
+
   it('arms and clears sampler pads independently from hot cues', () => {
     component.performanceMode.set('sampler');
     mockDeckService.deckA.update((d: typeof initialDeckState) => ({

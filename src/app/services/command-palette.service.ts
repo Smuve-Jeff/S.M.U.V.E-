@@ -81,7 +81,14 @@ const INTERACTION_TIPS: InteractionTip[] = [
   providedIn: 'root',
 })
 export class CommandPaletteService {
-  executeCommandById(id: string) {}
+  executeCommandById(id: string): boolean {
+    const action = this.actions().find((candidate) => candidate.id === id);
+    if (!action) {
+      return false;
+    }
+    this.runAction(action);
+    return true;
+  }
   private uiService = inject(UIService);
   private deckService = inject(DeckService);
   private aiService = inject(AiService);

@@ -96,12 +96,16 @@ export class SmuveAdvisorComponent {
   }
 
   /**
-   * Dismisses a piece of advice.
-   * This method is a placeholder and assumes a corresponding method exists on AiService.
+   * Dismisses a piece of advice (removes it from the active queue).
    * @param item The AdvisorAdvice object to dismiss.
    */
   dismissAdvice(item: AdvisorAdvice) {
-    // Assuming aiService can handle dismissing advice.
-    // this.aiService.dismissAdvisorAdvice((item as any).id);
+    this.aiService.advisorAdvice.update((list) =>
+      list.filter((candidate) => candidate?.id !== item.id)
+    );
+  }
+
+  trackById(_index: number, item: AdvisorAdvice): string | number {
+    return item?.id ?? _index;
   }
 }

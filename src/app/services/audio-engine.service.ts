@@ -14,6 +14,56 @@ import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
 
 export type DeckId = 'A' | 'B';
 
+export type CrossfaderCurve = 'linear' | 'power' | 'exp' | 'cut';
+
+/**
+ * Pure crossfader gain math. `val` is the fader position in [-1, 1]
+ * (-1 = fully Deck A, +1 = fully Deck B); `curve` selects the blend law and
+ * `hamster` swaps the channel orientation. Outputs are always non-negative
+ * amplitude gains in [0, 1] — never phase-inverted.
+ */
+export function computeCrossfaderGains(
+  val: number,
+  curve: CrossfaderCurve = 'power',
+  hamster = false
+): { left: number; right: number } {
+  const position = Math.max(-1, Math.min(1, Number.isFinite(val) ? val : 0));
+  let v = (position + 1) / 2; // 0 = full A, 1 = full B
+  if (hamster) v = 1 - v;
+
+  let left: number;
+  let right: number;
+  switch (curve) {
+    case 'cut': {
+      // Hard switch through a narrow center band (0.48–0.52).
+      const band = 0.02;
+      const t = Math.max(0, Math.min(1, (v - (0.5 - band)) / (2 * band)));
+      left = 1 - t;
+      right = t;
+      break;
+    }
+    case 'linear': {
+      left = 1 - v;
+      right = v;
+      break;
+    }
+    case 'exp': {
+      // Sharper-than-linear taper: deep dip at center for fine channel focus.
+      left = Math.pow(1 - v, 1.7);
+      right = Math.pow(v, 1.7);
+      break;
+    }
+    case 'power':
+    default: {
+      // Equal-power blend: constant perceived loudness across the travel.
+      left = Math.cos(v * 0.5 * Math.PI);
+      right = Math.sin(v * 0.5 * Math.PI);
+      break;
+    }
+  }
+  return { left, right };
+}
+
 /**
  * Sprint A4 — Playback toggle for the arrangement-level transport.
  * `pattern` keeps the original loop-forever behaviour at `loopLengthSteps`.
@@ -1343,18 +1393,24 @@ export class AudioEngineService {
 
   setCrossfader(
     val: number,
-    curve: string = 'linear',
+    curve: CrossfaderCurve = 'power',
     hamster: boolean = false
   ) {
+    const gains = computeCrossfaderGains(val, curve, hamster);
     this.crossfaderValue = val;
     this.crossfaderHamster = hamster;
-    const actualVal = hamster ? 1 - val : val;
-    const left = Math.cos(actualVal * 0.5 * Math.PI);
-    const right = Math.sin(actualVal * 0.5 * Math.PI);
     if (this.deckA)
-      this.deckA.gain.gain.setTargetAtTime(left, this.ctx.currentTime, 0.01);
+      this.deckA.gain.gain.setTargetAtTime(
+        gains.left,
+        this.ctx.currentTime,
+        0.01
+      );
     if (this.deckB)
-      this.deckB.gain.gain.setTargetAtTime(right, this.ctx.currentTime, 0.01);
+      this.deckB.gain.gain.setTargetAtTime(
+        gains.right,
+        this.ctx.currentTime,
+        0.01
+      );
   }
 
   /**

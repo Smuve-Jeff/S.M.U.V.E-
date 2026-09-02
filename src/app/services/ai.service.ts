@@ -49,7 +49,7 @@ export class AiService {
   isMobile = signal(false);
   executiveAudit = signal<any>(null);
   intelligenceBriefs = signal<any[]>([]);
-  advisorAdvice = signal<any>(null);
+  advisorAdvice = signal<any[]>([]);
   deepAuditResults = signal<any>(null);
 
   conversationalTier = computed(() => {

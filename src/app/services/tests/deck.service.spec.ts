@@ -216,4 +216,68 @@ describe('DeckService', () => {
     });
     expect(service.deckA().vinylImageUrl).toBe('vinyl://anthem');
   });
+
+  it('autoSync tempo-matches the slave deck to the master', () => {
+    service.deckA.update((d: any) => ({ ...d, bpm: 120, duration: 120 }));
+    service.deckB.update((d: any) => ({ ...d, bpm: 128, duration: 120 }));
+    mockEngine.getDeckProgress.mockReturnValue({
+      position: 60,
+      duration: 120,
+      isPlaying: true,
+      slipPosition: 60,
+    });
+
+    service.autoSync('B');
+
+    // Master effective BPM 120 → slave rate target = 120 / 128.
+    expect(service.deckB().playbackRate).toBeCloseTo(0.9375, 4);
+  });
+
+  it('autoSync phase-aligns the slave playhead to the master beat grid', () => {
+    service.deckA.update((d: any) => ({ ...d, bpm: 120, duration: 120 }));
+    service.deckB.update((d: any) => ({ ...d, bpm: 120, duration: 120 }));
+    mockEngine.getDeckProgress
+      .mockReturnValueOnce({
+        position: 60.35, // beat phase 0.35s within a 0.5s beat
+        duration: 120,
+        isPlaying: true,
+        slipPosition: 60.35,
+      })
+      .mockReturnValueOnce({
+        position: 10, // phase 0
+        duration: 120,
+        isPlaying: true,
+        slipPosition: 10,
+      });
+
+    service.autoSync('B');
+
+    expect(mockEngine.seekDeck).toHaveBeenCalledWith('B', expect.any(Number));
+    const seekTarget = mockEngine.seekDeck.mock.calls[0][1] as number;
+    expect(seekTarget).toBeCloseTo(10.35, 2);
+  });
+
+  it('autoSync no-ops when nothing is loaded on the master', () => {
+    // Both decks keep their default zero duration.
+    service.autoSync('A');
+    expect(service.deckA().playbackRate).toBe(1);
+    expect(mockEngine.seekDeck).not.toHaveBeenCalled();
+  });
+
+  it('setXfCurve accepts valid curves and rejects invalid values', () => {
+    service.setXfCurve('cut');
+    expect(service.xfCurve()).toBe('cut');
+    service.setXfCurve('linear');
+    expect(service.xfCurve()).toBe('linear');
+    service.setXfCurve('bogus' as any);
+    expect(service.xfCurve()).toBe('linear');
+  });
+
+  it('setHamster toggles the hamster orientation flag', () => {
+    expect(service.hamster()).toBe(false);
+    service.setHamster(true);
+    expect(service.hamster()).toBe(true);
+    service.setHamster(false);
+    expect(service.hamster()).toBe(false);
+  });
 });

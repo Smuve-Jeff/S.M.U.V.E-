@@ -6,6 +6,7 @@ import {
   input,
   computed,
   inject,
+  effect,
   OnInit,
   OnDestroy,
   ViewChild,
@@ -219,6 +220,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   public uiService = inject(UIService);
   private recordingStatus = inject(RecordingStatusService);
   private profileService = inject(UserProfileService);
+
+  /**
+   * Keep the live crossfader behavior aligned with the DJ settings tab
+   * (curve + hamster orientation). Reads only the dj settings slice, so it
+   * fires on profile load and whenever the user changes those toggles.
+   */
+  private applyDjSettings = effect(() => {
+    const dj = this.profileService.profile().settings?.dj;
+    if (!dj) return;
+    this.deckService.setXfCurve(dj.crossfaderCurve || 'power');
+    this.deckService.setHamster(!!dj.hamsterMode);
+  });
   private databaseService = inject(DatabaseService);
 
   pitchAPercentage = computed(
@@ -833,6 +846,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @HostListener('window:mouseup')
   @HostListener('window:touchend')
+  @HostListener('window:touchcancel')
   onPlatterUp() {
     if (this.isScratchingA()) {
       this.isScratchingA.set(false);
@@ -862,6 +876,22 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.wasPlaying.B) this.engine.playDeck('B');
       this.wasPlaying.B = false;
     }
+  }
+
+  /**
+   * Safety net for momentary pads: if a pointer leaves the pad or the OS
+   * cancels the touch (gesture steal, notification, scroll interrupt), the
+   * button-level (mouseup)/(touchend) handlers never fire and a beat roll
+   * would loop forever. Window-level release + touchcancel clears any active
+   * roll. No-op when nothing is held, so double-firing with the pad's own
+   * handlers is harmless.
+   */
+  @HostListener('window:mouseup')
+  @HostListener('window:touchend')
+  @HostListener('window:touchcancel')
+  onGlobalPointerRelease() {
+    if (this.activeRollPadA() !== null) this.stopRoll('A');
+    if (this.activeRollPadB() !== null) this.stopRoll('B');
   }
 
   private processScratch(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {

@@ -116,4 +116,17 @@ describe('CommandPaletteService', () => {
     action?.run();
     expect(orchestrationService.paletteActions()[0].run).toHaveBeenCalled();
   });
+
+  it('executeCommandById runs the matching action by id', () => {
+    service.openPalette();
+    const executed = service.executeCommandById('toggle-playback');
+    expect(executed).toBe(true);
+    expect(deckService.togglePlay).toHaveBeenCalledWith('A');
+    expect(service.isOpen()).toBe(false);
+  });
+
+  it('executeCommandById reports false for unknown ids', () => {
+    expect(service.executeCommandById('no-such-command')).toBe(false);
+    expect(deckService.togglePlay).not.toHaveBeenCalled();
+  });
 });

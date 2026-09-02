@@ -15,6 +15,22 @@
   --booth-red: #ff4d68;
   --booth-green: #a9e66e;
   --booth-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* Per-cue palette (Rekordbox-style index colors) consumed by the hotcue
+     strip + performance pads via [style.--cue-color] / var(--cue-N). */
+  --cue-0: #ff3b5c;
+  --cue-1: #ff8a3d;
+  --cue-2: #ffd93d;
+  --cue-3: #6bd968;
+  --cue-4: #3dc8ff;
+  --cue-5: #8e5cff;
+  --cue-6: #ff5cc8;
+  --cue-7: #c8ff5c;
+
+  /* Deck accents for pad/roll/sampler tinting (template uses --dj-a/--dj-b). */
+  --dj-a: var(--booth-a);
+  --dj-b: var(--booth-b);
+
   color-scheme: dark;
 }
 

@@ -2,6 +2,8 @@ import { DatabaseService } from '../../services/database.service';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { HowToOverlayComponent } from './how-to-overlay.component';
 import {
   UserProfileService,
@@ -19,6 +21,8 @@ import { PermissionService } from '../../services/permission.service';
 import { HardwareService } from '../../services/hardware.service';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
+import { TokenService } from '../../services/token.service';
+import { APP_SECURITY_CONFIG } from '../../app.security';
 
 @Component({
   selector: 'app-settings',
@@ -41,6 +45,8 @@ export class SettingsComponent implements OnInit {
   databaseService = inject(DatabaseService);
   audioLatency = inject(AudioEngineLatencyService);
   dialog = inject(InteractionDialogService);
+  private http = inject(HttpClient);
+  private tokenService = inject(TokenService);
   showHowTo = signal(false);
   latencyCalibrationRunning = signal(false);
 
@@ -340,6 +346,31 @@ export class SettingsComponent implements OnInit {
       tone: 'danger',
     });
     if (!confirmed) return;
+
+    const id = this.profileService.profile().id;
+
+    // Real accounts are deleted server-side; local-only sessions skip straight
+    // to closing the session. Only claim erasure after the backend confirms.
+    if (id && id !== 'current') {
+      try {
+        const token = this.tokenService.jwtToken();
+        await firstValueFrom(
+          this.http.delete(`${APP_SECURITY_CONFIG.api_url}/user/${id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+        );
+      } catch (e: any) {
+        // 404 = already deleted; anything else is a real failure.
+        if (e?.status !== 404) {
+          this.notificationService.show(
+            'Purge failed. Please try again.',
+            'error',
+            3000
+          );
+          return;
+        }
+      }
+    }
 
     try {
       await this.securityService.logEvent(

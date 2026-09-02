@@ -337,7 +337,7 @@ export const initialProfile: UserProfile = {
       stageFxEnabled: true,
     },
     dj: {
-      crossfaderCurve: 'linear',
+      crossfaderCurve: 'power',
       hamsterMode: false,
       vinylMode: true,
       visualCuePoints: true,

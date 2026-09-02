@@ -9,6 +9,9 @@ import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { HttpClient } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { TokenService } from '../../services/token.service';
 import { PermissionService } from '../../services/permission.service';
 import { LocalStorageService } from '../../services/local-storage.service';
 import { DatabaseService } from '../../services/database.service';
@@ -154,6 +157,16 @@ describe('SettingsComponent', () => {
         { provide: AudioEngineLatencyService, useValue: latencyServiceMock },
         { provide: AuthService, useValue: authServiceMock },
         { provide: InteractionDialogService, useValue: dialogMock },
+        {
+          provide: HttpClient,
+          useValue: {
+            delete: jest.fn(() => of({ ok: true })),
+          },
+        },
+        {
+          provide: TokenService,
+          useValue: { jwtToken: jest.fn(() => 'test-token') },
+        },
         {
           provide: PermissionService,
           useValue: {
@@ -307,5 +320,63 @@ describe('SettingsComponent', () => {
       expect.any(String)
     );
     expect(authServiceMock.logout).not.toHaveBeenCalled();
+  });
+
+  it('purgeProfile deletes the account server-side when a real id exists', async () => {
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
+      await createComponent();
+
+    const http = TestBed.inject(HttpClient);
+    const profile = TestBed.inject(UserProfileService).profile();
+    const withId = { ...profile, id: 'usr-42' };
+    (TestBed.inject(UserProfileService) as any).profile.set(withId);
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(http.delete).toHaveBeenCalledWith(
+      expect.stringContaining('/user/usr-42'),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      })
+    );
+    expect(securityServiceMock.logEvent).toHaveBeenCalled();
+    expect(authServiceMock.logout).toHaveBeenCalled();
+  });
+
+  it('purgeProfile aborts without logout when the server delete fails', async () => {
+    const { component, authServiceMock, dialogMock } = await createComponent();
+
+    const http = TestBed.inject(HttpClient) as any;
+    http.delete.mockImplementation(() => throwError(() => ({ status: 500 })));
+    const profile = TestBed.inject(UserProfileService).profile();
+    (TestBed.inject(UserProfileService) as any).profile.set({
+      ...profile,
+      id: 'usr-42',
+    });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(authServiceMock.logout).not.toHaveBeenCalled();
+    http.delete.mockImplementation(() => of({ ok: true }));
+  });
+
+  it('purgeProfile treats a 404 as already-deleted and finishes cleanly', async () => {
+    const { component, authServiceMock, dialogMock } = await createComponent();
+
+    const http = TestBed.inject(HttpClient) as any;
+    http.delete.mockImplementation(() => throwError(() => ({ status: 404 })));
+    const profile = TestBed.inject(UserProfileService).profile();
+    (TestBed.inject(UserProfileService) as any).profile.set({
+      ...profile,
+      id: 'usr-42',
+    });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(authServiceMock.logout).toHaveBeenCalled();
+    http.delete.mockImplementation(() => of({ ok: true }));
   });
 });

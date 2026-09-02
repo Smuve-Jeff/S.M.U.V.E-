@@ -1,4 +1,7 @@
-import { AudioEngineService } from './audio-engine.service';
+import {
+  AudioEngineService,
+  computeCrossfaderGains,
+} from './audio-engine.service';
 
 // Minimal bare-instance helper: skips the heavy constructor (which needs a
 // full AudioContext mock) and only seeds the state required to exercise
@@ -534,6 +537,56 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       // Attack ramp reaches the velocity-scaled peak.
       const rampCalls = gainNode.gain.exponentialRampToValueAtTime.mock.calls;
       expect(rampCalls[0][0]).toBeCloseTo(0.9); // 1.0 velocity * 0.9
+    });
+  });
+
+  describe('computeCrossfaderGains', () => {
+    it('never returns negative or phase-inverted gains', () => {
+      for (const curve of ['linear', 'power', 'exp', 'cut'] as const) {
+        for (let v = -1; v <= 1; v += 0.05) {
+          const { left, right } = computeCrossfaderGains(v, curve);
+          expect(left).toBeGreaterThanOrEqual(0);
+          expect(right).toBeGreaterThanOrEqual(0);
+          expect(left).toBeLessThanOrEqual(1);
+          expect(right).toBeLessThanOrEqual(1);
+        }
+      }
+    });
+
+    it('delivers full Deck A at -1 and full Deck B at +1', () => {
+      for (const curve of ['linear', 'power', 'exp', 'cut'] as const) {
+        expect(computeCrossfaderGains(-1, curve).left).toBeCloseTo(1);
+        expect(computeCrossfaderGains(-1, curve).right).toBeCloseTo(0);
+        expect(computeCrossfaderGains(1, curve).left).toBeCloseTo(0);
+        expect(computeCrossfaderGains(1, curve).right).toBeCloseTo(1);
+      }
+    });
+
+    it('uses equal-power (-3 dB) blending at center for power', () => {
+      const { left, right } = computeCrossfaderGains(0, 'power');
+      const expected = Math.SQRT1_2; // 0.7071
+      expect(left).toBeCloseTo(expected, 4);
+      expect(right).toBeCloseTo(expected, 4);
+    });
+
+    it('linear tapers to silence at the exact center', () => {
+      const { left, right } = computeCrossfaderGains(0, 'linear');
+      expect(left).toBeCloseTo(0.5);
+      expect(right).toBeCloseTo(0.5);
+    });
+
+    it('cut switches channels through a narrow center band', () => {
+      expect(computeCrossfaderGains(-0.4, 'cut').left).toBeCloseTo(1);
+      expect(computeCrossfaderGains(-0.4, 'cut').right).toBeCloseTo(0);
+      expect(computeCrossfaderGains(0.4, 'cut').left).toBeCloseTo(0);
+      expect(computeCrossfaderGains(0.4, 'cut').right).toBeCloseTo(1);
+    });
+
+    it('hamster swaps the channel orientation', () => {
+      const normal = computeCrossfaderGains(1, 'power');
+      const ham = computeCrossfaderGains(1, 'power', true);
+      expect(ham.left).toBeCloseTo(normal.right);
+      expect(ham.right).toBeCloseTo(normal.left);
     });
   });
 });

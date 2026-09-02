@@ -10,6 +10,7 @@ import {
   SocialAccount,
   DigitalFingerprint,
 } from '../../services/artist-development.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
   ReleaseProject,
   ProductionTrack,
@@ -47,6 +48,7 @@ import {
 export class ArtistDevelopmentHubComponent implements OnInit {
   private dev = inject(ArtistDevelopmentService);
   private router = inject(Router);
+  private dialog = inject(InteractionDialogService);
 
   // Signals from service
   activePanel = this.dev.activePanel;
@@ -221,8 +223,15 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     this.setPanel('release');
   }
 
-  deleteRelease(id: string) {
-    if (confirm('Delete this release from your catalog?')) {
+  async deleteRelease(id: string) {
+    const confirmed = await this.dialog.confirm({
+      title: 'Delete Release',
+      message: 'Delete this release from your catalog?',
+      confirmLabel: 'Delete Release',
+      cancelLabel: 'Keep Release',
+      tone: 'danger',
+    });
+    if (confirmed) {
       this.dev.removeRelease(id);
     }
   }
