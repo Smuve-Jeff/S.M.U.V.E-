@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed, effect, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { io, Socket } from 'socket.io-client';
-import { GameService } from './game.service';
+import { GameService, isOnlineMultiplayerGame } from './game.service';
 import { UserProfileService } from '../services/user-profile.service';
 import { NotificationService } from '../services/notification.service';
 import { HapticService } from '../services/haptic.service';
@@ -1081,11 +1081,31 @@ export class MatchmakingService implements OnDestroy {
   // ── Quick-Play: auto-join the fastest available multiplayer lobby ──
 
   /**
-   * Quick-play: finds the fastest game to join by scanning active lobbies
-   * for one with open slots, falling back to creating a new lobby for the
-   * most popular multiplayer title.
+   * Known-good multiplayer cabinets, used only when the live catalog has
+   * not loaded (and never resurrects retired titles like '1v1-lol-elite').
    */
-  quickPlay(): void {
+  private readonly FALLBACK_MULTIPLAYER_GAME_IDS = [
+    'shell-shockers-elite',
+    'bullet-force-elite',
+    'basketball-stars-elite',
+  ] as const;
+
+  /** Multiplayer titles currently in the live catalog (sync cache). */
+  private catalogMultiplayerGameIds(): string[] {
+    return this.gameService
+      .listGamesSync()
+      .filter((g) => isOnlineMultiplayerGame(g))
+      .map((g) => g.id);
+  }
+
+  /**
+   * Quick-play: finds the fastest game to join by scanning active lobbies
+   * for one with open slots, falling back to creating a new lobby for a
+   * multiplayer title picked from the CURRENT catalog. If the catalog isn't
+   * cached yet, waits for the feed load (bounded by its own failure path)
+   * before using the small static fallback list.
+   */
+  async quickPlay(): Promise<void> {
     if (this.isQuickPlaying()) return;
     this.isQuickPlaying.set(true);
     this.haptic.medium();
@@ -1104,9 +1124,32 @@ export class MatchmakingService implements OnDestroy {
       return;
     }
 
-    // 2) No open lobby — create one for a popular multiplayer title
-    const popularMultiGames = ['shell-shockers-elite', 'bullet-force-elite', 'basketball-stars-elite', '1v1-lol-elite'];
-    const gameId = popularMultiGames[Math.floor(Math.random() * popularMultiGames.length)];
+    // 2) No open lobby — create one for a multiplayer title from the live
+    // catalog. Empty sync cache => await the load ONCE, then retry the
+    // catalog before falling back to the known-good list.
+    let candidates = this.catalogMultiplayerGameIds();
+    if (candidates.length === 0) {
+      try {
+        await this.gameService.loadFeedIfNeeded();
+      } catch {
+        // loadFeedIfNeeded already logs; fall through to the fallback list
+      }
+      candidates = this.catalogMultiplayerGameIds();
+    }
+    const ids =
+      candidates.length > 0
+        ? candidates
+        : [...this.FALLBACK_MULTIPLAYER_GAME_IDS];
+    const gameId = ids[Math.floor(Math.random() * ids.length)];
+
+    if (!gameId) {
+      // Nothing playable in the catalog and no fallback — surface it rather
+      // than silently creating a lobby for an undefined title.
+      this.isQuickPlaying.set(false);
+      this.notify.show('NO MULTIPLAYER GAMES AVAILABLE', 'warning');
+      return;
+    }
+
     this.createLobby(gameId, 4);
     // Auto-ready after creating
     setTimeout(() => {

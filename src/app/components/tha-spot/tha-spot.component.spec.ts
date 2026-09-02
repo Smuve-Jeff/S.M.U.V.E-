@@ -92,6 +92,7 @@ describe('ThaSpotComponent', () => {
     socialServiceMock = {
       isIncognito: signal(false),
       onlineUsers: signal([]),
+      onlineInRoom: jest.fn(() => 0),
       messages: signal([]),
       roomMessages: signal([]),
       activeHubTab: signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>(

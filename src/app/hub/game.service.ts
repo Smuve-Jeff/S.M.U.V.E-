@@ -1037,9 +1037,19 @@ export class GameService {
         );
         break;
       case 'Newest':
-        filtered.sort(
-          (a, b) => (parseInt(b.id, 10) || 0) - (parseInt(a.id, 10) || 0)
-        );
+        filtered.sort((a, b) => {
+          // Newest first by release date; a missing/blank date sorts last.
+          const dateA = Date.parse(a.releaseDate ?? '');
+          const dateB = Date.parse(b.releaseDate ?? '');
+          const normA = Number.isFinite(dateA) ? dateA : Number.NEGATIVE_INFINITY;
+          const normB = Number.isFinite(dateB) ? dateB : Number.NEGATIVE_INFINITY;
+          if (normA !== normB) return normB - normA;
+          // Same (or absent) release date: fall back to descending numeric
+          // id (legacy feed ordering), then stable insertion order (0).
+          const numericA = parseInt(a.id, 10) || 0;
+          const numericB = parseInt(b.id, 10) || 0;
+          return numericB - numericA;
+        });
         break;
     }
     return filtered;

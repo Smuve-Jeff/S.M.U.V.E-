@@ -26,6 +26,8 @@ export interface OnlineUser {
   location?: string;
   eliteScore?: number;
   squadCount?: number;
+  /** Chat room this user is currently in (server presence; null when fresh). */
+  currentRoom?: string | null;
 }
 
 export interface PrivateMessage {
@@ -98,6 +100,24 @@ export class SocialNetworkingService {
   partyMembers = signal<OnlineUser[]>([]);
   activeHubTab = signal<'room' | 'dm' | 'stream' | 'friends' | 'party'>('room');
   currentPartyId = signal<string | null>(null);
+
+  /**
+   * Count of OTHER online players currently present in a chat room.
+   * 'all' / unset rooms aggregate the full global presence list (the hub's
+   * default view). Named rooms use the server's room-scoped presence
+   * (currentRoom); until the server publishes room membership, fall back to
+   * the global count so an empty state can never fire while rivals are
+   * online elsewhere.
+   */
+  onlineInRoom(roomId: string | null | undefined): number {
+    const users = this.onlineUsers();
+    if (!roomId || roomId === 'all') return users.length;
+    const inRoom = users.filter((u) => u.currentRoom === roomId);
+    if (inRoom.length > 0) return inRoom.length;
+    // Truly empty only when the presence feed actually carries room info.
+    const anyRoomTracked = users.some((u) => !!u.currentRoom);
+    return anyRoomTracked ? 0 : users.length;
+  }
 
   // Go Live State
   isStreaming = signal(false);

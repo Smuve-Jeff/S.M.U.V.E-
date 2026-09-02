@@ -1561,10 +1561,13 @@
           <div class="room-info-bar">
             <span>{{ getActiveRoomName() | uppercase }}</span>
             <span class="players-count"
-              >{{ onlineUsers().length + 1 }} ACTIVE</span
+              >{{ socialService.onlineInRoom(activeRoom()) + 1 }} ACTIVE</span
             >
           </div>
-          <div class="empty-state-discovery" *ngIf="onlineUsers().length === 0">
+          <div
+            class="empty-state-discovery"
+            *ngIf="socialService.onlineInRoom(activeRoom()) <= 1"
+          >
             <p class="mini-label">NO RIVALS ONLINE. RECOMMENDED:</p>
             <div class="online-users-strip no-scrollbar">
               <button

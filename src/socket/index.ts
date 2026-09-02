@@ -322,6 +322,12 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   // matchmaking), so presence must survive the loss of any ONE of them.
   const socketIdsByUser = new Map<string, Set<string>>();
   const rooms = new Map<string, Set<string>>();
+  // Which chat room each online user is currently in, so clients can render
+  // room-scoped presence counts. Kept OUT of presence metadata because the
+  // social and matchmaking clients both write metadata for the same userId
+  // and the last write wins — a separate map cannot be clobbered by a
+  // presence re-register.
+  const userRooms = new Map<string, string>();
   const matchmakingQueues = new Map<string, QueueEntry[]>();
   // Split-screen peer registry lives at SERVER scope — a per-connection map
   // (the old bug) meant host and guest each saw their own private registry
@@ -357,6 +363,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       userId,
       ...data.metadata,
       online: true,
+      currentRoom: userRooms.get(userId) ?? null,
     }));
     io.emit("users_online", users);
   };
@@ -502,6 +509,11 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
       rooms.get(roomId)!.add(userId);
       socket.join(roomId);
+      // Publish room-scoped presence so other clients can count rivals in
+      // this room (join_room leaves all other rooms first, so each online
+      // user belongs to exactly one room at a time).
+      userRooms.set(userId, roomId);
+      broadcastOnlineUsers();
       // Deliver persisted history to the joining client only.
       try {
         const history = await listRoomMessages(roomId, 50);
@@ -1681,6 +1693,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (!userSockets || userSockets.size === 0) {
         socketIdsByUser.delete(userId);
         presence.delete(userId);
+        userRooms.delete(userId);
         rateBuckets.delete(userId);
         broadcastOnlineUsers();
       }

@@ -38,6 +38,8 @@ export interface Game {
   aiBriefing?: string;
   badgeIds?: string[];
   queueEstimateMinutes?: number;
+  /** ISO date of the title's release, used by the 'Newest' sort. */
+  releaseDate?: string;
   sessionObjectives?: string[];
   controlHints?: string[];
   launchConfig?: GameLaunchConfig;

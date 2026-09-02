@@ -1454,6 +1454,11 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         if (tags.includes(p.toUpperCase())) platforms.add(p);
       });
     });
+    // First-party WASM cabinets (self-hosted /assets/games/* entries) get an
+    // 'Internal' facet so players can isolate the library we own and serve.
+    if (this.games().some((g) => (g.url || '').startsWith('/assets/'))) {
+      platforms.add('Internal');
+    }
     return Array.from(platforms).sort();
   });
 
