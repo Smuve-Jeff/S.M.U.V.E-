@@ -2348,6 +2348,44 @@
 }
 
 /* ── Quick-Lobby Button on Game Cards ────────────── */
+.quick-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.18),
+    rgba(0, 229, 255, 0.12)
+  );
+  color: #6ee7b7;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.quick-play-btn:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.85);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.32),
+    rgba(0, 229, 255, 0.22)
+  );
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+}
+.quick-play-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.quick-play-btn .material-symbols-outlined {
+  font-size: 0.85rem;
+}
+
 .card-quick-lobby {
   position: absolute;
   bottom: 0.5rem;

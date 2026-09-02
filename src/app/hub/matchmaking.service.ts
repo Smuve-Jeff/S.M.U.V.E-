@@ -602,6 +602,24 @@ export class MatchmakingService implements OnDestroy {
           this.myLobby.set(null);
           this.isSearching.set(false);
         }
+      } else if (this.resolvedMatchLobbyId) {
+        // Adopt a server-provisioned resolved-match lobby (challenge accept /
+        // queue pair) that we joined while the directory cache was empty.
+        // joinResolvedLobby only eager-sets myLobby when the lobby is already
+        // in the local cache; without this adoption the accepted match would
+        // never bind as myLobby (no score sync, no match-end teardown).
+        const resolved = mapped.find((l) => l.id === this.resolvedMatchLobbyId);
+        if (resolved) {
+          this.myLobby.set(resolved);
+          this.partyMembers.set(
+            resolved.playerIds.map((userId, index) => ({
+              userId,
+              artistName:
+                index === 0 ? resolved.hostName : 'PLAYER_' + userId.slice(0, 6),
+            }))
+          );
+          this.isSearching.set(false);
+        }
       }
     });
 

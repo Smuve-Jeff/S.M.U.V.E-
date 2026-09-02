@@ -744,6 +744,16 @@
                 squad and play together
               </div>
             </div>
+            <button
+              type="button"
+              class="quick-play-btn"
+              (click)="matchmaking.quickPlay()"
+              [disabled]="matchmaking.isQuickPlaying()"
+              title="Auto-join the fastest open lobby, or spin one up instantly"
+            >
+              <span class="material-symbols-outlined">bolt</span>
+              {{ matchmaking.isQuickPlaying() ? 'FINDING…' : 'QUICK PLAY' }}
+            </button>
           </div>
           <!-- Share-with-friends actions for the most recent multiplayer card -->
           <div

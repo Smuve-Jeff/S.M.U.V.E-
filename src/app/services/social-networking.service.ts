@@ -8,6 +8,7 @@ import { PeerNetworkingService } from './peer-networking.service';
 import { ChallengeInboxService } from './challenge-inbox.service';
 import { io, Socket } from 'socket.io-client';
 import { TokenService } from './token.service';
+import { NotificationService } from './notification.service';
 import {
   AsyncCollaborationPacket,
   StudioCollaborationRole,
@@ -79,6 +80,8 @@ export const STREAM_QUALITY_PRESETS: Record<
 export class SocialNetworkingService {
   private profileService = inject(UserProfileService);
   private socket?: Socket;
+  /** Notifications (snackbar/toast) — injected to avoid a circular dep. */
+  private notifications = inject(NotificationService);
   /** True while the socket.io transport is connected and authenticated. */
   socketConnected = signal(false);
 
@@ -237,6 +240,18 @@ export class SocialNetworkingService {
 
     sock.on('connect', () => {
       this.socketConnected.set(true);
+      // Flush DMs queued while the socket was down.
+      if (this.pendingMessages.length > 0) {
+        const queued = this.pendingMessages;
+        this.pendingMessages = [];
+        for (const pending of queued) {
+          this.socket?.emit('send_message', pending);
+        }
+        this.notifications?.show?.(
+          `${queued.length} MESSAGE${queued.length === 1 ? '' : 'S'} SENT`,
+          'success'
+        );
+      }
       const profile = this.profileService.profile();
       this.socket?.emit('register_presence', {
         userId,
@@ -604,14 +619,42 @@ export class SocialNetworkingService {
     if (!userId) return;
     this.socket?.emit('update_status', { userId, metadata });
   }
+  /**
+   * DMs sent while the socket is down. Flushed on the next successful
+   * connection so a message composed during a reconnect window isn't
+   * silently dropped (the old code emitted into the void but still showed
+   * the message as sent).
+   */
+  private pendingMessages: { toUserId: string; message: string }[] = [];
+
   sendMessage(toUserId: string, message: string) {
     const fromUserId = this.profileService.profile().id;
     const fromUserName = this.profileService.profile().artistName;
-    this.socket?.emit('send_message', { toUserId, message });
+    const text = (message || '').trim();
+    if (!fromUserId || !text) return;
+
+    if (!this.isSocketLive()) {
+      this.pendingMessages.push({ toUserId, message: text });
+      this.messages.update((msgs) => [
+        ...msgs,
+        { fromUserId, fromUserName, toUserId, message: text, timestamp: Date.now() },
+      ]);
+      this.notifications?.show?.(
+        'CONNECTION RECOVERING — MESSAGE QUEUED, WILL SEND WHEN ONLINE',
+        'warning'
+      );
+      return;
+    }
+    this.socket?.emit('send_message', { toUserId, message: text });
     this.messages.update((msgs) => [
       ...msgs,
-      { fromUserId, fromUserName, toUserId, message, timestamp: Date.now() },
+      { fromUserId, fromUserName, toUserId, message: text, timestamp: Date.now() },
     ]);
+  }
+
+  /** True only when the socket is live (present + emitting). */
+  isSocketLive(): boolean {
+    return !!this.socket && this.socket.connected === true;
   }
 
   // challengePlayer() moved to ChallengeInboxService (single source of truth).

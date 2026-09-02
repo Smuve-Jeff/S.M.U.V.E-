@@ -73,6 +73,20 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
   private socketBound = false;
+  /** Handler refs so teardown removes ONLY this component's listeners. */
+  private readonly onInboxSync = (records: ChallengeRecord[]) => {
+    this.inbox.onChallengeInboxSync(records);
+  };
+  private readonly onNotifSync = (records: AppNotification[]) => {
+    this.inbox.onNotificationSync(records);
+  };
+  private readonly onChallengeResponse = (resp: any) => {
+    // Response confirmed for a challenge I sent; refresh
+    this.inbox.loadInbox('all').catch(() => {});
+    this.snackbarService.info(
+      `CHALLENGE RESPONSE: ${resp.status?.toUpperCase() || 'UPDATE'}`
+    );
+  };
 
   async ngOnInit() {
     // Bind the socket so challenges can fire challenges via socket
@@ -85,19 +99,9 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     // Listen for inbox + notification sync events from server (auto-delivered
     // on register_presence; or via request_inbox_sync).
     if (socket) {
-      socket.on('challenge_inbox_sync', (records: ChallengeRecord[]) => {
-        this.inbox.onChallengeInboxSync(records);
-      });
-      socket.on('notification_sync', (records: AppNotification[]) => {
-        this.inbox.onNotificationSync(records);
-      });
-      socket.on('challenge_response', (resp: any) => {
-        // Response confirmed for a challenge I sent; refresh
-        this.inbox.loadInbox('all').catch(() => {});
-        this.snackbarService.info(
-          `CHALLENGE RESPONSE: ${resp.status?.toUpperCase() || 'UPDATE'}`
-        );
-      });
+      socket.on('challenge_inbox_sync', this.onInboxSync);
+      socket.on('notification_sync', this.onNotifSync);
+      socket.on('challenge_response', this.onChallengeResponse);
     }
 
     // Handle deep link: /inbox?challenge=true&gameId=...&from=...
@@ -124,9 +128,12 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     const socket: any = (this.social as any).socket;
     if (socket) {
-      socket.off('challenge_inbox_sync');
-      socket.off('notification_sync');
-      socket.off('challenge_response');
+      // NOTE: `off(event, handler)` — WITHOUT the handler ref, Socket.IO
+      // removes EVERY listener for the event, silently killing other
+      // components' handlers (Tha Spot's challenge banner included).
+      socket.off('challenge_inbox_sync', this.onInboxSync);
+      socket.off('notification_sync', this.onNotifSync);
+      socket.off('challenge_response', this.onChallengeResponse);
     }
     this.subs.forEach((s) => s.unsubscribe());
   }

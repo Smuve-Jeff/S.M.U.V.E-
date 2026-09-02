@@ -12,11 +12,17 @@ import { TokenService } from './token.service';
 
 const socketHandlers = new Map<string, (data: any) => void>();
 const mockSocket = {
+  connected: true as boolean,
   on: jest.fn((event: string, handler: (data: any) => void) => {
     socketHandlers.set(event, handler);
   }),
   emit: jest.fn(),
 };
+
+/** Fire an inbound socket event as if the server sent it. */
+function serverEvent(event: string, payload?: any): void {
+  socketHandlers.get(event)?.(payload);
+}
 
 jest.mock('socket.io-client', () => ({
   io: jest.fn(() => mockSocket),
@@ -76,6 +82,36 @@ describe('SocialNetworkingService', () => {
   it('should be created and initialize the socket for an authenticated profile', () => {
     expect(service).toBeTruthy();
     expect(mockSocket.on).toHaveBeenCalled();
+  });
+
+  it('queues DMs sent while the socket is down and flushes them on reconnect', () => {
+    mockSocket.connected = false;
+    service.sendMessage('other-user', 'hello offline');
+    // Queued locally, NOT emitted into the void.
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('send_message', {
+      toUserId: 'other-user',
+      message: 'hello offline',
+    });
+    expect(service.messages().some((m) => m.message === 'hello offline')).toBe(
+      true
+    );
+
+    // Socket comes back — the connect handler flushes the queue.
+    mockSocket.connected = true;
+    serverEvent('connect');
+    expect(mockSocket.emit).toHaveBeenCalledWith('send_message', {
+      toUserId: 'other-user',
+      message: 'hello offline',
+    });
+  });
+
+  it('emits DMs immediately when the socket is live', () => {
+    mockSocket.connected = true;
+    service.sendMessage('other-user', 'hello online');
+    expect(mockSocket.emit).toHaveBeenCalledWith('send_message', {
+      toUserId: 'other-user',
+      message: 'hello online',
+    });
   });
 
   it('emits studio session events through the socket', () => {
