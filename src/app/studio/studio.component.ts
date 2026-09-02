@@ -443,7 +443,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
   mobilePanel = signal<MobileStudioPanel | null>(null);
-  showAIAssistant = false; // legacy
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
   showAiMixAssistant = signal(false);
@@ -595,9 +594,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Navigate to a view from the beginner wizard */
   onWizardNavigate(view: string) {
-    if (isStudioView(view)) {
-      this.setActiveView(view);
+    if (!isStudioView(view)) return;
+    // The wizard owns the arrangement slot in Beginner Mode, so steps that
+    // genuinely need the arrangement canvas (takes & comp, export/share)
+    // would loop straight back to the wizard. Hand those off into Pro mode
+    // so the real tool renders — LEARN in the topbar returns anytime, and
+    // the wizard keeps its progress marks either way.
+    if (view === 'arrangement' && this.isBeginnerMode()) {
+      this.uiService.setBeginnerMode(false);
+      this.snackbarService.info(
+        'PRO ARRANGEMENT OPEN — tap LEARN to return to Beginner Mode'
+      );
     }
+    this.setActiveView(view);
   }
 
   /** Navigate from wizard with a preset auto-load */
@@ -732,8 +741,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ]);
 
   /**
-   * All 11 studio views — rendered in the mobile side drawer.
-   * Desktop side rail uses the same list (scrollable on narrow screens).
+   * Every studio view — rendered in the mobile side drawer.
+   * Desktop side rail uses the same list (scrollable on narrow screens);
+   * entries flagged `hidden` (e.g. performer on desktop) are dropped from
+   * the rail but stay reachable via the URL (?view=...) and mobile shell.
    */
   allStudioViews = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },

@@ -488,10 +488,16 @@
 
   <!-- ====================== MAIN WORKSPACE ====================== -->
   <main class="comp-main" role="main">
-    <!-- Mobile quick-start lane: keep the first musical action one tap away. -->
+    <!-- Mobile quick-start lane: keep the first musical action one tap away.
+         Hidden in Beginner Mode — the wizard already owns first-run guidance
+         on the arrangement slot, so the lane would duplicate onboarding. -->
     <section
       class="comp-mobile-start"
-      *ngIf="uiService.isCompactMobile() && activeView() === 'arrangement'"
+      *ngIf="
+        uiService.isCompactMobile() &&
+        activeView() === 'arrangement' &&
+        !isBeginnerMode()
+      "
       aria-labelledby="mobile-start-title"
     >
       <div class="comp-mobile-start-copy">

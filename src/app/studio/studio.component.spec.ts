@@ -36,6 +36,7 @@ import { HistoryService } from '../services/history.service';
 describe('StudioComponent', () => {
   let component: StudioComponent;
   let fixture: ComponentFixture<StudioComponent>;
+  let uiServiceMock: any;
 
   const mockAudioSession = {
     isPlaying: signal(false),
@@ -198,16 +199,21 @@ describe('StudioComponent', () => {
     mockAudioEngine.performanceTier.set('ultra');
     mockTemplateService.templates = [];
     mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
+    uiServiceMock = {
+      isCompactMobile: () => false,
+      showMobileNav: () => false,
+      beginnerMode: signal(true),
+      setBeginnerMode: jest.fn((v: boolean) =>
+        uiServiceMock.beginnerMode.set(v)
+      ),
+    };
     await TestBed.configureTestingModule({
       imports: [StudioComponent],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: AiService, useValue: {} },
-        {
-          provide: UIService,
-          useValue: { isCompactMobile: () => false, showMobileNav: () => false },
-        },
+        { provide: UIService, useValue: uiServiceMock },
         { provide: NotificationService, useValue: {} },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: UserProfileService, useValue: mockUserProfileService },
@@ -275,6 +281,27 @@ describe('StudioComponent', () => {
 
   it('exposes an empty mobile panel by default', () => {
     expect(component.mobilePanel()).toBeNull();
+  });
+
+  it('hands wizard arrangement steps off into Pro mode', () => {
+    expect(component.isBeginnerMode()).toBe(true);
+    component.onWizardNavigate('arrangement');
+    expect(uiServiceMock.setBeginnerMode).toHaveBeenCalledWith(false);
+    expect(component.isBeginnerMode()).toBe(false);
+    expect(component.activeView()).toBe('arrangement');
+  });
+
+  it('keeps Beginner Mode on when the wizard navigates to other views', () => {
+    component.onWizardNavigate('drum-machine');
+    expect(uiServiceMock.setBeginnerMode).not.toHaveBeenCalled();
+    expect(component.isBeginnerMode()).toBe(true);
+    expect(component.activeView()).toBe('drum-machine');
+  });
+
+  it('ignores invalid view names from the wizard', () => {
+    component.onWizardNavigate('not-a-view');
+    expect(component.activeView()).toBe('arrangement');
+    expect(uiServiceMock.setBeginnerMode).not.toHaveBeenCalled();
   });
 
   it('exposes a templates collection backed by the ProjectTemplateService mock', () => {

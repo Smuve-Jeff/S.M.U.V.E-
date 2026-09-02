@@ -1,10 +1,9 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
 import { UserProfileService } from './user-profile.service';
-import { GameService } from '../hub/game.service';
 
 export interface ChallengeRecord {
   id: number;
@@ -32,7 +31,24 @@ export class ChallengeInboxService {
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
   private profileService = inject(UserProfileService);
-  private gameService = inject(GameService);
+  private injector = inject(Injector);
+
+  /**
+   * Resolve a gameId to its display name WITHOUT pulling the full Tha Spot
+   * catalog (894 games) into the app-shell startup bundle. GameService is
+   * only statically imported by lazy gaming surfaces, so this service — an
+   * eager app-shell dependency — lazy-loads it on first challenge send.
+   * Falls back to the raw gameId when the catalog is unavailable.
+   */
+  private async resolveGameName(gameId: string): Promise<string> {
+    try {
+      const { GameService } = await import('../hub/game.service');
+      const gameService = this.injector.get(GameService);
+      return gameService.getGameById(gameId)?.name || gameId;
+    } catch {
+      return gameId;
+    }
+  }
 
   challenges = signal<ChallengeRecord[]>([]);
   notifications = signal<AppNotification[]>([]);
@@ -182,12 +198,12 @@ export class ChallengeInboxService {
    * UI updates come back via socket `challenge_inbox_sync` (recipient) or
    * local state (sender echo).
    */
-  challengePlayer(toUserId: string, gameId: string) {
+  async challengePlayer(toUserId: string, gameId: string) {
     const fromUserId = this.currentUserId();
     if (!fromUserId || !toUserId || !gameId) return;
     // Include resolved game title when emitting so the recipient gets a human
     // friendly name even if their client hasn't loaded the feed yet.
-    const gameName = this.gameService.getGameById(gameId)?.name || gameId;
+    const gameName = await this.resolveGameName(gameId);
     this.emitChallenge(toUserId, gameId, gameName);
   }
 
@@ -233,7 +249,7 @@ export class ChallengeInboxService {
           {
             toUserId,
             gameId,
-            gameName: gameName || this.gameService.getGameById(gameId)?.name || gameId,
+            gameName: gameName || (await this.resolveGameName(gameId)),
           },
           { headers: this.authHeaders() }
         )
