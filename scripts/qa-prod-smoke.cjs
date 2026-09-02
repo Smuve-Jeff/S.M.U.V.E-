@@ -2,13 +2,18 @@
 /**
  * Live-site smoke test for the S.M.U.V.E. production API (www.smuvejeffpresents.com).
  *
- * Exercises the six feature areas shipped in f26ae4a / 05d0e79 / 2f70a37:
+ * Exercises the social/matchmaking feature areas shipped across f26ae4a, 05d0e79,
+ * 2f70a37 and b6f693d:
  *   1. Player blocklist REST (block / list / self-block / cross-user 403 / unblock)
  *   2. Persisted room chat (socket send + REST history)
  *   3. Challenge dedupe (double-submit returns same row; re-challenge after decline)
  *   4. Authoritative lobby_list directory broadcast
  *   5. Socket rate limiting + mutual block enforcement (DMs & challenges silently dropped)
  *   6. Multi-socket presence retention (user stays online while any socket lives)
+ *   7. Resolved-match lobby provisioning: challenge ACCEPT and queue pairing create
+ *      ONE shared lobby both players join (challenge_lobby_ready / match_found.partyId)
+ *   8. In-match relays: game_state_update + lobby_chat_message flow between the pair,
+ *      the sender is never echoed, and leaving/disconnecting ends the lobby (party_ended)
  *
  * Run from repo root:  node scripts/qa-prod-smoke.cjs
  * Creates two throwaway users, cleans up everything at the end.
@@ -68,6 +73,18 @@ async function api(method, path, { token, body } = {}, retries = 5) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Poll a condition for up to `ms` (default 8s) before giving up. */
+async function waitFor(fn, ms = 8000, label = "condition") {
+  const start = Date.now();
+  for (;;) {
+    if (fn()) return true;
+    if (Date.now() - start > ms) {
+      throw new Error(`waitFor timed out: ${label}`);
+    }
+    await sleep(150);
+  }
+}
+
 /** Open a socket; resolves with { socket, events } once connected. */
 function openSocket(token) {
   return new Promise((resolve, reject) => {
@@ -84,6 +101,11 @@ function openSocket(token) {
       "party_created",
       "user_joined_party",
       "user_left_party",
+      "challenge_lobby_ready",
+      "party_ended",
+      "game_state_update",
+      "lobby_chat_message",
+      "match_found",
     ]) {
       events[ev] = [];
     }
@@ -107,6 +129,11 @@ function openSocket(token) {
       "party_created",
       "user_joined_party",
       "user_left_party",
+      "challenge_lobby_ready",
+      "party_ended",
+      "game_state_update",
+      "lobby_chat_message",
+      "match_found",
     ]) {
       socket.on(ev, capture(ev));
     }
@@ -401,6 +428,120 @@ async function main() {
       // Cleanup: decline the leftover pending challenge (recipient route).
       await api("POST", `/users/${idB}/challenges/${incoming.payload.challengeId}/respond`, { token: tokenB, body: { status: "declined" } });
     }
+  }
+
+  // ── Phase 2.5: Resolved-match lobbies + in-match relays ────────────────────
+  console.log("\n== Phase 2.5: Resolved-match lobbies + relays ==");
+
+  // Challenge ACCEPT provisions ONE shared lobby both players join.
+  {
+    const ACCEPT_GAME = `qa-accept-game-${TS}`;
+    const c1 = await api("POST", `/users/${idA}/challenges`, {
+      token: tokenA,
+      body: { toUserId: String(idB), gameId: ACCEPT_GAME, gameName: "QA Accept Game" },
+    });
+    ok("challenge created for accept flow (201)", c1.status === 201 && c1.json?.id, `status=${c1.status} ${JSON.stringify(c1.json).slice(0, 140)}`);
+    const acceptGameId = c1.json?.id;
+
+    // Recipient ACCEPTS via their own REST route — the server must provision
+    // a real lobby room and tell BOTH sides (challenge_lobby_ready).
+    const a1 = await api("POST", `/users/${idB}/challenges/${acceptGameId}/respond`, {
+      token: tokenB,
+      body: { status: "accepted" },
+    });
+    ok("recipient accepts (200, status=accepted)", a1.status === 200 && a1.json?.status === "accepted", `status=${a1.status} ${JSON.stringify(a1.json)}`);
+
+    await waitFor(
+      () =>
+        sockA1.events.challenge_lobby_ready.length >= 1 &&
+        sockB.events.challenge_lobby_ready.length >= 1,
+      10000,
+      "challenge_lobby_ready on both sides"
+    );
+    const readyA = sockA1.events.challenge_lobby_ready.at(-1);
+    const readyB = sockB.events.challenge_lobby_ready.at(-1);
+    ok("challenge_lobby_ready delivered to BOTH players", !!readyA && !!readyB, JSON.stringify({ readyA, readyB }).slice(0, 200));
+    ok("both sides get the SAME partyId", readyA?.partyId === readyB?.partyId && !!readyA?.partyId, JSON.stringify({ a: readyA?.partyId, b: readyB?.partyId }));
+    ok("challenger/opponent ids match the pair", String(readyA?.challengerId) === String(idA) && String(readyA?.opponentId) === String(idB), JSON.stringify({ c: readyA?.challengerId, o: readyA?.opponentId }));
+    const acceptPartyId = readyA?.partyId;
+
+    // Both players join the provisioned room the way the client does.
+    emit(sockA1.socket, "join_party", { partyId: acceptPartyId });
+    emit(sockB.socket, "join_party", { partyId: acceptPartyId });
+    await waitFor(() => {
+      const list = sockB.events.lobby_list.at(-1) ?? [];
+      return list.some((l) => l.partyId === acceptPartyId && l.memberCount === 2);
+    }, 10000, "lobby_list advertises the resolved pair");
+    ok("lobby_list advertises accepted match (memberCount=2)", true, acceptPartyId);
+
+    // In-match relays: game_state_update + lobby_chat_message reach the peer.
+    const statesBeforeB = sockB.events.game_state_update.length;
+    const statesBeforeA = sockA1.events.game_state_update.length;
+    const chatBeforeB = sockB.events.lobby_chat_message.length;
+    emit(sockA1.socket, "game_state_update", { lobbyId: acceptPartyId, score: 7, progress: 20 });
+    emit(sockA1.socket, "lobby_chat_message", { lobbyId: acceptPartyId, text: "lets go", id: `qa-c-${TS}`, timestamp: Date.now() });
+    await waitFor(
+      () => sockB.events.game_state_update.length > statesBeforeB && sockB.events.lobby_chat_message.length > chatBeforeB,
+      10000,
+      "relays reach the peer"
+    );
+    {
+      const st = sockB.events.game_state_update.at(-1);
+      const chat = sockB.events.lobby_chat_message.at(-1);
+      ok("game_state_update relayed with score + sender", st?.score === 7 && String(st?.fromUserId) === String(idA), JSON.stringify(st).slice(0, 160));
+      ok("lobby_chat_message relayed with text + sender", chat?.text === "lets go" && String(chat?.fromUserId) === String(idA), JSON.stringify(chat).slice(0, 160));
+      ok("sender never receives its own relay echo", sockA1.events.game_state_update.length === statesBeforeA, `aGot=${sockA1.events.game_state_update.length - statesBeforeA}`);
+    }
+
+    // Leaving the resolved lobby ends the WHOLE match for the survivor.
+    emit(sockB.socket, "leave_party", { partyId: acceptPartyId });
+    await waitFor(() => sockA1.events.party_ended.length >= 1, 10000, "party_ended on survivor");
+    {
+      const ended = sockA1.events.party_ended.at(-1);
+      ok("party_ended delivered to the survivor", ended?.partyId === acceptPartyId && ended?.reason === "player_left", JSON.stringify(ended));
+      await waitFor(() => {
+        const list = sockA1.events.lobby_list.at(-1) ?? [];
+        return !list.some((l) => l.partyId === acceptPartyId);
+      }, 8000, "resolved lobby removed from directory");
+      ok("resolved lobby removed from directory after end", true, "");
+    }
+  }
+
+  // Matchmaking queue pairing also provisions ONE shared lobby (match_found.partyId).
+  {
+    const QUEUE_GAME = `qa-queue-game-${TS}`;
+    emit(sockA1.socket, "queue_for_match", { gameId: QUEUE_GAME });
+    emit(sockB.socket, "queue_for_match", { gameId: QUEUE_GAME });
+    await waitFor(
+      () => sockA1.events.match_found.length >= 1 && sockB.events.match_found.length >= 1,
+      12000,
+      "match_found on both sides"
+    );
+    const mfA = sockA1.events.match_found.at(-1);
+    const mfB = sockB.events.match_found.at(-1);
+    ok("match_found carries opponent ids", String(mfA?.opponentId) === String(idB) && String(mfB?.opponentId) === String(idA), JSON.stringify({ a: mfA, b: mfB }).slice(0, 180));
+    ok("match_found carries a shared partyId", !!mfA?.partyId && mfA?.partyId === mfB?.partyId, JSON.stringify({ a: mfA?.partyId, b: mfB?.partyId }));
+    const queuePartyId = mfA?.partyId;
+    emit(sockA1.socket, "join_party", { partyId: queuePartyId });
+    emit(sockB.socket, "join_party", { partyId: queuePartyId });
+    await waitFor(() => {
+      const list = sockB.events.lobby_list.at(-1) ?? [];
+      return list.some((l) => l.partyId === queuePartyId && l.memberCount === 2);
+    }, 10000, "queue match appears in lobby directory");
+    ok("queue match appears in lobby directory (memberCount=2)", true, queuePartyId);
+
+    const endedBeforeQueue = sockB.events.party_ended.length;
+    emit(sockA1.socket, "leave_party", { partyId: queuePartyId });
+    await waitFor(
+      () => sockB.events.party_ended.length > endedBeforeQueue,
+      10000,
+      "party_ended after queue match leaves"
+    );
+    {
+      const ended = sockB.events.party_ended.slice(endedBeforeQueue).at(-1);
+      ok("queue match ends for the other player too", ended?.partyId === queuePartyId, JSON.stringify(ended));
+    }
+    emit(sockB.socket, "cancel_match", { gameId: QUEUE_GAME });
   }
 
   // ── Phase 3: Cleanup ────────────────────────────────────────────────────────
