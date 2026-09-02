@@ -1947,6 +1947,42 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.socialService.updateStatus({ inGame });
   });
 
+  /**
+   * Challenge accept loop-closer: when the remote player ACCEPTS, both
+   * sides must land in the same cabinet. The recipient launches directly
+   * from acceptIncomingChallenge(); the challenger arrives here via the
+   * challenge_response socket event (matchmaking.acceptedChallenge).
+   */
+  readonly challengeLaunchEffect = effect(() => {
+    const accepted = this.matchmaking.acceptedChallenge();
+    if (!accepted) return;
+    this.matchmaking.clearAcceptedChallenge();
+    const game = this.games().find((g) => g.id === accepted.gameId);
+    if (!game) return;
+    this.selectedGame.set(game);
+    // Already-resolved match: confirmLaunch must skip the fresh queue scan
+    // or the accept would dead-end in a 15s NO RIVALS FOUND wait.
+    this.matchmaking.markResolvedLaunch();
+    void this.confirmLaunch();
+  });
+
+  /**
+   * Party-launch loop-closer: when the ready-check countdown expires or a
+   * member receives party_launch_game, EVERY member opens the same cabinet.
+   * Previously the countdown ended with a toast only, so co-op games never
+   * actually launched for anyone.
+   */
+  readonly partyLaunchEffect = effect(() => {
+    const launch = this.matchmaking.partyLaunch();
+    if (!launch) return;
+    this.matchmaking.clearPartyLaunch();
+    const game = this.games().find((g) => g.id === launch.gameId);
+    if (!game) return;
+    this.selectedGame.set(game);
+    this.matchmaking.markResolvedLaunch();
+    void this.confirmLaunch();
+  });
+
   constructor() {
     effect(() => {
       this.activeHubTab.set(this.socialService.activeHubTab());
@@ -2123,6 +2159,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       // wired to a single tap so the host sees a viewer-count bump
       // immediately. The `from` param surfaces the inviter's id on
       // the overlay so the viewer knows whose session they're joining.
+      // Co-op lobby invite links (?game=&mode=co-op&partyId=) join the
+      // lobby directly so invite links actually CONNECT the recipient
+      // to the sender's live lobby.
+      const linkedPartyId = params.get('partyId');
+      if (linkedPartyId && inbound.gameId) {
+        this.matchmaking.joinLobby(linkedPartyId);
+      }
       const liveToken = params.get('live');
       if (liveToken) {
         const lobbyId = params.get('lobby');
@@ -2327,6 +2370,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       this.sessionTimerId = null;
     }
     this.gameSessionElapsed.set(0);
+    // Resolved challenge/matchmaking matches end with the cabinet: leave the
+    // provisioned lobby so the server tears the room down and notifies the
+    // opponent. Regular co-op lobbies are untouched (players can return).
+    this.matchmaking.endCurrentMatch();
   }
 
   toggleIntel() {
@@ -2452,8 +2499,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       // Split-screen invites must reference the host's live lobby or the
       // recipient would start a brand-new session instead of joining.
       lobbyId:
-        mode === 'split-screen'
-          ? this.matchmaking.activeSplitLobby()?.id
+        mode === 'split-screen' || mode === 'co-op'
+          ? this.matchmaking.activeSplitLobby()?.id ??
+            this.matchmaking.myLobby()?.id
           : undefined,
     });
     const result = await this.shareable.share(intent);
@@ -2623,8 +2671,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // Multiplayer matchmaking
-    if (this.isMultiplayerGame(game)) {
+    // Multiplayer matchmaking. Skipped entirely when this launch is for an
+    // already-resolved match (accepted challenge / party launch / queue
+    // pair): the shared lobby already exists and re-scanning would strand
+    // both players in a 15s wait instead of opening the game.
+    if (
+      this.isMultiplayerGame(game) &&
+      !this.matchmaking.consumeResolvedLaunch() &&
+      !this.matchmaking.myLobby()
+    ) {
       this.currentMatchmakingId = Date.now();
       const requestId = this.currentMatchmakingId;
       this.isMatchmaking.set(true);
@@ -3503,14 +3558,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   acceptIncomingChallenge() {
     const challenge = this.incomingChallenge();
-    if (!challenge) return;
-    const game = this.games().find((g) => g.id === challenge.gameId);
+    const game = this.games().find((g) => g.id === challenge?.gameId);
     if (game) {
       this.selectedGame.set(game);
     }
     this.respondToIncomingChallenge('accepted');
     this.snackbarService.success('CHALLENGE ACCEPTED — INITIALIZING');
     this.playSoundEffect('challenge');
+    // The acceptedChallenge effect fires after the REST accept round-trip
+    // and drives the cabinet launch — calling confirmLaunch here too
+    // would open the cabinet twice.
   }
 
   declineIncomingChallenge() {

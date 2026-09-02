@@ -156,6 +156,13 @@ describe('ThaSpotComponent', () => {
       shareLobbyInvite: jest.fn().mockResolvedValue(undefined),
       broadcastGameState: jest.fn(),
       recordGameSnapshot: jest.fn(),
+      acceptedChallenge: jest.fn().mockReturnValue(null),
+      clearAcceptedChallenge: jest.fn(),
+      partyLaunch: jest.fn().mockReturnValue(null),
+      clearPartyLaunch: jest.fn(),
+      markResolvedLaunch: jest.fn(),
+      consumeResolvedLaunch: jest.fn().mockReturnValue(false),
+      endCurrentMatch: jest.fn(),
     };
     const orchestrationMock = {
       requestRemix: jest.fn().mockResolvedValue(true),

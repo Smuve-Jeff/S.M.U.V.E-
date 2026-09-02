@@ -189,6 +189,13 @@ export class MatchmakingService implements OnDestroy {
   // ── Socket.io ──
   private socket: Socket | null = null;
   private connected = signal(false);
+  /**
+   * lobbyId the user asked to join BEFORE the socket finished connecting.
+   * Flushed on 'connect' so invite links opened during a reconnect window
+   * still join instead of emitting into the void.
+   */
+  private pendingPartyJoin: string | null = null;
+  private reconnectRetryTimer: any = null;
   /** Token the server rejected — prevents an immediate rebuild hot-loop. */
   private lastRejectedToken: string | null | undefined;
 
@@ -202,9 +209,56 @@ export class MatchmakingService implements OnDestroy {
     { userId: string; artistName?: string; online: boolean }[]
   >([]);
   readonly partyMembers = signal<PartyMember[]>([]);
-  readonly matchFound = signal<{ opponentId: string; gameId: string } | null>(
+  readonly matchFound = signal<{
+    opponentId: string;
+    gameId: string;
+    partyId?: string;
+  } | null>(null);
+  /**
+   * Set when this device should open the cabinet for a party-launched game
+   * (host countdown expiry, or party_launch_game from another member).
+   * Consumed once by the Tha Spot component which then enters confirmLaunch.
+   */
+  readonly partyLaunch = signal<{ gameId: string; partyId: string } | null>(
     null
   );
+  /** lobby id of a server-provisioned challenge/matchmaking room this device
+   * joined. Only those rooms are torn down on game close — a regular co-op
+   * lobby survives the cabinet so players can return to it. */
+  private resolvedMatchLobbyId: string | null = null;
+  /** One-shot: set right before launching an already-resolved match so
+   * confirmLaunch skips the fresh matchmaking scan and enters the cabinet. */
+  private skipQueueScan = false;
+  /**
+   * Set when a challenge was ACCEPTED and both players should land in the
+   * game. Consumed once by the Tha Spot component (effect) which selects
+   * the cabinet and launches it — without this the accept flow was a
+   * dead-end toast and neither player ever entered a shared session.
+   */
+  readonly acceptedChallenge = signal<{ gameId: string; challengeId: string } | null>(
+    null
+  );
+  /** Challenge id this device accepted locally, so the echoed
+   * `challenge_response` for our own accept never double-launches. */
+  private lastAcceptedChallengeId: string | null = null;
+
+  /** Mark that the NEXT confirmLaunch is for an already-resolved match
+   * (accepted challenge / party launch) and must skip the matchmaking scan. */
+  markResolvedLaunch(): void {
+    this.skipQueueScan = true;
+  }
+
+  /** Consume (and clear) the resolved-launch flag. */
+  consumeResolvedLaunch(): boolean {
+    const value = this.skipQueueScan;
+    this.skipQueueScan = false;
+    return value;
+  }
+
+  /** Consume the party-launch signal after the UI acts on it. */
+  clearPartyLaunch(): void {
+    this.partyLaunch.set(null);
+  }
 
   // ── Ready-Up System ──
   readonly readyPlayers = signal<Set<string>>(new Set());
@@ -282,6 +336,11 @@ export class MatchmakingService implements OnDestroy {
       } else {
         // Logout — tear down and clear the guard so a new login always tries.
         this.lastRejectedToken = undefined;
+        this.pendingPartyJoin = null;
+        if (this.reconnectRetryTimer) {
+          clearTimeout(this.reconnectRetryTimer);
+          this.reconnectRetryTimer = null;
+        }
         if (this.socket) {
           this.socket.disconnect();
           this.socket = null;
@@ -425,6 +484,12 @@ export class MatchmakingService implements OnDestroy {
     sock.on('connect', () => {
       console.log('[Matchmaking] Socket.io connected:', this.socket?.id);
       this.connected.set(true);
+      // Flush any lobby join that arrived before the connection was ready.
+      if (this.pendingPartyJoin) {
+        const partyId = this.pendingPartyJoin;
+        this.pendingPartyJoin = null;
+        this.socket?.emit('join_party', { partyId });
+      }
       // Register presence + request inbox sync.
       // Same payload contract as SocialNetworkingService.register_presence
       // (userId + metadata) so the backend indexes us on the same socket.
@@ -452,6 +517,25 @@ export class MatchmakingService implements OnDestroy {
         this.lastRejectedToken = this.tokenService.jwtToken();
         this.socket = null;
         sock.disconnect();
+      }
+    });
+
+    // After the built-in retries are exhausted socket.io gives up silently
+    // and the session stays dead forever. Tear down so we can re-dial once.
+    sock.on('reconnect_failed', () => {
+      console.warn('[Matchmaking] Reconnect failed — scheduling a fresh dial');
+      if (this.socket === sock) {
+        this.socket = null;
+        sock.disconnect();
+        if (!this.reconnectRetryTimer && this.tokenService.jwtToken()) {
+          this.reconnectRetryTimer = setTimeout(() => {
+            this.reconnectRetryTimer = null;
+            if (this.tokenService.jwtToken() && !this.socket) {
+              this.lastRejectedToken = undefined;
+              this.connectSocket();
+            }
+          }, 10_000);
+        }
       }
     });
 
@@ -523,16 +607,36 @@ export class MatchmakingService implements OnDestroy {
         gameId: string;
         status: string;
         timestamp: number;
+        partyId?: string;
       }) => {
-        const mappedStatus = data.status as ChallengeStatus;
+        // Server sends 'accepted' | 'declined' (older clients said 'rejected').
+        const mappedStatus: ChallengeStatus =
+          data.status === 'accepted'
+            ? 'accepted'
+            : data.status === 'declined' || data.status === 'rejected'
+              ? 'rejected'
+              : (data.status as ChallengeStatus);
         this.outgoingChallenges.update((c) =>
           c.map((ch) =>
             ch.id === `chal-${data.id}` ? { ...ch, status: mappedStatus } : ch
           )
         );
         if (mappedStatus === 'accepted') {
+          // Challenger side: the recipient accepted — jump into the game.
+          // Skip our own echo (the responder already launched locally).
+          if (this.lastAcceptedChallengeId !== `chal-${data.id}`) {
+            this.acceptedChallenge.set({
+              gameId: data.gameId,
+              challengeId: `chal-${data.id}`,
+            });
+          }
+          // The server provisions a shared lobby room on accept; join it so
+          // score sync / lobby chat flow. Idempotent (alreadyMember guard).
+          if (typeof data.partyId === 'string' && data.partyId) {
+            this.joinResolvedLobby(data.partyId);
+          }
           this.notify.show(
-            `Challenge accepted — lobby ready for ${data.gameId}`,
+            `Challenge accepted — launching ${data.gameId}`,
             'success'
           );
         } else if (mappedStatus === 'rejected') {
@@ -647,6 +751,25 @@ export class MatchmakingService implements OnDestroy {
       this.cancelCountdown();
     });
 
+    this.socket.on(
+      'party_join_failed',
+      (data: { partyId: string; reason: string }) => {
+        // Server rejected the join (lobby gone or full) — reset UI state so
+        // the user isn't stuck watching a lobby that will never accept them.
+        if (this.myLobby()?.id === data.partyId) {
+          this.myLobby.set(null);
+          this.isSearching.set(false);
+        }
+        this.removeLobbyFromState(data.partyId);
+        this.notify.show(
+          data.reason === 'lobby_full'
+            ? 'LOBBY IS FULL'
+            : 'LOBBY NO LONGER AVAILABLE',
+          'warning'
+        );
+      }
+    );
+
     // ── Host Transfer Event ──
     this.socket.on(
       'host_transferred',
@@ -700,19 +823,82 @@ export class MatchmakingService implements OnDestroy {
           `Party leader launched ${data.gameId} — joining now!`,
           'success'
         );
-        // Navigation to the game is handled by the Tha Spot component
+        // Drive the cabinet launch on every member — the old handler only
+        // toasted and nobody ever actually navigated into the game.
+        this.partyLaunch.set({ gameId: data.gameId, partyId: data.partyId });
       }
     );
 
     this.socket.on(
       'match_found',
-      (data: { opponentId: string; gameId: string }) => {
+      (data: { opponentId: string; gameId: string; partyId?: string }) => {
         this.matchFound.set(data);
         this.isSearching.set(false);
         this.haptic.medium();
+        // The queue matcher provisions a shared lobby; join it so the match
+        // actually syncs (score updates, chat, spectate discovery).
+        if (typeof data.partyId === 'string' && data.partyId) {
+          this.joinResolvedLobby(data.partyId);
+        }
         this.notify.show(
           `Match found! Opponent ready for ${data.gameId}`,
           'success'
+        );
+      }
+    );
+
+    // Server provisions a real lobby room when a challenge is ACCEPTED
+    // (both sides receive this). Joining it puts both players in the same
+    // party room so the launched cabinet syncs live state.
+    this.socket.on(
+      'challenge_lobby_ready',
+      (data: {
+        partyId: string;
+        gameId: string;
+        challengeId: string;
+        challengerId: string;
+        opponentId: string;
+      }) => {
+        const lobby = this.partyToLobby({
+          partyId: data.partyId,
+          leaderId: data.challengerId,
+          members: [
+            { userId: data.challengerId, artistName: data.challengerId },
+            { userId: data.opponentId, artistName: data.opponentId },
+          ],
+          gameId: data.gameId,
+        });
+        // Eagerly adopt the lobby so broadcastGameState works the moment the
+        // cabinet opens — the authoritative lobby_list copy replaces it when
+        // it arrives.
+        this.myLobby.set({ ...lobby, status: 'in-progress' });
+        this.updateLobbyInState({ ...lobby, status: 'in-progress' });
+        this.isSearching.set(false);
+        this.joinResolvedLobby(data.partyId);
+      }
+    );
+
+    // A resolved challenge/matchmaking lobby ends when either player leaves
+    // or disconnects — the survivor must exit the cabinet cleanly instead of
+    // sitting in a room that no longer exists server-side.
+    this.socket.on(
+      'party_ended',
+      (data: { partyId: string; reason: string }) => {
+        if (this.resolvedMatchLobbyId === data.partyId) {
+          this.resolvedMatchLobbyId = null;
+        }
+        if (this.myLobby()?.id === data.partyId) {
+          this.myLobby.set(null);
+          this.isSearching.set(false);
+          this.readyPlayers.set(new Set());
+          this.isReady.set(false);
+        }
+        this.removeLobbyFromState(data.partyId);
+        this.notify.show(
+          data.reason === 'player_left'
+            ? 'OPPONENT LEFT — MATCH ENDED'
+            : 'MATCH ENDED',
+          'warning'
         );
       }
     );
@@ -983,11 +1169,47 @@ export class MatchmakingService implements OnDestroy {
   joinLobby(lobbyId: string): CoOpLobby | null {
     this.haptic.light();
     if (!this.socket?.connected) {
-      this.notify.show('Connection lost', 'warning');
-      return this.fallbackJoinLobby(lobbyId);
+      // Remember the intent and join the moment the socket connects instead
+      // of failing outright — deep links opened mid-reconnect still land.
+      this.pendingPartyJoin = lobbyId;
+      this.notify.show('CONNECTING — JOINING LOBBY WHEN READY', 'info');
+      return this.activeLobbies().find((l) => l.id === lobbyId) ?? null;
     }
     this.socket.emit('join_party', { partyId: lobbyId });
     return this.activeLobbies().find((l) => l.id === lobbyId) ?? null;
+  }
+
+  /**
+   * Join a server-provisioned resolved-match lobby (challenge accept or
+   * matchmaking pair) and remember it, so closing the cabinet tears down
+   * exactly that room. Eager-set myLobby so the launched game can broadcast
+   * state before the authoritative lobby_list arrives.
+   */
+  private joinResolvedLobby(partyId: string): void {
+    this.resolvedMatchLobbyId = partyId;
+    const joined = this.joinLobby(partyId);
+    if (joined) {
+      this.myLobby.set(joined);
+      this.isSearching.set(false);
+    }
+  }
+
+  /**
+   * End the current resolved match (accepted challenge / matchmaking pair):
+   * leave the provisioned lobby so the server tears the room down and the
+   * opponent gets a party_ended. Regular co-op lobbies are untouched so
+   * players can return to them after leaving the cabinet.
+   */
+  endCurrentMatch(): void {
+    const lobby = this.myLobby();
+    if (!lobby) return;
+    if (this.resolvedMatchLobbyId !== lobby.id) return;
+    this.resolvedMatchLobbyId = null;
+    this.cancelCountdown();
+    this.socket?.emit('leave_party', { partyId: lobby.id });
+    this.removeLobbyFromState(lobby.id);
+    this.myLobby.set(null);
+    this.isSearching.set(false);
   }
 
   private fallbackJoinLobby(lobbyId: string): CoOpLobby | null {
@@ -1013,6 +1235,9 @@ export class MatchmakingService implements OnDestroy {
 
   leaveLobby(lobbyId: string): void {
     this.haptic.light();
+    if (this.resolvedMatchLobbyId === lobbyId) {
+      this.resolvedMatchLobbyId = null;
+    }
     this.socket?.emit('leave_party', { partyId: lobbyId });
     this.removeLobbyFromState(lobbyId);
     if (this.myLobby()?.id === lobbyId) {
@@ -1107,12 +1332,15 @@ export class MatchmakingService implements OnDestroy {
   readonly lobbyInviteLink = computed(() => {
     const lobby = this.myLobby();
     if (!lobby) return '';
-    const baseUrl = window.location.origin + '/tha-spot';
+    // Share links must use the SAME param contract the deep-link parser
+    // understands (?game=…&mode=co-op&partyId=…). The old ?partyId-only
+    // link landed recipients on the hub with no join prompt at all.
     const params = new URLSearchParams();
+    params.set('game', lobby.gameId);
+    params.set('mode', 'co-op');
     params.set('partyId', lobby.id);
-    params.set('gameId', lobby.gameId);
     params.set('mission', lobby.gameName);
-    return `${baseUrl}?${params.toString()}`;
+    return `${window.location.origin}/tha-spot?${params.toString()}`;
   });
 
   copyLobbyInviteLink(): boolean {
@@ -1166,6 +1394,9 @@ export class MatchmakingService implements OnDestroy {
     );
     this.socket?.emit('party_launch_game', { partyId: lobby.id, gameId });
     this.socket?.emit('party_started', { partyId: lobby.id, gameId });
+    // Drive the actual cabinet launch locally too — the ready-check countdown
+    // previously ended here with nothing opening the game.
+    this.partyLaunch.set({ gameId, partyId: lobby.id });
   }
 
   // ── Challenge Operations (backed by Socket.io + REST) ──
@@ -1225,6 +1456,7 @@ export class MatchmakingService implements OnDestroy {
       )
       .subscribe({
         next: () => {
+          this.lastAcceptedChallengeId = challengeId;
           this.myChallenges.update((c) =>
             c.map((ch) =>
               ch.id === challengeId
@@ -1232,13 +1464,29 @@ export class MatchmakingService implements OnDestroy {
                 : ch
             )
           );
-          this.notify.show('Challenge accepted — connecting...', 'success');
+          const challenge = this.myChallenges().find(
+            (ch) => ch.id === challengeId
+          );
+          // Responder side: drive the actual game launch. The challenger
+          // gets the same signal via the challenge_response socket event.
+          if (challenge) {
+            this.acceptedChallenge.set({
+              gameId: challenge.gameId,
+              challengeId,
+            });
+          }
+          this.notify.show('Challenge accepted — launching...', 'success');
         },
         error: (err) => {
           console.error('Accept challenge error:', err);
           this.notify.show('Failed to accept challenge', 'warning');
         },
       });
+  }
+
+  /** Consume the accepted-challenge signal after the UI acts on it. */
+  clearAcceptedChallenge(): void {
+    this.acceptedChallenge.set(null);
   }
 
   rejectChallenge(challengeId: string): void {

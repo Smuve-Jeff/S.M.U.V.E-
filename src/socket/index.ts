@@ -81,7 +81,16 @@ const RATE_LIMITS: Record<string, { windowMs: number; max: number }> = {
   send_async_packet: { windowMs: 10_000, max: 10 },
   create_party: { windowMs: 10_000, max: 5 },
   queue_for_match: { windowMs: 10_000, max: 5 },
+  split_screen_sync: { windowMs: 1_000, max: 30 },
+  game_state_update: { windowMs: 1_000, max: 30 },
+  replay_snapshot: { windowMs: 1_000, max: 30 },
+  party_started: { windowMs: 10_000, max: 5 },
+  join_spectate: { windowMs: 10_000, max: 10 },
+  spectator_reaction: { windowMs: 10_000, max: 30 },
 };
+
+/** Lobbies are capped so joiners get accurate "full" feedback instead of a silently overflowing room. */
+const PARTY_MAX_PLAYERS = 4;
 const rateBuckets = new Map<string, Record<string, number[]>>();
 
 /** Sliding-window check; returns true when the user exceeded their budget. */
@@ -122,9 +131,143 @@ function validSocketId(value: unknown): value is string {
  */
 let ioServer: Server | null = null;
 
+// ── Shared party/lobby registry (module scope) ────────────────────────────
+// Lives beside ioServer so HTTP routes (challenge accept) can provision a
+// real lobby room for a resolved match. Inside setupSocketIO the per-socket
+// handlers mutate the SAME map, so parties created by either path share one
+// source of truth for the lobby directory / game-state relay.
+let parties = new Map<string, Party>();
+/** challenge id -> partyId for lobbies provisioned on challenge accept. */
+let challengeLobbyByChallengeId = new Map<string, string>();
+/** partyId -> kind for lobbies provisioned by the queue matcher or the
+ * challenge-accept path. These are 2-player resolved matches: the whole
+ * lobby ends the moment either player leaves or disconnects. */
+let resolvedMatchLobbies = new Map<string, "challenge" | "matchmaking">();
+/** Resolves an artist name outside the per-connection closure (HTTP-triggered
+ * provisioning still shows real names in the lobby directory). */
+let resolvePresenceMeta: (userId: string) => { artistName?: string } = () => ({});
+
+/**
+ * Authoritative lobby directory broadcast at module scope so lobbies
+ * provisioned by HTTP routes enter the same directory as socket-created ones.
+ */
+const broadcastLobbyDirectory = (): void => {
+  if (!ioServer) return;
+  const lobbies = Array.from(parties.entries()).map(([partyId, party]) => ({
+    partyId,
+    gameId: party.gameId,
+    leaderId: party.leaderId,
+    leaderName:
+      resolvePresenceMeta(party.leaderId).artistName || party.leaderId,
+    memberCount: party.members.length,
+    maxPlayers: PARTY_MAX_PLAYERS,
+    status: "open",
+    members: party.members,
+  }));
+  ioServer.emit("lobby_list", lobbies);
+};
+
+/** Notify both sides of a resolved challenge which room to join. */
+const emitChallengeLobbyReady = (args: {
+  challengerId: string;
+  opponentId: string;
+  partyId: string;
+  gameId: string;
+  challengeId: string;
+}): void => {
+  if (!ioServer) return;
+  const payload = {
+    partyId: args.partyId,
+    gameId: args.gameId,
+    challengeId: args.challengeId,
+    challengerId: args.challengerId,
+    opponentId: args.opponentId,
+  };
+  ioServer.to(args.challengerId).emit("challenge_lobby_ready", payload);
+  ioServer.to(args.opponentId).emit("challenge_lobby_ready", payload);
+};
+
+/**
+ * Provision a 2-player lobby room for an ACCEPTED challenge. Idempotent per
+ * challenge id so concurrent accept paths (REST + socket) converge on one
+ * room. Returns the partyId (null when no socket server is up yet).
+ */
+export const provisionChallengeLobby = (challenge: {
+  id: number;
+  fromUserId: string;
+  toUserId: string;
+  gameId: string;
+}): string | null => {
+  if (!ioServer) return null;
+  const challengeId = String(challenge.id);
+  const existing = challengeLobbyByChallengeId.get(challengeId);
+  if (existing) {
+    emitChallengeLobbyReady({
+      challengerId: challenge.fromUserId,
+      opponentId: challenge.toUserId,
+      partyId: existing,
+      gameId: challenge.gameId,
+      challengeId,
+    });
+    return existing;
+  }
+  const partyId = `party_${randomUUID()}`;
+  parties.set(partyId, {
+    leaderId: challenge.fromUserId,
+    gameId: challenge.gameId,
+    members: [
+      {
+        userId: challenge.fromUserId,
+        artistName:
+          resolvePresenceMeta(challenge.fromUserId).artistName ||
+          challenge.fromUserId,
+      },
+      {
+        userId: challenge.toUserId,
+        artistName:
+          resolvePresenceMeta(challenge.toUserId).artistName ||
+          challenge.toUserId,
+      },
+    ],
+  });
+  challengeLobbyByChallengeId.set(challengeId, partyId);
+  resolvedMatchLobbies.set(partyId, "challenge");
+  emitChallengeLobbyReady({
+    challengerId: challenge.fromUserId,
+    opponentId: challenge.toUserId,
+    partyId,
+    gameId: challenge.gameId,
+    challengeId,
+  });
+  broadcastLobbyDirectory();
+  return partyId;
+};
+
+/**
+ * End a resolved challenge/matchmaking lobby. A 2-player match cannot
+ * continue with one side gone, so the whole room is torn down and the
+ * surviving player is told the match ended. Registry entries are dropped
+ * so the next challenge/match is never served a stale room.
+ */
+export const endResolvedMatchLobby = (
+  partyId: string,
+  reason: "player_left" | "player_vacated" | "disconnected",
+): void => {
+  const party = parties.get(partyId);
+  if (!party || !resolvedMatchLobbies.has(partyId)) return;
+  parties.delete(partyId);
+  resolvedMatchLobbies.delete(partyId);
+  challengeLobbyByChallengeId.forEach((pid, challengeId) => {
+    if (pid === partyId) challengeLobbyByChallengeId.delete(challengeId);
+  });
+  ioServer?.to(getPartyRoom(partyId)).emit("party_ended", { partyId, reason });
+};
+
 /**
  * Emit a challenge-response update to both the challenger and the recipient
- * so their inboxes/outgoing-challenge state converge in realtime.
+ * so their inboxes/outgoing-challenge state converge in realtime. When the
+ * response ACCEPTS, a real 2-player lobby room is provisioned so both sides
+ * land in the SAME match (score sync, lobby chat, spectate discovery).
  */
 export const emitChallengeResponse = (challenge: {
   id: number;
@@ -135,7 +278,7 @@ export const emitChallengeResponse = (challenge: {
   timestamp: number;
 }): void => {
   if (!ioServer) return;
-  const payload = {
+  const payload: Record<string, unknown> = {
     id: challenge.id,
     fromUserId: challenge.fromUserId,
     toUserId: challenge.toUserId,
@@ -143,6 +286,10 @@ export const emitChallengeResponse = (challenge: {
     status: challenge.status,
     timestamp: challenge.timestamp,
   };
+  if (challenge.status === "accepted") {
+    const partyId = provisionChallengeLobby(challenge);
+    if (partyId) payload.partyId = partyId;
+  }
   ioServer.to(challenge.fromUserId).emit("challenge_response", payload);
   ioServer.to(challenge.toUserId).emit("challenge_response", payload);
 };
@@ -164,14 +311,25 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   });
   // Keep the module-level handle in sync so HTTP routes can emit to users.
   ioServer = io;
+  // Fresh module-level party registry per server boot — re-invoking
+  // setupSocketIO (tests) must never inherit stale lobbies from a prior run.
+  parties.clear();
+  challengeLobbyByChallengeId.clear();
+  resolvedMatchLobbies.clear();
 
   const presence = new Map<string, { socketId: string; metadata: PresenceMeta }>();
   // Every live socket per user. A user may hold multiple sockets (social +
   // matchmaking), so presence must survive the loss of any ONE of them.
   const socketIdsByUser = new Map<string, Set<string>>();
   const rooms = new Map<string, Set<string>>();
-  const parties = new Map<string, Party>();
   const matchmakingQueues = new Map<string, QueueEntry[]>();
+  // Split-screen peer registry lives at SERVER scope — a per-connection map
+  // (the old bug) meant host and guest each saw their own private registry
+  // and cross-device pairing never actually converged.
+  const splitScreenPeers = new Map<
+    string,
+    { hostId: string; guestId: string }
+  >();
 
   const getSender = (socket: {
     handshake: { auth?: Record<string, unknown>; headers?: Record<string, unknown> };
@@ -208,19 +366,7 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
    * every create/join/leave/launch re-broadcasts the full list and clients
    * REPLACE their local accumulation (no client-side ghost lobbies).
    */
-  const broadcastLobbyList = () => {
-    const lobbies = Array.from(parties.entries()).map(([partyId, party]) => ({
-      partyId,
-      gameId: party.gameId,
-      leaderId: party.leaderId,
-      leaderName: getSenderMeta(party.leaderId).artistName || party.leaderId,
-      memberCount: party.members.length,
-      maxPlayers: 4,
-      status: "open",
-      members: party.members,
-    }));
-    io.emit("lobby_list", lobbies);
-  };
+  const broadcastLobbyList = () => broadcastLobbyDirectory();
 
   const syncInbox = async (userId: string) => {
     try {
@@ -299,6 +445,8 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
 
   const getSenderMeta = (userId: string): PresenceMeta =>
     presence.get(userId)?.metadata || {};
+  // Give the module-level directory/provisioning code access to names.
+  resolvePresenceMeta = (userId: string) => getSenderMeta(userId);
 
   // Authenticate the handshake in middleware so an unauthenticated or
   // garbage-token client is rejected with `connect_error` instead of
@@ -872,6 +1020,9 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       if (isRateLimited(userId, "create_party")) return;
       const partyId = data.partyId || `party_${randomUUID()}`;
       const leaderMeta = getSenderMeta(userId);
+      // One lobby per user: creating while in another lobby vacates it so
+      // the directory never lists this player twice.
+      removeUserFromAllParties();
       parties.set(partyId, {
         leaderId: userId,
         members: [{ userId, artistName: leaderMeta.artistName || userId }],
@@ -901,19 +1052,69 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       });
     });
 
+    const removeUserFromAllParties = (): boolean => {
+      let removed = false;
+      parties.forEach((party, partyId) => {
+        if (!party.members.some((m) => m.userId === userId)) return;
+        // Resolved match lobbies end wholesale when either player vacates —
+        // filtering the leaver out would strand the survivor in a dead room.
+        if (resolvedMatchLobbies.has(partyId)) {
+          removed = true;
+          socket.leave(getPartyRoom(partyId));
+          endResolvedMatchLobby(partyId, "player_vacated");
+          return;
+        }
+        removed = true;
+        party.members = party.members.filter((m) => m.userId !== userId);
+        if (party.members.length > 0 && party.leaderId === userId) {
+          party.leaderId = party.members[0].userId;
+          io.to(getPartyRoom(partyId)).emit("host_transferred", {
+            partyId,
+            newHostId: party.leaderId,
+            newHostName: party.members[0].artistName || party.leaderId,
+          });
+        }
+        if (party.members.length === 0) parties.delete(partyId);
+        socket.leave(getPartyRoom(partyId));
+        io.to(getPartyRoom(partyId)).emit("user_left_party", { userId });
+      });
+      return removed;
+    };
+
     socket.on("join_party", (data: { partyId?: string } = {}) => {
       const { partyId } = data;
       if (!partyId) return;
       const party = parties.get(partyId);
-      if (!party) return;
-      const memberMeta = getSenderMeta(userId);
-      if (!party.members.find((m) => m.userId === userId)) {
+      if (!party) {
+        // Tell the joiner the lobby is gone so their UI can reset instead of
+        // waiting forever for a user_joined_party that will never come.
+        io.to(userId).emit("party_join_failed", {
+          partyId,
+          reason: "lobby_not_found",
+        });
+        return;
+      }
+      const alreadyMember = party.members.some((m) => m.userId === userId);
+      if (!alreadyMember) {
+        // Capacity guard: the directory advertises maxPlayers 4; enforce it
+        // so joiners never overflow a full lobby.
+        if (party.members.length >= PARTY_MAX_PLAYERS) {
+          io.to(userId).emit("party_join_failed", {
+            partyId,
+            reason: "lobby_full",
+          });
+          return;
+        }
+        // One lobby per user: joining a new party always leaves the old one
+        // so the directory never shows the same player in two lobbies.
+        removeUserFromAllParties();
+        const memberMeta = getSenderMeta(userId);
         party.members.push({ userId, artistName: memberMeta.artistName || userId });
       }
       socket.join(getPartyRoom(partyId));
       io.to(getPartyRoom(partyId)).emit("user_joined_party", {
         userId,
-        artistName: memberMeta.artistName || userId,
+        artistName: getSenderMeta(userId).artistName || userId,
       });
       broadcastLobbyList();
     });
@@ -921,6 +1122,14 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     socket.on("leave_party", (data: { partyId?: string } = {}) => {
       const { partyId } = data;
       if (!partyId) return;
+      // Leaving a resolved challenge/matchmaking lobby ends the WHOLE match:
+      // a 2-player game cannot continue with one side gone, and keeping the
+      // room around would strand the survivor in a dead lobby.
+      if (resolvedMatchLobbies.has(partyId)) {
+        endResolvedMatchLobby(partyId, "player_left");
+        broadcastLobbyList();
+        return;
+      }
       const party = parties.get(partyId);
       if (party) {
         party.members = party.members.filter((m) => m.userId !== userId);
@@ -958,6 +1167,114 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       });
     });
 
+    // ── In-match multiplayer relays ──
+    // The clients emit live-match events (score, chat, replays, spectator
+    // reactions) and previously the server had NO handlers for them — the
+    // events died on arrival and online matches never actually synced.
+    // Each relay is membership-guarded (only players in the lobby room) and
+    // rate limited, and uses socket.to(room) so the sender never sees its
+    // own packet echoed back.
+
+    socket.on("party_started", (data: { partyId?: string; gameId?: string } = {}) => {
+      const { partyId, gameId } = data;
+      const party = partyId ? parties.get(partyId) : undefined;
+      if (!party || !party.members.some((m) => m.userId === userId)) return;
+      if (isRateLimited(userId, "party_started")) return;
+      io.to(getPartyRoom(partyId)).emit("party_started", { partyId, gameId });
+      broadcastLobbyList();
+    });
+
+    socket.on("game_state_update", (update: Record<string, any> = {}) => {
+      const { lobbyId } = update;
+      const party = lobbyId ? parties.get(lobbyId) : undefined;
+      if (!party || !party.members.some((m) => m.userId === userId)) return;
+      if (isRateLimited(userId, "game_state_update")) return;
+      socket.to(getPartyRoom(lobbyId)).emit("game_state_update", {
+        ...update,
+        fromUserId: userId,
+      });
+    });
+
+    socket.on("replay_snapshot", (snapshot: Record<string, any> = {}) => {
+      const { lobbyId } = snapshot;
+      const party = lobbyId ? parties.get(lobbyId) : undefined;
+      if (!party || !party.members.some((m) => m.userId === userId)) return;
+      if (isRateLimited(userId, "replay_snapshot")) return;
+      socket.to(getPartyRoom(lobbyId)).emit("replay_snapshot", {
+        ...snapshot,
+        fromUserId: userId,
+      });
+    });
+
+    // Live lobby chat — the client emits full message objects; keep the
+    // legacy send_party_message event above working for older clients too.
+    socket.on("lobby_chat_message", (msg: Record<string, any> = {}) => {
+      const lobbyId = msg.lobbyId;
+      const message = normalizeChatMessage(msg.text ?? msg.message);
+      const party = lobbyId ? parties.get(lobbyId) : undefined;
+      if (!validSocketId(lobbyId) || !message || !party?.members.some((m) => m.userId === userId)) return;
+      if (isRateLimited(userId, "send_party_message")) return;
+      socket.to(getPartyRoom(lobbyId)).emit("lobby_chat_message", {
+        id:
+          typeof msg.id === "string"
+            ? msg.id.slice(0, 64)
+            : `lobby-msg-${Date.now()}`,
+        lobbyId,
+        fromUserId: userId,
+        fromUserName: getSenderMeta(userId).artistName || userId,
+        text: message,
+        timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
+      });
+    });
+
+    // Spectators join the party room so live score/chat packets reach them.
+    // They cannot SEND party chat/state (relays are membership-guarded).
+    socket.on("join_spectate", (data: { lobbyId?: string } = {}) => {
+      const { lobbyId } = data;
+      if (!validSocketId(lobbyId)) return;
+      const party = parties.get(lobbyId);
+      if (!party || party.members.length === 0) return;
+      if (isRateLimited(userId, "join_spectate")) return;
+      socket.join(getPartyRoom(lobbyId));
+      io.to(getPartyRoom(lobbyId)).emit("spectator_joined", {
+        lobbyId,
+        userId,
+      });
+    });
+
+    socket.on("stop_spectating", () => {
+      // Sockets leave rooms on disconnect; kept as a no-op for API symmetry.
+    });
+
+    socket.on("spectator_reaction", (r: Record<string, any> = {}) => {
+      const { lobbyId } = r;
+      if (!validSocketId(lobbyId)) return;
+      const party = parties.get(lobbyId);
+      if (!party || party.members.length === 0) return;
+      if (isRateLimited(userId, "spectator_reaction")) return;
+      socket.to(getPartyRoom(lobbyId)).emit("spectator_reaction", {
+        ...r,
+        fromUserId: userId,
+      });
+    });
+
+    socket.on("spectator_chat_message", (msg: Record<string, any> = {}) => {
+      const { lobbyId } = msg;
+      const message = normalizeChatMessage(msg.text);
+      if (!validSocketId(lobbyId) || !message) return;
+      const party = parties.get(lobbyId);
+      if (!party || party.members.length === 0) return;
+      if (isRateLimited(userId, "send_party_message")) return;
+      socket.to(getPartyRoom(lobbyId)).emit("spectator_chat_message", {
+        id: typeof msg.id === "string" ? msg.id.slice(0, 64) : undefined,
+        lobbyId,
+        fromUserId: userId,
+        fromUserName: getSenderMeta(userId).artistName || userId,
+        text: message,
+        timestamp: Date.now(),
+      });
+    });
+
     // ── Matchmaking ──
     socket.on("queue_for_match", (data: { gameId?: string } = {}) => {
       const { gameId } = data;
@@ -972,8 +1289,38 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         const player1 = queue.shift();
         const player2 = queue.shift();
         if (player1 && player2) {
-          io.to(player1.userId).emit("match_found", { opponentId: player2.userId, gameId });
-          io.to(player2.userId).emit("match_found", { opponentId: player1.userId, gameId });
+          // Provision a shared lobby for the pair so the matched opponents
+          // land in the SAME room: score sync, lobby chat, spectate discovery
+          // all work off the parties registry.
+          const partyId = `party_${randomUUID()}`;
+          parties.set(partyId, {
+            leaderId: player1.userId,
+            gameId,
+            members: [
+              {
+                userId: player1.userId,
+                artistName:
+                  getSenderMeta(player1.userId).artistName || player1.userId,
+              },
+              {
+                userId: player2.userId,
+                artistName:
+                  getSenderMeta(player2.userId).artistName || player2.userId,
+              },
+            ],
+          });
+          resolvedMatchLobbies.set(partyId, "matchmaking");
+          io.to(player1.userId).emit("match_found", {
+            opponentId: player2.userId,
+            gameId,
+            partyId,
+          });
+          io.to(player2.userId).emit("match_found", {
+            opponentId: player1.userId,
+            gameId,
+            partyId,
+          });
+          broadcastLobbyList();
         }
       }
     });
@@ -1088,11 +1435,6 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
     //    (lobbyId, snapshotType, payload)
     // so a guest on a slow Wi-Fi connection can drop frames without us
     // queueing an unbounded backlog. ──
-    const splitScreenPeers = new Map<
-      string,
-      { hostId: string; guestId: string }
-    >();
-
     socket.on(
       "split_screen_register",
       (data: { lobbyId?: string; role?: "host" | "guest" } = {}) => {
@@ -1111,6 +1453,13 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           role === "host" && pair.hostId && pair.hostId !== userId
             ? "guest"
             : role;
+        // ── Pair capacity ──
+        // Split-screen is strictly 2 players. A third device claiming the
+        // occupied guest slot is rejected instead of silently stealing it.
+        if (effectiveRole === "guest" && pair.guestId && pair.guestId !== userId) {
+          io.to(userId).emit("split_screen_pair_full", { lobbyId });
+          return;
+        }
         if (effectiveRole === "host") pair.hostId = userId;
         else pair.guestId = userId;
         socket.join(`split:${lobbyId}`);
@@ -1143,10 +1492,14 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       } = {}) => {
         const { lobbyId, snapshot } = data;
         if (!lobbyId || !snapshot) return;
+        if (isRateLimited(userId, "split_screen_sync")) return;
         // Emit only to the OTHER side of the pair so the originator never
-        // sees its own snapshot echoed back.
+        // sees its own snapshot echoed back. Membership check: only the
+        // registered host or guest of THIS pair may feed snapshots — a
+        // bystander who knows the lobbyId can never inject state.
         const pair = splitScreenPeers.get(lobbyId);
         if (!pair) return;
+        if (pair.hostId !== userId && pair.guestId !== userId) return;
         const partnerId = pair.hostId === userId ? pair.guestId : pair.hostId;
         if (!partnerId) return;
         io.to(partnerId).emit("split_screen_snapshot", {
@@ -1341,6 +1694,12 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       parties.forEach((party, partyId) => {
         if (!party.members.some((m) => m.userId === userId)) return;
         partyChanged = true;
+        // A resolved challenge/match lobby dies with its player — the pair
+        // cannot continue, so tear the room down instead of ghosting it.
+        if (resolvedMatchLobbies.has(partyId)) {
+          endResolvedMatchLobby(partyId, "disconnected");
+          return;
+        }
         party.members = party.members.filter((m) => m.userId !== userId);
         if (party.members.length === 0) {
           parties.delete(partyId);
