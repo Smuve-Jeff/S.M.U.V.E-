@@ -26358,8 +26358,1096 @@
         "approvedEmbedUrl": "https://www.retrogames.cc/embed/46481-vs-dr-mario.html",
         "approvedExternalUrl": "https://www.retrogames.cc/embed/46481-vs-dr-mario.html"
       }
+    },
+    {
+      "id": "rg-32471-007-goldeneye-usa",
+      "name": "GoldenEye 007",
+      "url": "https://www.retrogames.cc/embed/32471-007-goldeneye-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The console FPS that invented four-player deathmatch: blow up the satellite, then hunt your rival through the facility in split-screen-first-person chaos.",
+      "genre": "FPS",
+      "rating": 4.9,
+      "playersOnline": 3400,
+      "availability": "Online",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1997-08-25",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32471-007-goldeneye-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32471-007-goldeneye-usa.html"
+      },
+      "art": {
+        "eyebrow": "AGENT DOWN",
+        "accentStart": "#84cc16",
+        "accentEnd": "#0f766e"
+      }
+    },
+    {
+      "id": "rg-32319-f-zero-x-usa",
+      "name": "F-Zero X",
+      "url": "https://www.retrogames.cc/embed/32319-f-zero-x-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Thirty machines at 1,000 km/h: pick a craft, chain boosts at the limit, and beat your rival lap for lap in the N64's relentless zero-gravity grand prix.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 1200,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1998-07-14",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32319-f-zero-x-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32319-f-zero-x-usa.html"
+      },
+      "art": {
+        "eyebrow": "MACH SPEED",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "rg-32409-wave-race-64-usa",
+      "name": "Wave Race 64",
+      "url": "https://www.retrogames.cc/embed/32409-wave-race-64-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Jet-ski racing with real wave physics: carve buoys, catch air off wakes, and out-turn your rival through storm surges in the N64 launch-era classic.",
+      "genre": "Racing",
+      "rating": 4.7,
+      "playersOnline": 800,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1996-11-01",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32409-wave-race-64-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32409-wave-race-64-usa.html"
+      },
+      "art": {
+        "eyebrow": "WILD WAVES",
+        "accentStart": "#06b6d4",
+        "accentEnd": "#0c4a6e"
+      }
+    },
+    {
+      "id": "rg-32115-diddy-kong-racing-usa-en-fr",
+      "name": "Diddy Kong Racing",
+      "url": "https://www.retrogames.cc/embed/32115-diddy-kong-racing-usa-en-fr.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Rare's kart-racer rival to Mario Kart: karts, hovercrafts and planes, silver-coin mayhem, and a showdown with Wizpig to decide who owns Timber's Island.",
+      "genre": "Racing",
+      "rating": 4.8,
+      "playersOnline": 1500,
+      "availability": "Online",
+      "tags": [
+        "Racing",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1997-11-21",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32115-diddy-kong-racing-usa-en-fr.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32115-diddy-kong-racing-usa-en-fr.html"
+      },
+      "art": {
+        "eyebrow": "ISLE RIVALS",
+        "accentStart": "#22c55e",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "rg-16748-sunset-riders-usa",
+      "name": "Sunset Riders",
+      "url": "https://www.retrogames.cc/embed/16748-sunset-riders-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Konami's Wild West run-and-gun: two bounty hunters trade cover fire through saloons, trains and stampedes to claim the $50 million reward.",
+      "genre": "Shooting",
+      "rating": 4.6,
+      "playersOnline": 700,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Genesis",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1992-05-11",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16748-sunset-riders-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16748-sunset-riders-usa.html"
+      },
+      "art": {
+        "eyebrow": "BOUNTY CALL",
+        "accentStart": "#d97706",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "rg-24621-teenage-mutant-ninja-turtles-iv-turtles-in-time-usa",
+      "name": "Teenage Mutant Ninja Turtles IV: Turtles in Time",
+      "url": "https://www.retrogames.cc/embed/24621-teenage-mutant-ninja-turtles-iv-turtles-in-time-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Cowabunga! The four Turtles fight across time from the Big Apple to the Technodrome in the SNES's definitive two-player beat 'em up.",
+      "genre": "Action",
+      "rating": 4.8,
+      "playersOnline": 900,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1992-12-11",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24621-teenage-mutant-ninja-turtles-iv-turtles-in-time-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24621-teenage-mutant-ninja-turtles-iv-turtles-in-time-usa.html"
+      },
+      "art": {
+        "eyebrow": "SHELL SHOCKED",
+        "accentStart": "#16a34a",
+        "accentEnd": "#052e16"
+      }
+    },
+    {
+      "id": "rg-10722-wwf-wrestlefest-us-set-1",
+      "name": "WWF WrestleFest",
+      "url": "https://www.retrogames.cc/embed/10722-wwf-wrestlefest-us-set-1.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Tag-team arcade wrestling with Hulk Hogan and the Ultimate Warrior: two players, one ring, zero mercy. Pinfall or submission, winner takes the belt.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 600,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1991-04-15",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10722-wwf-wrestlefest-us-set-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10722-wwf-wrestlefest-us-set-1.html"
+      },
+      "art": {
+        "eyebrow": "SMACKDOWN",
+        "accentStart": "#dc2626",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "rg-16812-streets-of-rage-3-usa",
+      "name": "Streets of Rage 3",
+      "url": "https://www.retrogames.cc/embed/16812-streets-of-rage-3-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The brawler saga finale: new combo routes, branching missions, and brutal co-op beatdowns as the street squad shuts down Mr. X's syndicate for good.",
+      "genre": "Action",
+      "rating": 4.6,
+      "playersOnline": 750,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Genesis",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1994-03-18",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16812-streets-of-rage-3-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16812-streets-of-rage-3-usa.html"
+      },
+      "art": {
+        "eyebrow": "STAGE CLEARED",
+        "accentStart": "#8b5cf6",
+        "accentEnd": "#2e1065"
+      }
+    },
+    {
+      "id": "rg-10441-the-simpsons-4-players-world-set-1",
+      "name": "The Simpsons",
+      "url": "https://www.retrogames.cc/embed/10441-the-simpsons-4-players-world-set-1.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Bart, Homer, Marge and Lisa team up in the four-player arcade classic to rescue Maggie from Smithers - pizza-fueled brawling at its finest.",
+      "genre": "Action",
+      "rating": 4.7,
+      "playersOnline": 1100,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1991-03-04",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10441-the-simpsons-4-players-world-set-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10441-the-simpsons-4-players-world-set-1.html"
+      },
+      "art": {
+        "eyebrow": "FAMILY BONDING",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#713f12"
+      }
+    },
+    {
+      "id": "rg-22511-nhl-94-europe",
+      "name": "NHL '94",
+      "url": "https://www.retrogames.cc/embed/22511-nhl-94-europe.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The greatest hockey game ever made: one-timers, hip checks, and a two-player rivalry that outlived three console generations.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 2200,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1993-10-11",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22511-nhl-94-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22511-nhl-94-europe.html"
+      },
+      "art": {
+        "eyebrow": "ICETIME",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#075985"
+      }
+    },
+    {
+      "id": "chess-com-online",
+      "name": "Chess.com",
+      "url": "https://www.chess.com/play/online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The world's chess board: real-time matches, live rapid and blitz ladders, and rated duels against players from every time zone.",
+      "genre": "Strategy",
+      "rating": 4.9,
+      "playersOnline": 45000,
+      "availability": "Online",
+      "tags": [
+        "Strategy",
+        "Multiplayer",
+        "PvP",
+        "Board",
+        "Modern",
+        "Online"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "modern",
+        "trending"
+      ],
+      "releaseDate": "2007-05-17",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://www.chess.com/play/online"
+      },
+      "art": {
+        "eyebrow": "CHECKMATE",
+        "accentStart": "#e5e7eb",
+        "accentEnd": "#111827"
+      }
+    },
+    {
+      "id": "lichess-arena-online",
+      "name": "Lichess",
+      "url": "https://lichess.org/",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The free-to-play chess arena: pair into bullet, blitz or classical duels instantly, with puzzles, broadcasts, and zero ads.",
+      "genre": "Strategy",
+      "rating": 4.8,
+      "playersOnline": 18000,
+      "availability": "Online",
+      "tags": [
+        "Strategy",
+        "Multiplayer",
+        "PvP",
+        "Board",
+        "Modern",
+        "Online"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "modern"
+      ],
+      "releaseDate": "2010-05-20",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://lichess.org/"
+      },
+      "art": {
+        "eyebrow": "OPEN ARENA",
+        "accentStart": "#b45309",
+        "accentEnd": "#1c1917"
+      }
+    },
+    {
+      "id": "tetr-io-multiplayer",
+      "name": "TETR.IO",
+      "url": "https://tetr.io/",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Modern versus Tetris: fight live 1v1 duels and ranked 40-line sprints with clean stacking, spins, and combo tactics against real players.",
+      "genre": "Puzzle",
+      "rating": 4.8,
+      "playersOnline": 13500,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Modern",
+        "Online",
+        "Arcade"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "next-gen",
+        "trending"
+      ],
+      "releaseDate": "2019-06-15",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://tetr.io/"
+      },
+      "art": {
+        "eyebrow": "STACK & ATTACK",
+        "accentStart": "#22d3ee",
+        "accentEnd": "#0e7490"
+      }
+    },
+    {
+      "id": "pokemon-showdown-online",
+      "name": "Pokémon Showdown",
+      "url": "https://play.pokemonshowdown.com/",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Real-time Pokémon battles: build a team and duel live in OU, Ubers, or random battles against trainers from around the world.",
+      "genre": "Strategy",
+      "rating": 4.8,
+      "playersOnline": 16000,
+      "availability": "Online",
+      "tags": [
+        "Strategy",
+        "Multiplayer",
+        "PvP",
+        "RPG",
+        "Battle",
+        "Modern",
+        "Online"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "modern",
+        "staff-pick"
+      ],
+      "releaseDate": "2013-05-01",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://play.pokemonshowdown.com/"
+      },
+      "art": {
+        "eyebrow": "BATTLE READY",
+        "accentStart": "#ef4444",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "rg-43287-super-puzzle-fighter-ii-turbo",
+      "name": "Super Puzzle Fighter II Turbo",
+      "url": "https://www.retrogames.cc/embed/43287-super-puzzle-fighter-ii-turbo.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Capcom's answer to Tetris: the chibi Street Fighter cast drops gem pairs and launches counters in the definitive two-player versus puzzler.",
+      "genre": "Puzzle",
+      "rating": 4.8,
+      "playersOnline": 1100,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "PS1",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1996-11-01",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43287-super-puzzle-fighter-ii-turbo.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43287-super-puzzle-fighter-ii-turbo.html"
+      },
+      "art": {
+        "eyebrow": "GEM WAR",
+        "accentStart": "#f472b6",
+        "accentEnd": "#831843"
+      }
+    },
+    {
+      "id": "rg-23797-tetris-attack-usa-en-ja",
+      "name": "Tetris Attack",
+      "url": "https://www.retrogames.cc/embed/23797-tetris-attack-usa-en-ja.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The swap-and-match panel puzzle: chain combos faster than your rival and bury their board in garbage blocks in the SNES's sharpest versus puzzler.",
+      "genre": "Puzzle",
+      "rating": 4.7,
+      "playersOnline": 850,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1995-08-01",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23797-tetris-attack-usa-en-ja.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23797-tetris-attack-usa-en-ja.html"
+      },
+      "art": {
+        "eyebrow": "PANEL CHAIN",
+        "accentStart": "#34d399",
+        "accentEnd": "#064e3b"
+      }
+    },
+    {
+      "id": "rg-29696-puyo-puyo-2-japan",
+      "name": "Puyo Puyo 2",
+      "url": "https://www.retrogames.cc/embed/29696-puyo-puyo-2-japan.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Puyo Puyo Tsu, the competitive puzzler that defined the genre in Japan: chain huge pops to rain nuisance garbage on your rival and win the fever.",
+      "genre": "Puzzle",
+      "rating": 4.8,
+      "playersOnline": 950,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "Genesis",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1996-11-22",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/29696-puyo-puyo-2-japan.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/29696-puyo-puyo-2-japan.html"
+      },
+      "art": {
+        "eyebrow": "FEVER TIME",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#1e3a8a"
+      }
+    },
+    {
+      "id": "rg-24364-kirby-s-avalanche-usa",
+      "name": "Kirby's Avalanche",
+      "url": "https://www.retrogames.cc/embed/24364-kirby-s-avalanche-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Kirby's take on Puyo Puyo: out-chain King Dedede and the gang in a candy-colored versus puzzler that is still a perfect two-player rivalry.",
+      "genre": "Puzzle",
+      "rating": 4.6,
+      "playersOnline": 650,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1995-02-01",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24364-kirby-s-avalanche-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24364-kirby-s-avalanche-usa.html"
+      },
+      "art": {
+        "eyebrow": "AVALANCHE!",
+        "accentStart": "#fb7185",
+        "accentEnd": "#701a75"
+      }
+    },
+    {
+      "id": "rg-32790-perfect-dark-usa",
+      "name": "Perfect Dark",
+      "url": "https://www.retrogames.cc/embed/32790-perfect-dark-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Rare's sci-fi follow-up to GoldenEye: simulant AI bots, custom four-player combat, and gadget warfare in the N64's deepest deathmatch arena.",
+      "genre": "FPS",
+      "rating": 4.8,
+      "playersOnline": 2100,
+      "availability": "Online",
+      "tags": [
+        "FPS",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "2000-05-22",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32790-perfect-dark-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32790-perfect-dark-usa.html"
+      },
+      "art": {
+        "eyebrow": "SIMULANT OPS",
+        "accentStart": "#a21caf",
+        "accentEnd": "#4a044e"
+      }
+    },
+    {
+      "id": "rg-32807-conker-s-bad-fur-day-usa",
+      "name": "Conker's Bad Fur Day",
+      "url": "https://www.retrogames.cc/embed/32807-conker-s-bad-fur-day-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Rare's raunchy masterpiece: a full co-op campaign plus the legendary four-player multiplayer suites - from beach assault to the caveman shooter.",
+      "genre": "Platformer",
+      "rating": 4.8,
+      "playersOnline": 1300,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Multiplayer",
+        "Co-op",
+        "Party",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "2001-04-04",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32807-conker-s-bad-fur-day-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32807-conker-s-bad-fur-day-usa.html"
+      },
+      "art": {
+        "eyebrow": "MP SEXY",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "rg-32254-wwf-no-mercy-usa",
+      "name": "WWF No Mercy",
+      "url": "https://www.retrogames.cc/embed/32254-wwf-no-mercy-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The N64 wrestling standard: THQ's AKI engine with four-player mayhem, cage and ladder matches, and the rivalry system that made it a legend.",
+      "genre": "Sports",
+      "rating": 4.9,
+      "playersOnline": 1400,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "2000-11-17",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32254-wwf-no-mercy-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32254-wwf-no-mercy-usa.html"
+      },
+      "art": {
+        "eyebrow": "NO MERCY",
+        "accentStart": "#dc2626",
+        "accentEnd": "#450a0a"
+      }
+    },
+    {
+      "id": "rg-32121-star-fox-64-usa",
+      "name": "Star Fox 64",
+      "url": "https://www.retrogames.cc/embed/32121-star-fox-64-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Do a barrel roll: the rail-shooter classic with branching routes and a two-player versus mode where rival arwings duel over Corneria.",
+      "genre": "Shooting",
+      "rating": 4.8,
+      "playersOnline": 1700,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "solo"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1997-06-30",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32121-star-fox-64-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32121-star-fox-64-usa.html"
+      },
+      "art": {
+        "eyebrow": "LYLAT WARS",
+        "accentStart": "#818cf8",
+        "accentEnd": "#312e81"
+      }
+    },
+    {
+      "id": "rg-8504-final-fight-world-set-1",
+      "name": "Final Fight",
+      "url": "https://www.retrogames.cc/embed/8504-final-fight-world-set-1.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Capcom's arcade brawler that launched a genre: Haggar, Cody and Guy clear Metrocity's streets two players at a time against the Mad Gear gang.",
+      "genre": "Action",
+      "rating": 4.7,
+      "playersOnline": 780,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1989-12-14",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8504-final-fight-world-set-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8504-final-fight-world-set-1.html"
+      },
+      "art": {
+        "eyebrow": "METROCITY",
+        "accentStart": "#f87171",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "rg-8912-knights-of-the-round-911127-etc",
+      "name": "Knights of the Round",
+      "url": "https://www.retrogames.cc/embed/8912-knights-of-the-round-911127-etc.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Arthur, Lancelot and Percival in Capcom's medieval brawler: three-player co-op leveling, sword combos, and boss knights across five lands.",
+      "genre": "Action",
+      "rating": 4.6,
+      "playersOnline": 700,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1991-12-11",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/8912-knights-of-the-round-911127-etc.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/8912-knights-of-the-round-911127-etc.html"
+      },
+      "art": {
+        "eyebrow": "ROUND TABLE",
+        "accentStart": "#d4a373",
+        "accentEnd": "#44403c"
+      }
+    },
+    {
+      "id": "rg-7752-alien-vs-predator-940520-usa",
+      "name": "Alien vs Predator",
+      "url": "https://www.retrogames.cc/embed/7752-alien-vs-predator-940520-usa.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Capcom's peak two-player co-op brawler: marines, cyborgs and the predalien tear through hives with guns, claws and plasma flame.",
+      "genre": "Action",
+      "rating": 4.7,
+      "playersOnline": 820,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Co-op",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "solo",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1994-05-20",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/7752-alien-vs-predator-940520-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/7752-alien-vs-predator-940520-usa.html"
+      },
+      "art": {
+        "eyebrow": "XENO HUNT",
+        "accentStart": "#2dd4bf",
+        "accentEnd": "#134e4a"
+      }
+    },
+    {
+      "id": "rg-41954-king-of-fighters-98",
+      "name": "The King of Fighters '98",
+      "url": "https://www.retrogames.cc/embed/41954-king-of-fighters-98.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "The Dream Match that fighting fans call the series peak: 38 characters, 3-on-3 team battles, and razor-sharp rival duels on the Neo Geo engine.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 2400,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "PS1",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel",
+        "team"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1998-07-23",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41954-king-of-fighters-98.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41954-king-of-fighters-98.html"
+      },
+      "art": {
+        "eyebrow": "DREAM MATCH",
+        "accentStart": "#f43f5e",
+        "accentEnd": "#881337"
+      }
+    },
+    {
+      "id": "rg-9729-samurai-shodown-ii-shin-samurai-spirits-haohmaru-jigokuhen-ngm-063-ngh-063",
+      "name": "Samurai Shodown II",
+      "url": "https://www.retrogames.cc/embed/9729-samurai-shodown-ii-shin-samurai-spirits-haohmaru-jigokuhen-ngm-063-ngh-063.html",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "SNK's weapon-based fighter at its peak: one hit can end a round, dismemberment combos end in dramatic poses, and every duel feels like a standoff.",
+      "genre": "Fighting",
+      "rating": 4.8,
+      "playersOnline": 1600,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Multiplayer",
+        "PvP",
+        "Retro",
+        "Arcade",
+        "Classic"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "releaseDate": "1994-10-28",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/9729-samurai-shodown-ii-shin-samurai-spirits-haohmaru-jigokuhen-ngm-063-ngh-063.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/9729-samurai-shodown-ii-shin-samurai-spirits-haohmaru-jigokuhen-ngm-063-ngh-063.html"
+      },
+      "art": {
+        "eyebrow": "HAOHMARU",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#713f12"
+      }
+    },
+    {
+      "id": "miniclip-8-ball-pool-multiplayer",
+      "name": "8 Ball Pool",
+      "url": "https://www.miniclip.com/games/8-ball-pool-multiplayer/en/",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Miniclip's billion-player billiards arena: quick-play cue-offs, ranked 1v1, and tournament tables where bank shots decide who walks with the coins.",
+      "genre": "Sports",
+      "rating": 4.6,
+      "playersOnline": 60000,
+      "availability": "Online",
+      "tags": [
+        "Sports",
+        "Multiplayer",
+        "PvP",
+        "Billiards",
+        "Modern",
+        "Online"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "modern",
+        "trending"
+      ],
+      "releaseDate": "2016-04-15",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://www.miniclip.com/games/8-ball-pool-multiplayer/en/"
+      },
+      "art": {
+        "eyebrow": "BREAK & BANK",
+        "accentStart": "#4ade80",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "geoguessr-online-duels",
+      "name": "GeoGuessr",
+      "url": "https://www.geoguessr.com/",
+      "image": "assets/hub/home-backdrop-command.png",
+      "description": "Drop anywhere on Earth and race your rival to pin the location: back-to-back duels, country streaks, and a worldwide leaderboard of armchair cartographers.",
+      "genre": "Puzzle",
+      "rating": 4.7,
+      "playersOnline": 28000,
+      "availability": "Online",
+      "tags": [
+        "Puzzle",
+        "Multiplayer",
+        "PvP",
+        "Geography",
+        "Modern",
+        "Online"
+      ],
+      "multiplayerType": "Server",
+      "modes": [
+        "duel"
+      ],
+      "badgeIds": [
+        "modern",
+        "staff-pick"
+      ],
+      "releaseDate": "2013-05-10",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "approvedExternalUrl": "https://www.geoguessr.com/"
+      },
+      "art": {
+        "eyebrow": "PIN THE GLOBE",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1e3a8a"
+      }
     }
-  ],
+ ],
   "recommendationRails": [
     {
       "id": "rail-neo-zone",

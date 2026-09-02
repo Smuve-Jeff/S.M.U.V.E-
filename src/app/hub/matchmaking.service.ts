@@ -1085,9 +1085,12 @@ export class MatchmakingService implements OnDestroy {
    * not loaded (and never resurrects retired titles like '1v1-lol-elite').
    */
   private readonly FALLBACK_MULTIPLAYER_GAME_IDS = [
-    'shell-shockers-elite',
-    'bullet-force-elite',
-    'basketball-stars-elite',
+    // Live-catalog ids only — earlier lists referenced retired titles
+    // ('1v1-lol-elite', 'shell-shockers-elite', 'bullet-force-elite',
+    // 'basketball-stars-elite') that do not exist in the feed.
+    'shell-shockers-web-elite',
+    'ev-io-web-elite',
+    'zombsroyale-io-multiplayer',
   ] as const;
 
   /** Multiplayer titles currently in the live catalog (sync cache). */
