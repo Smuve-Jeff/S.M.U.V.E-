@@ -267,3 +267,12 @@
     animation: none;
   }
 }
+
+/* Captured scenes get a faint green tint so empty vs launchable is obvious. */
+.clip-cell-v42.has-content:not(.active) {
+  border-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+.clip-cell-v42.has-content:not(.active):hover {
+  border-color: rgba(34, 197, 94, 0.55) !important;
+}

@@ -534,3 +534,22 @@
     transform: none !important;
   }
 }
+
+/* Live lane: playhead cell glows amber so it stays visible over lit cells */
+.current-step {
+  box-shadow:
+    0 0 0 1px var(--neon-amber, #fbbf24),
+    0 0 10px rgba(234, 179, 8, 0.55);
+  z-index: 1;
+}
+
+/* Bar window pager */
+.bar-active {
+  background: rgba(14, 124, 123, 0.55) !important;
+  color: #fff;
+}
+
+button[disabled] {
+  opacity: 0.25;
+  pointer-events: none;
+}

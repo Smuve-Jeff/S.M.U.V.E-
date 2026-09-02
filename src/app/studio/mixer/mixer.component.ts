@@ -429,6 +429,17 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.haptic.light();
     this.musicManager.togglePhase(id);
   }
+  /**
+   * True when this track is armed for recording. Single source of truth is
+   * RecordingStatusService.armedTrackIds — the same set that drives the
+   * record-source flows and the R-button visuals — NOT a per-track field
+   * (TrackModel has no `armed` member; keeping a parallel flag on the track
+   * object let the R button and the actual armed state fall out of sync).
+   */
+  isArmed(id: string): boolean {
+    return this.recordingStatus.isTrackArmed(id);
+  }
+
   toggleArmTrack(id: string): void {
     this.haptic.medium();
     const track = this.tracks().find((t) => t.id === id);
@@ -445,9 +456,6 @@ export class MixerComponent implements OnInit, OnDestroy {
         });
       }
     }
-    this.musicManager.tracks.update((ts) =>
-      ts.map((t) => (t.id === id ? { ...t, armed: !(t as any).armed } : t))
-    );
   }
   removeTrack(id: string, event: Event): void {
     event.stopPropagation();
@@ -476,21 +484,52 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   // ── Pro: Sidechain routing ─────────────────────────────────
+  /**
+   * The sidechain chip used to be cosmetic: it toggled a local UI map while
+   * the engine's real compressor routing (`connectSidechain` /
+   * `disconnectSidechain` — worklet ducking of `target` by `trigger`) was
+   * never called from anywhere in the app. Now every UI change drives the
+   * actual audio path, and the UI state IS the engine's routing state.
+   */
   toggleSidechain(trackId: string, sourceTrackId: string | null): void {
     this.haptic.medium();
-    this.sidechainMap.update((m) => {
-      const next = { ...m };
-      if (sourceTrackId === null || next[trackId] === sourceTrackId) {
-        delete next[trackId];
-        this.snack.info(`Sidechain on ${this.findTrackName(trackId)} cleared`);
-      } else {
-        next[trackId] = sourceTrackId;
-        this.snack.success(
-          `Sidechain: ${this.findTrackName(sourceTrackId)} → ${this.findTrackName(trackId)}`
-        );
+    const engine = (this.musicManager as any).engine ?? this.audioSession.engine;
+    const trigger = sourceTrackId;
+    if (trigger == null || trigger === '' || this.sidechainMap()[trackId] === trigger) {
+      const prev = this.sidechainMap()[trackId];
+      if (prev) {
+        try {
+          engine?.disconnectSidechain?.(prev, trackId);
+        } catch {
+          /* engine routing not available in lightweight test hosts */
+        }
       }
-      return next;
-    });
+      this.sidechainMap.update((m) => {
+        const next = { ...m };
+        delete next[trackId];
+        return next;
+      });
+      this.snack.info(`Sidechain on ${this.findTrackName(trackId)} cleared`);
+      return;
+    }
+    // Routing a new (or different) trigger → target pair.
+    const prev = this.sidechainMap()[trackId];
+    if (prev && prev !== trigger) {
+      try {
+        engine?.disconnectSidechain?.(prev, trackId);
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      engine?.connectSidechain?.(trigger, trackId);
+    } catch {
+      /* engine routing not available in lightweight test hosts */
+    }
+    this.sidechainMap.update((m) => ({ ...m, [trackId]: trigger }));
+    this.snack.success(
+      `Sidechain: ${this.findTrackName(trigger)} → ${this.findTrackName(trackId)}`
+    );
   }
   hasSidechain(trackId: string): boolean {
     return !!this.sidechainMap()[trackId];

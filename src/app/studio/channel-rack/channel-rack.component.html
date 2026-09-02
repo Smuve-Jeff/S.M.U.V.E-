@@ -21,7 +21,7 @@
       class="channel-item glass-v42 flex items-center p-3 gap-3 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group relative overflow-hidden"
       [class.selected]="selectedTrackId() === track.id"
       (click)="selectTrack(track)"
-      (drop)="onDrop($event, track)"
+      (drop)="onDrop($event)"
       (dragover)="onDragOver($event)"
     >
       <div
@@ -153,37 +153,78 @@
           <span class="material-symbols-outlined text-[12px]">delete</span>
         </button>
       </div>
-      <!-- Step Sequencer (Professional FL-Style) -->
+
+      <!-- Live 16-step lane — audible pattern editing per 16-step bar window -->
       <div
-        class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
+        class="flex flex-col items-end gap-1"
         *ngIf="track.type === 'midi'"
         [attr.aria-label]="track.name + ' step sequencer'"
-        role="group"
       >
+        <!-- Bar window pager -->
+        <div class="flex items-center gap-1" role="group" aria-label="Pattern bar">
+          <button
+            type="button"
+            (click)="nudgeBar(-1); $event.stopPropagation()"
+            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[9px] leading-none"
+            [attr.aria-label]="'Previous bar'"
+            [disabled]="stepWindowBar() === 0"
+          >‹</button>
+          <button
+            type="button"
+            *ngFor="let bar of barLabels(track)"
+            (click)="setBar(track, bar); $event.stopPropagation()"
+            class="px-1 h-4 rounded text-[7px] font-black tracking-wider transition-all"
+            [class.bar-active]="stepWindowBar() === bar"
+            [attr.aria-label]="'Edit bar ' + (bar + 1)"
+            [attr.aria-pressed]="stepWindowBar() === bar"
+          >{{ bar + 1 }}</button>
+          <button
+            type="button"
+            (click)="nudgeBar(1); $event.stopPropagation()"
+            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[9px] leading-none"
+            [attr.aria-label]="'Next bar'"
+          >›</button>
+        </div>
+
         <div
-          *ngFor="let step of steps; let sIdx = index"
-          class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair"
-          [class.active]="track.steps[sIdx]"
-          [class.current-step]="currentStep() === sIdx"
-          [style.background-color]="
-            track.steps[sIdx]
-              ? track.color
-              : sIdx % 8 < 4
-                ? 'rgba(255,255,255,0.06)'
-                : 'rgba(255,255,255,0.02)'
-          "
-          (click)="toggleStep(track, sIdx); $event.stopPropagation()"
-          (keydown.enter)="toggleStep(track, sIdx); $event.stopPropagation()"
-          (keydown.space)="$event.preventDefault(); toggleStep(track, sIdx); $event.stopPropagation()"
-          tabindex="0"
-          role="button"
+          class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
+          role="group"
           [attr.aria-label]="
-            track.name + ' step ' + (sIdx + 1) + ' of ' + steps.length +
-            (track.steps[sIdx] ? ' · active' : ' · empty') +
-            (currentStep() === sIdx ? ' · currently playing' : '')
+            track.name + ' steps, bar ' + (stepWindowBar() + 1)
           "
-          [attr.aria-pressed]="track.steps[sIdx]"
-        ></div>
+        >
+          <div
+            *ngFor="let step of laneSteps; let sIdx = index"
+            class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair"
+            [class.active]="cellLit(track, sIdx)"
+            [class.current-step]="cellNow(sIdx)"
+            [style.background-color]="
+              cellLit(track, sIdx)
+                ? track.color
+                : sIdx % 8 < 4
+                  ? 'rgba(255,255,255,0.06)'
+                  : 'rgba(255,255,255,0.02)'
+            "
+            (click)="toggleStepCell(track, sIdx); $event.stopPropagation()"
+            (keydown.enter)="toggleStepCell(track, sIdx); $event.stopPropagation()"
+            (keydown.space)="
+              $event.preventDefault();
+              toggleStepCell(track, sIdx);
+              $event.stopPropagation()
+            "
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="
+              track.name +
+              ' step ' +
+              (stepWindowBar() * 16 + sIdx + 1) +
+              ' of pattern · ' +
+              (cellLit(track, sIdx) ? 'active' : 'empty') +
+              (cellNow(sIdx) ? ' · currently playing' : '')
+            "
+            [attr.aria-pressed]="cellLit(track, sIdx)"
+          ></div>
+        </div>
       </div>
     </div>
   </div>

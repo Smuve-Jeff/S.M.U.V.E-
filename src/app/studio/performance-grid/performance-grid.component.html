@@ -40,12 +40,14 @@
           </div>
         </div>
 
-        <!-- Scene Slots -->
+        <!-- Scene Slots: tap empty = capture · tap filled = launch ·
+             right-click filled = overwrite with the current pattern -->
         <button
           *ngFor="let row of rows"
           type="button"
           class="clip-cell-v42 tactile-v42 relative group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 transition-all duration-300 overflow-hidden"
           [class.active]="isActive(track, row)"
+          [class.has-content]="hasContent(track, row)"
           [style.border-color]="
             isActive(track, row) ? track.color : 'rgba(255,255,255,0.03)'
           "
@@ -53,11 +55,29 @@
             isActive(track, row) ? track.color + '15' : 'rgba(255,255,255,0.01)'
           "
           (click)="toggleClip(track.id, row)"
+          (contextmenu)="recaptureClip(track, row); $event.preventDefault()"
+          [attr.title]="
+            hasContent(track, row)
+              ? isActive(track, row)
+                ? 'Scene ' +
+                  (row + 1) +
+                  ' · playing — right-click to overwrite with the current pattern'
+                : 'Scene ' +
+                  (row + 1) +
+                  ' · tap to launch · right-click to overwrite'
+              : 'Scene ' +
+                (row + 1) +
+                ' · empty — tap to capture the current pattern'
+          "
         >
           <div
             class="clip-led-v42 absolute top-2 right-2 w-2 h-2 rounded-full border border-black/40 transition-all duration-500"
             [style.background-color]="
-              isActive(track, row) ? track.color : '#2a2a2a'
+              isActive(track, row)
+                ? track.color
+                : hasContent(track, row)
+                  ? '#22c55e'
+                  : '#2a2a2a'
             "
             [class.glowing]="isActive(track, row)"
           ></div>

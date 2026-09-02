@@ -14,9 +14,34 @@ export class SequencerService {
   public swingAmount = signal(0);
 
   constructor() {
+    // NOTE — deliberately NO hook here. MusicManagerService owns the engine's
+    // `onScheduleStep` scheduler (it registers in ITS constructor and drives
+    // playStep/currentStep). If this service auto-registered too, instantiation
+    // order would decide who wins and ALL playback could silently break.
+    // The hook is opt-in via activate() below so the swing/AI-drummer band
+    // logic only runs when a real consumer asks for it.
+  }
+
+  private active = false;
+
+  /**
+   * Opt in to engine step scheduling. Replaces the engine hook, so callers
+   * (a real sequencer UI, once wired) must stop the previous scheduler or
+   * accept that this service becomes the step driver (it calls
+   * musicManager.playStep itself, mirroring the music-manager scheduler).
+   * Guarded so double-activation never double-registers.
+   */
+  activate(): void {
+    if (this.active) return;
+    this.active = true;
     this.engine.onScheduleStep = (step, time, duration) => {
       this.tick(step, time, duration);
     };
+  }
+
+  /** Whether activate() has been called (for the existing unit specs). */
+  isActive(): boolean {
+    return this.active;
   }
 
   /**

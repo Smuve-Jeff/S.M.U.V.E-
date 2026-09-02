@@ -1246,6 +1246,10 @@ export class MusicManagerService {
   }
 
   setActivePatternSlot(trackId: string, slotId: string) {
+    // Snapshot the id BEFORE the command runs — the previous undo closure
+    // read it back post-update (always the new value), so undo was a no-op.
+    const previousSlotId = this.tracks().find((t) => t.id === trackId)
+      ?.activePatternSlotId ?? null;
     this.runCommand(
       'Switch Pattern Slot',
       () => {
@@ -1259,7 +1263,7 @@ export class MusicManagerService {
         this.tracks.update((ts) =>
           ts.map((t) =>
             t.id === trackId
-              ? { ...t, activePatternSlotId: t.activePatternSlotId }
+              ? { ...t, activePatternSlotId: previousSlotId }
               : t
           )
         );
@@ -1406,20 +1410,109 @@ export class MusicManagerService {
     );
   }
   recallPatternSlot(id: string, slotId: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== id) return t;
-        const slot = t.patternSlots?.find((s) => s.id === slotId);
-        if (!slot) return t;
-        // Restore the most recently saved version so new snapshots are recalled.
-        const version = slot.versions[slot.versions.length - 1];
-        return {
-          ...t,
-          steps: [...(version?.steps || t.steps)],
-          notes: this.clone(version?.notes || t.notes),
-          activePatternSlotId: slotId,
-        };
-      })
+    const before = this.tracks().find((t) => t.id === id);
+    const slot = before?.patternSlots?.find((s) => s.id === slotId);
+    // Nothing captured for this scene yet — nothing to recall.
+    if (!before || !slot || slot.versions.length === 0) return;
+    const notesBefore = this.clone(before.notes);
+    const stepsBefore = [...before.steps];
+    const activeBefore = before.activePatternSlotId;
+    this.runCommand(
+      'Recall Pattern',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== id) return t;
+            const current = t.patternSlots?.find((s) => s.id === slotId);
+            if (!current) return t;
+            // Restore the most recently saved version so new snapshots are recalled.
+            const version = current.versions[current.versions.length - 1];
+            return {
+              ...t,
+              steps: [...(version?.steps || t.steps)],
+              notes: this.clone(version?.notes || t.notes),
+              activePatternSlotId: slotId,
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  activePatternSlotId: activeBefore,
+                }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  /**
+   * Capture the track's CURRENT pattern (notes + steps) into a fixed-id
+   * pattern slot (e.g. the performance grid's `slot-<row>` scenes). History-
+   * wrapped so capture is undoable. Creates the slot when missing.
+   */
+  capturePatternSlot(trackId: string, slotId: string, name: string) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+    const notesBefore = this.clone(track.notes);
+    const stepsBefore = [...track.steps];
+    const activeBefore = track.activePatternSlotId;
+    const slotsBefore = this.clone(track.patternSlots || []);
+    this.runCommand(
+      'Capture Pattern',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const version: PatternVersion = {
+              id: 'v-' + Date.now(),
+              name,
+              steps: [...t.steps],
+              notes: this.clone(t.notes),
+            };
+            const slots = [...(t.patternSlots || [])];
+            const existingIdx = slots.findIndex((s) => s.id === slotId);
+            if (existingIdx >= 0) {
+              slots[existingIdx] = {
+                id: slotId,
+                name,
+                activeVersionId: version.id,
+                versions: [...slots[existingIdx].versions, version],
+              };
+            } else {
+              slots.push({
+                id: slotId,
+                name,
+                activeVersionId: version.id,
+                versions: [version],
+              });
+            }
+            return { ...t, patternSlots: slots, activePatternSlotId: slotId };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  patternSlots: this.clone(slotsBefore),
+                  activePatternSlotId: activeBefore,
+                }
+              : t
+          )
+        );
+      }
     );
   }
 

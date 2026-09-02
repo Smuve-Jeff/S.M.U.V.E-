@@ -361,12 +361,12 @@
           <button
             type="button"
             class="mix-msr-btn"
-            [class.on]="track.armed"
-            [class.record]="track.armed"
+            [class.on]="isArmed(track.id)"
+            [class.record]="isArmed(track.id)"
             (click)="toggleArmTrack(track.id); $event.stopPropagation()"
-            [attr.aria-pressed]="track.armed"
+            [attr.aria-pressed]="isArmed(track.id)"
             [attr.aria-label]="
-              (track.armed ? 'Disarm recording on ' : 'Arm recording on ') +
+              (isArmed(track.id) ? 'Disarm recording on ' : 'Arm recording on ') +
               track.name
             "
           >

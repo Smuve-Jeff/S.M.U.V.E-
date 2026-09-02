@@ -59,18 +59,56 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     return this.trackLevels()[id] || 0;
   }
 
+  private slotId(row: number): string {
+    return `slot-${row}`;
+  }
+
+  /** Latest captured notes for a scene (empty scene = never captured). */
+  hasContent(track: TrackModel, row: number): boolean {
+    const slot = track.patternSlots?.find((s) => s.id === this.slotId(row));
+    const version = slot?.versions[slot.versions.length - 1];
+    if (!version) return false;
+    return version.notes.length > 0 || version.steps.some(Boolean);
+  }
+
+  /**
+   * Scene trigger: empty scenes CAPTURE the track's current pattern,
+   * filled scenes LAUNCH their captured pattern. The header promise
+   * ("tap slot to trigger") now holds — notes/steps actually switch.
+   */
   toggleClip(trackId: string, clipIndex: number) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+    const slotId = this.slotId(clipIndex);
     this.haptic.light();
-    this.musicManager.setActivePatternSlot(trackId, `slot-${clipIndex}`);
+    if (this.hasContent(track, clipIndex)) {
+      this.musicManager.recallPatternSlot(trackId, slotId);
+    } else {
+      this.musicManager.capturePatternSlot(
+        trackId,
+        slotId,
+        `Scene ${clipIndex + 1}`
+      );
+    }
+  }
+
+  /** Right-click a filled scene to overwrite it with the current pattern. */
+  recaptureClip(track: TrackModel, clipIndex: number) {
+    this.haptic.medium();
+    this.musicManager.capturePatternSlot(
+      track.id,
+      this.slotId(clipIndex),
+      `Scene ${clipIndex + 1}`
+    );
   }
 
   isActive(track: TrackModel, row: number) {
-    return track.activePatternSlotId === `slot-${row}`;
+    return track.activePatternSlotId === this.slotId(row);
   }
 
   slotName(track: TrackModel, row: number) {
     return (
-      track.patternSlots?.find((slot) => slot.id === `slot-${row}`)?.name ||
+      track.patternSlots?.find((slot) => slot.id === this.slotId(row))?.name ||
       `Slot ${row + 1}`
     );
   }

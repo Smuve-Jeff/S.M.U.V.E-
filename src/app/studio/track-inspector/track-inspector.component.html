@@ -153,11 +153,19 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">
-          Auto Slice
+        <button
+          class="tactile-v42 py-2 text-[8px] font-black uppercase"
+          (click)="normalizeAudio()"
+          [class.on]="audioNormalized()"
+          [attr.aria-pressed]="audioNormalized()"
+        >
+          {{ audioNormalized() ? 'Normalized ✓' : 'Normalize' }}
         </button>
-        <button class="tactile-v42 py-2 text-[8px] font-black uppercase">
-          Normalize
+        <button
+          class="tactile-v42 py-2 text-[8px] font-black uppercase"
+          (click)="snack.info('Auto Slice: split on transients — coming to Audio Import')"
+        >
+          Auto Slice
         </button>
       </div>
 
@@ -166,9 +174,14 @@
           label="PITCH"
           [min]="-12"
           [max]="12"
-          [value]="getParam('pitch')"
-          (valueChange)="updateParam('pitch', $event)"
+          [value]="audioPitch()"
+          (valueChange)="setAudioPitch($event)"
         ></app-knob>
+        <div
+          class="text-[7px] font-mono text-espresso-muted uppercase tracking-widest mt-1"
+        >
+          {{ audioPitch() === 0 ? '±0 st' : (audioPitch() > 0 ? '+' : '') + audioPitch() + ' st' }}
+        </div>
       </div>
     </div>
   </div>

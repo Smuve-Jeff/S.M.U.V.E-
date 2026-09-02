@@ -40,6 +40,25 @@ describe('SequencerService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('does NOT hijack the engine scheduler on construction', () => {
+    // Regression: SequencerService used to overwrite engine.onScheduleStep in
+    // its constructor. MusicManagerService registers the real step scheduler
+    // the same way, so whichever service was instantiated last won and ALL
+    // playback could silently stop. The hook must stay dormant until
+    // activate() is explicitly called.
+    expect(engineMock.onScheduleStep).toBeUndefined();
+    expect(service.isActive()).toBe(false);
+  });
+
+  it('activate() registers the engine hook exactly once', () => {
+    service.activate();
+    expect(engineMock.onScheduleStep).toBeDefined();
+    const first = engineMock.onScheduleStep;
+    service.activate();
+    expect(engineMock.onScheduleStep).toBe(first);
+    expect(service.isActive()).toBe(true);
+  });
+
   describe('SequencerService advanced features', () => {
     it('supports scheduling', () => {
       service.scheduleTick(0, 10, 0.25);
