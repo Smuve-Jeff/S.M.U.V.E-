@@ -555,6 +555,12 @@ export const respondToChallenge = async (
   if (userId && challenge.toUserId !== userId) {
     throw new AppError(403, "Only the challenge recipient may respond");
   }
+  // A block placed AFTER the challenge was issued must still prevent the
+  // match from forming — otherwise blocking someone wouldn't stop them from
+  // accepting an old challenge and dragging both sides into a shared lobby.
+  if (await isEitherBlocked(challenge.fromUserId, challenge.toUserId)) {
+    throw new AppError(403, "Cannot respond to a challenge from a blocked user");
+  }
   challenge.status = status;
   challenge.respondedAt = new Date();
   await repo().challenges.save(challenge);

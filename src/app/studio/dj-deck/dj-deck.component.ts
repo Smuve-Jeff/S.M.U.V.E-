@@ -24,7 +24,6 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { DatabaseService } from '../../services/database.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import { PlayerService } from '../../services/player.service';
 import { AiService } from '../../services/ai.service';
 import { RecordingStatusService } from '../recording-status.service';
 import { SwipeContainerComponent } from '../shared/swipe-container/swipe-container.component';
@@ -221,7 +220,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private recordingStatus = inject(RecordingStatusService);
   private profileService = inject(UserProfileService);
   private databaseService = inject(DatabaseService);
-  public playerService = inject(PlayerService);
 
   pitchAPercentage = computed(
     () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`

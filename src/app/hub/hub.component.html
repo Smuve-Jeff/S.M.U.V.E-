@@ -1,4 +1,4 @@
-<div class="hub-command-center" [class.is-playing]="playerService.isPlaying()">
+<div class="hub-command-center">
   <div class="hub-orbit hub-orbit-one"></div>
   <div class="hub-orbit hub-orbit-two"></div>
   <div class="hub-noise"></div>
@@ -296,15 +296,6 @@
         <ng-template #emptyProjects>
           <div class="empty-projects"><span class="material-symbols-outlined">add_circle</span><p>Your first project becomes the first node in the session graph.</p><button type="button" class="mini-link" (click)="goToStudio()">Create in Studio <span class="material-symbols-outlined">arrow_forward</span></button></div>
         </ng-template>
-      </div>
-
-      <div class="hub-panel now-playing-panel">
-        <div class="section-heading compact-heading"><div><p class="hub-kicker">ON THE DECK</p><h2>Now spinning</h2></div><span class="live-chip"><span class="state-dot is-live"></span>{{ playerService.isPlaying() ? 'Playing' : 'Ready' }}</span></div>
-        <div class="now-playing-main">
-          <div class="record-art" [class.is-spinning]="playerService.isPlaying()"><span class="record-label">SM</span></div>
-          <div class="now-playing-copy"><strong>{{ playerService.currentTrack()?.title || 'No track loaded' }}</strong><span>{{ playerService.currentTrack()?.artist || 'Load a demo to start the signal' }}</span><div class="transport"><button type="button" (click)="playerService.previous()" aria-label="Previous track"><span class="material-symbols-outlined">skip_previous</span></button><button type="button" class="transport-main" (click)="playerService.togglePlay()" [attr.aria-label]="playerService.isPlaying() ? 'Pause track' : 'Play track'"><span class="material-symbols-outlined">{{ playerService.isPlaying() ? 'pause' : 'play_arrow' }}</span></button><button type="button" (click)="playerService.next()" aria-label="Next track"><span class="material-symbols-outlined">skip_next</span></button></div></div>
-        </div>
-        <div class="now-playing-wave"><span *ngFor="let bar of visualizerData().slice(0, 20); let i = index" [style.height.%]="bar" [style.animationDelay.ms]="i * 20"></span></div>
       </div>
 
       <div class="hub-panel signals-panel">

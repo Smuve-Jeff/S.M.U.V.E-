@@ -98,6 +98,7 @@ import {
   listBlockedUsers,
   listChallenges,
   listFriends,
+  respondToChallenge,
   listNotifications,
   listRoomMessages,
   markNotificationRead,
@@ -247,6 +248,22 @@ describe("challenge service", () => {
     await expect(
       createChallenge("u1", "Jeff", { toUserId: "u2", gameId: "pacman" }),
     ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it("rejects a response when a block was placed after the challenge", async () => {
+    // Challenge exists (u2 challenged u1), but u2 blocked u1 AFTER sending —
+    // the accept must not be able to drag both sides into a shared lobby.
+    repos.challenges.findOneBy.mockResolvedValue({
+      id: 42,
+      fromUserId: "u2",
+      toUserId: "u1",
+      gameId: "pacman",
+    });
+    setBlockRows([{ userId: "u2", blockedUserId: "u1" }]);
+    await expect(
+      respondToChallenge(42, "accepted", "u1"),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    expect(repos.challenges.save).not.toHaveBeenCalled();
   });
 });
 

@@ -1,6 +1,6 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { UIService } from './ui.service';
-import { PlayerService } from './player.service';
+import { DeckService } from './deck.service';
 import { AiService } from './ai.service';
 import { NotificationService } from './notification.service';
 import { MainViewMode } from './user-context.service';
@@ -83,7 +83,7 @@ const INTERACTION_TIPS: InteractionTip[] = [
 export class CommandPaletteService {
   executeCommandById(id: string) {}
   private uiService = inject(UIService);
-  private playerService = inject(PlayerService);
+  private deckService = inject(DeckService);
   private aiService = inject(AiService);
   private notificationService = inject(NotificationService);
   private orchestration = inject(StudioOrchestrationService);
@@ -131,7 +131,7 @@ export class CommandPaletteService {
         category: 'Playback',
         shortcut: 'Space',
         run: () => {
-          this.playerService.togglePlay();
+          this.deckService.togglePlay('A');
           this.notificationService.show('Playback Toggled', 'info', 1800);
         },
       },

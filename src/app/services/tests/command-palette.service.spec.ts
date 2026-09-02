@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { CommandPaletteService } from '../command-palette.service';
 import { UIService } from '../ui.service';
-import { PlayerService } from '../player.service';
+import { DeckService } from '../deck.service';
 import { AiService } from '../ai.service';
 import { NotificationService } from '../notification.service';
 import { StudioOrchestrationService } from '../studio-orchestration.service';
@@ -10,7 +10,7 @@ import { StudioOrchestrationService } from '../studio-orchestration.service';
 describe('CommandPaletteService', () => {
   let service: CommandPaletteService;
   let uiService: any;
-  let playerService: any;
+  let deckService: any;
   let aiService: any;
   let notificationService: any;
   let orchestrationService: any;
@@ -37,7 +37,7 @@ describe('CommandPaletteService', () => {
       toggleScanlines: jest.fn(),
       performanceMode: signal(false),
     };
-    playerService = {
+    deckService = {
       togglePlay: jest.fn(),
     };
     aiService = {
@@ -64,7 +64,7 @@ describe('CommandPaletteService', () => {
       providers: [
         CommandPaletteService,
         { provide: UIService, useValue: uiService },
-        { provide: PlayerService, useValue: playerService },
+        { provide: DeckService, useValue: deckService },
         { provide: AiService, useValue: aiService },
         { provide: NotificationService, useValue: notificationService },
         { provide: StudioOrchestrationService, useValue: orchestrationService },

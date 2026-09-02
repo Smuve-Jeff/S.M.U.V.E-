@@ -9,7 +9,6 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { DatabaseService } from '../../services/database.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
-import { PlayerService } from '../../services/player.service';
 import { initialDeckState } from '../../services/user-context.service';
 import { AiService } from '../../services/ai.service';
 import { DjMidiService } from '../../services/dj-midi.service';
@@ -182,7 +181,6 @@ describe('DjDeckComponent', () => {
             }),
           },
         },
-        { provide: PlayerService, useValue: {} },
         {
           provide: AiService,
           useValue: { isUnlocked: jest.fn().mockReturnValue(false) },

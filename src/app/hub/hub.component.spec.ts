@@ -221,8 +221,9 @@ describe('HubComponent', () => {
     expect(text).toContain('THE BOOTH');
     expect(text).toContain('SESSION GRAPH');
     expect(text).toContain('CLOUD VAULT');
-    expect(text).toContain('Now spinning');
+    expect(text).toContain('Signal desk');
     expect(text).toContain('Career trajectory');
+    expect(nativeElement.querySelector('.now-playing-panel')).toBeNull();
     expect(nativeElement.querySelectorAll('.explore-card').length).toBe(
       component.featureSpotlights.length
     );

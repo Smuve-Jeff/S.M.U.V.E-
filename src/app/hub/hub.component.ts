@@ -16,11 +16,8 @@ import { UserProfileService } from '../services/user-profile.service';
 import { DeckService } from '../services/deck.service';
 import { UIService } from '../services/ui.service';
 import { AiService } from '../services/ai.service';
-import { FileLoaderService } from '../services/file-loader.service';
-import { ExportService } from '../services/export.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { NotificationService } from '../services/notification.service';
-import { PlayerService } from '../services/player.service';
 import { MainViewMode } from '../services/user-context.service';
 import { OnboardingService, OnboardingStep } from '../services/onboarding.service';
 import { CloudSyncService } from '../services/cloud-sync.service';
@@ -61,8 +58,6 @@ interface HomeBackdropMedia {
 })
 export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   private router = inject(Router);
-  private fileLoader = inject(FileLoaderService);
-  private exportService = inject(ExportService);
   private notificationService = inject(NotificationService);
   private projectSubscription: Subscription | null = null;
   private pulseInterval: ReturnType<typeof setInterval> | null = null;
@@ -73,7 +68,6 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public profileService = inject(UserProfileService);
   public aiService = inject(AiService);
   public audioEngine = inject(AudioEngineService);
-  public playerService = inject(PlayerService);
   public onboarding = inject(OnboardingService);
   public securityService = inject(SecurityService);
   public cloudSyncService = inject(CloudSyncService);
@@ -386,23 +380,35 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private startVisualizer() {
     const update = () => {
-      if (this.playerService.isPlaying()) {
-        const analyser = this.audioEngine.getAnalyser();
+      const analyser = this.audioEngine.getAnalyser();
+      if (analyser) {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
-        const step = Math.max(1, Math.floor(bufferLength / 24));
-        const next = [];
-        for (let index = 0; index < 24; index++) {
-          let sum = 0;
-          for (let offset = 0; offset < step; offset++) {
-            sum += dataArray[index * step + offset] ?? 0;
-          }
-          next.push(Math.max(20, (sum / step / 255) * 100));
+        let peak = 0;
+        for (let index = 0; index < dataArray.length; index += 8) {
+          peak = Math.max(peak, dataArray[index] ?? 0);
         }
-        this.visualizerData.set(next);
+        if (peak > 0) {
+          const step = Math.max(1, Math.floor(bufferLength / 24));
+          const next: number[] = [];
+          for (let index = 0; index < 24; index++) {
+            let sum = 0;
+            for (let offset = 0; offset < step; offset++) {
+              sum += dataArray[index * step + offset] ?? 0;
+            }
+            next.push(Math.max(20, (sum / step / 255) * 100));
+          }
+          this.visualizerData.set(next);
+        } else {
+          this.visualizerData.update((values) =>
+            values.map((value) => Math.max(20, value * 0.95))
+          );
+        }
       } else {
-        this.visualizerData.update((values) => values.map((value) => Math.max(20, value * 0.95)));
+        this.visualizerData.update((values) =>
+          values.map((value) => Math.max(20, value * 0.95))
+        );
       }
       this.animFrame = requestAnimationFrame(update);
     };
@@ -505,9 +511,4 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     this.uiService.navigateToView('studio');
   }
 
-  exportCurrentTrack() {
-    void this.fileLoader;
-    void this.exportService;
-    this.playerService.loadExternalTrack();
-  }
 }
