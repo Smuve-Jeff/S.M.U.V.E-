@@ -196,6 +196,8 @@ export class MatchmakingService implements OnDestroy {
    */
   private pendingPartyJoin: string | null = null;
   private reconnectRetryTimer: any = null;
+  /** Guards the split-screen re-register after socket reconnects. */
+  private pendingSplitRejoin = false;
   /** Token the server rejected — prevents an immediate rebuild hot-loop. */
   private lastRejectedToken: string | null | undefined;
 
@@ -415,16 +417,26 @@ export class MatchmakingService implements OnDestroy {
     return session;
   }
 
-  /** Guest-side: enter a split-screen session after redeeming a token. */
-  joinSplitScreenLobby(lobbyId: string): SplitScreenSession | null {
-    const gameIdFromLobby = this.activeLobbies().find(
-      (l) => l.id === lobbyId
-    )?.gameId;
+  /**
+   * Guest-side: enter a split-screen session after redeeming a token.
+   * Split-screen lobby ids (`split_<ts>_<uid>`) are created by the HOST's
+   * device and never exist in the party-lobby registry, so the game must be
+   * passed in from the invite link; the old registry lookup always resolved
+   * to 'unknown'/'Lobby' for guests.
+   */
+  joinSplitScreenLobby(
+    lobbyId: string,
+    opts?: { gameId?: string; gameName?: string }
+  ): SplitScreenSession | null {
+    const gameId = opts?.gameId || '';
+    const gameName =
+      opts?.gameName ||
+      this.gameService.getGameById(gameId)?.name ||
+      (gameId ? gameId : 'Lobby');
     const session: SplitScreenSession = {
       id: lobbyId,
-      gameId: gameIdFromLobby ?? 'unknown',
-      gameName: this.gameService.getGameById(gameIdFromLobby ?? '')?.name ||
-        (gameIdFromLobby ?? 'Lobby'),
+      gameId,
+      gameName,
       hostId: '',
       guestId: this.playerId(),
       role: 'guest',
@@ -503,6 +515,22 @@ export class MatchmakingService implements OnDestroy {
         },
       });
       this.socket?.emit('request_inbox_sync');
+      // Re-join a split-screen session that survived a socket reconnect:
+      // the server cleans the disconnected socket's slot, so re-registering
+      // (idempotent) re-fills it and re-broadcasts ready to the peer.
+      const pendingSplit = this.activeSplitLobby();
+      if (pendingSplit && !this.pendingSplitRejoin) {
+        this.pendingSplitRejoin = true;
+        this.socket?.emit('split_screen_register', {
+          lobbyId: pendingSplit.id,
+          role: pendingSplit.role,
+        });
+      }
+      if (pendingSplit) {
+        setTimeout(() => {
+          this.pendingSplitRejoin = false;
+        }, 4000);
+      }
     });
 
     sock.on('disconnect', (reason) => {
@@ -979,19 +1007,37 @@ export class MatchmakingService implements OnDestroy {
       (data: { lobbyId: string; hostId: string; guestId: string }) => {
         const cur = this.activeSplitLobby();
         if (!cur || cur.id !== data.lobbyId) return;
+        // The server broadcasts ready on EVERY register, including the
+        // host's own solo registration — only announce a peer when BOTH
+        // slots are actually filled, otherwise we'd toast "peer connected"
+        // before anyone joined.
+        const pairFull = !!(data.hostId && data.guestId);
         this.activeSplitLobby.update((slot) =>
           slot
             ? {
                 ...slot,
                 hostId: data.hostId,
                 guestId: data.guestId,
-                status: 'ready',
+                status: pairFull ? 'ready' : 'lobby',
               }
             : slot
         );
-        this.notify.show('SPLIT-SCREEN PEER CONNECTED', 'success');
+        if (pairFull) {
+          this.notify.show('SPLIT-SCREEN PEER CONNECTED', 'success');
+        }
       }
     );
+
+    // A third device tried to claim the occupied guest slot — keep it
+    // visible instead of silently rejecting the tap.
+    sock.on('split_screen_pair_full', (data: { lobbyId: string }) => {
+      const cur = this.activeSplitLobby();
+      if (!cur || cur.id !== data.lobbyId) return;
+      this.notify.show(
+        'SPLIT-SCREEN SESSION FULL — 2 DEVICES MAX',
+        'warning'
+      );
+    });
 
     sock.on(
       'split_screen_role_assigned',
@@ -1020,6 +1066,9 @@ export class MatchmakingService implements OnDestroy {
         const cur = this.activeSplitLobby();
         if (!cur || cur.id !== data.lobbyId) return;
         this.activeSplitLobby.set(null);
+        // Drop stale peer frames so a future session never flashes the
+        // previous peer's last snapshot before fresh data arrives.
+        this.latestSplitScreenSnapshots.set({});
         this.notify.show(
           data.reason === 'peer_disconnected'
             ? 'SPLIT-SCREEN PEER DISCONNECTED'

@@ -334,7 +334,18 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   // and cross-device pairing never actually converged.
   const splitScreenPeers = new Map<
     string,
-    { hostId: string; guestId: string }
+    {
+      hostId: string;
+      guestId: string;
+      /** Most recent relayed snapshot, replayed to a late-joining partner. */
+      lastSnapshot?: {
+        level?: string;
+        score?: number;
+        position?: { x: number; y: number };
+        turn?: 'host' | 'guest';
+        ts?: number;
+      } | null;
+    }
   >();
 
   const getSender = (socket: {
@@ -1487,6 +1498,19 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           hostId: pair.hostId,
           guestId: pair.guestId,
         });
+        // Late-join bootstrap: a freshly registered partner immediately
+        // receives the peer's most recent snapshot so their HUD is never
+        // blank until the next relay (which may be >1s away on the rate
+        // limiter). Also re-syncs a peer after a socket reconnect.
+        const partnerId =
+          effectiveRole === "host" ? pair.guestId : pair.hostId;
+        if (partnerId && pair.lastSnapshot) {
+          io.to(userId).emit("split_screen_snapshot", {
+            lobbyId,
+            fromUserId: partnerId,
+            snapshot: pair.lastSnapshot,
+          });
+        }
       },
     );
 
@@ -1512,15 +1536,20 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
         const pair = splitScreenPeers.get(lobbyId);
         if (!pair) return;
         if (pair.hostId !== userId && pair.guestId !== userId) return;
+        const relayed = {
+          ...snapshot,
+          ts: snapshot.ts ?? Date.now(),
+        };
+        // Cache BEFORE the partner check: a host playing solo has no partner
+        // to relay to, but their latest frame must still be kept so a
+        // late-joining guest is bootstrapped with it on registration.
+        pair.lastSnapshot = relayed;
         const partnerId = pair.hostId === userId ? pair.guestId : pair.hostId;
         if (!partnerId) return;
         io.to(partnerId).emit("split_screen_snapshot", {
           lobbyId,
           fromUserId: userId,
-          snapshot: {
-            ...snapshot,
-            ts: snapshot.ts ?? Date.now(),
-          },
+          snapshot: relayed,
         });
       },
     );

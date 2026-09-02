@@ -3222,7 +3222,6 @@
             [src]="currentSafeUrl()"
             #gameIframe
             class="game-frame"
-            [attr.sandbox]="getSandboxAttr(currentGame())"
             allowfullscreen
             title="{{ active.name }} game cabinet"
             (load)="onGameIframeLoad()"

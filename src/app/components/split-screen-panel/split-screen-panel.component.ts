@@ -3,14 +3,20 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   input,
   signal,
+  viewChild,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Game } from '../../hub/game';
-import { isOnlineMultiplayerGame } from '../../hub/game.service';
+import {
+  GameService,
+  canEmbedGameInline,
+} from '../../hub/game.service';
 import { MatchmakingService } from '../../hub/matchmaking.service';
 import { ShareableInviteService, InviteMode } from '../../services/shareable-invite.service';
 import { GamepadService } from '../../services/gamepad.service';
@@ -46,16 +52,41 @@ export class SplitScreenPanelComponent {
   gamepad = inject(GamepadService);
   haptic = inject(HapticService);
   notify = inject(NotificationService);
+  private gameSvc = inject(GameService);
   private sanitizer = inject(DomSanitizer);
 
-  /** Trusted iframe src for the current game (external game cabinets require
-   * explicit bypass because Angular drops unsafe URLs from the resource
-   * sanitizer by default). */
+  /**
+   * Trusted iframe src for the current game. Uses the same policy as the
+   * main launcher: external-only cabinets (and hosts that block framing) are
+   * NOT iframed here — the template shows an external-launch fallback
+   * instead of a dead blank frame. Local `/assets/` cabinets and verified
+   * embed hosts render normally.
+   */
   readonly trustedIframeUrl = computed<SafeResourceUrl | null>(() => {
     const g = this.game();
-    if (!g?.url) return null;
-    return this.sanitizer.bypassSecurityTrustResourceUrl(g.url);
+    if (!g || !canEmbedGameInline(g)) return null;
+    let url = g.launchConfig?.approvedEmbedUrl || g.url;
+    if (!url) return null;
+    if (url.startsWith('assets/')) url = '/' + url;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   });
+
+  /** True when a game is selected but can't stream inside the panel. */
+  readonly inlineUnavailable = computed(() => !!this.game() && !this.trustedIframeUrl());
+
+  /** External launch target for cabinets that can't render inline. */
+  readonly externalLaunchUrl = computed(() => {
+    const g = this.game();
+    if (!g) return '';
+    return g.launchConfig?.approvedExternalUrl || g.url || '';
+  });
+
+  openExternally(): void {
+    const url = this.externalLaunchUrl();
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    this.notify.show('OPENED IN A NEW TAB', 'info');
+  }
 
   // Local "I am playing" state — updated by the iframe postMessage events
   // the game launcher emits (and are also captured by the existing game
@@ -75,30 +106,44 @@ export class SplitScreenPanelComponent {
 
   readonly activeLobby = this.matchmaking.activeSplitLobby;
 
-  /** Latest peer snapshot keyed by their socketId. */
+  /**
+   * Latest peer snapshot. Stored snapshots are keyed by the SENDER's userId,
+   * so we look up the registered peer id first (host reads the guest's slot,
+   * guest reads the host's) and only fall back to "any" before roles settle.
+   */
   readonly peerSnapshot = computed(() => {
     const map = this.matchmaking.latestSplitScreenSnapshots();
-    return Object.values(map).find((s) => !!s) ?? null;
+    const lobby = this.matchmaking.activeSplitLobby();
+    const peerId = lobby
+      ? lobby.role === 'host'
+        ? lobby.guestId
+        : lobby.hostId
+      : '';
+    if (peerId && map[peerId]) return map[peerId];
+    return Object.values(map)[0] ?? null;
   });
 
-  /** Whether the iframe should follow the existing game launch pipeline. */
-  readonly iframeSandbox = computed(() => {
-    const g = this.game();
-    if (!g) {
-      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock';
-    }
-    return this.buildSandbox(g);
-  });
+  /** Reuses the launcher's sandbox/permissions builders (single source). */
+  readonly iframeSandbox = computed(() =>
+    this.gameSvc.buildIframeSandbox(this.game() ?? undefined)
+  );
 
-  readonly iframeAllow = computed(() => {
-    const g = this.game();
-    const base =
-      'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
-    if (!g) return base;
-    if (isOnlineMultiplayerGame(g)) {
-      return base + '; microphone; camera; display-capture';
-    }
-    return base;
+  readonly iframeAllow = computed(() =>
+    this.gameSvc.buildIframeAllowAttr(this.game() ?? undefined)
+  );
+
+  /**
+   * The sandbox and allow attributes cannot be template-bound in Angular 21
+   * (NG0910 security validation) — set them imperatively whenever the frame
+   * (re)mounts or the game changes.
+   */
+  private splitFrameEl = viewChild<ElementRef<HTMLIFrameElement>>('splitFrame');
+
+  private framePolicyEffect = effect(() => {
+    const el = this.splitFrameEl()?.nativeElement;
+    if (!el) return;
+    el.setAttribute('sandbox', this.iframeSandbox());
+    el.setAttribute('allow', this.iframeAllow());
   });
 
   constructor() {
@@ -114,14 +159,6 @@ export class SplitScreenPanelComponent {
         this.matchmaking.exitSplitScreen();
       }
     });
-  }
-
-  private buildSandbox(g: Game): string {
-    const tags = (g.tags || []).map((t) => t.toLowerCase());
-    if (tags.includes('internal')) {
-      return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads allow-same-origin';
-    }
-    return 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
   }
 
   get currentShareUrl(): string {

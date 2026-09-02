@@ -51,9 +51,8 @@
       <ng-container *ngIf="game() as g">
         <iframe
           *ngIf="trustedIframeUrl() as trustedUrl"
+          #splitFrame
           [src]="trustedUrl"
-          [attr.sandbox]="iframeSandbox()"
-          [attr.allow]="iframeAllow()"
           title="{{ g.name }} split-screen"
           loading="lazy"
           allowfullscreen
@@ -63,6 +62,25 @@
         <span class="material-symbols-outlined">sports_esports</span>
         <h3>NO CABINET LOADED</h3>
         <p>Pick a game from Tha Spot to enter split-screen mode.</p>
+      </div>
+
+      <!-- Host blocks inline streaming -> external launch fallback -->
+      <div *ngIf="inlineUnavailable()" class="split-external-block">
+        <span class="material-symbols-outlined">open_in_new</span>
+        <h3>EXTERNAL CABINET</h3>
+        <p>
+          This game's host blocks inline streaming, so it can't run inside
+          the split-screen panel. Open it in a new tab — the session and HUD
+          sync still work alongside it.
+        </p>
+        <button
+          type="button"
+          class="split-external-btn"
+          (click)="openExternally()"
+        >
+          <span class="material-symbols-outlined">launch</span>
+          OPEN EXTERNALLY
+        </button>
       </div>
 
       <!-- Local player HUD overlay -->

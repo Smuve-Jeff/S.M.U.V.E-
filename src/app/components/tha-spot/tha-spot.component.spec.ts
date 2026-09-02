@@ -4,7 +4,11 @@ import { ThaSpotComponent } from './tha-spot.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { SecurityService } from '../../services/security.service';
 import { UIService } from '../../services/ui.service';
-import { GameService } from '../../hub/game.service';
+import {
+  EMBED_BLOCKED_DOMAINS,
+  GameService,
+  TRUSTED_EMBED_DOMAINS,
+} from '../../hub/game.service';
 import { GamepadService } from '../../services/gamepad.service';
 import { SocialNetworkingService } from '../../services/social-networking.service';
 import { ChallengeInboxService } from '../../services/challenge-inbox.service';
@@ -31,6 +35,7 @@ describe('ThaSpotComponent', () => {
   let routeQueryParamMap: BehaviorSubject<ParamMap>;
   let socialServiceMock: any;
   let inboxServiceMock: any;
+  let fakeSocket: any;
   let matchmakingMock: any;
   let profileServiceMock: any;
 
@@ -89,8 +94,14 @@ describe('ThaSpotComponent', () => {
     };
     routerMock = { navigate: jest.fn() };
     routeQueryParamMap = new BehaviorSubject(convertToParamMap({}));
+    fakeSocket = {
+      on: jest.fn(),
+      off: jest.fn(),
+      emit: jest.fn(),
+    };
     socialServiceMock = {
       isIncognito: signal(false),
+      getSocket: jest.fn().mockReturnValue(fakeSocket),
       onlineUsers: signal([]),
       onlineInRoom: jest.fn(() => 0),
       messages: signal([]),
@@ -248,6 +259,68 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('gaming');
   });
 
+  it('surfaces live socket challenges on the in-hub accept banner', () => {
+    expect(fakeSocket.on).toHaveBeenCalledWith(
+      'incoming_challenge',
+      expect.any(Function)
+    );
+    const handler = fakeSocket.on.mock.calls.find(
+      (c: any[]) => c[0] === 'incoming_challenge'
+    )[1];
+    handler({
+      id: 42,
+      fromUserId: 'peer-1',
+      fromUserName: 'RIVAL ONE',
+      gameId: '1',
+      timestamp: 1000,
+    });
+    fixture.detectChanges();
+    expect(component.incomingChallenge()).toEqual({
+      id: 42,
+      fromUserId: 'peer-1',
+      fromUserName: 'RIVAL ONE',
+      gameId: '1',
+      timestamp: 1000,
+    });
+
+    component.acceptIncomingChallenge();
+    expect(inboxServiceMock.respondToChallenge).toHaveBeenCalledWith(
+      42,
+      'accepted'
+    );
+    expect(component.incomingChallenge()).toBeNull();
+  });
+
+  it('declines a live challenge off the in-hub banner', () => {
+    const handler = fakeSocket.on.mock.calls.find(
+      (c: any[]) => c[0] === 'incoming_challenge'
+    )[1];
+    handler({
+      id: 43,
+      fromUserId: 'peer-2',
+      gameId: '1',
+      timestamp: 2000,
+    });
+    fixture.detectChanges();
+    component.declineIncomingChallenge();
+    expect(inboxServiceMock.respondToChallenge).toHaveBeenCalledWith(
+      43,
+      'declined'
+    );
+    expect(component.incomingChallenge()).toBeNull();
+  });
+
+  it('detaches the challenge socket listener on destroy', () => {
+    const handler = fakeSocket.on.mock.calls.find(
+      (c: any[]) => c[0] === 'incoming_challenge'
+    )[1];
+    component.ngOnDestroy();
+    expect(fakeSocket.off).toHaveBeenCalledWith(
+      'incoming_challenge',
+      handler
+    );
+  });
+
   it('defaults to the full catalog (room all) on load', () => {
     expect(component.activeRoom()).toBe('all');
     expect(socialServiceMock.joinRoom).toHaveBeenCalledWith('all');
@@ -342,6 +415,22 @@ describe('ThaSpotComponent', () => {
       42,
       'accepted'
     );
+  });
+
+  it('keeps launcher embed allowlists aligned with the canonical service lists', () => {
+    // The component's private statics are the runtime launcher policy; the
+    // service exports drive the split-screen panel. If they drift, one
+    // surface will iframe a cabinet the other refuses (or vice versa).
+    const c = ThaSpotComponent as unknown as {
+      TRUSTED_EMBED_DOMAINS: readonly string[];
+      EMBED_BLOCKED_DOMAINS: readonly string[];
+    };
+    expect([...c.TRUSTED_EMBED_DOMAINS]).toEqual([...TRUSTED_EMBED_DOMAINS]);
+    // Blocked list is a strict subset of the service's canonical blockers,
+    // which additionally covers the modern AAA/external sites.
+    for (const d of c.EMBED_BLOCKED_DOMAINS) {
+      expect(EMBED_BLOCKED_DOMAINS).toContain(d);
+    }
   });
 
   it('carries the active split-screen lobby id into split-screen share links', async () => {

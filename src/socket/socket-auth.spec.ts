@@ -578,6 +578,59 @@ describe("socket.io handshake + JWT auth", () => {
     );
   });
 
+  it("bootstraps a late-joining split-screen guest with the cached peer snapshot", (done) => {
+    const tokenHost = jwt.sign({ userId: 221, role: "user" }, process.env.JWT_SECRET!);
+    const tokenGuest = jwt.sign({ userId: 222, role: "user" }, process.env.JWT_SECRET!);
+    const host = ioClient(url(), { auth: { token: tokenHost }, transports: ["websocket"] });
+    const guest = ioClient(url(), { auth: { token: tokenGuest }, transports: ["websocket"] });
+    let settled = false;
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      host.close();
+      guest.close();
+      done(err);
+    };
+    const timer = setTimeout(
+      () => finish(new Error("split-screen late-join bootstrap test timed out")),
+      8000,
+    );
+    host.on("connect", () => {
+      setTimeout(() => {
+        host.emit("split_screen_register", { lobbyId: "split-latejoin", role: "host" });
+      }, 100);
+    });
+    host.on("split_screen_role_assigned", () => {
+      // Host plays solo BEFORE any guest exists: the server must cache this
+      // frame and replay it to the guest as soon as they register.
+      host.emit("split_screen_sync", {
+        lobbyId: "split-latejoin",
+        snapshot: { level: "LV_03", score: 42, turn: "host", ts: Date.now() },
+      });
+      setTimeout(() => {
+        guest.emit("split_screen_register", { lobbyId: "split-latejoin", role: "guest" });
+      }, 250);
+    });
+    guest.on(
+      "split_screen_snapshot",
+      (data: {
+        fromUserId: string;
+        lobbyId: string;
+        snapshot: { score?: number; level?: string };
+      }) => {
+        try {
+          expect(data.lobbyId).toBe("split-latejoin");
+          expect(data.fromUserId).toBe("221");
+          expect(data.snapshot.score).toBe(42);
+          expect(data.snapshot.level).toBe("LV_03");
+          finish();
+        } catch (e) {
+          finish(e as Error);
+        }
+      },
+    );
+  });
+
   it("rate-limits typing so bursts are dropped", (done) => {
     const tokenA = jwt.sign({ userId: 121, role: "user" }, process.env.JWT_SECRET!);
     const tokenB = jwt.sign({ userId: 122, role: "user" }, process.env.JWT_SECRET!);

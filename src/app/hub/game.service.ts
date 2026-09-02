@@ -22,7 +22,7 @@ const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
  * an interstitial that cannot boot as a game cabinet. Keep this policy shared
  * with the component so normalization and the launch UI make the same choice.
  */
-const EMBED_BLOCKED_DOMAINS = [
+export const EMBED_BLOCKED_DOMAINS = [
   'gamepix.com',
   'krunker.io',
   'play2048.co',
@@ -198,6 +198,109 @@ export function isOnlineMultiplayerGame(
   return (game.tags ?? []).some((tag) =>
     ONLINE_MULTIPLAYER_TAGS.has(tag.trim().toLowerCase())
   );
+}
+
+/**
+ * Canonical hosts the cabinet iframe is allowed to render. Single source of
+ * truth shared by the Tha Spot launcher and the split-screen panel so the
+ * inline-vs-external policy can never drift between surfaces.
+ */
+export const TRUSTED_EMBED_DOMAINS: readonly string[] = [
+  'retrogames.cc',
+  'www.retrogames.cc',
+  'gamepix.com',
+  'embed.gamepix.com',
+  'www.gamepix.com',
+  '1v1.lol',
+  'www.1v1.lol',
+  'pluto.tv',
+  'play2048.co',
+  'hextris.github.io',
+  'slither.io',
+  'agar.io',
+  'diep.io',
+  'taming.io',
+  'zombsroyale.io',
+  'krunker.io',
+  'venge.io',
+  'slowroads.io',
+  'shellshock.io',
+  'www.shellshock.io',
+  // GitHub-repo mirror serving the Hextris game (original host is dead).
+  'raw.githack.com',
+  'ev.io',
+  'www.ev.io',
+  'classic.minecraft.net',
+  'princejs.com',
+  'www.princejs.com',
+  'moba.js.org',
+  'www.roblox.com',
+  'playvalorant.com',
+  'www.crazygames.com',
+  'games.crazygames.com',
+  'crazygames.com',
+  'poki.com',
+  'www.poki.com',
+  'html5.gamedistribution.com',
+  'gamedistribution.com',
+  'www.gamedistribution.com',
+  'embed.gamedistribution.com',
+  'www.addictinggames.com',
+  'addictinggames.com',
+  'www.miniclip.com',
+  'miniclip.com',
+  'www.kongregate.com',
+  'kongregate.com',
+  'itch.io',
+  'www.itch.io',
+  'newgrounds.com',
+  'www.newgrounds.com',
+  'dos.zone',
+  'www.dos.zone',
+  'playclassic.games',
+  'www.playclassic.games',
+  'playretrogames.com',
+  'www.playretrogames.com',
+  'emulatorgames.net',
+  'www.emulatorgames.net',
+  'classicgame.com',
+  'www.classicgame.com',
+  'nytimes.com',
+  'www.nytimes.com',
+];
+
+/** Matches a host against a domain list (exact or subdomain). */
+function hostMatchesList(host: string, list: readonly string[]): boolean {
+  return list.some((d) => host === d || host.endsWith('.' + d));
+}
+
+/**
+ * Whether a game may actually render inside the app's sandboxed cabinet
+ * iframe. External-only configs, local paths (always inline), and hosts
+ * outside the trusted allowlist / on the frame-block list all fail this,
+ * so consumers never iframe a cabinet that will come up blank.
+ */
+export function canEmbedGameInline(
+  game?: Pick<Game, 'launchConfig' | 'url'> | null
+): boolean {
+  if (!game) return false;
+  if (game.launchConfig?.embedMode === 'external-only') return false;
+  const url = game.launchConfig?.approvedEmbedUrl || game.url || '';
+  if (!url) return false;
+  if (
+    url.startsWith('/') ||
+    url.startsWith('assets/') ||
+    url.startsWith('./')
+  ) {
+    return true;
+  }
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (hostMatchesList(host, EMBED_BLOCKED_DOMAINS)) return false;
+    return hostMatchesList(host, TRUSTED_EMBED_DOMAINS);
+  } catch {
+    return false;
+  }
 }
 
 /**

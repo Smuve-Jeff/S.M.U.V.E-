@@ -20,6 +20,10 @@ import {
   canonicalGenreFacet,
   isKnownEmbedBlockedUrl,
 } from '../../hub/game.service';
+import {
+  TRUSTED_EMBED_DOMAINS as CANONICAL_TRUSTED_EMBED_DOMAINS,
+  EMBED_BLOCKED_DOMAINS as CANONICAL_EMBED_BLOCKED_DOMAINS,
+} from '../../hub/game.service';
 import { Game } from '../../hub/game';
 import { GameSortMode } from '../../hub/game.service';
 import { RecommendationRail, LiveEvent } from '../../hub/game';
@@ -1162,153 +1166,6 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
         .join-live-overlay { animation: none !important; }
       }
 
-      /* ============================================================
-         THA SPOT — Pluto TV landing card (replaces broken iframe)
-         ============================================================ */
-      .pluto-landing-card {
-        max-width: 840px;
-        width: 100%;
-        margin: 2rem auto;
-        padding: 2.5rem 2rem;
-        border-radius: 20px;
-        border: 1px solid rgba(0, 229, 255, 0.25);
-        background: linear-gradient(135deg, rgba(15, 12, 36, 0.94), rgba(8, 24, 48, 0.9));
-        text-align: center;
-        animation: slideUp 0.45s ease-out;
-      }
-      .pluto-hero {
-        margin-bottom: 2rem;
-      }
-      .pluto-logo-glow {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 1.25rem;
-        border-radius: 24px;
-        background: linear-gradient(135deg, #ff6b35 0%, #ff2e63 50%, #8b5cf6 100%);
-        box-shadow: 0 0 48px rgba(255, 107, 53, 0.4), 0 0 96px rgba(139, 92, 246, 0.2);
-        animation: plutoGradientShift 3s ease-in-out infinite;
-      }
-      .pluto-title {
-        font-size: 2.4rem;
-        font-weight: 900;
-        letter-spacing: 0.05em;
-        color: #fff;
-        text-shadow: 0 2px 12px rgba(0, 229, 255, 0.4);
-        margin: 0 0 0.5rem;
-      }
-      .pluto-tagline {
-        font-size: 1rem;
-        font-weight: 600;
-        color: rgba(0, 229, 255, 0.85);
-        margin: 0 0 1.25rem;
-        letter-spacing: 0.02em;
-      }
-      .pluto-featured-channels {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-bottom: 1.5rem;
-      }
-      .pluto-channel-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.35rem 0.75rem;
-        border-radius: 999px;
-        background: rgba(0, 229, 255, 0.08);
-        border: 1px solid rgba(0, 229, 255, 0.2);
-        color: rgba(0, 229, 255, 0.9);
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-      }
-      .pluto-launch-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.85rem 2rem;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #ff6b35 0%, #ff2e63 100%);
-        color: #fff;
-        font-weight: 900;
-        font-size: 0.85rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 6px 24px rgba(255, 107, 53, 0.4);
-        transition: all 0.25s ease;
-      }
-      .pluto-launch-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 32px rgba(255, 107, 53, 0.6);
-      }
-      .pluto-disclaimer {
-        font-size: 0.65rem;
-        color: rgba(255, 255, 255, 0.35);
-        margin: 0.85rem 0 0;
-        letter-spacing: 0.02em;
-      }
-      .pluto-channel-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 0.6rem;
-        text-align: left;
-      }
-      .pluto-channel-card {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.55rem 0.75rem;
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        transition: all 0.2s ease;
-      }
-      .pluto-channel-card:hover {
-        background: rgba(0, 229, 255, 0.06);
-        border-color: rgba(0, 229, 255, 0.2);
-      }
-      .pluto-ch-icon {
-        font-size: 1.3rem;
-        flex-shrink: 0;
-      }
-      .pluto-ch-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.1rem;
-      }
-      .pluto-ch-name {
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: #f1f5f9;
-        letter-spacing: 0.02em;
-      }
-      .pluto-ch-category {
-        font-size: 0.6rem;
-        font-weight: 600;
-        color: rgba(0, 229, 255, 0.6);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
-      @keyframes plutoGradientShift {
-        0%, 100% { filter: hue-rotate(0deg); }
-        50% { filter: hue-rotate(20deg); }
-      }
-      @keyframes slideUp {
-        from { opacity: 0; transform: translateY(24px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @media (max-width: 768px) {
-        .pluto-landing-card { padding: 1.5rem 1rem; margin: 1rem; }
-        .pluto-title { font-size: 1.8rem; }
-        .pluto-channel-grid { grid-template-columns: repeat(2, 1fr); }
-        .pluto-channel-badge { font-size: 0.6rem; padding: 0.25rem 0.55rem; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .pluto-logo-glow, .pluto-landing-card { animation: none !important; }
-      }
       /* ── Live "typing" indicator for DMs ── */
       .typing-indicator {
         display: flex;
@@ -1623,6 +1480,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.removeGameFrameGuards();
     this.guardedGameFrame = iframe;
     iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+    // Angular 21 (NG0910) forbids template-binding the sandbox attribute
+    // on iframes — apply it imperatively alongside the allow attribute.
+    iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
     iframe.addEventListener('load', this.gameFrameLoadHandler);
     iframe.addEventListener('error', this.gameFrameErrorHandler);
   }
@@ -1677,6 +1537,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.gameLoadError.set(false);
     if (iframe) {
       iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+    // Angular 21 (NG0910) forbids template-binding the sandbox attribute
+    // on iframes — apply it imperatively alongside the allow attribute.
+    iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
     }
   }
 
@@ -1946,6 +1809,28 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     gameId: string;
     timestamp: number;
   } | null>(null);
+  /** Live challenge socket handle + handler (binds in ngOnInit). */
+  private challengeSocket?: {
+    on: (event: string, handler: (data: unknown) => void) => void;
+    off: (event: string, handler: (data: unknown) => void) => void;
+  };
+  private handleLiveIncomingChallenge = (raw: unknown): void => {
+    const sc = (raw || {}) as {
+      id?: number;
+      fromUserId?: string;
+      fromUserName?: string;
+      gameId?: string;
+      timestamp?: number;
+    };
+    if (!sc.gameId) return;
+    this.incomingChallenge.set({
+      id: typeof sc.id === 'number' ? sc.id : undefined,
+      fromUserId: sc.fromUserId || '',
+      fromUserName: sc.fromUserName || sc.fromUserId || 'A RIVAL',
+      gameId: sc.gameId,
+      timestamp: sc.timestamp || Date.now(),
+    });
+  };
 
   statusEffect = effect(() => {
     const inGame = this.inGame();
@@ -2053,6 +1938,10 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startLiveClock();
     this.startFeedRefresh();
     window.addEventListener('message', this.messageHandler);
+    // Real-time challenges from other users surface on the in-hub
+    // ACCEPT/DECLINE banner, not just the inbox toast.
+    this.challengeSocket = this.socialService.getSocket?.();
+    this.challengeSocket?.on('incoming_challenge', this.handleLiveIncomingChallenge);
     this.initParticleSystem();
     this.initCardObserver();
     this.startHeroBgRotation();
@@ -2221,6 +2110,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.heroBgInterval) clearInterval(this.heroBgInterval);
     this.cardObserver?.disconnect();
     window.removeEventListener('message', this.messageHandler);
+    this.challengeSocket?.off('incoming_challenge', this.handleLiveIncomingChallenge);
   }
 
   setMode(mode: 'gaming' | 'pluto'): void {
@@ -2231,22 +2121,6 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showIntelPanel.set(false);
     if (mode === 'pluto') this.closeGame();
   }
-
-  /** Pluto TV highlighted channel guide — shown on the landing card. */
-  readonly plutoHighlightChannels = [
-    { icon: '🎬', name: 'Pluto TV Movies', category: 'Movies' },
-    { icon: '📺', name: 'Pluto TV Drama', category: 'TV Series' },
-    { icon: '😂', name: 'Pluto TV Comedy', category: 'Comedy' },
-    { icon: '🔬', name: 'Pluto TV Science', category: 'Science' },
-    { icon: '🎮', name: 'Pluto TV Gamers', category: 'Gaming' },
-    { icon: '🎵', name: 'Pluto TV Music', category: 'Music' },
-    { icon: '📰', name: 'Pluto TV News', category: 'News' },
-    { icon: '👶', name: 'Pluto TV Kids', category: 'Kids' },
-    { icon: '🏈', name: 'Pluto TV Sports', category: 'Sports' },
-    { icon: '👻', name: 'Pluto TV Horror', category: 'Horror' },
-    { icon: '🌍', name: 'Pluto TV Adventure', category: 'Adventure' },
-    { icon: '🎤', name: 'Pluto TV Reality', category: 'Reality' },
-  ];
 
   logPlutoLaunch(): void {
     this.socialService.updateStatus({ activity: 'launched Pluto TV' });
@@ -2415,8 +2289,14 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       case 'split-screen': {
         const game = this.selectedGame();
         if (lobbyId) {
-          // Guest path: pair with the host's live lobby.
-          this.matchmaking.joinSplitScreenLobby(lobbyId);
+          // Guest path: pair with the host's live lobby. The game id comes
+          // from the invite link — split-screen session ids never exist in
+          // the party registry, so without it the guest session would
+          // resolve to an 'unknown' cabinet.
+          this.matchmaking.joinSplitScreenLobby(lobbyId, {
+            gameId: game?.id,
+            gameName: game?.name,
+          });
           this.splitScreenModeActive.set(true);
         } else if (game) {
           // No lobby shared — host a fresh session.
@@ -2495,6 +2375,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!game) {
       this.snackbarService.info('SELECT A GAME TO SHARE FIRST');
       return;
+    }
+    // Split-screen invites MUST reference a live session — if the host
+    // hasn't started one yet, spin it up so the shared link actually joins
+    // a room instead of silently making the recipient the host of a new one.
+    if (
+      mode === 'split-screen' &&
+      !this.matchmaking.activeSplitLobby() &&
+      !this.matchmaking.myLobby()
+    ) {
+      this.matchmaking.startSplitScreenLobby(game.id);
     }
     const intent = this.shareable.buildShareIntent({
       gameId: game.id,
@@ -3086,96 +2976,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * Internal /assets/ paths are always allowed (same-origin).
    * Subdomains are matched automatically.
    */
-  private static readonly TRUSTED_EMBED_DOMAINS: string[] = [
-    'retrogames.cc',
-    'www.retrogames.cc',
-    'gamepix.com',
-    'embed.gamepix.com',
-    'www.gamepix.com',
-    '1v1.lol',
-    'www.1v1.lol',
-    'pluto.tv',
-    'play2048.co',
-    'hextris.github.io',
-    'slither.io',
-    'agar.io',
-    'diep.io',
-    'taming.io',
-    'zombsroyale.io',
-    'krunker.io',
-    'venge.io',
-    'slowroads.io',
-    'shellshock.io',
-    'www.shellshock.io',
-    // GitHub-repo mirror serving the Hextris game (original host is dead).
-    'raw.githack.com',
-    'ev.io',
-    'www.ev.io',
-    'classic.minecraft.net',
-    'princejs.com',
-    'www.princejs.com',
-    'moba.js.org',
-    'www.roblox.com',
-    'playvalorant.com',
-    'www.crazygames.com',
-    'games.crazygames.com',
-    'crazygames.com',
-    'poki.com',
-    'www.poki.com',
-    'html5.gamedistribution.com',
-    'gamedistribution.com',
-    'www.addictinggames.com',
-    'addictinggames.com',
-    'www.miniclip.com',
-    'miniclip.com',
-    'www.kongregate.com',
-    'kongregate.com',
-    'itch.io',
-    'www.itch.io',
-    'newgrounds.com',
-    'www.newgrounds.com',
-    'dos.zone',
-    'www.dos.zone',
-    'embed.gamedistribution.com',
-    'html5.gamedistribution.com',
-    'gamedistribution.com',
-    'www.gamedistribution.com',
-    'playclassic.games',
-    'www.playclassic.games',
-    'playretrogames.com',
-    'www.playretrogames.com',
-    'emulatorgames.net',
-    'www.emulatorgames.net',
-    'classicgame.com',
-    'www.classicgame.com',
-    'nytimes.com',
-    'www.nytimes.com',
-  ];
+  private static readonly TRUSTED_EMBED_DOMAINS: readonly string[] =
+    CANONICAL_TRUSTED_EMBED_DOMAINS;
 
   /**
    * Domains known to block iframe embedding via X-Frame-Options / CSP.
    * These games are launched externally instead of in an iframe.
    */
-  private static readonly EMBED_BLOCKED_DOMAINS: string[] = [
-    // Gamepix /play/ pages send X-Frame-Options: SAMEORIGIN + CSP
-    // frame-ancestors 'self' — they cannot render inside the cabinet iframe.
-    'gamepix.com',
-    'www.gamepix.com',
-    'embed.gamepix.com',
-    // Verified X-Frame-Options / CSP frame blockers on their game pages.
-    'krunker.io',
-    'play2048.co',
-    'diep.io',
-    'slowroads.io',
-    '1v1.lol',
-    'www.1v1.lol',
-    'emulatorgames.net',
-    'www.emulatorgames.net',
-    'playretrogames.com',
-    'www.playretrogames.com',
-    'classicgame.com',
-    'www.classicgame.com',
-  ];
+  private static readonly EMBED_BLOCKED_DOMAINS: readonly string[] =
+    CANONICAL_EMBED_BLOCKED_DOMAINS;
 
   /**
    * Validate that a game URL points to a trusted embed host.
