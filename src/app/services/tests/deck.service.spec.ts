@@ -53,6 +53,8 @@ describe('DeckService', () => {
       setDeckEq: jest.fn(),
       setDeckFilter: jest.fn(),
       setDeckSend: jest.fn(),
+      setDeckAdvancedFx: jest.fn(),
+      resetDeckAdvancedFx: jest.fn(),
       setDeckGain: jest.fn(),
       setDeckStemGain: jest.fn(),
       seekDeck: jest.fn(),
@@ -279,5 +281,77 @@ describe('DeckService', () => {
     expect(service.hamster()).toBe(true);
     service.setHamster(false);
     expect(service.hamster()).toBe(false);
+  });
+
+  it('echo/chorus/phaser drive the engine FX bus and reset the previous mode', () => {
+    service.setFx('A', 'echo', 0.8);
+    expect(mockEngine.resetDeckAdvancedFx).toHaveBeenCalledWith('A');
+    expect(mockEngine.setDeckAdvancedFx).toHaveBeenCalledWith(
+      'A',
+      'delay',
+      0.8
+    );
+    expect(service.deckA().activeFx).toBe('echo');
+
+    service.setFx('A', 'chorus', 0.5);
+    expect(mockEngine.setDeckAdvancedFx).toHaveBeenLastCalledWith(
+      'A',
+      'flanger',
+      0.5
+    );
+
+    service.setFx('A', 'phaser', 0.2);
+    expect(mockEngine.setDeckAdvancedFx).toHaveBeenLastCalledWith(
+      'A',
+      'phaser',
+      0.2
+    );
+  });
+
+  it('autowah sweeps the deck filter and clamps the depth', () => {
+    service.setFx('A', 'autowah', 2);
+    // MIN_AUTOWAH_FREQUENCY(350) + clamped 1 * 5500
+    expect(mockEngine.setDeckFilter).toHaveBeenCalledWith('A', 350 + 5500);
+    expect(service.deckA().fxAmount).toBe(1);
+  });
+
+  it('damp applies an EQ profile and restores the base EQ when leaving', () => {
+    service.setDeckEq('A', 1, 1, 1);
+    service.setFx('A', 'damp', 1);
+    // DAMP at full depth: high = 0.2, mid = 0.65, low = 1.1
+    expect(mockEngine.setDeckEq).toHaveBeenLastCalledWith('A', 0.2, 0.65, 1.1);
+
+    mockEngine.setDeckEq.mockClear();
+    service.setFx('A', 'echo', 0.4);
+    expect(mockEngine.setDeckEq).toHaveBeenCalledWith('A', 1, 1, 1);
+  });
+
+  it('autowah restores the base filter frequency when leaving the mode', () => {
+    service.setDeckFilter('A', 8000);
+    service.setFx('A', 'autowah', 1);
+    expect(mockEngine.setDeckFilter).toHaveBeenLastCalledWith('A', 350 + 5500);
+
+    mockEngine.setDeckFilter.mockClear();
+    service.setFx('A', 'reverb', 0.3);
+    expect(mockEngine.setDeckFilter).toHaveBeenCalledWith('A', 8000);
+  });
+
+  it('reverb and rotate route through the send buses', () => {
+    service.setFx('A', 'reverb', 0.6);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0.6);
+
+    service.setFx('A', 'rotate', 0.4);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0.4);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'B', 0.6);
+  });
+
+  it('loadDeckBuffer stamps a track id so beat-loop presets can engage', () => {
+    const buffer = { duration: 120 } as AudioBuffer;
+    service.loadDeckBuffer('A', buffer, 'loop-me.wav');
+    expect(service.deckA().track.id).toMatch(/^deck-a-/);
+    expect(service.deckA().track.name).toBe('loop-me.wav');
+
+    service.loadDeckBuffer('B', buffer, 'loop-me-b.wav');
+    expect(service.deckB().track.id).toMatch(/^deck-b-/);
   });
 });

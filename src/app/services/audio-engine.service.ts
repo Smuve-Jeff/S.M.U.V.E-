@@ -108,6 +108,21 @@ interface DeckChannel {
   slipStartTime: number;
   slipStartOffset: number;
   hotCues: (number | null)[];
+  /** FX insert bus (echo/chorus/phaser) spliced between filter and pan. */
+  fxIn: GainNode;
+  fxDry: GainNode;
+  fxSum: GainNode;
+  fxDelay: DelayNode;
+  fxDelayFb: GainNode;
+  fxDelayWet: GainNode;
+  fxFlanger: DelayNode;
+  fxFlangerLfo: OscillatorNode;
+  fxFlangerDepth: GainNode;
+  fxFlangerWet: GainNode;
+  fxPhaser: BiquadFilterNode[];
+  fxPhaserLfo: OscillatorNode;
+  fxPhaserDepth: GainNode;
+  fxPhaserWet: GainNode;
 }
 
 @Injectable({
@@ -812,6 +827,29 @@ export class AudioEngineService {
       gains[s] = this.ctx.createGain();
       gains[s].gain.value = 1;
     });
+
+    // ── Deck FX insert bus ───────────────────────────────────────
+    // echo (delay + feedback), chorus (LFO-modulated flanger delay) and
+    // phaser (allpass cascade swept by an LFO) mix dry/wet into the deck
+    // signal between the filter and the panner. Wet gains start at 0 so
+    // the chain is silent until setAdvancedFX() drives it.
+    const fxIn = this.ctx.createGain();
+    const fxDry = this.ctx.createGain();
+    const fxSum = this.ctx.createGain();
+    const fxDelay = this.ctx.createDelay(1.0);
+    const fxDelayFb = this.ctx.createGain();
+    const fxDelayWet = this.ctx.createGain();
+    const fxFlanger = this.ctx.createDelay(0.02);
+    const fxFlangerLfo = this.ctx.createOscillator();
+    const fxFlangerDepth = this.ctx.createGain();
+    const fxFlangerWet = this.ctx.createGain();
+    const fxPhaser: BiquadFilterNode[] = Array.from({ length: 4 }, () =>
+      this.ctx.createBiquadFilter()
+    );
+    const fxPhaserLfo = this.ctx.createOscillator();
+    const fxPhaserDepth = this.ctx.createGain();
+    const fxPhaserWet = this.ctx.createGain();
+
     const deck: DeckChannel = {
       id,
       buffer: null,
@@ -844,6 +882,20 @@ export class AudioEngineService {
       slipStartOffset: 0,
       hotCues: new Array(8).fill(null),
       peaks: new Float32Array(0),
+      fxIn,
+      fxDry,
+      fxSum,
+      fxDelay,
+      fxDelayFb,
+      fxDelayWet,
+      fxFlanger,
+      fxFlangerLfo,
+      fxFlangerDepth,
+      fxFlangerWet,
+      fxPhaser,
+      fxPhaserLfo,
+      fxPhaserDepth,
+      fxPhaserWet,
     };
     deck.eqLow.type = 'lowshelf';
     deck.eqLow.frequency.value = 250;
@@ -854,14 +906,58 @@ export class AudioEngineService {
     deck.filter.type = 'lowpass';
     deck.filter.frequency.value = 20000;
 
+    fxIn.gain.value = 1;
+    fxDry.gain.value = 1;
+    fxSum.gain.value = 1;
+    fxDelay.delayTime.value = 0.35;
+    fxDelayFb.gain.value = 0.35;
+    fxDelayWet.gain.value = 0;
+    fxFlanger.delayTime.value = 0.004;
+    fxFlangerLfo.frequency.value = 0.25;
+    fxFlangerDepth.gain.value = 0.0015;
+    fxFlangerWet.gain.value = 0;
+    fxPhaser.forEach((f, i) => {
+      f.type = 'allpass';
+      f.frequency.value = 320 * Math.pow(2.2, i);
+      f.Q.value = 1.2;
+    });
+    fxPhaserLfo.frequency.value = 0.3;
+    fxPhaserDepth.gain.value = 720;
+    fxPhaserWet.gain.value = 0;
+
+    fxIn.connect(fxDry);
+    fxIn.connect(fxDelay);
+    fxDelay.connect(fxDelayFb);
+    fxDelayFb.connect(fxDelay);
+    fxDelay.connect(fxDelayWet);
+    fxDelayWet.connect(fxSum);
+    fxIn.connect(fxFlanger);
+    fxFlanger.connect(fxFlangerWet);
+    fxFlangerWet.connect(fxSum);
+    fxIn.connect(fxPhaser[0]);
+    fxPhaser[0].connect(fxPhaser[1]);
+    fxPhaser[1].connect(fxPhaser[2]);
+    fxPhaser[2].connect(fxPhaser[3]);
+    fxPhaser[3].connect(fxPhaserWet);
+    fxPhaserWet.connect(fxSum);
+    fxDry.connect(fxSum);
+    fxSum.connect(deck.pan);
+    fxFlangerLfo.connect(fxFlangerDepth);
+    fxFlangerDepth.connect(fxFlanger.delayTime);
+    fxPhaserLfo.connect(fxPhaserDepth);
+    fxPhaser.forEach((f) => fxPhaserDepth.connect(f.frequency));
+    fxFlangerLfo.start();
+    fxPhaserLfo.start();
+
     // ── Deck signal chain ───────────────────────────────────────
-    // Stems (sources) → per-stem gains → EQ → filter → pan → fader →
-    // analyser → master. Pre-fader taps feed the A/B send returns and the
-    // CUE (headphone) bus. Crossfader + hamster live on the fader gain.
+    // Stems (sources) → per-stem gains → EQ → filter → FX bus → pan →
+    // fader → analyser → master. Pre-fader taps feed the A/B send returns
+    // and the CUE (headphone) bus. Crossfader + hamster live on the fader
+    // gain.
     deck.eqLow.connect(deck.eqMid);
     deck.eqMid.connect(deck.eqHigh);
     deck.eqHigh.connect(deck.filter);
-    deck.filter.connect(deck.pan);
+    deck.filter.connect(fxIn); // (patched FX bus)
     deck.filter.connect(deck.sendA);
     deck.filter.connect(deck.sendB);
     deck.filter.connect(deck.cueGain);
@@ -874,6 +970,21 @@ export class AudioEngineService {
     deck.channelGain.connect(deck.gain);
     deck.gain.connect(deck.analyser);
     deck.analyser.connect(this.masterGain);
+
+    deck.fxIn = fxIn;
+    deck.fxDry = fxDry;
+    deck.fxSum = fxSum;
+    deck.fxDelay = fxDelay;
+    deck.fxDelayFb = fxDelayFb;
+    deck.fxDelayWet = fxDelayWet;
+    deck.fxFlanger = fxFlanger;
+    deck.fxFlangerLfo = fxFlangerLfo;
+    deck.fxFlangerDepth = fxFlangerDepth;
+    deck.fxFlangerWet = fxFlangerWet;
+    deck.fxPhaser = fxPhaser;
+    deck.fxPhaserLfo = fxPhaserLfo;
+    deck.fxPhaserDepth = fxPhaserDepth;
+    deck.fxPhaserWet = fxPhaserWet;
     return deck;
   }
 
@@ -896,7 +1007,7 @@ export class AudioEngineService {
   }
 
   /**
-   * Real deck playback. Creates per-stem AudioBufferSourceNodes (or a single
+   * Real deck playback. Creates per-stem AudioBufferSourceNodes (or a single TAP
    * full-mix source when no stems are loaded) and starts them from the deck's
    * current `pauseOffset`. Position is derived from `startTime` + wall-clock
    * elapsed so the UI can poll cheaply without extra scheduling state.
@@ -1106,7 +1217,7 @@ export class AudioEngineService {
    * seconds and keeps any running playback inside the region. Powers the
    * DJ booth's loop-length presets (1/8, 1/4, 1/2, 1, 2, 4, 8 beats).
    */
-  setDeckLoopRegion(id: DeckId, start: number, end: number): void {
+  setDeckLoopRegion(id: DeckId, start: number, end: number): void { // TAP
     const deck = this.getDeck(id);
     if (!deck || !deck.buffer) return;
     const dur = deck.buffer.duration;
@@ -1333,7 +1444,7 @@ export class AudioEngineService {
   }
 
   /** Precompute max-abs peak buckets for the booth waveform. */
-  private computeDeckPeaks(buffer: AudioBuffer, buckets = 2048): Float32Array {
+  private computeDeckPeaks(buffer: AudioBuffer, buckets = 2048): Float32Array { // TAP
     const peaks = new Float32Array(buckets);
     const ch0 = buffer.getChannelData(0);
     const ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
@@ -1351,8 +1462,119 @@ export class AudioEngineService {
     return peaks;
   }
 
+  /** Zero every deck FX wet bus (echo/chorus/phaser) at once. */
+  resetDeckAdvancedFx(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.fxDelayWet) return;
+    const now = this.ctx.currentTime;
+    deck.fxDelayWet.gain.setTargetAtTime(0, now, 0.01);
+    deck.fxFlangerWet.gain.setTargetAtTime(0, now, 0.01);
+    deck.fxPhaserWet.gain.setTargetAtTime(0, now, 0.01);
+  }
+
+  /**
+   * Drive the deck FX insert bus (supersedes the legacy `setAdvancedFX`
+   * stub, which never touched the audio graph). `type` selects delay
+   * (echo), flanger (chorus approximation) or phaser; every wet gain is
+   * zeroed first so a mode switch never stacks the previous effect.
+   * `amount` is a 0..1 depth mapped onto the selected wet bus.
+   */
+  setDeckAdvancedFx(id: DeckId, type: string, amount: number) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.fxDelayWet) return;
+    const wet = Number.isFinite(amount)
+      ? Math.max(0, Math.min(1, amount))
+      : 0;
+    const now = this.ctx.currentTime;
+    deck.fxDelayWet.gain.setTargetAtTime(0, now, 0.01);
+    deck.fxFlangerWet.gain.setTargetAtTime(0, now, 0.01);
+    deck.fxPhaserWet.gain.setTargetAtTime(0, now, 0.01);
+    if (type === 'delay' && wet > 0) {
+      deck.fxDelay.delayTime.setTargetAtTime(0.35, now, 0.02);
+      deck.fxDelayFb.gain.setTargetAtTime(0.35, now, 0.02);
+      deck.fxDelayWet.gain.setTargetAtTime(wet, now, 0.01);
+    } else if (type === 'flanger' && wet > 0) {
+      deck.fxFlangerWet.gain.setTargetAtTime(wet * 0.9, now, 0.01);
+    } else if (type === 'phaser' && wet > 0) {
+      deck.fxPhaserWet.gain.setTargetAtTime(wet, now, 0.01);
+    }
+  }
+
+  /**
+   * Install / remove a live WASM plugin insert on the master bus with a
+   * fixed splice point. The ScriptProcessor is spliced between the M/S
+   * width merger and the pre-master bus — NOT at masterGain — so the width
+   * network stays in the signal path and removal never leaves a bypass
+   * edge behind. Supersedes the legacy `installMasterPluginInsert`, which
+   * spliced at masterGain (bypassing the width stage) and re-connected a
+   * direct masterGain → pre-master edge on teardown.
+   */
+  installMasterPluginInsertAfterWidth(
+    pluginIds: string[],
+    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
+  ): void {
+    if (pluginIds.length === 0) {
+      // Restore the width-merger → pre-master edge + drop the insert.
+      // Only touch the graph when an insert was actually installed; the
+      // default path (merger → preMasterGain) is left untouched otherwise.
+      if (this.masterPluginInsert) {
+        try {
+          this.masterWidthMerger.disconnect(this.masterPluginInsert);
+        } catch { /* already disconnected */ }
+        try { this.masterPluginInsert.disconnect(); } catch { /* already disconnected */ }
+        this.masterPluginInsert = null;
+        this.masterWidthMerger.connect(this._preMasterGain);
+      }
+      this.masterPluginIds.set([]);
+      return;
+    }
+
+    if (this.masterPluginInsert) return; // already installed — toggle handled elsewhere
+
+    const sp = this.ctx.createScriptProcessor(512, 2, 2);
+    // If no closure was provided, the kernel pass-through is a no-op (the
+    // caller — Effects Rack UI / collab dispatch — supplies a real one).
+    const kernelProvider =
+      getKernels ?? ((ids: string[]) => ids.map(() => null));
+
+    sp.onaudioprocess = (e: AudioProcessingEvent) => {
+      const kernels = kernelProvider(pluginIds);
+      if (!kernels || kernels.length === 0) return;
+      const leftIn = e.inputBuffer.getChannelData(0);
+      const rightIn = e.inputBuffer.getChannelData(1);
+      const leftOut = e.outputBuffer.getChannelData(0);
+      const rightOut = e.outputBuffer.getChannelData(1);
+      const frames = new Float32Array(leftIn.length * 2);
+      const processed = new Float32Array(frames.length);
+      for (let i = 0; i < leftIn.length; i++) {
+        frames[i * 2] = leftIn[i];
+        frames[i * 2 + 1] = rightIn[i];
+      }
+      for (const kernel of kernels) {
+        if (!kernel) continue;
+        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
+        frames.set(processed);
+      }
+      for (let i = 0; i < leftOut.length; i++) {
+        leftOut[i] = frames[i * 2];
+        rightOut[i] = frames[i * 2 + 1];
+      }
+    };
+
+    // Splice the insert between the M/S width merger and the pre-master
+    // bus so the master-width network stays in the path (splicing at
+    // masterGain would bypass it and double-feed the pre-master bus).
+    try {
+      this.masterWidthMerger.disconnect(this._preMasterGain);
+    } catch { /* already disconnected */ }
+    this.masterWidthMerger.connect(sp);
+    sp.connect(this._preMasterGain);
+    this.masterPluginInsert = sp;
+    this.masterPluginIds.set([...pluginIds]);
+  }
+
   /** Build the mid/side width stage between masterGain and the pre-master bus. */
-  private wireMasterWidthNetwork(): void {
+  private wireMasterWidthNetwork(): void { // TAP
     this.masterWidthMid.gain.value = 0.5; // mid = (L+R)/2
     this.masterWidthSidePos.gain.value = 0.5; // +L/2
     this.masterWidthSideNeg.gain.value = -0.5; // -R/2
@@ -1395,7 +1617,7 @@ export class AudioEngineService {
     val: number,
     curve: CrossfaderCurve = 'power',
     hamster: boolean = false
-  ) {
+  ) { // TAP
     const gains = computeCrossfaderGains(val, curve, hamster);
     this.crossfaderValue = val;
     this.crossfaderHamster = hamster;
@@ -1418,7 +1640,7 @@ export class AudioEngineService {
    * Uses bandlimited wavetables for saw/square when antialias is enabled,
    * otherwise falls back to native oscillator types.
    */
-  private createAntialiasedOscillator(
+  private createAntialiasedOscillator( // TAP
     ctx: AudioContext,
     type: string,
     freq: number,
@@ -1455,7 +1677,7 @@ export class AudioEngineService {
   }
 
   triggerAttack(
-    trackId: string | number,
+    trackId: string | number, // TAP
     freq: number,
     time: number,
     velocity: number,

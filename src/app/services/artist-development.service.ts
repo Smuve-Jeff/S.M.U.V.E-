@@ -513,6 +513,13 @@ export class ArtistDevelopmentService {
       })
     );
     this.saveToStorage('smuve_catalog', this.catalog());
+    // Keep the open release panel in sync so stage chips reflect the update.
+    const selected = this.selectedRelease();
+    if (selected?.id === releaseId) {
+      this.selectedRelease.set(
+        this.catalog().find((r) => r.id === releaseId) || null
+      );
+    }
   }
 
   generateReleaseId(): string {

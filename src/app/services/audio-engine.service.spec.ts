@@ -589,4 +589,177 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect(ham.right).toBeCloseTo(normal.left);
     });
   });
+
+  // =====================================================================
+  // Deck FX insert bus (echo / chorus / phaser)
+  //
+  // Bare-instance pattern: seed only the per-deck wet/delay nodes the FX
+  // methods touch. The heavy constructor is never invoked.
+  // =====================================================================
+  describe('deck FX bus (setDeckAdvancedFx / resetDeckAdvancedFx)', () => {
+    let fxSvc: AudioEngineService;
+
+    function makeFxDeck() {
+      return {
+        fxDelayWet: { gain: { setTargetAtTime: jest.fn(), value: 0 } },
+        fxFlangerWet: { gain: { setTargetAtTime: jest.fn(), value: 0 } },
+        fxPhaserWet: { gain: { setTargetAtTime: jest.fn(), value: 0 } },
+        fxDelay: { delayTime: { setTargetAtTime: jest.fn() } },
+        fxDelayFb: { gain: { setTargetAtTime: jest.fn() } },
+      };
+    }
+
+    beforeEach(() => {
+      fxSvc = Object.create(
+        AudioEngineService.prototype
+      ) as AudioEngineService;
+      (fxSvc as any).ctx = { currentTime: 2 };
+      (fxSvc as any).deckA = makeFxDeck();
+      (fxSvc as any).deckB = makeFxDeck();
+    });
+
+    it('echo routes the amount onto the delay wet bus and zeroes the others', () => {
+      (fxSvc as any).setDeckAdvancedFx('A', 'delay', 0.7);
+      const deck = (fxSvc as any).deckA;
+      expect(deck.fxDelayWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0.7,
+        2,
+        0.01
+      );
+      expect(deck.fxFlangerWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+      expect(deck.fxPhaserWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+    });
+
+    it('chorus uses the flanger bus and phaser uses the phaser bus', () => {
+      (fxSvc as any).setDeckAdvancedFx('A', 'flanger', 0.5);
+      expect((fxSvc as any).deckA.fxFlangerWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0.45,
+        2,
+        0.01
+      );
+
+      (fxSvc as any).setDeckAdvancedFx('B', 'phaser', 0.9);
+      expect((fxSvc as any).deckB.fxPhaserWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0.9,
+        2,
+        0.01
+      );
+      expect((fxSvc as any).deckB.fxDelayWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+    });
+
+    it('zero amount keeps every wet bus at zero', () => {
+      (fxSvc as any).setDeckAdvancedFx('A', 'delay', 0);
+      const deck = (fxSvc as any).deckA;
+      expect(deck.fxDelayWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+    });
+
+    it('resetDeckAdvancedFx zeroes every wet bus at once', () => {
+      (fxSvc as any).setDeckAdvancedFx('A', 'delay', 0.8);
+      const deck = (fxSvc as any).deckA;
+      deck.fxDelayWet.gain.setTargetAtTime.mockClear();
+      (fxSvc as any).resetDeckAdvancedFx('A');
+      expect(deck.fxDelayWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+      expect(deck.fxFlangerWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+      expect(deck.fxPhaserWet.gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        2,
+        0.01
+      );
+    });
+
+    it('is a no-op when the deck has no FX chain (legacy stub safety)', () => {
+      (fxSvc as any).deckA = { buffer: null };
+      expect(() =>
+        (fxSvc as any).setDeckAdvancedFx('A', 'delay', 0.5)
+      ).not.toThrow();
+      expect(() => (fxSvc as any).resetDeckAdvancedFx('A')).not.toThrow();
+    });
+  });
+
+  // =====================================================================
+  // Master plugin insert — width-preserving splice point
+  // =====================================================================
+  describe('installMasterPluginInsertAfterWidth (fixed splice point)', () => {
+    it('splices the ScriptProcessor between the width merger and pre-master', () => {
+      const sp = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        onaudioprocess: null,
+      };
+      svc = makeBareEngine();
+      (svc as any).masterWidthMerger = {
+        disconnect: jest.fn(),
+        connect: jest.fn(),
+      };
+      (svc as any)._preMasterGain = { tag: 'preMaster' };
+      (svc as any).masterPluginInsert = null;
+      (svc as any).ctx = {
+        createScriptProcessor: jest.fn(() => sp),
+        sampleRate: 44100,
+      };
+
+      (svc as any).installMasterPluginInsertAfterWidth(
+        ['smuve.saturation.v2'],
+        () => null
+      );
+      expect((svc as any).masterWidthMerger.disconnect).toHaveBeenCalledWith(
+        (svc as any)._preMasterGain
+      );
+      expect((svc as any).masterWidthMerger.connect).toHaveBeenCalledWith(sp);
+      expect(sp.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
+      expect(svc.masterPluginIds()).toEqual(['smuve.saturation.v2']);
+      expect((svc as any).masterPluginInsert).toBe(sp);
+    });
+
+    it('removes the insert and restores merger → pre-master without touching an uninstalled graph', () => {
+      const sp = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        onaudioprocess: null,
+      };
+      svc = makeBareEngine();
+      const merger = { disconnect: jest.fn(), connect: jest.fn() };
+      (svc as any).masterWidthMerger = merger;
+      (svc as any)._preMasterGain = { tag: 'preMaster' };
+      (svc as any).masterPluginInsert = sp;
+      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
+
+      (svc as any).installMasterPluginInsertAfterWidth([]);
+      expect(sp.disconnect).toHaveBeenCalled();
+      expect(merger.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
+      expect((svc as any).masterPluginInsert).toBeNull();
+      expect(svc.masterPluginIds()).toEqual([]);
+
+      // Second empty call with no insert installed must not re-wire the graph.
+      merger.connect.mockClear();
+      merger.disconnect.mockClear();
+      (svc as any).installMasterPluginInsertAfterWidth([]);
+      expect(merger.connect).not.toHaveBeenCalled();
+      expect(merger.disconnect).not.toHaveBeenCalled();
+    });
+  });
 });

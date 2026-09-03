@@ -114,6 +114,14 @@
     <footer class="cart-foot">
       <span class="cart-line-grand">Total</span>
       <span class="cart-line-grand-value">{{ totalPrice() }}</span>
+      <button
+        type="button"
+        class="btn btn-primary cart-checkout"
+        [disabled]="checkoutBusy()"
+        (click)="checkoutCart()"
+      >
+        {{ checkoutBusy() ? 'Checking out…' : 'Checkout' }}
+      </button>
     </footer>
   </section>
 </div>

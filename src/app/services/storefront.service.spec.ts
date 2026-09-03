@@ -156,4 +156,54 @@ describe('StorefrontService · Sprint C2', () => {
         ?.expiresAt
     ).toBeUndefined();
   });
+
+  it('checkoutCart() purchases every line, grants ownership and empties the cart', async () => {
+    sut.addToCart('smuve.trap-essentials.v1', 1);
+    sut.addToCart('smuve.ai-mix-pack.v1', 1);
+    sut.addToCart('smuve.career-pro.v1', 1);
+
+    const result = await sut.checkoutCart();
+
+    expect(result.purchased).toBe(3);
+    expect(result.failed).toBeUndefined();
+    expect(sut.owned('smuve.trap-essentials.v1')).toBe(true);
+    expect(sut.owned('smuve.ai-mix-pack.v1')).toBe(true);
+    expect(sut.owned('smuve.career-pro.v1')).toBe(true);
+    expect(sut.cart().length).toBe(0);
+  });
+
+  it('checkoutCart() stops at the first failed line and keeps the rest queued', async () => {
+    billing.failOnToken = 'smuve.ai-mix-pack.v1';
+    sut.addToCart('smuve.trap-essentials.v1', 1);
+    sut.addToCart('smuve.ai-mix-pack.v1', 1);
+    sut.addToCart('smuve.dubstep-bass.v1', 1);
+
+    const result = await sut.checkoutCart();
+
+    expect(result.failed).toBe('smuve.ai-mix-pack.v1');
+    expect(result.purchased).toBe(1); // trap-essentials succeeded first
+    expect(sut.owned('smuve.trap-essentials.v1')).toBe(true);
+    expect(sut.owned('smuve.ai-mix-pack.v1')).toBe(false);
+    // Failed + not-yet-attempted lines remain in the cart for retry.
+    const remaining = sut.cart().map((l) => l.skuId);
+    expect(remaining).toContain('smuve.ai-mix-pack.v1');
+    expect(remaining).toContain('smuve.dubstep-bass.v1');
+  });
+
+  it('checkoutCart() skips lines already owned without re-billing', async () => {
+    sut.acquireSku('smuve.trap-essentials.v1', 1, 'TKN_OLD');
+    sut.addToCart('smuve.trap-essentials.v1', 1);
+    sut.addToCart('smuve.future-bass.v1', 1);
+
+    const result = await sut.checkoutCart();
+
+    expect(result.purchased).toBe(1);
+    expect(sut.owned('smuve.future-bass.v1')).toBe(true);
+    expect(sut.cart().length).toBe(0);
+  });
+
+  it('checkoutCart() with an empty cart is a no-op', async () => {
+    const result = await sut.checkoutCart();
+    expect(result).toEqual({ purchased: 0 });
+  });
 });

@@ -124,7 +124,9 @@ export class CloudVaultComponent {
   }
 
   restore(projectId: string, snapshot: RemoteSnapshot): void {
-    this.cloud.restoreFromBackup(projectId, snapshot, this.parsePayload());
+    // Restore the snapshot's own payload — NOT the demo-project editor
+    // textarea (which is only for the push demo).
+    this.cloud.restoreFromBackup(projectId, snapshot);
   }
 
   trackById = (_: number, item: { id: string }): string => item.id;

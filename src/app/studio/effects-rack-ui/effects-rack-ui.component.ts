@@ -62,9 +62,11 @@ export class EffectsRackUiComponent {
   }
 
   /** Splice/Un-splice the master-bus ScriptProcessor with a kernel closure
-   *  that reads the current enabled plugins from the plugin store each block. */
+   *  that reads the current enabled plugins from the plugin store each block.
+   *  Uses the width-preserving splice point (installMasterPluginInsertAfterWidth)
+   *  so the M/S master-width stage stays in the signal path. */
   installMasterChain(ids: string[]): void {
-    this.audioEngine.installMasterPluginInsert(ids, (pluginIds) => {
+    this.audioEngine.installMasterPluginInsertAfterWidth(ids, (pluginIds) => {
       const kernels: Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> = [];
       for (const id of pluginIds) {
         const mod = this.pluginStore['loader']?.getModule?.(id);

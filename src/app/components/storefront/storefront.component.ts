@@ -32,6 +32,7 @@ export class StorefrontComponent {
   );
 
   readonly busy = signal<Record<string, boolean>>({});
+  readonly checkoutBusy = signal(false);
 
   readonly filtered = computed<SkuCatalogEntry[]>(() => {
     const f = this.filter();
@@ -53,6 +54,17 @@ export class StorefrontComponent {
       await this.store.purchase(sku.id, 1);
     } finally {
       this.busy.update((b) => ({ ...b, [sku.id]: false }));
+    }
+  }
+
+  /** Purchase every line currently in the cart via the billing shim. */
+  async checkoutCart() {
+    if (this.checkoutBusy()) return;
+    this.checkoutBusy.set(true);
+    try {
+      await this.store.checkoutCart();
+    } finally {
+      this.checkoutBusy.set(false);
     }
   }
 

@@ -401,15 +401,17 @@ export class CloudSyncService {
 
   // ─── Restore / refresh ─────────────────────────────────────────────
 
-  restoreFromBackup(
+  async restoreFromBackup(
     projectId: string,
     snapshot: RemoteSnapshot,
-    localPayload: unknown
-  ): void {
-    // Restore writes the older payload back into the local manifest
-    // store and stages it for the next push. We bump version to
-    // remoteVersion + 1 so the server will accept it without
-    // re-conflicting.
+    localPayload?: unknown
+  ): Promise<void> {
+    // Restore brings the SNAPSHOT's content back into the local store and
+    // stages it for the next push. We bump version to remoteVersion + 1 so
+    // the server will accept it without re-conflicting. `localPayload` is
+    // only a fallback for snapshots that carry no data (defensive — every
+    // push stores its payload, so snapshot.data is normally present).
+    const restoredPayload = snapshot.data ?? localPayload;
     const manifest: ProjectManifest = {
       projectId,
       version: snapshot.version + 1,
@@ -418,8 +420,8 @@ export class CloudSyncService {
       title: snapshot.title,
       byteSize: snapshot.byteSize,
     };
-    void this.persistManifest(projectId, manifest);
-    void this.push(projectId, snapshot.title, localPayload);
+    await this.persistManifest(projectId, manifest);
+    await this.push(projectId, snapshot.title, restoredPayload);
   }
 
   /** Pull the cloud's latest snapshots into the local index. */

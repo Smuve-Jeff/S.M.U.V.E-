@@ -360,6 +360,44 @@ export class StorefrontService {
     return this.acquireSku(skuId, qty, result.token);
   }
 
+  /**
+   * Check out every cart line through the billing shim. Lines that
+   * succeed are promoted to ownership and removed from the cart; the
+   * first failure stops the run (remaining lines stay queued for retry).
+   * Lines whose SKU is already owned are skipped without re-billing.
+   *
+   * Returns `{ purchased, failed? }` where `failed` is the SKU id that
+   * aborted the run, if any.
+   */
+  async checkoutCart(): Promise<{ purchased: number; failed?: string }> {
+    const lines = [...this.cart()];
+    if (lines.length === 0) return { purchased: 0 };
+
+    let purchased = 0;
+    for (const line of lines) {
+      // Already owned (e.g. bought elsewhere mid-session) — drop quietly.
+      if (this.owned(line.skuId)) {
+        this.removeFromCart(line.skuId);
+        continue;
+      }
+      const result = await this.billing.purchase({
+        skuId: line.skuId,
+        qty: line.qty,
+      });
+      if (!result.ok || !result.token) {
+        this.notify.show(
+          `Checkout failed: ${result.error ?? 'unknown error'}`,
+          'warning'
+        );
+        return { purchased, failed: line.skuId };
+      }
+      this.acquireSku(line.skuId, line.qty, result.token);
+      purchased += 1;
+    }
+    this.notify.show('Checkout complete — purchases unlocked.', 'success');
+    return { purchased };
+  }
+
   /** Promote a successful billing receipt into an ownership row. */
   acquireSku(skuId: string, qty: number, token: string): ReceiptRecord {
     const sku = this.SKUS.find((s) => s.id === skuId);

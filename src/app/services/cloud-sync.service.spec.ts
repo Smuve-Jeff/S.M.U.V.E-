@@ -203,4 +203,27 @@ describe('CloudSyncService (D1)', () => {
     sut.toggleSimulatedOffline();
     expect(sut.isCloudReachable()).toBe(true);
   });
+
+  it('restoreFromBackup restores the snapshot payload, not the local editor payload', async () => {
+    const snapshot = {
+      projectId: 'p9',
+      deviceId: 'dev_other',
+      version: 4,
+      data: { restored: true, takes: ['vocal-take-2'] },
+      timestamp: Date.now(),
+      title: 'Restored',
+      byteSize: 40,
+    };
+
+    await sut.restoreFromBackup('p9', snapshot, { demo: true });
+
+    // Restore stages version remote+1 (5), then push deterministically bumps
+    // to 6 — both above the remote 4, so the re-push is accepted without a
+    // conflict (the old fire-and-forget path raced between the two).
+    expect(sut.localManifests()['p9'].version).toBe(6);
+    const latest = cloud.latestByProject.get('p9');
+    expect(latest.data).toEqual({ restored: true, takes: ['vocal-take-2'] });
+    // The local editor payload must NOT have been pushed in its place.
+    expect(latest.data).not.toEqual({ demo: true });
+  });
 });

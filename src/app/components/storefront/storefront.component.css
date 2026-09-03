@@ -328,3 +328,10 @@
 .cart-line-grand-value {
   color: var(--brand-secondary, #5dc4c2);
 }
+
+.cart-checkout {
+  flex: 0 0 auto;
+  min-width: 148px;
+  margin-left: 16px;
+  padding: 10px 18px;
+}

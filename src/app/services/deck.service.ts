@@ -148,22 +148,62 @@ export class DeckService {
     this.engine.scratch(deck, delta);
   }
 
+  /** Base values captured when a borrowing FX (autowah/damp) engages, so
+   *  leaving the mode can restore the user's tonal settings exactly. */
+  private fxFilterBase: Record<DeckId, number> = {
+    A: initialDeckState.filterFreq,
+    B: initialDeckState.filterFreq,
+  };
+  private fxEqBase: Record<DeckId, { high: number; mid: number; low: number }> = {
+    A: { high: initialDeckState.eqHigh, mid: initialDeckState.eqMid, low: initialDeckState.eqLow },
+    B: { high: initialDeckState.eqHigh, mid: initialDeckState.eqMid, low: initialDeckState.eqLow },
+  };
+
   setFx(deck: DeckId, mode: DeckState['activeFx'], val: number) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     const amount = Math.max(0, Math.min(1, val));
+    const state = target();
+    const prevMode = state.activeFx;
+
+    // Leaving a filter/EQ-borrowing FX restores the base values so the
+    // next mode starts from a clean tonal canvas instead of inheriting the
+    // previous effect's mangled EQ/filter.
+    if (prevMode === 'autowah' && mode !== 'autowah') {
+      this.setDeckFilter(deck, this.fxFilterBase[deck]);
+    }
+    if (prevMode === 'damp' && mode !== 'damp') {
+      const base = this.fxEqBase[deck];
+      this.setDeckEq(deck, base.high, base.mid, base.low);
+    }
+    // Entering a borrowing mode captures the base values for later restore.
+    if (mode === 'autowah' && prevMode !== 'autowah') {
+      this.fxFilterBase[deck] = state.filterFreq;
+    }
+    if (mode === 'damp' && prevMode !== 'damp') {
+      this.fxEqBase[deck] = {
+        high: state.eqHigh,
+        mid: state.eqMid,
+        low: state.eqLow,
+      };
+    }
+
+    // Clear any residue from the previous advanced FX (echo/chorus/phaser)
+    // before applying the new mode — one knob per FX bank.
+    this.engine.resetDeckAdvancedFx(deck);
+
     target.update((d) => ({ ...d, fxAmount: amount, activeFx: mode }));
 
     if (mode === 'echo') {
-      this.engine.setAdvancedFX(deck, 'delay', amount);
+      this.engine.setDeckAdvancedFx(deck, 'delay', amount);
       return;
     }
     if (mode === 'chorus') {
-      // The engine exposes a flanger block; this is the closest built-in chorus approximation.
-      this.engine.setAdvancedFX(deck, 'flanger', amount);
+      // The engine's flanger block is the closest built-in chorus approximation.
+      this.engine.setDeckAdvancedFx(deck, 'flanger', amount);
       return;
     }
     if (mode === 'phaser') {
-      this.engine.setAdvancedFX(deck, 'phaser', amount);
+      this.engine.setDeckAdvancedFx(deck, 'phaser', amount);
       return;
     }
     if (mode === 'autowah') {
@@ -172,9 +212,12 @@ export class DeckService {
       return;
     }
     if (mode === 'damp') {
-      const high = Math.max(0, 1 - amount * DAMP_HIGH_REDUCTION);
-      const mid = Math.max(DAMP_MID_FLOOR, 1 - amount * DAMP_MID_REDUCTION);
-      const low = 1 + amount * DAMP_LOW_LIFT;
+      // Round to 3 decimals so the profile lands on exact values (0.2/0.65/1.1
+      // at full depth) instead of float dust from `1 - 0.8`.
+      const round3 = (v: number) => Math.round(v * 1000) / 1000;
+      const high = Math.max(0, round3(1 - amount * DAMP_HIGH_REDUCTION));
+      const mid = Math.max(DAMP_MID_FLOOR, round3(1 - amount * DAMP_MID_REDUCTION));
+      const low = round3(1 + amount * DAMP_LOW_LIFT);
       this.setDeckEq(deck, high, mid, low);
       return;
     }
@@ -269,7 +312,12 @@ export class DeckService {
     if (deck === 'A') {
       this.deckA.update((d) => ({
         ...d,
-        track: { ...d.track, name: fileName, url: '' },
+        track: {
+          ...d.track,
+          id: `deck-a-${Date.now()}`,
+          name: fileName,
+          url: '',
+        },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
         samplerPads: {
@@ -285,7 +333,12 @@ export class DeckService {
     } else {
       this.deckB.update((d) => ({
         ...d,
-        track: { ...d.track, name: fileName, url: '' },
+        track: {
+          ...d.track,
+          id: `deck-b-${Date.now()}`,
+          name: fileName,
+          url: '',
+        },
         duration: buffer.duration,
         hotCues: new Array(8).fill(null),
         samplerPads: {
