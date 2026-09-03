@@ -54,8 +54,13 @@
         moveLeft = false,
         moveRight = false;
       let score = 0,
-        shield = 100;
+        shield = 100,
+        isGameOver = false;
       const enemies = [];
+      const ENEMY_REACH = 8; // units — enemies are stationary sentries
+      const ENEMY_ATTACK_COOLDOWN_MS = 1500;
+      const ENEMY_HIT_DAMAGE = 4;
+      const MIN_SPAWN_DISTANCE = 6; // never spawn inside melee range of the start
 
       function init() {
         scene = new THREE.Scene();
@@ -134,7 +139,17 @@
         const geo = new THREE.BoxGeometry(1, 2, 1);
         const mat = new THREE.MeshPhongMaterial({ color: 0xfb7185 });
         const enemy = new THREE.Mesh(geo, mat);
-        enemy.position.set(Math.random() * 40 - 20, 1, Math.random() * 40 - 20);
+        // Keep a fair spawn ring: an enemy that materializes inside melee
+        // reach starts draining shield the moment the cabinet loads — the
+        // "instant death" report. Re-roll until it spawns outside reach.
+        let x = 0;
+        let z = 0;
+        do {
+          x = Math.random() * 40 - 20;
+          z = Math.random() * 40 - 20;
+        } while (Math.hypot(x, z) < MIN_SPAWN_DISTANCE);
+        enemy.position.set(x, 1, z);
+        enemy.userData.nextAttack = 0;
         scene.add(enemy);
         enemies.push(enemy);
       }
@@ -180,6 +195,7 @@
       }
 
       function shoot() {
+        if (isGameOver) return;
         if (document.pointerLockElement !== document.body) return;
 
         const raycaster = new THREE.Raycaster();
@@ -222,14 +238,21 @@
           if (moveLeft) camera.position.addScaledVector(side, 0.1);
           if (moveRight) camera.position.addScaledVector(side, -0.1);
 
-          // Simple AI logic
+          // Simple AI logic — time-based cadence gated by proximity so the
+          // damage rate is frame-rate independent (a per-frame Math.random()
+          // roll made 120Hz+ displays take damage twice as fast) and enemies
+          // must actually be in reach to strike.
+          const now = performance.now();
           enemies.forEach((enemy) => {
             enemy.lookAt(camera.position);
-            if (Math.random() > 0.995) {
-              shield -= 5;
-              document.getElementById('shield').innerText = shield;
-              if (shield <= 0) gameOver();
-            }
+            if (isGameOver) return;
+            if (enemy.position.distanceTo(camera.position) > ENEMY_REACH)
+              return;
+            if (now < enemy.userData.nextAttack) return;
+            enemy.userData.nextAttack = now + ENEMY_ATTACK_COOLDOWN_MS;
+            shield -= ENEMY_HIT_DAMAGE;
+            document.getElementById('shield').innerText = shield;
+            if (shield <= 0) gameOver();
           });
         }
 
@@ -237,6 +260,8 @@
       }
 
       function gameOver() {
+        if (isGameOver) return; // one burst of adjacent enemies must not stack alerts
+        isGameOver = true;
         document.exitPointerLock();
         shield = 0;
         document.getElementById('shield').innerText = '0';

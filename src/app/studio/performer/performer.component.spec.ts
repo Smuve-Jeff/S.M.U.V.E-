@@ -130,6 +130,9 @@ describe('PerformerComponent', () => {
             slaveTransportRunning: signal(false),
             clearMidiLog: jest.fn(),
             toggleSlaveSync: jest.fn(),
+            isDeviceEnabled: jest.fn(() => false),
+            toggleDevice: jest.fn(),
+            savePerformerCCMappings: jest.fn(),
           },
         },
         {
@@ -209,5 +212,31 @@ describe('PerformerComponent', () => {
     component.toggleSmartChords();
     expect(component.smartChords()).toBe(true);
     expect(mockLiveEngine.smartChords()).toBe(true);
+  });
+
+  it('XY pad lifecycle engages on down and releases (reset) on up', () => {
+    const fx = (TestBed as any).inject ? (TestBed as any).inject(FxMacrosService) : null;
+    const fxMacros = (fx ?? component.fxMacros) as any;
+    const pad = document.createElement('div');
+    Object.defineProperty(pad, 'getBoundingClientRect', {
+      value: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+    });
+    const makeEvent = (id: number, x: number, y: number) =>
+      ({ pointerId: id, clientX: x, clientY: y, preventDefault: jest.fn() } as any);
+
+    component.onPadDown(makeEvent(1, 25, 25), pad);
+    expect(fxMacros.engage).toHaveBeenCalled();
+    expect(fxMacros.setXY).toHaveBeenCalledWith(0.25, 0.75); // Y inverted on pad
+
+    component.onPadUp(makeEvent(1, 25, 25), pad);
+    expect(fxMacros.release).toHaveBeenCalled(); // release ⇒ reset parity path
+  });
+
+  it('device toggling delegates to DjMidiService (gating, not cosmetic)', () => {
+    const midi = component.midiService as any;
+    midi.isDeviceEnabled = jest.fn(() => false);
+    component.toggleDevice('Controller X');
+    expect(midi.toggleDevice).toHaveBeenCalledWith('Controller X');
+    expect(component.isDeviceEnabled('Controller X')).toBe(false);
   });
 });

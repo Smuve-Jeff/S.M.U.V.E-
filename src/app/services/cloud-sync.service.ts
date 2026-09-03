@@ -17,6 +17,7 @@ const DEVICE_KEY = 'smuve_cloud_device';
 const TIMELINE_KEY = 'smuve_cloud_timeline';
 const PROJECTS_KEY = 'smuve_cloud_projects';
 const LOCAL_CACHE_STORE = 'offline_local_cache';
+const OFFLINE_PUSH_ENDPOINT = '/mock-cloud/push';
 const PLATFORM =
   typeof navigator !== 'undefined' && navigator.platform
     ? navigator.platform
@@ -69,6 +70,7 @@ export class CloudSyncService {
 
   /** Most recent ~50 sync timeline entries. */
   readonly timeline = signal<SyncTimelineEntry[]>([]);
+  private unregisterOfflinePushHandler: (() => void) | null = null;
 
   /**
    * Manual chaos switch — set to false in code to simulate offline
@@ -90,6 +92,10 @@ export class CloudSyncService {
   );
 
   constructor() {
+    this.unregisterOfflinePushHandler = this.offlineSync.registerEndpointHandler(
+      OFFLINE_PUSH_ENDPOINT,
+      (item) => this.replayOfflinePush(item)
+    );
     void this.hydrate();
   }
 
@@ -215,7 +221,7 @@ export class CloudSyncService {
     if (!this.isCloudReachable()) {
       await this.offlineSync.queueOperation(
         'UPDATE',
-        '/mock-cloud/push',
+        OFFLINE_PUSH_ENDPOINT,
         { projectId, manifest, payload }
       );
       this.pushStatus.set('queued');
@@ -397,6 +403,60 @@ export class CloudSyncService {
       at: Date.now(),
       note: `Resolved (${strategy})`,
     });
+  }
+
+  ngOnDestroy(): void {
+    this.unregisterOfflinePushHandler?.();
+    this.unregisterOfflinePushHandler = null;
+  }
+
+  private async replayOfflinePush(item: {
+    payload: { projectId: string; manifest: ProjectManifest; payload: unknown };
+  }): Promise<void> {
+    const envelope = item.payload;
+    if (
+      !envelope ||
+      typeof envelope.projectId !== 'string' ||
+      !envelope.manifest ||
+      !('payload' in envelope)
+    ) {
+      const error = new Error('Invalid queued cloud push payload') as Error & {
+        statusCode?: number;
+      };
+      error.statusCode = 422;
+      throw error;
+    }
+
+    const result = await this.cloud.push({
+      manifest: envelope.manifest,
+      payload: envelope.payload,
+    });
+    if (result.success === false) {
+      this.conflictMap.update((m) => ({
+        ...m,
+        [envelope.projectId]: result.conflict,
+      }));
+      this.pushStatus.set('conflict');
+      const error = new Error('Queued cloud push conflicted with a newer remote version') as Error & {
+        statusCode?: number;
+      };
+      error.statusCode = 409;
+      throw error;
+    }
+
+    await this.persistManifest(envelope.projectId, envelope.manifest);
+    this.lastSyncedAt.set(Date.now());
+    this.pushStatus.set('success');
+    this.appendTimeline({
+      id: this.timelineId(),
+      projectId: envelope.projectId,
+      projectTitle: envelope.manifest.title,
+      direction: 'push',
+      status: 'success',
+      at: Date.now(),
+      note: 'Queued edit replayed after network recovery',
+    });
+    this.cloudProjects.set(this.cloud.listProjects());
   }
 
   // ─── Restore / refresh ─────────────────────────────────────────────

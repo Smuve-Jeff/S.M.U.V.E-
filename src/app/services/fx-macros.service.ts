@@ -9,9 +9,18 @@ export type MacroId =
   | 'glitch'
   | 'delay-trail';
 
+export type MacroParamKey =
+  | 'masterFilterHz'
+  | 'limiterThr'
+  | 'compressorRatio'
+  | 'reverbWet';
+
+/** Where a target sits when the macro is at rest — the exact value every
+ * reset path returns the engine to. The XY position that maps to it is
+ * derived per macro (see restX/restY) so the dot and the engine agree. */
 export interface MacroTargetSpec {
   /** Stable param key (matched by switch in applyLive) */
-  param: string;
+  param: MacroParamKey;
   /** Min value at XY(0) */
   min: number;
   /** Max value at XY(1) */
@@ -20,6 +29,8 @@ export interface MacroTargetSpec {
   curve: 'linear' | 'exp';
   /** Human-readable HUD label */
   label: string;
+  /** Resting (neutral) value the engine returns to on release. */
+  rest: number;
 }
 
 export interface MacroPreset {
@@ -34,12 +45,20 @@ export interface MacroPreset {
 }
 
 /**
- * One-Finger FX Macro system — drives 2 audio-engine parameters
+ * One-Finger FX Macro system — drives 2 master-bus parameters
  * simultaneously from a single XY touch surface.
+ *
+ * Reset parity contract:
+ *  - Every target declares its `rest` value; AudioEngineService.MASTER_DEFAULTS
+ *    is the canonical source for those numbers.
+ *  - Releasing the pad (or hitting RESET) returns every modulated param to its
+ *    rest value via the same routed setters the drag itself used, and snaps
+ *    the XY position to the derived rest position — so the HUD dot, the
+ *    readouts, and the actual audio state always agree.
  *
  * Every ramp uses `setTargetAtTime(value, ctx.currentTime, 0.05)`
  * (50ms exponential settle) so chained parameter writes inside
- * one drag don't pop.  Reset() snaps all targets back to defaults.
+ * one drag don't pop.
  */
 @Injectable({ providedIn: 'root' })
 export class FxMacrosService {
@@ -53,11 +72,12 @@ export class FxMacrosService {
       glyph: '🎚',
       description: 'X = Cutoff · Y = Limiter drive',
       xTarget: {
-        param: 'filterF',
+        param: 'masterFilterHz',
         min: 200,
-        max: 18000,
+        max: 20000,
         curve: 'exp',
         label: 'Cutoff',
+        rest: 20000,
       },
       yTarget: {
         param: 'limiterThr',
@@ -65,6 +85,7 @@ export class FxMacrosService {
         max: -0.5,
         curve: 'linear',
         label: 'Limiter',
+        rest: -0.5,
       },
       color: '#FFB627',
     },
@@ -79,6 +100,7 @@ export class FxMacrosService {
         max: 12,
         curve: 'linear',
         label: 'Comp',
+        rest: 4,
       },
       yTarget: {
         param: 'limiterThr',
@@ -86,6 +108,7 @@ export class FxMacrosService {
         max: -0.5,
         curve: 'linear',
         label: 'Limiter',
+        rest: -0.5,
       },
       color: '#FF1A4D',
     },
@@ -100,13 +123,15 @@ export class FxMacrosService {
         max: 1,
         curve: 'linear',
         label: 'Reverb',
+        rest: 0,
       },
       yTarget: {
-        param: 'filterF',
+        param: 'masterFilterHz',
         min: 80,
-        max: 18000,
+        max: 20000,
         curve: 'exp',
         label: 'Filter',
+        rest: 20000,
       },
       color: '#8B5CF6',
     },
@@ -118,9 +143,10 @@ export class FxMacrosService {
       xTarget: {
         param: 'limiterThr',
         min: -20,
-        max: -1,
+        max: -0.5,
         curve: 'exp',
         label: 'Limiter',
+        rest: -0.5,
       },
       yTarget: {
         param: 'reverbWet',
@@ -128,6 +154,7 @@ export class FxMacrosService {
         max: 0.8,
         curve: 'linear',
         label: 'Reverb',
+        rest: 0,
       },
       color: '#34F5C5',
     },
@@ -142,6 +169,7 @@ export class FxMacrosService {
         max: 12,
         curve: 'linear',
         label: 'Comp',
+        rest: 4,
       },
       yTarget: {
         param: 'reverbWet',
@@ -149,19 +177,50 @@ export class FxMacrosService {
         max: 1,
         curve: 'linear',
         label: 'Reverb',
+        rest: 0,
       },
       color: '#0E7C7B',
     },
   ];
 
   activeMacroId = signal<MacroId>('filter-sweep');
-  /** 0..1 normalized XY position. Default = center (no modulation). */
+  /** 0..1 normalized XY position. Initialized to the derived rest position
+   * in the constructor so the HUD truthfully reflects engine state on load. */
   xyPos = signal<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
   engaged = signal(false);
+
+  constructor() {
+    this.xyPos.set(this.restXY());
+  }
 
   activeMacro = computed(
     () => this.presets.find((p) => p.id === this.activeMacroId())!
   );
+
+  /** Inverse-curve: which normalized XY position produces `value`. */
+  private unScale(
+    value: number,
+    min: number,
+    max: number,
+    curve: 'linear' | 'exp'
+  ): number {
+    const v = Math.max(min, Math.min(max, value));
+    if (curve === 'exp' && min > 0 && max > 0) {
+      return Math.log(v / min) / Math.log(max / min);
+    }
+    return (v - min) / (max - min);
+  }
+
+  /** The XY position that maps to a target's rest value. */
+  restPosition(spec: MacroTargetSpec): number {
+    return this.unScale(spec.rest, spec.min, spec.max, spec.curve);
+  }
+
+  /** Derived rest position for the active macro — where the dot parks. */
+  restXY = computed(() => {
+    const m = this.activeMacro();
+    return { x: this.restPosition(m.xTarget), y: this.restPosition(m.yTarget) };
+  });
 
   /** Live computed: scaled values + formatted labels for the HUD readout. */
   currentValues = computed(() => {
@@ -180,41 +239,29 @@ export class FxMacrosService {
   setXY(x: number, y: number): void {
     this.xyPos.set({ x, y });
     const m = this.activeMacro();
-    const t = this.audio.ctx.currentTime;
-    const tau = 0.05;
     const xV = this.scale(x, m.xTarget.min, m.xTarget.max, m.xTarget.curve);
     const yV = this.scale(y, m.yTarget.min, m.yTarget.max, m.yTarget.curve);
-    this.applyLive(m.xTarget.param, xV, t, tau);
-    this.applyLive(m.yTarget.param, yV, t, tau);
+    this.applyLive(m.xTarget.param, xV);
+    this.applyLive(m.yTarget.param, yV);
   }
 
-  private applyLive(
-    param: string,
-    value: number,
-    t: number,
-    tau: number
-  ): void {
-    try {
-      switch (param) {
-        case 'filterF':
-          this.audio.masterEQ.frequency.setTargetAtTime(value, t, tau);
-          break;
-        case 'limiterThr':
-          this.audio.limiter.threshold.setTargetAtTime(value, t, tau);
-          break;
-        case 'compressorRatio':
-          this.audio.compressor.ratio.setTargetAtTime(value, t, tau);
-          break;
-        case 'reverbWet':
-          this.audio.reverbWet.gain.setTargetAtTime(value, t, tau);
-          break;
-        case 'masterRate':
-          this.audio.setDeckRate('A', value);
-          this.audio.setDeckRate('B', value);
-          break;
-      }
-    } catch (_e) {
-      /* AudioParam in invalid state — silently skip */
+  /** Route a modulated value to the engine. All paths damp with the same
+   * 50ms setTargetAtTime window so chained writes inside one drag never pop.
+   * Routing is worklet-aware via the engine's master setters. */
+  private applyLive(param: MacroParamKey, value: number): void {
+    switch (param) {
+      case 'masterFilterHz':
+        this.audio.setMasterFilterHz(value);
+        break;
+      case 'limiterThr':
+        this.audio.setMasterLimiterThreshold(value);
+        break;
+      case 'compressorRatio':
+        this.audio.setMasterCompressorRatio(value);
+        break;
+      case 'reverbWet':
+        this.audio.setMasterReverbWet(value);
+        break;
     }
   }
 
@@ -231,9 +278,9 @@ export class FxMacrosService {
     return min + (max - min) * v;
   }
 
-  private formatValue(param: string, value: number): string {
+  private formatValue(param: MacroParamKey, value: number): string {
     switch (param) {
-      case 'filterF':
+      case 'masterFilterHz':
         return value >= 1000
           ? (value / 1000).toFixed(1) + 'k Hz'
           : Math.round(value) + ' Hz';
@@ -243,15 +290,17 @@ export class FxMacrosService {
         return value.toFixed(1) + ':1';
       case 'reverbWet':
         return Math.round(value * 100) + '%';
-      case 'masterRate':
-        return value.toFixed(2) + 'x';
       default:
         return value.toFixed(2);
     }
   }
 
   setMacro(id: MacroId): void {
+    // Park the dot at the new macro's rest position and return any params the
+    // previous macro left modulated to their rest values first.
+    this.reset();
     this.activeMacroId.set(id);
+    this.xyPos.set(this.restXY());
     const p = this.presets.find((x) => x.id === id);
     this.notify.show('FX Macro · ' + (p?.name ?? id), 'info');
   }
@@ -259,20 +308,35 @@ export class FxMacrosService {
   engage(): void {
     this.engaged.set(true);
   }
+
   release(): void {
     this.engaged.set(false);
     this.reset();
   }
 
+  /** Reset parity: restore every engine param the macros touch to its rest
+   * value through the same routed setters the drag used, then snap the HUD
+   * position to the derived rest position so UI and audio agree.
+   * Rest values come from AudioEngineService.MASTER_DEFAULTS, except reverb
+   * return whose rest is silence (0) by design. */
   reset(): void {
-    const t = this.audio.ctx.currentTime;
+    const defaults = AudioEngineService.MASTER_DEFAULTS;
+    const m = this.activeMacro();
     try {
-      this.audio.masterEQ.frequency.setTargetAtTime(20000, t, 0.05);
-      this.audio.limiter.threshold.setTargetAtTime(-1, t, 0.05);
-      this.audio.compressor.ratio.setTargetAtTime(4, t, 0.05);
-      this.audio.reverbWet.gain.setTargetAtTime(0, t, 0.05);
-    } catch (_e) {
-      /* */
+      for (const spec of [m.xTarget, m.yTarget]) {
+        if (spec.param === 'reverbWet') {
+          this.applyLive('reverbWet', 0);
+        } else if (spec.param === 'masterFilterHz') {
+          this.applyLive('masterFilterHz', defaults.masterFilterHz);
+        } else if (spec.param === 'limiterThr') {
+          this.applyLive('limiterThr', defaults.limiterThresholdDb);
+        } else if (spec.param === 'compressorRatio') {
+          this.applyLive('compressorRatio', defaults.compressorRatio);
+        }
+      }
+    } catch {
+      /* AudioParam in invalid state — next reset retries. */
     }
+    this.xyPos.set(this.restXY());
   }
 }

@@ -3,7 +3,6 @@ import {
   inject,
   signal,
   computed,
-  effect,
   OnDestroy,
   Injector,
 } from '@angular/core';
@@ -97,6 +96,9 @@ export class PerformanceRecordingService implements OnDestroy {
   private peakL = -Infinity;
   private peakR = -Infinity;
   private inited = false;
+  private initializePromise: Promise<boolean> | null = null;
+  /** Whether this service owns the stream (the shared recording engine normally does). */
+  private ownsMediaStream = false;
   /** Pending async engine boot started in startRecording(); awaited in finishTake(). */
   private engineStartPromise: Promise<boolean> | null = null;
 
@@ -109,19 +111,55 @@ export class PerformanceRecordingService implements OnDestroy {
   }
 
   async initialize(): Promise<boolean> {
+    if (this.inited) return true;
+    if (this.initializePromise) return this.initializePromise;
+
+    this.initializePromise = this.initializeInternal();
+    try {
+      return await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
+    }
+  }
+
+  private async initializeInternal(): Promise<boolean> {
+    const engine = this.recordingEngine;
+    if (engine) {
+      try {
+        const ready = engine.isInitialized() || (await engine.initialize());
+        if (!ready) return false;
+
+        // Reuse the engine's stream and analyser. Calling getUserMedia here
+        // as well would open a second microphone stream and can produce
+        // device contention, doubled input, or a stale meter.
+        this._liveInputAnalyser = engine.getAnalyserNode?.() ?? null;
+        this._mediaStream = engine.getMediaStream?.() ?? null;
+        this.ownsMediaStream = false;
+        this.inited = true;
+        this.logger.info('PerformanceRecording: sharing the studio input stream.');
+        return true;
+      } catch (e) {
+        this.logger.warn(
+          'PerformanceRecording: shared recording engine initialization failed.',
+          e
+        );
+        return false;
+      }
+    }
+
+    // Keep the direct path for isolated consumers/tests that do not provide
+    // StudioRecordingEngineService, but never fabricate a recording from it.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          // Hint device: 48kHz / mono / high quality where supported
           sampleRate: 48000,
           channelCount: 2,
         },
       });
 
-      // Hang the mediaStream off the audio context for analysis
       const ctx = this.audioEngine.ctx;
       const src = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -129,6 +167,7 @@ export class PerformanceRecordingService implements OnDestroy {
       src.connect(analyser);
       this._liveInputAnalyser = analyser;
       this._mediaStream = stream;
+      this.ownsMediaStream = true;
       this.inited = true;
       this.logger.info('PerformanceRecording: input stream active.');
       return true;
@@ -182,28 +221,43 @@ export class PerformanceRecordingService implements OnDestroy {
 
   startRecording(trackId?: string, trackName?: string) {
     if (this.isRecording()) return;
-    if (!this.inited) {
-      // Lazy init
-      this.initialize().catch(() => undefined);
-    }
+    const engine = this.recordingEngine;
     this.liveMidi = [];
     this.peakL = -Infinity;
     this.peakR = -Infinity;
     this.startTimestampMs = performance.now();
     this.isRecording.set(true);
-    // Actually start the AudioWorklet capture on the shared recording
-    // engine so finishTake() can pull real buffers instead of a silent
-    // stub. Initialization is async, so stash the promise to await in
-    // finishTake() before flushing buffers.
-    const engine = this.recordingEngine;
-    if (engine && !this.engineStartPromise) {
+    // Start capture through the shared engine. The same initialization promise
+    // is awaited by finishTake(), so stopping immediately after pressing record
+    // cannot race engine boot or silently turn into a fake take.
+    if (engine) {
       this.engineStartPromise = (async () => {
-        if (!engine.isInitialized()) {
-          await engine.initialize();
+        const ready = await this.initialize();
+        if (!ready) {
+          this.logger.warn('PerformanceRecording: capture is unavailable.');
+          this.isRecording.set(false);
+          this.isArmed.set(false);
+          return false;
         }
         engine.startRecording();
-        return engine.isRecording();
+        const started = engine.isRecording();
+        if (!started) {
+          this.logger.warn('PerformanceRecording: engine refused to start capture.');
+          this.isRecording.set(false);
+          this.isArmed.set(false);
+        }
+        return started;
       })();
+    } else {
+      // No engine means there is no capture path. initialize() may still be
+      // useful to a direct consumer for metering, but finishTake() will not
+      // manufacture an audio artifact without recorded PCM.
+      this.engineStartPromise = this.initialize().then((ready) => {
+        if (!ready) {
+          this.resetRecordingState();
+        }
+        return ready;
+      });
     }
   }
 
@@ -245,39 +299,32 @@ export class PerformanceRecordingService implements OnDestroy {
           durationMs = Math.round(engine.recordingTime() * 1000);
         } else {
           const { left, right } = engine.getRecordedBuffers();
-          if (left.length > 0 && right.length > 0) {
-            try {
-              const leftChannel = this.joinChunks(left);
-              const rightChannel = this.joinChunks(right);
-              const sampleRate = this.audioEngine.ctx.sampleRate;
-              blob = WavEncoder.encodeMultiChannel(
-                [leftChannel, rightChannel],
-                'wav-16',
-                sampleRate
-              );
-              durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
-            } catch (e) {
-              this.logger.warn(
-                'PerformanceRecording: WAV encode from buffers failed; falling back to stub.',
-                e
-              );
-              blob = await this.synthesizeWavStub(durationMs);
-            }
-          } else {
-            // No buffers captured — stub as fallback
-            blob = await this.synthesizeWavStub(durationMs);
+          if (left.length === 0 || right.length === 0) {
+            this.logger.warn(
+              'PerformanceRecording: capture stopped without PCM buffers; take discarded.'
+            );
+            this.resetRecordingState();
+            return null;
           }
+          const leftChannel = this.joinChunks(left);
+          const rightChannel = this.joinChunks(right);
+          const sampleRate = this.audioEngine.ctx.sampleRate;
+          blob = WavEncoder.encodeMultiChannel(
+            [leftChannel, rightChannel],
+            'wav-16',
+            sampleRate
+          );
+          durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
         }
       } catch (e) {
-        this.logger.warn(
-          'PerformanceRecording: engine capture failed; falling back to stub.',
-          e
-        );
-        blob = await this.synthesizeWavStub(durationMs);
+        this.logger.warn('PerformanceRecording: engine capture failed; take discarded.', e);
+        this.resetRecordingState();
+        return null;
       }
     } else {
-      // Recording engine not available — stub only
-      blob = await this.synthesizeWavStub(durationMs);
+      this.logger.warn('PerformanceRecording: no capture engine available; take discarded.');
+      this.resetRecordingState();
+      return null;
     }
     const url = URL.createObjectURL(blob);
 
@@ -355,6 +402,15 @@ export class PerformanceRecordingService implements OnDestroy {
     a.click();
   }
 
+  private resetRecordingState(): void {
+    this.engineStartPromise = null;
+    this.isRecording.set(false);
+    this.isArmed.set(false);
+    this.liveMidi = [];
+    this.peakL = -Infinity;
+    this.peakR = -Infinity;
+  }
+
   /** Join Float32Array chunks into a single contiguous buffer (mirrors StudioRecordingEngine). */
   private joinChunks(chunks: Float32Array[], minimumLength = 0): Float32Array {
     const length = Math.max(
@@ -376,43 +432,6 @@ export class PerformanceRecordingService implements OnDestroy {
   private linearToDb(v: number) {
     if (v <= 0) return -60;
     return 20 * Math.log10(v);
-  }
-
-  private async synthesizeWavStub(durationMs: number): Promise<Blob> {
-    // A 0.1s silent WAV stub. Replace with real worklet data in production.
-    const sampleRate = 48000;
-    const numSamples = Math.max(
-      1,
-      Math.floor((durationMs / 1000) * sampleRate)
-    );
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-    view.setUint8(0, 'R'.charCodeAt(0));
-    view.setUint8(1, 'I'.charCodeAt(0));
-    view.setUint8(2, 'F'.charCodeAt(0));
-    view.setUint8(3, 'F'.charCodeAt(0));
-    view.setUint32(4, 36 + numSamples * 2, true);
-    view.setUint8(8, 'W'.charCodeAt(0));
-    view.setUint8(9, 'A'.charCodeAt(0));
-    view.setUint8(10, 'V'.charCodeAt(0));
-    view.setUint8(11, 'E'.charCodeAt(0));
-    view.setUint8(12, 'f'.charCodeAt(0));
-    view.setUint8(13, 'm'.charCodeAt(0));
-    view.setUint8(14, 't'.charCodeAt(0));
-    view.setUint8(15, ' '.charCodeAt(0));
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    view.setUint8(36, 'd'.charCodeAt(0));
-    view.setUint8(37, 'a'.charCodeAt(0));
-    view.setUint8(38, 't'.charCodeAt(0));
-    view.setUint8(39, 'a'.charCodeAt(0));
-    view.setUint32(40, numSamples * 2, true);
-    return new Blob([buffer], { type: 'audio/wav' });
   }
 
   private _liveInputAnalyser: AnalyserNode | null = null;
@@ -471,6 +490,14 @@ export class PerformanceRecordingService implements OnDestroy {
     if (this.meterRaf) cancelAnimationFrame(this.meterRaf);
     this._monitorGain?.disconnect();
     this._monitorSource?.disconnect();
-    this._mediaStream?.getTracks().forEach((t) => t.stop());
+    this._liveInputAnalyser?.disconnect();
+    if (this.ownsMediaStream) {
+      this._mediaStream?.getTracks().forEach((t) => t.stop());
+    }
+    this._monitorGain = null;
+    this._monitorSource = null;
+    this._liveInputAnalyser = null;
+    this._mediaStream = null;
+    this.ownsMediaStream = false;
   }
 }

@@ -31,7 +31,21 @@ export enum GamepadButton {
 export class GamepadService {
   private zone = inject(NgZone);
 
-  connectedGamepad = signal<GamepadState | null>(null);
+  connectedGamepad = signal<GamepadState | null>(null, {
+    // The polling loop runs every animation frame. Avoid notifying consumers
+    // when the controller state has not changed; otherwise a held A/B button
+    // is interpreted as a new launch/close command on every frame.
+    equal: (previous, next) => {
+      if (previous === next) return true;
+      if (!previous || !next) return false;
+      return (
+        previous.connected === next.connected &&
+        previous.id === next.id &&
+        previous.buttons.length === next.buttons.length &&
+        previous.buttons.every((pressed, index) => pressed === next.buttons[index])
+      );
+    },
+  });
 
   // High-level signals for easier UI consumption
   lastButtonPressed = signal<number | null>(null);

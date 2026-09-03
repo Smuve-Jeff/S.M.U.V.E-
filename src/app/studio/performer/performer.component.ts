@@ -99,8 +99,6 @@ export class PerformerComponent implements OnDestroy, OnInit {
   midiMappingEditorOpen = signal(false);
   /** MIDI activity log panel visibility */
   midiLogOpen = signal(false);
-  /** Enabled device names (all enabled by default) */
-  enabledDevices = signal<string[]>([]);
 
   keyboardKeys = this.generateKeyboardKeys();
   performerPads = this.generatePads();
@@ -548,17 +546,12 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.midiService.performerCCMap.update((m) =>
       m.filter((x) => x.target !== target)
     );
-    // Persist immediately
-    if ((this.midiService as any).savePerformerCCMappings) {
-      (this.midiService as any).savePerformerCCMappings();
-    }
+    this.midiService.savePerformerCCMappings();
   }
 
   clearAllPerformerMappings(): void {
     this.midiService.performerCCMap.set([]);
-    if ((this.midiService as any).savePerformerCCMappings) {
-      (this.midiService as any).savePerformerCCMappings();
-    }
+    this.midiService.savePerformerCCMappings();
   }
 
   /** MIDI log helper */
@@ -597,15 +590,13 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.midiPanelOpen.update((v) => !v);
   }
 
+  /** Device gating is owned by DjMidiService so the enable list actually
+   * detaches listeners, not just re-styles the picker rows. */
   isDeviceEnabled(name: string): boolean {
-    if (this.enabledDevices().length === 0) return true;
-    return this.enabledDevices().includes(name);
+    return this.midiService.isDeviceEnabled(name);
   }
 
   toggleDevice(name: string): void {
-    this.enabledDevices.update((list) => {
-      if (list.includes(name)) return list.filter((d) => d !== name);
-      return [...list, name];
-    });
+    this.midiService.toggleDevice(name);
   }
 }

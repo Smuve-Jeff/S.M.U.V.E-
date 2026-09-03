@@ -77,6 +77,34 @@ export class DjMidiService {
   performerLearnTarget = signal<string | null>(null);
   performerCCMap = signal<PerformerCCMapping[]>([]);
 
+  /** Enabled input device names (empty list = all enabled). The device picker
+   * writes through toggleDevice so gating actually takes effect. */
+  enabledDevices = signal<string[]>([]);
+
+  /** True when the named input should be listened to. */
+  isDeviceEnabled(name: string): boolean {
+    const enabled = this.enabledDevices();
+    return enabled.length === 0 || enabled.includes(name);
+  }
+
+  /** Toggle (and live re-gate) an input device from the picker UI. */
+  toggleDevice(name: string): void {
+    this.enabledDevices.update((list) =>
+      list.includes(name) ? list.filter((d) => d !== name) : [...list, name]
+    );
+    this.applyDeviceGating();
+  }
+
+  /** Attach/detach onmidimessage per device to match enabledDevices. */
+  private applyDeviceGating(): void {
+    for (const device of this.midiInputDevices) {
+      const name = device.name || 'Unknown MIDI Device';
+      device.onmidimessage = this.isDeviceEnabled(name)
+        ? (msg: any) => this.handleMidi(msg)
+        : null;
+    }
+  }
+
   /** MIDI activity pulse — toggles on each incoming message for visual feedback */
   midiActivityPulse = signal(false);
 
@@ -126,8 +154,6 @@ export class DjMidiService {
   /** Available output device names for CC routing UI. */
   ccOutputNames = signal<string[]>([]);
 
-  private midiOutputDevices: any[] = [];
-  private midiOutputDevicesList: any[] = [];
   private clockInterval: any = null;
   private readonly CLOCK_PPQN = 24; // pulses per quarter note
 
@@ -230,15 +256,10 @@ export class DjMidiService {
     if (!this.midiAccess || this.clockEnabled()) return;
     this.clockEnabled.set(true);
 
-    // Collect output devices
-    this.midiOutputDevices = [];
-    const outputs = this.midiAccess.outputs.values();
-    for (let o = outputs.next(); o && !o.done; o = outputs.next()) {
-      this.midiOutputDevices.push(o.value);
-    }
-    this.midiOutputs.set(
-      this.midiOutputDevices.map((o) => o.name || 'MIDI Output')
-    );
+    // Use the shared output enumeration (kept fresh by setupInputs) rather
+    // than maintaining a second, clock-only device list.
+    this.refreshOutputList();
+    this.midiOutputs.set(this.midiOutputNames());
 
     // Send MIDI Start (0xFA)
     this.sendMidiMessage(0xfa);
@@ -268,7 +289,7 @@ export class DjMidiService {
 
   setClockOutput(index: number): void {
     this.clockOutputIndex.set(
-      Math.max(0, Math.min(this.midiOutputDevices.length - 1, index))
+      Math.max(0, Math.min(this.midiOutputDeviceList.length - 1, index))
     );
   }
 
@@ -287,11 +308,11 @@ export class DjMidiService {
   }
 
   private sendMidiMessage(...bytes: number[]): void {
-    if (!this.midiOutputDevices.length) return;
+    if (!this.midiOutputDeviceList.length) return;
     const idx = this.clockOutputIndex();
-    if (idx >= this.midiOutputDevices.length) return;
+    if (idx >= this.midiOutputDeviceList.length) return;
     try {
-      this.midiOutputDevices[idx].send(bytes);
+      this.midiOutputDeviceList[idx].send(bytes);
     } catch {}
   }
 
@@ -364,10 +385,11 @@ export class DjMidiService {
       const device = input.value;
       this.midiInputDevices.push(device);
       devices.push(device.name || 'Unknown MIDI Device');
-      device.onmidimessage = (msg: any) => this.handleMidi(msg);
     }
     this.connectedDevices.set(devices);
     this.midiInputNames.set(devices);
+    // Respect the picker's enable list — a disabled device must not listen.
+    this.applyDeviceGating();
     this.refreshOutputList();
     if (devices.length > 0) {
       this.logger.info(`DJ MIDI Devices: ${devices.join(', ')}`);
@@ -388,7 +410,8 @@ export class DjMidiService {
     this.performerLearnTarget.set(null);
   }
 
-  private savePerformerCCMappings() {
+  /** Persist performer CC mappings (public — the mapping editor calls this). */
+  savePerformerCCMappings() {
     try {
       localStorage.setItem(
         'smuve_performer_cc_mappings',
@@ -457,11 +480,9 @@ export class DjMidiService {
   private refreshOutputList(): void {
     if (!this.midiAccess) return;
     this.midiOutputDeviceList = [];
-    this.midiOutputDevicesList = [];
     const outputs = this.midiAccess.outputs.values();
     for (let o = outputs.next(); o && !o.done; o = outputs.next()) {
       this.midiOutputDeviceList.push(o.value);
-      this.midiOutputDevicesList.push(o.value);
     }
     this.midiOutputNames.set(
       this.midiOutputDeviceList.map((o: any) => o.name || 'MIDI Output')
@@ -616,7 +637,9 @@ export class DjMidiService {
 
   /** Forward MIDI message to the thru output device */
   private forwardThru(status: number, data1?: number, data2?: number): void {
-    this.refreshOutputList();
+    // No refreshOutputList() here — this runs per MIDI message and rescanning
+    // every device on every event starves the main thread. The list is kept
+    // fresh by setupInputs (fires on statechange).
     const idx = this.thruOutputIndex();
     if (idx < 0 || idx >= this.midiOutputDeviceList.length) return;
     try {

@@ -257,6 +257,11 @@ export class StudioRecordingEngineService implements OnDestroy {
     return this.analyserNode;
   }
 
+  /** Return the active input stream so higher-level recording views can share it. */
+  getMediaStream(): MediaStream | null {
+    return this.mediaStream;
+  }
+
   /** Return the current left/right channel buffers for SmartRecordingService to pull real comp takes */
   getRecordedBuffers(
     applyCompensation: boolean = true

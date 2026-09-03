@@ -7,10 +7,11 @@
  *
  * Processing chain (in order):
  *   1. 5-Band Mastering EQ  — sub / low / mid / high / air (biquad cascade)
- *   2. Stereo Compressor     — soft-knee, linked-stereo detection
- *   3. Harmonic Saturation   — tanh / cubic / soft, dry/wet blend
- *   4. Lookahead Limiter     — brickwall with 64-sample lookahead
- *   5. Final Safety Clipper  — hard clamp at -0.1 dB
+ *   2. Master Filter        — lowpass sweep (per-channel state, FX-macro driven)
+ *   3. Stereo Compressor     — soft-knee, linked-stereo detection
+ *   4. Harmonic Saturation   — tanh / cubic / soft, dry/wet blend
+ *   5. Lookahead Limiter     — brickwall with 64-sample lookahead
+ *   6. Final Safety Clipper  — hard clamp at -0.1 dB
  *
  * All parameters configurable via port messages.
  * Keep-alive: always returns true from process().
@@ -30,9 +31,10 @@ class BiquadDF2 {
   constructor() {
     this.b0 = 1; this.b1 = 0; this.b2 = 0;
     this.a1 = 0; this.a2 = 0;
-    this.x1 = 0; this.x2 = 0;
-    this.y1 = 0; this.y2 = 0;
   }
+
+  /** Fresh per-channel Direct-Form-II state (L and R must not share one). */
+  static freshState() { return { x1: 0, x2: 0, y1: 0, y2: 0 }; }
 
   design(type, freq, q, gainDb, sr) {
     const w0 = 2 * Math.PI * freq / sr;
@@ -76,15 +78,15 @@ class BiquadDF2 {
     this.a2 = a2 / a0;
   }
 
-  process(x) {
-    const y = this.b0 * x + this.b1 * this.x1 + this.b2 * this.x2
-            - this.a1 * this.y1 - this.a2 * this.y2;
-    this.x2 = this.x1; this.x1 = x;
-    this.y2 = this.y1; this.y1 = y;
+  process(x, st) {
+    const y = this.b0 * x + this.b1 * st.x1 + this.b2 * st.x2
+            - this.a1 * st.y1 - this.a2 * st.y2;
+    st.x2 = st.x1; st.x1 = x;
+    st.y2 = st.y1; st.y1 = y;
     return y;
   }
 
-  reset() { this.x1 = this.x2 = this.y1 = this.y2 = 0; }
+  resetState(st) { st.x1 = st.x2 = st.y1 = st.y2 = 0; }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -101,6 +103,10 @@ class MasteringEq {
       this.bands.push({ filter: bq, freq: freqs[i], type: types[i], gain: 0 });
     }
     this.sr = sr;
+    // Per-channel DF2 state so L/R share coefficients — never filter state.
+    this.stateL = BiquadDF2.freshState();
+    this.stateR = BiquadDF2.freshState();
+    this.alt = false;
   }
 
   configure(bandIndex, gainDb) {
@@ -111,16 +117,53 @@ class MasteringEq {
   }
 
   process(sample) {
-    let out = sample;
-    for (const b of this.bands) {
-      out = b.filter.process(out);
-    }
-    return out;
+    // Alternate which channel's state updates first so neither side wins the
+    // sample-order race when a mono bus is upmixed to both inputs.
+    this.alt = !this.alt;
+    const l = this.alt
+      ? this.bands.reduce((v, b) => b.filter.process(v, this.stateL), sample)
+      : this.bands.reduce((v, b) => b.filter.process(v, this.stateR), sample);
+    const r = this.alt
+      ? this.bands.reduce((v, b) => b.filter.process(v, this.stateR), sample)
+      : this.bands.reduce((v, b) => b.filter.process(v, this.stateL), sample);
+    return [l, r];
   }
 
   reset() {
-    for (const b of this.bands) b.filter.reset();
+    for (const b of this.bands) b.filter.resetState(this.stateL);
+    for (const b of this.bands) b.filter.resetState(this.stateR);
   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Master Filter — one-pole lowpass sweep (FX-macro target)
+   ══════════════════════════════════════════════════════════ */
+class MasterFilter {
+  constructor(sr) {
+    this.sr = sr;
+    this.frequency = 20000; // Hz; > Nyquist/2 ⇒ effectively bypassed
+    this.coef = 1; // one-pole LP coefficient (1 = pass-through)
+    this.zL = 0;
+    this.zR = 0;
+  }
+
+  configure(cfg) {
+    if (cfg.frequency !== undefined) {
+      this.frequency = clamp(cfg.frequency, 20, Math.min(20000, this.sr / 2));
+      // One-pole LP with -3dB at `frequency`: a = 1 − exp(−2π·f/sr).
+      // (a = exp(−2π·f/sr) would place a "20 kHz" filter near 600 Hz.)
+      this.coef = 1 - Math.exp((-2 * Math.PI * this.frequency) / this.sr);
+    }
+  }
+
+  process(sL, sR) {
+    if (this.coef >= 1) return [sL, sR];
+    this.zL += this.coef * (sL - this.zL);
+    this.zR += this.coef * (sR - this.zR);
+    return [this.zL, this.zR];
+  }
+
+  reset() { this.zL = 0; this.zR = 0; }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -275,6 +318,7 @@ class MasterProcessor extends AudioWorkletProcessor {
 
     const sr = sampleRate;
     this.eq = new MasteringEq(sr);
+    this.filter = new MasterFilter(sr);
     this.compressor = new MasterCompressor(sr);
     this.saturation = new MasterSaturation();
     this.limiter = new MasterLimiter(sr);
@@ -307,6 +351,10 @@ class MasterProcessor extends AudioWorkletProcessor {
           if (msg.action === 'configure') this.limiter.configure(msg.payload || {});
           break;
         }
+        case 'filter': {
+          if (msg.action === 'configure') this.filter.configure(msg.payload || {});
+          break;
+        }
         case 'preset': {
           // Quick preset application
           if (msg.payload === 'smuve') {
@@ -321,6 +369,7 @@ class MasterProcessor extends AudioWorkletProcessor {
             this.compressorEnabled = false;
             this.limiterEnabled = false;
             this.saturation.configure({ amount: 0, mix: 0, mode: 'tanh' });
+            this.filter.configure({ frequency: 20000 });
             this.eq.configure(0, 0); this.eq.configure(1, 0);
             this.eq.configure(2, 0); this.eq.configure(3, 0);
             this.eq.configure(4, 0);
@@ -329,6 +378,7 @@ class MasterProcessor extends AudioWorkletProcessor {
         }
         case 'reset': {
           this.eq.reset();
+          this.filter.reset();
           this.compressor.reset();
           this.saturation.reset();
           this.limiter.reset();
@@ -354,23 +404,25 @@ class MasterProcessor extends AudioWorkletProcessor {
       let sR = inR[i] || 0;
 
       // 1. EQ (always active — bands default to 0 gain)
-      sL = this.eq.process(sL);
-      sR = this.eq.process(sR);
+      [sL, sR] = this.eq.process(sL, sR);
 
-      // 2. Compressor
+      // 2. Master filter sweep (FX-macro driven, bypassed at 20 kHz)
+      [sL, sR] = this.filter.process(sL, sR);
+
+      // 3. Compressor
       if (this.compressorEnabled) {
         [sL, sR] = this.compressor.process(sL, sR);
       }
 
-      // 3. Saturation (always process, blend controls intensity)
+      // 4. Saturation (always process, blend controls intensity)
       [sL, sR] = this.saturation.process(sL, sR);
 
-      // 4. Lookahead Limiter
+      // 5. Lookahead Limiter
       if (this.limiterEnabled) {
         [sL, sR] = this.limiter.process(sL, sR);
       }
 
-      // 5. Final safety clamp
+      // 6. Final safety clamp
       outL[i] = clamp(sL, -1, 1);
       outR[i] = clamp(sR, -1, 1);
     }

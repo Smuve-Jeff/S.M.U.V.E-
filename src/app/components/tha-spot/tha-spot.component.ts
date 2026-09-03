@@ -1537,9 +1537,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.gameLoadError.set(false);
     if (iframe) {
       iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
-    // Angular 21 (NG0910) forbids template-binding the sandbox attribute
-    // on iframes — apply it imperatively alongside the allow attribute.
-    iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+      // Angular 21 (NG0910) forbids template-binding the sandbox attribute
+      // on iframes — apply it imperatively alongside the allow attribute.
+      iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
     }
   }
 

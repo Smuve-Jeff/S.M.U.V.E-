@@ -152,7 +152,8 @@ describe('PerformanceRecordingService', () => {
     expect(service.isRecording()).toBe(false);
   });
 
-  it('should finish a take and publish it', async () => {
+  it('should finish a real engine take and publish it', async () => {
+    provideRealEngineHook();
     service.arm(1);
     service.startRecording();
     await new Promise((r) => setTimeout(r, 5));
@@ -206,6 +207,7 @@ describe('PerformanceRecordingService', () => {
     service.arm(1);
     service.startRecording();
     service.startRecording();
+    await service.finishTake();
     expect(fakeEngine.startRecording).toHaveBeenCalledTimes(1);
   });
 

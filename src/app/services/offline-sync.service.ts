@@ -15,6 +15,8 @@ export interface SyncQueueItem {
   userId?: string;
 }
 
+type SyncEndpointHandler = (item: SyncQueueItem) => Promise<void>;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -39,6 +41,8 @@ export class OfflineSyncService {
   private syncInProgress = false;
   private onlineHandler: (() => void) | null = null;
   private offlineHandler: (() => void) | null = null;
+  /** In-process adapters for local/offline-backed endpoints. */
+  private endpointHandlers = new Map<string, SyncEndpointHandler>();
 
   constructor() {
     this.initNetworkListeners();
@@ -163,6 +167,21 @@ export class OfflineSyncService {
   }
 
   /**
+   * Register a local endpoint adapter. This keeps offline replay on the same
+   * domain service instead of sending synthetic URLs such as /mock-cloud/push
+   * through fetch. The queue remains durable; the adapter is re-registered by
+   * its owning service on every app boot.
+   */
+  registerEndpointHandler(endpoint: string, handler: SyncEndpointHandler): () => void {
+    this.endpointHandlers.set(endpoint, handler);
+    return () => {
+      if (this.endpointHandlers.get(endpoint) === handler) {
+        this.endpointHandlers.delete(endpoint);
+      }
+    };
+  }
+
+  /**
    * Processes the sync queue when network is available.
    */
   async processQueue(): Promise<void> {
@@ -209,6 +228,15 @@ export class OfflineSyncService {
   }
 
   private async executeSync(item: SyncQueueItem): Promise<void> {
+    const handler = this.endpointHandlers.get(item.endpoint);
+    if (handler) {
+      await handler(item);
+      this.logger.info(
+        `OfflineSync: Successfully replayed ${item.action} to ${item.endpoint}`
+      );
+      return;
+    }
+
     const method =
       item.action === 'DELETE'
         ? 'DELETE'

@@ -6,6 +6,7 @@ import { LocalStorageService } from './local-storage.service';
 
 class StubOfflineSync {
   queueOperation = jest.fn().mockResolvedValue('qid');
+  registerEndpointHandler = jest.fn().mockReturnValue(jest.fn());
   networkStatus = jest.fn(() => 'online' as 'online' | 'offline');
   pendingCount = jest.fn(() => 0);
   deadLetterCount = jest.fn(() => 0);

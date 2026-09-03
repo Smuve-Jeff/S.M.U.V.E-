@@ -2562,6 +2562,70 @@ export class AudioEngineService {
       this.limiter.ratio.setTargetAtTime(p.ratio, this.ctx.currentTime, 0.05);
   }
 
+  /**
+   * Resting defaults for the master-bus parameters that FX macros modulate.
+   * The canonical source of truth for macro reset — callers must use these
+   * values (via FxMacrosService) instead of re-hardcoding them, so the
+   * master bus, the mixer surface, and the macro HUD can never disagree.
+   */
+  public static readonly MASTER_DEFAULTS = {
+    masterFilterHz: 20000, // lowpass above Nyquist/2 ⇒ effectively open
+    limiterThresholdDb: -0.5, // matches the worklet smuve preset / macro rest
+    limiterRatio: 20,
+    compressorRatio: 4, // matches the smuve preset / worklet default
+  } as const;
+
+  /**
+   * Set the master filter cutoff (lowpass). Routes to whichever master
+   * processing path is live: the worklet filter stage when the
+   * master worklet is active, otherwise the fallback chain masterEQ node.
+   */
+  setMasterFilterHz(hz: number): void {
+    const clamped = Math.max(20, Math.min(20000, hz));
+    if (this.masterWorkletActive()) {
+      this.configureMasterWorklet('filter', 'configure', { frequency: clamped });
+    } else {
+      this.masterEQ.frequency.setTargetAtTime(
+        clamped,
+        this.ctx.currentTime,
+        0.05
+      );
+    }
+  }
+
+  /**
+   * Set the master limiter threshold (dB). Routes to the worklet limiter when
+   * active, otherwise the fallback chain limiter node.
+   */
+  setMasterLimiterThreshold(db: number): void {
+    if (this.masterWorkletActive()) {
+      this.configureMasterWorklet('limiter', 'configure', { thresholdDb: db });
+    } else {
+      this.limiter.threshold.setTargetAtTime(db, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  /**
+   * Set the master compressor ratio. Routes to the worklet compressor when
+   * active, otherwise the fallback chain compressor node.
+   */
+  setMasterCompressorRatio(ratio: number): void {
+    if (this.masterWorkletActive()) {
+      this.configureMasterWorklet('compressor', 'configure', { ratio });
+    } else {
+      this.compressor.ratio.setTargetAtTime(ratio, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  /**
+   * Set the master reverb return level (0..1). This gain node sits on the
+   * main thread in both paths, so both paths share this setter.
+   */
+  setMasterReverbWet(wet: number): void {
+    const clamped = Math.max(0, Math.min(1, wet));
+    this.reverbWet.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.05);
+  }
+
   syncDecks(m: DeckId, s: DeckId) {}
   setOutputMode(mode: 'speakers' | 'headphones') {
     this.outputMode.set(mode);
