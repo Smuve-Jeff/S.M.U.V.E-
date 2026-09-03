@@ -150,6 +150,33 @@ describe('SplitScreenPanelComponent', () => {
     expect(component.peerSnapshot()?.level).toBe('LV_02');
   });
 
+  it('seeds the local turn from the assigned role so guests never read TURN: HOST', () => {
+    fixture.componentRef.setInput('game', inlineGame());
+    fixture.detectChanges();
+    expect(component.myTurn()).toBe('host');
+    // Server-assigned role arrives via split_screen_role_assigned → lobby.role.
+    activeSplitLobby.set({
+      id: 'split_x',
+      gameId: 'rg-12345-demo-game',
+      gameName: 'Demo Racer',
+      hostId: 'host-1',
+      guestId: 'guest-2',
+      role: 'guest',
+      status: 'ready',
+      created: 1,
+    });
+    fixture.detectChanges();
+    expect(component.myTurn()).toBe('guest');
+    // Game-state postMessage snapshots now carry the corrected turn.
+    component.receiveGameMessage({
+      origin: window.location.origin,
+      data: { type: 'smuve_game_state', score: 5, progress: 33, level: 'LV_03' },
+    } as MessageEvent);
+    expect(matchmakingMock.pushSplitScreenSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ turn: 'guest' })
+    );
+  });
+
   it('shows no cabinet state when the game input is missing', () => {
     expect(component.trustedIframeUrl()).toBeNull();
     expect(component.inlineUnavailable()).toBe(false);

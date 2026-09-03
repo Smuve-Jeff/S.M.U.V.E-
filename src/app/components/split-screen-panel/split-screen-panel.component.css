@@ -213,6 +213,12 @@
   flex-direction: column;
   gap: 0.3rem;
   min-width: 130px;
+  max-width: min(46%, 220px);
+  /* HUD chrome must never eat taps meant for the game underneath —
+     especially on Android where corner controls are common. Only the
+     interactive turn button re-enables pointer events. */
+  pointer-events: none;
+  z-index: 2;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-transform: uppercase;
@@ -242,6 +248,7 @@
   color: #f0abfc;
 }
 .hud-turn-btn {
+  pointer-events: auto;
   appearance: none;
   border: 1px solid rgba(245, 196, 87, 0.5);
   background: rgba(60, 31, 0, 0.6);
@@ -249,7 +256,8 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   font-size: 0.7rem;
-  padding: 0.25rem 0.45rem;
+  padding: 0.35rem 0.6rem;
+  min-height: 32px; /* comfortable touch target */
   border-radius: 6px;
   cursor: pointer;
   transition: transform 80ms ease;

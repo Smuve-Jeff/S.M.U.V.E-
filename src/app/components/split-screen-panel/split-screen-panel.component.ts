@@ -96,6 +96,17 @@ export class SplitScreenPanelComponent {
   readonly myTurn = signal<'host' | 'guest'>('host');
   readonly myLevel = signal('LV_01');
 
+  /**
+   * Keep the local turn state aligned with the SERVER-assigned role.
+   * A guest (including one silently downgraded from host by the backend's
+   * host arbitration) must not present "TURN: HOST" on their own HUD until
+   * they manually cycle. Re-seeds only on role changes, never mid-session.
+   */
+  private turnRoleSyncEffect = effect(() => {
+    const role = this.matchmaking.activeSplitLobby()?.role;
+    if (role) this.myTurn.set(role);
+  });
+
   readonly isHost = computed(() =>
     this.matchmaking.activeSplitLobby()?.role === 'host'
   );
@@ -215,7 +226,7 @@ export class SplitScreenPanelComponent {
       score: this.myScore(),
       progress: this.myProgress(),
       level: this.myLevel(),
-      turn: this.isGuest() ? 'guest' : 'host',
+      turn: this.myTurn(),
     });
   };
 
