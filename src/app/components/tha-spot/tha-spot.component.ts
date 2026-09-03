@@ -1479,10 +1479,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!iframe || iframe === this.guardedGameFrame) return;
     this.removeGameFrameGuards();
     this.guardedGameFrame = iframe;
-    iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
-    // Angular 21 (NG0910) forbids template-binding the sandbox attribute
-    // on iframes — apply it imperatively alongside the allow attribute.
-    iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+    try {
+      iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+    } catch {}
+    try {
+      iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+    } catch {}
     iframe.addEventListener('load', this.gameFrameLoadHandler);
     iframe.addEventListener('error', this.gameFrameErrorHandler);
   }
@@ -1536,10 +1538,12 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.gameLoadStage.set('ready');
     this.gameLoadError.set(false);
     if (iframe) {
-      iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
-    // Angular 21 (NG0910) forbids template-binding the sandbox attribute
-    // on iframes — apply it imperatively alongside the allow attribute.
-    iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+      try {
+        iframe.setAttribute('allow', this.getIframeAllowAttr(this.currentGame()));
+      } catch {}
+      try {
+        iframe.setAttribute('sandbox', this.getSandboxAttr(this.currentGame()));
+      } catch {}
     }
   }
 
