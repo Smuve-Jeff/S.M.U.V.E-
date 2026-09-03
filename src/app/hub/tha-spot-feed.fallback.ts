@@ -4524,7 +4524,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://playvalorant.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/valorant.svg',
+      image: 'assets/games/valorant.svg',
     },
     {
       id: 'league-of-legends',
@@ -4542,7 +4542,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.leagueoflegends.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/league-of-legends.svg',
+      image: 'assets/games/league-of-legends.svg',
     },
     {
       id: 'dota2',
@@ -4560,7 +4560,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.dota2.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/dota2.svg',
+      image: 'assets/games/dota2.svg',
     },
     {
       id: 'apex-legends',
@@ -4578,7 +4578,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.ea.com/games/apex-legends',
         embedMode: 'external-only',
       },
-      image: '/assets/games/apex-legends.svg',
+      image: 'assets/games/apex-legends.svg',
     },
     {
       id: 'rocket-league',
@@ -4596,7 +4596,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.rocketleague.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/rocket-league.svg',
+      image: 'assets/games/rocket-league.svg',
     },
     {
       id: 'fortnite',
@@ -4614,7 +4614,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.epicgames.com/fortnite/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/fortnite.svg',
+      image: 'assets/games/fortnite.svg',
     },
     {
       id: 'minecraft',
@@ -4632,7 +4632,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.minecraft.net/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/minecraft.svg',
+      image: 'assets/games/minecraft.svg',
     },
     {
       id: 'among-us',
@@ -4650,7 +4650,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.innersloth.com/gameAmongUs.php',
         embedMode: 'external-only',
       },
-      image: '/assets/games/among-us.svg',
+      image: 'assets/games/among-us.svg',
     },
     {
       id: 'gta-online',
@@ -4668,7 +4668,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.rockstargames.com/GTAOnline',
         embedMode: 'external-only',
       },
-      image: '/assets/games/gta-online.svg',
+      image: 'assets/games/gta-online.svg',
     },
     {
       id: 'sea-of-thieves',
@@ -4686,7 +4686,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.seaofthieves.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/sea-of-thieves.svg',
+      image: 'assets/games/sea-of-thieves.svg',
     },
     {
       id: 'destiny-2',
@@ -4704,7 +4704,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.bungie.net/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/destiny-2.svg',
+      image: 'assets/games/destiny-2.svg',
     },
     {
       id: 'rainbow-six-siege',
@@ -4722,7 +4722,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.ubisoft.com/en-us/game/rainbow-six/siege',
         embedMode: 'external-only',
       },
-      image: '/assets/games/rainbow-six-siege.svg',
+      image: 'assets/games/rainbow-six-siege.svg',
     },
     {
       id: 'cs2',
@@ -4740,7 +4740,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.counter-strike.net/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/cs2.svg',
+      image: 'assets/games/cs2.svg',
     },
     {
       id: 'fifa-24',
@@ -4758,7 +4758,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.ea.com/games/fifa',
         embedMode: 'external-only',
       },
-      image: '/assets/games/fifa-24.svg',
+      image: 'assets/games/fifa-24.svg',
     },
     {
       id: 'warframe',
@@ -4776,7 +4776,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
         approvedExternalUrl: 'https://www.warframe.com/',
         embedMode: 'external-only',
       },
-      image: '/assets/games/warframe.svg',
+      image: 'assets/games/warframe.svg',
     },
     {
       id: 'rg-16841-contra-usa',
@@ -21250,7 +21250,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       title: 'Xbox Originals',
       subtitle: 'The Absolute power of the X. S.M.U.V.E. demands high-fidelity execution.',
       roomIds: ['shooting-range'],
-      gameIds: [],
+      gameIds: ['halo-combat-evolved', 'splinter-cell-elite-master'],
       audience: {
         minPlays: 0,
       },
