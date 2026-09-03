@@ -538,6 +538,37 @@ describe('DjDeckComponent', () => {
     expect(engine.setSaturation).toHaveBeenLastCalledWith(0);
   });
 
+  it('selectFxMode re-engages both loaded decks at their current depth', () => {
+    component.selectFxMode('echo');
+    expect(component.fxMode()).toBe('echo');
+    // Deck A: depth 0 (default). Deck B: same. Loaded decks get setFx.
+    expect(mockDeckService.setFx).toHaveBeenCalledWith('A', 'echo', 0);
+    expect(mockDeckService.setFx).toHaveBeenCalledWith('B', 'echo', 0);
+  });
+
+  it('selectFxMode skips decks without a loaded track', () => {
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      track: null,
+    }));
+    mockDeckService.setFx.mockClear();
+    component.selectFxMode('phaser');
+    expect(component.fxMode()).toBe('phaser');
+    expect(mockDeckService.setFx).toHaveBeenCalledTimes(1);
+    expect(mockDeckService.setFx).toHaveBeenCalledWith('A', 'phaser', 0);
+  });
+
+  it('selectFxMode hands the deck depth through setFx unclamped-proof', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      fxAmount: 0.6,
+    }));
+    mockDeckService.setFx.mockClear();
+    component.selectFxMode('damp');
+    expect(mockDeckService.setFx).toHaveBeenCalledWith('A', 'damp', 0.6);
+    expect(mockDeckService.setFx).toHaveBeenCalledWith('B', 'damp', 0);
+  });
+
   it('clamps updateFilter frequencies into the audible range', () => {
     component.updateFilter('A', 100000);
     expect(mockDeckService.setDeckFilter).toHaveBeenLastCalledWith('A', 22050);

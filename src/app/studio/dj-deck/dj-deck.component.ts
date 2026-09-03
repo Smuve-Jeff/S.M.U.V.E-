@@ -470,6 +470,26 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * Apply a newly selected FX mode immediately at each deck's current
+   * depth. Clicking a mode chip must disengage the previous effect's
+   * audio (autowah filter, damp EQ, reverb/rotate sends, insert wet) —
+   * waiting for the next knob drag would leave the old effect audible
+   * while the UI already shows the new mode.
+   */
+  selectFxMode(
+    mode: 'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate'
+  ) {
+    this.fxMode.set(mode);
+    const engage = (deck: 'A' | 'B') => {
+      const state = this.getDeckState(deck);
+      if (!state.track) return;
+      this.deckService.setFx(deck, mode, this.clampFxAmount(state.fxAmount));
+    };
+    engage('A');
+    engage('B');
+  }
+
   handlePadDown(
     deck: 'A' | 'B',
     index: number,

@@ -345,6 +345,52 @@ describe('DeckService', () => {
     expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'B', 0.6);
   });
 
+  it('restores the base send levels when leaving reverb', () => {
+    // Give the deck some pre-FX send settings to restore to.
+    service.setDeckSend('A', 'A', 0.25);
+    service.setDeckSend('A', 'B', 0.15);
+
+    service.setFx('A', 'reverb', 0.6);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0.6);
+
+    // Leaving reverb for a non-send mode must not leave the wash bleeding.
+    mockEngine.setDeckSend.mockClear();
+    service.setFx('A', 'echo', 0.4);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0.25);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'B', 0.15);
+  });
+
+  it('reverb → rotate swaps the wash without resetting, then restores on leave', () => {
+    service.setFx('A', 'reverb', 0.8);
+    mockEngine.setDeckSend.mockClear();
+
+    // Rotate is send-borrowing too: it replaces reverb's sends directly.
+    service.setFx('A', 'rotate', 0.4);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledTimes(2);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0.4);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'B', 0.6);
+
+    // Leaving rotate restores the base (captured on first entry = 0).
+    mockEngine.setDeckSend.mockClear();
+    service.setFx('A', 'damp', 1);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'A', 0);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('A', 'B', 0);
+  });
+
+  it('rotating between borrow modes never overwrites the stored base', () => {
+    service.setDeckSend('B', 'A', 0.5);
+    service.setDeckSend('B', 'B', 0.2);
+    // Enter reverb → capture (0.5, 0.2).
+    service.setFx('B', 'reverb', 0.7);
+    // reverb → rotate: no recapture, sends replaced.
+    service.setFx('B', 'rotate', 0.3);
+    mockEngine.setDeckSend.mockClear();
+    // rotate → echo restores the ORIGINAL base, not rotate's send levels.
+    service.setFx('B', 'echo', 1);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('B', 'A', 0.5);
+    expect(mockEngine.setDeckSend).toHaveBeenCalledWith('B', 'B', 0.2);
+  });
+
   it('loadDeckBuffer stamps a track id so beat-loop presets can engage', () => {
     const buffer = { duration: 120 } as AudioBuffer;
     service.loadDeckBuffer('A', buffer, 'loop-me.wav');

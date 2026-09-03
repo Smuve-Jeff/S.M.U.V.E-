@@ -158,12 +158,22 @@ export class DeckService {
     A: { high: initialDeckState.eqHigh, mid: initialDeckState.eqMid, low: initialDeckState.eqLow },
     B: { high: initialDeckState.eqHigh, mid: initialDeckState.eqMid, low: initialDeckState.eqLow },
   };
+  /** Base send gains captured when a send-borrowing FX (reverb/rotate)
+   *  engages, so leaving the mode returns the A/B sends to their previous
+   *  levels instead of letting the ambience wash bleed into the master
+   *  forever. */
+  private fxSendBase: Record<DeckId, { a: number; b: number }> = {
+    A: { a: 0, b: 0 },
+    B: { a: 0, b: 0 },
+  };
 
   setFx(deck: DeckId, mode: DeckState['activeFx'], val: number) {
     const target = deck === 'A' ? this.deckA : this.deckB;
     const amount = Math.max(0, Math.min(1, val));
     const state = target();
     const prevMode = state.activeFx;
+    const sendBorrowing = (m: DeckState['activeFx']) =>
+      m === 'reverb' || m === 'rotate';
 
     // Leaving a filter/EQ-borrowing FX restores the base values so the
     // next mode starts from a clean tonal canvas instead of inheriting the
@@ -175,6 +185,14 @@ export class DeckService {
       const base = this.fxEqBase[deck];
       this.setDeckEq(deck, base.high, base.mid, base.low);
     }
+    // Leaving a send-borrowing FX restores the A/B send levels so the
+    // reverb/rotate wash does not keep feeding the master after the mode
+    // is switched away (sends are otherwise never zeroed).
+    if (sendBorrowing(prevMode) && !sendBorrowing(mode)) {
+      const base = this.fxSendBase[deck];
+      this.setDeckSend(deck, 'A', base.a);
+      this.setDeckSend(deck, 'B', base.b);
+    }
     // Entering a borrowing mode captures the base values for later restore.
     if (mode === 'autowah' && prevMode !== 'autowah') {
       this.fxFilterBase[deck] = state.filterFreq;
@@ -185,6 +203,11 @@ export class DeckService {
         mid: state.eqMid,
         low: state.eqLow,
       };
+    }
+    if (sendBorrowing(mode) && !sendBorrowing(prevMode)) {
+      const sendA = (state as DeckState & { sendA?: number }).sendA ?? 0;
+      const sendB = (state as DeckState & { sendB?: number }).sendB ?? 0;
+      this.fxSendBase[deck] = { a: sendA, b: sendB };
     }
 
     // Clear any residue from the previous advanced FX (echo/chorus/phaser)

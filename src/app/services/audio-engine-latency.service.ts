@@ -39,9 +39,9 @@ export interface BenchmarkResult {
   durationSec: number;
   offlineRenderMs: number;
   /**
-   * Ratio of offline render wall-clock vs the buffer duration. Lower is
-   * faster — anything ≤1 means real-time-or-better, ≥2 means the device
-   * is materially slower than real-time.
+   * Buffer duration ÷ offline render wall-clock. 1 = real-time; >1
+   * means the device rendered faster than playback (great for bouncing
+   * while editing); <1 means it crawled slower than real-time.
    */
   speedRatio: number;
   capturedAt: number;
@@ -204,8 +204,8 @@ export class AudioEngineLatencyService {
     const result: BenchmarkResult = {
       durationSec,
       offlineRenderMs,
-      // speedRatio = 1 means real-time; <1 means we're faster than
-      // playback (great); >1 means slower (visible crawl on bounces).
+      // Buffer duration / render wall-clock: 1 = real-time, >1 = faster
+      // than real-time (great), <1 = slower than real-time.
       speedRatio: durationSec * 1000 / Math.max(1, offlineRenderMs),
       capturedAt: Date.now(),
     };
@@ -221,10 +221,6 @@ export class AudioEngineLatencyService {
     });
   }
 
-  /**
-   * Plain-object snapshot for callers that prefer a non-signal shape
-   * (tests, JSON dumps). Returns the latest `snapshot()` value.
-   */
   /**
    * Plain-object snapshot for callers that prefer a non-signal shape
    * (tests, JSON dumps). Returns the latest `snapshot()` value.

@@ -832,7 +832,7 @@ export class AudioEngineService {
     // echo (delay + feedback), chorus (LFO-modulated flanger delay) and
     // phaser (allpass cascade swept by an LFO) mix dry/wet into the deck
     // signal between the filter and the panner. Wet gains start at 0 so
-    // the chain is silent until setAdvancedFX() drives it.
+    // the chain is silent until setDeckAdvancedFx() drives it.
     const fxIn = this.ctx.createGain();
     const fxDry = this.ctx.createGain();
     const fxSum = this.ctx.createGain();
@@ -905,6 +905,13 @@ export class AudioEngineService {
     deck.eqHigh.frequency.value = 4000;
     deck.filter.type = 'lowpass';
     deck.filter.frequency.value = 20000;
+
+    // Sends are pre-fader taps into the master return buses. A fresh
+    // createGain() defaults to unity, which would double the deck through
+    // the returns on top of the main path — zero them explicitly so the
+    // FX wash only appears when a reverb/rotate mode drives them.
+    deck.sendA.gain.value = 0;
+    deck.sendB.gain.value = 0;
 
     fxIn.gain.value = 1;
     fxDry.gain.value = 1;

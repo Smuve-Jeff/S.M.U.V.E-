@@ -763,3 +763,62 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
     });
   });
 });
+
+// =====================================================================
+// Deck send default — regression: a fresh createGain() starts at unity,
+// so deck A/B sends must be explicitly zeroed at creation or every deck
+// doubles through the master send returns on top of the main path.
+// =====================================================================
+
+describe('AudioEngineService.createDeck send defaults', () => {
+  function makeCtxWithUnityGains(): any {
+    const node = (gainValue: number) => ({
+      gain: {
+        value: gainValue,
+        setTargetAtTime: jest.fn(),
+        setValueAtTime: jest.fn(),
+      },
+      delayTime: { value: 0, setTargetAtTime: jest.fn() },
+      frequency: { value: 0, setTargetAtTime: jest.fn() },
+      Q: { value: 0 },
+      type: '',
+      connect: jest.fn().mockReturnThis(),
+      disconnect: jest.fn(),
+      start: jest.fn(),
+    });
+    // Real browsers default GainNode.gain.value to 1 (unity).
+    return {
+      currentTime: 0,
+      sampleRate: 44100,
+      destination: {},
+      createGain: jest.fn(() => node(1)),
+      createDelay: jest.fn(() => node(0)),
+      createOscillator: jest.fn(() => node(0)),
+      createBiquadFilter: jest.fn(() => node(0)),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn().mockReturnThis(),
+        disconnect: jest.fn(),
+      })),
+      createAnalyser: jest.fn(() => ({
+        connect: jest.fn().mockReturnThis(),
+        disconnect: jest.fn(),
+      })),
+    };
+  }
+
+  it('zeroes deck A/B sends so decks do not double-feed the master returns', () => {
+    const svc = Object.create(
+      AudioEngineService.prototype
+    ) as AudioEngineService;
+    (svc as any).ctx = makeCtxWithUnityGains();
+
+    const deckA = (svc as any).createDeck('A');
+    const deckB = (svc as any).createDeck('B');
+
+    expect(deckA.sendA.gain.value).toBe(0);
+    expect(deckA.sendB.gain.value).toBe(0);
+    expect(deckB.sendA.gain.value).toBe(0);
+    expect(deckB.sendB.gain.value).toBe(0);
+  });
+});
