@@ -9,6 +9,7 @@ import {
 import { UserProfileService } from './user-profile.service';
 import { AiService } from './ai.service';
 import { initialProfile } from '../types/profile.types';
+import { buildArtistMusicContext } from '../types/profile.types';
 
 function profileWith(overrides: Record<string, any>): any {
   const base = JSON.parse(JSON.stringify(initialProfile)) as any;
@@ -48,10 +49,10 @@ describe('EnhancedArtistQuestionnaireEngine', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('covers all eight phases with 54+ questions', () => {
+  it('covers all eight phases with 65 questions', () => {
     const phases = new Set(engine.allQuestions.map((q) => q.phase));
     expect(phases.size).toBe(8);
-    expect(engine.allQuestions.length).toBeGreaterThanOrEqual(54);
+    expect(engine.allQuestions.length).toBe(65);
   });
 
   it('resolves every question field safely against the initial profile', () => {
@@ -229,5 +230,67 @@ describe('EnhancedArtistQuestionnaireEngine', () => {
       // Answered toggles must be real booleans; unanswered ones may be absent.
       expect(typeof value === 'boolean' || value === undefined).toBe(true);
     }
+  });
+
+  it('exposes the deep sonic-blueprint questions across the enriched phases', () => {
+    const deepIds = [
+      'q55', 'q56', 'q57', 'q58', 'q59',
+      'q60', 'q61', 'q62', 'q63', 'q64', 'q65',
+    ];
+    for (const id of deepIds) {
+      const q = engine.allQuestions.find((x) => x.id === id);
+      expect(q).toBeDefined();
+      expect(q!.field).toContain('musicBlueprint.');
+    }
+    // They must appear inside their declared phases, not just the master list.
+    const dna = engine.questionsForPhase('musical-dna', initialProfile);
+    expect(dna.some((q) => q.id === 'q55')).toBe(true);
+    expect(dna.some((q) => q.id === 'q56')).toBe(true);
+  });
+
+  it('weaves the sonic blueprint into the persona synthesis', async () => {
+    const p = profileWith({
+      'musicalJourney.musicBlueprint.vocalDelivery': 'Intimate and close',
+      'musicalJourney.musicBlueprint.rhythmicFeel': 'Swinging and human',
+      'musicalJourney.musicBlueprint.lyricalThemes': [
+        'Community and culture',
+        'Mental health and healing',
+      ],
+      'musicalJourney.musicBlueprint.artisticIntent':
+        'Make people feel seen at 2am',
+    });
+    const persona = await engine.synthesizePersona(p);
+    expect(persona.aiPersonaProfile).toContain('Intimate and close');
+    expect(persona.aiPersonaProfile).toContain('Swinging and human');
+    expect(persona.aiPersonaProfile).toContain('Community and culture');
+    expect(persona.aiPersonaProfile).toContain('Make people feel seen at 2am');
+  });
+
+  it('emits a bounded, complete artist context for S.M.U.V.E prompts', () => {
+    const p = profileWith({
+      artistName: 'Nova Vale',
+      primaryGenre: 'Hip Hop',
+      'musicalJourney.signatureSound': 'warped tape 808s',
+      'musicalJourney.musicBlueprint.vocalDelivery': 'Raw and conversational',
+      'musicalJourney.musicBlueprint.lyricalThemes': ['Ambition and survival'],
+      'musicalJourney.musicBlueprint.referenceTracks':
+        'Track One - Artist A; Track Two - Artist B',
+    });
+    const ctx = buildArtistMusicContext(p);
+    expect(ctx).toContain('Artist: Nova Vale');
+    expect(ctx).toContain('Genre: Hip Hop');
+    expect(ctx).toContain('Signature sound: warped tape 808s');
+    expect(ctx).toContain('Vocal/instrument delivery: Raw and conversational');
+    expect(ctx).toContain('Lyrical themes: Ambition and survival');
+    expect(ctx).toContain('Reference tracks: Track One - Artist A, Track Two - Artist B');
+    // Bounded: no runaway prompt injection from long free-text answers.
+    expect(ctx.length).toBeLessThan(3000);
+  });
+
+  it('skips empty blueprint fields instead of padding prompts with blanks', () => {
+    const ctx = buildArtistMusicContext(initialProfile);
+    expect(ctx).not.toContain('Vocal/instrument delivery');
+    expect(ctx).not.toContain('undefined');
+    expect(ctx).not.toContain('null');
   });
 });

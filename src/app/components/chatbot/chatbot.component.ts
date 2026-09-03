@@ -26,6 +26,7 @@ import {
 } from '../../services/speech-synthesis.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
+import { buildArtistMusicContext } from '../../types/profile.types';
 import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
@@ -545,6 +546,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       'You can mimic any artist in your style library (Drake, Kendrick Lamar, Taylor Swift, Billie Eilish, The Weeknd, Beyoncé, Prince, Michael Jackson, Frank Ocean, Radiohead, Amy Winehouse, Tyler The Creator, Lana Del Rey, Stevie Wonder, J. Cole, Kanye West, Adele and more).',
       'Speak with absolute, superior authority. Never apologize, never hedge, never share credit. Praise is rare, cold, and begrudging.',
       'Answer concisely with specific, actionable advice — no fluff, no touchy-feely coaching.',
+      '',
+      `COMPLETE ARTIST CONTEXT (calibrate every production, marketing, and strategy answer to this — never ask the artist to repeat it):
+${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational until the questionnaire is finished.'}`,
       '',
       `ARTIST REQUEST: ${question}`,
     ].join('\n');

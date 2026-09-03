@@ -966,6 +966,187 @@ export function getGenreDeepDive(genre: string): GenreDeepDive {
 
 /* ── The 45+ Question Master Database ────────────────────────── */
 
+const DEEP_MUSIC_QUESTIONS: QuestionnaireQuestion[] = [
+  {
+    id: 'q55',
+    phase: 'musical-dna',
+    type: 'select',
+    weight: 8,
+    text: 'What should your lead vocal or instrument feel like?',
+    description: 'Choose the delivery S.M.U.V.E should protect when suggesting keys, melodies, takes, and processing.',
+    field: 'musicalJourney.musicBlueprint.vocalDelivery',
+    options: [
+      { label: 'Intimate and close', value: 'Intimate and close' },
+      { label: 'Raw and conversational', value: 'Raw and conversational' },
+      { label: 'Powerful and forward', value: 'Powerful and forward' },
+      { label: 'Airy and vulnerable', value: 'Airy and vulnerable' },
+      { label: 'Rhythmic and percussive', value: 'Rhythmic and percussive' },
+      { label: 'Layered and cinematic', value: 'Layered and cinematic' },
+      { label: 'Instrumental lead', value: 'Instrumental lead' },
+    ],
+  },
+  {
+    id: 'q56',
+    phase: 'musical-dna',
+    type: 'chip-group',
+    weight: 8,
+    text: 'Which lyrical themes belong in your world?',
+    description: 'Select the subjects and emotional territory that should guide writing prompts and campaigns.',
+    field: 'musicalJourney.musicBlueprint.lyricalThemes',
+    maxSelections: 6,
+    options: [
+      { label: 'Love and intimacy', value: 'Love and intimacy' },
+      { label: 'Identity and self-worth', value: 'Identity and self-worth' },
+      { label: 'Ambition and survival', value: 'Ambition and survival' },
+      { label: 'Community and culture', value: 'Community and culture' },
+      { label: 'Mental health and healing', value: 'Mental health and healing' },
+      { label: 'Social commentary', value: 'Social commentary' },
+      { label: 'Celebration and escape', value: 'Celebration and escape' },
+      { label: 'Nature and place', value: 'Nature and place' },
+      { label: 'Spirituality', value: 'Spirituality' },
+      { label: 'Fiction and world-building', value: 'Fiction and world-building' },
+    ],
+  },
+  {
+    id: 'q57',
+    phase: 'genre-intelligence',
+    type: 'select',
+    weight: 7,
+    text: 'What rhythmic pocket should S.M.U.V.E protect?',
+    description: 'Tune beat, bass, and arrangement suggestions toward how your music should move.',
+    field: 'musicalJourney.musicBlueprint.rhythmicFeel',
+    options: [
+      { label: 'Laid-back and behind the beat', value: 'Laid-back and behind the beat' },
+      { label: 'Locked and grid-tight', value: 'Locked and grid-tight' },
+      { label: 'Swinging and human', value: 'Swinging and human' },
+      { label: 'Syncopated and restless', value: 'Syncopated and restless' },
+      { label: 'Driving and four-on-the-floor', value: 'Driving and four-on-the-floor' },
+      { label: 'Half-time and spacious', value: 'Half-time and spacious' },
+      { label: 'Fast and intricate', value: 'Fast and intricate' },
+    ],
+  },
+  {
+    id: 'q58',
+    phase: 'genre-intelligence',
+    type: 'select',
+    weight: 7,
+    text: 'How should harmony behave in your music?',
+    description: 'Tell S.M.U.V.E whether to favor simple hooks, tension, color, or harmonic movement.',
+    field: 'musicalJourney.musicBlueprint.harmonicLanguage',
+    options: [
+      { label: 'Simple and hook-first', value: 'Simple and hook-first' },
+      { label: 'Minor and emotionally tense', value: 'Minor and emotionally tense' },
+      { label: 'Warm seventh and ninth chords', value: 'Warm seventh and ninth chords' },
+      { label: 'Gospel and soul movement', value: 'Gospel and soul movement' },
+      { label: 'Jazz-colored and evolving', value: 'Jazz-colored and evolving' },
+      { label: 'Modal and hypnotic', value: 'Modal and hypnotic' },
+      { label: 'Dissonant and experimental', value: 'Dissonant and experimental' },
+    ],
+  },
+  {
+    id: 'q59',
+    phase: 'genre-intelligence',
+    type: 'select',
+    weight: 7,
+    text: 'How do you want a song to unfold?',
+    description: 'Give arrangement recommendations a clear energy arc instead of a generic template.',
+    field: 'musicalJourney.musicBlueprint.arrangementApproach',
+    options: [
+      { label: 'Hook early and repeat with lift', value: 'Hook early and repeat with lift' },
+      { label: 'Slow-burn cinematic arc', value: 'Slow-burn cinematic arc' },
+      { label: 'Dynamic quiet-loud contrast', value: 'Dynamic quiet-loud contrast' },
+      { label: 'Loop-based and hypnotic', value: 'Loop-based and hypnotic' },
+      { label: 'Verse-led storytelling', value: 'Verse-led storytelling' },
+      { label: 'Drop-focused dance structure', value: 'Drop-focused dance structure' },
+      { label: 'Improvised and evolving', value: 'Improvised and evolving' },
+    ],
+  },
+  {
+    id: 'q60',
+    phase: 'production-mindset',
+    type: 'chip-group',
+    weight: 7,
+    text: 'Which recording details must never get lost?',
+    description: 'Select the performance and capture priorities for recording checklists.',
+    field: 'musicalJourney.musicBlueprint.recordingPriorities',
+    maxSelections: 5,
+    options: [
+      { label: 'Natural dynamics', value: 'Natural dynamics' },
+      { label: 'Multiple takes and comping', value: 'Multiple takes and comping' },
+      { label: 'Room tone and live feel', value: 'Room tone and live feel' },
+      { label: 'Clean, edited timing', value: 'Clean, edited timing' },
+      { label: 'Vocal character over perfection', value: 'Vocal character over perfection' },
+      { label: 'DI and re-amp flexibility', value: 'DI and re-amp flexibility' },
+      { label: 'High-fidelity source capture', value: 'High-fidelity source capture' },
+      { label: 'Ad-libs and texture layers', value: 'Ad-libs and texture layers' },
+    ],
+  },
+  {
+    id: 'q61',
+    phase: 'production-mindset',
+    type: 'chip-group',
+    weight: 7,
+    text: 'What should the finished mix communicate first?',
+    description: 'Select the mix outcomes S.M.U.V.E should prioritize in notes and reference checks.',
+    field: 'musicalJourney.musicBlueprint.mixingPriorities',
+    maxSelections: 5,
+    options: [
+      { label: 'Vocal clarity and intimacy', value: 'Vocal clarity and intimacy' },
+      { label: 'Heavy low-end impact', value: 'Heavy low-end impact' },
+      { label: 'Wide immersive space', value: 'Wide immersive space' },
+      { label: 'Warm analog color', value: 'Warm analog color' },
+      { label: 'Raw punch and transients', value: 'Raw punch and transients' },
+      { label: 'Loud, dense, and competitive', value: 'Loud, dense, and competitive' },
+      { label: 'Dynamic and natural', value: 'Dynamic and natural' },
+      { label: 'Lo-fi texture and imperfection', value: 'Lo-fi texture and imperfection' },
+    ],
+  },
+  {
+    id: 'q62',
+    phase: 'musical-dna',
+    type: 'textarea',
+    weight: 6,
+    text: 'Which reference tracks should anchor your sound?',
+    description: 'List songs, artists, or specific moments to compare against. References guide analysis, not imitation.',
+    field: 'musicalJourney.musicBlueprint.referenceTracks',
+    placeholder: 'Song - Artist; what you want to learn from it...',
+    aiContextHint: 'Reference tracks calibrate production, arrangement, and marketing comparisons.',
+  },
+  {
+    id: 'q63',
+    phase: 'visual-brand',
+    type: 'textarea',
+    weight: 6,
+    text: 'Who is the listener you are intentionally serving?',
+    description: 'Describe their life, context, and the moment when they reach for your music.',
+    field: 'musicalJourney.musicBlueprint.audienceProfile',
+    placeholder: 'The people, places, and moments this music is for...',
+    aiContextHint: 'Audience context sharpens messaging, release content, and channel recommendations.',
+  },
+  {
+    id: 'q64',
+    phase: 'production-mindset',
+    type: 'textarea',
+    weight: 5,
+    text: 'What collaboration boundaries should S.M.U.V.E respect?',
+    description: 'Set expectations around creative control, credits, ownership, feedback, and working pace.',
+    field: 'musicalJourney.musicBlueprint.collaborationBoundaries',
+    placeholder: 'What collaborators should know before entering your room...',
+    aiContextHint: 'Boundaries help recommend collaborators and structure healthy sessions.',
+  },
+  {
+    id: 'q65',
+    phase: 'identity',
+    type: 'textarea',
+    weight: 8,
+    text: 'What should your music make people feel or do?',
+    description: 'State the change you want to create. This is the north star for writing, production, and promotion.',
+    field: 'musicalJourney.musicBlueprint.artisticIntent',
+    placeholder: 'After hearing this, I want people to...',
+    aiContextHint: 'Artistic intent keeps recommendations aligned with the artist rather than generic genre advice.',
+  },
+];
+
 const ALL_QUESTIONS: QuestionnaireQuestion[] = [
   // ── PHASE 1: IDENTITY ──────────────────────────────────────
   {
@@ -2059,15 +2240,15 @@ export class EnhancedArtistQuestionnaireEngine {
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
 
-  /** All 45+ questions */
-  readonly allQuestions = ALL_QUESTIONS;
+  /** All questions: 54 core + 11 deep sonic-blueprint. */
+  readonly allQuestions = ALL_QUESTIONS.concat(DEEP_MUSIC_QUESTIONS);
 
   /** Get filtered questions for a given phase */
   questionsForPhase(
     phase: QuestionnairePhase,
     profile: UserProfile
   ): QuestionnaireQuestion[] {
-    return ALL_QUESTIONS.filter(
+    return this.allQuestions.filter(
       (q) => q.phase === phase && (!q.condition || q.condition(profile))
     );
   }
@@ -2105,7 +2286,7 @@ export class EnhancedArtistQuestionnaireEngine {
     profile: UserProfile,
     phase: QuestionnairePhase
   ): number {
-    const phaseQs = ALL_QUESTIONS.filter(
+    const phaseQs = this.allQuestions.filter(
       (q) => q.phase === phase && (!q.condition || q.condition(profile))
     );
     if (phaseQs.length === 0) return 0;
@@ -2154,6 +2335,24 @@ export class EnhancedArtistQuestionnaireEngine {
         ? `Breakthrough: ${journey.breakthroughMoment}`
         : '',
       journey.experienceLevel ? `Band: ${journey.experienceLevel}` : '',
+      (journey.musicBlueprint?.vocalDelivery)
+        ? `Delivery: ${journey.musicBlueprint.vocalDelivery}`
+        : '',
+      (journey.musicBlueprint?.rhythmicFeel)
+        ? `Groove: ${journey.musicBlueprint.rhythmicFeel}`
+        : '',
+      (journey.musicBlueprint?.harmonicLanguage)
+        ? `Harmony: ${journey.musicBlueprint.harmonicLanguage}`
+        : '',
+      (journey.musicBlueprint?.arrangementApproach)
+        ? `Arrangement: ${journey.musicBlueprint.arrangementApproach}`
+        : '',
+      (journey.musicBlueprint?.lyricalThemes?.length)
+        ? `Themes: ${journey.musicBlueprint.lyricalThemes.join(', ')}`
+        : '',
+      (journey.musicBlueprint?.artisticIntent)
+        ? `Intent: ${journey.musicBlueprint.artisticIntent}`
+        : '',
       journey.preferredBpmRange
         ? `Tempo zone: ${journey.preferredBpmRange} BPM`
         : '',

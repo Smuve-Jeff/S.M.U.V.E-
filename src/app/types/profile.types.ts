@@ -191,6 +191,108 @@ export interface ProfileAuditLog {
   auditType?: string;
 }
 
+export interface ArtistMusicBlueprint {
+  /** How the artist wants their voice or lead instrument to feel in a record. */
+  vocalDelivery?: string;
+  /** Recurring subjects, images, and emotional territory in the writing. */
+  lyricalThemes?: string[];
+  /** Groove, pocket, swing, and rhythmic references that define the feel. */
+  rhythmicFeel?: string;
+  /** Chord vocabulary, key movement, and harmonic tension preferences. */
+  harmonicLanguage?: string;
+  /** How energy, sections, transitions, and instrumental space should develop. */
+  arrangementApproach?: string;
+  /** Recording choices and performance details S.M.U.V.E should protect. */
+  recordingPriorities?: string[];
+  /** Mix or master outcomes the artist values most. */
+  mixingPriorities?: string[];
+  /** Specific tracks used as sonic references, not instructions to imitate. */
+  referenceTracks?: string[];
+  /** The listeners and communities the artist is intentionally serving. */
+  audienceProfile?: string;
+  /** Collaboration limits, credit expectations, and working preferences. */
+  collaborationBoundaries?: string;
+  /** The feeling or change the artist wants the music to create. */
+  artisticIntent?: string;
+}
+
+/**
+ * Compact, bounded S.M.U.V.E artist-data block derived from the profile.
+ * Single source of truth for every AI surface (persona synthesis, chatbot
+ * master prompt, advisor) so the questionnaire can never drift away from
+ * what the chatbot actually knows. Text fields are capped to keep prompts
+ * lean; empty/absent fields are skipped entirely.
+ */
+export function buildArtistMusicContext(
+  profile: UserProfile | null | undefined
+): string {
+  if (!profile) return '';
+  const j = profile.musicalJourney || ({} as MusicalJourney);
+  const bp = j.musicBlueprint || ({} as ArtistMusicBlueprint);
+  const cap = (v: unknown, max = 240): string => {
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    return s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
+  };
+  const list = (v: unknown, max = 6): string => {
+    if (Array.isArray(v)) {
+      return v
+        .filter((x) => typeof x === 'string' && x.trim())
+        .slice(0, max)
+        .join(', ');
+    }
+    // Free-text answers (e.g. reference tracks) may arrive as newline- or
+    // semicolon-separated strings; normalize them into a bounded list.
+    const s = typeof v === 'string' ? v.trim() : '';
+    if (!s) return '';
+    return s
+      .split(/\r?\n|;/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, max)
+      .join(', ');
+  };
+
+  const lines: string[] = [];
+  const push = (label: string, value: string) => {
+    if (value) lines.push(`- ${label}: ${value}`);
+  };
+
+  push('Artist', cap(profile.artistName, 80));
+  push('Genre', cap(profile.primaryGenre, 60));
+  push('Subgenres', list(j.subgenres));
+  push('Roles', list(profile.expertise?.roles ?? j.roles));
+  push('Influences', list(j.musicalInfluences));
+  push('Songwriting style', cap(j.songwritingStyle, 80));
+  push('Production philosophy', cap(j.productionPhilosophy, 80));
+  push('Signature sound', cap(j.signatureSound));
+  push('Signature gear', cap(j.signatureGear, 120));
+  push('Vocal range', cap(j.vocalRange, 60));
+  push('Tempo zone', cap(j.preferredBpmRange, 30));
+  push('Market position', cap(j.marketPosition, 60));
+  push('Release velocity', cap(j.releaseVelocity, 60));
+  push('Success metric', cap(j.primarySuccessMetric, 60));
+  push('Current focus', cap(j.currentFocus));
+  push('Biggest challenge', cap(j.biggestChallenge));
+  push('Collaboration goals', cap(j.collaborationGoals));
+  push('Ultimate vision', cap(j.ultimateVision));
+
+  // Sonic blueprint — the deep musical make-up collected by q55–q65.
+  push('Vocal/instrument delivery', cap(bp.vocalDelivery, 120));
+  push('Lyrical themes', list(bp.lyricalThemes));
+  push('Rhythmic feel', cap(bp.rhythmicFeel, 120));
+  push('Harmonic language', cap(bp.harmonicLanguage, 120));
+  push('Arrangement approach', cap(bp.arrangementApproach, 120));
+  push('Recording priorities', list(bp.recordingPriorities));
+  push('Mixing priorities', list(bp.mixingPriorities));
+  push('Reference tracks', list(bp.referenceTracks, 8));
+  push('Audience profile', cap(bp.audienceProfile));
+  push('Collaboration boundaries', cap(bp.collaborationBoundaries));
+  push('Artistic intent', cap(bp.artisticIntent));
+
+  return lines.join('\n');
+}
+
 export interface MusicalJourney {
   songwritingStyle: string;
   productionPhilosophy: string;
@@ -233,6 +335,8 @@ export interface MusicalJourney {
   biggestChallenge?: string;
   /** Who the artist wants to work with and why. */
   collaborationGoals?: string;
+  /** Optional detailed sonic blueprint collected by the deep questionnaire. */
+  musicBlueprint?: ArtistMusicBlueprint;
   personaSynthesis?: {
     archetype: string;
     signatureTone: string;
@@ -362,6 +466,19 @@ export const initialProfile: UserProfile = {
     educationalBackground: 'Self-Taught',
     contentStrategy: 'Organic',
     marketPosition: 'Independent',
+    musicBlueprint: {
+      vocalDelivery: '',
+      lyricalThemes: [],
+      rhythmicFeel: '',
+      harmonicLanguage: '',
+      arrangementApproach: '',
+      recordingPriorities: [],
+      mixingPriorities: [],
+      referenceTracks: [],
+      audienceProfile: '',
+      collaborationBoundaries: '',
+      artisticIntent: '',
+    },
   },
   primaryGenre: 'Hip Hop',
   location: 'Unspecified',

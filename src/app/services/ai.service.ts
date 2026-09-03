@@ -10,6 +10,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { MarketAlert } from '../types/ai.types';
+import { buildArtistMusicContext } from '../types/profile.types';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
 
@@ -90,7 +91,14 @@ You use explicit, vulgar language freely because it gets results. You are not a 
 
 Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}. Total Control: ${totalControl}.
 Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-Musical Journey: Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.`;
+Musical Journey: Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.
+${(() => {
+  const ctx = buildArtistMusicContext(profile);
+  return ctx
+    ? `\nCOMPLETE ARTIST CONTEXT (use this for every production, marketing, and strategy answer — do not ask the artist to repeat it):
+${ctx}`
+    : '\nArtist context: incomplete — the questionnaire has not been finished. Keep advice foundational.';
+})()}`;
 
     // Inject persona synthesis for personalized sadism
     if (synth?.archetype) {
