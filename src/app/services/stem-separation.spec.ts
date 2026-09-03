@@ -100,5 +100,87 @@ describe('StemSeparationService', () => {
       expect(service.isSeparating()).toBe(false);
       expect(service.progress().stage).toBe('idle');
     });
+
+    it('terminates the ML worker on cancel so cancel is not a silent no-op', () => {
+      // Install a fake worker through the service's factory seam.
+      const fakeWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onmessage: null as any,
+        onerror: null as any,
+      };
+      (service as any).mlWorker = fakeWorker;
+
+      service.cancel();
+
+      expect(fakeWorker.postMessage).toHaveBeenCalledWith({ type: 'CANCEL' });
+      // A cancelled worker can never resolve the pending inference promise —
+      // it must be torn down or `separateOnDevice()` hangs forever.
+      expect(fakeWorker.terminate).toHaveBeenCalled();
+      expect((service as any).mlWorker).toBeNull();
+    });
+  });
+
+  describe('ML worker path', () => {
+    it('builds full-length stems after the buffer transfer (detached-length regression)', async () => {
+      // Regression: the service transfers the channel buffers to the worker,
+      // which detaches them — reading `.length` from a transferred array
+      // afterwards yields 0, so every ML run emitted silent zero-length
+      // stems. The service must snapshot the length BEFORE the transfer and
+      // transfer copies, never the AudioBuffer's own backing memory.
+      const sampleCount = 4800;
+      // Build via the AudioBuffer constructor (jest mock honors `length`).
+      const buffer = new AudioBuffer({
+        length: sampleCount,
+        sampleRate: 48000,
+        numberOfChannels: 1,
+      });
+      const sourceBacking = buffer.getChannelData(0).buffer;
+      const transferredBuffers: ArrayBuffer[] = [];
+
+      const fakeWorker = {
+        postMessage: jest.fn(
+          (
+            msg: { payload: { left: Float32Array } },
+            transfer: ArrayBuffer[]
+          ) => {
+            transferredBuffers.push(...transfer);
+            fakeWorker.onmessage?.({
+              data: {
+                type: 'COMPLETE',
+                payload: {
+                  stems: {
+                    vocals: new Float32Array(sampleCount),
+                    drums: new Float32Array(sampleCount),
+                    bass: new Float32Array(sampleCount),
+                    other: new Float32Array(sampleCount),
+                    instrumental: new Float32Array(sampleCount),
+                  },
+                  sampleRate: 48000,
+                  durationMs: 100,
+                },
+              },
+            } as MessageEvent);
+          }
+        ),
+        terminate: jest.fn(),
+        onmessage: null as any,
+        onerror: null as any,
+      };
+      jest
+        .spyOn(require('./ml-worker-factory'), 'createMlWorker')
+        .mockReturnValue(fakeWorker as unknown as Worker);
+
+      const result = await (service as any).separateWithMlModel(buffer);
+
+      // Every stem must carry the full pre-transfer sample count — NOT zero.
+      expect(result.stems.vocals.length).toBe(sampleCount);
+      expect(result.stems.instrumental.length).toBe(sampleCount);
+      expect(result.stems.other.length).toBe(sampleCount);
+      // And the source AudioBuffer's own memory must never be in the
+      // transfer list — transferring a view would detach the context-owned
+      // buffer mid-session.
+      expect(transferredBuffers).not.toContain(sourceBacking);
+    });
   });
 });

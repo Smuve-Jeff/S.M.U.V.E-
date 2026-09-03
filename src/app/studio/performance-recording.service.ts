@@ -154,7 +154,7 @@ export class PerformanceRecordingService implements OnDestroy {
 
   toggleMonitor() {
     this.monitorEnabled.update((v) => !v);
-    if (this.monitorEnabled && this._mediaStream) {
+    if (this.monitorEnabled() && this._mediaStream) {
       // Attempt low-latency pass-through to AudioContext destination
       // (Use a Gain at -Inf by default to avoid feedback loops.)
       try {
@@ -314,6 +314,22 @@ export class PerformanceRecordingService implements OnDestroy {
   }
 
   deleteTake(takeId: string) {
+    const removed = this.takes().find((t) => t.id === takeId);
+    if (removed) {
+      // Release the blob URL — takes own their object URLs for life, so
+      // deleting a take without revoking leaks memory in long sessions
+      // (audit finding #2).
+      try {
+        URL.revokeObjectURL(removed.url);
+      } catch {
+        // best-effort
+      }
+      // Drop the orphaned IndexedDB row too, otherwise a deleted take
+      // resurrects on the next session restore.
+      void this.localStorage.deleteItem('performance_takes', takeId).catch(
+        () => undefined
+      );
+    }
     this.takes.update((arr) => arr.filter((t) => t.id !== takeId));
     if (this.selectedTakeId() === takeId) {
       this.selectedTakeId.set(null);
@@ -329,10 +345,13 @@ export class PerformanceRecordingService implements OnDestroy {
   async exportTake(takeId: string, format: 'wav' | 'mp3' | 'stems-metadata') {
     const take = this.takes().find((t) => t.id === takeId);
     if (!take) return;
-    // best-effort download
+    // best-effort download. Only WAV data exists in this build (no MP3
+    // encoder is wired), so never advertise a format the blob isn't —
+    // stems-metadata is not a downloadable artifact and exports the WAV.
+    const extension = 'wav';
     const a = document.createElement('a');
     a.href = take.url;
-    a.download = `${take.name.replace(/\s+/g, '_')}.${format.split('-')[0]}`;
+    a.download = `${take.name.replace(/\s+/g, '_')}.${extension}`;
     a.click();
   }
 

@@ -68,7 +68,12 @@ describe('PerformanceRecordingService', () => {
         getByteTimeDomainData: jest.fn(),
       },
     };
-    localStorageMock = { saveItem: jest.fn(), getItem: jest.fn(), getAllItems: jest.fn() };
+    localStorageMock = {
+      saveItem: jest.fn(),
+      getItem: jest.fn(),
+      getAllItems: jest.fn(),
+      deleteItem: jest.fn().mockResolvedValue(undefined),
+    };
 
     rafSpy = jest
       .spyOn(window, 'requestAnimationFrame')
@@ -215,6 +220,44 @@ describe('PerformanceRecordingService', () => {
     expect(service.takeCount()).toBe(1);
     expect(service.selectedTakeId()).toBeNull();
     expect(service.takes()[0].id).toBe('t2');
+  });
+
+  it('should revoke the object URL and drop the IndexedDB row when deleting a take', () => {
+    const revokeSpy = jest.spyOn(URL, 'revokeObjectURL');
+    const t1 = createFakeTake('t1', 1);
+    service.takes.set([t1]);
+
+    service.deleteTake('t1');
+
+    // Audit finding #2 (memory leaks): take URLs must be released on delete.
+    expect(revokeSpy).toHaveBeenCalledWith(t1.url);
+    // And the persisted row must go with it, or the take resurrects on the
+    // next session restore.
+    expect(localStorageMock.deleteItem).toHaveBeenCalledWith(
+      'performance_takes',
+      't1'
+    );
+    revokeSpy.mockRestore();
+  });
+
+  it('should export with a true wav extension regardless of requested label', async () => {
+    const clickSpy = jest.fn();
+    const anchorSpy = jest
+      .spyOn(document, 'createElement')
+      .mockReturnValue({ click: clickSpy, href: '', download: '' } as any);
+    const t1 = createFakeTake('t1', 1);
+    t1.name = 'Take 1';
+    service.takes.set([t1]);
+
+    // 'mp3' is not wired in this build — the download must not claim .mp3
+    await service.exportTake('t1', 'mp3');
+
+    const anchor = anchorSpy.mock.results[0].value as unknown as {
+      download: string;
+    };
+    expect(anchor.download.endsWith('.wav')).toBe(true);
+    expect(clickSpy).toHaveBeenCalled();
+    anchorSpy.mockRestore();
   });
 
   it('should toggle comping flag on a take', () => {

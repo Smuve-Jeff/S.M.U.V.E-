@@ -226,7 +226,11 @@ export class OfflineSyncService {
     });
 
     if (!response.ok) {
-      throw new Error(`Sync failed with status ${response.status}`);
+      const error = new Error(
+        `Sync failed with status ${response.status}`
+      ) as Error & { statusCode?: number };
+      error.statusCode = response.status;
+      throw error;
     }
 
     this.logger.info(
@@ -243,7 +247,21 @@ export class OfflineSyncService {
       retryCount: item.retryCount + 1,
     };
 
-    if (updatedItem.retryCount >= item.maxRetries) {
+    // Client errors can't succeed by retrying — the payload is the problem.
+    // Sending them back through the queue 3× only hammers the API before the
+    // inevitable dead-letter. Skip straight there; the user can fix the
+    // payload and use replayDeadLetter().
+    const statusCode = error?.statusCode;
+    const unrecoverable =
+      (typeof statusCode === 'number' &&
+        statusCode >= 400 &&
+        statusCode < 500) ||
+      error?.name === 'AbortError';
+
+    if (
+      unrecoverable ||
+      updatedItem.retryCount >= item.maxRetries
+    ) {
       this.logger.error(
         `OfflineSync: Max retries exceeded for ${item.id}`,
         error
@@ -263,6 +281,50 @@ export class OfflineSyncService {
       failedAt: Date.now(),
     });
     await this.removeFromQueue(item.id);
+  }
+
+  /**
+   * Re-queue a dead-lettered operation for another sync attempt.
+   * Use after the underlying failure (validation error, expired auth,
+   * schema drift) has been fixed — otherwise the item just dead-letters again.
+   */
+  async replayDeadLetter(id: string): Promise<boolean> {
+    const item = await this.localStorage.getItem('sync_dead_letter', id);
+    if (!item) return false;
+
+    await this.localStorage.deleteItem('sync_dead_letter', id);
+    await this.localStorage.saveItem(this.SYNC_STORE, {
+      ...item,
+      retryCount: 0,
+      timestamp: Date.now(),
+    });
+    await this.updatePendingCount();
+    this.logger.info(`OfflineSync: Requeued dead-letter ${id}`);
+
+    if (this.networkStatus() === 'online') {
+      void this.processQueue();
+    }
+    return true;
+  }
+
+  /**
+   * Discard a dead-lettered operation permanently.
+   * Use when the operation is obsolete and should not be retried.
+   */
+  async clearDeadLetter(id: string): Promise<boolean> {
+    const item = await this.localStorage.getItem('sync_dead_letter', id);
+    if (!item) return false;
+
+    await this.localStorage.deleteItem('sync_dead_letter', id);
+    await this.updatePendingCount();
+    this.logger.info(`OfflineSync: Discarded dead-letter ${id}`);
+    return true;
+  }
+
+  /** List dead-lettered operations (oldest first) for operator review. */
+  async listDeadLetters(): Promise<SyncQueueItem[]> {
+    const items = await this.localStorage.getAllItems('sync_dead_letter');
+    return items.sort((a, b) => (a.failedAt ?? a.timestamp) - (b.failedAt ?? b.timestamp));
   }
 
   private async removeFromQueue(id: string): Promise<void> {

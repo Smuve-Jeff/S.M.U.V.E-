@@ -13,7 +13,7 @@ export interface CacheMetadata {
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 4;
+  private dbVersion = 5;
   private db: IDBDatabase | null = null;
   private dbUnsupported = false;
   private dbReady: Promise<void>;
@@ -45,6 +45,11 @@ export class LocalStorageService {
       }
       if (!db.objectStoreNames.contains('audio_blobs')) {
         db.createObjectStore('audio_blobs', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('performance_takes')) {
+        // PerformanceRecordingService persists takes here (audio blobs are
+        // structured-cloneable). Added in v5 — earlier DBs get it on upgrade.
+        db.createObjectStore('performance_takes', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('audio_cache')) {
         db.createObjectStore('audio_cache', { keyPath: 'url' });

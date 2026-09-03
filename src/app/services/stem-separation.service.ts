@@ -278,6 +278,11 @@ export class StemSeparationService {
     }
     if (this.mlWorker) {
       this.mlWorker.postMessage({ type: 'CANCEL' });
+      // Terminate: the in-flight worker can no longer fulfill the pending
+      // inference promise, so leaving it alive would hang `separateOnDevice()`
+      // forever (progress stuck on 'processing'). A fresh worker is lazily
+      // created on the next `separateWithMlModel()` call.
+      this.disposeMlWorker();
     }
     this.isSeparating.set(false);
     this.progress.set({
@@ -325,10 +330,18 @@ export class StemSeparationService {
   ): Promise<{ stems: Stems; processingTimeMs: number }> {
     return new Promise((resolve, reject) => {
       const worker = this.ensureMlWorker();
+      // Copies, not views: `getChannelData` may return a view over the
+      // context-owned buffer, and postMessage *transfers* the underlying
+      // ArrayBuffer. Using the original arrays detached them mid-handshake —
+      // the COMPLETE handler then read `.length === 0` and emitted silent
+      // zero-length stems on every successful inference.
       const left = new Float32Array(buffer.getChannelData(0));
       const right = new Float32Array(
         buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : buffer.getChannelData(0)
       );
+      // Pre-transfer length snapshot — the only safe place to capture it,
+      // because the transfer list detaches these buffers immediately.
+      const stemLength = left.length;
 
       const cleanup = () => {
         worker.onmessage = null;
@@ -349,7 +362,8 @@ export class StemSeparationService {
           case 'COMPLETE':
             cleanup();
             const sampleRate = payload.sampleRate;
-            const length = left.length;
+            // Use the pre-transfer length snapshot — `left` is detached here.
+            const length = stemLength;
             const stems: any = {};
             (['vocals', 'drums', 'bass', 'other', 'instrumental'] as const).forEach(
               (name) => {
