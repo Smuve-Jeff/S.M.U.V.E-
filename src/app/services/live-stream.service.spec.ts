@@ -220,6 +220,79 @@ describe('LiveStreamService', () => {
       expect(service.currentStream()?.active).toBe(true);
       expect(messageListeners.length).toBe(0); // listener self-removed
     });
+
+    it('releases AUTH PENDING and installs no listener when the popup is blocked', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({
+        id: 1,
+        shareToken: 'tok',
+        hostId: '77',
+        hostDisplayName: 'JEFF',
+        platform: 'twitch',
+        gameId: null,
+        lobbyId: null,
+        payload: {},
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: 'https://x',
+      });
+      (window.open as jest.Mock).mockReturnValueOnce(null);
+      await service.golive({ platform: 'twitch' });
+      expect(service.pendingGolive()).toBeNull();
+      expect(messageListeners).toEqual([]);
+    });
+
+    it('replaces the stale auth listener on a second Go-Live round so the new platform finalizes', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      const row = () => ({
+        id: 1,
+        shareToken: 'tok',
+        hostId: '77',
+        hostDisplayName: 'JEFF',
+        platform: 'twitch',
+        gameId: null,
+        lobbyId: null,
+        payload: {},
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: 'https://x',
+      });
+      // Round 1: twitch auth opened, then abandoned by the user.
+      httpResponses.push(row());
+      await service.golive({ platform: 'twitch' });
+      expect(messageListeners.length).toBe(1);
+      // Round 2: a DIFFERENT platform — the twitch-closure listener must
+      // be torn down, not left behind to swallow or mismatch callbacks.
+      httpResponses.push(row());
+      await service.golive({ platform: 'kick' });
+      expect(service.pendingGolive()).toBe('kick');
+      expect(messageListeners.length).toBe(1); // replaced, not stacked
+      // The old platform's success event no longer finalizes anything.
+      messageListeners[0](
+        new MessageEvent('message', {
+          data: { type: 'TWITCH_AUTH_SUCCESS' },
+          origin: 'http://localhost',
+        })
+      );
+      expect(service.pendingGolive()).toBe('kick');
+      // The CURRENT platform's success finalizes and self-removes.
+      messageListeners[0](
+        new MessageEvent('message', {
+          data: { type: 'KICK_AUTH_SUCCESS' },
+          origin: 'http://localhost',
+        })
+      );
+      expect(service.pendingGolive()).toBeNull();
+      expect(messageListeners.length).toBe(0);
+    });
   });
 
   describe('endStream', () => {

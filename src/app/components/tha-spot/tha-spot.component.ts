@@ -2076,9 +2076,9 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         // surface the from= param separately.
         void this.liveStream.peekViewerToken(liveToken).then((row) => {
           if (row && lobbyId) {
-            // Surface the lobby breadcrumb so the overlay shows
-            // "joining co-op lobby" once the preview is resolved.
-            this.matchmaking.activeLobbies();
+            // Shared live link: connect the viewer to the host co-op session.
+            // joinLobby queues the join if the socket is still reconnecting.
+            this.matchmaking.joinLobby(lobbyId);
           }
         });
       }

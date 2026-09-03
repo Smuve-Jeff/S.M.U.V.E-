@@ -145,10 +145,11 @@ export class LiveStreamService {
 
   /**
    * Open the platform OAuth popup. The "postMessage listener" is bound
-   * ONE TIME and clears itself after the first match — that avoids
-   * stale listeners cascading after multiple Go-Live rounds.
+   * ONE TIME per Go-Live round and clears itself after the first match —
+   * it captures the CURRENT platform so an abandoned round on platform A
+   * can never swallow the auth callback of a later round on platform B.
    */
-  private goLiveListenerInstalled = false;
+  private goLiveListenerCleanup: (() => void) | null = null;
 
   private openOAuthPopup(platform: LiveStreamPlatform, shareUrl: string): void {
     const width = 500;
@@ -168,48 +169,52 @@ export class LiveStreamService {
     );
     if (!popup) {
       this.notify.show('POPUP BLOCKED — allow popups to go live', 'warning');
+      // A blocked popup can never deliver the auth callback — release the
+      // caller from the stuck "AUTH PENDING…" state immediately.
+      this.pendingGolive.set(null);
+      return;
     }
 
-    if (!this.goLiveListenerInstalled) {
-      let apiOrigin = '';
-      try {
-        apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
-      } catch (e) {
-        console.error('[LiveStream] Invalid API URL configuration', APP_SECURITY_CONFIG.api_url, e);
-        apiOrigin = window.location.origin;
+    // A previous round's listener (if the user abandoned that auth) must
+    // not linger and capture this round's callback with the wrong platform.
+    this.goLiveListenerCleanup?.();
+    let apiOrigin = '';
+    try {
+      apiOrigin = new URL(APP_SECURITY_CONFIG.api_url).origin;
+    } catch (e) {
+      console.error('[LiveStream] Invalid API URL configuration', APP_SECURITY_CONFIG.api_url, e);
+      apiOrigin = window.location.origin;
+    }
+
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
+        return;
       }
 
-      const handler = (event: MessageEvent) => {
-        if (event.origin !== apiOrigin && event.origin !== window.location.origin) {
-          return;
+      if (typeof event?.data !== 'object' || !event.data) return;
+      const t = (event.data as { type?: string }).type;
+      if (
+        typeof t === 'string' &&
+        t === `${platform.toUpperCase()}_AUTH_SUCCESS`
+      ) {
+        // Finalize — flip the local stream flag, leave server row
+        // untouched (it was already issued).
+        const cur = this.currentStream();
+        if (cur) {
+          this.currentStream.set({ ...cur, active: true });
+          this.notify.show(
+            `GO_LIVE_ON_${platform.toUpperCase()} — share link copied!`,
+            'success'
+          );
+          this.copyShareUrl(true);
         }
-
-        if (typeof event?.data !== 'object' || !event.data) return;
-        const t = (event.data as { type?: string }).type;
-        if (
-          typeof t === 'string' &&
-          t === `${platform.toUpperCase()}_AUTH_SUCCESS`
-        ) {
-          // Finalize — flip the local stream flag, leave server row
-          // untouched (it was already issued).
-          const cur = this.currentStream();
-          if (cur) {
-            this.currentStream.set({ ...cur, active: true });
-            this.notify.show(
-              `GO_LIVE_ON_${platform.toUpperCase()} — share link copied!`,
-              'success'
-            );
-            this.copyShareUrl(true);
-          }
-          this.pendingGolive.set(null);
-          // Remove the listener so a second Go-Live attaches a fresh one.
-          window.removeEventListener('message', handler);
-          this.goLiveListenerInstalled = false;
-        }
-      };
-      window.addEventListener('message', handler);
-      this.goLiveListenerInstalled = true;
-    }
+        this.pendingGolive.set(null);
+        this.goLiveListenerCleanup?.();
+      }
+    };
+    const removeListener = () => window.removeEventListener('message', handler);
+    window.addEventListener('message', handler);
+    this.goLiveListenerCleanup = removeListener;
   }
 
   /**
@@ -217,6 +222,10 @@ export class LiveStreamService {
    * REST, and updates socket presence so peers drop the LIVE indicator.
    */
   async endStream(): Promise<boolean> {
+    // An auth popup that was abandoned must not wedge the picker in
+    // "AUTH PENDING…" — ending/resetting the stream releases it too.
+    this.pendingGolive.set(null);
+    this.goLiveListenerCleanup?.();
     const id = this.profileService.profile().id;
     if (!id) return false;
     try {
