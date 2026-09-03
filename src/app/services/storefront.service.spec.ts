@@ -129,4 +129,31 @@ describe('StorefrontService · Sprint C2', () => {
     sut.clearCart();
     expect(sut.cart().length).toBe(0);
   });
+
+  it('subscription ownership lapses once expiresAt passes (expired grants no entitlement)', async () => {
+    await sut.purchase('smuve.career-pro.v1', 1);
+    expect(sut.owned('smuve.career-pro.v1')).toBe(true);
+    // Force the stored 30-day expiry into the past (same row object the
+    // ownership signal references).
+    const row = sut
+      .ownedSkus()
+      .find((r) => r.skuId === 'smuve.career-pro.v1');
+    expect(row).toBeDefined();
+    row!.expiresAt = Date.now() - 1000;
+    expect(sut.owned('smuve.career-pro.v1')).toBe(false);
+    // Expired rows are re-purchasable: addToCart no longer refuses.
+    sut.addToCart('smuve.career-pro.v1', 1);
+    expect(sut.cart().some((l) => l.skuId === 'smuve.career-pro.v1')).toBe(
+      true
+    );
+  });
+
+  it('perpetual (non-subscription) ownership never lapses', async () => {
+    sut.acquireSku('smuve.trap-essentials.v1', 1, 'TKN_PERP');
+    expect(sut.owned('smuve.trap-essentials.v1')).toBe(true);
+    expect(
+      sut.ownedSkus().find((r) => r.skuId === 'smuve.trap-essentials.v1')
+        ?.expiresAt
+    ).toBeUndefined();
+  });
 });

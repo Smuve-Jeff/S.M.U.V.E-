@@ -1717,9 +1717,14 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
       // Only drop presence when the LAST socket for this user disconnects —
       // the social and matchmaking clients each hold their own socket, and
       // losing one must not flicker the user offline while the other lives.
+      // Capture the live flag BEFORE any presence cleanup: the trailing
+      // live-stream teardown must know whether this user was streaming,
+      // even when their last socket just took the presence row with it.
+      const wasLive = !!presence.get(userId)?.metadata?.live;
       const userSockets = socketIdsByUser.get(userId);
       userSockets?.delete(socket.id);
-      if (!userSockets || userSockets.size === 0) {
+      const isLastSocket = !userSockets || userSockets.size === 0;
+      if (isLastSocket) {
         socketIdsByUser.delete(userId);
         presence.delete(userId);
         userRooms.delete(userId);
@@ -1772,16 +1777,12 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           });
         }
       });
-      // Mark host offline-live on disconnect when no other socket remains.
-      const meta = { ...(presence.get(userId)?.metadata ?? {}) } as Record<
-        string,
-        unknown
-      >;
-      if (meta.live) {
-        meta.live = false;
-        presence.set(userId, { socketId: socket.id, metadata: meta });
+      // End the host live stream when their LAST socket disconnects.
+      // Presence was already deleted in that case, so the captured flag is
+      // the only reliable signal; when other sockets remain the user is
+      // still online and their stream stays up.
+      if (isLastSocket && wasLive) {
         void endLiveStream(userId, false).catch(() => undefined);
-        broadcastOnlineUsers();
       }
     });
   });

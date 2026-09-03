@@ -7,6 +7,7 @@ import {
   listRoomMessages,
   persistRoomMessage,
 } from "@/services";
+import { endLiveStream } from "@/services/live-stream.service";
 import { provisionChallengeLobby, setupSocketIO } from "./index";
 
 // The socket server only touches the database inside handlers (presence sync,
@@ -754,6 +755,42 @@ describe("socket.io handshake + JWT auth", () => {
       startPresence();
     });
     clientB.on("connect_error", () => failFast("client B"));
+  });
+
+  it("ends the host live stream when their last socket disconnects", (done) => {
+    const token = jwt.sign({ userId: 777, role: "user" }, process.env.JWT_SECRET!);
+    const client = ioClient(url(), {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let poll: ReturnType<typeof setInterval>;
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(poll);
+      client.close();
+      done(err);
+    };
+    timer = setTimeout(
+      () => finish(new Error("disconnect never triggered endLiveStream for a live host")),
+      5000,
+    );
+    // Filter by unique host id so earlier tests on the shared mock do not count.
+    poll = setInterval(() => {
+      const calls = jest
+        .mocked(endLiveStream)
+        .mock.calls.filter(([hostId]) => hostId === "777");
+      if (calls.length > 0) finish();
+    }, 100);
+    client.on("connect", () => {
+      client.emit("live_stream_start", { platform: "twitch" });
+      // Let the server mark presence live, then hard-drop the only socket.
+      setTimeout(() => client.close(), 300);
+    });
+    client.on("connect_error", () => finish(new Error("connect_error")));
   });
 });
 

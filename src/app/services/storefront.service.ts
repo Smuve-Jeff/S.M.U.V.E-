@@ -260,7 +260,17 @@ export class StorefrontService {
   readonly cart = this.cartLines.asReadonly();
   readonly ownedSkus = computed(() => Object.values(this.ownedMap()));
 
-  readonly owned = (skuId: string): boolean => skuId in this.ownedMap();
+  readonly owned = (skuId: string): boolean => {
+    const row = this.ownedMap()[skuId];
+    if (!row) return false;
+    // Subscriptions expire: a stored row past its expiresAt no longer
+    // grants entitlement (re-purchasing overwrites the stale row). Read-
+    // only check — never mutate state inside a computed evaluation.
+    if (row.expiresAt !== undefined && row.expiresAt <= Date.now()) {
+      return false;
+    }
+    return true;
+  };
 
   readonly totalPriceCents = computed(() =>
     this.cartLines().reduce((acc, line) => acc + line.unitPriceCents * line.qty, 0)

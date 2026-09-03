@@ -159,6 +159,7 @@ export class AppComponent implements ErrorHandler {
 
   constructor() {
     this.breakIframeLoop();
+    this.applyMobileDefaultPerformanceMode();
     this.checkMobile();
     this.setupPwaListeners();
     this.setupAppUpdateNotifications();
@@ -205,16 +206,27 @@ export class AppComponent implements ErrorHandler {
     this.checkMobile();
   }
 
-  private checkMobile() {
-    if (
-      typeof navigator !== 'undefined' &&
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    ) {
-      if (!this.uiService.performanceMode()) {
-        this.uiService.togglePerformanceMode();
-      }
-    }
+  /**
+   * One-time init: mobile devices default to performance mode because
+   * heavy blur/particle effects cost real frames on mid-range GPUs. This
+   * is a DEFAULT, not a law — a persisted user OFF (Settings) wins, and
+   * unlike the previous checkMobile() placement, resizes never re-force
+   * it back on over the user's explicit choice.
+   */
+  private applyMobileDefaultPerformanceMode() {
+    if (typeof navigator === 'undefined') return;
+    if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+    if (this.uiService.performanceMode()) return;
+    const saved = (
+      this.profileService.profile() as
+        | { settings?: { ui?: { performanceMode?: boolean } } }
+        | null
+    )?.settings?.ui?.performanceMode;
+    if (saved === false) return;
+    this.uiService.togglePerformanceMode();
+  }
 
+  private checkMobile() {
     const isNowMobile = window.innerWidth <= 1024;
     if (isNowMobile !== this.isMobile()) {
       this.isMobile.set(isNowMobile);
