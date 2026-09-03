@@ -3168,7 +3168,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         { ...event.data.data, event: 'GAME_OVER' },
         'Game Over'
       );
-      this.closeGame();
+      // Record game completion telemetry without forcibly closing the cabinet frame
     }
   }
 
