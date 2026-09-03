@@ -311,7 +311,18 @@ export class AppComponent implements ErrorHandler {
     const path = window.location.pathname;
     const isGameAsset = path.includes('/assets/games/');
 
-    if (isGameAsset) {
+    // If the iframe is pointed at a static game asset path we should NOT
+    // immediately break the frame — many games are served as plain HTML
+    // under /assets/games/*. However, the Service Worker or hosting may
+    // accidentally return the SPA index (the Angular app) for a missing
+    // asset, causing the full application to load inside the game's iframe.
+    // That is the situation we DO want to detect and break. We can detect
+    // this by checking for an <app-root> element which is present only when
+    // the SPA was served.
+    const appRootPresent =
+      typeof document !== 'undefined' && !!document.querySelector('app-root');
+
+    if (isGameAsset && appRootPresent) {
       console.error(
         '[AppComponent] Missing game asset detected (fallback to app) for path: ' +
           path +
