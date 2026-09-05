@@ -794,6 +794,15 @@ export class SocialNetworkingService {
     this.localStream()?.getAudioTracks().forEach((t) => (t.enabled = next));
   }
 
+  /**
+   * Template-facing alias of {@link toggleMic} — the Tha Spot stream
+   * panel binds `socialService.toggleMicrophone()`. Kept as an alias so
+   * both spellings stay safe against template renames.
+   */
+  toggleMicrophone() {
+    this.toggleMic();
+  }
+
   private updateStreamTelemetry(platform: string) {
     const preset = STREAM_QUALITY_PRESETS[this.streamQuality()];
     this.streamTelemetry.update((t) => ({

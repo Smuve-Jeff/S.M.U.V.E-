@@ -1156,6 +1156,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 7200,
       availability: 'Online',
       tags: ['Sports', 'Basketball', 'Solo', 'Competitive', 'station-pod'],
+      badgeIds: ['featured'],
       launchConfig: {
         difficulty: 'Moderate',
         controls: ['Touch', 'Mouse'],
@@ -1241,6 +1242,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 25000,
       availability: 'Online',
       tags: ['Classic', 'Multiplayer', 'Co-op', 'Strategy', 'station-cabinet'],
+      badgeIds: ['staff-pick'],
       launchConfig: {
         difficulty: 'Easy',
         controls: ['Touch', 'Mouse'],

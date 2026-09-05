@@ -1688,6 +1688,9 @@
         "Competitive",
         "station-pod"
       ],
+      "badgeIds": [
+        "featured"
+      ],
       "launchConfig": {
         "difficulty": "Moderate",
         "controls": [
@@ -1807,6 +1810,9 @@
         "Co-op",
         "Strategy",
         "station-cabinet"
+      ],
+      "badgeIds": [
+        "staff-pick"
       ],
       "launchConfig": {
         "difficulty": "Easy",

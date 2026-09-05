@@ -714,6 +714,34 @@ describe('GameService', () => {
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     await secondPending;
   });
+
+  it('badges every game in the combined catalog with a resolvable badge id', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+
+    for (const game of games) {
+      expect(game.badgeIds?.length ?? 0).toBeGreaterThan(0);
+      for (const badgeId of game.badgeIds ?? []) {
+        expect(badgeId.trim()).toBeTruthy();
+        expect(badgeId).not.toMatch(/\s/);
+      }
+    }
+  });
+
+  it('assigns premium-grade badges to the last two unbadged Gamepix games', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const byId = new Map(games.map((game) => [game.id, game]));
+
+    expect(byId.get('basketball-master')?.badgeIds).toContain('featured');
+    expect(byId.get('ludo-legend')?.badgeIds).toContain('staff-pick');
+  });
 });
 
 describe('cleanRetroDisplayTitle', () => {

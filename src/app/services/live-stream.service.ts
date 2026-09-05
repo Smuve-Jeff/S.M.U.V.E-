@@ -122,6 +122,10 @@ export class LiveStreamService {
       // 2. Open the OAuth popup. The backend's /auth/:platform stub
       //    posts back *_AUTH_SUCCESS — we capture it and finalize.
       this.openOAuthPopup(opts.platform, issued.shareUrl);
+      // 3. Start local camera + mic capture so the host preview, quality
+      //    tiers, and camera/mic toggles are live the moment the stream
+      //    row is issued (capture fails gracefully into simulation mode).
+      void this.social.startStream(opts.platform);
       // 3. Also tell the social-networking socket that we're going live
       //    so presence broadcasts pick up the LIVE indicator.
       this.social.updateStatus({
@@ -170,8 +174,10 @@ export class LiveStreamService {
     if (!popup) {
       this.notify.show('POPUP BLOCKED — allow popups to go live', 'warning');
       // A blocked popup can never deliver the auth callback — release the
-      // caller from the stuck "AUTH PENDING…" state immediately.
+      // caller from the stuck "AUTH PENDING…" state immediately and stop
+      // the camera capture that was started for this round.
       this.pendingGolive.set(null);
+      this.social.stopStream();
       return;
     }
 
@@ -226,6 +232,9 @@ export class LiveStreamService {
     // "AUTH PENDING…" — ending/resetting the stream releases it too.
     this.pendingGolive.set(null);
     this.goLiveListenerCleanup?.();
+    // Release camera + mic and stop telemetry regardless of REST outcome
+    // so the host is never left with a live capture after ending.
+    this.social.stopStream();
     const id = this.profileService.profile().id;
     if (!id) return false;
     try {

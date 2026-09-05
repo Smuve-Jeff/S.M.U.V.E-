@@ -680,23 +680,56 @@
                     <span class="material-symbols-outlined">groups</span>
                     +LOBBY
                   </button>
-                  <div
-                    class="card-badge"
-                    *ngIf="game.badgeIds?.includes('elite')"
-                  >
-                    ELITE
-                  </div>
-                  <div
-                    class="card-badge next-gen"
-                    *ngIf="game.badgeIds?.includes('next-gen')"
-                  >
-                    NEXT-GEN
-                  </div>
-                  <div
-                    class="card-badge modern"
-                    *ngIf="game.badgeIds?.includes('modern')"
-                  >
-                    MODERN
+                  <div class="card-badges">
+                    <div
+                      class="card-badge elite"
+                      *ngIf="game.badgeIds?.includes('elite')"
+                    >
+                      ELITE
+                    </div>
+                    <div
+                      class="card-badge next-gen"
+                      *ngIf="game.badgeIds?.includes('next-gen')"
+                    >
+                      NEXT-GEN
+                    </div>
+                    <div
+                      class="card-badge modern"
+                      *ngIf="game.badgeIds?.includes('modern')"
+                    >
+                      MODERN
+                    </div>
+
+                    <div
+                      class="card-badge featured"
+                      *ngIf="game.badgeIds?.includes('featured')"
+                    >
+                      FEATURED
+                    </div>
+                    <div
+                      class="card-badge trending"
+                      *ngIf="game.badgeIds?.includes('trending')"
+                    >
+                      TRENDING
+                    </div>
+                    <div
+                      class="card-badge new-drop"
+                      *ngIf="game.badgeIds?.includes('new-drop')"
+                    >
+                      NEW DROP
+                    </div>
+                    <div
+                      class="card-badge tournament-live"
+                      *ngIf="game.badgeIds?.includes('tournament-live')"
+                    >
+                      LIVE
+                    </div>
+                    <div
+                      class="card-badge staff-pick"
+                      *ngIf="game.badgeIds?.includes('staff-pick')"
+                    >
+                      STAFF PICK
+                    </div>
                   </div>
                 </div>
                 <div class="card-info">
@@ -992,23 +1025,56 @@
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
-                  <div
-                    class="card-badge elite"
-                    *ngIf="game.badgeIds?.includes('elite')"
-                  >
-                    ELITE
-                  </div>
-                  <div
-                    class="card-badge next-gen"
-                    *ngIf="game.badgeIds?.includes('next-gen')"
-                  >
-                    NEXT-GEN
-                  </div>
-                  <div
-                    class="card-badge modern"
-                    *ngIf="game.badgeIds?.includes('modern')"
-                  >
-                    MODERN
+                  <div class="card-badges">
+                    <div
+                      class="card-badge elite"
+                      *ngIf="game.badgeIds?.includes('elite')"
+                    >
+                      ELITE
+                    </div>
+                    <div
+                      class="card-badge next-gen"
+                      *ngIf="game.badgeIds?.includes('next-gen')"
+                    >
+                      NEXT-GEN
+                    </div>
+                    <div
+                      class="card-badge modern"
+                      *ngIf="game.badgeIds?.includes('modern')"
+                    >
+                      MODERN
+                    </div>
+
+                    <div
+                      class="card-badge featured"
+                      *ngIf="game.badgeIds?.includes('featured')"
+                    >
+                      FEATURED
+                    </div>
+                    <div
+                      class="card-badge trending"
+                      *ngIf="game.badgeIds?.includes('trending')"
+                    >
+                      TRENDING
+                    </div>
+                    <div
+                      class="card-badge new-drop"
+                      *ngIf="game.badgeIds?.includes('new-drop')"
+                    >
+                      NEW DROP
+                    </div>
+                    <div
+                      class="card-badge tournament-live"
+                      *ngIf="game.badgeIds?.includes('tournament-live')"
+                    >
+                      LIVE
+                    </div>
+                    <div
+                      class="card-badge staff-pick"
+                      *ngIf="game.badgeIds?.includes('staff-pick')"
+                    >
+                      STAFF PICK
+                    </div>
                   </div>
                 </div>
                 <div class="card-info">
@@ -1084,23 +1150,55 @@
                 <div class="card-overlay">
                   <span class="material-symbols-outlined">play_circle</span>
                 </div>
-                <div
-                  class="card-badge elite"
-                  *ngIf="game.badgeIds?.includes('elite')"
-                >
-                  ELITE
-                </div>
-                <div
-                  class="card-badge next-gen"
-                  *ngIf="game.badgeIds?.includes('next-gen')"
-                >
-                  NEXT-GEN
-                </div>
-                <div
-                  class="card-badge modern"
-                  *ngIf="game.badgeIds?.includes('modern')"
-                >
-                  MODERN
+                <div class="card-badges">
+                  <div
+                    class="card-badge elite"
+                    *ngIf="game.badgeIds?.includes('elite')"
+                  >
+                    ELITE
+                  </div>
+                  <div
+                    class="card-badge next-gen"
+                    *ngIf="game.badgeIds?.includes('next-gen')"
+                  >
+                    NEXT-GEN
+                  </div>
+                  <div
+                    class="card-badge modern"
+                    *ngIf="game.badgeIds?.includes('modern')"
+                  >
+                    MODERN
+                  </div>
+                  <div
+                    class="card-badge featured"
+                    *ngIf="game.badgeIds?.includes('featured')"
+                  >
+                    FEATURED
+                  </div>
+                  <div
+                    class="card-badge trending"
+                    *ngIf="game.badgeIds?.includes('trending')"
+                  >
+                    TRENDING
+                  </div>
+                  <div
+                    class="card-badge new-drop"
+                    *ngIf="game.badgeIds?.includes('new-drop')"
+                  >
+                    NEW DROP
+                  </div>
+                  <div
+                    class="card-badge tournament-live"
+                    *ngIf="game.badgeIds?.includes('tournament-live')"
+                  >
+                    LIVE
+                  </div>
+                  <div
+                    class="card-badge staff-pick"
+                    *ngIf="game.badgeIds?.includes('staff-pick')"
+                  >
+                    STAFF PICK
+                  </div>
                 </div>
               </div>
               <div class="card-info">

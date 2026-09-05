@@ -110,6 +110,8 @@ beforeEach(() => {
         provide: SocialNetworkingService,
         useValue: {
           updateStatus: (meta: unknown) => updateStatusCalls.push(meta),
+          startStream: jest.fn(async () => undefined),
+          stopStream: jest.fn(),
         },
       },
     ],
@@ -175,6 +177,31 @@ describe('LiveStreamService', () => {
       expect(updateStatusCalls).toEqual([
         expect.objectContaining({ live: true, livePlatform: 'twitch' }),
       ]);
+    });
+
+    it('starts local camera + mic capture when the stream row is issued', async () => {
+      service = TestBed.inject(LiveStreamService);
+      tokenRef = { value: 'TKN' };
+      profileRef = { value: { id: '77', artistName: 'JEFF' } };
+      httpResponses.push({
+        id: 1,
+        shareToken: 'tok',
+        hostId: '77',
+        hostDisplayName: 'JEFF',
+        platform: 'twitch',
+        gameId: null,
+        lobbyId: null,
+        payload: {},
+        active: true,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        viewerJoins: 0,
+        shareUrl: 'https://x',
+      });
+      const social = TestBed.inject(SocialNetworkingService);
+      await service.golive({ platform: 'twitch' });
+      expect(social.startStream).toHaveBeenCalledWith('twitch');
+      expect(social.stopStream).not.toHaveBeenCalled();
     });
 
     it('returns null + toasts on POST error', async () => {
@@ -244,6 +271,11 @@ describe('LiveStreamService', () => {
       await service.golive({ platform: 'twitch' });
       expect(service.pendingGolive()).toBeNull();
       expect(messageListeners).toEqual([]);
+      // A blocked popup can never finalize — the capture started for this
+      // round must be released instead of leaking the camera.
+      expect(
+        TestBed.inject(SocialNetworkingService).stopStream
+      ).toHaveBeenCalled();
     });
 
     it('replaces the stale auth listener on a second Go-Live round so the new platform finalizes', async () => {
@@ -324,6 +356,8 @@ describe('LiveStreamService', () => {
       });
       expect(service.currentStream()).toBeNull();
       expect(updateStatusCalls.at(-1)).toEqual({ live: false });
+      // Ending the stream must release the local camera/mic capture.
+      expect(TestBed.inject(SocialNetworkingService).stopStream).toHaveBeenCalled();
     });
 
     it('returns false when no profile id', async () => {
@@ -333,6 +367,9 @@ describe('LiveStreamService', () => {
       const ok = await service.endStream();
       expect(ok).toBe(false);
       expect(httpCalls).toEqual([]);
+      // Local capture is still released even without a profile id, so a
+      // stranded stream never leaves the camera on.
+      expect(TestBed.inject(SocialNetworkingService).stopStream).toHaveBeenCalled();
     });
   });
 

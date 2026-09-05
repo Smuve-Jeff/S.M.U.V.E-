@@ -327,4 +327,44 @@ describe('SocialNetworkingService', () => {
 
     expect(service.blockedUsers()).toHaveLength(0);
   });
+
+  it('toggleMicrophone is an alias for toggleMic that flips the mic track', () => {
+    // Track objects are stable references across getAudioTracks() calls,
+    // mirroring real MediaStream behavior — the service must flip the same
+    // track instance it reads.
+    const audioTrack = { enabled: true };
+    const fakeStream = {
+      getAudioTracks: jest.fn(() => [audioTrack]),
+      getVideoTracks: jest.fn(() => []),
+      getTracks: jest.fn(() => []),
+    } as any;
+    service.localStream.set(fakeStream);
+
+    expect(service.micEnabled()).toBe(true);
+    service.toggleMicrophone();
+    expect(service.micEnabled()).toBe(false);
+    expect(audioTrack.enabled).toBe(false);
+
+    service.toggleMicrophone();
+    expect(service.micEnabled()).toBe(true);
+    expect(audioTrack.enabled).toBe(true);
+  });
+
+  it('toggleCamera flips the video track without touching the stream', () => {
+    // Stable track reference across getVideoTracks() calls, mirroring
+    // real MediaStream behavior.
+    const videoTrack = { enabled: true };
+    const fakeStream = {
+      getAudioTracks: jest.fn(() => []),
+      getVideoTracks: jest.fn(() => [videoTrack]),
+      getTracks: jest.fn(() => []),
+    } as any;
+    service.localStream.set(fakeStream);
+
+    expect(service.cameraEnabled()).toBe(true);
+    service.toggleCamera();
+    expect(service.cameraEnabled()).toBe(false);
+    expect(videoTrack.enabled).toBe(false);
+    expect(service.localStream()).toBe(fakeStream);
+  });
 });
