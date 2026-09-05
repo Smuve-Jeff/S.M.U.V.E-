@@ -1726,6 +1726,9 @@
         "Tactical",
         "station-pod"
       ],
+      "badgeIds": [
+        "featured"
+      ],
       "launchConfig": {
         "difficulty": "Hard",
         "controls": [
@@ -1763,6 +1766,9 @@
         "Adventure",
         "station-pod",
         "JRPG"
+      ],
+      "badgeIds": [
+        "featured"
       ],
       "launchConfig": {
         "difficulty": "Moderate",
@@ -1840,6 +1846,9 @@
         "Action",
         "Multiplayer",
         "station-pod"
+      ],
+      "badgeIds": [
+        "featured"
       ],
       "launchConfig": {
         "difficulty": "Moderate",

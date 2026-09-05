@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   GameService,
   canEmbedGameInline,
+  cleanRetroDisplayTitle,
   isKnownEmbedBlockedUrl,
 } from './game.service';
 import { ThaSpotFeed } from './game';
@@ -712,5 +713,77 @@ describe('GameService', () => {
     const secondPending = firstValueFrom(service.getThaSpotFeed(true));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     await secondPending;
+  });
+});
+
+describe('cleanRetroDisplayTitle', () => {
+  let service: GameService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [GameService, provideHttpClient(), provideHttpClientTesting()],
+    });
+
+    service = TestBed.inject(GameService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it.each([
+    // [raw RetroGames listing, expected clean display title]
+    ['NES Battle City (Japan)', 'Battle City'],
+    ['SNES Doom (USA)', 'Doom'],
+    ['Genesis Sonic the Hedgehog 2 (World) (Rev A)', 'Sonic the Hedgehog 2'],
+    ['Game Boy Advance Grand Theft Auto Advance (U)(Mode7)', 'Grand Theft Auto Advance'],
+    ['Game Boy Space Invaders (USA, Europe)', 'Space Invaders'],
+    ['Arcade Street Fighter III: New Generation (USA 970204)', 'Street Fighter III: New Generation'],
+    ['Arcade Tekken Tag Tournament (World, TEG2/VER.C1, set 1)', 'Tekken Tag Tournament'],
+    ['Arcade Metal Slug X - Super Vehicle-001 (NGM-2500)(NGH-2500)', 'Metal Slug X - Super Vehicle-001'],
+    ['Arcade X-Men vs Street Fighter (960910 USA)', 'X-Men vs Street Fighter'],
+    ['NES Final Fantasy VII (C)', 'Final Fantasy VII'],
+    ['Game Boy Advance Tony Hawk\'s Pro Skater 2 (F)(Cezar)', 'Tony Hawk\'s Pro Skater 2'],
+    ['SNES Super Metroid - V I T A L I T Y', 'Super Metroid - V I T A L I T Y'],
+    ['SNES Super "Mario" World', 'Super "Mario" World'],
+    ['Genesis Alien Soldier (Europe)', 'Alien Soldier'],
+    ['Arcade Frogger', 'Frogger'],
+    ['Mario Kart Super Circuit XXL', 'Mario Kart Super Circuit XXL'],
+    ['Genesis Aladdin II', 'Aladdin II'],
+    ['Arcade Galaga \'88', 'Galaga \'88'],
+    ['Game Boy Advance Tony Hawk\'s Pro Skater 4 (U)(Rapid Fire)', 'Tony Hawk\'s Pro Skater 4'],
+  ])('cleans "%s" to "%s"', (raw, expected) => {
+    expect(cleanRetroDisplayTitle(raw)).toBe(expected);
+  });
+
+  it('leaves non-RetroGames display names untouched', () => {
+    expect(cleanRetroDisplayTitle('Venge.io (Next-Gen)')).toBe('Venge.io (Next-Gen)');
+    expect(cleanRetroDisplayTitle('Halo: Combat Evolved (WASM)')).toBe('Halo: Combat Evolved (WASM)');
+  });
+
+  it('cleans every retro-backed row in the resolved feed', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const retro = games.filter((game) =>
+      [game.url, game.launchConfig?.approvedEmbedUrl].some(
+        (target) => target?.includes('retrogames.cc/')
+      )
+    );
+    expect(retro.length).toBeGreaterThan(400);
+    const rawByName = new Map(
+      THA_SPOT_FALLBACK_FEED.games.map((game) => [game.id, game.name])
+    );
+    for (const game of retro) {
+      const raw = rawByName.get(game.id) || game.name;
+      // The resolved name must be the fully cleaned ROM title — never the raw
+      // listing with its system prefix or region/dumper metadata still attached.
+      expect(game.name).toBe(cleanRetroDisplayTitle(raw));
+      expect(game.name.trim()).toBeTruthy();
+    }
   });
 });

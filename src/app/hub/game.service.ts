@@ -109,6 +109,95 @@ function buildRetroGamesSearchUrl(name: string): string {
 }
 
 /**
+ * RetroGames harvests store the raw ROM listing as the display name, e.g.
+ * "Genesis Sonic the Hedgehog 2 (World) (Rev A)" or "Game Boy Advance Grand
+ * Theft Auto Advance (U)(Mode7)". That dumps the emulator system and ROM
+ * dump metadata onto the card. Strip the leading system label and trailing
+ * region/revision/serial/dumper groups so cards show the clean title while
+ * the feed data stays untouched.
+ */
+const RETRO_SYSTEM_PREFIX =
+  /^(Game Boy Advance|Game Boy Color|Game Boy|Arcade|NES|SNES|Genesis|Sega Genesis|Sega Mega Drive|Sega Saturn|Sega Dreamcast|Sega Master System|Sega CD|Mega Drive|Nintendo 64|Nintendo DS|Nintendo 3DS|Game Gear|Master System|TurboGrafx-16|PC Engine|Neo Geo|Atari 2600|Atari 7800|Atari Lynx|Atari Jaguar|Commodore 64|Amiga|PlayStation 2|PlayStation 3|PlayStation|PSP|PSX|PS2|PS3|Xbox|Famicom|Super Famicom|Virtual Boy|WonderSwan|NDS|GBA|GBC|Mobile)\s+/i;
+
+const RETRO_REGION_GROUPS = new Set([
+  'usa',
+  'europe',
+  'japan',
+  'world',
+  'us',
+  'france',
+  'germany',
+  'spain',
+  'italy',
+  'brazil',
+  'korea',
+  'china',
+  'australia',
+  'canada',
+  'u',
+  'j',
+  'e',
+  'k',
+  'c',
+  'f',
+  'g',
+  's',
+  'i',
+  'b',
+  'h',
+  'rev a',
+  'revision a',
+]);
+
+/** True when a parenthesized group is RetroGames ROM metadata, not part of the title. */
+function isRetroMetadataGroup(inner: string): boolean {
+  const s = inner.trim();
+  const lower = s.toLowerCase();
+  if (RETRO_REGION_GROUPS.has(lower)) return true;
+  // Revisions and version tags: "v1.1", "Rev A", "Rev 1"
+  if (/^(?:v|ver\.?|rev\.?)?\s*\d+(?:\.\d+)*$/i.test(s)) return true;
+  // Provider serials: "NGH-2560", "NGM-2500"
+  if (/^[a-z]{2,3}-\d+$/i.test(s)) return true;
+  // Region + dump metadata: "USA 970204", "World, TEG2/VER.C1, set 1"
+  if (/^(usa|europe|japan|world|us)\b[^)]*$/i.test(s)) return true;
+  // Date-coded dumps: "960910 USA", "930201 etc"
+  if (/^\d{3,6}\s+[a-z]+$/i.test(s)) return true;
+  // Prototype labels: "SNES prototype", "GB prototype"
+  if (/^(snes|nes|gb|gba|genesis|arcade|n64)\s+prototype$/i.test(s)) return true;
+  // "set 1", "set 2" romset labels
+  if (/^set\s*\d+$/i.test(s)) return true;
+  return false;
+}
+
+/** Strip a trailing run of ROM-metadata groups: "(USA) (Rev A)", "(U)(Venom)". */
+function stripTrailingRetroMetadata(name: string): string {
+  let out = name.trim();
+  for (let i = 0; i < 6; i += 1) {
+    const run = out.match(/(\s*\([^()]*\))+$/);
+    if (!run) break;
+    const groups = run[0].trim().match(/\([^()]*\)/g) || [];
+    const allMetadata = groups.every((group) =>
+      isRetroMetadataGroup(group.slice(1, -1))
+    );
+    // Allow dumper-pair suffixes like "(U)(Venom)": a single-letter region
+    // group followed by the dumper's tag.
+    const dumperPair =
+      groups.length === 2 &&
+      isRetroMetadataGroup(groups[0].slice(1, -1)) &&
+      /^[a-z]$/i.test(groups[0].slice(1, -1).trim()) &&
+      !isRetroMetadataGroup(groups[1].slice(1, -1));
+    if (!allMetadata && !dumperPair) break;
+    out = out.slice(0, run.index).trimEnd();
+  }
+  return out;
+}
+
+/** Clean a raw RetroGames listing name down to the displayable game title. */
+export function cleanRetroDisplayTitle(name: string): string {
+  return stripTrailingRetroMetadata(name.replace(RETRO_SYSTEM_PREFIX, '').trim());
+}
+
+/**
  * Decide the launch contract for a RetroGames-backed record.
  *
  * RetroGames /embed/ endpoints are the provider's iframe contract: they answer
@@ -599,10 +688,6 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
 
 function normalizeGame(game: Game): Game {
   const id = asString(game.id);
-  const name =
-    CANONICAL_GAME_TITLES[id] ||
-    gameDistributionTitle(id) ||
-    asString(game.name, 'Untitled Cabinet');
   const mirrorUrl = PREMIUM_INLINE_MIRROR_URLS[id];
   const canonicalUrl = CANONICAL_GAME_URLS[id];
   const launchConfig = { ...(game.launchConfig || {}) };
@@ -622,6 +707,11 @@ function normalizeGame(game: Game): Game {
     launchConfig.approvedEmbedUrl,
     launchConfig.approvedExternalUrl,
   ].some(isRetroGamesUrl);
+  const rawName = asString(game.name, 'Untitled Cabinet');
+  const name =
+    CANONICAL_GAME_TITLES[id] ||
+    gameDistributionTitle(id) ||
+    (retroBacked ? cleanRetroDisplayTitle(rawName) : rawName);
   if (retroBacked) {
     applyRetroLaunchContract(launchConfig, id, name, [
       canonicalUrl,

@@ -1184,6 +1184,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 8000,
       availability: 'Online',
       tags: ['Shooting', 'Action', 'Tactical', 'station-pod'],
+      badgeIds: ['featured'],
       launchConfig: {
         difficulty: 'Hard',
         controls: ['Mouse'],
@@ -1212,6 +1213,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 14000,
       availability: 'Online',
       tags: ['RPG', 'Strategy', 'Adventure', 'station-pod', 'JRPG'],
+      badgeIds: ['featured'],
       launchConfig: {
         difficulty: 'Moderate',
         controls: ['Touch', 'Mouse'],
@@ -1267,6 +1269,7 @@ export const THA_SPOT_FALLBACK_FEED: ThaSpotFeed = {
       playersOnline: 19000,
       availability: 'Online',
       tags: ['Shooting', 'RPG', 'Action', 'Multiplayer', 'station-pod'],
+      badgeIds: ['featured'],
       launchConfig: {
         difficulty: 'Moderate',
         controls: ['Touch', 'Mouse'],
