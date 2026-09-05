@@ -301,6 +301,11 @@ export function isOnlineMultiplayerGame(
 export const TRUSTED_EMBED_DOMAINS: readonly string[] = [
   'retrogames.cc',
   'www.retrogames.cc',
+  // Authentic retail cabinets unavailable on RetroGames.cc (Super Mario
+  // World, Super Mario Kart, Mega Man X/X3, Zelda, Sonic, etc.) are served
+  // by RetroGames.cz with no X-Frame-Options / CSP frame-ancestors headers.
+  'retrogames.cz',
+  'www.retrogames.cz',
   'gamepix.com',
   'embed.gamepix.com',
   'www.gamepix.com',
@@ -457,7 +462,7 @@ const CANONICAL_GAME_TITLES: Record<string, string> = {
  */
 const GAME_DISTRIBUTION_TITLE_OVERRIDES: Record<string, string> = {
   'gd-alion-storm': 'Alien Storm',
-  'gd-box-monster%3A-unbox-and-dress-up': 'Box Monster: Unbox & Dress Up',
+  'gd-box-monster-unbox-and-dress-up': 'Box Monster: Unbox & Dress Up',
   'gd-castle-defense-2': 'Castle Defense',
   'gd-crab-and-fish': 'Crab & Fish',
   'gd-cross-the-road-1': 'Cross the Road',
@@ -476,9 +481,8 @@ const GAME_DISTRIBUTION_TITLE_OVERRIDES: Record<string, string> = {
   'gd-peg-solitaire-1': 'Peg Solitaire',
   'gd-princess-royal-wedding-1': 'Princess Royal Wedding',
   'gd-scorpion-solitaire-2': 'Scorpion Solitaire',
-  'gd-screw-nuts-and-bolts%3A-wood-solve':
-    'Screw Nuts & Bolts: Wood Solve',
-  'gd-vegamix%3A-wild-west-puzzle': 'VegaMix2 Wild West',
+  'gd-screw-nuts-and-bolts-wood-solve': 'Screw Nuts & Bolts: Wood Solve',
+  'gd-vegamix-wild-west-puzzle': 'VegaMix2 Wild West',
   'gd-word-cross-1': 'Word Cross',
 };
 
@@ -655,7 +659,6 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
   'goldeneye-007-elite',
   'chrono-trigger-snes-elite',
   'sonic-2-elite',
-  'super-metroid-elite-master',
   'duke-nukem-3d-elite-master',
   'duck-hunt-nes-elite',
   'kid-icarus-nes-elite',

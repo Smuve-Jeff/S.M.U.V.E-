@@ -597,14 +597,17 @@ describe('Tha Spot feed integrity', () => {
   });
 
   it('keeps the Super Mario series complete and correctly targeted', () => {
-    // Core Super Mario series entries must exist and point at their authentic
-    // retrogames.cc cabinets. No fan hacks or lookalikes substituted.
+    // Core Super Mario series entries must exist and point at authentic
+    // retail cabinets. Super Mario World / Super Mario Kart have no
+    // authentic cabinet on RetroGames.cc (only ROM hacks), so they play
+    // the verified frameable RetroGames.cz originals; every other entry
+    // uses its authentic retrogames.cc /embed/ cabinet. No fan hacks or
+    // lookalikes substituted.
     const marioSeriesIds = [
       'rg-44097-super-mario-bros',
       'rg-46228-super-mario-bros-2-lost-levels',
       'super-mario-world-elite-master',
       'rg-44214-super-mario-kart-world',
-      'rg-43860-super-mario-kart-deluxe',
       'mario-kart-sc-gba-elite',
       'rg-43686-vs-super-mario-bros',
       'rg-45027-super-mario-rpg-enhanced',
@@ -619,10 +622,34 @@ describe('Tha Spot feed integrity', () => {
       const game = games.find((entry) => entry.id === id);
       expect(game).toBeTruthy();
       const primary = game?.launchConfig?.approvedEmbedUrl || game?.url || '';
-      expect(primary).toContain('retrogames.cc/embed/');
       const external = game?.launchConfig?.approvedExternalUrl || '';
       expect(external).toBe(primary);
     }
+
+    // Super Mario World must be the authentic 1990 retail SNES release, not
+    // the Super "Mario" World fan hack previously served from RetroGames.cc.
+    const smw = games.find((entry) => entry.id === 'super-mario-world-elite-master');
+    expect(smw?.url).toBe('https://www.retrogames.cz/play_245-SNES.php');
+    expect(smw?.name).toContain('Super Mario World');
+    expect(smw?.tags).not.toContain('ROM Hack');
+
+    // Super Mario Kart must be the authentic 1992 retail SNES release; the
+    // redundant "Deluxe"/"World" fan hacks are gone from the catalog.
+    const smk = games.find((entry) => entry.id === 'rg-44214-super-mario-kart-world');
+    expect(smk?.url).toBe('https://www.retrogames.cz/play_789-SNES.php');
+    expect(smk?.name).toBe('Super Mario Kart (SNES)');
+    expect(games.some((entry) => entry.id === 'rg-43860-super-mario-kart-deluxe')).toBe(
+      false
+    );
+    expect(
+      games.some((entry) => entry.id === 'rg-43860-super-mario-kart-deluxe')
+    ).toBe(false);
+
+    // Mario Kart: Super Circuit authentic GBA cabinets do not exist on any
+    // frameable provider, so the XXL fan hack remains clearly labeled.
+    const mkSc = games.find((entry) => entry.id === 'mario-kart-sc-gba-elite');
+    expect(mkSc?.name).toContain('XXL');
+    expect(mkSc?.tags).toContain('ROM Hack');
 
     // Super Mario RPG must not point at a fan hack (e.g. Armageddon).
     const smrpg = games.find((entry) => entry.id === 'rg-45027-super-mario-rpg-enhanced');
@@ -650,6 +677,126 @@ describe('Tha Spot feed integrity', () => {
     expect(drmario?.url).toContain('46481-vs-dr-mario');
     expect(drmario?.url).not.toContain('dr-garfield');
     expect(drmario?.url).not.toContain('dr-smol');
+  });
+
+  it('keeps saga flagship cabinets on authentic retail versions', () => {
+    // Every previously hack- or pirate-port-based saga flagship must now
+    // point at the authentic retail cabinet (any region) now that one is
+    // playable on a frameable provider.
+    const authenticTargets: Array<[string, string, string]> = [
+      // [id, expected cabinet id/slug, expected platform marker]
+      ['super-metroid-elite-master', '16893-super-metroid-japan-usa-en-ja', 'Super Metroid'],
+      ['final-fantasy-vii-elite', '43658-final-fantasy-vii-usa-disc-1', 'Final Fantasy VII'],
+      ['rg-44098-tekken-2', '41514-tekken-2', 'Tekken 2'],
+      ['earthbound-snes-elite', '24789-earthbound-usa', 'EarthBound'],
+      ['golden-sun-gba-elite', '28962-golden-sun-u-mode7', 'Golden Sun'],
+      ['double-dragon-iii-nes', '22161-double-dragon-iii-the-sacred-stones-usa', 'Double Dragon III'],
+      ['dbz-hyper-dimension-snes', '23402-dragon-ball-z-hyper-dimension-japan', 'Hyper Dimension'],
+      ['dbz-super-butouden-snes', '23964-dragon-ball-z-super-butouden-japan', 'Super Butouden'],
+      ['dbz-super-butouden-3-snes', '23298-dragon-ball-z-super-butouden-3-japan', 'Super Butouden 3'],
+      ['mgs-ps1', '43266-metal-gear-solid-disc-1', 'Metal Gear Solid'],
+      ['mgs-gbc', '26934-metal-gear-solid-usa', 'Metal Gear Solid'],
+      // Authentic retail SNES cabinets only served by RetroGames.cz.
+      ['super-mario-world-elite-master', 'play_245-SNES.php', 'Super Mario World'],
+      ['rg-44214-super-mario-kart-world', 'play_789-SNES.php', 'Super Mario Kart'],
+      ['mmx-classic', 'play_865-SNES.php', 'Mega Man X'],
+      ['mega-man-x3-elite-master', 'play_933-SNES.php', 'Mega Man X3'],
+    ];
+
+    for (const [id, cabinet, title] of authenticTargets) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      const url = game?.url || '';
+      expect(url).toContain(cabinet);
+      expect(game?.name).toContain(title);
+      const lc = game?.launchConfig ?? {};
+      expect(lc.embedMode).toBe('inline');
+      expect(lc.approvedEmbedUrl).toBe(url);
+      expect(lc.approvedExternalUrl).toBe(url);
+    }
+
+    // The hack cabinets these swaps replaced must be gone from the catalog.
+    for (const id of [
+      'rg-43860-super-mario-kart-deluxe',
+      'samsho2-arcade-elite',
+      'rg-43121-mother-2-deluxe-2-0',
+    ]) {
+      expect(games.some((entry) => entry.id === id)).toBe(false);
+    }
+
+    // No saga flagship may still be pointed at a fan hack or pirate port.
+    const bannedCabinetSlugs = [
+      '46870-super-metroid-vitality',
+      '22172-final-fantasy-vii-c',
+      '44098-tekken-2',
+      '43121-mother-2-deluxe-2-0',
+      '19277-golden-sun-c',
+      '44986-super-mario-world',
+      '44214-super-mario-kart-world',
+      '44592-mega-man-x-hard-type',
+      '44783-mega-man-x3-shadow-armor',
+      '34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j',
+    ];
+    for (const game of games) {
+      const urls = [game.url, game.launchConfig?.approvedEmbedUrl, game.launchConfig?.approvedExternalUrl];
+      for (const url of urls) {
+        if (typeof url === 'string' && url) {
+          expect(bannedCabinetSlugs.some((slug) => url.includes(slug))).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('fills every saga gap with an authentic, frameable cabinet', () => {
+    // Saga titles that had zero or thin representation (Zelda, Sonic,
+    // Pokemon, Mega Man X2/7, Street Fighter II Turbo, Double Dragon III,
+    // DBZ SNES fighters, Metal Gear Solid) are now present with authentic
+    // retail cabinets that are verified frameable.
+    const required: Record<string, string> = {
+      'zelda-nes': 'play_068-NES.php',
+      'zelda-ii-nes': 'play_126-NES.php',
+      'zelda-alttp-snes': 'play_283-SNES.php',
+      'zelda-links-awakening-gb': 'play_977-GameBoy.php',
+      'zelda-oot-n64': 'play_984-N64.php',
+      'zelda-majoras-mask-n64': 'play_1065-N64.php',
+      'sonic-1-genesis': 'play_117-Genesis.php',
+      'sonic-spinball-genesis': 'play_1757-Genesis.php',
+      'sonic-3d-blast-genesis': 'play_507-Genesis.php',
+      'sonic-triple-trouble-gg': 'play_1240-GameGear.php',
+      'pokemon-red-gb': 'play_285-GameBoy.php',
+      'pokemon-blue-gb': 'play_284-GameBoy.php',
+      'pokemon-snap-n64': 'play_1090-N64.php',
+      'mega-man-x2-snes': 'play_895-SNES.php',
+      'mega-man-7-snes': 'play_904-SNES.php',
+      'sf2-turbo-snes': 'play_1133-SNES.php',
+      'super-sf2-snes': 'play_919-SNES.php',
+      'super-double-dragon-snes': 'play_925-SNES.php',
+      'dbz-dragon-power-nes': 'play_1243-NES.php',
+      'snakes-revenge-nes': 'play_1119-NES.php',
+      'super-mario-land-gb': 'play_145-GameBoy.php',
+      'super-mario-64': 'play_978-N64.php',
+    };
+
+    for (const [id, cabinet] of Object.entries(required)) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      expect(game?.url).toContain(cabinet);
+      expect(game?.launchConfig?.approvedExternalUrl).toBe(game?.url);
+    }
+
+    // Saga counts across the catalog (flagships + authentic fills).
+    const count = (needle: string) =>
+      games.filter(
+        (g) =>
+          (g.name ?? '').toLowerCase().includes(needle) ||
+          (g.id ?? '').toLowerCase().includes(needle)
+      ).length;
+    expect(count('zelda')).toBeGreaterThanOrEqual(6);
+    expect(count('sonic')).toBeGreaterThanOrEqual(5);
+    expect(count('pokemon')).toBeGreaterThanOrEqual(4);
+    expect(count('mega man x')).toBeGreaterThanOrEqual(3);
+    expect(count('street fighter ii')).toBeGreaterThanOrEqual(4);
+    expect(count('metal gear')).toBeGreaterThanOrEqual(3);
   });
 
   it('has no Mario Kart 64 fan-remake cabinet in the catalog', () => {

@@ -2049,10 +2049,10 @@
     },
     {
       "id": "gta-elite-wasm",
-      "name": "Game Boy Advance Grand Theft Auto Advance (U)(Mode7)",
-      "url": "https://www.retrogames.cc/embed/28811-grand-theft-auto-advance-u-mode7.html",
+      "name": "Game Boy Advance Grand Theft Auto Advance (E)(Rising Sun)",
+      "url": "https://www.retrogames.cc/embed/26424-grand-theft-auto-advance-e-rising-sun.html",
       "genre": "Action",
-      "description": "Play Game Boy Advance Grand Theft Auto Advance (U)(Mode7) online — authentic GBA cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Grand Theft Auto Advance online — the portable Liberty City open world, streaming in your browser via the RetroGames emulator.",
       "availability": "Online",
       "playersOnline": 12800,
       "rating": 4.9,
@@ -2070,14 +2070,14 @@
         "High-Perf"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/28811-grand-theft-auto-advance-u-mode7.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26424-grand-theft-auto-advance-e-rising-sun.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
           "Standard Keyboard"
         ],
         "trustNote": "Elite open-world WASM protocol verified.",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/28811-grand-theft-auto-advance-u-mode7.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26424-grand-theft-auto-advance-e-rising-sun.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -2440,10 +2440,10 @@
     },
     {
       "id": "thps2-ps1-elite",
-      "name": "Game Boy Advance Tony Hawk's Pro Skater 2 (F)(Cezar)",
-      "url": "https://www.retrogames.cc/embed/26448-tony-hawk-s-pro-skater-2-f-cezar.html",
+      "name": "Game Boy Color Tony Hawk's Pro Skater 2 (USA)",
+      "url": "https://www.retrogames.cc/embed/17407-tony-hawk-s-pro-skater-2-usa.html",
       "genre": "Sports",
-      "description": "Play Game Boy Advance Tony Hawk's Pro Skater 2 (F)(Cezar) online — authentic GBA cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Game Boy Color Tony Hawk's Pro Skater 2 (USA) online — authentic GBC cabinet streaming in your browser via the RetroGames emulator.",
       "availability": "Online",
       "playersOnline": 19500,
       "rating": 5,
@@ -2454,11 +2454,11 @@
       "tags": [
         "Sports",
         "Retro",
-        "PS1",
+        "GBC",
         "Controller"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26448-tony-hawk-s-pro-skater-2-f-cezar.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/17407-tony-hawk-s-pro-skater-2-usa.html",
         "telemetryMode": "origin",
         "embedMode": "inline",
         "controls": [
@@ -2466,7 +2466,7 @@
         ],
         "trustNote": "Elite emulation verified. Auto-save states enabled via cloud uplink.",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/26448-tony-hawk-s-pro-skater-2-f-cezar.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/17407-tony-hawk-s-pro-skater-2-usa.html"
       },
       "art": {
         "eyebrow": "Neversoft Legacy",
@@ -2807,10 +2807,10 @@
     },
     {
       "id": "final-fantasy-vii-elite",
-      "name": "NES Final Fantasy VII (C)",
-      "url": "https://www.retrogames.cc/embed/22172-final-fantasy-vii-c.html",
+      "name": "PlayStation Final Fantasy VII (USA) (Disc 1)",
+      "url": "https://www.retrogames.cc/embed/43658-final-fantasy-vii-usa-disc-1.html",
       "genre": "RPG",
-      "description": "Play NES Final Fantasy VII (C) online — authentic NES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Final Fantasy VII online — the authentic 1997 PlayStation classic, Disc 1 streaming in your browser via the RetroGames emulator.",
       "availability": "Online",
       "playersOnline": 58000,
       "rating": 5,
@@ -2823,18 +2823,17 @@
         "RPG",
         "Retro",
         "PS1",
-        "WASM",
         "Adventure",
         "JRPG"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22172-final-fantasy-vii-c.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43658-final-fantasy-vii-usa-disc-1.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43658-final-fantasy-vii-usa-disc-1.html",
         "controls": [
           "Standard Keyboard"
-        ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22172-final-fantasy-vii-c.html"
+        ]
       },
       "art": {
         "eyebrow": "Square Elite",
@@ -3241,10 +3240,10 @@
     },
     {
       "id": "chrono-trigger-snes-elite",
-      "name": "NES Chrono Trigger (C)",
-      "url": "https://www.retrogames.cc/embed/21643-chrono-trigger-c.html",
+      "name": "Chrono Trigger (SNES)",
+      "url": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html",
       "genre": "RPG",
-      "description": "Play NES Chrono Trigger (C) online — authentic NES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Chrono Trigger online — Square's 1995 time-crossing RPG masterpiece, authentic SNES cabinet streaming in your browser via the RetroGames emulator.",
       "tags": [
         "RPG",
         "Adventure",
@@ -3257,14 +3256,14 @@
         "elite"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21643-chrono-trigger-c.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
         "controls": [
           "Standard Keyboard",
           "Gamepad Support"
         ],
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/21643-chrono-trigger-c.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html"
       },
       "availability": "Online",
       "playersOnline": 6400,
@@ -3886,9 +3885,9 @@
     },
     {
       "id": "dd2-classic",
-      "name": "Game Boy Double Dragon II (USA, Europe)",
-      "url": "https://www.retrogames.cc/embed/25340-double-dragon-ii-usa-europe.html",
-      "description": "Play Game Boy Double Dragon II (USA, Europe) online — authentic Game Boy cabinet streaming in your browser via the RetroGames emulator.",
+      "name": "NES Double Dragon II: The Revenge (USA)",
+      "url": "https://www.retrogames.cc/embed/22234-double-dragon-ii-the-revenge-usa.html",
+      "description": "Play NES Double Dragon II: The Revenge (USA) online — authentic NES cabinet streaming in your browser via the RetroGames emulator.",
       "genre": "Beat 'em up",
       "rating": 4.9,
       "playersOnline": 500,
@@ -3897,7 +3896,8 @@
         "Classic",
         "Retro",
         "Elite",
-        "Beat 'em up"
+        "Beat 'em up",
+        "NES"
       ],
       "badgeIds": [
         "elite"
@@ -3913,8 +3913,8 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/25340-double-dragon-ii-usa-europe.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/25340-double-dragon-ii-usa-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22234-double-dragon-ii-the-revenge-usa.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22234-double-dragon-ii-the-revenge-usa.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -3926,9 +3926,9 @@
     },
     {
       "id": "dbz-sw-classic",
-      "name": "Game Boy Advance Dragon Ball Z - Supersonic Warriors (K)(ProjectG)",
-      "url": "https://www.retrogames.cc/embed/28096-dragon-ball-z-supersonic-warriors-k-projectg.html",
-      "description": "Play Game Boy Advance Dragon Ball Z - Supersonic Warriors (K)(ProjectG) online — authentic GBA cabinet streaming in your browser via the RetroGames emulator.",
+      "name": "Game Boy Advance Dragon Ball Z - Supersonic Warriors (E)(Rising Sun)",
+      "url": "https://www.retrogames.cc/embed/19537-dragonball-z-supersonic-warriors-e-rising-sun.html",
+      "description": "Play Game Boy Advance Dragon Ball Z - Supersonic Warriors (E)(Rising Sun) online — authentic GBA cabinet streaming in your browser via the RetroGames emulator.",
       "genre": "Fighting",
       "rating": 4.9,
       "playersOnline": 500,
@@ -3953,8 +3953,8 @@
         ],
         "inlinePolicy": "trusted",
         "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/28096-dragon-ball-z-supersonic-warriors-k-projectg.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/28096-dragon-ball-z-supersonic-warriors-k-projectg.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19537-dragonball-z-supersonic-warriors-e-rising-sun.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19537-dragonball-z-supersonic-warriors-e-rising-sun.html",
         "secure_mode": "wasm"
       },
       "art": {
@@ -3966,24 +3966,28 @@
     },
     {
       "id": "mmx-classic",
-      "name": "SNES Mega Man X - Hard Type",
-      "url": "https://www.retrogames.cc/embed/44592-mega-man-x-hard-type.html",
-      "description": "Play SNES Mega Man X - Hard Type online — authentic SNES cabinet streaming in your browser via the RetroGames emulator.",
+      "name": "Mega Man X (SNES)",
+      "url": "https://www.retrogames.cz/play_865-SNES.php",
+      "description": "Play Mega Man X online — the authentic 1993 SNES action-platformer that reinvented the series, streaming via the RetroGames.cz emulator.",
       "genre": "Platformer",
       "rating": 4.9,
       "playersOnline": 500,
       "availability": "Online",
       "tags": [
-        "Classic",
+        "Platformer",
         "Retro",
-        "Elite",
-        "Platformer"
+        "SNES",
+        "Classic",
+        "Elite"
       ],
       "badgeIds": [
         "elite"
       ],
       "launchConfig": {
-        "difficulty": "Elite",
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_865-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_865-SNES.php",
         "controls": [
           "Gamepad",
           "Keyboard"
@@ -3991,11 +3995,8 @@
         "modes": [
           "Solo"
         ],
-        "inlinePolicy": "trusted",
-        "embedMode": "inline",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44592-mega-man-x-hard-type.html",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44592-mega-man-x-hard-type.html",
-        "secure_mode": "wasm"
+        "difficulty": "Elite",
+        "inlinePolicy": "trusted"
       },
       "art": {
         "eyebrow": "Classic Elite",
@@ -4060,10 +4061,10 @@
     },
     {
       "id": "super-metroid-elite-master",
-      "name": "SNES Super Metroid - V I T A L I T Y",
-      "url": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html",
+      "name": "SNES Super Metroid (Japan, USA) (En,Ja)",
+      "url": "https://www.retrogames.cc/embed/16893-super-metroid-japan-usa-en-ja.html",
       "genre": "Action",
-      "description": "Play SNES Super Metroid - V I T A L I T Y online — authentic SNES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Super Metroid online — the authentic 1994 SNES classic that defined the Metroidvania genre, streaming in your browser via the RetroGames emulator.",
       "tags": [
         "Action",
         "Retro",
@@ -4077,14 +4078,20 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16893-super-metroid-japan-usa-en-ja.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/46870-super-metroid-vitality.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16893-super-metroid-japan-usa-en-ja.html"
       },
       "availability": "Online",
       "image": "assets/hub/home-backdrop-command.png",
-      "rating": 4.8
+      "rating": 4.8,
+      "playersOnline": 400,
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
     },
     {
       "id": "final-fantasy-vi-elite-master",
@@ -4279,29 +4286,36 @@
     },
     {
       "id": "mega-man-x3-elite-master",
-      "name": "SNES Mega Man X3 - Shadow Armor",
-      "url": "https://www.retrogames.cc/embed/44783-mega-man-x3-shadow-armor.html",
+      "name": "Mega Man X3 (SNES)",
+      "url": "https://www.retrogames.cz/play_933-SNES.php",
       "genre": "Action",
-      "description": "Play SNES Mega Man X3 - Shadow Armor online — authentic SNES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Mega Man X3 online — the authentic 1995 SNES finale of the X saga, streaming via the RetroGames.cz emulator.",
       "tags": [
         "Action",
+        "Platformer",
         "Retro",
-        "Elite",
-        "Stabilized"
+        "SNES",
+        "Elite"
       ],
       "badgeIds": [
         "elite",
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44783-mega-man-x3-shadow-armor.html",
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_933-SNES.php",
         "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44783-mega-man-x3-shadow-armor.html"
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_933-SNES.php"
       },
       "availability": "Online",
       "image": "assets/hub/home-backdrop-command.png",
-      "rating": 4.6
+      "rating": 4.6,
+      "playersOnline": 400,
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
     },
     {
       "id": "kirby-super-star-elite-master",
@@ -4331,29 +4345,36 @@
     },
     {
       "id": "super-mario-world-elite-master",
-      "name": "SNES Super \"Mario\" World",
-      "url": "https://www.retrogames.cc/embed/44986-super-mario-world.html",
-      "genre": "Classic",
+      "name": "Super Mario World (SNES)",
+      "url": "https://www.retrogames.cz/play_245-SNES.php",
+      "genre": "Platformer",
       "rating": 4.7,
-      "description": "Play SNES Super \"Mario\" World online — authentic SNES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Super Mario World online — the authentic 1990 SNES masterpiece that launched Dinosaur Land, streaming via the RetroGames.cz emulator.",
       "tags": [
-        "Classic",
+        "Platformer",
         "Retro",
-        "Elite",
-        "Stabilized"
+        "SNES",
+        "Classic",
+        "Elite"
       ],
       "badgeIds": [
         "elite",
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44986-super-mario-world.html",
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_245-SNES.php",
         "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44986-super-mario-world.html"
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_245-SNES.php"
       },
       "availability": "Online",
-      "image": "assets/hub/home-backdrop-command.png"
+      "image": "assets/hub/home-backdrop-command.png",
+      "playersOnline": 400,
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
     },
     {
       "id": "donkey-kong-country-elite-master",
@@ -5224,10 +5245,10 @@
     },
     {
       "id": "golden-sun-gba-elite",
-      "name": "NES Golden Sun (C)",
-      "url": "https://www.retrogames.cc/embed/19277-golden-sun-c.html",
+      "name": "Game Boy Advance Golden Sun (U)(Mode7)",
+      "url": "https://www.retrogames.cc/embed/28962-golden-sun-u-mode7.html",
       "genre": "RPG",
-      "description": "Play NES Golden Sun (C) online — authentic NES cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Golden Sun online — the authentic 2001 GBA JRPG that launched the beloved duology, streaming in your browser via the RetroGames emulator.",
       "rating": 4.6,
       "playersOnline": 3400,
       "availability": "Online",
@@ -5242,10 +5263,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19277-golden-sun-c.html",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/28962-golden-sun-u-mode7.html",
         "embedMode": "inline",
         "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19277-golden-sun-c.html"
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/28962-golden-sun-u-mode7.html"
       },
       "art": {
         "eyebrow": "GBA RPG",
@@ -5256,10 +5277,10 @@
     },
     {
       "id": "mario-kart-sc-gba-elite",
-      "name": "Game Boy Advance Mario Kart Super Circuit XXL",
+      "name": "Mario Kart Super Circuit XXL (GBA Hack)",
       "url": "https://www.retrogames.cc/embed/46320-mario-kart-super-circuit-xxl.html",
       "genre": "Racing",
-      "description": "Play Game Boy Advance Mario Kart Super Circuit XXL online — authentic GBA cabinet streaming in your browser via the RetroGames emulator.",
+      "description": "Play Mario Kart Super Circuit XXL online — a fan ROM hack of GBA Mario Kart: Super Circuit, streaming via the RetroGames emulator. Not the authentic 2001 release.",
       "rating": 4.5,
       "playersOnline": 5800,
       "availability": "Online",
@@ -5267,7 +5288,8 @@
         "Racing",
         "GBA",
         "Mario",
-        "Multiplayer"
+        "Multiplayer",
+        "ROM Hack"
       ],
       "badgeIds": [
         "classic"
@@ -5346,37 +5368,6 @@
         "eyebrow": "Neo Geo Legend",
         "accentStart": "#33cc33",
         "accentEnd": "#003300"
-      },
-      "image": "assets/hub/home-backdrop-command.png"
-    },
-    {
-      "id": "samsho2-arcade-elite",
-      "name": "Arcade Samurai Shodown II / Shin Samurai Spirits - Haohmaru jigokuhen (Special 2017, hack) [Hack]",
-      "url": "https://www.retrogames.cc/embed/34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j.html",
-      "genre": "Fighting",
-      "description": "Play Arcade Samurai Shodown II / Shin Samurai Spirits - Haohmaru jigokuhen (Special 2017, hack) [Hack] online — authentic Arcade cabinet streaming in your browser via the RetroGames emulator.",
-      "rating": 4.7,
-      "playersOnline": 4600,
-      "availability": "Online",
-      "tags": [
-        "Fighting",
-        "Arcade",
-        "Neo Geo",
-        "Samurai"
-      ],
-      "badgeIds": [
-        "classic"
-      ],
-      "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j.html",
-        "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/34279-samurai-shodown-ii-shin-samurai-spirits-haohmaru-j.html"
-      },
-      "art": {
-        "eyebrow": "Neo Geo Fighter",
-        "accentStart": "#cc6600",
-        "accentEnd": "#330000"
       },
       "image": "assets/hub/home-backdrop-command.png"
     },
@@ -5612,7 +5603,7 @@
       "availability": "Online",
       "tags": [
         "Platformer",
-        "Game Boy",
+        "SNES",
         "Kirby",
         "Classic"
       ],
@@ -5705,7 +5696,7 @@
       "availability": "Online",
       "tags": [
         "Action",
-        "NES",
+        "Arcade",
         "Ninja",
         "Hardcore",
         "Classic"
@@ -5737,7 +5728,7 @@
       "availability": "Online",
       "tags": [
         "Beat 'em up",
-        "NES",
+        "Arcade",
         "Rare",
         "Hardcore",
         "Classic"
@@ -7028,35 +7019,6 @@
       }
     },
     {
-      "id": "rg-16868-battletoads-usa",
-      "name": "NES Battletoads (USA)",
-      "genre": "Arcade Classic",
-      "description": "The authentic NES original — play NES Battletoads in your browser with full keyboard/touch controls.",
-      "tags": [
-        "NES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.3,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 473,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/16868-battletoads-usa.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16868-battletoads-usa.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/16868-battletoads-usa.html"
-      },
-      "art": {
-        "accentStart": "#241304",
-        "accentEnd": "#fbbf24",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
       "id": "rg-21335-bubble-bobble-usa",
       "name": "NES Bubble Bobble (USA)",
       "genre": "Arcade Classic",
@@ -7140,35 +7102,6 @@
       "art": {
         "accentStart": "#23120b",
         "accentEnd": "#fb923c",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-22294-10-yard-fight-usa-europe",
-      "name": "NES 10-Yard Fight (USA, Europe)",
-      "genre": "Arcade Classic",
-      "description": "The authentic NES original — play NES 10-Yard Fight in your browser with full keyboard/touch controls.",
-      "tags": [
-        "NES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.2,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 590,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/22294-10-yard-fight-usa-europe.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22294-10-yard-fight-usa-europe.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22294-10-yard-fight-usa-europe.html"
-      },
-      "art": {
-        "accentStart": "#0d1b0d",
-        "accentEnd": "#84cc16",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -8255,12 +8188,13 @@
     },
     {
       "id": "rg-44098-tekken-2",
-      "name": "NES Tekken 2",
+      "name": "PlayStation Tekken 2",
       "genre": "Fighting",
-      "description": "The authentic NES original — play NES Tekken 2 in your browser with full keyboard/touch controls.",
+      "description": "Play Tekken 2 online — the authentic 1996 PlayStation fighter that perfected the King of Iron Fist Tournament, streaming via the RetroGames emulator.",
       "tags": [
-        "NES",
+        "Fighting",
         "Retro",
+        "PS1",
         "Classic"
       ],
       "availability": "Online",
@@ -8270,11 +8204,12 @@
       ],
       "playersOnline": 382,
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/44098-tekken-2.html",
+      "url": "https://www.retrogames.cc/embed/41514-tekken-2.html",
       "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41514-tekken-2.html",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44098-tekken-2.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44098-tekken-2.html"
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41514-tekken-2.html"
       },
       "art": {
         "accentStart": "#0b2027",
@@ -8337,35 +8272,6 @@
       "art": {
         "accentStart": "#0d1b0d",
         "accentEnd": "#84cc16",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-21649-tecmo-bowl-usa-rev-a",
-      "name": "NES Tecmo Bowl (USA) (Rev A)",
-      "genre": "Arcade Classic",
-      "description": "The authentic NES original — play NES Tecmo Bowl in your browser with full keyboard/touch controls.",
-      "tags": [
-        "NES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.6,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 538,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/21649-tecmo-bowl-usa-rev-a.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/21649-tecmo-bowl-usa-rev-a.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/21649-tecmo-bowl-usa-rev-a.html"
-      },
-      "art": {
-        "accentStart": "#1e1b4b",
-        "accentEnd": "#818cf8",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -8482,35 +8388,6 @@
       "art": {
         "accentStart": "#1a0b2e",
         "accentEnd": "#f472b6",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-19249-track-field-usa",
-      "name": "NES Track & Field (USA)",
-      "genre": "Sports",
-      "description": "The authentic NES original — play NES Track & Field in your browser with full keyboard/touch controls.",
-      "tags": [
-        "NES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.3,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 473,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/19249-track-field-usa.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19249-track-field-usa.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/19249-track-field-usa.html"
-      },
-      "art": {
-        "accentStart": "#0b2027",
-        "accentEnd": "#22d3ee",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -8656,35 +8533,6 @@
       "art": {
         "accentStart": "#04231f",
         "accentEnd": "#2dd4bf",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-22857-chrono-trigger-usa",
-      "name": "SNES Chrono Trigger (USA)",
-      "genre": "Arcade Classic",
-      "description": "The authentic SNES original — play SNES Chrono Trigger in your browser with full keyboard/touch controls.",
-      "tags": [
-        "SNES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 512,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22857-chrono-trigger-usa.html"
-      },
-      "art": {
-        "accentStart": "#241304",
-        "accentEnd": "#fbbf24",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -9132,37 +8980,6 @@
       }
     },
     {
-      "id": "rg-22552-final-fantasy-vi-japan",
-      "name": "SNES Final Fantasy VI (Japan)",
-      "genre": "RPG",
-      "description": "The authentic SNES original — play SNES Final Fantasy VI in your browser with full keyboard/touch controls.",
-      "tags": [
-        "SNES",
-        "Retro",
-        "Classic",
-        "RPG",
-        "JRPG"
-      ],
-      "availability": "Online",
-      "rating": 4.4,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 564,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/22552-final-fantasy-vi-japan.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22552-final-fantasy-vi-japan.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/22552-final-fantasy-vi-japan.html"
-      },
-      "art": {
-        "accentStart": "#241304",
-        "accentEnd": "#fbbf24",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
       "id": "rg-20314-frogger-usa",
       "name": "SNES Frogger (USA)",
       "genre": "Arcade Classic",
@@ -9536,37 +9353,6 @@
       "art": {
         "accentStart": "#1e1b4b",
         "accentEnd": "#818cf8",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-43121-mother-2-deluxe-2-0",
-      "name": "SNES Mother 2 Deluxe 2.0",
-      "genre": "RPG",
-      "description": "The authentic SNES original — play SNES Mother 2 Deluxe 2.0 in your browser with full keyboard/touch controls.",
-      "tags": [
-        "SNES",
-        "Retro",
-        "Classic",
-        "RPG",
-        "JRPG"
-      ],
-      "availability": "Online",
-      "rating": 4.7,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 525,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/43121-mother-2-deluxe-2-0.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43121-mother-2-deluxe-2-0.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/43121-mother-2-deluxe-2-0.html"
-      },
-      "art": {
-        "accentStart": "#2b0a12",
-        "accentEnd": "#f43f5e",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -9978,12 +9764,13 @@
     },
     {
       "id": "rg-44214-super-mario-kart-world",
-      "name": "SNES Super Mario Kart World",
+      "name": "Super Mario Kart (SNES)",
       "genre": "Racing",
-      "description": "The authentic SNES original — play SNES Super Mario Kart World in your browser with full keyboard/touch controls.",
+      "description": "Play Super Mario Kart online — the authentic 1992 SNES original that invented kart racing, streaming via the RetroGames.cz emulator.",
       "tags": [
-        "SNES",
+        "Racing",
         "Retro",
+        "SNES",
         "Classic"
       ],
       "availability": "Online",
@@ -9993,44 +9780,16 @@
       ],
       "playersOnline": 564,
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/44214-super-mario-kart-world.html",
+      "url": "https://www.retrogames.cz/play_789-SNES.php",
       "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_789-SNES.php",
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44214-super-mario-kart-world.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44214-super-mario-kart-world.html"
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_789-SNES.php"
       },
       "art": {
         "accentStart": "#1e1b4b",
         "accentEnd": "#818cf8",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-43860-super-mario-kart-deluxe",
-      "name": "SNES Super Mario Kart Deluxe",
-      "genre": "Racing",
-      "description": "The authentic SNES original — play SNES Super Mario Kart Deluxe in your browser with full keyboard/touch controls.",
-      "tags": [
-        "SNES",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.3,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 577,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/43860-super-mario-kart-deluxe.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43860-super-mario-kart-deluxe.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/43860-super-mario-kart-deluxe.html"
-      },
-      "art": {
-        "accentStart": "#2b0a12",
-        "accentEnd": "#f43f5e",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -10702,35 +10461,6 @@
       }
     },
     {
-      "id": "rg-18448-forgotten-worlds-world-v1-1",
-      "name": "Genesis Forgotten Worlds (World) (v1.1)",
-      "genre": "Arcade Classic",
-      "description": "The authentic Genesis original — play Genesis Forgotten Worlds (World) (v1.1) in your browser with full keyboard/touch controls.",
-      "tags": [
-        "Genesis",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.7,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 629,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/18448-forgotten-worlds-world-v1-1.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18448-forgotten-worlds-world-v1-1.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/18448-forgotten-worlds-world-v1-1.html"
-      },
-      "art": {
-        "accentStart": "#2b0a12",
-        "accentEnd": "#f43f5e",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
       "id": "rg-16712-golden-axe-world",
       "name": "Genesis Golden Axe (World)",
       "genre": "Arcade Classic",
@@ -10785,35 +10515,6 @@
       "art": {
         "accentStart": "#241304",
         "accentEnd": "#fbbf24",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-30173-golden-axe-world-v1-1",
-      "name": "Genesis Golden Axe (World) (v1.1)",
-      "genre": "Arcade Classic",
-      "description": "The authentic Genesis original — play Genesis Golden Axe (World) (v1.1) in your browser with full keyboard/touch controls.",
-      "tags": [
-        "Genesis",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.5,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 551,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/30173-golden-axe-world-v1-1.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/30173-golden-axe-world-v1-1.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/30173-golden-axe-world-v1-1.html"
-      },
-      "art": {
-        "accentStart": "#1a0b2e",
-        "accentEnd": "#f472b6",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -11076,7 +10777,7 @@
       }
     },
     {
-      "id": "gd-empress-mahjong%3A-jade-palace",
+      "id": "gd-empress-mahjong-jade-palace",
       "name": "Empress Mahjong: Jade Palace",
       "genre": "Mahjong \\U0026 Connect",
       "description": "Enter the Jade Palace and enjoy a relaxing Mahjong Solitaire adventure with the elegant Empress. Match identical free tiles, clear beautifully layered boards, and complete 90 handcrafted levels. Use hints when needed, rely on automatic shuffling when no matches remain, and replay levels to set faster best times.",
@@ -11218,7 +10919,7 @@
       }
     },
     {
-      "id": "gd-web-shot%3A-spider-superhero",
+      "id": "gd-web-shot-spider-superhero",
       "name": "Web Shot: Spider Superhero",
       "genre": "Casual",
       "description": "Play Web Shot: Spider Superhero online — instant HTML5 action streamed straight into the cabinet.",
@@ -11303,7 +11004,7 @@
       }
     },
     {
-      "id": "gd-cozy-sort%3A-theme-collect",
+      "id": "gd-cozy-sort-theme-collect",
       "name": "Cozy Sort: Theme Collect",
       "genre": "Puzzle",
       "description": "Play Cozy Sort: Theme Collect online — instant HTML5 action streamed straight into the cabinet.",
@@ -11502,7 +11203,7 @@
       }
     },
     {
-      "id": "gd-sara's-cooking-class%3A-spooky-food",
+      "id": "gd-sara-s-cooking-class-spooky-food",
       "name": "Sara's Cooking Class: Spooky Food",
       "genre": "Cooking",
       "description": "Are you ready to prepare some delicious Spooky Food. Join Sara once again for another Halloween themed treat that you don't want to miss.",
@@ -11558,7 +11259,7 @@
       }
     },
     {
-      "id": "gd-box-monster%3A-unbox-and-dress-up",
+      "id": "gd-box-monster-unbox-and-dress-up",
       "name": "Box Monster: Unbox \\u0026 Dress Up",
       "genre": "Puzzle",
       "description": "Play Box Monster: Unbox \\u0026 Dress Up online — instant HTML5 action streamed straight into the cabinet.",
@@ -11616,7 +11317,7 @@
       }
     },
     {
-      "id": "gd-super-slime%3A-black-hole",
+      "id": "gd-super-slime-black-hole",
       "name": "Super Slime: Black Hole",
       "genre": "Casual",
       "description": "Super Slime: Black Hole invites you to become a powerful slime predator in a world full of objects waiting to be swallowed! In this exciting black hole game, your slime acts like a living black hole that can absorb anything smaller than itself. This relaxing eat-and-grow game experience combines simple controls with satisfying growth mechanics, similar to the fun style of Hole.io.",
@@ -11728,7 +11429,7 @@
       }
     },
     {
-      "id": "gd-one-shot-tower-%3A-physics-destroyer",
+      "id": "gd-one-shot-tower-physics-destroyer",
       "name": "One Shot Tower : Physics Destroyer",
       "genre": "Puzzle",
       "description": "Play One Shot Tower : Physics Destroyer online — instant HTML5 action streamed straight into the cabinet.",
@@ -11756,7 +11457,7 @@
       }
     },
     {
-      "id": "gd-african-princesses%3A-style-island",
+      "id": "gd-african-princesses-style-island",
       "name": "African Princesses: Style Island",
       "genre": "Dress-Up",
       "description": "Play African Princesses: Style Island online — instant HTML5 action streamed straight into the cabinet.",
@@ -11925,7 +11626,7 @@
       }
     },
     {
-      "id": "gd-build-a-rollercoaster%3A-simulator",
+      "id": "gd-build-a-rollercoaster-simulator",
       "name": "Build a Rollercoaster: Simulator",
       "genre": "Simulation",
       "description": "Create and ride awesome roller coasters! ? Buy tracks and build your own rides. Get rare tracks and create the longest roller coasters! Ride and travel along your tracks!",
@@ -11981,7 +11682,7 @@
       }
     },
     {
-      "id": "gd-vegamix%3A-wild-west-puzzle",
+      "id": "gd-vegamix-wild-west-puzzle",
       "name": "VegaMix2 Wild West",
       "genre": "Match-3",
       "description": "VegaMix: Wild West Puzzle — an exciting adventure where match-3 puzzles meet the spirit of the Wild West. The heroes find themselves in Lostown, a mysterious town lost in time. A ruined bridge, a ghost train, mysterious silver, and the hunt for the outlaw Dirty Nick — just part of the challenges ahead.",
@@ -12691,7 +12392,7 @@
       }
     },
     {
-      "id": "gd-kompot's-kitchen",
+      "id": "gd-kompot-s-kitchen",
       "name": "Kompot's Kitchen",
       "genre": "Casual",
       "description": "Flip the cards, cook up tasty combos and pay the kitchen rent! A cozy roguelike with chef cat Kompot and hundreds of culinary synergies. Free to play!",
@@ -12747,7 +12448,7 @@
       }
     },
     {
-      "id": "gd-snakelands.io",
+      "id": "gd-snakelands-io",
       "name": "SnakeLands.io",
       "genre": "Arcade",
       "description": "The wild is alive with motion and danger. Rival snakes close in, waiting for a single mistake. Grow faster, bite harder and outsmart them all. Evolve beyond limits and show that only those with courage and cunning can claim true power.",
@@ -13592,7 +13293,7 @@
       }
     },
     {
-      "id": "gd-heroes-of-mangara.-the-frost-crown",
+      "id": "gd-heroes-of-mangara-the-frost-crown",
       "name": "Heroes of Mangara. The Frost Crown",
       "genre": "Adventure",
       "description": "Play Heroes of Mangara. The Frost Crown online — instant HTML5 action streamed straight into the cabinet.",
@@ -13705,7 +13406,7 @@
       }
     },
     {
-      "id": "gd-Halloween-Face-Art",
+      "id": "gd-halloween-face-art",
       "name": "Halloween Face Art",
       "genre": "Dress-Up",
       "description": "Our Princess had decided to celebrate the Halloween season. This time she goes with a Horror face Art and some spooky outfits.Hope you will give her a terror look.",
@@ -13761,7 +13462,7 @@
       }
     },
     {
-      "id": "gd-screw-nuts-and-bolts%3A-wood-solve",
+      "id": "gd-screw-nuts-and-bolts-wood-solve",
       "name": "Screw Nuts & Bolts: Wood Solve",
       "genre": "Puzzle",
       "description": "Embark on a Brain-Twisting Journey with Screw Nuts \\u0026 Bolts: Wood Solve, an exceptional wood puzzle game about nuts and bolts to test your IQ brain power. For nuts and bolts lovers who likes challenge and innovative gameplay, the right game for you - the ultimate puzzle game - is here.",
@@ -14800,7 +14501,7 @@
       }
     },
     {
-      "id": "gd-traitor-beaver!",
+      "id": "gd-traitor-beaver",
       "name": "Traitor Beaver!",
       "genre": "Casual",
       "description": "Play Traitor Beaver! online — instant HTML5 action streamed straight into the cabinet.",
@@ -14828,7 +14529,7 @@
       }
     },
     {
-      "id": "gd-Top-10-Soccer-Managers",
+      "id": "gd-top-10-soccer-managers",
       "name": "Top 10 Soccer Managers",
       "genre": "Football",
       "description": "Can you decipher the stats, have an eye for talent and have nerves and discipline of steel to be a top soccer manager? Lead your club to the top of the European football scene by buying and selling players, getting teams match ready and schedule match days on the sports calendar. If you have what it takes then a good strategy is your game plan!",
@@ -16218,35 +15919,6 @@
       }
     },
     {
-      "id": "rg-29834-batman-europe",
-      "name": "Genesis Batman (Europe)",
-      "genre": "Arcade Classic",
-      "description": "The authentic Genesis original — play Genesis Batman in your browser with full keyboard/touch controls.",
-      "tags": [
-        "Genesis",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.5,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 447,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/29834-batman-europe.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/29834-batman-europe.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29834-batman-europe.html"
-      },
-      "art": {
-        "accentStart": "#241304",
-        "accentEnd": "#fbbf24",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
       "id": "rg-30054-batman-returns-world",
       "name": "Genesis Batman Returns (World)",
       "genre": "Arcade Classic",
@@ -17258,35 +16930,6 @@
       "art": {
         "accentStart": "#23120b",
         "accentEnd": "#fb923c",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
-      "id": "rg-16910-comix-zone-europe",
-      "name": "Genesis Comix Zone (Europe)",
-      "genre": "Arcade Classic",
-      "description": "The authentic Genesis original — play Genesis Comix Zone in your browser with full keyboard/touch controls.",
-      "tags": [
-        "Genesis",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.1,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 499,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/16910-comix-zone-europe.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16910-comix-zone-europe.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/16910-comix-zone-europe.html"
-      },
-      "art": {
-        "accentStart": "#0d1b0d",
-        "accentEnd": "#84cc16",
         "eyebrow": "Verified Cabinet"
       }
     },
@@ -20278,35 +19921,6 @@
       }
     },
     {
-      "id": "rg-29890-contra-the-hard-corps-japan",
-      "name": "Genesis Contra - The Hard Corps (Japan)",
-      "genre": "Arcade Classic",
-      "description": "The authentic Genesis original — play Genesis Contra - The Hard Corps in your browser with full keyboard/touch controls.",
-      "tags": [
-        "Genesis",
-        "Retro",
-        "Classic"
-      ],
-      "availability": "Online",
-      "rating": 4.7,
-      "badgeIds": [
-        "classic"
-      ],
-      "playersOnline": 629,
-      "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/29890-contra-the-hard-corps-japan.html",
-      "launchConfig": {
-        "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/29890-contra-the-hard-corps-japan.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/29890-contra-the-hard-corps-japan.html"
-      },
-      "art": {
-        "accentStart": "#0d1b0d",
-        "accentEnd": "#84cc16",
-        "eyebrow": "Verified Cabinet"
-      }
-    },
-    {
       "id": "rg-19078-cool-spot-europe",
       "name": "Genesis Cool Spot (Europe)",
       "genre": "Arcade Classic",
@@ -21264,7 +20878,7 @@
       }
     },
     {
-      "id": "gd-Under-the-Sea",
+      "id": "gd-under-the-sea",
       "name": "Under the sea",
       "genre": "Adventure",
       "description": "The game acts as an effective simulator. Develops concentration, patience, perseverance, commitment, responsiveness, improves memory, broadens the mind through acquaintance with the underwater world.",
@@ -21405,7 +21019,7 @@
       }
     },
     {
-      "id": "gd-how-many%3A-quiz-game",
+      "id": "gd-how-many-quiz-game",
       "name": "How many: Quiz game",
       "genre": "Quiz",
       "description": "How many can win this game? This is the most entertaining trivia game ever  Challenge yourself with how smart you are. The rules are simple, guess the closest answer or get eaten by a shark or boiled in the hot water! Carefully read the quiz questions and type the correct answer on the board.",
@@ -21631,7 +21245,7 @@
       }
     },
     {
-      "id": "gd-escape-it!",
+      "id": "gd-escape-it",
       "name": "Escape It!",
       "genre": "Adventure",
       "description": "Escape It! is a point and click game. A story is attached to this game, and this is just the beginning. Made with ❤️ by Realinspirer!",
@@ -22025,7 +21639,7 @@
       }
     },
     {
-      "id": "gd-knife-master-%3A-ball-racing",
+      "id": "gd-knife-master-ball-racing",
       "name": "Knife Master : Ball Racing",
       "genre": "Agility",
       "description": "Chop chop chop, throw the knife, but don't hit the ball~! It's like the mastery of circus performer. Which means, it's fun! Let's be the master of throwing knives and bounce the ball to the sky!",
@@ -22110,7 +21724,7 @@
       }
     },
     {
-      "id": "gd-maze-escape-%3A-craft-man",
+      "id": "gd-maze-escape-craft-man",
       "name": "Maze Escape : Craft Man",
       "genre": "Adventure",
       "description": "Play Maze Escape : Craft Man online — instant HTML5 action streamed straight into the cabinet.",
@@ -22363,7 +21977,7 @@
       }
     },
     {
-      "id": "gd-two-lambo-rivals%3A-drift",
+      "id": "gd-two-lambo-rivals-drift",
       "name": "Two Lambo Rivals: Drift",
       "genre": "Casual",
       "description": "Play Two Lambo Rivals: Drift online — instant HTML5 action streamed straight into the cabinet.",
@@ -22447,7 +22061,7 @@
       }
     },
     {
-      "id": "gd-space.io",
+      "id": "gd-space-io",
       "name": "Space.io",
       "genre": "Arcade",
       "description": "Play Space.io online — instant HTML5 action streamed straight into the cabinet.",
@@ -23036,7 +22650,7 @@
       }
     },
     {
-      "id": "gd-skyhill%3A-escape-from-the-skyscraper!",
+      "id": "gd-skyhill-escape-from-the-skyscraper",
       "name": "SKYHILL: Escape From the Skyscraper!",
       "genre": "Adventure",
       "description": "Play SKYHILL: Escape From the Skyscraper! online — instant HTML5 action streamed straight into the cabinet.",
@@ -24217,7 +23831,7 @@
       }
     },
     {
-      "id": "gd-rack'em-8-ball-pool",
+      "id": "gd-rack-em-8-ball-pool",
       "name": "Rack'em 8 Ball Pool",
       "genre": "Arcade",
       "description": "Try to defeat an online opponent or friend in RackEm a fun  ball pool style game",
@@ -24582,7 +24196,7 @@
       }
     },
     {
-      "id": "gd-street-racing%3A-moto-drift",
+      "id": "gd-street-racing-moto-drift",
       "name": "Street Racing: Moto Drift",
       "genre": "Casual",
       "description": "Become the king of drifting! Win extreme street motorcycle races, escape from the police and make your way to victory!  **Feel the extreme and drive:** Incredible motorcycle races, chases, drifting and crazy stunts are waiting for you. Feel the drive, enjoy the speed, make exciting drifts and win the race!  **Avoid the chase:** Beware of the police who are trying to catch you!",
@@ -24667,7 +24281,7 @@
       }
     },
     {
-      "id": "gd-mr.-noob-eat-burger",
+      "id": "gd-mr-noob-eat-burger",
       "name": "Mr. Noob EAT Burger",
       "genre": "Adventure",
       "description": "This place has a lot of burgers, you need to find and eat them all. But they are guarded by the terrible Mr. Noob! Arm yourself with a torch and a burger detector to find them all, trick Noob and escape his estate.",
@@ -25512,7 +25126,7 @@
       }
     },
     {
-      "id": "gd-noob%3A-parkour-tricks",
+      "id": "gd-noob-parkour-tricks",
       "name": "Noob: parkour tricks",
       "genre": "Agility",
       "description": "Play Noob: parkour tricks online — instant HTML5 action streamed straight into the cabinet.",
@@ -26103,7 +25717,7 @@
       }
     },
     {
-      "id": "gd-gas-station%3A-junkyard-tycoon",
+      "id": "gd-gas-station-junkyard-tycoon",
       "name": "Gas Station: Junkyard Tycoon",
       "genre": "Simulation",
       "description": "Build Your Dream Gas Station and Garage Tycoon Empire! Take charge in Gas Station Simulator Inc., the ultimate game for oil tycoon enthusiasts, idle games managers, and aspiring entrepreneurs! Manage, rebuild, and expand the gas station simulator, clean up your junkyard, and fix cars in this immersive and rewarding gas station simulator.",
@@ -27461,6 +27075,893 @@
         "accentStart": "#60a5fa",
         "accentEnd": "#1e3a8a"
       }
+    },
+    {
+      "id": "super-mario-land-gb",
+      "name": "Super Mario Land",
+      "url": "https://www.retrogames.cz/play_145-GameBoy.php",
+      "description": "Play Super Mario Land online — the authentic 1989 Game Boy debut of Mario on handheld, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.6,
+      "playersOnline": 420,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "GB",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_145-GameBoy.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_145-GameBoy.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "super-mario-64",
+      "name": "Super Mario 64",
+      "url": "https://www.retrogames.cz/play_978-N64.php",
+      "description": "Play Super Mario 64 online — the authentic 1996 N64 launch title that defined 3D platforming, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.9,
+      "playersOnline": 940,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "N64",
+        "3D Platformer"
+      ],
+      "badgeIds": [
+        "classic",
+        "featured"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_978-N64.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_978-N64.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-nes",
+      "name": "The Legend of Zelda",
+      "url": "https://www.retrogames.cz/play_068-NES.php",
+      "description": "Play The Legend of Zelda online — the authentic 1986 NES original that started the Hyrule saga, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 4.8,
+      "playersOnline": 610,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "NES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_068-NES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_068-NES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-ii-nes",
+      "name": "Zelda II: The Adventure of Link",
+      "url": "https://www.retrogames.cz/play_126-NES.php",
+      "description": "Play Zelda II: The Adventure of Link online — the authentic 1987 NES side-scrolling sequel, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 4.4,
+      "playersOnline": 390,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "NES",
+        "Classic",
+        "Action RPG"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_126-NES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_126-NES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-alttp-snes",
+      "name": "The Legend of Zelda: A Link to the Past",
+      "url": "https://www.retrogames.cz/play_283-SNES.php",
+      "description": "Play The Legend of Zelda: A Link to the Past online — the authentic 1991 SNES masterpiece of the Hyrule saga, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 4.9,
+      "playersOnline": 880,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_283-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_283-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-links-awakening-gb",
+      "name": "The Legend of Zelda: Link’s Awakening",
+      "url": "https://www.retrogames.cz/play_977-GameBoy.php",
+      "description": "Play The Legend of Zelda: Link’s Awakening online — the authentic 1993 Game Boy journey through Koholint Island, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 4.7,
+      "playersOnline": 460,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "GB",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_977-GameBoy.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_977-GameBoy.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-oot-n64",
+      "name": "The Legend of Zelda: Ocarina of Time",
+      "url": "https://www.retrogames.cz/play_984-N64.php",
+      "description": "Play The Legend of Zelda: Ocarina of Time online — the authentic 1998 N64 legend of time and destiny, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 5,
+      "playersOnline": 1200,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "N64",
+        "Classic",
+        "Open World"
+      ],
+      "badgeIds": [
+        "classic",
+        "featured",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_984-N64.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_984-N64.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-majoras-mask-n64",
+      "name": "The Legend of Zelda: Majora’s Mask",
+      "url": "https://www.retrogames.cz/play_1065-N64.php",
+      "description": "Play The Legend of Zelda: Majora’s Mask online — the authentic 2000 N64 race against the moon, streaming via the RetroGames.cz emulator.",
+      "genre": "Adventure",
+      "rating": 4.8,
+      "playersOnline": 720,
+      "availability": "Online",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "N64",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1065-N64.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1065-N64.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "sonic-1-genesis",
+      "name": "Sonic the Hedgehog",
+      "url": "https://www.retrogames.cz/play_117-Genesis.php",
+      "description": "Play Sonic the Hedgehog online — the authentic 1991 Genesis debut of the blue blur, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.8,
+      "playersOnline": 660,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "Genesis",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_117-Genesis.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_117-Genesis.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "sonic-spinball-genesis",
+      "name": "Sonic the Hedgehog: Spinball",
+      "url": "https://www.retrogames.cz/play_1757-Genesis.php",
+      "description": "Play Sonic the Hedgehog: Spinball online — the authentic 1993 Genesis pinball adventure, streaming via the RetroGames.cz emulator.",
+      "genre": "Action",
+      "rating": 4,
+      "playersOnline": 280,
+      "availability": "Online",
+      "tags": [
+        "Action",
+        "Retro",
+        "Genesis",
+        "Classic",
+        "Pinball"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1757-Genesis.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1757-Genesis.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "sonic-3d-blast-genesis",
+      "name": "Sonic 3D Blast",
+      "url": "https://www.retrogames.cz/play_507-Genesis.php",
+      "description": "Play Sonic 3D Blast online — the authentic 1996 isometric Genesis adventure, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.1,
+      "playersOnline": 310,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "Genesis",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_507-Genesis.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_507-Genesis.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "sonic-triple-trouble-gg",
+      "name": "Sonic the Hedgehog: Triple Trouble",
+      "url": "https://www.retrogames.cz/play_1240-GameGear.php",
+      "description": "Play Sonic the Hedgehog: Triple Trouble online — the authentic 1994 Game Gear classic, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.5,
+      "playersOnline": 240,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "Game Gear",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1240-GameGear.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1240-GameGear.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "pokemon-red-gb",
+      "name": "Pokémon Red Version",
+      "url": "https://www.retrogames.cz/play_285-GameBoy.php",
+      "description": "Play Pokémon Red Version online — the authentic 1996 Game Boy beginning of the Pokémon journey, streaming via the RetroGames.cz emulator.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 1500,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Retro",
+        "GB",
+        "JRPG",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_285-GameBoy.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_285-GameBoy.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "pokemon-blue-gb",
+      "name": "Pokémon Blue Version",
+      "url": "https://www.retrogames.cz/play_284-GameBoy.php",
+      "description": "Play Pokémon Blue Version online — the authentic 1996 Game Boy counterpart to Red, streaming via the RetroGames.cz emulator.",
+      "genre": "RPG",
+      "rating": 4.9,
+      "playersOnline": 1420,
+      "availability": "Online",
+      "tags": [
+        "RPG",
+        "Retro",
+        "GB",
+        "JRPG",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_284-GameBoy.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_284-GameBoy.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "pokemon-snap-n64",
+      "name": "Pokémon Snap",
+      "url": "https://www.retrogames.cz/play_1090-N64.php",
+      "description": "Play Pokémon Snap online — the authentic 1999 N64 photo safari through the Pokémon islands, streaming via the RetroGames.cz emulator.",
+      "genre": "Shooting",
+      "rating": 4.6,
+      "playersOnline": 380,
+      "availability": "Online",
+      "tags": [
+        "Shooting",
+        "Retro",
+        "N64",
+        "Classic",
+        "Photography"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1090-N64.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1090-N64.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "mega-man-x2-snes",
+      "name": "Mega Man X2 (SNES)",
+      "url": "https://www.retrogames.cz/play_895-SNES.php",
+      "description": "Play Mega Man X2 online — the authentic 1994 SNES hunt for the X-Hunters, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.7,
+      "playersOnline": 350,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_895-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_895-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "mega-man-7-snes",
+      "name": "Mega Man 7 (SNES)",
+      "url": "https://www.retrogames.cz/play_904-SNES.php",
+      "description": "Play Mega Man 7 online — the authentic 1995 SNES return of the original robot master, streaming via the RetroGames.cz emulator.",
+      "genre": "Platformer",
+      "rating": 4.5,
+      "playersOnline": 300,
+      "availability": "Online",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_904-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_904-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "sf2-turbo-snes",
+      "name": "Street Fighter II Turbo: Hyper Fighting",
+      "url": "https://www.retrogames.cz/play_1133-SNES.php",
+      "description": "Play Street Fighter II Turbo: Hyper Fighting online — the authentic 1992 SNES speed demon, streaming via the RetroGames.cz emulator.",
+      "genre": "Fighting",
+      "rating": 4.9,
+      "playersOnline": 760,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1133-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1133-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "super-sf2-snes",
+      "name": "Super Street Fighter II: The New Challengers",
+      "url": "https://www.retrogames.cz/play_919-SNES.php",
+      "description": "Play Super Street Fighter II: The New Challengers online — the authentic 1993 SNES tournament of legends, streaming via the RetroGames.cz emulator.",
+      "genre": "Fighting",
+      "rating": 4.7,
+      "playersOnline": 520,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_919-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_919-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "double-dragon-iii-nes",
+      "name": "NES Double Dragon III - The Sacred Stones (USA)",
+      "url": "https://www.retrogames.cc/embed/22161-double-dragon-iii-the-sacred-stones-usa.html",
+      "description": "Play NES Double Dragon III - The Sacred Stones (USA) online — the authentic finale of the NES beat-em-up saga, streaming via the RetroGames emulator.",
+      "genre": "Beat 'em up",
+      "rating": 4.3,
+      "playersOnline": 340,
+      "availability": "Online",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "NES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22161-double-dragon-iii-the-sacred-stones-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22161-double-dragon-iii-the-sacred-stones-usa.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "super-double-dragon-snes",
+      "name": "Super Double Dragon",
+      "url": "https://www.retrogames.cz/play_925-SNES.php",
+      "description": "Play Super Double Dragon online — the authentic 1992 SNES reunion of the Lee brothers, streaming via the RetroGames.cz emulator.",
+      "genre": "Beat 'em up",
+      "rating": 4.5,
+      "playersOnline": 290,
+      "availability": "Online",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_925-SNES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_925-SNES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "dbz-hyper-dimension-snes",
+      "name": "SNES Dragon Ball Z - Hyper Dimension (Japan)",
+      "url": "https://www.retrogames.cc/embed/23402-dragon-ball-z-hyper-dimension-japan.html",
+      "description": "Play SNES Dragon Ball Z - Hyper Dimension (Japan) online — the authentic final Super Famicom DBZ fighter, streaming via the RetroGames emulator.",
+      "genre": "Fighting",
+      "rating": 4.8,
+      "playersOnline": 470,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "Classic",
+        "Anime"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23402-dragon-ball-z-hyper-dimension-japan.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23402-dragon-ball-z-hyper-dimension-japan.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "dbz-super-butouden-snes",
+      "name": "SNES Dragon Ball Z - Super Butouden (Japan)",
+      "url": "https://www.retrogames.cc/embed/23964-dragon-ball-z-super-butouden-japan.html",
+      "description": "Play SNES Dragon Ball Z - Super Butouden (Japan) online — the authentic 1993 Super Famicom tournament fighter, streaming via the RetroGames emulator.",
+      "genre": "Fighting",
+      "rating": 4.6,
+      "playersOnline": 430,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "Classic",
+        "Anime"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23964-dragon-ball-z-super-butouden-japan.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23964-dragon-ball-z-super-butouden-japan.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "dbz-super-butouden-3-snes",
+      "name": "SNES Dragon Ball Z - Super Butouden 3 (Japan)",
+      "url": "https://www.retrogames.cc/embed/23298-dragon-ball-z-super-butouden-3-japan.html",
+      "description": "Play SNES Dragon Ball Z - Super Butouden 3 (Japan) online — the authentic 1994 Super Famicom championship fighter, streaming via the RetroGames emulator.",
+      "genre": "Fighting",
+      "rating": 4.7,
+      "playersOnline": 450,
+      "availability": "Online",
+      "tags": [
+        "Fighting",
+        "Retro",
+        "SNES",
+        "Classic",
+        "Anime"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/23298-dragon-ball-z-super-butouden-3-japan.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/23298-dragon-ball-z-super-butouden-3-japan.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "dbz-dragon-power-nes",
+      "name": "Dragon Ball (Dragon Power)",
+      "url": "https://www.retrogames.cz/play_1243-NES.php",
+      "description": "Play Dragon Ball (Dragon Power) online — the authentic 1986 NES debut of Goku, streaming via the RetroGames.cz emulator.",
+      "genre": "Beat 'em up",
+      "rating": 4.2,
+      "playersOnline": 260,
+      "availability": "Online",
+      "tags": [
+        "Beat 'em up",
+        "Retro",
+        "NES",
+        "Classic",
+        "Anime"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1243-NES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1243-NES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "mgs-ps1",
+      "name": "PlayStation Metal Gear Solid (USA) (Disc 1)",
+      "url": "https://www.retrogames.cc/embed/43266-metal-gear-solid-disc-1.html",
+      "description": "Play PlayStation Metal Gear Solid (USA) (Disc 1) online — the authentic 1998 stealth masterpiece, streaming via the RetroGames emulator.",
+      "genre": "Stealth",
+      "rating": 4.9,
+      "playersOnline": 690,
+      "availability": "Online",
+      "tags": [
+        "Stealth",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Tactical"
+      ],
+      "badgeIds": [
+        "classic",
+        "staff-pick"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43266-metal-gear-solid-disc-1.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43266-metal-gear-solid-disc-1.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "mgs-gbc",
+      "name": "Game Boy Color Metal Gear Solid (USA) (Ghost Babel)",
+      "url": "https://www.retrogames.cc/embed/26934-metal-gear-solid-usa.html",
+      "description": "Play Game Boy Color Metal Gear Solid (USA) (Ghost Babel) online — the authentic 2000 GBC stealth adventure, streaming via the RetroGames emulator.",
+      "genre": "Stealth",
+      "rating": 4.6,
+      "playersOnline": 320,
+      "availability": "Online",
+      "tags": [
+        "Stealth",
+        "Retro",
+        "GBC",
+        "Classic",
+        "Tactical"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/26934-metal-gear-solid-usa.html",
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/26934-metal-gear-solid-usa.html"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "snakes-revenge-nes",
+      "name": "Snake’s Revenge",
+      "url": "https://www.retrogames.cz/play_1119-NES.php",
+      "description": "Play Snake’s Revenge online — the authentic 1990 NES sequel to Metal Gear, streaming via the RetroGames.cz emulator.",
+      "genre": "Stealth",
+      "rating": 4,
+      "playersOnline": 210,
+      "availability": "Online",
+      "tags": [
+        "Stealth",
+        "Retro",
+        "NES",
+        "Classic",
+        "Tactical"
+      ],
+      "badgeIds": [
+        "classic"
+      ],
+      "launchConfig": {
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_1119-NES.php",
+        "embedMode": "inline",
+        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_1119-NES.php"
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      },
+      "image": "assets/hub/home-backdrop-command.png"
     }
   ],
   "recommendationRails": [
@@ -27483,7 +27984,10 @@
         "metal-slug-3-elite-master",
         "tekken-tag-tournament-elite-master",
         "slow-roads-webgl",
-        "venge-io-webgl"
+        "venge-io-webgl",
+        "sf2-turbo-snes",
+        "dbz-hyper-dimension-snes",
+        "mega-man-x2-snes"
       ],
       "maxItems": 6
     },
@@ -27506,7 +28010,10 @@
         "aladdin-elite-master",
         "super-mario-world-elite-master",
         "super-metroid-elite-master",
-        "final-fantasy-vi-elite-master"
+        "final-fantasy-vi-elite-master",
+        "rg-44214-super-mario-kart-world",
+        "zelda-alttp-snes",
+        "sonic-1-genesis"
       ],
       "maxItems": 6
     },
@@ -27694,7 +28201,10 @@
         "super-metroid-elite-master",
         "final-fantasy-vi-elite-master",
         "final-fantasy-vii-elite",
-        "final-fantasy-nes"
+        "final-fantasy-nes",
+        "earthbound-snes-elite",
+        "pokemon-red-gb",
+        "golden-sun-gba-elite"
       ],
       "audience": {
         "rooms": [
@@ -27721,7 +28231,7 @@
         "co-op-link"
       ],
       "gameIds": [
-        "gta-elite-wasm",
+        "sea-of-thieves",
         "mortal-kombat-2-elite",
         "tekken-3-elite"
       ],
@@ -27756,7 +28266,9 @@
         "super-metroid-elite-master",
         "nfl-blitz-elite-master",
         "spider-man-2-elite",
-        "need-for-speed-underground-2-elite"
+        "need-for-speed-underground-2-elite",
+        "zelda-oot-n64",
+        "zelda-majoras-mask-n64"
       ],
       "audience": {
         "minPlays": 0
