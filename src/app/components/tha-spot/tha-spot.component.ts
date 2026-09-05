@@ -68,6 +68,7 @@ import {
   LIVE_STREAM_PLATFORMS,
 } from '../../services/live-stream.service';
 import { SplitScreenPanelComponent } from '../split-screen-panel/split-screen-panel.component';
+import { FormatTimePipe } from './format-time.pipe';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
 const FEED_REFRESH_INTERVAL_MS = 300000;
@@ -75,7 +76,7 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule, SplitScreenPanelComponent],
+  imports: [CommonModule, FormsModule, SplitScreenPanelComponent, FormatTimePipe],
   templateUrl: './tha-spot.component.html',
   styleUrls: ['./tha-spot.component.css'],
   styles: [
@@ -2574,9 +2575,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     // Multiplayer matchmaking. Skipped entirely when this launch is for an
     // already-resolved match (accepted challenge / party launch / queue
     // pair): the shared lobby already exists and re-scanning would strand
-    // both players in a 15s wait instead of opening the game.
+    // both players in a 15s wait instead of opening the game. Solo-capable
+    // cabinets (modes include 'solo') stream inline right away too: opening
+    // one from the floor is a request to play it, not to queue — the rival
+    // scan (and bot fallback) is only meaningful for purely versus-oriented
+    // titles. Organized versus for solo-capable games stays reachable through
+    // lobbies / quick match, which take the resolved-launch path above.
     if (
       this.isMultiplayerGame(game) &&
+      !this.hasSoloMode(game) &&
       !this.matchmaking.consumeResolvedLaunch() &&
       !this.matchmaking.myLobby()
     ) {
@@ -3207,6 +3214,15 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private isMultiplayerGame(game: Game): boolean {
     return !!game.multiplayerType && game.multiplayerType !== 'None';
+  }
+
+  /**
+   * A cabinet advertises solo play when its mode list includes 'solo'.
+   * Such games stream inline on a direct launch instead of being gated
+   * behind the rival-scan queue; duel/team-only titles still scan.
+   */
+  private hasSoloMode(game: Game): boolean {
+    return game.modes?.includes('solo') === true;
   }
 
   private buildSessionContext(game: Game) {

@@ -624,6 +624,50 @@ describe('ThaSpotComponent', () => {
     }
   });
 
+  it('streams solo-capable multiplayer cabinets inline instead of scanning for rivals', () => {
+    const matchmaking = TestBed.inject(MatchmakingService) as any;
+    component.selectedGame.set({
+      id: 'solo-capable-mp',
+      name: 'Solo Capable MP',
+      genre: 'Arcade',
+      url: 'https://www.retrogames.cc/embed/1-solo-capable.html',
+      modes: ['solo', 'duel'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/1-solo-capable.html',
+      },
+    } as any);
+
+    component.confirmLaunch();
+
+    // Solo is an advertised mode: the cabinet itself must stream now, with no
+    // rival-scan gate. Organized versus stays on the lobby path.
+    expect(matchmaking.queueForMatch).not.toHaveBeenCalled();
+    expect(component.isMatchmaking()).toBe(false);
+  });
+
+  it('queues purely-versus cabinets for a rival scan on direct launch', () => {
+    const matchmaking = TestBed.inject(MatchmakingService) as any;
+    component.selectedGame.set({
+      id: 'duel-only-mp',
+      name: 'Duel Only MP',
+      genre: 'Arcade',
+      url: 'https://www.retrogames.cc/embed/2-duel-only.html',
+      modes: ['duel', 'team'],
+      multiplayerType: 'Server',
+      launchConfig: {
+        embedMode: 'inline',
+        approvedEmbedUrl: 'https://www.retrogames.cc/embed/2-duel-only.html',
+      },
+    } as any);
+
+    component.confirmLaunch();
+
+    expect(matchmaking.queueForMatch).toHaveBeenCalledWith('duel-only-mp');
+    expect(component.isMatchmaking()).toBe(true);
+  });
+
   it('recreates the game frame through the state-driven retry machine', () => {
     jest.useFakeTimers();
     try {
