@@ -1,0 +1,49 @@
+name: Tha Spot Catalog Playability
+
+# Keeps the game catalog honest between manual audits:
+#   - Static integrity: ids/dupes/required fields/art paths/enums/references
+#   - Local launch targets + cover art exist on disk
+#   - Live reachability of every INLINE cabinet (the ones the app frames)
+# Runs on PRs that touch the catalog, weekly on main, and on demand.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/assets/data/tha-spot-feed.json'
+      - 'src/app/hub/tha-spot-feed.fallback.ts'
+      - 'src/app/hub/tha-spot-premium-catalog.ts'
+      - 'src/app/hub/tha-spot-curated-games.ts'
+      - 'scripts/audit-*.cjs'
+      - 'scripts/sync-tha-spot-feed.cjs'
+  schedule:
+    - cron: '23 4 * * 1' # 04:23 UTC every Monday
+  workflow_dispatch:
+
+concurrency:
+  group: tha-spot-playability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrity:
+    name: Catalog integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Static catalog audit (ids, references, art, launch files, enums)
+        run: node scripts/audit-tha-spot-catalog.cjs
+
+  live-cabinets:
+    name: Inline cabinet reachability
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Probe every inline cabinet (full on schedule/manual, all on PR)
+        run: node scripts/audit-inline-live.cjs

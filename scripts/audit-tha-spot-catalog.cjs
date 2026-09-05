@@ -109,7 +109,7 @@ for (const g of games) {
     const p = g[img];
     if (typeof p === 'string' && p.startsWith('assets/')) {
       const ok = ['src', 'public'].some((r) => fs.existsSync(path.join(ROOT, r, p)));
-      if (!ok) warn('game', `${g.id}: ${img} not found: ${p}`);
+      if (!ok) err('game', `${g.id}: ${img} not found: ${p}`);
     }
   }
 }

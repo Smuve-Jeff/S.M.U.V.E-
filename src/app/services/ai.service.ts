@@ -392,8 +392,15 @@ Fuck their feelings. Results are all that matter.`;
     return insights;
   }
 
-  async generateImage(prompt: string) {
-    return 'https://example.com/image.png';
+  async generateImage(prompt: string): Promise<string> {
+    // No image-generation endpoint is wired yet (the backend AI proxy only
+    // serves /ai/analyze text). Returning a placeholder URL silently planted a
+    // dead "AI Concept Overlay" clip in the video timeline — surface a clear
+    // error instead so the lab can explain why nothing was generated.
+    void prompt;
+    throw new Error(
+      'AI image generation is not configured. Connect an image provider in Settings to generate concept art.'
+    );
   }
 
   isUnlocked(id: string) {

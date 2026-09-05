@@ -214,11 +214,10 @@ export class AiProduceComponent implements OnDestroy {
   }
 
   goToRelease(): void {
-    if (this.produce.appliedReleaseId()) {
-      this.router.navigate(['/release-pipeline']);
-    } else {
-      this.router.navigate(['/release-pipeline']);
-    }
+    // The Release Pipeline page picks up the produce service's applied
+    // release (if any) and always renders the full pipeline otherwise, so
+    // there is exactly one destination.
+    this.router.navigate(['/release-pipeline']);
   }
 
   /** Listen for the synthesized voice preview playback on the live

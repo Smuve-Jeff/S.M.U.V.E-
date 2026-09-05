@@ -1,6 +1,13 @@
-import { Component, inject, signal, computed, effect } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { ArtistIdentityService } from '../../services/artist-identity.service';
@@ -13,8 +20,9 @@ import { EnhancedArtistQuestionnaireEngine } from '../../services/enhanced-artis
   templateUrl: './artist-landing.component.html',
   styleUrls: ['./artist-landing.component.css'],
 })
-export class ArtistLandingComponent {
+export class ArtistLandingComponent implements OnDestroy {
   private route = inject(ActivatedRoute);
+  private routeSub: Subscription | null = null;
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
   private artistIdentityService = inject(ArtistIdentityService);
@@ -140,11 +148,18 @@ export class ArtistLandingComponent {
   });
 
   constructor() {
-    effect(() => {
-      const name = this.route.snapshot.paramMap.get('name');
+    // Keep the heading reactive when the route param changes while the
+    // component instance is reused (/artist/A -> /artist/B). Reading
+    // route.snapshot inside an effect never re-runs for param changes.
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      const name = params.get('name');
       if (name) {
         this.artistName.set(name);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
   }
 }

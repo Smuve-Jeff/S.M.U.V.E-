@@ -488,8 +488,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           trimEnd: this.resolveTrimAmount(aiClipDuration),
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Image Generation Error:', error);
+      this.aiFeedback.set(
+        error?.message
+          ? error.message.toUpperCase()
+          : 'IMAGE GENERATION FAILED. VERIFY AI PROVIDER CONFIGURATION.'
+      );
     } finally {
       this.isGenerating.set(false);
     }
