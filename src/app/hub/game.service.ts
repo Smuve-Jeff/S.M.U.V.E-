@@ -235,6 +235,13 @@ export const TRUSTED_EMBED_DOMAINS: readonly string[] = [
   'ev.io',
   'www.ev.io',
   'classic.minecraft.net',
+  // Official standalone mirrors for GamePix-published titles whose GamePix
+  // /play/ pages refuse iframe embedding (X-Frame-Options SAMEORIGIN). These
+  // hosts serve the same game with no frame-blocking headers.
+  'smashkarts.io',
+  'drift-hunters.io',
+  'basketball-stars.io',
+  'moto-x3m.io',
   'princejs.com',
   'www.princejs.com',
   'moba.js.org',
@@ -445,6 +452,90 @@ const CANONICAL_GAME_URLS: Record<string, string> = {
 };
 
 /**
+ * Verified frameable mirrors for premium titles hosted on GamePix.
+ *
+ * www.gamepix.com/play/... sends X-Frame-Options: SAMEORIGIN plus CSP
+ * frame-ancestors 'self', so the GamePix player page can never render inside
+ * the cabinet iframe. Each entry below is the same title's official standalone
+ * web build on a host verified to send no frame-blocking headers, so the
+ * premium shelf plays inline instead of bouncing to a new tab.
+ */
+const PREMIUM_INLINE_MIRROR_URLS: Record<string, string> = {
+  'smash-karts-web-elite': 'https://smashkarts.io/',
+  'drift-hunters-web-elite': 'https://drift-hunters.io/',
+  'nba-pro-3d': 'https://basketball-stars.io/',
+  'moto-x3m': 'https://moto-x3m.io/',
+};
+
+/**
+ * Premium shelf cover art. Real provider CDN covers where the title ships
+ * artwork (GamePix img CDN + Poki cover CDN), reused verified local banner
+ * art, and original S.M.U.V.E. banner SVGs for owned cabinets and the modern
+ * browser-native set. Applied during normalization so both the live feed and
+ * the offline fallback resolve the same premium shelf visuals.
+ */
+const PREMIUM_GAME_ART: Record<string, string> = {
+  // Owned S.M.U.V.E. cabinets — original banners.
+  battlefield: 'assets/games/battlefield.svg',
+  'remix-arena': 'assets/games/remix-arena.svg',
+  'neon-drift': 'assets/games/neon-drift.svg',
+  'vinyl-vault': 'assets/games/vinyl-vault.svg',
+  'cipher-surge': 'assets/games/cipher-surge.svg',
+  'tempo-lockdown': 'assets/games/tempo-lockdown.svg',
+  'halo-combat-evolved': 'assets/games/halo-combat-evolved.svg',
+  'tekken-4-tribute': 'assets/games/tekken-4-tribute.svg',
+  // Modern browser-native experiences — original banners / shared art.
+  'slow-roads-webgl': 'assets/games/slow-roads-webgl.svg',
+  'venge-io-webgl': 'assets/games/venge-io-webgl.svg',
+  'zombsroyale-io-multiplayer': 'assets/games/zombsroyale-io-multiplayer.svg',
+  'minecraft-classic': 'assets/games/minecraft.svg',
+  // GamePix cover CDN — real box art for the premium GamePix titles.
+  'smash-karts-web-elite':
+    'https://img.gamepix.com/games/smash-karts/cover/smash-karts.png?w=1200&ar=16:10',
+  'drift-hunters-web-elite':
+    'https://img.gamepix.com/games/drift-hunters/cover/drift-hunters.png?w=1200&ar=16:10',
+  'fruit-ninja-web-elite':
+    'https://img.gamepix.com/games/fruit-ninja/cover/fruit-ninja.png?w=1200&ar=16:10',
+  'moto-x3m':
+    'https://img.gamepix.com/games/moto-x3m/cover/moto-x3m.png?w=1200&ar=16:10',
+  'tomb-runner':
+    'https://img.gamepix.com/games/tomb-runner/cover/tomb-runner.png?w=1200&ar=16:10',
+  'tactical-squad':
+    'https://img.gamepix.com/games/special-strike-operations/cover/special-strike-operations.png?w=1200&ar=16:10',
+  'sniper-mission':
+    'https://img.gamepix.com/games/sniper-clash-3d/cover/sniper-clash-3d.png?w=1200&ar=16:10',
+  'zombie-idle-defense':
+    'https://img.gamepix.com/games/zombie-idle-defense/cover/zombie-idle-defense.png?w=1200&ar=16:10',
+  'mythic-raid-online':
+    'https://img.gamepix.com/games/raid-heroes-total-war/cover/raid-heroes-total-war.png?w=1200&ar=16:10',
+  'tower-defense':
+    'https://img.gamepix.com/games/tower-defense/cover/tower-defense.png?w=1200&ar=16:10',
+  'nba-pro-3d':
+    'https://img.gamepix.com/games/basketball-stars/cover/basketball-stars.png?w=1200&ar=16:10',
+  'nfl-redzone-rush':
+    'https://img.gamepix.com/games/touchdown-rush/cover/touchdown-rush.png?w=1200&ar=16:10',
+  'boxing-heavyweight':
+    'https://img.gamepix.com/games/boxing-stars/cover/boxing-stars.png?w=1200&ar=16:10',
+  // Poki cover CDN — real game art for the curated Poki set.
+  'poki-temple-run-2':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/b5c8b617f65be7cc4d56dd3657590ae7/temple-run-2-logo.png',
+  'poki-subway-surfers':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/1c920b9279c2bedec567c1b58129ae8f/subway-surfers-logo.png',
+  'poki-crossy-road':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/76fc1b000203faf71b77a75b10022142/crossy-road-logo.png',
+  'poki-stickman-hook':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/99e090d154caf30f3625df7e456d5984/stickman-hook-logo.png',
+  'poki-retro-bowl':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/ee9ca3764ef4289a48a1ebf457ef605441ed1f35a0f2eb12707a70d609e53686/retro-bowl-logo.png',
+  'poki-drive-mad':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/fb51b7a3920196f313f2d1b081a98e2e/drive-mad-logo.png',
+  'poki-monkey-mart':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/93142510b4eb8a5b81fc264e31c00b88/monkey-mart-logo.png',
+  'poki-friday-night-funkin':
+    'https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=1200,height=1200,fit=cover,f=png/0cd0c8bc4dc15c069dba7ccfb6809f6d/friday-night-funkin-logo.png',
+};
+
+/**
  * Cabinets whose historical gamepix inline embed pointed at a *different*
  * game than the title (e.g. "Metal Gear Solid 3" embedding the snake.io arcade).
  * These must launch externally via their corrected retrogames.cc cabinet
@@ -512,8 +603,19 @@ function normalizeGame(game: Game): Game {
     CANONICAL_GAME_TITLES[id] ||
     gameDistributionTitle(id) ||
     asString(game.name, 'Untitled Cabinet');
+  const mirrorUrl = PREMIUM_INLINE_MIRROR_URLS[id];
   const canonicalUrl = CANONICAL_GAME_URLS[id];
   const launchConfig = { ...(game.launchConfig || {}) };
+  if (mirrorUrl) {
+    // Premium titles whose GamePix player page refuses frames: point the
+    // launch contract at the verified frameable mirror and force inline.
+    launchConfig.approvedEmbedUrl = mirrorUrl;
+    launchConfig.approvedExternalUrl = mirrorUrl;
+    launchConfig.embedMode = 'inline';
+    launchConfig.trustNote =
+      'Official standalone mirror verified to frame without X-Frame-Options/CSP blocks.';
+    delete launchConfig.telemetryOrigins;
+  }
   const retroBacked = [
     canonicalUrl,
     game.url,
@@ -546,8 +648,8 @@ function normalizeGame(game: Game): Game {
     id,
     launchConfig: Object.keys(launchConfig).length ? launchConfig : undefined,
     name,
-    url: canonicalUrl || asString(game.url),
-    image: normalizeCatalogImage(game.image),
+    url: mirrorUrl || canonicalUrl || asString(game.url),
+    image: PREMIUM_GAME_ART[id] || normalizeCatalogImage(game.image),
     description: asString(game.description),
     genre: asString(game.genre, 'Unknown'),
     tags: asStringArray(game.tags),

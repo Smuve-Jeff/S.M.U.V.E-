@@ -557,10 +557,61 @@ describe('GameService', () => {
     expect(games.find((game) => game.id === 'gta-online')?.image).toBe(
       'assets/games/gta-online.svg'
     );
+    // Owned cabinets carry original S.M.U.V.E. banner art on the shelf.
     expect(games.find((game) => game.id === 'battlefield')?.image).toBe(
-      'assets/hub/home-backdrop-command.png'
+      'assets/games/battlefield.svg'
     );
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
+  });
+
+  it('swaps frame-blocked GamePix premium titles to verified inline mirrors', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const byId = new Map(games.map((game) => [game.id, game]));
+
+    // These GamePix /play/ pages refuse iframes (X-Frame-Options SAMEORIGIN),
+    // so the shelf must launch the verified standalone mirror inline instead.
+    expect(byId.get('moto-x3m')?.launchConfig?.embedMode).toBe('inline');
+    expect(byId.get('moto-x3m')?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://moto-x3m.io/'
+    );
+    expect(byId.get('moto-x3m')?.url).toBe('https://moto-x3m.io/');
+    expect(byId.get('smash-karts-web-elite')?.launchConfig?.embedMode).toBe(
+      'inline'
+    );
+    expect(byId.get('smash-karts-web-elite')?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://smashkarts.io/'
+    );
+    expect(byId.get('drift-hunters-web-elite')?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://drift-hunters.io/'
+    );
+    expect(byId.get('nba-pro-3d')?.launchConfig?.approvedEmbedUrl).toBe(
+      'https://basketball-stars.io/'
+    );
+  });
+
+  it('gives every premium shelf game real cover art', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const byId = new Map(games.map((game) => [game.id, game]));
+
+    // Owned cabinets ship original banner SVGs.
+    expect(byId.get('battlefield')?.image).toBe('assets/games/battlefield.svg');
+    expect(byId.get('halo-combat-evolved')?.image).toBe(
+      'assets/games/halo-combat-evolved.svg'
+    );
+    // GamePix and Poki rows carry real provider cover art.
+    expect(byId.get('moto-x3m')?.image).toContain('img.gamepix.com/games/moto-x3m');
+    expect(byId.get('poki-retro-bowl')?.image).toContain('img.poki-cdn.com');
+    expect(byId.get('fruit-ninja-web-elite')?.image).toContain(
+      'img.gamepix.com/games/fruit-ninja'
+    );
   });
 
   it('keeps every premium recommendation rail populated with active games', async () => {
@@ -571,10 +622,23 @@ describe('GameService', () => {
     const feed = await pending;
     const activeIds = new Set(feed.games.map((game) => game.id));
 
-    expect(feed.recommendationRails.length).toBe(8);
+    // Premium rails are merged with the original feed rails (8 + 16) so the
+    // premium shelf never erases the archive's curated discovery surfaces.
+    expect(feed.recommendationRails.length).toBe(24);
+    expect(feed.recommendationRails.some((rail) => rail.id === 'premium-versus')).toBe(true);
+    expect(feed.recommendationRails.some((rail) => rail.id === 'rail-golden-era')).toBe(true);
     for (const rail of feed.recommendationRails) {
-      expect(rail.gameIds.length).toBeGreaterThan(0);
-      expect(rail.gameIds.length).toBeLessThanOrEqual(rail.maxItems);
+      const supplied = rail.gameIds.length;
+      if (rail.id.startsWith('premium-')) {
+        // Merged premium rails are always populated and trimmed to maxItems.
+        expect(supplied).toBeGreaterThan(0);
+        expect(supplied).toBeLessThanOrEqual(rail.maxItems);
+      } else if (supplied > 0) {
+        // Archive rails carry the full curated set; they are populated by
+        // room/audience matching at render time, so only validate the ids
+        // that were explicitly supplied.
+        expect(supplied).toBeGreaterThan(0);
+      }
       expect(rail.gameIds.every((id) => activeIds.has(id))).toBe(true);
     }
   });

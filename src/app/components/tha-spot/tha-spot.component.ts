@@ -1225,7 +1225,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Return usable catalog art and avoid stale local image paths in old feed rows. */
   getGameImage(game: Game | null | undefined): string {
     const image = game?.image?.trim();
-    if (!image || image.startsWith('/assets/games/') || image.startsWith('assets/games/')) {
+    if (!image) return this.catalogImageFallback;
+    const isAssetPath =
+      image.startsWith('/assets/games/') || image.startsWith('assets/games/');
+    // Local SVG banners are shipped as catalog artwork and render directly.
+    // Other local /assets/games/ paths are stale screenshots from old feed
+    // rows and fall back to the themed backdrop.
+    if (isAssetPath && !image.toLowerCase().endsWith('.svg')) {
       return this.catalogImageFallback;
     }
     return image;
