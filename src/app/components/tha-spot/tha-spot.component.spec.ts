@@ -487,7 +487,7 @@ describe('ThaSpotComponent', () => {
     expect(image.src).toContain('/assets/hub/home-backdrop-command.png');
   });
 
-  it('only treats remote art as real card art so tiles avoid stale placeholders', () => {
+  it('treats verified local and remote art as real card art while rejecting the shared fallback', () => {
     const base = {
       id: 'art-check',
       name: 'Art Check',
@@ -500,7 +500,7 @@ describe('ThaSpotComponent', () => {
         ...base,
         image: '/assets/games/art-check.png',
       })
-    ).toBe(false);
+    ).toBe(true);
     expect(
       component.hasRealGameArt({
         ...base,

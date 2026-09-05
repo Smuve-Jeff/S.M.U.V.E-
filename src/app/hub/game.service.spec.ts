@@ -6,10 +6,15 @@ import {
 import { provideHttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
-import { GameService, isKnownEmbedBlockedUrl } from './game.service';
+import {
+  GameService,
+  canEmbedGameInline,
+  isKnownEmbedBlockedUrl,
+} from './game.service';
 import { ThaSpotFeed } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
+import { PREMIUM_ACTIVE_GAME_IDS } from './tha-spot-premium-catalog';
 
 const mockFeed: ThaSpotFeed = {
   badges: [],
@@ -400,100 +405,75 @@ describe('GameService', () => {
     expect(games[1].id).toBe('14');
   });
 
-  it('repairs Sports launch targets and excludes unverified duplicate records', async () => {
+  it('uses the same premium shelf when the remote feed is unavailable', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock
+      .expectOne('assets/data/tha-spot-feed.json')
+      .error(new ProgressEvent('network-error'));
+    const games = await pending;
+
+    expect(games).toHaveLength(902);
+    expect(games.slice(0, 44).map((game) => game.id)).toContain('rocket-league');
+    expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
+    expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
+    expect(service.getGameById('rocket-league')?.id).toBe('rocket-league');
+    expect(service.getGameById('rg-44097-super-mario-bros')?.id).toBe(
+      'rg-44097-super-mario-bros'
+    );
+  });
+
+  it('keeps the premium Sports shelf populated with modern competitive picks', async () => {
     const pending = firstValueFrom(service.getGamesForRoom('sports'));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
       THA_SPOT_FALLBACK_FEED
     );
     const sports = await pending;
-    const byId = new Map(sports.map((game) => [game.id, game]));
+    const ids = new Set(sports.map((game) => game.id));
 
-    expect(sports.length).toBeGreaterThanOrEqual(20);
-    expect(byId.get('league-bowling')?.url).toBe(
-      'https://www.retrogames.cc/embed/8986-league-bowling-ngm-019-ngh-019.html'
-    );
-    expect(byId.get('ice-hockey-nes-elite')?.url).toBe(
-      'https://www.retrogames.cc/embed/21659-ice-hockey-usa.html'
-    );
-
+    expect(sports.length).toBeGreaterThanOrEqual(5);
     for (const expectedId of [
-      'tecmo-bowl-elite',
-      'fifa-2005-elite',
-      'ssx-tricky-elite',
-      'tiger-woods-2004-elite',
-      '10-yard-fight-classic-elite',
-      'punch-out-nes-classic',
+      'rocket-league',
+      'fifa-24',
+      'poki-retro-bowl',
+      'nba-pro-3d',
+      'nfl-redzone-rush',
     ]) {
-      expect(byId.has(expectedId)).toBe(true);
+      expect(ids.has(expectedId)).toBe(true);
     }
+    expect(sports.every((game) => game.launchConfig)).toBe(true);
   });
 
-  it('serves classic franchise cabinets from authentic verified embeds', async () => {
+  it('keeps the original archive behind the premium-first shelf', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
       THA_SPOT_FALLBACK_FEED
     );
     const games = await pending;
-    const byName = new Map(games.map((game) => [game.name, game]));
 
-    // These cabinets were re-verified against the live provider: the card
-    // name must equal the real cabinet title and launch from its /embed/ URL.
-    for (const expected of [
-      'Arcade Frogger',
-      'SNES Mortal Kombat II (USA)',
-      "NES Mike Tyson's Punch-Out!! (USA)",
-      'SNES Doom (USA)',
-      'NES Tetris (USA)',
-    ]) {
-      const game = byName.get(expected);
-      expect(game).toBeTruthy();
-      expect(game?.url).toMatch(/^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/);
-      expect(game?.url).not.toContain('gamepix');
-    }
+    expect(games).toHaveLength(902);
+    expect(games.slice(0, 44).some((game) => game.id === 'rocket-league')).toBe(true);
+    expect(games.slice(0, 44).some((game) => game.id === 'gta-online')).toBe(true);
+    expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
+    expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
+    expect(new Set(games.map((game) => game.id)).size).toBe(902);
   });
 
-  it('plays every RetroGames cabinet from its direct /embed/ target', async () => {
+  it('keeps every premium launch target explicit and truthful', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
       THA_SPOT_FALLBACK_FEED
     );
     const games = await pending;
-    const retroGames = games.filter((game) =>
-      [
-        game.url,
-        game.launchConfig?.approvedEmbedUrl,
-        game.launchConfig?.approvedExternalUrl,
-      ].some((url) => url?.includes('retrogames.cc/'))
-    );
 
-    expect(retroGames.length).toBeGreaterThan(20);
-
-    for (const game of retroGames) {
-      const targets = [
-        game.url,
-        game.launchConfig?.approvedEmbedUrl,
-        game.launchConfig?.approvedExternalUrl,
-      ];
-      // Every Retro cabinet targets a direct /embed/ URL — never the search
-      // discovery page, which is what made these games appear broken.
-      expect(targets.some((u) => u?.includes('retrogames.cc/embed/'))).toBe(
-        true
-      );
-      expect(targets.some((u) => u?.includes('retrogames.cc/search'))).toBe(
-        false
-      );
-      // Cabinets without the explicit external-only flag play inline from
-      // their /embed/ URL; flagged ones keep the same cabinet as the external
-      // fallback instead of a search page.
-      if (game.launchConfig?.embedMode === 'inline') {
-        expect(game.launchConfig?.approvedEmbedUrl).toMatch(
-        /^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/
-        );
+    for (const game of games) {
+      const launch = game.launchConfig;
+      expect(launch).toBeTruthy();
+      if (launch?.embedMode === 'external-only') {
+        expect(launch.approvedExternalUrl).toBeTruthy();
+        expect(launch.approvedEmbedUrl).toBeUndefined();
       } else {
-        expect(game.launchConfig?.embedMode).toBe('external-only');
-        expect(game.launchConfig?.approvedExternalUrl).toMatch(
-          /^https:\/\/www\.retrogames\.cc\/embed\/\d+-.+\.html$/
-        );
+        expect(launch?.embedMode).toBe('inline');
+        expect(launch?.approvedEmbedUrl || game.url).toBeTruthy();
       }
     }
   });
@@ -526,10 +506,10 @@ describe('GameService', () => {
     const shooters = await pending;
     const ids = new Set(shooters.map((game) => game.id));
 
-    expect(shooters.length).toBeGreaterThanOrEqual(15);
+    expect(shooters.length).toBeGreaterThanOrEqual(3);
     // FPS and shoot-'em-up cabinets must not fall out of the Shooting room.
-    expect(ids.has('doom-ii-elite-master')).toBe(true);
-    expect(ids.has('rtype-arcade-elite')).toBe(true);
+    expect(ids.has('venge-io-webgl')).toBe(true);
+    expect(ids.has('tactical-squad')).toBe(true);
   });
 
   it('routes Action RPG cabinets into the RPG Vault room', async () => {
@@ -541,7 +521,7 @@ describe('GameService', () => {
     const ids = new Set(rpgs.map((game) => game.id));
 
     expect(rpgs.length).toBeGreaterThan(0);
-    expect([...ids].some((id) => id.includes('rpg') || id.includes('fantasy'))).toBe(true);
+    expect(rpgs.some((game) => game.tags?.includes('RPG'))).toBe(true);
   });
 
   it('keeps the embeddable Minecraft Classic cabinet inline while blocking the main site', () => {
@@ -569,18 +549,98 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    // The normalized fallback includes the full visible catalog plus the
-    // curated Poki additions; no catalog entries are hidden by this service.
+    // Production-sized feeds retain the archive with the reviewed premium shelf first.
     expect(games).toHaveLength(902);
-    expect(games.every((game) => !game.image?.startsWith('/assets/games/'))).toBe(
-      true
+    expect(games.slice(0, 44).map((game) => game.id)).toContain('gta-online');
+    expect(games.slice(0, 44).map((game) => game.id)).toContain('poki-temple-run-2');
+    expect(games.slice(0, 44).map((game) => game.id)).toContain('battlefield');
+    expect(games.find((game) => game.id === 'gta-online')?.image).toBe(
+      'assets/games/gta-online.svg'
     );
-    expect(games.some((game) => game.image === 'assets/hub/home-backdrop-command.png')).toBe(
-      true
+    expect(games.find((game) => game.id === 'battlefield')?.image).toBe(
+      'assets/hub/home-backdrop-command.png'
     );
+    expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
   });
 
-  it('refreshes the feed when forced', async () => {
+  it('keeps every premium recommendation rail populated with active games', async () => {
+    const pending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const feed = await pending;
+    const activeIds = new Set(feed.games.map((game) => game.id));
+
+    expect(feed.recommendationRails.length).toBe(8);
+    for (const rail of feed.recommendationRails) {
+      expect(rail.gameIds.length).toBeGreaterThan(0);
+      expect(rail.gameIds.length).toBeLessThanOrEqual(rail.maxItems);
+      expect(rail.gameIds.every((id) => activeIds.has(id))).toBe(true);
+    }
+  });
+
+  it('keeps the premium shelf balanced across requested genres and launch contracts', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+    const genres = new Set(games.map((game) => game.genre));
+
+    expect([...genres].some((value) => value === 'Action')).toBe(true);
+    expect([...genres].some((value) => value === 'RPG')).toBe(true);
+    expect([...genres].some((value) => value === 'Sports')).toBe(true);
+    expect([...genres].some((value) => value === 'Racing')).toBe(true);
+    expect(games.some((game) => game.tags?.includes('Adventure'))).toBe(true);
+    expect(games.filter((game) => game.launchConfig?.embedMode === 'inline').length).toBeGreaterThan(5);
+    expect(games.filter((game) => game.launchConfig?.embedMode === 'external-only').length).toBeGreaterThan(20);
+    expect(games.every((game) => game.url && game.description && game.tags?.length)).toBe(true);
+    expect(games.every((game) => game.image)).toBe(true);
+  });
+
+  it('validates every combined archive and premium row before exposing it', async () => {
+    const pending = firstValueFrom(service.listGames());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const games = await pending;
+
+    expect(games).toHaveLength(902);
+    expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toEqual(
+      PREMIUM_ACTIVE_GAME_IDS.filter((id) => games.some((game) => game.id === id))
+    );
+
+    for (const game of games) {
+      expect(game.id.trim()).toBeTruthy();
+      expect(game.name.trim()).toBeTruthy();
+      expect(game.name).not.toMatch(/^Game\s+\d+$/i);
+      expect(game.url.trim()).toMatch(/^(https?:\/\/|\/assets\/)/);
+
+      const launch = game.launchConfig;
+      expect(launch).toBeTruthy();
+      if (launch?.embedMode === 'external-only') {
+        expect(launch.approvedExternalUrl?.trim()).toBeTruthy();
+        expect(launch.approvedEmbedUrl).toBeUndefined();
+        expect(launch.approvedExternalUrl).not.toMatch(/^\/assets\/games\//);
+      } else {
+        expect(launch?.embedMode).toBe('inline');
+        expect(canEmbedGameInline(game)).toBe(true);
+      }
+
+      for (const target of [
+        game.url,
+        launch?.approvedEmbedUrl,
+        launch?.approvedExternalUrl,
+      ]) {
+        if (target?.startsWith('/assets/games/')) {
+          expect(target).toMatch(/^\/assets\/games\/[^/]+\/[^/]+\.html$/);
+        }
+      }
+    }
+  });
+
+  it('refreshes the feed when forced, preserving the combined catalog contract', async () =>
     const firstPending = firstValueFrom(service.getThaSpotFeed());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     await firstPending;

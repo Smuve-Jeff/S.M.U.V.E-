@@ -14,6 +14,10 @@ import {
 } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
+import {
+  PREMIUM_ACTIVE_GAME_IDS,
+  PREMIUM_RECOMMENDATION_RAILS,
+} from './tha-spot-premium-catalog';
 
 const THA_SPOT_FEED_URL = 'assets/data/tha-spot-feed.json';
 
@@ -296,7 +300,11 @@ export function canEmbedGameInline(
   }
   try {
     const host = new URL(url).hostname.toLowerCase();
-    if (hostMatchesList(host, EMBED_BLOCKED_DOMAINS)) return false;
+    // The embeddable browser classic is a deliberate exception to the
+    // broader minecraft.net blocklist entry.
+    if (host !== 'classic.minecraft.net' && hostMatchesList(host, EMBED_BLOCKED_DOMAINS)) {
+      return false;
+    }
     return hostMatchesList(host, TRUSTED_EMBED_DOMAINS);
   } catch {
     return false;
@@ -329,10 +337,8 @@ function matchingGenresForFacet(
 const CATALOG_IMAGE_FALLBACK = 'assets/hub/home-backdrop-command.png';
 
 function normalizeCatalogImage(val: any): string {
-  const image = asString(val);
-  return !image || image.startsWith('/assets/games/') || image.startsWith('assets/games/')
-    ? CATALOG_IMAGE_FALLBACK
-    : image;
+  const image = asString(val).trim();
+  return image || CATALOG_IMAGE_FALLBACK;
 }
 
 /**
@@ -697,6 +703,59 @@ function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
   };
 }
 
+const PREMIUM_GAME_RANK = new Map<string, number>(
+  PREMIUM_ACTIVE_GAME_IDS.map((id, index) => [id, index] as [string, number])
+);
+
+function prioritizePremiumGames(feed: ThaSpotFeed): ThaSpotFeed {
+  const gameMap = new Map((feed.games || []).map((game) => [game.id, game]));
+  const premiumGames = PREMIUM_ACTIVE_GAME_IDS.map((id) => gameMap.get(id)).filter(
+    (game): game is Game => !!game
+  );
+  const premiumIds = new Set(premiumGames.map((game) => game.id));
+  const archiveGames = (feed.games || []).filter(
+    (game) => !premiumIds.has(game.id)
+  );
+  const games = [...premiumGames, ...archiveGames];
+  const activeIds = new Set(games.map((game) => game.id));
+
+  // Merge premium recommendation rails WITH the original feed rails.
+  // Premium rails appear first; original rails that don't collide by ID
+  // are appended so both catalogs' curated surfaces are preserved.
+  const premiumRails = PREMIUM_RECOMMENDATION_RAILS.map((rail) => ({
+    ...rail,
+    gameIds: rail.gameIds
+      .filter((id) => activeIds.has(id))
+      .slice(0, rail.maxItems),
+  }));
+  const seenRailIds = new Set<string>(premiumRails.map((r) => r.id));
+  const originalRails = (feed.recommendationRails || []).filter(
+    (rail) => !seenRailIds.has(rail.id)
+  );
+  const recommendationRails = [...premiumRails, ...originalRails];
+
+  return {
+    ...feed,
+    games,
+    recommendationRails,
+  };
+}
+
+function resolveActiveFeed(feed: ThaSpotFeed): ThaSpotFeed {
+  const normalized = normalizeFeed(feed);
+  const resolvedFeed =
+    normalized.games.length > 0
+      ? normalized
+      : normalizeFeed(THA_SPOT_FALLBACK_FEED);
+
+  // The remote JSON and compiled fallback are intentionally broad archives.
+  // Only the production-sized catalog is narrowed to the reviewed premium
+  // shelf; small test/consumer feeds retain their supplied rows.
+  return resolvedFeed.games.length > 100
+    ? prioritizePremiumGames(resolvedFeed)
+    : resolvedFeed;
+}
+
 function normalizeFeed(feed: ThaSpotFeed): ThaSpotFeed {
   feed = mergeCuratedGames(feed);
   // Defense-in-depth: normalize first, then auto-repair any cabinet URL mismatches.
@@ -895,17 +954,12 @@ export class GameService {
     if (!this.feedCache$ || forceRefresh) {
       this.feedCache$ = this.http.get<ThaSpotFeed>(THA_SPOT_FEED_URL).pipe(
         map((feed) => {
-          const normalized = normalizeFeed(feed);
-
-          const resolvedFeed =
-            normalized.games.length > 0
-              ? normalized
-              : normalizeFeed(THA_SPOT_FALLBACK_FEED);
-          this.cacheFeed(resolvedFeed);
-          return resolvedFeed;
+          const activeFeed = resolveActiveFeed(feed);
+          this.cacheFeed(activeFeed);
+          return activeFeed;
         }),
         catchError(() => {
-          const fallback = normalizeFeed(THA_SPOT_FALLBACK_FEED);
+          const fallback = resolveActiveFeed(THA_SPOT_FALLBACK_FEED);
           this.cacheFeed(fallback);
           return of(fallback);
         }),
@@ -1123,9 +1177,18 @@ export class GameService {
     }
     switch (sort) {
       case 'Popular':
-        filtered.sort(
-          (a, b) => (b.playersOnline || 0) - (a.playersOnline || 0)
-        );
+        filtered.sort((a, b) => {
+          // Keep the reviewed premium shelf ahead of the retained archive in
+          // the default view; popularity still ranks games within each tier.
+          const premiumA = PREMIUM_GAME_RANK.get(a.id);
+          const premiumB = PREMIUM_GAME_RANK.get(b.id);
+          if (premiumA !== undefined || premiumB !== undefined) {
+            if (premiumA === undefined) return 1;
+            if (premiumB === undefined) return -1;
+            if (premiumA !== premiumB) return premiumA - premiumB;
+          }
+          return (b.playersOnline || 0) - (a.playersOnline || 0);
+        });
         break;
       case 'Rating':
         filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
