@@ -731,6 +731,28 @@ describe('GameService', () => {
     }
   });
 
+  it('resolves every game badge id to a defined badge with label and tone', async () => {
+    const pending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const feed = await pending;
+
+    const defined = new Map(
+      feed.badges.map((badge) => [badge.id, badge])
+    );
+    for (const game of feed.games) {
+      for (const badgeId of game.badgeIds ?? []) {
+        const badge = defined.get(badgeId);
+        expect(badge).toBeDefined();
+        expect(badge!.label.trim()).toBeTruthy();
+        expect(
+          ['primary', 'secondary', 'accent', 'warning'].includes(badge!.tone)
+        ).toBe(true);
+      }
+    }
+  });
+
   it('assigns premium-grade badges to the last two unbadged Gamepix games', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(

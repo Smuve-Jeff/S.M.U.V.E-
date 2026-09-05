@@ -171,8 +171,9 @@
             </h3>
             <div class="flex items-center gap-2">
               <button
-                (click)="zoomLevel.update((v) => v * 0.9)"
+                (click)="zoomOut()"
                 class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+                aria-label="Zoom timeline out"
               >
                 <span class="material-symbols-outlined text-xs">remove</span>
               </button>
@@ -180,8 +181,9 @@
                 >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
               >
               <button
-                (click)="zoomLevel.update((v) => v * 1.1)"
+                (click)="zoomIn()"
                 class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+                aria-label="Zoom timeline in"
               >
                 <span class="material-symbols-outlined text-xs">add</span>
               </button>
@@ -196,8 +198,10 @@
 
         <div class="flex-grow overflow-x-auto custom-scrollbar relative">
           <div
-            class="flex flex-col gap-2 md:gap-3 min-w-full"
+            class="flex flex-col gap-2 md:gap-3 min-w-full cursor-pointer"
             [style.width.px]="600 * zoomLevel()"
+            (click)="seekFromTimelineEvent($event)"
+            title="Click the timeline to move the playhead"
           >
             @for (track of videoEngine.tracks(); track track.id) {
               <div
@@ -234,7 +238,7 @@
               [style.left.px]="videoEngine.currentTime() * 10 * zoomLevel()"
             >
               <div
-                class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-0.75 -mt-0.75"
+                class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-1 -mt-1"
               ></div>
             </div>
           </div>

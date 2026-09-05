@@ -297,6 +297,32 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.drawHUD(ctx, canvas);
   }
 
+  /**
+   * Click-to-seek on the master timeline: maps the click x-position onto
+   * the full timeline duration and moves the playhead there.
+   */
+  seekFromTimelineEvent(event: MouseEvent): void {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = Math.max(
+      0,
+      Math.min(1, (event.clientX - rect.left) / rect.width)
+    );
+    this.videoEngine.seek(ratio * this.videoEngine.duration());
+  }
+
+  /** Zoom the timeline out, clamped so the lane layout never collapses. */
+  zoomOut(): void {
+    this.zoomLevel.update((v) => Math.max(0.25, +(v * 0.9).toFixed(2)));
+  }
+
+  /** Zoom the timeline in, clamped so the playhead never leaves the lane. */
+  zoomIn(): void {
+    this.zoomLevel.update((v) => Math.min(4, +(v * 1.1).toFixed(2)));
+  }
+
   applyEnhancementsToActiveClips() {
     const activeClips = this.videoEngine.getActiveClips(
       this.videoEngine.currentTime()

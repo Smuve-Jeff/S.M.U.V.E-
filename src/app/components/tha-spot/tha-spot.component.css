@@ -800,6 +800,11 @@
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.55);
   animation: badge-live-pulse 1.6s ease-in-out infinite;
 }
+.card-badge.classic {
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+  color: #f8fafc;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.4);
+}
 .card-badge.staff-pick {
   background: linear-gradient(135deg, #9333ea, #e879f9);
   color: #fff;

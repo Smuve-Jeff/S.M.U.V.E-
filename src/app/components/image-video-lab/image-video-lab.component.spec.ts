@@ -64,6 +64,7 @@ describe('ImageVideoLabComponent', () => {
       safeZoneEnabled: signal(true),
       getActiveClips: jest.fn().mockReturnValue([]),
       togglePlay: jest.fn(),
+      seek: jest.fn(),
       addClip: jest.fn(),
       updateClip: jest.fn(),
       getAllDeliveryPresets: jest.fn().mockReturnValue([
@@ -281,6 +282,45 @@ describe('ImageVideoLabComponent', () => {
         }),
       })
     );
+  });
+
+  it('clicks on the timeline seek the playhead proportionally', async () => {
+    const { component, videoEngine } = await createComponent();
+    videoEngine.duration.set(900);
+
+    const rect = { left: 100, width: 900, top: 0, height: 40 };
+    component.seekFromTimelineEvent({
+      currentTarget: { getBoundingClientRect: () => rect },
+      clientX: 550,
+    } as unknown as MouseEvent);
+
+    expect(videoEngine.seek).toHaveBeenCalledWith(450);
+  });
+
+  it('clamps timeline clicks outside the lane bounds', async () => {
+    const { component, videoEngine } = await createComponent();
+    videoEngine.duration.set(900);
+
+    const rect = { left: 100, width: 900, top: 0, height: 40 };
+    component.seekFromTimelineEvent({
+      currentTarget: { getBoundingClientRect: () => rect },
+      clientX: 50,
+    } as unknown as MouseEvent);
+    expect(videoEngine.seek).toHaveBeenCalledWith(0);
+
+    component.seekFromTimelineEvent({
+      currentTarget: { getBoundingClientRect: () => rect },
+      clientX: 5000,
+    } as unknown as MouseEvent);
+    expect(videoEngine.seek).toHaveBeenCalledWith(900);
+  });
+
+  it('clamps timeline zoom between 25% and 400%', async () => {
+    const { component } = await createComponent();
+    for (let i = 0; i < 40; i += 1) component.zoomOut();
+    expect(component.zoomLevel()).toBe(0.25);
+    for (let i = 0; i < 40; i += 1) component.zoomIn();
+    expect(component.zoomLevel()).toBe(4);
   });
 
   it('applies selected enhancements to clips under the playhead', async () => {
