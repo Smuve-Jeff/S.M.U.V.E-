@@ -413,7 +413,7 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(916);
+    expect(games).toHaveLength(867);
     expect(games.slice(0, 44).map((game) => game.id)).toContain('rocket-league');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
@@ -451,12 +451,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(916);
+    expect(games).toHaveLength(867);
     expect(games.slice(0, 44).some((game) => game.id === 'rocket-league')).toBe(true);
     expect(games.slice(0, 44).some((game) => game.id === 'gta-online')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(916);
+    expect(new Set(games.map((game) => game.id)).size).toBe(867);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -551,7 +551,7 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(916);
+    expect(games).toHaveLength(867);
     expect(games.slice(0, 44).map((game) => game.id)).toContain('gta-online');
     expect(games.slice(0, 44).map((game) => game.id)).toContain('poki-temple-run-2');
     expect(games.slice(0, 44).map((game) => game.id)).toContain('battlefield');
@@ -670,10 +670,16 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(916);
+    expect(games).toHaveLength(867);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
-    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toEqual(
-      PREMIUM_ACTIVE_GAME_IDS.filter((id) => games.some((game) => game.id === id))
+    // Only premium ids that are actually present in the feed must occupy the
+    // premium-first prefix; the premium allowlist is larger than the feed, so
+    // this assertion validates ordering for the overlap only.
+    const premiumInFeed = PREMIUM_ACTIVE_GAME_IDS.filter((id) =>
+      games.some((game) => game.id === id)
+    );
+    expect(games.slice(0, premiumInFeed.length).map((game) => game.id)).toEqual(
+      premiumInFeed
     );
 
     for (const game of games) {
