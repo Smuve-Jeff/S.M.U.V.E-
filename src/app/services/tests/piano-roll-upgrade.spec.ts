@@ -29,6 +29,9 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       ctx: {},
       playBuffer: jest.fn(),
       playSynth: jest.fn(),
+      triggerAttack: jest.fn(),
+      triggerSampler: jest.fn(),
+      calculatePlaybackRate: () => 1,
       getContext: () => ({
         destination: {},
         currentTime: 0,
@@ -110,6 +113,143 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
     ).toBe(2);
     expect(recalledTrack?.steps[0]).toBe(true);
     expect(recalledTrack?.steps[1]).toBe(true);
+  });
+
+  it("stamps new clips with the track's active pattern", () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addNoteToTrack(id, {
+      id: 'n1',
+      midi: 60,
+      step: 0,
+      length: 1,
+      velocity: 0.8,
+    });
+    service.addClipToTrack(id, { start: 0, length: 4, type: 'midi' });
+    const track = service.tracks().find((t) => t.id === id);
+    expect(track?.clips[0]?.patternSlotId).toBe(track?.activePatternSlotId);
+  });
+
+  it('keeps a clip audible after a second pattern is created', () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addNoteToTrack(id, {
+      id: 'live-note',
+      midi: 60,
+      step: 0,
+      length: 1,
+      velocity: 0.8,
+    });
+    service.addClipToTrack(id, { start: 0, length: 4, type: 'midi' });
+    service.createPatternSlot(id, 'Verse');
+
+    const track = service.tracks().find((t) => t.id === id)!;
+    // The clip is pinned to the slot that was active when it was drawn...
+    expect(track.clips[0].patternSlotId).toBe('slot-0');
+    // ...and switching patterns snapshot that slot, so the clip still sounds.
+    const triggerSpy = jest.spyOn(service.engine, 'triggerAttack');
+    service.playStep(0, 0, 0.125);
+    expect(triggerSpy).toHaveBeenCalled();
+  });
+
+  it('mutes a clip whose referenced pattern holds nothing', () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addNoteToTrack(id, {
+      id: 'live-note',
+      midi: 60,
+      step: 0,
+      length: 1,
+      velocity: 0.8,
+    });
+    service.addClipToTrack(id, { start: 0, length: 4, type: 'midi' });
+    const emptySlot = service.createPatternSlot(id, 'Empty');
+    // Wipe the live pattern, snapshot it, then point the clip at that slot.
+    service.replaceTrackNotes(id, []);
+    service.snapshotPatternVersion(id, emptySlot!, 'cleared');
+    const clipId = service.tracks()[0].clips[0].id;
+    service.setClipPattern(id, clipId, emptySlot!);
+
+    const triggerSpy = jest.spyOn(service.engine, 'triggerAttack');
+    service.playStep(0, 0, 0.125);
+    expect(triggerSpy).not.toHaveBeenCalled();
+  });
+
+  it('re-points a clip at another pattern and the change is undoable', () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addClipToTrack(id, { start: 0, length: 4, type: 'midi' });
+    const clipId = service.tracks()[0].clips[0].id;
+    const originalSlot = service.tracks()[0].clips[0].patternSlotId;
+
+    const slotA = service.createPatternSlot(id, 'A')!;
+    service.createPatternSlot(id, 'B');
+    const activeBefore = service.tracks()[0].activePatternSlotId;
+
+    service.setClipPattern(id, clipId, slotA);
+    const pointed = service.tracks().find((t) => t.id === id)!;
+    expect(pointed.clips[0].patternSlotId).toBe(slotA);
+    expect(pointed.activePatternSlotId).toBe(slotA);
+
+    service.history.undo();
+    const undone = service.tracks().find((t) => t.id === id)!;
+    expect(undone.clips[0].patternSlotId).toBe(originalSlot);
+    expect(undone.activePatternSlotId).toBe(activeBefore);
+  });
+
+  it('deep-clones a channel with notes, steps and pattern slots', () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addNoteToTrack(id, {
+      id: 'orig-note',
+      midi: 64,
+      step: 2,
+      length: 1,
+      velocity: 0.9,
+    });
+    service.addClipToTrack(id, { start: 0, length: 2, type: 'midi' });
+    const clonedId = service.cloneTrack(id)!;
+    expect(clonedId).toBeTruthy();
+    expect(clonedId).not.toBe(id);
+
+    const original = service.tracks().find((t) => t.id === id)!;
+    const clone = service.tracks().find((t) => t.id === clonedId)!;
+    expect(clone.name).toContain('(Copy)');
+    expect(clone.notes).toHaveLength(1);
+    expect(clone.notes[0].midi).toBe(64);
+    expect(clone.notes[0].id).not.toBe(original.notes[0].id);
+    expect(clone.clips).toHaveLength(1);
+    expect(clone.clips[0].id).not.toBe(original.clips[0].id);
+    expect(clone.patternSlots?.length).toBe(original.patternSlots?.length);
+    expect(clone.muted).toBe(false);
+    expect(clone.soloed).toBe(false);
+  });
+
+  it('gives a drum-type track the canonical drum id once, never twice', () => {
+    const first = service.addTrack('Drums', 'trap-808-elite', 'drum');
+    expect(first).toBe('track_drums_100');
+    const second = service.addTrack('Perc', 'steel-drum-island', 'drum');
+    expect(second).not.toBe('track_drums_100');
+    expect(service.tracks().filter((t) => t.id === 'track_drums_100'))
+      .toHaveLength(1);
+  });
+
+  it('gates playback in steps so a mid-bar clip starts on time', () => {
+    const id = service.addTrack('Keys', 'analog-warmth', 'midi');
+    service.addNoteToTrack(id, {
+      id: 'half-note',
+      midi: 72,
+      step: 0,
+      length: 1,
+      velocity: 0.8,
+    });
+    // Clip drawn at bar 8.5 → starts on step 136.
+    service.addClipToTrack(id, {
+      start: 8.5,
+      length: 2,
+      type: 'midi',
+    } as never);
+    const triggerSpy = jest.spyOn(service.engine, 'triggerAttack');
+
+    service.playStep(128, 0, 0.125); // bar 8: BEFORE the clip — silent
+    expect(triggerSpy).not.toHaveBeenCalled();
+    service.playStep(136, 0, 0.125); // bar 8.5: clip start — plays
+    expect(triggerSpy).toHaveBeenCalled();
   });
 
   it('provides instrument quality metadata and fallback for sample presets', () => {

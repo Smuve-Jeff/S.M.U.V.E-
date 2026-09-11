@@ -346,9 +346,18 @@ export class MusicManagerService {
   // ── Tracks ─────────────────────────────────────────────────────────
 
   addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
-    const id = instrumentId.includes('drum')
-      ? MusicManagerService.DRUM_TRACK_ID
-      : 'track_' + Date.now() + Math.random();
+    // The drum kit is addressed by a well-known id (drum-machine kit state,
+    // pad routing, swing). Derive it from the track TYPE as well as the
+    // instrument id — no shipped preset id contains "drum" — but only for the
+    // first drum channel, otherwise a second kit would collide on the id.
+    const wantsDrumKit = type === 'drum' || instrumentId.includes('drum');
+    const drumIdTaken = this.tracks().some(
+      (t) => t.id === MusicManagerService.DRUM_TRACK_ID
+    );
+    const id =
+      wantsDrumKit && !drumIdTaken
+        ? MusicManagerService.DRUM_TRACK_ID
+        : 'track_' + Date.now() + Math.random();
     const preset = this.instruments
       .getPresets()
       .find((p) => p.id === instrumentId);
@@ -847,6 +856,194 @@ export class MusicManagerService {
 
   // ── Clips ──────────────────────────────────────────────────────────
 
+  /**
+   * New arrangement clips are stamped with the track's active pattern so a
+   * clip is a real pattern instance: it keeps playing the material it was
+   * drawn with even after the live pattern moves on, and it can be re-pointed
+   * at another pattern (FL's "select pattern for this clip").
+   */
+  activePatternSlotFor(trackId: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    return track?.activePatternSlotId ?? track?.patternSlots?.[0]?.id ?? null;
+  }
+
+  /** Resolve the notes a clip should play, per its pattern reference. */
+  private notesForClip(
+    track: TrackModel,
+    clip: StudioClip,
+    liveNotes: TrackNote[]
+  ): TrackNote[] {
+    const slotId = clip.patternSlotId;
+    // No reference (legacy clip) or a reference to the live working pattern:
+    // the track's current notes (incl. any comp take) ARE that pattern.
+    if (!slotId || slotId === track.activePatternSlotId) return liveNotes;
+    const slot = track.patternSlots?.find((s) => s.id === slotId);
+    if (!slot || slot.versions.length === 0) return liveNotes;
+    return slot.versions[slot.versions.length - 1].notes ?? [];
+  }
+
+  /**
+   * Point a clip at another pattern slot. Selecting such a clip also makes the
+   * slot active so the Channel Rack / Piano Roll edit the pattern you hear.
+   */
+  setClipPattern(trackId: string, clipId: string, slotId: string | null) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const clip = track?.clips.find((c) => c.id === clipId);
+    if (!track || !clip) return;
+    const prev = clip.patternSlotId ?? null;
+    const prevActive = track.activePatternSlotId ?? null;
+    if (prev === slotId) return;
+    this.runCommand(
+      'Set Clip Pattern · ' + (clip.name || track.name),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: slotId ?? t.activePatternSlotId,
+                  clips: t.clips.map((c) =>
+                    c.id === clipId ? { ...c, patternSlotId: slotId } : c
+                  ),
+                }
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: prevActive,
+                  clips: t.clips.map((c) =>
+                    c.id === clipId ? { ...c, patternSlotId: prev } : c
+                  ),
+                }
+          )
+        );
+      }
+    );
+  }
+
+  /**
+   * Capture the live pattern into a NEW slot and return its id, so the
+   * arrangement can hold more than one pattern per track.
+   */
+  createPatternSlot(trackId: string, name?: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return null;
+    const slotId = 'slot-' + Date.now();
+    const label = name || `Pattern ${(track.patternSlots?.length ?? 0) + 1}`;
+    const notesBefore = this.clone(track.notes || []);
+    const slotsBefore = this.clone(track.patternSlots || []);
+    const previousActive = track.activePatternSlotId ?? null;
+    const slotCount = track.patternSlots?.length ?? 0;
+
+    this.runCommand(
+      'New Pattern · ' + label,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const version: PatternVersion = {
+              id: 'v-' + Date.now(),
+              name: 'auto ' + (slotCount + 1),
+              steps: [...(t.steps || [])],
+              notes: this.clone(t.notes || []),
+            };
+            // Snapshot the pattern being LEFT before switching the active
+            // slot. Without this, a clip still pointing at the old slot would
+            // resolve to that slot's stale (often empty) first version and
+            // fall silent the moment a second pattern is created.
+            const carried = (t.patternSlots || []).map((slot) =>
+              slot.id === previousActive
+                ? { ...slot, versions: [...slot.versions, version] }
+                : slot,
+            );
+            return {
+              ...t,
+              activePatternSlotId: slotId,
+              // The new pattern starts as a copy of the live pattern, like
+              // FL's "clone pattern", so the artist keeps their material.
+              patternSlots: [
+                ...carried,
+                {
+                  id: slotId,
+                  name: label,
+                  activeVersionId: 'v1',
+                  versions: [
+                    {
+                      id: 'v1',
+                      name: 'v1',
+                      steps: [...(t.steps || [])],
+                      notes: this.clone(t.notes || []),
+                    },
+                  ],
+                },
+              ],
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: previousActive,
+                  patternSlots: this.clone(slotsBefore),
+                  notes: this.clone(notesBefore),
+                }
+          )
+        );
+      }
+    );
+    return slotId;
+  }
+
+  /**
+   * Deep-copy a channel: notes, steps, pattern slots and arrangement clips all
+   * come along, so "clone" means clone rather than "add an empty channel".
+   */
+  cloneTrack(trackId: string, name?: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return null;
+    const newId = 'track_' + Date.now() + Math.random();
+    const now = Date.now();
+    const copy: TrackModel = {
+      ...this.clone(track),
+      id: newId,
+      name: name || `${track.name} (Copy)`,
+      muted: false,
+      soloed: false,
+      notes: this.clone(track.notes || []).map((n, i) => ({
+        ...n,
+        id: `note-${now}-${i}-${Math.floor(Math.random() * 1000)}`,
+      })),
+      clips: (track.clips || []).map((c, i) => ({
+        ...this.clone(c),
+        id: `clip_${now}_${i}_${Math.floor(Math.random() * 1000)}`,
+      })),
+    };
+    this.runCommand(
+      'Clone Track · ' + track.name,
+      () => {
+        this.tracks.update((ts) => [...ts, copy]);
+        this.selectedTrackId.set(newId);
+      },
+      () => {
+        this.tracks.update((ts) => ts.filter((t) => t.id !== newId));
+        this.selectedTrackId.set(trackId);
+      }
+    );
+    return newId;
+  }
+
   addClipToTrack(trackId: string, clip: Partial<StudioClip>) {
     const newClip: StudioClip = {
       id: 'clip_' + Date.now(),
@@ -854,6 +1051,10 @@ export class MusicManagerService {
       length: 4,
       name: 'Clip',
       type: 'midi',
+      // Only stamp a pattern when the caller (e.g. an AI/stem path) has not
+      // already decided, and only for MIDI/drum material.
+      patternSlotId:
+        clip.type === 'audio' ? null : this.activePatternSlotFor(trackId),
       ...clip,
     };
     const clipClone = this.clone(newClip);
@@ -1344,33 +1545,6 @@ export class MusicManagerService {
         const stepVelocities = { ...t.stepVelocities };
         stepVelocities[stepIndex] = velocity;
         return { ...t, stepVelocities };
-      })
-    );
-  }
-
-  createPatternSlot(id: string, name: string) {
-    this.tracks.update((ts) =>
-      ts.map((t) => {
-        if (t.id !== id) return t;
-        const slotId = 'slot-' + Date.now();
-        const newSlot: PatternSlot = {
-          id: slotId,
-          name,
-          activeVersionId: 'v1',
-          versions: [
-            {
-              id: 'v1',
-              name: 'v1',
-              steps: [...t.steps],
-              notes: this.clone(t.notes),
-            },
-          ],
-        };
-        return {
-          ...t,
-          patternSlots: [...(t.patternSlots || []), newSlot],
-          activePatternSlotId: slotId,
-        };
       })
     );
   }
@@ -1885,8 +2059,8 @@ export class MusicManagerService {
   // ── Playback engine stepper ───────────────────────────────────────
 
   playStep(step: number, time: number, duration: number) {
-    const bar = Math.floor(step / 16);
-    const stepInBar = step % 16;
+    const STEPS_PER_BAR = 16;
+    const stepInBar = step % STEPS_PER_BAR;
     const isOffbeat = stepInBar % 2 !== 0;
     const drumTrack = this.tracks().find(
       (t) => t.id === MusicManagerService.DRUM_TRACK_ID
@@ -1910,14 +2084,47 @@ export class MusicManagerService {
       // Seeded MIDI tracks often have notes before they have arrangement
       // clips. Treat that as an active pattern instead of silently producing
       // no sound; explicit clips still gate playback as before.
-      const playableClips = clips.length > 0
-        ? clips
-        : [{ start: 0, length: Number.POSITIVE_INFINITY, type: 'midi' } as any];
+      const playableClips =
+        clips.length > 0
+          ? clips
+          : [
+              {
+                start: 0,
+                length: Number.POSITIVE_INFINITY,
+                type: 'midi',
+              } as StudioClip,
+            ];
 
       playableClips.forEach((clip) => {
-        if (bar >= clip.start && bar < clip.start + clip.length) {
-          playNotes
-            .filter((n) => Math.floor(n.step) === step % 64)
+        // Gate in STEPS, never whole bars: clips snap to quarter bars, so a
+        // clip drawn at bar 8.5 starts on step 136. The old bar-based test
+        // delayed such a MIDI clip by up to a bar, and `bar === clip.start`
+        // could never be true for it, so a fractional-start audio clip was
+        // simply silent.
+        const startStep = Math.round((clip.start || 0) * STEPS_PER_BAR);
+        const endStep =
+          startStep +
+          Math.max(1, Math.round((clip.length || 4) * STEPS_PER_BAR));
+        if (step < startStep || step >= endStep) return;
+
+        // Pattern instance: a clip plays the pattern it references rather than
+        // whatever the track's live working pattern has become since.
+        const clipNotes =
+          clip.type === 'audio' ? [] : this.notesForClip(t, clip, playNotes);
+
+        if (clip.type !== 'audio') {
+          // Pattern position is CLIP-RELATIVE: a clip is a window onto its
+          // pattern, so it must start the pattern where it starts. The old
+          // global `step % 64` phase made a clip drawn at bar 8.5 begin on
+          // pattern step 8 — i.e. play the wrong bar of its own pattern.
+          const patternSpan = Math.max(
+            1,
+            this.engine.loopLengthSteps?.() ?? 64,
+          );
+          const localStep =
+            ((step - startStep) % patternSpan + patternSpan) % patternSpan;
+          clipNotes
+            .filter((n) => Math.floor(n.step) === localStep)
             .forEach((n) => {
               if (n.probability !== undefined && Math.random() >= n.probability)
                 return; // Skip based on probability
@@ -1969,38 +2176,38 @@ export class MusicManagerService {
                 synthParams
               );
             });
+        }
 
-          if (clip.type === 'audio' && stepInBar === 0 && bar === clip.start) {
-            // Audio can be either inline (legacy) or cached by id (stem splits).
-            const audioData =
-              (clip as any).audioData ||
-              ((clip as any).audioRefId &&
-                this.stemAudioCache.get((clip as any).audioRefId));
-            if (audioData) {
-              const rate = this.engine.calculatePlaybackRate(
-                (clip as any).originalBpm || this.engine.tempo()
-              );
-              const clipDur =
-                clip.length * 4 * (60 / this.engine.tempo());
-              // Phase F2 — clip fade envelope. Fades are stored in bars on
-              // the clip (matching start/length units); convert to seconds.
-              const secPerBar = 4 * (60 / this.engine.tempo());
-              const fadeInSec =
-                Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
-              const fadeOutSec =
-                Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
-              this.engine.triggerSampler(
-                t.id,
-                audioData,
-                swungTime,
-                t.gain,
-                t.pan,
-                clipDur,
-                rate,
-                fadeInSec,
-                fadeOutSec
-              );
-            }
+        if (clip.type === 'audio' && step === startStep) {
+          // Audio can be either inline (legacy) or cached by id (stem splits).
+          const audioData =
+            (clip as any).audioData ||
+            ((clip as any).audioRefId &&
+              this.stemAudioCache.get((clip as any).audioRefId));
+          if (audioData) {
+            const rate = this.engine.calculatePlaybackRate(
+              (clip as any).originalBpm || this.engine.tempo()
+            );
+            const clipDur =
+              clip.length * 4 * (60 / this.engine.tempo());
+            // Phase F2 — clip fade envelope. Fades are stored in bars on
+            // the clip (matching start/length units); convert to seconds.
+            const secPerBar = 4 * (60 / this.engine.tempo());
+            const fadeInSec =
+              Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
+            const fadeOutSec =
+              Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
+            this.engine.triggerSampler(
+              t.id,
+              audioData,
+              swungTime,
+              t.gain,
+              t.pan,
+              clipDur,
+              rate,
+              fadeInSec,
+              fadeOutSec
+            );
           }
         }
       });

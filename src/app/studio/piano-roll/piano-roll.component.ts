@@ -122,7 +122,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.ghostNoteSet().has(note.id);
   }
 
-  snap = signal<'1/4' | '1/8' | '1/16' | '1/32' | 'off'>('1/16');
+  snap = signal<'1/4' | '1/8' | '1/8T' | '1/16' | '1/32' | 'off'>('1/16');
   quantizePresetId = signal<string>(this.quantization.selectedPresetId());
   zoomLevel = signal(1.0);
   gridSteps = signal(64);
@@ -132,6 +132,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   snapOptions = [
     { label: '1/4', value: '1/4' as const },
     { label: '1/8', value: '1/8' as const },
+    // 1/8T = eighth-note triplet (12th notes): the swing/latin grid every
+    // DAW ships. A 16-bar window fits exactly 48 of them.
+    { label: '1/8T', value: '1/8T' as const },
     { label: '1/16', value: '1/16' as const },
     { label: '1/32', value: '1/32' as const },
     { label: 'Off', value: 'off' as const },
@@ -142,6 +145,92 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   focusedStep = signal(0);
   focusedMidi = signal(60);
   gridHasFocus = signal(false);
+  /** Marquee (lasso) drag state — selection rectangle in grid coords. */
+  marquee = signal<{
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  } | null>(null);
+  private marqueeBaseSelection = new Set<string>();
+
+  /** Notes fully covered by the active marquee rectangle. */
+  marqueePreviewIds = computed(() => {
+    const rect = this.marquee();
+    const track = this.selectedTrack();
+    if (!rect || !track) return new Set<string>();
+    const x0 = Math.min(rect.x0, rect.x1);
+    const x1 = Math.max(rect.x0, rect.x1);
+    const y0 = Math.min(rect.y0, rect.y1);
+    const y1 = Math.max(rect.y0, rect.y1);
+    const ids = new Set(this.marqueeBaseSelection);
+    track.notes.forEach((note) => {
+      const nx = note.step * this.cellWidth();
+      const nw = Math.max(0.125, note.length) * this.cellWidth();
+      const ny = this.noteTopPx(note.midi);
+      const nh = this.rowHeight();
+      // The note must sit ENTIRELY inside the lasso (DAW convention) so
+      // grazing a row edge does not silently capture whole runs.
+      if (
+        nx >= x0 &&
+        nx + nw <= x1 &&
+        ny >= y0 &&
+        ny + nh <= y1
+      ) {
+        ids.add(note.id);
+      }
+    });
+    return ids;
+  });
+
+  /** CSS style for the lasso overlay rectangle. */
+  marqueeStyle = computed(() => {
+    const rect = this.marquee();
+    if (!rect) return null;
+    const left = Math.min(rect.x0, rect.x1);
+    const top = Math.min(rect.y0, rect.y1);
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${Math.abs(rect.x1 - rect.x0)}px`,
+      height: `${Math.abs(rect.y1 - rect.y0)}px`,
+    };
+  });
+
+  /** Live preview of the resize edge's new length (steps). */
+  resizePreview = signal<{ id: string; length: number } | null>(null);
+  /** Active right-edge resize drag state. */
+  private resizingNote: {
+    id: string;
+    startClientX: number;
+    originalLength: number;
+    originalStep: number;
+  } | null = null;
+
+  /**
+   * True when an x-offset (px) lands within the resize slop of a note's
+   * right edge. Only selected notes expose the edge, so a plain click on an
+   * unselected note still selects/moves instead of resizing.
+   */
+  isNoteResizeEdge(note: TrackNote, offsetX: number, px = 8): boolean {
+    if (!this.selectedNoteIds().has(note.id)) return false;
+    const width = Math.max(0.125, note.length) * this.cellWidth();
+    return width - offsetX <= px && offsetX <= width + 4;
+  }
+
+  onNoteResizePointerDown(event: PointerEvent, note: TrackNote): void {
+    if (event.pointerType === 'touch') return;
+    event.stopPropagation();
+    event.preventDefault();
+    this.resizingNote = {
+      id: note.id,
+      startClientX: event.clientX,
+      originalLength: Math.max(0.125, note.length),
+      originalStep: note.step,
+    };
+    this.resizePreview.set({ id: note.id, length: note.length });
+  }
+
   private draggingNotes: {
     startX: number;
     startY: number;
@@ -940,11 +1029,23 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       event.clientX,
       event.clientY
     );
+    // Resize affordance: a press within 8px of a note's right edge drags its
+    // length instead of moving it (notes render in WebGL, so this is a
+    // coordinate hit test, not a DOM target).
+    const hit = this.findNoteAt(step, midi);
+    const offsetPx = hit ? (step - hit.step) * this.cellWidth() : Infinity;
+    const resizeEdge =
+      !!hit &&
+      this.editMode() !== 'erase' &&
+      this.isNoteResizeEdge(hit, offsetPx);
+
     this.handleGridInteraction(step, midi, {
       shiftKey: event.shiftKey,
       rowFraction,
       dragStart: { x: event.clientX, y: event.clientY },
+      clientPoint: { x: event.clientX, y: event.clientY },
       previewExisting: true,
+      resizeEdge,
     });
   }
 
@@ -978,6 +1079,36 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('pointermove', ['$event'])
   onPointerMove(e: PointerEvent) {
+    if (this.resizingNote) {
+      const track = this.musicManager.selectedTrack();
+      if (!track) return;
+      const dSteps = (e.clientX - this.resizingNote.startClientX) / this.cellWidth();
+      // Snap the dragged edge so resize lands on the current grid — unsnapped
+      // resize fights the quantize button and produces unusable micro-lengths.
+      const snapped = Math.max(
+        0.125,
+        this.applySnap(
+          this.resizingNote.originalLength + dSteps,
+        ),
+      );
+      this.resizePreview.set({ id: this.resizingNote.id, length: snapped });
+      this.musicManager.updateNote(track.id, this.resizingNote.id, {
+        length: snapped,
+      });
+      this.markDirty();
+      return;
+    }
+
+    if (this.marquee()) {
+      const container = this.scrollContainer?.nativeElement;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left + container.scrollLeft;
+      const y = e.clientY - rect.top + container.scrollTop;
+      this.marquee.update((m) => (m ? { ...m, x1: x, y1: y } : m));
+      return;
+    }
+
     if (this.draggingNotes) {
       const dx = e.clientX - this.draggingNotes.startX;
       const dy = e.clientY - this.draggingNotes.startY;
@@ -997,6 +1128,19 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener('pointerup')
   onPointerUp() {
+    if (this.resizingNote) {
+      this.resizingNote = null;
+      this.resizePreview.set(null);
+      this.haptic.light();
+      return;
+    }
+    if (this.marquee()) {
+      const preview = this.marqueePreviewIds();
+      this.selectedNoteIds.set(preview);
+      this.marquee.set(null);
+      this.markDirty();
+      return;
+    }
     this.draggingNotes = null;
   }
 
@@ -1042,12 +1186,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     return { step, midi, rowFraction };
   }
 
+  /**
+   * The note covering a grid position. Half-open at the END (`step >= start
+   * && step < start + length`), so adjacent 1-step notes never both match at
+   * the shared boundary — the closed interval here made every second note of
+   * a repeated run unselectable (the click always resolved to its neighbor).
+   */
   private findNoteAt(step: number, midi: number): TrackNote | undefined {
     return this.selectedTrack()?.notes.find(
       (note) =>
         note.midi === midi &&
         step >= note.step &&
-        step <= note.step + Math.max(0.125, note.length)
+        step < note.step + Math.max(0.125, note.length)
     );
   }
 
@@ -1083,6 +1233,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       rowFraction?: number;
       dragStart?: { x: number; y: number };
       previewExisting?: boolean;
+      /** Client point that started this interaction (for lasso drags). */
+      clientPoint?: { x: number; y: number };
+      /** Press landed on a selected note's resize edge. */
+      resizeEdge?: boolean;
     } = {}
   ): void {
     const track = this.selectedTrack();
@@ -1098,6 +1252,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     if (existing) {
       if (this.editMode() === 'erase') {
         this.musicManager.removeNotes(track.id, [existing.id]);
+      } else if (options.resizeEdge) {
+        // Edge press selects (if needed) then resizes; touch keeps editing
+        // length through the precision panel's Length slider instead.
+        if (!this.selectedNoteIds().has(existing.id)) {
+          this.selectedNoteIds.set(new Set([existing.id]));
+        }
+        this.resizingNote = {
+          id: existing.id,
+          startClientX: options.clientPoint?.x ?? 0,
+          originalLength: Math.max(0.125, existing.length),
+          originalStep: existing.step,
+        };
       } else {
         this.updateSelectionForNote(existing, !!options.shiftKey);
         if (options.previewExisting) {
@@ -1116,6 +1282,21 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!options.shiftKey) {
         this.selectedNoteIds.set(new Set());
         this.markDirty();
+      }
+      // Empty-space press in select mode begins a lasso drag. The base
+      // selection survives so shift-lasso ADDS to it.
+      if (options.clientPoint && this.scrollContainer) {
+        const container = this.scrollContainer.nativeElement;
+        const rect = container.getBoundingClientRect();
+        this.marqueeBaseSelection = options.shiftKey
+          ? new Set(this.selectedNoteIds())
+          : new Set();
+        this.marquee.set({
+          x0: options.clientPoint.x - rect.left + container.scrollLeft,
+          y0: options.clientPoint.y - rect.top + container.scrollTop,
+          x1: options.clientPoint.x - rect.left + container.scrollLeft,
+          y1: options.clientPoint.y - rect.top + container.scrollTop,
+        });
       }
       return;
     }
@@ -1189,6 +1370,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     switch (this.snap()) {
       case '1/4': return Math.round(step / 4) * 4;
       case '1/8': return Math.round(step / 2) * 2;
+      // 12th-note grid (eighth-note triplet).
+      case '1/8T': return Math.round(step / (4 / 3)) * (4 / 3);
       case '1/16': return Math.round(step);
       case '1/32': return Math.round(step * 2) / 2;
       default: return step;
@@ -1199,6 +1382,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     switch (this.snap()) {
       case '1/4': return 4;
       case '1/8': return 2;
+      // Eighth-triplet notes span a 12th of a bar (4/3 steps).
+      case '1/8T': return 4 / 3;
       case '1/16': return 1;
       case '1/32': return 0.5;
       default: return 1;
@@ -1310,6 +1495,41 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onGridKeydown(event: KeyboardEvent): void {
     if (event.target instanceof HTMLInputElement) return;
+    if (event.target instanceof HTMLSelectElement) return;
+    if (event.target instanceof HTMLTextAreaElement) return;
+
+    // Tool shortcuts advertised on the toolbar buttons (Draw/Select/Erase).
+    // Only bare keys — no modifier combos — so browser shortcuts survive.
+    if (
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      (event.key === 'd' || event.key === 'D')
+    ) {
+      event.preventDefault();
+      this.setEditMode('draw');
+      return;
+    }
+    if (
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      (event.key === 's' || event.key === 'S')
+    ) {
+      event.preventDefault();
+      this.setEditMode('select');
+      return;
+    }
+    if (
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      (event.key === 'e' || event.key === 'E')
+    ) {
+      event.preventDefault();
+      this.setEditMode('erase');
+      return;
+    }
 
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
       event.preventDefault();

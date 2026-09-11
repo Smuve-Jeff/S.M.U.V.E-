@@ -42,6 +42,13 @@ export interface StudioClip {
   /** Phase F2 — audio clip fade-out length in bars (0 = none; converted to
    *  seconds at playback via tempo). */
   fadeOut?: number;
+  /**
+   * Pattern this clip plays (id of a `PatternSlot` on the owning track).
+   * Undefined/equal to the track's active slot means "the live working
+   * pattern", which is how un-patterned clips created before patterns were
+   * exposed in the arrangement keep behaving.
+   */
+  patternSlotId?: string | null;
 }
 
 export interface StudioAutomationPoint {

@@ -59,6 +59,14 @@
   font-family: var(--font-mono);
 }
 
+/* Pattern picker on the selected clip (native select styled as a mini-btn) */
+.av-pattern-select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 130px;
+  cursor: pointer;
+}
+
 /* ── Mini buttons (undo/redo/track actions) ───────────────── */
 .mini-btn {
   height: 28px;

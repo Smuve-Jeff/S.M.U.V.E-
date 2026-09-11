@@ -241,6 +241,36 @@
           <span class="material-symbols-outlined text-[10px]">delete</span>
           DEL
         </button>
+        <!-- Pattern picker: point the selected MIDI clip at another pattern
+             (or capture the live one into a new slot first). Audio clips are
+             not pattern-based and disable the control. -->
+        <select
+          *ngIf="selectedClipIsPatternable()"
+          class="mini-btn tactile-v42 executive-glass av-pattern-select"
+          [ngModel]="selectedClipPatternId()"
+          (ngModelChange)="onSelectedClipPatternChange($event)"
+          [attr.aria-label]="'Pattern played by the selected clip'"
+          [title]="
+            'Clip pattern: ' +
+            (patternSlotLabel(selectedClipPatternId()) ?? 'live pattern')
+          "
+        >
+          <option
+            *ngFor="let opt of patternOptionsForSelectedClip()"
+            [value]="opt.id"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+        <button
+          (click)="newPatternFromSelection()"
+          class="mini-btn tactile-v42 executive-glass av-new-pattern-btn"
+          title="Capture the current pattern into a new slot and select it"
+          aria-label="Create new pattern from current pattern"
+        >
+          <span class="material-symbols-outlined text-[10px]">library_add</span>
+          NEW PATTERN
+        </button>
         <button
           (click)="bounceSelected()"
           class="mini-btn tactile-v42 executive-glass bounce-btn"

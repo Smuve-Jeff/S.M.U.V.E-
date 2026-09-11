@@ -296,6 +296,7 @@
     <!-- Main grid: WebGL canvas -->
     <div
       class="pr-grid no-scrollbar"
+      [class.select-mode]="editMode() === 'select'"
       #scrollContainer
       tabindex="0"
       role="grid"
@@ -329,6 +330,16 @@
         [style.top.px]="rowTopPx(focusedMidi())"
         [style.width.px]="cellWidth()"
         [style.height.px]="rowHeight()"
+        aria-hidden="true"
+      ></div>
+      <!-- Marquee (lasso) selection overlay -->
+      <div
+        class="pr-marquee"
+        *ngIf="marqueeStyle() as style"
+        [style.left]="style.left"
+        [style.top]="style.top"
+        [style.width]="style.width"
+        [style.height]="style.height"
         aria-hidden="true"
       ></div>
     </div>

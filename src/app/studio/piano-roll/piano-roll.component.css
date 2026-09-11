@@ -543,6 +543,29 @@
   border-color: var(--neon-amber);
 }
 
+/* ── Marquee (lasso) selection overlay ─────────────────────────── */
+/* Rendered inside the scroll container so it tracks grid coordinates. */
+.pr-marquee {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  border: 1px solid var(--teal-400, #2ba09c);
+  background: rgba(43, 160, 156, 0.12);
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(43, 160, 156, 0.25);
+}
+
+/* Select-mode empty-space press: crosshair reads as "drag a box". */
+.pr-grid.select-mode {
+  cursor: crosshair;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-marquee {
+    transition: none;
+  }
+}
+
 /* ----- AUTOMATION TOOLBAR ----- */
 .pr-auto-toolbar {
   display: flex;

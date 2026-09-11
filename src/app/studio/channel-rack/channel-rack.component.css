@@ -549,6 +549,30 @@
   color: #fff;
 }
 
+/* ── Instrument picker fly-outs (add + per-channel) ──────────────── */
+.add-flyout,
+.instrument-flyout {
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  scrollbar-width: thin;
+}
+.add-flyout button:hover,
+.instrument-flyout button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Chosen instrument gets a teal check + tint (kept explicit for the
+   dynamic [class.bg-teal-500\/20] binding). */
+.instrument-flyout button.bg-teal-500\/20 {
+  background: rgba(20, 184, 166, 0.18);
+}
+
+/* Bus/lane rows are container-only — dim the step lane so it reads as
+   non-editable instead of looking broken. */
+.channel-item .rack-fader-pro {
+  cursor: pointer;
+}
+
 button[disabled] {
   opacity: 0.25;
   pointer-events: none;

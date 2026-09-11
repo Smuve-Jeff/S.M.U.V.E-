@@ -728,6 +728,82 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  // ── Pattern-per-clip editing ─────────────────────────────────────
+
+  /** A MIDI/drum clip can reference a pattern; audio clips cannot. */
+  selectedClipIsPatternable(): boolean {
+    const clip = this.findFirstSelectedClip();
+    return !!clip && clip.type !== 'audio';
+  }
+
+  /** Pattern slot id the selected clip references (null = live pattern). */
+  selectedClipPatternId(): string | null {
+    const clip = this.findFirstSelectedClip();
+    return clip?.patternSlotId ?? null;
+  }
+
+  /**
+   * Options for the clip's pattern select: the track's slots plus a leading
+   * "live pattern" entry for clips that follow the working pattern.
+   */
+  patternOptionsForSelectedClip(): { id: string; label: string }[] {
+    const track = this.findFirstSelectedTrack();
+    const options: { id: string; label: string }[] = [
+      { id: '', label: '◆ Live pattern' },
+    ];
+    (track?.patternSlots ?? []).forEach((slot) => {
+      options.push({ id: slot.id, label: slot.name });
+    });
+    return options;
+  }
+
+  /** Human label for a pattern slot id (used in tooltips). */
+  patternSlotLabel(slotId: string | null): string | null {
+    if (!slotId) return null;
+    const track = this.findFirstSelectedTrack();
+    return (
+      track?.patternSlots?.find((s) => s.id === slotId)?.name ?? slotId
+    );
+  }
+
+  /** Re-point the selected clip at another pattern (empty = live). */
+  onSelectedClipPatternChange(slotId: string): void {
+    const track = this.findFirstSelectedTrack();
+    const clip = this.findFirstSelectedClip();
+    if (!track || !clip) return;
+    this.musicManager.setClipPattern(
+      track.id,
+      clip.id,
+      slotId === '' ? null : slotId,
+    );
+    this.haptic.light();
+    this.markDirty();
+  }
+
+  /**
+   * Capture the track's CURRENT pattern into a fresh slot and point the
+   * selected clip at it — the FL-style "paint variations along the song"
+   * loop: edit pattern → capture → draw clip → edit again.
+   */
+  newPatternFromSelection(): void {
+    const track = this.findFirstSelectedTrack();
+    if (!track) {
+      this.snackbar.info('Select a clip first');
+      return;
+    }
+    const slotId = this.musicManager.createPatternSlot(track.id);
+    if (!slotId) return;
+    const clip = this.findFirstSelectedClip();
+    if (clip && clip.type !== 'audio') {
+      this.musicManager.setClipPattern(track.id, clip.id, slotId);
+    }
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.show(
+      `🎼 Pattern captured · new slot selected on "${track.name}"`,
+    );
+  }
+
   crossLinkToPianoRoll(track: TrackModel, clip: StudioClip) {
     this.selectTrack(track.id);
     const selectedIds = new Set(this.selectedClipIds());

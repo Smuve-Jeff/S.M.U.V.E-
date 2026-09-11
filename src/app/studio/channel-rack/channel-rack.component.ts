@@ -6,6 +6,8 @@ import {
   TrackModel,
   TrackNote,
 } from '../../services/music-manager.service';
+import { InstrumentsService } from '../../services/instruments.service';
+import { SnackbarService } from '../../services/snackbar.service';
 
 /** One lane shows one bar of steps (the classic 16-step pattern window). */
 const LANE_STEPS = 16;
@@ -21,6 +23,8 @@ const MIN_BARS = 4;
 })
 export class ChannelRackComponent {
   public musicManager = inject(MusicManagerService);
+  private readonly instruments = inject(InstrumentsService);
+  private readonly snackbar = inject(SnackbarService);
   tracks = this.musicManager.tracks;
   selectedTrackId = this.musicManager.selectedTrackId;
   engine = this.musicManager.engine;
@@ -30,8 +34,38 @@ export class ChannelRackComponent {
   /** 0-based bar of the editing window while the transport is stopped. */
   stepBar = signal(0);
 
+  /** Instrument picker target while the fly-out is open. */
+  instrumentPickerTrackId = signal<string | null>(null);
+
+  /** Registry ids the rack's "+ Add" fly-out groups by category. */
+  addTrackOpen = signal(false);
+
+  /** Categories for the add fly-out, in curated order. */
+  readonly instrumentCategories: string[] = (() => {
+    const seen: string[] = [];
+    for (const preset of this.instruments.getPresets()) {
+      const category = preset.category ?? 'Other';
+      if (!seen.includes(category)) seen.push(category);
+    }
+    return seen;
+  })();
+
+  presetsByCategory(category: string) {
+    return this.instruments
+      .getPresets()
+      .filter((p) => (p.category ?? 'Other') === category);
+  }
+
+  /** Preset display name for the lane subtitle (registry id → label). */
+  instrumentName(instrumentId: string): string {
+    return (
+      this.instruments.getPresets().find((p) => p.id === instrumentId)?.name ??
+      instrumentId
+    );
+  }
+
   /**
-   * Start step of the visible 16-step window. While the transport plays the
+   * Start of the visible 16-step window. While the transport plays the
    * window rides the playhead; while stopped it follows the paged `stepBar`.
    */
   windowStart = computed(() => {
@@ -47,15 +81,59 @@ export class ChannelRackComponent {
   }
 
   removeTrack(id: string) {
+    const track = this.tracks().find((t) => t.id === id);
+    if (!track) return;
+    const noteCount = track.notes?.length ?? 0;
+    const confirmMessage =
+      noteCount > 0
+        ? `Delete "${track.name}" and its ${noteCount} note${noteCount === 1 ? '' : 's'}?`
+        : `Delete "${track.name}"?`;
+    if (!confirm(confirmMessage)) return;
+    if (this.instrumentPickerTrackId() === id) {
+      this.instrumentPickerTrackId.set(null);
+    }
     this.musicManager.removeTrack(id);
   }
 
-  addTrack() {
-    this.musicManager.ensureTrack('cyber-lead');
+  addTrack(instrumentId: string) {
+    const preset = this.instruments
+      .getPresets()
+      .find((p) => p.id === instrumentId);
+    // Only the kit categories get a real drum-type track (drum-machine
+    // ownership, swing); melodic presets stay melodic.
+    const type =
+      preset?.category === 'drum' || preset?.category === 'perc'
+        ? 'drum'
+        : 'midi';
+    const id = this.musicManager.addTrack(
+      preset?.name ?? 'New ' + instrumentId,
+      instrumentId,
+      type,
+    );
+    this.addTrackOpen.set(false);
+    this.snackbar.success(
+      `➕ ${preset?.name ?? instrumentId} added to the rack`,
+    );
+    return id;
   }
 
-  setInstrument(track: any, presetId: string) {
+  toggleInstrumentPicker(trackId: string) {
+    this.instrumentPickerTrackId.update((id) => (id === trackId ? null : trackId));
+  }
+
+  setInstrument(track: TrackModel, presetId: string) {
+    if (track.instrumentId === presetId) {
+      this.instrumentPickerTrackId.set(null);
+      return;
+    }
+    const preset = this.instruments
+      .getPresets()
+      .find((p) => p.id === presetId);
     this.musicManager.setInstrument(track.id, presetId);
+    this.instrumentPickerTrackId.set(null);
+    this.snackbar.success(
+      `🎛 ${track.name} → ${preset?.name ?? presetId}`,
+    );
   }
 
   toggleMute(track: TrackModel) {
@@ -82,28 +160,29 @@ export class ChannelRackComponent {
     event.preventDefault();
   }
 
+  /** Deep clone: notes, steps, pattern slots and clips all come along. */
   cloneTrack(track: TrackModel) {
-    this.musicManager.addTrack(
-      track.name + ' (Copy)',
-      track.instrumentId,
-      track.type
-    );
+    const id = this.musicManager.cloneTrack(track.id);
+    if (id) {
+      this.snackbar.success(`📄 "${track.name}" cloned with its pattern`);
+    }
   }
 
   reorderTrack(index: number, direction: 'up' | 'down') {
-    const newTracks = [...this.tracks()];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex >= 0 && targetIndex < newTracks.length) {
-      [newTracks[index], newTracks[targetIndex]] = [
-        newTracks[targetIndex],
-        newTracks[index],
-      ];
-      this.musicManager.tracks.set(newTracks);
-    }
+    if (targetIndex < 0 || targetIndex >= this.tracks().length) return;
+    this.musicManager.reorderTrack(index, targetIndex);
   }
 
   openPianoRoll(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
+    // The Studio shell routes cross-links, so ask for the same jump the
+    // arrangement's per-clip piano button uses.
+    this.musicManager.requestCrossLink({
+      view: 'piano-roll',
+      trackId: track.id,
+      label: track.name,
+    });
   }
 
   // ── Note-accurate step lane ──────────────────────────────────────────
@@ -145,6 +224,9 @@ export class ChannelRackComponent {
   }
 
   setBar(track: TrackModel, bar: number) {
+    // Clamping keeps the window on a real bar even if the transport moved
+    // while the click was in flight (the unclamped pager used to page into
+    // empty space past the pattern and look dead).
     const clamped = Math.max(0, Math.min(this.barCount(track) - 1, bar));
     this.stepBar.set(clamped);
   }
@@ -154,7 +236,15 @@ export class ChannelRackComponent {
   }
 
   nudgeBar(direction: 1 | -1) {
-    this.stepBar.update((bar) => bar + direction);
+    // The rack lane is a shared window, so keep it inside every track's
+    // bar range instead of paging into infinity.
+    const maxBar = Math.max(
+      MIN_BARS,
+      ...this.tracks().map((t) => this.barCount(t)),
+    ) - 1;
+    this.stepBar.update((bar) =>
+      Math.max(0, Math.min(maxBar, bar + direction)),
+    );
   }
 
   /**
