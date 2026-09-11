@@ -14,10 +14,27 @@ import { Game } from './game';
  * These are modern, widely known, high-quality browser games filling genre
  * gaps the emulation archive cannot serve (browser-native co-op, party,
  * .io PvP, puzzle-platformer co-op, modern endless runners).
+ *
+ * Second wave (below): the couch-co-op, party, and iconic-classics shelf.
+ * Every /embed/ URL in this wave was re-probed and answered HTTP 200 with no
+ * frame-blocking headers before inclusion, same contract as wave one. These
+ * rows also ship the full session briefing (objectives, control hints, AI
+ * briefing) so the launch preview reads like a real cabinet, not a link card.
  */
 export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   {
     id: 'cg-run-3',
+    sessionObjectives: [
+      'Reach the twentieth tunnel without a fall',
+      'Unlock a second runner',
+      'Finish a full run without dropping out',
+    ],
+    controlHints: [
+      'A/D or arrow keys swap tunnel walls',
+      'Space jumps across a gap in the floor',
+    ],
+    aiBriefing:
+      'Momentum runner — the wall flip is the entire game. Land centre-tunnel so you keep speed, and read two tunnels ahead before you commit.',
     name: 'Run 3',
     url: 'https://www.crazygames.com/embed/run-3',
     description:
@@ -42,6 +59,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-paper-minecraft',
+    sessionObjectives: [
+      'Survive the first night',
+      'Craft a full stone tool set',
+      'Light a shelter before dusk',
+    ],
+    controlHints: [
+      'WASD to move, mouse to place and break blocks',
+      'Stack torches early — darkness spawns mobs',
+    ],
+    aiBriefing:
+      'A 2D survival sandbox: bank food and light before the sun drops. Night mobs punish an open base, so wall up rather than exploring late.',
     name: 'Paper Minecraft',
     url: 'https://www.crazygames.com/embed/paper-minecraft',
     description:
@@ -65,6 +93,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-fireboy-watergirl',
+    sessionObjectives: [
+      'Get both heroes to the exit together',
+      'Hold a lever so your partner can cross',
+      'Clear the temple without losing a hero',
+    ],
+    controlHints: [
+      'Player 1: arrow keys — Player 2: WASD',
+      'Never step in your opposite element — water kills Fireboy, lava kills Watergirl',
+    ],
+    aiBriefing:
+      'Co-op is mandatory here. Call your lever timings out loud: the partner piece of a puzzle is almost always a switch the other player has to hold.',
     name: 'Fireboy and Watergirl',
     url: 'https://www.crazygames.com/embed/fireboy-and-watergirl-the-forest-temple',
     description:
@@ -91,6 +130,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-narrow-one',
+    sessionObjectives: [
+      'Capture the enemy flag in a live round',
+      'Score a long-range arrow',
+      'Win a team match',
+    ],
+    controlHints: [
+      'Hold the draw key to charge the bow',
+      'Aim high at distance — arrows drop',
+    ],
+    aiBriefing:
+      'Positional archery capture-the-flag. Hold height instead of duelling in the open, and remember the arrow drop decides any fight past mid-range.',
     name: 'Narrow One',
     url: 'https://www.crazygames.com/embed/narrow-one',
     description:
@@ -115,6 +165,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-deadshot-io',
+    sessionObjectives: [
+      'Win a team deathmatch',
+      'Land a one-tap elimination',
+      'Finish a match with a positive spread',
+    ],
+    controlHints: [
+      'WASD to move, mouse to aim, click to fire',
+      'Reload behind cover instead of mid-lane',
+    ],
+    aiBriefing:
+      'Tight browser FPS lobbies. Pre-aim the corners you are about to swing and keep a reload timer in your head — this cabinet punishes a dry gun.',
     name: 'Deadshot.io',
     url: 'https://www.crazygames.com/embed/deadshot-io',
     description:
@@ -139,6 +200,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-subway-clash-3d',
+    sessionObjectives: [
+      'Hold the lobby objective for a full timer',
+      'Flank through a side lane',
+      'Finish top of the scoreboard',
+    ],
+    controlHints: [
+      'Pick a loadout at spawn, reload key between fights',
+      'Use the side stairs to bypass the centre lane',
+    ],
+    aiBriefing:
+      'A third-person lobby shooter with maps that reward rotation. Move with a teammate — the centre lanes are shooting galleries.',
     name: 'Subway Clash 3D',
     url: 'https://www.crazygames.com/embed/subway-clash-3d',
     description:
@@ -163,6 +235,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-time-shooter-2',
+    sessionObjectives: [
+      'Clear a wave without reloading mid-fight',
+      'Hold a chokepoint for a full wave',
+      'Survive ten waves',
+    ],
+    controlHints: [
+      'Fire in controlled bursts at torso height',
+      'Relocate between waves instead of camping one lane',
+    ],
+    aiBriefing:
+      'Wave-survival FPS — never fight in the open. Funnel enemies through doorways so they queue up into your line of fire.',
     name: 'Time Shooter 2',
     url: 'https://www.crazygames.com/embed/time-shooter-2',
     description:
@@ -186,6 +269,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-a-small-world-cup',
+    sessionObjectives: [
+      'Win a two-player cup match',
+      'Score from beyond the halfway line',
+      'Keep a clean sheet',
+    ],
+    controlHints: [
+      'A screen prompt shows both players\u2019 keys',
+      'Move into the pass lane before you strike',
+    ],
+    aiBriefing:
+      'One-touch couch football. Spamming the kick gives the ball away — steer into the lane first, then release the shot inside the box.',
     name: 'A Small World Cup',
     url: 'https://www.crazygames.com/embed/a-small-world-cup',
     description:
@@ -210,6 +304,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-duck-life-4',
+    sessionObjectives: [
+      'Find the water on the first cave',
+      'Collect every seed in a stage',
+      'Clear a stage without losing a duck',
+    ],
+    controlHints: [
+      'Hold the jump key to glide',
+      'Check ceilings for alternate routes',
+    ],
+    aiBriefing:
+      'A physics platformer about arc, not speed: charge your jump at the very lip of a ledge, then glide to stretch the distance.',
     name: 'Duck Life 4',
     url: 'https://www.crazygames.com/embed/ducklife-4',
     description:
@@ -233,6 +338,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-getaway-shootout',
+    sessionObjectives: [
+      'Reach the getaway car first',
+      'Win a two-player race',
+      'Land a hit while airborne',
+    ],
+    controlHints: [
+      'Player 1: WASD — Player 2: arrow keys',
+      'Grab rooftop weapons, then keep shooting while you jump',
+    ],
+    aiBriefing:
+      'A chaotic race-and-gun on one screen. Movement beats aim: spam the jump and fire on the way down, or you will be out-paced to the car.',
     name: 'Getaway Shootout',
     url: 'https://www.crazygames.com/embed/getaway-shootout',
     description:
@@ -257,6 +373,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-12-minibattles',
+    sessionObjectives: [
+      'Win a minigame series',
+      'Take a round without losing a life',
+      'Survive a sudden-death tiebreak',
+    ],
+    controlHints: [
+      'Controls change per minigame — read the prompt first',
+      'Player 1: arrows — Player 2: WASD',
+    ],
+    aiBriefing:
+      'Twelve one-button duels in a row. The winner is whoever reads the new rule fastest, so pause for the prompt instead of guessing.',
     name: '12 MiniBattles',
     url: 'https://www.crazygames.com/embed/12-minibattles',
     description:
@@ -281,6 +408,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-bad-ice-cream',
+    sessionObjectives: [
+      'Clear every fruit on the stage',
+      'Trap a monster behind a built wall',
+      'Finish the stage with both players alive',
+    ],
+    controlHints: [
+      'Player 1: arrows — Player 2: WASD',
+      'Build walls to trap monsters, not only to shield yourself',
+    ],
+    aiBriefing:
+      'Co-op maze survival. Talk through wall placements: a wall that saves you can lock your partner in with a monster.',
     name: 'Bad Ice-Cream',
     url: 'https://www.crazygames.com/embed/bad-ice-cream',
     description:
@@ -305,6 +443,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-bad-ice-cream-2',
+    sessionObjectives: [
+      'Collect the full fruit set',
+      'Open a monster path with a timed wall break',
+      'Clear a stage without a respawn',
+    ],
+    controlHints: [
+      'Player 1: arrows — Player 2: WASD',
+      'Wall breaks can crush monsters as well as open routes',
+    ],
+    aiBriefing:
+      'The tougher co-op maze. Route the monsters first, then farm the fruit — a clean lane beats a fast grab every time.',
     name: 'Bad Ice-Cream 2',
     url: 'https://www.crazygames.com/embed/bad-ice-cream-2',
     description:
@@ -329,6 +478,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-worlds-hardest-game',
+    sessionObjectives: [
+      'Reach the second checkpoint',
+      'Clear a spike trap first try',
+      'Finish a run without a full restart',
+    ],
+    controlHints: [
+      'Arrow keys only — there is no jump trick',
+      'Memorise each trap trigger before you speed up',
+    ],
+    aiBriefing:
+      'Trial-and-error platforming. Treat every death as a map note, and stay slow near spikes — the level is designed to punish a confident sprint.',
     name: "The World's Hardest Game",
     url: 'https://www.crazygames.com/embed/worlds-hardest-game',
     description:
@@ -352,6 +512,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-murder',
+    sessionObjectives: [
+      'Eliminate the target unseen',
+      'Escape the level clean',
+      'Complete a stealth run with no witnesses',
+    ],
+    controlHints: [
+      'Click the target to strike',
+      'Hide behind objects to break sightlines',
+    ],
+    aiBriefing:
+      'A stealth sandbox, not an action game. Watch patrol timings before you move — one witness near the exit turns a clean run into a chase.',
     name: 'Murder',
     url: 'https://www.crazygames.com/embed/murder',
     description:
@@ -375,6 +546,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-mutilate-a-doll-2',
+    sessionObjectives: [
+      'Find a hidden item combo',
+      'Trigger a chained reaction',
+      'Unlock a new weapon set',
+    ],
+    controlHints: [
+      'Drag items onto the doll to apply them',
+      'Chain fire with explosives for a bigger combo',
+    ],
+    aiBriefing:
+      'A physics toybox rather than a score chase — experiment with item pairings, and the interesting results come from stacking effects.',
     name: 'Mutilate a Doll 2',
     url: 'https://www.crazygames.com/embed/mutilate-a-doll-2',
     description:
@@ -398,6 +580,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-knife-hit',
+    sessionObjectives: [
+      'Land a perfect centre strike',
+      'Clear a level without a miss',
+      'Pass speed tier five',
+    ],
+    controlHints: [
+      'Tap to throw at the target',
+      'Wait for the rotation to face you before releasing',
+    ],
+    aiBriefing:
+      'A timing thrower: hit the blade at the slow point of its arc rather than aiming at the target centre. Patience is the whole skill curve.',
     name: 'Knife Hit',
     url: 'https://www.crazygames.com/embed/knife-hit',
     description:
@@ -421,6 +614,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-zombie-derby',
+    sessionObjectives: [
+      'Survive three waves',
+      'Hold first place while shooting',
+      'Upgrade a vehicle weapon',
+    ],
+    controlHints: [
+      'WASD to drive, mouse to aim and fire',
+      'Ram the horde when you run dry',
+    ],
+    aiBriefing:
+      'Vehicular zombie survival: keep circling. A stationary car is a coffin — momentum is your only real defence in the later waves.',
     name: 'Zombie Derby',
     url: 'https://www.crazygames.com/embed/zombie-derby',
     description:
@@ -446,6 +650,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   // ── Multiplayer, co-op & 2-player wave — verified inline cabinets ──
   {
     id: 'cg-tank-trouble',
+    sessionObjectives: [
+      'Outmanoeuvre a rival tank on one screen',
+      'Win a round with a ricochet',
+      'Take a round without being hit',
+    ],
+    controlHints: [
+      'Player 1: WASD + Space — Player 2: arrows + Enter',
+      'Shells bounce off walls — always fire for the bank',
+    ],
+    aiBriefing:
+      'One-screen tank duels where the maze is the real opponent. Hold an angle and bank shells off the corner; flat shots are free dodges.',
     name: 'Tank Trouble',
     url: 'https://www.crazygames.com/embed/tank-trouble',
     description:
@@ -470,6 +685,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-gun-mayhem-2',
+    sessionObjectives: [
+      'Control the arena with a full loadout',
+      'Win a round without losing a life',
+      'Score a double elimination with one explosive',
+    ],
+    controlHints: [
+      'Pick up weapon crates to upgrade your kit',
+      'Double-jump out of a corner instead of fighting uphill',
+    ],
+    aiBriefing:
+      'Couch platform shooter. Whoever owns the weapon crates owns the round — rotate to pickups before chasing the knock-out.',
     name: 'Gun Mayhem 2',
     url: 'https://www.crazygames.com/embed/gun-mayhem-2',
     description:
@@ -494,6 +720,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-bomb-it-7',
+    sessionObjectives: [
+      'Trap a rival with a bomb',
+      'Clear a board without taking a hit',
+      'Win a three-round set',
+    ],
+    controlHints: [
+      'Movement and bomb keys are shown per player at the start',
+      'Place two bombs to seal a corner escape',
+    ],
+    aiBriefing:
+      'Bomberman rules with a couch rival. Cut off the escape squares before you commit to a kill box, and never corner yourself in the same lane.',
     name: 'Bomb It 7',
     url: 'https://www.crazygames.com/embed/bomb-it-7',
     description:
@@ -518,6 +755,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-soccer-physics',
+    sessionObjectives: [
+      'Win a two-player physics football match',
+      'Score with a bicycle kick',
+      'Keep a clean sheet',
+    ],
+    controlHints: [
+      'Each player has a jump and a kick key',
+      'Lean into the ball before jumping to head it',
+    ],
+    aiBriefing:
+      'Physics football chaos. Aim your body rather than the ball — a leaning header beats a flat kick every time.',
     name: 'Soccer Physics',
     url: 'https://www.crazygames.com/embed/soccer-physics',
     description:
@@ -542,6 +790,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-basketbros',
+    sessionObjectives: [
+      'Win a two-player arcade hoops match',
+      'Land a slam dunk',
+      'Hit a three-pointer',
+    ],
+    controlHints: [
+      'Jump and shoot keys are shown per player',
+      'Build momentum with a running start before you release',
+    ],
+    aiBriefing:
+      'Two-on-two arcade hoops. Keep moving — a standing shot almost never falls, and a running release adds the arc you need.',
     name: 'BasketBros',
     url: 'https://www.crazygames.com/embed/basketbros',
     description:
@@ -566,6 +825,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-rooftop-snipers-2',
+    sessionObjectives: [
+      'Knock a rival off the rooftop',
+      'Win a best-of duel series',
+      'Land a shot mid-jump',
+    ],
+    controlHints: [
+      'One key jumps, one key fires',
+      'Shoot the instant you touch down, when the sway is smallest',
+    ],
+    aiBriefing:
+      'Wobble-physics duels. Fire on landing frames — the sway is at its minimum and the recoil still knocks your rival off the ledge.',
     name: 'Rooftop Snipers 2',
     url: 'https://www.crazygames.com/embed/rooftop-snipers-2',
     description:
@@ -590,6 +860,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-money-movers',
+    sessionObjectives: [
+      'Smuggle one money bag out',
+      'Clear a floor without tripping the alarm',
+      'Escape with both brothers alive',
+    ],
+    controlHints: [
+      'Player 1: arrows — Player 2: WASD',
+      'One brother holds a switch while the other advances',
+    ],
+    aiBriefing:
+      'Designated-switch co-op: if a door is open, your partner is holding it. Never both advance — the heist fails when nobody is on the lever.',
     name: 'Money Movers',
     url: 'https://www.crazygames.com/embed/money-movers',
     description:
@@ -614,6 +895,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-wrestle-jump',
+    sessionObjectives: [
+      'Win a first-to-five bout',
+      'Land a slam',
+      'Come back from match point down',
+    ],
+    controlHints: [
+      'One lunge key per player',
+      'Press as you land for a stronger flip',
+    ],
+    aiBriefing:
+      'One-button wrestling. The timing of your lunge beats the direction — hit the key on the bounce, not before it.',
     name: 'Wrestle Jump',
     url: 'https://www.crazygames.com/embed/wrestle-jump',
     description:
@@ -638,6 +930,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-ping-pong-chaos',
+    sessionObjectives: [
+      'Win a table tennis match',
+      'Score with a spin serve',
+      'Take a sudden-death rally',
+    ],
+    controlHints: [
+      'Paddle keys plus the vertical keys aim the return',
+      'Moving while you swing changes the ball angle',
+    ],
+    aiBriefing:
+      'Chaotic table tennis. Meet the ball early and let the wobble add spin — late swings send it wide every time.',
     name: 'Ping Pong Chaos',
     url: 'https://www.crazygames.com/embed/ping-pong-chaos',
     description:
@@ -662,6 +965,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-bubble-trouble',
+    sessionObjectives: [
+      'Clear a full bubble field',
+      'Split a bubble four times',
+      'Survive a two-player run',
+    ],
+    controlHints: [
+      'Fire the harpoon with your player shoot key',
+      'Stand underneath a bubble and pop it upward',
+    ],
+    aiBriefing:
+      'Split-screen arcade classic. Pop bubbles as high as possible so the fragments spread away from you instead of raining into your lane.',
     name: 'Bubble Trouble',
     url: 'https://www.crazygames.com/embed/bubble-trouble',
     description:
@@ -686,6 +1000,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-bonk-io',
+    sessionObjectives: [
+      'Win a last-one-standing round',
+      'Knock a rival off the edge',
+      'Play a custom map round',
+    ],
+    controlHints: [
+      'WASD to move, mouse for the boost direction',
+      'Grab the map power-ups early',
+    ],
+    aiBriefing:
+      'Physics brawler with live lobbies. Momentum is a weapon: approach with a run instead of standing still, and use the arena edges as your win condition.',
     name: 'Bonk.io',
     url: 'https://www.crazygames.com/embed/bonkio',
     description:
@@ -710,6 +1035,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-territorial-io',
+    sessionObjectives: [
+      'Finish a match inside the top three',
+      'Break an alliance by out-scaling it',
+      'Survive a full-length map',
+    ],
+    controlHints: [
+      'Click and drag to expand your border',
+      'Attack with numbers — repeated taps on one square waste troops',
+    ],
+    aiBriefing:
+      'Real-time map strategy. Expansion rate beats early aggression: greedy borders get punished in the late game, so grow toward open ground first.',
     name: 'Territorial.io',
     url: 'https://www.crazygames.com/embed/territorial-io',
     description:
@@ -734,6 +1070,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-voxiom-io',
+    sessionObjectives: [
+      'Reach the final storm circle',
+      'Mine and build cover under fire',
+      'Win a build-fight duel',
+    ],
+    controlHints: [
+      'Mine blocks with one key, place them with the build key',
+      'Take high ground before the storm closes',
+    ],
+    aiBriefing:
+      'Voxel battle royale. Grab blocks early — cover decides late-game fights more than aim does, and the storm punishes anyone still looting.',
     name: 'Voxiom.io',
     url: 'https://www.crazygames.com/embed/voxiom-io',
     description:
@@ -758,6 +1105,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-madalin-cars-multiplayer',
+    sessionObjectives: [
+      'Beat a live lobby race',
+      'Chain a drift around a roundabout',
+      'Land a jump across the highway',
+    ],
+    controlHints: [
+      'WASD to drive, Space for the handbrake',
+      'Handbrake into a corner to hold a drift',
+    ],
+    aiBriefing:
+      'Open-world supercar lobbies. Drift the roundabouts to keep speed, and stay off the wrong side of the highway — oncoming traffic ends runs faster than rivals do.',
     name: 'Madalin Cars Multiplayer',
     url: 'https://www.crazygames.com/embed/madalin-cars-multiplayer',
     description:
@@ -782,6 +1140,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-kart-wars',
+    sessionObjectives: [
+      'Win an arena round',
+      'Take out a rival with a rocket',
+      'Hold first place for a full lap',
+    ],
+    controlHints: [
+      'Drift key to charge a boost',
+      'Keep a shield pickup for the closing lap',
+    ],
+    aiBriefing:
+      'Combat karting: spend offensive items early and save a defensive pickup for the final lap, when everyone else is also armed.',
     name: 'Kart Wars',
     url: 'https://www.crazygames.com/embed/kart-wars',
     description:
@@ -806,6 +1175,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-winter-clash-3d',
+    sessionObjectives: [
+      'Win a team capture round',
+      'Hold a point solo for thirty seconds',
+      'Top the lobby scoreboard',
+    ],
+    controlHints: [
+      'WASD to move, mouse to fire, a reload key between fights',
+      'Use the snow cover to flank an occupied point',
+    ],
+    aiBriefing:
+      'Team capture shooter. Push the point as a pair — solo approaches melt against a live team, so wait for a teammate before you commit.',
     name: 'Winter Clash 3D',
     url: 'https://www.crazygames.com/embed/winter-clash-3d',
     description:
@@ -830,6 +1210,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-betrayal-io',
+    sessionObjectives: [
+      'Finish a full task set',
+      'Survive a round as the traitor',
+      'Vote out the impostor',
+    ],
+    controlHints: [
+      'Use the task list to stay grouped',
+      'Report positions over chat rather than accusing alone',
+    ],
+    aiBriefing:
+      'Social deduction with live lobbies. Keep a mental log of who was seen where — behaviour patterns expose a traitor far faster than typing does.',
     name: 'Betrayal.io',
     url: 'https://www.crazygames.com/embed/betrayal-io',
     description:
@@ -854,6 +1245,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-buildnow-gg',
+    sessionObjectives: [
+      'Win a build-fight duel',
+      'Land a sniper shot from your own ramp',
+      'Out-build a rival for the high ground',
+    ],
+    controlHints: [
+      'Build key places walls and ramps, edit with the same key',
+      'Always keep a wall between you and the shot',
+    ],
+    aiBriefing:
+      'Build-fight shooter: cover first, aim second. A faster ramp wins against a faster reflex, so build before you peek.',
     name: 'BuildNow GG',
     url: 'https://www.crazygames.com/embed/buildnow-gg',
     description:
@@ -878,6 +1280,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-drednot-io',
+    sessionObjectives: [
+      'Crew an airship through a full battle',
+      'Board an enemy ship and take a system offline',
+      'Destroy a rival turret',
+    ],
+    controlHints: [
+      'WASD to move, click to interact or board',
+      'Keep the boiler fuelled — an idle ship is a floating target',
+    ],
+    aiBriefing:
+      'Crew co-op airship warfare where roles matter: someone has to hold the turret while others board, or you lose the exchange.',
     name: 'Drednot.io',
     url: 'https://www.crazygames.com/embed/drednot-io',
     description:
@@ -902,6 +1315,17 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
   },
   {
     id: 'cg-kour-io',
+    sessionObjectives: [
+      'Win a team deathmatch',
+      'Build a kill streak',
+      'Top the lobby scoreboard',
+    ],
+    controlHints: [
+      'WASD to move, mouse to aim, click to fire',
+      'Reload behind cover and rotate after a pick',
+    ],
+    aiBriefing:
+      'Polished lobby FPS. Hold a lane with a teammate and rotate only after a clean pick — wandering mid-fight is how streaks end.',
     name: 'Kour.io',
     url: 'https://www.crazygames.com/embed/kour-io',
     description:
@@ -923,5 +1347,643 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Lobby FPS', accentStart: '#fb923c', accentEnd: '#7c2d12' },
+  },
+
+  // ── Second verified wave: couch co-op, party, and iconic classics ──
+  {
+    id: 'cg-bad-ice-cream-4',
+    name: 'Bad Ice Cream 4',
+    url: 'https://www.crazygames.com/embed/bad-ice-cream-4',
+    description:
+      'Co-op arcade maze survival: smash ice blocks, bait the fruit-hungry monsters, and guide two flavour heroes out together across frozen stages.',
+    genre: 'Arcade',
+    rating: 4.6,
+    playersOnline: 14000,
+    availability: 'Online',
+    tags: ['Arcade', 'Multiplayer', 'Co-op', 'Local', 'Reflex', 'CrazyGames'],
+    badgeIds: ['modern', 'staff-pick'],
+    multiplayerType: 'P2P',
+    sessionObjectives: [
+      'Collect every fruit on the stage',
+      'Shield your partner from the roaming monsters',
+      'Chain ice-wall breaks to open safe lanes',
+    ],
+    controlHints: [
+      'Player 1: arrow keys — Player 2: WASD',
+      'Hold the action key to build an ice wall',
+    ],
+    aiBriefing:
+      'Split-screen co-op tuned for one keyboard. Communicate wall placements: a blocked lane saves your partner and traps the monsters in the same move.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/bad-ice-cream-4',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/bad-ice-cream-4',
+      embedMode: 'inline',
+      controls: ['Keyboard'],
+      modes: ['Local Co-op', 'Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Frozen Co-op', accentStart: '#7dd3fc', accentEnd: '#1e3a8a' },
+  },
+  {
+    id: 'cg-raft-wars',
+    name: 'Raft Wars',
+    url: 'https://www.crazygames.com/embed/raft-wars',
+    description:
+      'The turn-based artillery classic: lob projectiles across the water, bank shots off the shoreline, and blow your rival off their raft.',
+    genre: 'Casual',
+    rating: 4.5,
+    playersOnline: 12000,
+    availability: 'Online',
+    tags: ['Casual', 'Multiplayer', 'PvP', 'Local', 'Classic', 'CrazyGames'],
+    badgeIds: ['modern', 'classic'],
+    multiplayerType: 'P2P',
+    sessionObjectives: [
+      'Sink the opposing raft before yours takes water',
+      'Land a bank shot off the shoreline',
+      'Spend earned coins on heavier ammunition',
+    ],
+    controlHints: [
+      'Hold and release to set projectile power and angle',
+      'Pass the controls after each shot in two-player mode',
+    ],
+    aiBriefing:
+      'Physics artillery with a two-player head-to-head loop. Wind up the shot, watch the arc, and remember the terrain — the best players bank shots rather than firing flat.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/raft-wars',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/raft-wars',
+      embedMode: 'inline',
+      controls: ['Mouse'],
+      modes: ['Local Versus', 'Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Artillery Classic', accentStart: '#fbbf24', accentEnd: '#78350f' },
+  },
+  {
+    id: 'cg-raft-wars-2',
+    name: 'Raft Wars 2',
+    url: 'https://www.crazygames.com/embed/raft-wars-2',
+    description:
+      'The bigger artillery sequel: new islands, tougher rafts, heavier weapons, and the same turn-based duel loop with a friend.',
+    genre: 'Casual',
+    rating: 4.5,
+    playersOnline: 9500,
+    availability: 'Online',
+    tags: ['Casual', 'Multiplayer', 'PvP', 'Local', 'Classic', 'CrazyGames'],
+    badgeIds: ['modern', 'classic'],
+    multiplayerType: 'P2P',
+    sessionObjectives: [
+      'Clear all opponent rafts on the island chain',
+      'Upgrade to the late-tier ammunition',
+      'Finish the duel without losing a raft',
+    ],
+    controlHints: [
+      'Drag to aim, release to fire',
+      'Use the shop between waves to re-arm',
+    ],
+    aiBriefing:
+      'A longer artillery campaign with a two-player duel mode. Terrain changes every island, so re-read the angle before you commit a shot.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/raft-wars-2',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/raft-wars-2',
+      embedMode: 'inline',
+      controls: ['Mouse'],
+      modes: ['Local Versus', 'Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Artillery Sequel', accentStart: '#fdba74', accentEnd: '#7c2d12' },
+  },
+  {
+    id: 'cg-8-ball-billiards-classic',
+    name: '8 Ball Billiards Classic',
+    url: 'https://www.crazygames.com/embed/8-ball-billiards-classic',
+    description:
+      'Full-rules pool: call your shots, play solo against the house AI or challenge a friend in a proper two-player frame of eight-ball.',
+    genre: 'Sports',
+    rating: 4.6,
+    playersOnline: 16000,
+    availability: 'Online',
+    tags: ['Sports', 'Multiplayer', 'PvP', 'Local', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'featured'],
+    multiplayerType: 'P2P',
+    sessionObjectives: [
+      'Pot your full suit before the opponent clears theirs',
+      'Call the pocket on the eight-ball finish',
+      'Avoid the scratch — it hands over the table',
+    ],
+    controlHints: [
+      'Drag from the cue ball to set power and spin',
+      'Tap the cue-ball edge to add English',
+    ],
+    aiBriefing:
+      'Real eight-ball rules with a clean two-player hand-off. Play safe when you have no percentage shot — giving up a foul beats leaving a straight-in look.',
+    launchConfig: {
+      approvedEmbedUrl:
+        'https://www.crazygames.com/embed/8-ball-billiards-classic',
+      approvedExternalUrl:
+        'https://www.crazygames.com/embed/8-ball-billiards-classic',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Local Versus', 'Online Versus', 'Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Table Duel', accentStart: '#34d399', accentEnd: '#064e3b' },
+  },
+  {
+    id: 'cg-haxball',
+    name: 'Haxball',
+    url: 'https://www.crazygames.com/embed/haxball',
+    description:
+      'The legendary browser football sim: join live rooms, hold your position, and pass, press, and volley in fast 2v2 to 4v4 matches.',
+    genre: 'Sports',
+    rating: 4.6,
+    playersOnline: 17000,
+    availability: 'Online',
+    tags: ['Sports', 'Multiplayer', 'PvP', 'Teamwork', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'trending', 'featured'],
+    multiplayerType: 'Server',
+    sessionObjectives: [
+      'Join a live room and cover your assigned lane',
+      'Score from a one-touch pass combination',
+      'Keep a clean sheet through a full match',
+    ],
+    controlHints: [
+      'Arrow keys to move, X to kick',
+      'Hold the kick key for a stronger strike',
+    ],
+    aiBriefing:
+      'Online football with real teammates, so positioning beats ball-chasing. Hold shape, let the ball come to you, and use the wall bounce to reset the angle.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/haxball',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/haxball',
+      embedMode: 'inline',
+      controls: ['Keyboard'],
+      modes: ['Online Versus'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Live Football', accentStart: '#a3e635', accentEnd: '#365314' },
+  },
+  {
+    id: 'cg-kirka-io',
+    name: 'Kirka.io',
+    url: 'https://www.crazygames.com/embed/kirka-io',
+    description:
+      'Voxel FPS with teams, solo deathmatch, and parkour playlists — pick a loadout, learn the map lanes, and hold the objective with your squad.',
+    genre: 'Shooting',
+    rating: 4.5,
+    playersOnline: 18000,
+    availability: 'Online',
+    tags: ['Shooting', 'FPS', 'Multiplayer', 'PvP', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'trending'],
+    multiplayerType: 'Server',
+    sessionObjectives: [
+      'Win a team match with your squad',
+      'Post a positive kill-to-death spread',
+      'Clear a parkour route without falling out',
+    ],
+    controlHints: [
+      'WASD to move, mouse to aim, click to fire',
+      'Shift to sprint into a jump for lane peeks',
+    ],
+    aiBriefing:
+      'Fast voxel gunplay with real lobbies. Crosshair placement and lane awareness decide fights far more than loadout choice — pre-aim corners before you swing them.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/kirka-io',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/kirka-io',
+      embedMode: 'inline',
+      controls: ['Keyboard', 'Mouse'],
+      modes: ['Online Versus'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Voxel FPS', accentStart: '#c084fc', accentEnd: '#4c1d95' },
+  },
+  {
+    id: 'cg-copter-io',
+    name: 'Copter.io',
+    url: 'https://www.crazygames.com/embed/copter-io',
+    description:
+      'Helicopter arena warfare: out-fly rival pilots, land rockets on moving targets, and climb the live leaderboard before the sky fills up.',
+    genre: 'Action',
+    rating: 4.4,
+    playersOnline: 9000,
+    availability: 'Online',
+    tags: ['Action', 'Multiplayer', 'PvP', 'Arena', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern'],
+    multiplayerType: 'Server',
+    sessionObjectives: [
+      'Reach the top of a live leaderboard round',
+      'Score a hit on a strafing rival',
+      'Survive a full round without crashing',
+    ],
+    controlHints: [
+      'A/D to strafe, W/S to adjust altitude',
+      'Left click fires, space boosts',
+    ],
+    aiBriefing:
+      'Air-to-air arena combat against live pilots. Momentum is your real enemy: feather the lift instead of holding it, or you drift into someone\u2019s firing line.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/copter-io',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/copter-io',
+      embedMode: 'inline',
+      controls: ['Keyboard', 'Mouse'],
+      modes: ['Online Versus'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Air Arena', accentStart: '#38bdf8', accentEnd: '#0c4a6e' },
+  },
+  {
+    id: 'cg-ludo-online',
+    name: 'Ludo Online',
+    url: 'https://www.crazygames.com/embed/ludo-online',
+    description:
+      'Four-player board night: roll, race, and knock rivals back to base in live online Ludo tables with quick-match lobbies.',
+    genre: 'Casual',
+    rating: 4.4,
+    playersOnline: 10000,
+    availability: 'Online',
+    tags: ['Casual', 'Multiplayer', 'Party', 'Board', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern'],
+    multiplayerType: 'Server',
+    sessionObjectives: [
+      'Bring all four tokens home before the table does',
+      'Send a rival token back to base',
+      'Win a match without losing a token',
+    ],
+    controlHints: [
+      'Tap the die to roll, then pick a token',
+      'Sixes grant an extra roll — bank them',
+    ],
+    aiBriefing:
+      'Classic Ludo against live tables. Protect a stacked pair on open lanes and keep one token deep as a comeback runner instead of racing everything at once.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/ludo-online',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/ludo-online',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Online Versus'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Board Night', accentStart: '#fb7185', accentEnd: '#881337' },
+  },
+  {
+    id: 'cg-slice-master',
+    name: 'Slice Master',
+    url: 'https://www.crazygames.com/embed/slice-master',
+    description:
+      'One-button precision slicing: keep the blade moving, thread every gap, and chase the high score without clipping what you are not supposed to cut.',
+    genre: 'Casual',
+    rating: 4.5,
+    playersOnline: 11000,
+    availability: 'Online',
+    tags: ['Casual', 'Arcade', 'Reflex', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'trending'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Cut every permitted target in one clean pass',
+      'Reach the next speed tier without a miss',
+      'Bank a new personal high score',
+    ],
+    controlHints: [
+      'Hold to keep the blade active',
+      'Small taps beat wide sweeps on tight gaps',
+    ],
+    aiBriefing:
+      'Precision over speed. Trace the safe path once with your eyes, then commit — panicked sweeping is what clips off-limit objects.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/slice-master',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/slice-master',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Blade Precision', accentStart: '#e2e8f0', accentEnd: '#334155' },
+  },
+  {
+    id: 'cg-getting-over-it',
+    name: 'Getting Over It',
+    url: 'https://www.crazygames.com/embed/getting-over-it',
+    description:
+      'The infamous hammer climb: drag your way up a mountain of clutter, where one slip costs an entire run and every metre is earned.',
+    genre: 'Casual',
+    rating: 4.5,
+    playersOnline: 12000,
+    availability: 'Online',
+    tags: ['Casual', 'Arcade', 'Physics', 'Classic', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'staff-pick'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Clear the first furniture wall',
+      'Reach the mountain ridge checkpoint',
+      'Finish a climb without a full reset',
+    ],
+    controlHints: [
+      'Mouse moves the hammer, drag to swing',
+      'Small corrections beat big swings near ledges',
+    ],
+    aiBriefing:
+      'A patience test with no checkpoints to lean on. Set up each push before committing, and treat a near-miss as progress — this cabinet rewards calm retries.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/getting-over-it',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/getting-over-it',
+      embedMode: 'inline',
+      controls: ['Mouse'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Hammer Climb', accentStart: '#fcd34d', accentEnd: '#78350f' },
+  },
+  {
+    id: 'cg-impossible-quiz',
+    name: 'The Impossible Quiz',
+    url: 'https://www.crazygames.com/embed/the-impossible-quiz',
+    description:
+      'The cult trick-question gauntlet: lateral thinking, puns, and outright traps across 110 questions where the obvious answer is always wrong.',
+    genre: 'Puzzle',
+    rating: 4.5,
+    playersOnline: 13000,
+    availability: 'Online',
+    tags: ['Puzzle', 'Trivia', 'Classic', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'classic'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Clear the first ten trick questions',
+      'Beat a question without using a skip',
+      'Reach the mid-run checkpoint',
+    ],
+    controlHints: [
+      'Click an answer, or type where the question asks',
+      'Read every word — the wording is the puzzle',
+    ],
+    aiBriefing:
+      'A quiz built to punish assumptions. Slow down, take the question literally, and remember that skips are a resource you can only spend seven times.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/the-impossible-quiz',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/the-impossible-quiz',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Keyboard'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Trick Quiz', accentStart: '#fde047', accentEnd: '#a16207' },
+  },
+  {
+    id: 'cg-five-nights-at-freddys',
+    name: "Five Nights at Freddy's",
+    url: 'https://www.crazygames.com/embed/five-nights-at-freddys',
+    description:
+      'The original survival horror: hold the night shift, ration your power, and track the animatronics on cameras until 6 AM.',
+    genre: 'Horror',
+    rating: 4.6,
+    playersOnline: 15000,
+    availability: 'Online',
+    tags: ['Horror', 'Survival', 'Strategy', 'Classic', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'trending'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Survive the first night without a breach',
+      'Finish a night with power to spare',
+      'Reach 6 AM on night three',
+    ],
+    controlHints: [
+      'Move the cursor to the screen edge to open cameras',
+      'Close the doors only when a hallway is occupied',
+    ],
+    aiBriefing:
+      'A resource-management horror loop, not a reflex test. Every door light and camera flick costs power — check less often, and trust the audio tells.',
+    launchConfig: {
+      approvedEmbedUrl:
+        'https://www.crazygames.com/embed/five-nights-at-freddys',
+      approvedExternalUrl:
+        'https://www.crazygames.com/embed/five-nights-at-freddys',
+      embedMode: 'inline',
+      controls: ['Mouse'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Night Shift', accentStart: '#f87171', accentEnd: '#111827' },
+  },
+  {
+    id: 'cg-stick-war',
+    name: 'Stick War',
+    url: 'https://www.crazygames.com/embed/stick-war',
+    description:
+      'The 2009 strategy landmark, now playable in-browser: mine gold, raise an army of stick figures, and out-manoeuvre the Order empire campaign.',
+    genre: 'Strategy',
+    rating: 4.5,
+    playersOnline: 12000,
+    availability: 'Online',
+    tags: ['Strategy', 'Classic', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern', 'classic'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Establish a stable gold income',
+      'Field a mixed sword, spear, and archer line',
+      'Capture an enemy territory',
+    ],
+    controlHints: [
+      'Assign miners first — economy wins the long campaign',
+      'Drag-select units to group a push',
+    ],
+    aiBriefing:
+      'Classic economy-first real-time strategy. Never let your miner count flatline: a bigger bank converts straight into a bigger army at the next engagement.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/stick-war',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/stick-war',
+      embedMode: 'inline',
+      controls: ['Mouse'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'RTS Landmark', accentStart: '#94a3b8', accentEnd: '#0f172a' },
+  },
+  {
+    id: 'cg-stick-war-2',
+    name: 'Stick War 2',
+    url: 'https://www.crazygames.com/embed/stick-war-2',
+    description:
+      'The bigger campaign sequel: new units, castle sieges, and a wider tech tree for pushing a stick-figure army across the map.',
+    genre: 'Strategy',
+    rating: 4.4,
+    playersOnline: 8500,
+    availability: 'Online',
+    tags: ['Strategy', 'Classic', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Unlock a siege unit',
+      'Break through a fortified castle line',
+      'Hold a captured territory for a full wave',
+    ],
+    controlHints: [
+      'Hotkeys queue unit production faster than clicking',
+      'Scout before committing to a siege push',
+    ],
+    aiBriefing:
+      'A longer strategy campaign than the original with real siege beats. Build the counter-unit before the push, not after the castle line breaks your first wave.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/stick-war-2',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/stick-war-2',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Keyboard'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Siege Sequel', accentStart: '#cbd5e1', accentEnd: '#1e293b' },
+  },
+  {
+    id: 'cg-sugar-sugar',
+    name: 'Sugar, Sugar',
+    url: 'https://www.crazygames.com/embed/sugar-sugar',
+    description:
+      'The beloved browser puzzle: draw lines to funnel falling sugar into every cup, then refine your route for a cleaner, faster pour.',
+    genre: 'Puzzle',
+    rating: 4.6,
+    playersOnline: 11000,
+    availability: 'Online',
+    tags: ['Puzzle', 'Physics', 'Casual', 'Classic', 'CrazyGames'],
+    badgeIds: ['modern', 'classic', 'staff-pick'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Fill every cup on the board',
+      'Finish a level without wasting sugar',
+      'Clear a level using fewer drawn lines',
+    ],
+    controlHints: [
+      'Drag to draw a line, release to drop the sugar',
+      'Use the eraser to redraw a bad funnel',
+    ],
+    aiBriefing:
+      'A physics puzzle about routing, not speed. Sketch the whole path before releasing sugar — mid-level redraws usually cost more than a slow, deliberate funnel.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Pour Puzzle', accentStart: '#fda4af', accentEnd: '#9f1239' },
+  },
+  {
+    id: 'cg-sugar-sugar-2',
+    name: 'Sugar, Sugar 2',
+    url: 'https://www.crazygames.com/embed/sugar-sugar-2',
+    description:
+      'The sequel adds colour-sorting: route matching sugar into matching cups and split streams before they mix.',
+    genre: 'Puzzle',
+    rating: 4.5,
+    playersOnline: 8000,
+    availability: 'Online',
+    tags: ['Puzzle', 'Physics', 'Casual', 'Classic', 'CrazyGames'],
+    badgeIds: ['modern', 'classic'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Fill every colour-matched cup',
+      'Split a stream without cross-contaminating it',
+      'Clear a colour-sorting board first try',
+    ],
+    controlHints: [
+      'Draw ramps to separate colours before they merge',
+      'Re-route from the top down, not the bottom up',
+    ],
+    aiBriefing:
+      'Colour routing raises the stakes on the original. Plan the split in the top third of the board first; by the midpoint the streams are already too tangled to redirect.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar-2',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar-2',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Colour Sort', accentStart: '#f9a8d4', accentEnd: '#9d174d' },
+  },
+  {
+    id: 'cg-sugar-sugar-3',
+    name: 'Sugar, Sugar 3',
+    url: 'https://www.crazygames.com/embed/sugar-sugar-3',
+    description:
+      'The most devious routing puzzle in the series: tighter boards, tighter timing, and funnels that punish a single wasted line.',
+    genre: 'Puzzle',
+    rating: 4.4,
+    playersOnline: 7000,
+    availability: 'Online',
+    tags: ['Puzzle', 'Physics', 'Casual', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Clear an advanced routing board',
+      'Solve a level with no wasted sugar',
+      'Finish a level using a single continuous line',
+    ],
+    controlHints: [
+      'Zoom the view before drawing tight funnels',
+      'Undo early — late redraws cost the whole route',
+    ],
+    aiBriefing:
+      'Precision routing with almost no margin. Draw the final segment first and work backwards to the source; the tight boards are solved from the cup, not the top.',
+    launchConfig: {
+      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar-3',
+      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar-3',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'Tight Routing', accentStart: '#fbcfe8', accentEnd: '#831843' },
+  },
+  {
+    id: 'cg-table-tennis-world-tour',
+    name: 'Table Tennis World Tour',
+    url: 'https://www.crazygames.com/embed/table-tennis-world-tour',
+    description:
+      'Tour the globe of table tennis: pick your nation, sharpen spin and placement, and work through a ladder of increasingly sharp opponents.',
+    genre: 'Sports',
+    rating: 4.4,
+    playersOnline: 7500,
+    availability: 'Online',
+    tags: ['Sports', 'Reflex', 'Modern', 'CrazyGames'],
+    badgeIds: ['modern'],
+    multiplayerType: 'None',
+    sessionObjectives: [
+      'Win a best-of match on the world tour',
+      'Score with a spin serve',
+      'Clear a tour stop without dropping a game',
+    ],
+    controlHints: [
+      'Drag to swing — shorter drags place, longer drags power',
+      'Move before the bounce to set your angle',
+    ],
+    aiBriefing:
+      'Placement beats power every round of the tour. Aim at the corners and let the opponent chase; flat, powerful returns get countered as the ladder sharpens.',
+    launchConfig: {
+      approvedEmbedUrl:
+        'https://www.crazygames.com/embed/table-tennis-world-tour',
+      approvedExternalUrl:
+        'https://www.crazygames.com/embed/table-tennis-world-tour',
+      embedMode: 'inline',
+      controls: ['Mouse', 'Touch'],
+      modes: ['Solo'],
+      trustNote:
+        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
+    },
+    art: { eyebrow: 'World Tour', accentStart: '#fb923c', accentEnd: '#9a3412' },
   },
 ];

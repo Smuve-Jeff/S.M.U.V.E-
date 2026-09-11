@@ -321,6 +321,7 @@ describe('GameService', () => {
     expect(games.map((game) => game.id).sort()).toEqual([
       'cg-buildnow-gg',
       'cg-deadshot-io',
+      'cg-kirka-io',
       'cg-kour-io',
       'cg-narrow-one',
       'cg-rooftop-snipers-2',
@@ -428,8 +429,8 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(913);
-    expect(games.slice(0, 91).map((game) => game.id)).toContain('rocket-league');
+    expect(games).toHaveLength(931);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('rocket-league');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
     expect(service.getGameById('rocket-league')?.id).toBe('rocket-league');
@@ -466,12 +467,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(913);
-    expect(games.slice(0, 91).some((game) => game.id === 'rocket-league')).toBe(true);
-    expect(games.slice(0, 91).some((game) => game.id === 'gta-online')).toBe(true);
+    expect(games).toHaveLength(931);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'rocket-league')).toBe(true);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'gta-online')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(913);
+    expect(new Set(games.map((game) => game.id)).size).toBe(931);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -566,10 +567,10 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(913);
-    expect(games.slice(0, 91).map((game) => game.id)).toContain('gta-online');
-    expect(games.slice(0, 91).map((game) => game.id)).toContain('poki-temple-run-2');
-    expect(games.slice(0, 91).map((game) => game.id)).toContain('battlefield');
+    expect(games).toHaveLength(931);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('gta-online');
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('poki-temple-run-2');
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('battlefield');
     expect(games.find((game) => game.id === 'gta-online')?.image).toBe(
       'assets/games/gta-online.svg'
     );
@@ -640,7 +641,7 @@ describe('GameService', () => {
 
     // Premium rails are merged with the original feed rails (11 + 16) so the
     // premium shelf never erases the archive's curated discovery surfaces.
-    expect(feed.recommendationRails.length).toBe(27);
+    expect(feed.recommendationRails.length).toBe(28);
     expect(feed.recommendationRails.some((rail) => rail.id === 'premium-versus')).toBe(true);
     expect(feed.recommendationRails.some((rail) => rail.id === 'rail-golden-era')).toBe(true);
     for (const rail of feed.recommendationRails) {
@@ -656,6 +657,92 @@ describe('GameService', () => {
         expect(supplied).toBeGreaterThan(0);
       }
       expect(rail.gameIds.every((id) => activeIds.has(id))).toBe(true);
+    }
+  });
+
+  it('ships the second verified web wave with truthful launches and full briefings', async () => {
+    const pending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
+      THA_SPOT_FALLBACK_FEED
+    );
+    const feed = await pending;
+    const byId = new Map(feed.games.map((game) => [game.id, game]));
+
+    // Every id in the couch co-op / party / classics wave was live-probed
+    // (HTTP 200, no frame-blocking headers) before inclusion.
+    const wave: Array<[id: string, slug: string]> = [
+      ['cg-bad-ice-cream-4', 'bad-ice-cream-4'],
+      ['cg-raft-wars', 'raft-wars'],
+      ['cg-raft-wars-2', 'raft-wars-2'],
+      ['cg-8-ball-billiards-classic', '8-ball-billiards-classic'],
+      ['cg-haxball', 'haxball'],
+      ['cg-kirka-io', 'kirka-io'],
+      ['cg-copter-io', 'copter-io'],
+      ['cg-ludo-online', 'ludo-online'],
+      ['cg-slice-master', 'slice-master'],
+      ['cg-getting-over-it', 'getting-over-it'],
+      ['cg-impossible-quiz', 'the-impossible-quiz'],
+      ['cg-five-nights-at-freddys', 'five-nights-at-freddys'],
+      ['cg-stick-war', 'stick-war'],
+      ['cg-stick-war-2', 'stick-war-2'],
+      ['cg-sugar-sugar', 'sugar-sugar'],
+      ['cg-sugar-sugar-2', 'sugar-sugar-2'],
+      ['cg-sugar-sugar-3', 'sugar-sugar-3'],
+      ['cg-table-tennis-world-tour', 'table-tennis-world-tour'],
+    ];
+
+    for (const [id, slug] of wave) {
+      const game = byId.get(id);
+      expect(game).toBeDefined();
+      // Each row owns its own CrazyGames cabinet and launches it inline; the
+      // same URL is the truthful external fallback.
+      expect(game?.url).toBe(`https://www.crazygames.com/embed/${slug}`);
+      expect(game?.launchConfig?.embedMode).toBe('inline');
+      expect(game?.launchConfig?.approvedEmbedUrl).toBe(game?.url);
+      expect(game?.launchConfig?.approvedExternalUrl).toBe(game?.url);
+      expect(canEmbedGameInline(game)).toBe(true);
+      // The launch preview renders the briefing — it must be real content.
+      expect(game?.sessionObjectives?.length ?? 0).toBeGreaterThanOrEqual(3);
+      expect(game?.controlHints?.length ?? 0).toBeGreaterThanOrEqual(2);
+      expect(game?.aiBriefing?.trim().length ?? 0).toBeGreaterThan(40);
+      expect(game?.description?.trim().length ?? 0).toBeGreaterThan(40);
+      expect(game?.tags?.length ?? 0).toBeGreaterThanOrEqual(4);
+      expect(game?.multiplayerType).toBeDefined();
+    }
+
+    // Every curated web-source cabinet ships the same briefing contract, so
+    // no card ever opens to an empty intel panel.
+    const webCabinets = feed.games.filter((game) =>
+      game.id.startsWith('cg-')
+    );
+    expect(webCabinets.length).toBe(56);
+    for (const game of webCabinets) {
+      expect(game.sessionObjectives?.length ?? 0).toBeGreaterThanOrEqual(2);
+      expect(game.controlHints?.length ?? 0).toBeGreaterThanOrEqual(2);
+      expect(game.aiBriefing?.trim().length ?? 0).toBeGreaterThan(40);
+    }
+
+    // Server-backed multiplayer rows must stay discoverable in the PvP and
+    // co-op rooms, not just on the shelf.
+    const serverRows = feed.games.filter(
+      (game) => game.multiplayerType === 'Server'
+    );
+    const untagged = serverRows.filter((game) => {
+      const tags = new Set((game.tags ?? []).map((tag) => tag.toLowerCase()));
+      return !(tags.has('multiplayer') || tags.has('pvp') || tags.has('co-op'));
+    });
+    expect(untagged).toEqual([]);
+
+    // The new online-lobby rail is populated, trimmed, and points only at
+    // cabinets that actually resolved.
+    const partyRail = feed.recommendationRails.find(
+      (rail) => rail.id === 'premium-party-night'
+    );
+    expect(partyRail).toBeDefined();
+    expect(partyRail!.gameIds.length).toBeGreaterThan(0);
+    expect(partyRail!.gameIds.length).toBeLessThanOrEqual(partyRail!.maxItems);
+    for (const id of partyRail!.gameIds) {
+      expect(byId.get(id)?.launchConfig?.embedMode).toBe('inline');
     }
   });
 
@@ -685,7 +772,7 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(913);
+    expect(games).toHaveLength(931);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
     // Only premium ids that are actually present in the feed must occupy the
     // premium-first prefix; the premium allowlist is larger than the feed, so
@@ -726,14 +813,20 @@ describe('GameService', () => {
     }
   });
 
-  it('refreshes the feed when forced, preserving the combined catalog contract', async () =>
+  it('refreshes the feed when forced, preserving the combined catalog contract', async () => {
     const firstPending = firstValueFrom(service.getThaSpotFeed());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
-    await firstPending;
+    const first = await firstPending;
 
     const secondPending = firstValueFrom(service.getThaSpotFeed(true));
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
-    await secondPending;
+    const second = await secondPending;
+
+    // A forced refresh must issue a genuinely new request (new observable
+    // instance) while normalizing to the same combined catalog contract.
+    expect(second).not.toBe(first);
+    expect(first.games.length).toBeGreaterThanOrEqual(mockFeed.games.length);
+    expect(second.games).toEqual(first.games);
   });
 
   it('badges every game in the combined catalog with a resolvable badge id', async () => {
