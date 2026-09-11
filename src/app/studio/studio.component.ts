@@ -484,7 +484,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedImportWaveform(): Float32Array | null {
     const audio = this.audioImport.selectedAudio();
     if (!audio) return null;
-    const source = audio.buffer.getChannelData(0);
+    // Show the enhanced render once the user applies it, so the waveform and
+    // the audio preview always agree.
+    const source = (audio.enhancedBuffer ?? audio.buffer).getChannelData(0);
     const zoom = Math.max(1, this.importWaveformZoom());
     if (zoom === 1) return source;
     const length = Math.max(256, Math.floor(source.length / zoom));

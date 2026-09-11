@@ -62,7 +62,15 @@ describe('AudioImportService (stretch engine)', () => {
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: MusicManagerService, useValue: {} },
         { provide: LoggingService, useValue: { warn: jest.fn(), error: jest.fn() } },
-        { provide: SnackbarService, useValue: { warning: jest.fn(), error: jest.fn(), success: jest.fn() } },
+        {
+          provide: SnackbarService,
+          useValue: {
+            warning: jest.fn(),
+            error: jest.fn(),
+            success: jest.fn(),
+            info: jest.fn(),
+          },
+        },
       ],
     });
     service = TestBed.inject(AudioImportService);
@@ -205,5 +213,76 @@ describe('AudioImportService (stretch engine)', () => {
     service.removeAudio('a3');
     expect(revokeSpy).toHaveBeenCalledWith('blob:raw3');
     expect(revokeSpy).toHaveBeenCalledWith('blob:edited3');
+  });
+
+  it('exposes a validated catalogue of enhancement presets', () => {
+    const ids = service.enhancePresets.map((preset) => preset.id);
+    expect(ids.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(service.enhancePreset()).toBe('clean');
+
+    service.setEnhancePreset('master');
+    expect(service.enhancePreset()).toBe('master');
+
+    service.setEnhancePreset('not-a-preset' as any);
+    expect(service.enhancePreset()).toBe('master');
+  });
+
+  it('enhances an imported file non-destructively and restores the original', async () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 4096);
+    const imported: any = {
+      id: 'enh1',
+      name: 'instrumental',
+      buffer: buf,
+      blob: new Blob(),
+      url: 'blob:instrumental',
+      duration: buf.duration,
+      sampleRate: buf.sampleRate,
+      channels: buf.numberOfChannels,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+
+    const blob = await service.enhanceQuality('vocal');
+
+    expect(blob).toBeInstanceOf(Blob);
+    const enhanced = service.selectedAudio()!;
+    expect(enhanced.enhancedPreset).toBe('vocal');
+    expect(enhanced.enhancedBuffer).toBeTruthy();
+    expect(enhanced.editedBlob).toBeInstanceOf(Blob);
+    expect(enhanced.editedUrl).toBeTruthy();
+    // The decoded import is preserved so the enhancement stays reversible.
+    expect(enhanced.buffer).toBe(buf);
+    expect(service.isEnhancing()).toBe(false);
+
+    // Edits render from the enhanced source, never the raw decode.
+    const edited = await service.applyEdits();
+    expect(edited).toBeInstanceOf(Blob);
+
+    service.clearEnhancement();
+    const restored = service.selectedAudio()!;
+    expect(restored.enhancedBuffer).toBeNull();
+    expect(restored.enhancedPreset).toBeNull();
+    expect(restored.editedUrl).toBeNull();
+    expect(restored.buffer).toBe(buf);
+  });
+
+  it('does not enhance without a selected import', async () => {
+    service.selectedAudio.set(null);
+    await expect(service.enhanceQuality('clean')).resolves.toBeNull();
   });
 });

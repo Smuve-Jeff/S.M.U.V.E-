@@ -59,6 +59,75 @@
     [class.lg:grid-cols-[1.1fr,0.9fr]]="mode === 'full'"
   >
     <div class="space-y-4">
+      <div class="rounded-2xl border border-fl-border bg-black/20 p-4">
+        <div class="flex items-center justify-between">
+          <span
+            class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+            >Input device</span
+          >
+          <button
+            (click)="rescanDevices()"
+            [disabled]="isScanning()"
+            class="text-[9px] font-black uppercase tracking-widest text-fl-blue transition-all disabled:opacity-40"
+          >
+            {{ isScanning() ? 'Scanning…' : 'Rescan' }}
+          </button>
+        </div>
+        <select
+          class="mt-3 w-full rounded-xl border border-fl-border bg-black/40 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white"
+          [ngModel]="currentChannel()?.deviceId || micService.selectedDeviceId()"
+          (ngModelChange)="updateDevice($event)"
+          [disabled]="!canSwitchDevice()"
+        >
+          <option *ngFor="let device of devices()" [value]="device.deviceId">
+            {{ device.label }} · {{ capabilityLabel(device.type) }}
+          </option>
+        </select>
+        <p
+          class="mt-2 text-[9px] font-black uppercase tracking-widest"
+          [class.text-amber-300]="!canSwitchDevice()"
+          [class.text-slate-500]="canSwitchDevice()"
+        >
+          {{
+            canSwitchDevice()
+              ? 'Capturing: ' + capturePathLabel()
+              : 'Stop the take to switch inputs'
+          }}
+        </p>
+        <p
+          *ngIf="lastError() as err"
+          class="mt-1 text-[9px] font-black uppercase tracking-widest text-rose-300"
+        >
+          {{ err }}
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-fl-border bg-black/20 p-4">
+        <div class="flex items-center justify-between">
+          <span
+            class="text-[8px] font-black uppercase tracking-[0.35em] text-slate-500"
+            >Live spectrum</span
+          >
+          <span
+            class="text-[9px] font-black uppercase tracking-widest text-fl-blue"
+            >40 Hz – 16 kHz</span
+          >
+        </div>
+        <canvas
+          #micSpectrum
+          width="480"
+          height="140"
+          class="mt-3 h-32 w-full rounded-xl border border-fl-border bg-black/50"
+          role="img"
+          aria-label="Live input spectrum analyzer"
+        ></canvas>
+        <p
+          class="mt-2 text-[9px] font-bold uppercase tracking-widest text-slate-500"
+        >
+          {{ spectrumHint() }}
+        </p>
+      </div>
+
       <div class="grid gap-3" [class.md:grid-cols-3]="mode === 'full'">
         <button
           (click)="initializeInterface()"

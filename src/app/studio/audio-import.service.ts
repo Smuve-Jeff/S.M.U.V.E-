@@ -6,6 +6,90 @@ import { LoggingService } from '../services/logging.service';
 import { SnackbarService } from '../services/snackbar.service';
 import { AudioStretchService } from './audio-stretch.service';
 
+export type EnhancePreset = 'clean' | 'vocal' | 'broadcast' | 'master';
+
+export interface EnhancePresetConfig {
+  id: EnhancePreset;
+  label: string;
+  description: string;
+  /** Rumble/plosive high-pass corner in Hz. */
+  highPassHz: number;
+  /** Low-shelf warmth in dB. */
+  lowShelfDb: number;
+  presenceHz: number;
+  presenceDb: number;
+  airHz: number;
+  airDb: number;
+  compThresholdDb: number;
+  compRatio: number;
+  /** True-peak target for the post-render normalize, in dBFS. */
+  targetPeakDb: number;
+}
+
+/**
+ * Offline quality-restoration shapes for imported audio (MP3, WAV, M4A…).
+ * Each one pairs a rumble filter with musical tone shaping, glue compression
+ * and a true-peak normalize so a rough bounce lands competitive in the mix.
+ */
+export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
+  {
+    id: 'clean',
+    label: 'Clean Lift',
+    description: 'Gentle polish for instrumentals — keeps the balance intact.',
+    highPassHz: 30,
+    lowShelfDb: 1,
+    presenceHz: 3000,
+    presenceDb: 1.5,
+    airHz: 10000,
+    airDb: 1.5,
+    compThresholdDb: -18,
+    compRatio: 2,
+    targetPeakDb: -1,
+  },
+  {
+    id: 'vocal',
+    label: 'Vocal Focus',
+    description: 'Clears mud and lifts diction so a vocal sits on top.',
+    highPassHz: 85,
+    lowShelfDb: -1.5,
+    presenceHz: 3500,
+    presenceDb: 3,
+    airHz: 9000,
+    airDb: 3,
+    compThresholdDb: -20,
+    compRatio: 3,
+    targetPeakDb: -1,
+  },
+  {
+    id: 'broadcast',
+    label: 'Broadcast',
+    description: 'Dense, forward and consistent — podcast / radio ready.',
+    highPassHz: 100,
+    lowShelfDb: -2,
+    presenceHz: 4000,
+    presenceDb: 4,
+    airHz: 8000,
+    airDb: 2,
+    compThresholdDb: -22,
+    compRatio: 4,
+    targetPeakDb: -0.8,
+  },
+  {
+    id: 'master',
+    label: 'Master Glue',
+    description: 'Warm top and tight low end for a full-mix two-track.',
+    highPassHz: 25,
+    lowShelfDb: 2,
+    presenceHz: 2800,
+    presenceDb: 1,
+    airHz: 12000,
+    airDb: 2.5,
+    compThresholdDb: -16,
+    compRatio: 2.4,
+    targetPeakDb: -0.5,
+  },
+];
+
 export interface ImportedAudio {
   id: string;
   name: string;
@@ -35,6 +119,10 @@ export interface ImportedAudio {
   /** Edited buffer after applying trim + gain */
   editedBlob: Blob | null;
   editedUrl: string | null;
+  /** Non-destructive offline enhancement result (null = original). */
+  enhancedBuffer: AudioBuffer | null;
+  /** Which enhancement shape produced `enhancedBuffer`. */
+  enhancedPreset: EnhancePreset | null;
 }
 
 type EditSnapshot = Pick<
@@ -68,6 +156,14 @@ export class AudioImportService {
 
   /** Loading state */
   isLoading = signal(false);
+
+  /** Selected enhancement shape for the import editor. */
+  enhancePreset = signal<EnhancePreset>('clean');
+  /** True while an offline enhancement render is in flight. */
+  isEnhancing = signal(false);
+  /** Preset catalogue for the UI. */
+  readonly enhancePresets = ENHANCE_PRESETS;
+
   private appliedEditState = new Map<string, EditSnapshot>();
 
   /** Total imported duration summary */
@@ -116,6 +212,8 @@ export class AudioImportService {
             normalize: false,
             editedBlob: null,
             editedUrl: null,
+            enhancedBuffer: null,
+            enhancedPreset: null,
           };
           results.push(imported);
           this.appliedEditState.set(imported.id, this.snapshot(imported));
@@ -309,7 +407,9 @@ export class AudioImportService {
     if (!audio) return Promise.resolve(null);
 
     const ctx = this.audioEngine.ctx;
-    const buffer = audio.buffer;
+    // Enhancements are non-destructive: render the enhanced source when one
+    // exists, otherwise the original decoded import.
+    const buffer = audio.enhancedBuffer ?? audio.buffer;
     const sr = buffer.sampleRate;
     const channels = buffer.numberOfChannels;
 
@@ -388,9 +488,154 @@ export class AudioImportService {
     });
   }
 
+  // ── Quality enhancement (offline, non-destructive) ──────────────
+
+  setEnhancePreset(preset: EnhancePreset): void {
+    if (ENHANCE_PRESETS.some((p) => p.id === preset)) {
+      this.enhancePreset.set(preset);
+    }
+  }
+
+  /**
+   * Render an enhanced copy of the selected import offline: rumble high-pass →
+   * warmth shelf → presence → air → glue compression → true-peak normalize.
+   * The original buffer is preserved so `clearEnhancement()` can undo it.
+   */
+  async enhanceQuality(preset?: EnhancePreset): Promise<Blob | null> {
+    const audio = this.selectedAudio();
+    if (!audio || this.isEnhancing()) return null;
+
+    const config =
+      ENHANCE_PRESETS.find((p) => p.id === (preset ?? this.enhancePreset())) ??
+      ENHANCE_PRESETS[0];
+
+    const OfflineCtor: any =
+      (globalThis as any).OfflineAudioContext ??
+      (globalThis as any).webkitOfflineAudioContext;
+    if (typeof OfflineCtor !== 'function') {
+      this.snackbar.warning(
+        'Audio enhancement is unavailable in this environment'
+      );
+      return null;
+    }
+
+    this.isEnhancing.set(true);
+    try {
+      const source = audio.buffer;
+      const offline: OfflineAudioContext = new OfflineCtor(
+        source.numberOfChannels,
+        source.length,
+        source.sampleRate
+      );
+
+      const input = offline.createBufferSource();
+      input.buffer = source;
+
+      const rumble = offline.createBiquadFilter();
+      rumble.type = 'highpass';
+      rumble.frequency.value = config.highPassHz;
+      rumble.Q.value = 0.7;
+
+      const warmth = offline.createBiquadFilter();
+      warmth.type = 'lowshelf';
+      warmth.frequency.value = 220;
+      warmth.gain.value = config.lowShelfDb;
+
+      const presence = offline.createBiquadFilter();
+      presence.type = 'peaking';
+      presence.frequency.value = config.presenceHz;
+      presence.Q.value = 1.1;
+      presence.gain.value = config.presenceDb;
+
+      const air = offline.createBiquadFilter();
+      air.type = 'highshelf';
+      air.frequency.value = config.airHz;
+      air.gain.value = config.airDb;
+
+      const glue = offline.createDynamicsCompressor();
+      glue.threshold.value = config.compThresholdDb;
+      glue.knee.value = 12;
+      glue.ratio.value = config.compRatio;
+      glue.attack.value = 0.008;
+      glue.release.value = 0.18;
+
+      input
+        .connect(rumble)
+        .connect(warmth)
+        .connect(presence)
+        .connect(air)
+        .connect(glue)
+        .connect(offline.destination);
+      input.start();
+
+      const rendered = await offline.startRendering();
+      this.applyPeakNormalize(rendered, config.targetPeakDb);
+
+      const wav = this.createWavBlob(
+        this.interleaveChannels(rendered),
+        rendered.sampleRate,
+        rendered.numberOfChannels
+      );
+      const url = URL.createObjectURL(wav);
+      if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+
+      this.updateCurrentAudio({
+        duration: rendered.duration,
+        editedBlob: wav,
+        editedUrl: url,
+        enhancedBuffer: rendered,
+        enhancedPreset: config.id,
+      });
+      this.snackbar.success(`Enhanced audio: ${config.label}`);
+      return wav;
+    } catch (e) {
+      this.logger.error('Audio enhancement failed', e);
+      this.snackbar.error('Could not enhance this audio file');
+      return null;
+    } finally {
+      this.isEnhancing.set(false);
+    }
+  }
+
+  /** Drop the enhancement and hand the original import back to the editor. */
+  clearEnhancement(): void {
+    const audio = this.selectedAudio();
+    if (!audio || !audio.enhancedBuffer) return;
+    if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+    this.updateCurrentAudio({
+      duration: audio.buffer.duration,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+    });
+    this.snackbar.info('Restored the original audio');
+  }
+
+  /** Scale a rendered buffer to `targetPeakDb` using its true sample peak. */
+  private applyPeakNormalize(buffer: AudioBuffer, targetPeakDb: number): void {
+    let peak = 0;
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) {
+        const abs = Math.abs(data[i]);
+        if (abs > peak) peak = abs;
+      }
+    }
+    if (!(peak > 1e-6)) return;
+
+    const gain = Math.pow(10, targetPeakDb / 20) / peak;
+    if (!Number.isFinite(gain) || gain <= 0) return;
+
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) data[i] *= gain;
+    }
+  }
+
   /** Get waveform data (decimated) for canvas rendering */
   getWaveformData(audio: ImportedAudio, width: number): number[] {
-    const buffer = audio.buffer;
+    const buffer = audio.enhancedBuffer ?? audio.buffer;
     const data = buffer.getChannelData(0);
     const step = Math.max(1, Math.floor(data.length / width));
     const waveform: number[] = [];
@@ -492,15 +737,15 @@ export class AudioImportService {
       this.snackbar.success(`Added "${audio.name}" as new track`);
     };
 
-    // Not the current edit target — add the raw buffer directly.
+    // Not the current edit target — add the rendered buffer directly.
     if (this.selectedAudio()?.id !== audio.id) {
-      addTrack(audio.buffer);
+      addTrack(audio.enhancedBuffer ?? audio.buffer);
       return;
     }
 
     this.applyEdits().then(async (blob) => {
       if (!blob) return;
-      let buffer = audio.buffer;
+      let buffer = audio.enhancedBuffer ?? audio.buffer;
       try {
         const arrayBuffer = await blob.arrayBuffer();
         buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);

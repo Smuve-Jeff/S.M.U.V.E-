@@ -2200,6 +2200,48 @@
             (change)="audioImport.toggleNormalize($any($event.target).checked)"
           />
         </div>
+        <!-- Quality enhancement (offline, non-destructive) -->
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Enhance</label>
+          <select
+            class="comp-import-select"
+            [value]="audioImport.enhancePreset()"
+            (change)="audioImport.setEnhancePreset($any($event.target).value)"
+            aria-label="Audio enhancement preset"
+          >
+            <option
+              *ngFor="let preset of audioImport.enhancePresets"
+              [value]="preset.id"
+              [title]="preset.description"
+            >
+              {{ preset.label }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            [disabled]="audioImport.isEnhancing()"
+            (click)="audioImport.enhanceQuality()"
+          >
+            <span class="material-symbols-outlined">auto_fix_high</span>
+            {{ audioImport.isEnhancing() ? 'Enhancing…' : 'Enhance' }}
+          </button>
+        </div>
+        <div class="comp-import-slider-row" *ngIf="selAudio.enhancedPreset">
+          <span class="comp-import-slider-val"
+            >Enhanced · {{ selAudio.enhancedPreset }}</span
+          >
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.clearEnhancement()"
+          >
+            <span class="material-symbols-outlined"
+              >settings_backup_restore</span
+            >
+            Original
+          </button>
+        </div>
         <audio
           controls
           class="comp-import-preview"

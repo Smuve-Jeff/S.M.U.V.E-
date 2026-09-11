@@ -72,6 +72,10 @@ export class AudioRecorderViewComponent
   noiseGateEnabled = signal(false);
   private micSourceNode: MediaStreamAudioSourceNode | null = null;
   private monitorGainNode: GainNode | null = null;
+  /** Gate insert between the mic and the recorder. */
+  private gateNode: GainNode | null = null;
+  /** MediaStream fed to the recorder — the gated signal when wired. */
+  private captureDestination: MediaStreamAudioDestinationNode | null = null;
 
   toggleMonitoring(): void {
     this.haptic.light();
@@ -109,6 +113,21 @@ export class AudioRecorderViewComponent
   toggleNoiseGate(): void {
     this.haptic.light();
     this.noiseGateEnabled.update((v) => !v);
+    // Apply immediately so the toggle is truthful: switching off reopens the
+    // gate even before the next level-meter frame.
+    if (this.gateNode && this.audioContext) {
+      try {
+        // Arming closes the gate until the loop hears signal above threshold;
+        // disarming reopens it right away.
+        this.gateNode.gain.setTargetAtTime(
+          this.noiseGateEnabled() ? 0 : 1,
+          this.audioContext.currentTime,
+          0.01
+        );
+      } catch {
+        /* context closed */
+      }
+    }
     this.snackbar.info(
       this.noiseGateEnabled()
         ? `Noise gate ON (threshold: ${this.noiseGateThreshold()} dB)`
@@ -324,18 +343,24 @@ export class AudioRecorderViewComponent
     this.permissionsDenied.set(false);
     try {
       if (!this.currentStream) {
+        // Browser DSP is left OFF: it is tuned for calls, not music. The
+        // Studio supplies its own monitoring and noise gate instead.
         this.currentStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
+            echoCancellation: false,
+            noiseSuppression: false,
             autoGainControl: false,
           },
         });
       }
-      await this.recorder.startRecording(this.currentStream);
+      // Wire the capture graph BEFORE arming the recorder, so even the first
+      // take carries the gated signal.
+      this.startLevelMeter(this.currentStream);
+      const captureStream =
+        this.captureDestination?.stream ?? this.currentStream;
+      await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
       this.startElapsedTimer();
-      this.startLevelMeter(this.currentStream);
       this.startWaveform();
       this.snackbar.success('Recording armed — capture live input');
     } catch (err: any) {
@@ -351,14 +376,23 @@ export class AudioRecorderViewComponent
     }
   }
 
-  // ── Level meter ─────────────────────────────────────────
+  // ── Level meter + gate ──────────────────────────────────
   private startLevelMeter(stream: MediaStream): void {
     try {
       this.audioContext = new AudioContext();
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 256;
       const source = this.audioContext.createMediaStreamSource(stream);
-      source.connect(this.analyserNode);
+
+      // Mic → gate → {analyser, recorder}. The gate stays fully open until
+      // the user arms it, so ungated takes are bit-identical to the input.
+      this.gateNode = this.audioContext.createGain();
+      this.gateNode.gain.value = this.noiseGateEnabled() ? 0 : 1;
+      this.captureDestination =
+        this.audioContext.createMediaStreamDestination();
+      source.connect(this.gateNode);
+      this.gateNode.connect(this.analyserNode);
+      this.gateNode.connect(this.captureDestination);
 
       const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
       this.levelInterval = setInterval(() => {
@@ -369,9 +403,25 @@ export class AudioRecorderViewComponent
         const db =
           avg === 0 ? -60 : Math.round(20 * Math.log10(avg / 255) * 10) / 10;
         this.inputLevel.set(Math.max(-60, Math.min(0, db)));
+        this.applyNoiseGate(db);
       }, 60);
     } catch (err) {
       this.logger.warn('Could not start level meter', err);
+    }
+  }
+
+  /** Fast attack / slower release gate driven by the live level reading. */
+  private applyNoiseGate(db: number): void {
+    if (!this.gateNode || !this.audioContext) return;
+    const open = !this.noiseGateEnabled() || db > this.noiseGateThreshold();
+    try {
+      this.gateNode.gain.setTargetAtTime(
+        open ? 1 : 0,
+        this.audioContext.currentTime,
+        open ? 0.005 : 0.08
+      );
+    } catch {
+      /* context closed mid-take */
     }
   }
 
@@ -380,6 +430,15 @@ export class AudioRecorderViewComponent
       clearInterval(this.levelInterval);
       this.levelInterval = null;
     }
+    if (this.gateNode) {
+      try {
+        this.gateNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      this.gateNode = null;
+    }
+    this.captureDestination = null;
     this.analyserNode = null;
     this.inputLevel.set(-60);
   }

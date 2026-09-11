@@ -266,15 +266,40 @@
           </div>
         </div>
 
-        <div class="flex justify-end" *ngIf="micService.recordedBlob()">
-          <button
-            type="button"
-            (click)="setStep('edit')"
-            aria-label="Commit recording to S.M.U.V.E. Lab for editing"
-            class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
+        <div
+          class="flex flex-wrap items-center justify-between gap-4"
+          *ngIf="micService.recordedBlob()"
+        >
+          <label
+            class="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300"
           >
-            Commit to S.M.U.V.E. Lab
-          </button>
+            <input
+              type="checkbox"
+              [checked]="autoRouteTakes()"
+              (change)="toggleAutoRoute()"
+              aria-label="Route finished takes to the arrangement automatically"
+              class="size-4 accent-vocal-primary"
+            />
+            Auto-route takes
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              (click)="routeTakeToArrangement()"
+              aria-label="Add the current take to the arrangement"
+              class="px-6 py-3 bg-white/5 border border-fl-border font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 transition-all"
+            >
+              Add to Arrangement
+            </button>
+            <button
+              type="button"
+              (click)="setStep('edit')"
+              aria-label="Commit recording to S.M.U.V.E. Lab for editing"
+              class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
+            >
+              Commit to S.M.U.V.E. Lab
+            </button>
+          </div>
         </div>
       </div>
 
@@ -299,20 +324,32 @@
               class="absolute inset-y-0 left-1/3 w-[1px] bg-vocal-primary shadow-[0_0_10px_#a855f7]"
             ></div>
           </div>
-          <div class="vs-edit-actions flex gap-4" role="group" aria-label="Vocal edit actions">
+          <div class="vs-edit-actions flex flex-wrap gap-4" role="group" aria-label="Vocal edit actions">
             <button
               type="button"
+              (click)="normalizeTake()"
+              [disabled]="isProcessingTake()"
               aria-label="Normalize recording loudness"
-              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Normalize
             </button>
             <button
               type="button"
+              (click)="trimTakeSilence()"
+              [disabled]="isProcessingTake()"
               aria-label="Trim silence from recording edges"
-              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Trim Silence
+            </button>
+            <button
+              type="button"
+              (click)="routeTakeToArrangement()"
+              aria-label="Add the edited take to the arrangement"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+            >
+              Add to Arrangement
             </button>
             <button
               type="button"
@@ -323,6 +360,13 @@
               Proceed to Mastering
             </button>
           </div>
+          <p
+            *ngIf="takeStatus() as status"
+            role="status"
+            class="mt-4 text-[10px] font-bold uppercase tracking-widest text-vocal-primary"
+          >
+            {{ status }}
+          </p>
         </div>
       </div>
 

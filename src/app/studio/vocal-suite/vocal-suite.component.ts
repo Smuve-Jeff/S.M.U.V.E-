@@ -23,6 +23,13 @@ import { HardwareService } from '../../services/hardware.service';
 import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
+import { MusicManagerService } from '../../services/music-manager.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
+import { LoggingService } from '../../services/logging.service';
+import { SnackbarService } from '../../services/snackbar.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { WavEncoder } from '../wav-encoder.util';
+import { peakNormalizeInPlace, trimSilenceEdges } from '../take-edit.util';
 
 type ViewMode = 'pipeline' | 'console';
 type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
@@ -49,8 +56,27 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly aiService = inject(AiService);
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
+  private musicManager = inject(MusicManagerService);
+  private engineLatency = inject(AudioEngineLatencyService);
+  private audioEngine = inject(AudioEngineService);
+  private logger = inject(LoggingService);
+  private snackbar = inject(SnackbarService);
   public readonly hardware = inject(HardwareService);
   showUplink = signal(false);
+
+  // ── Take editing / routing ──────────────────────────────
+  /** Number of takes already committed to the arrangement. */
+  takeNumber = signal(0);
+  /** Route every finished take into the arrangement automatically. */
+  autoRouteTakes = signal(true);
+  /** True while an offline take edit is running. */
+  isProcessingTake = signal(false);
+  /** Last take status message, shown in the Edit step. */
+  takeStatus = signal<string | null>(null);
+  /** Envelope of the loaded take, drawn by the Edit-step waveform. */
+  takeEnvelope = signal<number[]>([]);
+  /** Working (edited) take buffer; null until a take has been decoded. */
+  private editedTake: AudioBuffer | null = null;
 
   @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('waveformCanvas') waveformRef!: ElementRef<HTMLCanvasElement>;
@@ -108,23 +134,172 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   async initializeMic() {
     const deviceId = this.micService.selectedDeviceId();
-    await this.micService.initialize(deviceId || undefined);
+    const ready = await this.micService.initialize(deviceId || undefined);
+    if (!ready) return;
     const node = this.micService.getAnalyserNode();
     if (node) {
       // Route the mic through the real-time pitch-correction stage first; the
       // service falls back to a clean bypass when the worklet is unavailable.
       const corrected = await this.pitchCorrection.insertIntoChain(node);
       this.mastering.applyToSource(corrected ?? node);
+      // Takes must capture the chain the artist hears (pitch correction +
+      // mastering), not the dry microphone feed.
+      this.micService.attachProcessedCapture(this.mastering.getOutputNode());
     }
   }
 
-  toggleRecording() {
+  async toggleRecording() {
     if (this.micService.isRecording()) {
-      this.micService.stopRecording();
-    } else {
-      this.waveformData = [];
-      this.micService.startRecording();
+      const blob = await this.micService.stopRecording();
+      if (blob && this.autoRouteTakes()) {
+        // A fresh take replaces any edits from the previous one.
+        this.editedTake = null;
+        this.takeEnvelope.set([]);
+        this.takeStatus.set(null);
+        await this.routeTakeToArrangement();
+      }
+      return;
     }
+    if (!this.micService.isInitialized()) {
+      // Prime the input + vocal chain on first record so a take is never
+      // silently captured from a dead graph.
+      await this.initializeMic();
+      if (!this.micService.isInitialized()) return;
+    }
+    this.waveformData = [];
+    this.micService.startRecording();
+  }
+
+  toggleAutoRoute(): void {
+    this.autoRouteTakes.update((v) => !v);
+  }
+
+  // ── Take editing ─────────────────────────────────────────
+
+  /** Decode the current take once; edits then work on the same buffer. */
+  private async resolveTakeBuffer(): Promise<AudioBuffer | null> {
+    if (this.editedTake) return this.editedTake;
+    const blob = this.micService.recordedBlob();
+    if (!blob) return null;
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      this.editedTake = buffer;
+      return buffer;
+    } catch (error) {
+      this.logger.error('VocalSuite: could not decode the take', error);
+      this.snackbar.error('Could not read the take — try recording again');
+      return null;
+    }
+  }
+
+  /** Load the take, run one edit and report the outcome. */
+  private async editTake(
+    label: string,
+    edit: (buffer: AudioBuffer) => string
+  ): Promise<string | null> {
+    if (this.isProcessingTake()) return null;
+    this.isProcessingTake.set(true);
+    this.takeStatus.set(label);
+    try {
+      const buffer = await this.resolveTakeBuffer();
+      if (!buffer) {
+        this.takeStatus.set('Record a take first');
+        this.snackbar.error('Record a take first');
+        return null;
+      }
+      const status = edit(buffer);
+      this.takeStatus.set(status);
+      this.takeEnvelope.set(this.computeEnvelope(buffer));
+      this.snackbar.success(status);
+      return status;
+    } catch (error) {
+      this.logger.error('VocalSuite: take edit failed', error);
+      this.takeStatus.set('Take edit failed');
+      this.snackbar.error('Could not process the take');
+      return null;
+    } finally {
+      this.isProcessingTake.set(false);
+    }
+  }
+
+  /** Peak-normalize the take to -1 dBFS. */
+  async normalizeTake(): Promise<string | null> {
+    return this.editTake('Normalizing take…', (buffer) => {
+      const gain = peakNormalizeInPlace(buffer, -1);
+      return gain === 1
+        ? 'Take is silent — nothing to normalize'
+        : `Normalized to -1 dBFS (×${gain.toFixed(2)})`;
+    });
+  }
+
+  /** Trim silent head/tail from the take, keeping 20 ms of room tone. */
+  async trimTakeSilence(): Promise<string | null> {
+    return this.editTake('Trimming silence…', (buffer) => {
+      const before = buffer.duration;
+      const trimmed = trimSilenceEdges(
+        buffer,
+        this.audioEngine.ctx,
+        -50,
+        20
+      );
+      if (trimmed === buffer) return 'No silent edges to trim';
+      this.editedTake = trimmed;
+      return `Trimmed ${(before - trimmed.duration).toFixed(2)}s of silence`;
+    });
+  }
+
+  // ── Take routing ─────────────────────────────────────────
+
+  /** Commit the current take to the arrangement as its own audio track. */
+  async routeTakeToArrangement(): Promise<void> {
+    const buffer = await this.resolveTakeBuffer();
+    if (!buffer) {
+      this.snackbar.error('Record a take first');
+      return;
+    }
+
+    const take = this.takeNumber() + 1;
+    // Recorded audio is late by the output latency; trim it before it lands on
+    // the timeline so the vocal lines up with the imported instrumental.
+    const compensated = this.engineLatency.trimAudioBuffer(buffer);
+    this.musicManager.addAudioTrack({
+      id: `vocal_take_${Date.now()}`,
+      name: `Vocal Take ${take}`,
+      color: '#a855f7',
+      buffer: compensated,
+      offset: 0,
+    });
+    this.takeNumber.set(take);
+    this.takeStatus.set(`Vocal Take ${take} added to the arrangement`);
+    this.snackbar.success(`Vocal Take ${take} added to the arrangement`);
+  }
+
+  /** Absolute peak per bucket — the Edit-step waveform for the loaded take. */
+  private computeEnvelope(buffer: AudioBuffer, buckets = 160): number[] {
+    const data = buffer.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / buckets));
+    const envelope: number[] = [];
+    for (let b = 0; b < buckets; b++) {
+      let peak = 0;
+      const start = b * step;
+      const end = Math.min(start + step, data.length);
+      for (let i = start; i < end; i++) {
+        const abs = Math.abs(data[i]);
+        if (abs > peak) peak = abs;
+      }
+      envelope.push(peak);
+    }
+    return envelope;
+  }
+
+  /** Encode the working take as a real 16-bit WAV. */
+  private encodeTake(buffer: AudioBuffer): Blob {
+    const channels: Float32Array[] = [];
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      channels.push(buffer.getChannelData(ch));
+    }
+    return WavEncoder.encodeMultiChannel(channels, 'wav-16', buffer.sampleRate);
   }
 
   private startVisualization() {
@@ -172,6 +347,14 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const canvas = this.waveformRef?.nativeElement;
     if (!canvas || !this.waveformCtx) return;
 
+    // Once a take is loaded (and the mic is idle) the Edit-step waveform shows
+    // the actual take, refreshed after every normalize/trim.
+    const envelope = this.takeEnvelope();
+    if (!this.micService.isRecording() && envelope.length > 0) {
+      this.drawTakeEnvelope(canvas, envelope);
+      return;
+    }
+
     const analyser = this.micService.getAnalyserNode();
     if (this.micService.isRecording() && analyser) {
       const dataArray = new Uint8Array(analyser.fftSize);
@@ -210,21 +393,54 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     this.waveformCtx.stroke();
   }
 
-  async downloadRecording() {
-    const blob = this.micService.recordedBlob();
-    if (blob) {
-      this.showUplink.set(true);
-      const success = await this.uplinkService.initiateUplink(
-        this.profileService.profile()
-      );
+  /** Envelope view of the loaded take for the Edit step. */
+  private drawTakeEnvelope(
+    canvas: HTMLCanvasElement,
+    envelope: number[]
+  ): void {
+    const ctx = this.waveformCtx;
+    if (!ctx) return;
 
-      if (success) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `SMUVE_Vocal_${Date.now()}.wav`;
-        a.click();
-      }
+    const width = canvas.width;
+    const height = canvas.height;
+    const mid = height / 2;
+    const step = width / Math.max(1, envelope.length);
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#a855f7';
+    for (let i = 0; i < envelope.length; i++) {
+      const barH = Math.max(2, envelope[i] * mid * 1.8);
+      ctx.fillRect(i * step, mid - barH / 2, Math.max(1, step - 1), barH);
     }
+
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, mid);
+    ctx.lineTo(width, mid);
+    ctx.stroke();
+  }
+
+  async downloadRecording() {
+    // Export what the artist edited, encoded as real WAV — not the raw webm
+    // capture with a .wav filename.
+    const buffer = await this.resolveTakeBuffer();
+    const blob = buffer
+      ? this.encodeTake(buffer)
+      : this.micService.recordedBlob();
+    if (!blob) return;
+
+    this.showUplink.set(true);
+    const success = await this.uplinkService.initiateUplink(
+      this.profileService.profile()
+    );
+    if (!success) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SMUVE_Vocal_${Date.now()}${buffer ? '.wav' : '.webm'}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 }

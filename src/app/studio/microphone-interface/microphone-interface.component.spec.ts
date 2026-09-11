@@ -52,7 +52,11 @@ describe('MicrophoneInterfaceComponent', () => {
       isRecording: signal(false),
       isPaused: signal(false),
       inputLevel: signal(0),
-      initialize: jest.fn().mockResolvedValue(undefined),
+      lastError: signal<string | null>(null),
+      permissionState: signal('unknown'),
+      capturePathLabel: signal('Raw microphone input'),
+      canSwitchDevice: signal(true),
+      initialize: jest.fn().mockResolvedValue(true),
       getAnalyserNode: jest
         .fn()
         .mockReturnValue({ getByteTimeDomainData: jest.fn(), fftSize: 32 }),
@@ -60,6 +64,8 @@ describe('MicrophoneInterfaceComponent', () => {
       stopRecording: jest.fn(),
       pauseRecording: jest.fn(),
       resumeRecording: jest.fn(),
+      attachProcessedCapture: jest.fn().mockReturnValue(true),
+      refreshDevices: jest.fn().mockResolvedValue(undefined),
     };
 
     const masteringMock = {
@@ -76,6 +82,7 @@ describe('MicrophoneInterfaceComponent', () => {
       }),
       updateParams: jest.fn(),
       applyToSource: jest.fn(),
+      getOutputNode: jest.fn().mockReturnValue({ id: 'mastering-output' }),
     };
 
     const recordingEngineMock = {
@@ -149,6 +156,40 @@ describe('MicrophoneInterfaceComponent', () => {
     expect(microphoneServiceMock.initialize).toHaveBeenCalledWith('focusrite');
     expect(audioSessionMock.toggleChannelArm).toHaveBeenCalledWith('mic-1');
     expect(masteringMock.applyToSource).toHaveBeenCalled();
+    expect(microphoneServiceMock.attachProcessedCapture).toHaveBeenCalled();
+  });
+
+  it('refuses to swap inputs while a take is running', async () => {
+    const { component, microphoneServiceMock } = await createComponent();
+
+    microphoneServiceMock.canSwitchDevice.set(false);
+    await component.updateDevice('usb-mic');
+
+    expect(microphoneServiceMock.initialize).not.toHaveBeenCalled();
+  });
+
+  it('explains the spectrum state instead of showing a dead graph', async () => {
+    const { component, microphoneServiceMock } = await createComponent();
+
+    expect(component.spectrumHint()).toContain('Connect chain');
+
+    microphoneServiceMock.isInitialized.set(true);
+    expect(component.spectrumHint()).toContain('Waiting for signal');
+
+    microphoneServiceMock.inputLevel.set(42);
+    expect(component.spectrumHint()).toContain('Live signal');
+
+    microphoneServiceMock.lastError.set('input vanished');
+    expect(component.spectrumHint()).toContain('Input error');
+  });
+
+  it('rescans for hot-plugged inputs', async () => {
+    const { component, microphoneServiceMock } = await createComponent();
+
+    await component.rescanDevices();
+
+    expect(microphoneServiceMock.refreshDevices).toHaveBeenCalled();
+    expect(component.isScanning()).toBe(false);
   });
 
   it('applies broadcast vocal cleanup settings', async () => {

@@ -240,6 +240,53 @@ describe('AudioRecorderViewComponent', () => {
     component.ngOnDestroy(); // clear intervals / contexts
   });
 
+  it('records through the noise gate and closes it when armed', async () => {
+    const gateGain = { value: 1, setTargetAtTime: jest.fn() };
+    const captureStream = { id: 'gated-stream' };
+    const analyser = {
+      fftSize: 0,
+      frequencyBinCount: 128,
+      getByteFrequencyData: jest.fn(),
+    };
+    const FakeAudioContext = jest.fn().mockImplementation(() => ({
+      currentTime: 0,
+      destination: {},
+      createAnalyser: jest.fn(() => analyser),
+      createGain: jest.fn(() => ({
+        gain: gateGain,
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+      })),
+      createMediaStreamSource: jest.fn(() => ({ connect: jest.fn() })),
+      createMediaStreamDestination: jest.fn(() => ({ stream: captureStream })),
+      close: jest.fn().mockResolvedValue(undefined),
+    }));
+    const OriginalCtx = (globalThis as any).AudioContext;
+    (globalThis as any).AudioContext = FakeAudioContext;
+
+    const getUserMedia = jest.fn().mockResolvedValue({
+      getAudioTracks: () => [],
+      getTracks: () => [],
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia },
+      configurable: true,
+    });
+
+    try {
+      await component.toggleRecord();
+
+      // The recorder receives the gated bus, not the raw microphone stream.
+      expect(mockRecorder.startRecording).toHaveBeenCalledWith(captureStream);
+
+      component.toggleNoiseGate();
+      expect(gateGain.setTargetAtTime).toHaveBeenCalledWith(0, 0, 0.01);
+    } finally {
+      (globalThis as any).AudioContext = OriginalCtx;
+      component.ngOnDestroy();
+    }
+  });
+
   it('stops recording when already armed', () => {
     mockRecorder.isRecording.set(true);
     component.toggleRecord();

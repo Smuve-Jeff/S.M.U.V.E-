@@ -111,77 +111,95 @@ export class VocalMasteringService {
     this.updateNodes();
   }
 
+  /**
+   * Flattened, schedule-free view of the chain. The realtime graph ramps to
+   * these values with `setTargetAtTime`; the offline renderer (used to give
+   * uploaded takes the same treatment as live ones) assigns them directly, so
+   * both paths are guaranteed to describe the same chain.
+   */
+  private chainTargets(p: MasteringParameters) {
+    return {
+      deesserFrequency: p.deesser.frequency,
+      deesserGain: p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4),
+      lowCrossover: p.multiband.low.frequency,
+      highCrossover: p.multiband.high.frequency,
+      compLow: {
+        threshold: p.multiband.low.bypass ? 0 : p.multiband.low.threshold,
+        ratio: p.multiband.low.bypass ? 1 : p.multiband.low.ratio,
+      },
+      compMid: {
+        threshold: p.multiband.mid.bypass ? 0 : p.multiband.mid.threshold,
+        ratio: p.multiband.mid.bypass ? 1 : p.multiband.mid.ratio,
+      },
+      compHigh: {
+        threshold: p.multiband.high.bypass ? 0 : p.multiband.high.threshold,
+        ratio: p.multiband.high.bypass ? 1 : p.multiband.high.ratio,
+      },
+      eqLow: p.eq.bypass ? 0 : p.eq.low,
+      eqMid: p.eq.bypass ? 0 : p.eq.mid,
+      eqHigh: p.eq.bypass ? 0 : p.eq.high,
+      limiterCeiling: p.limiter.ceiling,
+      limiterRelease: p.limiter.release,
+      exciterAmount: p.exciter.bypass ? 0 : p.exciter.amount,
+    };
+  }
+
   updateNodes() {
-    const p = this.params();
     const now = this.ctx.currentTime;
+    const t = this.chainTargets(this.params());
 
     // De-esser
     this.deesserFilter.type = 'peaking';
     this.deesserFilter.Q.value = 3.5;
     this.deesserFilter.frequency.setTargetAtTime(
-      p.deesser.frequency,
+      t.deesserFrequency,
       now,
       0.05
     );
-    this.deesserFilter.gain.setTargetAtTime(
-      p.deesser.bypass ? 0 : Math.min(0, p.deesser.threshold / 4),
-      now,
-      0.05
-    );
+    this.deesserFilter.gain.setTargetAtTime(t.deesserGain, now, 0.05);
 
     // Crossover Points
     this.lowPass.type = 'lowpass';
-    this.lowPass.frequency.setTargetAtTime(
-      p.multiband.low.frequency,
-      now,
-      0.05
-    );
+    this.lowPass.frequency.setTargetAtTime(t.lowCrossover, now, 0.05);
 
     this.midPassLow.type = 'highpass';
-    this.midPassLow.frequency.setTargetAtTime(
-      p.multiband.low.frequency,
-      now,
-      0.05
-    );
+    this.midPassLow.frequency.setTargetAtTime(t.lowCrossover, now, 0.05);
     this.midPassHigh.type = 'lowpass';
-    this.midPassHigh.frequency.setTargetAtTime(
-      p.multiband.high.frequency,
-      now,
-      0.05
-    );
+    this.midPassHigh.frequency.setTargetAtTime(t.highCrossover, now, 0.05);
 
     this.highPass.type = 'highpass';
-    this.highPass.frequency.setTargetAtTime(
-      p.multiband.high.frequency,
-      now,
-      0.05
-    );
+    this.highPass.frequency.setTargetAtTime(t.highCrossover, now, 0.05);
 
     // Multiband Compressors
-    this.applyCompParams(this.compLow, p.multiband.low, now);
-    this.applyCompParams(this.compMid, p.multiband.mid, now);
-    this.applyCompParams(this.compHigh, p.multiband.high, now);
+    this.applyCompParams(this.compLow, t.compLow, now);
+    this.applyCompParams(this.compMid, t.compMid, now);
+    this.applyCompParams(this.compHigh, t.compHigh, now);
 
     // EQ
     this.eqLow.type = 'lowshelf';
     this.eqLow.frequency.value = 250;
-    this.eqLow.gain.setTargetAtTime(p.eq.bypass ? 0 : p.eq.low, now, 0.05);
+    this.eqLow.gain.setTargetAtTime(t.eqLow, now, 0.05);
 
     this.eqMid.type = 'peaking';
     this.eqMid.frequency.value = 1000;
-    this.eqMid.gain.setTargetAtTime(p.eq.bypass ? 0 : p.eq.mid, now, 0.05);
+    this.eqMid.gain.setTargetAtTime(t.eqMid, now, 0.05);
 
     this.eqHigh.type = 'highshelf';
     this.eqHigh.frequency.value = 8000;
-    this.eqHigh.gain.setTargetAtTime(p.eq.bypass ? 0 : p.eq.high, now, 0.05);
+    this.eqHigh.gain.setTargetAtTime(t.eqHigh, now, 0.05);
 
     // Limiter
-    this.masterLimiter.threshold.setTargetAtTime(p.limiter.ceiling, now, 0.05);
+    this.masterLimiter.threshold.setTargetAtTime(
+      t.limiterCeiling,
+      now,
+      0.05
+    );
     this.masterLimiter.ratio.value = 20;
     this.masterLimiter.attack.value = 0.003;
-    this.masterLimiter.release.setTargetAtTime(p.limiter.release, now, 0.05);
+    this.masterLimiter.release.setTargetAtTime(t.limiterRelease, now, 0.05);
 
     // Exciter
+    const p = this.params();
     if (!p.exciter.bypass) {
       this.harmonicExciter.curve = this.makeDistortionCurve(
         p.exciter.amount * 100
@@ -193,17 +211,126 @@ export class VocalMasteringService {
 
   private applyCompParams(
     comp: DynamicsCompressorNode,
-    band: any,
+    band: { threshold: number; ratio: number },
     time: number
   ) {
-    comp.threshold.setTargetAtTime(
-      band.bypass ? 0 : band.threshold,
-      time,
-      0.05
-    );
-    comp.ratio.setTargetAtTime(band.bypass ? 1 : band.ratio, time, 0.05);
+    comp.threshold.setTargetAtTime(band.threshold, time, 0.05);
+    comp.ratio.setTargetAtTime(band.ratio, time, 0.05);
     comp.attack.setTargetAtTime(0.01, time, 0.05);
     comp.release.setTargetAtTime(0.14, time, 0.05);
+  }
+
+  /**
+   * Render a decoded audio buffer through an offline copy of this exact vocal
+   * chain, using the current parameters. Uploaded takes get the same de-esser,
+   * multiband compression, exciter, EQ and limiting as a live performance.
+   */
+  async renderOffline(buffer: AudioBuffer): Promise<AudioBuffer> {
+    const OfflineCtor: any =
+      (globalThis as any).OfflineAudioContext ??
+      (globalThis as any).webkitOfflineAudioContext;
+    if (typeof OfflineCtor !== 'function') {
+      throw new Error('Offline rendering is unavailable in this environment');
+    }
+
+    const t = this.chainTargets(this.params());
+    const offline: OfflineAudioContext = new OfflineCtor(
+      buffer.numberOfChannels,
+      Math.max(1, buffer.length),
+      buffer.sampleRate
+    );
+
+    const source = offline.createBufferSource();
+    source.buffer = buffer;
+
+    // Same topology as buildChain(), with the targets applied directly.
+    const deesser = offline.createBiquadFilter();
+    deesser.type = 'peaking';
+    deesser.Q.value = 3.5;
+    deesser.frequency.value = t.deesserFrequency;
+    deesser.gain.value = t.deesserGain;
+
+    const lowPass = offline.createBiquadFilter();
+    lowPass.type = 'lowpass';
+    lowPass.frequency.value = t.lowCrossover;
+
+    const midPassLow = offline.createBiquadFilter();
+    midPassLow.type = 'highpass';
+    midPassLow.frequency.value = t.lowCrossover;
+
+    const midPassHigh = offline.createBiquadFilter();
+    midPassHigh.type = 'lowpass';
+    midPassHigh.frequency.value = t.highCrossover;
+
+    const highPass = offline.createBiquadFilter();
+    highPass.type = 'highpass';
+    highPass.frequency.value = t.highCrossover;
+
+    const compLow = offline.createDynamicsCompressor();
+    const compMid = offline.createDynamicsCompressor();
+    const compHigh = offline.createDynamicsCompressor();
+    this.assignComp(compLow, t.compLow);
+    this.assignComp(compMid, t.compMid);
+    this.assignComp(compHigh, t.compHigh);
+
+    const bandSum = offline.createGain();
+    const exciter = offline.createWaveShaper();
+    exciter.curve = this.makeDistortionCurve(t.exciterAmount * 100);
+
+    const eqLow = offline.createBiquadFilter();
+    eqLow.type = 'lowshelf';
+    eqLow.frequency.value = 250;
+    eqLow.gain.value = t.eqLow;
+
+    const eqMid = offline.createBiquadFilter();
+    eqMid.type = 'peaking';
+    eqMid.frequency.value = 1000;
+    eqMid.gain.value = t.eqMid;
+
+    const eqHigh = offline.createBiquadFilter();
+    eqHigh.type = 'highshelf';
+    eqHigh.frequency.value = 8000;
+    eqHigh.gain.value = t.eqHigh;
+
+    const limiter = offline.createDynamicsCompressor();
+    limiter.threshold.value = t.limiterCeiling;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = t.limiterRelease;
+
+    source.connect(deesser);
+    deesser.connect(lowPass);
+    lowPass.connect(compLow);
+    compLow.connect(bandSum);
+    deesser.connect(midPassLow);
+    midPassLow.connect(midPassHigh);
+    midPassHigh.connect(compMid);
+    compMid.connect(bandSum);
+    deesser.connect(highPass);
+    highPass.connect(compHigh);
+    compHigh.connect(bandSum);
+    bandSum.connect(exciter);
+    exciter.connect(eqLow);
+    eqLow.connect(eqMid);
+    eqMid.connect(eqHigh);
+    eqHigh.connect(limiter);
+    limiter.connect(offline.destination);
+
+    source.start();
+    this.logger.info('VocalMastering: rendering uploaded take offline');
+    return offline.startRendering();
+  }
+
+  /** Mirrors `applyCompParams` without ramps. Knee is left at the browser
+   *  default so the offline render matches the live chain exactly. */
+  private assignComp(
+    comp: DynamicsCompressorNode,
+    band: { threshold: number; ratio: number }
+  ) {
+    comp.threshold.value = band.threshold;
+    comp.ratio.value = band.ratio;
+    comp.attack.value = 0.01;
+    comp.release.value = 0.14;
   }
 
   private makeDistortionCurve(amount: number) {
