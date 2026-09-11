@@ -283,7 +283,14 @@ const THEME_LABEL: Record<AppTheme, string> = {
           border-radius: 18px;
           background: linear-gradient(135deg, rgba(251, 247, 236, 0.98), rgba(230, 245, 244, 0.92));
           box-shadow: 0 10px 24px rgba(61, 53, 42, 0.08);
-          overflow: hidden;
+          /* The lane is a fixed-height flex sibling of the canvas, so on a short
+             phone (or with Android Chrome's 200% text scaling) an uncapped card
+             would push the arrangement out of the 100dvh shell entirely. Cap it
+             and let the card scroll instead of starving the workspace. */
+          max-height: min(48vh, 268px);
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior: contain;
         }
         .comp-mobile-start-copy {
           display: grid;
@@ -372,6 +379,41 @@ const THEME_LABEL: Record<AppTheme, string> = {
         .comp-mobile-start-primary {
           border-color: rgba(14, 124, 123, 0.32);
           background: linear-gradient(135deg, rgba(14, 124, 123, 0.14), rgba(255, 255, 255, 0.72));
+        }
+      }
+      /* Landscape phones: the shell spends ~44px on the topbar, ~48px on the
+         tool row and ~52px on the dock, leaving little over 250px for the
+         canvas. The stacked quick-start lane costs ~240px, which would leave
+         the arrangement view with almost nothing, so drop the pitch copy and
+         run the four actions as a single icon-strip. */
+      @media (max-width: 768px) and (orientation: landscape) {
+        .comp-mobile-start {
+          padding: 10px;
+          gap: 8px;
+        }
+        .comp-mobile-start-copy {
+          display: none;
+        }
+        .comp-mobile-start-actions {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .comp-mobile-start-action {
+          min-height: 52px;
+          gap: 7px;
+          padding: 8px;
+        }
+        .comp-mobile-start-action strong {
+          font-size: 10px;
+        }
+        .comp-mobile-start-action small {
+          display: none;
+        }
+        .comp-mobile-start-action .material-symbols-outlined {
+          width: 28px;
+          height: 28px;
+          flex-basis: 28px;
+          font-size: 17px;
         }
       }
       @media (max-width: 390px) {

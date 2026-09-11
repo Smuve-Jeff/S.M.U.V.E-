@@ -786,8 +786,15 @@
   background: var(--ivory-paper);
   border: 1px solid var(--espresso-line);
   box-shadow: 0 2px 8px rgba(61, 53, 42, 0.18);
+  /* The button carries the `hidden md:grid` utilities, so below 768px the
+     browser hides it — and with the topbar at height 0 that would strand the
+     user with no transport bar and no way back after rotating a phone from
+     landscape to portrait. The restore affordance must always outrank the
+     responsive utility. */
+  display: grid;
   opacity: 1;
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .comp-footer {
@@ -808,7 +815,7 @@
   transition:
     height 0.2s ease,
     padding 0.2s ease,
-    opacity 0.2s ease;
+    visibility 0.2s ease;
 }
 
 .comp-shell.comp-footer-collapsed .comp-footer {
@@ -817,7 +824,12 @@
   padding: 0 16px;
   overflow: hidden;
   border-top: none;
-  opacity: 0;
+  /* `visibility` rather than `opacity`: an ancestor's opacity is applied to the
+     whole subtree as a group, so `opacity: 0` here also erased the restore
+     button (which is a child of this footer) and left a collapsed bar that
+     could only be brought back by reloading. visibility can be re-enabled by a
+     descendant, and still collapses the bar. */
+  visibility: hidden;
   pointer-events: none;
 }
 
@@ -829,8 +841,10 @@
   background: var(--ivory-paper);
   border: 1px solid var(--espresso-line);
   box-shadow: 0 -2px 8px rgba(61, 53, 42, 0.18);
+  visibility: visible;
   opacity: 1;
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .comp-footer-left,
@@ -1115,6 +1129,25 @@
       var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 10px
     );
   }
+
+  /* A landscape phone is the tightest workspace in the app (~44px topbar +
+     ~48px tool row out of ~360px), so give it the same collapse control the
+     768px+ tier already has. */
+  .comp-header-toggle {
+    display: grid;
+  }
+}
+
+/* ---------- SHORT LANDSCAPE: RECLAIM THE STATUS BAR ---------- */
+/* A phone on its side has ~360-420px of height and the desktop-ish shell is
+   still used from 769px up, so the 34-38px footer would cost ~10% of the only
+   axis that is scarce. Portrait already hides it; short landscape does too.
+   The footer only carries brand/view/BPM chips — the transport bar keeps the
+   transport readouts. */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-footer {
+    display: none;
+  }
 }
 
 /* ---------- DESKTOP CHROME FIT-TO-SCREEN ---------- */
@@ -1140,7 +1173,10 @@
 @media (min-width: 769px) and (max-width: 1023px) {
   .comp-topbar {
     height: 52px;
-    padding: 0 12px;
+    /* 769-1023px in landscape is often a phone, so keep the rail and status
+       bar clear of the notch / gesture strip. */
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .comp-topbar-center {
@@ -1155,7 +1191,8 @@
 
   .comp-footer {
     height: 38px;
-    padding: 0 12px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
   }
 }
 
@@ -1259,7 +1296,15 @@
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    /* Effective touch-action is the INTERSECTION of the target and every
+       ancestor, so `pan-y` here would strip horizontal panning from the whole
+       view subtree: the piano-roll grid, score ruler, mixer rail, drum step
+       rows, sampler keyboard and sound browser chips all scroll horizontally
+       with `overflow-x: auto` and would become unreachable on a phone. Keep
+       both axes panable; drag surfaces that must own the gesture (knobs,
+       faders, jog wheels, XY pads) still declare `touch-action: none` for
+       themselves and that always wins. */
+    touch-action: pan-x pan-y;
   }
 
   /* Android phone header: keep the transport and one primary assistant
@@ -1318,8 +1363,10 @@
   }
 
   .comp-topbar-tools {
-    padding-left: 8px;
-    padding-right: 8px;
+    /* Landscape phones put the gesture bar / notch on a side edge, so the
+       tool row needs the same inset treatment as the topbar and dock. */
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
     gap: 3px;
   }
 

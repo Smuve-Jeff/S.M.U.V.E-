@@ -26,6 +26,17 @@
   image-rendering: auto;
 }
 
+/* Interactive loop handles.
+   `touch-action: none` is load-bearing on Android Chrome: with the default
+   `auto`, a horizontal finger drag is claimed by the browser as a pan/scroll
+   and never reaches the canvas, so the loop region could not be edited on a
+   touchscreen. Only interactive waveforms opt in — a display-only waveform
+   must keep scrolling with the page. */
+:host(.wr-interactive) .wr-canvas {
+  touch-action: none;
+  cursor: ew-resize;
+}
+
 /* Recording badge (top-left) */
 .wr-rec-badge {
   position: absolute;

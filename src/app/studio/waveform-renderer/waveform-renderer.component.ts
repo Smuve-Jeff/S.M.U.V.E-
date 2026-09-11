@@ -18,6 +18,11 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './waveform-renderer.component.html',
   styleUrls: ['./waveform-renderer.component.css'],
+  host: {
+    // Only an interactive waveform may claim the gesture; a display-only
+    // waveform must stay scrollable on a phone.
+    '[class.wr-interactive]': 'loopInteractive',
+  },
 })
 export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDestroy {
   /** Raw PCM data (Float32Array, -1..1). Null = placeholder / empty. */
@@ -55,6 +60,20 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   private readonly _onMouseDown = this.onCanvasMouseDown.bind(this);
   private readonly _onMouseMove = this.onCanvasMouseMove.bind(this);
   private readonly _onMouseUp = this.onCanvasMouseUp.bind(this);
+  private readonly _onPointerDown = this.onCanvasPointerDown.bind(this);
+  private readonly _onPointerMove = this.onCanvasPointerMove.bind(this);
+  private readonly _onPointerUp = this.onCanvasPointerUp.bind(this);
+
+  /**
+   * Pointer Events unify mouse, touch and pen, so the loop handles stay
+   * draggable on a touchscreen. Detected at registration: engines without
+   * PointerEvent (jsdom, legacy) keep the mouse-only path.
+   */
+  private usesPointerEvents = false;
+
+  /** Finger-sized hit slop (px) for the loop handles on coarse pointers. */
+  private static readonly TOUCH_HANDLE_RADIUS = 22;
+  private static readonly MOUSE_HANDLE_RADIUS = 10;
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
@@ -62,10 +81,20 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     this.draw();
 
     if (this.loopInteractive) {
-      canvas.addEventListener('mousedown', this._onMouseDown);
-      canvas.addEventListener('mousemove', this._onMouseMove);
-      canvas.addEventListener('mouseup', this._onMouseUp);
-      canvas.addEventListener('mouseleave', this._onMouseUp);
+      this.usesPointerEvents =
+        typeof window !== 'undefined' && 'PointerEvent' in window;
+
+      if (this.usesPointerEvents) {
+        canvas.addEventListener('pointerdown', this._onPointerDown);
+        canvas.addEventListener('pointermove', this._onPointerMove);
+        canvas.addEventListener('pointerup', this._onPointerUp);
+        canvas.addEventListener('pointercancel', this._onPointerUp);
+      } else {
+        canvas.addEventListener('mousedown', this._onMouseDown);
+        canvas.addEventListener('mousemove', this._onMouseMove);
+        canvas.addEventListener('mouseup', this._onMouseUp);
+        canvas.addEventListener('mouseleave', this._onMouseUp);
+      }
     }
   }
 
@@ -77,6 +106,10 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     if (this.loopInteractive) {
       const canvas = this.canvasRef?.nativeElement;
       if (canvas) {
+        canvas.removeEventListener('pointerdown', this._onPointerDown);
+        canvas.removeEventListener('pointermove', this._onPointerMove);
+        canvas.removeEventListener('pointerup', this._onPointerUp);
+        canvas.removeEventListener('pointercancel', this._onPointerUp);
         canvas.removeEventListener('mousedown', this._onMouseDown);
         canvas.removeEventListener('mousemove', this._onMouseMove);
         canvas.removeEventListener('mouseup', this._onMouseUp);
@@ -86,34 +119,92 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   }
 
   // ── Draggable loop handle interaction ─────────────
-  private onCanvasMouseDown(event: MouseEvent): void {
-    if (this.loopStart === null || this.loopEnd === null) return;
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    const w = canvas.width;
-    const x = (event.clientX - rect.left) / rect.width;
 
-    const startX = this.loopStart * w;
-    const endX = this.loopEnd * w;
-    const pixelX = x * w;
-    const handleRadius = 10;
+  /**
+   * Touch drag entry point. A finger covers far more than the 10px mouse hit
+   * slop, so the radius widens for coarse pointers; otherwise tapping the
+   * handle would need pixel precision and the gesture would be lost to the
+   * browser's pan/zoom instead of reaching the canvas.
+   */
+  private onCanvasPointerDown(event: PointerEvent): void {
+    const radius =
+      event.pointerType === 'touch' || event.pointerType === 'pen'
+        ? WaveformRendererComponent.TOUCH_HANDLE_RADIUS
+        : WaveformRendererComponent.MOUSE_HANDLE_RADIUS;
+    const handle = this.hitTestLoopHandle(event.clientX, radius);
+    if (!handle) return;
 
-    // Check if click is near start or end handle
-    const distToStart = Math.abs(pixelX - startX);
-    const distToEnd = Math.abs(pixelX - endX);
+    this.draggingHandle = handle;
+    // Capture keeps pointermove flowing once the finger slides off the canvas,
+    // and preventDefault stops the browser from promoting the drag to a scroll
+    // gesture or from emitting a click alongside it.
+    this.canvasRef.nativeElement.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
 
-    if (distToStart < handleRadius && distToStart <= distToEnd) {
-      this.draggingHandle = 'start';
-    } else if (distToEnd < handleRadius) {
-      this.draggingHandle = 'end';
+  private onCanvasPointerMove(event: PointerEvent): void {
+    if (!this.draggingHandle) return;
+    event.preventDefault();
+    this.applyLoopDrag(event.clientX);
+  }
+
+  private onCanvasPointerUp(event: PointerEvent): void {
+    const canvas = this.canvasRef?.nativeElement;
+    if (this.draggingHandle && canvas?.hasPointerCapture?.(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
     }
+    this.draggingHandle = null;
+  }
+
+  private onCanvasMouseDown(event: MouseEvent): void {
+    const handle = this.hitTestLoopHandle(
+      event.clientX,
+      WaveformRendererComponent.MOUSE_HANDLE_RADIUS,
+    );
+    if (handle) this.draggingHandle = handle;
   }
 
   private onCanvasMouseMove(event: MouseEvent): void {
     if (!this.draggingHandle) return;
+    this.applyLoopDrag(event.clientX);
+  }
+
+  private onCanvasMouseUp(_event: MouseEvent): void {
+    this.draggingHandle = null;
+  }
+
+  /** Which loop handle, if any, sits within `radiusCss` px of `clientX`.
+   *  Worked in CSS pixels: the canvas keeps an 800px backing store that CSS
+   *  stretches to the container, so an internal-pixel radius would shrink with
+   *  the display and turn the handles into ungrabbable slivers on a phone. */
+  private hitTestLoopHandle(
+    clientX: number,
+    radiusCss: number,
+  ): 'start' | 'end' | null {
+    if (this.loopStart === null || this.loopEnd === null) return null;
+
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    if (!rect.width) return null;
+
+    const x = clientX - rect.left;
+    const distToStart = Math.abs(x - this.loopStart * rect.width);
+    const distToEnd = Math.abs(x - this.loopEnd * rect.width);
+
+    if (distToStart <= radiusCss && distToStart <= distToEnd) return 'start';
+    if (distToEnd <= radiusCss) return 'end';
+    return null;
+  }
+
+  /** Move the captured handle to `clientX`, keeping start < end. */
+  private applyLoopDrag(clientX: number): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    if (!rect.width) return;
+
+    const ratio = Math.max(
+      0,
+      Math.min(1, (clientX - rect.left) / rect.width),
+    );
 
     if (this.draggingHandle === 'start') {
       if (ratio < (this.loopEnd ?? 1) - 0.01) {
@@ -124,10 +215,6 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
         this.loopEndChange.emit(ratio);
       }
     }
-  }
-
-  private onCanvasMouseUp(_event: MouseEvent): void {
-    this.draggingHandle = null;
   }
 
   /**
@@ -239,25 +326,35 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
       ctx.font = '9px monospace';
       ctx.fillText(`⟳ ${(this.loopEnd - this.loopStart) * 100}%`, lx + 4, 14);
 
-      // Interactive handle markers
+      // Interactive handle markers. Sized against the real display scale so a
+      // finger gets roughly a 20px target once the 800px backing store is
+      // stretched down to a phone-width container.
       if (this.loopInteractive) {
+        const displayScale =
+          canvas.clientWidth > 0 ? canvas.clientWidth / canvas.width : 1;
+        const halfW = Math.min(
+          Math.max(6, Math.round(10 / displayScale)),
+          Math.round(h / 4),
+        );
+        const halfH = Math.round(halfW * 1.3);
+
         // Start handle diamond
         ctx.fillStyle = '#2BA09C';
         ctx.beginPath();
-        ctx.moveTo(lx, h / 2 - 8);
-        ctx.lineTo(lx + 6, h / 2);
-        ctx.lineTo(lx, h / 2 + 8);
-        ctx.lineTo(lx - 6, h / 2);
+        ctx.moveTo(lx, h / 2 - halfH);
+        ctx.lineTo(lx + halfW, h / 2);
+        ctx.lineTo(lx, h / 2 + halfH);
+        ctx.lineTo(lx - halfW, h / 2);
         ctx.closePath();
         ctx.fill();
 
         // End handle diamond
         ctx.fillStyle = '#E8A838';
         ctx.beginPath();
-        ctx.moveTo(rx, h / 2 - 8);
-        ctx.lineTo(rx + 6, h / 2);
-        ctx.lineTo(rx, h / 2 + 8);
-        ctx.lineTo(rx - 6, h / 2);
+        ctx.moveTo(rx, h / 2 - halfH);
+        ctx.lineTo(rx + halfW, h / 2);
+        ctx.lineTo(rx, h / 2 + halfH);
+        ctx.lineTo(rx - halfW, h / 2);
         ctx.closePath();
         ctx.fill();
       }
