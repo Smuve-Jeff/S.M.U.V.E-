@@ -14,6 +14,7 @@ import {
 } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
 import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
+import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
 import {
   PREMIUM_ACTIVE_GAME_IDS,
   PREMIUM_RECOMMENDATION_RAILS,
@@ -341,9 +342,11 @@ export const TRUSTED_EMBED_DOMAINS: readonly string[] = [
   'moba.js.org',
   'www.roblox.com',
   'playvalorant.com',
+  // CrazyGames first-party embedding endpoint: verified to answer 200 with
+  // no X-Frame-Options / frame-ancestors CSP on its /embed/ cabinets.
+  'crazygames.com',
   'www.crazygames.com',
   'games.crazygames.com',
-  'crazygames.com',
   'poki.com',
   'www.poki.com',
   'html5.gamedistribution.com',
@@ -561,6 +564,29 @@ const PREMIUM_INLINE_MIRROR_URLS: Record<string, string> = {
 };
 
 /**
+ * Verified inline upgrades for archive GamePix rows.
+ *
+ * These titles shipped external-only because the GamePix player page sends
+ * X-Frame-Options: SAMEORIGIN. Each game's identical CrazyGames cabinet was
+ * probed live (HTTP 200, no frame-blocking headers), so the row is upgraded
+ * to a truthful inline launch contract on the first-party /embed/ endpoint.
+ * The same URL serves as the external fallback.
+ */
+const CG_INLINE_UPGRADE_URLS: Record<string, string> = {
+  'jetpack-joyride-web': 'https://www.crazygames.com/embed/jetpack-joyride',
+  'tunnel-rush-web': 'https://www.crazygames.com/embed/tunnel-rush',
+  'piano-tiles-web': 'https://www.crazygames.com/embed/piano-tiles',
+  'doodle-jump-web': 'https://www.crazygames.com/embed/doodle-jump',
+  'punch-hero-web': 'https://www.crazygames.com/embed/punch-hero',
+  'volley-random-web': 'https://www.crazygames.com/embed/volley-random',
+  'soccer-random': 'https://www.crazygames.com/embed/soccer-random',
+  'basket-random': 'https://www.crazygames.com/embed/basket-random',
+  'cut-the-rope-web-elite': 'https://www.crazygames.com/embed/cut-the-rope',
+  // smash-karts-web-elite intentionally keeps its established smashkarts.io
+  // official standalone mirror contract.
+};
+
+/**
  * Premium shelf cover art. Real provider CDN covers where the title ships
  * artwork (GamePix img CDN + Poki cover CDN), reused verified local banner
  * art, and original S.M.U.V.E. banner SVGs for owned cabinets and the modern
@@ -692,9 +718,19 @@ const EXTERNAL_ONLY_GAME_IDS = new Set([
 function normalizeGame(game: Game): Game {
   const id = asString(game.id);
   const mirrorUrl = PREMIUM_INLINE_MIRROR_URLS[id];
+  const cgUpgradeUrl = CG_INLINE_UPGRADE_URLS[id];
   const canonicalUrl = CANONICAL_GAME_URLS[id];
   const launchConfig = { ...(game.launchConfig || {}) };
-  if (mirrorUrl) {
+  if (cgUpgradeUrl) {
+    // Verified CrazyGames twin cabinet: upgrade the external-only GamePix
+    // row to a truthful inline launch on the frameable first-party embed.
+    launchConfig.approvedEmbedUrl = cgUpgradeUrl;
+    launchConfig.approvedExternalUrl = cgUpgradeUrl;
+    launchConfig.embedMode = 'inline';
+    launchConfig.trustNote =
+      'CrazyGames /embed/ twin cabinet verified 200 with no frame-blocking headers.';
+    delete launchConfig.telemetryOrigins;
+  } else if (mirrorUrl) {
     // Premium titles whose GamePix player page refuses frames: point the
     // launch contract at the verified frameable mirror and force inline.
     launchConfig.approvedEmbedUrl = mirrorUrl;
@@ -741,7 +777,7 @@ function normalizeGame(game: Game): Game {
     id,
     launchConfig: Object.keys(launchConfig).length ? launchConfig : undefined,
     name,
-    url: mirrorUrl || canonicalUrl || asString(game.url),
+    url: cgUpgradeUrl || mirrorUrl || canonicalUrl || asString(game.url),
     image: PREMIUM_GAME_ART[id] || normalizeCatalogImage(game.image),
     description: asString(game.description),
     genre: asString(game.genre, 'Unknown'),
@@ -889,12 +925,16 @@ function normalizeRecommendationRail(
 
 function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
   const existingIds = new Set((feed.games || []).map((game) => game.id));
+  const curated = [...CURATED_POKI_GAMES, ...CURATED_CRAZYGAMES_GAMES].filter(
+    (game) => {
+      if (existingIds.has(game.id)) return false;
+      existingIds.add(game.id);
+      return true;
+    }
+  );
   return {
     ...feed,
-    games: [
-      ...(feed.games || []),
-      ...CURATED_POKI_GAMES.filter((game) => !existingIds.has(game.id)),
-    ],
+    games: [...(feed.games || []), ...curated],
   };
 }
 

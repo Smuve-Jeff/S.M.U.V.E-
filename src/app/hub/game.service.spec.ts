@@ -319,6 +319,15 @@ describe('GameService', () => {
     // The merged Shooting facet must surface every synonym variant without
     // touching the game's primary genre.
     expect(games.map((game) => game.id).sort()).toEqual([
+      'cg-buildnow-gg',
+      'cg-deadshot-io',
+      'cg-kour-io',
+      'cg-narrow-one',
+      'cg-rooftop-snipers-2',
+      'cg-subway-clash-3d',
+      'cg-time-shooter-2',
+      'cg-voxiom-io',
+      'cg-winter-clash-3d',
       'fps-engine',
       'shmup',
       'shoot-arcade',
@@ -344,8 +353,14 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games.map((game) => game.name)).toEqual(['Street Sandbox']);
-    expect(games[0].genre).toBe('Action');
+    expect(games.map((game) => game.name)).toEqual([
+      'Madalin Cars Multiplayer',
+      'Street Sandbox',
+    ]);
+    // The tag-facet match must not rewrite the cabinet's primary genre.
+    expect(
+      games.find((game) => game.name === 'Street Sandbox')?.genre
+    ).toBe('Action');
   });
 
   it('repairs the Final Fantasy VI record instead of opening the Final Fantasy IV cabinet', async () => {
@@ -413,8 +428,8 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(867);
-    expect(games.slice(0, 44).map((game) => game.id)).toContain('rocket-league');
+    expect(games).toHaveLength(913);
+    expect(games.slice(0, 91).map((game) => game.id)).toContain('rocket-league');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
     expect(service.getGameById('rocket-league')?.id).toBe('rocket-league');
@@ -451,12 +466,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(867);
-    expect(games.slice(0, 44).some((game) => game.id === 'rocket-league')).toBe(true);
-    expect(games.slice(0, 44).some((game) => game.id === 'gta-online')).toBe(true);
+    expect(games).toHaveLength(913);
+    expect(games.slice(0, 91).some((game) => game.id === 'rocket-league')).toBe(true);
+    expect(games.slice(0, 91).some((game) => game.id === 'gta-online')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(867);
+    expect(new Set(games.map((game) => game.id)).size).toBe(913);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -551,10 +566,10 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(867);
-    expect(games.slice(0, 44).map((game) => game.id)).toContain('gta-online');
-    expect(games.slice(0, 44).map((game) => game.id)).toContain('poki-temple-run-2');
-    expect(games.slice(0, 44).map((game) => game.id)).toContain('battlefield');
+    expect(games).toHaveLength(913);
+    expect(games.slice(0, 91).map((game) => game.id)).toContain('gta-online');
+    expect(games.slice(0, 91).map((game) => game.id)).toContain('poki-temple-run-2');
+    expect(games.slice(0, 91).map((game) => game.id)).toContain('battlefield');
     expect(games.find((game) => game.id === 'gta-online')?.image).toBe(
       'assets/games/gta-online.svg'
     );
@@ -623,9 +638,9 @@ describe('GameService', () => {
     const feed = await pending;
     const activeIds = new Set(feed.games.map((game) => game.id));
 
-    // Premium rails are merged with the original feed rails (8 + 16) so the
+    // Premium rails are merged with the original feed rails (11 + 16) so the
     // premium shelf never erases the archive's curated discovery surfaces.
-    expect(feed.recommendationRails.length).toBe(24);
+    expect(feed.recommendationRails.length).toBe(27);
     expect(feed.recommendationRails.some((rail) => rail.id === 'premium-versus')).toBe(true);
     expect(feed.recommendationRails.some((rail) => rail.id === 'rail-golden-era')).toBe(true);
     for (const rail of feed.recommendationRails) {
@@ -670,7 +685,7 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(867);
+    expect(games).toHaveLength(913);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
     // Only premium ids that are actually present in the feed must occupy the
     // premium-first prefix; the premium allowlist is larger than the feed, so
