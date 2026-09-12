@@ -57,6 +57,7 @@ import { DjDeckComponent } from './dj-deck/dj-deck.component';
 import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
 import { ChannelRackComponent } from './channel-rack/channel-rack.component';
 import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
+import { AiBandComponent } from './ai-band/ai-band.component';
 import { IdeasGeneratorService } from '../services/ideas-generator.service';
 import { HistoryService } from '../services/history.service';
 import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
@@ -188,6 +189,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     VocalSuiteComponent,
     ChannelRackComponent,
     EffectsRackUiComponent,
+    AiBandComponent,
     SoundBrowserComponent,
     SynthesizerComponent,
     SoundPadGridComponent,

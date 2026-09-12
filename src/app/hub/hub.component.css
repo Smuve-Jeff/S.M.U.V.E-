@@ -746,3 +746,44 @@
     animation: none;
   }
 }
+
+/* ── AI session musician band ─────────────────────────────────────────── */
+.ai-band-panel { margin-bottom: 24px; }
+.ai-band-blurb { margin: 0 0 14px; max-width: 620px; color: var(--hub-muted); font-size: 11px; line-height: 1.55; }
+.ai-band-list { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); }
+.ai-band-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--hub-text);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: 180ms ease;
+}
+.ai-band-row:hover { border-color: var(--hub-border-strong); background: rgba(93, 196, 194, 0.07); }
+.ai-band-row.is-engaged { border-color: var(--hub-teal); background: rgba(93, 196, 194, 0.12); box-shadow: 0 0 18px rgba(93, 196, 194, 0.12); }
+.ai-band-row:focus-visible { outline: 2px solid var(--hub-teal-bright); outline-offset: 2px; }
+.ai-band-icon { display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center; border-radius: 9px; color: var(--hub-muted); background: rgba(255, 255, 255, 0.05); }
+.ai-band-row.is-engaged .ai-band-icon { color: var(--hub-teal-bright); background: rgba(93, 196, 194, 0.16); }
+.ai-band-icon .material-symbols-outlined { font-size: 17px; }
+.ai-band-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.ai-band-info strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.ai-band-info small { overflow: hidden; color: var(--hub-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.ai-band-state { flex: 0 0 auto; font-size: 8px; font-weight: 900; letter-spacing: 0.14em; color: var(--hub-muted); }
+.ai-band-row.is-engaged .ai-band-state { color: var(--hub-teal-bright); }
+.ai-band-pulse { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--hub-muted); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.ai-band-panel .hub-text-button { margin-top: 10px; }
+
+@media (max-width: 1080px) {
+  .ai-band-list { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-band-row { transition: none; }
+}

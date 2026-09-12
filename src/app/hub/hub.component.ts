@@ -440,22 +440,9 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     void this.router.navigate(['/profile']);
   }
 
-  toggleAIBassist() {
-    this.aiService.isAIBassistActive()
-      ? this.aiService.stopAIBassist()
-      : this.aiService.startAIBassist();
-  }
-
-  toggleAIDrummer() {
-    this.aiService.isAIDrummerActive()
-      ? this.aiService.stopAIDrummer()
-      : this.aiService.startAIDrummer();
-  }
-
-  toggleAIKeyboardist() {
-    this.aiService.isAIKeyboardistActive()
-      ? this.aiService.stopAIKeyboardist()
-      : this.aiService.startAIKeyboardist();
+  /** Toggle one virtual session player (see the AI band panel). */
+  toggleAIMusician(who: 'drummer' | 'bassist' | 'keyboardist') {
+    this.aiService.toggleAIMusician(who);
   }
 
   goToStudio() {

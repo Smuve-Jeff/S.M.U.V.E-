@@ -968,14 +968,23 @@
       </p>
     </div>
     <div class="tc-list" role="listbox" aria-label="Take list">
-      <button
-        type="button"
+      <!-- A take card carries its own action buttons, so the card itself is a
+           div with role="option" rather than a <button>. Nesting a button
+           inside a button is invalid HTML: the parser hoists the inner
+           buttons out of the card, orphaning its Comp / Export / Delete
+           actions. -->
+      <div
         class="tc-card"
         *ngFor="let take of perfRecording.takes()"
         role="option"
+        tabindex="0"
         [attr.aria-selected]="perfRecording.selectedTakeId() === take.id"
         [class.is-selected]="perfRecording.selectedTakeId() === take.id"
         (click)="perfRecording.selectedTakeId.set(take.id)"
+        (keydown.enter)="perfRecording.selectedTakeId.set(take.id)"
+        (keydown.space)="
+          perfRecording.selectedTakeId.set(take.id); $event.preventDefault()
+        "
       >
         <div class="tc-card-num">#{{ take.takeNumber }}</div>
         <div class="tc-card-name">{{ take.name }}</div>
@@ -1017,7 +1026,7 @@
             ✕
           </button>
         </div>
-      </button>
+      </div>
       <div class="tc-empty" *ngIf="perfRecording.takeCount() === 0">
         <span class="tc-empty-glyph">∿</span>
         <span class="tc-empty-text">No takes yet</span>

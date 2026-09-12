@@ -1,0 +1,41 @@
+<div
+  class="ai-band led-strip"
+  role="group"
+  aria-label="AI session musicians — improvise over the arrangement during playback"
+>
+  <span class="ai-band-label">
+    <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+    <span class="ai-band-label-text">AI BAND</span>
+    <span class="ai-band-count">{{ engagedCount() }}/3</span>
+  </span>
+
+  <div class="ai-band-players">
+    <button
+      type="button"
+      *ngFor="let musician of ai.sessionMusicians"
+      class="ai-band-player"
+      [class.is-engaged]="ai.isMusicianActive(musician.id)"
+      [attr.aria-pressed]="ai.isMusicianActive(musician.id)"
+      [attr.title]="musician.label + ' — ' + musician.detail"
+      (click)="toggle(musician.id)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        ai.isMusicianActive(musician.id) ? 'music_note' : 'power_settings_new'
+      }}</span>
+      <span class="ai-band-player-text">
+        <strong>{{ musician.label }}</strong>
+        <small>{{ musician.detail }}</small>
+      </span>
+      <span class="ai-band-state">{{
+        ai.isMusicianActive(musician.id) ? 'LIVE' : 'OFF'
+      }}</span>
+    </button>
+  </div>
+
+  <span class="ai-band-readout" *ngIf="band.lastRendered() as last; else idle">
+    STEP {{ last.step }} · {{ last.musicians.join(' + ') | uppercase }}
+  </span>
+  <ng-template #idle>
+    <span class="ai-band-readout is-idle">STANDING BY</span>
+  </ng-template>
+</div>

@@ -443,7 +443,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  onGridTouchEnd() {}
+  /**
+   * Releasing the fingers must clear the pinch reference span, otherwise the
+   * next two-finger gesture is measured against the previous one's distance and
+   * jumps on its first frame.
+   */
+  onGridTouchEnd() {
+    this.enhancedGestures.resetPinch();
+  }
 
   duplicateSelected() {
     const newSelection = new Set<string>();

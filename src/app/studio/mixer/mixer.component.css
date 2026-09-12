@@ -1285,3 +1285,59 @@
     transform: none;
   }
 }
+
+/* ---------- Console view modes (Strips · Sends · Routing) ----------
+   Exactly one send surface is visible per strip. Rendering the compact AUX
+   knobs AND the labelled SND A/B faders at the same time gave every channel
+   two competing controls for the same value. */
+.mix-view-strips .mix-sends,
+.mix-view-routing .mix-strip-sends,
+.mix-view-routing .mix-sends {
+  display: none;
+}
+
+/* Sends view: the labelled faders replace the compact knobs, and the strip
+   gets a taller send lane so the value is readable without zooming. */
+.mix-view-sends .mix-strip-sends {
+  display: none;
+}
+.mix-view-sends .mix-sends {
+  padding: 8px 6px;
+  background: color-mix(in srgb, var(--ivory-paper) 88%, var(--teal-500) 12%);
+}
+.mix-view-sends .mix-sends-slider {
+  height: 6px;
+}
+.mix-view-sends .mix-sends-slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+}
+.mix-view-sends .mix-sends-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+}
+
+/* Routing view: sidechain feeds are the subject of the page, so the chip
+   grows to a full-width, tappable row instead of a small pill. */
+.mix-view-routing .mix-sidechain-chip {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  font-size: 11px;
+}
+.mix-view-routing .mix-sidechain-chip-wrap {
+  padding: 6px 8px;
+}
+
+@media (max-width: 768px) {
+  /* Touch: keep the enlarged send thumbs from shrinking back down. */
+  .mix-view-sends .mix-sends-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+  }
+  .mix-view-routing .mix-sidechain-chip {
+    min-height: 48px;
+  }
+}

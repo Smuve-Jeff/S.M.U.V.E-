@@ -21,7 +21,11 @@
   <!-- Body -->
   <div class="er-body">
     <!-- Sprint B1 Phase 2: WASM live insert chain -->
-    <section class="er-wasm" *ngIf="selectedTrack()" aria-label="WASM plugin inserts">
+    <section
+      class="er-wasm"
+      *ngIf="selectedTrack()"
+      aria-label="WASM plugin inserts"
+    >
       <div class="er-wasm-head">
         <span class="material-symbols-outlined">extension</span>
         <b>WASM Inserts</b>
@@ -100,15 +104,20 @@
       </div>
     </section>
 
-    <!-- Slot list -->
-    <nav class="er-slots" aria-label="Effect slots">
-      <button
+    <!-- Slot list. The row is a div with role="button": a <button> cannot
+         legally contain the power/remove buttons below, and the browser hoists
+         the inner buttons out of the DOM entirely when they are nested. -->
+    <nav class="er-slots" aria-label="Macro effect slots">
+      <div
         *ngFor="let slot of fxSlots(); let i = index"
-        type="button"
         class="er-slot"
+        role="button"
+        tabindex="0"
         [class.active]="activeSlot() === i + 1"
         [class.disabled]="!slot.enabled"
         (click)="activeSlot.set(i + 1)"
+        (keydown.enter)="activeSlot.set(i + 1)"
+        (keydown.space)="activeSlot.set(i + 1); $event.preventDefault()"
         [attr.aria-pressed]="activeSlot() === i + 1"
         [attr.aria-label]="
           'Effect ' +
@@ -138,20 +147,44 @@
             {{ slot.enabled ? 'power_settings_new' : 'power_off' }}
           </span>
         </button>
-      </button>
-
-      <button
-        type="button"
-        class="er-add-slot"
-        aria-label="Add new effect slot"
-      >
-        <span
-          class="material-symbols-outlined"
-          style="font-size: 16px; vertical-align: middle"
-          >add</span
+        <button
+          type="button"
+          class="er-slot-remove"
+          (click)="removeFxSlot(i, $event)"
+          [attr.aria-label]="'Remove ' + (slot.type || 'effect') + ' slot'"
+          title="Remove this effect slot"
         >
-        Add Effect
-      </button>
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+
+      <div class="er-add-wrap">
+        <button
+          type="button"
+          class="er-add-slot"
+          aria-label="Add new effect slot"
+          [attr.aria-expanded]="addMenuOpen()"
+          (click)="toggleAddMenu($event)"
+        >
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 16px; vertical-align: middle"
+            >add</span
+          >
+          Add Effect
+        </button>
+        <div class="er-add-menu" *ngIf="addMenuOpen()" role="menu">
+          <button
+            *ngFor="let type of fxTypes"
+            type="button"
+            role="menuitem"
+            class="er-add-menu-item"
+            (click)="addFxSlot(type); $event.stopPropagation()"
+          >
+            {{ type }}
+          </button>
+        </div>
+      </div>
     </nav>
 
     <!-- Parameters panel -->
@@ -161,239 +194,55 @@
           {{ slot.type }} · Slot {{ activeSlot() }}
         </div>
 
-        <!-- Knob grid -->
+        <!-- Knob grid, driven by the type's parameter spec so every knob reads
+             and writes the slot's real stored value. -->
         <div class="er-knob-grid">
-          <div class="er-knob-cell">
+          <div class="er-knob-cell" *ngFor="let spec of paramSpecs(slot.type)">
             <app-knob
-              label="Wet"
-              [min]="0"
-              [max]="100"
-              [value]="60"
-              unit="%"
+              [label]="spec.label"
+              [min]="spec.min"
+              [max]="spec.max"
+              [step]="spec.step ?? 1"
+              [value]="paramValue(slot, spec)"
+              [unit]="spec.unit ?? ''"
+              (valueChange)="setFxParam(slot.id, spec.id, $event)"
             ></app-knob>
           </div>
-          <div class="er-knob-cell">
-            <app-knob
-              label="Dry"
-              [min]="0"
-              [max]="100"
-              [value]="40"
-              unit="%"
-            ></app-knob>
-          </div>
-
-          <ng-container [ngSwitch]="slot.type">
-            <!-- Reverb -->
-            <ng-container *ngSwitchCase="'Reverb'">
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Decay"
-                  [min]="0.1"
-                  [max]="10"
-                  [value]="2.5"
-                  step="0.1"
-                  unit="s"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Size"
-                  [min]="0"
-                  [max]="100"
-                  [value]="50"
-                  unit="%"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Pre-Delay"
-                  [min]="0"
-                  [max]="200"
-                  [value]="20"
-                  unit="ms"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Damping"
-                  [min]="0"
-                  [max]="100"
-                  [value]="30"
-                  unit="%"
-                ></app-knob>
-              </div>
-            </ng-container>
-
-            <!-- Delay -->
-            <ng-container *ngSwitchCase="'Delay'">
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Time"
-                  [min]="0"
-                  [max]="2000"
-                  [value]="250"
-                  unit="ms"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Feedback"
-                  [min]="0"
-                  [max]="100"
-                  [value]="40"
-                  unit="%"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Ping Pong"
-                  [min]="0"
-                  [max]="100"
-                  [value]="0"
-                  unit="%"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Filter"
-                  [min]="200"
-                  [max]="18000"
-                  [value]="8000"
-                  unit="Hz"
-                ></app-knob>
-              </div>
-            </ng-container>
-
-            <!-- Compressor -->
-            <ng-container *ngSwitchCase="'Compressor'">
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Threshold"
-                  [min]="-60"
-                  [max]="0"
-                  [value]="-24"
-                  unit="dB"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Ratio"
-                  [min]="1"
-                  [max]="20"
-                  [value]="4"
-                  step="0.5"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Attack"
-                  [min]="0.1"
-                  [max]="100"
-                  [value]="10"
-                  unit="ms"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Release"
-                  [min]="10"
-                  [max]="1000"
-                  [value]="100"
-                  unit="ms"
-                ></app-knob>
-              </div>
-            </ng-container>
-
-            <!-- EQ -->
-            <ng-container *ngSwitchCase="'EQ'">
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Low Gain"
-                  [min]="-12"
-                  [max]="12"
-                  [value]="0"
-                  unit="dB"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Mid Gain"
-                  [min]="-12"
-                  [max]="12"
-                  [value]="0"
-                  unit="dB"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="High Gain"
-                  [min]="-12"
-                  [max]="12"
-                  [value]="0"
-                  unit="dB"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Mid Freq"
-                  [min]="200"
-                  [max]="8000"
-                  [value]="1500"
-                  unit="Hz"
-                ></app-knob>
-              </div>
-            </ng-container>
-
-            <!-- Default: generic params -->
-            <ng-container *ngSwitchDefault>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Rate"
-                  [min]="0"
-                  [max]="100"
-                  [value]="50"
-                  unit="%"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Depth"
-                  [min]="0"
-                  [max]="100"
-                  [value]="50"
-                  unit="%"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Tone"
-                  [min]="200"
-                  [max]="12000"
-                  [value]="4000"
-                  unit="Hz"
-                ></app-knob>
-              </div>
-              <div class="er-knob-cell">
-                <app-knob
-                  label="Level"
-                  [min]="0"
-                  [max]="100"
-                  [value]="80"
-                  unit="%"
-                ></app-knob>
-              </div>
-            </ng-container>
-          </ng-container>
         </div>
 
-        <!-- Master Wet/Dry bar -->
+        <div class="er-params-actions">
+          <button
+            type="button"
+            class="er-params-btn"
+            (click)="resetFxParams()"
+            title="Reset every parameter of this slot to its default"
+          >
+            <span class="material-symbols-outlined">restart_alt</span>
+            Reset
+          </button>
+          <button
+            *ngIf="canSendToLiveChain()"
+            type="button"
+            class="er-params-btn er-params-btn-live"
+            (click)="sendActiveToLiveChain()"
+            title="Install the matching WASM kernel so this slot affects the audio"
+          >
+            <span class="material-symbols-outlined">bolt</span>
+            Send to live chain
+          </button>
+        </div>
+
+        <!-- Slot mix bar — reflects the slot's real wet/dry value. -->
         <div class="er-master">
           <div class="er-master-row">
             <span class="er-master-label">Master Mix</span>
             <div class="er-master-bar" aria-hidden="true">
-              <div class="er-master-fill" [style.width.%]="50"></div>
+              <div
+                class="er-master-fill"
+                [style.width.%]="mixPercentFor(slot)"
+              ></div>
             </div>
-            <span class="er-master-value">50%</span>
+            <span class="er-master-value">{{ mixPercentFor(slot) }}%</span>
           </div>
         </div>
       </ng-container>

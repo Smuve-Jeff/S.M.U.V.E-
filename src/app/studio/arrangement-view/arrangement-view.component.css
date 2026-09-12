@@ -37,6 +37,10 @@
 }
 
 .tab-btn {
+  /* Rendered as a <span> badge now, so it needs the inline-flex box a button
+     used to give it for free. */
+  display: inline-flex;
+  align-items: center;
   background: var(--ivory-paper);
   border: 1px solid var(--espresso-line);
   border-radius: 8px;

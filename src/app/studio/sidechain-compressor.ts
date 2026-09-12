@@ -31,6 +31,16 @@ export class SidechainCompressor {
     this.configure(-30, 12);
   }
 
+  /** Current threshold in dB. */
+  get threshold(): number {
+    return this._threshold;
+  }
+
+  /** Current compression ratio (n:1). */
+  get ratio(): number {
+    return this._ratio;
+  }
+
   configure(threshold: number, ratio: number) {
     this._threshold = threshold;
     this._ratio = ratio;

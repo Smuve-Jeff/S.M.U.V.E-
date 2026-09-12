@@ -1005,6 +1005,10 @@
   border-color: #00e5ff;
   background: rgba(0, 229, 255, 0.08);
 }
+.tc-card:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+}
 .tc-card.is-selected {
   border-color: #00e5ff;
   box-shadow:

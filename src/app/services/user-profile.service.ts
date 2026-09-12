@@ -11,6 +11,7 @@ import {
   ProfessionalFinancials,
   CatalogItem,
   AppSettings,
+  RecommendationHistoryEntry,
 } from '../types/profile.types';
 
 export type {
@@ -143,7 +144,29 @@ export class UserProfileService {
       expertise: { ...this.profile().expertise, ...u },
     });
   }
-  async addTeamMember(m: any) {}
+  /**
+   * Add a collaborator to the roster. Previously an empty method, so the
+   * "add member" affordance in the profile surface silently did nothing.
+   */
+  async addTeamMember(m: any) {
+    const name = (m?.name || '').trim();
+    if (!name) return;
+    const p = this.profile();
+    const existing = p.team || [];
+    if (existing.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      return;
+    }
+    const member = {
+      id: m?.id || `tm-${Date.now().toString(36)}`,
+      name,
+      role: m?.role || 'Collaborator',
+      email: m?.email || undefined,
+      share: Number.isFinite(m?.share) ? m.share : 0,
+      bio: m?.bio || undefined,
+      joinedAt: m?.joinedAt || new Date().toISOString(),
+    };
+    await this.updateProfile({ team: [...existing, member] });
+  }
   async updateFinancials(u: Partial<ProfessionalFinancials>) {
     await this.updateProfile({
       financials: { ...this.profile().financials, ...u },
@@ -156,9 +179,95 @@ export class UserProfileService {
       auditHistory: [l, ...(this.profile().auditHistory || [])].slice(0, 20),
     });
   }
-  async setRecommendationState(id: string, s: any, m?: any) {}
-  async recordGameLaunch(g: string, c: any) {}
-  async recordGameResult(g: string, r: any) {}
+  /**
+   * Record a decision on a recommendation (saved / dismissed / not-relevant).
+   * This was an empty method, so the Command Center's save & dismiss buttons
+   * changed nothing and the recommendation inbox never filled.
+   */
+  async setRecommendationState(
+    id: string,
+    state: RecommendationHistoryEntry['state'],
+    meta?: any
+  ) {
+    if (!id) return;
+    const p = this.profile();
+    const now = Date.now();
+    p.recommendationPreferences = {
+      ...(p.recommendationPreferences || {}),
+      [id]: {
+        ...(p.recommendationPreferences?.[id] || {}),
+        state,
+        updatedAt: now,
+      },
+    };
+    p.recommendationHistory = [
+      ...(p.recommendationHistory || []),
+      {
+        recommendationId: id,
+        title: meta?.title || '',
+        type: (meta?.type || 'Gear') as RecommendationHistoryEntry['type'],
+        state,
+        updatedAt: now,
+      },
+    ];
+    await this.updateProfile(p);
+  }
+
+  /** Per-cabinet Tha Spot stats, keyed by game id. */
+  private gameStatFor(gameId: string) {
+    const stats = { ...(this.profile().gameStats || {}) };
+    return {
+      stats,
+      entry: stats[gameId] || {
+        launches: 0,
+        plays: 0,
+        wins: 0,
+        losses: 0,
+        totalScore: 0,
+        bestScore: 0,
+        lastPlayedAt: 0,
+      },
+    };
+  }
+
+  /** Record a cabinet launch so play history and rails have real data. */
+  async recordGameLaunch(gameId: string, context?: any) {
+    if (!gameId) return;
+    const { stats, entry } = this.gameStatFor(gameId);
+    stats[gameId] = {
+      ...entry,
+      launches: (entry.launches || 0) + 1,
+      lastPlayedAt: Date.now(),
+      lastContext: context ?? null,
+    };
+    await this.updateProfile({ gameStats: stats });
+  }
+
+  /**
+   * Record a finished match. Score/outcome come straight from the cabinet's
+   * telemetry payload, so the career timeline can report real sessions.
+   */
+  async recordGameResult(gameId: string, result?: any) {
+    if (!gameId) return;
+    const { stats, entry } = this.gameStatFor(gameId);
+    const score = Number(result?.score);
+    const hasScore = Number.isFinite(score);
+    const outcome = String(result?.outcome || result?.result || '').toLowerCase();
+    stats[gameId] = {
+      ...entry,
+      plays: (entry.plays || 0) + 1,
+      wins: (entry.wins || 0) + (outcome === 'win' ? 1 : 0),
+      losses: (entry.losses || 0) + (outcome === 'loss' ? 1 : 0),
+      totalScore: (entry.totalScore || 0) + (hasScore ? score : 0),
+      bestScore: hasScore
+        ? Math.max(entry.bestScore || 0, score)
+        : entry.bestScore || 0,
+      lastScore: hasScore ? score : entry.lastScore ?? null,
+      lastResult: outcome || null,
+      lastPlayedAt: Date.now(),
+    };
+    await this.updateProfile({ gameStats: stats });
+  }
 
   exportProfile() {
     const data = JSON.stringify(this.profile(), null, 2);

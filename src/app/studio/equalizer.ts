@@ -1,5 +1,14 @@
 export class Equalizer {
   private readonly filters: BiquadFilterNode[] = [];
+
+  /**
+   * Tracked band gains in dB. `setGain` ramps through `setTargetAtTime`, so
+   * `filter.gain.value` reads the *previous* value (and never settles during an
+   * offline bounce). The plugin layer, the worklet sync and the snapshot all
+   * need the dialled value, so keep it here.
+   */
+  private readonly _gains: number[] = [];
+
   readonly input: GainNode;
   readonly output: GainNode;
 
@@ -26,6 +35,7 @@ export class Equalizer {
       lastNode.connect(filter);
       lastNode = filter;
       this.filters.push(filter);
+      this._gains.push(0);
     });
 
     lastNode.connect(this.output);
@@ -33,6 +43,7 @@ export class Equalizer {
 
   setGain(bandIndex: number, gain: number) {
     if (this.filters[bandIndex]) {
+      this._gains[bandIndex] = gain;
       this.filters[bandIndex].gain.setTargetAtTime(
         gain,
         this.context.currentTime,
@@ -41,10 +52,15 @@ export class Equalizer {
     }
   }
 
+  /** Current gain (dB) of a band, or null when the index is out of range. */
+  getGain(bandIndex: number): number | null {
+    return this._gains[bandIndex] ?? null;
+  }
+
   getBands() {
-    return this.filters.map((f) => ({
+    return this.filters.map((f, i) => ({
       frequency: f.frequency.value,
-      gain: f.gain.value,
+      gain: this._gains[i] ?? 0,
       type: f.type,
     }));
   }

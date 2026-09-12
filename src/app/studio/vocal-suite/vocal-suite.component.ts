@@ -20,6 +20,7 @@ import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { HardwareService } from '../../services/hardware.service';
+import { HapticService } from '../../services/haptic.service';
 import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
 import { FormsModule } from '@angular/forms';
 import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
@@ -62,6 +63,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private logger = inject(LoggingService);
   private snackbar = inject(SnackbarService);
   public readonly hardware = inject(HardwareService);
+  private readonly haptic = inject(HapticService);
   showUplink = signal(false);
 
   // ── Take editing / routing ──────────────────────────────
@@ -86,6 +88,52 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   isBypassed = signal(false);
   activeMasteringTab = signal<'eq' | 'comp' | 'exciter' | 'limiter'>('eq');
+
+  // ── Monitor + De-Esser ──────────────────────────────────
+  /**
+   * Input monitoring state. The mastering chain is permanently wired to the
+   * studio master bus, so this is a real mute of the monitoring path rather
+   * than a cosmetic switch — the old "Monitor" button had no handler at all.
+   */
+  monitorEnabled = signal(true);
+
+  /** De-Esser state, read straight off the live mastering parameters. */
+  deEsserEnabled = computed(
+    () => !this.mastering.params().deesser.bypass
+  );
+
+  toggleMonitor(): void {
+    this.haptic.light();
+    const next = !this.monitorEnabled();
+    try {
+      if (next) {
+        this.mastering.getOutputNode().connect(this.audioEngine.masterGain);
+      } else {
+        this.mastering.getOutputNode().disconnect(this.audioEngine.masterGain);
+      }
+      this.monitorEnabled.set(next);
+      this.snackbar.info(next ? 'Input monitoring ON' : 'Input monitoring muted');
+    } catch (err) {
+      // disconnect() throws when the node was not connected — keep the UI in
+      // sync with the graph rather than leaving a lying toggle.
+      this.monitorEnabled.set(!next);
+      this.logger.warn('VocalSuite: monitor toggle failed', err);
+    }
+  }
+
+  /** Bypass/enable the de-esser inside the live vocal mastering chain. */
+  toggleDeEsser(): void {
+    this.haptic.light();
+    const current = this.mastering.params().deesser;
+    this.mastering.updateParams({
+      deesser: { ...current, bypass: !current.bypass },
+    });
+    this.snackbar.info(
+      current.bypass ? 'Neural De-Esser engaged' : 'Neural De-Esser bypassed'
+    );
+  }
+
+
 
   private animationId?: number;
   private ctx2d?: CanvasRenderingContext2D;

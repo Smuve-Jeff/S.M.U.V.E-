@@ -11,6 +11,7 @@ describe('InstrumentService', () => {
     masterGain: { connect: jest.Mock };
     triggerAttack: jest.Mock;
     setMasterOutputLevel: jest.Mock;
+    setMasterReverbWet: jest.Mock;
   };
 
   beforeEach(() => {
@@ -20,6 +21,7 @@ describe('InstrumentService', () => {
       masterGain: { connect: jest.fn() },
       triggerAttack: jest.fn(),
       setMasterOutputLevel: jest.fn(),
+      setMasterReverbWet: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -51,5 +53,15 @@ describe('InstrumentService', () => {
       0,
       { type: 'sine' }
     );
+  });
+
+  it('drives the master reverb return from the reverb mix control', () => {
+    service.setMasterVolume(80);
+    expect(engineMock.setMasterOutputLevel).toHaveBeenCalledWith(0.8);
+
+    // setReverbMix used to be an empty method, so the Master Controls REVERB
+    // fader moved and changed nothing.
+    service.setReverbMix(0.35);
+    expect(engineMock.setMasterReverbWet).toHaveBeenCalledWith(0.35);
   });
 });

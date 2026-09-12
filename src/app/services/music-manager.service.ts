@@ -249,6 +249,39 @@ export class MusicManagerService {
     };
   }
 
+  /**
+   * Extra per-step renderers — the AI session musicians (and anything else that
+   * needs to read the transport without owning it). MusicManagerService stays
+   * the single scheduler; observers run *after* the arranged parts, so a
+   * generated note can never mute or delay the arrangement.
+   */
+  private stepObservers = new Set<
+    (step: number, time: number, duration: number) => void
+  >();
+
+  /** Register a per-step observer. Returns an unsubscribe function. */
+  onStep(
+    observer: (step: number, time: number, duration: number) => void
+  ): () => void {
+    this.stepObservers.add(observer);
+    return () => this.stepObservers.delete(observer);
+  }
+
+  private notifyStepObservers(
+    step: number,
+    time: number,
+    duration: number
+  ): void {
+    for (const observer of this.stepObservers) {
+      try {
+        observer(step, time, duration);
+      } catch (error) {
+        // A jam must never break the transport.
+        this.logger.warn('MusicManager: step observer failed', error);
+      }
+    }
+  }
+
   private setupProjectSync() {
     effect(
       () => {
@@ -416,6 +449,96 @@ export class MusicManagerService {
         );
         this.engine.installTrackPluginInsert(trackId, prev);
       }
+    );
+  }
+
+  // ── Macro FX slots ────────────────────────────────────────────────
+
+  /**
+   * Append a macro FX slot to a track's chain. History-aware, so "Add Effect"
+   * in the rack is undoable like every other arrangement mutation.
+   * Returns the new slot id (or null when the track is gone).
+   */
+  addFxSlot(trackId: string, type: string): string | null {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return null;
+    const before = this.clone(t.fxSlots ?? []);
+    const slot: FxSlot = {
+      id: `fx_${type.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now().toString(36)}`,
+      type,
+      params: {},
+      enabled: true,
+    };
+    const after = [...before, slot];
+    this.runCommand(
+      `Add ${type} · ` + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+    return slot.id;
+  }
+
+  /** Remove a macro FX slot from a track's chain (undoable). */
+  removeFxSlot(trackId: string, slotId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const after = before.filter((s) => s.id !== slotId);
+    if (after.length === before.length) return;
+    this.runCommand(
+      'Remove FX Slot · ' + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /**
+   * Write one parameter of a macro FX slot. Coalesced on the slot+param pair
+   * so dragging a knob does not flood the history stack with one entry per
+   * frame — the whole gesture undoes as a single step.
+   */
+  setFxSlotParam(
+    trackId: string,
+    slotId: string,
+    paramId: string,
+    value: number
+  ): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const next = value;
+    const after = before.map((s) =>
+      s.id === slotId
+        ? { ...s, params: { ...(s.params ?? {}), [paramId]: next } }
+        : s
+    );
+    this.runMerge(
+      `fx:${trackId}:${slotId}:${paramId}`,
+      `Edit ${paramId}`,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /** Toggle a macro FX slot's bypass state (undoable). */
+  toggleFxSlot(trackId: string, slotId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const after = before.map((s) =>
+      s.id === slotId ? { ...s, enabled: !s.enabled } : s
+    );
+    this.runCommand(
+      'Toggle FX Slot · ' + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /** Single writer for a track's macro FX chain. */
+  private writeFxSlots(trackId: string, slots: FxSlot[]): void {
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === trackId ? { ...x, fxSlots: slots } : x))
     );
   }
 
@@ -2212,6 +2335,10 @@ export class MusicManagerService {
         }
       });
     });
+
+    // Observers last: the AI session musicians improvise on top of whatever the
+    // arrangement just rendered.
+    this.notifyStepObservers(step, swungTime, duration);
   }
 
   isStepActive(track: TrackModel, stepIdx: number): boolean {

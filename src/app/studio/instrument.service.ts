@@ -51,5 +51,12 @@ export class InstrumentService {
     this.engine.setMasterOutputLevel(val / 100);
   }
 
-  setReverbMix(_val: number) {}
+  /**
+   * Master reverb return level (0..1). This used to be an empty method, so the
+   * Master Controls REVERB fader moved, lit up, and changed nothing at all. It
+   * is the return trim for the per-track Send A bus.
+   */
+  setReverbMix(val: number) {
+    this.engine.setMasterReverbWet(val);
+  }
 }

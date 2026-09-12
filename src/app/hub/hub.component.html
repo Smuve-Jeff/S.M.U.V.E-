@@ -308,6 +308,20 @@
       </div>
     </section>
 
+    <section class="hub-panel ai-band-panel" aria-labelledby="hub-ai-band-heading">
+      <div class="section-heading compact-heading"><div><p class="hub-kicker">NEURAL BAND // LIVE</p><h2 id="hub-ai-band-heading">Session musicians</h2></div><span class="material-symbols-outlined panel-heading-icon">graphic_eq</span></div>
+      <p class="ai-band-blurb">Engage a player and S.M.U.V.E. improvises over your arrangement on every step. Nothing is written into your tracks — disengage and it stops.</p>
+      <div class="ai-band-list">
+        <button *ngFor="let musician of aiService.sessionMusicians" type="button" class="ai-band-row" [class.is-engaged]="aiService.isMusicianActive(musician.id)" [attr.aria-pressed]="aiService.isMusicianActive(musician.id)" (click)="aiService.toggleAIMusician(musician.id)">
+          <span class="ai-band-icon"><span class="material-symbols-outlined">{{ aiService.isMusicianActive(musician.id) ? 'music_note' : 'power_settings_new' }}</span></span>
+          <span class="ai-band-info"><strong>{{ musician.label }}</strong><small>{{ musician.detail }}</small></span>
+          <span class="ai-band-state">{{ aiService.isMusicianActive(musician.id) ? 'ENGAGED' : 'OFF' }}</span>
+        </button>
+      </div>
+      <div class="ai-band-pulse"><span class="state-dot is-live"></span><span>{{ globalStudioPulse().join(' · ') }}</span></div>
+      <button type="button" class="hub-text-button" (click)="goToStudio()">Open the Studio band strip <span class="material-symbols-outlined">arrow_forward</span></button>
+    </section>
+
     <section class="hub-explore">
       <div class="section-heading"><div><p class="hub-kicker">THE FULL LABEL</p><h2>Choose your next room.</h2></div><span class="section-note">{{ featureSpotlights.length }} core surfaces online</span></div>
       <div class="explore-grid">

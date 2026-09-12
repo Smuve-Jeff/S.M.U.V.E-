@@ -807,6 +807,125 @@
   background: var(--espresso-line);
 }
 
+/* ---------- Slot management (remove + add picker) ---------- */
+.er-slot-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: rgba(126, 114, 89, 0.75);
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.er-slot-remove .material-symbols-outlined {
+  font-size: 15px;
+}
+.er-slot-remove:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--vocal-danger, #e11d48);
+}
+
+.er-add-wrap {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.er-add-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(96px, 1fr));
+  gap: 4px;
+  padding: 6px;
+  min-width: 208px;
+  background: var(--ivory-panel, #fff);
+  border: 1px solid var(--espresso-line, rgba(0, 0, 0, 0.12));
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.er-add-menu-item {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--espresso-ink, #1c1917);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.er-add-menu-item:hover,
+.er-add-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--teal-500, #0e7c7b) 14%, transparent);
+}
+
+/* ---------- Parameter actions ---------- */
+.er-params-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.er-params-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--espresso-line, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--espresso-ink, #1c1917);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.er-params-btn .material-symbols-outlined {
+  font-size: 15px;
+}
+.er-params-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.er-params-btn-live {
+  border-color: var(--teal-500, #0e7c7b);
+  color: var(--teal-500, #0e7c7b);
+}
+.er-params-btn-live:hover {
+  background: color-mix(in srgb, var(--teal-500, #0e7c7b) 14%, transparent);
+}
+
+@media (max-width: 768px) {
+  /* Touch: comfortable targets for the slot row and the effect picker. */
+  .er-slot-remove {
+    width: 34px;
+    height: 34px;
+  }
+  .er-add-menu-item {
+    min-height: 44px;
+  }
+  .er-params-btn {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .er-slot.active,
   .er-slot-status.enabled,

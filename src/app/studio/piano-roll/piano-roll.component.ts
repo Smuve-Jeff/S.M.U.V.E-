@@ -997,6 +997,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onGridTouchEnd(event: TouchEvent) {
+    // Two-finger gesture finished: drop the pinch reference span so the next
+    // pinch measures from scratch instead of against the previous span.
+    if (event.changedTouches.length === 2) {
+      this.touchGestures.resetPinch();
+      return;
+    }
     if (event.changedTouches.length === 1 && !this.isSwiping) {
       const touch = event.changedTouches[0];
       const container = this.scrollContainer?.nativeElement;

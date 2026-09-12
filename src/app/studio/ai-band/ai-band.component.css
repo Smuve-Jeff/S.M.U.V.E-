@@ -1,0 +1,146 @@
+:host {
+  display: block;
+}
+
+.ai-band {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  margin: 0 0.5rem 0.35rem;
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  background: var(--ivory-panel, rgba(255, 255, 255, 0.03));
+  /* Horizontal scroll rather than wrapping: the strip must stay one row tall
+     so it can never push the canvas out of the 100dvh shell on a phone. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ai-band-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ai-band-label .material-symbols-outlined {
+  font-size: 1rem;
+  color: var(--teal-300);
+}
+
+.ai-band-count {
+  color: var(--teal-300);
+}
+
+.ai-band-players {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+}
+
+.ai-band-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  /* 44px minimum touch target for Android Chrome. */
+  min-height: 44px;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--espresso-text);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ai-band-player .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: var(--espresso-muted);
+}
+
+.ai-band-player-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.ai-band-player-text strong {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ai-band-player-text small {
+  font-size: 0.58rem;
+  color: var(--espresso-muted);
+}
+
+.ai-band-state {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted);
+}
+
+.ai-band-player:hover {
+  border-color: var(--teal-300);
+}
+
+.ai-band-player:focus-visible {
+  outline: 2px solid var(--teal-300);
+  outline-offset: 2px;
+}
+
+.ai-band-player.is-engaged {
+  border-color: var(--teal-500);
+  background: color-mix(in srgb, var(--teal-500) 14%, transparent);
+  box-shadow: 0 0 12px var(--teal-glow, rgba(43, 160, 156, 0.35));
+}
+
+.ai-band-player.is-engaged .material-symbols-outlined,
+.ai-band-player.is-engaged .ai-band-state {
+  color: var(--teal-300);
+}
+
+.ai-band-readout {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--teal-300);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ai-band-readout.is-idle {
+  color: var(--espresso-muted);
+}
+
+@media (max-width: 640px) {
+  .ai-band {
+    margin: 0 0.35rem 0.3rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .ai-band-player-text small {
+    display: none;
+  }
+}

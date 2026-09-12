@@ -419,6 +419,17 @@ export class EnhancedTouchGestureService {
     this.verticalZoomLevel.set(1);
   }
 
+  /**
+   * Clear the pinch reference span. Call this when a two-finger gesture ends:
+   * `handlePinch` only zeroes the reference when it is handed a non-2-touch
+   * frame, so lifting both fingers used to leave the previous gesture's
+   * distance in place and the next pinch jumped on its first frame.
+   */
+  resetPinch(): void {
+    this.lastPinchDistance = 0;
+    this.lastPinchTime = 0;
+  }
+
   // ── Scroll offset ─────────────────────────────────────
 
   setScrollOffset(x: number, y: number) {

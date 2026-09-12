@@ -54,6 +54,22 @@ export class MixerComponent implements OnInit, OnDestroy {
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
+  /**
+   * Console view. The segmented control used to be decorative: "Strips" was
+   * hard-coded active and the other two buttons had no handler, so a producer
+   * could not reach the send or routing surfaces at all. Each mode now picks
+   * exactly ONE send surface per strip (the compact AUX knobs for Strips, the
+   * labelled SND A/B faders for Sends) instead of rendering both at once, and
+   * Routing focuses the sidechain path.
+   */
+  mixerView = signal<'strips' | 'sends' | 'routing'>('strips');
+
+  setMixerView(view: 'strips' | 'sends' | 'routing'): void {
+    if (this.mixerView() === view) return;
+    this.mixerView.set(view);
+    this.haptic.light();
+  }
+
   selectedTrack = computed(() =>
     this.tracks().find((t) => t.id === this.selectedTrackId())
   );
@@ -551,6 +567,14 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   // ---- AI / Master strip ----
+  /**
+   * Routing view helper — the number of tracks with a sidechain feed, so the
+   * console can tell the artist whether the routing page is worth opening.
+   */
+  sidechainCount = computed(
+    () => this.tracks().filter((t) => this.hasSidechain(t.id)).length
+  );
+
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
     this.haptic.medium();

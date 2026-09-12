@@ -19,6 +19,7 @@ describe('MusicManagerService clip glue workflows', () => {
     tempo: signal(120),
     visualStep: signal(0),
     setSongLengthSteps: jest.fn(),
+    triggerAttack: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -195,6 +196,7 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     tempo: signal(120),
     visualStep: signal(0),
     setSongLengthSteps: jest.fn(),
+    triggerAttack: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -340,5 +342,156 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     expect(service.tracks()[0].activePatternSlotId).toBe('slot-7');
     history.undo();
     expect(service.tracks()[0].activePatternSlotId).toBe('slot-0');
+  });
+
+  describe('macro FX slots', () => {
+    const withSlots = () =>
+      service.tracks.set([
+        makeTrack({
+          fxSlots: [
+            { id: 'fx1', type: 'Reverb', params: {}, enabled: true },
+          ],
+        }),
+      ]);
+
+    it('appends a slot and returns its id', () => {
+      withSlots();
+      const id = service.addFxSlot('track-1', 'Delay');
+      expect(id).toBeTruthy();
+      const slots = service.tracks()[0].fxSlots;
+      expect(slots).toHaveLength(2);
+      expect(slots[1].type).toBe('Delay');
+      expect(slots[1].enabled).toBe(true);
+      expect(slots[1].params).toEqual({});
+    });
+
+    it('undoes an added slot and returns null for an unknown track', () => {
+      withSlots();
+      service.addFxSlot('track-1', 'Compressor');
+      expect(service.tracks()[0].fxSlots).toHaveLength(2);
+      history.undo();
+      expect(service.tracks()[0].fxSlots).toHaveLength(1);
+      expect(service.addFxSlot('nope', 'Reverb')).toBeNull();
+    });
+
+    it('removes a slot and restores it on undo', () => {
+      withSlots();
+      service.removeFxSlot('track-1', 'fx1');
+      expect(service.tracks()[0].fxSlots).toHaveLength(0);
+      history.undo();
+      expect(service.tracks()[0].fxSlots).toHaveLength(1);
+      expect(service.tracks()[0].fxSlots[0].id).toBe('fx1');
+    });
+
+    it('ignores a removal for a slot that is not there', () => {
+      withSlots();
+      service.removeFxSlot('track-1', 'missing');
+      expect(service.tracks()[0].fxSlots).toHaveLength(1);
+    });
+
+    it('writes a parameter value onto the slot', () => {
+      withSlots();
+      service.setFxSlotParam('track-1', 'fx1', 'decay', 4.2);
+      expect(service.tracks()[0].fxSlots[0].params.decay).toBe(4.2);
+    });
+
+    it('coalesces a knob gesture so one drag undoes as one step', () => {
+      withSlots();
+      service.setFxSlotParam('track-1', 'fx1', 'wet', 10);
+      service.setFxSlotParam('track-1', 'fx1', 'wet', 20);
+      service.setFxSlotParam('track-1', 'fx1', 'wet', 30);
+      expect(service.tracks()[0].fxSlots[0].params.wet).toBe(30);
+
+      history.undo();
+      // The whole drag is reversed at once, not just the last frame.
+      expect(service.tracks()[0].fxSlots[0].params.wet).toBeUndefined();
+    });
+
+    it('toggles a slot bypass and undoes it', () => {
+      withSlots();
+      service.toggleFxSlot('track-1', 'fx1');
+      expect(service.tracks()[0].fxSlots[0].enabled).toBe(false);
+      history.undo();
+      expect(service.tracks()[0].fxSlots[0].enabled).toBe(true);
+    });
+  });
+
+  describe('per-step observers (AI session musicians)', () => {
+    it('notifies a registered observer once per step', () => {
+      const observer = jest.fn();
+      service.onStep(observer);
+
+      service.playStep(0, 1, 0.25);
+
+      expect(observer).toHaveBeenCalledTimes(1);
+      expect(observer).toHaveBeenCalledWith(0, 1, 0.25);
+    });
+
+    it('stops notifying after unsubscribe', () => {
+      const observer = jest.fn();
+      const off = service.onStep(observer);
+      service.playStep(0, 1, 0.25);
+      off();
+      service.playStep(1, 1.25, 0.25);
+
+      expect(observer).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders the arrangement before the observers', () => {
+      // The AI layer improvises *on top of* what the artist wrote: a generated
+      // note must never land before (or instead of) the arranged part.
+      const order: string[] = [];
+      service.tracks.set([
+        makeTrack({
+          notes: [{ step: 0, midi: 60, length: 1, velocity: 0.8 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockImplementation(() => order.push('arranged'));
+      service.onStep(() => order.push('ai'));
+
+      service.playStep(0, 1, 0.25);
+
+      expect(order).toEqual(['arranged', 'ai']);
+    });
+
+    it('hands observers the swung time, not the raw grid time', () => {
+      const observer = jest.fn();
+      service.tracks.set([
+        makeTrack({
+          id: MusicManagerService.DRUM_TRACK_ID,
+          type: 'drum',
+          swingAmount: 0.4,
+        }),
+      ]);
+      service.onStep(observer);
+
+      service.playStep(1, 1, 0.25);
+
+      // Step 1 is an offbeat: swingOffset * duration * 0.5 = 0.4 * 0.125.
+      expect(observer).toHaveBeenCalledWith(1, 1.05, 0.25);
+    });
+
+    it('isolates a throwing observer so the transport keeps rendering', () => {
+      const good = jest.fn();
+      service.onStep(() => {
+        throw new Error('bad AI part');
+      });
+      service.onStep(good);
+
+      expect(() => service.playStep(0, 1, 0.25)).not.toThrow();
+      expect(good).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports several independent observers', () => {
+      const first = jest.fn();
+      const second = jest.fn();
+      service.onStep(first);
+      service.onStep(second);
+
+      service.playStep(4, 2, 0.25);
+
+      expect(first).toHaveBeenCalledWith(4, 2, 0.25);
+      expect(second).toHaveBeenCalledWith(4, 2, 0.25);
+    });
   });
 });

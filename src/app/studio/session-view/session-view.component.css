@@ -351,6 +351,11 @@
   box-shadow: 0 0 12px var(--teal-soft-glow);
 }
 
+.sv-clip-slot:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
 .sv-clip-slot.is-filled {
   background: linear-gradient(
     180deg,

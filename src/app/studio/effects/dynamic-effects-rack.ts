@@ -536,12 +536,33 @@ export class DynamicEffectsRack {
 // This auto-registers the existing effect classes so they can be
 // instantiated dynamically via PluginRegistry.create()
 
+/**
+ * Keep a parameter descriptor's `value` in step with the live DSP. Anything
+ * that enumerates `plugin.params` (a params-driven UI, automation, the plugin
+ * store) otherwise reads the registration-time default forever.
+ */
+function syncParamValue(params: PluginParam[], id: string, value: number): void {
+  const param = params.find((p) => p.id === id);
+  if (param) param.value = value;
+}
+
+/** Restore every descriptor to its default value — used by `reset()`. */
+function resetParamValues(params: PluginParam[]): void {
+  for (const param of params) param.value = param.defaultValue;
+}
+
 function registerBuiltins(): void {
   PluginRegistry.register('smuve.eq.v1', class EqPlugin implements IAudioPlugin {
     readonly id = 'smuve.eq.v1';
     readonly name = '7-Band EQ';
     readonly category: PluginCategory = 'eq';
-    readonly params: PluginParam[] = [];
+    /**
+     * One automatable band per filter. This list used to be empty, which made
+     * the EQ expose zero parameters while advertising seven bands — anything
+     * driving the rack from `plugin.params` (automation, the plugin store, the
+     * WASM worklet sync) saw a plugin with no controls at all.
+     */
+    readonly params: PluginParam[];
     enabled = true;
     private readonly _eq: Equalizer;
     readonly input: AudioNode;
@@ -550,17 +571,32 @@ function registerBuiltins(): void {
       this._eq = new Equalizer(ctx);
       this.input = this._eq.input;
       this.output = this._eq.output;
+      this.params = this._eq.getBands().map((band, index) => ({
+        id: `band${index}`,
+        name: `${Math.round(band.frequency)} Hz`,
+        value: 0,
+        defaultValue: 0,
+        min: -18,
+        max: 18,
+        step: 0.5,
+        unit: 'dB',
+      }));
     }
     getParam(paramId: string): number {
       const band = parseInt(paramId.replace('band', ''), 10);
-      const bands = this._eq.getBands();
-      return bands[band]?.gain ?? 0;
+      return this._eq.getGain(band) ?? 0;
     }
     setParam(paramId: string, value: number): void {
       const band = parseInt(paramId.replace('band', ''), 10);
       this._eq.setGain(band, value);
+      syncParamValue(this.params, paramId, this._eq.getGain(band) ?? value);
     }
-    reset(): void {}
+    reset(): void {
+      this.params.forEach((param, index) => {
+        this._eq.setGain(index, param.defaultValue);
+      });
+      resetParamValues(this.params);
+    }
     dispose(): void {
       this._eq.disconnect();
     }
@@ -591,8 +627,15 @@ function registerBuiltins(): void {
     setParam(id: string, value: number): void {
       if (id === 'threshold') this._comp.setThreshold(value);
       if (id === 'ratio') this._comp.setRatio(value);
+      syncParamValue(this.params, id, this.getParam(id));
     }
-    reset(): void {}
+    reset(): void {
+      this.params.forEach((param) => {
+        if (param.id === 'threshold') this._comp.setThreshold(param.defaultValue);
+        if (param.id === 'ratio') this._comp.setRatio(param.defaultValue);
+      });
+      resetParamValues(this.params);
+    }
     dispose(): void {
       this._comp.disconnect();
     }
@@ -603,7 +646,7 @@ function registerBuiltins(): void {
     readonly name = 'Reverb';
     readonly category: PluginCategory = 'delay-reverb';
     readonly params: PluginParam[] = [
-      { id: 'mix', name: 'Mix', value: 0.5, defaultValue: 0.5, min: 0, max: 1, unit: '%' },
+      { id: 'mix', name: 'Mix', value: 0.5, defaultValue: 0.5, min: 0, max: 1 },
     ];
     enabled = true;
     input: AudioNode;
@@ -615,12 +658,16 @@ function registerBuiltins(): void {
       this.output = this._rev.output;
     }
     getParam(id: string): number {
-      return id === 'mix' ? 0.5 : 0;
+      return id === 'mix' ? this._rev.mix : 0;
     }
     setParam(id: string, value: number): void {
       if (id === 'mix') this._rev.setMix(value);
+      syncParamValue(this.params, id, this.getParam(id));
     }
-    reset(): void {}
+    reset(): void {
+      this._rev.setMix(this.params[0].defaultValue);
+      resetParamValues(this.params);
+    }
     dispose(): void {
       this._rev.disconnect();
     }
@@ -632,7 +679,7 @@ function registerBuiltins(): void {
     readonly category: PluginCategory = 'delay-reverb';
     readonly params: PluginParam[] = [
       { id: 'time', name: 'Time', value: 0.5, defaultValue: 0.5, min: 0.01, max: 2, unit: 's' },
-      { id: 'feedback', name: 'Feedback', value: 0.5, defaultValue: 0.5, min: 0, max: 0.95, unit: '%' },
+      { id: 'feedback', name: 'Feedback', value: 0.5, defaultValue: 0.5, min: 0, max: 0.95 },
     ];
     enabled = true;
     input: AudioNode;
@@ -644,15 +691,20 @@ function registerBuiltins(): void {
       this.output = this._dly.output;
     }
     getParam(id: string): number {
-      if (id === 'time') return this._dly.delayNode.delayTime.value;
-      if (id === 'feedback') return this._dly.feedbackGain.gain.value;
+      if (id === 'time') return this._dly.time;
+      if (id === 'feedback') return this._dly.feedback;
       return 0;
     }
     setParam(id: string, value: number): void {
       if (id === 'time') this._dly.setDelayTime(value);
       if (id === 'feedback') this._dly.setFeedback(value);
+      syncParamValue(this.params, id, this.getParam(id));
     }
-    reset(): void {}
+    reset(): void {
+      this._dly.setDelayTime(this.params[0].defaultValue);
+      this._dly.setFeedback(this.params[1].defaultValue);
+      resetParamValues(this.params);
+    }
     dispose(): void {
       this._dly.disconnect();
     }
@@ -671,12 +723,21 @@ function registerBuiltins(): void {
       this.input = this._sat.input;
       this.output = this._sat.output;
     }
-    getParam(id: string): number { return 0.5; }
-    setParam(id: string, value: number): void { this._sat.setAmount(value); }
-    reset(): void {}
+    getParam(id: string): number {
+      return id === 'amount' ? this._sat.amount : 0;
+    }
+    setParam(id: string, value: number): void {
+      if (id !== 'amount') return;
+      this._sat.setAmount(value);
+      syncParamValue(this.params, id, this._sat.amount);
+    }
+    reset(): void {
+      this._sat.setAmount(this.params[0].defaultValue);
+      resetParamValues(this.params);
+    }
     dispose(): void { this._sat.disconnect(); }
     params: PluginParam[] = [
-      { id: 'amount', name: 'Amount', value: 0.5, defaultValue: 0.5, min: 0, max: 1, unit: '%' },
+      { id: 'amount', name: 'Amount', value: 0.5, defaultValue: 0.5, min: 0, max: 1 },
     ];
   });
 
@@ -693,14 +754,25 @@ function registerBuiltins(): void {
       this.input = this._sc.input;
       this.output = this._sc.output;
     }
-    getParam(id: string): number { return id === 'threshold' ? -30 : 12; }
-    setParam(id: string, value: number): void {
-      this._sc.configure(
-        id === 'threshold' ? value : -30,
-        id === 'ratio' ? value : 12
-      );
+    getParam(id: string): number {
+      if (id === 'threshold') return this._sc.threshold;
+      if (id === 'ratio') return this._sc.ratio;
+      return 0;
     }
-    reset(): void {}
+    setParam(id: string, value: number): void {
+      // Only touch the parameter being moved — routing the other one back to
+      // its hard-coded default rewound it every time this knob was nudged.
+      if (id === 'threshold') this._sc.setThreshold(value);
+      if (id === 'ratio') this._sc.setRatio(value);
+      syncParamValue(this.params, id, this.getParam(id));
+    }
+    reset(): void {
+      this.params.forEach((param) => {
+        if (param.id === 'threshold') this._sc.setThreshold(param.defaultValue);
+        if (param.id === 'ratio') this._sc.setRatio(param.defaultValue);
+      });
+      resetParamValues(this.params);
+    }
     dispose(): void { this._sc.disconnect(); }
     params: PluginParam[] = [
       { id: 'threshold', name: 'Threshold', value: -30, defaultValue: -30, min: -60, max: 0, unit: 'dB' },

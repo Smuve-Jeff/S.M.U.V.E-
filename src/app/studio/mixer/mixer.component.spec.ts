@@ -138,4 +138,59 @@ describe('MixerComponent', () => {
     const candidates = component.sidechainCandidates('2');
     expect(candidates.map((t) => t.id)).toEqual(['1']);
   });
+
+  it('starts on the Strips console view', () => {
+    expect(component.mixerView()).toBe('strips');
+    const shell: HTMLElement = fixture.nativeElement.querySelector('.mix-shell');
+    expect(shell.classList.contains('mix-view-strips')).toBe(true);
+    expect(shell.classList.contains('mix-view-sends')).toBe(false);
+    expect(shell.classList.contains('mix-view-routing')).toBe(false);
+  });
+
+  it('drives one send surface at a time from the segmented control', () => {
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '.mix-segmented button'
+      ) as NodeListOf<HTMLButtonElement>
+    );
+    expect(buttons.map((b) => b.textContent?.trim())).toEqual([
+      'Strips',
+      'Sends',
+      'Routing',
+    ]);
+    // The control used to be decorative: only Strips was ever active.
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+
+    buttons[1].click();
+    fixture.detectChanges();
+    expect(component.mixerView()).toBe('sends');
+    const shell: HTMLElement = fixture.nativeElement.querySelector('.mix-shell');
+    expect(shell.classList.contains('mix-view-sends')).toBe(true);
+    expect(shell.classList.contains('mix-view-strips')).toBe(false);
+    expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('false');
+
+    buttons[2].click();
+    fixture.detectChanges();
+    expect(component.mixerView()).toBe('routing');
+    expect(shell.classList.contains('mix-view-routing')).toBe(true);
+    expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('does not re-emit haptics when the console view is unchanged', () => {
+    component.setMixerView('strips');
+    expect(component.mixerView()).toBe('strips');
+    component.setMixerView('routing');
+    expect(component.mixerView()).toBe('routing');
+  });
+
+  it('counts the tracks that have a sidechain feed for the routing view', () => {
+    expect(component.sidechainCount()).toBe(0);
+    component.toggleSidechain('1', '2');
+    fixture.detectChanges();
+    expect(component.sidechainCount()).toBe(1);
+    component.toggleSidechain('1', null);
+    fixture.detectChanges();
+    expect(component.sidechainCount()).toBe(0);
+  });
 });

@@ -6,6 +6,7 @@ import {
   HostListener,
   signal,
   OnChanges,
+  OnDestroy,
   OnInit,
   computed,
   inject,
@@ -20,8 +21,19 @@ import { HapticService } from '../../../services/haptic.service';
   template: `
     <div
       class="knob-wrapper"
+      role="slider"
+      tabindex="0"
+      [attr.aria-label]="label || 'Parameter'"
+      [attr.aria-valuemin]="min"
+      [attr.aria-valuemax]="max"
+      [attr.aria-valuenow]="value"
+      [attr.aria-valuetext]="displayValue()"
+      [class.fine-mode]="isFineMode()"
+      [class.at-limit]="isAtLimit()"
+      (pointerdown)="startDrag($event)"
       (mousedown)="startDrag($event)"
       (touchstart)="startDrag($event)"
+      (keydown)="onKeydown($event)"
     >
       <div class="knob-label" *ngIf="label">{{ label }}</div>
       <div class="knob-outer shadow-v42-xl">
@@ -195,7 +207,7 @@ import { HapticService } from '../../../services/haptic.service';
     `,
   ],
 })
-export class KnobComponent implements OnInit, OnChanges {
+export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   private readonly haptic = inject(HapticService);
 
   @Input() label = '';
@@ -244,10 +256,21 @@ export class KnobComponent implements OnInit, OnChanges {
   private lastDragTime = 0;
   private tapCount = 0;
   private tapTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Pointer id captured for the active drag, when Pointer Events are used. */
+  private capturedPointerId: number | null = null;
+  /** Timestamp of the last pointerdown, used to ignore its paired mousedown. */
+  private lastPointerStartAt = 0;
 
   ngOnInit() {
     this.updateFromValue(this.value);
     this.prevValue = this.value;
+  }
+
+  ngOnDestroy() {
+    if (this.tapTimer !== null) {
+      clearTimeout(this.tapTimer);
+      this.tapTimer = null;
+    }
   }
 
   ngOnChanges() {
@@ -256,21 +279,66 @@ export class KnobComponent implements OnInit, OnChanges {
     }
   }
 
-  startDrag(event: MouseEvent | TouchEvent) {
+  /**
+   * Vertical position of the gesture. Reads `touches` defensively instead of
+   * `instanceof TouchEvent`, because TouchEvent is not defined in every
+   * environment that renders this control (jsdom, older WebViews) and the
+   * instanceof check threw a ReferenceError there.
+   */
+  private clientYOf(event: MouseEvent | TouchEvent | PointerEvent): number {
+    const touches = (event as TouchEvent)?.touches;
+    if (touches && touches.length > 0) return touches[0].clientY;
+    return (event as MouseEvent).clientY;
+  }
+
+  /** True when the gesture has more than one contact point. */
+  private isMultiTouch(
+    event: MouseEvent | TouchEvent | PointerEvent
+  ): boolean {
+    const touches = (event as TouchEvent)?.touches;
+    return !!touches && touches.length > 1;
+  }
+
+  private isPointerEvent(
+    event: MouseEvent | TouchEvent | PointerEvent
+  ): event is PointerEvent {
+    return typeof PointerEvent !== 'undefined' && event instanceof PointerEvent;
+  }
+
+  startDrag(event: MouseEvent | TouchEvent | PointerEvent) {
+    if (this.isPointerEvent(event)) {
+      // Chrome fires pointerdown *and* mousedown for a mouse. Remember the
+      // pointer start so the mirrored mousedown is ignored below — otherwise a
+      // single tap incremented tapCount twice and the double-tap reset fired
+      // on one tap.
+      this.lastPointerStartAt = Date.now();
+      this.capturedPointerId = event.pointerId;
+      // Capture keeps the gesture alive when the finger leaves the 64px knob,
+      // so a drag no longer stalls on a phone. Best-effort: not every target
+      // supports it and jsdom does not implement it at all.
+      try {
+        const target = event.currentTarget as Element | null;
+        target?.setPointerCapture?.(event.pointerId);
+      } catch {
+        /* capture is an optimisation, never a requirement */
+      }
+    } else if (Date.now() - this.lastPointerStartAt < 400) {
+      // The pointerdown that produced this synthetic mouse/touch event was
+      // already handled — do not treat it as a second tap.
+      return;
+    }
+
     this.isDragging = true;
-    const isTouch = event instanceof TouchEvent;
-    const point = isTouch
-      ? (event as TouchEvent).touches[0]
-      : (event as MouseEvent);
-    this.startY = point.clientY;
+    const pointY = this.clientYOf(event);
+    this.startY = pointY;
     this.startValue = this.value;
     this.prevValue = this.value;
-    this.lastDragY = point.clientY;
+    this.lastDragY = pointY;
     this.lastDragTime = Date.now();
     this.dragVelocity = 0;
 
     // Two-finger = precision mode
-    if (isTouch && (event as TouchEvent).touches.length > 1) {
+    if (this.isMultiTouch(event)) {
       this.isFineMode.set(true);
     }
 
@@ -290,25 +358,22 @@ export class KnobComponent implements OnInit, OnChanges {
     this.haptic.preset('snap');
   }
 
+  @HostListener('window:pointermove', ['$event'])
   @HostListener('window:mousemove', ['$event'])
   @HostListener('window:touchmove', ['$event'])
-  onDrag(event: MouseEvent | TouchEvent) {
+  onDrag(event: MouseEvent | TouchEvent | PointerEvent) {
     if (!this.isDragging) return;
 
-    const isTouch = event instanceof TouchEvent;
-    const point = isTouch
-      ? (event as TouchEvent).touches[0]
-      : (event as MouseEvent);
-    const currentY = point.clientY;
+    const currentY = this.clientYOf(event);
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
 
-    // Precision mode: two-finger or shift key
+    // Precision mode: two-finger, shift key, or the fine-mode detent
     const isFine =
       this.isFineMode() ||
-      (event instanceof MouseEvent && event.shiftKey) ||
-      (isTouch && (event as TouchEvent).touches.length > 1);
+      (event as MouseEvent).shiftKey === true ||
+      this.isMultiTouch(event);
     const sensitivity = isFine ? (isMobile ? 1200 : 800) : isMobile ? 300 : 180;
 
     // Track drag velocity for velocity-sensitive throw
@@ -343,8 +408,11 @@ export class KnobComponent implements OnInit, OnChanges {
     }
   }
 
+  @HostListener('window:pointerup')
+  @HostListener('window:pointercancel')
   @HostListener('window:mouseup')
   @HostListener('window:touchend')
+  @HostListener('window:touchcancel')
   stopDrag() {
     if (this.isDragging) {
       // Snap to nearest detent if close enough
@@ -353,6 +421,59 @@ export class KnobComponent implements OnInit, OnChanges {
     this.isDragging = false;
     this.isFineMode.set(false);
     this.isAtLimit.set(false);
+    this.capturedPointerId = null;
+  }
+
+  /**
+   * Keyboard control. A knob with role="slider" is expected to be operable
+   * without a pointer: arrows nudge by one step, Shift multiplies that by 10,
+   * PageUp/PageDown move by 10%, Home/End jump to the limits and Escape
+   * restores the default — matching the double-tap/double-click reset.
+   */
+  onKeydown(event: KeyboardEvent) {
+    const range = this.max - this.min;
+    const bigStep = Math.max(this.step, range / 10);
+    let next = this.value;
+
+    switch (event.key) {
+      case 'ArrowUp':
+      case 'ArrowRight':
+        next = this.value + this.step * (event.shiftKey ? 10 : 1);
+        break;
+      case 'ArrowDown':
+      case 'ArrowLeft':
+        next = this.value - this.step * (event.shiftKey ? 10 : 1);
+        break;
+      case 'PageUp':
+        next = this.value + bigStep;
+        break;
+      case 'PageDown':
+        next = this.value - bigStep;
+        break;
+      case 'Home':
+        next = this.min;
+        break;
+      case 'End':
+        next = this.max;
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.resetToDefault();
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    next = Math.max(this.min, Math.min(this.max, next));
+    next = Math.round(next / this.step) * this.step;
+    if (next !== this.value) {
+      this.value = next;
+      this.updateFromValue(next);
+      this.valueChange.emit(next);
+      this.checkDetents();
+      this.haptic.preset('detent');
+    }
   }
 
   private checkDetents() {

@@ -6,6 +6,7 @@ import {
   Injector,
   untracked,
   computed,
+  effect,
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
@@ -208,6 +209,12 @@ export class AudioEngineService {
   public readonly sendAReturn = this.ctx.createGain();
   public readonly sendBReturn = this.ctx.createGain();
 
+  /** Send B's processor (tempo-synced echo) and its wet return trim. */
+  private readonly echoDelay = this.ctx.createDelay(2);
+  private readonly echoFeedback = this.ctx.createGain();
+  private readonly echoDamp = this.ctx.createBiquadFilter();
+  public readonly echoWet = this.ctx.createGain();
+
   // ── Pro: DAW Routing & Bus Logic ────────────────────────────
   public auxBuses = new Map<
     string,
@@ -383,9 +390,48 @@ export class AudioEngineService {
     this.lufsAnalyzer.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.ctx.destination);
 
+    // ── Master FX returns (Send A = reverb, Send B = tempo-synced echo) ──
+    // The returns used to loop straight back into masterGain with nothing on
+    // the return path, so raising a send only re-added the DRY track — it acted
+    // as a second gain stage instead of a send — and the master reverb, whose
+    // wet gain both FxMacrosService and the Master Controls fader drive, had no
+    // input at all (its convolver was built but never fed). Both returns now
+    // terminate on real processors. No feedback risk: the send taps come from
+    // the per-track faders, never from masterGain.
+    this.reverbConvolver.buffer = this.createReverbImpulse();
+    this.reverbWet.gain.value = 0.1; // mirrors the Master Controls fader default
+    this.sendAReturn.connect(this.reverbConvolver);
+    this.reverbConvolver.connect(this.reverbWet);
     this.reverbWet.connect(this.masterGain);
-    this.sendAReturn.connect(this.masterGain);
-    this.sendBReturn.connect(this.masterGain);
+
+    this.echoFeedback.gain.value = 0.32;
+    this.echoDamp.type = 'lowpass';
+    this.echoDamp.frequency.value = 3200;
+    this.echoWet.gain.value = 0.45;
+    this.sendBReturn.connect(this.echoDelay);
+    this.echoDelay.connect(this.echoDamp);
+    this.echoDamp.connect(this.echoFeedback);
+    // A cycle is legal in Web Audio as long as it contains a DelayNode, which
+    // makes this the standard low-passed feedback echo.
+    this.echoFeedback.connect(this.echoDelay);
+    this.echoDelay.connect(this.echoWet);
+    this.echoWet.connect(this.masterGain);
+
+    // Keep the echo on a dotted eighth so the repeats stay musical at any
+    // tempo; every tempo write in the app goes through this signal.
+    effect(() => {
+      const bpm = Math.max(1, this.tempo());
+      const seconds = Math.max(0.02, Math.min(2, (60 / bpm) * 0.75));
+      try {
+        this.echoDelay.delayTime.setTargetAtTime(
+          seconds,
+          this.ctx.currentTime,
+          0.05
+        );
+      } catch {
+        /* AudioParam not started yet — the next tempo change retries. */
+      }
+    });
 
     // K-Weighting Filter Setup (ITU-R BS.1770-4)
     this.lufsFilter1.type = 'highshelf';
@@ -2626,12 +2672,54 @@ export class AudioEngineService {
     this.reverbWet.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.05);
   }
 
-  syncDecks(m: DeckId, s: DeckId) {}
+  /** Set the master echo (Send B) return level (0..1). */
+  setMasterEchoWet(wet: number): void {
+    const clamped = Math.max(0, Math.min(1, wet));
+    this.echoWet.gain.setTargetAtTime(clamped, this.ctx.currentTime, 0.05);
+  }
+
+  /**
+   * Procedural stereo impulse response for the master reverb — a sparse set of
+   * early reflections plus an exponential diffuse tail. The noise comes from a
+   * seeded xorshift32 rather than Math.random so the live graph and an
+   * OfflineAudioContext bounce share one room instead of two subtly different
+   * ones.
+   */
+  private createReverbImpulse(seconds = 2.4, decay = 2.6): AudioBuffer {
+    const rate = this.ctx.sampleRate;
+    const length = Math.max(1, Math.floor(rate * seconds));
+    const impulse = this.ctx.createBuffer(2, length, rate);
+    const earlyReflections = [0.011, 0.019, 0.027, 0.041, 0.058, 0.079];
+
+    let seed = 0x9e3779b9;
+    const nextNoise = () => {
+      seed ^= seed << 13;
+      seed >>>= 0;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      seed >>>= 0;
+      return seed / 0xffffffff;
+    };
+
+    for (let channel = 0; channel < 2; channel++) {
+      const data = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const progress = i / length;
+        data[i] = (nextNoise() * 2 - 1) * Math.pow(1 - progress, decay);
+      }
+      earlyReflections.forEach((arrival, index) => {
+        // Offset the right channel so the two sides decorrelate into width.
+        const pos = Math.floor((arrival + channel * 0.0023) * rate);
+        if (pos < length) {
+          data[pos] += (index % 2 === 0 ? 1 : -1) * (0.45 / (index + 1));
+        }
+      });
+    }
+    return impulse;
+  }
+
   setOutputMode(mode: 'speakers' | 'headphones') {
     this.outputMode.set(mode);
-  }
-  setAdvancedFX(id: DeckId, type: string, amount: number) {
-    /* fx logic */
   }
 
   // ============================================================

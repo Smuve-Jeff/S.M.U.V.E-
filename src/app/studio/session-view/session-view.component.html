@@ -405,9 +405,16 @@
           >
             @let clip =
               getClipsForScene(scene.id).find((c) => c.trackId === track.id);
-            <button
-              type="button"
+            <!-- A div, not a <button>: the slot carries its own automation
+                 toggle, and a button cannot legally contain another button —
+                 the parser hoists the inner one out of the slot. -->
+            <div
               class="sv-clip-slot"
+              tabindex="0"
+              (keydown.enter)="clip && triggerClip(clip, clip.velocity)"
+              (keydown.space)="
+                clip && triggerClip(clip, clip.velocity); $event.preventDefault()
+              "
               [class.is-filled]="!!clip"
               [class.is-empty]="!clip"
               [class.is-playing]="clip?.isPlaying"
@@ -468,7 +475,7 @@
               @if (!clip && dragOverSlotKey() === scene.id + '|' + track.id) {
                 <span class="sv-clip-slot-drop-hint">Drop sample</span>
               }
-            </button>
+            </div>
           </ng-container>
         </div>
       </div>

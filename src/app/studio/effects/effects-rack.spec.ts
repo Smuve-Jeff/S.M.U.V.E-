@@ -225,4 +225,74 @@ describe('DynamicEffectsRack', () => {
       }
     });
   });
+
+  /**
+   * The rack drives its WASM worklet and its project snapshot from these
+   * getters. They used to return hard-coded constants (and `reset()` was a
+   * no-op), so the worklet was configured with values the artist never chose.
+   */
+  describe('built-in plugin parameter integrity', () => {
+    const builtinIds = ['smuve.eq.v1', 'smuve.compressor.v1', 'smuve.reverb.v1',
+      'smuve.delay.v1', 'smuve.distortion.v1', 'smuve.sidechain.v1'];
+
+    it('exposes automatable parameters for every built-in plugin', () => {
+      for (const id of builtinIds) {
+        const plugin = PluginRegistry.create(id, ctx)!;
+        expect(plugin.params.length).toBeGreaterThan(0);
+        plugin.dispose();
+      }
+    });
+
+    it('gives the 7-band EQ one parameter per band', () => {
+      const plugin = PluginRegistry.create('smuve.eq.v1', ctx)!;
+      expect(plugin.params.map((p) => p.id)).toEqual([
+        'band0', 'band1', 'band2', 'band3', 'band4', 'band5', 'band6',
+      ]);
+      plugin.dispose();
+    });
+
+    it('reads back the value that was written instead of a constant', () => {
+      const cases: Array<[string, string, number]> = [
+        ['smuve.eq.v1', 'band2', 7.5],
+        ['smuve.compressor.v1', 'ratio', 6],
+        ['smuve.reverb.v1', 'mix', 0.75],
+        ['smuve.delay.v1', 'time', 0.8],
+        ['smuve.delay.v1', 'feedback', 0.6],
+        ['smuve.distortion.v1', 'amount', 0.9],
+        ['smuve.sidechain.v1', 'threshold', -12],
+      ];
+      for (const [id, paramId, value] of cases) {
+        const plugin = PluginRegistry.create(id, ctx)!;
+        plugin.setParam(paramId, value);
+        expect(plugin.getParam(paramId)).toBe(value);
+        // The descriptor enumerations (params-driven UI) must agree.
+        expect(plugin.params.find((p) => p.id === paramId)!.value).toBe(value);
+        plugin.dispose();
+      }
+    });
+
+    it('keeps the sidechain threshold when the ratio is moved', () => {
+      const plugin = PluginRegistry.create('smuve.sidechain.v1', ctx)!;
+      plugin.setParam('threshold', -45);
+      plugin.setParam('ratio', 2);
+      expect(plugin.getParam('threshold')).toBe(-45);
+      expect(plugin.getParam('ratio')).toBe(2);
+      plugin.dispose();
+    });
+
+    it('reset() restores defaults in both the DSP and the descriptors', () => {
+      for (const id of builtinIds) {
+        const plugin = PluginRegistry.create(id, ctx)!;
+        for (const param of plugin.params) {
+          plugin.setParam(param.id, param.max);
+        }
+        plugin.reset();
+        for (const param of plugin.params) {
+          expect(plugin.getParam(param.id)).toBe(param.defaultValue);
+          expect(param.value).toBe(param.defaultValue);
+        }
+        plugin.dispose();
+      }
+    });
+  });
 });

@@ -9,7 +9,11 @@ import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { MarketAlert } from '../types/ai.types';
+import {
+  ExecutiveAuditReport,
+  MarketAlert,
+  StrategicTask,
+} from '../types/ai.types';
 import { buildArtistMusicContext } from '../types/profile.types';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
@@ -48,10 +52,22 @@ export class AiService {
   private mimicryBuffer: string[] = [];
   isScanning = signal(false);
   isMobile = signal(false);
-  executiveAudit = signal<any>(null);
+  executiveAudit = signal<ExecutiveAuditReport | null>(null);
   intelligenceBriefs = signal<any[]>([]);
   advisorAdvice = signal<any[]>([]);
   deepAuditResults = signal<any>(null);
+
+  // ── Autonomous session musicians ─────────────────────────────────────
+  /**
+   * Virtual session players. They improvise *over* the arrangement on each
+   * sequencer step (rendered by AiMusiciansService) rather than writing into
+   * it, so the artist's notes are never modified by a jam.
+   */
+  aiDrummerActive = signal(false);
+  aiBassistActive = signal(false);
+  aiKeyboardistActive = signal(false);
+  /** Most recent proactive pulse, deduped so an interval cannot spam the UI. */
+  lastPulse = signal<{ message: string; at: number } | null>(null);
 
   conversationalTier = computed(() => {
     const profile = this.userProfileService.profile();
@@ -316,7 +332,6 @@ Fuck their feelings. Results are all that matter.`;
     return text.replace(/ mediocre /g, ' f***ing mediocre ');
   }
 
-  async syncKnowledgeBaseWithProfile() {}
   async getAutoMixSettings() {
     return { threshold: -14, ratio: 4, ceiling: -0.1, targetLufs: -14 };
   }
@@ -421,31 +436,568 @@ Fuck their feelings. Results are all that matter.`;
     });
   }
 
-  isAIDrummerActive() {
-    return true;
+  // ── Session musician transport ──────────────────────────────────────
+  //
+  // These used to be hard-coded booleans with no-op toggles: the drummer
+  // reported itself permanently ON (so the sequencer's AI layer could never be
+  // switched off) and the bassist/keyboardist reported OFF forever (so those
+  // toggles did nothing at all).
+
+  isAIDrummerActive(): boolean {
+    return this.aiDrummerActive();
   }
-  isAIBassistActive() {
-    return false;
+  isAIBassistActive(): boolean {
+    return this.aiBassistActive();
   }
-  isAIKeyboardistActive() {
-    return false;
+  isAIKeyboardistActive(): boolean {
+    return this.aiKeyboardistActive();
   }
-  startAIKeyboardist() {}
-  stopAIKeyboardist() {}
-  startAIBassist() {}
-  stopAIBassist() {}
-  startAIDrummer() {}
-  stopAIDrummer() {}
-  performExecutiveAudit() {}
-  performDeepAudit() {}
-  studyTrack(buf: any, name: string) {}
-  getViralHooks() {
-    return [];
+
+  startAIKeyboardist() {
+    this.setMusician('keyboardist', true);
   }
-  getDynamicChecklist() {
-    return [];
+  stopAIKeyboardist() {
+    this.setMusician('keyboardist', false);
   }
-  proactiveSmuvePulse() {}
+  startAIBassist() {
+    this.setMusician('bassist', true);
+  }
+  stopAIBassist() {
+    this.setMusician('bassist', false);
+  }
+  startAIDrummer() {
+    this.setMusician('drummer', true);
+  }
+  stopAIDrummer() {
+    this.setMusician('drummer', false);
+  }
+
+  /** The AI-musician roster, for UIs that render one toggle per player. */
+  readonly sessionMusicians = [
+    { id: 'drummer' as const, label: 'Neural Drummer', detail: 'Kick + backbeat snare' },
+    { id: 'bassist' as const, label: 'AI Bassist', detail: 'Octave-down root reinforcement' },
+    { id: 'keyboardist' as const, label: 'AI Keyboardist', detail: 'Fifth-above chord pads' },
+  ];
+
+  isMusicianActive(who: 'drummer' | 'bassist' | 'keyboardist'): boolean {
+    return this.musicianSignal(who)();
+  }
+
+  toggleAIMusician(who: 'drummer' | 'bassist' | 'keyboardist'): void {
+    this.setMusician(who, !this.musicianSignal(who)());
+  }
+
+  private musicianSignal(who: 'drummer' | 'bassist' | 'keyboardist') {
+    if (who === 'drummer') return this.aiDrummerActive;
+    if (who === 'bassist') return this.aiBassistActive;
+    return this.aiKeyboardistActive;
+  }
+
+  private setMusician(
+    who: 'drummer' | 'bassist' | 'keyboardist',
+    active: boolean
+  ): void {
+    const target = this.musicianSignal(who);
+    if (target() === active) return;
+    target.set(active);
+    const entry = this.sessionMusicians.find((m) => m.id === who)!;
+    this.logger.info(`AiService: ${entry.label} ${active ? 'engaged' : 'disengaged'}`);
+    this.notification.show(
+      active
+        ? `${entry.label.toUpperCase()}: ENGAGED — improvising over the arrangement`
+        : `${entry.label.toUpperCase()}: DISENGAGED`,
+      'info',
+      3500
+    );
+  }
+
+  // ── Executive / deep audit ───────────────────────────────────────────
+
+  /**
+   * Deterministic audit of the live session + profile. Every figure is derived
+   * from real state (tracks, clips, mix decisions, catalogue, security
+   * settings), so the same session always scores the same.
+   */
+  buildExecutiveAuditReport(): ExecutiveAuditReport {
+    const profile = this.userProfileService.profile();
+    const tracks = this.musicManager.tracks().filter((t) => t.type !== 'bus');
+    const count = tracks.length;
+    const pct = (n: number) => (count ? Math.round((n / count) * 100) : 0);
+
+    const written = tracks.filter(
+      (t) => (t.notes?.length ?? 0) > 0 || (t.steps ?? []).some(Boolean)
+    ).length;
+    const arranged = tracks.filter((t) => (t.clips?.length ?? 0) > 0).length;
+    const balanced = tracks.filter((t) => t.gain > 0 && t.gain <= 1.25).length;
+    const processed = tracks.filter(
+      (t) => (t.fxSlots?.length ?? 0) > 0 || (t.pluginIds?.length ?? 0) > 0
+    ).length;
+
+    const catalogue = profile.catalog || [];
+    const tempos = catalogue
+      .map((c) => c.bpm)
+      .filter((b): b is number => typeof b === 'number' && b > 0);
+    const released = catalogue.filter((c) =>
+      /releas|live|publish/i.test(c.status || '')
+    ).length;
+    const alignedGenre = catalogue.filter(
+      (c) => (c.genre || '').toLowerCase() === profile.primaryGenre.toLowerCase()
+    ).length;
+
+    const sonicCohesion = count
+      ? Math.round(pct(processed) * 0.6 + pct(balanced) * 0.4)
+      : 0;
+    const arrangementDepth = count
+      ? Math.round(pct(arranged) * 0.7 + pct(written) * 0.3)
+      : 0;
+    const marketViability = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.min(55, catalogue.length * 11) +
+          Math.min(25, released * 9) +
+          Math.round((profile.strategicHealthScore || 0) * 0.2)
+      )
+    );
+    const security = profile.settings?.security;
+    const technicalAuthority = Math.max(
+      0,
+      Math.min(
+        100,
+        40 +
+          (security?.twoFactorEnabled ? 20 : 0) +
+          (security?.auditLogEnabled ? 15 : 0) +
+          (profile.settings?.audio?.sampleRate >= 48000 ? 15 : 0) +
+          (profile.profileSetupCompleted ? 10 : 0)
+      )
+    );
+
+    const overallScore = Math.round(
+      (sonicCohesion + arrangementDepth + marketViability + technicalAuthority) / 4
+    );
+
+    const criticalDeficits: string[] = [];
+    if (count === 0) criticalDeficits.push('The session is empty — nothing to audit.');
+    if (count > 0 && arranged < count)
+      criticalDeficits.push(
+        `${count - arranged} track(s) carry no arrangement clip — they will not play back.`
+      );
+    if (count > 0 && processed < count)
+      criticalDeficits.push(
+        `${count - processed} track(s) have no insert processing — the mix is raw.`
+      );
+    if (catalogue.length === 0)
+      criticalDeficits.push('The catalogue is empty — no release history to analyse.');
+    if (!security?.twoFactorEnabled)
+      criticalDeficits.push('Two-factor authentication is disabled.');
+
+    const technicalRecommendations: string[] = [];
+    if (count > 0 && balanced < count)
+      technicalRecommendations.push(
+        'Re-balance track gains: keep every fader between 0 and +2 dB before the master.'
+      );
+    if (count > 0 && processed < count)
+      technicalRecommendations.push(
+        'Add an insert (EQ or compressor) to every audible track before bouncing.'
+      );
+    if (tempos.length > 1 && this.variance(tempos) > 25)
+      technicalRecommendations.push(
+        'Tempo spread across the catalogue is wide — group releases by tempo family.'
+      );
+    if (catalogue.length > 0 && alignedGenre < catalogue.length)
+      technicalRecommendations.push(
+        `Tag the remaining ${catalogue.length - alignedGenre} catalogue item(s) with your primary genre (${profile.primaryGenre}).`
+      );
+    if (technicalRecommendations.length === 0)
+      technicalRecommendations.push('No technical blockers detected in this session.');
+
+    return {
+      overallScore,
+      sonicCohesion,
+      arrangementDepth,
+      marketViability,
+      criticalDeficits,
+      technicalRecommendations,
+      catalogAnalysis: {
+        bpmVariance: this.variance(tempos),
+        keyConsistency: catalogue.length
+          ? Math.round(
+              (this.mostCommon(catalogue.map((c) => c.key || 'untagged')) /
+                catalogue.length) *
+                100
+            )
+          : 0,
+        genreAlignment: catalogue.length
+          ? Math.round((alignedGenre / catalogue.length) * 100)
+          : 0,
+      },
+    };
+  }
+
+  performExecutiveAudit(): ExecutiveAuditReport {
+    this.isScanning.set(true);
+    try {
+      const report = this.buildExecutiveAuditReport();
+      this.executiveAudit.set(report);
+      this.notification.show(
+        `EXECUTIVE AUDIT COMPLETE — ${report.overallScore}/100`,
+        'info',
+        5000
+      );
+      return report;
+    } finally {
+      this.isScanning.set(false);
+    }
+  }
+
+  async performDeepAudit() {
+    this.isScanning.set(true);
+    try {
+      const report = this.buildExecutiveAuditReport();
+      const tasks = this.getDynamicChecklist().filter((t) => !t.completed);
+      const lines = [
+        `OVERALL: ${report.overallScore}/100`,
+        `SONIC COHESION: ${report.sonicCohesion}%   ARRANGEMENT DEPTH: ${report.arrangementDepth}%`,
+        `MARKET VIABILITY: ${report.marketViability}%   TECHNICAL AUTHORITY: ${this.technicalScore()}%`,
+        '',
+        'CRITICAL DEFICITS:',
+        ...(report.criticalDeficits.length
+          ? report.criticalDeficits.map((d) => `  • ${d}`)
+          : ['  • None detected.']),
+        '',
+        'MANDATED NEXT ACTIONS:',
+        ...(tasks.length
+          ? tasks.slice(0, 5).map((t) => `  • [${t.impact}] ${t.label}`)
+          : ['  • All mandates cleared. Keep the pressure on anyway.']),
+      ];
+      const result = {
+        status: report.overallScore >= 75 ? 'AUDIT PASSED' : 'DEFICIENCIES FOUND',
+        score: report.overallScore,
+        timestamp: Date.now(),
+        categories: {
+          production: report.sonicCohesion,
+          marketing: report.marketViability,
+          career: report.arrangementDepth,
+          technical: this.technicalScore(),
+        },
+        strengths: report.technicalRecommendations.slice(0, 2),
+        weaknesses: report.criticalDeficits,
+        recommendations: report.technicalRecommendations,
+        report: lines.join('\n'),
+      };
+      this.deepAuditResults.set(result);
+      return result;
+    } finally {
+      this.isScanning.set(false);
+    }
+  }
+
+  private technicalScore(): number {
+    const security = this.userProfileService.profile().settings?.security;
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        40 +
+          (security?.twoFactorEnabled ? 25 : 0) +
+          (security?.auditLogEnabled ? 20 : 0) +
+          (security?.endToEndEncryption ? 15 : 0)
+      )
+    );
+  }
+
+  private variance(values: number[]): number {
+    if (values.length < 2) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    return Math.round(
+      values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / values.length
+    );
+  }
+
+  private mostCommon(values: string[]): number {
+    const counts = new Map<string, number>();
+    for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
+    return Math.max(0, ...counts.values());
+  }
+
+  // ── Track study ─────────────────────────────────────────────────────
+
+  /**
+   * Analyse a decoded track and record it in the artist knowledge base.
+   * Peak/RMS/silence and a tempo estimate come straight out of the samples —
+   * the previous implementation discarded the buffer and reported nothing.
+   */
+  async studyTrack(buffer: AudioBuffer, name: string) {
+    if (!buffer || !buffer.length) return null;
+    const analysis = this.analyseBuffer(buffer);
+    const profile = this.userProfileService.profile();
+    const kb = profile.knowledgeBase;
+    const point = {
+      id: `dp-track-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      type: 'track-analysis',
+      name,
+      ...analysis,
+      studiedAt: Date.now(),
+    };
+    const dataPoints = [
+      ...(kb.dataPoints || []).filter((d: any) => d?.id !== point.id),
+      point,
+    ].slice(-200);
+    await this.userProfileService.updateProfile({
+      knowledgeBase: { ...kb, dataPoints },
+    });
+    this.notification.show(
+      `TRACK STUDY COMPLETE — ${name}: ${analysis.durationSeconds}s, ~${analysis.estimatedBpm} BPM`,
+      'info',
+      4000
+    );
+    return analysis;
+  }
+
+  private analyseBuffer(buffer: AudioBuffer) {
+    const channel = buffer.getChannelData(0);
+    const length = channel.length;
+    let peak = 0;
+    let sumSquares = 0;
+    let silent = 0;
+    for (let i = 0; i < length; i++) {
+      const sample = Math.abs(channel[i]);
+      if (sample > peak) peak = sample;
+      sumSquares += channel[i] * channel[i];
+      if (sample < 1e-4) silent += 1;
+    }
+    const rms = length ? Math.sqrt(sumSquares / length) : 0;
+    const durationSeconds = Number((buffer.duration || 0).toFixed(2));
+    return {
+      durationSeconds,
+      channels: buffer.numberOfChannels,
+      sampleRate: buffer.sampleRate,
+      peak: Number(peak.toFixed(4)),
+      peakDb: Number((20 * Math.log10(Math.max(peak, 1e-6))).toFixed(2)),
+      rmsDb: Number((20 * Math.log10(Math.max(rms, 1e-6))).toFixed(2)),
+      silenceRatio: Number((length ? silent / length : 0).toFixed(4)),
+      estimatedBpm: this.estimateBpm(channel, buffer.sampleRate),
+      clippedSamples: this.countClipped(channel),
+    };
+  }
+
+  private countClipped(channel: Float32Array): number {
+    let clipped = 0;
+    for (let i = 0; i < channel.length; i++) {
+      if (Math.abs(channel[i]) >= 0.999) clipped += 1;
+    }
+    return clipped;
+  }
+
+  /**
+   * Tempo estimate from the onset envelope: windowed energy, positive first
+   * differences, then autocorrelation scored over a 60-180 BPM range. Bounded
+   * to the first 60 seconds so studying a long file stays cheap.
+   */
+  private estimateBpm(channel: Float32Array, sampleRate: number): number {
+    const hop = 1024;
+    const maxSamples = Math.min(channel.length, sampleRate * 60);
+    const frames = Math.floor(maxSamples / hop);
+    if (frames < 8) return 0;
+    const energy = new Float32Array(frames);
+    for (let f = 0; f < frames; f++) {
+      let sum = 0;
+      const start = f * hop;
+      for (let i = start; i < start + hop; i++) sum += channel[i] * channel[i];
+      energy[f] = Math.sqrt(sum / hop);
+    }
+    const onset = new Float32Array(frames);
+    for (let f = 1; f < frames; f++) {
+      onset[f] = Math.max(0, energy[f] - energy[f - 1]);
+    }
+    const framesPerSecond = sampleRate / hop;
+    let bestBpm = 0;
+    let bestScore = 0;
+    for (let bpm = 60; bpm <= 180; bpm += 1) {
+      const lag = Math.round((60 / bpm) * framesPerSecond);
+      if (lag < 1 || lag >= frames) continue;
+      let score = 0;
+      for (let f = lag; f < frames; f++) score += onset[f] * onset[f - lag];
+      if (score > bestScore) {
+        bestScore = score;
+        bestBpm = bpm;
+      }
+    }
+    return bestBpm;
+  }
+
+  // ── Strategy surfaces ───────────────────────────────────────────────
+
+  /** Marketing hooks derived from the artist's genre and success metric. */
+  getViralHooks(): string[] {
+    const profile = this.userProfileService.profile();
+    const genre = profile.primaryGenre || 'your sound';
+    const metric =
+      profile.musicalJourney?.primarySuccessMetric || 'Creative Satisfaction';
+    const anchor = profile.musicalJourney?.musicBlueprint?.vocalDelivery;
+    return [
+      `Hooks inside 3 seconds: lead with the ${genre} signature, kill the intro runway.`,
+      anchor
+        ? `Cut a 15-second clip around the strongest ${anchor} phrase and front-load it.`
+        : `Cut a 15-second clip around the strongest bar — no build-up, no apology.`,
+      `Caption it against the goal that actually pays: ${metric}.`,
+      `Post the stripped-back version first; the full mix becomes the payoff.`,
+    ];
+  }
+
+  /** Mandated next actions, derived from what the profile and session lack. */
+  getDynamicChecklist(): StrategicTask[] {
+    const profile = this.userProfileService.profile();
+    const tracks = this.musicManager.tracks().filter((t) => t.type !== 'bus');
+    const arranged = tracks.filter((t) => (t.clips?.length ?? 0) > 0).length;
+    const processed = tracks.filter(
+      (t) => (t.fxSlots?.length ?? 0) > 0 || (t.pluginIds?.length ?? 0) > 0
+    ).length;
+    const security = profile.settings?.security;
+    return [
+      {
+        id: 'task-identity',
+        label: 'Complete the artist identity profile',
+        completed:
+          !!profile.profileSetupCompleted && profile.artistName !== 'New Artist',
+        category: 'Identity',
+        impact: 'Critical',
+        description:
+          'S.M.U.V.E cannot target a market it cannot name. Finish the questionnaire.',
+      },
+      {
+        id: 'task-arrangement',
+        label: 'Arrange at least one full pattern',
+        completed: arranged > 0,
+        category: 'Production',
+        impact: 'Critical',
+        description:
+          'Patterns that never reach the arrangement cannot be exported or released.',
+      },
+      {
+        id: 'task-mix',
+        label: 'Give every track a mix decision',
+        completed: tracks.length > 0 && processed === tracks.length,
+        category: 'Production',
+        impact: 'High',
+        description: `${processed}/${tracks.length} track(s) carry insert processing.`,
+      },
+      {
+        id: 'task-catalog',
+        label: 'Register a finished track in the catalogue',
+        completed: (profile.catalog || []).length > 0,
+        category: 'Release',
+        impact: 'High',
+        description:
+          'An empty catalogue leaves the strategy engine with nothing to project.',
+      },
+      {
+        id: 'task-marketing',
+        label: 'Launch a marketing campaign',
+        completed: (profile.marketingCampaigns || []).length > 0,
+        category: 'Marketing',
+        impact: 'Medium',
+        description: 'Releases without a campaign burn their first-week window.',
+      },
+      {
+        id: 'task-security',
+        label: 'Enable two-factor authentication',
+        completed: !!security?.twoFactorEnabled,
+        category: 'Security',
+        impact: 'Medium',
+        description: 'Your catalogue and split sheets are one password away.',
+      },
+    ];
+  }
+
+  /**
+   * Ambient status pulse. Dedupes on the message so an interval cannot spam
+   * the notification stack, and returns the line for inline display.
+   */
+  proactiveSmuvePulse(): string {
+    const open = this.getDynamicChecklist().filter((t) => !t.completed);
+    const report = this.buildExecutiveAuditReport();
+    const message = open.length
+      ? `S.M.U.V.E PULSE — ${open.length} open mandate(s). Priority: ${open[0].label}. Audit ${report.overallScore}/100.`
+      : `S.M.U.V.E PULSE — all mandates cleared. Session audit ${report.overallScore}/100.`;
+    const previous = this.lastPulse();
+    this.lastPulse.set({ message, at: Date.now() });
+    if (!previous || previous.message !== message) {
+      this.notification.show(message, 'info', 5000);
+    }
+    return message;
+  }
+
+  /**
+   * Fold the live profile into the artist knowledge base so the AI answers from
+   * real data instead of an empty knowledge structure. Uplink awaits this on
+   * every sync, so it must be idempotent.
+   */
+  async syncKnowledgeBaseWithProfile() {
+    const profile = this.userProfileService.profile();
+    const kb = profile.knowledgeBase;
+    const dataPoints: any[] = [...(kb.dataPoints || [])];
+    const now = Date.now();
+    const upsert = (point: any) => {
+      const index = dataPoints.findIndex((d) => d?.id === point.id);
+      if (index >= 0) dataPoints[index] = point;
+      else dataPoints.push(point);
+    };
+    upsert({
+      id: 'kb-profile-identity',
+      type: 'identity',
+      artistName: profile.artistName,
+      primaryGenre: profile.primaryGenre,
+      marketPosition: profile.musicalJourney?.marketPosition,
+      yearsInIndustry: profile.musicalJourney?.yearsInIndustry,
+      updatedAt: now,
+    });
+    upsert({
+      id: 'kb-profile-goals',
+      type: 'goals',
+      careerGoals: profile.careerGoals || [],
+      criticalDeficits: profile.criticalDeficits || [],
+      strategicHealthScore: profile.strategicHealthScore || 0,
+      updatedAt: now,
+    });
+    upsert({
+      id: 'kb-profile-studio',
+      type: 'studio-setup',
+      daw: profile.daw || [],
+      equipment: profile.equipment || [],
+      services: profile.services || [],
+      updatedAt: now,
+    });
+    upsert({
+      id: 'kb-profile-expertise',
+      type: 'expertise',
+      levels: profile.expertise || {},
+      updatedAt: now,
+    });
+
+    const catalogue = profile.catalog || [];
+    const genreAnalysis = {
+      ...(kb.genreAnalysis || {}),
+      [profile.primaryGenre]: {
+        catalogueSize: catalogue.length,
+        alignedTitles: catalogue
+          .filter(
+            (c) =>
+              (c.genre || '').toLowerCase() === profile.primaryGenre.toLowerCase()
+          )
+          .map((c) => c.title),
+        updatedAt: now,
+      },
+    };
+
+    await this.userProfileService.updateProfile({
+      knowledgeBase: { ...kb, dataPoints, genreAnalysis },
+    });
+    this.logger.info(
+      `AiService: knowledge base synced from profile (${dataPoints.length} data points)`
+    );
+    return { synced: 4, total: dataPoints.length };
+  }
   async generateDrumPattern(genre: string = 'Trap'): Promise<boolean[]> {
     this.logger.info(`AI generating ${genre} drum pattern...`);
     // Professional Trap/Pop pattern generation logic

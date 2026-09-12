@@ -5,9 +5,11 @@
 >
   <div class="playlist-header wood-panel">
     <div class="view-tabs flex items-center gap-4">
-      <button class="tab-btn active neon-text-xs">
+      <!-- Product badge, not a control. It used to be a <button class="active">
+           that did nothing, so it read as a dead tab and stole a tab stop. -->
+      <span class="tab-btn active neon-text-xs" role="presentation">
         ELITE ARRANGEMENT PRO v5
-      </button>
+      </span>
       <div class="history-controls flex gap-1 ml-4">
         <button
           (click)="history.undo()"

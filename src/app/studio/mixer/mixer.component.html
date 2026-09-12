@@ -1,4 +1,9 @@
-<div class="mix-shell">
+<div
+  class="mix-shell"
+  [class.mix-view-strips]="mixerView() === 'strips'"
+  [class.mix-view-sends]="mixerView() === 'sends'"
+  [class.mix-view-routing]="mixerView() === 'routing'"
+>
   <header class="mix-header" role="banner">
     <div class="mix-header-title">
       <span class="material-symbols-outlined">tune</span>
@@ -8,19 +13,36 @@
       </div>
     </div>
 
-    <div class="mix-segmented" role="group" aria-label="View mode">
+    <div class="mix-segmented" role="group" aria-label="Console view">
       <button
         type="button"
-        class="active"
-        aria-pressed="true"
-        title="Strips view"
+        [class.active]="mixerView() === 'strips'"
+        (click)="setMixerView('strips')"
+        [attr.aria-pressed]="mixerView() === 'strips'"
+        title="Strips — level, pan, mute/solo and AUX sends"
       >
         Strips
       </button>
-      <button type="button" title="Sends view" aria-pressed="false">
+      <button
+        type="button"
+        [class.active]="mixerView() === 'sends'"
+        (click)="setMixerView('sends')"
+        [attr.aria-pressed]="mixerView() === 'sends'"
+        title="Sends — full AUX A/B faders with dB readouts"
+      >
         Sends
       </button>
-      <button type="button" title="Routing view" aria-pressed="false">
+      <button
+        type="button"
+        [class.active]="mixerView() === 'routing'"
+        (click)="setMixerView('routing')"
+        [attr.aria-pressed]="mixerView() === 'routing'"
+        [title]="
+          'Routing — sidechain feeds (' +
+          sidechainCount() +
+          ' active) and VCA assignment'
+        "
+      >
         Routing
       </button>
     </div>
@@ -260,10 +282,11 @@
           ></div>
         </div>
 
-        <!-- ――― AUX Sends — sendA (teal) + sendB (amber), 0-150 % faders ――― -->
+        <!-- ――― AUX Sends — A feeds the master reverb, B the tempo-synced echo,
+             0-150 % faders ――― -->
         <div class="mix-strip-sends">
           <span class="mix-sends-label">AUX</span>
-          <label class="mix-send-knob-wrap">
+          <label class="mix-send-knob-wrap" title="Send A · master reverb">
             A
             <input
               type="range"
@@ -274,10 +297,10 @@
               [value]="(track.sendA || 0) * 100"
               (input)="updateSend(track.id, 'A', +$any($event.target).value); $event.stopPropagation()"
               (click)="$event.stopPropagation()"
-              [attr.aria-label]="'Send A level for ' + track.name"
+              [attr.aria-label]="'Reverb send (A) level for ' + track.name"
             />
           </label>
-          <label class="mix-send-knob-wrap">
+          <label class="mix-send-knob-wrap" title="Send B · tempo-synced echo">
             B
             <input
               type="range"
@@ -288,7 +311,7 @@
               [value]="(track.sendB || 0) * 100"
               (input)="updateSend(track.id, 'B', +$any($event.target).value); $event.stopPropagation()"
               (click)="$event.stopPropagation()"
-              [attr.aria-label]="'Send B level for ' + track.name"
+              [attr.aria-label]="'Echo send (B) level for ' + track.name"
             />
           </label>
         </div>
@@ -376,7 +399,7 @@
 
         <div class="mix-sends">
           <div class="mix-sends-row">
-            <span class="mix-sends-label">SND A</span>
+            <span class="mix-sends-label" title="Send A · master reverb">VERB</span>
             <input
               type="range"
               class="mix-sends-slider"
@@ -387,14 +410,16 @@
                 updateSend(track.id, 'A', $event); $event.stopPropagation()
               "
               (click)="$event.stopPropagation()"
-              [attr.aria-label]="'Send A level on ' + track.name"
+              [attr.aria-label]="'Reverb send (A) level on ' + track.name"
             />
             <span class="mix-sends-readout">{{
               (track.sendA ?? 0) * 100 | number: '1.0-0'
             }}</span>
           </div>
           <div class="mix-sends-row">
-            <span class="mix-sends-label">SND B</span>
+            <span class="mix-sends-label" title="Send B · tempo-synced echo"
+              >ECHO</span
+            >
             <input
               type="range"
               class="mix-sends-slider"
@@ -405,7 +430,7 @@
                 updateSend(track.id, 'B', $event); $event.stopPropagation()
               "
               (click)="$event.stopPropagation()"
-              [attr.aria-label]="'Send B level on ' + track.name"
+              [attr.aria-label]="'Echo send (B) level on ' + track.name"
             />
             <span class="mix-sends-readout">{{
               (track.sendB ?? 0) * 100 | number: '1.0-0'
