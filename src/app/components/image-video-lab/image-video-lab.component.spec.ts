@@ -158,6 +158,10 @@ describe('ImageVideoLabComponent', () => {
         },
       ]),
       safeZoneEnabled: signal(true),
+      lowerThird: signal({ enabled: false, title: '', subtitle: '' }),
+      countdownRemaining: signal<number | null>(null),
+      countdownLabel: jest.fn().mockReturnValue(null),
+      cueFired: signal(0),
       getActiveClips: jest.fn().mockReturnValue([]),
       togglePlay: jest.fn(),
       play: jest.fn(),
@@ -390,6 +394,26 @@ describe('ImageVideoLabComponent', () => {
     };
   };
 
+  /**
+   * jsdom ships no media implementation at all, so a bare `pause()` reaches
+   * jsdom's "not implemented" reporter and logs an error. `afterEach` restores
+   * the per-test spies *before* Angular tears the fixture down, so the
+   * prototype needs a durable no-op underneath them or every teardown of a
+   * fixture holding a playing element prints a stack trace.
+   */
+  beforeAll(() => {
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      writable: true,
+      value: () => Promise.resolve(),
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      writable: true,
+      value: () => undefined,
+    });
+  });
+
   beforeEach(() => {
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
@@ -498,7 +522,7 @@ describe('ImageVideoLabComponent', () => {
       clientX: 550,
     } as unknown as MouseEvent);
 
-    expect(videoEngine.seek).toHaveBeenCalledWith(450);
+    expect(videoEngine.seek).toHaveBeenCalledWith(45);
   });
 
   it('clamps timeline clicks outside the lane bounds', async () => {
@@ -516,7 +540,7 @@ describe('ImageVideoLabComponent', () => {
       currentTarget: { getBoundingClientRect: () => rect },
       clientX: 5000,
     } as unknown as MouseEvent);
-    expect(videoEngine.seek).toHaveBeenCalledWith(900);
+    expect(videoEngine.seek).toHaveBeenCalledWith(490);
   });
 
   it('clamps timeline zoom between 25% and 400%', async () => {
@@ -1137,6 +1161,62 @@ describe('ImageVideoLabComponent', () => {
       expect(videoEngine.play).toHaveBeenCalledTimes(2);
       expect(videoEngine.pause).toHaveBeenCalledTimes(2);
       expect(component.isExporting()).toBe(false);
+    });
+  });
+
+  describe('teardown', () => {
+    it('hands the camera back when the module is closed', async () => {
+      const { component, camera, fixture } = await createComponent();
+      await component.toggleCamera();
+      expect(camera.isLive()).toBe(true);
+
+      fixture.destroy();
+
+      // Releasing the stream is the only way the OS frees the camera light.
+      expect(camera.stop).toHaveBeenCalled();
+      expect(camera.isLive()).toBe(false);
+    });
+
+    it('stops and unloads every cached clip on close', async () => {
+      const { videoEngine, fixture, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([createVideoClip()]);
+      renderFrame();
+      const cached = decodeVideo(videos[0]);
+      cached.setPaused(false);
+      pauseSpy.mockClear();
+
+      expect(() => fixture.destroy()).not.toThrow();
+
+      expect(pauseSpy).toHaveBeenCalled();
+      expect(videos[0].getAttribute('src')).toBe('');
+    });
+
+    it('survives a host whose media element cannot be paused', async () => {
+      const { videoEngine, fixture, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([createVideoClip()]);
+      renderFrame();
+      const cached = decodeVideo(videos[0]);
+      cached.setPaused(false);
+      pauseSpy.mockImplementation(() => {
+        throw new TypeError('Illegal invocation');
+      });
+
+      // A partial media implementation must never break component teardown.
+      expect(() => fixture.destroy()).not.toThrow();
+    });
+
+    it('revokes the object URLs it created for ingested files', async () => {
+      const revoke = jest.spyOn(URL, 'revokeObjectURL');
+      const { component, fixture } = await createComponent();
+      await component.onFileUpload({
+        target: { files: [{ name: 'thumb.png', type: 'image/png' }] },
+      });
+
+      fixture.destroy();
+
+      expect(revoke).toHaveBeenCalledWith('blob:test');
     });
   });
 });

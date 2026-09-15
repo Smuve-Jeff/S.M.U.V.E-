@@ -216,20 +216,75 @@
               </button>
             </div>
           </div>
-          <div
-            class="hidden sm:block text-[8px] md:text-[9px] font-bold text-brand-primary uppercase"
-          >
-            Neural Sync Active
+          <div class="timeline-toolbar">
+            <label class="timeline-toggle">
+              <input
+                type="checkbox"
+                [checked]="videoEngine.snapToBeat()"
+                (change)="videoEngine.snapToBeat.set($any($event.target).checked)"
+              />
+              <span>Beat snap</span>
+            </label>
+            <button type="button" class="timeline-tool" (click)="splitAtPlayhead()">CUT</button>
+            <button type="button" class="timeline-tool" (click)="duplicateSelectedClip()">DUPLICATE</button>
+            <button type="button" class="timeline-tool timeline-tool-danger" (click)="deleteSelectedClip()">DELETE</button>
+            <input
+              class="marker-input"
+              type="text"
+              aria-label="Marker label"
+              placeholder="Marker label"
+              [ngModel]="markerDraft()"
+              (ngModelChange)="markerDraft.set($event)"
+              (keyup.enter)="addMarkerAtPlayhead()"
+            />
+            <button type="button" class="timeline-tool" (click)="addMarkerAtPlayhead()">MARK</button>
+            <button type="button" class="timeline-tool" (click)="seekRelativeMarker(-1)">PREV</button>
+            <button type="button" class="timeline-tool" (click)="seekRelativeMarker(1)">NEXT</button>
+          </div>
+          <div class="selected-clip-toolbar" *ngIf="selectedClip(); as clip">
+            <span class="selected-clip-name">{{ clip.name }}</span>
+            <span>{{ clip.startTime | number: '1.2-2' }}s · {{ clip.duration | number: '1.2-2' }}s</span>
+            <button type="button" (click)="nudgeSelectedClip(-1 / 30)">−1F</button>
+            <button type="button" (click)="nudgeSelectedClip(1 / 30)">+1F</button>
+            <select aria-label="Move selected clip to lane" [ngModel]="selectedClipLane()" (ngModelChange)="moveSelectedClipToLane($event)">
+              @for (track of trackOptions(); track track.id) {
+                <option [value]="track.id" [disabled]="track.locked">{{ track.name }}</option>
+              }
+            </select>
           </div>
         </div>
 
-        <div class="flex-grow overflow-x-auto custom-scrollbar relative">
+        <div #timelineScroller class="flex-grow overflow-x-auto custom-scrollbar relative" (scroll)="onTimelineScroll($event)">
           <div
             class="flex flex-col gap-2 md:gap-3 min-w-full cursor-pointer"
-            [style.width.px]="600 * zoomLevel()"
+            [style.width.px]="timelineWidthPx()"
             (click)="seekFromTimelineEvent($event)"
             title="Click the timeline to move the playhead"
           >
+            <div class="timeline-ruler" aria-label="Timeline beat ruler">
+              @for (tick of rulerTicks(); track tick.time) {
+                <button
+                  type="button"
+                  class="timeline-tick"
+                  [class.bar]="tick.isBar"
+                  [style.left.px]="tick.time * pxPerSecond()"
+                  (click)="$event.stopPropagation(); videoEngine.seek(tick.time)"
+                >
+                  <span>{{ tick.time | number: '1.0-0' }}</span>
+                </button>
+              }
+              @for (marker of visibleMarkers(); track marker.id) {
+                <button
+                  type="button"
+                  class="timeline-marker"
+                  [style.left.px]="marker.time * pxPerSecond()"
+                  [title]="marker.label"
+                  (click)="$event.stopPropagation(); seekToMarker(marker.id)"
+                >
+                  <span>{{ marker.label }}</span>
+                </button>
+              }
+            </div>
             @for (track of videoEngine.tracks(); track track.id) {
               <div
                 class="h-10 md:h-12 bg-background/50 rounded-lg border border-border relative"
@@ -247,8 +302,14 @@
                 @for (clip of track.clips; track clip.id) {
                   <div
                     class="absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
-                    [style.left.px]="clip.startTime * 10 * zoomLevel()"
-                    [style.width.px]="clip.duration * 10 * zoomLevel()"
+                    [class.ring-2]="selectedClipId() === clip.id"
+                    [class.ring-brand-primary]="selectedClipId() === clip.id"
+                    [style.left.px]="clip.startTime * pxPerSecond()"
+                    [style.width.px]="clip.duration * pxPerSecond()"
+                    (pointerdown)="onClipPointerDown($event, clip)"
+                    (pointermove)="onClipPointerMove($event)"
+                    (pointerup)="onClipPointerUp($event)"
+                    (pointercancel)="onClipPointerUp($event)"
                   >
                     <span
                       class="text-[8px] md:text-[9px] font-bold text-text-main truncate"
@@ -262,7 +323,7 @@
             <!-- Playhead -->
             <div
               class="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
-              [style.left.px]="videoEngine.currentTime() * 10 * zoomLevel()"
+              [style.left.px]="videoEngine.currentTime() * pxPerSecond()"
             >
               <div
                 class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-1 -mt-1"
@@ -323,6 +384,110 @@
             }
           </div>
         </div>
+
+        <!-- The director console is deliberately inline with the editor: AI can
+             stage work, but every generated decision remains visible and editable. -->
+        <section class="director-console" aria-labelledby="director-console-title">
+          <div class="director-console-heading">
+            <div>
+              <span class="upgrade-eyebrow">S.M.U.V.E. Control Surface</span>
+              <h3 id="director-console-title" class="director-console-title">Director Console</h3>
+            </div>
+            <span class="director-state" [class.busy]="director.isPlanning()">
+              {{ director.isPlanning() ? 'Planning…' : director.shotCount() + ' shots' }}
+            </span>
+          </div>
+
+          <label class="director-field">
+            <span>Creative brief</span>
+            <textarea
+              rows="3"
+              placeholder="Describe the story, performance, world, or stream format…"
+              [ngModel]="director.brief()"
+              (ngModelChange)="director.brief.set($event)"
+            ></textarea>
+          </label>
+          <div class="director-actions">
+            <button
+              type="button"
+              class="director-button director-button-primary"
+              [disabled]="director.isPlanning()"
+              (click)="generateShotPlan()"
+            >
+              {{ director.isPlanning() ? 'S.M.U.V.E. IS THINKING' : 'GENERATE SHOT PLAN' }}
+            </button>
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="!director.plan()"
+              (click)="stageShotPlan()"
+            >
+              STAGE ON TIMELINE
+            </button>
+          </div>
+          @if (director.plan(); as plan) {
+            <div class="director-plan-card">
+              <div class="director-plan-title">{{ plan.title }}</div>
+              <p>{{ plan.logline }}</p>
+              <div class="director-plan-meta">
+                <span>{{ plan.origin === 'smuve' ? 'AI DIRECTED' : 'LOCAL FALLBACK' }}</span>
+                <span>{{ director.plannedRuntime() | number: '1.0-0' }}s planned</span>
+              </div>
+            </div>
+          }
+
+          <div class="command-console">
+            <div class="command-console-label">Interactive direction</div>
+            <div class="command-row">
+              <input
+                type="text"
+                aria-label="Cinema command"
+                placeholder="Try: roll, cut on the beat, mark scene, go live…"
+                [ngModel]="commandInput()"
+                (ngModelChange)="commandInput.set($event)"
+                (keyup.enter)="runTypedCommand()"
+              />
+              <button type="button" class="director-button" (click)="runTypedCommand()">RUN</button>
+            </div>
+            <div class="director-actions director-actions-compact">
+              <button type="button" class="director-button" [class.active]="voiceEnabled()" (click)="toggleVoiceControl()">
+                {{ voiceEnabled() ? 'VOICE ARMED' : 'ARM VOICE' }}
+              </button>
+              <button type="button" class="director-button" (click)="autoStructureTimeline()">STRUCTURE {{ videoEngine.productionMode() === 'movie' ? 'ACTS' : 'SECTIONS' }}</button>
+              <button type="button" class="director-button" (click)="autoCutToBeat()">AUTO-CUT TO BEAT</button>
+            </div>
+          </div>
+        </section>
+
+        @if (videoEngine.productionMode() === 'stream') {
+          <section class="broadcast-console" aria-labelledby="broadcast-console-title">
+            <div class="director-console-heading">
+              <div>
+                <span class="upgrade-eyebrow">Live Program</span>
+                <h3 id="broadcast-console-title" class="director-console-title">Broadcast Kit</h3>
+              </div>
+              <span class="director-state" [class.busy]="countdownLabel()">{{ countdownLabel() || 'STANDBY' }}</span>
+            </div>
+            <label class="director-field">
+              <span>Platform</span>
+              <select [ngModel]="livePlatform()" (ngModelChange)="livePlatform.set($event)">
+                @for (platform of livePlatforms; track platform) {
+                  <option [value]="platform">{{ platform | uppercase }}</option>
+                }
+              </select>
+            </label>
+            <div class="broadcast-input-grid">
+              <input type="text" aria-label="Lower third title" placeholder="Host / show title" [ngModel]="lowerThird().title" (ngModelChange)="videoEngine.setLowerThird({ title: $event })" />
+              <input type="text" aria-label="Lower third subtitle" placeholder="Topic / subtitle" [ngModel]="lowerThird().subtitle" (ngModelChange)="videoEngine.setLowerThird({ subtitle: $event })" />
+            </div>
+            <div class="director-actions director-actions-compact">
+              <button type="button" class="director-button" [class.active]="lowerThird().enabled" (click)="toggleLowerThird()">LOWER THIRD</button>
+              <button type="button" class="director-button director-button-primary" (click)="fireBroadcastCue()">{{ countdownLabel() ? 'CANCEL CUE' : '3…2…1 CUE' }}</button>
+              <button type="button" class="director-button" (click)="goLive()">GO LIVE</button>
+              <button type="button" class="director-button" (click)="endLive()">END LIVE</button>
+            </div>
+          </section>
+        }
 
         <div class="space-y-4">
           <h3

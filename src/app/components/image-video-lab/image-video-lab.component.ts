@@ -9,22 +9,36 @@ import {
   effect,
   AfterViewInit,
   computed,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import {
+  BeatTick,
   ClipFilter,
   ClipTransition,
   DeliveryPreset,
   MIN_ACTIVE_CLIP_DURATION,
   ProductionMode,
+  SceneMarker,
   VideoEngineService,
   VideoClip,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CameraCaptureService } from '../../services/camera-capture.service';
+import {
+  CinemaCommand,
+  CinemaDirectorService,
+  ShotPlanShot,
+} from '../../services/cinema-director.service';
+import { SpeechRecognitionService } from '../../services/speech-recognition.service';
+import {
+  LIVE_STREAM_PLATFORMS,
+  LiveStreamPlatform,
+  LiveStreamService,
+} from '../../services/live-stream.service';
 
 interface ProductionDirective {
   title: string;
@@ -48,6 +62,27 @@ const EXACT_SEEK_EPSILON_SECONDS = 0.001;
  * always exact.
  */
 const PLAYING_DRIFT_TOLERANCE_SECONDS = 0.12;
+/** Timeline scale at 100% zoom: 10px per second. */
+const TIMELINE_BASE_PX_PER_SECOND = 10;
+/** One 30fps frame — the step the arrow keys scrub by. */
+const FRAME_STEP_SECONDS = 1 / 30;
+/** Ruler density cap: past this, the beat grid steps up by whole bars. */
+const MAX_RULER_TICKS = 120;
+/** Countdown length when the host fires the broadcast cue. */
+const BROADCAST_CUE_SECONDS = 3;
+
+interface PlayheadDragState {
+  pointerId: number;
+  originLeft: number;
+}
+
+interface ClipDragState {
+  pointerId: number;
+  clipId: string;
+  originX: number;
+  originStartTime: number;
+  moved: boolean;
+}
 
 @Component({
   selector: 'app-image-video-lab',
@@ -63,12 +98,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
   public camera = inject(CameraCaptureService);
+  public director = inject(CinemaDirectorService);
+  private speechRecognition = inject(SpeechRecognitionService);
+  public liveStream = inject(LiveStreamService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
   /** 1px off-screen sink for the live camera stream (see the CSS note). */
   @ViewChild('cameraFeed') cameraFeed?: ElementRef<HTMLVideoElement>;
+  /** Scroll container that owns the timeline viewport window. */
+  @ViewChild('timelineScroller') timelineScroller?: ElementRef<HTMLElement>;
 
   imagePrompt = signal('');
+  // probe
   isGenerating = signal(false);
   isExporting = signal(false);
   generatedImageUrl = signal<string | null>(null);
@@ -81,7 +122,22 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   exportWindow = signal(DEFAULT_EXPORT_WINDOW);
   exportProgress = signal(0);
   cameraTakeCount = signal(0);
+  /** Clip under edit — the target of split / duplicate / delete / lane moves. */
+  selectedClipId = signal<string | null>(null);
+  /** Voice direction: the transcript is matched against cinema commands. */
+  voiceEnabled = signal(false);
+  voiceTranscript = signal<string | null>(null);
+  /** Fallback command line for browsers without speech recognition. */
+  commandInput = signal('');
+  livePlatform = signal<LiveStreamPlatform>('youtube');
+  markerDraft = signal('');
+  readonly livePlatforms = LIVE_STREAM_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
+
+  /** Visible window of the timeline, tracked from the scroll container. */
+  private readonly timelineViewport = signal({ start: 0, span: 60 });
+  private playheadDrag: PlayheadDragState | null = null;
+  private clipDrag: ClipDragState | null = null;
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -95,6 +151,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       label: 'Full-Length Movies',
       description:
         'Long-form cinematic timelines, score layers, and theatrical framing.',
+    },
+    {
+      id: 'music',
+      label: 'Music Videos',
+      description:
+        'Beat-locked cuts on the session tempo with section markers and performance coverage.',
     },
     {
       id: 'stream',
@@ -135,9 +197,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const workflow =
       preset.mode === 'movie'
         ? 'feature narrative'
-        : preset.mode === 'stream'
-          ? 'live social broadcast'
-          : 'creator vlog session';
+        : preset.mode === 'music'
+          ? 'beat-locked music video'
+          : preset.mode === 'stream'
+            ? 'live social broadcast'
+            : 'creator vlog session';
 
     return {
       runtimeLabel: this.formatRuntime(preset.duration),
@@ -164,6 +228,21 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         {
           title: 'Delivery master',
           detail: `Protect ${preset.aspectRatio} framing and render for ${preset.target}.`,
+        },
+      ],
+      music: [
+        {
+          title: 'Cut to the bar',
+          detail: `The grid is locked to ${this.videoEngine.bpm().toFixed(1)} BPM — land scene changes on bar lines so the edit breathes with the song.`,
+        },
+        {
+          title: 'Section coverage',
+          detail:
+            'Mark intro, verse, chorus and bridge, then give each section its own visual language.',
+        },
+        {
+          title: 'Performance + B-roll',
+          detail: `Alternate straight-to-camera takes with inserts and cut them for ${preset.target}.`,
         },
       ],
       stream: [
@@ -217,6 +296,67 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.camera.isLive() ||
       this.videoEngine.isPlaying()
   );
+
+  // ── Timeline geometry ──────────────────────────────────────────────────
+
+  /** Real zoom: pixel density changes, the visible window follows the scroll. */
+  pxPerSecond = computed(
+    () => TIMELINE_BASE_PX_PER_SECOND * this.zoomLevel()
+  );
+  timelineWidthPx = computed(() =>
+    Math.max(600, this.videoEngine.duration() * this.pxPerSecond())
+  );
+
+  /** Beat/bar lines for the visible window, thinned so the DOM stays light. */
+  rulerTicks = computed<BeatTick[]>(() => {
+    const { start, span } = this.timelineViewport();
+    const ticks = this.videoEngine.beatTicks(start, start + span, MAX_RULER_TICKS);
+    if (ticks.length > 0) return ticks;
+    // Too dense (or zoomed far out): fall back to whole bars only.
+    const bar = this.videoEngine.barSeconds();
+    if (!Number.isFinite(bar) || bar <= 0) return [];
+    const from = Math.max(0, start);
+    const to = start + span;
+    const lines: BeatTick[] = [];
+    for (let barIndex = Math.ceil(from / bar); barIndex * bar <= to; barIndex += 1) {
+      lines.push({ time: barIndex * bar, index: barIndex * 4, isBar: true });
+      if (lines.length >= MAX_RULER_TICKS) break;
+    }
+    return lines;
+  });
+
+  /** Markers inside the visible window (a 2-hour film can hold hundreds). */
+  visibleMarkers = computed<SceneMarker[]>(() => {
+    const { start, span } = this.timelineViewport();
+    const end = start + span;
+    return this.videoEngine
+      .sortedMarkers()
+      .filter((marker) => marker.time >= start && marker.time <= end);
+  });
+
+  /** The clip currently under edit, re-read from the engine so it stays live. */
+  selectedClip = computed<VideoClip | null>(() => {
+    const id = this.selectedClipId();
+    if (!id) return null;
+    return this.videoEngine.findClip(id);
+  });
+  selectedClipLane = computed(
+    () => this.selectedClip()?.trackId ?? null
+  );
+  clipCount = computed(() =>
+    this.videoEngine.tracks().reduce((total, track) => total + track.clips.length, 0)
+  );
+  /** Total clips in a lane that no longer has room for the current playhead. */
+  trackOptions = computed(() =>
+    this.videoEngine.tracks().map((track) => ({
+      id: track.id,
+      name: track.name,
+      locked: track.locked,
+    }))
+  );
+  lowerThird = computed(() => this.videoEngine.lowerThird());
+  countdownLabel = computed(() => this.videoEngine.countdownLabel());
+  broadcastStream = computed(() => this.liveStream.currentStream());
   templates = [
     {
       name: 'Cinematic Noir',
@@ -249,12 +389,678 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       void this.camera.stream();
       this.syncCameraElement();
     });
+
+    // Broadcast cue reaching zero is the one moment the transport rolls without
+    // the operator touching anything — say so instead of rolling silently.
+    effect(() => {
+      const fired = this.videoEngine.cueFired();
+      if (fired === 0) return;
+      this.aiFeedback.set(
+        'CUE FIRED. TRANSPORT ROLLING — BROADCAST IS LIVE, HOLD THE FRAME.'
+      );
+    });
   }
 
   ngAfterViewInit() {
     this.canvasCtx = this.previewCanvas.nativeElement.getContext('2d');
     this.syncCameraElement();
+    this.syncTimelineViewport();
     this.startCanvasLoop();
+  }
+
+  // ── Timeline viewport (zoom + scroll) ─────────────────────────────────
+
+  /** Recompute the visible window from the scroll container's own geometry. */
+  onTimelineScroll(event: Event): void {
+    this.syncTimelineViewport(event.target as HTMLElement | null);
+  }
+
+  private syncTimelineViewport(el?: HTMLElement | null): void {
+    const scroller = el ?? this.timelineScroller?.nativeElement;
+    if (!scroller) return;
+    const pxPerSecond = this.pxPerSecond();
+    if (pxPerSecond <= 0) return;
+    this.timelineViewport.set({
+      start: scroller.scrollLeft / pxPerSecond,
+      span: Math.max(1, scroller.clientWidth) / pxPerSecond,
+    });
+  }
+
+  private timeAtClientX(clientX: number, rect: { left: number }): number {
+    const pxPerSecond = this.pxPerSecond();
+    if (pxPerSecond <= 0) return 0;
+    return Math.max(
+      0,
+      Math.min(this.videoEngine.duration(), (clientX - rect.left) / pxPerSecond)
+    );
+  }
+
+  /**
+   * Click anywhere on a lane to move the playhead. The time comes from the
+   * lane's own pixel density, so the mapping stays exact while scrolled or
+   * zoomed instead of assuming the whole timeline fits the viewport.
+   */
+  seekFromTimelineEvent(event: MouseEvent): void {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    this.videoEngine.seek(this.timeAtClientX(event.clientX, rect));
+  }
+
+  /** Press-and-drag on the ruler scrubs the playhead continuously. */
+  onRulerPointerDown(event: PointerEvent): void {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    this.playheadDrag = {
+      pointerId: event.pointerId,
+      originLeft: target.getBoundingClientRect().left,
+    };
+    target.setPointerCapture?.(event.pointerId);
+    this.videoEngine.seek(this.timeAtClientX(event.clientX, { left: this.playheadDrag.originLeft }));
+  }
+
+  onRulerPointerMove(event: PointerEvent): void {
+    const drag = this.playheadDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    this.videoEngine.seek(this.timeAtClientX(event.clientX, { left: drag.originLeft }));
+  }
+
+  onRulerPointerUp(event: PointerEvent): void {
+    if (!this.playheadDrag || this.playheadDrag.pointerId !== event.pointerId) return;
+    const target = event.currentTarget as HTMLElement | null;
+    target?.releasePointerCapture?.(event.pointerId);
+    this.playheadDrag = null;
+  }
+
+  /** Zoom out, keeping the visible window anchored on the playhead. */
+  zoomOut(): void {
+    this.applyZoom(Math.max(0.25, +(this.zoomLevel() * 0.8).toFixed(2)));
+  }
+
+  /** Zoom in, keeping the visible window anchored on the playhead. */
+  zoomIn(): void {
+    this.applyZoom(Math.min(4, +(this.zoomLevel() * 1.25).toFixed(2)));
+  }
+
+  private applyZoom(next: number): void {
+    const anchor = this.videoEngine.currentTime();
+    this.zoomLevel.set(next);
+    // The lane re-lays out at the new scale on the next tick, so re-anchor then.
+    setTimeout(() => {
+      const scroller = this.timelineScroller?.nativeElement;
+      if (!scroller) return;
+      scroller.scrollLeft = Math.max(
+        0,
+        anchor * this.pxPerSecond() - scroller.clientWidth / 2
+      );
+      this.syncTimelineViewport(scroller);
+    });
+  }
+
+  /** Centre the viewport on the playhead (used after big timeline jumps). */
+  centerOnPlayhead(): void {
+    const scroller = this.timelineScroller?.nativeElement;
+    if (!scroller) return;
+    scroller.scrollLeft = Math.max(
+      0,
+      this.videoEngine.currentTime() * this.pxPerSecond() - scroller.clientWidth / 2
+    );
+    this.syncTimelineViewport(scroller);
+  }
+
+  // ── Clip editing ──────────────────────────────────────────────────────
+
+  selectClip(clipId: string): void {
+    this.selectedClipId.set(clipId);
+    const clip = this.videoEngine.findClip(clipId);
+    if (clip) {
+      this.aiFeedback.set(
+        `CLIP SELECTED: ${clip.name.toUpperCase()} · ${clip.duration.toFixed(2)}s (SPLIT [S] · DUPLICATE [D] · DELETE)`
+      );
+    }
+  }
+
+  clearSelection(): void {
+    this.selectedClipId.set(null);
+  }
+
+  onClipPointerDown(event: PointerEvent, clip: VideoClip): void {
+    // Keep the lane's click-to-seek from firing under the clip drag.
+    event.stopPropagation();
+    this.selectClip(clip.id);
+    const track = this.videoEngine.trackOfClip(clip.id);
+    if (track?.locked) {
+      this.aiFeedback.set(`LANE LOCKED: ${track.name.toUpperCase()} WILL NOT MOVE.`);
+      return;
+    }
+    const target = event.currentTarget as HTMLElement | null;
+    this.clipDrag = {
+      pointerId: event.pointerId,
+      clipId: clip.id,
+      originX: event.clientX,
+      originStartTime: clip.startTime,
+      moved: false,
+    };
+    target?.setPointerCapture?.(event.pointerId);
+  }
+
+  onClipPointerMove(event: PointerEvent): void {
+    const drag = this.clipDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.originX;
+    if (Math.abs(deltaX) > 3) drag.moved = true;
+    if (!drag.moved) return;
+    const deltaSeconds = deltaX / this.pxPerSecond();
+    this.videoEngine.moveClip(drag.clipId, {
+      startTime: drag.originStartTime + deltaSeconds,
+    });
+  }
+
+  onClipPointerUp(event: PointerEvent): void {
+    const drag = this.clipDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const target = event.currentTarget as HTMLElement | null;
+    target?.releasePointerCapture?.(event.pointerId);
+    this.clipDrag = null;
+    if (!drag.moved) return;
+    const clip = this.videoEngine.findClip(drag.clipId);
+    if (clip) {
+      const snapped = this.videoEngine.snapToBeat() ? ' (SNAPPED TO BEAT)' : '';
+      this.aiFeedback.set(
+        `${clip.name.toUpperCase()} MOVED TO ${this.formatSeconds(clip.startTime)}${snapped}.`
+      );
+    }
+  }
+
+  /** Cut every unlocked clip under the playhead in two. */
+  splitAtPlayhead(): void {
+    const time = this.videoEngine.currentTime();
+    const created = this.videoEngine.splitClipsAt(time);
+    if (created.length === 0) {
+      this.aiFeedback.set(
+        'NOTHING TO CUT — PARK THE PLAYHEAD INSIDE A CLIP, NOT ON ITS EDGE.'
+      );
+      return;
+    }
+    this.selectedClipId.set(created[created.length - 1]);
+    this.aiFeedback.set(
+      `SPLIT: ${created.length} CLIP${created.length === 1 ? '' : 'S'} CUT AT ${this.formatSeconds(time)}.`
+    );
+  }
+
+  duplicateSelectedClip(): void {
+    const id = this.selectedClipId();
+    if (!id) {
+      this.aiFeedback.set('SELECT A CLIP FIRST, THEN DUPLICATE IT.');
+      return;
+    }
+    const created = this.videoEngine.duplicateClip(id);
+    if (!created) {
+      this.aiFeedback.set('THAT CLIP CANNOT BE DUPLICATED (LOCKED LANE).');
+      return;
+    }
+    this.selectedClipId.set(created);
+    this.aiFeedback.set('CLIP DUPLICATED AND PLACED DIRECTLY AFTER THE ORIGINAL.');
+  }
+
+  deleteSelectedClip(): void {
+    const id = this.selectedClipId();
+    if (!id) {
+      this.aiFeedback.set('SELECT A CLIP FIRST, THEN DELETE IT.');
+      return;
+    }
+    this.videoEngine.removeClip(id);
+    this.selectedClipId.set(null);
+    this.aiFeedback.set('CLIP REMOVED FROM THE TIMELINE.');
+  }
+
+  /** Move the selected clip to another lane (overlays, voiceover, score…). */
+  moveSelectedClipToLane(trackId: string): void {
+    const id = this.selectedClipId();
+    if (!id) return;
+    const moved = this.videoEngine.moveClip(id, { trackId });
+    const track = this.trackOptions().find((candidate) => candidate.id === trackId);
+    this.aiFeedback.set(
+      moved
+        ? `CLIP MOVED TO THE ${(track?.name ?? trackId).toUpperCase()} LANE.`
+        : 'THAT LANE IS LOCKED — CLIP STAYED PUT.'
+    );
+  }
+
+  nudgeSelectedClip(offsetSeconds: number): void {
+    const clip = this.selectedClip();
+    if (!clip) return;
+    this.videoEngine.moveClip(clip.id, {
+      startTime: Math.max(0, clip.startTime + offsetSeconds),
+    });
+    const updated = this.videoEngine.findClip(clip.id);
+    this.aiFeedback.set(
+      `CLIP NUDGED TO ${this.formatSeconds(updated?.startTime ?? clip.startTime)}.`
+    );
+  }
+
+  // ── Markers ──────────────────────────────────────────────────────────
+
+  addMarkerAtPlayhead(): void {
+    const label = this.markerDraft().trim();
+    const kind = this.markerKindForMode();
+    const id = this.videoEngine.addMarker(
+      label || `${this.videoEngine.sortedMarkers().length + 1}`,
+      this.videoEngine.currentTime(),
+      kind
+    );
+    this.markerDraft.set('');
+    const marker = this.videoEngine.markers().find((m) => m.id === id);
+    this.aiFeedback.set(
+      `MARKER DROPPED AT ${this.formatSeconds(marker?.time ?? 0)} — "${(marker?.label ?? '').toUpperCase()}".`
+    );
+  }
+
+  removeMarker(markerId: string): void {
+    this.videoEngine.removeMarker(markerId);
+    this.aiFeedback.set('MARKER REMOVED.');
+  }
+
+  renameMarker(markerId: string, label: string): void {
+    if (this.videoEngine.renameMarker(markerId, label)) {
+      this.aiFeedback.set(`MARKER RENAMED TO "${label.toUpperCase()}".`);
+    }
+  }
+
+  seekToMarker(markerId: string): void {
+    if (!this.videoEngine.seekToMarker(markerId)) return;
+    const marker = this.videoEngine.markers().find((m) => m.id === markerId);
+    this.centerOnPlayhead();
+    this.aiFeedback.set(
+      `JUMPED TO "${(marker?.label ?? '').toUpperCase()}" AT ${this.formatSeconds(marker?.time ?? 0)}.`
+    );
+  }
+
+  /** Step to the next/previous marker relative to the playhead. */
+  seekRelativeMarker(direction: 1 | -1): void {
+    const markers = this.videoEngine.sortedMarkers();
+    if (markers.length === 0) {
+      this.aiFeedback.set('NO MARKERS YET — DROP ONE AT THE PLAYHEAD FIRST.');
+      return;
+    }
+    const time = this.videoEngine.currentTime();
+    const tolerance = 0.05;
+    const target =
+      direction === 1
+        ? markers.find((marker) => marker.time > time + tolerance)
+        : [...markers].reverse().find((marker) => marker.time < time - tolerance);
+    const fallback = direction === 1 ? markers[0] : markers[markers.length - 1];
+    const next = target ?? fallback;
+    this.videoEngine.seek(next.time);
+    this.centerOnPlayhead();
+    this.aiFeedback.set(
+      `${direction === 1 ? 'NEXT' : 'PREVIOUS'} MARKER: "${next.label.toUpperCase()}" AT ${this.formatSeconds(next.time)}.`
+    );
+  }
+
+  /**
+   * Structure the whole timeline from the mode's skeleton: song sections for a
+   * music video, acts for a feature, run-of-show for a broadcast. Existing
+   * structure markers are replaced, hand-dropped scene markers are kept.
+   */
+  autoStructureTimeline(): void {
+    const kind = this.markerKindForMode();
+    const structure = this.director.sectionMap(
+      this.videoEngine.productionMode(),
+      this.videoEngine.duration(),
+      this.videoEngine.bpm()
+    );
+    if (structure.length === 0) {
+      this.aiFeedback.set('NO STRUCTURE TEMPLATE FOR THIS MODE.');
+      return;
+    }
+    this.videoEngine.clearMarkers(kind);
+    structure.forEach((marker) =>
+      this.videoEngine.addMarker(marker.label, marker.time, marker.kind)
+    );
+    this.aiFeedback.set(
+      `STRUCTURE LOCKED: ${structure.length} ${kind.toUpperCase()} MARKERS SPANNING ${this.formatRuntime(this.videoEngine.duration())}.`
+    );
+  }
+
+  /** Re-lay every visuals clip onto consecutive bar boundaries. */
+  autoCutToBeat(): void {
+    const visuals = this.videoEngine.tracks().find((track) => track.id === 't1');
+    if (!visuals || visuals.clips.length === 0) {
+      this.aiFeedback.set('NOTHING ON THE VISUALS LANE TO CUT.');
+      return;
+    }
+    const clips = [...visuals.clips].sort((a, b) => a.startTime - b.startTime);
+    const cut = this.director.beatCutPlan(clips, {
+      bpm: this.videoEngine.bpm(),
+      startTime: 0,
+      barsPerShot: 2,
+    });
+    let moved = 0;
+    cut.forEach((entry) => {
+      if (this.videoEngine.moveClip(entry.id, { startTime: entry.startTime })) {
+        moved += 1;
+      }
+    });
+    this.aiFeedback.set(
+      moved > 0
+        ? `BEAT CUT DEPLOYED: ${moved} CLIPS LOCKED TO ${this.videoEngine.bpm().toFixed(1)} BPM, TWO BARS PER SHOT.`
+        : 'BEAT CUT BLOCKED — THE VISUALS LANE IS LOCKED.'
+    );
+  }
+
+  private markerKindForMode(): 'scene' | 'act' | 'section' {
+    return this.videoEngine.productionMode() === 'movie' ? 'act' : 'section';
+  }
+
+  // ── S.M.U.V.E director console ────────────────────────────────────────
+
+  async generateShotPlan(): Promise<void> {
+    const plan = await this.director.generateShotPlan({
+      brief: this.director.brief(),
+      mode: this.videoEngine.productionMode(),
+      bpm: this.videoEngine.bpm(),
+      durationSeconds: this.videoEngine.duration(),
+      existingClipCount: this.clipCount(),
+    });
+    this.aiFeedback.set(this.director.plannerNote().toUpperCase());
+    if (plan.origin === 'local') {
+      this.logger.info('Cinema director produced a local shot plan', plan.title);
+    }
+  }
+
+  /**
+   * Cut the director's plan into the timeline as shot cards. Cards carry the
+   * shot size and description, so the visuals lane shows what has to be shot
+   * until real footage replaces each card.
+   */
+  stageShotPlan(): void {
+    const plan = this.director.plan();
+    if (!plan || plan.shots.length === 0) {
+      this.aiFeedback.set('NO SHOT PLAN YET — ASK S.M.U.V.E FOR ONE FIRST.');
+      return;
+    }
+    const replaced = this.videoEngine.clearTrack('t1');
+    plan.shots.forEach((shot) => this.videoEngine.addClip('t1', this.shotClip(shot)));
+    const runtime = this.formatSeconds(
+      plan.shots[plan.shots.length - 1].startTime +
+        plan.shots[plan.shots.length - 1].durationSeconds
+    );
+    this.aiFeedback.set(
+      `SHOT LIST STAGED: ${plan.shots.length} SHOT CARDS ON THE VISUALS LANE (${runtime})${replaced ? ` · ${replaced} PREVIOUS CLIPS REPLACED` : ''}.`
+    );
+  }
+
+  /** Assemble a timeline clip from a planned shot. */
+  private shotClip(shot: ShotPlanShot): Omit<VideoClip, 'id' | 'trackId'> {
+    return {
+      name: `${String(shot.index).padStart(2, '0')} · ${shot.title}`,
+      url: '',
+      startTime: shot.startTime,
+      duration: shot.durationSeconds,
+      offset: 0,
+      // No media yet: an overlay clip renders as a shot card, which is exactly
+      // what a staged storyboard frame should look like.
+      type: 'overlay',
+      source: 'ai',
+      note: shot.description,
+      shotType: shot.size,
+      effects: {
+        upscale: this.highQualityEnhancer(),
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: this.selectedFilter(),
+        transition: this.selectedTransition(),
+        transitionDuration: this.transitionDuration(),
+        trimStart: 0,
+        trimEnd: 0,
+      },
+    };
+  }
+
+  clearShotPlan(): void {
+    this.director.clearPlan();
+    this.aiFeedback.set(this.director.plannerNote().toUpperCase());
+  }
+
+  // ── Broadcast kit (streamers) ─────────────────────────────────────────
+
+  fireBroadcastCue(): void {
+    if (this.videoEngine.countdownRemaining() !== null) {
+      this.videoEngine.stopCountdown();
+      this.aiFeedback.set('BROADCAST CUE CANCELLED.');
+      return;
+    }
+    this.videoEngine.startCountdown(BROADCAST_CUE_SECONDS);
+    this.aiFeedback.set(
+      `CUE ROLLING: ${BROADCAST_CUE_SECONDS} SECONDS TO TRANSPORT. HOLD YOUR MARK.`
+    );
+  }
+
+  toggleLowerThird(): void {
+    const enabled = this.videoEngine.toggleLowerThird();
+    this.aiFeedback.set(
+      enabled
+        ? `LOWER THIRD LIVE: "${this.videoEngine.lowerThird().title.toUpperCase()}".`
+        : 'LOWER THIRD CLEARED FROM THE PROGRAM FEED.'
+    );
+  }
+
+  /** Go live on the selected platform, carrying the current delivery preset. */
+  async goLive(): Promise<void> {
+    const platform = this.livePlatform();
+    const issued = await this.liveStream.golive({
+      platform,
+      payload: {
+        source: 'cinema-engine',
+        preset: this.videoEngine.deliveryPreset().id,
+        aspectRatio: this.videoEngine.deliveryPreset().aspectRatio,
+        mode: this.videoEngine.productionMode(),
+      },
+    });
+    this.aiFeedback.set(
+      issued
+        ? `${platform.toUpperCase()} BROADCAST NEGOTIATED. COMPLETE THE AUTHORIZATION WINDOW TO AIR.`
+        : 'BROADCAST COULD NOT START — SIGN IN AND TRY AGAIN.'
+    );
+  }
+
+  async endLive(): Promise<void> {
+    const ended = await this.liveStream.endStream();
+    this.aiFeedback.set(
+      ended ? 'BROADCAST ENDED. TRANSMISSION CLOSED.' : 'NO ACTIVE BROADCAST TO END.'
+    );
+  }
+
+  async copyShareUrl(): Promise<void> {
+    const copied = await this.liveStream.copyShareUrl();
+    if (copied) this.aiFeedback.set('VIEWER LINK COPIED TO THE CLIPBOARD.');
+  }
+
+  // ── Voice direction + keyboard ────────────────────────────────────────
+
+  toggleVoiceControl(): void {
+    if (this.voiceEnabled()) {
+      this.speechRecognition.stopListening();
+      this.voiceEnabled.set(false);
+      this.aiFeedback.set('VOICE DIRECTION OFF.');
+      return;
+    }
+    this.voiceEnabled.set(true);
+    this.aiFeedback.set('VOICE DIRECTION ARMED — SAY "ROLL", "CUT", "MARK", "GO LIVE".');
+    this.speechRecognition.startListening((text) => {
+      this.voiceTranscript.set(text);
+      this.runVoiceTranscript(text);
+    });
+  }
+
+  /** Route a transcript through the director's command parser. */
+  runVoiceTranscript(text: string): void {
+    const command = this.director.parseVoiceCommand(text);
+    if (!command) {
+      this.aiFeedback.set(
+        `HEARD "${text.toUpperCase()}" — NO CINEMA COMMAND MATCHED. TRY "ROLL", "CUT", "MARK" OR "GO LIVE".`
+      );
+      return;
+    }
+    this.runCinemaCommand(command);
+  }
+
+  /** Text fallback for the same command path (no microphone required). */
+  runTypedCommand(): void {
+    const text = this.commandInput().trim();
+    if (!text) return;
+    this.commandInput.set('');
+    this.runVoiceTranscript(text);
+  }
+
+  runCinemaCommand(command: CinemaCommand): void {
+    const confirm = (message: string) =>
+      this.aiFeedback.set(`COMMAND · ${message}`);
+    switch (command.id) {
+      case 'play':
+        this.videoEngine.play();
+        confirm('ROLLING.');
+        break;
+      case 'pause':
+        this.videoEngine.pause();
+        confirm('HELD.');
+        break;
+      case 'take':
+        void this.toggleCameraTake();
+        break;
+      case 'split':
+        this.splitAtPlayhead();
+        break;
+      case 'marker':
+        this.addMarkerAtPlayhead();
+        break;
+      case 'next-marker':
+        this.seekRelativeMarker(1);
+        break;
+      case 'previous-marker':
+        this.seekRelativeMarker(-1);
+        break;
+      case 'auto-cut':
+        this.autoCutToBeat();
+        break;
+      case 'export':
+        void this.exportVideo();
+        break;
+      case 'snap-on':
+        this.videoEngine.snapToBeat.set(true);
+        confirm('BEAT SNAP ARMED.');
+        break;
+      case 'snap-off':
+        this.videoEngine.snapToBeat.set(false);
+        confirm('BEAT SNAP RELEASED.');
+        break;
+      case 'camera':
+        void this.toggleCamera();
+        break;
+      case 'screen':
+        void this.captureScreen();
+        break;
+      case 'go-live':
+        void this.goLive();
+        break;
+      case 'end-stream':
+        void this.endLive();
+        break;
+      case 'lower-third':
+        this.toggleLowerThird();
+        break;
+      case 'cue':
+        this.fireBroadcastCue();
+        break;
+    }
+  }
+
+  /**
+   * Editor keyboard map. Deliberately ignored while a field has focus so typing
+   * a shot description never toggles the transport.
+   */
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(event: KeyboardEvent): void {
+    if (this.isTypingTarget(event.target)) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+    switch (event.key) {
+      case ' ':
+        event.preventDefault();
+        this.videoEngine.togglePlay();
+        return;
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.stepPlayhead(event.shiftKey ? -1 : -FRAME_STEP_SECONDS);
+        return;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.stepPlayhead(event.shiftKey ? 1 : FRAME_STEP_SECONDS);
+        return;
+      case 'Home':
+        event.preventDefault();
+        this.videoEngine.seek(0);
+        this.centerOnPlayhead();
+        return;
+      case 'End':
+        event.preventDefault();
+        this.videoEngine.seek(this.videoEngine.duration());
+        this.centerOnPlayhead();
+        return;
+      case 'Escape':
+        this.clearSelection();
+        return;
+      default:
+        break;
+    }
+
+    switch (event.key.toLowerCase()) {
+      case 's':
+        this.splitAtPlayhead();
+        break;
+      case 'd':
+        this.duplicateSelectedClip();
+        break;
+      case 'm':
+        this.addMarkerAtPlayhead();
+        break;
+      case 'b':
+        this.videoEngine.snapToBeat.update((armed) => !armed);
+        this.aiFeedback.set(
+          `BEAT SNAP ${this.videoEngine.snapToBeat() ? 'ARMED' : 'RELEASED'}.`
+        );
+        break;
+      case 'n':
+        this.seekRelativeMarker(1);
+        break;
+      case 'p':
+        this.seekRelativeMarker(-1);
+        break;
+      case 'delete':
+      case 'backspace':
+        event.preventDefault();
+        this.deleteSelectedClip();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Frame-accurate playhead step used by the arrow keys. */
+  private stepPlayhead(deltaSeconds: number): void {
+    this.videoEngine.seek(this.videoEngine.currentTime() + deltaSeconds);
+  }
+
+  private isTypingTarget(target: EventTarget | null): boolean {
+    const el = target as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName?.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+    return el.isContentEditable === true;
   }
 
   /** Bind or release the live camera stream on the preview's video sink. */
@@ -492,7 +1298,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (sourceTime === null) return;
 
     if (!this.videoEngine.isPlaying()) {
-      if (!video.paused) video.pause();
+      if (!video.paused) this.pauseQuietly(video);
       this.seekVideoExact(video, sourceTime);
       return;
     }
@@ -546,7 +1352,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const activeUrls = new Set(activeClips.map((clip) => clip.url));
     this.mediaCache.forEach((media, url) => {
       if (!(media instanceof HTMLVideoElement) || activeUrls.has(url)) return;
-      if (!media.paused) media.pause();
+      if (!media.paused) this.pauseQuietly(media);
     });
   }
 
@@ -565,6 +1371,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
     } catch {
       /* play() unavailable in this host */
+    }
+  }
+
+  /**
+   * Counterpart to {@link playQuietly}: tearing an element down must never
+   * throw out of the render loop or out of `ngOnDestroy` on hosts with a
+   * partial media implementation.
+   */
+  private pauseQuietly(media: HTMLMediaElement): void {
+    try {
+      media.pause();
+    } catch {
+      /* pause() unavailable in this host */
     }
   }
 
@@ -600,32 +1419,79 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ctx.lineTo(x, canvas.height);
     }
     ctx.stroke();
+
+    this.drawShotCard(ctx, canvas, clip);
   }
 
   /**
-   * Click-to-seek on the master timeline: maps the click x-position onto
-   * the full timeline duration and moves the playhead there.
+   * Storyboard card for a clip that has no media yet — how a S.M.U.V.E-staged
+   * shot presents itself on the program monitor until it is actually shot.
    */
-  seekFromTimelineEvent(event: MouseEvent): void {
-    const target = event.currentTarget as HTMLElement | null;
-    if (!target) return;
-    const rect = target.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const ratio = Math.max(
-      0,
-      Math.min(1, (event.clientX - rect.left) / rect.width)
-    );
-    this.videoEngine.seek(ratio * this.videoEngine.duration());
+  private drawShotCard(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    clip: VideoClip
+  ): void {
+    if (!clip.note) return;
+    const padding = 28;
+    const maxWidth = canvas.width - padding * 2;
+    const baseY = canvas.height - 96;
+
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 11px "Public Sans"';
+    ctx.fillStyle = '#10b981';
+    ctx.fillText((clip.shotType ?? 'shot').toUpperCase(), padding, baseY - 24);
+
+    ctx.font = 'bold 15px "Public Sans"';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(this.ellipsize(ctx, clip.name, maxWidth), padding, baseY);
+
+    ctx.font = '12px "Public Sans"';
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.72)';
+    this.wrapText(ctx, clip.note, maxWidth)
+      .slice(0, 3)
+      .forEach((line, index) => {
+        ctx.fillText(line, padding, baseY + 20 + index * 16);
+      });
+    ctx.restore();
   }
 
-  /** Zoom the timeline out, clamped so the lane layout never collapses. */
-  zoomOut(): void {
-    this.zoomLevel.update((v) => Math.max(0.25, +(v * 0.9).toFixed(2)));
+  /** Greedy word wrap against the measured width of the canvas context. */
+  private wrapText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number
+  ): string[] {
+    const lines: string[] = [];
+    let line = '';
+    text.split(/\s+/).forEach((word) => {
+      const candidate = line ? `${line} ${word}` : word;
+      if (line && ctx.measureText(candidate).width > maxWidth) {
+        lines.push(line);
+        line = word;
+        return;
+      }
+      line = candidate;
+    });
+    if (line) lines.push(line);
+    return lines;
   }
 
-  /** Zoom the timeline in, clamped so the playhead never leaves the lane. */
-  zoomIn(): void {
-    this.zoomLevel.update((v) => Math.min(4, +(v * 1.1).toFixed(2)));
+  private ellipsize(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number
+  ): string {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    let trimmed = text;
+    while (
+      trimmed.length > 1 &&
+      ctx.measureText(`${trimmed}…`).width > maxWidth
+    ) {
+      trimmed = trimmed.slice(0, -1);
+    }
+    return `${trimmed}…`;
   }
 
   applyEnhancementsToActiveClips() {
@@ -700,6 +1566,74 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       ctx.setLineDash([]);
     }
+
+    // Broadcast graphics live in the program feed, so whatever the host sees on
+    // the monitor is exactly what the export and the stream carry.
+    this.drawLowerThird(ctx, canvas);
+    this.drawCountdown(ctx, canvas);
+  }
+
+  /** Streamer lower third — name plate, topic, or sponsor strap. */
+  private drawLowerThird(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+  ): void {
+    const { enabled, title, subtitle } = this.videoEngine.lowerThird();
+    if (!enabled || !title.trim()) return;
+
+    const padding = 24;
+    const width = Math.min(canvas.width * 0.66, 520);
+    const height = subtitle.trim() ? 74 : 52;
+    const y = canvas.height - height - padding;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
+    ctx.fillRect(padding, y, width, height);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(padding, y, 4, height);
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 16px "Public Sans"';
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(
+      this.ellipsize(ctx, title.toUpperCase(), width - 28),
+      padding + 16,
+      y + 26
+    );
+    if (subtitle.trim()) {
+      ctx.font = '12px "Public Sans"';
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.66)';
+      ctx.fillText(
+        this.ellipsize(ctx, subtitle, width - 28),
+        padding + 16,
+        y + 50
+      );
+    }
+    ctx.restore();
+  }
+
+  /** Go-live cue: a full-frame countdown the whole room can read. */
+  private drawCountdown(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+  ): void {
+    const label = this.countdownLabel();
+    if (!label) return;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#10b981';
+    ctx.font = 'bold 96px "Public Sans"';
+    ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 20);
+    ctx.font = 'bold 13px "Public Sans"';
+    ctx.fillStyle = 'rgba(248, 250, 252, 0.8)';
+    ctx.fillText(
+      'BROADCAST CUE — HOLD YOUR MARK',
+      canvas.width / 2,
+      canvas.height / 2 + 60
+    );
+    ctx.restore();
   }
 
   /**
@@ -1150,7 +2084,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.camera.stop();
     this.mediaCache.forEach((media) => {
       if (media instanceof HTMLVideoElement) {
-        media.pause();
+        if (!media.paused) this.pauseQuietly(media);
         media.src = '';
       }
     });
