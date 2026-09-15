@@ -215,3 +215,142 @@ canvas {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Camera uplink ─────────────────────────────────────────── */
+
+/*
+ * The live camera sink stays in the layout (1px, painted, non-interactive)
+ * instead of `display: none`: a fully hidden <video> can stop decoding frames,
+ * which would silently break the preview layer and every still grab.
+ */
+.camera-source {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
+.camera-status-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.camera-status-chip.live {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.camera-status-chip.error {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.camera-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.04);
+  color: #e2e8f0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.camera-action:hover:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.camera-action:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.camera-action.active {
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+}
+
+.camera-action.recording {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.16);
+}
+
+.camera-detail {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.camera-error {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.camera-warning {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.export-window {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.export-window-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.export-window-select {
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.05);
+  color: #e2e8f0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0 0.5rem;
+}
+
+.export-window-select:disabled {
+  opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .export-window-select {
+    height: 3rem;
+  }
+}

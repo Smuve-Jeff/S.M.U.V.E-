@@ -24,6 +24,20 @@
     </div>
 
     <div class="flex items-center gap-3">
+      <label class="export-window">
+        <span class="export-window-label">Capture</span>
+        <select
+          class="export-window-select"
+          aria-label="Video export capture window in seconds"
+          [disabled]="isExporting()"
+          [ngModel]="exportWindow()"
+          (ngModelChange)="exportWindow.set(+$event)"
+        >
+          @for (seconds of exportWindowOptions; track seconds) {
+            <option [value]="seconds">{{ seconds }}s</option>
+          }
+        </select>
+      </label>
       <button
         (click)="videoEngine.togglePlay()"
         class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border"
@@ -41,7 +55,7 @@
         [disabled]="isExporting()"
         class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-10 md:h-12 flex-grow md:flex-grow-0"
       >
-        {{ isExporting() ? 'RENDERING...' : 'EXPORT VIDEO' }}
+        {{ isExporting() ? 'RENDERING ' + exportProgress() + '%' : 'EXPORT VIDEO' }}
       </button>
     </div>
   </header>
@@ -135,17 +149,30 @@
         >
           <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
 
+          <!--
+            Live camera sink. Kept 1px and painted rather than `display: none`
+            because a fully hidden video element can stop decoding frames, which
+            would silently break the preview layer and every frame grab.
+          -->
+          <video
+            #cameraFeed
+            class="camera-source"
+            playsinline
+            muted
+            aria-hidden="true"
+          ></video>
+
           <!-- HUD OVERLAY -->
           <div
             class="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 md:gap-3"
           >
             <div
               class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
-              *ngIf="videoEngine.isPlaying()"
+              *ngIf="transportActive()"
             ></div>
             <span
               class="text-[8px] md:text-[9px] font-black text-white/50 uppercase tracking-widest"
-              >{{ videoEngine.isPlaying() ? 'Live Stream' : 'Standby' }}</span
+              >{{ transportLabel() }}</span
             >
           </div>
 
@@ -334,6 +361,115 @@
           </div>
         </div>
 
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3">
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Camera Uplink
+            </h3>
+            <span
+              class="camera-status-chip"
+              [class.live]="camera.isLive()"
+              [class.error]="!!camera.lastError()"
+              >{{ camera.statusLabel() }}</span
+            >
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              class="camera-action"
+              [class.active]="camera.isLive()"
+              [disabled]="camera.isStarting()"
+              (click)="toggleCamera()"
+            >
+              <span class="material-symbols-outlined text-base">{{
+                camera.isLive() ? 'videocam_off' : 'videocam'
+              }}</span>
+              <span>{{ camera.isLive() ? 'Stop Camera' : 'Start Camera' }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="camera-action"
+              [disabled]="!camera.isLive()"
+              (click)="captureCameraFrame()"
+            >
+              <span class="material-symbols-outlined text-base"
+                >photo_camera</span
+              >
+              <span>Capture Frame</span>
+            </button>
+
+            <button
+              type="button"
+              class="camera-action"
+              [class.recording]="camera.isRecording()"
+              [disabled]="!camera.isLive()"
+              (click)="toggleCameraTake()"
+            >
+              <span class="material-symbols-outlined text-base">{{
+                camera.isRecording() ? 'stop_circle' : 'fiber_manual_record'
+              }}</span>
+              <span>{{ camera.isRecording() ? 'Stop Take' : 'Record Take' }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="camera-action"
+              [class.active]="camera.mirrored()"
+              (click)="toggleCameraMirror()"
+            >
+              <span class="material-symbols-outlined text-base">flip</span>
+              <span>{{ camera.mirrored() ? 'Mirror On' : 'Mirror Off' }}</span>
+            </button>
+          </div>
+
+          @if (camera.devices().length > 1) {
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Camera Input</span
+              >
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Camera input device"
+                [disabled]="!camera.canSwitchDevice()"
+                [ngModel]="camera.selectedDeviceId()"
+                (ngModelChange)="selectCameraDevice($event)"
+              >
+                @for (device of camera.devices(); track device.deviceId) {
+                  <option [value]="device.deviceId">{{ device.label }}</option>
+                }
+              </select>
+            </label>
+
+            <button
+              type="button"
+              class="camera-action w-full"
+              [disabled]="!camera.canSwitchDevice()"
+              (click)="switchCameraFacing()"
+            >
+              <span class="material-symbols-outlined text-base">cameraswitch</span>
+              <span>
+                Switch to
+                {{ camera.facingMode() === 'user' ? 'Rear' : 'Front' }} Sensor
+              </span>
+            </button>
+          }
+
+          <p class="camera-detail">{{ camera.statusDetail() }}</p>
+
+          @if (camera.lastError()) {
+            <p class="camera-error">{{ camera.lastError() }}</p>
+          }
+          @if (camera.previewWarning()) {
+            <p class="camera-warning">{{ camera.previewWarning() }}</p>
+          }
+        </div>
+
         <div class="space-y-4">
           <h3
             class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
@@ -446,12 +582,20 @@
             class="flex justify-between text-[9px] font-black uppercase mb-2"
           >
             <span class="text-text-dim">Render Progress</span>
-            <span class="text-brand-primary">64%</span>
+            <span class="text-brand-primary">
+              @if (isExporting()) {
+                {{ exportProgress() }}%
+              } @else if (exportProgress() === 100) {
+                Done
+              } @else {
+                Idle
+              }
+            </span>
           </div>
           <div class="w-full h-1 bg-border rounded-full overflow-hidden">
             <div
               class="h-full bg-brand-primary transition-all duration-500"
-              [style.width.%]="64"
+              [style.width.%]="exportProgress()"
             ></div>
           </div>
         </div>

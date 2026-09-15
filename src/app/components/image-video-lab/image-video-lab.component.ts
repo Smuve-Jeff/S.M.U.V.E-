@@ -24,6 +24,7 @@ import {
   VideoClip,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { CameraCaptureService } from '../../services/camera-capture.service';
 
 interface ProductionDirective {
   title: string;
@@ -34,6 +35,11 @@ const MIN_TRANSITION_ALPHA = 0.15;
 const HUD_FX_LINE_Y = 60;
 const AI_CLIP_DURATION_MOVIE = 10;
 const AI_CLIP_DURATION_OTHER = 6;
+/** Real-time capture windows offered for the canvas video export. */
+const EXPORT_WINDOW_OPTIONS = [5, 10, 30, 60];
+const DEFAULT_EXPORT_WINDOW = 10;
+/** Longest edge of a captured camera still, in px. */
+const CAMERA_STILL_MAX_WIDTH = 1920;
 
 @Component({
   selector: 'app-image-video-lab',
@@ -48,8 +54,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private userContext = inject(UserContextService);
   public videoEngine = inject(VideoEngineService);
   private exportService = inject(ExportService);
+  public camera = inject(CameraCaptureService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
+  /** 1px off-screen sink for the live camera stream (see the CSS note). */
+  @ViewChild('cameraFeed') cameraFeed?: ElementRef<HTMLVideoElement>;
 
   imagePrompt = signal('');
   isGenerating = signal(false);
@@ -60,6 +69,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectedTransition = signal<ClipTransition>('fade');
   transitionDuration = signal(0.5);
   trimAmount = signal(0);
+  /** Seconds of real-time timeline captured per video export. */
+  exportWindow = signal(DEFAULT_EXPORT_WINDOW);
+  exportProgress = signal(0);
+  cameraTakeCount = signal(0);
+  readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -94,6 +108,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
+  /**
+   * Decoded <img>/<video> elements keyed by clip url so the preview paints the
+   * clip's real media instead of an abstract gradient.
+   */
+  private readonly mediaCache = new Map<
+    string,
+    HTMLImageElement | HTMLVideoElement
+  >();
+  /** Object URLs minted by this component (camera takes) — revoked on destroy. */
+  private readonly ownedObjectUrls = new Set<string>();
   activePreset = computed(() => this.videoEngine.deliveryPreset());
   productionBlueprint = computed(() => {
     const preset = this.activePreset();
@@ -171,6 +195,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return directivesByMode[preset.mode];
   });
 
+  /** Single honest transport readout for the preview HUD. */
+  transportLabel = computed(() => {
+    if (this.camera.isRecording()) {
+      return `REC ${this.camera.recordingSeconds()}s`;
+    }
+    if (this.camera.isLive()) return 'Camera Live';
+    return this.videoEngine.isPlaying() ? 'Playing' : 'Standby';
+  });
+  transportActive = computed(
+    () =>
+      this.camera.isRecording() ||
+      this.camera.isLive() ||
+      this.videoEngine.isPlaying()
+  );
   templates = [
     {
       name: 'Cinematic Noir',
@@ -197,11 +235,33 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         this.aiFeedback.set('BROADCAST LIVE. Dominating the digital airwaves.');
       }
     });
+
+    // Keep the video sink bound to whatever stream the camera service holds.
+    effect(() => {
+      void this.camera.stream();
+      this.syncCameraElement();
+    });
   }
 
   ngAfterViewInit() {
     this.canvasCtx = this.previewCanvas.nativeElement.getContext('2d');
+    this.syncCameraElement();
     this.startCanvasLoop();
+  }
+
+  /** Bind or release the live camera stream on the preview's video sink. */
+  private syncCameraElement(): void {
+    const video = this.cameraFeed?.nativeElement;
+    if (!video) return;
+    const stream = this.camera.stream();
+    if (stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+      this.playQuietly(video);
+    } else if (!stream && video.srcObject) {
+      video.srcObject = null;
+    }
   }
 
   private startCanvasLoop() {
@@ -224,6 +284,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     const time = this.videoEngine.currentTime();
     const activeClips = this.videoEngine.getActiveClips(time);
+    const liveFeed = this.cameraFeed?.nativeElement;
+    const liveCamera = this.camera.isLive() && !!liveFeed;
+
+    // The live camera is the viewfinder: it sits under every timeline clip.
+    if (liveCamera && liveFeed) {
+      this.drawCameraFeed(ctx, canvas, liveFeed);
+    }
 
     if (activeClips.length > 0) {
       activeClips.forEach((clip) => {
@@ -245,32 +312,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.filter = this.resolveCanvasFilter(clip.effects);
-        const grad = ctx.createLinearGradient(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-        if (clip.type === 'video') {
-          grad.addColorStop(0, '#10b98122');
-          grad.addColorStop(0.5, '#064e3b44');
-          grad.addColorStop(1, '#10b98122');
-        } else {
-          grad.addColorStop(0, '#8b5cf622');
-          grad.addColorStop(0.5, '#4c1d9544');
-          grad.addColorStop(1, '#8b5cf622');
-        }
 
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = '#10b98111';
-        ctx.beginPath();
-        for (let x = 0; x < canvas.width; x += 40) {
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, canvas.height);
-        }
-        ctx.stroke();
+        const media = this.resolveMediaElement(clip);
+        const painted = media
+          ? this.drawMediaContain(ctx, canvas, media, clip)
+          : false;
+        if (!painted) this.drawSignalPlaceholder(ctx, canvas, clip);
 
         ctx.font = '10px "Public Sans"';
         ctx.fillStyle = '#10b981';
@@ -283,7 +330,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         );
         ctx.restore();
       });
-    } else {
+    } else if (!liveCamera) {
       ctx.font = '12px "Public Sans"';
       ctx.fillStyle = '#1e293b';
       ctx.textAlign = 'center';
@@ -295,6 +342,208 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     this.drawHUD(ctx, canvas);
+  }
+
+  /** Paint the live camera feed as the base preview layer (contain-fit). */
+  private drawCameraFeed(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    video: HTMLVideoElement
+  ): void {
+    if (!video.videoWidth || !video.videoHeight) return;
+    const rect = this.containRect(video.videoWidth, video.videoHeight, canvas);
+    ctx.save();
+    if (this.camera.mirrored()) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    try {
+      ctx.drawImage(video, rect.x, rect.y, rect.width, rect.height);
+      this.camera.markPreviewReady();
+    } catch {
+      // A video element with no decoded frame throws on draw — skip the pass.
+    }
+    ctx.restore();
+  }
+
+  /** Letterbox helper — the canvas equivalent of `object-fit: contain`. */
+  private containRect(
+    sourceWidth: number,
+    sourceHeight: number,
+    canvas: HTMLCanvasElement
+  ): { x: number; y: number; width: number; height: number } {
+    const scale = Math.min(
+      canvas.width / sourceWidth,
+      canvas.height / sourceHeight
+    );
+    const width = sourceWidth * scale;
+    const height = sourceHeight * scale;
+    return {
+      x: (canvas.width - width) / 2,
+      y: (canvas.height - height) / 2,
+      width,
+      height,
+    };
+  }
+
+  /**
+   * Resolve (and lazily decode) a clip's real media element. Only same-origin
+   * `blob:`/`data:` sources are used so the preview canvas stays untainted for
+   * the `captureStream()` video export.
+   */
+  private resolveMediaElement(
+    clip: VideoClip
+  ): HTMLImageElement | HTMLVideoElement | null {
+    const url = clip.url;
+    if (!url || !/^(blob:|data:)/.test(url)) return null;
+    if (clip.type === 'overlay') return null;
+
+    const cached = this.mediaCache.get(url);
+    if (cached) return cached;
+
+    if (clip.type === 'image') {
+      const image = new Image();
+      image.src = url;
+      this.mediaCache.set(url, image);
+      return image;
+    }
+
+    const video = document.createElement('video');
+    video.src = url;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    this.playQuietly(video);
+    this.mediaCache.set(url, video);
+    return video;
+  }
+
+  /**
+   * Paint a decoded image/video frame into the preview. Returns false when the
+   * element has nothing to show yet so the signal placeholder can take over.
+   */
+  private drawMediaContain(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    media: HTMLImageElement | HTMLVideoElement,
+    clip: VideoClip
+  ): boolean {
+    const width = this.mediaWidth(media);
+    const height = this.mediaHeight(media);
+    if (!width || !height) return false;
+
+    if (media instanceof HTMLVideoElement) {
+      this.syncVideoPlayback(media, clip);
+    }
+
+    const rect = this.containRect(width, height, canvas);
+    ctx.save();
+    if (clip.source === 'camera' && this.camera.mirrored()) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    try {
+      ctx.drawImage(media, rect.x, rect.y, rect.width, rect.height);
+    } catch {
+      ctx.restore();
+      return false;
+    }
+    ctx.restore();
+    return true;
+  }
+
+  private mediaWidth(media: HTMLImageElement | HTMLVideoElement): number {
+    if (media instanceof HTMLVideoElement) return media.videoWidth;
+    return media.complete ? media.naturalWidth : 0;
+  }
+
+  private mediaHeight(media: HTMLImageElement | HTMLVideoElement): number {
+    if (media instanceof HTMLVideoElement) return media.videoHeight;
+    return media.complete ? media.naturalHeight : 0;
+  }
+
+  /**
+   * Keep an ingested video roughly aligned with the playhead. Frame-accurate
+   * scrubbing is deliberately out of scope — the element is only nudged once it
+   * has drifted more than a quarter second.
+   */
+  private syncVideoPlayback(video: HTMLVideoElement, clip: VideoClip): void {
+    if (video.readyState < 2) return;
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    const target = Math.max(
+      0,
+      (clip.offset || 0) +
+        (this.videoEngine.currentTime() - clip.startTime - trimStart)
+    );
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const clamped =
+      duration > 0 ? Math.min(target, Math.max(0, duration - 0.05)) : target;
+    if (Math.abs(video.currentTime - clamped) > 0.25) {
+      try {
+        video.currentTime = clamped;
+      } catch {
+        /* seeking before metadata is ready — ignore this pass */
+      }
+    }
+
+    if (this.videoEngine.isPlaying() && video.paused) {
+      this.playQuietly(video);
+    } else if (!this.videoEngine.isPlaying() && !video.paused) {
+      video.pause();
+    }
+  }
+
+  /**
+   * `HTMLMediaElement.play()` is not implemented in every host (headless
+   * test environments) and autoplay can be rejected outright — neither may
+   * ever break the render loop.
+   */
+  private playQuietly(media: HTMLMediaElement): void {
+    try {
+      const started = media.play();
+      if (started && typeof started.catch === 'function') {
+        void started.catch(() => {
+          /* autoplay rejected — the element still decodes once seeked */
+        });
+      }
+    } catch {
+      /* play() unavailable in this host */
+    }
+  }
+
+  /** Fallback visual for clips whose media has not decoded yet. */
+  private drawSignalPlaceholder(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    clip: VideoClip
+  ): void {
+    const grad = ctx.createLinearGradient(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+    if (clip.type === 'video') {
+      grad.addColorStop(0, '#10b98122');
+      grad.addColorStop(0.5, '#064e3b44');
+      grad.addColorStop(1, '#10b98122');
+    } else {
+      grad.addColorStop(0, '#8b5cf622');
+      grad.addColorStop(0.5, '#4c1d9544');
+      grad.addColorStop(1, '#8b5cf622');
+    }
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#10b98111';
+    ctx.beginPath();
+    for (let x = 0; x < canvas.width; x += 40) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+    }
+    ctx.stroke();
   }
 
   /**
@@ -374,8 +623,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx.fillStyle = '#10b981';
     ctx.font = '8px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('REC ●', canvas.width - 50, 25);
+    ctx.fillText(this.resolveTransportBadge(), canvas.width - 96, 25);
     ctx.fillText(this.activePreset().aspectRatio, 20, canvas.height - 20);
+    if (this.camera.isLive()) {
+      ctx.fillText(
+        `CAM: ${this.camera.deviceName().toUpperCase()}`,
+        20,
+        canvas.height - 32
+      );
+    }
 
     if (this.videoEngine.safeZoneEnabled()) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
@@ -390,47 +646,105 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * Capture a real video master straight off the preview canvas. The renderer
+   * runs in real time (`canvas.captureStream`), so the window is an explicit,
+   * user-selected number of seconds instead of an invisible constant.
+   */
   async exportVideo() {
     if (this.isExporting()) return;
+    const seconds = this.exportWindow();
+    const canvas = this.previewCanvas.nativeElement;
+
     this.isExporting.set(true);
+    this.exportProgress.set(0);
     this.aiFeedback.set(
-      'INITIALIZING MULTI-STREAM EXPORT. STAND BY FOR ELITE CAPTURE.'
+      `INITIALIZING ${seconds}s MULTI-STREAM EXPORT. STAND BY FOR ELITE CAPTURE.`
     );
-    const { recorder, result } = await this.exportService.startVideoExport(
-      this.previewCanvas.nativeElement
-    );
-    this.videoEngine.currentTime.set(0);
-    this.videoEngine.togglePlay();
-    setTimeout(() => {
-      recorder.stop();
-      this.videoEngine.togglePlay();
-      result.then((blob) => {
-        this.exportService.downloadBlob(
-          blob,
-          `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.webm`
-        );
-        this.isExporting.set(false);
-        this.aiFeedback.set(
-          `VIDEO EXPORT CAPTURE COMPLETE. ${this.activePreset().target.toUpperCase()} MASTER IS READY FOR DEPLOYMENT.`
-        );
+
+    const wasPlaying = this.videoEngine.isPlaying();
+    let session: {
+      recorder: { stop: () => void };
+      result: Promise<Blob>;
+    };
+    try {
+      session = await this.exportService.startVideoExport(canvas, {
+        fps: 30,
+        withAudio: true,
       });
-    }, 10000);
+    } catch (error: any) {
+      this.isExporting.set(false);
+      this.logger.error('Video export failed to start', error);
+      this.aiFeedback.set(
+        error?.message
+          ? String(error.message).toUpperCase()
+          : 'VIDEO EXPORT COULD NOT START ON THIS BROWSER.'
+      );
+      return;
+    }
+
+    // Capture from the top of the timeline so the master always starts at 0.
+    this.videoEngine.pause();
+    this.videoEngine.seek(0);
+    this.videoEngine.play();
+
+    const startedAt = Date.now();
+    const ticker = setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      this.exportProgress.set(Math.min(99, Math.round((elapsed / seconds) * 100)));
+    }, 250);
+
+    const stopTimer = setTimeout(() => {
+      session.recorder.stop();
+      clearInterval(ticker);
+      this.videoEngine.pause();
+      if (wasPlaying) this.videoEngine.play();
+    }, seconds * 1000);
+
+    try {
+      const blob = await session.result;
+      clearTimeout(stopTimer);
+      clearInterval(ticker);
+
+      if (blob.size === 0) {
+        this.exportProgress.set(0);
+        this.aiFeedback.set(
+          'EXPORT PRODUCED NO VIDEO FRAMES. KEEP THIS TAB VISIBLE AND RETRY.'
+        );
+        return;
+      }
+
+      this.exportProgress.set(100);
+      this.exportService.downloadBlob(
+        blob,
+        `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.webm`
+      );
+      this.aiFeedback.set(
+        `VIDEO EXPORT CAPTURE COMPLETE. ${this.activePreset().target.toUpperCase()} MASTER IS READY FOR DEPLOYMENT.`
+      );
+    } catch (error: any) {
+      clearTimeout(stopTimer);
+      clearInterval(ticker);
+      this.exportProgress.set(0);
+      this.logger.error('Video export failed', error);
+      this.aiFeedback.set(
+        'VIDEO EXPORT FAILED. TRY A SHORTER CAPTURE WINDOW.'
+      );
+    } finally {
+      this.isExporting.set(false);
+    }
   }
 
   async onFileUpload(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
+    this.ownedObjectUrls.add(url);
     const targetTrackId = file.type.startsWith('image/') ? 't2' : 't1';
     const clipType: VideoClip['type'] = file.type.startsWith('image/')
       ? 'image'
       : 'video';
-    const duration =
-      this.videoEngine.productionMode() === 'movie'
-        ? 18
-        : this.videoEngine.productionMode() === 'stream'
-          ? 12
-          : 8;
+    const duration = this.resolveIngestDuration();
 
     this.videoEngine.addClip(targetTrackId, {
       name: file.name,
@@ -439,6 +753,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       duration,
       offset: 0,
       type: clipType,
+      source: 'upload',
       effects: {
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
@@ -455,6 +770,162 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.aiFeedback.set(
       `UPLOAD SUCCESS: ${file.name} mapped into the ${this.activePreset().name} workflow.`
     );
+  }
+
+  // ── Camera uplink (live capture into the timeline) ─────────────────────
+
+  /**
+   * Open or close the camera uplink. Failures are surfaced verbatim — a camera
+   * that cannot start is a state worth naming, not a silent no-op.
+   */
+  async toggleCamera(): Promise<void> {
+    if (this.camera.isLive()) {
+      this.camera.stop();
+      this.aiFeedback.set('CAMERA UPLINK CLOSED. DEVICE RELEASED.');
+      return;
+    }
+
+    this.aiFeedback.set('REQUESTING CAMERA ACCESS...');
+    const started = await this.camera.start();
+    this.aiFeedback.set(
+      started
+        ? `CAMERA LIVE: ${this.camera.deviceName().toUpperCase()}. ${this.camera.statusDetail()}`
+        : (this.camera.lastError() ?? 'CAMERA COULD NOT START.').toUpperCase()
+    );
+  }
+
+  async selectCameraDevice(deviceId: string): Promise<void> {
+    if (!this.camera.canSwitchDevice()) {
+      this.aiFeedback.set(
+        'FINISH THE CURRENT CAMERA TAKE BEFORE SWITCHING INPUTS.'
+      );
+      return;
+    }
+    const switched = await this.camera.setDevice(deviceId);
+    if (!switched) return;
+    this.aiFeedback.set(
+      `CAMERA INPUT: ${this.camera.deviceName().toUpperCase()}.`
+    );
+  }
+
+  async switchCameraFacing(): Promise<void> {
+    if (!this.camera.canSwitchDevice()) {
+      this.aiFeedback.set(
+        'FINISH THE CURRENT CAMERA TAKE BEFORE FLIPPING SENSORS.'
+      );
+      return;
+    }
+    await this.camera.switchFacing();
+    this.aiFeedback.set(
+      `CAMERA SENSOR: ${this.camera.facingMode() === 'user' ? 'FRONT' : 'REAR'}.`
+    );
+  }
+
+  toggleCameraMirror(): void {
+    this.camera.mirrored.update((value) => !value);
+    this.aiFeedback.set(
+      `CAMERA MIRROR ${this.camera.mirrored() ? 'ON (SELFIE VIEW)' : 'OFF (AS-RECORDED)'}.`
+    );
+  }
+
+  /** Freeze the current camera frame into the overlays lane as a still clip. */
+  captureCameraFrame(): void {
+    if (!this.camera.isLive()) {
+      this.aiFeedback.set('START THE CAMERA BEFORE CAPTURING A FRAME.');
+      return;
+    }
+
+    const dataUrl = this.camera.captureFrame(this.cameraFeed?.nativeElement, {
+      maxWidth: CAMERA_STILL_MAX_WIDTH,
+    });
+    if (!dataUrl) {
+      this.aiFeedback.set(
+        'NO CAMERA FRAME YET — WAIT FOR THE LIVE FEED TO WARM UP AND RETRY.'
+      );
+      return;
+    }
+
+    this.cameraTakeCount.update((count) => count + 1);
+    const stillName = `Camera Frame ${this.cameraTakeCount()}`;
+    const duration = this.resolveIngestDuration();
+    this.videoEngine.addClip('t2', {
+      name: stillName,
+      url: dataUrl,
+      startTime: this.videoEngine.currentTime(),
+      duration,
+      offset: 0,
+      type: 'image',
+      source: 'camera',
+      effects: {
+        upscale: this.highQualityEnhancer(),
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: this.selectedFilter(),
+        transition: this.selectedTransition(),
+        transitionDuration: this.transitionDuration(),
+        trimStart: this.resolveTrimAmount(duration),
+        trimEnd: this.resolveTrimAmount(duration),
+      },
+    });
+    this.aiFeedback.set(
+      `${stillName.toUpperCase()} CUT INTO THE OVERLAYS LANE (${duration}s).`
+    );
+  }
+
+  /** Start or finish a camera take, landing the recording in the visuals lane. */
+  async toggleCameraTake(): Promise<void> {
+    if (this.camera.isRecording()) {
+      const blob = await this.camera.stopRecording();
+      const recordedSeconds = Math.max(1, this.camera.recordingSeconds());
+      if (!blob) {
+        this.aiFeedback.set(
+          'CAMERA TAKE DISCARDED — NO RECORDABLE FRAMES LANDED.'
+        );
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      this.ownedObjectUrls.add(url);
+      this.cameraTakeCount.update((count) => count + 1);
+      const takeName = `Camera Take ${this.cameraTakeCount()}`;
+      this.videoEngine.addClip('t1', {
+        name: takeName,
+        url,
+        startTime: this.videoEngine.currentTime(),
+        duration: recordedSeconds,
+        offset: 0,
+        type: 'video',
+        source: 'camera',
+        effects: {
+          upscale: this.highQualityEnhancer(),
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: this.selectedFilter(),
+          transition: this.selectedTransition(),
+          transitionDuration: this.transitionDuration(),
+          trimStart: this.resolveTrimAmount(recordedSeconds),
+          trimEnd: this.resolveTrimAmount(recordedSeconds),
+        },
+      });
+      this.aiFeedback.set(
+        `${takeName.toUpperCase()} RECORDED (${this.formatSeconds(recordedSeconds)}) INTO THE VISUALS LANE.`
+      );
+      return;
+    }
+
+    if (this.camera.startRecording()) {
+      this.aiFeedback.set(
+        'CAMERA TAKE ROLLING. HIT STOP TO CUT IT INTO THE TIMELINE.'
+      );
+    } else {
+      this.aiFeedback.set(
+        (this.camera.lastError() ?? 'CAMERA TAKE COULD NOT START.').toUpperCase()
+      );
+    }
   }
 
   async generateImage() {
@@ -475,6 +946,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         duration: aiClipDuration,
         offset: 0,
         type: 'image',
+        source: 'ai',
         effects: {
           upscale: true,
           bgRemoval: false,
@@ -531,6 +1003,30 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   }
 
+  private resolveIngestDuration(): number {
+    const mode = this.videoEngine.productionMode();
+    return mode === 'movie' ? 18 : mode === 'stream' ? 12 : 8;
+  }
+
+  /**
+   * Honest transport badge: only claims REC while a take is genuinely rolling,
+   * and CAM LIVE while the viewfinder is actually feeding the canvas.
+   */
+  private resolveTransportBadge(): string {
+    if (this.camera.isRecording()) {
+      return `REC ● ${this.formatSeconds(this.camera.recordingSeconds())}`;
+    }
+    if (this.camera.isLive()) return 'CAM ● LIVE';
+    return this.videoEngine.isPlaying() ? 'PLAY ▶' : 'STANDBY';
+  }
+
+  private formatSeconds(totalSeconds: number): string {
+    const safe = Math.max(0, Math.floor(totalSeconds));
+    const minutes = Math.floor(safe / 60);
+    const seconds = safe % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
   private resolveTrimAmount(duration: number): number {
     return Math.min(
       this.trimAmount(),
@@ -571,5 +1067,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
+    // Never leave the device light on: releasing the stream is the only way the
+    // OS hands the camera back to other apps.
+    this.camera.stop();
+    this.mediaCache.forEach((media) => {
+      if (media instanceof HTMLVideoElement) {
+        media.pause();
+        media.src = '';
+      }
+    });
+    this.mediaCache.clear();
+    this.ownedObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+    this.ownedObjectUrls.clear();
   }
 }

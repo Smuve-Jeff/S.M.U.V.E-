@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 
 import { ImageVideoLabComponent } from './image-video-lab.component';
 import { LoggingService } from '../../services/logging.service';
@@ -7,8 +7,12 @@ import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import { VideoEngineService } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { CameraCaptureService } from '../../services/camera-capture.service';
 
 describe('ImageVideoLabComponent', () => {
+  /** Shared 2D context stub so render assertions can inspect the draw calls. */
+  let ctxStub: Record<string, jest.Mock | string | number>;
+
   const createComponent = async () => {
     const videoEngine = {
       isPlaying: signal(false),
@@ -64,6 +68,8 @@ describe('ImageVideoLabComponent', () => {
       safeZoneEnabled: signal(true),
       getActiveClips: jest.fn().mockReturnValue([]),
       togglePlay: jest.fn(),
+      play: jest.fn(),
+      pause: jest.fn(),
       seek: jest.fn(),
       addClip: jest.fn(),
       updateClip: jest.fn(),
@@ -169,24 +175,86 @@ describe('ImageVideoLabComponent', () => {
       }),
     };
 
+    const cameraStream = signal<MediaStream | null>(null);
+    const cameraStatus = signal<'off' | 'live'>('off');
+    const cameraFacing = signal<'user' | 'environment'>('user');
+    const cameraRecording = signal(false);
+    const cameraRecordingSeconds = signal(0);
+    const camera = {
+      stream: cameraStream,
+      status: cameraStatus,
+      lastError: signal<string | null>(null),
+      previewWarning: signal<string | null>(null),
+      devices: signal<
+        { deviceId: string; label: string; isDefault: boolean }[]
+      >([]),
+      selectedDeviceId: signal<string | null>('cam-1'),
+      facingMode: cameraFacing,
+      mirrored: signal(true),
+      isRecording: cameraRecording,
+      recordingSeconds: cameraRecordingSeconds,
+      isLive: computed(
+        () => cameraStatus() === 'live' && cameraStream() !== null
+      ),
+      isStarting: computed(() => false),
+      isSupported: computed(() => true),
+      canSwitchDevice: computed(() => !cameraRecording()),
+      deviceName: computed(() => 'Front Camera'),
+      statusLabel: computed(() =>
+        cameraStatus() === 'live' ? 'LIVE' : 'CAMERA OFF'
+      ),
+      statusDetail: computed(() => 'Front Camera · 1280×720 @ 30fps'),
+      start: jest.fn(async () => {
+        cameraStream.set({ id: 'mock-stream' } as unknown as MediaStream);
+        cameraStatus.set('live');
+        return true;
+      }),
+      stop: jest.fn(() => {
+        cameraStream.set(null);
+        cameraStatus.set('off');
+      }),
+      setDevice: jest.fn(async () => true),
+      switchFacing: jest.fn(async () => {
+        cameraFacing.update((mode) =>
+          mode === 'user' ? 'environment' : 'user'
+        );
+        return true;
+      }),
+      startRecording: jest.fn(() => {
+        cameraRecording.set(true);
+        return true;
+      }),
+      stopRecording: jest.fn(async () => {
+        cameraRecording.set(false);
+        return new Blob(['camera-take'], { type: 'video/webm' });
+      }),
+      captureFrame: jest.fn(
+        () => 'data:image/jpeg;base64,camera-frame'
+      ),
+      markPreviewReady: jest.fn(),
+    };
+
+    const exportService = {
+      startVideoExport: jest.fn(),
+      downloadBlob: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ImageVideoLabComponent],
       providers: [
-        { provide: LoggingService, useValue: { error: jest.fn() } },
+        { provide: LoggingService, useValue: { error: jest.fn(), warn: jest.fn() } },
         { provide: AiService, useValue: { generateImage: jest.fn() } },
         { provide: UserContextService, useValue: {} },
         { provide: VideoEngineService, useValue: videoEngine },
-        {
-          provide: ExportService,
-          useValue: {
-            startVideoExport: jest.fn(),
-            downloadBlob: jest.fn(),
-          },
-        },
+        { provide: ExportService, useValue: exportService },
+        { provide: CameraCaptureService, useValue: camera },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
-        set: { template: '<canvas #previewCanvas></canvas>' },
+        set: {
+          template:
+            '<canvas #previewCanvas></canvas><video #cameraFeed></video>',
+        },
       })
       .compileComponents();
 
@@ -194,7 +262,24 @@ describe('ImageVideoLabComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, videoEngine };
+    const video = fixture.nativeElement.querySelector(
+      'video'
+    ) as HTMLVideoElement;
+
+    return {
+      component,
+      videoEngine,
+      camera,
+      exportService,
+      fixture,
+      video,
+      /** Render one preview frame on demand (the rAF loop is stubbed out). */
+      renderFrame: () => {
+        (
+          component as unknown as { renderPreview: () => void }
+        ).renderPreview();
+      },
+    };
   };
 
   beforeEach(() => {
@@ -203,32 +288,40 @@ describe('ImageVideoLabComponent', () => {
       value: jest.fn(() => 'blob:test'),
     });
     const mockGradient = { addColorStop: jest.fn() };
+    ctxStub = {
+      fillRect: jest.fn(),
+      createLinearGradient: jest.fn(() => mockGradient),
+      beginPath: jest.fn(),
+      moveTo: jest.fn(),
+      lineTo: jest.fn(),
+      stroke: jest.fn(),
+      fillText: jest.fn(),
+      strokeRect: jest.fn(),
+      setLineDash: jest.fn(),
+      save: jest.fn(),
+      restore: jest.fn(),
+      drawImage: jest.fn(),
+      translate: jest.fn(),
+      scale: jest.fn(),
+      globalAlpha: 1,
+      filter: 'none',
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 1,
+      font: '',
+      textAlign: 'left',
+    };
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
-      () =>
-        ({
-          fillRect: jest.fn(),
-          createLinearGradient: jest.fn(() => mockGradient),
-          beginPath: jest.fn(),
-          moveTo: jest.fn(),
-          lineTo: jest.fn(),
-          stroke: jest.fn(),
-          fillText: jest.fn(),
-          strokeRect: jest.fn(),
-          setLineDash: jest.fn(),
-          save: jest.fn(),
-          restore: jest.fn(),
-          globalAlpha: 1,
-          filter: 'none',
-          fillStyle: '',
-          strokeStyle: '',
-          lineWidth: 1,
-          font: '',
-          textAlign: 'left',
-        }) as unknown as CanvasRenderingContext2D
+      () => ctxStub as unknown as CanvasRenderingContext2D
     );
     jest
       .spyOn(window, 'requestAnimationFrame')
       .mockImplementation(() => 1 as unknown as number);
+    // jsdom does not implement play(); the component tolerates that, but the
+    // media tests need a resolved play() to assert autoplay behaviour.
+    jest
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => Promise.resolve());
   });
 
   afterEach(() => {
@@ -369,5 +462,419 @@ describe('ImageVideoLabComponent', () => {
         }),
       })
     );
+  });
+
+  describe('camera uplink', () => {
+    it('starts the camera, reports the live device, and releases it again', async () => {
+      const { component, camera } = await createComponent();
+
+      await component.toggleCamera();
+
+      expect(camera.start).toHaveBeenCalledTimes(1);
+      expect(camera.isLive()).toBe(true);
+      expect(component.aiFeedback()).toContain('CAMERA LIVE: FRONT CAMERA');
+
+      await component.toggleCamera();
+
+      expect(camera.stop).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('UPLINK CLOSED');
+    });
+
+    it('binds the live stream to the preview video sink and clears it on stop', async () => {
+      const { component, camera, video } = await createComponent();
+      const sync = () =>
+        (
+          component as unknown as { syncCameraElement: () => void }
+        ).syncCameraElement();
+
+      await component.toggleCamera();
+      sync();
+      expect(video.srcObject).toBe(camera.stream());
+
+      await component.toggleCamera();
+      sync();
+      expect(video.srcObject).toBeNull();
+    });
+
+    it('surfaces a camera failure instead of leaving a silent no-op', async () => {
+      const { component, camera } = await createComponent();
+      camera.start.mockResolvedValueOnce(false);
+      camera.lastError.set('Camera permission denied.');
+
+      await component.toggleCamera();
+
+      expect(component.aiFeedback()).toContain('CAMERA PERMISSION DENIED');
+    });
+
+    it('cuts a camera frame into the overlays lane with mode-aware duration', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.toggleCamera();
+      component.selectProductionMode('vlog');
+
+      component.captureCameraFrame();
+
+      expect(camera.captureFrame).toHaveBeenCalledWith(
+        expect.any(HTMLVideoElement),
+        { maxWidth: 1920 }
+      );
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({
+          name: 'Camera Frame 1',
+          url: 'data:image/jpeg;base64,camera-frame',
+          type: 'image',
+          source: 'camera',
+          duration: 8,
+        })
+      );
+      expect(component.aiFeedback()).toContain(
+        'CAMERA FRAME 1 CUT INTO THE OVERLAYS LANE'
+      );
+    });
+
+    it('refuses to capture a frame while the camera is off', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+
+      component.captureCameraFrame();
+
+      expect(camera.captureFrame).not.toHaveBeenCalled();
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('START THE CAMERA');
+    });
+
+    it('reports a feed that has not decoded a frame yet', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.toggleCamera();
+      camera.captureFrame.mockReturnValueOnce(null);
+
+      component.captureCameraFrame();
+
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('NO CAMERA FRAME YET');
+    });
+
+    it('records a take and lands it in the visuals lane', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.toggleCamera();
+      camera.recordingSeconds.set(7);
+
+      await component.toggleCameraTake();
+      expect(camera.startRecording).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('CAMERA TAKE ROLLING');
+
+      await component.toggleCameraTake();
+
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({
+          name: 'Camera Take 1',
+          url: 'blob:test',
+          type: 'video',
+          source: 'camera',
+          duration: 7,
+        })
+      );
+      expect(component.aiFeedback()).toContain('RECORDED');
+    });
+
+    it('discards a take that produced no frames', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.toggleCamera();
+      camera.stopRecording.mockResolvedValueOnce(null);
+
+      await component.toggleCameraTake();
+      await component.toggleCameraTake();
+
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('DISCARDED');
+    });
+
+    it('reports a take that could not start', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+      camera.startRecording.mockReturnValueOnce(false);
+      camera.lastError.set('Camera recording could not start on this device.');
+
+      await component.toggleCameraTake();
+
+      expect(component.aiFeedback()).toContain('COULD NOT START');
+    });
+
+    it('refuses to switch inputs mid-take', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+      await component.toggleCameraTake();
+
+      await component.selectCameraDevice('cam-2');
+      await component.switchCameraFacing();
+
+      expect(camera.setDevice).not.toHaveBeenCalled();
+      expect(camera.switchFacing).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('FINISH THE CURRENT CAMERA TAKE');
+    });
+
+    it('switches inputs and flips the reported sensor', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+
+      await component.selectCameraDevice('cam-2');
+      expect(camera.setDevice).toHaveBeenCalledWith('cam-2');
+      expect(component.aiFeedback()).toContain('CAMERA INPUT: FRONT CAMERA');
+
+      await component.switchCameraFacing();
+      expect(camera.switchFacing).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('REAR');
+    });
+
+    it('toggles the viewfinder mirror', async () => {
+      const { component, camera } = await createComponent();
+      expect(camera.mirrored()).toBe(true);
+
+      component.toggleCameraMirror();
+
+      expect(camera.mirrored()).toBe(false);
+      expect(component.aiFeedback()).toContain('MIRROR OFF');
+    });
+
+    it('reports an honest transport badge for every capture state', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      expect(component.transportLabel()).toBe('Standby');
+      expect(component.transportActive()).toBe(false);
+
+      videoEngine.isPlaying.set(true);
+      expect(component.transportLabel()).toBe('Playing');
+      expect(component.transportActive()).toBe(true);
+
+      await component.toggleCamera();
+      expect(component.transportLabel()).toBe('Camera Live');
+
+      camera.recordingSeconds.set(9);
+      camera.isRecording.set(true);
+      expect(component.transportLabel()).toBe('REC 9s');
+    });
+  });
+
+  describe('preview rendering', () => {
+    it('paints the live camera feed and marks the first frame as ready', async () => {
+      const { component, video, camera, renderFrame } =
+        await createComponent();
+      Object.defineProperty(video, 'videoWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      Object.defineProperty(video, 'videoHeight', {
+        configurable: true,
+        value: 720,
+      });
+      await component.toggleCamera();
+      (
+        component as unknown as { syncCameraElement: () => void }
+      ).syncCameraElement();
+      (ctxStub.drawImage as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.drawImage).toHaveBeenCalledWith(
+        video,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(camera.markPreviewReady).toHaveBeenCalled();
+    });
+
+    it('draws a decoded clip image instead of the signal placeholder', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const fakeImage = {
+        complete: true,
+        naturalWidth: 640,
+        naturalHeight: 360,
+      };
+      jest
+        .spyOn(globalThis as unknown as { Image: unknown }, 'Image')
+        .mockImplementation(() => fakeImage as unknown as HTMLImageElement);
+      videoEngine.getActiveClips.mockReturnValue([
+        {
+          id: 'clip-1',
+          name: 'shot.png',
+          url: 'blob:shot',
+          startTime: 0,
+          duration: 10,
+          offset: 0,
+          trackId: 't1',
+          type: 'image',
+          source: 'upload',
+          effects: {
+            upscale: false,
+            bgRemoval: false,
+            noiseReduction: false,
+            brightness: 1,
+            contrast: 1,
+            filter: 'none',
+            transition: 'cut',
+            transitionDuration: 0,
+            trimStart: 0,
+            trimEnd: 0,
+          },
+        },
+      ]);
+      (ctxStub.drawImage as jest.Mock).mockClear();
+      (ctxStub.createLinearGradient as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.drawImage).toHaveBeenCalledWith(
+        fakeImage,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(ctxStub.createLinearGradient).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the signal placeholder while media is still decoding', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        {
+          id: 'clip-2',
+          name: 'take.webm',
+          url: 'blob:take',
+          startTime: 0,
+          duration: 10,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          source: 'camera',
+          effects: {
+            upscale: false,
+            bgRemoval: false,
+            noiseReduction: false,
+            brightness: 1,
+            contrast: 1,
+            filter: 'none',
+            transition: 'cut',
+            transitionDuration: 0,
+            trimStart: 0,
+            trimEnd: 0,
+          },
+        },
+      ]);
+      (ctxStub.drawImage as jest.Mock).mockClear();
+      (ctxStub.createLinearGradient as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.createLinearGradient).toHaveBeenCalled();
+      expect(ctxStub.drawImage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('video export', () => {
+    /** Wire the export mock to a recorder the test can drive by hand. */
+    const installRecorder = (exportService: {
+      startVideoExport: jest.Mock;
+      downloadBlob: jest.Mock;
+    }) => {
+      let completeExport: ((blob: Blob) => void) | null = null;
+      const recorderStop = jest.fn();
+      exportService.startVideoExport.mockImplementation(() => ({
+        recorder: { stop: recorderStop },
+        result: new Promise<Blob>((resolve) => {
+          completeExport = resolve;
+        }),
+      }));
+      return {
+        recorderStop,
+        complete: (blob: Blob) => completeExport?.(blob),
+      };
+    };
+
+    it('records the user-selected capture window off the preview canvas', async () => {
+      const { component, videoEngine, exportService } =
+        await createComponent();
+      const { recorderStop, complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+      component.exportWindow.set(5);
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(exportService.startVideoExport).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        { fps: 30, withAudio: true }
+      );
+      expect(videoEngine.seek).toHaveBeenCalledWith(0);
+      expect(videoEngine.play).toHaveBeenCalledTimes(1);
+      expect(component.isExporting()).toBe(true);
+
+      jest.advanceTimersByTime(5000);
+      expect(recorderStop).toHaveBeenCalledTimes(1);
+      // Paused once to rewind to 0, then again when the window closed.
+      expect(videoEngine.pause).toHaveBeenCalledTimes(2);
+
+      complete(new Blob(['video-bytes'], { type: 'video/webm' }));
+      await run;
+
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringContaining('smuve_movie_movie-cinema-4k_')
+      );
+      expect(component.exportProgress()).toBe(100);
+      expect(component.isExporting()).toBe(false);
+      expect(component.aiFeedback()).toContain('VIDEO EXPORT CAPTURE COMPLETE');
+    });
+
+    it('reports a no-frames export honestly and resets progress', async () => {
+      const { component, exportService } = await createComponent();
+      const { complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(10_000);
+      complete(new Blob([], { type: 'video/webm' }));
+      await run;
+
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+      expect(component.exportProgress()).toBe(0);
+      expect(component.aiFeedback()).toContain('NO VIDEO FRAMES');
+      expect(component.isExporting()).toBe(false);
+    });
+
+    it('surfaces an export that cannot start', async () => {
+      const { component, exportService } = await createComponent();
+      exportService.startVideoExport.mockRejectedValueOnce(
+        new Error('Video export is not supported in this browser.')
+      );
+
+      await component.exportVideo();
+
+      expect(component.isExporting()).toBe(false);
+      expect(component.aiFeedback()).toContain('NOT SUPPORTED IN THIS BROWSER');
+    });
+
+    it('restores playback when the transport was already running', async () => {
+      const { component, videoEngine, exportService } =
+        await createComponent();
+      const { complete } = installRecorder(exportService);
+      videoEngine.isPlaying.set(true);
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      complete(new Blob(['video-bytes'], { type: 'video/webm' }));
+      await run;
+
+      // Callback started the render pass, then handed the transport back.
+      expect(videoEngine.play).toHaveBeenCalledTimes(2);
+      expect(videoEngine.pause).toHaveBeenCalledTimes(2);
+      expect(component.isExporting()).toBe(false);
+    });
   });
 });

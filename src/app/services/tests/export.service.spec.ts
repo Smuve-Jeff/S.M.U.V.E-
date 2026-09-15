@@ -111,6 +111,8 @@ describe('ExportService', () => {
           useValue: {
             system: jest.fn(),
             info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
           },
         },
       ],
@@ -177,13 +179,28 @@ describe('ExportService', () => {
     expect(blob).toBeInstanceOf(Blob);
   });
 
-  it('returns a stub video export result', async () => {
-    const canvas = {} as HTMLCanvasElement;
-    const { recorder, result } = await service.startVideoExport(canvas);
+  it('captures the preview canvas into a real video recording', async () => {
+    const canvas = {
+      captureStream: jest.fn().mockReturnValue({ addTrack: jest.fn() }),
+    } as unknown as HTMLCanvasElement;
 
+    const { recorder, result } = await service.startVideoExport(canvas, {
+      fps: 30,
+    });
+
+    expect(canvas.captureStream).toHaveBeenCalledWith(30);
     expect(recorder).toBeDefined();
     expect(typeof recorder.stop).toBe('function');
+
+    recorder.stop();
     const blob = await result;
     expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBeGreaterThan(0);
+  });
+
+  it('refuses a canvas that cannot be captured', async () => {
+    await expect(
+      service.startVideoExport({} as HTMLCanvasElement)
+    ).rejects.toThrow(/Canvas capture/);
   });
 });

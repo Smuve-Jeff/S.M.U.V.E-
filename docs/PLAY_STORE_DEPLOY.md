@@ -84,6 +84,7 @@ because the PWA install prompt cannot grant them — Capacitor is required.
 | Permission | Why a DAW needs it |
 | ---------- | ------------------ |
 | `android.permission.RECORD_AUDIO` | Studio recording engine, comp takes, vocal suite |
+| `android.permission.CAMERA` | CinemaEngine camera capture, camera takes, frame grabs |
 | `android.permission.MODIFY_AUDIO_SETTINGS` | Sample-rate negotiation, low-latency route |
 | `android.permission.READ_MEDIA_AUDIO` | Sample imports on Android 13+ |
 | `android.permission.READ_EXTERNAL_STORAGE` (maxSdk=28) | Legacy media access |
@@ -93,6 +94,14 @@ because the PWA install prompt cannot grant them — Capacitor is required.
 | `android.permission.POST_NOTIFICATIONS` (33+) | Persistent recording notifications |
 | `android.permission.BLUETOOTH_CONNECT` (31+) | BLE MIDI controllers & audio interfaces |
 | `com.google.android.gms.permission.AD_ID` | Crashlytics / RevenueCat attribution |
+
+`CAMERA` is declared alongside `android.hardware.camera` /
+`android.hardware.camera.autofocus` `<uses-feature ... required="false">` entries
+so audio-only devices can still install the app. `getUserMedia` additionally
+requires a secure context — the Capacitor `https` Android scheme satisfies this,
+but a plain `http://<lan-ip>` dev server does not (the WebView hides
+`navigator.mediaDevices` entirely in that case, which surfaces in the CinemaEngine
+as a `NEEDS HTTPS` camera state).
 
 After `cap add android`, edit `android/app/src/main/AndroidManifest.xml` and add
 the `<uses-permission>` lines above inside the existing `<manifest>` block.
@@ -178,6 +187,7 @@ preview). Document this for the S.M.U.V.E.-as-PWA case.
 [ ] verify listing, expand first 5 store-locale screenshots
 [ ] sighted smoke test: open listing, tap install, run through Studio
 [ ] verify RECORD_AUDIO runtime grant flow
+[ ] verify CAMERA runtime grant flow in CinemaEngine (start camera, capture frame, record take)
 ```
 
 That's the entire Sprint 0 path — first Play Store install starts here.

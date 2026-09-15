@@ -27,6 +27,11 @@ export interface VideoClip {
   offset: number; // start offset within the source file
   trackId: string;
   type: 'video' | 'image' | 'overlay';
+  /**
+   * Where the media came from. Drives preview/export rendering hints — camera
+   * clips honour the viewfinder mirror setting, uploads never do.
+   */
+  source?: 'upload' | 'ai' | 'camera';
   effects: {
     upscale: boolean;
     bgRemoval: boolean;

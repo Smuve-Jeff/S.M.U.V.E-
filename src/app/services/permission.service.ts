@@ -26,6 +26,14 @@ export class PermissionService {
       status: 'prompt',
     },
     {
+      name: 'camera',
+      label: 'Camera',
+      icon: '📷',
+      description:
+        'Powers CinemaEngine capture: live viewfinder, frame grabs, and camera takes.',
+      status: 'prompt',
+    },
+    {
       name: 'notifications',
       label: 'Notifications',
       icon: '🔔',
@@ -91,6 +99,12 @@ export class PermissionService {
       if (name === 'microphone') {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
+        });
+        stream.getTracks().forEach((t) => t.stop());
+      } else if (name === 'camera') {
+        // Video-only so granting the camera never re-prompts for the mic.
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
         });
         stream.getTracks().forEach((t) => t.stop());
       } else if (name === 'notifications') {

@@ -13,6 +13,14 @@ import {
 /** Steps-per-beat grid used across the app (16th-note grid). */
 const STEPS_PER_BEAT = 4;
 
+/** Container/codec preference order for `MediaRecorder` video muxing. */
+const VIDEO_MIME_CANDIDATES = [
+  'video/webm;codecs=vp9,opus',
+  'video/webm;codecs=vp8,opus',
+  'video/webm',
+  'video/mp4',
+];
+
 /**
  * Supported export formats. `ext` drives the download filename; `mime` the
  * blob type; `webCodecs` the AudioEncoder codec string (when available).
@@ -351,11 +359,85 @@ export class ExportService {
     return new Blob([bytes], { type: 'audio/midi' });
   }
 
-  async startVideoExport(config: any) {
-    return {
-      recorder: { stop: () => {} },
-      result: Promise.resolve(new Blob()),
+  // ── Video export (canvas capture) ───────────────────────────────────
+
+  /**
+   * Capture a real video master from a canvas element via MediaRecorder.
+   *
+   * The returned `recorder` intentionally exposes only `stop()`: the caller
+   * drives the timeline and owns the capture window. `result` resolves with the
+   * muxed blob once the recorder has flushed, and rejects on recorder error so
+   * failures surface instead of producing a silent 0-byte download.
+   */
+  async startVideoExport(
+    canvas: HTMLCanvasElement,
+    options: { fps?: number; withAudio?: boolean; bitsPerSecond?: number } = {}
+  ): Promise<{ recorder: { stop: () => void }; result: Promise<Blob> }> {
+    if (typeof MediaRecorder === 'undefined') {
+      throw new Error(
+        'Video export is not supported in this browser (MediaRecorder missing).'
+      );
+    }
+    if (typeof canvas?.captureStream !== 'function') {
+      throw new Error('Canvas capture is not available in this browser.');
+    }
+
+    const stream = canvas.captureStream(options.fps ?? 30);
+
+    // Fold the live master bus into the recording so the exported master keeps
+    // its score instead of shipping silent frames.
+    if (options.withAudio !== false) {
+      try {
+        const audioTrack =
+          this.engine.getMasterStream().stream.getAudioTracks()[0];
+        if (audioTrack) stream.addTrack(audioTrack);
+      } catch (err) {
+        this.logger.warn('Video export is running without an audio track', err);
+      }
+    }
+
+    const mimeType = this.resolveVideoMimeType();
+    const recorderOptions: MediaRecorderOptions = {
+      videoBitsPerSecond: options.bitsPerSecond ?? 6_000_000,
     };
+    if (mimeType) recorderOptions.mimeType = mimeType;
+
+    const chunks: BlobPart[] = [];
+    const recorder = new MediaRecorder(stream, recorderOptions);
+    recorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) chunks.push(event.data);
+    };
+
+    const result = new Promise<Blob>((resolve, reject) => {
+      recorder.onstop = () =>
+        resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
+      recorder.onerror = (event) =>
+        reject(
+          (event as unknown as { error?: Error })?.error ??
+            new Error('Video recording failed')
+        );
+    });
+
+    recorder.start(250);
+
+    return {
+      recorder: {
+        stop: () => {
+          if (recorder.state !== 'inactive') recorder.stop();
+        },
+      },
+      result,
+    };
+  }
+
+  /** First `MediaRecorder`-supported video container, or null when unknown. */
+  private resolveVideoMimeType(): string | null {
+    if (typeof MediaRecorder.isTypeSupported !== 'function') return null;
+    return (
+      VIDEO_MIME_CANDIDATES.find((type) =>
+        MediaRecorder.isTypeSupported(type)
+      ) ?? null
+    );
   }
 
   public downloadBlob(blob: Blob, filename: string) {

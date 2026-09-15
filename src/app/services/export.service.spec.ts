@@ -14,6 +14,10 @@ describe('ExportService (Sprint A6)', () => {
     isPlaying: () => false,
     start: () => {},
     stop: () => {},
+    // Master bus stream used to give canvas video exports their score.
+    getMasterStream: jest.fn(() => ({
+      stream: { getAudioTracks: () => [{ id: 'master-audio' }] },
+    })),
   };
 
   const mockMusicManager = {
@@ -201,6 +205,165 @@ describe('ExportService (Sprint A6)', () => {
         expect.stringContaining('.mid')
       );
       shareSpy.mockRestore();
+    });
+  });
+
+  describe('video export (canvas capture)', () => {
+    /** Controllable MediaRecorder stand-in that mirrors the browser flush order. */
+    class FakeMediaRecorder {
+      static isTypeSupported = jest.fn(
+        (type: string) => type === 'video/webm;codecs=vp9,opus'
+      );
+      static instances: FakeMediaRecorder[] = [];
+
+      state: 'inactive' | 'recording' = 'inactive';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+
+      constructor(
+        public stream: MediaStream,
+        public options?: MediaRecorderOptions
+      ) {
+        FakeMediaRecorder.instances.push(this);
+      }
+
+      start = jest.fn(() => {
+        this.state = 'recording';
+      });
+
+      stop = jest.fn(() => {
+        this.state = 'inactive';
+        this.ondataavailable?.({
+          data: new Blob(['frame-bytes'], { type: 'video/webm' }),
+        });
+        this.onstop?.();
+      });
+    }
+
+    const makeCanvas = () => {
+      const stream = {
+        addTrack: jest.fn(),
+        getTracks: () => [],
+      } as unknown as MediaStream;
+      const canvas = {
+        captureStream: jest.fn(() => stream),
+      } as unknown as HTMLCanvasElement;
+      return { canvas, stream };
+    };
+
+    beforeEach(() => {
+      FakeMediaRecorder.instances = [];
+      FakeMediaRecorder.isTypeSupported.mockClear();
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      // Shared engine mock — clear call history so per-test assertions are honest.
+      const masterStream = mockEngine.getMasterStream as jest.Mock;
+      masterStream.mockClear();
+      masterStream.mockImplementation(() => ({
+        stream: { getAudioTracks: () => [{ id: 'master-audio' }] },
+      }));
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(
+        globalThis as unknown as Record<string, unknown>,
+        'MediaRecorder'
+      );
+    });
+
+    it('refuses a canvas that cannot be captured', async () => {
+      const { canvas } = makeCanvas();
+      (canvas as unknown as { captureStream?: unknown }).captureStream =
+        undefined;
+
+      await expect(svc.startVideoExport(canvas)).rejects.toThrow(
+        /Canvas capture/
+      );
+    });
+
+    it('muxes the preview canvas and the master bus into one recording', async () => {
+      const { canvas, stream } = makeCanvas();
+
+      const session = await svc.startVideoExport(canvas, { fps: 24 });
+
+      expect(canvas.captureStream).toHaveBeenCalledWith(24);
+      expect(stream.addTrack).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'master-audio' })
+      );
+      expect(FakeMediaRecorder.isTypeSupported).toHaveBeenCalledWith(
+        'video/webm;codecs=vp9,opus'
+      );
+      expect(FakeMediaRecorder.instances[0].options).toEqual(
+        expect.objectContaining({
+          mimeType: 'video/webm;codecs=vp9,opus',
+          videoBitsPerSecond: 6_000_000,
+        })
+      );
+
+      session.recorder.stop();
+      const blob = await session.result;
+      expect(blob.size).toBeGreaterThan(0);
+      expect(blob.type).toBe('video/webm;codecs=vp9,opus');
+    });
+
+    it('records video-only when the master bus is unavailable', async () => {
+      (mockEngine.getMasterStream as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('audio context not initialised');
+      });
+      const { canvas, stream } = makeCanvas();
+
+      const session = await svc.startVideoExport(canvas);
+      session.recorder.stop();
+      const blob = await session.result;
+
+      expect(stream.addTrack).not.toHaveBeenCalled();
+      expect(blob.size).toBeGreaterThan(0);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('without an audio track'),
+        expect.any(Error)
+      );
+    });
+
+    it('honours withAudio: false for a silent capture', async () => {
+      const { canvas, stream } = makeCanvas();
+
+      await svc.startVideoExport(canvas, { withAudio: false });
+
+      expect(mockEngine.getMasterStream).not.toHaveBeenCalled();
+      expect(stream.addTrack).not.toHaveBeenCalled();
+    });
+
+    it('rejects the result when the recorder errors out', async () => {
+      const { canvas } = makeCanvas();
+      const session = await svc.startVideoExport(canvas);
+
+      FakeMediaRecorder.instances[0].onerror?.({ error: new Error('boom') });
+
+      await expect(session.result).rejects.toThrow('boom');
+    });
+
+    it('stops the recorder only once', async () => {
+      const { canvas } = makeCanvas();
+      const session = await svc.startVideoExport(canvas);
+
+      session.recorder.stop();
+      await session.result;
+      session.recorder.stop();
+
+      expect(FakeMediaRecorder.instances[0].stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws a clear error where MediaRecorder does not exist', async () => {
+      Reflect.deleteProperty(
+        globalThis as unknown as Record<string, unknown>,
+        'MediaRecorder'
+      );
+      const { canvas } = makeCanvas();
+
+      await expect(svc.startVideoExport(canvas)).rejects.toThrow(
+        /MediaRecorder missing/
+      );
     });
   });
 });
