@@ -29,9 +29,10 @@ export interface VideoClip {
   type: 'video' | 'image' | 'overlay';
   /**
    * Where the media came from. Drives preview/export rendering hints — camera
-   * clips honour the viewfinder mirror setting, uploads never do.
+   * clips honour the viewfinder mirror setting, uploads and screen captures
+   * never do.
    */
-  source?: 'upload' | 'ai' | 'camera';
+  source?: 'upload' | 'ai' | 'camera' | 'screen';
   effects: {
     upscale: boolean;
     bgRemoval: boolean;

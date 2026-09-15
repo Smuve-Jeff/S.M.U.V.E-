@@ -5,13 +5,105 @@ import { ImageVideoLabComponent } from './image-video-lab.component';
 import { LoggingService } from '../../services/logging.service';
 import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
-import { VideoEngineService } from '../../services/video-engine.service';
+import {
+  VideoClip,
+  VideoEngineService,
+} from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CameraCaptureService } from '../../services/camera-capture.service';
 
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
   let ctxStub: Record<string, jest.Mock | string | number>;
+  /** Prototype media spies — jsdom implements neither play() nor pause(). */
+  let pauseSpy: jest.SpyInstance;
+
+  /** Clip factory for the render and scrub assertions. */
+  const createVideoClip = (overrides: Partial<VideoClip> = {}): VideoClip => ({
+    id: 'clip-v',
+    name: 'take.webm',
+    url: 'blob:take',
+    startTime: 0,
+    duration: 10,
+    offset: 0,
+    trackId: 't1',
+    type: 'video',
+    source: 'camera',
+    effects: {
+      upscale: false,
+      bgRemoval: false,
+      noiseReduction: false,
+      brightness: 1,
+      contrast: 1,
+      filter: 'none',
+      transition: 'cut',
+      transitionDuration: 0,
+      trimStart: 0,
+      trimEnd: 0,
+    },
+    ...overrides,
+  });
+
+  /**
+   * Collect every <video> the component creates so tests can drive a real
+   * element through the decoder-dependent render paths.
+   */
+  const installVideoElement = (): HTMLVideoElement[] => {
+    const videos: HTMLVideoElement[] = [];
+    const realCreate = document.createElement.bind(document);
+    jest
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string, options?: any) => {
+        const element = realCreate(tag, options);
+        if (tag === 'video') videos.push(element as HTMLVideoElement);
+        return element;
+      });
+    return videos;
+  };
+
+  /**
+   * Give an element the decoder surface the scrub logic reads, and record every
+   * `currentTime` write so seeks can be asserted and counted.
+   */
+  const decodeVideo = (
+    video: HTMLVideoElement,
+    options: { currentTime?: number; duration?: number } = {}
+  ) => {
+    let time = options.currentTime ?? 0;
+    const writes: number[] = [];
+    Object.defineProperty(video, 'readyState', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', {
+      configurable: true,
+      value: options.duration ?? 30,
+    });
+    Object.defineProperty(video, 'paused', {
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+    Object.defineProperty(video, 'currentTime', {
+      configurable: true,
+      get: () => time,
+      set: (next: number) => {
+        writes.push(next);
+        time = next;
+      },
+    });
+    Object.defineProperty(video, 'videoWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    Object.defineProperty(video, 'videoHeight', {
+      configurable: true,
+      value: 720,
+    });
+    return {
+      writes,
+      setPaused: (paused: boolean) => {
+        (video as unknown as { paused: boolean }).paused = paused;
+      },
+    };
+  };
 
   const createComponent = async () => {
     const videoEngine = {
@@ -177,6 +269,7 @@ describe('ImageVideoLabComponent', () => {
 
     const cameraStream = signal<MediaStream | null>(null);
     const cameraStatus = signal<'off' | 'live'>('off');
+    const cameraSource = signal<'camera' | 'screen'>('camera');
     const cameraFacing = signal<'user' | 'environment'>('user');
     const cameraRecording = signal(false);
     const cameraRecordingSeconds = signal(0);
@@ -190,6 +283,7 @@ describe('ImageVideoLabComponent', () => {
       >([]),
       selectedDeviceId: signal<string | null>('cam-1'),
       facingMode: cameraFacing,
+      sourceType: cameraSource,
       mirrored: signal(true),
       isRecording: cameraRecording,
       recordingSeconds: cameraRecordingSeconds,
@@ -199,19 +293,33 @@ describe('ImageVideoLabComponent', () => {
       isStarting: computed(() => false),
       isSupported: computed(() => true),
       canSwitchDevice: computed(() => !cameraRecording()),
-      deviceName: computed(() => 'Front Camera'),
-      statusLabel: computed(() =>
-        cameraStatus() === 'live' ? 'LIVE' : 'CAMERA OFF'
+      screenShareSupported: computed(() => true),
+      deviceName: computed(() =>
+        cameraSource() === 'screen' ? 'Screen share' : 'Front Camera'
       ),
+      statusLabel: computed(() => {
+        if (cameraStatus() === 'live' && cameraSource() === 'screen') {
+          return 'SCREEN LIVE';
+        }
+        return cameraStatus() === 'live' ? 'LIVE' : 'CAMERA OFF';
+      }),
       statusDetail: computed(() => 'Front Camera · 1280×720 @ 30fps'),
       start: jest.fn(async () => {
         cameraStream.set({ id: 'mock-stream' } as unknown as MediaStream);
         cameraStatus.set('live');
+        cameraSource.set('camera');
+        return true;
+      }),
+      startScreenShare: jest.fn(async () => {
+        cameraStream.set({ id: 'screen-stream' } as unknown as MediaStream);
+        cameraStatus.set('live');
+        cameraSource.set('screen');
         return true;
       }),
       stop: jest.fn(() => {
         cameraStream.set(null);
         cameraStatus.set('off');
+        cameraSource.set('camera');
       }),
       setDevice: jest.fn(async () => true),
       switchFacing: jest.fn(async () => {
@@ -317,11 +425,14 @@ describe('ImageVideoLabComponent', () => {
     jest
       .spyOn(window, 'requestAnimationFrame')
       .mockImplementation(() => 1 as unknown as number);
-    // jsdom does not implement play(); the component tolerates that, but the
-    // media tests need a resolved play() to assert autoplay behaviour.
+    // jsdom implements neither play() nor pause(); the component tolerates the
+    // former, and the scrub tests assert on the latter.
     jest
       .spyOn(HTMLMediaElement.prototype, 'play')
       .mockImplementation(() => Promise.resolve());
+    pauseSpy = jest
+      .spyOn(HTMLMediaElement.prototype, 'pause')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -636,6 +747,51 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('MIRROR OFF');
     });
 
+    it('shares a screen and reports the display feed', async () => {
+      const { component, camera } = await createComponent();
+
+      await component.captureScreen();
+
+      expect(camera.startScreenShare).toHaveBeenCalledTimes(1);
+      expect(camera.sourceType()).toBe('screen');
+      expect(component.aiFeedback()).toContain('SCREEN LIVE');
+
+      await component.captureScreen();
+      expect(camera.stop).toHaveBeenCalledTimes(1);
+      expect(component.aiFeedback()).toContain('SCREEN SHARE STOPPED');
+    });
+
+    it('surfaces a cancelled screen share and keeps the camera running', async () => {
+      const { component, camera } = await createComponent();
+      camera.startScreenShare.mockResolvedValueOnce(false);
+      camera.lastError.set('Screen capture was cancelled or blocked.');
+
+      await component.captureScreen();
+
+      expect(component.aiFeedback()).toContain('CANCELLED OR BLOCKED');
+    });
+
+    it('labels screen captures so they are never mirrored as camera media', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.captureScreen();
+      camera.captureFrame.mockReturnValueOnce('data:image/jpeg;base64,screen');
+      camera.stopRecording.mockResolvedValueOnce(new Blob(['screen-take']));
+
+      component.captureCameraFrame();
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({ name: 'Screen Frame 1', source: 'screen' })
+      );
+
+      await component.toggleCameraTake();
+      camera.recordingSeconds.set(4);
+      await component.toggleCameraTake();
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({ name: 'Camera Take 2', source: 'screen' })
+      );
+    });
+
     it('reports an honest transport badge for every capture state', async () => {
       const { component, videoEngine, camera } = await createComponent();
       expect(component.transportLabel()).toBe('Standby');
@@ -732,6 +888,112 @@ describe('ImageVideoLabComponent', () => {
         expect.any(Number)
       );
       expect(ctxStub.createLinearGradient).not.toHaveBeenCalled();
+    });
+
+    it('scrubs a paused clip to the exact source frame', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ offset: 2 }),
+      ]);
+      renderFrame();
+      const video = decodeVideo(videos[0]);
+      videoEngine.isPlaying.set(false);
+
+      videoEngine.currentTime.set(3.5);
+      renderFrame();
+      expect(video.writes).toEqual([5.5]);
+
+      // One frame of movement on the timeline must move the source by one frame.
+      videoEngine.currentTime.set(3.54);
+      renderFrame();
+      expect(video.writes).toEqual([5.5, 5.54]);
+
+      // Re-rendering the same instant is not a seek.
+      renderFrame();
+      expect(video.writes).toEqual([5.5, 5.54]);
+    });
+
+    it('parks the playhead inside the real media duration', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ offset: 0, duration: 10 }),
+      ]);
+      renderFrame();
+      const video = decodeVideo(videos[0], { duration: 4 });
+
+      videoEngine.currentTime.set(9);
+      renderFrame();
+
+      expect(video.writes[0]).toBeCloseTo(3.999, 3);
+      expect(video.writes[0]).toBeLessThan(4);
+    });
+
+    it('corrects drift only past the tolerance while playing', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([createVideoClip()]);
+      renderFrame();
+      const video = videos[0];
+      const handle = decodeVideo(video, { currentTime: 5.5 });
+      videoEngine.currentTime.set(5.5);
+      videoEngine.isPlaying.set(true);
+
+      renderFrame();
+      expect(handle.writes).toEqual([]);
+
+      video.currentTime = 6.4; // the element ran ahead of the playhead
+      handle.writes.length = 0;
+      renderFrame();
+      expect(handle.writes).toEqual([5.5]);
+    });
+
+    it('parks clips that are no longer under the playhead', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ id: 'a', url: 'blob:a' }),
+      ]);
+      renderFrame();
+      const parked = decodeVideo(videos[0]);
+      parked.setPaused(false);
+      pauseSpy.mockClear();
+
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ id: 'b', url: 'blob:b', startTime: 20 }),
+      ]);
+      renderFrame();
+
+      expect(pauseSpy).toHaveBeenCalled();
+    });
+
+    it('mirrors camera clips but never a screen share', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ source: 'camera' }),
+      ]);
+      renderFrame();
+      decodeVideo(videos[0]);
+      (ctxStub.translate as jest.Mock).mockClear();
+      (ctxStub.drawImage as jest.Mock).mockClear();
+
+      renderFrame();
+      expect(ctxStub.translate).toHaveBeenCalledWith(300, 0);
+      expect(ctxStub.drawImage).toHaveBeenCalled();
+
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ id: 'screen', url: 'blob:screen', source: 'screen' }),
+      ]);
+      renderFrame();
+      decodeVideo(videos[1]);
+      (ctxStub.translate as jest.Mock).mockClear();
+      (ctxStub.drawImage as jest.Mock).mockClear();
+
+      renderFrame();
+      expect(ctxStub.drawImage).toHaveBeenCalled();
+      expect(ctxStub.translate).not.toHaveBeenCalled();
     });
 
     it('falls back to the signal placeholder while media is still decoding', async () => {

@@ -426,6 +426,32 @@
             </button>
           </div>
 
+          <button
+            type="button"
+            class="camera-action w-full"
+            [class.active]="
+              camera.isLive() && camera.sourceType() === 'screen'
+            "
+            [disabled]="!camera.screenShareSupported()"
+            (click)="captureScreen()"
+          >
+            <span class="material-symbols-outlined text-base">{{
+              camera.isLive() && camera.sourceType() === 'screen'
+                ? 'stop_screen_share'
+                : 'screen_share'
+            }}</span>
+            <span>{{
+              camera.isLive() && camera.sourceType() === 'screen'
+                ? 'Stop Sharing'
+                : 'Share Screen'
+            }}</span>
+          </button>
+          @if (!camera.screenShareSupported()) {
+            <p class="camera-detail">
+              Screen capture is not available in this browser.
+            </p>
+          }
+
           @if (camera.devices().length > 1) {
             <label
               class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"

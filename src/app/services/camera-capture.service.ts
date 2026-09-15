@@ -21,6 +21,12 @@ export interface CameraDevice {
   isDefault: boolean;
 }
 
+/**
+ * Where the live frames come from. Both paths produce a `MediaStream` that the
+ * preview, the frame grabber and the recorder treat identically.
+ */
+export type CaptureSource = 'camera' | 'screen';
+
 export interface CameraFrameSettings {
   width: number;
   height: number;
@@ -93,6 +99,7 @@ export class CameraCaptureService implements OnDestroy {
   devices = signal<CameraDevice[]>([]);
   selectedDeviceId = signal<string | null>(null);
   facingMode = signal<'user' | 'environment'>('user');
+  sourceType = signal<CaptureSource>('camera');
   frameSettings = signal<CameraFrameSettings | null>(null);
   /** Viewfinder mirror — on by default, matching every phone's selfie preview. */
   mirrored = signal(true);
@@ -109,12 +116,24 @@ export class CameraCaptureService implements OnDestroy {
   isSupported = computed(() =>
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   );
+  /** Screen/window capture is a separate capability from camera capture. */
+  screenShareSupported = computed(
+    () =>
+      typeof navigator !== 'undefined' &&
+      typeof navigator.mediaDevices?.getDisplayMedia === 'function'
+  );
   deviceName = computed(() => {
+    if (this.sourceType() === 'screen') return 'Screen share';
     const id = this.selectedDeviceId();
     const device = this.devices().find((d) => d.deviceId === id);
     return device?.label || 'Default camera';
   });
-  statusLabel = computed(() => STATUS_LABELS[this.status()]);
+  statusLabel = computed(() => {
+    if (this.status() === 'live' && this.sourceType() === 'screen') {
+      return 'SCREEN LIVE';
+    }
+    return STATUS_LABELS[this.status()];
+  });
   /** Operator-facing hint that explains the current state in one sentence. */
   statusDetail = computed(() => {
     const state = this.status();
@@ -235,6 +254,7 @@ export class CameraCaptureService implements OnDestroy {
     }
     this.releaseStream();
     this.status.set('off');
+    this.sourceType.set('camera');
     this.frameSettings.set(null);
     this.previewWarning.set(null);
   }
@@ -245,6 +265,42 @@ export class CameraCaptureService implements OnDestroy {
       return false;
     }
     return this.start();
+  }
+
+  /**
+   * Share a screen or window through `getDisplayMedia`.
+   *
+   * Unlike a camera switch, the request is made *before* releasing anything: a
+   * cancelled picker must not tear down a live camera stream.
+   */
+  async startScreenShare(): Promise<boolean> {
+    if (!this.screenShareSupported()) {
+      this.status.set(this.resolveUnsupportedState());
+      this.lastError.set(
+        'Screen capture is not supported in this browser (getDisplayMedia missing).'
+      );
+      return false;
+    }
+
+    this.status.set('requesting');
+    this.lastError.set(null);
+    this.previewWarning.set(null);
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30 } },
+        // Tab/system audio when the platform offers it; harmless otherwise.
+        audio: true,
+      });
+    } catch (error) {
+      this.handleAcquireError(error, 'screen');
+      return false;
+    }
+
+    this.releaseStream();
+    this.adoptStream(stream, 'screen');
+    return true;
   }
 
   /**
@@ -369,9 +425,13 @@ export class CameraCaptureService implements OnDestroy {
     if (this.previewWarning()) this.previewWarning.set(null);
   }
 
-  private adoptStream(stream: MediaStream): void {
+  private adoptStream(
+    stream: MediaStream,
+    source: CaptureSource = 'camera'
+  ): void {
     this.mediaStream = stream;
     this.stream.set(stream);
+    this.sourceType.set(source);
     this.status.set('live');
     this.permissionState.set('granted');
     this.lastError.set(null);
@@ -392,15 +452,25 @@ export class CameraCaptureService implements OnDestroy {
     // screen lock). Mirror that into the status instead of showing a frozen
     // frame that looks like a hung app.
     track?.addEventListener?.('ended', () => {
-      this.logger.warn('Camera track ended by the system.');
+      const wasScreenShare = source === 'screen';
+      this.logger.warn(
+        wasScreenShare
+          ? 'Screen share track ended.'
+          : 'Camera track ended by the system.'
+      );
       this.status.set('off');
+      this.sourceType.set('camera');
       this.stream.set(null);
       this.frameSettings.set(null);
-      this.lastError.set('Camera stopped. The device was released by the system.');
+      this.lastError.set(
+        wasScreenShare
+          ? 'Screen share ended. Press Share Screen to start a new capture.'
+          : 'Camera stopped. The device was released by the system.'
+      );
     });
 
     this.armFirstFrameWatchdog();
-    void this.refreshDevices(true);
+    if (source === 'camera') void this.refreshDevices(true);
   }
 
   private armFirstFrameWatchdog(): void {
@@ -468,9 +538,32 @@ export class CameraCaptureService implements OnDestroy {
     return 'unsupported';
   }
 
-  private handleAcquireError(error: unknown): void {
+  private handleAcquireError(
+    error: unknown,
+    source: CaptureSource = 'camera'
+  ): void {
     const name = (error as { name?: string })?.name ?? 'UnknownError';
-    this.permissionState.set(name === 'NotAllowedError' ? 'denied' : this.permissionState());
+    this.permissionState.set(
+      name === 'NotAllowedError' ? 'denied' : this.permissionState()
+    );
+
+    if (source === 'screen') {
+      // Cancelling the picker throws the same DOMException as a denial. A live
+      // camera is deliberately left running, so the status reverts to live
+      // rather than claiming an idle camera that still holds the device.
+      this.status.set(this.mediaStream ? 'live' : 'off');
+      if (name === 'NotAllowedError' || name === 'AbortError') {
+        this.lastError.set(
+          'Screen capture was cancelled or blocked. Choose a screen or window to start sharing.'
+        );
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        this.lastError.set('No screen or window was available to share.');
+      } else {
+        this.lastError.set(`Screen capture could not start (${name}).`);
+      }
+      this.logger.error('Screen capture failed', error);
+      return;
+    }
 
     if (name === 'NotAllowedError' || name === 'SecurityError') {
       this.status.set('denied');

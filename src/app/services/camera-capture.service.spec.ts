@@ -78,6 +78,7 @@ describe('CameraCaptureService', () => {
     overrides: Partial<{
       getUserMedia: jest.Mock;
       enumerateDevices: jest.Mock;
+      getDisplayMedia: jest.Mock;
     }> = {}
   ) => {
     const mediaDevices = {
@@ -91,6 +92,9 @@ describe('CameraCaptureService', () => {
           { kind: 'videoinput', deviceId: 'cam-2', label: 'Rear Camera' },
           { kind: 'audioinput', deviceId: 'mic-1', label: 'Mic' },
         ]),
+      getDisplayMedia:
+        overrides.getDisplayMedia ??
+        jest.fn(async () => makeStream({ deviceId: 'display-1' }).stream),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
     };
@@ -438,6 +442,103 @@ describe('CameraCaptureService', () => {
 
     expect(data).toBe('data:image/jpeg;base64,scaled');
     expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 1000, 500);
+  });
+
+  describe('screen capture', () => {
+    it('adopts a display stream and flags it as a screen share', async () => {
+      const mediaDevices = installMediaDevices();
+      const service = createService();
+
+      await expect(service.startScreenShare()).resolves.toBe(true);
+
+      expect(mediaDevices.getDisplayMedia).toHaveBeenCalledWith({
+        video: { frameRate: { ideal: 30 } },
+        audio: true,
+      });
+      expect(service.sourceType()).toBe('screen');
+      expect(service.status()).toBe('live');
+      expect(service.statusLabel()).toBe('SCREEN LIVE');
+      expect(service.deviceName()).toBe('Screen share');
+    });
+
+    it('keeps a live camera when the screen picker is cancelled', async () => {
+      const camera = makeStream();
+      const cancelled = Object.assign(new Error('cancelled'), {
+        name: 'NotAllowedError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => camera.stream),
+        getDisplayMedia: jest.fn(async () => Promise.reject(cancelled)),
+      });
+      const service = createService();
+      await service.start();
+
+      await expect(service.startScreenShare()).resolves.toBe(false);
+
+      // Acquiring before releasing is what protects the running camera here.
+      expect(camera.track.stop).not.toHaveBeenCalled();
+      expect(service.isLive()).toBe(true);
+      expect(service.sourceType()).toBe('camera');
+      expect(service.statusLabel()).not.toBe('SCREEN LIVE');
+      expect(service.lastError()).toContain('cancelled or blocked');
+      expect(mediaDevices.getDisplayMedia).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports a browser without getDisplayMedia separately from the camera', async () => {
+      const mediaDevices = installMediaDevices();
+      Reflect.deleteProperty(
+        mediaDevices as unknown as Record<string, unknown>,
+        'getDisplayMedia'
+      );
+      const service = createService();
+
+      expect(service.screenShareSupported()).toBe(false);
+      expect(service.isSupported()).toBe(true);
+
+      await expect(service.startScreenShare()).resolves.toBe(false);
+      expect(service.status()).toBe('unsupported');
+      expect(service.lastError()).toContain('getDisplayMedia');
+    });
+
+    it('returns to the camera source when the user stops sharing', async () => {
+      const display = makeStream({ deviceId: 'display-1' });
+      installMediaDevices({ getDisplayMedia: jest.fn(async () => display.stream) });
+      const service = createService();
+      await service.startScreenShare();
+
+      const endedHandler = display.track.addEventListener.mock.calls.find(
+        (call) => call[0] === 'ended'
+      )?.[1] as (() => void) | undefined;
+      endedHandler?.();
+
+      expect(service.status()).toBe('off');
+      expect(service.sourceType()).toBe('camera');
+      expect(service.lastError()).toContain('Screen share ended');
+    });
+
+    it('does not re-enumerate cameras for a screen share', async () => {
+      const mediaDevices = installMediaDevices();
+      const service = createService();
+      await Promise.resolve();
+      const before = mediaDevices.enumerateDevices.mock.calls.length;
+
+      await service.startScreenShare();
+
+      expect(mediaDevices.enumerateDevices.mock.calls.length).toBe(before);
+    });
+
+    it('records a screen share like any other stream', async () => {
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.startScreenShare();
+
+      expect(service.startRecording()).toBe(true);
+      const blob = await service.stopRecording();
+
+      expect(blob?.size).toBeGreaterThan(0);
+      expect(service.isRecording()).toBe(false);
+    });
   });
 
   it('releases the device and detaches listeners on destroy', async () => {

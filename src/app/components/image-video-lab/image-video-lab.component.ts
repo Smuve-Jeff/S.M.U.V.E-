@@ -40,6 +40,14 @@ const EXPORT_WINDOW_OPTIONS = [5, 10, 30, 60];
 const DEFAULT_EXPORT_WINDOW = 10;
 /** Longest edge of a captured camera still, in px. */
 const CAMERA_STILL_MAX_WIDTH = 1920;
+/** Sub-millisecond delta — closer than any real frame boundary, so skip the seek. */
+const EXACT_SEEK_EPSILON_SECONDS = 0.001;
+/**
+ * Drift tolerated while a clip is *playing* before the element is re-seeked.
+ * Correcting on every frame would fight the decoder and stutter; scrubbing is
+ * always exact.
+ */
+const PLAYING_DRIFT_TOLERANCE_SECONDS = 0.12;
 
 @Component({
   selector: 'app-image-video-lab',
@@ -315,7 +323,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
         const media = this.resolveMediaElement(clip);
         const painted = media
-          ? this.drawMediaContain(ctx, canvas, media, clip)
+          ? this.drawMediaContain(ctx, canvas, media, clip, clipLocalTime)
           : false;
         if (!painted) this.drawSignalPlaceholder(ctx, canvas, clip);
 
@@ -341,6 +349,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
     }
 
+    this.pauseIdleMedia(activeClips);
     this.drawHUD(ctx, canvas);
   }
 
@@ -427,15 +436,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     media: HTMLImageElement | HTMLVideoElement,
-    clip: VideoClip
+    clip: VideoClip,
+    clipLocalTime: number
   ): boolean {
+    if (media instanceof HTMLVideoElement) {
+      this.syncVideoPlayback(media, clip, clipLocalTime);
+    }
+
     const width = this.mediaWidth(media);
     const height = this.mediaHeight(media);
     if (!width || !height) return false;
-
-    if (media instanceof HTMLVideoElement) {
-      this.syncVideoPlayback(media, clip);
-    }
 
     const rect = this.containRect(width, height, canvas);
     ctx.save();
@@ -464,34 +474,80 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
-   * Keep an ingested video roughly aligned with the playhead. Frame-accurate
-   * scrubbing is deliberately out of scope — the element is only nudged once it
-   * has drifted more than a quarter second.
+   * Keep an ingested video matched to the playhead.
+   *
+   * While the transport is paused every rendered frame lands on the exact
+   * source time, so dragging the playhead scrubs frame by frame. While playing,
+   * the element runs on its own clock and is only corrected past a small drift
+   * tolerance — re-seeking every frame would fight the decoder and stutter.
    */
-  private syncVideoPlayback(video: HTMLVideoElement, clip: VideoClip): void {
+  private syncVideoPlayback(
+    video: HTMLVideoElement,
+    clip: VideoClip,
+    clipLocalTime: number
+  ): void {
     if (video.readyState < 2) return;
-    const trimStart = Math.max(0, clip.effects.trimStart || 0);
-    const target = Math.max(
-      0,
-      (clip.offset || 0) +
-        (this.videoEngine.currentTime() - clip.startTime - trimStart)
-    );
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
-    const clamped =
-      duration > 0 ? Math.min(target, Math.max(0, duration - 0.05)) : target;
-    if (Math.abs(video.currentTime - clamped) > 0.25) {
-      try {
-        video.currentTime = clamped;
-      } catch {
-        /* seeking before metadata is ready — ignore this pass */
-      }
+
+    const sourceTime = this.resolveClipSourceTime(clip, clipLocalTime);
+    if (sourceTime === null) return;
+
+    if (!this.videoEngine.isPlaying()) {
+      if (!video.paused) video.pause();
+      this.seekVideoExact(video, sourceTime);
+      return;
     }
 
-    if (this.videoEngine.isPlaying() && video.paused) {
-      this.playQuietly(video);
-    } else if (!this.videoEngine.isPlaying() && !video.paused) {
-      video.pause();
+    if (video.paused) this.playQuietly(video);
+    if (
+      Math.abs(video.currentTime - sourceTime) > PLAYING_DRIFT_TOLERANCE_SECONDS
+    ) {
+      this.seekVideoExact(video, sourceTime);
     }
+  }
+
+  /** Map a timeline position onto the clip's source file. */
+  private resolveClipSourceTime(
+    clip: VideoClip,
+    clipLocalTime: number
+  ): number | null {
+    const target = Math.max(0, (clip.offset || 0) + clipLocalTime);
+    return Number.isFinite(target) ? target : null;
+  }
+
+  /**
+   * Land on the exact requested time. `fastSeek()` is deliberately avoided — it
+   * snaps to the nearest keyframe, which is the opposite of frame accuracy.
+   */
+  private seekVideoExact(video: HTMLVideoElement, seconds: number): void {
+    const safe = this.clampToMediaDuration(video, seconds);
+    if (Math.abs(video.currentTime - safe) < EXACT_SEEK_EPSILON_SECONDS) return;
+    try {
+      video.currentTime = safe;
+    } catch {
+      /* seeking before metadata is ready — ignore this pass */
+    }
+  }
+
+  /** Keep a seek inside the decodable range of the element's own duration. */
+  private clampToMediaDuration(
+    video: HTMLVideoElement,
+    seconds: number
+  ): number {
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    if (duration <= 0) return seconds;
+    return Math.max(0, Math.min(seconds, duration - EXACT_SEEK_EPSILON_SECONDS));
+  }
+
+  /**
+   * Park every cached video that is not on the playhead. Off-screen clips were
+   * left decoding in the background, which burns battery on phones.
+   */
+  private pauseIdleMedia(activeClips: VideoClip[]): void {
+    const activeUrls = new Set(activeClips.map((clip) => clip.url));
+    this.mediaCache.forEach((media, url) => {
+      if (!(media instanceof HTMLVideoElement) || activeUrls.has(url)) return;
+      if (!media.paused) media.pause();
+    });
   }
 
   /**
@@ -794,6 +850,27 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /**
+   * Share a screen or window as the capture source. Screen captures land in the
+   * same lanes as camera media but are never mirrored (a flipped screen share
+   * would be unreadable).
+   */
+  async captureScreen(): Promise<void> {
+    if (this.camera.isLive() && this.camera.sourceType() === 'screen') {
+      this.camera.stop();
+      this.aiFeedback.set('SCREEN SHARE STOPPED. DISPLAY RELEASED.');
+      return;
+    }
+
+    this.aiFeedback.set('REQUESTING SCREEN SHARE...');
+    const started = await this.camera.startScreenShare();
+    this.aiFeedback.set(
+      started
+        ? 'SCREEN LIVE: DISPLAY FEED ROUTED INTO THE CINEMA PREVIEW.'
+        : (this.camera.lastError() ?? 'SCREEN CAPTURE COULD NOT START.').toUpperCase()
+    );
+  }
+
   async selectCameraDevice(deviceId: string): Promise<void> {
     if (!this.camera.canSwitchDevice()) {
       this.aiFeedback.set(
@@ -846,7 +923,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     this.cameraTakeCount.update((count) => count + 1);
-    const stillName = `Camera Frame ${this.cameraTakeCount()}`;
+    const isScreenShare = this.camera.sourceType() === 'screen';
+    const stillName = `${isScreenShare ? 'Screen' : 'Camera'} Frame ${this.cameraTakeCount()}`;
     const duration = this.resolveIngestDuration();
     this.videoEngine.addClip('t2', {
       name: stillName,
@@ -855,7 +933,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       duration,
       offset: 0,
       type: 'image',
-      source: 'camera',
+      source: isScreenShare ? 'screen' : 'camera',
       effects: {
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
@@ -897,7 +975,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         duration: recordedSeconds,
         offset: 0,
         type: 'video',
-        source: 'camera',
+        source: this.camera.sourceType() === 'screen' ? 'screen' : 'camera',
         effects: {
           upscale: this.highQualityEnhancer(),
           bgRemoval: false,
