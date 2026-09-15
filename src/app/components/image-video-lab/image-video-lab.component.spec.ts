@@ -272,7 +272,7 @@ describe('ImageVideoLabComponent', () => {
     };
 
     const cameraStream = signal<MediaStream | null>(null);
-    const cameraStatus = signal<'off' | 'live'>('off');
+    const cameraStatus = signal<'off' | 'live' | 'denied' | 'embedded'>('off');
     const cameraSource = signal<'camera' | 'screen'>('camera');
     const cameraFacing = signal<'user' | 'environment'>('user');
     const cameraRecording = signal(false);
@@ -302,6 +302,7 @@ describe('ImageVideoLabComponent', () => {
       ),
       isStarting: computed(() => false),
       isSupported: computed(() => true),
+      isFramed: signal(false),
       canSwitchDevice: computed(() => !cameraRecording()),
       // Mirrors the service contract: a retry is offered for any failed
       // acquisition or a live feed that never painted a frame.
@@ -726,6 +727,28 @@ describe('ImageVideoLabComponent', () => {
       await component.retryCamera();
 
       expect(camera.retry).not.toHaveBeenCalled();
+    });
+
+    it('opens the capture surface in its own tab when a frame blocks it', async () => {
+      const { component, camera } = await createComponent();
+      camera.isFramed.set(true);
+      camera.status.set('embedded');
+      const openSpy = jest
+        .spyOn(window, 'open')
+        .mockReturnValue({} as Window);
+
+      component.openCaptureInNewTab();
+
+      // A policy block cannot be granted from inside the frame, so leaving the
+      // frame is the only action that can actually recover capture.
+      expect(openSpy).toHaveBeenCalledWith(
+        window.location.href,
+        '_blank',
+        'noopener'
+      );
+      expect(component.aiFeedback()).toContain('NEW TAB');
+
+      openSpy.mockRestore();
     });
 
     it('cuts a camera frame into the overlays lane with mode-aware duration', async () => {

@@ -185,6 +185,19 @@
               >
               <span>{{ camera.isRetrying() ? 'RETRYING…' : 'RETRY CAPTURE' }}</span>
             </button>
+          } @else if (camera.status() === 'embedded') {
+            <!--
+              A frame-blocked feed cannot be retried into working, so the only
+              useful action here is to get the module out of the frame.
+            -->
+            <button
+              type="button"
+              class="camera-retry-chip"
+              (click)="openCaptureInNewTab()"
+            >
+              <span class="material-symbols-outlined">open_in_new</span>
+              <span>OPEN IN NEW TAB</span>
+            </button>
           }
 
           <!-- HUD OVERLAY -->
@@ -706,6 +719,26 @@
             <p class="camera-detail">
               Re-requesting access — attempt
               {{ camera.retryAttempt() }} of 3.
+            </p>
+          }
+
+          @if (
+            camera.isFramed() &&
+            (camera.canRetry() || camera.status() === 'embedded')
+          ) {
+            <button
+              type="button"
+              class="camera-action w-full"
+              (click)="openCaptureInNewTab()"
+            >
+              <span class="material-symbols-outlined text-base"
+                >open_in_new</span
+              >
+              <span>Open In New Tab</span>
+            </button>
+            <p class="camera-detail">
+              Embedded views can be refused camera and screen access outright,
+              in which case no prompt ever appears. A top-level tab is not.
             </p>
           }
         </div>

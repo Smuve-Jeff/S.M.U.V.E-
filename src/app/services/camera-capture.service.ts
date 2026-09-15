@@ -13,7 +13,9 @@ export type CameraStatus =
   | 'denied'
   | 'unavailable'
   | 'unsupported'
-  | 'insecure';
+  | 'insecure'
+  | 'embedded'
+  | 'nocapture';
 
 export interface CameraDevice {
   deviceId: string;
@@ -69,6 +71,25 @@ const RETRY_BACKOFF_MS = 600;
  */
 const CAMERA_PERMISSION_NAME = 'camera' as PermissionName;
 
+/**
+ * Address-bar advice is wrong (and unactionable) when the page is embedded in a
+ * frame whose Permissions Policy forbids capture: the browser will *never* raise
+ * a prompt there, no matter what the user grants, because the embed is refused
+ * the feature before the request is made. The only real fix is to open the app as
+ * a top-level document, so say that instead of pointing at a setting.
+ */
+const EMBEDDED_CAMERA_MESSAGE =
+  'This view is embedded in a frame that is not allowed to use the camera, so no permission prompt can appear here. Open CinemaEngine in its own browser tab, then start the camera.';
+const EMBEDDED_SCREEN_MESSAGE =
+  'This view is embedded in a frame that is not allowed to share a screen. Open CinemaEngine in its own browser tab, then share the screen.';
+
+/**
+ * Permissions-Policy feature names. `camera` gates `getUserMedia` video and
+ * `display-capture` gates `getDisplayMedia` — they are separate features, so a
+ * frame can allow one and refuse the other.
+ */
+export type CaptureFeature = 'camera' | 'display-capture';
+
 const STATUS_LABELS: Record<CameraStatus, string> = {
   off: 'CAMERA OFF',
   requesting: 'REQUESTING ACCESS…',
@@ -77,6 +98,8 @@ const STATUS_LABELS: Record<CameraStatus, string> = {
   unavailable: 'NO CAMERA',
   unsupported: 'CAMERA UNSUPPORTED',
   insecure: 'NEEDS HTTPS',
+  embedded: 'EMBED BLOCKS CAPTURE',
+  nocapture: 'CAPTURE UNSUPPORTED',
 };
 
 /**
@@ -127,11 +150,15 @@ export class CameraCaptureService implements OnDestroy {
   retryAttempt = signal(0);
 
   /**
-   * The source a retry should re-open. A cancelled screen picker reverts
-   * `sourceType` back to `camera`, so the failed attempt is remembered here
-   * rather than inferred from the current `sourceType`.
+   * The source of the in-flight (or last attempted) request. A cancelled screen
+   * picker reverts `sourceType` back to `camera`, so the failed attempt is
+   * remembered here rather than inferred from the current `sourceType`.
+   *
+   * This also drives the status copy: while a *screen* picker is open, telling
+   * the operator to expect a "camera permission prompt" describes a prompt that
+   * is never coming, which reads exactly like a camera that will not start.
    */
-  private lastAttemptedSource: CaptureSource = 'camera';
+  private attemptedSource = signal<CaptureSource>('camera');
 
   /** True while a `getUserMedia` request is in flight. */
   isStarting = computed(() => this.status() === 'requesting');
@@ -140,18 +167,32 @@ export class CameraCaptureService implements OnDestroy {
   /** Inputs may only be swapped between takes — never mid-capture. */
   canSwitchDevice = computed(() => !this.isRecording());
   /**
-   * Whether a failed capture is worth re-attempting. An insecure origin and a
-   * browser without `getUserMedia` cannot be fixed by asking again, so those two
+   * Whether a failed capture is worth re-attempting. An insecure origin, a
+   * browser without `getUserMedia`, a frame that forbids the feature and a host
+   * with no capture implementation cannot be fixed by asking again, so those
    * states deliberately expose no retry affordance.
    */
   canRetry = computed(() => {
     if (this.isStarting() || this.isRetrying()) return false;
-    if (this.status() === 'unsupported' || this.status() === 'insecure') {
+    if (
+      this.status() === 'unsupported' ||
+      this.status() === 'insecure' ||
+      this.status() === 'embedded' ||
+      this.status() === 'nocapture'
+    ) {
       return false;
     }
     // Either the acquisition failed, or it succeeded and never painted a frame.
     return !!this.lastError() || !!this.previewWarning();
   });
+  /**
+   * True when this document is not the top-level one. An embedded view is a
+   * degraded capture surface — the embed has to be granted the feature first —
+   * so the UI can offer to open the app on its own instead of guessing.
+   */
+  isFramed = computed(
+    () => typeof window !== 'undefined' && window.self !== window.top
+  );
   /** Browsers in a secure context expose `mediaDevices`; everything else cannot capture. */
   isSupported = computed(() =>
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
@@ -183,15 +224,32 @@ export class CameraCaptureService implements OnDestroy {
         ? `${this.deviceName()} · ${settings.width}×${settings.height} @ ${Math.round(settings.frameRate)}fps`
         : this.deviceName();
     }
-    if (state === 'requesting') return 'Waiting for the camera permission prompt.';
+    const sharing = this.attemptedSource() === 'screen';
+    if (state === 'requesting') {
+      return sharing
+        ? 'Waiting for you to choose a screen or window to share.'
+        : 'Waiting for the camera permission prompt.';
+    }
     if (state === 'denied')
-      return 'Camera access was blocked. Allow camera access for this site, then start again.';
+      return sharing
+        ? 'Screen sharing was blocked. Allow screen capture for this site, then share again.'
+        : 'Camera access was blocked. Allow camera access for this site, then start again.';
     if (state === 'unavailable')
-      return 'No usable camera was found, or another app is holding the device.';
+      return sharing
+        ? 'No screen or window was available to share.'
+        : 'No usable camera was found, or another app is holding the device.';
+    if (state === 'nocapture')
+      return sharing
+        ? 'This browser cannot share a screen — its capture implementation is unavailable. Try a different browser.'
+        : 'This browser has no video capture implementation, so no camera can be opened here. Try a different browser, or open the app in its own tab.';
     if (state === 'insecure')
-      return 'Camera capture requires HTTPS or localhost. This origin is not secure.';
+      return 'Capture requires HTTPS or localhost. This origin is not secure.';
     if (state === 'unsupported')
-      return 'This browser does not expose camera capture (getUserMedia).';
+      return sharing
+        ? 'This browser does not expose screen capture (getDisplayMedia).'
+        : 'This browser does not expose camera capture (getUserMedia).';
+    if (state === 'embedded')
+      return sharing ? EMBEDDED_SCREEN_MESSAGE : EMBEDDED_CAMERA_MESSAGE;
     return 'Camera idle. Start the camera to open a live capture feed.';
   });
 
@@ -251,11 +309,19 @@ export class CameraCaptureService implements OnDestroy {
    * Android will not hand out a second camera track while one is open.
    */
   async start(deviceId?: string): Promise<boolean> {
-    this.lastAttemptedSource = 'camera';
+    this.attemptedSource.set('camera');
 
     if (!this.isSupported()) {
       this.status.set(this.resolveUnsupportedState());
       this.lastError.set(this.statusDetail());
+      return false;
+    }
+
+    // Refused by the embedding frame's policy: no prompt can ever appear, so
+    // fail with the reason the operator can act on instead of "access denied".
+    if (!this.allowsFeature('camera')) {
+      this.status.set('embedded');
+      this.lastError.set(EMBEDDED_CAMERA_MESSAGE);
       return false;
     }
 
@@ -327,7 +393,20 @@ export class CameraCaptureService implements OnDestroy {
     // Nothing to repair: a live, frame-producing, error-free feed.
     if (this.isLive() && !this.lastError() && !this.previewWarning()) return true;
 
-    const source = this.lastAttemptedSource;
+    const source = this.attemptedSource();
+    const feature: CaptureFeature =
+      source === 'screen' ? 'display-capture' : 'camera';
+
+    // A retry re-requests; it cannot change the embedding frame's policy. Say so
+    // instead of running attempts that are guaranteed to fail.
+    if (!this.allowsFeature(feature)) {
+      if (!this.mediaStream) this.status.set('embedded');
+      this.lastError.set(
+        source === 'screen' ? EMBEDDED_SCREEN_MESSAGE : EMBEDDED_CAMERA_MESSAGE
+      );
+      return false;
+    }
+
     this.isRetrying.set(true);
     this.retryAttempt.set(0);
 
@@ -391,19 +470,55 @@ export class CameraCaptureService implements OnDestroy {
   }
 
   /**
+   * Whether this document is permitted to use a capture feature at all.
+   *
+   * Permissions Policy is inherited from the embedding frame, so an iframe built
+   * without `allow="camera"` can never open a camera: the browser refuses the
+   * request before any prompt would appear, and `navigator.permissions` reports
+   * the feature as `denied`. That is indistinguishable from a user denial by
+   * exception type alone, yet the advice is opposite — open the app properly
+   * rather than hunt for a site setting — so the policy is asked directly.
+   *
+   * Reports `true` wherever the browser cannot answer, so an unknown host keeps
+   * the normal request path instead of a false block.
+   */
+  allowsFeature(feature: CaptureFeature): boolean {
+    if (typeof document === 'undefined') return true;
+    const policy = document as Document & {
+      permissionsPolicy?: { allowsFeature?: (feature: string) => boolean };
+      featurePolicy?: { allowsFeature?: (feature: string) => boolean };
+    };
+    const api = policy.permissionsPolicy ?? policy.featurePolicy;
+    if (typeof api?.allowsFeature !== 'function') return true;
+    try {
+      return api.allowsFeature(feature);
+    } catch {
+      return true;
+    }
+  }
+
+  /**
    * Share a screen or window through `getDisplayMedia`.
    *
    * Unlike a camera switch, the request is made *before* releasing anything: a
    * cancelled picker must not tear down a live camera stream.
    */
   async startScreenShare(): Promise<boolean> {
-    this.lastAttemptedSource = 'screen';
+    this.attemptedSource.set('screen');
 
     if (!this.screenShareSupported()) {
       this.status.set(this.resolveUnsupportedState());
       this.lastError.set(
         'Screen capture is not supported in this browser (getDisplayMedia missing).'
       );
+      return false;
+    }
+
+    // `display-capture` is a separate policy feature from `camera`, so a frame
+    // can allow the viewfinder and still refuse screen sharing.
+    if (!this.allowsFeature('display-capture')) {
+      if (!this.mediaStream) this.status.set('embedded');
+      this.lastError.set(EMBEDDED_SCREEN_MESSAGE);
       return false;
     }
 
@@ -668,18 +783,39 @@ export class CameraCaptureService implements OnDestroy {
     source: CaptureSource = 'camera'
   ): void {
     const name = (error as { name?: string })?.name ?? 'UnknownError';
+    // Resolved once: the policy is what makes an identical DOMException mean
+    // either "the user said no" or "this frame was never allowed to ask".
+    const blockedByFrame = !this.allowsFeature(
+      source === 'screen' ? 'display-capture' : 'camera'
+    );
     this.permissionState.set(
-      name === 'NotAllowedError' ? 'denied' : this.permissionState()
+      name === 'NotAllowedError' && !blockedByFrame
+        ? 'denied'
+        : this.permissionState()
     );
 
     if (source === 'screen') {
       // Cancelling the picker throws the same DOMException as a denial. A live
       // camera is deliberately left running, so the status reverts to live
       // rather than claiming an idle camera that still holds the device.
+      // The API exists but this host implements no screen capture at all
+      // (in-app WebViews, stripped-down builds). Reporting "no screen" would
+      // send the operator looking for a window picker that can never appear.
+      if (name === 'NotSupportedError') {
+        this.status.set(this.mediaStream ? 'live' : 'nocapture');
+        this.lastError.set(
+          'This browser cannot share a screen — no screen-capture implementation is available. Try a different browser.'
+        );
+        this.logger.error('Screen capture failed', error);
+        return;
+      }
+
       this.status.set(this.mediaStream ? 'live' : 'off');
       if (name === 'NotAllowedError' || name === 'AbortError') {
         this.lastError.set(
-          'Screen capture was cancelled or blocked. Choose a screen or window to start sharing.'
+          blockedByFrame
+            ? EMBEDDED_SCREEN_MESSAGE
+            : 'Screen capture was cancelled or blocked. Choose a screen or window to start sharing.'
         );
       } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
         this.lastError.set('No screen or window was available to share.');
@@ -691,10 +827,17 @@ export class CameraCaptureService implements OnDestroy {
     }
 
     if (name === 'NotAllowedError' || name === 'SecurityError') {
-      this.status.set('denied');
-      this.lastError.set(
-        'Camera permission denied. Allow camera access for this app, then start the camera again.'
-      );
+      // A permissions-policy refusal wears the same DOMException as a user
+      // denial, but no site setting can undo it — only a proper top-level tab.
+      if (blockedByFrame) {
+        this.status.set('embedded');
+        this.lastError.set(EMBEDDED_CAMERA_MESSAGE);
+      } else {
+        this.status.set('denied');
+        this.lastError.set(
+          'Camera permission denied. Allow camera access for this app, then start the camera again.'
+        );
+      }
     } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError' || name === 'OverconstrainedError') {
       this.status.set('unavailable');
       this.lastError.set('No camera matched the request on this device.');
@@ -702,6 +845,14 @@ export class CameraCaptureService implements OnDestroy {
       this.status.set('unavailable');
       this.lastError.set(
         'The camera is already in use by another app. Close it and start the camera again.'
+      );
+    } else if (name === 'NotSupportedError') {
+      // `NotSupportedError` means the browser has no capture implementation —
+      // not that a camera is missing. Folding it into "NO CAMERA" sent
+      // operators hunting for hardware that was working the whole time.
+      this.status.set('nocapture');
+      this.lastError.set(
+        'This browser has no video capture implementation, so no camera can be opened here. Try a different browser, or open the app in its own tab.'
       );
     } else {
       this.status.set('unavailable');

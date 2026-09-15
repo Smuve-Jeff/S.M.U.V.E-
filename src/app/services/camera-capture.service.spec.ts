@@ -229,6 +229,39 @@ describe('CameraCaptureService', () => {
     expect(service.permissionState()).not.toBe('denied');
   });
 
+  it('blames a missing capture implementation instead of a missing camera', async () => {
+    // `NotSupportedError` is what a host with no capture implementation returns
+    // (in-app WebViews, stripped-down or headless builds). Reporting it as
+    // "NO CAMERA" sent operators looking for hardware that was never the issue.
+    const noImpl = Object.assign(new Error('nope'), {
+      name: 'NotSupportedError',
+    });
+    installMediaDevices({
+      getUserMedia: jest.fn(async () => Promise.reject(noImpl)),
+    });
+    const service = createService();
+
+    await expect(service.start()).resolves.toBe(false);
+
+    expect(service.status()).toBe('nocapture');
+    expect(service.status()).not.toBe('unavailable');
+    expect(service.statusLabel()).toBe('CAPTURE UNSUPPORTED');
+    expect(service.lastError()).toContain('no video capture implementation');
+    expect(service.lastError()).not.toContain('NotSupportedError');
+    // Asking again cannot conjure an implementation that is not there.
+    expect(service.canRetry()).toBe(false);
+  });
+
+  it('waits for the camera prompt, in camera language, for a camera request', async () => {
+    installMediaDevices({ getUserMedia: jest.fn(() => new Promise(() => {})) });
+    const service = createService();
+
+    void service.start();
+
+    expect(service.status()).toBe('requesting');
+    expect(service.statusDetail()).toContain('camera permission prompt');
+  });
+
   it('flags an insecure origin separately from an unsupported browser', async () => {
     Reflect.deleteProperty(
       navigator as unknown as Record<string, unknown>,
@@ -500,6 +533,41 @@ describe('CameraCaptureService', () => {
       expect(service.lastError()).toContain('getDisplayMedia');
     });
 
+    it('never asks the operator for a camera prompt while sharing a screen', async () => {
+      // The picker is open and has not answered yet. Telling the operator to
+      // expect a camera prompt described a prompt that was never coming, which
+      // is indistinguishable from a camera that refuses to start.
+      installMediaDevices({
+        getDisplayMedia: jest.fn(() => new Promise(() => {})),
+      });
+      const service = createService();
+
+      void service.startScreenShare();
+
+      expect(service.status()).toBe('requesting');
+      expect(service.statusDetail()).toContain('screen or window');
+      expect(service.statusDetail()).not.toContain('camera');
+    });
+
+    it('reports a host with no screen capture as unsupported, not as no screen', async () => {
+      const noImpl = Object.assign(new Error('nope'), {
+        name: 'NotSupportedError',
+      });
+      installMediaDevices({
+        getDisplayMedia: jest.fn(async () => Promise.reject(noImpl)),
+      });
+      const service = createService();
+
+      await expect(service.startScreenShare()).resolves.toBe(false);
+
+      // No picker can ever appear, so pointing at "no screen available" would
+      // be advice the operator cannot act on.
+      expect(service.status()).toBe('nocapture');
+      expect(service.statusLabel()).toBe('CAPTURE UNSUPPORTED');
+      expect(service.lastError()).toContain('cannot share a screen');
+      expect(service.canRetry()).toBe(false);
+    });
+
     it('returns to the camera source when the user stops sharing', async () => {
       const display = makeStream({ deviceId: 'display-1' });
       installMediaDevices({ getDisplayMedia: jest.fn(async () => display.stream) });
@@ -721,11 +789,126 @@ describe('CameraCaptureService', () => {
       expect(service.status()).toBe('denied');
       expect(service.canRetry()).toBe(true);
 
-      // Neither of these can be fixed by asking the browser again.
+      // None of these can be fixed by asking the browser again.
       service.status.set('insecure');
       expect(service.canRetry()).toBe(false);
       service.status.set('unsupported');
       expect(service.canRetry()).toBe(false);
+      service.status.set('nocapture');
+      expect(service.canRetry()).toBe(false);
+    });
+  });
+
+  describe('capture refused by the embedding frame', () => {
+    const installPolicy = (allowsFeature: jest.Mock) => {
+      Object.defineProperty(document, 'permissionsPolicy', {
+        configurable: true,
+        value: { allowsFeature },
+      });
+    };
+
+    afterEach(() => {
+      Reflect.deleteProperty(
+        document as unknown as Record<string, unknown>,
+        'permissionsPolicy'
+      );
+    });
+
+    it('refuses a camera the frame never granted, without prompting', async () => {
+      const mediaDevices = installMediaDevices();
+      installPolicy(jest.fn((feature: string) => feature !== 'camera'));
+      const service = createService();
+
+      await expect(service.start()).resolves.toBe(false);
+
+      // The browser refuses the feature before any prompt could appear, so
+      // reaching the device would be a wasted (and confusing) request.
+      expect(mediaDevices.getUserMedia).not.toHaveBeenCalled();
+      expect(service.status()).toBe('embedded');
+      expect(service.statusLabel()).toBe('EMBED BLOCKS CAPTURE');
+      expect(service.lastError()).toContain('own browser tab');
+      expect(service.permissionState()).not.toBe('denied');
+
+      // A retry cannot change the frame's policy either.
+      expect(service.canRetry()).toBe(false);
+      await expect(service.retry()).resolves.toBe(false);
+      expect(mediaDevices.getUserMedia).not.toHaveBeenCalled();
+    });
+
+    it('refuses screen sharing while still allowing the camera', async () => {
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => makeStream().stream),
+      });
+      installPolicy(jest.fn((feature: string) => feature !== 'display-capture'));
+      const service = createService();
+
+      // The two features are independent: a frame may allow the viewfinder and
+      // still refuse screen sharing.
+      await expect(service.start()).resolves.toBe(true);
+      await expect(service.startScreenShare()).resolves.toBe(false);
+
+      expect(mediaDevices.getDisplayMedia).not.toHaveBeenCalled();
+      expect(service.isLive()).toBe(true);
+      expect(service.lastError()).toContain('own browser tab');
+    });
+
+    it('blames the frame, not a site setting, when the denial is a policy refusal', async () => {
+      installMediaDevices({
+        getUserMedia: jest.fn(async () =>
+          Promise.reject(
+            Object.assign(new Error('nope'), { name: 'NotAllowedError' })
+          )
+        ),
+      });
+      // Allowed at the pre-flight check, refused by the time the browser
+      // answers — the policy is evaluated per request, not per page load.
+      installPolicy(
+        jest
+          .fn()
+          .mockReturnValueOnce(true)
+          .mockReturnValueOnce(false)
+      );
+      const service = createService();
+
+      await expect(service.start()).resolves.toBe(false);
+
+      // A user denial and a policy refusal raise the same DOMException, but only
+      // one of them can be fixed from the site's permission settings.
+      expect(service.status()).toBe('embedded');
+      expect(service.lastError()).toContain('own browser tab');
+      expect(service.lastError()).not.toContain('address bar');
+    });
+
+    it('names the screen, not the camera, when a frame refuses display capture', async () => {
+      installPolicy(jest.fn((feature: string) => feature !== 'display-capture'));
+      const service = createService();
+
+      await expect(service.startScreenShare()).resolves.toBe(false);
+
+      // `camera` and `display-capture` are separate features, so the screen copy
+      // must stand on its own instead of falling back to the camera wording.
+      expect(service.status()).toBe('embedded');
+      expect(service.statusDetail()).toContain('share a screen');
+      expect(service.statusDetail()).not.toContain('camera');
+      expect(service.lastError()).toContain('share the screen');
+    });
+
+    it('keeps prompting normally when the browser cannot report a policy', async () => {
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () =>
+          Promise.reject(
+            Object.assign(new Error('nope'), { name: 'NotAllowedError' })
+          )
+        ),
+      });
+      const service = createService();
+
+      await expect(service.start()).resolves.toBe(false);
+
+      // No policy API on this host means no false "embedded" verdict.
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+      expect(service.status()).toBe('denied');
+      expect(service.lastError()).toContain('Camera permission denied');
     });
   });
 });

@@ -831,6 +831,25 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /**
+   * Escape hatch for an embedded session.
+   *
+   * Permissions Policy is inherited from the embedding frame, so a module shown
+   * inside one that was not granted `camera` / `display-capture` can never open a
+   * capture device — no prompt appears and no retry can help. Opening the same
+   * route as a top-level document is the one action that actually recovers it.
+   */
+  openCaptureInNewTab(): void {
+    if (typeof window === 'undefined') return;
+
+    const opened = window.open(window.location.href, '_blank', 'noopener');
+    this.aiFeedback.set(
+      opened
+        ? 'CINEMAENGINE OPENED IN A NEW TAB — START CAPTURE THERE, WHERE THE FRAME CANNOT BLOCK IT.'
+        : 'ALLOW POP-UPS FOR THIS SITE TO OPEN THE CAPTURE SURFACE IN ITS OWN TAB.'
+    );
+  }
+
   // ── S.M.U.V.E director console ────────────────────────────────────────
 
   async generateShotPlan(): Promise<void> {

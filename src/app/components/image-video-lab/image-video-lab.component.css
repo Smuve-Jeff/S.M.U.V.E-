@@ -20,7 +20,13 @@
 }
 
 canvas {
-  image-rendering: pixelated;
+  /*
+   * Smooth resampling, not `pixelated`. The monitor's backing store is a real
+   * capture resolution (up to 1920 px) shown at whatever width the layout gives
+   * it, so a nearest-neighbour downscale shredded the viewfinder into aliased
+   * noise that read as a broken camera feed.
+   */
+  image-rendering: auto;
   /* Keep the program monitor above the live camera sink. */
   position: relative;
   z-index: 1;
