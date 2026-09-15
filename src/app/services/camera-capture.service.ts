@@ -53,6 +53,22 @@ const RECORDER_MIME_CANDIDATES = [
  */
 const FIRST_FRAME_TIMEOUT_MS = 2500;
 
+/**
+ * Transient re-attempts performed by a single `retry()`. Busy devices
+ * (`NotReadableError`) recover as soon as the other app releases the camera, and
+ * a dismissed permission prompt is re-issued on the next call, so a couple of
+ * short retries turn the commonest "camera not working" cases into a success
+ * without the operator touching anything.
+ */
+const RETRY_ATTEMPTS = 3;
+const RETRY_BACKOFF_MS = 600;
+
+/**
+ * `camera` is not part of the `PermissionName` union in every TypeScript lib
+ * version, so it is narrowed at the query boundary instead of cast everywhere.
+ */
+const CAMERA_PERMISSION_NAME = 'camera' as PermissionName;
+
 const STATUS_LABELS: Record<CameraStatus, string> = {
   off: 'CAMERA OFF',
   requesting: 'REQUESTING ACCESS…',
@@ -105,6 +121,17 @@ export class CameraCaptureService implements OnDestroy {
   mirrored = signal(true);
   isRecording = signal(false);
   recordingSeconds = signal(0);
+  /** True while `retry()` is working through its attempts. */
+  isRetrying = signal(false);
+  /** 1-based attempt counter for the in-flight retry, `0` when idle. */
+  retryAttempt = signal(0);
+
+  /**
+   * The source a retry should re-open. A cancelled screen picker reverts
+   * `sourceType` back to `camera`, so the failed attempt is remembered here
+   * rather than inferred from the current `sourceType`.
+   */
+  private lastAttemptedSource: CaptureSource = 'camera';
 
   /** True while a `getUserMedia` request is in flight. */
   isStarting = computed(() => this.status() === 'requesting');
@@ -112,6 +139,19 @@ export class CameraCaptureService implements OnDestroy {
   isLive = computed(() => this.status() === 'live' && this.stream() !== null);
   /** Inputs may only be swapped between takes — never mid-capture. */
   canSwitchDevice = computed(() => !this.isRecording());
+  /**
+   * Whether a failed capture is worth re-attempting. An insecure origin and a
+   * browser without `getUserMedia` cannot be fixed by asking again, so those two
+   * states deliberately expose no retry affordance.
+   */
+  canRetry = computed(() => {
+    if (this.isStarting() || this.isRetrying()) return false;
+    if (this.status() === 'unsupported' || this.status() === 'insecure') {
+      return false;
+    }
+    // Either the acquisition failed, or it succeeded and never painted a frame.
+    return !!this.lastError() || !!this.previewWarning();
+  });
   /** Browsers in a secure context expose `mediaDevices`; everything else cannot capture. */
   isSupported = computed(() =>
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
@@ -211,6 +251,8 @@ export class CameraCaptureService implements OnDestroy {
    * Android will not hand out a second camera track while one is open.
    */
   async start(deviceId?: string): Promise<boolean> {
+    this.lastAttemptedSource = 'camera';
+
     if (!this.isSupported()) {
       this.status.set(this.resolveUnsupportedState());
       this.lastError.set(this.statusDetail());
@@ -268,12 +310,95 @@ export class CameraCaptureService implements OnDestroy {
   }
 
   /**
+   * Re-attempt the capture that failed.
+   *
+   * A blocked camera is usually recoverable without a reload: the operator
+   * dismissed the prompt, closed the app that was holding the device, or flipped
+   * the site permission back on a moment ago. Re-issuing the request is the only
+   * way to find that out, so this re-runs the last attempted source a few times
+   * for the transient failures and bails out early once the browser reports a
+   * *sticky* denial — in that state no prompt will ever appear again, so another
+   * attempt is just a button that does nothing, and the honest answer is to say
+   * exactly which setting has to change.
+   */
+  async retry(): Promise<boolean> {
+    if (this.isRetrying()) return false;
+
+    // Nothing to repair: a live, frame-producing, error-free feed.
+    if (this.isLive() && !this.lastError() && !this.previewWarning()) return true;
+
+    const source = this.lastAttemptedSource;
+    this.isRetrying.set(true);
+    this.retryAttempt.set(0);
+
+    try {
+      for (let attempt = 1; attempt <= RETRY_ATTEMPTS; attempt += 1) {
+        this.retryAttempt.set(attempt);
+
+        const started =
+          source === 'screen'
+            ? await this.startScreenShare()
+            : await this.start();
+        if (started) {
+          this.retryAttempt.set(0);
+          return true;
+        }
+
+        // A permission the browser already marked "denied" is sticky: the page
+        // can request it forever and never see a prompt.
+        if ((await this.queryPermissionState()) === 'denied') {
+          this.permissionState.set('denied');
+          this.lastError.set(
+            source === 'screen'
+              ? 'Screen sharing is blocked for this site. Re-enable screen capture in your browser site settings, then retry.'
+              : 'Camera access is blocked for this site. Re-enable it from the lock/camera icon in the address bar (or the app permissions screen), then retry.'
+          );
+          return false;
+        }
+
+        // A busy device or a just-dismissed prompt clears within a second or two.
+        if (attempt < RETRY_ATTEMPTS) {
+          await this.wait(RETRY_BACKOFF_MS * attempt);
+        }
+      }
+
+      return false;
+    } finally {
+      this.isRetrying.set(false);
+      this.retryAttempt.set(0);
+    }
+  }
+
+  /**
+   * The browser's own view of the camera permission. `prompt` means a retry can
+   * still surface a real prompt; `denied` means only a settings change will help.
+   * Browsers without the Permissions API (or without a `camera` descriptor)
+   * report `unknown`, and a retry stays worthwhile.
+   */
+  async queryPermissionState(): Promise<'granted' | 'denied' | 'prompt' | 'unknown'> {
+    try {
+      const permissions = navigator?.permissions;
+      if (!permissions?.query) return 'unknown';
+      const status = await permissions.query({ name: CAMERA_PERMISSION_NAME });
+      return status.state as 'granted' | 'denied' | 'prompt';
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
    * Share a screen or window through `getDisplayMedia`.
    *
    * Unlike a camera switch, the request is made *before* releasing anything: a
    * cancelled picker must not tear down a live camera stream.
    */
   async startScreenShare(): Promise<boolean> {
+    this.lastAttemptedSource = 'screen';
+
     if (!this.screenShareSupported()) {
       this.status.set(this.resolveUnsupportedState());
       this.lastError.set(

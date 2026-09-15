@@ -70,6 +70,15 @@ const FRAME_STEP_SECONDS = 1 / 30;
 const MAX_RULER_TICKS = 120;
 /** Countdown length when the host fires the broadcast cue. */
 const BROADCAST_CUE_SECONDS = 3;
+/**
+ * Longest edge of the program monitor's backing store, in px. The monitor used
+ * to keep the browser default 300×150 buffer, so the live camera feed and every
+ * clip were composited into a thumbnail and stretched to fit the preview — which
+ * reads as a broken camera — and the video export captured that thumbnail as
+ * its "master". Capped so a 4K preset does not make every frame a full-
+ * resolution repaint.
+ */
+const PREVIEW_MAX_EDGE = 1920;
 
 interface PlayheadDragState {
   pointerId: number;
@@ -390,6 +399,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.syncCameraElement();
     });
 
+    // Switching delivery preset changes the aspect ratio, so the program
+    // monitor's backing store has to follow it.
+    effect(() => {
+      void this.activePreset();
+      this.syncPreviewResolution();
+    });
+
     // Broadcast cue reaching zero is the one moment the transport rolls without
     // the operator touching anything — say so instead of rolling silently.
     effect(() => {
@@ -402,10 +418,47 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
+    // Size the backing store before the context is created: assigning
+    // `canvas.width` resets the 2D context.
+    this.syncPreviewResolution();
     this.canvasCtx = this.previewCanvas.nativeElement.getContext('2d');
     this.syncCameraElement();
     this.syncTimelineViewport();
     this.startCanvasLoop();
+  }
+
+  /**
+   * Give the program monitor a real resolution derived from the active delivery
+   * preset. Without this the canvas keeps the default 300×150 backing store, so
+   * the camera feed is composited into a thumbnail, the HUD/lower thirds are
+   * scaled up until they are illegible, and the export master is 300×150.
+   */
+  private syncPreviewResolution(): void {
+    const canvas = this.previewCanvas?.nativeElement;
+    if (!canvas) return;
+    const preset = this.activePreset();
+    const ratio = this.resolveAspectRatio(preset);
+    const width = Math.max(
+      2,
+      Math.min(PREVIEW_MAX_EDGE, preset.width || PREVIEW_MAX_EDGE)
+    );
+    const height = Math.max(2, Math.round(width / ratio));
+    if (canvas.width === width && canvas.height === height) return;
+    canvas.width = width;
+    canvas.height = height;
+    // Re-acquiring is a no-op, but keeps the reference valid on hosts that
+    // return a fresh context after a resize.
+    this.canvasCtx = canvas.getContext('2d');
+  }
+
+  /** Numeric width:height for a preset, falling back to its declared pixels. */
+  private resolveAspectRatio(preset: DeliveryPreset): number {
+    const [rawWidth, rawHeight] = (preset.aspectRatio ?? '').split(':');
+    const width = Number(rawWidth);
+    const height = Number(rawHeight);
+    if (width > 0 && height > 0) return width / height;
+    if (preset.width > 0 && preset.height > 0) return preset.width / preset.height;
+    return 16 / 9;
   }
 
   // ── Timeline viewport (zoom + scroll) ─────────────────────────────────
@@ -754,6 +807,30 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return this.videoEngine.productionMode() === 'movie' ? 'act' : 'section';
   }
 
+  // ── Capture recovery ───────────────────────────────────────────────────
+
+  /**
+   * Re-attempt a capture that failed while the operator was watching.
+   *
+   * Denials are frequently soft — a dismissed prompt, another app holding the
+   * device, a permission re-enabled in settings a moment ago — so the failure
+   * state gets its own one-tap way back instead of making the operator find
+   * Start Camera and hope the blockage was not permanent. A sticky denial comes
+   * back with the exact setting that has to change rather than another silent
+   * failed attempt.
+   */
+  async retryCamera(): Promise<void> {
+    if (this.camera.isRetrying()) return;
+
+    this.aiFeedback.set('RE-REQUESTING CAPTURE ACCESS...');
+    const restarted = await this.camera.retry();
+    this.aiFeedback.set(
+      restarted
+        ? `CAPTURE RESTORED: ${this.camera.deviceName().toUpperCase()}. ${this.camera.statusDetail()}`
+        : (this.camera.lastError() ?? 'CAPTURE COULD NOT RESTART.').toUpperCase()
+    );
+  }
+
   // ── S.M.U.V.E director console ────────────────────────────────────────
 
   async generateShotPlan(): Promise<void> {
@@ -1063,7 +1140,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return el.isContentEditable === true;
   }
 
-  /** Bind or release the live camera stream on the preview's video sink. */
+  /**
+   * Bind or release the live camera stream on the preview's video sink.
+   *
+   * A sink that holds a stream but is not playing paints nothing, which is
+   * indistinguishable from a failed capture, so a bound sink is always kept
+   * rolling instead of being attached once and trusted.
+   */
   private syncCameraElement(): void {
     const video = this.cameraFeed?.nativeElement;
     if (!video) return;
@@ -1072,10 +1155,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
+      video.autoplay = true;
       this.playQuietly(video);
-    } else if (!stream && video.srcObject) {
-      video.srcObject = null;
+      return;
     }
+    if (stream) {
+      if (video.paused) this.playQuietly(video);
+      return;
+    }
+    if (video.srcObject) video.srcObject = null;
   }
 
   private startCanvasLoop() {
@@ -1157,6 +1245,51 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     this.pauseIdleMedia(activeClips);
     this.drawHUD(ctx, canvas);
+    this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+  }
+
+  /**
+   * Explain the capture state on the program monitor itself.
+   *
+   * A blocked permission and a live feed that never decodes a frame both used to
+   * look identical from the preview — a black rectangle — while the only
+   * explanation lived in the sidebar. "The camera is broken" is almost always
+   * one of these two states, so name it where the operator is looking.
+   */
+  private drawCameraDiagnostic(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    feed?: HTMLVideoElement
+  ): void {
+    const status = this.camera.status();
+    const live = this.camera.isLive();
+    const decoding = !!feed && feed.videoWidth > 0 && feed.videoHeight > 0;
+    if (live && decoding) return;
+    if (!live && status === 'off') return;
+
+    const message = live
+      ? 'LIVE FEED AUTHORIZED BUT NO FRAMES YET'
+      : this.camera.statusLabel();
+    const detail =
+      this.camera.previewWarning() ??
+      this.camera.lastError() ??
+      this.camera.statusDetail();
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.74)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f87171';
+    ctx.font = 'bold 22px "Public Sans"';
+    ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 10);
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.78)';
+    ctx.font = '14px "Public Sans"';
+    this.wrapText(ctx, detail.toUpperCase(), canvas.width * 0.8)
+      .slice(0, 3)
+      .forEach((line, index) => {
+        ctx.fillText(line, canvas.width / 2, canvas.height / 2 + 22 + index * 20);
+      });
+    ctx.restore();
   }
 
   /** Paint the live camera feed as the base preview layer (contain-fit). */

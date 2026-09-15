@@ -277,11 +277,17 @@ describe('ImageVideoLabComponent', () => {
     const cameraFacing = signal<'user' | 'environment'>('user');
     const cameraRecording = signal(false);
     const cameraRecordingSeconds = signal(0);
+    const cameraLastError = signal<string | null>(null);
+    const cameraWarning = signal<string | null>(null);
+    const cameraRetrying = signal(false);
+    const cameraRetryAttempt = signal(0);
     const camera = {
       stream: cameraStream,
       status: cameraStatus,
-      lastError: signal<string | null>(null),
-      previewWarning: signal<string | null>(null),
+      lastError: cameraLastError,
+      previewWarning: cameraWarning,
+      isRetrying: cameraRetrying,
+      retryAttempt: cameraRetryAttempt,
       devices: signal<
         { deviceId: string; label: string; isDefault: boolean }[]
       >([]),
@@ -297,6 +303,11 @@ describe('ImageVideoLabComponent', () => {
       isStarting: computed(() => false),
       isSupported: computed(() => true),
       canSwitchDevice: computed(() => !cameraRecording()),
+      // Mirrors the service contract: a retry is offered for any failed
+      // acquisition or a live feed that never painted a frame.
+      canRetry: computed(
+        () => !cameraRetrying() && (!!cameraLastError() || !!cameraWarning())
+      ),
       screenShareSupported: computed(() => true),
       deviceName: computed(() =>
         cameraSource() === 'screen' ? 'Screen share' : 'Front Camera'
@@ -305,7 +316,16 @@ describe('ImageVideoLabComponent', () => {
         if (cameraStatus() === 'live' && cameraSource() === 'screen') {
           return 'SCREEN LIVE';
         }
-        return cameraStatus() === 'live' ? 'LIVE' : 'CAMERA OFF';
+        const labels: Record<string, string> = {
+          off: 'CAMERA OFF',
+          requesting: 'REQUESTING ACCESS…',
+          live: 'LIVE',
+          denied: 'ACCESS DENIED',
+          unavailable: 'NO CAMERA',
+          unsupported: 'CAMERA UNSUPPORTED',
+          insecure: 'NEEDS HTTPS',
+        };
+        return labels[cameraStatus()] ?? 'CAMERA OFF';
       }),
       statusDetail: computed(() => 'Front Camera · 1280×720 @ 30fps'),
       start: jest.fn(async () => {
@@ -344,6 +364,16 @@ describe('ImageVideoLabComponent', () => {
         () => 'data:image/jpeg;base64,camera-frame'
       ),
       markPreviewReady: jest.fn(),
+      retry: jest.fn(async () => {
+        cameraRetrying.set(true);
+        cameraStream.set({ id: 'mock-stream' } as unknown as MediaStream);
+        cameraStatus.set('live');
+        cameraSource.set('camera');
+        cameraLastError.set(null);
+        cameraWarning.set(null);
+        cameraRetrying.set(false);
+        return true;
+      }),
     };
 
     const exportService = {
@@ -428,6 +458,7 @@ describe('ImageVideoLabComponent', () => {
       lineTo: jest.fn(),
       stroke: jest.fn(),
       fillText: jest.fn(),
+      measureText: jest.fn(() => ({ width: 10 })),
       strokeRect: jest.fn(),
       setLineDash: jest.fn(),
       save: jest.fn(),
@@ -631,6 +662,26 @@ describe('ImageVideoLabComponent', () => {
       expect(video.srcObject).toBeNull();
     });
 
+    it('keeps a bound capture sink rolling instead of attaching it once', async () => {
+      const { component, camera, video } = await createComponent();
+      const sync = () =>
+        (
+          component as unknown as { syncCameraElement: () => void }
+        ).syncCameraElement();
+      await component.toggleCamera();
+      sync();
+      expect(video.srcObject).toBe(camera.stream());
+
+      // A sink holding a stream but no longer playing paints nothing at all.
+      Object.defineProperty(video, 'paused', { configurable: true, value: true });
+      const playSpy = jest.spyOn(HTMLMediaElement.prototype, 'play');
+      playSpy.mockClear();
+
+      sync();
+
+      expect(playSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('surfaces a camera failure instead of leaving a silent no-op', async () => {
       const { component, camera } = await createComponent();
       camera.start.mockResolvedValueOnce(false);
@@ -639,6 +690,42 @@ describe('ImageVideoLabComponent', () => {
       await component.toggleCamera();
 
       expect(component.aiFeedback()).toContain('CAMERA PERMISSION DENIED');
+    });
+
+    it('retries a blocked capture and reports the restored feed', async () => {
+      const { component, camera } = await createComponent();
+      camera.status.set('denied');
+      camera.lastError.set('Camera permission denied.');
+
+      await component.retryCamera();
+
+      expect(camera.retry).toHaveBeenCalledTimes(1);
+      expect(camera.isLive()).toBe(true);
+      expect(component.aiFeedback()).toContain('CAPTURE RESTORED');
+    });
+
+    it('surfaces the setting to change when a retry is still blocked', async () => {
+      const { component, camera } = await createComponent();
+      camera.status.set('denied');
+      camera.retry.mockResolvedValueOnce(false);
+      camera.lastError.set(
+        'Camera access is blocked for this site. Re-enable it from the lock/camera icon in the address bar, then retry.'
+      );
+
+      await component.retryCamera();
+
+      // The operator gets the instruction, not a silent second failure.
+      expect(component.aiFeedback()).toContain('BLOCKED FOR THIS SITE');
+      expect(component.aiFeedback()).toContain('ADDRESS BAR');
+    });
+
+    it('ignores a retry while one is already in flight', async () => {
+      const { component, camera } = await createComponent();
+      camera.isRetrying.set(true);
+
+      await component.retryCamera();
+
+      expect(camera.retry).not.toHaveBeenCalled();
     });
 
     it('cuts a camera frame into the overlays lane with mode-aware duration', async () => {
@@ -835,6 +922,23 @@ describe('ImageVideoLabComponent', () => {
   });
 
   describe('preview rendering', () => {
+    it('sizes the program monitor backing store from the delivery preset', async () => {
+      const { component, fixture } = await createComponent();
+      const canvas = fixture.nativeElement.querySelector(
+        'canvas'
+      ) as HTMLCanvasElement;
+      // CinemaScope 4K is 2.39:1 — longest edge capped, ratio preserved.
+      expect(canvas.width).toBe(1920);
+      expect(canvas.height).toBe(803);
+
+      component.selectProductionMode('vlog');
+      fixture.detectChanges();
+
+      // Mobile Story Cut is 9:16 — the backing store follows the preset.
+      expect(canvas.width).toBe(1080);
+      expect(canvas.height).toBe(1920);
+    });
+
     it('paints the live camera feed and marks the first frame as ready', async () => {
       const { component, video, camera, renderFrame } =
         await createComponent();
@@ -993,7 +1097,10 @@ describe('ImageVideoLabComponent', () => {
     });
 
     it('mirrors camera clips but never a screen share', async () => {
-      const { videoEngine, renderFrame } = await createComponent();
+      const { videoEngine, fixture, renderFrame } = await createComponent();
+      const canvas = fixture.nativeElement.querySelector(
+        'canvas'
+      ) as HTMLCanvasElement;
       const videos = installVideoElement();
       videoEngine.getActiveClips.mockReturnValue([
         createVideoClip({ source: 'camera' }),
@@ -1004,7 +1111,7 @@ describe('ImageVideoLabComponent', () => {
       (ctxStub.drawImage as jest.Mock).mockClear();
 
       renderFrame();
-      expect(ctxStub.translate).toHaveBeenCalledWith(300, 0);
+      expect(ctxStub.translate).toHaveBeenCalledWith(canvas.width, 0);
       expect(ctxStub.drawImage).toHaveBeenCalled();
 
       videoEngine.getActiveClips.mockReturnValue([
@@ -1018,6 +1125,65 @@ describe('ImageVideoLabComponent', () => {
       renderFrame();
       expect(ctxStub.drawImage).toHaveBeenCalled();
       expect(ctxStub.translate).not.toHaveBeenCalled();
+    });
+
+    it('names a blocked permission on the program monitor', async () => {
+      const { camera, renderFrame } = await createComponent();
+      camera.status.set('denied');
+      camera.lastError.set('Camera permission denied.');
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // The reason has to appear where the operator is looking, not only in the
+      // sidebar — a black monitor is indistinguishable from a dead camera.
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'ACCESS DENIED',
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'CAMERA PERMISSION DENIED.',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('flags a live feed that never decodes a frame', async () => {
+      const { component, renderFrame } = await createComponent();
+      await component.toggleCamera();
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // Authorized but frame-less is a distinct state from "permission denied".
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'LIVE FEED AUTHORIZED BUT NO FRAMES YET',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('leaves a decoding live feed unannotated', async () => {
+      const { component, video, renderFrame } = await createComponent();
+      Object.defineProperty(video, 'videoWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      Object.defineProperty(video, 'videoHeight', {
+        configurable: true,
+        value: 720,
+      });
+      await component.toggleCamera();
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.fillText).not.toHaveBeenCalledWith(
+        'LIVE FEED AUTHORIZED BUT NO FRAMES YET',
+        expect.any(Number),
+        expect.any(Number)
+      );
     });
 
     it('falls back to the signal placeholder while media is still decoding', async () => {

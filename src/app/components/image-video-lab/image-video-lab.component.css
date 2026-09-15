@@ -21,6 +21,9 @@
 
 canvas {
   image-rendering: pixelated;
+  /* Keep the program monitor above the live camera sink. */
+  position: relative;
+  z-index: 1;
 }
 
 .production-upgrade-bar {
@@ -513,18 +516,22 @@ canvas {
 /* ── Camera uplink ─────────────────────────────────────────── */
 
 /*
- * The live camera sink stays in the layout (1px, painted, non-interactive)
- * instead of `display: none`: a fully hidden <video> can stop decoding frames,
- * which would silently break the preview layer and every still grab.
+ * The live camera sink stays in the layout instead of `display: none`: a fully
+ * hidden <video> stops producing frames, which silently breaks the preview
+ * layer and every still grab. It used to be a 1px box, which Android Chrome
+ * treats as invisible and stops decoding just the same — so it is now painted
+ * at full size *behind* the program monitor, where it contributes no pixels but
+ * always keeps decoding.
  */
 .camera-source {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   opacity: 0.01;
   pointer-events: none;
+  z-index: 0;
 }
 
 .camera-status-chip {
@@ -613,6 +620,73 @@ canvas {
   line-height: 1.5;
   font-weight: 700;
   color: #fbbf24;
+}
+
+/*
+ * Recovery affordance. Amber reads as "recoverable, act now" — deliberately not
+ * the red used for the failure copy, so the button does not look like part of
+ * the problem it fixes.
+ */
+.camera-action.retry {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.camera-action.retry:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.7);
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.camera-retry-chip {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  color: #fbbf24;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.camera-retry-chip:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.85);
+  background: rgba(251, 191, 36, 0.16);
+}
+
+.camera-retry-chip:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Spin is reserved for in-flight work, so a stuck retry is visible at a glance. */
+.spin {
+  display: inline-block;
+  animation: camera-retry-spin 0.9s linear infinite;
+}
+
+@keyframes camera-retry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
 }
 
 .export-window {

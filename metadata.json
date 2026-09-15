@@ -1,5 +1,5 @@
 {
   "name": "S.M.U.V.E 2.0",
   "description": "S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise. A professional-grade, AI-integrated digital ecosystem for the modern independent artist with elite DAW tools and strategic intelligence.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["microphone", "camera"]
 }

@@ -557,4 +557,175 @@ describe('CameraCaptureService', () => {
       expect.any(Function)
     );
   });
+
+  describe('retry after a blocked capture', () => {
+    /**
+     * The browser's own permission view. `prompt` can still raise a dialog,
+     * `denied` cannot — that difference is what stops a retry from becoming a
+     * button that silently does nothing.
+     */
+    const installPermissions = (
+      state: 'granted' | 'denied' | 'prompt' | 'unsupported'
+    ) => {
+      Object.defineProperty(navigator, 'permissions', {
+        configurable: true,
+        value:
+          state === 'unsupported'
+            ? undefined
+            : { query: jest.fn(async () => ({ state })) },
+      });
+    };
+
+    afterEach(() => {
+      Reflect.deleteProperty(
+        navigator as unknown as Record<string, unknown>,
+        'permissions'
+      );
+    });
+
+    it('re-attempts a dismissed prompt until the device opens', async () => {
+      jest.useFakeTimers();
+      const denial = Object.assign(new Error('nope'), {
+        name: 'NotAllowedError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest
+          .fn()
+          .mockRejectedValueOnce(denial)
+          .mockImplementation(autoStream()),
+      });
+      installPermissions('prompt');
+      const service = createService();
+
+      const pending = service.retry();
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      await expect(pending).resolves.toBe(true);
+      expect(service.isLive()).toBe(true);
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+    });
+
+    it('retries a device held by another app until it is released', async () => {
+      jest.useFakeTimers();
+      const busy = Object.assign(new Error('busy'), {
+        name: 'NotReadableError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest
+          .fn()
+          .mockRejectedValueOnce(busy)
+          .mockImplementation(autoStream()),
+      });
+      installPermissions('granted');
+      const service = createService();
+
+      const pending = service.retry();
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      await expect(pending).resolves.toBe(true);
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+      expect(service.status()).toBe('live');
+    });
+
+    it('stops on a sticky denial and names the setting to change', async () => {
+      const denial = Object.assign(new Error('nope'), {
+        name: 'NotAllowedError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => Promise.reject(denial)),
+      });
+      installPermissions('denied');
+      const service = createService();
+
+      await expect(service.retry()).resolves.toBe(false);
+
+      // Another request can never raise a prompt, so it is not attempted.
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
+      expect(service.lastError()).toContain('address bar');
+      expect(service.permissionState()).toBe('denied');
+      expect(service.isRetrying()).toBe(false);
+    });
+
+    it('gives up after the configured attempts when the device never opens', async () => {
+      jest.useFakeTimers();
+      const busy = Object.assign(new Error('busy'), {
+        name: 'NotReadableError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => Promise.reject(busy)),
+      });
+      // No Permissions API — a retry stays worthwhile, so it runs the full set.
+      installPermissions('unsupported');
+      const service = createService();
+
+      const pending = service.retry();
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      await expect(pending).resolves.toBe(false);
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(3);
+      expect(service.status()).toBe('unavailable');
+      expect(service.retryAttempt()).toBe(0);
+    });
+
+    it('re-opens the screen picker when that was the blocked source', async () => {
+      jest.useFakeTimers();
+      const cancelled = Object.assign(new Error('cancel'), {
+        name: 'AbortError',
+      });
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => makeStream().stream),
+        getDisplayMedia: jest
+          .fn()
+          .mockRejectedValueOnce(cancelled)
+          .mockImplementation(async () => makeStream({ deviceId: 'display-1' }).stream),
+      });
+      installPermissions('prompt');
+      const service = createService();
+      await service.start();
+      await expect(service.startScreenShare()).resolves.toBe(false);
+
+      const pending = service.retry();
+      await jest.advanceTimersByTimeAsync(10_000);
+
+      await expect(pending).resolves.toBe(true);
+      expect(mediaDevices.getDisplayMedia).toHaveBeenCalledTimes(2);
+      expect(service.sourceType()).toBe('screen');
+    });
+
+    it('does not disturb a feed that is already live and healthy', async () => {
+      const mediaDevices = installMediaDevices({ getUserMedia: autoStream() });
+      installPermissions('granted');
+      const service = createService();
+      await service.start();
+      const callsBefore = mediaDevices.getUserMedia.mock.calls.length;
+
+      await expect(service.retry()).resolves.toBe(true);
+
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(callsBefore);
+    });
+
+    it('offers a retry only where asking again can help', async () => {
+      installMediaDevices({
+        getUserMedia: jest.fn(async () =>
+          Promise.reject(
+            Object.assign(new Error('nope'), { name: 'NotAllowedError' })
+          )
+        ),
+      });
+      const service = createService();
+
+      // Idle: there is nothing to repair yet.
+      expect(service.canRetry()).toBe(false);
+
+      await service.start();
+      expect(service.status()).toBe('denied');
+      expect(service.canRetry()).toBe(true);
+
+      // Neither of these can be fixed by asking the browser again.
+      service.status.set('insecure');
+      expect(service.canRetry()).toBe(false);
+      service.status.set('unsupported');
+      expect(service.canRetry()).toBe(false);
+    });
+  });
 });

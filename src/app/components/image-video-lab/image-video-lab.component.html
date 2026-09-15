@@ -150,17 +150,42 @@
           <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
 
           <!--
-            Live camera sink. Kept 1px and painted rather than `display: none`
-            because a fully hidden video element can stop decoding frames, which
-            would silently break the preview layer and every frame grab.
+            Live camera sink. Painted full-bleed *behind* the program monitor
+            (see the CSS note) rather than hidden: `display: none` stops the
+            decoder, and a degenerate 1px box is treated as invisible on Android
+            Chrome — both leave the monitor black while the UI says LIVE.
+            `autoplay` lets the stream start decoding the moment it is bound.
           -->
           <video
             #cameraFeed
             class="camera-source"
+            autoplay
             playsinline
             muted
             aria-hidden="true"
           ></video>
+
+          <!--
+            One-tap recovery on the monitor itself. A blocked capture is exactly
+            where the operator is looking, so the way back must not live only in
+            the sidebar panel. Kept mounted while retrying so the label can flip
+            instead of the button vanishing under the pointer.
+          -->
+          @if (camera.canRetry() || camera.isRetrying()) {
+            <button
+              type="button"
+              class="camera-retry-chip"
+              [disabled]="camera.isRetrying()"
+              (click)="retryCamera()"
+            >
+              <span
+                class="material-symbols-outlined"
+                [class.spin]="camera.isRetrying()"
+                >refresh</span
+              >
+              <span>{{ camera.isRetrying() ? 'RETRYING…' : 'RETRY CAPTURE' }}</span>
+            </button>
+          }
 
           <!-- HUD OVERLAY -->
           <div
@@ -658,6 +683,30 @@
           }
           @if (camera.previewWarning()) {
             <p class="camera-warning">{{ camera.previewWarning() }}</p>
+          }
+
+          @if (camera.canRetry() || camera.isRetrying()) {
+            <button
+              type="button"
+              class="camera-action retry w-full"
+              [disabled]="camera.isRetrying()"
+              (click)="retryCamera()"
+            >
+              <span
+                class="material-symbols-outlined text-base"
+                [class.spin]="camera.isRetrying()"
+                >refresh</span
+              >
+              <span>{{
+                camera.isRetrying() ? 'Retrying Capture…' : 'Retry Capture'
+              }}</span>
+            </button>
+          }
+          @if (camera.isRetrying()) {
+            <p class="camera-detail">
+              Re-requesting access — attempt
+              {{ camera.retryAttempt() }} of 3.
+            </p>
           }
         </div>
 
