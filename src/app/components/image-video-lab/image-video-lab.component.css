@@ -470,9 +470,16 @@ canvas {
   align-items: center;
   gap: 0.35rem;
   margin-right: auto;
+  /* The label wraps the checkbox, so the label is the real tap target —
+     padding here lifts the whole toggle to a thumb-sized hit area. */
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.45rem;
+  touch-action: manipulation;
 }
 
 .timeline-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
   accent-color: #10b981;
 }
 
@@ -480,11 +487,23 @@ canvas {
 .selected-clip-toolbar button,
 .selected-clip-toolbar select,
 .marker-input {
-  min-height: 1.8rem;
+  /* 1.8rem ≈ 29px was too short for reliable thumbs; 44px-class targets on
+     touch breakpoints, desktop stays compact. */
+  min-height: 2.75rem;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 0.45rem;
   padding: 0.3rem 0.45rem;
   background: rgba(148, 163, 184, 0.05);
+  touch-action: manipulation;
+}
+
+@media (min-width: 768px) {
+  .timeline-tool,
+  .selected-clip-toolbar button,
+  .selected-clip-toolbar select,
+  .marker-input {
+    min-height: 2rem;
+  }
 }
 
 .timeline-tool:hover,
@@ -521,6 +540,61 @@ canvas {
   position: relative;
   height: 1.6rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  /*
+   * Touch scrub surface: `touch-action: none` is required on Android Chrome —
+   * without it the browser treats a horizontal touch drag as a scroll gesture,
+   * fires pointercancel, and the press-drag scrub dies mid-gesture.
+   */
+  touch-action: none;
+}
+
+/*
+ * Clip drags ride the same pointer path as the ruler. Without this, Android
+ * Chrome hands the gesture to the scroller (pointercancel) after a few pixels,
+ * so clips can only be moved with a mouse, never a finger.
+ */
+.clip-block {
+  touch-action: none;
+}
+
+/*
+ * Zoom controls. 1.5rem buttons were 24px — under half the 44px minimum
+ * thumb target; enlarged and made finger-friendly across breakpoints.
+ */
+.zoom-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.zoom-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.05);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.zoom-button:active {
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+@media (hover: hover) {
+  .zoom-button:hover {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+    background: rgba(148, 163, 184, 0.1);
+  }
 }
 
 .timeline-tick,
@@ -540,24 +614,37 @@ canvas {
   color: #10b981;
 }
 
+/*
+ * Marker chips. Height raised 1.2rem → 2.2rem: 19px chips were roughly half
+ * the minimum Android thumb target, and adjacent chips were 2–3px apart,
+ * making mis-taps routine. Padding gives adjacent markers real separation.
+ */
 .timeline-marker {
   top: 0.05rem;
   z-index: 25;
   width: max-content;
   max-width: 8rem;
-  height: 1.2rem;
+  height: 2.2rem;
   border: 0;
-  border-radius: 0.35rem;
-  padding: 0.15rem 0.35rem;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.5rem;
   background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Tap affordance on touch; hover states stay pointer-only. */
+  touch-action: manipulation;
 }
 
-.timeline-marker:hover {
-  background: rgba(245, 158, 11, 0.3);
+.timeline-marker:active {
+  background: rgba(245, 158, 11, 0.38);
+}
+
+@media (hover: hover) {
+  .timeline-marker:hover {
+    background: rgba(245, 158, 11, 0.3);
+  }
 }
 
 @media (min-width: 768px) {

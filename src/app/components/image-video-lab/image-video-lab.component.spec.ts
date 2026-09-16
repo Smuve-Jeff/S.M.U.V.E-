@@ -165,6 +165,17 @@ describe('ImageVideoLabComponent', () => {
       cueFired: signal(0),
       getActiveClips: jest.fn().mockReturnValue([]),
       findClip: jest.fn().mockReturnValue(null),
+      // Touch-drag surface: the component resolves the owning lane and moves
+      // clips through these, gated by the beat-snap signal.
+      trackOfClip: jest.fn().mockReturnValue({ id: 't1', name: 'Visuals', locked: false }),
+      moveClip: jest.fn(),
+      snapToBeat: signal(false),
+      // Marker surface for the ruler chips (tap = jump, double-tap = remove).
+      addMarker: jest.fn(() => 'mk-1'),
+      markers: signal<unknown[]>([]),
+      sortedMarkers: signal<unknown[]>([]),
+      removeMarker: jest.fn(),
+      seekToMarker: jest.fn(() => true),
       // Two seconds per bar is 120 BPM in 4/4, matching the engine's own maths.
       barsForDuration: jest.fn((seconds: number) =>
         Math.max(1, Math.round(seconds / 2))
@@ -625,6 +636,142 @@ describe('ImageVideoLabComponent', () => {
     expect(component.zoomLevel()).toBe(0.25);
     for (let i = 0; i < 40; i += 1) component.zoomIn();
     expect(component.zoomLevel()).toBe(4);
+  });
+
+  describe('markers, ticks, zoom and transport (touch ergonomics)', () => {
+    const click = (): MouseEvent =>
+      ({
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+      }) as unknown as MouseEvent;
+
+    /** Minimal touch pointer with capture-capable currentTarget. */
+    const touch = (clientX: number, pointerId = 1): PointerEvent =>
+      ({
+        pointerId,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY: 0,
+        currentTarget: {
+          setPointerCapture: jest.fn(),
+          releasePointerCapture: jest.fn(),
+        },
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+      } as unknown as PointerEvent);
+
+    /** Touch pointer positioned against a 900px-wide ruler rect at left 100. */
+    const onRuler = (clientX: number, pointerId = 1): PointerEvent =>
+      ({
+        pointerId,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY: 0,
+        currentTarget: {
+          getBoundingClientRect: () => ({
+            left: 100,
+            width: 900,
+            top: 0,
+            height: 24,
+          }),
+          setPointerCapture: jest.fn(),
+          releasePointerCapture: jest.fn(),
+        },
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+      } as unknown as PointerEvent);
+
+    const laneClick = (clientX: number): MouseEvent =>
+      ({
+        clientX,
+        currentTarget: {
+          getBoundingClientRect: () => ({
+            left: 100,
+            width: 900,
+            top: 0,
+            height: 480,
+          }),
+        },
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as unknown as MouseEvent);
+
+    it('jumps to a marker on tap', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.onMarkerClick(click(), 'mk-1');
+      expect(videoEngine.seekToMarker).toHaveBeenCalledWith('mk-1');
+    });
+
+    it('removes a marker via the double-tap affordance', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.removeMarker('mk-1');
+      expect(videoEngine.removeMarker).toHaveBeenCalledWith('mk-1');
+      expect(component.aiFeedback()).toContain('MARKER REMOVED');
+    });
+
+    it('a post-drag synthetic click on a tick consumes suppression without seeking', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onRulerPointerDown(onRuler(100));
+      component.onRulerPointerMove(onRuler(300));
+      component.onRulerPointerUp(onRuler(300));
+      const seeksAfterDrag = (videoEngine.seek as jest.Mock).mock.calls.length;
+
+      // The synthetic click after the drag lands on a tick, not the lane.
+      component.onTickClick(click(), 12);
+      expect(videoEngine.seek).toHaveBeenCalledTimes(seeksAfterDrag);
+
+      // Suppression is consumed: the next lane tap seeks normally.
+      component.onTimelineClick(laneClick(550));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(45);
+    });
+
+    it('a static tick tap does not arm suppression against the lane', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onTickClick(click(), 12);
+      expect(videoEngine.seek).toHaveBeenCalledWith(12);
+
+      // The lane tap right after must seek, not be eaten by stale state.
+      component.onTimelineClick(laneClick(550));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(45);
+    });
+
+    it('a post-drag synthetic click on a marker seeks nowhere', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      // Complete a clip drag so suppression is armed.
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+      component.onClipPointerDown(touch(100), clip);
+      component.onClipPointerMove(touch(400));
+      component.onClipPointerUp(touch(400));
+      const seeksAfterDrag = (videoEngine.seek as jest.Mock).mock.calls.length;
+
+      // The synthetic click lands on a marker chip instead of the lane.
+      component.onMarkerClick(click(), 'mk-1');
+      expect(videoEngine.seekToMarker).not.toHaveBeenCalled();
+      expect(videoEngine.seek).toHaveBeenCalledTimes(seeksAfterDrag);
+    });
+
+    it('keeps zoom within 25%-400% when driven from touch taps', async () => {
+      const { component } = await createComponent();
+      for (let i = 0; i < 40; i += 1) component.zoomOut();
+      expect(component.zoomLevel()).toBe(0.25);
+      for (let i = 0; i < 40; i += 1) component.zoomIn();
+      expect(component.zoomLevel()).toBe(4);
+    });
   });
 
   it('applies selected enhancements to clips under the playhead', async () => {
@@ -1685,6 +1832,310 @@ describe('ImageVideoLabComponent', () => {
       fixture.destroy();
 
       expect(revoke).toHaveBeenCalledWith('blob:test');
+    });
+  });
+
+  describe('mobile touch controls and gestures (Android pointer path)', () => {
+    /**
+     * Pointer-event factory that mirrors what Android Chrome emits for touch:
+     * `pointerType: 'touch'`, `isPrimary` only on the first contact, and a
+     * button value of 0 for a finger. Multi-touch is expressed through
+     * pointer ids and isPrimary, exactly as the platform does.
+     */
+    const touchPointer = (
+      overrides: Partial<PointerEvent> & { pointerId?: number } = {}
+    ): PointerEvent =>
+      ({
+        pointerId: 1,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: 0,
+        clientY: 0,
+        currentTarget: null,
+        // The clip handler stops lane click-through, so the synthetic event
+        // needs the propagation API like a real Android pointer event.
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+        ...overrides,
+      } as unknown as PointerEvent);
+
+    /** Pointer event whose currentTarget owns a fixed rect. */
+    const onRuler = (
+      clientX: number,
+      pointerId = 1,
+      overrides: Partial<PointerEvent> = {}
+    ): PointerEvent =>
+      touchPointer({
+        clientX,
+        pointerId,
+        currentTarget: {
+          getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 24 }),
+        },
+        ...overrides,
+      });
+
+    it('scrubs the playhead by dragging a finger across the ruler', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onRulerPointerDown(onRuler(100));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(0);
+
+      component.onRulerPointerMove(onRuler(550));
+      component.onRulerPointerMove(onRuler(1000));
+      component.onRulerPointerUp(onRuler(1000));
+
+      // 900px lane at 10px/s (base zoom): 100→1000 maps 0→90s.
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(90);
+      expect(component.zoomLevel()).toBe(1); // gesture never zooms
+    });
+
+    it('keeps the ruler scrub following the finger after pointer capture', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      const target = {
+        getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 24 }),
+        setPointerCapture: jest.fn(),
+        releasePointerCapture: jest.fn(),
+      } as unknown as HTMLElement;
+
+      component.onRulerPointerDown(
+        touchPointer({ clientX: 100, currentTarget: target })
+      );
+      // Capture is requested on Android so the drag keeps tracking after the
+      // finger drifts off the strip; release happens on pointerup.
+      expect(target.setPointerCapture).toHaveBeenCalledWith(1);
+
+      component.onRulerPointerUp(
+        touchPointer({ clientX: 100, currentTarget: target })
+      );
+      expect(target.releasePointerCapture).toHaveBeenCalledWith(1);
+    });
+
+    it('ignores secondary pointer contacts during a multi-touch scrub', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onRulerPointerDown(onRuler(100));
+      // A second finger lands: non-primary, must not hijack the scrub.
+      component.onRulerPointerDown(onRuler(500, 2, { isPrimary: false }));
+      component.onRulerPointerMove(onRuler(700, 2, { isPrimary: false }));
+
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(0);
+
+      // The primary finger still drives the playhead.
+      component.onRulerPointerMove(onRuler(460));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(36);
+    });
+
+    it('stops scrubbing when the drag comes from a different pointer id', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onRulerPointerDown(onRuler(100));
+      // Moves arriving under a stale/other id (e.g. a pen lifting and a new
+      // touch starting) must not move the playhead.
+      component.onRulerPointerMove(onRuler(400, 7));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(0);
+
+      component.onRulerPointerUp(onRuler(1000, 7));
+      // The original drag is still live: a move under its own id still works.
+      component.onRulerPointerMove(onRuler(280));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(18);
+    });
+
+    it('rejects non-touch pointers that are not a primary left press', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.onRulerPointerDown(onRuler(100, 1, { isPrimary: false }));
+      component.onRulerPointerDown(onRuler(100, 1, { button: 2 }));
+      component.onRulerPointerMove(onRuler(500));
+
+      expect(videoEngine.seek).not.toHaveBeenCalled();
+    });
+
+    it('drags a clip along a finger and reports the snap state', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+
+      component.onClipPointerDown(
+        touchPointer({
+          clientX: 100,
+          currentTarget: {
+            setPointerCapture: jest.fn(),
+            releasePointerCapture: jest.fn(),
+          },
+        }),
+        clip
+      );
+      expect(component.selectedClipId()).toBe('clip-v');
+
+      component.onClipPointerMove(touchPointer({ clientX: 250 }));
+      // 150px at 10px/s base zoom = 15s shift.
+      expect(videoEngine.moveClip).toHaveBeenCalledWith('clip-v', {
+        startTime: 15,
+      });
+
+      component.onClipPointerUp(touchPointer({ clientX: 250 }));
+      expect(videoEngine.findClip).toHaveBeenCalledWith('clip-v');
+    });
+
+    it('does not move a clip until the finger exceeds the drag threshold', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+
+      component.onClipPointerDown(
+        touchPointer({
+          clientX: 100,
+          currentTarget: {
+            setPointerCapture: jest.fn(),
+            releasePointerCapture: jest.fn(),
+          },
+        }),
+        clip
+      );
+      component.onClipPointerMove(touchPointer({ clientX: 102 }));
+      expect(videoEngine.moveClip).not.toHaveBeenCalled();
+
+      component.onClipPointerMove(touchPointer({ clientX: 104 }));
+      expect(videoEngine.moveClip).toHaveBeenCalledWith('clip-v', {
+        startTime: 0.4,
+      });
+    });
+
+    it('recovers from pointercancel (browser scroll steal) and clears the drag', async () => {
+      const { component, videoEngine } = await createComponent();
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+
+      component.onClipPointerDown(
+        touchPointer({
+          clientX: 100,
+          currentTarget: {
+            setPointerCapture: jest.fn(),
+            releasePointerCapture: jest.fn(),
+          },
+        }),
+        clip
+      );
+      component.onClipPointerMove(touchPointer({ clientX: 300 }));
+      // Android Chrome fires pointercancel when it claims the gesture.
+      component.onClipPointerUp(touchPointer({ clientX: 300 }));
+
+      // A later move under the same id must not teleport the clip.
+      component.onClipPointerMove(touchPointer({ clientX: 600 }));
+      expect(videoEngine.moveClip).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores pointer moves for drags that were never started', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.onClipPointerMove(touchPointer({ clientX: 500 }));
+      component.onClipPointerUp(touchPointer({ clientX: 500 }));
+
+      expect(videoEngine.moveClip).not.toHaveBeenCalled();
+    });
+
+    it('supresses the synthetic tap-seek that follows a completed clip drag', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+      const clip = createVideoClip({ startTime: 0 });
+      videoEngine.findClip.mockReturnValue(clip);
+      const laneTarget = {
+        getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 480 }),
+      } as unknown as HTMLElement;
+
+      component.onClipPointerDown(
+        touchPointer({
+          clientX: 100,
+          currentTarget: {
+            setPointerCapture: jest.fn(),
+            releasePointerCapture: jest.fn(),
+          },
+        }),
+        clip
+      );
+      component.onClipPointerMove(touchPointer({ clientX: 400 }));
+      component.onClipPointerUp(touchPointer({ clientX: 400 }));
+      const seeksAfterDrag = (videoEngine.seek as jest.Mock).mock.calls.length;
+
+      // The browser's synthetic click after the drag must not re-seek.
+      component.onTimelineClick({
+        clientX: 400,
+        currentTarget: laneTarget,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as unknown as MouseEvent);
+      expect(videoEngine.seek as jest.Mock).toHaveBeenCalledTimes(seeksAfterDrag);
+
+      // A genuine tap afterwards seeks normally again.
+      component.onTimelineClick({
+        clientX: 550,
+        currentTarget: laneTarget,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as unknown as MouseEvent);
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(45);
+    });
+
+    it('does not suppress a plain tap before any drag happened', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+      const laneTarget = {
+        getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 480 }),
+      } as unknown as HTMLElement;
+
+      component.onTimelineClick({
+        clientX: 550,
+        currentTarget: laneTarget,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as unknown as MouseEvent);
+
+      expect(videoEngine.seek).toHaveBeenCalledWith(45);
+    });
+
+    it('clears a stale suppression when a new drag starts', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+      const laneTarget = {
+        getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 480 }),
+      } as unknown as HTMLElement;
+      const clickEvent = (x: number) =>
+        ({
+          clientX: x,
+          currentTarget: laneTarget,
+          preventDefault: jest.fn(),
+          stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+      // Cancelled ruler gesture (pointercancel under a different id) leaves
+      // no suppression; verify via a drag then a *new* gesture down.
+      component.onRulerPointerDown(onRuler(100));
+      component.onRulerPointerUp(onRuler(300));
+      component.onRulerPointerDown(onRuler(100));
+
+      component.onTimelineClick(clickEvent(550));
+      // The down of the new gesture cleared the first drag's suppression.
+      expect(videoEngine.seek).toHaveBeenCalledWith(45);
+    });
+
+    it('clamps finger scrubbing outside the ruler bounds', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      component.onRulerPointerDown(onRuler(100));
+      component.onRulerPointerMove(onRuler(-50));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(0);
+
+      component.onRulerPointerMove(onRuler(5000));
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(490);
     });
   });
 });

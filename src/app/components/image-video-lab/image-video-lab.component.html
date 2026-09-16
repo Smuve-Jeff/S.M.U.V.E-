@@ -40,7 +40,8 @@
       </label>
       <button
         (click)="videoEngine.togglePlay()"
-        class="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border"
+        class="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border active:scale-95"
+        [attr.aria-label]="videoEngine.isPlaying() ? 'Pause transport' : 'Play transport'"
         [class.bg-brand-primary]="videoEngine.isPlaying()"
         [class.text-white]="videoEngine.isPlaying()"
         [class.bg-surface]="!videoEngine.isPlaying()"
@@ -261,23 +262,23 @@
             >
               Master Timeline
             </h3>
-            <div class="flex items-center gap-2">
+            <div class="zoom-cluster">
               <button
                 (click)="zoomOut()"
-                class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+                class="zoom-button"
                 aria-label="Zoom timeline out"
               >
-                <span class="material-symbols-outlined text-xs">remove</span>
+                <span class="material-symbols-outlined text-sm">remove</span>
               </button>
               <span class="text-[9px] md:text-[10px] font-mono text-text-dim"
                 >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
               >
               <button
                 (click)="zoomIn()"
-                class="w-6 h-6 rounded border border-border flex items-center justify-center text-[10px] hover:bg-surface transition-all"
+                class="zoom-button"
                 aria-label="Zoom timeline in"
               >
-                <span class="material-symbols-outlined text-xs">add</span>
+                <span class="material-symbols-outlined text-sm">add</span>
               </button>
             </div>
           </div>
@@ -324,17 +325,29 @@
           <div
             class="flex flex-col gap-2 md:gap-3 min-w-full cursor-pointer"
             [style.width.px]="timelineWidthPx()"
-            (click)="seekFromTimelineEvent($event)"
-            title="Click the timeline to move the playhead"
+            (click)="onTimelineClick($event)"
+            title="Tap or click the timeline to move the playhead"
           >
-            <div class="timeline-ruler" aria-label="Timeline beat ruler">
+            <!--
+              Press-and-drag scrub surface. On Android, a touch drag here fires
+              pointermove with pointerType 'touch'; without these bindings the
+              ruler only responded to discrete taps and the scrub was inert.
+            -->
+            <div
+              class="timeline-ruler"
+              aria-label="Timeline beat ruler"
+              (pointerdown)="onRulerPointerDown($event)"
+              (pointermove)="onRulerPointerMove($event)"
+              (pointerup)="onRulerPointerUp($event)"
+              (pointercancel)="onRulerPointerUp($event)"
+            >
               @for (tick of rulerTicks(); track tick.time) {
                 <button
                   type="button"
                   class="timeline-tick"
                   [class.bar]="tick.isBar"
                   [style.left.px]="tick.time * pxPerSecond()"
-                  (click)="$event.stopPropagation(); videoEngine.seek(tick.time)"
+                  (click)="onTickClick($event, tick.time)"
                 >
                   <span>{{ tick.time | number: '1.0-0' }}</span>
                 </button>
@@ -344,8 +357,10 @@
                   type="button"
                   class="timeline-marker"
                   [style.left.px]="marker.time * pxPerSecond()"
-                  [title]="marker.label"
-                  (click)="$event.stopPropagation(); seekToMarker(marker.id)"
+                  [title]="marker.label + ' — tap to jump, double-tap to remove'"
+                  [attr.aria-label]="'Jump to marker ' + marker.label"
+                  (click)="onMarkerClick($event, marker.id)"
+                  (dblclick)="$event.stopPropagation(); removeMarker(marker.id)"
                 >
                   <span>{{ marker.label }}</span>
                 </button>
@@ -367,7 +382,7 @@
 
                 @for (clip of track.clips; track clip.id) {
                   <div
-                    class="absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
+                    class="clip-block absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
                     [class.ring-2]="selectedClipId() === clip.id"
                     [class.ring-brand-primary]="selectedClipId() === clip.id"
                     [style.left.px]="clip.startTime * pxPerSecond()"

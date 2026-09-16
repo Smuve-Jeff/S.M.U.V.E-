@@ -84,6 +84,8 @@ const PREVIEW_MAX_EDGE = 1920;
 interface PlayheadDragState {
   pointerId: number;
   originLeft: number;
+  /** True once the gesture moved — set by pointermove for click suppression. */
+  moved: boolean;
 }
 
 interface ClipDragState {
@@ -158,6 +160,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private readonly timelineViewport = signal({ start: 0, span: 60 });
   private playheadDrag: PlayheadDragState | null = null;
   private clipDrag: ClipDragState | null = null;
+  /**
+   * Pointer id whose drag just ended on the timeline surface. The browser
+   * fires a synthetic `click` after every touch drag; without this, releasing
+   * a clip drag or a ruler scrub also seeks the playhead to the drop point.
+   */
+  private suppressedClickPointerId: number | null = null;
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -556,28 +564,94 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.videoEngine.seek(this.timeAtClientX(event.clientX, rect));
   }
 
-  /** Press-and-drag on the ruler scrubs the playhead continuously. */
+  /**
+   * Timeline click handler: a tap seeks, but the synthetic click that follows
+   * a completed drag (clip move, ruler scrub) must not yank the playhead to
+   * the release point. Drags set `suppressedClickPointerId`; the next click
+   * consumes that marker and is swallowed.
+   */
+  onTimelineClick(event: MouseEvent): void {
+    if (this.consumeClickSuppression()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    this.seekFromTimelineEvent(event);
+  }
+
+  /**
+   * Ruler tick tap. Routed through the component (rather than an inline
+   * handler) so a post-drag synthetic click landing on a tick consumes the
+   * suppression instead of leaving it armed against the next lane tap.
+   */
+  onTickClick(event: MouseEvent, time: number): void {
+    event.stopPropagation();
+    if (this.consumeClickSuppression()) return;
+    this.videoEngine.seek(time);
+  }
+
+  /** Marker tap — same suppression contract as ticks. */
+  onMarkerClick(event: MouseEvent, markerId: string): void {
+    event.stopPropagation();
+    if (this.consumeClickSuppression()) return;
+    this.seekToMarker(markerId);
+  }
+
+  /** Consume the pending drag-click suppression; true when one was pending. */
+  private consumeClickSuppression(): boolean {
+    if (this.suppressedClickPointerId === null) return false;
+    this.suppressedClickPointerId = null;
+    return true;
+  }
+
+  /**
+   * Press-and-drag on the ruler scrubs the playhead continuously.
+   *
+   * Pointer events cover mouse, pen, and Android/iOS touch with one path. The
+   * primary-button guard keeps stylus palm rejection and middle/right clicks
+   * from starting a scrub; touch always reports primary for a single finger.
+   */
   onRulerPointerDown(event: PointerEvent): void {
+    if (!event.isPrimary || event.button > 0) return;
     const target = event.currentTarget as HTMLElement | null;
     if (!target) return;
+    // A stale suppression from a cancelled previous gesture must not eat
+    // this gesture's synthetic click.
+    this.suppressedClickPointerId = null;
     this.playheadDrag = {
       pointerId: event.pointerId,
       originLeft: target.getBoundingClientRect().left,
+      moved: false,
     };
+    // Capture keeps the gesture following this element even when the finger
+    // drifts off the ruler — without it Android Chrome ends the drag the
+    // moment the touch leaves the strip.
     target.setPointerCapture?.(event.pointerId);
-    this.videoEngine.seek(this.timeAtClientX(event.clientX, { left: this.playheadDrag.originLeft }));
+    this.videoEngine.seek(
+      this.timeAtClientX(event.clientX, { left: this.playheadDrag.originLeft })
+    );
   }
 
   onRulerPointerMove(event: PointerEvent): void {
     const drag = this.playheadDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    this.videoEngine.seek(this.timeAtClientX(event.clientX, { left: drag.originLeft }));
+    drag.moved = true;
+    this.videoEngine.seek(
+      this.timeAtClientX(event.clientX, { left: drag.originLeft })
+    );
   }
 
   onRulerPointerUp(event: PointerEvent): void {
     if (!this.playheadDrag || this.playheadDrag.pointerId !== event.pointerId) return;
     const target = event.currentTarget as HTMLElement | null;
     target?.releasePointerCapture?.(event.pointerId);
+    // A *dragged* scrub releases on the ruler; the browser then fires a
+    // synthetic click on it, so remember the pointer for that click. A static
+    // tap arms nothing: its click is the real gesture (a tick/marker seek),
+    // and arming here would eat the next legitimate lane tap.
+    if (this.playheadDrag.moved) {
+      this.suppressedClickPointerId = event.pointerId;
+    }
     this.playheadDrag = null;
   }
 
@@ -636,6 +710,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   onClipPointerDown(event: PointerEvent, clip: VideoClip): void {
     // Keep the lane's click-to-seek from firing under the clip drag.
     event.stopPropagation();
+    if (!event.isPrimary || event.button > 0) return;
+    this.suppressedClickPointerId = null;
     this.selectClip(clip.id);
     const track = this.videoEngine.trackOfClip(clip.id);
     if (track?.locked) {
@@ -671,6 +747,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const target = event.currentTarget as HTMLElement | null;
     target?.releasePointerCapture?.(event.pointerId);
     this.clipDrag = null;
+    // Arm click suppression so the browser's synthetic click after this drag
+    // does not re-seek the playhead to the drop point.
+    if (drag.moved) this.suppressedClickPointerId = event.pointerId;
     if (!drag.moved) return;
     const clip = this.videoEngine.findClip(drag.clipId);
     if (clip) {
