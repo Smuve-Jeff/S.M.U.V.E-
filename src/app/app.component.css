@@ -17,6 +17,7 @@
   height: 100%;
   z-index: 1000;
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   background: linear-gradient(
     180deg,
@@ -24,6 +25,76 @@
     rgba(7, 6, 13, 0.98)
   );
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Desktop collapse: the aside stays in the flex row, so width (not
+   translateX) does the animating and the content column reflows live. */
+.sidebar {
+  width: 18rem;
+  transition:
+    width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.sidebar-closed {
+  width: 0;
+  border-right-width: 0;
+}
+
+/* Labels fade while collapsing instead of clipping mid-word. */
+.sidebar .sidebar-nav,
+.sidebar .sidebar-collapse-blocks {
+  opacity: 1;
+  transition: opacity 0.2s ease 0.1s;
+}
+
+.sidebar.sidebar-closed .sidebar-nav,
+.sidebar.sidebar-closed .sidebar-collapse-blocks {
+  opacity: 0;
+}
+
+/* Off-canvas slide for phones/tablets (≤1024px): native-like drawer with
+   drag-free dismissal and an ESC affordance for external keyboards. */
+.sidebar-backdrop {
+  touch-action: none;
+}
+
+.sidebar-quick-action {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: transparent;
+  color: inherit;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.sidebar-quick-action:active {
+  border-color: rgba(0, 229, 255, 0.55);
+  color: var(--brand-primary, #00e5ff);
+}
+
+@media (hover: hover) {
+  .sidebar-quick-action:hover {
+    border-color: var(--brand-primary, #00e5ff);
+    color: var(--brand-primary, #00e5ff);
+  }
+}
+
+/* Collapsed-rail hover affordance on desktop */
+@media (hover: hover) and (min-width: 1025px) {
+  .sidebar.sidebar-closed:hover {
+    width: 18rem;
+    border-right-width: 1px;
+  }
 }
 
 /* Backdrop overlay for mobile sidebar */
@@ -213,14 +284,24 @@ footer {
 }
 
 @media (max-width: 1024px) {
+  /* Width transitions are a desktop-only collapse; on mobile the drawer is
+     position: fixed, so transform does the animating. */
   .sidebar {
     transform: translateX(-100%);
+    width: 240px;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  /* The hover-open rail is a desktop affordance only. */
+  .sidebar.sidebar-closed:hover {
+    transform: translateX(-100%);
+    width: 240px;
   }
   .sidebar.w-full {
     width: min(22rem, calc(100vw - 1rem));
     max-width: calc(100vw - 1rem);
-    transform: translateX(0);
   }
   .mobile-content-offset {
     padding-bottom: calc(
@@ -286,9 +367,23 @@ footer {
   }
 }
 
-.app-content {
-  min-height: calc(100vh - 64px);
-  min-height: calc(100dvh - 64px);
+/* Collapsed desktop rail: labels are hidden, so items collapse to an icon
+   strip and each icon keeps an accessible, tooltip-backed name. */
+@media (min-width: 1025px) {
+  .sidebar.sidebar-closed .sidebar-nav-section-labels,
+  .sidebar.sidebar-closed .sidebar-item-copy {
+    display: none;
+  }
+
+  .sidebar.sidebar-closed .nav-item {
+    padding: 0;
+    margin: 0 auto;
+    justify-content: center;
+  }
+
+  .sidebar.sidebar-closed .nav-item .material-symbols-outlined {
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 1024px) {

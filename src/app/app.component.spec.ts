@@ -303,4 +303,112 @@ describe('AppComponent', () => {
       value: originalWidth,
     });
   });
+
+  describe('sidebar drawer UX (mobile + desktop sweep)', () => {
+    /** Touch helper matching the window-level listeners the shell uses. */
+    const touchEvent = (x: number, y: number, sidebarTarget = true): TouchEvent =>
+      ({
+        touches: [{ clientX: x, clientY: y }],
+        changedTouches: [{ clientX: x, clientY: y }],
+        target: sidebarTarget
+          ? { closest: (sel: string) => (sel === '.sidebar' ? {} : null) }
+          : { closest: () => null },
+      } as unknown as TouchEvent);
+
+    const goMobile = (component: AppComponent) => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 500,
+      });
+      component.onResize();
+    };
+
+    it('closes the mobile drawer on a committed left swipe', async () => {
+      const { component } = await createComponent('/hub');
+      goMobile(component);
+      component.isSidebarOpen.set(true);
+
+      component.onSidebarTouchStart(touchEvent(300, 200));
+      component.onSidebarTouchEnd(touchEvent(180, 205));
+
+      expect(component.isSidebarOpen()).toBe(false);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('keeps the drawer open for small or vertical drags', async () => {
+      const { component } = await createComponent('/hub');
+      goMobile(component);
+      component.isSidebarOpen.set(true);
+
+      // Short, ambiguous nudge: must not close.
+      component.onSidebarTouchStart(touchEvent(300, 200));
+      component.onSidebarTouchEnd(touchEvent(270, 210));
+      expect(component.isSidebarOpen()).toBe(true);
+
+      // Vertical scroll inside the drawer: must not close.
+      component.onSidebarTouchStart(touchEvent(300, 200));
+      component.onSidebarTouchEnd(touchEvent(290, 320));
+      expect(component.isSidebarOpen()).toBe(true);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('ignores swipes that start outside the drawer', async () => {
+      const { component } = await createComponent('/hub');
+      goMobile(component);
+      component.isSidebarOpen.set(true);
+
+      component.onSidebarTouchStart(touchEvent(300, 200, false));
+      component.onSidebarTouchEnd(touchEvent(100, 200, false));
+
+      expect(component.isSidebarOpen()).toBe(true);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('closes the mobile drawer with ESC but leaves the desktop sidebar alone', async () => {
+      const { component } = await createComponent('/hub');
+
+      // Desktop: sidebar open, ESC is a no-op.
+      component.onEscapeKey();
+      expect(component.isSidebarOpen()).toBe(true);
+
+      goMobile(component);
+      component.isSidebarOpen.set(true);
+      component.onEscapeKey();
+      expect(component.isSidebarOpen()).toBe(false);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('desktop collapse keeps the rail mounted and hover re-opens it', async () => {
+      const { component } = await createComponent('/hub');
+      expect(component.isSidebarOpen()).toBe(true);
+
+      component.toggleSidebar();
+      expect(component.isSidebarOpen()).toBe(false);
+      // Rail stays in the DOM for hover re-open (CSS affordance).
+      expect(component.isFullPageMode()).toBe(false);
+
+      component.toggleSidebar();
+      expect(component.isSidebarOpen()).toBe(true);
+    });
+  });
 });

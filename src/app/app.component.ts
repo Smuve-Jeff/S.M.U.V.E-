@@ -206,6 +206,50 @@ export class AppComponent implements ErrorHandler {
     this.checkMobile();
   }
 
+  /** ESC closes the drawer on phones with external keyboards. */
+  @HostListener('window:keydown.escape')
+  onEscapeKey() {
+    if (this.isMobile() && this.isSidebarOpen() && !this.isFullPageMode()) {
+      this.isSidebarOpen.set(false);
+    }
+    if (this.isMobileWorkspaceTrayOpen()) {
+      this.isMobileWorkspaceTrayOpen.set(false);
+    }
+  }
+
+  /**
+   * Native drawer feel on touch: swipe left anywhere on the open drawer to
+   * close it. Swipe-from-edge detection on the content side would need a
+   * document-level hook, so we only implement the close gesture — opening
+   * stays on the menu button.
+   */
+  private sidebarTouchStart: { x: number; y: number } | null = null;
+
+  @HostListener('window:touchstart', ['$event'])
+  onSidebarTouchStart(event: TouchEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target?.closest('.sidebar') || !this.isMobile()) return;
+    this.sidebarTouchStart = {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY,
+    };
+  }
+
+  @HostListener('window:touchend', ['$event'])
+  onSidebarTouchEnd(event: TouchEvent) {
+    const start = this.sidebarTouchStart;
+    this.sidebarTouchStart = null;
+    if (!start || !this.isMobile() || !this.isSidebarOpen()) return;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    // Horizontal, leftward, and committed: close the drawer.
+    if (dx < -56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      this.isSidebarOpen.set(false);
+    }
+  }
+
   /**
    * One-time init: mobile devices default to performance mode because
    * heavy blur/particle effects cost real frames on mid-range GPUs. This

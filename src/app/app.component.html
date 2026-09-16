@@ -16,19 +16,21 @@
     *ngIf="isMobile() && isSidebarOpen() && !isFullPageMode() && !isAuthRoute()"
     class="sidebar-backdrop"
     (click)="toggleSidebar()"
+    aria-hidden="true"
   ></div>
 
   <aside
     *ngIf="!isFullPageMode() && !isAuthRoute()"
-    class="sidebar glass-v42 z-50 transition-all duration-500 flex flex-col border-r border-border"
-    [class.w-72]="isSidebarOpen()"
-    [class.w-0]="!isSidebarOpen() && !isMobile()"
+    class="sidebar glass-v42 z-50 flex flex-col border-r border-border"
+    [class.sidebar-open]="isSidebarOpen()"
+    [class.sidebar-closed]="!isSidebarOpen()"
     [class.fixed]="isMobile()"
     [class.inset-y-0]="isMobile()"
     [class.left-0]="isMobile()"
-    [class.w-full]="isMobile() && isSidebarOpen()"
+    [attr.aria-hidden]="isMobile() && !isSidebarOpen() ? true : null"
+    [attr.inert]="isMobile() && !isSidebarOpen() ? '' : null"
   >
-    <div class="p-6 border-b border-border bg-background-alt/20 space-y-5">
+    <div class="p-6 border-b border-border bg-background-alt/20 space-y-5 sidebar-collapse-blocks">
       <div class="flex items-center gap-4">
         <div
           class="w-12 h-12 rounded-xl bg-brand-primary flex items-center justify-center text-white shadow-v42-md"
@@ -101,19 +103,22 @@
         <div class="flex flex-wrap gap-2">
           <button
             (click)="commandPalette.togglePalette()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="sidebar-quick-action"
+            aria-label="Open command palette"
           >
             Ctrl + K Palette
           </button>
           <button
             (click)="openInteractionGuide()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="sidebar-quick-action"
+            aria-label="Open interaction guide"
           >
             Interaction Guide
           </button>
           <button
             (click)="toggleSyncCenter()"
-            class="px-3 py-2 rounded-xl border border-border text-[10px] font-bold uppercase tracking-[0.2em] text-text-main hover:border-brand-primary hover:text-brand-primary transition-all"
+            class="sidebar-quick-action"
+            aria-label="Open sync center"
           >
             Sync Center
           </button>
@@ -128,7 +133,7 @@
         *ngIf="pinnedViews().length && (isSidebarOpen() || isMobile())"
         class="space-y-2"
       >
-        <div class="px-4">
+        <div class="px-4 sidebar-nav-section-labels">
           <div
             class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
           >
@@ -139,14 +144,15 @@
           *ngFor="let view of pinnedViews()"
           type="button"
           (click)="navigateToView(view.mode)"
-          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left text-text-dim hover:bg-background-alt hover:text-text-main"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl border border-transparent bg-transparent text-left text-text-dim"
+          [attr.aria-label]="'Open pinned workspace ' + view.label"
         >
           <div class="w-8 flex justify-center">
             <span class="material-symbols-outlined text-xl text-amber-300"
               >keep</span
             >
           </div>
-          <div class="ml-4 min-w-0 flex-1">
+          <div class="ml-4 min-w-0 flex-1 sidebar-item-copy">
             <div class="font-bold text-[12px] uppercase tracking-wide">
               {{ view.label }}
             </div>
@@ -161,7 +167,7 @@
         *ngIf="recentViews().length && (isSidebarOpen() || isMobile())"
         class="space-y-2"
       >
-        <div class="px-4">
+        <div class="px-4 sidebar-nav-section-labels">
           <div
             class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
           >
@@ -172,12 +178,13 @@
           *ngFor="let view of recentViews()"
           type="button"
           (click)="navigateToView(view.mode)"
-          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left text-text-dim hover:bg-background-alt hover:text-text-main"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl border border-transparent bg-transparent text-left text-text-dim"
+          [attr.aria-label]="'Open recent workspace ' + view.label"
         >
           <div class="w-8 flex justify-center">
             <span class="material-symbols-outlined text-xl">history</span>
           </div>
-          <div class="ml-4 min-w-0 flex-1">
+          <div class="ml-4 min-w-0 flex-1 sidebar-item-copy">
             <div class="font-bold text-[12px] uppercase tracking-wide">
               {{ view.label }}
             </div>
@@ -191,7 +198,7 @@
       <section *ngFor="let group of navigationGroups" class="pb-3">
         <div
           *ngIf="isSidebarOpen() || isMobile()"
-          class="px-4 pt-4 pb-3 space-y-1"
+          class="px-4 pt-4 pb-3 space-y-1 sidebar-nav-section-labels"
         >
           <div
             class="text-[10px] font-bold text-text-dim uppercase tracking-[0.2em]"
@@ -207,7 +214,7 @@
           *ngFor="let item of group.items"
           type="button"
           (click)="navigateToView(item.mode)"
-          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl transition-all duration-200 cursor-pointer border border-transparent bg-transparent text-left"
+          class="nav-item group flex w-full items-center px-4 py-3 rounded-2xl border border-transparent bg-transparent text-left"
           [attr.aria-label]="'Open ' + item.label"
           [title]="item.label"
           [class.bg-brand-primary/10]="uiService.mainViewMode() === item.mode"
@@ -229,7 +236,7 @@
             </span>
           </div>
           <div
-            class="ml-4 min-w-0 flex-1"
+            class="ml-4 min-w-0 flex-1 sidebar-item-copy"
             *ngIf="isSidebarOpen() || isMobile()"
           >
             <div class="font-bold text-[12px] uppercase tracking-wide">
@@ -243,7 +250,7 @@
       </section>
     </nav>
 
-    <div class="p-6 border-t border-border bg-background-alt/30 space-y-3">
+    <div class="p-6 border-t border-border bg-background-alt/30 space-y-3 sidebar-collapse-blocks">
       <div class="flex items-center justify-between gap-3">
         <div
           class="text-[10px] font-bold uppercase tracking-[0.2em] text-text-dim"
