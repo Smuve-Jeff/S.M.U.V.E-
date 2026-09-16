@@ -557,6 +557,10 @@ export class VideoEngineService {
   }
 
   play() {
+    // Idempotent on purpose: a second call would spin up a second animation
+    // loop, and two loops advancing the same clock run the timeline at double
+    // speed until one of them is cancelled.
+    if (this.isPlaying()) return;
     this.isPlaying.set(true);
     this.lastUpdateTime = performance.now();
     this.startLoop();
@@ -863,7 +867,10 @@ export class VideoEngineService {
 
     const tracks = (snapshot.tracks ?? []).map((track) => {
       const clips = (track.clips ?? []).map((clip) => {
-        if (!clip.url) report.clipsMissingMedia += 1;
+        // Empty overlay clips are intentional storyboard cards (for example
+        // an AI-staged shot) and are rendered from their note, not missing
+        // footage. Only media-bearing clips should be reported here.
+        if (!clip.url && clip.type !== 'overlay') report.clipsMissingMedia += 1;
         const requestedDuration = Math.max(
           MIN_ACTIVE_CLIP_DURATION,
           Number.isFinite(clip.duration) ? clip.duration : MIN_ACTIVE_CLIP_DURATION

@@ -1498,7 +1498,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     clip: VideoClip
   ): HTMLImageElement | HTMLVideoElement | null {
     const url = clip.url;
-    if (!url || !/^(blob:|data:)/.test(url)) return null;
+    if (!url || !/^(blob:|data:|https?:)/i.test(url)) return null;
     if (clip.type === 'overlay') return null;
 
     const cached = this.mediaCache.get(url);
@@ -1506,6 +1506,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     if (clip.type === 'image') {
       const image = new Image();
+      // AI concept art is delivered from a provider CDN. Request CORS before
+      // assigning src so the canvas remains exportable when that CDN opts in.
+      if (/^https?:/i.test(url)) image.crossOrigin = 'anonymous';
       image.src = url;
       this.mediaCache.set(url, image);
       return image;
@@ -1691,7 +1694,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         continue;
       }
 
-      if (!clip.url?.startsWith('blob:')) continue;
+      const persistableUrl =
+        clip.url?.startsWith('blob:') ||
+        (clip.source === 'ai' && /^https?:/i.test(clip.url ?? ''));
+      if (!persistableUrl) continue;
       try {
         const blob = await (await fetch(clip.url)).blob();
         if (blob.size > 0) footage.set(clip.mediaId, blob);

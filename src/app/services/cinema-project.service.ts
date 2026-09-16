@@ -394,7 +394,10 @@ export class CinemaProjectService {
       (total, track) =>
         total +
         (track.clips ?? []).filter(
-          (clip) => !clip.url && !(clip.mediaId && storedIds.has(clip.mediaId))
+          (clip) =>
+            clip.type !== 'overlay' &&
+            !clip.url &&
+            !(clip.mediaId && storedIds.has(clip.mediaId))
         ).length,
       0
     );

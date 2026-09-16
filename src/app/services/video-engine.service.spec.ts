@@ -145,6 +145,20 @@ describe('VideoEngineService project snapshot', () => {
       expect(report.clipsMissingMedia).toBe(1);
     });
 
+    it('does not count intentional storyboard overlays as missing media', () => {
+      const engine = createEngine();
+      const snapshot = engine.snapshot();
+      snapshot.tracks[0].clips.push({
+        ...clip({ url: '', type: 'overlay', note: 'AI staged shot' }),
+        id: 'storyboard',
+        trackId: 't1',
+      });
+
+      const report = engine.restore(snapshot);
+
+      expect(report.clipsMissingMedia).toBe(0);
+    });
+
     it('does not restore transport state and clamps the playhead', () => {
       const engine = createEngine();
       const snapshot: CinemaSnapshot = {
@@ -241,5 +255,75 @@ describe('VideoEngineService project snapshot', () => {
       expect(right.startTime).toBe(6);
       expect(right.offset).toBe(10);
     });
+  });
+});
+
+/**
+ * The transport is started from several places — the play button, a cue
+ * countdown, the export window, the post-capture handoff — so `play()` has to
+ * survive being called on an already-running timeline. Two loops advancing the
+ * same clock run the edit at double speed until one of them is cancelled, and
+ * the second loop leaks past every `pause()`.
+ */
+describe('VideoEngineService transport', () => {
+  const createEngine = (): VideoEngineService => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        VideoEngineService,
+        { provide: AudioEngineService, useValue: { tempo: () => 120 } },
+      ],
+    });
+    return TestBed.inject(VideoEngineService);
+  };
+
+  /** Deterministic animation frames — the loop only runs when asked to. */
+  const countFrames = () => {
+    const globals = globalThis as any;
+    const original = {
+      raf: globals.requestAnimationFrame,
+      caf: globals.cancelAnimationFrame,
+    };
+    const raf = jest.fn().mockReturnValue(1);
+    globals.requestAnimationFrame = raf;
+    globals.cancelAnimationFrame = jest.fn();
+    return {
+      raf,
+      restore: () => {
+        globals.requestAnimationFrame = original.raf;
+        globals.cancelAnimationFrame = original.caf;
+      },
+    };
+  };
+
+  it('does not start a second animation loop when play is called again', () => {
+    const frames = countFrames();
+    try {
+      const engine = createEngine();
+
+      engine.play();
+      engine.play();
+
+      expect(engine.isPlaying()).toBe(true);
+      expect(frames.raf).toHaveBeenCalledTimes(1);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  it('still plays after a pause', () => {
+    const frames = countFrames();
+    try {
+      const engine = createEngine();
+
+      engine.play();
+      engine.pause();
+      engine.play();
+
+      expect(engine.isPlaying()).toBe(true);
+      expect(frames.raf).toHaveBeenCalledTimes(2);
+    } finally {
+      frames.restore();
+    }
   });
 });

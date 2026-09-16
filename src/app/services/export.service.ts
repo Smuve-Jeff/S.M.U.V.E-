@@ -1,6 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService, TrackNote } from './music-manager.service';
+import { VideoEngineService } from './video-engine.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import { LoggingService } from './logging.service';
 import { PluginStoreService } from './plugin-store.service';
@@ -48,6 +49,19 @@ export class ExportService {
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
   private pluginStore = inject(PluginStoreService);
+  private videoEngine = inject(VideoEngineService);
+
+  /** True while a canvas capture is recording. */
+  private isCapturing = signal(false);
+
+  /**
+   * Whether the timeline transport was rolling when the live capture started.
+   *
+   * A capture always rolls the transport (the frames being recorded come from
+   * the timeline), so "was it rolling before" is the only thing needed to hand
+   * it back the way the caller found it.
+   */
+  private transportWasRolling = false;
 
   async exportProjectWav() {
     this.logger.info('Starting Professional Offline Export...');
@@ -368,6 +382,12 @@ export class ExportService {
    * drives the timeline and owns the capture window. `result` resolves with the
    * muxed blob once the recorder has flushed, and rejects on recorder error so
    * failures surface instead of producing a silent 0-byte download.
+   *
+   * The transport is handed back by this service, not left to the caller's
+   * window timer: a recording can also end for reasons that timer never sees
+   * (the recorder erroring, a shared display track ending, the tab being
+   * throttled), and the timeline must not be left rolling because one code path
+   * was skipped.
    */
   async startVideoExport(
     canvas: HTMLCanvasElement,
@@ -409,15 +429,22 @@ export class ExportService {
     };
 
     const result = new Promise<Blob>((resolve, reject) => {
-      recorder.onstop = () =>
+      recorder.onstop = () => {
+        this.endCapture();
         resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
-      recorder.onerror = (event) =>
+      };
+      recorder.onerror = (event) => {
+        this.endCapture();
         reject(
           (event as unknown as { error?: Error })?.error ??
             new Error('Video recording failed')
         );
+      };
     });
 
+    // Snapshot the transport before the caller starts rolling it for the take.
+    this.transportWasRolling = this.videoEngine.isPlaying();
+    this.isCapturing.set(true);
     recorder.start(250);
 
     return {
@@ -428,6 +455,24 @@ export class ExportService {
       },
       result,
     };
+  }
+
+  /**
+   * Hand the timeline transport back once a capture has ended, however it
+   * ended — a plain stop, an early recorder stop, or a recorder error.
+   *
+   * Idempotent: `onstop` and `onerror` can both fire for one recording, and the
+   * caller may have restored playback from its own window timer already, so
+   * this only ever settles on the pre-capture state.
+   */
+  private endCapture(): void {
+    if (!this.isCapturing()) return;
+    this.isCapturing.set(false);
+
+    const resume = this.transportWasRolling;
+    this.transportWasRolling = false;
+    this.videoEngine.pause();
+    if (resume) this.videoEngine.play();
   }
 
   /** First `MediaRecorder`-supported video container, or null when unknown. */

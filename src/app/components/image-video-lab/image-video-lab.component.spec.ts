@@ -1085,6 +1085,39 @@ describe('ImageVideoLabComponent', () => {
       expect(ctxStub.createLinearGradient).not.toHaveBeenCalled();
     });
 
+    it('loads AI concept art from a CORS-enabled provider URL', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const fakeImage = {
+        complete: true,
+        naturalWidth: 1024,
+        naturalHeight: 576,
+        crossOrigin: null as string | null,
+      };
+      jest
+        .spyOn(globalThis as unknown as { Image: unknown }, 'Image')
+        .mockImplementation(() => fakeImage as unknown as HTMLImageElement);
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          id: 'ai-frame',
+          name: 'AI concept frame',
+          url: 'https://cdn.example.test/concept.png',
+          type: 'image',
+          source: 'ai',
+        }),
+      ]);
+
+      renderFrame();
+
+      expect(fakeImage.crossOrigin).toBe('anonymous');
+      expect(ctxStub.drawImage).toHaveBeenCalledWith(
+        fakeImage,
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
     it('scrubs a paused clip to the exact source frame', async () => {
       const { videoEngine, renderFrame } = await createComponent();
       const videos = installVideoElement();
@@ -1532,7 +1565,8 @@ describe('ImageVideoLabComponent', () => {
 
       jest.advanceTimersByTime(5000);
       expect(recorderStop).toHaveBeenCalledTimes(1);
-      // Paused once to rewind to 0, then again when the window closed.
+      // Paused once to rewind to 0, then again when the window closed. A capture
+      // that ends before this window is handed back by ExportService instead.
       expect(videoEngine.pause).toHaveBeenCalledTimes(2);
 
       complete(new Blob(['video-bytes'], { type: 'video/webm' }));

@@ -3,11 +3,15 @@ import { ExportService } from '../export.service';
 import { AudioEngineService } from '../audio-engine.service';
 import { MusicManagerService } from '../music-manager.service';
 import { LoggingService } from '../logging.service';
+import { VideoEngineService } from '../video-engine.service';
 
 describe('ExportService', () => {
   let service: ExportService;
   let audioEngineMock: any;
   let mediaRecorderMock: any;
+  let videoEngineMock: any;
+  /** Every recorder this suite created, so a test can end one mid-capture. */
+  let recorders: any[] = [];
 
   beforeEach(() => {
     const mockCtx = {
@@ -75,16 +79,20 @@ describe('ExportService', () => {
       }),
     };
 
+    recorders = [];
     mediaRecorderMock = class {
       static isTypeSupported = jest.fn().mockReturnValue(true);
       ondataavailable: ((event: { data: Blob }) => void) | null = null;
       onstop: (() => void) | null = null;
+      onerror: ((event: { error: Error }) => void) | null = null;
       mimeType = 'audio/webm';
       state = 'inactive';
       constructor(
         public stream: MediaStream,
         public options: MediaRecorderOptions = {}
-      ) {}
+      ) {
+        recorders.push(this);
+      }
       start = jest.fn(() => {
         this.state = 'recording';
       });
@@ -93,13 +101,24 @@ describe('ExportService', () => {
         this.ondataavailable?.({ data: new Blob(['sample']) });
         this.onstop?.();
       });
+      fail = jest.fn((error: Error) => {
+        this.state = 'inactive';
+        this.onerror?.({ error });
+      });
     };
     (globalThis as any).MediaRecorder = mediaRecorderMock;
+
+    videoEngineMock = {
+      isPlaying: jest.fn().mockReturnValue(false),
+      pause: jest.fn(),
+      play: jest.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
         ExportService,
         { provide: AudioEngineService, useValue: audioEngineMock },
+        { provide: VideoEngineService, useValue: videoEngineMock },
         {
           provide: MusicManagerService,
           useValue: {
@@ -202,5 +221,54 @@ describe('ExportService', () => {
     await expect(
       service.startVideoExport({} as HTMLCanvasElement)
     ).rejects.toThrow(/Canvas capture/);
+  });
+
+  /**
+   * A capture always rolls the timeline, but it can also end on a path the
+   * caller's capture window never sees. The transport has to be handed back
+   * either way, otherwise the timeline is left rolling with no export to show.
+   */
+  describe('transport handoff around a capture', () => {
+    const canvas = () =>
+      ({
+        captureStream: jest.fn().mockReturnValue({ addTrack: jest.fn() }),
+      }) as unknown as HTMLCanvasElement;
+
+    it('stops the timeline when the recorder ends before the capture window', async () => {
+      // Transport idle before the take: it must be idle again afterwards.
+      videoEngineMock.isPlaying.mockReturnValue(false);
+
+      const { result } = await service.startVideoExport(canvas());
+      recorders[0].fail(new Error('display track ended'));
+
+      await expect(result).rejects.toThrow('display track ended');
+      expect(videoEngineMock.pause).toHaveBeenCalled();
+      expect(videoEngineMock.play).not.toHaveBeenCalled();
+    });
+
+    it('resumes the timeline when it was rolling before the take', async () => {
+      videoEngineMock.isPlaying.mockReturnValue(true);
+
+      const { result } = await service.startVideoExport(canvas());
+      recorders[0].fail(new Error('recorder crashed'));
+
+      await expect(result).rejects.toThrow('recorder crashed');
+      expect(videoEngineMock.pause).toHaveBeenCalled();
+      expect(videoEngineMock.play).toHaveBeenCalled();
+    });
+
+    it('hands the transport back after a normal stop without resuming', async () => {
+      videoEngineMock.isPlaying.mockReturnValue(false);
+
+      const { recorder, result } = await service.startVideoExport(canvas());
+      recorder.stop();
+      await result;
+
+      // A late `onerror` must not roll the timeline a second time.
+      recorders[0].fail(new Error('late error'));
+
+      expect(videoEngineMock.pause).toHaveBeenCalledTimes(1);
+      expect(videoEngineMock.play).not.toHaveBeenCalled();
+    });
   });
 });
