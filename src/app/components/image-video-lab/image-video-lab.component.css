@@ -19,6 +19,77 @@
   background: rgba(16, 185, 129, 0.3);
 }
 
+.native-player-dock {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding: clamp(0.65rem, 2vw, 1.25rem);
+  background: linear-gradient(180deg, transparent 35%, rgba(2, 6, 23, 0.88));
+}
+
+.native-player-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #e2e8f0;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.native-player-label {
+  color: #10b981;
+}
+
+.native-player-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(226, 232, 240, 0.75);
+  letter-spacing: 0.04em;
+}
+
+.native-player {
+  display: block;
+  width: 100%;
+  max-height: 62%;
+  min-height: 5rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 0.75rem;
+  background: #020617;
+  object-fit: contain;
+  /* Keep controls and the user-gesture path available on touch devices. */
+  touch-action: manipulation;
+}
+
+.native-player-hint,
+.native-player-empty {
+  color: rgba(226, 232, 240, 0.68);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.native-player-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: rgba(226, 232, 240, 0.55);
+  text-align: center;
+}
+
 canvas {
   /*
    * Smooth resampling, not `pixelated`. The monitor's backing store is a real

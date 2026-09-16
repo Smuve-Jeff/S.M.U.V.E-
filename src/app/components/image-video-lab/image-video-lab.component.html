@@ -149,6 +149,33 @@
         >
           <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
 
+          @if (activeVideoClip(); as activeClip) {
+            <div class="native-player-dock" aria-label="Cinema video player">
+              <div class="native-player-heading">
+                <span class="native-player-label">Native playback</span>
+                <span class="native-player-source">{{ activeClip.name }}</span>
+              </div>
+              <video
+                #nativePlayer
+                class="native-player"
+                controls
+                playsinline
+                muted
+                preload="metadata"
+                [attr.aria-label]="'Play ' + activeClip.name"
+                (play)="onNativePlayerPlay()"
+                (pause)="onNativePlayerPause()"
+                (seeked)="onNativePlayerSeek()"
+              ></video>
+              <p class="native-player-hint">Chrome/Android playback · tap play for sound and fullscreen</p>
+            </div>
+          } @else {
+            <div class="native-player-empty" aria-live="polite">
+              <span class="material-symbols-outlined">movie</span>
+              <span>Select a video clip to activate the player</span>
+            </div>
+          }
+
           <!--
             Live camera sink. Painted full-bleed *behind* the program monitor
             (see the CSS note) rather than hidden: `display: none` stops the

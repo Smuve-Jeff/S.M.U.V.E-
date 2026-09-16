@@ -114,6 +114,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   public cinemaProjects = inject(CinemaProjectService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
+  /** Native player exposed in the monitor for reliable Chrome/Android playback. */
+  private nativePlayerElement?: HTMLVideoElement;
+  @ViewChild('nativePlayer')
+  set nativePlayerRef(ref: ElementRef<HTMLVideoElement> | undefined) {
+    this.nativePlayerElement = ref?.nativeElement;
+    // The player is conditionally rendered. A normal effect can run before the
+    // @if view exists, so the ViewChild setter is the reliable attach point.
+    this.syncNativePlayer();
+  }
   /** Live camera sink kept decoding behind the monitor (see the CSS note). */
   @ViewChild('cameraFeed') cameraFeed?: ElementRef<HTMLVideoElement>;
   /** Scroll container that owns the timeline viewport window. */
@@ -207,6 +216,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private readonly mediaBlobs = new Map<string, Blob>();
   private mediaCounter = 0;
   activePreset = computed(() => this.videoEngine.deliveryPreset());
+  /**
+   * The canvas remains the compositing/export surface, but a native video
+   * element is the playback surface. Native controls are important on Android
+   * Chrome: they provide seek, fullscreen, volume and a user-gesture playback
+   * path that a canvas can never provide.
+   */
+  activeVideoClip = computed(() =>
+    this.videoEngine
+      .getActiveClips(this.videoEngine.currentTime())
+      .find((clip) => clip.type === 'video' && !!clip.url) ?? null
+  );
+  activePlayerUrl = computed(() => this.activeVideoClip()?.url ?? null);
   productionBlueprint = computed(() => {
     const preset = this.activePreset();
     const clipCount = this.videoEngine
@@ -416,6 +437,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
     });
 
+    // Keep the native player aligned with the active timeline clip. This is
+    // intentionally an effect rather than a one-time init: changing clips,
+    // scrubbing and reopening a project must all update the player immediately.
+    effect(() => {
+      void this.activePlayerUrl();
+      void this.videoEngine.currentTime();
+      void this.videoEngine.isPlaying();
+      this.syncNativePlayer();
+    });
+
     // Keep the video sink bound to whatever stream the camera service holds.
     effect(() => {
       void this.camera.stream();
@@ -446,6 +477,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.syncPreviewResolution();
     this.canvasCtx = this.previewCanvas.nativeElement.getContext('2d');
     this.syncCameraElement();
+    this.syncNativePlayer();
     this.syncTimelineViewport();
     this.startCanvasLoop();
   }
@@ -1293,6 +1325,57 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const tag = el.tagName?.toLowerCase();
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
     return el.isContentEditable === true;
+  }
+
+  /**
+   * Synchronize the accessible native player with the engine transport. The
+   * `muted` autoplay path is intentional: Chrome and Android may reject
+   * audible autoplay, while a visible controls bar still lets the artist
+   * unmute and take over after a gesture.
+   */
+  private syncNativePlayer(): void {
+    const player = this.nativePlayerElement;
+    const clip = this.activeVideoClip();
+    if (!player || !clip?.url) return;
+
+    if (player.src !== clip.url) {
+      player.muted = true;
+      player.src = clip.url;
+      player.load();
+    }
+
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    const localTime = Math.max(0, this.videoEngine.currentTime() - clip.startTime - trimStart);
+    if (Number.isFinite(localTime) && Math.abs(player.currentTime - localTime) > PLAYING_DRIFT_TOLERANCE_SECONDS) {
+      try {
+        player.currentTime = localTime;
+      } catch {
+        // Metadata may not be available until the first frame on mobile.
+      }
+    }
+
+    player.playsInline = true;
+    if (this.videoEngine.isPlaying()) {
+      if (player.paused) this.playQuietly(player);
+    } else if (!player.paused) {
+      this.pauseQuietly(player);
+    }
+  }
+
+  onNativePlayerPlay(): void {
+    if (!this.videoEngine.isPlaying()) this.videoEngine.play();
+  }
+
+  onNativePlayerPause(): void {
+    if (this.videoEngine.isPlaying()) this.videoEngine.pause();
+  }
+
+  onNativePlayerSeek(): void {
+    const player = this.nativePlayerElement;
+    const clip = this.activeVideoClip();
+    if (!player || !clip) return;
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    this.videoEngine.seek(clip.startTime + trimStart + player.currentTime);
   }
 
   /**
