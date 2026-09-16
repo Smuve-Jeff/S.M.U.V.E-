@@ -101,8 +101,17 @@ export interface VideoTrack {
  * an empty url, which is exactly the state the renderer already understands as
  * "staged, not shot yet".
  */
+/**
+ * Snapshot format version, written with every saved project.
+ *
+ * It exists so a record written by a different build can be recognised instead
+ * of being read as if it were the current shape and silently losing whatever it
+ * carried that this build does not know about.
+ */
+export const CINEMA_SNAPSHOT_VERSION = 1;
+
 export interface CinemaSnapshot {
-  version: 1;
+  version: typeof CINEMA_SNAPSHOT_VERSION;
   productionMode: ProductionMode;
   deliveryPresetId: string;
   duration: number;
@@ -789,7 +798,7 @@ export class VideoEngineService {
    */
   snapshot(): CinemaSnapshot {
     return {
-      version: 1,
+      version: CINEMA_SNAPSHOT_VERSION,
       productionMode: this.productionMode(),
       deliveryPresetId: this.deliveryPreset().id,
       duration: this.duration(),

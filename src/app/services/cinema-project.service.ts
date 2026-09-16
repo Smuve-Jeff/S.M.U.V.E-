@@ -1,11 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  CINEMA_SNAPSHOT_VERSION,
   CinemaRestoreReport,
   CinemaSnapshot,
   ProductionMode,
   VideoEngineService,
 } from './video-engine.service';
-import { LocalStorageService } from './local-storage.service';
+import { LocalStorageService, PersistenceState } from './local-storage.service';
 import { LoggingService } from './logging.service';
 
 /**
@@ -82,11 +83,12 @@ export class CinemaProjectService {
   /** True while a write or read is in flight, so the UI can disable the controls. */
   isBusy = signal(false);
   /**
-   * Whether persistence actually works here. IndexedDB is missing on some hosts
-   * and blocked in private modes, and `saveItem` treats both as a no-op — which
-   * would let the UI announce a save that never happened.
+   * Why persistence is or is not usable. IndexedDB is missing on some hosts,
+   * locked by another open tab on others, and `saveItem` treats every one of
+   * those as a no-op — which would let the UI announce a save that never
+   * happened.
    */
-  storageAvailable = signal(true);
+  storageState = signal<PersistenceState>('ready');
   lastError = signal<string | null>(null);
 
   activeProject = computed(() => {
@@ -98,15 +100,36 @@ export class CinemaProjectService {
 
   hasProjects = computed(() => this.projects().length > 0);
 
+  storageAvailable = computed(() => this.storageState() === 'ready');
+
+  /**
+   * Operator-facing reason saving is impossible, or null when it is possible.
+   *
+   * Kept beside the state that produces it so the wording cannot drift from the
+   * cause: a browser without IndexedDB and a browser whose database is held by
+   * another tab need completely different actions from the operator.
+   */
+  storageNotice = computed(() => {
+    const state = this.storageState();
+    if (state === 'ready') return null;
+    if (state === 'blocked') {
+      return 'Project storage is locked by another open tab of this app. Close the other tabs and reload, then save again.';
+    }
+    if (state === 'unsupported') {
+      return 'This browser cannot store projects (IndexedDB is unavailable), so this edit cannot be saved. Export the master instead.';
+    }
+    return 'Project storage could not be opened on this device, so this edit cannot be saved. Export the master instead.';
+  });
+
   constructor() {
     void this.refresh();
   }
 
   /** Re-read the saved projects from storage. Safe to call at any time. */
   async refresh(): Promise<CinemaProjectSummary[]> {
-    const available = await this.storage.isAvailable();
-    this.storageAvailable.set(available);
-    if (!available) {
+    const state = await this.storage.persistenceStatus();
+    this.storageState.set(state);
+    if (state !== 'ready') {
       this.projects.set([]);
       return [];
     }
@@ -145,21 +168,27 @@ export class CinemaProjectService {
     this.lastError.set(null);
 
     try {
-      if (!(await this.storage.isAvailable())) {
-        this.storageAvailable.set(false);
-        const message =
-          'This browser cannot store projects (IndexedDB is unavailable), so this edit cannot be saved. Export the master instead.';
-        this.lastError.set(message);
+      const state = await this.storage.persistenceStatus();
+      if (state !== 'ready') {
+        // Deliberately not mirrored into `lastError`: the panel already shows
+        // the storage notice for as long as the state lasts, and setting both
+        // printed the same sentence twice on screen.
+        this.storageState.set(state);
+        const message = this.storageNotice() ?? 'This edit cannot be saved.';
         return { ok: false, id: null, message };
       }
 
       const snapshot = this.engine.snapshot();
+      // Read the overwrite target back from storage instead of trusting the
+      // in-memory list: after a failed refresh that list is empty while the
+      // record is still on disk, and minting a fresh id there would fork a
+      // duplicate and orphan the original.
       const existing = id
-        ? this.projects().find((project) => project.id === id)
-        : undefined;
+        ? ((await this.storage.getItem(STORE, id)) as CinemaProjectRecord | null)
+        : null;
       const now = Date.now();
       const record: CinemaProjectRecord = {
-        id: existing?.id ?? this.mintId(),
+        id: id ?? this.mintId(),
         name: title,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
@@ -210,6 +239,17 @@ export class CinemaProjectService {
         | null;
       if (!record?.snapshot) {
         const message = 'That project is no longer in storage.';
+        this.lastError.set(message);
+        return { ok: false, message };
+      }
+
+      if (record.snapshot.version !== CINEMA_SNAPSHOT_VERSION) {
+        // Checked rather than ignored: a record from another build can carry
+        // fields this one does not understand, and reading it as if it were the
+        // current shape would drop them without ever saying so.
+        const message = `That project was saved by a different version of the app (format ${
+          record.snapshot.version ?? 'unknown'
+        }), so it cannot be opened here.`;
         this.lastError.set(message);
         return { ok: false, message };
       }

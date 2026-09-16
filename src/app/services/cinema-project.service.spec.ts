@@ -35,7 +35,7 @@ const clip = (
 describe('CinemaProjectService', () => {
   let stored: Map<string, any>;
   let storage: {
-    isAvailable: jest.Mock;
+    persistenceStatus: jest.Mock;
     saveItem: jest.Mock;
     getItem: jest.Mock;
     getAllItems: jest.Mock;
@@ -45,7 +45,7 @@ describe('CinemaProjectService', () => {
   const buildStorage = () => {
     stored = new Map<string, any>();
     storage = {
-      isAvailable: jest.fn(async () => true),
+      persistenceStatus: jest.fn(async () => 'ready'),
       saveItem: jest.fn(async (_store: string, item: any) => {
         stored.set(item.id, item);
       }),
@@ -136,7 +136,7 @@ describe('CinemaProjectService', () => {
 
     it('refuses to pretend when this host cannot store anything', async () => {
       const { service, engine, storage } = createHarness();
-      storage.isAvailable.mockResolvedValue(false);
+      storage.persistenceStatus.mockResolvedValue('unsupported');
       engine.addClip('t1', clip({ url: STILL }));
 
       const outcome = await service.save('Feature Cut');
@@ -147,6 +147,45 @@ describe('CinemaProjectService', () => {
       expect(service.storageAvailable()).toBe(false);
       expect(service.projects()).toEqual([]);
       expect(storage.saveItem).not.toHaveBeenCalled();
+    });
+
+    it('blames the other tab, not the browser, when storage is blocked', async () => {
+      const { service, storage } = createHarness();
+      storage.persistenceStatus.mockResolvedValue('blocked');
+
+      const outcome = await service.save('Feature Cut');
+
+      // A browser whose database is held by another tab is perfectly capable of
+      // storing data; only one of these two messages leads to a fix.
+      expect(outcome.ok).toBe(false);
+      expect(outcome.message).toContain('another open tab');
+      expect(outcome.message).not.toContain('cannot store projects');
+      expect(service.storageState()).toBe('blocked');
+      // The persistent notice already says this; mirroring it into lastError
+      // printed the identical sentence twice in the panel.
+      expect(service.lastError()).toBeNull();
+    });
+
+    it('overwrites the stored record even when the list has gone stale', async () => {
+      const { service, engine, storage } = createHarness();
+      const saved = await service.save('Feature Cut');
+      const createdAt = service.projects()[0].createdAt;
+
+      // A refresh that failed empties the list while the record is still there.
+      storage.getAllItems.mockRejectedValueOnce(new Error('read failed'));
+      await service.refresh();
+      expect(service.projects()).toEqual([]);
+      expect(service.activeProjectId()).toBe(saved.id);
+
+      engine.addClip('t1', clip({ url: STILL }));
+      const outcome = await service.save('Feature Cut', saved.id);
+
+      // The overwrite target comes from storage, so this stays an overwrite
+      // rather than forking a duplicate and orphaning the original.
+      expect(outcome.id).toBe(saved.id);
+      expect(service.projects()).toHaveLength(1);
+      expect(service.projects()[0].createdAt).toBe(createdAt);
+      expect(service.projects()[0].clipCount).toBe(1);
     });
 
     it('reports a write the store rejected', async () => {
@@ -216,6 +255,22 @@ describe('CinemaProjectService', () => {
       expect(outcome.ok).toBe(false);
       expect(outcome.message).toContain('no longer in storage');
       expect(service.lastError()).not.toBeNull();
+    });
+
+    it('refuses a record written by a different format version', async () => {
+      const { service, engine } = createHarness();
+      const saved = await service.save('Feature Cut');
+      const record = stored.get(saved.id!);
+      record.snapshot.version = 99;
+      stored.set(saved.id!, record);
+
+      const outcome = await service.open(saved.id!);
+
+      // Reading a future shape as if it were this one would drop whatever it
+      // carried, silently.
+      expect(outcome.ok).toBe(false);
+      expect(outcome.message).toContain('different version');
+      expect(engine.markers()).toEqual([]);
     });
   });
 

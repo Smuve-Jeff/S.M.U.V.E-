@@ -878,6 +878,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (outcome.ok) {
       const opened = this.cinemaProjects.activeProject();
       if (opened) this.projectName.set(opened.name);
+      // Opening a project replaces the entire timeline, so everything decoded
+      // for the project being closed is now dead weight.
+      this.evictUnusedMedia();
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
   }
@@ -1565,6 +1568,38 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.mediaCache.forEach((media, url) => {
       if (!(media instanceof HTMLVideoElement) || activeUrls.has(url)) return;
       if (!media.paused) this.pauseQuietly(media);
+    });
+  }
+
+  /**
+   * Drop decoded media for clips that are no longer on the timeline.
+   *
+   * The cache is keyed by url and, until now, survived until `ngOnDestroy`. That
+   * was fine while a timeline only grew by ingesting files, but opening a
+   * project now replaces every lane at once: each open left the previous
+   * project's decoded takes resident, and a decoded video is far larger than the
+   * file it came from, so a few project switches added up to a real leak.
+   *
+   * The object urls are deliberately *not* revoked. A project reopened later in
+   * the same session must still find its media, and the bytes are released on
+   * destroy exactly as before — this only drops the decoding.
+   */
+  private evictUnusedMedia(): void {
+    const liveUrls = new Set(
+      this.videoEngine
+        .tracks()
+        .flatMap((track) => track.clips.map((clip) => clip.url))
+    );
+
+    this.mediaCache.forEach((media, url) => {
+      if (liveUrls.has(url)) return;
+      if (media instanceof HTMLVideoElement) {
+        if (!media.paused) this.pauseQuietly(media);
+        // Detach the source so the decoder stops holding buffers, rather than
+        // waiting for the element to be collected.
+        media.removeAttribute('src');
+      }
+      this.mediaCache.delete(url);
     });
   }
 

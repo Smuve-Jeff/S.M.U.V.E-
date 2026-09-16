@@ -11,6 +11,7 @@ import {
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CameraCaptureService } from '../../services/camera-capture.service';
+import { CinemaProjectService } from '../../services/cinema-project.service';
 
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
@@ -382,6 +383,40 @@ describe('ImageVideoLabComponent', () => {
       downloadBlob: jest.fn(),
     };
 
+    /**
+     * Project persistence stand-in. `activeProject` is derived from the list and
+     * the active id exactly as the real service derives it, so a test can drive
+     * "which project is open" the way the app does.
+     */
+    const projectList = signal<Array<{ id: string; name: string }>>([]);
+    const activeProjectId = signal<string | null>(null);
+    const cinemaProjects = {
+      projects: projectList,
+      activeProjectId,
+      activeProject: computed(
+        () =>
+          projectList().find((project) => project.id === activeProjectId()) ??
+          null
+      ),
+      hasProjects: computed(() => projectList().length > 0),
+      storageAvailable: computed(() => true),
+      storageNotice: signal<string | null>(null),
+      isBusy: signal(false),
+      lastError: signal<string | null>(null),
+      save: jest.fn(async () => ({
+        ok: true,
+        id: 'p1',
+        message: 'PROJECT SAVED: FEATURE CUT.',
+      })),
+      open: jest.fn(async () => ({
+        ok: true,
+        message: 'PROJECT OPENED: FEATURE CUT.',
+      })),
+      remove: jest.fn(async () => true),
+      startNew: jest.fn(),
+      refresh: jest.fn(async () => []),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ImageVideoLabComponent],
       providers: [
@@ -391,6 +426,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: VideoEngineService, useValue: videoEngine },
         { provide: ExportService, useValue: exportService },
         { provide: CameraCaptureService, useValue: camera },
+        { provide: CinemaProjectService, useValue: cinemaProjects },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
@@ -414,6 +450,9 @@ describe('ImageVideoLabComponent', () => {
       videoEngine,
       camera,
       exportService,
+      cinemaProjects,
+      projectList,
+      activeProjectId,
       fixture,
       video,
       /** Render one preview frame on demand (the rAF loop is stubbed out). */
@@ -1243,6 +1282,161 @@ describe('ImageVideoLabComponent', () => {
 
       expect(ctxStub.createLinearGradient).toHaveBeenCalled();
       expect(ctxStub.drawImage).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * The persistence panel's wiring. The service itself is covered by its own
+   * spec; what is tested here is the glue the user actually touches — which name
+   * is passed, which name is seeded back, and what the director line says.
+   */
+  describe('projects', () => {
+    it('saves under the typed name and reports the outcome', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      component.projectName.set('Feature Cut');
+
+      await component.saveProject();
+
+      expect(cinemaProjects.save).toHaveBeenCalledWith('Feature Cut');
+      expect(component.aiFeedback()).toBe('PROJECT SAVED: FEATURE CUT.');
+    });
+
+    it('shouts a failed save rather than implying it worked', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      cinemaProjects.save.mockResolvedValue({
+        ok: false,
+        id: null,
+        message: 'Project storage is locked by another open tab.',
+      });
+
+      await component.saveProject();
+
+      expect(component.aiFeedback()).toContain('LOCKED BY ANOTHER OPEN TAB');
+    });
+
+    it('seeds the name field from the project that was actually saved', async () => {
+      const { component, cinemaProjects, projectList, activeProjectId } =
+        await createComponent();
+      projectList.set([{ id: 'p1', name: 'Feature Cut' }]);
+      activeProjectId.set('p1');
+
+      await component.saveProject();
+
+      // Re-saving an open project must not fork a copy under a blank title.
+      expect(component.projectName()).toBe('Feature Cut');
+    });
+
+    it('takes on the name of the project it opens', async () => {
+      const { component, cinemaProjects, projectList, activeProjectId } =
+        await createComponent();
+      projectList.set([{ id: 'p2', name: 'Act Two' }]);
+      activeProjectId.set('p2');
+
+      await component.openProject('p2');
+
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p2');
+      expect(component.projectName()).toBe('Act Two');
+      expect(component.aiFeedback()).toBe('PROJECT OPENED: FEATURE CUT.');
+    });
+
+    it('deletes without also opening the project under the pointer', async () => {
+      const { component, cinemaProjects, projectList } =
+        await createComponent();
+      projectList.set([{ id: 'p1', name: 'Feature Cut' }]);
+      const event = { stopPropagation: jest.fn() } as unknown as Event;
+
+      await component.deleteProject('p1', event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(cinemaProjects.remove).toHaveBeenCalledWith('p1');
+      expect(component.aiFeedback()).toBe('PROJECT DELETED: FEATURE CUT.');
+    });
+
+    it('surfaces why a deletion failed', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      cinemaProjects.remove.mockResolvedValue(false);
+      cinemaProjects.lastError.set('That project could not be deleted.');
+
+      await component.deleteProject('p1');
+
+      expect(component.aiFeedback()).toBe(
+        'THAT PROJECT COULD NOT BE DELETED.'
+      );
+    });
+
+    it('detaches for a new project without clearing the edit', async () => {
+      const { component, cinemaProjects } = await createComponent();
+      component.projectName.set('Feature Cut');
+
+      component.startNewProject();
+
+      // "New project" is a save-as-new, so the timeline must survive it.
+      expect(cinemaProjects.startNew).toHaveBeenCalled();
+      expect(component.projectName()).toBe('');
+      expect(component.aiFeedback()).toContain('NEW PROJECT');
+    });
+
+    it('drops the decoded media of the project it just closed', async () => {
+      const { component, videoEngine, cinemaProjects, renderFrame } =
+        await createComponent();
+      jest
+        .spyOn(globalThis as unknown as { Image: unknown }, 'Image')
+        .mockImplementation(
+          () =>
+            ({
+              complete: true,
+              naturalWidth: 640,
+              naturalHeight: 360,
+            }) as unknown as HTMLImageElement
+        );
+
+      const clip = {
+        id: 'clip-1',
+        name: 'shot.png',
+        url: 'data:image/jpeg;base64,shot',
+        startTime: 0,
+        duration: 10,
+        offset: 0,
+        trackId: 't1',
+        type: 'image' as const,
+        source: 'upload' as const,
+        effects: {
+          upscale: false,
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: 'none' as const,
+          transition: 'cut' as const,
+          transitionDuration: 0,
+          trimStart: 0,
+          trimEnd: 0,
+        },
+      };
+      videoEngine.tracks.update((tracks) =>
+        tracks.map((track) =>
+          track.id === 't1' ? { ...track, clips: [clip] } : track
+        )
+      );
+      videoEngine.getActiveClips.mockReturnValue([clip]);
+      renderFrame();
+
+      const cache = (
+        component as unknown as { mediaCache: Map<string, unknown> }
+      ).mediaCache;
+      expect(cache.size).toBe(1);
+
+      // Opening a project replaces every lane at once.
+      videoEngine.tracks.update((tracks) =>
+        tracks.map((track) => ({ ...track, clips: [] }))
+      );
+      videoEngine.getActiveClips.mockReturnValue([]);
+      await component.openProject('p1');
+
+      // The closed project's decoded media must not stay resident for the whole
+      // session just because the url is still valid.
+      expect(cache.size).toBe(0);
+      expect(cinemaProjects.open).toHaveBeenCalledWith('p1');
     });
   });
 

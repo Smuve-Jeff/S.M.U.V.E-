@@ -443,11 +443,8 @@
             </button>
           </div>
 
-          @if (!cinemaProjects.storageAvailable()) {
-            <p class="camera-error">
-              This browser cannot store projects, so saves will not persist.
-              Export the master instead.
-            </p>
+          @if (cinemaProjects.storageNotice(); as storageNotice) {
+            <p class="camera-error">{{ storageNotice }}</p>
           } @else if (!cinemaProjects.hasProjects()) {
             <p class="camera-detail">
               No saved projects yet. Name the edit and save it to come back to it

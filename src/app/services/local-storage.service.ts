@@ -8,6 +8,16 @@ export interface CacheMetadata {
   expiresAt?: number;
 }
 
+/**
+ * Why persistence is, or is not, usable.
+ *
+ * `blocked` is the one that must never be folded into the others. The browser is
+ * perfectly capable of storing data — another open tab is holding the old schema
+ * version and has to be closed first. Telling that operator their browser
+ * "cannot store projects" sends them somewhere no fix exists.
+ */
+export type PersistenceState = 'ready' | 'unsupported' | 'blocked' | 'failed';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -15,7 +25,8 @@ export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
   private dbVersion = 6;
   private db: IDBDatabase | null = null;
-  private dbUnsupported = false;
+  /** Why persistence is unavailable, when it is. Null while everything works. */
+  private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
   private dbReady: Promise<void>;
   private resolveDbReady!: () => void;
 
@@ -31,7 +42,7 @@ export class LocalStorageService {
 
   private initDB() {
     if (typeof window === 'undefined' || !(window as any).indexedDB) {
-      this.dbUnsupported = true;
+      this.unavailableReason = 'unsupported';
       this.resolveDbReady();
       return;
     }
@@ -84,34 +95,62 @@ export class LocalStorageService {
       }
     };
 
+    /**
+     * Another tab is holding this database open at an older version, so the
+     * upgrade cannot start. Without this handler the request never settles:
+     * `dbReady` never resolves, every caller awaiting it hangs, and a project
+     * save sits on its in-flight flag forever showing neither success nor
+     * failure.
+     */
+    request.onblocked = () => {
+      this.unavailableReason = 'blocked';
+      console.error(
+        'IndexedDB upgrade blocked by another open tab. Close the other tabs of this app and reload.'
+      );
+      this.resolveDbReady();
+    };
+
     request.onsuccess = (event: any) => {
-      this.db = event.target.result;
+      const db: IDBDatabase = event.target.result;
+      this.db = db;
+      this.unavailableReason = null;
+      // Yield to a newer version instead of blocking it. A tab that keeps its
+      // connection open is what makes the *next* upgrade hang for whoever
+      // triggers it, so closing here is what stops the block propagating.
+      db.onversionchange = () => {
+        db.close();
+        if (this.db === db) this.db = null;
+        this.unavailableReason = 'blocked';
+      };
       this.resolveDbReady();
       void this.runCacheCleanup();
     };
 
     request.onerror = (event: any) => {
+      this.unavailableReason = 'failed';
       console.error('IndexedDB error:', event.target.error);
       this.resolveDbReady();
     };
   }
 
   private async ensureReady(): Promise<boolean> {
-    await this.dbReady;
-    return !this.dbUnsupported && this.db !== null;
+    return (await this.persistenceStatus()) === 'ready';
   }
 
   /**
-   * Whether persistence actually works in this host.
+   * Whether persistence works, and if not, why.
    *
    * Every read and write below silently becomes a no-op when IndexedDB is
-   * missing or its open failed, so a caller that wants to tell the operator the
-   * truth (a save that did not happen, a project list that is empty because it
-   * could not be read) has to ask first rather than infer it from a resolved
-   * promise.
+   * missing, blocked by another tab, or failed to open, so a caller that wants
+   * to tell the operator the truth (a save that did not happen, a project list
+   * that is empty because it could not be read) has to ask first rather than
+   * infer it from a resolved promise — and has to be able to say *which* of
+   * those happened, because the remedy differs.
    */
-  async isAvailable(): Promise<boolean> {
-    return this.ensureReady();
+  async persistenceStatus(): Promise<PersistenceState> {
+    await this.dbReady;
+    if (this.db !== null) return 'ready';
+    return this.unavailableReason ?? 'failed';
   }
 
   async saveItem(
