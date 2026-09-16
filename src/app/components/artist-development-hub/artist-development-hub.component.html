@@ -13,7 +13,7 @@
       <p
         class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1"
       >
-        Digital Fingerprint · PRO Registry · DSP Analytics · Social Presence
+        Official Pathway · Digital Fingerprint · PRO Registry · DSP Analytics · Social Presence
       </p>
     </div>
     <div class="flex items-center gap-3">
@@ -81,6 +81,301 @@
 
   <!-- Module Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 0. Official Pathway -->
+    <div
+      class="lg:col-span-2 bg-brand-surface/20 border border-violet-500/25 rounded-3xl p-6"
+    >
+      <button
+        (click)="setPanel('pathway')"
+        class="flex items-center gap-3 w-full text-left"
+      >
+        <div
+          class="size-10 rounded-xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center"
+        >
+          <span class="material-symbols-outlined text-violet-300">route</span>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm font-black uppercase tracking-tight">
+            The Official Pathway
+          </h2>
+          <p class="text-[8px] text-slate-500 uppercase tracking-widest">
+            No presence to official in every area of music
+          </p>
+        </div>
+        <div class="text-right mr-3">
+          <div class="text-lg font-black text-violet-300">
+            {{ pathway().overall }}%
+          </div>
+          <div class="text-[7px] text-slate-500 uppercase tracking-widest font-bold">
+            {{ pathway().completedSteps }}/{{ pathway().totalSteps }} steps
+          </div>
+        </div>
+        <span class="text-slate-600 text-xs">{{
+          activePanel() === 'pathway' ? '▲' : '▼'
+        }}</span>
+      </button>
+
+      @if (activePanel() === 'pathway') {
+        <div class="space-y-5 mt-5">
+          <!-- Stage + official standing -->
+          <div
+            class="grid grid-cols-2 md:grid-cols-4 gap-3"
+          >
+            <div class="bg-brand-dark/40 rounded-2xl p-4 text-center">
+              <div class="text-sm font-black text-violet-300 capitalize">
+                {{ pathway().stage.replace('-', ' ') }}
+              </div>
+              <div
+                class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1"
+              >
+                Stage
+              </div>
+            </div>
+            <div class="bg-brand-dark/40 rounded-2xl p-4 text-center">
+              <div class="text-sm font-black text-emerald-400">
+                {{ pathway().officialAreas.length }}/{{ pathway().areas.length }}
+              </div>
+              <div
+                class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1"
+              >
+                Areas official
+              </div>
+            </div>
+            <div class="bg-brand-dark/40 rounded-2xl p-4 text-center">
+              <div class="text-sm font-black text-amber-400">
+                {{ pathway().openSteps }}
+              </div>
+              <div
+                class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1"
+              >
+                Steps open
+              </div>
+            </div>
+            <div class="bg-brand-dark/40 rounded-2xl p-4 text-center">
+              <div class="text-sm font-black text-slate-300">
+                {{ pathway().totalSteps - pathway().openSteps }}
+              </div>
+              <div
+                class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1"
+              >
+                Steps complete
+              </div>
+            </div>
+          </div>
+
+          <!-- The single next move -->
+          @if (nextAction(); as next) {
+            <div
+              class="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-5"
+            >
+              <div
+                class="text-[8px] font-black uppercase tracking-[0.3em] text-violet-300"
+              >
+                Do this next
+              </div>
+              <h3 class="text-base font-black uppercase mt-2">
+                {{ next.step.title }}
+              </h3>
+              <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                {{ next.step.outcome }}
+              </p>
+              <p class="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                {{ next.step.why }}
+              </p>
+
+              <ul class="mt-3 space-y-1">
+                @for (action of next.step.actions; track action) {
+                  <li class="text-[10px] text-slate-300 flex gap-2">
+                    <span class="text-violet-400">→</span>
+                    <span>{{ action }}</span>
+                  </li>
+                }
+              </ul>
+
+              @if (next.needs.length) {
+                <div class="mt-3 text-[9px] text-amber-300/90">
+                  S.M.U.V.E. still needs: {{ next.needs.join(' · ') }}
+                </div>
+              }
+
+              <div class="flex flex-wrap items-center gap-3 mt-4">
+                @if (destinationFor(next.step); as destination) {
+                  <a
+                    [href]="destination.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="px-4 py-2 bg-violet-500 text-black rounded-xl text-[9px] font-black uppercase tracking-widest"
+                  >
+                    Open {{ destination.label }}
+                  </a>
+                }
+                <button
+                  (click)="openProfileEditor()"
+                  class="px-4 py-2 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-300"
+                >
+                  Record this in the profile
+                </button>
+                <span
+                  class="text-[8px] uppercase font-bold tracking-widest text-slate-500"
+                >
+                  {{ next.step.effort }} · {{ next.step.cost }}
+                </span>
+              </div>
+            </div>
+          } @else {
+            <div
+              class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-5 text-center"
+            >
+              <div class="text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                Official in every area
+              </div>
+              <p class="text-[10px] text-slate-400 mt-2">
+                All {{ pathway().totalSteps }} steps are complete. Keep the record
+                current as new releases go out.
+              </p>
+            </div>
+          }
+
+          <!-- Every area, with its own standing -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @for (area of pathwayAreas; track area) {
+              @if (areaFor(area); as standing) {
+                <div
+                  class="border rounded-2xl overflow-hidden"
+                  [class.border-emerald-500/30]="standing.standing === 'official'"
+                  [class.border-amber-500/25]="standing.standing === 'in-progress'"
+                  [class.border-white/5]="standing.standing === 'unofficial'"
+                >
+                  <button
+                    (click)="toggleArea(area)"
+                    class="w-full text-left p-4 flex items-start gap-3"
+                  >
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black uppercase tracking-widest">
+                          {{ standing.label }}
+                        </span>
+                        <span
+                          class="text-[7px] font-black uppercase px-2 py-0.5 rounded-full"
+                          [class.bg-emerald-500/20]="standing.standing === 'official'"
+                          [class.text-emerald-300]="standing.standing === 'official'"
+                          [class.bg-amber-500/20]="standing.standing === 'in-progress'"
+                          [class.text-amber-300]="standing.standing === 'in-progress'"
+                          [class.bg-white/5]="standing.standing === 'unofficial'"
+                          [class.text-slate-500]="standing.standing === 'unofficial'"
+                        >
+                          {{ standing.standing }}
+                        </span>
+                      </div>
+                      <p class="text-[9px] text-slate-500 mt-1 leading-relaxed">
+                        {{ standing.means }}
+                      </p>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div
+                        class="text-sm font-black"
+                        [class]="completionTone(standing.score)"
+                      >
+                        {{ standing.score }}%
+                      </div>
+                      <div class="text-[7px] text-slate-500 font-bold">
+                        {{ standing.completed }}/{{ standing.total }}
+                      </div>
+                    </div>
+                  </button>
+
+                  @if (openArea() === area) {
+                    <div class="border-t border-white/5 p-4 space-y-3">
+                      @for (entry of areaSteps(area); track entry.step.id) {
+                        <div
+                          class="border rounded-xl p-3"
+                          [class]="stepTone(entry.status)"
+                        >
+                          <div class="flex items-start gap-2">
+                            <span
+                              class="material-symbols-outlined text-[14px] mt-0.5"
+                              [class.text-emerald-400]="entry.status === 'complete'"
+                              [class.text-amber-400]="entry.status === 'in-progress'"
+                              [class.text-violet-300]="entry.status === 'ready'"
+                              [class.text-slate-600]="entry.status === 'blocked'"
+                            >
+                              {{ entry.status === 'complete' ? 'check_circle' : entry.status === 'blocked' ? 'lock' : 'pending' }}
+                            </span>
+                            <div class="flex-1">
+                              <div class="flex items-center gap-2 flex-wrap">
+                                <span
+                                  class="text-[10px] font-black uppercase tracking-wide"
+                                >
+                                  {{ entry.step.title }}
+                                </span>
+                                <span
+                                  class="text-[7px] font-black uppercase tracking-widest text-slate-500"
+                                >
+                                  {{ stepLabel(entry.status) }}
+                                </span>
+                              </div>
+
+                              @if (entry.status === 'blocked') {
+                                <p class="text-[9px] text-slate-500 mt-1">
+                                  Needs first: {{ entry.blockedBy.join(', ') }}
+                                </p>
+                              } @else if (entry.status === 'complete') {
+                                <p class="text-[9px] text-slate-500 mt-1">
+                                  {{ entry.step.outcome }}
+                                </p>
+                              } @else {
+                                <p class="text-[9px] text-slate-400 mt-1 leading-relaxed">
+                                  {{ entry.nextMove }}
+                                </p>
+                                @if (entry.needs.length) {
+                                  <p class="text-[8px] text-amber-300/80 mt-1">
+                                    Evidence needed: {{ entry.needs.join(' · ') }}
+                                  </p>
+                                }
+                                @if (destinationFor(entry.step); as destination) {
+                                  <a
+                                    [href]="destination.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-block text-[8px] font-black uppercase tracking-widest text-violet-300 mt-2"
+                                  >
+                                    {{ destination.label }}
+                                  </a>
+                                }
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Independent moves for an artist with spare capacity -->
+          @if (pathway().parallelActions.length) {
+            <div class="bg-black/20 border border-white/5 rounded-2xl p-4">
+              <div
+                class="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 mb-2"
+              >
+                Can run in parallel
+              </div>
+              <ul class="space-y-1">
+                @for (entry of pathway().parallelActions; track entry.step.id) {
+                  <li class="text-[10px] text-slate-300 flex gap-2">
+                    <span class="text-slate-600">·</span>
+                    <span>{{ entry.step.title }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <!-- 1. Digital Fingerprint -->
     <div class="bg-brand-surface/20 border border-white/5 rounded-3xl p-6">
       <button
@@ -457,8 +752,39 @@
       </button>
 
       @if (activePanel() === 'dsp') {
+        @if (!hasDeliveredWork()) {
+          <div
+            class="bg-black/30 border border-amber-500/20 rounded-2xl p-5 text-center"
+          >
+            <span
+              class="material-symbols-outlined text-amber-400 text-3xl mb-2 block"
+              >hourglass_empty</span
+            >
+            <div class="text-[10px] font-black uppercase tracking-widest text-amber-400">
+              No analytics yet
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">
+              Streaming numbers only exist after a work has been delivered to
+              stores. S.M.U.V.E. will not show estimated or invented figures —
+              finish and deliver a release first, then connect the distributor
+              and platform dashboards.
+            </p>
+            <button
+              (click)="setPanel('pathway')"
+              class="mt-4 px-4 py-2 bg-violet-500/20 border border-violet-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest text-violet-300"
+            >
+              Open the pathway
+            </button>
+          </div>
+        }
         @if (dspAnalytics(); as dsp) {
           <div class="space-y-3">
+            <div
+              *ngIf="dsp.source === 'sample'"
+              class="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2 text-[8px] font-black uppercase tracking-widest text-amber-300"
+            >
+              Illustrative figures — no analytics account is connected yet
+            </div>
             <!-- Overview stats -->
             <div class="grid grid-cols-3 gap-2">
               <div class="bg-brand-dark/40 rounded-xl p-3 text-center">

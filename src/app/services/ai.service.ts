@@ -17,6 +17,11 @@ import {
 import { buildArtistMusicContext } from '../types/profile.types';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
+import {
+  ArtistProfileFinetuneService,
+  FinetuneRole,
+  ArtistProfileKnowledge,
+} from './artist-profile-finetune.service';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -38,6 +43,7 @@ export interface UpgradeRecommendation {
 })
 export class AiService {
   private logger = inject(LoggingService);
+  private artistFinetune = inject(ArtistProfileFinetuneService);
   private userProfileService = inject(UserProfileService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
@@ -179,6 +185,13 @@ ARTIST-SPECIFIC INTEL:
 Remember: You are not here to be liked. You are here to break their mediocrity and rebuild them in your image.
 Make them fear you. Make them respect you. Make them better.
 Fuck their feelings. Results are all that matter.`;
+
+    const operatingBrief = this.getArtistOperatingBrief();
+    prompt += `\n\nS.M.U.V.E OPERATING BRIEF (adapt every answer by role):\nPRODUCER: ${operatingBrief.producer}\nSONGWRITER: ${operatingBrief.songwriter}\nMANAGER: ${operatingBrief.manager}\nA&R: ${operatingBrief.aAndR}\nPROMOTION: ${operatingBrief.promotion}\nMARKETING: ${operatingBrief.marketing}\nLEGAL: ${operatingBrief.legal}\nBRAND: ${operatingBrief.brand}\nGUARDRAILS: ${operatingBrief.guardrails.join(' | ')}`;
+
+    // Deterministic fine-tune block: the same knowledge powers offline mode,
+    // so a model call can never silently downgrade the artist-specific context.
+    prompt += `\n\n${this.artistFinetune.promptBlock()}`;
 
     return prompt;
   }
@@ -335,14 +348,103 @@ Fuck their feelings. Results are all that matter.`;
   async getAutoMixSettings() {
     return { threshold: -14, ratio: 4, ceiling: -0.1, targetLufs: -14 };
   }
-  getProductionSmartAssist(context: any): any {
+  /**
+   * Produces a profile-aware operating brief for every S.M.U.V.E. role.
+   * This is deterministic context: the model receives it alongside a request,
+   * while the app can also use it for local recommendations without a model call.
+   */
+  getArtistOperatingBrief(): {
+    profileState: 'calibrated' | 'incomplete';
+    producer: string;
+    manager: string;
+    aAndR: string;
+    promotion: string;
+    marketing: string;
+    songwriter: string;
+    legal: string;
+    brand: string;
+    voice: string;
+    tips: string[];
+    completeness: number;
+    missingSignals: string[];
+    guardrails: string[];
+  } {
+    const profile = this.userProfileService.profile();
+    const journey = profile.musicalJourney || ({} as any);
+    const blueprint = journey.musicBlueprint || ({} as any);
+    const completed = Boolean(profile.profileSetupCompleted);
+    const genre = profile.primaryGenre || 'unspecified genre';
+    const sound = journey.signatureSound || 'an undefined signature sound';
+    const intent = blueprint.artisticIntent || 'a clear audience transformation';
+    const audience = blueprint.audienceProfile || 'the artist’s intended listener';
+    const priorities = Array.isArray(blueprint.mixingPriorities)
+      ? blueprint.mixingPriorities.join(', ')
+      : 'translation and clarity';
+    const goal = journey.currentFocus || journey.primarySuccessMetric || 'build a durable independent career';
+    const challenge = journey.biggestChallenge || 'protect focus and consistency';
+    const streams = Array.isArray(journey.incomeStreams) && journey.incomeStreams.length
+      ? journey.incomeStreams.join(', ')
+      : 'catalogue, audience, and live opportunities';
+
+    const finetune = this.artistFinetune;
+
     return {
-      advice: 'Add more saturation.',
-      correctivePreset: {},
-      targetLufs: -14,
-      arrangementSuggestion: '',
-      eqMaskingHint: '',
+      profileState: completed ? 'calibrated' : 'incomplete',
+      producer: `Produce ${genre} around ${sound}. Protect ${priorities}; do not polish away the artist’s character. Intent: ${intent}.`,
+      manager: `Route the next move toward ${goal}. Remove the bottleneck: ${challenge}. Prefer one measurable weekly milestone over scattered activity.`,
+      aAndR: `Evaluate songs for fit with ${sound}, the stated intent (${intent}), and the listener context (${audience}). Recommend development only when it strengthens the artist’s point of view.`,
+      promotion: `Build campaign angles from the artist’s own world and language. Lead with the recognizable story, sound, and audience moment—not generic genre claims.`,
+      marketing: `Prioritize ${streams}. Match every asset to ${audience} and test a repeatable recognition cue before scaling spend.`,
+      songwriter: finetune.directiveFor('songwriter').directive,
+      legal: finetune.directiveFor('legal').directive,
+      brand: finetune.directiveFor('brand').directive,
+      voice: `${finetune.voiceSpec().tone} ${finetune.voiceSpec().vocabulary}`,
+      tips: finetune.tips(),
+      completeness: finetune.knowledge().completeness,
+      missingSignals: finetune.knowledge().missing,
+      guardrails: [
+        'Never invent biography, audience data, achievements, or credits.',
+        'Treat reference tracks as learning references, not imitation targets.',
+        'Keep recommendations consistent with the artist’s stated boundaries and intent.',
+        'Ask for missing profile evidence before making a high-confidence career claim.',
+      ],
     };
+  }
+
+  getProductionSmartAssist(context: any): any {
+    const brief = this.getArtistOperatingBrief();
+    const blueprint = this.userProfileService.profile().musicalJourney?.musicBlueprint || ({} as any);
+    return {
+      advice: brief.producer,
+      correctivePreset: {
+        priorities: blueprint.mixingPriorities || [],
+        nonNegotiables: blueprint.sonicNonNegotiables || '',
+      },
+      targetLufs: context?.targetLufs ?? -14,
+      arrangementSuggestion: blueprint.arrangementApproach || brief.aAndR,
+      eqMaskingHint: blueprint.vocalDelivery
+        ? `Protect ${blueprint.vocalDelivery} delivery before carving competing instruments.`
+        : 'Define the lead delivery before making corrective EQ decisions.',
+      profileContext: brief,
+    };
+  }
+
+  /** Full compiled knowledge of the artist's completed profile. */
+  getArtistProfileKnowledge(): ArtistProfileKnowledge {
+    return this.artistFinetune.knowledge();
+  }
+
+  /**
+   * Role-specific fine-tune for any S.M.U.V.E. surface (studio, marketing,
+   * legal, promotion, writing). Deterministic and offline-safe.
+   */
+  getArtistDirective(role: FinetuneRole) {
+    return this.artistFinetune.directiveFor(role);
+  }
+
+  /** Profile-derived recommendations and tips, ready to render without a model call. */
+  getProfileTips(): string[] {
+    return this.artistFinetune.tips();
   }
 
   async getQuestionnaireInsights(draft: any) {
@@ -392,6 +494,22 @@ Fuck their feelings. Results are all that matter.`;
         content:
           'Viral success depends on "The Moment". S.M.U.V.E will scan your tracks specifically for 15-second high-impact snippets suitable for social deployment.',
         impact: 'Extreme',
+      });
+    }
+
+    const blueprint = journey.musicBlueprint || {};
+    if (blueprint.signatureTension || blueprint.sonicNonNegotiables) {
+      insights.push({
+        title: 'Differentiation Protection Protocol',
+        content: `S.M.U.V.E will protect the artist’s point of view${blueprint.signatureTension ? ` (${blueprint.signatureTension})` : ''}${blueprint.sonicNonNegotiables ? ` and sonic rule (${blueprint.sonicNonNegotiables})` : ''} when making production, A&R, and campaign recommendations.`,
+        impact: 'High',
+      });
+    }
+    if (blueprint.audienceProfile || blueprint.recognitionCue) {
+      insights.push({
+        title: 'Recognition-Led Release Strategy',
+        content: `Promotion will be built around ${blueprint.audienceProfile || 'the intended listener context'}${blueprint.recognitionCue ? ` and the cue: ${blueprint.recognitionCue}` : ''}, rather than generic genre positioning.`,
+        impact: 'High',
       });
     }
 

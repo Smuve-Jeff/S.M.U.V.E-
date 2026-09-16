@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { ArtistIdentityService } from './artist-identity.service';
+import { ArtistPathwayService } from './artist-pathway.service';
 import {
   ReleaseProject,
   ProductionTrack,
@@ -44,6 +45,12 @@ export interface DspPlatform {
 }
 
 export interface DspAnalytics {
+  /**
+   * Where the numbers came from.
+   * - `connected`: read from a real dashboard the artist linked.
+   * - `sample`: illustrative only, and must be labelled that way in the UI.
+   */
+  source: 'connected' | 'sample';
   totalStreams: number;
   totalFollowers: number;
   totalPlaylistAdds: number;
@@ -89,6 +96,7 @@ export interface DigitalFingerprint {
 export class ArtistDevelopmentService {
   private userProfile = inject(UserProfileService);
   private identityService = inject(ArtistIdentityService);
+  private pathway = inject(ArtistPathwayService);
 
   // PRO Registry signals
   proRegistrations = signal<ProRegistration[]>([]);
@@ -120,8 +128,15 @@ export class ArtistDevelopmentService {
 
   // Active panel (updated with new panels)
   activePanel = signal<
-    'fingerprint' | 'pro' | 'dsp' | 'social' | 'catalog' | 'release' | null
-  >(null);
+    | 'pathway'
+    | 'fingerprint'
+    | 'pro'
+    | 'dsp'
+    | 'social'
+    | 'catalog'
+    | 'release'
+    | null
+  >('pathway');
   isScanning = signal(false);
 
   // ── PRO Registry ──────────────────────────────────────
@@ -156,12 +171,39 @@ export class ArtistDevelopmentService {
 
   // ── DSP Analytics ─────────────────────────────────────
 
-  /** Generate mock DSP data (in production this would come from API) */
-  generateDspAnalytics(): DspAnalytics {
-    const profile = this.userProfile.profile();
+  /**
+   * True once at least one work has actually been delivered to stores. Until
+   * then there is no analytics to show, and inventing some would tell a beginner
+   * they have listeners they do not have.
+   */
+  hasDeliveredWork(): boolean {
+    const released = this.catalog().filter(
+      (release) => release.status === 'Released' || release.status === 'Distributing'
+    );
+    if (released.length > 0) return true;
+    return (this.userProfile.profile().catalog || []).some(
+      (item: any) => item.distributor && item.releaseDate
+    );
+  }
+
+  /**
+   * Illustrative DSP figures for releases that exist.
+   *
+   * Returns `null` when the artist has nothing delivered, because a fabricated
+   * listener count is worse than no number at all. Even when data is produced it
+   * is tagged `sample` so the UI can label it and nobody mistakes it for a
+   * connected dashboard.
+   */
+  generateDspAnalytics(): DspAnalytics | null {
+    if (!this.hasDeliveredWork()) {
+      this.dspAnalytics.set(null);
+      return null;
+    }
+
     const baseStreams = Math.floor(Math.random() * 50000 + 1000);
 
     const dsp: DspAnalytics = {
+      source: 'sample',
       totalStreams: baseStreams,
       totalFollowers: Math.floor(baseStreams * 0.08),
       totalPlaylistAdds: Math.floor(baseStreams * 0.03),
@@ -365,87 +407,62 @@ export class ArtistDevelopmentService {
       )
     );
 
-    // Generate improvement checklist
+    // The checklist is drawn from the pathway, in pathway order, so it reflects
+    // the artist's actual stage. A hardcoded list told beginners to verify
+    // dashboards for releases that did not exist yet.
+    const pathway = this.pathway.readout(this.userProfile.profile());
+    const open = pathway.steps.filter(
+      (entry) => entry.status === 'ready' || entry.status === 'in-progress'
+    );
+    const done = pathway.steps.filter((entry) => entry.status === 'complete');
+
     const checklist: {
       item: string;
       completed: boolean;
       impact: 'High' | 'Medium' | 'Low';
     }[] = [
-      {
-        item: 'Complete artist profile setup',
-        completed: hasProfile > 0,
-        impact: 'High',
-      },
-      {
-        item: 'Register with a PRO (BMI/ASCAP/SESAC)',
-        completed: proCount > 0,
-        impact: 'High',
-      },
-      {
-        item: 'Connect Instagram account',
-        completed:
-          this.socialAccounts().find((a) => a.platform === 'Instagram')
-            ?.connected || false,
-        impact: 'Medium',
-      },
-      {
-        item: 'Connect TikTok account',
-        completed:
-          this.socialAccounts().find((a) => a.platform === 'TikTok')
-            ?.connected || false,
-        impact: 'Medium',
-      },
-      {
-        item: 'Connect YouTube channel',
-        completed:
-          this.socialAccounts().find((a) => a.platform === 'YouTube')
-            ?.connected || false,
-        impact: 'Medium',
-      },
-      {
-        item: 'Register works with PRO',
-        completed: workCount > 0,
-        impact: 'High',
-      },
-      {
-        item: 'Connect Spotify for Artists',
-        completed:
-          this.socialAccounts().find((a) => a.platform === 'Spotify')
-            ?.connected || false,
-        impact: 'Medium',
-      },
-      {
-        item: 'Add discography to catalog',
-        completed: workCount > 1,
-        impact: 'Low',
-      },
-      {
-        item: 'Verify social accounts',
-        completed: this.socialAccounts().filter((a) => a.verified).length > 0,
-        impact: 'Low',
-      },
-      {
-        item: 'Complete musical journey questionnaire',
-        completed: hasJourney > 0,
-        impact: 'High',
-      },
+      ...open.slice(0, 6).map((entry) => ({
+        item: entry.step.title,
+        completed: false,
+        // Blocking steps are the ones holding the rest of the pathway up.
+        impact: (entry.status === 'in-progress'
+          ? 'High'
+          : entry.step.requires.length > 0
+            ? 'Medium'
+            : 'High') as 'High' | 'Medium' | 'Low',
+      })),
+      ...done.slice(-4).map((entry) => ({
+        item: entry.step.title,
+        completed: true,
+        impact: 'Low' as const,
+      })),
     ];
 
     const riskFlags: string[] = [];
-    if (proCount === 0)
+    if (!hasProfile)
       riskFlags.push(
-        'No PRO registration — you are not collecting publishing royalties'
+        'Profile setup is incomplete — nothing else can be verified until the artist record exists'
       );
-    if (socialCount < 3)
+    if (!pathway.areas.find((a) => a.area === 'release')?.completed)
       riskFlags.push(
-        'Low social media presence — less than 3 platforms connected'
+        'No delivered release yet — rights, dashboards, and analytics all depend on a finished, delivered work'
+      );
+    else if (proCount === 0)
+      riskFlags.push(
+        'No PRO registration — released music is not collecting publishing royalties'
+      );
+    if (!hasJourney)
+      riskFlags.push(
+        'No musical journey recorded — S.M.U.V.E. cannot tailor advice to this artist yet'
+      );
+    if (pathway.overall < 30)
+      riskFlags.push(
+        `Pathway is ${pathway.overall}% complete — official standing requires work in ${pathway.unofficialAreas.length} of ${pathway.areas.length} areas`
       );
     if (trustScore < 40)
       riskFlags.push(
-        'Low digital trust score — your artist identity is incomplete'
+        'Low digital trust score — the artist identity is not yet verifiable'
       );
-    if (workCount === 0)
-      riskFlags.push('No works registered — your catalog is not documented');
 
     const fingerprint: DigitalFingerprint = {
       trustScore,
@@ -547,7 +564,10 @@ export class ArtistDevelopmentService {
     else this.socialAccounts.set(this.getDefaultSocialAccounts());
 
     const dsp = this.loadFromStorage<DspAnalytics>('smuve_dsp_analytics');
-    if (dsp) this.dspAnalytics.set(dsp);
+    // Stored sample figures belong to a previous catalogue state; drop them once
+    // the artist has nothing delivered, so stale fake numbers cannot linger.
+    if (dsp && this.hasDeliveredWork()) this.dspAnalytics.set(dsp);
+    else this.dspAnalytics.set(null);
 
     const fp = this.loadFromStorage<DigitalFingerprint>(
       'smuve_digital_fingerprint'

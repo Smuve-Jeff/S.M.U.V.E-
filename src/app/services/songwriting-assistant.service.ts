@@ -4,6 +4,7 @@ import {
   StyleProfile,
 } from './smuve-style-mimic.service';
 import { AiService } from './ai.service';
+import { ArtistProfileFinetuneService } from './artist-profile-finetune.service';
 
 export interface LyricLine {
   text: string;
@@ -66,6 +67,7 @@ export interface SongwritingAssistantResult {
 export class SongwritingAssistantService {
   private styleMimic = inject(SmuveStyleMimicService);
   private ai = inject(AiService);
+  private artistFinetune = inject(ArtistProfileFinetuneService);
 
   private readonly chordLibrary: ChordProgression[] = [
     {
@@ -487,12 +489,20 @@ export class SongwritingAssistantService {
     // Select structure template
     const structure = this.selectStructure(archetype);
 
-    // Style tips from the artist profile
-    const styleTips = archetype
+    // Style tips from the artist profile.
+    // The user's own completed profile always takes precedence over a
+    // reference-artist archetype, so the output is theirs and not a clone.
+    const profileTips = this.getArtistWritingDirectives();
+    const styleTips = archetype || profileTips.length
       ? [
-          `🎤 VOCAL APPROACH: ${archetype.vocalCharacteristics.technique.slice(0, 2).join(', ')}`,
-          `🎛️ PRODUCTION: ${archetype.productionCharacteristics.signatureElement}`,
-          `📝 WRITING: Focus on ${archetype.songwritingCharacteristics.lyricalThemes[0]}`,
+          ...profileTips,
+          ...(archetype
+            ? [
+                `🎤 VOCAL APPROACH: ${archetype.vocalCharacteristics.technique.slice(0, 2).join(', ')}`,
+                `🎛️ PRODUCTION: ${archetype.productionCharacteristics.signatureElement}`,
+                `📝 WRITING: Focus on ${archetype.songwritingCharacteristics.lyricalThemes[0]}`,
+              ]
+            : []),
         ]
       : undefined;
 
@@ -504,6 +514,31 @@ export class SongwritingAssistantService {
       styleTips,
       artistReference: archetype?.artistName,
     };
+  }
+
+  /**
+   * Songwriting directives drawn from the user's completed profile.
+   * Reference-artist mimicry is a learning aid; the artist's own world is the
+   * source of truth for lyrics, structure, and themes.
+   */
+  getArtistWritingDirectives(): string[] {
+    const knowledge = this.artistFinetune.knowledge();
+    if (knowledge.state === 'foundational') return [];
+    const directive = this.artistFinetune.directiveFor('songwriter');
+    const voice = this.artistFinetune.voiceSpec();
+    return [
+      `🧬 ARTIST VOICE: ${directive.directive}`,
+      knowledge.craft.lyricalThemes.length
+        ? `📝 THEMES: Stay on ${knowledge.craft.lyricalThemes.join(', ')}`
+        : '📝 THEMES: Capture the artist’s real subject matter before drafting.',
+      knowledge.identity.livedWorld
+        ? `🌍 DETAIL: Use their lived world — ${knowledge.identity.livedWorld}`
+        : '🌍 DETAIL: Replace abstractions with the artist’s own nouns and places.',
+      knowledge.audience.recognitionCue
+        ? `🎯 RECOGNITION: Deliver this cue — ${knowledge.audience.recognitionCue}`
+        : '🎯 RECOGNITION: Define what listeners should recognize in ten seconds.',
+      `🚫 AVOID: ${voice.avoid.join(' | ')}`,
+    ];
   }
 
   /** Generate lyrics for specific sections */

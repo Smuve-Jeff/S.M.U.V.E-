@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { ArtistDevelopmentService } from './artist-development.service';
+import { ArtistPathwayService } from './artist-pathway.service';
 import { UserProfileService } from './user-profile.service';
 import { ArtistIdentityService } from './artist-identity.service';
 
 describe('ArtistDevelopmentService (dev-hub)', () => {
   let sut: ArtistDevelopmentService;
+  let pathway: ArtistPathwayService;
 
   beforeEach(() => {
     localStorage.clear();
@@ -24,6 +26,7 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
       ],
     });
     sut = TestBed.inject(ArtistDevelopmentService);
+    pathway = TestBed.inject(ArtistPathwayService);
   });
 
   afterEach(() => {
@@ -120,19 +123,69 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
     expect(fp.trustScore).toBeGreaterThanOrEqual(0);
     expect(fp.trustScore).toBeLessThanOrEqual(100);
     expect(fp.lastScan).toBeTruthy();
-    // Profile is complete + PRO registered → those checklist items are done.
-    const profileItem = fp.improvementChecklist.find((c) =>
-      c.item.includes('Complete artist profile setup')
+
+    // The checklist is drawn from the pathway, so every entry must be a real
+    // pathway step rather than a fixed list applied to every artist.
+    const pathwayTitles = new Set(pathway.steps.map((step) => step.title));
+    expect(fp.improvementChecklist.length).toBeGreaterThan(0);
+    fp.improvementChecklist.forEach((entry) => {
+      expect(pathwayTitles.has(entry.item)).toBe(true);
+      expect(['High', 'Medium', 'Low']).toContain(entry.impact);
+    });
+
+    // With no delivered release, nothing may ask the artist to verify a
+    // dashboard or read analytics they cannot have yet.
+    const openItems = fp.improvementChecklist
+      .filter((entry) => !entry.completed)
+      .map((entry) => entry.item)
+      .join(' ');
+    expect(openItems).not.toMatch(/verif|analytics|dashboard/i);
+
+    // A missing release is the headline risk for this artist.
+    expect(fp.riskFlags.some((flag) => flag.includes('No delivered release yet'))).toBe(
+      true
     );
-    expect(profileItem?.completed).toBe(true);
-    const proItem = fp.improvementChecklist.find((c) =>
-      c.item.includes('Register with a PRO')
+  });
+
+  it('offers no analytics figures at all until a work is delivered', () => {
+    expect(sut.hasDeliveredWork()).toBe(false);
+    expect(sut.generateDspAnalytics()).toBeNull();
+    expect(sut.dspAnalytics()).toBeNull();
+  });
+
+  it('tags generated figures as sample data once a delivery exists', () => {
+    sut.addRelease({
+      id: 'rel-1',
+      name: 'First Single',
+      type: 'Single',
+      description: '',
+      status: 'Released',
+      tracks: [],
+      credits: { artistName: 'Nova', collaborators: [] },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      artworkUrl: '',
+      visualsUrl: '',
+    });
+
+    expect(sut.hasDeliveredWork()).toBe(true);
+    const dsp = sut.generateDspAnalytics();
+    expect(dsp).not.toBeNull();
+    // Sample numbers must never be mistakable for a connected dashboard.
+    expect(dsp?.source).toBe('sample');
+    expect(dsp?.totalStreams).toBeGreaterThan(0);
+  });
+
+  it('discards stored figures once the artist has nothing delivered', () => {
+    // A previous session left sample numbers behind with no catalogue to back them.
+    localStorage.setItem(
+      'smuve_dsp_analytics',
+      JSON.stringify({ source: 'sample', totalStreams: 48000, platforms: [] })
     );
-    expect(proItem?.completed).toBe(true);
-    // With 3 platforms connected there is no low-presence risk flag.
-    expect(fp.riskFlags.some((f) => f.includes('Low social media presence'))).toBe(
-      false
-    );
+
+    sut.loadAll();
+
+    expect(sut.dspAnalytics()).toBeNull();
   });
 
   it('catalog add/select/remove and track-stage cycling stay in sync', () => {

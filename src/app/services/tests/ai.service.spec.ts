@@ -136,6 +136,204 @@ describe('AiService', () => {
     );
   });
 
+  const calibratedProfile = {
+      artistName: 'Nova Vale',
+      primaryGenre: 'Electronic',
+      location: 'Atlanta',
+      website: 'https://novavale.example',
+      avatarImage: 'data:image/png;base64,abc',
+      profileSetupCompleted: true,
+      brandVoices: ['nocturnal', 'cinematic'],
+      strategicGoals: ['grow sync placements'],
+      careerGoals: ['score a documentary'],
+      proName: 'BMI',
+      proIpi: '0099887766',
+      skills: ['Producer'],
+      equipment: ['Analog synth', 'Condenser mic'],
+      daw: ['Ableton Live'],
+      services: ['DistroKid'],
+      expertise: { production: 7, songwriting: 5, marketing: 4, business: 2, legal: 1, performance: 3 },
+      pressGallery: ['press-01.png'],
+      performancesPerYear: '24',
+      catalog: [
+        {
+          id: 'n1',
+          title: 'Night Drive',
+          isrc: 'US-BBB-25-00001',
+          releaseDate: '2025-03-01',
+          releaseType: 'Single',
+          distributor: 'DistroKid',
+          platforms: ['Spotify'],
+          credits: 'Written and produced by Nova Vale',
+          splitSheetRef: 'SPLIT-2025-01',
+        },
+        {
+          id: 'n2',
+          title: 'Tape Stop',
+          isrc: 'US-BBB-25-00002',
+          releaseDate: '2025-06-01',
+          releaseType: 'Single',
+          distributor: 'DistroKid',
+          platforms: ['Spotify'],
+          credits: 'Written and produced by Nova Vale',
+          splitSheetRef: 'SPLIT-2025-02',
+        },
+        {
+          id: 'n3',
+          title: 'Commuter',
+          upc: '012345678912',
+          releaseDate: '2025-09-01',
+          releaseType: 'EP',
+          distributor: 'DistroKid',
+          platforms: ['Spotify'],
+          credits: 'Written and produced by Nova Vale',
+          splitSheetRef: 'SPLIT-2025-03',
+        },
+      ],
+      officialArtistProfiles: [
+        {
+          id: 'spotify-for-artists',
+          destinationId: 'spotify-for-artists',
+          url: 'https://artists.spotify.com/novavale',
+          verified: true,
+        },
+        {
+          id: 'bmi',
+          destinationId: 'bmi',
+          url: 'https://www.bmi.com/novavale',
+          verified: true,
+        },
+        {
+          id: 'chartmetric',
+          destinationId: 'chartmetric',
+          url: 'https://chartmetric.com/artist/novavale',
+          verified: true,
+        },
+      ],
+      team: [{ name: 'Rae', role: 'Manager' }],
+      financials: {
+        accounts: [{ id: 'acc-1' }],
+        monthlyBudget: 250,
+        totalRevenue: 900,
+        pendingPayouts: 0,
+        splitSheets: [],
+        revenueHistory: [{ month: '2025-01', amount: 90 }],
+      },
+      artistIdentity: {
+        linkedAccounts: [{ platform: 'Spotify' }],
+        works: [{ title: 'Night Drive' }],
+        resolution: { confidenceScore: 0.9 },
+        fingerprint: { genre: 'Electronic' },
+      },
+      genreSpecificData: { tempo: 112 },
+      syncDetails: {
+        isSyncReady: 'Ready',
+        hasCleanVersions: true,
+        hasInstrumentals: true,
+        hasStems: 'Full Multitrack',
+        oneStopClearance: true,
+        catalogSize: 4,
+        preferredKeywords: ['night drive'],
+      },
+      legalInfrastructure: {
+        hasRegisteredWorks: true,
+        proAffiliation: 'BMI',
+        hasStandardSplitSheet: 'In Use',
+        isIncorporated: true,
+        trademarkStatus: 'Filed',
+      },
+      touringDetails: {
+        travelPreference: 'Van',
+        regions: ['Southeast'],
+        isTourReady: 'Tour Ready',
+        hasBackline: 'Yes',
+      },
+      musicalJourney: {
+        originStory: 'Built the first tracks on a night-shift bus route.',
+        subgenres: ['synthwave'],
+        musicalInfluences: ['tape ambience'],
+        signatureSound: 'warped tape bass and glassy synths',
+        productionPhilosophy: 'Keep the imperfection, lose the mud',
+        songwritingProcess: 'Start from a drum machine loop, then write the vocal last',
+        preferredBpmRange: '104-118',
+        currentFocus: 'finish the night-drive EP',
+        biggestChallenge: 'inconsistent release cadence',
+        primarySuccessMetric: 'repeat listeners',
+        releaseVelocity: 'monthly',
+        incomeStreams: ['Streaming', 'Sync Licensing'],
+        visualAesthetic: ['neon monochrome'],
+        contentStrategy: 'behind-the-console clips',
+        marketPosition: 'Artistic',
+        educationalBackground: 'Self-Taught',
+        musicBlueprint: {
+          artisticIntent: 'make late-night listeners feel brave',
+          audienceProfile: 'commuters rebuilding after a hard day',
+          mixingPriorities: ['Wide immersive space'],
+          recordingPriorities: ['clean transients'],
+          vocalDelivery: 'close, half-spoken',
+          rhythmicFeel: 'driving sixteenths',
+          harmonicLanguage: 'minor ninths',
+          arrangementApproach: 'slow build into a hard drop',
+          lyricalThemes: ['night shifts', 'starting over'],
+          signatureTension: 'tenderness inside machine music',
+          livedWorldDetails: 'bus windows and gas-station coffee',
+          sonicNonNegotiables: 'never lose the tape hiss',
+          recognitionCue: 'the tape-stop before the chorus',
+        },
+      },
+  };
+
+  it('builds role-specific operating guidance from the completed artist profile', () => {
+    (userProfileServiceMock.profile as any).set(calibratedProfile);
+
+    const brief = service.getArtistOperatingBrief();
+    expect(brief.profileState).toBe('calibrated');
+    expect(brief.producer).toContain('warped tape bass');
+    expect(brief.manager).toContain('finish the night-drive EP');
+    expect(brief.aAndR).toContain('make late-night listeners feel brave');
+    expect(brief.promotion).toContain('artist’s own world');
+    expect(brief.marketing).toContain('Streaming, Sync Licensing');
+    expect(brief.guardrails).toContain('Never invent biography, audience data, achievements, or credits.');
+  });
+
+  it('should adapt songwriting, legal, brand, and voice to the completed profile', () => {
+    (userProfileServiceMock.profile as any).set(calibratedProfile);
+    const brief = service.getArtistOperatingBrief();
+
+    expect(brief.songwriter).toContain('bus windows and gas-station coffee');
+    expect(brief.legal).toContain('Streaming, Sync Licensing');
+    expect(brief.legal).toContain('never lose the tape hiss');
+    expect(brief.brand).toContain('neon monochrome');
+    expect(brief.voice).toContain('Keep the imperfection, lose the mud');
+    expect(brief.tips.join(' ')).toContain('never lose the tape hiss');
+    expect(brief.completeness).toBe(100);
+    expect(brief.missingSignals).toEqual([]);
+  });
+
+  it('should expose profile knowledge and per-role directives without a model call', () => {
+    (userProfileServiceMock.profile as any).set(calibratedProfile);
+    const knowledge = service.getArtistProfileKnowledge();
+    expect(knowledge.state).toBe('calibrated');
+    expect(knowledge.differentiators.length).toBeGreaterThan(0);
+
+    const producer = service.getArtistDirective('producer');
+    const marketing = service.getArtistDirective('marketing');
+    const legal = service.getArtistDirective('legal');
+    expect(producer.directive).toContain('warped tape bass');
+    expect(marketing.directive).toContain('Streaming, Sync Licensing');
+    expect(marketing.guardrails.length).toBeGreaterThan(0);
+    expect(legal.tips.join(' ')).toContain('licensed attorney');
+    expect(service.getProfileTips().length).toBeGreaterThan(0);
+  });
+
+  it('should embed the artist fine-tune block in the S.M.U.V.E. persona prompt', () => {
+    (userProfileServiceMock.profile as any).set(calibratedProfile);
+    const prompt = service.personaSystemPrompt;
+    expect(prompt).toContain('ARTIST PROFILE FINE-TUNE');
+    expect(prompt).toContain('SONGWRITER:');
+    expect(prompt).toContain('LEGAL:');
+  });
+
   it('should get an AI response using the AIAgent', async () => {
     const requestPromise = service.getAIResponse(
       'Provide a detailed analysis of the Test Upgrade upgrade.'

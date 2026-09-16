@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 
 @Component({
   selector: 'app-legal-template',
@@ -14,6 +15,39 @@ import { CommonModule } from '@angular/common';
         <h2 class="text-2xl font-black text-white uppercase italic">
           S.M.U.V.E. <span class="text-brand-primary">LEGAL SUITE</span>
         </h2>
+      </div>
+
+      <div
+        class="mb-8 p-6 rounded-2xl border border-brand-primary/25 bg-black/40"
+        *ngIf="legalReadiness() as legal"
+      >
+        <div class="flex items-center justify-between gap-4 mb-3">
+          <div class="text-[10px] font-black text-brand-primary uppercase tracking-widest">
+            Artist-Specific Legal Readiness
+          </div>
+          <div class="text-[10px] font-bold text-slate-400 uppercase">
+            Profile evidence: {{ legal.completeness }}%
+          </div>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+          {{ legal.directive }}
+        </p>
+        <ul class="space-y-2 mb-4">
+          <li
+            *ngFor="let tip of legal.tips"
+            class="text-[11px] text-slate-400 flex gap-2"
+          >
+            <i class="fas fa-check text-brand-primary text-[9px] mt-1"></i>
+            <span>{{ tip }}</span>
+          </li>
+        </ul>
+        <div
+          *ngIf="legal.missingSignals?.length"
+          class="text-[10px] text-amber-400/80 uppercase font-bold"
+        >
+          Add to strengthen context:
+          {{ legal.missingSignals.slice(0, 4).join(' · ') }}
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -163,7 +197,19 @@ export class LegalTemplateComponent {
     },
   ];
 
+  private artistFinetune = inject(ArtistProfileFinetuneService);
+
   selectedTemplate = signal<any>(this.legalTemplates[0]);
+
+  /** Legal work is scoped to the artist's real revenue, collaborators, and boundaries. */
+  legalReadiness = computed(() => {
+    const knowledge = this.artistFinetune.knowledge();
+    return {
+      ...this.artistFinetune.directiveFor('legal'),
+      completeness: knowledge.completeness,
+      missingSignals: knowledge.missing,
+    };
+  });
 
   generatePDF() {
     alert(

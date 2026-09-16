@@ -667,6 +667,95 @@
   box-shadow: 0 4px 20px rgba(14, 124, 123, 0.3);
 }
 
+/* Contextual artist-to-AI copilot */
+.eq-ai-coach {
+  margin: 16px;
+  padding: 14px;
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  border-radius: 12px;
+  background: rgba(6, 182, 212, 0.04);
+}
+
+.eq-ai-coach-label {
+  margin-bottom: 9px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.eq-ai-coach-form {
+  display: flex;
+  gap: 6px;
+}
+
+.eq-ai-coach-input {
+  min-width: 0;
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+}
+
+.eq-ai-coach-input:focus {
+  border-color: rgba(6, 182, 212, 0.7);
+}
+
+.eq-ai-coach-submit {
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #06b6d4;
+  color: #06151b;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.eq-ai-coach-submit:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.eq-ai-coach-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.eq-ai-coach-prompts button {
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.eq-ai-coach-prompts button:hover:not(:disabled) {
+  border-color: rgba(6, 182, 212, 0.55);
+  color: #fff;
+}
+
+.eq-ai-coach-answer {
+  margin: 10px 0 0;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 /* Empty phase */
 .eq-empty-phase {
   text-align: center;
@@ -1013,6 +1102,22 @@
 }
 
 /* Recommendations */
+.eq-intelligence {
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  border: 1px solid rgba(91, 220, 190, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(20, 42, 48, 0.72), rgba(12, 20, 30, 0.86));
+}
+.eq-intelligence h2 { margin: 0.25rem 0; }
+.eq-intelligence-context { color: rgba(235, 245, 244, 0.68); font-size: 0.86rem; }
+.eq-intelligence-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.eq-intelligence h3 { color: #76e3c5; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; }
+.eq-intelligence ul { margin: 0; padding-left: 1.1rem; color: rgba(245, 250, 249, 0.82); }
+.eq-intelligence li { margin: 0.45rem 0; }
+.eq-diff-score { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.09); color: #9cebd6; font-size: 0.75rem; letter-spacing: 0.1em; }
+.eq-diff-score strong { font-size: 1.25rem; }
+
 .eq-recs {
   margin-bottom: 28px;
 }

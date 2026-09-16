@@ -78,6 +78,33 @@ export interface CatalogItem {
   metadata?: any;
   createdAt?: string;
   updatedAt?: string;
+  /** Official release history fields — how the work exists in the world. */
+  releaseDate?: string;
+  releaseType?: 'Single' | 'EP' | 'Album' | 'Mixtape' | 'Live' | 'Remix';
+  isrc?: string;
+  upc?: string;
+  distributor?: string;
+  /** Where the release is live (Spotify, Apple Music, YouTube, Bandcamp...). */
+  platforms?: string[];
+  credits?: string;
+  /** Splits or ownership paperwork attached to this specific work. */
+  splitSheetRef?: string;
+}
+
+/**
+ * A verified official destination for the artist — a For Artists dashboard, a
+ * PRO account, an analytics service, or a distributor. Beginners have none of
+ * these; established artists have several that need consolidating.
+ */
+export interface OfficialArtistProfileLink {
+  id: string;
+  /** Matches an id in the fingerprint destination registry. */
+  destinationId: string;
+  label: string;
+  url: string;
+  verified?: boolean;
+  addedAt?: number;
+  note?: string;
 }
 
 export interface StrategicSignals {
@@ -214,6 +241,14 @@ export interface ArtistMusicBlueprint {
   collaborationBoundaries?: string;
   /** The feeling or change the artist wants the music to create. */
   artisticIntent?: string;
+  /** The productive contradiction or tension that gives the artist a point of view. */
+  signatureTension?: string;
+  /** Concrete lived-world details that keep the artist's story from sounding generic. */
+  livedWorldDetails?: string;
+  /** Musical choices the artist will not compromise, even when trends change. */
+  sonicNonNegotiables?: string;
+  /** The cue a listener should recognize within the first few seconds. */
+  recognitionCue?: string;
 }
 
 /**
@@ -277,7 +312,7 @@ export function buildArtistMusicContext(
   push('Collaboration goals', cap(j.collaborationGoals));
   push('Ultimate vision', cap(j.ultimateVision));
 
-  // Sonic blueprint — the deep musical make-up collected by q55–q65.
+  // Sonic blueprint — the deep musical make-up collected by q55–q69.
   push('Vocal/instrument delivery', cap(bp.vocalDelivery, 120));
   push('Lyrical themes', list(bp.lyricalThemes));
   push('Rhythmic feel', cap(bp.rhythmicFeel, 120));
@@ -289,6 +324,10 @@ export function buildArtistMusicContext(
   push('Audience profile', cap(bp.audienceProfile));
   push('Collaboration boundaries', cap(bp.collaborationBoundaries));
   push('Artistic intent', cap(bp.artisticIntent));
+  push('Signature tension', cap(bp.signatureTension));
+  push('Lived-world details', cap(bp.livedWorldDetails));
+  push('Sonic non-negotiables', cap(bp.sonicNonNegotiables));
+  push('Recognition cue', cap(bp.recognitionCue));
 
   return lines.join('\n');
 }
@@ -398,6 +437,8 @@ export interface UserProfile {
   profileSetupCompletedAt?: number;
   eliteScore?: number;
   squadCount?: number;
+  /** Official For Artists dashboards, PROs, analytics, and distributor links. */
+  officialArtistProfiles?: OfficialArtistProfileLink[];
 }
 
 import { createInitialArtistIdentity } from './artist-identity.types';
@@ -478,6 +519,10 @@ export const initialProfile: UserProfile = {
       audienceProfile: '',
       collaborationBoundaries: '',
       artisticIntent: '',
+      signatureTension: '',
+      livedWorldDetails: '',
+      sonicNonNegotiables: '',
+      recognitionCue: '',
     },
   },
   primaryGenre: 'Hip Hop',
@@ -564,6 +609,7 @@ export const initialProfile: UserProfile = {
     trademarkStatus: 'None',
   },
   genreSpecificData: {},
+  officialArtistProfiles: [],
   gameStats: {},
   pressGallery: [],
   thaSpotProgression: { roomStats: {}, earnedCosmetics: [], eventHistory: [] },

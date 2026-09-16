@@ -12,6 +12,14 @@ import {
 } from '../../services/artist-development.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
+  ArtistPathwayService,
+  PathwayArea,
+  PathwayAreaStanding,
+  PathwayStepProgress,
+  AREA_ORDER,
+} from '../../services/artist-pathway.service';
+import { UserProfileService } from '../../services/user-profile.service';
+import {
   ReleaseProject,
   ProductionTrack,
   ReleaseType,
@@ -49,6 +57,79 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   private dev = inject(ArtistDevelopmentService);
   private router = inject(Router);
   private dialog = inject(InteractionDialogService);
+  private pathwayService = inject(ArtistPathwayService);
+  private userProfile = inject(UserProfileService);
+
+  /**
+   * The pathway is computed from the saved profile, so it stays honest: steps
+   * complete because the underlying evidence exists, never because a box was
+   * ticked in this hub.
+   */
+  pathway = computed(() => this.pathwayService.readout(this.userProfile.profile()));
+
+  readonly pathwayAreas = AREA_ORDER;
+
+  /** Which area card is expanded in the pathway panel. */
+  openArea = signal<PathwayArea | null>(null);
+
+  toggleArea(area: PathwayArea) {
+    this.openArea.set(this.openArea() === area ? null : area);
+  }
+
+  areaSteps(area: PathwayArea): PathwayStepProgress[] {
+    return this.pathway().steps.filter((entry) => entry.step.area === area);
+  }
+
+  areaFor(area: PathwayArea): PathwayAreaStanding | undefined {
+    return this.pathway().areas.find((entry) => entry.area === area);
+  }
+
+  /** The single recommended move, rendered as the hero of the pathway panel. */
+  nextAction() {
+    return this.pathway().nextAction;
+  }
+
+  completionTone(score: number): string {
+    if (score === 100) return 'text-emerald-400';
+    if (score >= 50) return 'text-amber-400';
+    return 'text-slate-400';
+  }
+
+  stepTone(status: PathwayStepProgress['status']): string {
+    switch (status) {
+      case 'complete':
+        return 'border-emerald-500/40 bg-emerald-500/5';
+      case 'in-progress':
+        return 'border-amber-500/40 bg-amber-500/5';
+      case 'ready':
+        return 'border-violet-500/40 bg-violet-500/5';
+      default:
+        return 'border-white/5 bg-black/20';
+    }
+  }
+
+  stepLabel(status: PathwayStepProgress['status']): string {
+    switch (status) {
+      case 'complete':
+        return 'Official';
+      case 'in-progress':
+        return 'In progress';
+      case 'ready':
+        return 'Start now';
+      default:
+        return 'Blocked';
+    }
+  }
+
+  /** Real sign-up page for a step, taken from the fingerprint registry. */
+  destinationFor(step: PathwayStepProgress['step']) {
+    return this.pathwayService.destination(step.destinationId);
+  }
+
+  /** Open the profile pane that owns the evidence a step is waiting on. */
+  openProfileEditor() {
+    this.router.navigate(['/profile']);
+  }
 
   // Signals from service
   activePanel = this.dev.activePanel;
@@ -107,11 +188,20 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   ngOnInit() {
     this.dev.loadAll();
+    // Only produce figures for releases that exist — an artist with nothing out
+    // must not be shown invented listener counts.
     if (!this.dspAnalytics()) this.dev.generateDspAnalytics();
   }
 
   setPanel(
-    panel: 'fingerprint' | 'pro' | 'dsp' | 'social' | 'catalog' | 'release'
+    panel:
+      | 'pathway'
+      | 'fingerprint'
+      | 'pro'
+      | 'dsp'
+      | 'social'
+      | 'catalog'
+      | 'release'
   ) {
     this.activePanel.set(this.activePanel() === panel ? null : panel);
   }
@@ -287,6 +377,9 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   refreshDsp() {
     this.dev.generateDspAnalytics();
   }
+
+  /** True once a work has actually been delivered, so numbers can be trusted. */
+  hasDeliveredWork = computed(() => this.dev.hasDeliveredWork());
 
   // ── Fingerprint ───────────────────────────────────────
 

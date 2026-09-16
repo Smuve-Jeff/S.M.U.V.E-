@@ -14,6 +14,7 @@ import {
 } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
+import { ArtistIntelligenceService } from '../../services/artist-intelligence.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
@@ -67,6 +68,7 @@ export class ArtistQuestionnaireComponent {
   private aiService = inject(AiService);
   private uplinkService = inject(UplinkService);
   private engine = inject(EnhancedArtistQuestionnaireEngine);
+  private artistIntelligence = inject(ArtistIntelligenceService);
 
   close = output<void>();
   complete = output<UserProfile>();
@@ -79,10 +81,23 @@ export class ArtistQuestionnaireComponent {
   );
   isAnalyzing = signal(false);
   analysisResult = signal<any>(null);
+  readonly intelligenceReport = computed(() => this.artistIntelligence.analyze(this.profileDraft()));
   showUplink = signal(false);
   isGlitching = signal(false);
   showPersonaCard = signal(false);
   completedPhases = signal<Set<QuestionnairePhase>>(new Set());
+
+  // ── Artist-to-S.M.U.V.E. copilot ────────────────────────────
+  /** The freeform question the artist wants answered in the current context. */
+  aiCoachQuestion = signal('');
+  aiCoachAnswer = signal('');
+  aiCoachBusy = signal(false);
+  private aiCoachRequest = 0;
+  readonly aiCoachPrompts = [
+    'What should I prioritize next?',
+    'How can I make this identity more distinctive?',
+    'Turn my answers into a practical release move.',
+  ];
 
   /** Live filter for the 40+ genre catalog (question q6). */
   genreSearch = signal('');
@@ -288,19 +303,83 @@ export class ArtistQuestionnaireComponent {
       return updated;
     });
 
-    // Generate AI response
+    // Avoid treating every keystroke in long-form answers as a new AI event.
+    // Selectors and chips can respond immediately; text answers are registered
+    // when the artist advances, which keeps the monitor useful rather than noisy.
     const q = this.currentQuestion();
     const val = this.getValue(field);
-    if (q && val !== undefined && val !== null && val !== '') {
-      const response = this.engine.generateAIQuestionResponse(q, val);
+    if (
+      q &&
+      q.type !== 'text' &&
+      q.type !== 'textarea' &&
+      val !== undefined &&
+      val !== null &&
+      val !== ''
+    ) {
+      this.appendQuestionSignal(q, val);
+    }
+  }
+
+  private appendQuestionSignal(question: QuestionnaireQuestion, answer: any) {
+    const response = this.engine.generateAIQuestionResponse(question, answer);
+    this.aiChatLog.update((logs) =>
+      [
+        ...logs,
+        { type: 'observation' as const, text: response.observation },
+        { type: 'adaptation' as const, text: response.adaptation },
+      ].slice(-20)
+    );
+  }
+
+  /** Ask S.M.U.V.E. about the current draft without auto-submitting it. */
+  async askAiCoach(question = this.aiCoachQuestion()) {
+    const prompt = question.trim().slice(0, 500);
+    if (!prompt || this.aiCoachBusy()) return;
+
+    const requestId = ++this.aiCoachRequest;
+    this.aiCoachQuestion.set(prompt);
+    this.aiCoachBusy.set(true);
+    this.aiCoachAnswer.set('');
+    const current = this.currentQuestion();
+    const currentAnswer = current ? this.getValue(current.field) : undefined;
+    const context = [
+      `Artist: ${this.profileDraft().artistName || 'unnamed artist'}`,
+      `Genre: ${this.profileDraft().primaryGenre || 'not selected'}`,
+      `Current phase: ${this.currentPhaseInfo().title}`,
+      current ? `Current prompt: ${current.text}` : '',
+      currentAnswer !== undefined && currentAnswer !== ''
+        ? `Current answer: ${JSON.stringify(currentAnswer)}`
+        : '',
+      `Profile completion: ${this.totalProgress()}%`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      const answer = await this.aiService.getAIResponse(
+        `You are assisting an artist inside the S.M.U.V.E. Artist DNA Uplink.\n${context}\n\nArtist asks: ${prompt}\n\nReply in 3 concise parts: (1) direct answer, (2) one concrete next action, (3) one question that would improve your advice. Do not invent facts or claim to have changed the profile.`
+      );
+      if (requestId !== this.aiCoachRequest) return;
+      this.aiCoachAnswer.set(answer?.trim() || 'No signal returned. Try a more specific question.');
       this.aiChatLog.update((logs) =>
         [
           ...logs,
-          { type: 'observation' as const, text: response.observation },
-          { type: 'adaptation' as const, text: response.adaptation },
+          { type: 'system' as const, text: `ARTIST QUERY: ${prompt}` },
+          { type: 'adaptation' as const, text: answer?.trim() || 'No signal returned.' },
         ].slice(-20)
       );
+    } catch {
+      if (requestId === this.aiCoachRequest) {
+        this.aiCoachAnswer.set('S.M.U.V.E. is offline. Your draft is safe—continue the uplink and retry shortly.');
+      }
+    } finally {
+      if (requestId === this.aiCoachRequest) this.aiCoachBusy.set(false);
     }
+  }
+
+  askSuggestedAiPrompt(prompt: string) {
+    this.aiCoachQuestion.set(prompt);
+    void this.askAiCoach(prompt);
   }
 
   /** Check if a field has a meaningful value */
@@ -319,6 +398,14 @@ export class ArtistQuestionnaireComponent {
   async next() {
     const qs = this.currentPhaseQuestions();
     const q = this.currentQuestion();
+
+    if (
+      q &&
+      (q.type === 'text' || q.type === 'textarea') &&
+      this.isFieldAnswered(q.field)
+    ) {
+      this.appendQuestionSignal(q, this.getValue(q.field));
+    }
 
     if (q && !this.isFieldAnswered(q.field)) {
       this.aiChatLog.update((logs) => [
@@ -389,7 +476,12 @@ export class ArtistQuestionnaireComponent {
 
     try {
       const analysis = await this.engine.generateAIAnalysis(draft);
-      this.analysisResult.set(analysis);
+      // Keep the local evidence report alongside model output so AI can never
+      // hide missing identity signals behind a polished generic persona.
+      this.analysisResult.set({
+        ...analysis,
+        intelligence: this.intelligenceReport(),
+      });
       this.showPersonaCard.set(true);
     } catch (e) {
       this.aiChatLog.update((logs) => [
@@ -402,6 +494,7 @@ export class ArtistQuestionnaireComponent {
       this.analysisResult.set({
         persona: await this.engine.synthesizePersona(draft),
         breakdown: this.strengthBreakdown(),
+        intelligence: this.intelligenceReport(),
         recommendations: [],
         insights: [],
       });

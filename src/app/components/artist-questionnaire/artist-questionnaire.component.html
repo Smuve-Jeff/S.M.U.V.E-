@@ -258,6 +258,25 @@
           </div>
 
           <!-- Recommendations -->
+          <section class="eq-intelligence" *ngIf="analysisResult().intelligence as intelligence" aria-labelledby="eq-intelligence-title">
+            <div class="eq-section-kicker">S.M.U.V.E. PROFILE READ</div>
+            <h2 id="eq-intelligence-title">Your creative advantage</h2>
+            <p class="eq-intelligence-context">{{ intelligence.genreContext }}</p>
+            <div class="eq-intelligence-grid">
+              <div>
+                <h3>Strengths</h3>
+                <ul><li *ngFor="let item of intelligence.strengths">{{ item }}</li></ul>
+              </div>
+              <div>
+                <h3>Growth edges</h3>
+                <ul><li *ngFor="let item of intelligence.weaknesses">{{ item }}</li></ul>
+              </div>
+            </div>
+            <div class="eq-diff-score" aria-label="Differentiation score">
+              <span>DIFFERENTIATION SIGNAL</span><strong>{{ intelligence.differentiationScore }}%</strong>
+            </div>
+          </section>
+
           <div class="eq-recs" *ngIf="analysisResult().recommendations?.length">
             <h3 class="eq-recs-title">Strategic Recommendations</h3>
             <div class="eq-recs-grid">
@@ -556,6 +575,41 @@
             }}</span>
             <span class="eq-chat-msg">{{ entry.text }}</span>
           </div>
+        </div>
+
+        <!-- Contextual copilot: explicit user intent, never an auto-submit. -->
+        <div class="eq-ai-coach">
+          <div class="eq-ai-coach-label">Ask S.M.U.V.E about this draft</div>
+          <div class="eq-ai-coach-form">
+            <input
+              type="text"
+              [ngModel]="aiCoachQuestion()"
+              (ngModelChange)="aiCoachQuestion.set($event)"
+              (keydown.enter)="askAiCoach()"
+              maxlength="500"
+              placeholder="Ask for a strategy, rewrite, or next move…"
+              aria-label="Ask S.M.U.V.E about your artist profile"
+              class="eq-ai-coach-input"
+            />
+            <button
+              type="button"
+              class="eq-ai-coach-submit"
+              (click)="askAiCoach()"
+              [disabled]="aiCoachBusy() || !aiCoachQuestion().trim()"
+              [attr.aria-label]="aiCoachBusy() ? 'S.M.U.V.E is thinking' : 'Ask S.M.U.V.E'"
+            >{{ aiCoachBusy() ? '…' : 'Ask' }}</button>
+          </div>
+          <div class="eq-ai-coach-prompts">
+            <button
+              type="button"
+              *ngFor="let prompt of aiCoachPrompts"
+              (click)="askSuggestedAiPrompt(prompt)"
+              [disabled]="aiCoachBusy()"
+            >{{ prompt }}</button>
+          </div>
+          <p class="eq-ai-coach-answer" *ngIf="aiCoachAnswer()" aria-live="polite">
+            {{ aiCoachAnswer() }}
+          </p>
         </div>
 
         <!-- Genre Intelligence Mini Module -->

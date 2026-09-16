@@ -234,6 +234,384 @@ describe('ProfileEditorComponent', () => {
     (globalThis as unknown as { alert: unknown }).alert = jest.fn();
   });
 
+  describe('profile module coverage', () => {
+    it('navigates every pane and scores it from the draft', async () => {
+      const { fixture, component, text } = await createComponent();
+
+      const ids = component.sections.map((section: any) => section.id);
+      expect(ids).toEqual([
+        'mastery',
+        'basic',
+        'identity-console',
+        'persona',
+        'genre-deep-dive',
+        'production-tools',
+        'catalog',
+        'fingerprint',
+        'music-history',
+        'business',
+        'sync-licensing',
+        'legal-infrastructure',
+        'touring',
+        'team',
+      ]);
+      // The seed profile records 'Not Started' sync state, so the pane scores
+      // low but is never silently treated as complete.
+      expect(component.sectionCoverage()['sync-licensing'].score).toBeLessThan(40);
+      expect(component.sectionCoverage()['sync-licensing'].missing).toContain(
+        'one-stop clearance'
+      );
+
+      component.activeSection.set('mastery');
+      fixture.detectChanges();
+      expect(text()).toContain('Profile Mastery');
+      expect(text()).toContain('Highest-value next actions');
+      expect(text()).toContain('Missing:');
+    });
+
+    it('edits the production toolchain elements instead of leaving them unowned', async () => {
+      const { fixture, component } = await createComponent();
+
+      component.activeSection.set('production-tools');
+      fixture.detectChanges();
+      expect(component.coverageFor('production-tools').score).toBeLessThan(100);
+
+      component.toggleChip('equipment', 'Condenser Mic');
+      component.toggleChip('daw', 'Ableton Live');
+      component.setExpertise('production', 7);
+      fixture.detectChanges();
+
+      expect(component.editableProfile().equipment).toContain('Condenser Mic');
+      expect(component.editableProfile().daw).toContain('Ableton Live');
+      expect(component.expertiseValue('production')).toBe(7);
+      expect(component.coverageFor('production-tools').score).toBeGreaterThan(0);
+      expect(component.coverageFor('production-tools').missing).not.toContain('DAW');
+    });
+
+    it('captures sync readiness and legal infrastructure', async () => {
+      const { fixture, component } = await createComponent();
+
+      component.activeSection.set('sync-licensing');
+      component.setSyncField('isSyncReady', 'Actively Pitching');
+      component.setSyncField('catalogSize', 9);
+      component.setSyncFlag('oneStopClearance', true);
+      component.setSyncKeywords('late-night drive, hopeful resolve');
+      fixture.detectChanges();
+
+      expect(component.syncValue('isSyncReady')).toBe('Actively Pitching');
+      expect(component.syncKeywordsText()).toBe('late-night drive, hopeful resolve');
+      expect(component.coverageFor('sync-licensing').missing).not.toContain('one-stop clearance');
+
+      component.activeSection.set('legal-infrastructure');
+      component.setLegalField('proAffiliation', 'ASCAP');
+      component.setLegalFlag('hasRegisteredWorks', true);
+      fixture.detectChanges();
+
+      expect(component.legalValue('proAffiliation')).toBe('ASCAP');
+      expect(component.coverageFor('legal-infrastructure').missing).toEqual(
+        expect.not.arrayContaining(['PRO affiliation', 'registered works'])
+      );
+    });
+
+    it('marks the module calibrated once every pane is filled in', async () => {
+      const { fixture, component } = await createComponent();
+
+      component.editableProfile.update((draft) => ({
+        ...draft,
+        location: 'Atlanta',
+        website: 'https://nova.example',
+        avatarImage: 'data:image/png;base64,abc',
+        pressGallery: ['press.png'],
+        productionStyles: ['Trap'],
+        brandVoices: ['Cinematic'],
+        strategicGoals: ['sync'],
+        careerGoals: ['touring'],
+        proName: 'BMI',
+        equipment: ['MIDI Keyboard'],
+        daw: ['FL Studio'],
+        services: ['DistroKid'],
+        expertise: { ...(draft.expertise as any), production: 8 },
+        catalog: [{ title: 'One', isrc: 'US1', releaseDate: '2025-01-01' }] as any,
+        marketingCampaigns: [{ id: 'c1' } as any],
+        financials: {
+          ...(draft.financials as any),
+          accounts: [{}],
+          monthlyBudget: 100,
+          revenueHistory: [{}],
+        },
+        syncDetails: {
+          isSyncReady: 'Ready',
+          hasCleanVersions: true,
+          hasInstrumentals: true,
+          hasStems: 'Full Multitrack',
+          oneStopClearance: true,
+          catalogSize: 3,
+          preferredKeywords: ['hopeful'],
+        } as any,
+        legalInfrastructure: {
+          hasRegisteredWorks: true,
+          proAffiliation: 'BMI',
+          hasStandardSplitSheet: 'In Use',
+          isIncorporated: true,
+          trademarkStatus: 'Filed',
+        } as any,
+        touringDetails: {
+          travelPreference: 'Van',
+          regions: ['Southeast'],
+          isTourReady: 'Tour Ready',
+          hasBackline: 'Yes',
+        } as any,
+        performancesPerYear: '12',
+        team: [member()],
+        artistIdentity: {
+          ...(draft.artistIdentity as any),
+          linkedAccounts: [{}],
+          works: [{}],
+          resolution: { confidenceScore: 0.9 },
+          fingerprint: { genre: 'Hip Hop' },
+        },
+        genreSpecificData: { tempo: 140 },
+      }));
+      fixture.detectChanges();
+
+      const coverage = component.sectionCoverage();
+      expect(coverage['sync-licensing'].score).toBe(100);
+      expect(coverage['legal-infrastructure'].score).toBe(100);
+      expect(coverage['production-tools'].score).toBeGreaterThan(60);
+      expect(component.mastery().overall).toBeGreaterThan(60);
+      expect(component.mastery().weakest.length).toBe(3);
+    });
+  });
+
+  describe('artist fine-tune preview', () => {
+    it('reports the missing signals that block a calibrated fine-tune', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      show('persona');
+
+      const preview = component.finetunePreview();
+      expect(preview.knowledge.state).not.toBe('calibrated');
+      expect(preview.knowledge.missing.length).toBeGreaterThan(0);
+      expect(preview.roles.length).toBe(5);
+      expect(text()).toContain('Artist Fine-Tune Preview');
+      expect(text()).toContain('Signals S.M.U.V.E. still needs');
+      expect(fixture.nativeElement).toBeTruthy();
+    });
+
+    it('rewrites the role directives and anchors as the draft gains artist evidence', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      show('persona');
+
+      component.editableProfile.update((draft) => ({
+        ...draft,
+        musicalJourney: {
+          ...draft.musicalJourney,
+          signatureSound: 'rusted organ and hand claps',
+          originStory: 'Raised on a church organ bench.',
+          subgenres: ['neo-soul'],
+          musicalInfluences: ['gospel'],
+          productionPhilosophy: 'Let the room play the song',
+          songwritingProcess: 'Write at the organ, finish at the desk',
+          preferredBpmRange: '78-92',
+          currentFocus: 'finish the organ record',
+          primarySuccessMetric: 'repeat listeners',
+          releaseVelocity: 'quarterly',
+          incomeStreams: ['Bandcamp'],
+          visualAesthetic: ['sepia'],
+          contentStrategy: 'organ bench clips',
+          musicBlueprint: {
+            ...draft.musicalJourney?.musicBlueprint,
+            artisticIntent: 'make listeners feel held',
+            audienceProfile: 'people rebuilding after a loss',
+            mixingPriorities: ['Warmth'],
+            recordingPriorities: ['Room tone'],
+            vocalDelivery: 'unpolished and close',
+            rhythmicFeel: 'loose pocket',
+            harmonicLanguage: 'gospel ninths',
+            arrangementApproach: 'verse-first build',
+            lyricalThemes: ['grief', 'gratitude'],
+            signatureTension: 'faith against doubt',
+            livedWorldDetails: 'organ bench and Sunday traffic',
+            sonicNonNegotiables: 'keep the pedal noise',
+            recognitionCue: 'the organ swell before the chorus',
+          },
+        },
+      }));
+      fixture.detectChanges();
+
+      const preview = component.finetunePreview();
+      expect(preview.knowledge.state).not.toBe('foundational');
+      expect(preview.knowledge.missing).not.toContain('signature tension');
+      expect(preview.knowledge.missing).not.toContain('lived-world details');
+      expect(preview.knowledge.differentiators).toContain('faith against doubt');
+
+      const producer = preview.roles.find((r) => r.role === 'producer');
+      const legal = preview.roles.find((r) => r.role === 'legal');
+      expect(producer?.directive).toContain('rusted organ and hand claps');
+      expect(producer?.directive).toContain('keep the pedal noise');
+      expect(legal?.directive).toContain('Bandcamp');
+
+      // The preview must be rendered from the draft, not only computed.
+      expect(text()).toContain('rusted organ and hand claps');
+      expect(text()).toContain('Differentiation anchors in use');
+      expect(text()).toContain('faith against doubt');
+      expect(text()).toContain('Adaptive tips from this profile');
+      expect(preview.tips.join(' ')).toContain('keep the pedal noise');
+    });
+  });
+
+  describe('online fingerprint pane', () => {
+    it('gives a beginner with nothing online an ordered start-here plan', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      show('fingerprint');
+
+      const readout = component.fingerprintReadout();
+      expect(readout.hasFingerprint).toBe(false);
+      expect(readout.track).toBe('emerging');
+      expect(component.experienceTrackLabel()).toContain('building the first fingerprint');
+
+      const plan = component.fingerprintPlan();
+      expect(plan.length).toBeGreaterThan(0);
+      expect(plan[0].order).toBe(1);
+
+      expect(text()).toContain('No online fingerprint yet');
+      expect(text()).toContain('Online Fingerprint');
+      expect(fixture.nativeElement).toBeTruthy();
+    });
+
+    it('records, verifies, and removes an official artist link', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      show('fingerprint');
+
+      component.beginFingerprintLink('spotify-for-artists');
+      expect(component.fingerprintUrl).toBe('https://artists.spotify.com');
+      component.fingerprintUrl = 'https://artists.spotify.com/nova';
+      component.fingerprintVerified = true;
+      component.saveFingerprintLink();
+
+      const stored = component.editableProfile().officialArtistProfiles ?? [];
+      expect(stored.length).toBe(1);
+      expect(stored[0].url).toBe('https://artists.spotify.com/nova');
+      expect(stored[0].verified).toBe(true);
+      // The add-link form closes and clears once saved.
+      expect(component.fingerprintLink).toBeNull();
+      expect(component.fingerprintUrl).toBe('');
+
+      fixture.detectChanges();
+      expect(component.fingerprintReadout().hasFingerprint).toBe(true);
+      expect(component.fingerprintReadout().overall).toBeGreaterThan(0);
+      expect(text()).toContain('Verified');
+
+      component.toggleFingerprintVerified('spotify-for-artists', false);
+      expect(
+        component.editableProfile().officialArtistProfiles?.[0].verified
+      ).toBe(false);
+
+      component.removeFingerprintLink('spotify-for-artists');
+      expect(component.editableProfile().officialArtistProfiles).toEqual([]);
+      expect(component.fingerprintReadout().hasFingerprint).toBe(false);
+    });
+
+    it('reports coverage per category without inventing presence', async () => {
+      const { component, show } = await createComponent();
+      show('fingerprint');
+
+      const groups = component.fingerprintGroups();
+      expect(groups.length).toBeGreaterThan(0);
+      groups.forEach((group) => {
+        expect(group.coverage?.total).toBe(group.destinations.length);
+        expect(group.destinations.every((entry) => !entry.link)).toBe(true);
+      });
+
+      component.beginFingerprintLink('ascap');
+      component.saveFingerprintLink();
+
+      const pro = component.fingerprintGroups().find((group) => group.id === 'pro');
+      expect(pro?.coverage?.present).toBe(1);
+      expect(
+        pro?.destinations.find((entry) => entry.id === 'ascap')?.link?.label
+      ).toBe('ASCAP');
+    });
+  });
+
+  describe('official music history pane', () => {
+    it('shows the release record S.M.U.V.E. organises, newest first', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      component.editableProfile.update((draft) => ({
+        ...draft,
+        catalog: [
+          {
+            id: 'old',
+            title: 'Old Work',
+            releaseDate: '2023-01-01',
+            releaseType: 'Single',
+          },
+          { id: 'new', title: 'New Work', releaseDate: '2025-01-01' },
+          { id: 'undated', title: 'Undated Work' },
+        ],
+      }));
+      await show('music-history');
+
+      const releases = component.historyReleases();
+      expect(releases.map((entry) => entry.id)).toEqual(['new', 'old', 'undated']);
+      expect(component.historyReport().undated).toBe(1);
+
+      expect(component.releaseField('old', 'releaseType')).toBe('Single');
+      expect(component.releaseField('old', 'isrc')).toBe('');
+      expect(component.releaseTypes).toContain('EP');
+
+      expect(text()).toContain('Official Music History');
+      expect(text()).toContain('New Work');
+      expect(text()).toContain('Still needed');
+      expect(fixture.nativeElement).toBeTruthy();
+    });
+
+    it('writes edited identifiers back to the real work record', async () => {
+      const { component, show } = await createComponent();
+      component.editableProfile.update((draft) => ({
+        ...draft,
+        catalog: [{ id: 'w1', title: 'Work', releaseDate: '2024-01-01' }],
+      }));
+      await show('music-history');
+
+      component.updateReleaseField('w1', 'isrc', 'US-CCC-24-00001');
+      component.updateReleaseField('w1', 'releaseType', 'EP');
+      component.updateReleaseField('w1', 'splitSheetRef', 'SPLIT-24-01');
+      component.setReleasePlatforms('w1', ' Spotify , Apple Music ,, ');
+
+      const item: any = (component.editableProfile().catalog || [])[0];
+      expect(item.isrc).toBe('US-CCC-24-00001');
+      expect(item.releaseType).toBe('EP');
+      expect(item.splitSheetRef).toBe('SPLIT-24-01');
+      expect(item.platforms).toEqual(['Spotify', 'Apple Music']);
+      expect(component.releasePlatformsText('w1')).toBe('Spotify, Apple Music');
+
+      const entry = component.historyReleases().find((r) => r.id === 'w1');
+      expect(entry?.missing).not.toContain('ISRC or UPC');
+      expect(entry?.missing).not.toContain('release type');
+    });
+
+    it('ignores an edit for a work that is no longer in the catalogue', async () => {
+      const { component, show } = await createComponent();
+      component.editableProfile.update((draft) => (
+        { ...draft, catalog: [{ id: 'w1', title: 'Work' }] }
+      ));
+      await show('music-history');
+
+      expect(() => component.updateReleaseField('missing', 'isrc', 'X')).not.toThrow();
+      const catalog: any[] = component.editableProfile().catalog || [];
+      expect(catalog.length).toBe(1);
+      expect(catalog[0].isrc).toBeUndefined();
+    });
+
+    it('points an artist with no works at the pane that creates them', async () => {
+      const { component, text } = await createComponent();
+      await component.activeSection.set('music-history');
+
+      expect(component.historyReleases()).toEqual([]);
+      expect(component.historyReport().averageCompleteness).toBe(0);
+    });
+  });
+
   describe('route-driven questionnaire', () => {
     it('reacts when the questionnaire query parameter changes in place', async () => {
       const { fixture, component } = await createComponent();

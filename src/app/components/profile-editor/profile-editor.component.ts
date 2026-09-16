@@ -14,6 +14,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AppTheme } from '../../services/user-context.service';
+import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+import {
+  ArtistProfileModuleService,
+  ProfileSectionCoverage,
+} from '../../services/artist-profile-module.service';
+import { ArtistOnlineFingerprintService } from '../../services/artist-online-fingerprint.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import {
@@ -72,6 +78,9 @@ export class ProfileEditorComponent implements OnInit {
   private dbService = inject(DatabaseService);
   onboarding = inject(OnboardingService);
   private uplinkService = inject(UplinkService);
+  private artistFinetune = inject(ArtistProfileFinetuneService);
+  private profileModule = inject(ArtistProfileModuleService);
+  private fingerprint = inject(ArtistOnlineFingerprintService);
 
   // Auth state
   isAuthenticated = this.authService.isAuthenticated;
@@ -96,6 +105,28 @@ export class ProfileEditorComponent implements OnInit {
   topIdentityActions = computed(() =>
     this.identityPreview().recommendations.slice(0, 3)
   );
+
+  /**
+   * Live preview of what S.M.U.V.E. would fine-tune from the current draft, so
+   * the artist can see which roles adapt and which signals are still missing
+   * before committing the profile.
+   */
+  finetunePreview = computed(() => {
+    const draft = this.editableProfile();
+    const knowledge = this.artistFinetune.compileProfile(draft);
+    const roles = (['producer', 'songwriter', 'promotion', 'marketing', 'legal'] as const).map(
+      (role) => ({
+        role,
+        ...this.artistFinetune.directiveForProfile(role, draft),
+      })
+    );
+    return {
+      knowledge,
+      roles,
+      tips: this.artistFinetune.tipsForProfile(draft),
+      voice: this.artistFinetune.voiceSpec(),
+    };
+  });
 
   // Profile editing
   editableProfile = signal<UserProfile>({
@@ -173,20 +204,345 @@ export class ProfileEditorComponent implements OnInit {
     'Commercial',
   ];
 
-  sections = [
-    { id: 'basic', label: 'Identity & Vision', icon: 'fa-user-tie' },
+  /**
+   * The Profile module's navigation IS the module definition, so a pane can
+   * never drift away from the elements that score it.
+   */
+  sections = this.profileModule.sections;
+
+  /** Per-pane completion, computed from the working draft (not the store). */
+  sectionCoverage = computed(() =>
+    this.profileModule.coverageFor(this.editableProfile())
+  );
+
+  /** Whole-module mastery for the dashboard pane. */
+  mastery = computed(() => this.profileModule.mastery(this.editableProfile()));
+
+  coverageFor(id: string): ProfileSectionCoverage {
+    return (
+      this.sectionCoverage()[id] ?? {
+        id: id as any,
+        label: id,
+        icon: 'fa-circle-question',
+        purpose: '',
+        score: 0,
+        present: 0,
+        total: 0,
+        missing: [],
+      }
+    );
+  }
+
+  // ── Online fingerprint pane ───────────────────────────────────────────
+
+  /** Registry grouped for rendering, with the artist's own link state folded in. */
+  fingerprintGroups = computed(() => {
+    const draft = this.editableProfile();
+    const readout = this.fingerprint.readout(draft);
+    return this.fingerprint.categories.map((category) => ({
+      ...category,
+      coverage: readout.coverage.find((entry) => entry.category === category.id),
+      destinations: this.fingerprint
+        .destinationsByCategory(category.id)
+        .map((destination) => ({
+          ...destination,
+          link: (draft.officialArtistProfiles || []).find(
+            (entry) => entry.destinationId === destination.id
+          ),
+        })),
+    }));
+  });
+
+  fingerprintReadout = computed(() => this.fingerprint.readout(this.editableProfile()));
+
+  /**
+   * Beginner mode is judged from evidence, not a self-selected label: an artist
+   * with no releases, no links, and no PRO gets the start-here plan.
+   */
+  isEmerging = computed(() => this.fingerprintReadout().track === 'emerging');
+
+  experienceTrackLabel = computed(() => {
+    const track = this.fingerprintReadout().track;
+    return track === 'emerging'
+      ? 'New artist — building the first fingerprint'
+      : track === 'developing'
+        ? 'Developing artist — consolidating what exists'
+        : 'Established artist — organising the official record';
+  });
+
+  fingerprintPlan = computed(() => this.fingerprint.plan(this.editableProfile()));
+
+  fingerprintLink: any = null;
+  fingerprintUrl = '';
+  fingerprintVerified = false;
+
+  /** Seed the add-link form with the destination's real claim/sign-in page. */
+  beginFingerprintLink(destinationId: string): void {
+    const destination = this.fingerprint.destination(destinationId);
+    this.fingerprintLink = destination ?? null;
+    this.fingerprintUrl = destination?.url ?? '';
+    this.fingerprintVerified = false;
+  }
+
+  cancelFingerprintLink(): void {
+    this.fingerprintLink = null;
+    this.fingerprintUrl = '';
+    this.fingerprintVerified = false;
+  }
+
+  saveFingerprintLink(): void {
+    const destination = this.fingerprintLink;
+    if (!destination) return;
+    const url = String(this.fingerprintUrl || '').trim() || destination.url;
+    this.editableProfile.update((draft) =>
+      this.fingerprint.upsertLink(draft, destination.id, url, this.fingerprintVerified)
+    );
+    this.cancelFingerprintLink();
+  }
+
+  removeFingerprintLink(destinationId: string): void {
+    this.editableProfile.update((draft) =>
+      this.fingerprint.removeLink(draft, destinationId)
+    );
+  }
+
+  toggleFingerprintVerified(destinationId: string, verified: boolean): void {
+    const draft = this.editableProfile();
+    const existing = (draft.officialArtistProfiles || []).find(
+      (entry) => entry.destinationId === destinationId
+    );
+    if (!existing) return;
+    this.editableProfile.set(
+      this.fingerprint.upsertLink(draft, destinationId, existing.url, Boolean(verified))
+    );
+  }
+
+  // ── Official music history pane ───────────────────────────────────────
+
+  historyReport = computed(() => this.fingerprint.history(this.editableProfile()));
+
+  /** Chronological works, newest first, with per-release documentation state. */
+  historyReleases = computed(() => this.historyReport().releases);
+
+  updateReleaseField(id: string, field: string, value: any): void {
+    this.editableProfile.update((draft) => ({
+      ...draft,
+      catalog: (draft.catalog || []).map((item: any) =>
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  }
+
+  setReleasePlatforms(id: string, value: string): void {
+    const platforms = String(value || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    this.updateReleaseField(id, 'platforms', platforms);
+  }
+
+  releasePlatformsText(id: string): string {
+    const item: any = (this.editableProfile().catalog || []).find(
+      (entry: any) => entry.id === id
+    );
+    return Array.isArray(item?.platforms) ? item.platforms.join(', ') : '';
+  }
+
+  /** Raw catalog field, so the history editor writes to the real work record. */
+  releaseField(id: string, field: string): any {
+    const item: any = (this.editableProfile().catalog || []).find(
+      (entry: any) => entry.id === id
+    );
+    return item?.[field] ?? '';
+  }
+
+  readonly releaseTypes = ['Single', 'EP', 'Album', 'Mixtape', 'Live', 'Remix'];
+
+  /** Jump straight to the pane that owns a missing element. */
+  focusSection(id: string): void {
+    this.activeSection.set(id);
+  }
+
+  // ── Production toolchain pane ─────────────────────────────────────────
+
+  readonly toolChipGroups = [
     {
-      id: 'identity-console',
-      label: 'Identity Console',
-      icon: 'fa-project-diagram',
+      label: 'Equipment',
+      field: 'equipment',
+      options: [
+        'Condenser Mic',
+        'Dynamic Mic',
+        'Audio Interface',
+        'Studio Monitors',
+        'Headphones',
+        'MIDI Keyboard',
+        'Analog Synth',
+        'Drum Machine',
+        'Outboard Preamp',
+        'Acoustic Treatments',
+      ],
     },
-    { id: 'persona', label: 'AI Persona', icon: 'fa-robot' },
-    { id: 'genre-deep-dive', label: 'Genre Intelligence', icon: 'fa-dna' },
-    { id: 'touring', label: 'Touring & Live', icon: 'fa-route' },
-    { id: 'catalog', label: 'Catalog Assets', icon: 'fa-database' },
-    { id: 'business', label: 'Business & Financials', icon: 'fa-briefcase' },
-    { id: 'team', label: 'Professional Team', icon: 'fa-users-gear' },
+    {
+      label: 'DAW & Tools',
+      field: 'daw',
+      options: [
+        'Ableton Live',
+        'Logic Pro',
+        'FL Studio',
+        'Pro Tools',
+        'Studio One',
+        'Reaper',
+        'Bitwig',
+        'Cubase',
+      ],
+    },
+    {
+      label: 'Services',
+      field: 'services',
+      options: [
+        'DistroKid',
+        'TuneCore',
+        'Landr',
+        'Splice',
+        'SoundBetter',
+        'SESAC',
+        'ASCAP',
+        'BMI',
+      ],
+    },
+    {
+      label: 'Operator Skills',
+      field: 'skills',
+      options: [
+        'Vocalist',
+        'Producer',
+        'Songwriter',
+        'DJ',
+        'Engineer',
+        'Musician',
+        'Manager',
+        'Marketer',
+      ],
+    },
   ];
+
+  readonly expertiseKeys = [
+    'production',
+    'songwriting',
+    'marketing',
+    'business',
+    'legal',
+    'performance',
+  ];
+
+  expertiseValue(key: string): number {
+    return Number((this.editableProfile().expertise as any)?.[key] ?? 0);
+  }
+
+  setExpertise(key: string, value: number | string): void {
+    const numeric = Math.max(0, Math.min(10, Number(value) || 0));
+    this.editableProfile.update((draft) => ({
+      ...draft,
+      expertise: { ...(draft.expertise as any), [key]: numeric },
+    }));
+  }
+
+  // ── Sync & licensing pane ─────────────────────────────────────────────
+
+  readonly syncToggles = [
+    {
+      label: 'Sync readiness',
+      field: 'isSyncReady',
+      options: ['Not Started', 'Preparing', 'Ready', 'Actively Pitching'],
+    },
+    {
+      label: 'Stems',
+      field: 'hasStems',
+      options: ['No', 'Partial', 'Full Multitrack'],
+    },
+  ];
+
+  readonly syncFlags = [
+    { label: 'Clean versions', field: 'hasCleanVersions' },
+    { label: 'Instrumentals', field: 'hasInstrumentals' },
+    { label: 'One-stop clearance', field: 'oneStopClearance' },
+  ];
+
+  syncValue(field: string): any {
+    return (this.editableProfile().syncDetails as any)?.[field];
+  }
+
+  syncFlagValue(field: string): boolean {
+    return Boolean((this.editableProfile().syncDetails as any)?.[field]);
+  }
+
+  setSyncField(field: string, value: any): void {
+    this.editableProfile.update((draft) => ({
+      ...draft,
+      syncDetails: { ...(draft.syncDetails as any), [field]: value },
+    }));
+  }
+
+  setSyncFlag(field: string, value: boolean): void {
+    this.setSyncField(field, Boolean(value));
+  }
+
+  syncKeywordsText(): string {
+    const keywords = (this.editableProfile().syncDetails as any)?.preferredKeywords;
+    return Array.isArray(keywords) ? keywords.join(', ') : '';
+  }
+
+  setSyncKeywords(value: string): void {
+    const keywords = String(value || '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    this.setSyncField('preferredKeywords', keywords);
+  }
+
+  // ── Legal infrastructure pane ─────────────────────────────────────────
+
+  readonly legalSelects = [
+    {
+      label: 'PRO affiliation',
+      field: 'proAffiliation',
+      options: ['None', 'ASCAP', 'BMI', 'SESAC', 'PRS', 'GEMA', 'Other'],
+    },
+    {
+      label: 'Standard split sheet',
+      field: 'hasStandardSplitSheet',
+      options: ['Never', 'Drafting', 'In Use', 'Reviewed by Counsel'],
+    },
+    {
+      label: 'Trademark status',
+      field: 'trademarkStatus',
+      options: ['None', 'Considering', 'Filed', 'Registered'],
+    },
+  ];
+
+  legalValue(field: string): any {
+    return (this.editableProfile().legalInfrastructure as any)?.[field];
+  }
+
+  legalFlag(field: string): boolean {
+    return Boolean((this.editableProfile().legalInfrastructure as any)?.[field]);
+  }
+
+  setLegalField(field: string, value: any): void {
+    this.editableProfile.update((draft) => ({
+      ...draft,
+      legalInfrastructure: { ...(draft.legalInfrastructure as any), [field]: value },
+    }));
+  }
+
+  setLegalFlag(field: string, value: boolean): void {
+    this.setLegalField(field, Boolean(value));
+  }
+
+  hasChip(field: string, option: string): boolean {
+    const list = (this.editableProfile() as any)?.[field];
+    return Array.isArray(list) && list.includes(option);
+  }
 
   constructor() {
     effect(() => {

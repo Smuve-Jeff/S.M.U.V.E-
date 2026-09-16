@@ -49,10 +49,10 @@ describe('EnhancedArtistQuestionnaireEngine', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('covers all eight phases with 65 questions', () => {
+  it('covers all eight phases with 69 questions', () => {
     const phases = new Set(engine.allQuestions.map((q) => q.phase));
     expect(phases.size).toBe(8);
-    expect(engine.allQuestions.length).toBe(65);
+    expect(engine.allQuestions.length).toBe(69);
   });
 
   it('resolves every question field safely against the initial profile', () => {
