@@ -189,6 +189,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private pinch: PinchState | null = null;
   /** Coalesced scroll-anchor update for the running pinch. */
   private pinchRaf: number | null = null;
+  /** Coalesced post-zoom scroll re-anchor (zoom buttons). */
+  private zoomAnchorRaf: number | null = null;
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -695,8 +697,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private applyZoom(next: number): void {
     const anchor = this.videoEngine.currentTime();
     this.zoomLevel.set(next);
-    // The lane re-lays out at the new scale on the next tick, so re-anchor then.
-    setTimeout(() => {
+    // Same frame-coalesced re-anchor the pinch uses: one rAF lets Angular
+    // re-lay the lane out at the new scale, then the viewport is centred on
+    // the playhead. A pending anchor is superseded by a newer zoom call.
+    if (this.zoomAnchorRaf !== null) cancelAnimationFrame(this.zoomAnchorRaf);
+    this.zoomAnchorRaf = requestAnimationFrame(() => {
+      this.zoomAnchorRaf = null;
       const scroller = this.timelineScroller?.nativeElement;
       if (!scroller) return;
       scroller.scrollLeft = Math.max(
@@ -823,6 +829,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (this.pinchRaf !== null) {
       cancelAnimationFrame(this.pinchRaf);
       this.pinchRaf = null;
+    }
+    if (this.zoomAnchorRaf !== null) {
+      cancelAnimationFrame(this.zoomAnchorRaf);
+      this.zoomAnchorRaf = null;
     }
     this.pinch = null;
     this.pinchPoints.clear();

@@ -219,19 +219,30 @@ export class AppComponent implements ErrorHandler {
 
   /**
    * Native drawer feel on touch: swipe left anywhere on the open drawer to
-   * close it. Swipe-from-edge detection on the content side would need a
-   * document-level hook, so we only implement the close gesture — opening
-   * stays on the menu button.
+   * close it, or swipe right from the screen's left edge to open it — the
+   * standard Android drawer pair.
    */
-  private sidebarTouchStart: { x: number; y: number } | null = null;
+  /** Left-edge strip that arms an open swipe (px from the screen edge). */
+  private readonly sidebarEdgeOpenPx = 32;
+  private sidebarTouchStart: {
+    x: number;
+    y: number;
+    fromSidebar: boolean;
+  } | null = null;
 
   @HostListener('window:touchstart', ['$event'])
   onSidebarTouchStart(event: TouchEvent) {
+    const touch = event.touches[0];
+    if (!touch) return;
     const target = event.target as HTMLElement | null;
-    if (!target?.closest('.sidebar') || !this.isMobile()) return;
+    const fromSidebar = !!target?.closest('.sidebar');
+    // Only arm a gesture when it begins on the open drawer (close) or
+    // inside the left-edge strip (open); everything else belongs to content.
+    if (!fromSidebar && touch.clientX > this.sidebarEdgeOpenPx) return;
     this.sidebarTouchStart = {
-      x: event.touches[0].clientX,
-      y: event.touches[0].clientY,
+      x: touch.clientX,
+      y: touch.clientY,
+      fromSidebar,
     };
   }
 
@@ -239,14 +250,26 @@ export class AppComponent implements ErrorHandler {
   onSidebarTouchEnd(event: TouchEvent) {
     const start = this.sidebarTouchStart;
     this.sidebarTouchStart = null;
-    if (!start || !this.isMobile() || !this.isSidebarOpen()) return;
+    if (!start || !this.isMobile()) return;
     const touch = event.changedTouches[0];
     if (!touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
-    // Horizontal, leftward, and committed: close the drawer.
-    if (dx < -56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      this.isSidebarOpen.set(false);
+    // Horizontal and committed: vertical content scrolling never toggles.
+    if (Math.abs(dx) <= Math.abs(dy) * 1.4) return;
+    if (start.fromSidebar) {
+      // Leftward swipe on the open drawer closes it.
+      if (this.isSidebarOpen() && dx < -56) {
+        this.isSidebarOpen.set(false);
+      }
+    } else if (
+      // Rightward swipe from the edge opens it — but full-page routes own
+      // the whole viewport (DJ decks, timeline gestures), so never fight them.
+      !this.isFullPageMode() &&
+      !this.isSidebarOpen() &&
+      dx > 56
+    ) {
+      this.isSidebarOpen.set(true);
     }
   }
 

@@ -379,6 +379,56 @@ describe('AppComponent', () => {
       component.onResize();
     });
 
+    it('opens the drawer with a rightward swipe from the left edge', async () => {
+      const { component } = await createComponent('/hub');
+      goMobile(component);
+      component.isSidebarOpen.set(false);
+
+      // Contact inside the 32px edge strip, dragged rightward 120px.
+      component.onSidebarTouchStart(touchEvent(12, 200, false));
+      component.onSidebarTouchEnd(touchEvent(132, 205, false));
+      expect(component.isSidebarOpen()).toBe(true);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('does not swipe-open when the gesture starts too far from the edge', async () => {
+      const { component } = await createComponent('/hub');
+      goMobile(component);
+      component.isSidebarOpen.set(false);
+
+      // Starts 300px in: content-owned gesture, not an edge swipe.
+      component.onSidebarTouchStart(touchEvent(300, 200, false));
+      component.onSidebarTouchEnd(touchEvent(420, 205, false));
+      expect(component.isSidebarOpen()).toBe(false);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
+    it('never swipe-opens over a full-page route', async () => {
+      const { component } = await createComponent('/dj');
+      goMobile(component);
+      component.isSidebarOpen.set(false);
+
+      component.onSidebarTouchStart(touchEvent(12, 200, false));
+      component.onSidebarTouchEnd(touchEvent(132, 205, false));
+      expect(component.isSidebarOpen()).toBe(false);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      component.onResize();
+    });
+
     it('closes the mobile drawer with ESC but leaves the desktop sidebar alone', async () => {
       const { component } = await createComponent('/hub');
 
