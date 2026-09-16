@@ -638,6 +638,135 @@ describe('ImageVideoLabComponent', () => {
     expect(component.zoomLevel()).toBe(4);
   });
 
+  describe('pinch-to-zoom (two-finger timeline scale)', () => {
+    /**
+     * Contact point on the timeline surface. `id` is the pointer id (must be
+     * stable across a finger's down/move/up sequence); `x`/`y` are the live
+     * client coordinates.
+     */
+    const contact = (id: number, x: number, y = 0): PointerEvent =>
+      ({
+        pointerId: id,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: x,
+        clientY: y,
+        currentTarget: {
+          releasePointerCapture: jest.fn(),
+        },
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+      } as unknown as PointerEvent);
+
+    /**
+     * Ruler-surface pointer (same shape as the touch describe's `onRuler`,
+     * re-declared here because that helper lives inside the other describe).
+     */
+    const ruler = (clientX: number, pointerId = 1): PointerEvent =>
+      ({
+        pointerId,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY: 0,
+        currentTarget: {
+          getBoundingClientRect: () => ({
+            left: 100,
+            width: 900,
+            top: 0,
+            height: 24,
+          }),
+          setPointerCapture: jest.fn(),
+          releasePointerCapture: jest.fn(),
+        },
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+      } as unknown as PointerEvent);
+
+    it('scales the timeline with finger spread', async () => {
+      const { component } = await createComponent();
+
+      // Fingers 20px and 120px apart: 100px spread at start.
+      component.onTimelinePointerDown(contact(1, 20, 10));
+      component.onTimelinePointerDown(contact(2, 120, 10));
+      // Spread to 200px: doubles the zoom from the 1.0 start.
+      component.onTimelinePointerMove(contact(1, -30, 10));
+      component.onTimelinePointerMove(contact(2, 170, 10));
+      expect(component.zoomLevel()).toBeCloseTo(2, 5);
+
+      component.onTimelinePointerUp(contact(1, -30, 10));
+      component.onTimelinePointerUp(contact(2, 170, 10));
+    });
+
+    it('does not pinch from a single finger', async () => {
+      const { component } = await createComponent();
+
+      component.onTimelinePointerDown(contact(1, 200, 10));
+      component.onTimelinePointerMove(contact(1, 400, 10));
+      component.onTimelinePointerUp(contact(1, 400, 10));
+
+      expect(component.zoomLevel()).toBe(1);
+    });
+
+    it('does not engage a pinch before the minimum spread', async () => {
+      const { component } = await createComponent();
+
+      // 20px apart: under the 24px pinch threshold.
+      component.onTimelinePointerDown(contact(1, 200, 10));
+      component.onTimelinePointerDown(contact(2, 220, 10));
+      component.onTimelinePointerMove(contact(1, 190, 10));
+      component.onTimelinePointerMove(contact(2, 230, 10));
+
+      expect(component.zoomLevel()).toBe(1);
+
+      component.onTimelinePointerUp(contact(1, 190, 10));
+      component.onTimelinePointerUp(contact(2, 230, 10));
+    });
+
+    it('recovers when one finger lifts mid-pinch', async () => {
+      const { component } = await createComponent();
+
+      component.onTimelinePointerDown(contact(1, 200, 10));
+      component.onTimelinePointerDown(contact(2, 300, 10));
+      component.onTimelinePointerMove(contact(1, 100, 10));
+      component.onTimelinePointerMove(contact(2, 300, 10));
+      const zoomed = component.zoomLevel();
+      expect(zoomed).toBeGreaterThan(1);
+
+      // One finger lifts: pinch ends, remaining moves do nothing.
+      component.onTimelinePointerUp(contact(2, 300, 10));
+      component.onTimelinePointerMove(contact(1, 50, 10));
+      expect(component.zoomLevel()).toBe(zoomed);
+
+      component.onTimelinePointerUp(contact(1, 50, 10));
+    });
+
+    it('cancels an in-flight scrub when a second finger lands', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+
+      // Start a ruler scrub with finger 1. The ruler lives inside the
+      // scroller, so its pointerdown bubbles: both handlers fire.
+      component.onRulerPointerDown(ruler(100));
+      component.onTimelinePointerDown(contact(1, 100, 0));
+
+      // Finger 2 lands → pinch takes over; the scrub must release.
+      component.onTimelinePointerDown(contact(2, 300, 10));
+
+      // Finger 1's moves now only feed pinch tracking, not the scrub.
+      const seeksBefore = (videoEngine.seek as jest.Mock).mock.calls.length;
+      component.onRulerPointerMove(ruler(500));
+      expect(videoEngine.seek).toHaveBeenCalledTimes(seeksBefore);
+
+      component.onTimelinePointerUp(contact(2, 300, 10));
+      component.onRulerPointerUp(ruler(500));
+    });
+  });
+
   describe('markers, ticks, zoom and transport (touch ergonomics)', () => {
     const click = (): MouseEvent =>
       ({

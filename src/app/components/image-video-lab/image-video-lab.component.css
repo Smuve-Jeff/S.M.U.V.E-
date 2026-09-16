@@ -294,6 +294,9 @@ canvas {
 .command-row input,
 .broadcast-input-grid input {
   width: 100%;
+  /* Field-level touch floor: the platform select and command inputs are
+     tapped directly, so they clear the 44px-class minimum too. */
+  min-height: 2.75rem;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 0.65rem;
   padding: 0.6rem 0.7rem;
@@ -326,7 +329,8 @@ canvas {
 }
 
 .director-button {
-  min-height: 2.2rem;
+  /* 2.75rem ≈ 44px thumb target on phones; desktop relaxes at 768px. */
+  min-height: 2.75rem;
   flex: 1 1 8rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 0.65rem;
@@ -338,13 +342,35 @@ canvas {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transition: all 0.2s ease;
+  touch-action: manipulation;
 }
 
-.director-button:hover:not(:disabled),
+.director-button:active:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+}
+
+@media (hover: hover) {
+  .director-button:hover:not(:disabled),
+  .director-button.active {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+  }
+}
+
+/* Keep the active identity without hover on touch-only devices. */
 .director-button.active {
   border-color: rgba(16, 185, 129, 0.45);
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
+}
+
+@media (min-width: 768px) {
+  .director-button {
+    min-height: 2.2rem;
+  }
 }
 
 .director-button-primary {
@@ -512,6 +538,20 @@ canvas {
   color: #10b981;
 }
 
+@media (hover: none) {
+  .timeline-tool:hover,
+  .selected-clip-toolbar button:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+    color: inherit;
+  }
+
+  .timeline-tool:active,
+  .selected-clip-toolbar button:active {
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #10b981;
+  }
+}
+
 .timeline-tool-danger {
   color: #f87171;
 }
@@ -555,6 +595,16 @@ canvas {
  */
 .clip-block {
   touch-action: none;
+}
+
+/*
+ * Pinch viewport: native one-finger panning stays with the browser
+ * (`pan-x pan-y`), while two-finger contact is tracked in JS for pinch-zoom.
+ * `pan-x pan-y` (vs plain `auto`) also stops the browser's native pinch-zoom
+ * from fighting the custom scale inside this scroller.
+ */
+.timeline-scroller-touch {
+  touch-action: pan-x pan-y;
 }
 
 /*
@@ -739,7 +789,7 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.5rem 0.65rem;
   border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -749,15 +799,23 @@ canvas {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  touch-action: manipulation;
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
     color 0.2s ease;
 }
 
-.camera-action:hover:not(:disabled) {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.1);
+.camera-action:active:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.14);
+}
+
+@media (hover: hover) {
+  .camera-action:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.1);
+  }
 }
 
 .camera-action:disabled {
@@ -821,11 +879,14 @@ canvas {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
+  /* One-tap recovery is the panic button — give it a full thumb target. */
+  min-height: 2.75rem;
+  padding: 0.4rem 0.9rem;
   border-radius: 0.65rem;
   border: 1px solid rgba(251, 191, 36, 0.5);
   background: rgba(2, 6, 23, 0.72);
   backdrop-filter: blur(6px);
+  touch-action: manipulation;
   color: #fbbf24;
   font-size: 0.6rem;
   font-weight: 900;
@@ -927,8 +988,10 @@ canvas {
   transition: all 0.2s ease;
 }
 
-.project-card:hover {
-  border-color: rgba(16, 185, 129, 0.35);
+@media (hover: hover) {
+  .project-card:hover {
+    border-color: rgba(16, 185, 129, 0.35);
+  }
 }
 
 /* The open project is the one a save will overwrite, so it has to be obvious. */
@@ -982,7 +1045,8 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
+  /* 2.4rem ≈ 38px was a near-miss tap target; clear the 44px floor. */
+  width: 2.75rem;
   border: 0;
   border-left: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 0 0.75rem 0.75rem 0;
@@ -992,7 +1056,14 @@ canvas {
   transition: all 0.2s ease;
 }
 
-.project-delete:hover {
-  background: rgba(248, 113, 113, 0.12);
+@media (hover: hover) {
+  .project-delete:hover {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+  }
+}
+
+.project-delete:active {
+  background: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }

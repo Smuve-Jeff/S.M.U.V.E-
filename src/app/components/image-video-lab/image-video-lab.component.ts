@@ -10,6 +10,7 @@ import {
   AfterViewInit,
   computed,
   HostListener,
+  DestroyRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -65,6 +66,11 @@ const EXACT_SEEK_EPSILON_SECONDS = 0.001;
 const PLAYING_DRIFT_TOLERANCE_SECONDS = 0.12;
 /** Timeline scale at 100% zoom: 10px per second. */
 const TIMELINE_BASE_PX_PER_SECOND = 10;
+/** Zoom envelope shared by the buttons and the two-finger pinch. */
+const MIN_TIMELINE_ZOOM = 0.25;
+const MAX_TIMELINE_ZOOM = 4;
+/** Minimum two-finger spread before a pinch engages (px). */
+const PINCH_START_DISTANCE_PX = 24;
 /** One 30fps frame — the step the arrow keys scrub by. */
 const FRAME_STEP_SECONDS = 1 / 30;
 /** Ruler density cap: past this, the beat grid steps up by whole bars. */
@@ -94,6 +100,18 @@ interface ClipDragState {
   originX: number;
   originStartTime: number;
   moved: boolean;
+}
+
+/** Live two-finger pinch, anchored to the timeline time under the fingers. */
+interface PinchState {
+  startDistance: number;
+  startZoom: number;
+  /** Timeline time that must stay under the pinch midpoint. */
+  anchorTime: number;
+  /** Viewport x of the scroller when the pinch started. */
+  scrollerLeft: number;
+  /** Whether the pinch actually changed zoom (arms click suppression). */
+  zoomed: boolean;
 }
 
 @Component({
@@ -166,6 +184,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * a clip drag or a ruler scrub also seeks the playhead to the drop point.
    */
   private suppressedClickPointerId: number | null = null;
+  /** Active contact points on the timeline surface, for pinch zoom. */
+  private readonly pinchPoints = new Map<number, { x: number; y: number }>();
+  private pinch: PinchState | null = null;
+  /** Coalesced scroll-anchor update for the running pinch. */
+  private pinchRaf: number | null = null;
 
   activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
@@ -438,6 +461,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
+    // Pinch state teardown rides DestroyRef so it stays beside the pinch code
+    // above without touching the (long) ngOnDestroy block.
+    inject(DestroyRef).onDestroy(() => this.disposePinch());
+
     effect(() => {
       const isPlaying = this.videoEngine.isPlaying();
       if (isPlaying) {
@@ -657,12 +684,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Zoom out, keeping the visible window anchored on the playhead. */
   zoomOut(): void {
-    this.applyZoom(Math.max(0.25, +(this.zoomLevel() * 0.8).toFixed(2)));
+    this.applyZoom(Math.max(MIN_TIMELINE_ZOOM, +(this.zoomLevel() * 0.8).toFixed(2)));
   }
 
   /** Zoom in, keeping the visible window anchored on the playhead. */
   zoomIn(): void {
-    this.applyZoom(Math.min(4, +(this.zoomLevel() * 1.25).toFixed(2)));
+    this.applyZoom(Math.min(MAX_TIMELINE_ZOOM, +(this.zoomLevel() * 1.25).toFixed(2)));
   }
 
   private applyZoom(next: number): void {
@@ -678,6 +705,137 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       this.syncTimelineViewport(scroller);
     });
+  }
+
+  // ── Pinch to zoom (two-finger timeline scale) ───────────────────────
+
+  /** Euclidean distance between the two recorded pinch contacts. */
+  private pinchDistance(): number {
+    const [a, b] = [...this.pinchPoints.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  /**
+   * Track every contact that starts on the timeline surface. A second touch
+   * converts the gesture into a pinch: the ruler scrub / clip drag in flight
+   * is cancelled so the fingers never fight over the same pointer.
+   */
+  onTimelinePointerDown(event: PointerEvent): void {
+    this.pinchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (this.pinchPoints.size !== 2) return;
+
+    this.cancelPlayheadDrag(event.currentTarget as HTMLElement | null);
+    this.cancelClipDrag(event.currentTarget as HTMLElement | null);
+
+    const distance = this.pinchDistance();
+    if (distance < PINCH_START_DISTANCE_PX) return;
+
+    const scroller = this.timelineScroller?.nativeElement ?? null;
+    const rect = scroller?.getBoundingClientRect() ?? null;
+    const [a, b] = [...this.pinchPoints.values()];
+    const midpointX = (a.x + b.x) / 2;
+    this.pinch = {
+      startDistance: distance,
+      startZoom: this.zoomLevel(),
+      // Without the scroller (tests, or a detached host) zoom still works;
+      // only the scroll re-anchoring is skipped.
+      anchorTime:
+        scroller && rect
+          ? (midpointX - rect.left + scroller.scrollLeft) / this.pxPerSecond()
+          : 0,
+      scrollerLeft: rect?.left ?? 0,
+      zoomed: false,
+    };
+  }
+
+  /**
+   * Scale the timeline with the live finger spread, keeping the timeline time
+   * under the pinch midpoint pinned to the same screen position — content
+   * grows out of and shrinks into the fingers, as mobile apps do.
+   */
+  onTimelinePointerMove(event: PointerEvent): void {
+    const point = this.pinchPoints.get(event.pointerId);
+    if (!point) return;
+    point.x = event.clientX;
+    point.y = event.clientY;
+    if (this.pinchPoints.size !== 2 || !this.pinch) return;
+
+    const distance = this.pinchDistance();
+    if (distance <= 0) return;
+
+    const ratio = distance / this.pinch.startDistance;
+    const next = Math.max(
+      MIN_TIMELINE_ZOOM,
+      Math.min(MAX_TIMELINE_ZOOM, +(this.pinch.startZoom * ratio).toFixed(4))
+    );
+    if (next !== this.zoomLevel()) this.pinch.zoomed = true;
+    this.zoomLevel.set(next);
+
+    // Re-anchor on the next frame, after Angular re-lays the lane out.
+    const scroller = this.timelineScroller?.nativeElement;
+    if (!scroller || this.pinchRaf !== null) return;
+    this.pinchRaf = requestAnimationFrame(() => {
+      this.pinchRaf = null;
+      this.reanchorPinch();
+    });
+  }
+
+  private reanchorPinch(): void {
+    const state = this.pinch;
+    const scroller = this.timelineScroller?.nativeElement;
+    if (!state || !scroller) return;
+    const [a, b] = [...this.pinchPoints.values()];
+    if (!a || !b) return;
+    const rect = scroller.getBoundingClientRect();
+    const midpointX = (a.x + b.x) / 2 - rect.left;
+    scroller.scrollLeft = Math.max(
+      0,
+      state.anchorTime * this.pxPerSecond() - midpointX
+    );
+    this.syncTimelineViewport(scroller);
+  }
+
+  /**
+   * End one contact. The pinch survives while at least two fingers remain;
+   * dropping below two tears it down, and a completed pinch suppresses the
+   * synthetic click so the release never seeks the playhead.
+   */
+  onTimelinePointerUp(event: PointerEvent): void {
+    this.pinchPoints.delete(event.pointerId);
+    if (this.pinch) {
+      if (this.pinch.zoomed) this.suppressedClickPointerId = event.pointerId;
+      if (this.pinchPoints.size < 2) this.pinch = null;
+    }
+    if (this.pinchPoints.size === 0 && this.pinchRaf !== null) {
+      cancelAnimationFrame(this.pinchRaf);
+      this.pinchRaf = null;
+    }
+  }
+
+  /** Tear down pinch tracking (called from ngOnDestroy). */
+  private disposePinch(): void {
+    if (this.pinchRaf !== null) {
+      cancelAnimationFrame(this.pinchRaf);
+      this.pinchRaf = null;
+    }
+    this.pinch = null;
+    this.pinchPoints.clear();
+  }
+
+  /** Cancel an in-flight ruler scrub (a pinch took over the surface). */
+  private cancelPlayheadDrag(target: HTMLElement | null): void {
+    const drag = this.playheadDrag;
+    if (!drag) return;
+    target?.releasePointerCapture?.(drag.pointerId);
+    this.playheadDrag = null;
+  }
+
+  /** Cancel an in-flight clip drag (a pinch took over the surface). */
+  private cancelClipDrag(target: HTMLElement | null): void {
+    const drag = this.clipDrag;
+    if (!drag) return;
+    target?.releasePointerCapture?.(drag.pointerId);
+    this.clipDrag = null;
   }
 
   /** Centre the viewport on the playhead (used after big timeline jumps). */
