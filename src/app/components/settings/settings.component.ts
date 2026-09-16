@@ -49,6 +49,8 @@ export class SettingsComponent implements OnInit {
   private tokenService = inject(TokenService);
   showHowTo = signal(false);
   latencyCalibrationRunning = signal(false);
+  twoFactorSetup = signal<{ secret: string; qrCodeUri: string } | null>(null);
+  twoFactorCode = signal('');
 
   settings = computed(() => {
     return this.withSettingsDefaults(this.profileService.profile().settings);
@@ -206,6 +208,39 @@ export class SettingsComponent implements OnInit {
     await this.securityService.exportUserData();
   }
 
+  async toggleTwoFactor(enabled: boolean) {
+    if (!enabled) {
+      this.twoFactorSetup.set(null);
+      this.twoFactorCode.set('');
+      this.updateSetting('security', 'twoFactorEnabled', false);
+      return;
+    }
+    const setup = await this.securityService.setup2FA();
+    if (!setup?.supported || !setup.secret || !setup.qrCodeUri) {
+      this.notificationService.show('Two-factor enrollment is unavailable in this browser.', 'error');
+      return;
+    }
+    this.twoFactorSetup.set({ secret: setup.secret, qrCodeUri: setup.qrCodeUri });
+    this.twoFactorCode.set('');
+    // Enrollment is not activation. Require a valid authenticator response
+    // before persisting the enabled flag, otherwise a displayed secret would
+    // leave the account claiming protection it cannot actually verify.
+    this.updateSetting('security', 'twoFactorEnabled', false);
+    this.notificationService.show('2FA enrollment created. Save the secret, then verify a six-digit code.', 'success');
+  }
+
+  async confirmTwoFactor() {
+    const code = this.twoFactorCode().trim();
+    if (!/^\\d{6}$/.test(code) || !(await this.securityService.verify2FA(code))) {
+      this.notificationService.show('That authenticator code could not be verified.', 'error');
+      return;
+    }
+    this.updateSetting('security', 'twoFactorEnabled', true);
+    this.twoFactorSetup.set(null);
+    this.twoFactorCode.set('');
+    this.notificationService.show('Two-factor authentication is now active.', 'success');
+  }
+
   async requestPermission(name: string) {
     const granted = await this.permissionService.requestPermission(name);
     if (granted) {
@@ -217,7 +252,17 @@ export class SettingsComponent implements OnInit {
   }
 
   async refreshAudioInputs() {
+    const microphone = this.microphoneService as MicrophoneService & {
+      refreshDevices?: () => Promise<void>;
+    };
+    if (microphone.refreshDevices) await microphone.refreshDevices();
+    else await this.microphoneService.updateAvailableDevices();
+  }
+
+  async refreshHardware() {
+    await this.hardwareService.refreshConnectedHardware();
     await this.microphoneService.updateAvailableDevices();
+    await this.audioEngine.refreshOutputDevices();
   }
 
   async selectAudioInput(deviceId: string | null) {

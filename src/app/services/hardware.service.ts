@@ -107,9 +107,15 @@ export class HardwareService {
     );
 
     // Initial check
+    this.refreshConnectedHardware();
+  }
+
+  /** Reconcile hot-plug state after a user-initiated rescan. */
+  async refreshConnectedHardware(): Promise<void> {
+    await this.monitorAudioDevices();
     if (typeof navigator !== 'undefined' && navigator.getGamepads) {
-      const gps = navigator.getGamepads();
-      if (gps && gps[0]) this.updateGamepadStatus(true);
+      const connected = Array.from(navigator.getGamepads()).some(Boolean);
+      this.updateGamepadStatus(connected);
     }
   }
 
@@ -129,7 +135,9 @@ export class HardwareService {
         ...s,
         audioInterfaceConnected: isConnected,
         activeInterfaceName: name,
-        recordReady: isConnected,
+        // Built-in microphones are valid recording hardware too. Keep this
+        // readiness flag distinct from the optional USB-interface flag.
+        recordReady: devices.length > 0,
       }));
 
       if (isConnected) {
@@ -146,7 +154,7 @@ export class HardwareService {
   }
 
   updateMidiCount(count: number) {
-    this.status.update((s) => ({ ...s, midiDevicesConnected: count }));
+    this.status.update((s) => ({ ...s, midiDevicesConnected: Math.max(0, Math.floor(count)) }));
   }
 
   /** Initialize Web MIDI input and forward note events to the callback. */

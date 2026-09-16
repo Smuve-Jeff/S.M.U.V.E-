@@ -96,6 +96,7 @@ export class PermissionService {
 
   async requestPermission(name: string): Promise<boolean> {
     try {
+      if (typeof navigator === 'undefined') return false;
       if (name === 'microphone') {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -108,10 +109,22 @@ export class PermissionService {
         });
         stream.getTracks().forEach((t) => t.stop());
       } else if (name === 'notifications') {
+        if (typeof Notification === 'undefined') return false;
         const status = await Notification.requestPermission();
-        this.refreshAllStatuses();
+        await this.refreshAllStatuses();
         return status === 'granted';
+      } else if (name === 'clipboard-read') {
+        if (!navigator.clipboard?.readText) return false;
+        await navigator.clipboard.readText();
+        await this.refreshAllStatuses();
+        return true;
+      } else if (name === 'midi') {
+        if (typeof (navigator as any).requestMIDIAccess !== 'function') return false;
+        await (navigator as any).requestMIDIAccess();
+        await this.refreshAllStatuses();
+        return true;
       } else if (name === 'geolocation') {
+        if (!navigator.geolocation) return false;
         return new Promise((resolve) => {
           navigator.geolocation.getCurrentPosition(
             () => {
@@ -126,7 +139,8 @@ export class PermissionService {
         });
       }
 
-      // For others, we refresh status as many are auto-granted or triggered by other actions
+      // For browser capabilities without an explicit prompt API, refresh the
+      // matrix and report the real capability instead of claiming permission.
       await this.refreshAllStatuses();
       return (
         this.permissions().find((p) => p.name === name)?.status === 'granted'

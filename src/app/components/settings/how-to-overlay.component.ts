@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, HostListener, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 interface Guide {
@@ -124,7 +124,7 @@ interface Guide {
         </div>
       </div>
 
-      <!-- Interactive Walkthrough Overlay (Simple Mock) -->
+      <!-- Interactive Walkthrough Overlay -->
       <div
         *ngIf="walkthroughActive()"
         class="fixed inset-0 z-[13000] pointer-events-none"
@@ -134,16 +134,15 @@ interface Guide {
         >
           <h4 class="text-sm font-black text-gray-900 uppercase mb-2">
             Walkthrough Active
-          </h4>
-          <p class="text-xs text-gray-600 mb-4">
-            Click through the app to see how things work. (Simulated)
+          </h4>            <p class="text-xs text-gray-600 mb-4">
+            Follow the selected guide one step at a time. Nothing is changed until you choose an action in the destination workspace.
           </p>
-          <button
-            (click)="walkthroughActive.set(false)"
-            class="w-full py-2 bg-gray-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest"
-          >
-            End Tour
-          </button>
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <button (click)="previousStep()" [disabled]="walkthroughStep() === 0" class="px-3 py-2 rounded-lg bg-gray-100 text-[10px] font-black uppercase disabled:opacity-40">Back</button>
+            <span class="text-[10px] font-bold text-gray-500">Step {{ walkthroughStep() + 1 }} / {{ currentGuide()?.content?.length || 0 }}</span>
+            <button (click)="nextStep()" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-[10px] font-black uppercase">{{ isLastStep() ? 'Finish' : 'Next' }}</button>
+          </div>
+          <button (click)="walkthroughActive.set(false)" class="w-full py-2 border border-gray-200 text-gray-700 rounded-lg text-[10px] font-black uppercase tracking-widest">End Tour</button>
         </div>
       </div>
     </div>
@@ -188,6 +187,7 @@ export class HowToOverlayComponent {
 
   selectedGuideId = signal('studio');
   walkthroughActive = signal(false);
+  walkthroughStep = signal(0);
 
   guides: Guide[] = [
     {
@@ -243,12 +243,35 @@ export class HowToOverlayComponent {
   currentGuide = signal<Guide | undefined>(this.guides[0]);
 
   updateCurrentGuide() {
-    this.currentGuide.set(
-      this.guides.find((g) => g.id === this.selectedGuideId())
-    );
+    this.currentGuide.set(this.guides.find((g) => g.id === this.selectedGuideId()));
+    this.walkthroughStep.set(0);
   }
 
   startWalkthrough() {
+    this.walkthroughStep.set(0);
     this.walkthroughActive.set(true);
+  }
+
+  nextStep() {
+    const last = (this.currentGuide()?.content.length ?? 1) - 1;
+    if (this.walkthroughStep() >= last) {
+      this.walkthroughActive.set(false);
+      return;
+    }
+    this.walkthroughStep.update((step) => step + 1);
+  }
+
+  previousStep() {
+    this.walkthroughStep.update((step) => Math.max(0, step - 1));
+  }
+
+  isLastStep() {
+    return this.walkthroughStep() >= (this.currentGuide()?.content.length ?? 1) - 1;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    this.walkthroughActive.set(false);
+    this.close.emit();
   }
 }

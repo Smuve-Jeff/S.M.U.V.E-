@@ -361,8 +361,8 @@
         </div>
 
         <!-- ─── Audio Devices Routing — output + input + monitor blend ─── -->
-        <div class="setting-group audio-devices-group">
-          <h4 class="setting-subhead">Audio Devices</h4>
+        <div class="setting-group audio-devices-group">          <h4
+            class="setting-subhead">Audio Devices</h4>
           <p class="setting-help">
             Pick where audio is routed, which mic is captured, and how the
             monitor blend mixes input with playback. Auto-adjust refreshes the
@@ -512,6 +512,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           <div class="setting-group">
             <label class="setting-label">Sampling Rate</label>
+            <p class="text-[10px] text-text-dim mt-1">Requested setting is saved for the next engine session. Active browser context: {{ audioEngine.nativeSampleRate }} Hz.</p>
             <select
               [ngModel]="settings().audio.sampleRate"
               (ngModelChange)="updateSetting('audio', 'sampleRate', $event)"
@@ -559,9 +560,18 @@
       <div
         *ngIf="activeTab() === 'ai'"
         class="flex flex-col gap-6 animate-enter"
-      >
+      >          <div class="setting-group">
+            <label class="setting-label">Evidence-First AI Contract</label>
+            <p class="text-xs text-text-dim mt-1">S.M.U.V.E. can adapt its tone and depth, but it must distinguish recorded profile facts from recommendations, assumptions, and missing data.</p>
+            <div class="mt-3 grid gap-2 md:grid-cols-3 text-[10px] uppercase tracking-widest font-bold">
+              <span class="px-3 py-2 rounded-lg bg-green-500/10 text-green-600">Recorded facts: allowed</span>
+              <span class="px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-600">Recommendations: labeled</span>
+              <span class="px-3 py-2 rounded-lg bg-red-500/10 text-red-600">Fabricated metrics: blocked</span>
+            </div>
+          </div>
+
         <div class="setting-group">
-          <label class="setting-label">Advisor Behavioral Persona</label>
+            <label class="setting-label">Advisor Behavioral Persona</label>
           <p class="text-xs text-text-dim mt-1">
             The advisor combines this preference with the recorded artist context above. It will ask for missing evidence instead of inventing audience, catalog, or platform data.
           </p>
@@ -998,13 +1008,7 @@
               <p class="text-xs text-text-dim">Shield access with 2FA.</p>
             </div>
             <button
-              (click)="
-                updateSetting(
-                  'security',
-                  'twoFactorEnabled',
-                  !settings().security.twoFactorEnabled
-                )
-              "
+              (click)="toggleTwoFactor(!settings().security.twoFactorEnabled)"
               class="toggle-btn"
               [class.on]="settings().security.twoFactorEnabled"
             >
@@ -1075,6 +1079,29 @@
               [class.on]="settings().security.auditLogEnabled"
             >
               <div class="toggle-handle"></div>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="twoFactorSetup() as setup" class="setting-group bg-brand-primary/5 border border-brand-primary/20 rounded-2xl p-4">
+          <h4 class="setting-subhead">2FA Enrollment Secret</h4>
+          <p class="text-xs text-text-dim mt-1">Add this secret to an authenticator app. It is shown once in this session; do not share it.</p>
+          <code class="block mt-3 break-all text-xs font-mono text-brand-primary">{{ setup.secret }}</code>
+          <p class="text-[10px] text-text-dim mt-3">Authenticator URI ready: {{ setup.qrCodeUri }}</p>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <input
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="6-digit code"
+              [ngModel]="twoFactorCode()"
+              (ngModelChange)="twoFactorCode.set($event)"
+              class="smuve-input flex-1 min-w-[9rem]"
+              aria-label="Authenticator verification code"
+            />
+            <button type="button" (click)="confirmTwoFactor()" class="setting-btn">
+              Verify &amp; activate
             </button>
           </div>
         </div>
@@ -1380,12 +1407,13 @@
       >
         <!-- Hardware Status Overview -->
         <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
-          <h4
-            class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center"
-          >
-            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
-            Hardware_Status_Matrix
-          </h4>
+          <div class="flex items-start justify-between gap-3">
+            <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center">
+              <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+              Hardware_Status_Matrix
+            </h4>
+            <button type="button" (click)="refreshHardware()" class="setting-btn">Rescan all</button>
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div
               class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2"
@@ -1454,6 +1482,7 @@
                   }}
                 </span>
               </div>
+              <span class="text-[9px] text-text-dim uppercase">{{ hardwareService.status().recordReady ? 'Record path ready' : 'No input path' }}</span>
             </div>
           </div>
         </div>

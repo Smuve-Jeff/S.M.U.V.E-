@@ -405,9 +405,12 @@ export class ExportService {
     const stream = canvas.captureStream(options.fps ?? 30);
     // Keep the canvas-owned tracks separate from the shared audio track. Stopping
     // the latter would mute the Studio after an export completes.
-    const canvasTracks = stream
-      .getTracks()
-      .filter((track) => track.kind !== 'audio');
+    // Older test doubles and a few embedded WebViews expose only addTrack;
+    // retain a safe cleanup path without making export fail before recording.
+    const canvasTracks =
+      typeof stream.getTracks === 'function'
+        ? stream.getTracks().filter((track) => track.kind !== 'audio')
+        : [];
 
     // Fold the live master bus into the recording so the exported master keeps
     // its score instead of shipping silent frames.
