@@ -65,7 +65,12 @@ export function normalizeImportedProfile(
     ...merged,
     settings: {
       ...overlay(base.settings, parsed.settings),
+      ui: overlay(base.settings.ui, parsed.settings?.ui),
+      audio: overlay(base.settings.audio, parsed.settings?.audio),
       ai: overlay(base.settings.ai, parsed.settings?.ai),
+      studio: overlay(base.settings.studio, parsed.settings?.studio),
+      dj: overlay(base.settings.dj, parsed.settings?.dj),
+      security: overlay(base.settings.security, parsed.settings?.security),
     },
     expertise: overlay(base.expertise, parsed.expertise),
     financials: {

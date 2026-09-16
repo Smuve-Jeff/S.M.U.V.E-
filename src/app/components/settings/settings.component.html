@@ -169,6 +169,23 @@
 
         <div class="setting-item">
           <div>
+            <h3 class="setting-title">Beginner Guidance Mode</h3>
+            <p class="text-xs text-text-dim">
+              Keep guided prompts and simplified next steps visible while you build your artist profile.
+            </p>
+          </div>
+          <button
+            (click)="updateSetting('ui', 'beginnerMode', !settings().ui.beginnerMode)"
+            class="toggle-btn"
+            [class.on]="settings().ui.beginnerMode"
+            [attr.aria-label]="'Beginner guidance ' + (settings().ui.beginnerMode ? 'enabled' : 'disabled')"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
             <h3 class="setting-title">Performance Mode</h3>
             <p class="text-xs text-text-dim">Optimize for lower CPU usage.</p>
           </div>
@@ -201,6 +218,30 @@
           >
             <div class="toggle-handle"></div>
           </button>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Profile → S.M.U.V.E. Context</label>
+          <p class="text-xs text-text-dim">
+            These counts are recorded profile evidence only. S.M.U.V.E. uses them to tune production, strategy, and career guidance; it does not infer missing facts.
+          </p>
+          <div class="grid gap-3 md:grid-cols-3 mt-2">
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Artist</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().artist }}</strong>
+              <p class="appearance-summary-detail">{{ profileAlignment().journeyStage }}</p>
+            </div>
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Recorded signals</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().recordedSignals }}</strong>
+              <p class="appearance-summary-detail">Journey and identity evidence</p>
+            </div>
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Official footprint</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().officialLinks }} links · {{ profileAlignment().catalogItems }} works</strong>
+              <p class="appearance-summary-detail">No analytics are implied by a link alone</p>
+            </div>
+          </div>
         </div>
 
         <div class="setting-group">
@@ -521,6 +562,9 @@
       >
         <div class="setting-group">
           <label class="setting-label">Advisor Behavioral Persona</label>
+          <p class="text-xs text-text-dim mt-1">
+            The advisor combines this preference with the recorded artist context above. It will ask for missing evidence instead of inventing audience, catalog, or platform data.
+          </p>
           <p class="text-[10px] text-text-dim mb-2">
             Configure how the S.M.U.V.E. AI communicates with you.
           </p>
@@ -1302,14 +1346,12 @@
               Cloud_Synchronization
             </h5>
             <p class="text-[10px] text-text-dim mb-4 leading-relaxed">
-              Neural assets and project structures are automatically mirrored
-              to our production clusters for cross-device availability.
+              Profile settings and local project assets are managed here. Cloud availability depends on the authenticated sync result; this panel does not claim a live connection without one.
             </p>
             <div class="flex items-center gap-2">
-              <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span
-                class="text-[9px] font-bold uppercase tracking-widest text-text-main"
-                >Live_Sync_Active</span
+              <div class="w-2 h-2 rounded-full bg-brand-primary"></div>
+              <span class="text-[9px] font-bold uppercase tracking-widest text-text-main"
+                >Profile_State_Loaded</span
               >
             </div>
           </div>
@@ -1324,7 +1366,7 @@
             <div class="flex items-center gap-2">
               <span
                 class="text-[9px] font-bold uppercase tracking-widest text-text-dim"
-                >Cache_Health: 98.4%</span
+                >Cache_Usage: measured above</span
               >
             </div>
           </div>

@@ -128,6 +128,7 @@ describe('SettingsComponent', () => {
             performanceMode: signal(false),
             togglePerformanceMode: jest.fn(),
             navigateToView: jest.fn(),
+            beginnerMode: signal(true),
             getAvailableThemes: jest.fn().mockReturnValue([
               {
                 name: 'Light',
@@ -256,6 +257,56 @@ describe('SettingsComponent', () => {
 
     expect(securityServiceMock.fetchLogs).toHaveBeenCalled();
     expect(securityServiceMock.fetchSessions).toHaveBeenCalled();
+  });
+
+  it('normalizes numeric form values before persisting settings', async () => {
+    const { component } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as {
+      updateProfile: jest.Mock;
+    };
+
+    component.updateSetting('audio' as any, 'masterVolume', '4');
+    component.updateSetting('studio' as any, 'latencyCompensation', '-20');
+
+    expect(profileService.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ latencyCompensation: 0 }),
+        }),
+      })
+    );
+    expect(profileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          audio: expect.objectContaining({ masterVolume: 1 }),
+        }),
+      })
+    );
+  });
+
+  it('keeps beginner guidance backed by the profile and local mirror', async () => {
+    const { component } = await createComponent();
+
+    component.updateSetting('ui' as any, 'beginnerMode', false);
+
+    expect((TestBed.inject(UserProfileService).profile() as any).settings.ui.beginnerMode).toBeUndefined();
+    expect(localStorage.getItem('smuve_beginner_mode')).toBe('off');
+    expect((TestBed.inject(UIService) as any).beginnerMode()).toBe(false);
+    expect((TestBed.inject(UserProfileService).updateProfile as jest.Mock)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ui: expect.objectContaining({ beginnerMode: false }),
+        }),
+      })
+    );
+  });
+
+  it('reports only recorded profile evidence in the S.M.U.V.E. context summary', async () => {
+    const { component } = await createComponent();
+
+    expect(component.profileAlignment().officialLinks).toBe(0);
+    expect(component.profileAlignment().catalogItems).toBe(0);
+    expect(component.profileAlignment().contextReady).toBe(false);
   });
 
   it('syncs theme changes through the shared UI service', async () => {

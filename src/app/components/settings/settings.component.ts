@@ -71,6 +71,31 @@ export class SettingsComponent implements OnInit {
     };
   }
   themeOptions = computed(() => this.uiService.getAvailableThemes());
+  profileAlignment = computed(() => {
+    const profile = this.profileService.profile();
+    const journey = profile.musicalJourney;
+    const blueprint = journey?.musicBlueprint;
+    const officialLinks = profile.officialArtistProfiles ?? [];
+    const recordedSignals = [
+      profile.artistName && profile.artistName !== 'New Artist',
+      profile.primaryGenre && profile.primaryGenre !== 'Hip Hop',
+      Boolean(journey?.originStory || journey?.firstSong || journey?.breakthroughMoment),
+      Boolean(journey?.signatureSound || blueprint?.artisticIntent || blueprint?.recognitionCue),
+      officialLinks.length > 0,
+      (profile.catalog ?? []).length > 0,
+    ].filter(Boolean).length;
+    return {
+      artist: profile.artistName || 'New Artist',
+      journeyStage: journey?.experienceLevel || 'Not calibrated',
+      recordedSignals,
+      officialLinks: officialLinks.length,
+      catalogItems: (profile.catalog ?? []).length,
+      contextReady: Boolean(
+        blueprint?.artisticIntent || blueprint?.signatureTension || journey?.signatureSound
+      ),
+    };
+  });
+
   appearanceSummary = computed(() => {
     const ui = this.settings().ui;
     return [
@@ -131,6 +156,16 @@ export class SettingsComponent implements OnInit {
   securityAudit = computed(() => this.securityService.getSecurityAudit());
 
   ngOnInit() {
+    // Keep the shell's legacy readers aligned with the profile-backed settings
+    // when an imported profile is opened in a fresh session.
+    const ui = this.settings().ui;
+    const studio = this.settings().studio;
+    try {
+      localStorage.setItem('smuve_beginner_mode', ui.beginnerMode ? 'on' : 'off');
+      document.body.classList.toggle('stage-fx-off', studio.stageFxEnabled === false);
+    } catch {
+      // Browser storage and DOM are optional in SSR, tests, and embedded hosts.
+    }
     this.securityService.fetchLogs();
     this.securityService.fetchSessions();
     this.updateStorageStats();
@@ -247,6 +282,21 @@ export class SettingsComponent implements OnInit {
   }
 
   updateSetting(category: keyof AppSettings, key: string, value: any) {
+    // Browser form controls emit strings for numeric selects/inputs. Normalize
+    // them here so downstream audio, latency, and security consumers never
+    // receive string concatenation or NaN values from Settings.
+    if (['masterVolume', 'latencyCompensation'].includes(key)) {
+      const parsed = Number(value);
+      value = Number.isFinite(parsed)
+        ? key === 'masterVolume'
+          ? Math.min(1, Math.max(0, parsed))
+          : Math.min(500, Math.max(0, parsed))
+        : 0;
+    }
+    if (['sampleRate', 'bufferSize', 'sessionTimeout'].includes(key)) {
+      const parsed = Number(value);
+      value = Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+    }
     // S.M.U.V.E. voice morph is permanently locked on — core identity feature
     if (category === 'ai' && key === 'aiVoiceShapeShiftEnabled') {
       value = true;
@@ -270,6 +320,16 @@ export class SettingsComponent implements OnInit {
     // Preview side effects
     if (category === 'ui' && key === 'theme') {
       this.uiService.setTheme(value);
+    }
+    if (category === 'ui' && key === 'beginnerMode') {
+      // Keep the shared shell signal in lockstep with the profile write. The
+      // optional guard also supports lightweight embedded/test hosts.
+      this.uiService.beginnerMode?.set(!!value);
+      try {
+        localStorage.setItem('smuve_beginner_mode', value ? 'on' : 'off');
+      } catch {
+        // Locked storage is non-fatal; the profile remains the source of truth.
+      }
     }
     if (category === 'studio' && key === 'stageFxEnabled') {
       if (typeof document !== 'undefined') {
