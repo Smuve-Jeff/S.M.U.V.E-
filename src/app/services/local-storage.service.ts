@@ -23,7 +23,7 @@ export type PersistenceState = 'ready' | 'unsupported' | 'blocked' | 'failed';
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 6;
+  private dbVersion = 7;
   private db: IDBDatabase | null = null;
   /** Why persistence is unavailable, when it is. Null while everything works. */
   private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
@@ -60,6 +60,12 @@ export class LocalStorageService {
       // a malformed audio project. Added in v6 — earlier DBs get it on upgrade.
       if (!db.objectStoreNames.contains('cinema_projects')) {
         db.createObjectStore('cinema_projects', { keyPath: 'id' });
+      }
+      // Stored footage, kept apart from the project record on purpose: listing
+      // projects must not drag every take in the library into memory. Added in
+      // v7 — earlier DBs get it on upgrade.
+      if (!db.objectStoreNames.contains('cinema_media')) {
+        db.createObjectStore('cinema_media', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('audio_blobs')) {
         db.createObjectStore('audio_blobs', { keyPath: 'id' });
@@ -198,6 +204,31 @@ export class LocalStorageService {
           }
           resolve(result);
         };
+        request.onerror = (event: any) => reject(event.target.error);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  /**
+   * Just the keys of a store, without reading a single record.
+   *
+   * Pruning stored footage needs to know which entries belong to a project and
+   * which of those are still referenced — reading the records back to find out
+   * would pull every stored take into memory to answer a question about names.
+   */
+  async getAllKeys(storeName: string): Promise<IDBValidKey[]> {
+    const ready = await this.ensureReady();
+    if (!ready || !this.db) return [];
+
+    return new Promise((resolve, reject) => {
+      try {
+        const transaction = this.db!.transaction([storeName], 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.getAllKeys();
+
+        request.onsuccess = (event: any) => resolve(event.target.result ?? []);
         request.onerror = (event: any) => reject(event.target.error);
       } catch (e) {
         reject(e);

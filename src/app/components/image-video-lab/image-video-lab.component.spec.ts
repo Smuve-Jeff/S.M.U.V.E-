@@ -164,6 +164,11 @@ describe('ImageVideoLabComponent', () => {
       countdownLabel: jest.fn().mockReturnValue(null),
       cueFired: signal(0),
       getActiveClips: jest.fn().mockReturnValue([]),
+      findClip: jest.fn().mockReturnValue(null),
+      // Two seconds per bar is 120 BPM in 4/4, matching the engine's own maths.
+      barsForDuration: jest.fn((seconds: number) =>
+        Math.max(1, Math.round(seconds / 2))
+      ),
       togglePlay: jest.fn(),
       play: jest.fn(),
       pause: jest.fn(),
@@ -1285,6 +1290,48 @@ describe('ImageVideoLabComponent', () => {
     });
   });
 
+  describe('selected clip readout', () => {
+    const selectClip = (
+      videoEngine: { findClip: jest.Mock },
+      component: { selectedClipId: { set: (id: string) => void } }
+    ) => {
+      videoEngine.findClip.mockReturnValue({
+        id: 'clip-1',
+        name: 'Shot',
+        duration: 10,
+        trackId: 't1',
+      });
+      component.selectedClipId.set('clip-1');
+    };
+
+    it('reports the shot length in bars next to the seconds', async () => {
+      const { component, videoEngine } = await createComponent();
+      selectClip(videoEngine, component);
+
+      // A music-video cut is planned in bars, and 10s at 120 BPM is five.
+      expect(component.selectedClipBars()).toBe('5 bars');
+    });
+
+    it('keeps a single bar singular', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue({
+        id: 'clip-1',
+        name: 'Cut',
+        duration: 1,
+        trackId: 't1',
+      });
+      component.selectedClipId.set('clip-1');
+
+      expect(component.selectedClipBars()).toBe('1 bar');
+    });
+
+    it('claims nothing about bars with no clip selected', async () => {
+      const { component } = await createComponent();
+
+      expect(component.selectedClipBars()).toBe('');
+    });
+  });
+
   /**
    * The persistence panel's wiring. The service itself is covered by its own
    * spec; what is tested here is the glue the user actually touches — which name
@@ -1297,7 +1344,11 @@ describe('ImageVideoLabComponent', () => {
 
       await component.saveProject();
 
-      expect(cinemaProjects.save).toHaveBeenCalledWith('Feature Cut');
+      expect(cinemaProjects.save).toHaveBeenCalledWith(
+        'Feature Cut',
+        null,
+        expect.any(Map)
+      );
       expect(component.aiFeedback()).toBe('PROJECT SAVED: FEATURE CUT.');
     });
 

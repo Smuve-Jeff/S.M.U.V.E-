@@ -43,9 +43,27 @@ export interface CinemaOpenOutcome {
   ok: boolean;
   message: string;
   report?: CinemaRestoreReport;
+  /**
+   * Footage that came back with the project, keyed by the clip's `mediaId`. The
+   * caller mints object urls from these — the service deliberately does not, so
+   * that whoever creates a url is also the one who revokes it.
+   */
+  media?: Map<string, Blob>;
+}
+
+/** Stored footage, addressed by `projectId::mediaId`. */
+export interface CinemaMediaRecord {
+  id: string;
+  projectId: string;
+  mediaId: string;
+  name: string;
+  type: string;
+  size: number;
+  blob: Blob;
 }
 
 const STORE = 'cinema_projects';
+const MEDIA_STORE = 'cinema_media';
 const MAX_NAME_LENGTH = 60;
 
 /**
@@ -57,12 +75,11 @@ const MAX_NAME_LENGTH = 60;
  * timeline, the shots, the markers, the delivery preset and the broadcast
  * settings.
  *
- * Media is not saved, and that is a deliberate limit rather than an oversight.
- * Ingested files and camera takes are `blob:` object URLs owned by the session
- * that created them, so their bytes are unreachable the moment that document
- * goes away; a `data:` url (a captured still, an AI frame) does carry its own
- * bytes and is kept. Whatever cannot be re-read is stored without a url, and the
- * reopen path says so plainly instead of presenting an empty frame as a bug.
+ * Media is stored separately from the edit. Ingested files and camera takes
+ * arrive as `blob:` object URLs, so the component collects their bytes before a
+ * save and the reopen path returns fresh Blobs for the renderer to rehydrate.
+ * `data:` URLs remain self-contained in the snapshot. If a source cannot be
+ * read, the project is still saved and reports the missing footage honestly.
  *
  * Records live in their own IndexedDB store. The shared `projects` store is read
  * back whole by ProjectService as audio `Project`s, so a video timeline parked
@@ -157,7 +174,8 @@ export class CinemaProjectService {
    */
   async save(
     name: string,
-    id: string | null = this.activeProjectId()
+    id: string | null = this.activeProjectId(),
+    media?: Map<string, Blob>
   ): Promise<CinemaSaveOutcome> {
     if (this.isBusy()) {
       return { ok: false, id, message: 'A save is already in progress.' };
@@ -186,9 +204,11 @@ export class CinemaProjectService {
       const existing = id
         ? ((await this.storage.getItem(STORE, id)) as CinemaProjectRecord | null)
         : null;
+      const projectId = id ?? this.mintId();
+      const supplied = new Set(media?.keys() ?? []);
       const now = Date.now();
       const record: CinemaProjectRecord = {
-        id: id ?? this.mintId(),
+        id: projectId,
         name: title,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
@@ -196,22 +216,33 @@ export class CinemaProjectService {
         presetName: this.engine.deliveryPreset().name,
         clipCount: this.countClips(snapshot),
         markerCount: snapshot.markers.length,
-        needsMediaCount: this.countClipsWithoutMedia(snapshot),
+        needsMediaCount: this.countClipsWithoutMedia(snapshot, supplied),
         snapshot,
       };
+
+      // Footage first. If storage is full the record must not land either, or a
+      // project would read as saved with its media quietly absent.
+      const storedMedia = await this.persistMedia(
+        projectId,
+        this.referencedMediaIds(snapshot),
+        media,
+        snapshot
+      );
 
       await this.storage.saveItem(STORE, record);
       this.activeProjectId.set(record.id);
       await this.refresh();
 
+      const footage =
+        storedMedia > 0 ? ` ${storedMedia} media file(s) stored.` : '';
       const stale =
         record.needsMediaCount > 0
-          ? ` ${record.needsMediaCount} clip${record.needsMediaCount === 1 ? '' : 's'} will need media re-ingested.`
+          ? ` ${record.needsMediaCount} clip${record.needsMediaCount === 1 ? ' has' : 's have'} no footage attached.`
           : '';
       return {
         ok: true,
         id: record.id,
-        message: `PROJECT SAVED: ${record.name.toUpperCase()} · ${record.clipCount} CLIP(S), ${record.markerCount} MARKER(S).${stale}`,
+        message: `PROJECT SAVED: ${record.name.toUpperCase()} · ${record.clipCount} CLIP(S), ${record.markerCount} MARKER(S).${footage}${stale}`,
       };
     } catch (error) {
       this.logger.error('CinemaProjectService: save failed', error);
@@ -257,14 +288,30 @@ export class CinemaProjectService {
       const report = this.engine.restore(record.snapshot);
       this.activeProjectId.set(record.id);
 
+      const media = await this.loadMedia(
+        record.id,
+        this.referencedMediaIds(record.snapshot)
+      );
+      // Recounted with the footage in hand: a clip with no url that has a stored
+      // blob is not missing anything.
+      report.clipsMissingMedia = this.countClipsWithoutMedia(
+        record.snapshot,
+        new Set(media.keys())
+      );
+
+      const footage =
+        media.size > 0
+          ? ` ${media.size} clip${media.size === 1 ? '' : 's'} restored with stored footage.`
+          : '';
       const missing =
         report.clipsMissingMedia > 0
-          ? ` ${report.clipsMissingMedia} clip${report.clipsMissingMedia === 1 ? '' : 's'} lost their media with the last session and must be ingested again.`
+          ? ` ${report.clipsMissingMedia} clip${report.clipsMissingMedia === 1 ? '' : 's'} still need footage.`
           : '';
       return {
         ok: true,
         report,
-        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${missing}`,
+        media,
+        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}`,
       };
     } catch (error) {
       this.logger.error('CinemaProjectService: open failed', error);
@@ -285,6 +332,13 @@ export class CinemaProjectService {
 
     try {
       await this.storage.deleteItem(STORE, id);
+      // Take the footage with it — nothing else can reference those keys.
+      const mediaKeys = await this.storage.getAllKeys(MEDIA_STORE);
+      for (const key of mediaKeys) {
+        if (typeof key === 'string' && key.startsWith(`${id}::`)) {
+          await this.storage.deleteItem(MEDIA_STORE, key);
+        }
+      }
       if (this.activeProjectId() === id) this.activeProjectId.set(null);
       await this.refresh();
       return true;
@@ -325,12 +379,107 @@ export class CinemaProjectService {
     );
   }
 
-  private countClipsWithoutMedia(snapshot: CinemaSnapshot): number {
+  /**
+   * Clips that will have nothing to draw when this project is reopened: no
+   * inline `data:` url of their own, and no stored footage to mint one from.
+   *
+   * `storedIds` is the set of media ids that will be (or were) available, so a
+   * clip whose footage is in the library is not counted as missing.
+   */
+  private countClipsWithoutMedia(
+    snapshot: CinemaSnapshot,
+    storedIds: Set<string> = new Set()
+  ): number {
     return (snapshot.tracks ?? []).reduce(
       (total, track) =>
-        total + (track.clips ?? []).filter((clip) => !clip.url).length,
+        total +
+        (track.clips ?? []).filter(
+          (clip) => !clip.url && !(clip.mediaId && storedIds.has(clip.mediaId))
+        ).length,
       0
     );
+  }
+
+  /** Every media id the snapshot's clips point at. */
+  private referencedMediaIds(snapshot: CinemaSnapshot): Set<string> {
+    const ids = new Set<string>();
+    (snapshot.tracks ?? []).forEach((track) =>
+      (track.clips ?? []).forEach((clip) => {
+        if (clip.mediaId) ids.add(clip.mediaId);
+      })
+    );
+    return ids;
+  }
+
+  private mediaKey(projectId: string, mediaId: string): string {
+    return `${projectId}::${mediaId}`;
+  }
+
+  /**
+   * Write the footage the timeline references, and release what it no longer
+   * does — a re-cut that dropped a take should not leave its bytes behind.
+   *
+   * Media is addressed as `projectId::mediaId` so a project's library can be
+   * pruned and deleted by key prefix, without reading a single blob back.
+   */
+  private async persistMedia(
+    projectId: string,
+    referenced: Set<string>,
+    media: Map<string, Blob> | undefined,
+    snapshot: CinemaSnapshot
+  ): Promise<number> {
+    const keys = await this.storage.getAllKeys(MEDIA_STORE);
+    for (const key of keys) {
+      if (typeof key !== 'string' || !key.startsWith(`${projectId}::`)) continue;
+      if (referenced.has(key.slice(projectId.length + 2))) continue;
+      await this.storage.deleteItem(MEDIA_STORE, key);
+    }
+
+    if (!media || media.size === 0) return 0;
+
+    const names = new Map<string, string>();
+    (snapshot.tracks ?? []).forEach((track) =>
+      (track.clips ?? []).forEach((clip) => {
+        if (clip.mediaId) names.set(clip.mediaId, clip.name);
+      })
+    );
+
+    let stored = 0;
+    for (const [mediaId, blob] of media) {
+      if (!referenced.has(mediaId) || !blob || blob.size === 0) continue;
+      const record: CinemaMediaRecord = {
+        id: this.mediaKey(projectId, mediaId),
+        projectId,
+        mediaId,
+        name: names.get(mediaId) ?? 'Footage',
+        type: blob.type || 'application/octet-stream',
+        size: blob.size,
+        blob,
+      };
+      await this.storage.saveItem(MEDIA_STORE, record);
+      stored += 1;
+    }
+    return stored;
+  }
+
+  /** Read back the footage a snapshot references, one key at a time. */
+  private async loadMedia(
+    projectId: string,
+    referenced: Set<string>
+  ): Promise<Map<string, Blob>> {
+    const found = new Map<string, Blob>();
+    for (const mediaId of referenced) {
+      try {
+        const record = (await this.storage.getItem(
+          MEDIA_STORE,
+          this.mediaKey(projectId, mediaId)
+        )) as CinemaMediaRecord | null;
+        if (record?.blob) found.set(mediaId, record.blob);
+      } catch (error) {
+        this.logger.warn('CinemaProjectService: stored media unreadable', error);
+      }
+    }
+    return found;
   }
 
   private normalizeName(name: string): string {

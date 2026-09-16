@@ -199,6 +199,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   >();
   /** Object URLs minted by this component (camera takes) — revoked on destroy. */
   private readonly ownedObjectUrls = new Set<string>();
+  /**
+   * Footage that arrived with a project opened this session, keyed by the id on
+   * the clip. Clips made in this session are not listed here: their bytes are
+   * still reachable through their own object url, and are read at save time.
+   */
+  private readonly mediaBlobs = new Map<string, Blob>();
+  private mediaCounter = 0;
   activePreset = computed(() => this.videoEngine.deliveryPreset());
   productionBlueprint = computed(() => {
     const preset = this.activePreset();
@@ -354,6 +361,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectedClipLane = computed(
     () => this.selectedClip()?.trackId ?? null
   );
+  /**
+   * Shot length in bars.
+   *
+   * Bars are the unit a music-video cut is actually planned in, and the engine
+   * already derived this with nothing asking for it — the toolbar reported
+   * seconds only, which is the right unit for a film and the wrong one for a
+   * cut that has to land on the song.
+   */
+  selectedClipBars = computed(() => {
+    const clip = this.selectedClip();
+    if (!clip) return '';
+    const bars = this.videoEngine.barsForDuration(clip.duration);
+    return `${bars} ${bars === 1 ? 'bar' : 'bars'}`;
+  });
   clipCount = computed(() =>
     this.videoEngine.tracks().reduce((total, track) => total + track.clips.length, 0)
   );
@@ -862,7 +883,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Save the current edit, creating a project the first time. */
   async saveProject(): Promise<void> {
-    const outcome = await this.cinemaProjects.save(this.projectName());
+    const footage = await this.collectTimelineMedia();
+    const outcome = await this.cinemaProjects.save(
+      this.projectName(),
+      this.cinemaProjects.activeProjectId(),
+      footage
+    );
     if (outcome.ok) {
       const saved = this.cinemaProjects.activeProject();
       if (saved) this.projectName.set(saved.name);
@@ -881,8 +907,41 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // Opening a project replaces the entire timeline, so everything decoded
       // for the project being closed is now dead weight.
       this.evictUnusedMedia();
+      this.adoptStoredMedia(outcome.media);
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
+  }
+
+  /**
+   * Reattach footage that came back with a project.
+   *
+   * `restore()` leaves a clip whose url was a session-only `blob:` without one,
+   * because the url died with the document that minted it. Stored bytes are what
+   * survives, so the url is minted again here — for the clip that owns those
+   * bytes, and only that clip, so two cuts of one take do not fight over a
+   * single element's playback position later.
+   */
+  private adoptStoredMedia(media?: Map<string, Blob>): void {
+    if (!media || media.size === 0) return;
+
+    this.mediaBlobs.clear();
+    media.forEach((blob, mediaId) => this.mediaBlobs.set(mediaId, blob));
+
+    const urls = new Map<string, string>();
+    this.videoEngine.tracks().forEach((track) =>
+      track.clips.forEach((clip) => {
+        if (clip.url || !clip.mediaId) return;
+        const blob = media.get(clip.mediaId);
+        if (!blob) return;
+        let url = urls.get(clip.mediaId);
+        if (!url) {
+          url = URL.createObjectURL(blob);
+          urls.set(clip.mediaId, url);
+          this.ownedObjectUrls.add(url);
+        }
+        this.videoEngine.updateClip(clip.id, { url });
+      })
+    );
   }
 
   async deleteProject(id: string, event?: Event): Promise<void> {
@@ -1584,6 +1643,54 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * the same session must still find its media, and the bytes are released on
    * destroy exactly as before — this only drops the decoding.
    */
+  /**
+   * Hold a source file for saving, and return the id its clip will carry.
+   *
+   * Without this the clip only ever has a `blob:` url, which is why saving used
+   * to store a timeline whose every clip needed re-ingesting on reopen.
+   *
+   * The bytes are read back through the clip's own object url rather than
+   * captured where the file was ingested. An object url keeps its blob alive for
+   * as long as the document does, and reading it here means *any* path that puts
+   * footage on the timeline is covered — including ones added later, which would
+   * otherwise have to remember to register themselves and would fail silently if
+   * they did not. A `data:` url already carries its own bytes in the snapshot and
+   * is skipped. So is anything already known from a project opened this session,
+   * which is what stops a reopen-and-resave from copying footage a second time.
+   */
+  private async collectTimelineMedia(): Promise<Map<string, Blob>> {
+    const footage = new Map<string, Blob>();
+    const clips = this.videoEngine.tracks().flatMap((track) => track.clips);
+
+    for (const clip of clips) {
+      if (!clip.mediaId) {
+        // Stamped here so the saved snapshot can name its own footage; the
+        // service stores media under `projectId::mediaId`.
+        const id = `m${++this.mediaCounter}`;
+        this.videoEngine.updateClip(clip.id, { mediaId: id });
+        clip.mediaId = id;
+      }
+
+      const known = this.mediaBlobs.get(clip.mediaId);
+      if (known) {
+        footage.set(clip.mediaId, known);
+        continue;
+      }
+
+      if (!clip.url?.startsWith('blob:')) continue;
+      try {
+        const blob = await (await fetch(clip.url)).blob();
+        if (blob.size > 0) footage.set(clip.mediaId, blob);
+      } catch (error) {
+        // A url whose bytes are gone leaves the clip unstored, and the save
+        // reports it as needing footage rather than failing outright.
+        this.logger.warn('CinemaEngine: footage could not be read for save', error);
+      }
+    }
+
+    return footage;
+  }
+
   private evictUnusedMedia(): void {
     const liveUrls = new Set(
       this.videoEngine

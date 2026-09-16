@@ -282,6 +282,7 @@
           <div class="selected-clip-toolbar" *ngIf="selectedClip(); as clip">
             <span class="selected-clip-name">{{ clip.name }}</span>
             <span>{{ clip.startTime | number: '1.2-2' }}s · {{ clip.duration | number: '1.2-2' }}s</span>
+            <span class="selected-clip-bars">{{ selectedClipBars() }}</span>
             <button type="button" (click)="nudgeSelectedClip(-1 / 30)">−1F</button>
             <button type="button" (click)="nudgeSelectedClip(1 / 30)">+1F</button>
             <select aria-label="Move selected clip to lane" [ngModel]="selectedClipLane()" (ngModelChange)="moveSelectedClipToLane($event)">

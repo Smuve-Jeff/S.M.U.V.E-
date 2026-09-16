@@ -34,27 +34,40 @@ const clip = (
 
 describe('CinemaProjectService', () => {
   let stored: Map<string, any>;
+  let mediaStored: Map<string, any>;
   let storage: {
     persistenceStatus: jest.Mock;
     saveItem: jest.Mock;
     getItem: jest.Mock;
     getAllItems: jest.Mock;
+    getAllKeys: jest.Mock;
     deleteItem: jest.Mock;
   };
 
   const buildStorage = () => {
     stored = new Map<string, any>();
+    mediaStored = new Map<string, any>();
     storage = {
       persistenceStatus: jest.fn(async () => 'ready'),
-      saveItem: jest.fn(async (_store: string, item: any) => {
-        stored.set(item.id, item);
+      saveItem: jest.fn(async (storeName: string, item: any) => {
+        (storeName === 'cinema_media' ? mediaStored : stored).set(item.id, item);
       }),
-      getItem: jest.fn(async (_store: string, id: string) =>
-        stored.has(id) ? stored.get(id) : null
+      getItem: jest.fn(async (storeName: string, id: string) => {
+        const source = storeName === 'cinema_media' ? mediaStored : stored;
+        return source.has(id) ? source.get(id) : null;
+      }),
+      getAllItems: jest.fn(async (storeName: string) =>
+        storeName === 'cinema_media'
+          ? Array.from(mediaStored.values())
+          : Array.from(stored.values())
       ),
-      getAllItems: jest.fn(async () => Array.from(stored.values())),
-      deleteItem: jest.fn(async (_store: string, id: string) => {
-        stored.delete(id);
+      getAllKeys: jest.fn(async (storeName: string) =>
+        Array.from(
+          (storeName === 'cinema_media' ? mediaStored : stored).keys()
+        )
+      ),
+      deleteItem: jest.fn(async (storeName: string, id: string) => {
+        (storeName === 'cinema_media' ? mediaStored : stored).delete(id);
       }),
     };
     return storage;
@@ -130,7 +143,7 @@ describe('CinemaProjectService', () => {
 
       expect(outcome.ok).toBe(true);
       expect(outcome.message).toContain('1 clip');
-      expect(outcome.message).toContain('re-ingested');
+      expect(outcome.message).toContain('no footage attached');
       expect(service.projects()[0].needsMediaCount).toBe(1);
     });
 
@@ -239,7 +252,7 @@ describe('CinemaProjectService', () => {
         markers: 1,
         clipsMissingMedia: 1,
       });
-      expect(outcome.message).toContain('lost their media');
+      expect(outcome.message).toContain('still need footage');
       expect(engine.markers()).toHaveLength(1);
       expect(
         engine.tracks().find((track) => track.id === 't1')!.clips
@@ -271,6 +284,42 @@ describe('CinemaProjectService', () => {
       expect(outcome.ok).toBe(false);
       expect(outcome.message).toContain('different version');
       expect(engine.markers()).toEqual([]);
+    });
+  });
+
+  describe('media persistence', () => {
+    it('stores referenced footage and rehydrates it when reopening', async () => {
+      const { service, engine } = createHarness();
+      const mediaId = 'take-1';
+      engine.addClip('t1', clip({ url: 'blob:take-1', mediaId }));
+      const footage = new Blob(['frame-data'], { type: 'video/webm' });
+
+      const saved = await service.save('Stored Take', null, new Map([[mediaId, footage]]));
+      expect(saved.ok).toBe(true);
+      expect(mediaStored.get(`${saved.id}::${mediaId}`).blob).toBe(footage);
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.media?.get(mediaId)).toBe(footage);
+      expect(opened.report?.clipsMissingMedia).toBe(0);
+    });
+
+    it('prunes footage that is no longer referenced by the saved cut', async () => {
+      const { service, engine } = createHarness();
+      const mediaId = 'keep-me';
+      engine.addClip('t1', clip({ url: 'blob:take-1', mediaId }));
+      const saved = await service.save(
+        'Prunable Cut',
+        null,
+        new Map([[mediaId, new Blob(['take'])]])
+      );
+      expect(mediaStored).toHaveProperty('size', 1);
+
+      engine.removeClip(engine.tracks()[0].clips[0].id);
+      await service.save('Prunable Cut', saved.id, new Map());
+
+      expect(mediaStored.size).toBe(0);
     });
   });
 

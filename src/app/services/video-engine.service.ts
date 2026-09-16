@@ -63,6 +63,14 @@ export interface VideoClip {
    */
   source?: 'upload' | 'ai' | 'camera' | 'screen';
   /**
+   * Identifies the clip's footage in the project's stored media library.
+   *
+   * A `blob:` url cannot be reopened after a reload, so the bytes are kept under
+   * this id and a fresh url is minted on load. Clips whose media is a `data:` url
+   * carry their own bytes and need no id.
+   */
+  mediaId?: string;
+  /**
    * Director note printed on the clip's shot card when it has no decoded media
    * yet — how an AI-staged shot describes itself before it is shot.
    */
@@ -95,11 +103,9 @@ export interface VideoTrack {
 /**
  * Everything the operator edits, in a form that survives a reload.
  *
- * Media is deliberately not part of it. Ingested files, camera takes and AI
- * stills are all session-scoped object URLs, so their bytes are already gone by
- * the time a project is reopened; anything that cannot be re-read is stored with
- * an empty url, which is exactly the state the renderer already understands as
- * "staged, not shot yet".
+ * Media bytes are deliberately kept outside this snapshot. The cinema project
+ * store owns them separately and rehydrates `mediaId` clips after reload; this
+ * keeps timeline metadata light while allowing footage to outlive the tab.
  */
 /**
  * Snapshot format version, written with every saved project.

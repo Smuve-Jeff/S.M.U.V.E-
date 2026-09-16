@@ -369,6 +369,16 @@ canvas {
   gap: 0.4rem;
 }
 
+/* Musical unit, so it reads as distinct from the seconds beside it. */
+.selected-clip-bars {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.08);
+  white-space: nowrap;
+}
+
 .timeline-toolbar {
   min-height: 1.8rem;
 }
