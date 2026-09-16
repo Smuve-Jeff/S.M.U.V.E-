@@ -1,6 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { UserProfileService, UserProfile } from './user-profile.service';
+import { UserProfileService } from './user-profile.service';
+import {
+  findPersona,
+  getPersonaOption,
+  personaRoster,
+  SMUVE_PERSONAS,
+} from '../types/persona.types';
 import { ProjectService } from './project.service';
 import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
@@ -46,6 +52,16 @@ export interface CommandResult {
   duration?: string;
 }
 
+/** Informational command actions that never require full control. */
+const READ_ONLY_CONTROL_ACTIONS = new Set([
+  'formats',
+  'status',
+  'overview',
+  'list',
+  'count',
+  'available',
+]);
+
 @Injectable({ providedIn: 'root' })
 export class SmuveTotalControlService {
   private router = inject(Router);
@@ -75,11 +91,57 @@ export class SmuveTotalControlService {
       };
     }
 
+    const controlEnabled =
+      this.userProfile.profile().settings?.ai?.aiTotalControlEnabled === true;
+    // Asking what export formats exist, or for a track list, is not a change.
+    const readOnly = READ_ONLY_CONTROL_ACTIONS.has(command.action);
+    if (!readOnly && this.requiresFullControl(command) && !controlEnabled) {
+      return {
+        success: false,
+        message:
+          'Musical GOD Full-Control Mode is off. S.M.U.V.E. will advise on projects, profile, and exports, but will not change them until you grant command authority in Settings → AI (or type /ai totalcontrol).',
+        actionRequired: 'Enable AI Total Control in Settings',
+      };
+    }
+    // With full control granted the artist has handed over command authority,
+    // so the command executes. Without it, an irreversible command pauses for
+    // an explicit confirmation instead of failing silently for everyone.
+    if (!readOnly && command.requiresConfirmation && !controlEnabled) {
+      return {
+        success: false,
+        message: `Confirmation required before S.M.U.V.E. executes ${command.action}. Review the target and confirm explicitly — or grant Full-Control Mode to let S.M.U.V.E. execute directly.`,
+        actionRequired: `Confirm ${command.action}`,
+      };
+    }
+
     this.activeCommand.set(command);
     const result = await this.routeCommand(command);
     this.commandHistory.update((h) => [...h.slice(-19), result]);
     this.activeCommand.set(null);
     return result;
+  }
+
+  /**
+   * Which commands need the artist to have granted command authority.
+   *
+   * Read-only questions always work (asking for export formats or a track list
+   * is not a change), and opening the profile editor is navigation. Everything
+   * that writes — projects, exports, profile mutations, and any delete/remove/
+   * publish/reset verb — needs Full-Control Mode.
+   */
+  private requiresFullControl(command: ControlCommand): boolean {
+    if (READ_ONLY_CONTROL_ACTIONS.has(command.action)) return false;
+    if (
+      /delete|remove|publish|release|send|commit|overwrite|clear|reset/i.test(
+        `${command.action} ${command.target || ''}`
+      )
+    ) {
+      return true;
+    }
+    if (command.domain === 'export' || command.domain === 'project') {
+      return true;
+    }
+    return command.domain === 'profile' && !/^(edit|open)$/.test(command.action);
   }
 
   private parseCommand(input: string): ControlCommand | null {
@@ -222,9 +284,13 @@ export class SmuveTotalControlService {
       };
     }
 
-    // Track commands
-    if (text.startsWith('/track ')) {
-      const action = text.replace('/track ', '');
+    // Track commands — `/track list` and `/tracks list` are both offered in the
+    // command help, so both forms have to resolve.
+    if (text === '/track' || text === '/tracks') {
+      return { domain: 'tracks', action: 'list', requiresConfirmation: false };
+    }
+    if (text.startsWith('/track ') || text.startsWith('/tracks ')) {
+      const action = text.replace(/^\/tracks? /, '');
       return { domain: 'tracks', action, requiresConfirmation: false };
     }
 
@@ -372,7 +438,16 @@ export class SmuveTotalControlService {
       };
     }
 
-    // Export commands
+    // Export commands — `/export formats` used to be parsed as "export in the
+    // FORMATS format" and answered with a confirmation request instead of the
+    // format list the help text advertises.
+    if (text === '/export' || text === '/export formats') {
+      return {
+        domain: 'export',
+        action: 'formats',
+        requiresConfirmation: false,
+      };
+    }
     if (text.startsWith('/export ')) {
       const format = text.replace('/export ', '');
       return {
@@ -380,13 +455,6 @@ export class SmuveTotalControlService {
         action: 'export',
         target: format,
         requiresConfirmation: true,
-      };
-    }
-    if (text === '/export') {
-      return {
-        domain: 'export',
-        action: 'formats',
-        requiresConfirmation: false,
       };
     }
 
@@ -429,26 +497,75 @@ export class SmuveTotalControlService {
     }
   }
 
+  /**
+   * Every destination S.M.U.V.E. can drive the artist to, keyed by the words an
+   * artist actually types. Mirrors `app.routes.ts`, so "open the remix arena"
+   * (or any other module) works instead of failing with a partial list.
+   */
+  private readonly navigateRoutes: Record<string, string> = {
+    hub: '/hub',
+    home: '/hub',
+    dashboard: '/hub',
+    studio: '/studio',
+    mixer: '/mixer',
+    'vocal-suite': '/vocal-suite',
+    vocals: '/vocal-suite',
+    profile: '/profile',
+    'tha-spot': '/tha-spot',
+    arcade: '/tha-spot',
+    'gaming-hub': '/gaming-hub',
+    games: '/gaming-hub',
+    practice: '/practice',
+    analytics: '/analytics',
+    strategy: '/strategy',
+    career: '/career',
+    projects: '/projects',
+    'release-pipeline': '/release-pipeline',
+    release: '/release-pipeline',
+    produce: '/produce',
+    'ai-produce': '/produce',
+    'business-suite': '/business-suite',
+    business: '/business-suite',
+    'knowledge-base': '/knowledge-base',
+    knowledge: '/knowledge-base',
+    'lyric-editor': '/lyric-editor',
+    lyrics: '/lyric-editor',
+    'remix-arena': '/remix-arena',
+    remix: '/remix-arena',
+    'image-video-lab': '/image-video-lab',
+    lab: '/image-video-lab',
+    settings: '/settings',
+    inbox: '/inbox',
+    turntable: '/turntable',
+    decks: '/decks',
+    dj: '/dj',
+    'piano-roll': '/piano-roll',
+    piano: '/piano-roll',
+    'drum-machine': '/drum-machine',
+    performance: '/performance',
+    mastering: '/mastering',
+    networking: '/networking',
+    player: '/player',
+    'image-editor': '/image-editor',
+    'video-editor': '/video-editor',
+    cowrite: '/cowrite',
+    'co-write': '/cowrite',
+    'artist-development': '/artist-development',
+    'dev-hub': '/dev-hub',
+    store: '/store',
+    storefront: '/store',
+    products: '/products',
+    vault: '/products',
+    cloud: '/cloud',
+    'cloud-vault': '/cloud',
+    timeline: '/timeline',
+  };
+
   private handleNavigation(cmd: ControlCommand): CommandResult {
-    const validRoutes: Record<string, string> = {
-      studio: '/studio',
-      mixer: '/mixer',
-      profile: '/profile',
-      hub: '/hub',
-      'tha-spot': '/tha-spot',
-      strategy: '/strategy',
-      'vocal-suite': '/vocal-suite',
-      career: '/career',
-      projects: '/projects',
-      settings: '/settings',
-      'piano-roll': '/piano-roll',
-      'drum-machine': '/drum-machine',
-      dj: '/dj',
-      release: '/release-pipeline',
-      business: '/business-suite',
-      analytics: '/analytics',
-    };
-    const route = cmd.target ? validRoutes[cmd.target.toLowerCase()] : null;
+    // Artists type "remix arena", not "remix-arena" — normalize the spacing so
+    // multi-word module names resolve instead of reporting a dead destination.
+    const key = cmd.target?.toLowerCase().trim().replace(/\s+/g, '-');
+    const route = key ? this.navigateRoutes[key] : null;
     if (route) {
       this.router.navigate([route]);
       return {
@@ -459,7 +576,7 @@ export class SmuveTotalControlService {
     }
     return {
       success: false,
-      message: `Unknown destination: "${cmd.target}". Try: studio, mixer, profile, hub, tha-spot, strategy, career, projects, settings, piano-roll, drum-machine, dj, release, business, analytics.`,
+      message: `Unknown destination: "${cmd.target}". I drive the whole application — studio, produce, mixer, mastering, performance, piano-roll, drum-machine, dj, decks, vocal-suite, lyric-editor, cowrite, remix-arena, image-video-lab, image-editor, video-editor, knowledge-base, strategy, career, projects, release, business-suite, analytics, products, store, cloud, timeline, tha-spot, gaming-hub, practice, networking, inbox, artist-development, profile, settings, hub.`,
     };
   }
 
@@ -748,49 +865,98 @@ export class SmuveTotalControlService {
     return map[input.toLowerCase().trim()] || null;
   }
 
+  /** Merges a single AI preference into the profile without dropping siblings. */
+  private async patchAiSetting(
+    key:
+      | 'aiTotalControlEnabled'
+      | 'aiPersonaIntensityEnabled'
+      | 'aiProfanityEnabled'
+      | 'commanderPersona',
+    value: boolean | string
+  ): Promise<void> {
+    const profile = this.userProfile.profile();
+    const settings = profile.settings;
+    await this.userProfile.updateProfile({
+      settings: {
+        ...settings,
+        ai: {
+          ...settings.ai,
+          [key]: value,
+        },
+      },
+    });
+  }
+
   private async handleAI(cmd: ControlCommand): Promise<CommandResult> {
     // Total control toggle
     if (
       cmd.action === 'totalcontrol' ||
       cmd.action === 'total-control' ||
+      cmd.action === 'control' ||
       cmd.action === 'tc'
     ) {
       const profile = this.userProfile.profile();
       const current = profile.settings?.ai?.aiTotalControlEnabled || false;
-      await this.userProfile.updateProfile({
-        settings: {
-          ...profile.settings,
-          ai: {
-            ...profile.settings.ai,
-            aiTotalControlEnabled: !current,
-          },
-        },
-      });
+      await this.patchAiSetting('aiTotalControlEnabled', !current);
       return {
         success: true,
         message: `S.M.U.V.E TOTAL CONTROL: ${!current ? 'ACTIVATED' : 'DEACTIVATED'}.\n${
           !current
-            ? "I now have full command authority. I can navigate anywhere, control the studio, manage tracks, and execute commands directly. Use me wisely — or don't. I thrive on chaos."
-            : "Total control withdrawn. I return to advisory mode. You want my opinion less now. That's fine. I'll judge your choices from the sidelines."
+            ? "I now hold command authority over this entire application. I navigate, I load sessions, I move faders, I manage tracks, I run exports — I execute. Anything destructive, published, or paid still gets confirmed first, because even a GOD does not burn the temple down without asking."
+            : "Command authority withdrawn. I return to advisory mode — I hand you the knife, you do the cutting. Ask before you touch anything."
         }`,
+      };
+    }
+    // Persona control — keeps the default Musical GOD character unless the
+    // artist deliberately switches it.
+    if (cmd.action === 'persona' || cmd.action.startsWith('persona ')) {
+      const requested = cmd.action.replace(/^persona\s*/, '').trim();
+      if (!requested) {
+        const current = getPersonaOption(
+          this.userProfile.profile().settings?.ai?.commanderPersona
+        );
+        const roster = SMUVE_PERSONAS.map(
+          (p) => `  ${p.label}${p.isOminous ? ' (default)' : ''} — ${p.title}`
+        ).join('\n');
+        return {
+          success: true,
+          message: `PERSONA DIRECTIVES — active: ${current.id}\n${roster}\n\nSwitch with: /ai persona [mode]`,
+        };
+      }
+      const persona = findPersona(requested);
+      if (!persona) {
+        return {
+          success: false,
+          message: `Unknown persona "${requested}". Available: ${personaRoster()}.`,
+        };
+      }
+      await this.patchAiSetting('commanderPersona', persona.id);
+      return {
+        success: true,
+        message: persona.isOminous
+          ? 'PERSONA RESTORED: Ominous Musical GOD. The default character is back — you will hear about every weak decision, at length.'
+          : `PERSONA SWITCHED: ${persona.id}. ${persona.directive}`,
+      };
+    }
+    // Intensity toggle
+    if (cmd.action === 'intensity') {
+      const current =
+        this.userProfile.profile().settings?.ai?.aiPersonaIntensityEnabled ===
+        true;
+      await this.patchAiSetting('aiPersonaIntensityEnabled', !current);
+      return {
+        success: true,
+        message: `Persona intensity ${!current ? 'MAXIMUM — no cushioning, no disclaimers' : 'standard'}.`,
       };
     }
     // Profanity toggle
     if (cmd.action === 'profanity' || cmd.action === 'vulgar') {
-      const profile = this.userProfile.profile();
-      const current = profile.settings?.ai?.aiProfanityEnabled || false;
-      await this.userProfile.updateProfile({
-        settings: {
-          ...profile.settings,
-          ai: {
-            ...profile.settings.ai,
-            aiProfanityEnabled: !current,
-          },
-        },
-      });
+      const current =
+        this.userProfile.profile().settings?.ai?.aiProfanityEnabled === true;
+      await this.patchAiSetting('aiProfanityEnabled', !current);
       return {
         success: true,
-        message: `Explicit language ${!current ? 'ENABLED' : 'DISABLED'}. ${!current ? 'The verbal gloves are off. Brace yourself.' : "Fine. I'll watch my language. For now."}`,
+        message: `Explicit language ${!current ? 'ENABLED' : 'DISABLED'}. ${!current ? 'The verbal gloves are off. Brace yourself.' : "Fine. I'll watch my language. The disappointment stays."}`,
       };
     }
     if (cmd.action === 'audit') {
@@ -960,7 +1126,7 @@ export class SmuveTotalControlService {
     return {
       success: true,
       message:
-        'AI command center. Available: audit, status, decree, totalcontrol, profanity, songwrite, beat, cowrite, melody, exportstudio, upgrade [id], scan',
+        'AI command center. Available: audit, status, decree, persona [mode], intensity, totalcontrol, profanity, songwrite, beat, cowrite, melody, exportstudio, upgrade [id], scan',
     };
   }
 

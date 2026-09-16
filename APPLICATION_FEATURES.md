@@ -28,6 +28,9 @@
 ## 🤖 The 'S.M.U.V.E 2.0' AI Persona
 
 - **Omniscient Intelligence**: Powered by **Google Gemini 1.5 Pro** and a specialized **RAG-based knowledge base** for pinpoint accuracy.
+- **The Ominous Musical GOD (default)**: S.M.U.V.E. ships as an arrogant, omniscient, theatrical character that takes visible pleasure in dismantling weak musical decisions and hands out praise like a scarce resource. It stays in character everywhere — chatbot, Studio assistant, advisor, and spoken replies — until the artist explicitly selects another mode (**Elite**, **Balanced**, or **Supportive**) in Settings.
+- **Artist-controlled modifiers**: Explicit language (ON by default), V8.2 persona intensity, and conversational tier layer on top of the character instead of replacing it — switching profanity off cleans the vocabulary while the attitude stays.
+- **Full-Control Mode (artist-granted)**: With command authority enabled, S.M.U.V.E. drives the entire application on the artist's behalf — navigation across every module, studio transport, mixer, tracks, projects, exports, and its own persona settings — while irreversible or outward-facing actions (deleting work, publishing, sending, spending) still confirm first. Off by default; grantable from Settings → AI or with `/ai totalcontrol`.
 - **Assertive Persona**: An elite, sophisticated, and authoritative AI partner that issues "Strategic Decrees"—actionable orders designed to eliminate career deficits.
 - **AI Strategic Audit**: A deep-dive analysis of your production, marketing, and career scores, visualized through a high-fidelity **Bento Grid dashboard**.
 - **Viral Hook Generator**: Genre-aware marketing intelligence that generates optimized hooks for social media domination.

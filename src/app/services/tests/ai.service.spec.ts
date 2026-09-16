@@ -418,4 +418,86 @@ describe('AiService', () => {
     const response = await service.processCommand('analyze this command');
     expect(response).toContain('analyze this command');
   });
+
+  describe('persona directives', () => {
+    const setAi = (ai: Record<string, unknown>) => {
+      const current = (userProfileServiceMock.profile as any)();
+      (userProfileServiceMock.profile as any).set({
+        ...current,
+        settings: {
+          ...current.settings,
+          ai: { ...current.settings.ai, ...ai },
+        },
+      });
+    };
+
+    it('defaults to the ominous Musical GOD character when nothing is configured', () => {
+      const directives = service.personaDirectives();
+
+      expect(directives).toContain('PERSONA — Ominous Musical GOD');
+      expect(directives).toContain('DEFAULT');
+      expect(directives).toContain('EGO MANDATES');
+      expect(directives).toContain('SADISTIC EDGE');
+      expect(service.isOminousPersonaActive()).toBe(true);
+    });
+
+    it('treats legacy and unknown persona ids as the default rather than a generic assistant', () => {
+      setAi({ commanderPersona: 'Ominous Dominator' });
+      expect(service.personaDirectives()).toContain('EGO MANDATES');
+
+      setAi({ commanderPersona: 'Something Nobody Configured' });
+      expect(service.personaDirectives()).toContain('Ominous Musical GOD');
+      expect(service.personaDirectives()).toContain('EGO MANDATES');
+    });
+
+    it('honors an explicit artist persona choice and drops the Musical GOD mandates', () => {
+      setAi({ commanderPersona: 'Encouraging Mentor' });
+
+      const directives = service.personaDirectives();
+
+      expect(directives).toContain('PERSONA — Supportive');
+      expect(directives).toContain('artist-selected');
+      expect(directives).not.toContain('EGO MANDATES');
+      expect(service.isOminousPersonaActive()).toBe(false);
+    });
+
+    it('unlocks profanity only when the artist enables explicit language', () => {
+      setAi({ aiProfanityEnabled: true });
+      expect(service.personaDirectives()).toContain('LANGUAGE — UNLOCKED');
+
+      setAi({ aiProfanityEnabled: false });
+      const locked = service.personaDirectives();
+      expect(locked).toContain('LANGUAGE — LOCKED');
+      // The character survives the language preference.
+      expect(locked).toContain('SADISTIC EDGE');
+    });
+
+    it('reports maximum intensity only when the artist enables it', () => {
+      setAi({ aiPersonaIntensityEnabled: true });
+      expect(service.personaDirectives()).toContain('INTENSITY — MAXIMUM');
+
+      setAi({ aiPersonaIntensityEnabled: false });
+      expect(service.personaDirectives()).not.toContain('INTENSITY — MAXIMUM');
+    });
+
+    it('grants command authority only when the artist enables full control', () => {
+      setAi({ aiTotalControlEnabled: true });
+      const granted = service.personaDirectives();
+      expect(granted).toContain('FULL CONTROL GRANTED');
+      expect(granted).toContain('confirm before anything irreversible');
+
+      setAi({ aiTotalControlEnabled: false });
+      expect(service.personaDirectives()).toContain('ADVISORY');
+    });
+
+    it('embeds the character contract in the model prompt', () => {
+      setAi({ aiProfanityEnabled: true });
+
+      const prompt = service.personaSystemPrompt;
+
+      expect(prompt).toContain('SADISTIC EDGE');
+      expect(prompt).toContain('Current Persona: Ominous Musical GOD');
+      expect(prompt).toContain('LANGUAGE — UNLOCKED');
+    });
+  });
 });

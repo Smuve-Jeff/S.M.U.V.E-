@@ -576,19 +576,31 @@
             The advisor combines this preference with the recorded artist context above. It will ask for missing evidence instead of inventing audience, catalog, or platform data.
           </p>
           <p class="text-[10px] text-text-dim mb-2">
-            Configure how the S.M.U.V.E. AI communicates with you.
+            Configure how the S.M.U.V.E. AI communicates with you. The ominous
+            Musical GOD character is the shipped default — it only changes when
+            you explicitly pick another mode here.
           </p>
-          <div class="grid grid-cols-3 gap-3 mt-2">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
             <button
               type="button"
-              *ngFor="let p of ['Elite', 'Balanced', 'Supportive']"
-              (click)="updateSetting('ai', 'commanderPersona', p)"
-              [class.persona-active]="settings().ai.commanderPersona === p"
+              *ngFor="let p of personaOptions"
+              (click)="updateSetting('ai', 'commanderPersona', p.id)"
+              [class.persona-active]="activePersonaId() === p.id"
+              [title]="p.title + ' — ' + p.description"
               class="persona-btn"
             >
-              {{ p }}
+              {{ p.label }}
+              <span
+                *ngIf="p.isOminous"
+                class="block text-[8px] font-black uppercase tracking-widest text-brand-primary/70 mt-1"
+                >Default</span
+              >
             </button>
           </div>
+          <p class="text-[10px] text-text-dim mt-3">
+            Active mode:
+            <strong class="text-white">{{ activePersonaId() }}</strong>
+          </p>
         </div>
 
         <div class="setting-group">
@@ -626,6 +638,52 @@
             "
             class="toggle-btn"
             [class.on]="settings().ai.aiPersonaIntensityEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Explicit Language</h3>
+            <p class="text-xs text-text-dim">
+              Lets S.M.U.V.E. swear like a ruthless studio boss. ON by default — it
+              is part of the Musical GOD voice. Turn it off and the vocabulary
+              cleans up while the arrogance, menace, and savagery stay exactly as
+              they are.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ai', 'aiProfanityEnabled', !settings().ai.aiProfanityEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiProfanityEnabled"
+            [attr.aria-pressed]="settings().ai.aiProfanityEnabled"
+            aria-label="Toggle explicit language"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Musical GOD Full-Control Mode</h3>
+            <p class="text-xs text-text-dim">
+              Grants S.M.U.V.E. command authority over this entire application: it
+              navigates, drives the studio and mixer, manages tracks and projects,
+              changes its own persona settings, and runs exports on your behalf.
+              Irreversible or outward-facing actions — deleting work, publishing,
+              sending, spending — still confirm first. Off by default; granting it
+              is entirely your call (also available in chat via /ai totalcontrol).
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ai', 'aiTotalControlEnabled', !settings().ai.aiTotalControlEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiTotalControlEnabled"
+            [attr.aria-pressed]="settings().ai.aiTotalControlEnabled"
+            aria-label="Toggle Musical GOD full-control mode"
           >
             <div class="toggle-handle"></div>
           </button>

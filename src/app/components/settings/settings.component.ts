@@ -23,6 +23,10 @@ import { LocalStorageService } from '../../services/local-storage.service';
 import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
 import { TokenService } from '../../services/token.service';
 import { APP_SECURITY_CONFIG } from '../../app.security';
+import {
+  normalizePersona,
+  SMUVE_PERSONAS,
+} from '../../types/persona.types';
 
 @Component({
   selector: 'app-settings',
@@ -72,6 +76,19 @@ export class SettingsComponent implements OnInit {
       security: { ...defaults.security, ...(current?.security ?? {}) },
     };
   }
+
+  /** Canonical persona roster — the same four modes every AI surface honors. */
+  personaOptions = SMUVE_PERSONAS;
+
+  /**
+   * Normalized so legacy ids ('Aggressive Manager', 'Encouraging Mentor',
+   * 'Ominous Dominator') still highlight the right persona button instead of
+   * leaving the artist staring at an apparently unset character.
+   */
+  activePersonaId = computed(() =>
+    normalizePersona(this.settings().ai.commanderPersona)
+  );
+
   themeOptions = computed(() => this.uiService.getAvailableThemes());
   profileAlignment = computed(() => {
     const profile = this.profileService.profile();

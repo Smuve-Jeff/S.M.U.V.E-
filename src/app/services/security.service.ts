@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, NgZone } from '@angular/core';
+import { Injectable, computed, inject, signal, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
 
@@ -15,7 +15,18 @@ export class SecurityService {
   private ngZone = inject(NgZone);
 
   sessionExpiresAt = signal<number | null>(null);
-  isSessionValid = signal(true);
+  /**
+   * Derived session validity.
+   *
+   * This MUST stay read-only: the Hub landing page and the Settings audit
+   * panel call `getSecurityAudit()` straight from their templates, and a
+   * signal write during a render pass throws NG0600 — which previously took
+   * the whole landing page down.
+   */
+  isSessionValid = computed<boolean>(() => {
+    const expires = this.sessionExpiresAt();
+    return !expires || Date.now() < expires;
+  });
   lastActivity = signal(Date.now());
   logs = signal<any[]>([]);
   sessions = signal<any[]>([]);
@@ -26,17 +37,18 @@ export class SecurityService {
   private csrfToken: string | null = null;
   private twoFactorSecret: string | null = null;
 
+  /** Pure session check — safe to call from templates and computed signals. */
   validateSession(): boolean {
     const expires = this.sessionExpiresAt();
     const valid = !expires || Date.now() < expires;
-    this.isSessionValid.set(valid);
     if (!valid) this.logger.warn('Security session expired');
     return valid;
   }
 
   refreshSession() {
+    // `isSessionValid` derives from this value, so setting the expiry is what
+    // brings the session back to a valid state.
     this.sessionExpiresAt.set(Date.now() + 3600000);
-    this.isSessionValid.set(true);
     this.lastActivity.set(Date.now());
   }
 

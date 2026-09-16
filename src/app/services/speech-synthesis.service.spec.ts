@@ -220,6 +220,20 @@ describe('SpeechSynthesisService', () => {
     );
   });
 
+  it('should expose conversational prosody for long and urgent sentences', () => {
+    randomSpy.mockReturnValue(0);
+
+    service.speak(
+      'This is a deliberately long production note that should be delivered with measured pacing so the native browser voice remains intelligible and human sounding.'
+    );
+    mockUtterances[0].onstart();
+    expect(service.liveVoice()?.prosody).toBe('measured');
+
+    service.speak('Move now!');
+    mockUtterances[1].onstart();
+    expect(service.liveVoice()?.prosody).toBe('urgent');
+  });
+
   it('should continue speaking when explicit voice assignment is rejected', () => {
     const failingUtterance: Record<string, unknown> = {};
     Object.defineProperty(failingUtterance, 'voice', {

@@ -49,6 +49,8 @@ export interface VoiceReadout {
   voiceName: string;
   pitch: number;
   rate: number;
+  /** Human-readable prosody state for the live UI; native browser voices remain the fallback. */
+  prosody: 'measured' | 'urgent' | 'conversational' | 'dramatic';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -260,7 +262,7 @@ export class SpeechSynthesisService {
         const trimmed = processed.trim();
         if (!trimmed) return null;
         const utterance = new SpeechSynthesisUtterance(trimmed);
-        const meta = this.configureSentenceUtterance(utterance, options);
+        const meta = this.configureSentenceUtterance(utterance, options, trimmed);
         return { utterance, meta };
       })
       .filter((u): u is { utterance: SpeechSynthesisUtterance; meta: VoiceReadout } => u !== null);
@@ -301,9 +303,12 @@ export class SpeechSynthesisService {
       0.1,
       Math.min(2.0, minPitch + Math.random() * (maxPitch - minPitch))
     );
+    // Short phrases can be delivered with more urgency; longer sentences stay
+    // conversational so the browser voice sounds less robotic and breathless.
+    const cadenceBias = text.length < 42 ? 0.06 : text.length > 150 ? -0.05 : 0;
     utterance.rate = Math.max(
       0.1,
-      Math.min(2.0, minRate + Math.random() * (maxRate - minRate))
+      Math.min(2.0, minRate + Math.random() * (maxRate - minRate) + cadenceBias)
     );
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
@@ -323,6 +328,7 @@ export class SpeechSynthesisService {
       voiceName: voice?.name ?? 'System voice',
       pitch: utterance.pitch,
       rate: utterance.rate,
+      prosody: this.prosodyFor(text, utterance.rate),
     };
     utterance.onstart = () => {
       this.isSpeaking.set(true);
@@ -430,7 +436,8 @@ export class SpeechSynthesisService {
    */
   private configureSentenceUtterance(
     utterance: SpeechSynthesisUtterance,
-    options?: SpeakOptions
+    options?: SpeakOptions,
+    text = ''
   ): VoiceReadout {
     this.currentArchetype = this.selectDynamicArchetype(options);
     if (!this.currentArchetype) {
@@ -440,6 +447,7 @@ export class SpeechSynthesisService {
         voiceName: 'System voice',
         pitch: 1,
         rate: 1,
+        prosody: 'conversational',
       };
     }
 
@@ -461,9 +469,12 @@ export class SpeechSynthesisService {
     utterance.pitch = Math.max(0.1, Math.min(2.0, utterance.pitch));
 
     // 2) Rate + volume jitter within the archetype.
+    // Short phrases can be delivered with more urgency; longer sentences stay
+    // conversational so the browser voice sounds less robotic and breathless.
+    const cadenceBias = text.length < 42 ? 0.06 : text.length > 150 ? -0.05 : 0;
     utterance.rate = Math.max(
       0.1,
-      Math.min(2.0, minRate + Math.random() * (maxRate - minRate))
+      Math.min(2.0, minRate + Math.random() * (maxRate - minRate) + cadenceBias)
     );
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
@@ -484,7 +495,15 @@ export class SpeechSynthesisService {
       voiceName: voice?.name ?? 'System voice',
       pitch: utterance.pitch,
       rate: utterance.rate,
+      prosody: this.prosodyFor(text, utterance.rate),
     };
+  }
+
+  private prosodyFor(text: string, rate: number): VoiceReadout['prosody'] {
+    if (/[!?]/.test(text) || rate > 1.05) return 'urgent';
+    if (text.length > 120) return 'measured';
+    if (/…|—|\.\.\./.test(text) || rate < 0.7) return 'dramatic';
+    return 'conversational';
   }
 
   /** Picks low / mid / high, NEVER repeats the previous band to create a

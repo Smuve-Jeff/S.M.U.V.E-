@@ -18,7 +18,8 @@
         </h3>
         <span
           class="text-[8px] font-black text-brand-primary uppercase tracking-[0.4em]"
-          >S.M.U.V.E v2.0 · Production · Marketing · Business</span
+          [title]="'Active persona: ' + personaLabel()"
+          >{{ personaLabel() }} · v2.0 · Production · Marketing · Business</span
         >
       </div>
     </div>
@@ -37,7 +38,11 @@
         class="p-2 rounded-xl transition-all"
         [class.text-red-500]="profile().settings.ai.aiProfanityEnabled"
         [class.text-slate-600]="!profile().settings.ai.aiProfanityEnabled"
-        title="Vulgar Mode: Hardening persona boundaries"
+        [title]="
+          profile().settings.ai.aiProfanityEnabled
+            ? 'Explicit language: UNLOCKED — the Musical GOD swears'
+            : 'Explicit language: locked — clean vocabulary, same attitude'
+        "
       >
         <span class="material-symbols-outlined text-lg">mood_bad</span>
       </button>
@@ -70,8 +75,8 @@
         [class.text-slate-600]="!profile().settings.ai.aiTotalControlEnabled"
         [title]="
           profile().settings.ai.aiTotalControlEnabled
-            ? 'S.M.U.V.E Total Control: ACTIVE — I own this app'
-            : 'S.M.U.V.E Total Control: Disabled'
+            ? 'S.M.U.V.E Full Control: ACTIVE — S.M.U.V.E executes app actions'
+            : 'S.M.U.V.E Full Control: off — advisory only (/ai totalcontrol)'
         "
       >
         <span class="material-symbols-outlined text-lg">settings_power</span>

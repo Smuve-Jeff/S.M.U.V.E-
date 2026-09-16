@@ -18,6 +18,7 @@ import { ArtistIntelligenceService } from '../../services/artist-intelligence.se
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
+import { SMUVE_PERSONAS } from '../../types/persona.types';
 import {
   EnhancedArtistQuestionnaireEngine,
   PHASES,
@@ -155,10 +156,30 @@ export class ArtistQuestionnaireComponent {
     return isLastInPhase && isLastPhase;
   });
 
+  /**
+   * Option lists owned by a shared catalog instead of the question literal.
+   *
+   * The AI-persona question must offer exactly the modes Settings and the
+   * persona prompt builders honor — otherwise an onboarding answer lands on a
+   * display name no other surface recognizes.
+   */
+  private readonly canonicalOptionsByField: Record<string, any[]> = {
+    'settings.ai.commanderPersona': SMUVE_PERSONAS.map((persona) => ({
+      label: persona.isOminous
+        ? `${persona.label} (Default)`
+        : persona.label,
+      value: persona.id,
+      icon: persona.icon,
+      description: persona.description,
+    })),
+  };
+
   /** Get options for current question (handles dynamic subgenres + genre search) */
   getOptionsForCurrentQuestion(): any[] {
     const q = this.currentQuestion();
     if (!q) return [];
+    const canonical = this.canonicalOptionsByField[q.field as string];
+    if (canonical) return canonical;
     // For subgenre questions, dynamically populate from genre deep dive
     if (q.id === 'q7') {
       return this.subgenreOptions();

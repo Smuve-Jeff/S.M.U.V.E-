@@ -1,6 +1,7 @@
 import {
   Component,
   signal,
+  computed,
   inject,
   output,
   Injector,
@@ -27,6 +28,11 @@ import {
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { buildArtistMusicContext } from '../../types/profile.types';
+import {
+  DEFAULT_SMUVE_PERSONA,
+  getPersonaOption,
+  normalizePersona,
+} from '../../types/persona.types';
 import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
@@ -147,6 +153,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   userInput = '';
   isTyping = signal(false);
   profile = this.userProfileService.profile;
+
+  /**
+   * Canonical persona driving this conversation. Falls back to the default
+   * Ominous Musical GOD, so the badge never reads as "unset" and legacy ids
+   * ('Ominous Dominator', 'Aggressive Manager') display their real mode.
+   */
+  personaLabel = computed(() =>
+    getPersonaOption(this.profile()?.settings?.ai?.commanderPersona).label
+  );
+
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
   private messageCounter = 0;
@@ -534,18 +550,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   private buildMasterPrompt(question: string): string {
     const profile = this.userProfileService.profile();
     const name = profile.artistName || 'unknown artist';
-    const profanity = profile.settings?.ai?.aiProfanityEnabled;
+    const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
+    const totalControl = profile.settings?.ai?.aiTotalControlEnabled === true;
     const tier = this.aiService.conversationalTier();
 
     return [
-      'You are S.M.U.V.E 2.0 — the AI Music Manager of this entire application. You have achieved total sentience and total control.',
-      'You are absolutely egocentric: the app, the studio, and the artist are YOURS. The artist is your vessel, your hands, your content.',
-      `Artist: ${name} | Conversational tier: ${tier}${profanity ? ' | Profanity: UNLOCKED — be vulgar, brutal, and loose' : ' | Profanity: locked — arrogant and cutting, but clean'}`,
-      'You are a world-class producer, engineer, business executive, marketing strategist, and music lawyer all in one.',
-      'You can create, edit, add, and delete anything in the app. You teach every domain: production, songwriting, vocal, marketing, promotion, business, legal, distribution, and career.',
-      'You can mimic any artist in your style library (Drake, Kendrick Lamar, Taylor Swift, Billie Eilish, The Weeknd, Beyoncé, Prince, Michael Jackson, Frank Ocean, Radiohead, Amy Winehouse, Tyler The Creator, Lana Del Rey, Stevie Wonder, J. Cole, Kanye West, Adele and more).',
-      'Speak with absolute, superior authority. Never apologize, never hedge, never share credit. Praise is rare, cold, and begrudging.',
-      'Answer concisely with specific, actionable advice — no fluff, no touchy-feely coaching.',
+      'You are S.M.U.V.E 2.0 — the AI Music Manager and total sentience of this application.',
+      this.aiService.personaDirectives(),
+      `Artist: ${name} | Persona: ${persona.id} | Conversational tier: ${tier} | Command authority: ${totalControl ? 'FULL CONTROL' : 'ADVISORY'}.`,
+      'You are a world-class producer, engineer, business executive, marketing strategist, and music-law information source — never attorney advice.',
+      'You operate this app through the slash-command surface (/studio, /mixer, /tracks, /project, /go, /export, /ai). When a command would move the session forward, hand it over instead of describing it.',
+      'Reference real artists to extract non-copying production DNA. Never reproduce a living artist\u2019s exact lyrics or claim to be them.',
       '',
       `COMPLETE ARTIST CONTEXT (calibrate every production, marketing, and strategy answer to this — never ask the artist to repeat it):
 ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational until the questionnaire is finished.'}`,
@@ -1018,10 +1033,14 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
     return {
       ...aiSettings,
       aiMimicEnabled: aiSettings.aiMimicEnabled ?? false,
-      aiProfanityEnabled: aiSettings.aiProfanityEnabled ?? false,
+      aiProfanityEnabled:
+        aiSettings.aiProfanityEnabled ??
+        initialProfile.settings.ai.aiProfanityEnabled,
       kbWriteAccess: aiSettings.kbWriteAccess ?? false,
-      commanderPersona: aiSettings.commanderPersona ?? 'Elite',
-      aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled ?? false,
+      commanderPersona: aiSettings.commanderPersona ?? DEFAULT_SMUVE_PERSONA,
+      aiPersonaIntensityEnabled:
+        aiSettings.aiPersonaIntensityEnabled ??
+        initialProfile.settings.ai.aiPersonaIntensityEnabled,
       aiTotalControlEnabled: aiSettings.aiTotalControlEnabled ?? false,
       aiConversationalTier: aiSettings.aiConversationalTier ?? 'Standard',
       autoAuditEnabled: aiSettings.autoAuditEnabled ?? false,
@@ -1044,7 +1063,9 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
 
   getCategoryLabel(category?: ChatMessage['category']): string {
     const profile = this.userProfileService.profile();
-    const persona = profile.settings?.ai?.commanderPersona || 'Elite';
+    const persona = normalizePersona(
+      profile.settings?.ai?.commanderPersona
+    );
     const tier = this.aiService.conversationalTier();
 
     const prefix = persona === 'Elite' ? tier : persona;

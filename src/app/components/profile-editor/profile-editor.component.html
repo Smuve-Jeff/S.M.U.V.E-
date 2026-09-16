@@ -926,15 +926,11 @@
               *ngFor="let p of personaOptions"
               (click)="selectPersona(p)"
               class="p-6 rounded-2xl border-2 text-left transition-all"
-              [class.border-brand-primary]="
-                editableProfile().settings?.ai?.commanderPersona === p.id
-              "
-              [class.border-white/5]="
-                editableProfile().settings?.ai?.commanderPersona !== p.id
-              "
+              [class.border-brand-primary]="activePersonaId() === p.id"
+              [class.border-white/5]="activePersonaId() !== p.id"
               [style.--hover-color]="p.color"
               [style.background]="
-                editableProfile().settings?.ai?.commanderPersona === p.id
+                activePersonaId() === p.id
                   ? p.color + '12'
                   : 'rgba(255,255,255,0.02)'
               "
@@ -976,26 +972,20 @@
             <div class="flex items-center gap-2">
               <div
                 class="w-2 h-2 rounded-full"
-                [class.bg-green-400]="
-                  editableProfile().settings?.ai?.commanderPersona
-                "
-                [class.bg-white/10]="
-                  !editableProfile().settings?.ai?.commanderPersona
-                "
+                class="bg-green-400"
               ></div>
               <span
                 class="text-[10px] text-slate-400 uppercase tracking-widest"
               >
                 Current Persona:
-                <strong class="text-white">{{
-                  editableProfile().settings?.ai?.commanderPersona || 'Not Set'
-                }}</strong>
+                <strong class="text-white">{{ activePersonaId() }}</strong>
               </span>
             </div>
           </div>
 
           <app-persona-selector
             *ngIf="showPersonaSelector()"
+            [selectedPersona]="activePersonaId()"
             (select)="onPersonaSelected($event)"
             (close)="showPersonaSelector.set(false)"
           ></app-persona-selector>

@@ -41,6 +41,10 @@ import {
   PersonaSelectorComponent,
   PersonaOption,
 } from '../persona-selector/persona-selector.component';
+import {
+  normalizePersona,
+  SMUVE_PERSONAS,
+} from '../../types/persona.types';
 
 @Component({
   selector: 'app-profile-editor',
@@ -801,32 +805,17 @@ export class ProfileEditorComponent implements OnInit {
     event.target.value = '';
   }
 
-  readonly personaOptions = [
-    {
-      id: 'Aggressive Manager',
-      name: 'Aggressive Manager',
-      icon: '🔥',
-      description: 'Brutal honesty with zero sugar-coating',
-      color: '#ef4444',
-      intensityLabel: 'MAXIMUM INTENSITY',
-    },
-    {
-      id: 'Elite',
-      name: 'Elite Commander',
-      icon: '👑',
-      description: 'Calculated precision and strategic dominance',
-      color: '#0e7c7b',
-      intensityLabel: 'STRATEGIC PRECISION',
-    },
-    {
-      id: 'Encouraging Mentor',
-      name: 'Encouraging Mentor',
-      icon: '🧠',
-      description: 'Growth through guidance and patience',
-      color: '#10b981',
-      intensityLabel: 'CALCULATED SUPPORT',
-    },
-  ];
+  /** Canonical roster — the same four modes Settings and the persona prompts honor. */
+  readonly personaOptions = SMUVE_PERSONAS;
+
+  /**
+   * Normalized persona id so legacy values ('Aggressive Manager',
+   * 'Encouraging Mentor', 'Ominous Dominator') still highlight correctly
+   * instead of showing every card as inactive.
+   */
+  readonly activePersonaId = computed(() =>
+    normalizePersona(this.editableProfile()?.settings?.ai?.commanderPersona)
+  );
 
   selectPersona(persona: PersonaOption) {
     this.updateProfileField('settings.ai.commanderPersona', persona.id);

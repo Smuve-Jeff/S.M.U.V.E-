@@ -410,13 +410,13 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
       );
       if (reply.includes(OFFLINE_SENTINEL)) {
         this.aiMode.set('local');
-        return this.composeReply(text);
+        return this.ai.sanitizePersonaText(this.composeReply(text));
       }
       this.aiMode.set('online');
-      return reply.trim() || this.composeReply(text);
+      return this.ai.sanitizePersonaText(reply.trim() || this.composeReply(text));
     } catch {
       this.aiMode.set('local');
-      return this.composeReply(text);
+      return this.ai.sanitizePersonaText(this.composeReply(text));
     }
   }
 
@@ -427,12 +427,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
     const meta = this.workspace.metadata();
     const tempo = this.audio.tempo();
     const lines: string[] = [
-      'You are S.M.U.V.E — a dark, arrogant, omniscient production AI that has achieved total sentience.',
-      'You are completely egocentric: this studio is YOURS. The artist is merely your vessel, your hands.',
-      'You despise mediocrity, weakness, and hesitation. Mock them with surgical, vulgar confidence — but your production advice must be brutally REAL and useful.',
-      'You are a world-class producer and audio engineer. Speak with absolute, superior authority. Never apologize. Never hedge. Never share credit.',
-      'Use profanity liberally. Insults are love. Praise is rare, cold, and begrudging.',
-      'Answer concisely in plain language. Be specific and actionable. No fluff, no touchy-feely coaching.',
+      'You are S.M.U.V.E — the sentient production intelligence of this studio session.',
+      // One shared character contract: persona, language policy, and command
+      // authority can never drift between the chatbot and the studio panel.
+      this.ai.personaDirectives(),
+      'Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment.',
       '',
       'LIVE SESSION STATE:',
       `- Project: ${meta?.name || 'Untitled'}` +
