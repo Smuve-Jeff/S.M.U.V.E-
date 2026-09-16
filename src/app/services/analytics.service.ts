@@ -1,48 +1,71 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+/** Where a figure came from. S.M.U.V.E. never presents an estimate as a fact. */
+export type MetricSource = 'sample' | 'connected';
+
 export interface GrowthMetric {
   label: string;
   value: number;
-  trend: number; // percentage change
-  history: number[]; // last 7 days/months
+  /** Percentage change against the previous period. */
+  trend: number;
+  /** Last few periods, oldest first. Empty until a source reports them. */
+  history: number[];
+  source: MetricSource;
 }
 
+/**
+ * An empty metric. The dashboard renders "—" rather than a number while a
+ * metric has no source, so these zeros are never shown as the artist's data.
+ */
+const unknownMetric = (label: string): GrowthMetric => ({
+  label,
+  value: 0,
+  trend: 0,
+  history: [],
+  source: 'sample',
+});
+
+/**
+ * Platform analytics for the artist.
+ *
+ * These signals used to be seeded with 125,430 streams, 8,420 followers and a
+ * 4.8% engagement rate, and `getGenreBreakdown()` returned a fixed audience
+ * split. Every artist saw the same figures as their own performance, next to a
+ * "Live Intelligence Feed" badge. Nothing writes them yet, so they now start
+ * empty and say so; an analytics integration sets a metric with
+ * `source: 'connected'` and the dashboard starts reporting it.
+ */
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
-  streams = signal<GrowthMetric>({
-    label: 'Total Streams',
-    value: 125430,
-    trend: 12.5,
-    history: [10000, 15000, 12000, 18000, 25000, 22000, 23430],
-  });
+  streams = signal<GrowthMetric>(unknownMetric('Total Streams'));
 
-  followers = signal<GrowthMetric>({
-    label: 'Followers',
-    value: 8420,
-    trend: 5.2,
-    history: [7000, 7200, 7500, 7800, 8000, 8200, 8420],
-  });
+  followers = signal<GrowthMetric>(unknownMetric('Followers'));
 
-  engagement = signal<GrowthMetric>({
-    label: 'Engagement Rate',
-    value: 4.8,
-    trend: -1.2,
-    history: [5.0, 5.2, 5.1, 4.9, 4.7, 4.8, 4.8],
-  });
+  engagement = signal<GrowthMetric>(unknownMetric('Engagement Rate'));
+
+  monthlyListeners = signal<GrowthMetric>(unknownMetric('Monthly Listeners'));
+
+  revenue = signal<GrowthMetric>(unknownMetric('Est. Revenue'));
+
+  /** Every reported metric, so a view can iterate them. */
+  readonly metrics = computed<GrowthMetric[]>(() => [
+    this.streams(),
+    this.followers(),
+    this.engagement(),
+    this.monthlyListeners(),
+    this.revenue(),
+  ]);
+
+  /** True once a real analytics source has supplied at least one figure. */
+  readonly hasLiveData = computed(() =>
+    this.metrics().some((metric) => metric.source === 'connected')
+  );
 
   overallGrowth = computed(() => {
-    const s = this.streams().trend;
-    const f = this.followers().trend;
-    const e = this.engagement().trend;
-    return (s + f + e) / 3;
+    const live = this.metrics().filter(
+      (metric) => metric.source === 'connected'
+    );
+    if (live.length === 0) return 0;
+    return live.reduce((sum, metric) => sum + metric.trend, 0) / live.length;
   });
-
-  getGenreBreakdown() {
-    return [
-      { name: 'Hip Hop', percentage: 45 },
-      { name: 'R&B', percentage: 30 },
-      { name: 'Electronic', percentage: 15 },
-      { name: 'Other', percentage: 10 },
-    ];
-  }
 }

@@ -9,7 +9,7 @@
         ></div>
         <span
           class="text-[10px] font-black text-silver-dim uppercase tracking-[0.4em]"
-          >Live Intelligence Feed</span
+          >Reporting</span
         >
       </div>
       <h1
@@ -19,11 +19,36 @@
       </h1>
     </div>
     <div
-      class="px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest"
+      class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest"
+      [class.bg-brand-primary/10]="hasLiveData()"
+      [class.border]="true"
+      [class.border-brand-primary/20]="hasLiveData()"
+      [class.text-brand-primary]="hasLiveData()"
+      [class.bg-amber-500/10]="!hasLiveData()"
+      [class.border-amber-500/20]="!hasLiveData()"
+      [class.text-amber-300]="!hasLiveData()"
     >
-      Reporting: Last 30 Days
+      {{ hasLiveData() ? 'Reporting: Last 30 Days' : 'No source connected' }}
     </div>
   </header>
+
+  @if (!hasLiveData()) {
+    <div
+      class="glass-panel rounded-3xl p-6 mb-12 border border-amber-500/20 space-y-2"
+    >
+      <div
+        class="text-[10px] font-black text-amber-300 uppercase tracking-widest"
+      >
+        No analytics source connected
+      </div>
+      <p class="text-xs text-silver-dim leading-relaxed max-w-3xl">
+        S.M.U.V.E. has no platform figures for this artist, so this page reports
+        none. Estimated or invented totals get spent against, so they are not
+        shown. Record a verified analytics link on the profile's Online
+        Fingerprint pane and the real numbers appear here.
+      </p>
+    </div>
+  }
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
     <div
@@ -39,9 +64,14 @@
       </div>
       <div class="flex items-end justify-between">
         <div class="text-4xl font-black text-white italic tracking-tighter">
-          {{ analytics.streams().value | number }}
+          {{ metric(analytics.streams().value) }}
         </div>
-        <div class="text-xs font-bold text-brand-primary">+12.4%</div>
+        @if (hasLiveData()) {
+          <div class="text-xs font-bold text-brand-primary">
+            {{ analytics.streams().trend > 0 ? '+' : ''
+            }}{{ analytics.streams().trend }}%
+          </div>
+        }
       </div>
     </div>
 
@@ -58,9 +88,14 @@
       </div>
       <div class="flex items-end justify-between">
         <div class="text-4xl font-black text-white italic tracking-tighter">
-          ,120
+          {{ metric(analytics.revenue().value) }}
         </div>
-        <div class="text-xs font-bold text-brand-primary">+8.2%</div>
+        @if (hasLiveData()) {
+          <div class="text-xs font-bold text-brand-primary">
+            {{ analytics.revenue().trend > 0 ? '+' : ''
+            }}{{ analytics.revenue().trend }}%
+          </div>
+        }
       </div>
     </div>
 
@@ -77,9 +112,14 @@
       </div>
       <div class="flex items-end justify-between">
         <div class="text-4xl font-black text-white italic tracking-tighter">
-          12.5K
+          {{ metric(analytics.monthlyListeners().value) }}
         </div>
-        <div class="text-xs font-bold text-brand-danger">-2.1%</div>
+        @if (hasLiveData()) {
+          <div class="text-xs font-bold text-brand-danger">
+            {{ analytics.monthlyListeners().trend > 0 ? '+' : ''
+            }}{{ analytics.monthlyListeners().trend }}%
+          </div>
+        }
       </div>
     </div>
   </div>
@@ -192,6 +232,12 @@
           Top Superfans
         </h2>
         <div class="space-y-4">
+          @if (!superfans().length) {
+            <p class="text-xs text-silver-dim leading-relaxed">
+              No listener records yet. Fan-level data needs a connected
+              analytics source before S.M.U.V.E. will name anyone.
+            </p>
+          }
           <div
             *ngFor="let fan of superfans()"
             class="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/10 hover:border-brand-primary/30 transition-all"

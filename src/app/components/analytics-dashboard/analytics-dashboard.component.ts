@@ -32,11 +32,23 @@ export class AnalyticsDashboardComponent {
       }
   );
 
-  superfans = signal<Superfan[]>([
-    { name: 'Alex M.', streams: 450, location: 'London', status: 'Active' },
-    { name: 'Sarah J.', streams: 380, location: 'New York', status: 'Rising' },
-    { name: 'Dmitri K.', streams: 295, location: 'Berlin', status: 'Active' },
-  ]);
+  /**
+   * Fans the artist's own analytics identified.
+   *
+   * This was seeded with three invented listeners — names, cities and stream
+   * counts — under a "Top Superfans" heading, so every artist was shown a fan
+   * list that belonged to nobody. It stays empty until an analytics source fills
+   * it, and the view says so in the meantime.
+   */
+  superfans = signal<Superfan[]>([]);
+
+  /** True once a real source reported at least one figure. */
+  hasLiveData = computed(() => this.analytics.hasLiveData());
+
+  /** A metric value, or an em dash while no source reports it. */
+  metric(value: number): string {
+    return this.analytics.hasLiveData() ? value.toLocaleString() : '—';
+  }
 
   engagementTactics = [
     "Run a 'Behind the Scenes' stream for your top 50 listeners.",
