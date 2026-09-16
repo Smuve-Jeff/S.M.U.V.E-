@@ -1,6 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
-import { ArtistIdentityService } from './artist-identity.service';
 import { ArtistPathwayService } from './artist-pathway.service';
 import {
   ReleaseProject,
@@ -106,7 +105,6 @@ export type ArtistDevelopmentPanel =
 @Injectable({ providedIn: 'root' })
 export class ArtistDevelopmentService {
   private userProfile = inject(UserProfileService);
-  private identityService = inject(ArtistIdentityService);
   private pathway = inject(ArtistPathwayService);
 
   // PRO Registry signals
@@ -383,7 +381,6 @@ export class ArtistDevelopmentService {
     await new Promise((r) => setTimeout(r, 1500)); // simulate scan
 
     const profile = this.userProfile.profile();
-    const identity = this.identityService as any;
     const socialCount = this.socialAccounts().filter((a) => a.connected).length;
 
     // Calculate scores

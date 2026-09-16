@@ -10,8 +10,29 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
-import { ArtistIdentityService } from '../../services/artist-identity.service';
+import { ArtistOnlineFingerprintService } from '../../services/artist-online-fingerprint.service';
 import { EnhancedArtistQuestionnaireEngine } from '../../services/enhanced-artist-questionnaire-engine';
+
+/**
+ * Accent and icon per fingerprint destination, so the public page shows the
+ * artist's own platforms rather than a fixed list.
+ */
+const PLATFORM_STYLE: Record<string, { icon: string; color: string }> = {
+  'spotify-for-artists': { icon: '🟢', color: '#1DB954' },
+  'apple-music-for-artists': { icon: '🍎', color: '#FA243C' },
+  'youtube-for-artists': { icon: '▶️', color: '#FF0000' },
+  'soundcloud-for-artists': { icon: '☁️', color: '#FF7700' },
+  'amazon-for-artists': { icon: '📦', color: '#25D1DA' },
+  'deezer-for-creators': { icon: '🎧', color: '#A238FF' },
+  'tidal-artist-home': { icon: '🌊', color: '#00FFFF' },
+  bandcamp: { icon: '🎪', color: '#629AA9' },
+  audiomack: { icon: '🎵', color: '#FFA200' },
+  'pandora-amp': { icon: '📻', color: '#3668FF' },
+  chartmetric: { icon: '📊', color: '#0E7C7B' },
+  soundcharts: { icon: '📊', color: '#0E7C7B' },
+  viberate: { icon: '📊', color: '#0E7C7B' },
+  songstats: { icon: '📊', color: '#0E7C7B' },
+};
 
 @Component({
   selector: 'app-artist-landing',
@@ -25,7 +46,7 @@ export class ArtistLandingComponent implements OnDestroy {
   private routeSub: Subscription | null = null;
   private userProfileService = inject(UserProfileService);
   private aiService = inject(AiService);
-  private artistIdentityService = inject(ArtistIdentityService);
+  private fingerprint = inject(ArtistOnlineFingerprintService);
   private questionnaireEngine = inject(EnhancedArtistQuestionnaireEngine);
 
   artistName = signal('');
@@ -60,23 +81,62 @@ export class ArtistLandingComponent implements OnDestroy {
     ];
   });
 
-  identitySnapshot = computed(() =>
-    this.artistIdentityService.buildIdentitySnapshot(this.profile())
-  );
+  /**
+   * The artist's real, recorded links.
+   *
+   * This used to be read from `profile.services`, which is the production
+   * services chip group ("Stem delivery", "Mixing"), so the page advertised
+   * Spotify, Apple and TikTok buttons for artists who had claimed none of them —
+   * and every one of those buttons pointed at `"#"`. Buttons now come from the
+   * official profile record and go to the address the artist stored.
+   */
+  socialLinks = computed(() => {
+    const profile = this.profile() as any;
+    const seen = new Set<string>();
+    const links: Array<{
+      label: string;
+      url: string;
+      icon: string;
+      color: string;
+    }> = [];
+
+    const push = (label: string, url: unknown, icon: string, color: string) => {
+      const value = typeof url === 'string' ? url.trim() : '';
+      // Only real, navigable addresses: a button that goes nowhere is worse
+      // than no button on the artist's public page.
+      if (!/^https?:\/\//i.test(value) || seen.has(value)) return;
+      seen.add(value);
+      links.push({ label, url: value, icon, color });
+    };
+
+    (profile.officialArtistProfiles || []).forEach((link: any) => {
+      const destinationId = String(link?.destinationId || '');
+      const destination = this.fingerprint.destination(destinationId);
+      const style = PLATFORM_STYLE[destinationId] || {
+        icon: '🔗',
+        color: '#0E7C7B',
+      };
+      push(
+        destination?.label || destinationId || 'Official profile',
+        link?.url,
+        style.icon,
+        style.color
+      );
+    });
+
+    push(
+      'Website',
+      profile.website || profile.artistIdentity?.core?.officialWebsite,
+      '🌐',
+      '#0E7C7B'
+    );
+
+    return links;
+  });
 
   strategicInsights = computed(() =>
     this.aiService.getUpgradeRecommendations().slice(0, 4)
   );
-
-  socialLinks = computed(() => ({
-    spotify: this.profile().services?.includes('Spotify'),
-    apple: this.profile().services?.includes('Apple Music'),
-    soundcloud: this.profile().services?.includes('SoundCloud'),
-    youtube: this.profile().services?.includes('YouTube'),
-    tiktok: this.profile().services?.includes('TikTok'),
-    instagram: this.profile().services?.includes('Instagram'),
-    website: !!this.profile().website,
-  }));
 
   aiBio = computed(() => {
     const j = this.journey();
