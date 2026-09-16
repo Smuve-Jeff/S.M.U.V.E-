@@ -721,6 +721,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * is cancelled so the fingers never fight over the same pointer.
    */
   onTimelinePointerDown(event: PointerEvent): void {
+    // A pinch that zoomed arms click suppression on release, but Android
+    // Chrome often fires NO click after a two-finger gesture — the stale
+    // marker would then silently eat the operator's next genuine tap-seek.
+    // New surface contact discharges it, mirroring the drag paths.
+    this.suppressedClickPointerId = null;
     this.pinchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (this.pinchPoints.size !== 2) return;
 
@@ -798,7 +803,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /**
    * End one contact. The pinch survives while at least two fingers remain;
    * dropping below two tears it down, and a completed pinch suppresses the
-   * synthetic click so the release never seeks the playhead.
+   * synthetic click when one does fire. If the browser sends none, the next
+   * pointerdown discharges the marker instead (see onTimelinePointerDown).
    */
   onTimelinePointerUp(event: PointerEvent): void {
     this.pinchPoints.delete(event.pointerId);

@@ -765,6 +765,47 @@ describe('ImageVideoLabComponent', () => {
       component.onTimelinePointerUp(contact(2, 300, 10));
       component.onRulerPointerUp(ruler(500));
     });
+
+    it('discharges the pinch suppression when no click follows (stale-marker guard)', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.duration.set(900);
+      const laneTarget = {
+        getBoundingClientRect: () => ({ left: 100, width: 900, top: 0, height: 480 }),
+      } as unknown as HTMLElement;
+      const clickEvent = (x: number) =>
+        ({
+          clientX: x,
+          currentTarget: laneTarget,
+          preventDefault: jest.fn(),
+          stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+      // Pinch that zooms — arms suppression on release (Chromium does fire
+      // a click in this harness, so the first tap IS suppressed).
+      component.onTimelinePointerDown(contact(1, 100, 10));
+      component.onTimelinePointerDown(contact(2, 300, 10));
+      component.onTimelinePointerMove(contact(1, 50, 10));
+      component.onTimelinePointerMove(contact(2, 350, 10));
+      component.onTimelinePointerUp(contact(1, 50, 10));
+      component.onTimelinePointerUp(contact(2, 350, 10));
+      expect(component.zoomLevel()).toBeGreaterThan(1);
+
+      // Chromium's synthetic click: consumed by the suppression.
+      component.onTimelineClick(clickEvent(550));
+      const seeksAfterSuppressedTap = (videoEngine.seek as jest.Mock).mock
+        .calls.length;
+
+      // Android Chrome frequently fires NO click after a two-finger gesture.
+      // The next contact must discharge the stale marker so this tap seeks.
+      component.onTimelinePointerDown(contact(3, 550, 10));
+      component.onTimelinePointerUp(contact(3, 550, 10));
+
+      component.onTimelineClick(clickEvent(550));
+      expect(videoEngine.seek).toHaveBeenCalledTimes(seeksAfterSuppressedTap + 1);
+      // The pinch zoomed to 1.5x, so 10px/s became 15px/s: x=550 with the
+      // lane at left=100 is (550-100)/15 = 30s, not the 1x value of 45s.
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(30);
+    });
   });
 
   describe('markers, ticks, zoom and transport (touch ergonomics)', () => {
