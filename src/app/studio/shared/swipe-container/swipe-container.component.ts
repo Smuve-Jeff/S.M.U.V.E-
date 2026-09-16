@@ -32,12 +32,16 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   private startY = 0;
   private startTime = 0;
 
+  // Keep stable listener references so teardown actually removes the handlers.
+  private readonly boundTouchStart = this.onTouchStart.bind(this);
+  private readonly boundTouchEnd = this.onTouchEnd.bind(this);
+
   ngAfterViewInit() {
     const el = this.container.nativeElement;
-    el.addEventListener('touchstart', this.onTouchStart.bind(this), {
+    el.addEventListener('touchstart', this.boundTouchStart, {
       passive: true,
     });
-    el.addEventListener('touchend', this.onTouchEnd.bind(this), {
+    el.addEventListener('touchend', this.boundTouchEnd, {
       passive: true,
     });
   }
@@ -45,8 +49,8 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     const el = this.container?.nativeElement;
     if (el) {
-      el.removeEventListener('touchstart', this.onTouchStart.bind(this));
-      el.removeEventListener('touchend', this.onTouchEnd.bind(this));
+      el.removeEventListener('touchstart', this.boundTouchStart);
+      el.removeEventListener('touchend', this.boundTouchEnd);
     }
   }
 

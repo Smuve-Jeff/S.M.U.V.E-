@@ -596,10 +596,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.studioTelemetry.weeklyDashboard()
   );
   /** True after the very first time this component has been constructed this browser. */
-  firstNavigationSeen = signal(
-    typeof localStorage !== 'undefined' &&
-      localStorage.getItem('smuve_first_nav_seen') === 'true'
-  );
+  firstNavigationSeen = signal(this.hasLocalStorageKey('smuve_first_nav_seen', 'true'));
   /**
    * Mark the first navigation as seen. Called once on construction so the
    * topbar staggered entrance animation only fires for the first load.
@@ -712,9 +709,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   stageFxEnabled = signal<boolean>(this.initialStageFxEnabled());
   /** True once a stored choice or the user has made FX explicit. */
-  stageFxUserTouched =
-    typeof localStorage !== 'undefined' &&
-    localStorage.getItem(STAGE_FX_STORAGE_KEY) !== null;
+  stageFxUserTouched = this.hasLocalStorageKey(STAGE_FX_STORAGE_KEY);
+
+  /** Read browser storage without making Studio construction fail in SSR/WebViews. */
+  private hasLocalStorageKey(key: string, expectedValue?: string): boolean {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      const value = localStorage.getItem(key);
+      return value !== null && (expectedValue === undefined || value === expectedValue);
+    } catch {
+      return false;
+    }
+  }
 
   /** Compute the first-load Stage FX state (storage → motion pref → on). */
   private initialStageFxEnabled(): boolean {
@@ -1089,6 +1095,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.stopSpectrumAnalyzer();
+    this.stopCompTakePreview();
     this.studioTelemetry.endSession('component_destroy');
   }
 
@@ -1251,6 +1258,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.error('Your session role does not allow sharing.');
       return;
     }
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      this.snackbarService.error('Sharing is unavailable in this environment');
+      return;
+    }
     const session = this.collaboration.currentSession();
     const sessionId = session?.sessionId;
     const project = this.projectService.currentProject();
@@ -1262,6 +1273,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const queryString = params.toString();
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+    if (!navigator.clipboard?.writeText) {
+      this.snackbarService.error('Clipboard access is unavailable');
+      this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, false);
+      return;
+    }
 
     navigator.clipboard
       .writeText(url)

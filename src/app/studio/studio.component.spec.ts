@@ -589,4 +589,29 @@ describe('StudioComponent', () => {
     );
     expect(localStorage.getItem('smuve_stage_fx')).toBe('off');
   });
+
+  it('reports unavailable clipboard support without throwing', () => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+
+    expect(() => component.copyShareLink()).not.toThrow();
+    expect(mockSnackbar.error).toHaveBeenCalledWith('Clipboard access is unavailable');
+
+    if (clipboardDescriptor) {
+      Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+    } else {
+      delete (navigator as any).clipboard;
+    }
+  });
+
+  it('stops comp-take preview during component destruction', () => {
+    const stopPreview = jest.spyOn(component, 'stopCompTakePreview');
+
+    component.ngOnDestroy();
+
+    expect(stopPreview).toHaveBeenCalledTimes(1);
+  });
 });
