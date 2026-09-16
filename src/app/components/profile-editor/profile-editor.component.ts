@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
   input,
@@ -11,6 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AppTheme } from '../../services/user-context.service';
 import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
@@ -66,6 +68,7 @@ export class ProfileEditorComponent implements OnInit {
   private aiService = inject(AiService);
   private artistIdentityService = inject(ArtistIdentityService);
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private dbService = inject(DatabaseService);
   onboarding = inject(OnboardingService);
   private uplinkService = inject(UplinkService);
@@ -77,7 +80,6 @@ export class ProfileEditorComponent implements OnInit {
   // UI state
   showQuestionnaire = signal(false);
   showPersonaSelector = signal(false);
-  syncingWithAi = signal(false);
   showUplink = signal(false);
   uploadingImage = signal(false);
   optimizationScore = computed(
@@ -99,8 +101,45 @@ export class ProfileEditorComponent implements OnInit {
   editableProfile = signal<UserProfile>({
     ...this.userProfileService.profile(),
   });
-  saveStatus = signal<'idle' | 'saving' | 'saved'>('idle');
+  /**
+   * Commit lifecycle for the header. `failed` exists because a commit can be
+   * rejected (the uplink validates the name and genre), and reporting that as
+   * `idle` — which is what happened while nothing wrote this signal at all —
+   * left the operator staring at "VAULT_STATUS: READY" with no idea the commit
+   * never happened.
+   */
+  saveStatus = signal<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  saveError = signal<string | null>(null);
   activeSection = signal<string>('basic');
+
+  /** Inline roster form state for the Professional Team pane. */
+  addingTeamMember = signal(false);
+  teamMemberDraft = signal({ name: '', role: '' });
+
+  /**
+   * Result of the last archive export/import. `importProfile` answers with a
+   * boolean and the builder used to drop it on the floor, so importing a file
+   * that was not a profile looked exactly like a successful import.
+   */
+  archiveNotice = signal<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+  /**
+   * Header status line for the commit lifecycle. `saved`/`failed` describe the
+   * last commit rather than the current draft, since field edits are local
+   * until the next commit.
+   */
+  saveStatusLabel = computed(() => {
+    switch (this.saveStatus()) {
+      case 'saving':
+        return 'SYNCING...';
+      case 'saved':
+        return 'LAST_COMMIT: SAVED';
+      case 'failed':
+        return 'LAST_COMMIT: FAILED';
+      default:
+        return 'VAULT_STATUS: READY';
+    }
+  });
 
   /** Shared with the Artist DNA Uplink questionnaire — one catalog, no drift. */
   readonly allGenres = ALL_GENRES;
@@ -159,8 +198,26 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.route.snapshot.queryParamMap.get('questionnaire') === '1') {
-      this.showQuestionnaire.set(true);
+    const syncQuestionnaireQuery = (questionnaire: string | null) => {
+      this.showQuestionnaire.set(questionnaire === '1');
+    };
+
+    // Query parameters can change while the protected shell stays mounted
+    // (for example, the questionnaire CTA navigates to /profile?questionnaire=1
+    // without recreating this component). Snapshot-only reads leave the modal
+    // stuck in its previous state.
+    const queryParamMap = this.route.queryParamMap;
+    if (queryParamMap) {
+      queryParamMap
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((params) =>
+          syncQuestionnaireQuery(params.get('questionnaire'))
+        );
+    } else {
+      // Keeps lightweight unit-test route doubles and embedded hosts safe.
+      syncQuestionnaireQuery(
+        this.route.snapshot.queryParamMap.get('questionnaire')
+      );
     }
   }
 
@@ -188,6 +245,10 @@ export class ProfileEditorComponent implements OnInit {
   async onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
     const file = event.target.files?.[0];
     if (!file) return;
+    // `uploadingImage` drove nothing, so a second pick during a slow upload
+    // raced two writes into the same field. The tiles are disabled while it
+    // runs; this is the guard for the file input itself.
+    if (this.uploadingImage()) return;
 
     try {
       this.uploadingImage.set(true);
@@ -202,22 +263,103 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   async saveProfile(): Promise<void> {
+    // The commit button is disabled while saving; this also covers a second
+    // trigger (the identity console's refresh button) starting mid-commit.
+    if (this.saveStatus() === 'saving') return;
+
     this.showUplink.set(true);
-    await this.uplinkService.initiateUplink(this.editableProfile());
+    this.saveStatus.set('saving');
+    this.saveError.set(null);
+    try {
+      const committed = await this.uplinkService.initiateUplink(
+        this.editableProfile()
+      );
+      if (committed) {
+        this.saveStatus.set('saved');
+      } else {
+        this.saveStatus.set('failed');
+        this.saveError.set(
+          this.uplinkService.status().error ??
+            'COMMIT REJECTED. CHECK THE ARTIST NAME AND PRIMARY GENRE.'
+        );
+      }
+    } catch (err: any) {
+      this.saveStatus.set('failed');
+      this.saveError.set(err?.message || 'COMMIT FAILED. RETRY THE UPLINK.');
+    }
+  }
+
+  // ── Professional Team roster ──────────────────────────────────────────
+
+  openTeamMemberForm(): void {
+    this.teamMemberDraft.set({ name: '', role: '' });
+    this.addingTeamMember.set(true);
+  }
+
+  cancelTeamMember(): void {
+    this.addingTeamMember.set(false);
+    this.teamMemberDraft.set({ name: '', role: '' });
+  }
+
+  /**
+   * Deploy the drafted member onto the roster. The roster rules (trimming, the
+   * duplicate-name guard, the share/id defaults) stay in the service, and the
+   * stored roster is folded back into the working copy so the new card shows
+   * without discarding the fields the operator has not committed yet.
+   */
+  async deployTeamMember(): Promise<void> {
+    const draft = this.teamMemberDraft();
+    if (!draft.name.trim()) return;
+    const stored = await this.userProfileService.addTeamMember({
+      name: draft.name,
+      role: draft.role.trim() || undefined,
+    });
+    this.editableProfile.update((local) => ({ ...local, team: stored.team }));
+    this.cancelTeamMember();
+  }
+
+  async removeTeamMember(id: string): Promise<void> {
+    if (!id) return;
+    const stored = await this.userProfileService.removeTeamMember(id);
+    this.editableProfile.update((local) => ({ ...local, team: stored.team }));
   }
 
   async queueConnectorRefresh(connectorId: ConnectorPlatform): Promise<void> {
     this.addLog(`QUEUEING ${connectorId.toUpperCase()} CONNECTOR REFRESH...`);
-    const updated = await this.artistIdentityService.queueConnectorRefresh(
-      connectorId,
-      this.editableProfile()
-    );
-    this.editableProfile.set(updated);
+    try {
+      const updated = await this.artistIdentityService.queueConnectorRefresh(
+        connectorId,
+        this.editableProfile()
+      );
+      this.editableProfile.set(updated);
+      this.addLog(`${connectorId.toUpperCase()} REFRESH QUEUED.`);
+    } catch (err: any) {
+      // A failed queue used to reject with nothing shown, so the button looked
+      // like it had worked.
+      this.addLog(
+        `${connectorId.toUpperCase()} REFRESH FAILED: ${err?.message || 'UNKNOWN ERROR'}`
+      );
+    }
   }
 
+  /**
+   * Recent connector activity for the identity console. This log existed but
+   * was never rendered, so queuing a refresh — the console's primary action —
+   * produced no visible response at all.
+   */
   private addLog(msg: string) {
     this.syncLog.update((logs) => [msg, ...logs].slice(0, 5));
   }
+
+  /**
+   * `*ngFor` tracking for the risk-flag list.
+   *
+   * The template used to say `track risk`, which is `@for` syntax — inside
+   * `*ngFor` it compiled into a `ngForTrack` binding that no element has, so
+   * every render of the identity console logged NG0303 and the list went
+   * untracked.
+   */
+  readonly trackRisk = (_index: number, risk: string) => risk;
 
   toggleChip(field: string, value: any, nestedPath?: string) {
     this.editableProfile.update((p) => {
@@ -273,13 +415,32 @@ export class ProfileEditorComponent implements OnInit {
     });
   }
 
+  exportArchive(): void {
+    this.userProfileService.exportProfile();
+    this.archiveNotice.set({
+      kind: 'ok',
+      text: 'ARCHIVE EXPORTED. KEEP IT WITH YOUR RELEASES.',
+    });
+  }
+
   async onProfileImport(event: any) {
     const file = event.target.files?.[0];
     if (!file) return;
     const success = await this.userProfileService.importProfile(file);
     if (success) {
       this.editableProfile.set({ ...this.userProfileService.profile() });
+      this.archiveNotice.set({
+        kind: 'ok',
+        text: 'ARCHIVE IMPORTED. COMMIT TO STORE IT IN THE VAULT.',
+      });
+    } else {
+      this.archiveNotice.set({
+        kind: 'error',
+        text: 'IMPORT FAILED. THE FILE IS NOT A PROFILE ARCHIVE.',
+      });
     }
+    // Allow re-importing the same filename after a failure.
+    event.target.value = '';
   }
 
   readonly personaOptions = [

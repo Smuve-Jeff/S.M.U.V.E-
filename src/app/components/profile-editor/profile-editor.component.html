@@ -40,16 +40,23 @@
         <div
           class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase mt-1"
         >
-          <span [class.text-brand-primary]="saveStatus() === 'saved'">
-            {{
-              saveStatus() === 'saving' ? 'SYNCING...' : 'VAULT_STATUS: READY'
-            }}
+          <span
+            [class.text-brand-primary]="saveStatus() === 'saved'"
+            [class.text-red-400]="saveStatus() === 'failed'"
+          >
+            {{ saveStatusLabel() }}
           </span>
           <span class="opacity-20">|</span>
           <span class="text-brand-primary"
             >NEURAL STRENGTH: {{ optimizationScore() }}%</span
           >
         </div>
+        <p
+          *ngIf="saveStatus() === 'failed' && saveError()"
+          class="text-[10px] font-bold uppercase tracking-[0.16em] text-red-400/80 mt-2"
+        >
+          {{ saveError() }}
+        </p>
       </div>
     </div>
 
@@ -275,6 +282,8 @@
                 </h3>
                 <div
                   class="relative group cursor-pointer"
+                  [class.pointer-events-none]="uploadingImage()"
+                  [class.opacity-60]="uploadingImage()"
                   (click)="avatarUpload.click()"
                 >
                   <div
@@ -296,7 +305,7 @@
                     class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
                   >
                     <span class="text-[10px] font-black uppercase text-white"
-                      >Upload</span
+                      >{{ uploadingImage() ? 'Uploading…' : 'Upload' }}</span
                     >
                   </div>
                   <input
@@ -322,6 +331,8 @@
                 </h3>
                 <div
                   class="relative group cursor-pointer w-full"
+                  [class.pointer-events-none]="uploadingImage()"
+                  [class.opacity-60]="uploadingImage()"
                   (click)="headerUpload.click()"
                 >
                   <div
@@ -343,7 +354,7 @@
                     class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
                   >
                     <span class="text-[10px] font-black uppercase text-white"
-                      >Upload</span
+                      >{{ uploadingImage() ? 'Uploading…' : 'Upload' }}</span
                     >
                   </div>
                   <input
@@ -445,7 +456,7 @@
 
             <div class="flex gap-4 mt-10 border-t border-white/5 pt-10">
               <button
-                (click)="userProfileService.exportProfile()"
+                (click)="exportArchive()"
                 class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors"
               >
                 Export Archive
@@ -462,6 +473,15 @@
                 />
               </label>
             </div>
+
+            <p
+              *ngIf="archiveNotice() as notice"
+              class="text-[10px] font-bold uppercase tracking-[0.16em] mt-4"
+              [class.text-brand-primary]="notice.kind === 'ok'"
+              [class.text-red-400]="notice.kind === 'error'"
+            >
+              {{ notice.text }}
+            </p>
           </section>
         </div>
 
@@ -581,6 +601,20 @@
             </div>
           </section>
 
+          <section class="identity-panel" *ngIf="syncLog().length > 0">
+            <h3 class="text-lg font-black uppercase text-white mb-4">
+              Connector Activity
+            </h3>
+            <div class="space-y-2">
+              <p
+                *ngFor="let entry of syncLog()"
+                class="text-[10px] uppercase tracking-[0.16em] text-slate-400"
+              >
+                {{ entry }}
+              </p>
+            </div>
+          </section>
+
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <section class="identity-panel">
               <h3 class="text-lg font-black uppercase text-white mb-6">
@@ -590,7 +624,7 @@
                 <div
                   *ngFor="
                     let risk of identityPreview().fingerprint.riskFlags;
-                    track risk
+                    trackBy: trackRisk
                   "
                   class="risk-row"
                 >
@@ -917,10 +951,20 @@
               *ngFor="let member of editableProfile().team"
               class="identity-card"
             >
-              <div
-                class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4"
-              >
-                <i class="fas fa-user text-slate-400"></i>
+              <div class="flex items-start justify-between">
+                <div
+                  class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4"
+                >
+                  <i class="fas fa-user text-slate-400"></i>
+                </div>
+                <button
+                  type="button"
+                  (click)="removeTeamMember(member.id)"
+                  [attr.aria-label]="'Remove ' + member.name"
+                  class="w-8 h-8 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <i class="fas fa-trash-alt text-xs"></i>
+                </button>
               </div>
               <h4 class="text-white font-black uppercase tracking-tight">
                 {{ member.name }}
@@ -932,7 +976,54 @@
               </p>
             </article>
 
+            <form
+              *ngIf="addingTeamMember()"
+              (ngSubmit)="deployTeamMember()"
+              class="border-2 border-brand-primary/40 rounded-[2rem] p-8 flex flex-col gap-6"
+            >
+              <app-form-field label="Name">
+                <input
+                  type="text"
+                  class="executive-input"
+                  placeholder="Full name"
+                  [ngModelOptions]="{ standalone: true }"
+                  [ngModel]="teamMemberDraft().name"
+                  (ngModelChange)=
+                    "teamMemberDraft.set({ name: $event, role: teamMemberDraft().role })"
+                />
+              </app-form-field>
+              <app-form-field label="Role">
+                <input
+                  type="text"
+                  class="executive-input"
+                  placeholder="Manager, Engineer, Agent"
+                  [ngModelOptions]="{ standalone: true }"
+                  [ngModel]="teamMemberDraft().role"
+                  (ngModelChange)=
+                    "teamMemberDraft.set({ name: teamMemberDraft().name, role: $event })"
+                />
+              </app-form-field>
+              <div class="flex gap-3">
+                <button
+                  type="submit"
+                  [disabled]="!teamMemberDraft().name.trim()"
+                  class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
+                >
+                  Deploy
+                </button>
+                <button
+                  type="button"
+                  (click)="cancelTeamMember()"
+                  class="px-6 py-3 border border-white/10 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+
             <button
+              *ngIf="!addingTeamMember()"
+              (click)="openTeamMemberForm()"
               class="border-2 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col items-center justify-center gap-3 hover:border-brand-primary/50 transition-all group"
             >
               <i
