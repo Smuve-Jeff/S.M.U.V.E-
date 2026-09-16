@@ -92,6 +92,17 @@ export interface DigitalFingerprint {
   lastScan: string;
 }
 
+/** Every expandable card in the Artist Development Hub. */
+export type ArtistDevelopmentPanel =
+  | 'pathway'
+  | 'fingerprint'
+  | 'pro'
+  | 'dsp'
+  | 'money'
+  | 'social'
+  | 'catalog'
+  | 'release';
+
 @Injectable({ providedIn: 'root' })
 export class ArtistDevelopmentService {
   private userProfile = inject(UserProfileService);
@@ -127,16 +138,7 @@ export class ArtistDevelopmentService {
   });
 
   // Active panel (updated with new panels)
-  activePanel = signal<
-    | 'pathway'
-    | 'fingerprint'
-    | 'pro'
-    | 'dsp'
-    | 'social'
-    | 'catalog'
-    | 'release'
-    | null
-  >('pathway');
+  activePanel = signal<ArtistDevelopmentPanel | null>('pathway');
   isScanning = signal(false);
 
   // ── PRO Registry ──────────────────────────────────────
@@ -314,15 +316,21 @@ export class ArtistDevelopmentService {
     { platform: 'Twitch', icon: 'live_tv' },
   ];
 
-  /** Get default social accounts list */
+  /**
+   * Get default social accounts list.
+   *
+   * Every account starts empty. These rows used to be seeded with a random
+   * follower count and engagement rate, so an artist who connected one handle
+   * was shown an audience that had been rolled for them.
+   */
   getDefaultSocialAccounts(): SocialAccount[] {
     return this.SOCIAL_PLATFORMS.map((p) => ({
       platform: p.platform,
       url: '',
       handle: '',
       verified: false,
-      followers: Math.floor(Math.random() * 5000),
-      engagement: Math.random() * 5 + 0.5,
+      followers: 0,
+      engagement: 0,
       lastPost: 'N/A',
       connected: false,
     }));
@@ -333,12 +341,16 @@ export class ArtistDevelopmentService {
     this.socialAccounts.update((list) => {
       const updated = [...list];
       if (updated[index]) {
+        // Recording a handle is not a platform verification. That used to be
+        // decided by a coin flip, which put a verified badge on accounts no
+        // platform had confirmed. Verification is a claim the artist records
+        // separately, as a verified link on the official fingerprint.
         updated[index] = {
           ...updated[index],
           handle,
           url,
           connected: true,
-          verified: Math.random() > 0.5,
+          verified: false,
         };
       }
       return updated;
@@ -563,6 +575,13 @@ export class ArtistDevelopmentService {
     if (social) this.socialAccounts.set(social);
     else this.socialAccounts.set(this.getDefaultSocialAccounts());
 
+    // The catalogue must be restored BEFORE the analytics decision below, because
+    // `hasDeliveredWork()` reads it. Restoring it last made that check see an
+    // empty catalogue on every load, so stored figures were discarded even for
+    // an artist with a released work.
+    const cat = this.loadFromStorage<ReleaseProject[]>('smuve_catalog');
+    if (cat) this.catalog.set(cat);
+
     const dsp = this.loadFromStorage<DspAnalytics>('smuve_dsp_analytics');
     // Stored sample figures belong to a previous catalogue state; drop them once
     // the artist has nothing delivered, so stale fake numbers cannot linger.
@@ -573,9 +592,6 @@ export class ArtistDevelopmentService {
       'smuve_digital_fingerprint'
     );
     if (fp) this.digitalFingerprint.set(fp);
-
-    const cat = this.loadFromStorage<ReleaseProject[]>('smuve_catalog');
-    if (cat) this.catalog.set(cat);
   }
 
   private saveToStorage(key: string, data: any): void {

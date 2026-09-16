@@ -51,6 +51,12 @@ export class StrategyHubComponent implements OnInit {
       .slice(0, 6)
   );
 
+  /**
+   * True once any real platform figure exists. The tiles below used to be fed by
+   * hardcoded fallbacks, so every artist saw an invented audience.
+   */
+  hasAudienceData = this.marketingService.hasAudienceData;
+
   totalFollowers = computed(() =>
     this.socialStats().reduce((sum, s) => sum + s.followers, 0)
   );

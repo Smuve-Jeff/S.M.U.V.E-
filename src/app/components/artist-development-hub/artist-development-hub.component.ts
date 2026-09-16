@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   ArtistDevelopmentService,
+  ArtistDevelopmentPanel,
   ProRegistration,
   WorkRegistration,
   DspAnalytics,
@@ -15,6 +16,7 @@ import {
   ArtistPathwayService,
   PathwayArea,
   PathwayAreaStanding,
+  PathwayRecordSurface,
   PathwayStepProgress,
   AREA_ORDER,
 } from '../../services/artist-pathway.service';
@@ -24,6 +26,9 @@ import {
   ProductionTrack,
   ReleaseType,
 } from '../../types/release.types';
+
+/** Every expandable card in this hub, owned by the service so they cannot drift. */
+type HubPanel = ArtistDevelopmentPanel;
 
 @Component({
   selector: 'app-artist-development-hub',
@@ -88,6 +93,14 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   nextAction() {
     return this.pathway().nextAction;
   }
+
+  /**
+   * The ordered queue behind the hero, from the same ordering rule, so the two
+   * can only ever agree about what comes first.
+   */
+  nextQueue = computed(() =>
+    this.pathwayService.todayList(this.userProfile.profile(), 3)
+  );
 
   completionTone(score: number): string {
     if (score === 100) return 'text-emerald-400';
@@ -193,16 +206,7 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     if (!this.dspAnalytics()) this.dev.generateDspAnalytics();
   }
 
-  setPanel(
-    panel:
-      | 'pathway'
-      | 'fingerprint'
-      | 'pro'
-      | 'dsp'
-      | 'social'
-      | 'catalog'
-      | 'release'
-  ) {
+  setPanel(panel: HubPanel) {
     this.activePanel.set(this.activePanel() === panel ? null : panel);
   }
 
@@ -376,6 +380,166 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   refreshDsp() {
     this.dev.generateDspAnalytics();
+  }
+
+  // ── Money & Royalties ─────────────────────────────────
+  //
+  // The pathway's money steps require a monthly budget, at least one revenue
+  // record, and at least one payout account. Those fields were displayed in the
+  // profile but had no writer anywhere in the app, so two steps could never be
+  // completed from any UI. This panel is their owner.
+
+  payoutForm = signal({ provider: '', accountName: '', balance: 0 });
+  revenueForm = signal({ month: '', amount: 0 });
+
+  financials = computed<any>(
+    () => (this.userProfile.profile()?.financials as any) || {}
+  );
+
+  payoutAccounts = computed<any[]>(() => {
+    const accounts = this.financials()?.accounts;
+    return Array.isArray(accounts) ? accounts : [];
+  });
+
+  revenueHistory = computed<any[]>(() => {
+    const history = this.financials()?.revenueHistory;
+    return Array.isArray(history) ? history : [];
+  });
+
+  monthlyBudget = computed<number>(() => {
+    const value = Number(this.financials()?.monthlyBudget);
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  });
+
+  revenueTotal = computed<number>(() =>
+    this.revenueHistory().reduce(
+      (sum: number, entry: any) => sum + (Number(entry?.amount) || 0),
+      0
+    )
+  );
+
+  updatePayoutForm(field: string, value: any): void {
+    this.payoutForm.update((form) => ({ ...form, [field]: value }));
+  }
+
+  updateRevenueForm(field: string, value: any): void {
+    this.revenueForm.update((form) => ({ ...form, [field]: value }));
+  }
+
+  /**
+   * Financial writes merge into the stored block. `accounts` and
+   * `revenueHistory` are edited by index, so replacing the whole object would
+   * drop the fields this panel does not render.
+   */
+  private writeFinancials(patch: Record<string, any>): void {
+    void this.userProfile.updateFinancials(patch);
+  }
+
+  /** Stored as a number, never the raw string an input hands back. */
+  setMonthlyBudget(value: any): void {
+    const parsed = Number(value);
+    this.writeFinancials({
+      monthlyBudget: Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+    });
+  }
+
+  addPayoutAccount(): void {
+    const form = this.payoutForm();
+    const provider = String(form.provider || '').trim();
+    const accountName = String(form.accountName || '').trim();
+    if (!provider || !accountName) return;
+    const balance = Number(form.balance);
+    this.writeFinancials({
+      accounts: [
+        ...this.payoutAccounts(),
+        {
+          id: `acct_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          provider,
+          accountName,
+          balance: Number.isFinite(balance) ? balance : 0,
+          status: 'active',
+        },
+      ],
+    });
+    this.payoutForm.set({ provider: '', accountName: '', balance: 0 });
+  }
+
+  removePayoutAccount(index: number): void {
+    this.writeFinancials({
+      accounts: this.payoutAccounts().filter((_, i) => i !== index),
+    });
+  }
+
+  addRevenueEntry(): void {
+    const form = this.revenueForm();
+    const month = String(form.month || '').trim();
+    if (!month) return;
+    const amount = Number(form.amount);
+    this.writeFinancials({
+      revenueHistory: [
+        ...this.revenueHistory(),
+        { month, amount: Number.isFinite(amount) ? amount : 0 },
+      ],
+    });
+    this.revenueForm.set({ month: '', amount: 0 });
+  }
+
+  removeRevenueEntry(index: number): void {
+    this.writeFinancials({
+      revenueHistory: this.revenueHistory().filter((_, i) => i !== index),
+    });
+  }
+
+  // ── Pathway record routing ────────────────────────────
+  //
+  // Each step names the surface that actually holds a control for its evidence.
+  // A single CTA that always went to the profile editor left the artist hunting
+  // for fields that live in the questionnaire, or that only exist here.
+
+  recordSurface(
+    step: PathwayStepProgress['step']
+  ): PathwayRecordSurface {
+    return this.pathwayService.recordIn(step);
+  }
+
+  recordLabel(step: PathwayStepProgress['step']): string {
+    switch (this.recordSurface(step)) {
+      case 'questionnaire':
+        return 'Answer in the artist DNA';
+      case 'hub':
+        return 'Record it here';
+      default:
+        return 'Record this in the profile';
+    }
+  }
+
+  /** Open a panel unconditionally, unlike the toggle used by the card headers. */
+  openPanel(panel: HubPanel) {
+    this.activePanel.set(panel);
+  }
+
+  recordStep(step: PathwayStepProgress['step']): void {
+    switch (this.recordSurface(step)) {
+      case 'questionnaire':
+        this.router.navigate(['/profile'], {
+          queryParams: { questionnaire: '1' },
+        });
+        return;
+      case 'hub':
+        this.openPanel(this.hubPanelFor(step));
+        return;
+      default:
+        this.openProfileEditor();
+    }
+  }
+
+  /** The hub panel that owns a step, when the hub owns the step at all. */
+  private hubPanelFor(
+    step: PathwayStepProgress['step']
+  ): Extract<HubPanel, 'money' | 'pro' | 'catalog'> {
+    if (step.area === 'money') return 'money';
+    if (step.area === 'rights') return 'pro';
+    return 'catalog';
   }
 
   /** True once a work has actually been delivered, so numbers can be trusted. */

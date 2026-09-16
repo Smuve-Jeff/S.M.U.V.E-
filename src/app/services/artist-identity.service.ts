@@ -85,6 +85,28 @@ const CONNECTORS: ConnectorDefinition[] = [
   },
 ];
 
+/**
+ * Host labels that carry no brand meaning, so `open.spotify.com` and
+ * `music.apple.com` resolve to `spotify` and `apple`.
+ */
+const HOST_NOISE_LABELS = ['www', 'open', 'music', 'us', 'artist', 'com'];
+
+/**
+ * The brand token for a connector's site. Used to decide whether the artist
+ * really holds an account there: a handle guessed from the artist name is not
+ * evidence, but a link the artist recorded and confirmed is.
+ */
+const brandToken = (website: string): string => {
+  const host = String(website || '')
+    .replace(/^https?:\/\//, '')
+    .split('/')[0]
+    .toLowerCase();
+  return (
+    host.split('.').find((label) => label && !HOST_NOISE_LABELS.includes(label)) ||
+    ''
+  );
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -275,89 +297,72 @@ export class ArtistIdentityService {
     verification: string;
     official: boolean;
     health: string;
+    connected: boolean;
     followersOrListeners: number;
+    /** Display-ready audience figure, or an honest statement that there is none. */
+    audience: string;
   }> {
-    return identity.linkedAccounts.map((account) => ({
-      connector: account.platform,
-      status: account.status,
-      verification: account.verificationTier,
-      official: account.isOfficial,
-      health: account.health.status,
-      followersOrListeners:
-        account.metrics.followers || account.metrics.monthlyListeners || 0,
-    }));
+    return identity.linkedAccounts.map((account) => {
+      const connected = account.status === 'linked';
+      const figure =
+        account.metrics.followers || account.metrics.monthlyListeners || 0;
+      return {
+        connector: account.platform,
+        status: account.status,
+        verification: account.verificationTier,
+        official: account.isOfficial,
+        health: account.health.status,
+        connected,
+        followersOrListeners: figure,
+        audience: connected
+          ? figure > 0
+            ? `${figure}`
+            : 'no source connected'
+          : 'not claimed',
+      };
+    });
   }
 
+  /**
+   * Social platforms the artist has actually claimed.
+   *
+   * Figures come only from a real metrics source, so they stay at zero until one
+   * is connected. S.M.U.V.E. does not estimate an audience: an invented follower
+   * count is a business decision made on a false premise, and a per-post
+   * engagement breakdown derived from it is worse.
+   */
   getSocialPlatformData(identity = this.identity()): SocialPlatformData[] {
     return identity.linkedAccounts
-      .filter((account) =>
-        ['Instagram', 'TikTok', 'YouTube'].includes(account.platform)
+      .filter(
+        (account) =>
+          account.status === 'linked' &&
+          ['Instagram', 'TikTok', 'YouTube'].includes(account.platform)
       )
       .map((account) => ({
         platform: account.platform as SocialPlatformData['platform'],
-        followers:
-          account.metrics.followers ||
-          Math.round((account.metrics.monthlyListeners || 0) * 0.35),
-        engagementRate: account.metrics.engagementRate || 3.5,
-        topPosts: [
-          {
-            id: `${account.id}-1`,
-            likes: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.11
-            ),
-            shares: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.02
-            ),
-            comments: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.008
-            ),
-          },
-          {
-            id: `${account.id}-2`,
-            likes: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.07
-            ),
-            shares: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.015
-            ),
-            comments: Math.round(
-              (account.metrics.followers ||
-                account.metrics.monthlyListeners ||
-                1000) * 0.006
-            ),
-          },
-        ],
+        followers: account.metrics.followers || 0,
+        engagementRate: account.metrics.engagementRate || 0,
+        topPosts: [],
         lastUpdated: account.refreshedAt,
       }));
   }
 
+  /**
+   * Streaming platforms the artist has actually claimed, with no estimated
+   * totals and no per-track splits invented from them.
+   */
   getStreamingPlatformData(identity = this.identity()): StreamingData[] {
     return identity.linkedAccounts
-      .filter((account) =>
-        ['Spotify', 'Apple Music', 'SoundCloud'].includes(account.platform)
+      .filter(
+        (account) =>
+          account.status === 'linked' &&
+          ['Spotify', 'Apple Music', 'SoundCloud'].includes(account.platform)
       )
       .map((account) => ({
         platform: account.platform as StreamingData['platform'],
         monthlyListeners: account.metrics.monthlyListeners || 0,
         totalStreams: account.metrics.totalStreams || 0,
-        topTracks: identity.works.slice(0, 3).map((work, index) => ({
-          id: `${account.id}-${index + 1}`,
-          title: work.title,
-          streams: Math.round(
-            (account.metrics.totalStreams || 10000) /
-              Math.max(identity.works.length, 1)
-          ),
-        })),
+        topTracks: [],
         playlistAdds: account.metrics.playlistAdds || 0,
         lastUpdated: account.refreshedAt,
       }));
@@ -368,17 +373,22 @@ export class ArtistIdentityService {
     existingAccounts: ArtistPlatformAccount[]
   ): ArtistPlatformAccount[] {
     const now = Date.now();
-    const normalizedHandle = profile.artistName
+    // A profile can reach here before the artist has chosen a name (imports,
+    // partially completed onboarding), so this must not assume a string. An
+    // empty handle is the honest result: no handle has been claimed yet.
+    const normalizedHandle = String(profile.artistName || '')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '')
       .slice(0, 20);
     const catalogDepth = Math.max(profile.catalog?.length || 0, 1);
-    const hasOfficialWebsite = Boolean(
-      profile.website || profile.artistIdentity?.core.officialWebsite
-    );
     const hasProMetadata = Boolean(profile.proName || profile.proIpi);
+    // Only a link the artist recorded AND confirmed counts as holding the
+    // account. Everything else here is a candidate surface, not a claim.
+    const verifiedLinks = (profile.officialArtistProfiles || []).filter(
+      (link: any) => link?.verified === true && typeof link?.url === 'string'
+    );
 
-    return CONNECTORS.map((connector, index) => {
+    return CONNECTORS.map((connector) => {
       const existing = existingAccounts.find(
         (account) => account.platform === connector.id
       );
@@ -391,19 +401,24 @@ export class ArtistIdentityService {
         (sum, item) => sum + item.weight,
         0
       );
-      const official =
-        connector.id === 'Spotify' ||
-        connector.id === 'YouTube' ||
-        hasOfficialWebsite;
-      const status: ArtistPlatformAccount['status'] =
-        confidenceWeight >= 75
-          ? 'linked'
-          : connector.id === 'TikTok' || connector.id === 'Instagram'
-            ? 'needs_review'
-            : 'stale';
-      const followersBase =
-        (catalogDepth * 1800 + connector.growthWeight * 110) * (index + 1);
-      const streamBase = followersBase * 8;
+      // Owning a connector means the artist pointed at it. Spotify and YouTube
+      // used to be marked OFFICIAL for every artist regardless of whether they
+      // held an account there, which is a claim this app cannot support.
+      const token = brandToken(connector.website);
+      const verifiedLink = token
+        ? verifiedLinks.find((link: any) =>
+            String(link.url).toLowerCase().includes(token)
+          )
+        : undefined;
+      const connected = Boolean(verifiedLink);
+      const official = connected;
+      // `linked` is reserved for a claimed and recorded surface, so an
+      // unclaimed candidate can never inflate the platform-consistency score.
+      const status: ArtistPlatformAccount['status'] = connected
+        ? 'linked'
+        : confidenceWeight >= 55
+          ? 'needs_review'
+          : 'stale';
 
       return {
         id:
@@ -417,9 +432,9 @@ export class ArtistIdentityService {
         profileUrl:
           existing?.profileUrl || `${connector.website}${normalizedHandle}`,
         verificationTier:
-          status === 'linked' && hasProMetadata
+          connected && hasProMetadata
             ? 'TRUSTED'
-            : official
+            : connected
               ? 'OFFICIAL'
               : confidenceWeight >= 55
                 ? 'CLAIMED'
@@ -427,55 +442,27 @@ export class ArtistIdentityService {
         isOfficial: official,
         status,
         capabilities: connector.capabilities,
+        // No audience metric is invented here. There is no connected analytics
+        // source, so the row carries no numbers at all rather than
+        // plausible-looking ones that would drive real decisions.
         metrics: {
-          followers:
-            connector.category !== 'streaming'
-              ? Math.round(followersBase * 1.1)
-              : undefined,
-          monthlyListeners:
-            connector.category !== 'social'
-              ? Math.round(followersBase * 0.9)
-              : undefined,
-          totalStreams:
-            connector.category !== 'social'
-              ? Math.round(streamBase * 14)
-              : undefined,
-          playlistAdds:
-            connector.id === 'Spotify' || connector.id === 'Apple Music'
-              ? Math.round(catalogDepth * 26 + connector.growthWeight * 2)
-              : undefined,
-          engagementRate:
-            connector.category !== 'streaming'
-              ? Number(
-                  (4.2 + index * 0.7 + (hasOfficialWebsite ? 0.6 : 0)).toFixed(
-                    1
-                  )
-                )
-              : undefined,
-          avgViews:
-            connector.id === 'YouTube' || connector.id === 'TikTok'
-              ? Math.round(streamBase * 0.4)
-              : undefined,
-          topContentTitle: profile.catalog?.[0]?.title || 'Catalog Preview',
+          topContentTitle: profile.catalog?.[0]?.title,
         },
         ownershipEvidence: evidence,
         refreshedAt: now,
-        linkedAt: existing?.linkedAt || now - (index + 1) * 1000 * 60 * 60 * 24,
+        // A claim date only exists once the artist has a record of the claim.
+        linkedAt: existing?.linkedAt || (connected ? now : 0),
         health: {
-          status:
-            status === 'linked'
-              ? 'healthy'
-              : status === 'needs_review'
-                ? 'degraded'
-                : 'down',
-          lastSyncAt: now - index * 1000 * 60 * 8,
-          latencyMs: 120 + index * 28,
+          // No live sync exists yet, so a recorded link is the only health
+          // signal available, and an unclaimed surface is simply down.
+          status: connected ? existing?.health.status || 'healthy' : 'down',
+          lastSyncAt: existing?.health.lastSyncAt,
+          latencyMs: existing?.health.latencyMs || 0,
           queueDepth: existing?.health.queueDepth || 0,
-          rateLimitRemaining: 1000 - index * 75,
-          errorMessage:
-            status === 'stale'
-              ? `${connector.id} requires source credential review.`
-              : undefined,
+          rateLimitRemaining: existing?.health.rateLimitRemaining,
+          errorMessage: connected
+            ? undefined
+            : `${connector.id} is not claimed: no verified official link is recorded.`,
         },
       };
     });
@@ -489,19 +476,22 @@ export class ArtistIdentityService {
     const artistName = profile.artistName || 'artist';
     const website =
       profile.website || profile.artistIdentity?.core.officialWebsite;
+    // Every line here states what the profile contains, never what a platform
+    // said. Nothing has been compared against a source record, so nothing may
+    // claim a detection.
     const baseEvidence: ArtistLinkEvidence[] = [
       {
         id: `${connectorId}-handle`,
         source: connectorId,
         type: 'handle_similarity',
-        detail: `Detected handle @${normalizedHandle} aligned with ${artistName}.`,
+        detail: `Handle @${normalizedHandle} derived from the artist name — not yet confirmed on ${connectorId}.`,
         weight: 22,
       },
       {
         id: `${connectorId}-metadata`,
         source: connectorId,
         type: 'metadata_overlap',
-        detail: `Catalog metadata matches ${profile.catalog?.length || 0} release entries.`,
+        detail: `${profile.catalog?.length || 0} catalog entries are available to match against ${connectorId}.`,
         weight: Math.min(26, 10 + (profile.catalog?.length || 0) * 4),
       },
     ];
@@ -522,20 +512,13 @@ export class ArtistIdentityService {
         id: `${connectorId}-pro`,
         source: 'pro',
         type: 'catalog_match',
-        detail: `PRO metadata ${profile.proName || artistName} / ${profile.proIpi || 'pending'} overlaps source record.`,
+        detail: `PRO registration ${profile.proName || artistName} / ${profile.proIpi || 'pending'} is on file.`,
         weight: 24,
       });
     }
 
-    if (connectorId === 'Spotify' || connectorId === 'YouTube') {
-      baseEvidence.push({
-        id: `${connectorId}-verified`,
-        source: connectorId,
-        type: 'verified_badge',
-        detail: `${connectorId} is designated as a priority official surface.`,
-        weight: 16,
-      });
-    }
+    // A "priority official surface" credit used to be added here for Spotify
+    // and YouTube, worth 16 points toward a claim neither artist had made.
 
     return baseEvidence;
   }
@@ -559,14 +542,11 @@ export class ArtistIdentityService {
         artistName,
         genre: item.genre || profile.primaryGenre,
         status: item.status || 'draft',
-        isrc:
-          item.metadata?.isrc ||
-          existing?.isrc ||
-          `QZK6K${String(index + 1).padStart(5, '0')}`,
-        upc:
-          item.metadata?.upc ||
-          existing?.upc ||
-          `1984${String(index + 11).padStart(8, '0')}`,
+        // Real identifiers only. Placeholder codes used to be generated here,
+        // which let the fingerprint report a fully documented catalogue the
+        // artist had not documented — and put fake ISRCs in front of PROs.
+        isrc: item.metadata?.isrc || existing?.isrc,
+        upc: item.metadata?.upc || existing?.upc,
         releaseId: existing?.releaseId || `release-${slug}`,
         platformIds: Object.fromEntries(
           accounts

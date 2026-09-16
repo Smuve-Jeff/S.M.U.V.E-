@@ -94,6 +94,37 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
     expect(sut.socialAccounts()[idx].handle).toBe('');
   });
 
+  /**
+   * Social rows used to be seeded with a random follower count and engagement
+   * rate, and connecting a handle decided its verified badge by coin flip. Both
+   * reached the artist as fact: an audience they never had, and a verification
+   * no platform granted.
+   */
+  it('never invents an audience or a verification badge for a social account', () => {
+    sut.loadAll();
+
+    sut.socialAccounts().forEach((account) => {
+      expect(account.followers).toBe(0);
+      expect(account.engagement).toBe(0);
+      expect(account.verified).toBe(false);
+    });
+
+    const idx = sut.SOCIAL_PLATFORMS.findIndex(
+      (p) => p.platform === 'Instagram'
+    );
+    // Repeat the connect a few times: a coin flip would show up as a pass.
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      sut.connectSocialAccount(
+        idx,
+        `handle_${attempt}`,
+        'https://instagram.com/x'
+      );
+      expect(sut.socialAccounts()[idx].verified).toBe(false);
+      expect(sut.socialAccounts()[idx].followers).toBe(0);
+      expect(sut.socialAccounts()[idx].engagement).toBe(0);
+    }
+  });
+
   it('scanFingerprint scores a complete profile and clears the scanning flag', async () => {
     sut.loadAll(); // seeds default social accounts
     sut.addProRegistration({

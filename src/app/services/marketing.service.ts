@@ -1,11 +1,7 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
 import { ArtistIdentityService } from './artist-identity.service';
-import {
-  MarketingCampaign,
-  SocialPlatformData,
-  StreamingData,
-} from '../types/marketing.types';
+import { MarketingCampaign } from '../types/marketing.types';
 
 @Injectable({
   providedIn: 'root',
@@ -18,60 +14,27 @@ export class MarketingService {
     () => this.profileService.profile().marketingCampaigns || []
   );
 
-  private fallbackSocialData = signal<SocialPlatformData[]>([
-    {
-      platform: 'Instagram',
-      followers: 12500,
-      engagementRate: 4.2,
-      topPosts: [
-        { id: 'ig-1', likes: 1200, shares: 45, comments: 88 },
-        { id: 'ig-2', likes: 980, shares: 32, comments: 45 },
-      ],
-      lastUpdated: Date.now(),
-    },
-    {
-      platform: 'TikTok',
-      followers: 45000,
-      engagementRate: 8.5,
-      topPosts: [
-        { id: 'tk-1', likes: 15000, shares: 1200, comments: 450 },
-        { id: 'tk-2', likes: 8500, shares: 600, comments: 230 },
-      ],
-      lastUpdated: Date.now(),
-    },
-  ]);
+  /**
+   * Platform data as recorded, or nothing at all.
+   *
+   * These used to fall back to hardcoded figures (12.5K Instagram followers,
+   * 85K Spotify listeners, 1.2M streams on a track the artist never released),
+   * which every artist saw as their own performance. An empty list is the truth
+   * until an analytics source is connected; the UI states that instead of
+   * quoting invented numbers into a campaign budget.
+   */
+  socialData = computed(() => this.artistIdentityService.getSocialPlatformData());
 
-  private fallbackStreamingData = signal<StreamingData[]>([
-    {
-      platform: 'Spotify',
-      monthlyListeners: 85000,
-      totalStreams: 1200000,
-      topTracks: [
-        { id: 'sp-1', title: 'elegant Nights', streams: 450000 },
-        { id: 'sp-2', title: 'pro-grade Pulse', streams: 320000 },
-      ],
-      playlistAdds: 1250,
-      lastUpdated: Date.now(),
-    },
-    {
-      platform: 'Apple Music',
-      monthlyListeners: 32000,
-      totalStreams: 450000,
-      topTracks: [{ id: 'am-1', title: 'elegant Nights', streams: 180000 }],
-      playlistAdds: 450,
-      lastUpdated: Date.now(),
-    },
-  ]);
+  streamingData = computed(() =>
+    this.artistIdentityService.getStreamingPlatformData()
+  );
 
-  socialData = computed(() => {
-    const social = this.artistIdentityService.getSocialPlatformData();
-    return social.length > 0 ? social : this.fallbackSocialData();
-  });
-
-  streamingData = computed(() => {
-    const streaming = this.artistIdentityService.getStreamingPlatformData();
-    return streaming.length > 0 ? streaming : this.fallbackStreamingData();
-  });
+  /** True once any real platform figure exists to report. */
+  hasAudienceData = computed(
+    () =>
+      this.socialData().length > 0 ||
+      this.streamingData().length > 0
+  );
 
   async createCampaign(campaign: Omit<MarketingCampaign, 'id'>): Promise<void> {
     const newCampaign: MarketingCampaign = {

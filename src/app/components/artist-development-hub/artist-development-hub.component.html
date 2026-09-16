@@ -210,10 +210,10 @@
                   </a>
                 }
                 <button
-                  (click)="openProfileEditor()"
+                  (click)="recordStep(next.step)"
                   class="px-4 py-2 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-300"
                 >
-                  Record this in the profile
+                  {{ recordLabel(next.step) }}
                 </button>
                 <span
                   class="text-[8px] uppercase font-bold tracking-widest text-slate-500"
@@ -221,6 +221,14 @@
                   {{ next.step.effort }} · {{ next.step.cost }}
                 </span>
               </div>
+
+              @if (nextQueue().length > 1) {
+                <div
+                  class="mt-3 text-[8px] text-slate-500 uppercase tracking-widest font-bold"
+                >
+                  Then: {{ nextQueue().slice(1).join(' · ') }}
+                </div>
+              }
             </div>
           } @else {
             <div
@@ -332,6 +340,12 @@
                                     Evidence needed: {{ entry.needs.join(' · ') }}
                                   </p>
                                 }
+                                <button
+                                  (click)="recordStep(entry.step)"
+                                  class="inline-block text-[8px] font-black uppercase tracking-widest text-slate-400 mt-2 mr-3 hover:text-white"
+                                >
+                                  {{ recordLabel(entry.step) }}
+                                </button>
                                 @if (destinationFor(entry.step); as destination) {
                                   <a
                                     [href]="destination.url"
@@ -927,6 +941,212 @@
       }
     </div>
 
+    <!-- 3b. Money & Royalties -->
+    <div class="bg-brand-surface/20 border border-white/5 rounded-3xl p-6">
+      <button
+        (click)="setPanel('money')"
+        class="flex items-center gap-3 w-full text-left"
+      >
+        <div
+          class="size-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center"
+        >
+          <span class="material-symbols-outlined text-teal-300">savings</span>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-sm font-black uppercase tracking-tight">
+            Money &amp; Royalties
+          </h2>
+          <p class="text-[8px] text-slate-500 uppercase tracking-widest">
+            What a release costs, earns, and pays into
+          </p>
+        </div>
+        <div class="text-right mr-3">
+          <div class="text-lg font-black text-teal-300">
+            {{ payoutAccounts().length }}
+          </div>
+          <div class="text-[7px] text-slate-500 uppercase tracking-widest font-bold">
+            accounts
+          </div>
+        </div>
+        <span class="text-slate-600 text-xs">{{
+          activePanel() === 'money' ? '▲' : '▼'
+        }}</span>
+      </button>
+
+      @if (activePanel() === 'money') {
+        <div class="space-y-4 mt-5">
+          <p class="text-[9px] text-slate-500 leading-relaxed">
+            These figures are the evidence the pathway's money steps read. A
+            budget and one real revenue record are what let S.M.U.V.E. price the
+            next release instead of guessing.
+          </p>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div class="bg-brand-dark/40 rounded-2xl p-3 text-center">
+              <div class="text-sm font-black text-white">
+                {{ monthlyBudget() | currency }}
+              </div>
+              <div class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1">
+                Monthly budget
+              </div>
+            </div>
+            <div class="bg-brand-dark/40 rounded-2xl p-3 text-center">
+              <div class="text-sm font-black text-emerald-400">
+                {{ revenueTotal() | currency }}
+              </div>
+              <div class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1">
+                Revenue recorded
+              </div>
+            </div>
+            <div class="bg-brand-dark/40 rounded-2xl p-3 text-center">
+              <div class="text-sm font-black text-teal-300">
+                {{ revenueHistory().length }}
+              </div>
+              <div class="text-[7px] text-slate-500 uppercase tracking-widest font-bold mt-1">
+                Months tracked
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3
+              class="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1.5"
+            >
+              Sustainable monthly budget
+            </h3>
+            <input
+              type="number"
+              min="0"
+              [ngModel]="monthlyBudget()"
+              (ngModelChange)="setMonthlyBudget($event)"
+              class="w-full bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+            />
+          </div>
+
+          <!-- Revenue history -->
+          <div class="space-y-2">
+            <h3
+              class="text-[8px] text-slate-500 uppercase tracking-widest font-black"
+            >
+              Revenue history
+            </h3>
+            @for (entry of revenueHistory(); track $index) {
+              <div
+                class="bg-brand-dark/30 rounded-xl p-3 flex items-center justify-between"
+              >
+                <span class="text-[10px] text-white font-bold">
+                  {{ entry.month }}
+                </span>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] text-emerald-400 font-black">
+                    {{ entry.amount | currency }}
+                  </span>
+                  <button
+                    (click)="removeRevenueEntry($index)"
+                    class="text-[8px] font-black uppercase tracking-widest text-red-400"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            }
+            <div class="flex gap-2">
+              <input
+                type="month"
+                [ngModel]="revenueForm().month"
+                (ngModelChange)="updateRevenueForm('month', $event)"
+                class="flex-1 bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder="Amount"
+                [ngModel]="revenueForm().amount"
+                (ngModelChange)="updateRevenueForm('amount', $event)"
+                class="w-28 bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+              />
+              <button
+                (click)="addRevenueEntry()"
+                class="px-4 py-2 bg-teal-500/20 border border-teal-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest text-teal-300"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          <!-- Payout accounts -->
+          <div class="space-y-2">
+            <h3
+              class="text-[8px] text-slate-500 uppercase tracking-widest font-black"
+            >
+              Accounts receiving payouts
+            </h3>
+            @for (account of payoutAccounts(); track account.id || $index) {
+              <div
+                class="bg-brand-dark/30 rounded-xl p-3 flex items-center justify-between"
+              >
+                <div>
+                  <div class="text-[10px] text-white font-bold">
+                    {{ account.provider }}
+                  </div>
+                  <div class="text-[7px] text-slate-500 uppercase tracking-widest">
+                    {{ account.accountName }} · {{ account.status }}
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] text-white font-black">
+                    {{ account.balance | currency }}
+                  </span>
+                  <button
+                    (click)="removePayoutAccount($index)"
+                    class="text-[8px] font-black uppercase tracking-widest text-red-400"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            }
+            @if (!payoutAccounts().length) {
+              <p class="text-[9px] text-slate-500 italic">
+                No account recorded yet — royalties are collected but not
+                received.
+              </p>
+            }
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                placeholder="Provider (e.g. DistroKid)"
+                [ngModel]="payoutForm().provider"
+                (ngModelChange)="updatePayoutForm('provider', $event)"
+                class="bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+              />
+              <input
+                placeholder="Account name"
+                [ngModel]="payoutForm().accountName"
+                (ngModelChange)="updatePayoutForm('accountName', $event)"
+                class="bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+              />
+            </div>
+            <div class="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                placeholder="Balance"
+                [ngModel]="payoutForm().balance"
+                (ngModelChange)="updatePayoutForm('balance', $event)"
+                class="flex-1 bg-brand-dark/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white"
+              />
+              <button
+                (click)="addPayoutAccount()"
+                class="px-4 py-2 bg-teal-500/20 border border-teal-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest text-teal-300"
+              >
+                Add account
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
     <!-- 4. Social Link Hub -->
     <div class="bg-brand-surface/20 border border-white/5 rounded-3xl p-6">
       <button
@@ -983,8 +1203,13 @@
                       {{ acct.handle }}
                     </div>
                     <div class="text-[7px] text-slate-600">
-                      {{ formatNumber(acct.followers) }} followers ·
-                      {{ acct.engagement.toFixed(1) }}% eng.
+                      @if (acct.followers > 0) {
+                        {{ formatNumber(acct.followers) }} followers ·
+                        {{ acct.engagement.toFixed(1) }}% eng.
+                      } @else {
+                        No figures yet — connect the account's analytics to see
+                        them.
+                      }
                     </div>
                   } @else {
                     <div class="text-[7px] text-slate-600 italic">

@@ -195,8 +195,15 @@ export class ArtistOnlineFingerprintService {
     const p: any = profile || {};
     const releases = Array.isArray(p.catalog) ? p.catalog.length : 0;
     const links = Array.isArray(p.officialArtistProfiles) ? p.officialArtistProfiles.length : 0;
-    const accounts = Array.isArray(p.artistIdentity?.linkedAccounts)
-      ? p.artistIdentity.linkedAccounts.length
+    // `artistIdentity.linkedAccounts` is generated as one candidate row per
+    // launch connector for every artist, so it is always full and says nothing
+    // about what the artist holds. Reading it here made every profile at least
+    // "developing" and put the beginner path out of reach; only recorded links
+    // count as presence.
+    const verifiedLinks = Array.isArray(p.officialArtistProfiles)
+      ? p.officialArtistProfiles.filter(
+          (link: any) => link?.verified === true
+        ).length
       : 0;
     const hasPro =
       typeof p.legalInfrastructure?.proAffiliation === 'string' &&
@@ -206,11 +213,12 @@ export class ArtistOnlineFingerprintService {
     const official = this.atLeast(p.artistIdentity?.resolution?.confidenceScore, 0.5);
     const shows = Number.parseInt(String(p.performancesPerYear ?? ''), 10);
 
-    const evidence = releases + links + accounts + (hasPro ? 1 : 0) + (official ? 1 : 0);
+    const evidence =
+      releases + links + verifiedLinks + (hasPro ? 1 : 0) + (official ? 1 : 0);
     const performing = Number.isFinite(shows) && shows > 0;
 
-    if (releases >= 6 && (links + accounts) >= 4 && hasPro) return 'established';
-    if (releases >= 2 || (links + accounts) >= 2 || evidence >= 3 || performing) return 'developing';
+    if (releases >= 6 && links + verifiedLinks >= 4 && hasPro) return 'established';
+    if (releases >= 2 || links + verifiedLinks >= 2 || evidence >= 3 || performing) return 'developing';
     return 'emerging';
   }
 

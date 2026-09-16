@@ -397,6 +397,24 @@
           </p>
         </header>
 
+        @if (!hasAudienceData()) {
+          <div
+            class="glass-v42 p-8 rounded-3xl border border-amber-500/20 space-y-2"
+          >
+            <span
+              class="text-[9px] font-black text-amber-300 uppercase tracking-widest"
+              >No analytics source connected</span
+            >
+            <p class="text-xs text-silver-dim leading-relaxed max-w-2xl">
+              S.M.U.V.E. has no platform figures for this artist, so it is not
+              showing any. Estimated or invented totals are worse than none —
+              they get spent against. Record a verified analytics link on the
+              profile's Online Fingerprint pane and the real numbers appear
+              here.
+            </p>
+          </div>
+        }
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div
             class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5"

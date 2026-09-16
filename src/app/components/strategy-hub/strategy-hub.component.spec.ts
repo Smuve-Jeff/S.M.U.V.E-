@@ -107,6 +107,7 @@ describe('StrategyHubComponent', () => {
     ]),
     createCampaign: jest.fn().mockResolvedValue(undefined),
     deleteCampaign: jest.fn().mockResolvedValue(undefined),
+    hasAudienceData: signal(true),
     getProjections: jest
       .fn()
       .mockReturnValue({ reach: 1500, conversions: 15, engagement: 50 }),
@@ -174,6 +175,46 @@ describe('StrategyHubComponent', () => {
 
   it('should compute totalFollowers from social data', () => {
     expect(component.totalFollowers()).toBe(12500);
+  });
+
+  /**
+   * The tiles used to be fed by hardcoded fallbacks inside MarketingService, so
+   * an artist with nothing published read 12.5K followers and 1.2M streams they
+   * had never received. With no analytics source there is no figure to show.
+   */
+  it('states that no analytics source is connected instead of inventing figures', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [StrategyHubComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AiService, useValue: mockAiService },
+        {
+          provide: MarketingService,
+          useValue: {
+            ...mockMarketingService,
+            socialData: signal([]),
+            streamingData: signal([]),
+            hasAudienceData: signal(false),
+          },
+        },
+        { provide: UserProfileService, useValue: mockProfileService },
+        { provide: API_KEY_TOKEN, useValue: 'TEST_KEY' },
+      ],
+    }).compileComponents();
+
+    const emptyFixture = TestBed.createComponent(StrategyHubComponent);
+    const empty = emptyFixture.componentInstance;
+    empty.setTab('analytics');
+    emptyFixture.detectChanges();
+    const text = (emptyFixture.nativeElement as HTMLElement).textContent ?? '';
+
+    expect(empty.hasAudienceData()).toBe(false);
+    expect(empty.totalFollowers()).toBe(0);
+    expect(empty.totalStreams()).toBe(0);
+    expect(empty.totalMonthlyListeners()).toBe(0);
+    expect(text).toContain('No analytics source connected');
+    expect(text).toContain('Estimated or invented totals are worse than none');
   });
 
   it('should compute totalStreams from streaming data', () => {

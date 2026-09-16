@@ -9,13 +9,14 @@ import type { UserProfile } from '../../services/user-profile.service';
 describe('ArtistDevelopmentHubComponent', () => {
   let profile: ReturnType<typeof signal<UserProfile>>;
   let navigate: jest.Mock;
+  let updateFinancials: jest.Mock;
 
   const createComponent = async () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [ArtistDevelopmentHubComponent],
       providers: [
-        { provide: UserProfileService, useValue: { profile } },
+        { provide: UserProfileService, useValue: { profile, updateFinancials } },
         { provide: Router, useValue: { navigate: navigate } },
         {
           provide: InteractionDialogService,
@@ -37,6 +38,13 @@ describe('ArtistDevelopmentHubComponent', () => {
     localStorage.clear();
     profile = signal<UserProfile>({ primaryGenre: 'Hip Hop' } as any);
     navigate = jest.fn();
+    // Mirrors the real service, which merges the patch into the stored block.
+    updateFinancials = jest.fn(async (patch: Record<string, any>) => {
+      profile.update((current) => ({
+        ...current,
+        financials: { ...((current as any).financials || {}), ...patch },
+      }));
+    });
   });
 
   afterEach(() => localStorage.clear());
@@ -176,6 +184,126 @@ describe('ArtistDevelopmentHubComponent', () => {
     expect(component.stepLabel('complete')).toBe('Official');
     expect(component.stepLabel('blocked')).toBe('Blocked');
     expect(component.stepTone('blocked')).toContain('border-white/5');
+  });
+
+  it('leads its queue with the same step the hero recommends', async () => {
+    const { fixture, component, text } = await createComponent();
+
+    const next = component.nextAction();
+    if (next) {
+      expect(component.nextQueue()[0]).toBe(next.step.title);
+    } else {
+      expect(component.nextQueue()).toEqual([]);
+    }
+
+    // The queue only ever holds work the artist can act on now.
+    const blocked = component
+      .pathway()
+      .steps.filter((entry) => entry.status === 'blocked')
+      .map((entry) => entry.step.title);
+    expect(blocked.length).toBeGreaterThan(0);
+    component.nextQueue().forEach((title) => expect(blocked).not.toContain(title));
+
+    // Adding evidence moves the queue, and the hero moves with it.
+    profile.update((current) => ({ ...current, artistName: 'Nova' }) as any);
+    fixture.detectChanges();
+    const moved = component.nextAction();
+    expect(component.nextQueue()[0]).toBe(moved ? moved.step.title : undefined);
+    if (component.nextQueue().length > 1) {
+      expect(text()).toContain('Then:');
+    }
+  });
+
+  it('records the budget, revenue, and payout account the pathway money steps read', async () => {
+    const { fixture, component } = await createComponent();
+
+    const step = (id: string) =>
+      component.pathway().steps.find((entry) => entry.step.id === id)!;
+
+    // Nothing recorded yet, and the step names the exact gap.
+    expect(step('money-budget').status).not.toBe('complete');
+    expect(step('money-budget').needs).toContain('a sustainable monthly budget');
+
+    component.setMonthlyBudget(400);
+    component.updateRevenueForm('month', '2026-01');
+    component.updateRevenueForm('amount', 120);
+    component.addRevenueEntry();
+    component.updatePayoutForm('provider', 'DistroKid');
+    component.updatePayoutForm('accountName', 'North Star Music');
+    component.addPayoutAccount();
+    fixture.detectChanges();
+
+    expect(updateFinancials).toHaveBeenCalled();
+    expect(component.monthlyBudget()).toBe(400);
+    expect(component.revenueHistory().length).toBe(1);
+    expect(component.payoutAccounts().length).toBe(1);
+    expect(component.revenueTotal()).toBe(120);
+
+    // The evidence now satisfies the money steps that were unreachable before.
+    expect(step('money-budget').status).toBe('complete');
+    expect(step('money-accounts').needs).not.toContain(
+      'the accounts receiving payouts'
+    );
+
+    // And the record can be corrected, not only appended to.
+    component.removeRevenueEntry(0);
+    component.removePayoutAccount(0);
+    fixture.detectChanges();
+    expect(component.revenueHistory().length).toBe(0);
+    expect(component.payoutAccounts().length).toBe(0);
+  });
+
+  it('never stores a budget from a blank or negative input', async () => {
+    const { component } = await createComponent();
+
+    component.setMonthlyBudget('');
+    expect(component.monthlyBudget()).toBe(0);
+    component.setMonthlyBudget(-50);
+    expect(component.monthlyBudget()).toBe(0);
+    component.setMonthlyBudget('75');
+    expect(component.monthlyBudget()).toBe(75);
+  });
+
+  it('ignores incomplete money rows instead of storing empty records', async () => {
+    const { component } = await createComponent();
+
+    component.addRevenueEntry();
+    component.addPayoutAccount();
+
+    expect(component.revenueHistory().length).toBe(0);
+    expect(component.payoutAccounts().length).toBe(0);
+    expect(updateFinancials).not.toHaveBeenCalled();
+  });
+
+  it('routes each step to the surface that actually owns its evidence', async () => {
+    const { fixture, component, text } = await createComponent();
+    const step = (id: string) =>
+      component.pathway().steps.find((entry) => entry.step.id === id)!.step;
+
+    // The questionnaire writes the artistic-decision fields, and the profile
+    // builder has no control for them.
+    expect(component.recordSurface(step('identity-story'))).toBe('questionnaire');
+    expect(component.recordLabel(step('identity-story'))).toBe(
+      'Answer in the artist DNA'
+    );
+    component.recordStep(step('identity-story'));
+    expect(navigate).toHaveBeenCalledWith(['/profile'], {
+      queryParams: { questionnaire: '1' },
+    });
+
+    // The financial record exists only in this hub, so the CTA must open it
+    // here rather than navigating the artist to a field that does not exist.
+    navigate.mockClear();
+    component.recordStep(step('money-budget'));
+    fixture.detectChanges();
+    expect(component.activePanel()).toBe('money');
+    expect(navigate).not.toHaveBeenCalled();
+    expect(text()).toContain('Money & Royalties');
+    expect(text()).toContain('Sustainable monthly budget');
+
+    // Profile-owned evidence still goes to the builder.
+    component.recordStep(step('presence-social'));
+    expect(navigate).toHaveBeenCalledWith(['/profile']);
   });
 
   it('lists independent moves for an artist with spare capacity', async () => {

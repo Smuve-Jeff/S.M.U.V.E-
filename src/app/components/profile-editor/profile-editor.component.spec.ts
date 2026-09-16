@@ -799,6 +799,30 @@ describe('ProfileEditorComponent', () => {
       expect(text()).toContain('SPOTIFY REFRESH QUEUED.');
     });
 
+    it('prints the honest audience state instead of a formatted figure', async () => {
+      const { fixture, component, text } = await createComponent();
+      identity.getConnectorMatrix.mockReturnValue([
+        {
+          connector: 'Spotify',
+          status: 'stale',
+          verification: 'UNVERIFIED',
+          official: false,
+          health: 'down',
+          connected: false,
+          followersOrListeners: 0,
+          audience: 'not claimed',
+        },
+      ]);
+      component.activeSection.set('identity-console');
+      fixture.detectChanges();
+
+      // A zero-audience row must read as unclaimed, never as "0 listeners",
+      // and never as an invented figure the artist never received.
+      expect(text()).toContain('AUDIENCE: not claimed');
+      expect(text()).not.toContain('AUDIENCE: 0');
+      expect(text()).not.toContain('AUDIENCE: 1,200');
+    });
+
     it('reports a failed queue instead of failing silently', async () => {
       const { fixture, component, button, text } = await createComponent();
       identity.queueConnectorRefresh.mockRejectedValue(

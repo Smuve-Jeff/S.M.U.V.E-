@@ -96,6 +96,50 @@ describe('ArtistOnlineFingerprintService', () => {
       expect(service.track(profile)).toBe('established');
     });
 
+    /**
+     * The identity service emits one candidate connector row per launch
+     * platform for every artist, so that array is always full and says nothing
+     * about what the artist holds. Counting it as presence made every profile at
+     * least "developing" and put the beginner path out of reach.
+     */
+    it('is not swayed by synthesised connector rows', () => {
+      const syntheticRows = {
+        ...emergingArtist(),
+        artistIdentity: {
+          linkedAccounts: [
+            { platform: 'Spotify' },
+            { platform: 'YouTube' },
+            { platform: 'Instagram' },
+            { platform: 'TikTok' },
+            { platform: 'SoundCloud' },
+            { platform: 'Apple Music' },
+          ],
+        },
+      };
+
+      expect(service.track(syntheticRows)).toBe('emerging');
+
+      // Recorded, confirmed links are what move the track.
+      const withVerifiedLinks = {
+        ...emergingArtist(),
+        officialArtistProfiles: [
+          {
+            id: SPOTIFY,
+            destinationId: SPOTIFY,
+            url: 'https://artists.spotify.com/x',
+            verified: true,
+          },
+          {
+            id: CHARTMETRIC,
+            destinationId: CHARTMETRIC,
+            url: 'https://chartmetric.com/x',
+            verified: true,
+          },
+        ],
+      };
+      expect(service.track(withVerifiedLinks)).toBe('developing');
+    });
+
     it('does not treat a self-declared PRO value of "None" as evidence', () => {
       expect(
         service.track({

@@ -121,7 +121,13 @@ export class ArtistProfileModuleService {
       icon: 'fa-project-diagram',
       purpose: 'Verified identity graph, works, and platform ownership.',
       elements: [
-        { label: 'linked artist accounts', test: (p) => hasList(p.artistIdentity?.linkedAccounts), weight: 5 },
+        // Deliberately NOT `artistIdentity.linkedAccounts`: the identity service
+        // emits one candidate row per launch connector for every artist, so that
+        // array is never empty and would score this pane at full marks for an
+        // artist who holds no accounts. Ownership is what the artist recorded.
+        { label: 'official profile links recorded', test: (p) => hasList(p.officialArtistProfiles), weight: 5 },
+        { label: 'at least one link verified', test: (p) => (p.officialArtistProfiles || []).some((link: any) => link?.verified === true), weight: 5 },
+        { label: 'three or more official links', test: (p) => (p.officialArtistProfiles?.length || 0) >= 3, weight: 4 },
         { label: 'registered works', test: (p) => hasList(p.artistIdentity?.works), weight: 4 },
         // Resolution confidence is normalised 0–1 by ArtistIdentityService, so
         // asking for 1 (100%) would be an unreachable target.

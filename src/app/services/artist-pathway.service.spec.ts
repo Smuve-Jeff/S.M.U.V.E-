@@ -5,6 +5,7 @@ import {
   AREA_MEANS,
   AREA_ORDER,
 } from './artist-pathway.service';
+import { ArtistIdentityService } from './artist-identity.service';
 import type { UserProfile } from './user-profile.service';
 
 /**
@@ -264,10 +265,18 @@ describe('ArtistPathwayService', () => {
     });
 
     it('gives a short, ordered today list', () => {
+      // The queue holds only work the artist can act on now, never padded with
+      // blocked steps to hit a length. A brand-new artist has few open doors.
       const today = service.todayList(beginner());
-      expect(today.length).toBe(3);
+      expect(today.length).toBeGreaterThan(0);
+      expect(today.length).toBeLessThanOrEqual(3);
       expect(new Set(today).size).toBe(today.length);
       today.forEach((title) => expect(service.steps.some((s) => s.title === title)).toBe(true));
+
+      // Once doors have opened, the queue fills to its limit.
+      const named = { ...(beginner() as any), artistName: 'Named' } as UserProfile;
+      expect(service.todayList(named).length).toBeGreaterThan(1);
+      expect(service.todayList(named).length).toBeLessThanOrEqual(3);
     });
   });
 
@@ -464,6 +473,155 @@ describe('ArtistPathwayService', () => {
       const actionable = service.actionable(beginner());
       expect(actionable.length).toBeGreaterThan(0);
       actionable.forEach((entry) => expect(entry.blockedBy).toEqual([]));
+    });
+  });
+
+  /**
+   * Guards, not behaviour tests. Each one exists because a specific class of
+   * defect shipped through this service: evidence read from a field no control
+   * writes, a self-contradicting priority order, a step pointing at a surface
+   * with no field, and synthetic connector rows counted as real accounts.
+   */
+  describe('guards', () => {
+    /**
+     * The identity service synthesises one row per connector, so an artist who
+     * holds no accounts at all still carries a full `linkedAccounts` array with
+     * fabricated handles and follower counts. Any step that treated that array
+     * as evidence marked itself complete for a beginner. This builds a genuine
+     * first-run artist through the real identity builder and demands that
+     * nothing at all is already official.
+     */
+    it('marks nothing complete for a first-run artist with a real identity snapshot', () => {
+      const identity = TestBed.inject(ArtistIdentityService);
+      const firstRun = {
+        ...(beginner() as any),
+        artistIdentity: identity.buildIdentitySnapshot(beginner()),
+      } as UserProfile;
+
+      // The synthetic rows really are present, which is what makes this guard
+      // meaningful rather than vacuous.
+      expect(firstRun.artistIdentity.linkedAccounts.length).toBeGreaterThan(0);
+
+      const readout = service.readout(firstRun);
+      expect(
+        readout.steps
+          .filter((entry) => entry.status === 'complete')
+          .map((entry) => entry.step.id)
+      ).toEqual([]);
+      expect(readout.overall).toBe(0);
+      expect(readout.areas.every((area) => area.standing === 'unofficial')).toBe(
+        true
+      );
+    });
+
+    /**
+     * Every step must name a surface that really has a control for its evidence.
+     * `money-accounts` and `money-budget` read the financial record, and the
+     * profile builder only ever displayed those fields — so the hub has to own
+     * them or the two steps are unreachable from any screen.
+     */
+    it('gives every step a real record surface, and keeps the money steps in the hub', () => {
+      const surfaces = ['profile', 'questionnaire', 'hub'];
+      service.steps.forEach((step) => {
+        expect(surfaces).toContain(service.recordIn(step));
+      });
+
+      expect(
+        service.steps
+          .filter((step) => service.recordIn(step) === 'hub')
+          .map((step) => step.id)
+          .sort()
+      ).toEqual(['money-accounts', 'money-budget']);
+
+      // Both money steps require the financial record, never a fabricated one.
+      ['money-accounts', 'money-budget'].forEach((id) => {
+        const step = service.steps.find((entry) => entry.id === id)!;
+        expect(step.evidence).toMatch(/account|budget|revenue/i);
+      });
+    });
+
+    it('has a requires graph that resolves, contains no cycle, and strands nothing', () => {
+      const ids = new Set(service.steps.map((step) => step.id));
+      service.steps.forEach((step) => {
+        step.requires.forEach((id) => expect(ids.has(id)).toBe(true));
+      });
+
+      const byId = new Map(service.steps.map((step) => [step.id, step]));
+      const visiting = new Set<string>();
+      const visited = new Set<string>();
+      const walk = (id: string): void => {
+        if (visited.has(id)) return;
+        expect(visiting.has(id)).toBe(false);
+        visiting.add(id);
+        (byId.get(id)?.requires || []).forEach(walk);
+        visiting.delete(id);
+        visited.add(id);
+      };
+      service.steps.forEach((step) => walk(step.id));
+
+      expect(visited.size).toBe(service.steps.length);
+    });
+
+    /**
+     * A link on the wrong step sends an artist to the wrong sign-up page. The
+     * destinations that carry real consequences are pinned to their category.
+     */
+    it('pins each destination-bearing step to the right kind of destination', () => {
+      const expected: Array<[string, string]> = [
+        ['release-delivery', 'delivery'],
+        ['rights-pro', 'pro'],
+        ['presence-distributor', 'delivery'],
+        ['presence-for-artists', 'for-artists'],
+        ['presence-analytics', 'analytics'],
+      ];
+
+      expected.forEach(([stepId, category]) => {
+        const step = service.steps.find((entry) => entry.id === stepId);
+        expect(step).toBeDefined();
+        expect(step?.destinationId).toBeTruthy();
+        const destination = service.destination(step!.destinationId!);
+        expect(destination).not.toBeNull();
+        expect(destination?.category).toBe(category);
+      });
+    });
+
+    /**
+     * The hero recommends `nextAction` and the tip queue leads with
+     * `todayList()[0]`. Ranking them by different rules inside one panel made
+     * them disagree, so an artist was told to finish one thing in the hero and
+     * start another in the list directly beneath it.
+     */
+    it('keeps the recommendation and the top of the today list on the same step', () => {
+      const named = { ...(beginner() as any), artistName: 'Named' } as UserProfile;
+      const partial = {
+        ...(named as any),
+        musicalJourney: { originStory: 'A borrowed keyboard in a cold room.' },
+      } as UserProfile;
+
+      [beginner(), named, partial, official()].forEach((profile) => {
+        const readout = service.readout(profile);
+        const today = service.todayList(profile);
+        if (readout.nextAction) {
+          expect(today[0]).toBe(readout.nextAction.step.title);
+        } else {
+          expect(today).toEqual([]);
+        }
+      });
+    });
+
+    /**
+     * Blocked work is never offered as today's work: the artist cannot act on
+     * it, so listing it is busywork. It stays visible in its area card.
+     */
+    it('never lists a blocked step as today\u2019s work', () => {
+      [beginner(), official()].forEach((profile) => {
+        const readout = service.readout(profile);
+        const titles = service.todayList(profile, readout.steps.length);
+        const blocked = readout.steps
+          .filter((entry) => entry.status === 'blocked')
+          .map((entry) => entry.step.title);
+        blocked.forEach((title) => expect(titles).not.toContain(title));
+      });
     });
   });
 });

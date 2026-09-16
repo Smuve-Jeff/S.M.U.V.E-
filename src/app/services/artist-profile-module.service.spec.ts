@@ -208,4 +208,67 @@ describe('ArtistProfileModuleService', () => {
     expect(mastery.calibrated).toBe(true);
     expect(mastery.nextActions).toEqual([]);
   });
+
+  /**
+   * The Identity Console pane used to be scored from
+   * `artistIdentity.linkedAccounts`, which the identity service generates as one
+   * candidate row per launch connector for every artist. That array is never
+   * empty, so the pane awarded its heaviest element (weight 5) to an artist who
+   * held no accounts anywhere.
+   */
+  describe('identity console ownership', () => {
+    const syntheticIdentity = {
+      artistIdentity: {
+        linkedAccounts: [
+          { platform: 'Spotify', status: 'stale' },
+          { platform: 'YouTube', status: 'stale' },
+          { platform: 'Instagram', status: 'needs_review' },
+          { platform: 'TikTok', status: 'needs_review' },
+          { platform: 'SoundCloud', status: 'stale' },
+          { platform: 'Apple Music', status: 'stale' },
+        ],
+        works: [],
+      },
+    } as unknown as UserProfile;
+
+    it('is not credited by synthesised connector rows', () => {
+      const pane = service.coverageFor(syntheticIdentity)['identity-console'];
+
+      expect(pane).toBeDefined();
+      expect(pane.missing).toContain('official profile links recorded');
+      expect(pane.missing).toContain('at least one link verified');
+      expect(pane.score).toBeLessThan(100);
+    });
+
+    it('is credited by links the artist recorded themselves', () => {
+      const withLinks = {
+        ...syntheticIdentity,
+        officialArtistProfiles: [
+          {
+            id: 'spotify-for-artists',
+            destinationId: 'spotify-for-artists',
+            url: 'https://artists.spotify.com/artist/nova',
+            verified: true,
+          },
+          {
+            id: 'ascap',
+            destinationId: 'ascap',
+            url: 'https://www.ascap.com/nova',
+            verified: true,
+          },
+          {
+            id: 'chartmetric',
+            destinationId: 'chartmetric',
+            url: 'https://chartmetric.com/artist/nova',
+            verified: true,
+          },
+        ],
+      } as unknown as UserProfile;
+
+      const pane = service.coverageFor(withLinks)['identity-console'];
+      expect(pane.missing).not.toContain('official profile links recorded');
+      expect(pane.missing).not.toContain('at least one link verified');
+      expect(pane.missing).not.toContain('three or more official links');
+    });
+  });
 });

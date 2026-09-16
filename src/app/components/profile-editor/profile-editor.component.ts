@@ -544,6 +544,8 @@ export class ProfileEditorComponent implements OnInit {
     return Array.isArray(list) && list.includes(option);
   }
 
+  // ── Money and royalties writers live in the Artist Development Hub ──────────────────────────────────────────
+
   constructor() {
     effect(() => {
       if (this.isAuthenticated()) {
