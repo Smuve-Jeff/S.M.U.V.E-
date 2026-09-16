@@ -13,7 +13,7 @@ export interface CacheMetadata {
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 5;
+  private dbVersion = 6;
   private db: IDBDatabase | null = null;
   private dbUnsupported = false;
   private dbReady: Promise<void>;
@@ -42,6 +42,13 @@ export class LocalStorageService {
       const db = event.target.result;
       if (!db.objectStoreNames.contains('projects')) {
         db.createObjectStore('projects', { keyPath: 'id' });
+      }
+      // CinemaEngine edits live in their own store on purpose. `projects` is read
+      // back whole by ProjectService as `Project[]` (bpm, key, mixer tracks), so
+      // a video timeline parked there would appear in the Studio project list as
+      // a malformed audio project. Added in v6 — earlier DBs get it on upgrade.
+      if (!db.objectStoreNames.contains('cinema_projects')) {
+        db.createObjectStore('cinema_projects', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('audio_blobs')) {
         db.createObjectStore('audio_blobs', { keyPath: 'id' });
@@ -92,6 +99,19 @@ export class LocalStorageService {
   private async ensureReady(): Promise<boolean> {
     await this.dbReady;
     return !this.dbUnsupported && this.db !== null;
+  }
+
+  /**
+   * Whether persistence actually works in this host.
+   *
+   * Every read and write below silently becomes a no-op when IndexedDB is
+   * missing or its open failed, so a caller that wants to tell the operator the
+   * truth (a save that did not happen, a project list that is empty because it
+   * could not be read) has to ask first rather than infer it from a resolved
+   * promise.
+   */
+  async isAvailable(): Promise<boolean> {
+    return this.ensureReady();
   }
 
   async saveItem(

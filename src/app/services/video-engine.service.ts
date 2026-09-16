@@ -92,6 +92,80 @@ export interface VideoTrack {
   locked: boolean;
 }
 
+/**
+ * Everything the operator edits, in a form that survives a reload.
+ *
+ * Media is deliberately not part of it. Ingested files, camera takes and AI
+ * stills are all session-scoped object URLs, so their bytes are already gone by
+ * the time a project is reopened; anything that cannot be re-read is stored with
+ * an empty url, which is exactly the state the renderer already understands as
+ * "staged, not shot yet".
+ */
+export interface CinemaSnapshot {
+  version: 1;
+  productionMode: ProductionMode;
+  deliveryPresetId: string;
+  duration: number;
+  currentTime: number;
+  safeZoneEnabled: boolean;
+  snapToBeat: boolean;
+  lowerThird: LowerThird;
+  markers: SceneMarker[];
+  tracks: VideoTrack[];
+}
+
+/** What a restore could, and could not, bring back. */
+export interface CinemaRestoreReport {
+  clips: number;
+  markers: number;
+  /** Clips whose media was session-scoped and has to be ingested again. */
+  clipsMissingMedia: number;
+}
+
+/**
+ * Whether a clip url still resolves after a reload. A `data:` url carries its own
+ * bytes, so it survives; a `blob:` url is an object URL minted by this session
+ * and dies with the document that created it.
+ */
+const isReloadableMediaUrl = (url: string): boolean =>
+  /^data:/i.test(url ?? '');
+
+/** The lanes every project starts with, minted fresh so restores never alias. */
+const createDefaultTracks = (): VideoTrack[] => [
+  {
+    id: 't1',
+    name: 'Visuals',
+    type: 'visual',
+    clips: [],
+    muted: false,
+    locked: false,
+  },
+  {
+    id: 't2',
+    name: 'Overlays',
+    type: 'overlay',
+    clips: [],
+    muted: false,
+    locked: false,
+  },
+  {
+    id: 't3',
+    name: 'AI Voiceovers',
+    type: 'voiceover',
+    clips: [],
+    muted: false,
+    locked: false,
+  },
+  {
+    id: 't4',
+    name: 'Global Score',
+    type: 'score',
+    clips: [],
+    muted: false,
+    locked: false,
+  },
+];
+
 const DELIVERY_PRESETS: DeliveryPreset[] = [
   {
     id: 'movie-cinema-4k',
@@ -236,40 +310,7 @@ export class VideoEngineService {
   cueFired = signal(0);
   private countdownHandle: ReturnType<typeof setInterval> | null = null;
 
-  tracks = signal<VideoTrack[]>([
-    {
-      id: 't1',
-      name: 'Visuals',
-      type: 'visual',
-      clips: [],
-      muted: false,
-      locked: false,
-    },
-    {
-      id: 't2',
-      name: 'Overlays',
-      type: 'overlay',
-      clips: [],
-      muted: false,
-      locked: false,
-    },
-    {
-      id: 't3',
-      name: 'AI Voiceovers',
-      type: 'voiceover',
-      clips: [],
-      muted: false,
-      locked: false,
-    },
-    {
-      id: 't4',
-      name: 'Global Score',
-      type: 'score',
-      clips: [],
-      muted: false,
-      locked: false,
-    },
-  ]);
+  tracks = signal<VideoTrack[]>(createDefaultTracks());
 
   private animationFrameId: number | null = null;
   private lastUpdateTime = 0;
@@ -738,5 +779,106 @@ export class VideoEngineService {
   countdownLabel(): string | null {
     const remaining = this.countdownRemaining();
     return remaining === null ? null : `T-${remaining}`;
+  }
+
+  // ── Project snapshot ───────────────────────────────────────────────────
+
+  /**
+   * Capture the current edit for persistence. Everything is copied so a saved
+   * project can never be mutated from under the timeline by a later edit.
+   */
+  snapshot(): CinemaSnapshot {
+    return {
+      version: 1,
+      productionMode: this.productionMode(),
+      deliveryPresetId: this.deliveryPreset().id,
+      duration: this.duration(),
+      currentTime: this.currentTime(),
+      safeZoneEnabled: this.safeZoneEnabled(),
+      snapToBeat: this.snapToBeat(),
+      lowerThird: { ...this.lowerThird() },
+      markers: this.markers().map((marker) => ({ ...marker })),
+      tracks: this.tracks().map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => ({
+          ...clip,
+          // Session-scoped media is dropped rather than saved as a url that will
+          // never resolve again.
+          url: isReloadableMediaUrl(clip.url) ? clip.url : '',
+          effects: { ...clip.effects },
+        })),
+      })),
+    };
+  }
+
+  /**
+   * Replace the whole edit with a snapshot and report what came back.
+   *
+   * Transport state is deliberately not restored: a reopened project must not
+   * land mid-playback or mid-countdown, and an in-flight cue belongs to the old
+   * session. Lane membership comes from the track array rather than the clip, so
+   * a hand-edited or partially-written record cannot put a clip in two lanes.
+   */
+  restore(
+    snapshot: Partial<CinemaSnapshot> | null | undefined
+  ): CinemaRestoreReport {
+    this.stopCountdown();
+    this.pause();
+    this.cueFired.set(0);
+
+    const report: CinemaRestoreReport = {
+      clips: 0,
+      markers: 0,
+      clipsMissingMedia: 0,
+    };
+    if (!snapshot) return report;
+
+    // The preset owns the timeline length, so the snapshot's own duration has to
+    // be applied after it rather than before.
+    if (snapshot.deliveryPresetId) {
+      this.applyDeliveryPreset(snapshot.deliveryPresetId);
+    }
+    if (typeof snapshot.duration === 'number' && snapshot.duration > 0) {
+      this.duration.set(snapshot.duration);
+    }
+
+    const tracks = (snapshot.tracks ?? []).map((track) => {
+      const clips = (track.clips ?? []).map((clip) => {
+        if (!clip.url) report.clipsMissingMedia += 1;
+        return {
+          ...clip,
+          trackId: track.id,
+          effects: { ...clip.effects },
+        };
+      });
+      report.clips += clips.length;
+      return { ...track, clips };
+    });
+
+    // A record written by an older build, or one that lost its lanes, must not
+    // leave the editor with nowhere to drop a clip.
+    this.tracks.set(tracks.length > 0 ? tracks : createDefaultTracks());
+
+    const markers = (snapshot.markers ?? []).map((marker) => ({ ...marker }));
+    this.markers.set(markers);
+    report.markers = markers.length;
+
+    if (snapshot.lowerThird) {
+      this.lowerThird.set({ ...snapshot.lowerThird });
+    }
+    if (typeof snapshot.safeZoneEnabled === 'boolean') {
+      this.safeZoneEnabled.set(snapshot.safeZoneEnabled);
+    }
+    if (typeof snapshot.snapToBeat === 'boolean') {
+      this.snapToBeat.set(snapshot.snapToBeat);
+    }
+    if (snapshot.productionMode) {
+      this.productionMode.set(snapshot.productionMode);
+    }
+
+    this.currentTime.set(
+      Math.max(0, Math.min(snapshot.currentTime ?? 0, this.duration()))
+    );
+    return report;
   }
 }

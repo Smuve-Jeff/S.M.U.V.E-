@@ -393,6 +393,112 @@
           </p>
         </div>
 
+        <!--
+          Projects. A film or a broadcast rundown is not a single sitting, so the
+          edit has to outlive the tab — this is where it is written down and
+          where an old one is reopened.
+        -->
+        <section class="project-console" aria-labelledby="project-console-title">
+          <div class="director-console-heading">
+            <div>
+              <span class="upgrade-eyebrow">Long-Form Work</span>
+              <h3 id="project-console-title" class="director-console-title">
+                Projects
+              </h3>
+            </div>
+            <span class="director-state" [class.busy]="cinemaProjects.isBusy()">{{
+              cinemaProjects.activeProject()?.name || 'UNSAVED'
+            }}</span>
+          </div>
+
+          <label class="director-field">
+            <span>Project name</span>
+            <input
+              type="text"
+              maxlength="60"
+              placeholder="Untitled Cinema Project"
+              [ngModel]="projectName()"
+              (ngModelChange)="projectName.set($event)"
+            />
+          </label>
+
+          <div class="director-actions director-actions-compact">
+            <button
+              type="button"
+              class="director-button director-button-primary"
+              [disabled]="cinemaProjects.isBusy()"
+              (click)="saveProject()"
+            >
+              {{
+                cinemaProjects.activeProjectId() ? 'SAVE PROJECT' : 'SAVE AS NEW'
+              }}
+            </button>
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="cinemaProjects.isBusy()"
+              (click)="startNewProject()"
+            >
+              NEW PROJECT
+            </button>
+          </div>
+
+          @if (!cinemaProjects.storageAvailable()) {
+            <p class="camera-error">
+              This browser cannot store projects, so saves will not persist.
+              Export the master instead.
+            </p>
+          } @else if (!cinemaProjects.hasProjects()) {
+            <p class="camera-detail">
+              No saved projects yet. Name the edit and save it to come back to it
+              later.
+            </p>
+          } @else {
+            <ul class="project-list">
+              @for (project of cinemaProjects.projects(); track project.id) {
+                <li
+                  class="project-card"
+                  [class.active]="cinemaProjects.activeProjectId() === project.id"
+                >
+                  <button
+                    type="button"
+                    class="project-open"
+                    [attr.aria-label]="'Open ' + project.name"
+                    (click)="openProject(project.id)"
+                  >
+                    <span class="project-name">{{ project.name }}</span>
+                    <span class="project-meta"
+                      >{{ project.presetName }} · {{ project.clipCount }} clip(s) ·
+                      {{ project.markerCount }} marker(s)</span
+                    >
+                    <span class="project-meta"
+                      >{{ project.updatedAt | date: 'MMM d, h:mm a' }}</span
+                    >
+                    @if (project.needsMediaCount > 0) {
+                      <span class="project-warning"
+                        >{{ project.needsMediaCount }} clip(s) need media
+                        re-ingested</span
+                      >
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="project-delete"
+                    [attr.aria-label]="'Delete ' + project.name"
+                    (click)="deleteProject(project.id, $event)"
+                  >
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (cinemaProjects.lastError()) {
+            <p class="camera-error">{{ cinemaProjects.lastError() }}</p>
+          }
+        </section>
+
         <div class="production-directives-panel">
           <div class="panel-head">
             <h3

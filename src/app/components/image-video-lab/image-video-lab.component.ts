@@ -27,6 +27,7 @@ import {
   VideoClip,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { CinemaProjectService } from '../../services/cinema-project.service';
 import { CameraCaptureService } from '../../services/camera-capture.service';
 import {
   CinemaCommand,
@@ -110,9 +111,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   public director = inject(CinemaDirectorService);
   private speechRecognition = inject(SpeechRecognitionService);
   public liveStream = inject(LiveStreamService);
+  public cinemaProjects = inject(CinemaProjectService);
 
   @ViewChild('previewCanvas') previewCanvas!: ElementRef<HTMLCanvasElement>;
-  /** 1px off-screen sink for the live camera stream (see the CSS note). */
+  /** Live camera sink kept decoding behind the monitor (see the CSS note). */
   @ViewChild('cameraFeed') cameraFeed?: ElementRef<HTMLVideoElement>;
   /** Scroll container that owns the timeline viewport window. */
   @ViewChild('timelineScroller') timelineScroller?: ElementRef<HTMLElement>;
@@ -847,6 +849,64 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       opened
         ? 'CINEMAENGINE OPENED IN A NEW TAB — START CAPTURE THERE, WHERE THE FRAME CANNOT BLOCK IT.'
         : 'ALLOW POP-UPS FOR THIS SITE TO OPEN THE CAPTURE SURFACE IN ITS OWN TAB.'
+    );
+  }
+
+  // ── Projects (long-form persistence) ──────────────────────────────────
+
+  /**
+   * Name used for the next save. Seeded from the active project so re-saving a
+   * film does not silently fork a second copy of it under a blank title.
+   */
+  projectName = signal('');
+
+  /** Save the current edit, creating a project the first time. */
+  async saveProject(): Promise<void> {
+    const outcome = await this.cinemaProjects.save(this.projectName());
+    if (outcome.ok) {
+      const saved = this.cinemaProjects.activeProject();
+      if (saved) this.projectName.set(saved.name);
+      this.aiFeedback.set(outcome.message);
+      return;
+    }
+    this.aiFeedback.set(outcome.message.toUpperCase());
+  }
+
+  /** Replace the current edit with a stored project. */
+  async openProject(id: string): Promise<void> {
+    const outcome = await this.cinemaProjects.open(id);
+    if (outcome.ok) {
+      const opened = this.cinemaProjects.activeProject();
+      if (opened) this.projectName.set(opened.name);
+    }
+    this.aiFeedback.set(outcome.message.toUpperCase());
+  }
+
+  async deleteProject(id: string, event?: Event): Promise<void> {
+    // The card itself opens the project; deleting must not also open it.
+    event?.stopPropagation();
+    const target = this.cinemaProjects
+      .projects()
+      .find((project) => project.id === id);
+    const removed = await this.cinemaProjects.remove(id);
+    this.aiFeedback.set(
+      removed
+        ? `PROJECT DELETED: ${(target?.name ?? 'PROJECT').toUpperCase()}.`
+        : (
+            this.cinemaProjects.lastError() ?? 'PROJECT COULD NOT BE DELETED.'
+          ).toUpperCase()
+    );
+  }
+
+  /**
+   * Detach from the stored project. The timeline is left exactly as it is, so
+   * this is "save as new", never a destructive reset.
+   */
+  startNewProject(): void {
+    this.cinemaProjects.startNew();
+    this.projectName.set('');
+    this.aiFeedback.set(
+      'NEW PROJECT. THE CURRENT EDIT STAYS ON THE TIMELINE UNTIL YOU SAVE IT.'
     );
   }
 
