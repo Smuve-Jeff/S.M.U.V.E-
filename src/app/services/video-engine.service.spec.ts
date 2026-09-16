@@ -200,5 +200,46 @@ describe('VideoEngineService project snapshot', () => {
       expect(engine.markers()).toHaveLength(1);
       expect(report).toEqual({ clips: 0, markers: 0, clipsMissingMedia: 0 });
     });
+
+    it('sanitizes malformed clip placement instead of leaking it past the timeline', () => {
+      const engine = createEngine();
+      const snapshot = engine.snapshot();
+      snapshot.tracks[0].clips.push({
+        ...clip({ url: 'data:image/jpeg;base64,AAAA', startTime: -20, duration: 9999 }),
+        id: 'malformed',
+        trackId: 't1',
+      });
+
+      engine.restore(snapshot);
+
+      const restored = engine.findClip('malformed')!;
+      expect(restored.startTime).toBe(0);
+      expect(restored.duration).toBe(engine.duration());
+    });
+
+    it('finds markers with a non-negative tolerance only', () => {
+      const engine = createEngine();
+      engine.addMarker('Scene', 10);
+
+      expect(engine.markerNear(10.1, -1)).toBeNull();
+      expect(engine.markerNear(10.1, 0.2)?.label).toBe('Scene');
+    });
+
+    it('splits trimmed clips at the active picture boundary', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ startTime: 0, duration: 10, offset: 4, effects: { ...clip().effects, trimStart: 2 } })
+      );
+
+      const rightIds = engine.splitClipsAt(6);
+      const left = engine.findClip(id)!;
+      const right = engine.findClip(rightIds[0])!;
+
+      expect(rightIds).toHaveLength(1);
+      expect(left.duration).toBe(6);
+      expect(right.startTime).toBe(6);
+      expect(right.offset).toBe(10);
+    });
   });
 });

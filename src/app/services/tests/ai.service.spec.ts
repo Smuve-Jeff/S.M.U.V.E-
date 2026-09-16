@@ -151,6 +151,38 @@ describe('AiService', () => {
     );
   });
 
+  it('should request concept art through the authenticated backend proxy', async () => {
+    const requestPromise = service.generateImage('night-drive performance frame');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/concept-art');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ prompt: 'night-drive performance frame' });
+    req.flush({ type: 'image', url: 'https://cdn.example.test/frame.png' });
+
+    await expect(requestPromise).resolves.toBe('https://cdn.example.test/frame.png');
+  });
+
+  it('rejects concept-art responses without an image URL', async () => {
+    const requestPromise = service.generateImage('empty frame');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/concept-art');
+    req.flush({ type: 'image' });
+
+    await expect(requestPromise).rejects.toThrow('returned no concept frame');
+  });
+
+  it('surfaces the backend concept-art configuration message', async () => {
+    const requestPromise = service.generateImage('missing provider');
+
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/concept-art');
+    req.flush(
+      { error: 'AI image generation is not configured. Add FAL_KEY in the environment.' },
+      { status: 503, statusText: 'Service Unavailable' }
+    );
+
+    await expect(requestPromise).rejects.toThrow('Add FAL_KEY in the environment');
+  });
+
   it('should handle getAIResponse when backend fails', async () => {
     const requestPromise = service.getAIResponse('Analyze this');
     const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');

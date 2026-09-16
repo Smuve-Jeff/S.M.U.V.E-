@@ -408,14 +408,30 @@ Fuck their feelings. Results are all that matter.`;
   }
 
   async generateImage(prompt: string): Promise<string> {
-    // No image-generation endpoint is wired yet (the backend AI proxy only
-    // serves /ai/analyze text). Returning a placeholder URL silently planted a
-    // dead "AI Concept Overlay" clip in the video timeline — surface a clear
-    // error instead so the lab can explain why nothing was generated.
-    void prompt;
-    throw new Error(
-      'AI image generation is not configured. Connect an image provider in Settings to generate concept art.'
+    const token = this.tokenService.jwtToken();
+    const headers =
+      token && this.tokenService.isApiToken()
+        ? { Authorization: 'Bearer ' + token }
+        : {};
+    const response = await firstValueFrom(
+      this.http.post<{ type: 'image'; url: string }>(
+        `${APP_SECURITY_CONFIG.auth_api_url}/ai/concept-art`,
+        { prompt },
+        { headers }
+      ).pipe(
+        catchError((error: any) => {
+          const message =
+            error?.error?.error ||
+            error?.message ||
+            'AI image generation is unavailable.';
+          throw new Error(String(message));
+        })
+      )
     );
+    if (!response?.url) {
+      throw new Error('AI image provider returned no concept frame.');
+    }
+    return response.url;
   }
 
   isUnlocked(id: string) {

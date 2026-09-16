@@ -354,6 +354,7 @@ export class VideoEngineService {
         return t;
       })
     );
+    return newClip.id;
   }
 
   removeClip(clipId: string) {
@@ -412,11 +413,13 @@ export class VideoEngineService {
 
         const clips: VideoClip[] = [];
         track.clips.forEach((clip) => {
-          const leftDuration = time - clip.startTime;
+          const trimStart = Math.max(0, clip.effects.trimStart || 0);
           const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+          const activeStart = clip.startTime + trimStart;
+          const leftDuration = time - clip.startTime;
           const activeEnd = this.activeEnd(clip);
           const canSplit =
-            leftDuration >= MIN_ACTIVE_CLIP_DURATION &&
+            time >= activeStart + MIN_ACTIVE_CLIP_DURATION &&
             activeEnd - time >= MIN_ACTIVE_CLIP_DURATION;
 
           if (!canSplit) {
@@ -429,7 +432,7 @@ export class VideoEngineService {
             id: this.mintClipId(),
             startTime: time,
             duration: activeEnd - time + trimEnd,
-            offset: (clip.offset || 0) + leftDuration,
+            offset: (clip.offset || 0) + Math.max(0, time - activeStart) + trimStart,
             effects: { ...clip.effects, trimStart: 0 },
           };
           created.push(right.id);
@@ -734,9 +737,10 @@ export class VideoEngineService {
 
   /** The marker sitting within `tolerance` seconds of a timeline position. */
   markerNear(time: number, tolerance = 0.25): SceneMarker | null {
+    const safeTolerance = Math.max(0, Number.isFinite(tolerance) ? tolerance : 0);
     return (
       this.sortedMarkers().find(
-        (marker) => Math.abs(marker.time - time) <= tolerance
+        (marker) => Math.abs(marker.time - time) <= safeTolerance
       ) ?? null
     );
   }
@@ -860,10 +864,45 @@ export class VideoEngineService {
     const tracks = (snapshot.tracks ?? []).map((track) => {
       const clips = (track.clips ?? []).map((clip) => {
         if (!clip.url) report.clipsMissingMedia += 1;
+        const requestedDuration = Math.max(
+          MIN_ACTIVE_CLIP_DURATION,
+          Number.isFinite(clip.duration) ? clip.duration : MIN_ACTIVE_CLIP_DURATION
+        );
+        const startTime = Math.max(
+          0,
+          Math.min(
+            Number.isFinite(clip.startTime) ? clip.startTime : 0,
+            Math.max(0, this.duration() - MIN_ACTIVE_CLIP_DURATION)
+          )
+        );
+        const duration = Math.min(
+          requestedDuration,
+          Math.max(MIN_ACTIVE_CLIP_DURATION, this.duration() - startTime)
+        );
+        const effects = clip.effects ?? {
+          upscale: false,
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: 'none' as ClipFilter,
+          transition: 'cut' as ClipTransition,
+          transitionDuration: 0,
+          trimStart: 0,
+          trimEnd: 0,
+        };
         return {
           ...clip,
           trackId: track.id,
-          effects: { ...clip.effects },
+          startTime,
+          duration,
+          offset: Math.max(0, Number.isFinite(clip.offset) ? clip.offset : 0),
+          effects: {
+            ...effects,
+            trimStart: Math.max(0, Number.isFinite(effects.trimStart) ? effects.trimStart : 0),
+            trimEnd: Math.max(0, Number.isFinite(effects.trimEnd) ? effects.trimEnd : 0),
+            transitionDuration: Math.max(0, Number.isFinite(effects.transitionDuration) ? effects.transitionDuration : 0),
+          },
         };
       });
       report.clips += clips.length;

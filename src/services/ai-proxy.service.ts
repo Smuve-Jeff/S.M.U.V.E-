@@ -5,6 +5,15 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const FALLBACK_TEXT =
   "Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.";
 
+const FAL_KEY = process.env.FAL_KEY;
+
+export class AiProviderUnavailableError extends Error {
+  constructor(message = "AI image generation is not configured") {
+    super(message);
+    this.name = "AiProviderUnavailableError";
+  }
+}
+
 type GenAiModel = {
   generateContent: (opts: {
     model?: string;
@@ -51,4 +60,34 @@ export const analyzePrompt = async (
     console.error("AI proxy error:", error);
     throw new AppError(502, "AI service unavailable");
   }
+};
+
+/**
+ * Generate a concept frame through fal.ai without exposing the provider key to
+ * the browser. Text shot planning remains available through Gemini/local
+ * fallback when FAL_KEY has not been configured.
+ */
+export const generateConceptArt = async (
+  prompt: string,
+): Promise<{ type: "image"; url: string }> => {
+  if (!FAL_KEY) throw new AiProviderUnavailableError();
+
+  const response = await fetch("https://fal.run/fal-ai/flux/dev", {
+    method: "POST",
+    headers: {
+      Authorization: `Key ${FAL_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prompt }),
+  });
+  if (!response.ok) {
+    throw new AppError(502, "AI image provider unavailable");
+  }
+
+  const payload = (await response.json()) as {
+    images?: Array<{ url?: string }>;
+  };
+  const url = payload.images?.[0]?.url;
+  if (!url) throw new AppError(502, "AI image provider returned no image");
+  return { type: "image", url };
 };

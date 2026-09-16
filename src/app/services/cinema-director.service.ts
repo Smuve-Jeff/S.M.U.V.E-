@@ -52,6 +52,15 @@ export interface ShotPlanRequest {
   durationSeconds: number;
   /** Clips already on the timeline, so the plan can react to existing footage. */
   existingClipCount?: number;
+  /** Compact editorial context, deliberately excluding media bytes and URLs. */
+  existingTimeline?: Array<{
+    name: string;
+    startTime: number;
+    duration: number;
+    type: string;
+    source?: string;
+  }>;
+  existingMarkers?: Array<{ label: string; time: number; kind: MarkerKind }>;
 }
 
 export interface StructureMarker {
@@ -230,6 +239,23 @@ export class CinemaDirectorService {
       `Session tempo: ${request.bpm.toFixed(2)} BPM (1 bar = ${barSeconds.toFixed(2)}s).`,
       `Target runtime: ${Math.round(request.durationSeconds)}s (~${totalBars} bars).`,
       `Existing footage on the timeline: ${request.existingClipCount ?? 0} clips.`,
+      request.existingTimeline?.length
+        ? `Existing coverage: ${request.existingTimeline
+            .slice(0, 24)
+            .map(
+              (clip) =>
+                `${clip.name} [${Math.round(clip.startTime)}-${Math.round(
+                  clip.startTime + clip.duration
+                )}s${clip.source ? `, ${clip.source}` : ''}]`
+            )
+            .join('; ')}.`
+        : 'Existing coverage: none.',
+      request.existingMarkers?.length
+        ? `Existing structure markers: ${request.existingMarkers
+            .slice(0, 24)
+            .map((marker) => `${marker.label}@${Math.round(marker.time)}s`)
+            .join(', ')}.`
+        : 'Existing structure markers: none.',
       `Cover every section of the piece, keep each shot between 1 and 8 bars, ` +
         `and order the shots as they should be cut.`,
       PLAN_SCHEMA_HINT,
@@ -300,27 +326,32 @@ export class CinemaDirectorService {
     );
     let cursor = 0;
 
-    return shots.map((shot, index) => {
-      const durationSeconds = Math.max(
-        MIN_ACTIVE_CLIP_DURATION,
-        shot.bars * barSeconds
+    return shots.reduce<ShotPlanShot[]>((placedShots, shot) => {
+      const cursor = placedShots.length
+        ? placedShots[placedShots.length - 1].startTime +
+          placedShots[placedShots.length - 1].durationSeconds
+        : 0;
+      if (cursor >= request.durationSeconds) return placedShots;
+      const remaining = Math.max(MIN_ACTIVE_CLIP_DURATION, request.durationSeconds - cursor);
+      const durationSeconds = Math.min(
+        remaining,
+        Math.max(MIN_ACTIVE_CLIP_DURATION, shot.bars * barSeconds)
       );
       const section =
         [...sections].reverse().find((marker) => marker.time <= cursor + 1e-6)
           ?.label ?? sections[0]?.label ?? 'Feature';
-      const placed: ShotPlanShot = {
-        index: index + 1,
+      placedShots.push({
+        index: placedShots.length + 1,
         title: shot.title,
         description: shot.description,
         size: shot.size,
-        bars: shot.bars,
+        bars: Math.max(1, Math.round(durationSeconds / barSeconds)),
         startTime: cursor,
         durationSeconds,
         section,
-      };
-      cursor += durationSeconds;
-      return placed;
-    });
+      });
+      return placedShots;
+    }, []);
   }
 
   /**
@@ -341,8 +372,12 @@ export class CinemaDirectorService {
     let rotationIndex = 0;
 
     sections.forEach((section, sectionIndex) => {
+      if (cursor >= request.durationSeconds) return;
       const nextSection = sections[sectionIndex + 1];
-      const sectionEnd = nextSection?.time ?? request.durationSeconds;
+      const sectionEnd = Math.min(
+        request.durationSeconds,
+        nextSection?.time ?? request.durationSeconds
+      );
       const sectionBars = Math.max(
         1,
         Math.round((sectionEnd - section.time) / barSeconds)

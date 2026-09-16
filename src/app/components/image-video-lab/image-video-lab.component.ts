@@ -981,6 +981,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       bpm: this.videoEngine.bpm(),
       durationSeconds: this.videoEngine.duration(),
       existingClipCount: this.clipCount(),
+      existingTimeline: this.videoEngine.tracks().flatMap((track) =>
+        track.clips.map((clip) => ({
+          name: clip.name,
+          startTime: clip.startTime,
+          duration: clip.duration,
+          type: clip.type,
+          source: clip.source,
+        }))
+      ),
+      existingMarkers: this.videoEngine.sortedMarkers().map((marker) => ({
+        label: marker.label,
+        time: marker.time,
+        kind: marker.kind,
+      })),
     });
     this.aiFeedback.set(this.director.plannerNote().toUpperCase());
     if (plan.origin === 'local') {
