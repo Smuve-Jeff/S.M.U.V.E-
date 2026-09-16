@@ -230,14 +230,16 @@ export class CinemaDirectorService {
 
   /** The prompt handed to the AI proxy. Kept public so it can be asserted. */
   buildPrompt(request: ShotPlanRequest): string {
-    const barSeconds = 240 / Math.max(1, request.bpm);
-    const totalBars = Math.max(1, Math.round(request.durationSeconds / barSeconds));
+    const safeBpm = this.safeBpm(request.bpm);
+    const durationSeconds = this.safeDuration(request.durationSeconds);
+    const barSeconds = 240 / safeBpm;
+    const totalBars = Math.max(1, Math.round(durationSeconds / barSeconds));
     return [
       `You are S.M.U.V.E 2.0, an uncompromising film and music-video director.`,
       `Deliver a shootable shot list for a ${request.mode} production.`,
       `Brief: ${request.brief || 'a bold, high-contrast piece built around the artist.'}`,
-      `Session tempo: ${request.bpm.toFixed(2)} BPM (1 bar = ${barSeconds.toFixed(2)}s).`,
-      `Target runtime: ${Math.round(request.durationSeconds)}s (~${totalBars} bars).`,
+      `Session tempo: ${safeBpm.toFixed(2)} BPM (1 bar = ${barSeconds.toFixed(2)}s).`,
+      `Target runtime: ${Math.round(durationSeconds)}s (~${totalBars} bars).`,
       `Existing footage on the timeline: ${request.existingClipCount ?? 0} clips.`,
       request.existingTimeline?.length
         ? `Existing coverage: ${request.existingTimeline
@@ -319,21 +321,22 @@ export class CinemaDirectorService {
     request: ShotPlanRequest
   ): ShotPlanShot[] {
     const barSeconds = this.barSeconds(request.bpm);
+    const durationSeconds = this.safeDuration(request.durationSeconds);
+    if (durationSeconds <= 0) return [];
     const sections = this.sectionMap(
       request.mode,
-      request.durationSeconds,
+      durationSeconds,
       request.bpm
     );
-    let cursor = 0;
 
     return shots.reduce<ShotPlanShot[]>((placedShots, shot) => {
       const cursor = placedShots.length
         ? placedShots[placedShots.length - 1].startTime +
           placedShots[placedShots.length - 1].durationSeconds
         : 0;
-      if (cursor >= request.durationSeconds) return placedShots;
-      const remaining = Math.max(MIN_ACTIVE_CLIP_DURATION, request.durationSeconds - cursor);
-      const durationSeconds = Math.min(
+      if (cursor >= durationSeconds) return placedShots;
+      const remaining = durationSeconds - cursor;
+      const placedDurationSeconds = Math.min(
         remaining,
         Math.max(MIN_ACTIVE_CLIP_DURATION, shot.bars * barSeconds)
       );
@@ -345,9 +348,9 @@ export class CinemaDirectorService {
         title: shot.title,
         description: shot.description,
         size: shot.size,
-        bars: Math.max(1, Math.round(durationSeconds / barSeconds)),
+        bars: Math.max(1, Math.round(placedDurationSeconds / barSeconds)),
         startTime: cursor,
-        durationSeconds,
+        durationSeconds: placedDurationSeconds,
         section,
       });
       return placedShots;
@@ -360,23 +363,24 @@ export class CinemaDirectorService {
    * by the rotation for the mode.
    */
   buildLocalPlan(brief: string, request: ShotPlanRequest): ShotPlan {
+    const runtimeSeconds = this.safeDuration(request.durationSeconds);
     const sections = this.sectionMap(
       request.mode,
-      request.durationSeconds,
+      runtimeSeconds,
       request.bpm
     );
-    const rotation = SIZE_ROTATIONS[request.mode];
+    const rotation = SIZE_ROTATIONS[request.mode] ?? SIZE_ROTATIONS.movie;
     const barSeconds = this.barSeconds(request.bpm);
     const shots: ShotPlanShot[] = [];
     let cursor = 0;
     let rotationIndex = 0;
 
     sections.forEach((section, sectionIndex) => {
-      if (cursor >= request.durationSeconds) return;
+      if (cursor >= runtimeSeconds) return;
       const nextSection = sections[sectionIndex + 1];
       const sectionEnd = Math.min(
-        request.durationSeconds,
-        nextSection?.time ?? request.durationSeconds
+        runtimeSeconds,
+        nextSection?.time ?? runtimeSeconds
       );
       const sectionBars = Math.max(
         1,
@@ -395,9 +399,9 @@ export class CinemaDirectorService {
           1,
           isLast ? sectionBars - barsPerShot * (shotCount - 1) : barsPerShot
         );
-        const durationSeconds = Math.max(
-          MIN_ACTIVE_CLIP_DURATION,
-          bars * barSeconds
+        const durationSeconds = Math.min(
+          Math.max(0, runtimeSeconds - cursor),
+          Math.max(MIN_ACTIVE_CLIP_DURATION, bars * barSeconds)
         );
         shots.push({
           index: shots.length + 1,
@@ -418,7 +422,7 @@ export class CinemaDirectorService {
       logline:
         'Tempo-locked structural plan: coverage per section, cut on the bar.',
       editorial: [
-        `Cut to ${request.bpm.toFixed(2)} BPM — every scene change lands on a bar line.`,
+        `Cut to ${this.safeBpm(request.bpm).toFixed(2)} BPM — every scene change lands on a bar line.`,
         'Cover each section with at least one wide and one tight shot.',
         'Drop the strongest frame in the first two bars to hook the scroll.',
       ],
@@ -472,7 +476,10 @@ export class CinemaDirectorService {
   ): BeatCutEntry[] {
     if (clips.length === 0) return [];
     const barSeconds = this.barSeconds(options.bpm);
-    const minBars = Math.max(1, Math.round(options.barsPerShot ?? 2));
+    const requestedBars = Number(options.barsPerShot);
+    const minBars = Number.isFinite(requestedBars)
+      ? Math.max(1, Math.round(requestedBars))
+      : 2;
     // Open on a bar line, then keep every clip an exact whole number of bars so
     // the cut never drifts off the grid as the montage grows.
     let cursor = this.snapToBar(Math.max(0, options.startTime ?? 0), barSeconds);
@@ -533,9 +540,16 @@ export class CinemaDirectorService {
 
   // ── internals ──────────────────────────────────────────────────────────
 
+  private safeBpm(bpm: number): number {
+    return Number.isFinite(bpm) ? Math.max(1, bpm) : 120;
+  }
+
+  private safeDuration(durationSeconds: number): number {
+    return Number.isFinite(durationSeconds) ? Math.max(0, durationSeconds) : 0;
+  }
+
   private barSeconds(bpm: number): number {
-    const safeBpm = Math.max(1, bpm);
-    return (60 / safeBpm) * 4;
+    return (60 / this.safeBpm(bpm)) * 4;
   }
 
   private extractJson(response: string): any | null {

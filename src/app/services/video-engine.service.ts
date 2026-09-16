@@ -296,7 +296,10 @@ export class VideoEngineService {
   // ── Music-video beat grid ──────────────────────────────────────────────
 
   /** Live tempo from the audio engine — the cinema grid follows the session. */
-  bpm = computed(() => Math.max(1, this.audioEngine.tempo()));
+  bpm = computed(() => {
+    const tempo = this.audioEngine.tempo();
+    return Number.isFinite(tempo) ? Math.max(1, tempo) : 120;
+  });
   beatSeconds = computed(() => 60 / this.bpm());
   barSeconds = computed(() => this.beatSeconds() * 4);
   /** When on, clip placement and dragging snap to the nearest beat. */
@@ -368,9 +371,28 @@ export class VideoEngineService {
 
   updateClip(clipId: string, patch: Partial<VideoClip>) {
     this.tracks.update((tracks) =>
-      tracks.map((t) => ({
-        ...t,
-        clips: t.clips.map((c) => (c.id === clipId ? { ...c, ...patch } : c)),
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          if (clip.id !== clipId) return clip;
+          const next = { ...clip, ...patch };
+          const requestedStart = patch.startTime ?? clip.startTime;
+          const maxStart = Math.max(
+            0,
+            this.duration() - Math.max(MIN_ACTIVE_CLIP_DURATION, next.duration)
+          );
+          return {
+            ...next,
+            startTime: Math.min(
+              maxStart,
+              this.snapTime(Number.isFinite(requestedStart) ? requestedStart : clip.startTime)
+            ),
+            duration: Math.max(
+              MIN_ACTIVE_CLIP_DURATION,
+              Number.isFinite(next.duration) ? next.duration : clip.duration
+            ),
+          };
+        }),
       }))
     );
   }
@@ -490,10 +512,15 @@ export class VideoEngineService {
       : null;
     if (patch.trackId && (!targetTrack || targetTrack.locked)) return false;
 
-    const startTime =
+    const requestedStart =
+      patch.startTime === undefined ? clip.startTime : patch.startTime;
+    const maxStart = Math.max(0, this.duration() - Math.max(MIN_ACTIVE_CLIP_DURATION, clip.duration));
+    const startTime = Math.min(
+      maxStart,
       patch.startTime === undefined
         ? clip.startTime
-        : this.snapTime(patch.startTime);
+        : this.snapTime(Number.isFinite(requestedStart) ? requestedStart : clip.startTime)
+    );
     const nextTrackId = targetTrack?.id ?? track.id;
 
     this.tracks.update((tracks) =>

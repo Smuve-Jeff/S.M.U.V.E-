@@ -297,7 +297,8 @@ describe('ExportService (Sprint A6)', () => {
       expect(FakeMediaRecorder.instances[0].options).toEqual(
         expect.objectContaining({
           mimeType: 'video/webm;codecs=vp9,opus',
-          videoBitsPerSecond: 6_000_000,
+          videoBitsPerSecond: 12_000_000,
+          audioBitsPerSecond: 192_000,
         })
       );
 

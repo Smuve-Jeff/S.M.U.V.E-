@@ -403,6 +403,11 @@ export class ExportService {
     }
 
     const stream = canvas.captureStream(options.fps ?? 30);
+    // Keep the canvas-owned tracks separate from the shared audio track. Stopping
+    // the latter would mute the Studio after an export completes.
+    const canvasTracks = stream
+      .getTracks()
+      .filter((track) => track.kind !== 'audio');
 
     // Fold the live master bus into the recording so the exported master keeps
     // its score instead of shipping silent frames.
@@ -418,7 +423,10 @@ export class ExportService {
 
     const mimeType = this.resolveVideoMimeType();
     const recorderOptions: MediaRecorderOptions = {
-      videoBitsPerSecond: options.bitsPerSecond ?? 6_000_000,
+      // 12 Mbps preserves 1080p detail and avoids the soft, blocky master that
+      // the previous 6 Mbps default produced on motion-heavy footage.
+      videoBitsPerSecond: options.bitsPerSecond ?? 12_000_000,
+      audioBitsPerSecond: 192_000,
     };
     if (mimeType) recorderOptions.mimeType = mimeType;
 
@@ -431,10 +439,14 @@ export class ExportService {
     const result = new Promise<Blob>((resolve, reject) => {
       recorder.onstop = () => {
         this.endCapture();
+        // captureStream() owns tracks that otherwise remain alive after the
+        // download, keeping camera/audio resources and encoders resident.
+        canvasTracks.forEach((track) => track.stop());
         resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
       };
       recorder.onerror = (event) => {
         this.endCapture();
+        canvasTracks.forEach((track) => track.stop());
         reject(
           (event as unknown as { error?: Error })?.error ??
             new Error('Video recording failed')

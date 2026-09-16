@@ -77,4 +77,18 @@ describe('CinemaDirectorService', () => {
 
     expect(end).toBeLessThanOrEqual(request.durationSeconds);
   });
+
+  it('uses safe defaults for invalid tempo and keeps a sub-frame runtime bounded', () => {
+    const service = createService();
+
+    const plan = service.buildLocalPlan('Micro cut', {
+      ...request,
+      bpm: Number.NaN,
+      durationSeconds: 0.01,
+    });
+
+    expect(plan.shots).toHaveLength(1);
+    expect(plan.shots[0].startTime + plan.shots[0].durationSeconds).toBeLessThanOrEqual(0.01);
+    expect(plan.editorial[0]).toContain('120.00 BPM');
+  });
 });

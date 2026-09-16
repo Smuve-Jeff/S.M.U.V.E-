@@ -36,8 +36,10 @@ export interface CameraFrameSettings {
 }
 
 /** Requested capture resolution — ideal, not exact, so weak devices still bind. */
-const IDEAL_WIDTH = 1280;
-const IDEAL_HEIGHT = 720;
+const IDEAL_WIDTH = 1920;
+const IDEAL_HEIGHT = 1080;
+const IDEAL_FRAME_RATE = 30;
+const RECORDER_VIDEO_BITS_PER_SECOND = 12_000_000;
 
 /** Container/codec preference order. WebM is what Chromium/Android WebView can mux. */
 const RECORDER_MIME_CANDIDATES = [
@@ -129,6 +131,8 @@ export class CameraCaptureService implements OnDestroy {
   private stopResolver: ((blob: Blob | null) => void) | null = null;
   private discardRecording = false;
   private recordingMimeType = 'video/webm';
+  private recordingStartedAt = 0;
+  private lastRecordingDuration = 0;
 
   stream = signal<MediaStream | null>(null);
   status = signal<CameraStatus>('off');
@@ -196,6 +200,10 @@ export class CameraCaptureService implements OnDestroy {
   /** Browsers in a secure context expose `mediaDevices`; everything else cannot capture. */
   isSupported = computed(() =>
     typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+  );
+  /** MediaRecorder is absent in some embedded Android WebViews even when camera capture works. */
+  recordingSupported = computed(
+    () => typeof MediaRecorder !== 'undefined'
   );
   /** Screen/window capture is a separate capability from camera capture. */
   screenShareSupported = computed(
@@ -338,6 +346,7 @@ export class CameraCaptureService implements OnDestroy {
       video: {
         width: { ideal: IDEAL_WIDTH },
         height: { ideal: IDEAL_HEIGHT },
+        frameRate: { ideal: IDEAL_FRAME_RATE, max: IDEAL_FRAME_RATE },
         ...(targetDevice && targetDevice !== 'default'
           ? { deviceId: { exact: targetDevice } }
           : { facingMode: this.facingMode() }),
@@ -569,13 +578,16 @@ export class CameraCaptureService implements OnDestroy {
   /** Begin a video take. Returns false when capture cannot start. */
   startRecording(): boolean {
     if (!this.mediaStream || !this.isLive() || this.isRecording()) return false;
-    if (typeof MediaRecorder === 'undefined') {
+    if (!this.recordingSupported()) {
       this.lastError.set('Video recording is not supported in this browser (MediaRecorder missing).');
       return false;
     }
 
     this.recordingMimeType = this.resolveRecorderMimeType();
-    const options: MediaRecorderOptions = { videoBitsPerSecond: 6_000_000 };
+    const options: MediaRecorderOptions = {
+      videoBitsPerSecond: RECORDER_VIDEO_BITS_PER_SECOND,
+      audioBitsPerSecond: 192_000,
+    };
     if (this.recordingMimeType) options.mimeType = this.recordingMimeType;
 
     try {
@@ -598,6 +610,8 @@ export class CameraCaptureService implements OnDestroy {
       recorder.onstop = () => this.finishRecording();
       recorder.start(250);
       this.isRecording.set(true);
+      this.lastRecordingDuration = 0;
+      this.recordingStartedAt = Date.now();
       this.recordingSeconds.set(0);
       this.recordingTimer = setInterval(() => {
         this.recordingSeconds.update((s) => s + 1);
@@ -609,6 +623,13 @@ export class CameraCaptureService implements OnDestroy {
       this.mediaRecorder = null;
       return false;
     }
+  }
+
+  /** Exact wall-clock duration of the active/most recent take, in seconds. */
+  recordingDurationSeconds(): number {
+    if (!this.recordingStartedAt) return this.lastRecordingDuration || this.recordingSeconds();
+    const elapsed = (Date.now() - this.recordingStartedAt) / 1000;
+    return Math.max(0, Number.isFinite(elapsed) ? elapsed : this.recordingSeconds());
   }
 
   /** Stop the take and resolve the recorded blob (null when nothing usable landed). */
@@ -645,8 +666,14 @@ export class CameraCaptureService implements OnDestroy {
       canvas.height = height;
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
+      // Prefer the browser's high-quality resampler when shrinking a 4K feed.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(video, 0, 0, width, height);
-      return canvas.toDataURL('image/jpeg', options.quality ?? 0.92);
+      return canvas.toDataURL(
+        'image/jpeg',
+        Math.min(1, Math.max(0.75, options.quality ?? 0.98))
+      );
     } catch (error) {
       this.logger.warn('Camera frame capture failed', error);
       return null;
@@ -741,6 +768,9 @@ export class CameraCaptureService implements OnDestroy {
     }
     this.isRecording.set(false);
     this.mediaRecorder = null;
+    this.lastRecordingDuration = this.recordingDurationSeconds();
+    this.recordingSeconds.set(Math.max(0, Math.round(this.lastRecordingDuration)));
+    this.recordingStartedAt = 0;
 
     const resolver = this.stopResolver;
     this.stopResolver = null;

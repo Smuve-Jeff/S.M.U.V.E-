@@ -455,7 +455,7 @@ describe('CameraCaptureService', () => {
     expect(service.captureFrame(video, { maxWidth: 640 })).toBe(
       'data:image/jpeg;base64,frame'
     );
-    expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.92);
+    expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.98);
   });
 
   it('scales a captured frame down to the requested max width', async () => {
