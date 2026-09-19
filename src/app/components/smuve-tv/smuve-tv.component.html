@@ -328,8 +328,9 @@
               LOADING THE OFFICIAL CATALOGUE&hellip;
             </ng-container>
             <ng-container *ngIf="catalogueState() !== 'loading'">
-              OFFICIAL PREVIEWS &mdash; import the full-length masters below to put the
-              complete records on air
+              OFFICIAL PREVIEWS &mdash; {{ fullRecordCount() }} of
+              {{ officialCatalogue().length }} records play COMPLETE from the
+              artist's own official upload; the rest wait on the masters below
             </ng-container>
           </ng-container>
         </p>
@@ -347,8 +348,10 @@
           {{ rotationCount() }} stream here on Apple's 30-second preview (the running
           time shown is always the full record), and {{ catalogueOnly().length }}
           more are catalogued with no free stream attached.<br />
-          No store hands out a full-length stream for this catalogue, so the
-          complete records come from the artist's own files.
+          No store hands out a full-length stream for this catalogue. The artist's
+          own official uploads do: {{ fullRecordCount() }} of these records are on
+          the distribution channel whole, and every one of them plays complete here
+          on request. Importing your masters below puts the rest on air the same way.
         </p>
         <p
           class="tv-music-status"
@@ -403,6 +406,53 @@
           <span class="tv-music-badge" [class.full]="!track.preview">
             {{ trackBadge(track) }}
           </span>
+        </div>
+        <!--
+          The complete record, from the artist's own official upload.
+
+          This is the one place the module reaches a third party, and it does so
+          only when the control below is pressed: nothing here embeds anything on
+          its own, and the host stays empty until a complete record is asked for.
+          It appears only for the record that is actually playing, so it can
+          never advertise a song that is silent.
+        -->
+        <div
+          class="tv-music-full"
+          [class.is-live]="fullRecordActive()"
+          *ngIf="musicTrack() as track"
+          [hidden]="!offersFullRecord(track)"
+        >
+          <div class="tv-music-full-head">
+            <span class="material-symbols-outlined" aria-hidden="true">album</span>
+            <span class="tv-music-full-label">COMPLETE RECORD</span>
+            <span class="tv-music-full-note">the artist's own official upload</span>
+          </div>
+          <div #officialHost class="tv-music-full-host" [class.live]="fullRecordActive()">
+            <iframe
+              *ngIf="fullRecordEmbedUrl()"
+              [src]="fullRecordEmbedUrl()"
+              title="Smuve Jeff Radio official full-length player"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowfullscreen
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+          </div>
+          <button
+            type="button"
+            class="tv-music-full-btn"
+            [disabled]="fullRecordLoading()"
+            [attr.aria-busy]="fullRecordLoading() ? 'true' : null"
+            (click)="fullRecordActive() ? closeFullRecord() : playFullRecord(track)"
+            aria-label="Play or close the complete record from the artist's official upload"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{ fullRecordActive() ? 'close' : 'play_circle' }}
+            </span>
+            {{ fullRecordActive() ? 'CLOSE FULL RECORD' : 'PLAY FULL RECORD' }}
+          </button>
+          <p class="tv-music-full-state" *ngIf="fullRecordState()" role="status">
+            {{ fullRecordState() }}
+          </p>
         </div>
         <div class="tv-music-actions">
           <button

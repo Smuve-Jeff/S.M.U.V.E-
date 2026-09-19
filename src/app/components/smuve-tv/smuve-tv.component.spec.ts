@@ -1256,8 +1256,8 @@ describe('SmuveTvComponent', () => {
   });
 
   describe('template contract', () => {
-    it('renders the broadcast natively, with no embed of any kind', () => {
-      expect(template).not.toContain('<iframe');
+    it('renders the broadcast natively and reserves third-party playback for the requested record', () => {
+      expect(template).toContain('tv-music-full-host');
       expect(template).not.toContain('pluto');
       expect(template).not.toContain('srcdoc');
       expect(template).toContain('<canvas #bed');

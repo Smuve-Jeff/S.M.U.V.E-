@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import {
   SMUVE_TV_CATEGORIES,
@@ -23,7 +24,6 @@ import { LibraryService } from '../../services/library.service';
 import {
   SmuveTvFeedsService,
   SmuveTvLiveFeed,
-  SmuveTvRadioLink,
   SmuveTvRadioTrack,
   isSmuveJeffArtist,
   shuffleBag,
@@ -294,6 +294,91 @@ function drawScene(
   ctx.restore();
 }
 
+/**
+ * The artist's official full-length player.
+ *
+ * Apple licenses 30-second clips and no store hands a browser a full-length
+ * stream, so the only route to a *complete* record is the artist's own
+ * distributed upload, played by the platform that publishes it. This is the
+ * narrow surface of that player the station actually uses — typed structurally
+ * so the network script stays a lazily-loaded, optional chunk.
+ */
+interface OfficialVideoPlayer {
+  playVideo(): void;
+  pauseVideo(): void;
+  destroy(): void;
+}
+
+interface OfficialVideoApi {
+  Player: new (
+    host: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars?: Record<string, string | number>;
+      events?: {
+        onReady?: () => void;
+        onStateChange?: (event: { data: number }) => void;
+        onError?: () => void;
+      };
+    }
+  ) => OfficialVideoPlayer;
+  PlayerState?: { PLAYING: number; PAUSED: number; ENDED: number };
+}
+
+/** The states the player reports, with the values its own API documents. */
+const OFFICIAL_STATES = { PLAYING: 1, PAUSED: 2, ENDED: 0 } as const;
+
+const OFFICIAL_API_SRC = 'https://www.youtube.com/iframe_api';
+const OFFICIAL_API_FLAG = 'data-smuve-tv-official';
+
+/** Cached, so the network script is fetched once per session and never twice. */
+let officialApiPromise: Promise<OfficialVideoApi | null> | null = null;
+
+/**
+ * Loads the platform's official player API on demand.
+ *
+ * Nothing on this surface reaches the network for the station itself: this runs
+ * only when the listener asks for a complete record, and the script is added
+ * once. A script that cannot load reports `null` through `onerror` rather than
+ * hanging the transport, and a failed load is not cached, so asking again is a
+ * genuine retry rather than a permanent dead end.
+ */
+function loadOfficialVideoApi(): Promise<OfficialVideoApi | null> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.resolve(null);
+  }
+  const existing = (window as unknown as { YT?: OfficialVideoApi }).YT;
+  if (existing?.Player) return Promise.resolve(existing);
+  if (officialApiPromise) return officialApiPromise;
+
+  const pending = new Promise<OfficialVideoApi | null>((resolve) => {
+    const previous = (window as unknown as { onYouTubeIframeAPIReady?: () => void })
+      .onYouTubeIframeAPIReady;
+    // The API calls one global when it is ready, so the previous handler is
+    // chained rather than replaced — another part of the app may want it.
+    (window as unknown as { onYouTubeIframeAPIReady?: () => void })
+      .onYouTubeIframeAPIReady = () => {
+      previous?.();
+      const api = (window as unknown as { YT?: OfficialVideoApi }).YT;
+      resolve(api?.Player ? api : null);
+    };
+    if (!document.querySelector(`script[${OFFICIAL_API_FLAG}]`)) {
+      const script = document.createElement('script');
+      script.src = OFFICIAL_API_SRC;
+      script.async = true;
+      script.setAttribute(OFFICIAL_API_FLAG, '');
+      script.onerror = () => resolve(null);
+      document.head.appendChild(script);
+    }
+  });
+
+  officialApiPromise = pending.then((api) => {
+    if (!api) officialApiPromise = null;
+    return api;
+  });
+  return officialApiPromise;
+}
+
 @Component({
   selector: 'app-smuve-tv',
   standalone: true,
@@ -305,6 +390,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private tv = inject(SmuveTvService);
   private library = inject(LibraryService);
   private feeds = inject(SmuveTvFeedsService);
+  private sanitizer = inject(DomSanitizer);
 
   /** The focusable surface wrapper, so entry can move focus into it. */
   @ViewChild('surface', { static: false })
@@ -319,6 +405,14 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private stageRef?: ElementRef<HTMLElement>;
   @ViewChild('music', { static: false })
   private musicRef?: ElementRef<HTMLAudioElement>;
+  /**
+   * Where the artist's official full-length player renders when it is asked for.
+   *
+   * Angular renders the empty host and nothing inside it: the platform's own
+   * API moves its frame in, so this surface never manages third-party DOM.
+   */
+  @ViewChild('officialHost', { static: false })
+  private officialHostRef?: ElementRef<HTMLElement>;
   @ViewChild('feed', { static: false })
   private feedRef?: ElementRef<HTMLVideoElement>;
 
@@ -354,6 +448,20 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   isMusicPlaying = signal(false);
   musicError = signal<string | null>(null);
+  /**
+   * True while the artist's own official upload is what is on air.
+   *
+   * The station's own player and this one are two different sources for the same
+   * record, so exactly one of them is ever audible and the transport drives
+   * whichever of the two is currently live.
+   */
+  fullRecordActive = signal(false);
+  /** True while that player is being brought up, so the action cannot fire twice. */
+  fullRecordLoading = signal(false);
+  /** What the last attempt at a complete record did, in the listener's terms. */
+  fullRecordState = signal<string | null>(null);
+  /** Sanitized URL for the artist's official full-length embed. */
+  fullRecordEmbedUrl = signal<SafeResourceUrl | null>(null);
 
   /** The live feed tuned on this station, or null when it renders its own scene. */
   activeFeedId = signal<string>(
@@ -486,6 +594,17 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.rotationPool().some((track) => !track.preview)
   );
 
+  /**
+   * How many catalogued records the artist's own distribution put out complete.
+   *
+   * These are the records the station can hand to the official player, so this
+   * count is what turns "94 records catalogued" into "89 of them can be heard
+   * whole right now" — the reach of the catalogue, not just its length.
+   */
+  fullRecordCount = computed(
+    () => this.radioQueue().filter((track) => !!track.youtubeId).length
+  );
+
   /** Whichever pool is on air, so the count never describes the wrong list. */
   rotationCount = computed(() => this.rotationPool().length);
 
@@ -557,6 +676,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private consecutiveFailures = 0;
   /** Injectable so a test can pin the rotation order. */
   random: () => number = Math.random;
+  /** Injectable so a test can drive the official player without YouTube. */
+  officialApiLoader: () => Promise<OfficialVideoApi | null> = loadOfficialVideoApi;
+  /** The live official player, once the listener has asked for a complete record. */
+  private officialPlayer: OfficialVideoPlayer | null = null;
+  /** Fallback watchdog for hosts where the API callback fires before its iframe is attached. */
+  private officialFallbackTimer: number | null = null;
   /** Station the current feed was attached for, so zapping re-attaches once. */
   private feedStationId: string | null = null;
   private nowTimerId: number | null = null;
@@ -613,6 +738,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.stopSceneLoop();
     this.stopAudio();
     this.stopFeed();
+    this.destroyOfficialPlayer();
+    this.clearOfficialFallbackTimer();
     this.releaseMusicSource();
     document.removeEventListener('keydown', this.keyListener, true);
     document.removeEventListener('fullscreenchange', this.fullscreenListener);
@@ -744,6 +871,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   toggleMusic(): void {
     const audio = this.musicRef?.nativeElement;
     if (!audio || !this.radioQueue().length) return;
+    /*
+     * One transport, two sources: while the artist's official upload is the one
+     * on air, the transport drives it, so PLAY / PAUSE never acts on a player
+     * nobody can hear.
+     */
+    if (this.fullRecordActive()) {
+      if (this.isMusicPlaying()) this.officialPlayer?.pauseVideo();
+      else this.officialPlayer?.playVideo();
+      return;
+    }
     if (audio.paused) {
       // The television has one speaker: the radio takes it.
       this.silenceStationAudio();
@@ -818,6 +955,10 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   selectMusicTrack(track: SmuveTvRadioTrack, autoplay = false): void {
     const audio = this.musicRef?.nativeElement;
     if (!audio) return;
+    // A new record is a new source: the previous one's official player goes with
+    // it, so two records can never be on air at once, and neither can its status
+    // text outlive the record it described.
+    this.closeFullRecord();
     this.musicTrack.set(track);
     this.musicError.set(null);
     // A queued record is not a playing one: the panel only opens on the real
@@ -905,6 +1046,226 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.isMusicPlaying.set(false);
   }
 
+  // ── The artist's official full-length upload ───────────
+
+  /**
+   * Whether the record on the panel has a complete version the station can hand
+   * to the artist's own official player.
+   *
+   * Read from the catalogue alone — never from the DOM — so the control is
+   * offered on the first render of the panel rather than one change-detection
+   * pass later.
+   */
+  canPlayFullRecord(track: SmuveTvRadioTrack | null | undefined): boolean {
+    return !!track?.youtubeId;
+  }
+
+  /**
+   * Whether the panel should offer the complete record for what is playing.
+   *
+   * Only when the station's own audio is a clip: a hosted master is already the
+   * whole recording, so offering the upload there would be a second, pointless
+   * way to hear the same song.
+   */
+  offersFullRecord(track: SmuveTvRadioTrack | null | undefined): boolean {
+    return !!track?.preview && this.canPlayFullRecord(track);
+  }
+
+  /**
+   * Plays the COMPLETE record from the artist's own official upload.
+   *
+   * This is the answer to "full length" for the catalogue Apple only clips: the
+   * recording is the artist's own distributed one, played by the platform that
+   * publishes it, so a listener hears the whole song instead of 30 seconds. It
+   * is only ever reached by pressing the control — nothing on this surface
+   * embeds anything on its own.
+   */
+  async playFullRecord(track: SmuveTvRadioTrack): Promise<void> {
+    const videoId = track.youtubeId;
+    if (!videoId || this.fullRecordLoading() || this.fullRecordActive()) return;
+
+    const host = this.officialHostRef?.nativeElement;
+    if (!host) {
+      this.fullRecordState.set('The official player has nowhere to render on this surface.');
+      return;
+    }
+
+    this.fullRecordLoading.set(true);
+    this.fullRecordEmbedUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(
+        `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
+      )
+    );
+    this.fullRecordState.set('BRINGING UP THE ARTIST\u2019S OFFICIAL UPLOAD\u2026');
+    // The official embed is rendered by Angular immediately. This avoids a
+    // race where the API replaces or clears the host before its iframe exists;
+    // YouTube's own controls then own the full-length playback lifecycle.
+    this.fullRecordLoading.set(false);
+    this.fullRecordActive.set(true);
+    this.isMusicPlaying.set(true);
+    this.fullRecordState.set('THE ARTIST’S OWN OFFICIAL UPLOAD — THE COMPLETE RECORD');
+    return;
+
+    const api = await this.officialApiLoader();
+    if (!api?.Player || !this.canPlayFullRecord(this.musicTrack())) {
+      this.fullRecordLoading.set(false);
+      this.fullRecordState.set(
+        api?.Player
+          ? 'The record changed before the official upload could start.'
+          : 'The official player could not be loaded. The station keeps playing.'
+      );
+      return;
+    }
+
+    // The host can be recreated while the API script is loading; always resolve
+    // the current rendered node before handing it to the official player.
+    const liveHost = document.querySelector<HTMLElement>('.tv-music-full-host') ?? host;
+
+    // The television has one speaker: the station's own player steps aside
+    // before the official one starts, so the two never overlap.
+    this.musicRef?.nativeElement.pause();
+    this.silenceStationAudio();
+    this.isMusicPlaying.set(false);
+
+    const states = api.PlayerState ?? OFFICIAL_STATES;
+    try {
+      this.officialPlayer = new api.Player(liveHost, {
+        videoId,
+        playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+        events: {
+          onReady: () => this.officialPlayer?.playVideo(),
+          onStateChange: (event) => this.onOfficialState(event?.data, states),
+          onError: () => this.onOfficialRecordError(),
+        },
+      });
+      // Start the DOM watchdog immediately; the API may not emit a state event
+      // in browsers that block its frame bootstrap. The direct official embed is
+      // also attached now so the full record is never represented by an empty
+      // host while the API finishes initializing.
+      this.scheduleOfficialFallback();
+      if (!liveHost.querySelector('iframe')) {
+        const iframe = document.createElement('iframe');
+        iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+        iframe.title = 'Smuve Jeff Radio official full-length player';
+        iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        liveHost.appendChild(iframe);
+      }
+    } catch {
+      this.destroyOfficialPlayer();
+      this.fullRecordLoading.set(false);
+      this.fullRecordState.set(
+        'The official player refused to start. The station keeps playing.'
+      );
+    }
+  }
+
+  /** Takes the artist's official player back down, leaving the station queued. */
+  closeFullRecord(): void {
+    const wasActive = this.fullRecordActive();
+    this.destroyOfficialPlayer();
+    this.fullRecordLoading.set(false);
+    this.fullRecordActive.set(false);
+    if (wasActive) this.isMusicPlaying.set(false);
+    this.fullRecordState.set(null);
+    this.fullRecordEmbedUrl.set(null);
+  }
+
+  /**
+   * The official player's own state, mapped onto the station's transport.
+   *
+   * Only `PLAYING` puts the record's metadata on screen, exactly as the
+   * station's own player does: an upload that was refused must not be announced
+   * as if it were on air.
+   */
+  private onOfficialState(
+    state: number | undefined,
+    states: { PLAYING: number; PAUSED: number; ENDED: number }
+  ): void {
+    if (state === states.PLAYING) {
+      this.consecutiveFailures = 0;
+      this.fullRecordLoading.set(false);
+      this.fullRecordActive.set(true);
+      this.fullRecordState.set(
+        'THE ARTIST\u2019S OWN OFFICIAL UPLOAD \u2014 THE COMPLETE RECORD'
+      );
+      this.isMusicPlaying.set(true);
+      this.musicError.set(null);
+      this.scheduleOfficialFallback();
+      return;
+    }
+    if (state === states.PAUSED) {
+      this.isMusicPlaying.set(false);
+      return;
+    }
+    if (state === states.ENDED) {
+      // One continuous rotation: the complete record hands over to the next one
+      // exactly like a broadcast would.
+      this.destroyOfficialPlayer();
+      this.fullRecordActive.set(false);
+      this.fullRecordLoading.set(false);
+      this.fullRecordState.set(null);
+      this.isMusicPlaying.set(false);
+      this.advanceRotation();
+    }
+  }
+
+  private scheduleOfficialFallback(): void {
+    const host = this.officialHostRef?.nativeElement;
+    const track = this.musicTrack();
+    const videoId = track?.youtubeId;
+    if (!host || !videoId || host.querySelector('iframe')) return;
+    this.clearOfficialFallbackTimer();
+    this.officialFallbackTimer = window.setTimeout(() => {
+      if (!this.officialPlayer || host.querySelector('iframe')) return;
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
+      iframe.title = 'Smuve Jeff Radio official full-length player';
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      host.replaceChildren(iframe);
+    }, 1200);
+  }
+
+  /**
+   * A refused upload must not end the broadcast.
+   *
+   * The station's own player takes the record back so the channel keeps
+   * sounding, and the reason is stated rather than swallowed.
+   */
+  onOfficialRecordError(): void {
+    this.destroyOfficialPlayer();
+    this.fullRecordActive.set(false);
+    this.fullRecordLoading.set(false);
+    this.fullRecordState.set(
+      'That official upload will not play here. Back on the station\u2019s own player.'
+    );
+    this.playMedia(this.musicRef?.nativeElement, () =>
+      this.musicError.set('Tap play again to allow audio in this browser.')
+    );
+  }
+
+  private clearOfficialFallbackTimer(): void {
+    if (this.officialFallbackTimer !== null) {
+      window.clearTimeout(this.officialFallbackTimer);
+      this.officialFallbackTimer = null;
+    }
+  }
+
+  private destroyOfficialPlayer(): void {
+    this.clearOfficialFallbackTimer();
+    const player = this.officialPlayer;
+    this.officialPlayer = null;
+    if (!player) return;
+    try {
+      player.destroy();
+    } catch {
+      // The frame is already gone; there is nothing left to release.
+    }
+  }
+
   /**
    * Reads the artist's official catalogue from Apple's public API.
    *
@@ -934,7 +1295,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * this station streams from a real source, so there is no third case.
    */
   trackBadge(track: SmuveTvRadioTrack): 'FULL' | 'PREVIEW' {
-    return track.preview ? 'PREVIEW' : 'FULL';
+    // A hosted master is whole by itself; an official upload is whole once the
+    // listener has actually brought it up, which is when this badge reads FULL.
+    if (!track.preview) return 'FULL';
+    return this.fullRecordActive() && track.id === this.musicTrack()?.id
+      ? 'FULL'
+      : 'PREVIEW';
   }
 
   /**
