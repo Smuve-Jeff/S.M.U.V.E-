@@ -136,4 +136,28 @@ describe('CommandCenterComponent', () => {
       recommendationId: 'upg-room-calibration',
     });
   });
+
+  it('opens an upgrade target without handing it the app opener', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+    jest.useFakeTimers();
+    try {
+      await component.acquireUpgrade({
+        ...recommendation,
+        url: 'https://example.test/upgrade',
+      } as any);
+
+      jest.advanceTimersByTime(1200);
+
+      // Without `noopener` the opened third-party page can reach back through
+      // `window.opener` and navigate the app underneath the user.
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://example.test/upgrade',
+        '_blank',
+        expect.stringContaining('noopener')
+      );
+    } finally {
+      jest.useRealTimers();
+      openSpy.mockRestore();
+    }
+  });
 });

@@ -145,7 +145,10 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.isPoweringUp.set(false);
       if (rec.url) {
-        window.open(rec.url, '_blank');
+        // `noopener` matters here: the target is a third-party site, and
+        // without it the opened page can reach back through `window.opener`
+        // and navigate the app underneath the user.
+        window.open(rec.url, '_blank', 'noopener,noreferrer');
       }
     }, 1200);
   }
