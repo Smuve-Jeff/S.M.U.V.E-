@@ -298,6 +298,32 @@
   box-shadow: 0 0 15px rgba(var(--neon-cyan-rgb), 0.1);
 }
 
+/*
+  The GAMING / PLUTO TV switch is the only control that opens Pluto TV, and the
+  768px refinement block further down this file sets `.mode-toggle-group` to
+  `display: none` — which made the entire mode unreachable on every phone and
+  portrait tablet. This re-declares it for phones with a two-class selector so
+  it wins on specificity rather than source order, and floors both buttons at
+  the 44px touch target. `.header-right` (the group's parent) wraps at the same
+  breakpoint so the switch gets a full-width row of its own.
+*/
+@media (max-width: 768px) {
+  .spot-header .mode-toggle-group {
+    display: flex;
+    order: 3;
+    flex: 1 0 100%;
+    width: 100%;
+    margin-top: 2px;
+  }
+
+  .spot-header .mode-btn {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.72rem;
+  }
+}
+
 .spot-main-content {
   flex: 1;
   min-height: 0;
@@ -1746,19 +1772,36 @@
   height: 100% !important;
   display: block !important;
 }
-.exit-pluto-btn {
+/* The toolbar owns the fixed position so BOTH escapes stay reachable while the
+   embed is stalled. A stuck Pluto frame used to leave only a single exit
+   affordance; the external link is the fallback when the player cannot boot
+   (region lock, ad blocker, or a codec Chrome will not decode). */
+.pluto-toolbar {
   position: fixed !important;
   top: calc(18px + env(safe-area-inset-top, 0px));
   left: max(18px, env(safe-area-inset-left, 0px));
+  right: max(18px, env(safe-area-inset-right, 0px));
   z-index: 10001;
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.pluto-toolbar > * {
+  pointer-events: auto;
+}
+.exit-pluto-btn,
+.pluto-external-btn {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-weight: 800;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
+  text-decoration: none;
   color: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.55);
@@ -1767,8 +1810,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: var(--elite-font);
+  touch-action: manipulation;
 }
-.exit-pluto-btn:hover {
+.exit-pluto-btn:hover,
+.pluto-external-btn:hover,
+.exit-pluto-btn:focus-visible,
+.pluto-external-btn:focus-visible {
   color: #f1f5f9;
   border-color: rgba(var(--neon-cyan-rgb), 0.3);
   background: rgba(var(--neon-cyan-rgb), 0.1);
@@ -1828,6 +1875,8 @@
 
   .header-right {
     flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 4px;
   }
 
