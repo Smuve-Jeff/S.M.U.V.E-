@@ -27,7 +27,12 @@ export type SmuveTvCategoryId =
   | 'gaming'
   | 'cinema'
   | 'series'
-  | 'vault';
+  | 'vault'
+  | 'movies'
+  | 'comedy'
+  | 'crime'
+  | 'cartoons'
+  | 'black-cinema';
 
 /** The native visual bed a station renders. No network, no codec, no embed. */
 export type SmuveTvScene =
@@ -113,6 +118,11 @@ export const SMUVE_TV_CATEGORIES: readonly SmuveTvCategory[] = [
   { id: 'cinema', label: 'CINEMA', icon: 'movie' },
   { id: 'series', label: 'SERIES', icon: 'theaters' },
   { id: 'vault', label: 'VAULT', icon: 'inventory_2' },
+  { id: 'movies', label: 'MOVIES', icon: 'movie' },
+  { id: 'comedy', label: 'COMEDY', icon: 'sentiment_satisfied' },
+  { id: 'crime', label: 'CRIME', icon: 'search' },
+  { id: 'cartoons', label: 'CARTOONS', icon: 'child_care' },
+  { id: 'black-cinema', label: 'BLACK CINEMA', icon: 'palette' },
 ];
 
 function show(
@@ -1076,6 +1086,139 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
       show('sjr-2', 'DEEP CUTS', 'Album tracks the singles outshone', 200, 'mix'),
       show('sjr-3', 'AFTER HOURS', 'Slow records into the small hours', 220, 'mix'),
       show('sjr-4', 'THE CATALOGUE', 'Nothing but the artist, all day', 240, 'mix'),
+    ],
+  },
+
+  // ── Movies & Cinema ────────────────────────────────────
+  {
+    id: 'movies-classic',
+    number: 156,
+    name: 'MOVIES CLASSIC',
+    callSign: 'MC',
+    tagline: 'Hollywood back catalogue, around the clock.',
+    category: 'movies',
+    accent: '#F97316',
+    scene: 'reel',
+    icon: 'movie',
+    shows: [
+      show('mc-1', 'THE CLASSIC BLOCK', 'The hits you know by heart', 120, 'feature'),
+      show('mc-2', 'AFTERNOON DOUBLE FEATURE', 'Two for one, no intermission', 180, 'feature'),
+      show('mc-3', 'THE FRANCHISE HOUR', 'Where a franchise built its legend', 90, 'documentary'),
+      show('mc-4', 'LATE NIGHT REEL', 'The movies that play second screen', 120, 'feature'),
+    ],
+  },
+
+  // ── Comedy ─────────────────────────────────────────────
+  {
+    id: 'comedy-central',
+    number: 157,
+    name: 'COMEDY CENTRAL',
+    callSign: 'CC',
+    tagline: 'Stand-up, sketches, and the punchline after.',
+    category: 'comedy',
+    accent: '#FBBF24',
+    scene: 'neon-grid',
+    icon: 'sentiment_satisfied',
+    shows: [
+      show('cc-1', 'THE STAND-UP HOUR', 'An hour, opening act to closer', 60, 'feature'),
+      show('cc-2', 'THE ROAST', 'Laughing at the people who deserve it', 90, 'live'),
+      show('cc-3', 'CLASSIC SKETCHES', 'The bits that outlasted the series', 30, 'feature'),
+      show('cc-4', 'THE MONOLOGUE', 'Late night, unfiltered', 60, 'live'),
+    ],
+  },
+
+  // ── Crime & Investigation ──────────────────────────────
+  {
+    id: 'the-first-48',
+    number: 158,
+    name: 'THE FIRST 48',
+    callSign: 'F48',
+    tagline: 'The first forty-eight hours, case by case.',
+    category: 'crime',
+    accent: '#1F2937',
+    scene: 'storm',
+    icon: 'search',
+    shows: [
+      show('f48-1', 'THE FIRST 48', 'Hours one through forty-eight, tracked', 60, 'documentary'),
+      show('f48-2', 'COLD CASE UNIT', 'The files nobody closed', 45, 'documentary'),
+      show('f48-3', 'FORENSICS LIBRARY', 'What the lab actually said', 30, 'documentary'),
+      show('f48-4', 'INTERROGATION FILES', 'What was asked, and what was answered', 45, 'documentary'),
+    ],
+  },
+
+  // ── Cartoons ───────────────────────────────────────────
+  {
+    id: 'cartoon-network-classics',
+    number: 159,
+    name: 'CARTOON NETWORK CLASSICS',
+    callSign: 'CN',
+    tagline: 'Saturday morning, every morning.',
+    category: 'cartoons',
+    accent: '#FF6B35',
+    scene: 'neon-grid',
+    icon: 'child_care',
+    shows: [
+      show('cn-1', 'THE POWER HOUR', 'Action blocks, one after another', 60, 'feature'),
+      show('cn-2', 'THE MONDAY PUNISHMENT', 'Four mistakes, one segment', 45, 'feature'),
+      show('cn-3', 'SPACE RANGERS', 'Armour, zords, and the overhead', 60, 'feature'),
+      show('cn-4', 'THE ALL-NIGHTER', 'What dropped on the long nights', 90, 'feature'),
+    ],
+  },
+
+  // ── Black Cinema ───────────────────────────────────────
+  {
+    id: 'black-cinema-classics',
+    number: 160,
+    name: 'BLACK CINEMA CLASSICS',
+    callSign: 'BC',
+    tagline: 'Black film history, watched properly.',
+    category: 'black-cinema',
+    accent: '#7C3AED',
+    scene: 'neon-grid',
+    icon: 'palette',
+    shows: [
+      show('bc-1', 'THE CLASSIC BLOCK', 'The films that built the canon', 120, 'feature'),
+      show('bc-2', 'THE AUSGUST ROOM', 'Stories that left an imprint', 90, 'feature'),
+      show('bc-3', 'INDIE FIRST FRIDAY', 'New voices, early in their arc', 60, 'feature'),
+      show('bc-4', 'THE BALLAD HOUR', 'Soul, sound, and the stories around it', 60, 'feature'),
+    ],
+  },
+
+  // ── Series ─────────────────────────────────────────────
+  {
+    id: 'star-trek-tng',
+    number: 161,
+    name: 'STAR TREK: THE NEXT GENERATION',
+    callSign: 'TNG',
+    tagline: 'Encounters with the future, in order.',
+    category: 'series',
+    accent: '#0EA5E9',
+    scene: 'orbit',
+    icon: 'theaters',
+    shows: [
+      show('tng-1', 'SEASON ONE', 'The ship introduced itself to television', 60, 'episode'),
+      show('tng-2', 'SEASON TWO', 'The crew found its voice', 60, 'episode'),
+      show('tng-3', 'SEASON THREE', 'The series grew up fast', 60, 'episode'),
+      show('tng-4', 'SEASON FOUR', 'The world got bigger', 60, 'episode'),
+    ],
+  },
+
+  // ── Comedy (long-form) ─────────────────────────────────
+  {
+    id: 'showtime-frasier',
+    number: 162,
+    name: 'SHOWTIME FRASIER',
+    callSign: 'FRZ',
+    tagline: 'Cocktails, callers, and good intentions.',
+    category: 'comedy',
+    accent: '#FBBF24',
+    scene: 'skyline',
+    icon: 'sentiment_satisfied',
+    shows: [
+      show('frz-1', 'SEASON ONE', 'Seattle, the practice, and a new apartment', 60, 'episode'),
+      show('frz-2', 'SEASON TWO', 'The house, the father, and the fallout', 60, 'episode'),
+      show('frz-3', 'SEASON THREE', 'Seattle grows up too', 60, 'episode'),
+      show('frz-4', 'SEASON FOUR', 'The room got smaller, not the life', 60, 'episode'),
     ],
   },
 ];

@@ -761,6 +761,19 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'zen-life': 'stingray-zenlife',
   naturescape: 'stingray-naturescape',
   'california-music': 'california-music-channel',
+  // ── Movies & Cinema ────────────────────────────────────
+  'movies-classic': 'moviesphere',
+  // ── Comedy ─────────────────────────────────────────────
+  'comedy-central': 'mst3k',
+  'showtime-frasier': 'mst3k',
+  // ── Crime & Investigation ──────────────────────────────
+  'the-first-48': 'inside-crime',
+  // ── Cartoons ───────────────────────────────────────────
+  'cartoon-network-classics': 'mst3k',
+  // ── Black Cinema ───────────────────────────────────────
+  'black-cinema-classics': 'moviesphere',
+  // ── Series ─────────────────────────────────────────────
+  'star-trek-tng': 'tastemade',
 };
 
 /**
