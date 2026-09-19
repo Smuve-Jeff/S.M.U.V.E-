@@ -453,6 +453,88 @@ describe('SmuveTvComponent', () => {
       expect(play).toHaveBeenCalled();
     });
 
+    it('opens the standalone broadcast screen from the guide route', () => {
+      library.items.set([track({ id: 'first' }), track({ id: 'second' })]);
+      player();
+
+      component.tuneToRadio();
+      fixture.detectChanges();
+
+      expect(component.radioStandalone()).toBe(true);
+      const overlay = fixture.nativeElement.querySelector('.tv-broadcast');
+      expect(overlay).not.toBeNull();
+      // It is the artist's station, on air, and nothing else: no queue, no
+      // catalogue, no links — the channel chooses the records.
+      expect(overlay.textContent).toContain('SMUVE JEFF RADIO');
+      expect(overlay.textContent).toContain('24/7');
+      expect(overlay.querySelector('.tv-broadcast-record')).toBeNull();
+    });
+
+    it('names the record on the broadcast screen only while it plays', () => {
+      library.items.set([track()]);
+      player();
+
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      const overlay = fixture.nativeElement.querySelector('.tv-broadcast');
+      expect(overlay.querySelector('.tv-broadcast-record')).not.toBeNull();
+      expect(overlay.textContent).toContain('Authorized Single');
+
+      component.onMusicPaused();
+      fixture.detectChanges();
+
+      // A paused record comes off the screen: naming a song the room cannot
+      // hear is exactly what the broadcast must never do.
+      expect(
+        fixture.nativeElement.querySelector('.tv-broadcast-record')
+      ).toBeNull();
+    });
+
+    it('keeps the record playing when the broadcast screen is left', () => {
+      library.items.set([track()]);
+      const { pause } = player();
+
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      component.exitRadio();
+
+      expect(component.radioStandalone()).toBe(false);
+      expect(component.isRadioStation()).toBe(true);
+      // Leaving the screen is not leaving the station: the record was on air
+      // and stays on air under the guide, like any other tuned channel.
+      expect(component.isMusicPlaying()).toBe(true);
+      expect(pause).not.toHaveBeenCalled();
+    });
+
+    it('takes Escape out of the broadcast first and out of the television second', () => {
+      library.items.set([track()]);
+      player();
+      const press = () => {
+        const event = new KeyboardEvent('keydown', {
+          key: 'Escape',
+          bubbles: true,
+          cancelable: true,
+        });
+        document.body.dispatchEvent(event);
+        return event;
+      };
+
+      component.tuneToRadio();
+      const emitSpy = jest.spyOn(component.exit, 'emit');
+      press();
+
+      // First Escape: the broadcast screen comes down, the television stays.
+      expect(component.radioStandalone()).toBe(false);
+      expect(emitSpy).not.toHaveBeenCalled();
+
+      press();
+      // Second Escape: the television itself.
+      expect(emitSpy).toHaveBeenCalled();
+      emitSpy.mockRestore();
+    });
+
     it('hands the speaker back when the guide moves to another station', () => {
       library.items.set([track()]);
       const { audio, pause } = player();

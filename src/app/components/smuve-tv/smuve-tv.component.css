@@ -305,6 +305,262 @@
   outline: none;
 }
 
+/* ── Smuve Jeff Radio, standalone ───────────────────── */
+
+/*
+ * The lean-back broadcast. It sits above everything the module owns, because
+ * while it is up it *is* the module: one station, one record, nothing to
+ * operate. The glow is the station's own green, so the screen reads as the
+ * same channel the guide routed here.
+ */
+.tv-broadcast {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem
+    calc(1rem + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  background:
+    radial-gradient(
+      90% 60% at 50% 38%,
+      rgba(34, 197, 94, 0.14),
+      transparent 70%
+    ),
+    linear-gradient(180deg, #05070b 0%, #060a08 55%, #04060a 100%);
+}
+
+/* A slow breathing halo behind the branding: a broadcast, not a page. */
+.tv-broadcast-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(72vmin, 640px);
+  height: min(72vmin, 640px);
+  transform: translate(-50%, -56%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(34, 197, 94, 0.16),
+    transparent 65%
+  );
+  animation: tv-broadcast-breathe 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes tv-broadcast-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -56%) scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -56%) scale(1.04);
+  }
+}
+
+.tv-broadcast-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1;
+}
+
+.tv-broadcast-brand .material-symbols-outlined {
+  font-size: 1.3rem;
+  color: #4ade80;
+}
+
+.tv-broadcast-call {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #e6edf3;
+}
+
+.tv-broadcast-ch {
+  padding: 0.14rem 0.5rem;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #86efac;
+}
+
+.tv-broadcast-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  color: #fca5a5;
+  z-index: 1;
+}
+
+/*
+ * The visualiser: five bars riding the record the way the station's own
+ * scene does. Paused bars read as a paused channel, which is exactly the
+ * honest signal the transport badges already give.
+ */
+.tv-broadcast-stage {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.55rem;
+  height: 84px;
+  z-index: 1;
+}
+
+.tv-broadcast-stage span {
+  width: 10px;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, #4ade80, rgba(34, 197, 94, 0.25));
+  animation: tv-broadcast-bar 1.15s ease-in-out infinite;
+}
+
+.tv-broadcast-stage span:nth-child(1) { animation-delay: 0s; }
+.tv-broadcast-stage span:nth-child(2) { animation-delay: 0.18s; }
+.tv-broadcast-stage span:nth-child(3) { animation-delay: 0.36s; }
+.tv-broadcast-stage span:nth-child(4) { animation-delay: 0.54s; }
+.tv-broadcast-stage span:nth-child(5) { animation-delay: 0.72s; }
+
+@keyframes tv-broadcast-bar {
+  0%,
+  100% {
+    height: 18%;
+    opacity: 0.65;
+  }
+  50% {
+    height: 96%;
+    opacity: 1;
+  }
+}
+
+/* Everything the broadcast says about the record it is playing. */
+.tv-broadcast-record {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: min(92vw, 560px);
+  padding: 0.85rem 1rem 0.95rem;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 14px;
+  background: rgba(4, 8, 13, 0.72);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+
+.tv-broadcast-now {
+  margin: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #86efac;
+}
+
+.tv-broadcast-title {
+  margin: 0;
+  max-width: 100%;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #f4fbf7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-broadcast-meta {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: #9fb3a8;
+}
+
+.tv-broadcast-progress {
+  width: 100%;
+  height: 4px;
+  margin-top: 0.35rem;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.tv-broadcast-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #22c55e, #86efac);
+  transition: width 240ms linear;
+}
+
+.tv-broadcast-times {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: #8fa398;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-broadcast-wait {
+  margin: 0;
+  max-width: min(92vw, 560px);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  z-index: 1;
+}
+
+/* The one control the broadcast offers: the way back to the guide. */
+.tv-broadcast-exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6edf3;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 1;
+}
+
+.tv-broadcast-exit:hover,
+.tv-broadcast-exit:focus-visible {
+  border-color: rgba(74, 222, 128, 0.7);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-broadcast-glow,
+  .tv-broadcast-stage span {
+    animation: none;
+  }
+
+  .tv-broadcast-glow {
+    opacity: 0.6;
+  }
+
+  .tv-broadcast-stage span {
+    height: 55%;
+  }
+}
+
 /* ── Filters ────────────────────────────────────────── */
 
 .tv-filters {

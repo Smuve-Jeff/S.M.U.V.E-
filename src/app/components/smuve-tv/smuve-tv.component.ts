@@ -821,6 +821,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * browser refused or the transport stopped.
      */
     this.startRadio();
+    /*
+     * The route is the lean-back broadcast, not another panel on the module:
+     * the station takes the whole screen, the record is chosen by the channel,
+     * and the guide comes back when the listener asks to leave.
+     */
+    this.enterRadio();
   }
 
   stepChannel(step: number): void {
@@ -965,7 +971,14 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   exitRadio(): void {
+    /*
+     * Leaving the standalone screen hands the room back, but the channel does
+     * not stop: the station was tuned and stays tuned, and the record keeps
+     * playing under the guide exactly as it would on any other station. Only
+     * leaving the station itself (`tuneTo` elsewhere) takes the record down.
+     */
     this.radioStandalone.set(false);
+    this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
   }
 
   startMusic(): void {
@@ -1789,6 +1802,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      */
     if (event.key === 'Escape' || event.key === 'Esc') {
       event.preventDefault();
+      /*
+       * The artist's broadcast owns the whole screen, so Escape leaves *it*
+       * first — back to the guide, record still playing — and a second press
+       * leaves the television entirely. One key, two layers, the nearest
+       * exit first.
+       */
+      if (this.radioStandalone()) {
+        this.exitRadio();
+        return;
+      }
       this.exit.emit();
       return;
     }

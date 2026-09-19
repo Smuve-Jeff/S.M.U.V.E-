@@ -418,6 +418,76 @@
     </div>
   </div>
   <!--
+    Smuve Jeff Radio, standalone.
+
+    The route in the guide does not open another panel on the module: it hands
+    the whole screen to the artist's own broadcast. What is on air is the
+    channel's business — the rotation picks the records and runs 24/7 — so the
+    screen shows only that a broadcast is on, the one record currently playing,
+    and how far into it the channel is. There is nothing to browse, queue, or
+    skip here, and the record's name appears only while the record is audible,
+    because naming a song the room cannot hear is a lie.
+
+    EXIT BROADCAST returns to the guide with the record still playing; the
+    channel keeps broadcasting either way.
+  -->
+  <div class="tv-broadcast" *ngIf="radioStandalone()" role="region" aria-label="Smuve Jeff Radio live broadcast">
+    <span class="tv-broadcast-glow" aria-hidden="true"></span>
+
+    <div class="tv-broadcast-brand">
+      <span class="material-symbols-outlined" aria-hidden="true">radio</span>
+      <span class="tv-broadcast-call">{{ radioStation.name }}</span>
+      <span class="tv-broadcast-ch">CH {{ radioStation.number }}</span>
+    </div>
+
+    <p class="tv-broadcast-live">
+      <span class="tv-live-dot" aria-hidden="true"></span>
+      ON AIR &middot; 24/7
+    </p>
+
+    <div class="tv-broadcast-stage" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <!--
+      The one record the channel is playing, and only while it is actually
+      audible — the same rule the module's lower third follows.
+    -->
+    <div class="tv-broadcast-record" *ngIf="isMusicPlaying()">
+      <p class="tv-broadcast-now">NOW PLAYING</p>
+      <p class="tv-broadcast-title">{{ nowPlaying()?.title }}</p>
+      <p class="tv-broadcast-meta">{{ nowPlaying()?.artist }}</p>
+      <div
+        class="tv-broadcast-progress"
+        role="progressbar"
+        aria-label="Record progress"
+        [attr.aria-valuenow]="onAirProgress()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <span [style.width.%]="onAirProgress()"></span>
+      </div>
+      <div class="tv-broadcast-times">
+        <span>{{ onAirStart() }}</span>
+        <span>{{ onAirEnd() }}</span>
+      </div>
+    </div>
+
+    <!--
+      A record with nothing playable on this device: the channel is between
+      sources, so the screen says the broadcast is on rather than going blank.
+    -->
+    <p class="tv-broadcast-wait" *ngIf="!isMusicPlaying() && musicError()" role="status">
+      {{ musicError() }}
+    </p>
+
+    <button type="button" class="tv-broadcast-exit" (click)="exitRadio()">
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      EXIT BROADCAST
+    </button>
+  </div>
+
+  <!--
     The artist radio audio output, kept off-screen.
 
     The music surface is not part of this page: the module is the channel
