@@ -1686,6 +1686,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private renderFrame = (timestamp: number): void => {
     this.frameId = window.requestAnimationFrame?.(this.renderFrame) ?? null;
     if (this.frameId === null) return;
+    /*
+     * The artist's record covers the canvas outright, so there is nothing to see
+     * there and nothing to spend a frame on: the loop skips the scene while the
+     * record is on the screen rather than tearing itself down, so it carries its
+     * own state straight back the moment the record comes off. The frame clock is
+     * left alone too, so a frozen scene does not jump forward by however long
+     * the record lasted.
+     */
+    if (this.fullRecordActive()) {
+      this.lastFrameAt = 0;
+      return;
+    }
     const delta = this.lastFrameAt ? timestamp - this.lastFrameAt : 16;
     this.lastFrameAt = timestamp;
     const animated = this.motionAllowed();
