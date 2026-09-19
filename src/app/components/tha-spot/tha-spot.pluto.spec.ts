@@ -277,6 +277,18 @@ describe('Tha Spot — Pluto TV contract', () => {
       expect(hint).toContain('(click)="togglePlutoFallback()"');
     });
 
+    it('keeps the nudge off the control strip the player draws', () => {
+      // It is 44px tall, so `bottom: 22px` put it straight on top of play/pause
+      // and the scrubber. It has to overlay something; passive video content is
+      // the thing to spend, not the controls the viewer is reaching for.
+      const hint = flatRules(plutoStyles).find(
+        (r) => r.selector === '.pluto-stall-hint'
+      );
+      const bottom = /bottom:\s*calc\((\d+)px/.exec(hint?.body ?? '')?.[1];
+      expect(bottom).toBeDefined();
+      expect(Number(bottom)).toBeGreaterThanOrEqual(88);
+    });
+
     it('arms the nudge from a timer that is cleared on leave and on destroy', () => {
       // 30s is long enough that a working player never triggers it.
       expect(componentSource).toContain('}, 30000);');
@@ -362,15 +374,59 @@ describe('Tha Spot — Pluto TV contract', () => {
       );
     });
 
-    it('makes the fallback a real full-viewport scroll surface', () => {
+    it('gives the panel the space the toolbar leaves, not a guessed one', () => {
+      /*
+       * Measured in Chromium with these two stylesheets concatenated in
+       * styleUrls order, at 320/360/414/768/1440: the panel's top equals the
+       * toolbar's bottom exactly at every width — including 320px, where the
+       * three pills wrap to three rows and the toolbar is 190px tall.
+       */
+      const rule = (selector: string) =>
+        flatRules(plutoStyles).find((r) => r.selector === selector);
+
+      const surface = rule('.pluto-standalone-experience');
+      expect(surface?.body).toContain('display: flex');
+      expect(surface?.body).toContain('flex-direction: column');
+
+      // In the column, the pills take their own row whatever they wrap to.
+      const toolbar = rule('.pluto-toolbar');
+      expect(toolbar?.body).toContain('position: static');
+      expect(toolbar?.body).toContain('flex-shrink: 0');
+
+      // The remaining space, scrollable: `min-height: 0` is what lets a flex
+      // child scroll itself instead of stretching its parent.
+      const panel = rule('.pluto-fallback');
+      expect(panel?.body).toContain('flex: 1 1 auto');
+      expect(panel?.body).toContain('min-height: 0');
+      expect(panel?.body).toContain('overflow-y: auto');
+    });
+
+    it('keeps the panel out from under the toolbar by layout, not by an offset', () => {
+      // The defect this replaces: the panel was a fixed, inset:0 scroller with a
+      // top padding tuned to a single toolbar row, so the pills sat on top of
+      // its first line of text the moment they wrapped on a phone.
       const panel = flatRules(plutoStyles).find(
         (r) => r.selector === '.pluto-fallback'
       );
-      // It renders with nothing loaded from Pluto, so it cannot rely on the
-      // page behind it: it owns the viewport and scrolls itself.
-      expect(panel?.body).toContain('position: fixed');
-      expect(panel?.body).toContain('inset: 0');
-      expect(panel?.body).toContain('overflow-y: auto');
+      expect(panel?.body).not.toContain('position: fixed');
+      expect(panel?.body).not.toContain('inset: 0');
+    });
+
+    it('takes the app chrome behind it out of the tab order', () => {
+      /*
+       * The surface is fixed, inset:0, z-index 10000 — it covers the intel
+       * drawer and the rival hub. Both are already aria-hidden there, but with
+       * no `inert` they stayed focusable, so Tab walked into controls the
+       * viewer cannot see (and on the rival hub, aria-hidden without inert is
+       * a contradiction to assistive tech in its own right).
+       */
+      for (const id of ['intel-panel', 'rival-hub-panel']) {
+        const at = template.indexOf(`id="${id}"`);
+        expect(at).toBeGreaterThan(-1);
+        const tag = template.slice(at, template.indexOf('>', at));
+        expect(tag).toContain('inert');
+        expect(tag).toContain("displayMode() === 'pluto'");
+      }
     });
 
     it('floors every fallback control at the 44px touch target', () => {

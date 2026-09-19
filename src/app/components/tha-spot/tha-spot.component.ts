@@ -1321,6 +1321,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   ];
 
   private plutoHintTimerId: number | null = null;
+  private plutoHintRetireTimerId: number | null = null;
 
   /**
    * Entering Pluto mode always starts a clean frame and arms the stall hint,
@@ -1354,13 +1355,23 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.startPlutoHint();
   }
 
-  /** Arm the "still not playing?" affordance once a stall is plausible. */
+  /** Arm the player-trouble affordance once a stall is plausible. */
   private startPlutoHint(): void {
     this.clearPlutoHint();
     if (typeof window === 'undefined') return;
     this.plutoHintTimerId = window.setTimeout(() => {
       this.plutoHintTimerId = null;
       this.plutoStallHint.set(true);
+      /*
+       * Nothing on the parent side can tell whether the cross-origin player is
+       * actually playing, so this nudge retires itself rather than sitting over
+       * a video that is working perfectly well. The toolbar's help control is
+       * the permanent way back in.
+       */
+      this.plutoHintRetireTimerId = window.setTimeout(() => {
+        this.plutoHintRetireTimerId = null;
+        this.plutoStallHint.set(false);
+      }, 20000);
     }, 30000);
   }
 
@@ -1369,7 +1380,32 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
       window.clearTimeout(this.plutoHintTimerId);
       this.plutoHintTimerId = null;
     }
+    if (this.plutoHintRetireTimerId !== null) {
+      window.clearTimeout(this.plutoHintRetireTimerId);
+      this.plutoHintRetireTimerId = null;
+    }
     this.plutoStallHint.set(false);
+  }
+
+  /**
+   * Escape backs out of the Pluto surface: the fallback panel first, then the
+   * mode itself.
+   *
+   * Declared separately from the component's main escape handler, which unwinds
+   * a preview or a live game — those are already closed by the time Pluto mode
+   * is on screen, so the two never fight. An immersive overlay that hides the
+   * rest of the app has to answer Escape; tabbing to the exit button is not a
+   * reasonable way out of it.
+   */
+  @HostListener('document:keydown.escape', ['$event'])
+  onPlutoEscape(event: KeyboardEvent): void {
+    if (this.displayMode() !== 'pluto') return;
+    event.preventDefault();
+    if (this.plutoFallback()) {
+      this.togglePlutoFallback();
+    } else {
+      this.setMode('gaming');
+    }
   }
 
   games = signal<Game[]>([]);

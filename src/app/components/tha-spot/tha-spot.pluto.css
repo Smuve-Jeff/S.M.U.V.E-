@@ -7,9 +7,44 @@
  * with the arcade grid's made the two hard to reason about.
  *
  * The base pill styling (`.exit-pluto-btn`, `.pluto-external-btn`,
- * `.pluto-help-btn`) lives with the rest of the shared button rules in
- * tha-spot.component.css; only what is unique to this surface is here.
+ * `.pluto-help-btn`) and the surface's `position: fixed` shell live with the
+ * shared rules in tha-spot.component.css; what is unique to this surface — and
+ * the two overrides that make its layout self-describing — is here.
  */
+
+/* ── Layout: one column, so nothing has to know the toolbar's height ─────────
+ *
+ * `.pluto-standalone-experience` is declared `display: block` and
+ * `.pluto-toolbar` is declared `position: fixed`, both with `!important`, in
+ * tha-spot.component.css. This stylesheet is loaded after it, so these
+ * overrides win.
+ *
+ * The reason they exist: the fallback panel used to clear the toolbar with a
+ * hard-coded top padding. That number was correct for one toolbar row and wrong
+ * the moment the three pills wrapped to two on a phone — which is exactly the
+ * width where the panel matters most. As a flex column the toolbar takes its own
+ * row and the panel simply gets what is left, at any width and in any language.
+ *
+ * The frame wrapper stays absolutely positioned, so the player is still
+ * full-bleed with the toolbar floating over it.
+ */
+.pluto-standalone-experience {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.pluto-toolbar {
+  position: static !important;
+  flex-shrink: 0;
+  padding: calc(16px + env(safe-area-inset-top, 0px))
+    max(18px, env(safe-area-inset-right, 0px)) 8px
+    max(18px, env(safe-area-inset-left, 0px));
+}
+
+/* The toolbar keeps `pointer-events: none` from the shared rule, so taps that
+   miss a pill still reach the player underneath. */
+
+/* ── Controls ─────────────────────────────────────────────────────────────── */
 
 .pluto-help-btn:hover,
 .pluto-help-btn:focus-visible {
@@ -29,17 +64,18 @@
  * In-app fallback, rendered instead of the frame when Pluto will not play.
  *
  * An ad-blocked or region-locked viewer lands here, so it has to stand on its
- * own with nothing loaded from Pluto: it is a real scroll surface with its own
- * padding, and every control clears the 44px touch floor.
+ * own with nothing loaded from Pluto: it is a real scroll surface, and every
+ * control clears the 44px touch floor. `min-height: 0` is what lets it scroll
+ * inside the flex column rather than stretching it.
  */
 .pluto-fallback {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 10000;
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: calc(92px + env(safe-area-inset-top, 0px))
-    max(20px, env(safe-area-inset-right, 0px))
+  padding: 4px max(20px, env(safe-area-inset-right, 0px))
     calc(28px + env(safe-area-inset-bottom, 0px))
     max(20px, env(safe-area-inset-left, 0px));
   background:
@@ -154,10 +190,21 @@
 /*
  * Passive nudge, so an ad-blocked viewer is not left staring at a black frame
  * wondering whether the app, the network, or their blocker is at fault.
+ *
+ * Fixed, and therefore out of the flex column: it is an overlay on the picture,
+ * not a row in the layout.
+ *
+ * It clears the bottom 88px because that strip is where a web player puts its
+ * own controls, and this pill is 44px tall: at `bottom: 22px` it sat directly on
+ * top of play/pause and the scrubber — the same "decorative layer covering the
+ * player's controls" defect the HUD overlays were removed for. An overlay has
+ * to cover something; passive video content is the thing to spend, not the
+ * controls the viewer is reaching for. It is a nudge, not a replacement, and
+ * the toolbar's permanent NOT PLAYING? control is unaffected either way.
  */
 .pluto-stall-hint {
   position: fixed !important;
-  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 10002;
@@ -187,17 +234,13 @@
 }
 
 @media (max-width: 768px) {
-  /* The toolbar wraps to two rows on a phone; clear it on both counts. */
-  .pluto-fallback {
-    padding-top: calc(116px + env(safe-area-inset-top, 0px));
-  }
-
   /* Three controls sharing a phone's width: split the row evenly and wrap. */
   .pluto-toolbar > * {
     flex: 1 1 auto;
     justify-content: center;
   }
 
+  /* One destination per row reads better than two cramped columns. */
   .pluto-destinations {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -348,6 +348,56 @@ describe('ThaSpotComponent', () => {
         jest.useRealTimers();
       }
     });
+
+    it('retires the nudge, so it cannot sit over a video that is working', () => {
+      // Nothing on the parent side can see into the cross-origin player, so the
+      // 30s hint is a guess. It withdraws after 20s and the toolbar's permanent
+      // control is the way back in.
+      jest.useFakeTimers();
+      try {
+        component.setMode('pluto');
+        fixture.detectChanges();
+
+        jest.advanceTimersByTime(30000);
+        expect(component.plutoStallHint()).toBe(true);
+
+        jest.advanceTimersByTime(20000);
+        expect(component.plutoStallHint()).toBe(false);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('lets Escape back out, panel first and then the mode', () => {
+      // The surface hides the rest of the app, so it has to answer Escape;
+      // tabbing to the exit button is not a reasonable way out of it.
+      const press = () => {
+        const event = new KeyboardEvent('keydown', {
+          key: 'Escape',
+          cancelable: true,
+        });
+        component.onPlutoEscape(event);
+        return event;
+      };
+
+      // In gaming mode the key belongs to the preview/game handler.
+      expect(component.displayMode()).toBe('gaming');
+      expect(press().defaultPrevented).toBe(false);
+
+      component.setMode('pluto');
+      fixture.detectChanges();
+      component.togglePlutoFallback();
+      expect(component.plutoFallback()).toBe(true);
+
+      // First press closes the panel and leaves the player up.
+      expect(press().defaultPrevented).toBe(true);
+      expect(component.plutoFallback()).toBe(false);
+      expect(component.displayMode()).toBe('pluto');
+
+      // Second press leaves the immersive overlay entirely.
+      expect(press().defaultPrevented).toBe(true);
+      expect(component.displayMode()).toBe('gaming');
+    });
   });
 
   it('surfaces live socket challenges on the in-hub accept banner', () => {

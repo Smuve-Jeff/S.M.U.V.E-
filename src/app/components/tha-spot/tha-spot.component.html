@@ -1309,7 +1309,7 @@
         (click)="togglePlutoFallback()"
       >
         <span class="material-symbols-outlined" aria-hidden="true">help</span>
-        Still loading? See alternatives
+        Player trouble? See alternatives
       </button>
 
       <div class="iframe-glitch-wrapper" *ngIf="!plutoFallback()">
@@ -1712,6 +1712,7 @@
     class="rival-hub"
     [class.active]="showRivalHub() && displayMode() !== 'pluto'"
     [attr.aria-hidden]="!showRivalHub() || displayMode() === 'pluto'"
+    [attr.inert]="!showRivalHub() || displayMode() === 'pluto' ? '' : null"
   >
     <header class="sidebar-header">
       <div class="hub-tabs">
