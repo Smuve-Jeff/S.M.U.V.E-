@@ -128,7 +128,7 @@ const CATALOGUE_NOTES = [
   '',
   'Unioned from Apple\u2019s catalogue API, Deezer\u2019s public API and the artist\u2019s',
   'official YouTube releases, because the artist\u2019s catalogue is wider than any',
-  'one store: this list holds 94 unique records where Apple alone lists 78.',
+  'one store: this list holds 99 unique records where Apple alone lists 78.',
   'The remainder — the records on "The Black Label", "Each and Everyone of My',
   'Songs The Exact Same" and "Live out Tha Trunk" — are not on Apple at all,',
   'so they can only be found by reading a second catalogue.',
@@ -304,6 +304,34 @@ const youtubePage = async (url) => {
   return res.text();
 };
 
+/**
+ * A video's own running time and release year, read from its watch page.
+ *
+ * The channel shelf prints a duration badge for most lockups but not all, and
+ * an upload whose length is unknown cannot be told from a clip. The watch page
+ * always states it, so it is read for exactly those uploads.
+ */
+const videoFactsCache = new Map();
+async function fetchVideoFacts(videoId) {
+  if (videoFactsCache.has(videoId)) return videoFactsCache.get(videoId);
+  let facts = { seconds: null, year: null };
+  try {
+    const html = await youtubePage(`${YOUTUBE_ORIGIN}/watch?v=${videoId}`);
+    const length = /"videoDetails":\{[^{]*?"lengthSeconds":"(\d+)"/.exec(html);
+    const published = /"publishDate":"(\d{4})/.exec(html);
+    facts = {
+      seconds: length ? Number(length[1]) : null,
+      year: published ? published[1] : null,
+    };
+  } catch {
+    // Left unknown rather than guessed; a later run fills it in.
+  }
+  videoFactsCache.set(videoId, facts);
+  // A respectful gap: one page per unmeasured upload, and YouTube throttles bursts.
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  return facts;
+}
+
 /** `m:ss` / `h:mm:ss` → seconds, or `null` when the string is not a clock. */
 function clockSeconds(clock) {
   if (!clock) return null;
@@ -370,17 +398,33 @@ async function fetchYouTube() {
   const own = youtubeInitialData(
     await youtubePage(`${YOUTUBE_ORIGIN}/channel/${YOUTUBE_ARTIST_CHANNEL_ID}/videos`)
   );
+  const ownUploads = [];
   walkJson(own, (node) => {
     const lockup = node.lockupViewModel;
     const videoId = lockup?.contentId;
     if (typeof videoId !== 'string' || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return;
     const title = lockup.metadata?.lockupMetadataViewModel?.title?.content;
     if (!title) return;
-    const clock = lockupClock(lockup);
-    const seconds = clockSeconds(clock);
-    if (seconds !== null && seconds < YOUTUBE_MIN_RECORD_SECONDS) return;
-    tracks.push({ album: 'Single', title, videoId, clock });
+    ownUploads.push({ album: 'Single', title, videoId, clock: lockupClock(lockup) });
   });
+
+  /*
+   * The shelf does not badge every upload, and an upload of unknown length is
+   * not evidence of anything. The unbadged ones are measured from their own
+   * page, so a real record is never dropped for a missing badge and never
+   * enters the catalogue with a blank running time.
+   */
+  for (const upload of ownUploads) {
+    let seconds = clockSeconds(upload.clock);
+    if (seconds === null) {
+      const facts = await fetchVideoFacts(upload.videoId);
+      seconds = facts.seconds;
+      if (facts.year) upload.year = facts.year;
+    }
+    if (seconds !== null && seconds < YOUTUBE_MIN_RECORD_SECONDS) continue;
+    upload.seconds = seconds;
+    tracks.push(upload);
+  }
 
   return [...new Map(tracks.map((track) => [track.videoId, track])).values()];
 }
@@ -527,8 +571,8 @@ for (const track of youtube) {
       title: track.title,
       artist: 'Smuve Jeff',
       album: track.album,
-      year: null,
-      durationMs: null,
+      year: track.year ?? null,
+      durationMs: track.seconds ? track.seconds * 1000 : null,
       previewUrl: '',
       artworkUrl: null,
       links: [
@@ -573,6 +617,29 @@ if (!youtube.length && existingCatalogue) {
       record.links.push({ label: 'YOUTUBE', url });
     }
     keptVideoIds += 1;
+  }
+}
+
+/**
+ * The same promise for the numbers.
+ *
+ * A shelf that stops printing a duration, or a source that goes quiet, must not
+ * blank a running time the committed file already holds — the station would
+ * start lying about how long the record is.
+ */
+let keptDurations = 0;
+if (existingCatalogue) {
+  const wasKnown = new Map(
+    (existingCatalogue.records ?? []).map((record) => [record.id, record])
+  );
+  for (const record of records) {
+    const was = wasKnown.get(record.id);
+    if (!was) continue;
+    if (record.durationMs == null && was.durationMs != null) {
+      record.durationMs = was.durationMs;
+      keptDurations += 1;
+    }
+    if (!record.year && was.year) record.year = was.year;
   }
 }
 
@@ -636,6 +703,7 @@ await writeFile(
         'Deezer public API',
         `YouTube official releases (Topic channel ${YOUTUBE_TOPIC_CHANNEL_ID})`,
         'SoundCloud public API',
+        "YouTube uploads on the artist's own channel",
       ],
       totalRecords: sorted.length,
       records: sorted,
@@ -686,6 +754,9 @@ console.log(
 );
 if (keptVideoIds) {
   console.log(`• YouTube was unreachable — kept ${keptVideoIds} video ids from the previous file`);
+}
+if (keptDurations) {
+  console.log(`• kept ${keptDurations} running times from the previous file`);
 }
 if (!fullLength) {
   console.warn('• No record carries an official full-length upload; the station falls back to previews');

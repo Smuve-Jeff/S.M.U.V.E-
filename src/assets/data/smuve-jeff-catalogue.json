@@ -1,10 +1,11 @@
 {
-  "notes": "S.M.U.V.E TV — the complete official Smuve Jeff catalogue, as played by\nSmuve Jeff Radio.\n\nUnioned from Apple’s catalogue API, Deezer’s public API and the artist’s\nofficial YouTube releases, because the artist’s catalogue is wider than any\none store: this list holds 94 unique records where Apple alone lists 78.\nThe remainder — the records on \"The Black Label\", \"Each and Everyone of My\nSongs The Exact Same\" and \"Live out Tha Trunk\" — are not on Apple at all,\nso they can only be found by reading a second catalogue.\n\n`youtubeId` is the artist’s own official upload of the COMPLETE recording. It\nis the station’s full-length source: YouTube’s official player streams the\nwhole distributed track, where Apple’s `previewUrl` is a 30-second clip.\n`previewUrl` is therefore the fallback, played in-app only for a record with\nneither a hosted master nor an official upload. `links` are the official\npages where the complete track plays, free route first.\n\n`durationMs` is always the FULL record’s running time, never the clip’s, so\nthe station can show 3:32 beside a 30-second preview and never imply the\nclip is the whole song. Regenerate with:\nnode scripts/build-music-manifest.mjs (existing `file` values are preserved).",
+  "notes": "S.M.U.V.E TV — the complete official Smuve Jeff catalogue, as played by\nSmuve Jeff Radio.\n\nUnioned from Apple’s catalogue API, Deezer’s public API and the artist’s\nofficial YouTube releases, because the artist’s catalogue is wider than any\none store: this list holds 99 unique records where Apple alone lists 78.\nThe remainder — the records on \"The Black Label\", \"Each and Everyone of My\nSongs The Exact Same\" and \"Live out Tha Trunk\" — are not on Apple at all,\nso they can only be found by reading a second catalogue.\n\n`youtubeId` is the artist’s own official upload of the COMPLETE recording. It\nis the station’s full-length source: YouTube’s official player streams the\nwhole distributed track, where Apple’s `previewUrl` is a 30-second clip.\n`previewUrl` is therefore the fallback, played in-app only for a record with\nneither a hosted master nor an official upload. `links` are the official\npages where the complete track plays, free route first.\n\n`durationMs` is always the FULL record’s running time, never the clip’s, so\nthe station can show 3:32 beside a 30-second preview and never imply the\nclip is the whole song. Regenerate with:\nnode scripts/build-music-manifest.mjs (existing `file` values are preserved).",
   "generatedFrom": [
     "Apple iTunes catalogue API (artist 1517179702)",
     "Deezer public API",
     "YouTube official releases (Topic channel UCl2ZV5pJt-QbTH8XxyfYdWg)",
-    "SoundCloud public API"
+    "SoundCloud public API",
+    "YouTube uploads on the artist's own channel"
   ],
   "totalRecords": 99,
   "records": [
@@ -2608,8 +2609,8 @@
       "title": "Can You Stop The Rain @peabobrysonvevo8514",
       "artist": "Smuve Jeff",
       "album": "Single",
-      "year": null,
-      "durationMs": null,
+      "year": "2022",
+      "durationMs": 177000,
       "previewUrl": "",
       "artworkUrl": null,
       "links": [
@@ -2627,8 +2628,8 @@
       "title": "Going in circles",
       "artist": "Smuve Jeff",
       "album": "Single",
-      "year": null,
-      "durationMs": null,
+      "year": "2022",
+      "durationMs": 147000,
       "previewUrl": "",
       "artworkUrl": null,
       "links": [
@@ -2646,8 +2647,8 @@
       "title": "Hard To Say Goodbye @BoyzIIMenOfficial",
       "artist": "Smuve Jeff",
       "album": "Single",
-      "year": null,
-      "durationMs": null,
+      "year": "2022",
+      "durationMs": 180000,
       "previewUrl": "",
       "artworkUrl": null,
       "links": [
@@ -2665,8 +2666,8 @@
       "title": "September 11, 2025",
       "artist": "Smuve Jeff",
       "album": "Single",
-      "year": null,
-      "durationMs": null,
+      "year": "2025",
+      "durationMs": 111000,
       "previewUrl": "",
       "artworkUrl": null,
       "links": [
@@ -2684,8 +2685,8 @@
       "title": "Smile",
       "artist": "Smuve Jeff",
       "album": "Single",
-      "year": null,
-      "durationMs": null,
+      "year": "2022",
+      "durationMs": 295000,
       "previewUrl": "",
       "artworkUrl": null,
       "links": [
