@@ -1,4 +1,6 @@
-<div class="h-full flex flex-col bg-background animate-enter overflow-hidden">
+<div
+  class="cinema-shell h-full flex flex-col bg-background animate-enter overflow-hidden"
+>
   <!-- CINEMA HEADER: Fluid & Adaptive -->
   <header
     class="p-4 md:p-8 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border glass-v42 shadow-v42-xl"
@@ -23,7 +25,7 @@
       </p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="header-actions flex items-center gap-3">
       <label class="export-window">
         <span class="export-window-label">Capture</span>
         <select
@@ -54,7 +56,7 @@
       <button
         (click)="exportVideo()"
         [disabled]="isExporting()"
-        class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-10 md:h-12 flex-grow md:flex-grow-0"
+        class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-11 md:h-12 flex-grow md:flex-grow-0"
       >
         {{ isExporting() ? 'RENDERING ' + exportProgress() + '%' : 'EXPORT VIDEO' }}
       </button>
@@ -77,6 +79,7 @@
         <button
           class="production-mode-card"
           [class.active]="videoEngine.productionMode() === mode.id"
+          [attr.aria-pressed]="videoEngine.productionMode() === mode.id"
           (click)="selectProductionMode(mode.id)"
         >
           <span class="production-mode-label">{{ mode.label }}</span>
@@ -122,6 +125,7 @@
         <button
           class="delivery-preset-card"
           [class.active]="activePreset().id === preset.id"
+          [attr.aria-pressed]="activePreset().id === preset.id"
           (click)="selectDeliveryPreset(preset.id)"
         >
           <span class="delivery-preset-name">{{ preset.name }}</span>
@@ -136,10 +140,12 @@
     </div>
   </section>
 
-  <div class="flex-grow flex flex-col lg:flex-row overflow-hidden">
+  <div
+    class="cinema-workspace flex-grow flex flex-col lg:flex-row overflow-hidden"
+  >
     <!-- MAIN WORKSPACE -->
     <div
-      class="flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto custom-scrollbar"
+      class="cinema-main flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto custom-scrollbar"
     >
       <!-- PROGRAM MONITOR -->
       <section class="monitor-section flex-grow bg-black/5 min-h-[300px]">
@@ -532,6 +538,7 @@
                 type="button"
                 class="capture-toggle"
                 [class.active]="camera.mirrored()"
+                [attr.aria-pressed]="camera.mirrored()"
                 (click)="toggleCameraMirror()"
               >
                 MIRROR
@@ -540,6 +547,9 @@
                 type="button"
                 class="capture-toggle"
                 [class.active]="camera.isLive() && camera.sourceType() === 'screen'"
+                [attr.aria-pressed]="
+                  camera.isLive() && camera.sourceType() === 'screen'
+                "
                 [disabled]="!camera.screenShareSupported()"
                 (click)="captureScreen()"
               >
@@ -622,9 +632,9 @@
 
       <!-- TIMELINE EDITOR: Responsive Height -->
       <section
-        class="h-48 md:h-64 lg:h-80 shrink-0 bg-surface/50 p-4 md:p-6 flex flex-col gap-4 border-t border-border overflow-hidden"
+        class="h-64 md:h-80 shrink-0 bg-surface/50 p-4 md:p-6 flex flex-col gap-3 border-t border-border overflow-hidden"
       >
-        <div class="flex items-center justify-between">
+        <div class="timeline-head flex items-center justify-between">
           <div class="flex items-center gap-4 md:gap-6">
             <h3
               class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
@@ -698,7 +708,7 @@
         -->
         <div
           #timelineScroller
-          class="timeline-scroller-touch flex-grow overflow-x-auto custom-scrollbar relative"
+          class="timeline-scroller-touch flex-grow overflow-auto custom-scrollbar relative"
           (scroll)="onTimelineScroll($event)"
           (pointerdown)="onTimelinePointerDown($event)"
           (pointermove)="onTimelinePointerMove($event)"
@@ -753,9 +763,13 @@
               <div
                 class="h-10 md:h-12 bg-background/50 rounded-lg border border-border relative"
               >
-                <!-- Track Label: Sticky Left -->
+                <!--
+                  Lane label. `track-label` pins it to the left edge of the lane
+                  viewport (see the stylesheet), so panning a long timeline never
+                  loses track of which lane you are editing.
+                -->
                 <div
-                  class="absolute left-0 top-0 bottom-0 w-20 md:w-24 bg-surface/90 backdrop-blur-sm flex items-center px-2 md:px-3 border-r border-border z-20"
+                  class="track-label w-20 md:w-24 bg-surface/90 backdrop-blur-sm flex items-center px-2 md:px-3 border-r border-border"
                 >
                   <span
                     class="text-[7px] md:text-[8px] font-black text-text-dim uppercase truncate"
@@ -800,7 +814,7 @@
 
     <!-- SIDEBAR: AI DIRECTOR -->
     <aside
-      class="w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 overflow-y-auto custom-scrollbar shrink-0"
+      class="cinema-aside w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 overflow-y-auto custom-scrollbar shrink-0"
     >
       <div class="flex flex-col gap-4 md:gap-6">
         <h2

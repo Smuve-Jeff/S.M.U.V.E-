@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 
@@ -1666,6 +1669,161 @@ describe('ImageVideoLabComponent', () => {
       component.downloadActiveClip();
 
       expect(component.aiFeedback()).toContain('NO CLIP UNDER THE PLAYHEAD');
+    });
+  });
+
+  /**
+   * Device-access contract.
+   *
+   * These read the template and the stylesheet directly, because the shared
+   * harness stubs the template down to a canvas and a video sink — so the
+   * layout and touch rules have no DOM to assert against. What is guarded here
+   * is exactly what broke access on a phone: a scroll surface that never
+   * unlocks, a toolbar that wraps the lanes out of reach, and controls that
+   * shrink below the size a thumb can hit.
+   */
+  describe('device access contract', () => {
+    const template = readFileSync(
+      join(__dirname, 'image-video-lab.component.html'),
+      'utf8'
+    );
+    const styles = readFileSync(
+      join(__dirname, 'image-video-lab.component.css'),
+      'utf8'
+    );
+
+    /** Declaration blocks of every rule whose selector mentions `selector`. */
+    const blocksFor = (selector: string): string[] => {
+      const blocks: string[] = [];
+      for (const rule of styles.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (rule[1].includes(selector)) blocks.push(rule[2]);
+      }
+      return blocks;
+    };
+
+    /** 44px — the smallest target a thumb hits reliably on a phone. */
+    const TOUCH_FLOOR_REM = 2.75;
+
+    /**
+     * Largest box dimension any rule pins on the selector, in rem. A square icon
+     * button states `width`, a bar states `height`, a flexible one `min-height`.
+     */
+    const floorOf = (selector: string): number =>
+      Math.max(
+        0,
+        ...blocksFor(selector).flatMap((block) =>
+          [
+            ...block.matchAll(
+              /(?:min-height|min-width|height|width):\s*([\d.]+)rem/g
+            ),
+          ].map((match) => Number(match[1]))
+        )
+      );
+
+    it('marks every scroll surface the responsive layout switches on', () => {
+      // Without these hooks the module keeps overflow:hidden on a phone and the
+      // deck, timeline, and side panels are clipped with no scroll path.
+      for (const hook of [
+        'cinema-shell',
+        'cinema-workspace',
+        'cinema-main',
+        'cinema-aside',
+      ]) {
+        expect(template).toContain(hook);
+      }
+
+      // The unlock itself: one scroll surface on phones and short viewports.
+      expect(styles).toContain('(max-width: 1023.98px), (max-height: 900px)');
+      expect(blocksFor('.cinema-workspace').join(' ')).toContain(
+        'overflow: visible'
+      );
+    });
+
+    it('lets the monitor take its height from the shot while the page scrolls', () => {
+      const card = blocksFor('.monitor-card').join(' ');
+
+      expect(card).toContain('width: 100%');
+      expect(card).toContain('height: auto');
+      // And its shape comes from the preset or the live stream, never a fixed box.
+      expect(template).toContain('[style.aspect-ratio]="monitorAspectRatio()"');
+    });
+
+    it('keeps the timeline a single control strip with lanes open on both axes', () => {
+      expect(template).toContain('class="timeline-head');
+      expect(template).toContain(
+        'timeline-scroller-touch flex-grow overflow-auto'
+      );
+
+      const head = blocksFor('.timeline-head').join(' ');
+      expect(head).toContain('flex-wrap: nowrap');
+      expect(head).toContain('overflow-x: auto');
+      // Wrapped toolbars are what used to starve the lanes of vertical space.
+      expect(blocksFor('.timeline-toolbar').join(' ')).toContain(
+        'flex-wrap: nowrap'
+      );
+    });
+
+    it('keeps lane labels pinned to the lane viewport while panning', () => {
+      expect(template).toContain('class="track-label');
+      // The old absolutely positioned label travelled with the clips and left
+      // the viewport on the first pan.
+      expect(template).not.toContain(
+        'absolute left-0 top-0 bottom-0 w-20 md:w-24'
+      );
+
+      const label = blocksFor('.track-label').join(' ');
+      expect(label).toContain('position: sticky');
+      expect(label).toContain('left: 0');
+      // A vertical offset would pin the label to the scroller's top edge once
+      // the lanes scroll vertically, detaching it from its own lane.
+      expect(label).not.toMatch(/\btop:/);
+    });
+
+    it('holds every control at the touch floor', () => {
+      const controls = [
+        '.monitor-tab',
+        '.monitor-transport-button',
+        '.monitor-flip',
+        '.monitor-empty-cta',
+        '.monitor-scrub',
+        '.zoom-button',
+        '.timeline-tool',
+        '.timeline-marker',
+        '.timeline-toggle',
+        '.capture-toggle',
+        '.capture-angle',
+        '.capture-select',
+        '.capture-shutter',
+        '.capture-card-actions button',
+        '.export-window-select',
+        '.safe-zone-toggle',
+        '.director-button',
+        '.command-row',
+        '.project-open',
+        '.project-delete',
+        '.camera-retry-chip',
+      ];
+
+      const undersized = controls.filter(
+        (selector) => floorOf(selector) < TOUCH_FLOOR_REM
+      );
+
+      expect(undersized).toEqual([]);
+    });
+
+    it('names the state of every toggle and picker instead of colour alone', () => {
+      for (const binding of [
+        '[attr.aria-pressed]="angle.isActive"',
+        '[attr.aria-pressed]="camera.mirrored()"',
+        '[attr.aria-pressed]="activePreset().id === preset.id"',
+        '[attr.aria-pressed]="videoEngine.productionMode() === mode.id"',
+      ]) {
+        expect(template).toContain(binding);
+      }
+
+      // The deck rail and the on-picture flip are the angle controls themselves.
+      expect(template).toContain('class="capture-angle"');
+      expect(template).toContain('class="monitor-flip"');
     });
   });
 

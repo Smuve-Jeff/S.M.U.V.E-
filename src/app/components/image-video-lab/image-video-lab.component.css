@@ -371,6 +371,7 @@ canvas {
 
 .safe-zone-toggle {
   border-radius: 999px;
+  min-height: 2.75rem;
   border: 1px solid rgba(16, 185, 129, 0.22);
   padding: 0.45rem 0.8rem;
   color: #10b981;
@@ -387,11 +388,51 @@ canvas {
   gap: 0.35rem;
 }
 
+/*
+  Lane labels stick to the left edge of the lane viewport, so panning a long
+  timeline never loses track of which lane you are on. Horizontal only: adding a
+  vertical offset here would also pin the label to the scroller's top edge once
+  the lanes scroll vertically, detaching it from its own lane.
+
+  `sticky` (not `absolute`) is the whole point — an absolutely positioned label
+  travels with the clips and leaves the viewport on the first pan.
+*/
+.track-label {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  height: 100%;
+}
+
+/*
+  The timeline's control strip is a single row that scrolls sideways — it never
+  wraps. Wrapping is what used to starve the lanes: on a phone (and on any
+  desktop narrow enough to fold the tools) the wrapped rows pushed the tracks
+  past the section's fixed height, and the overflow was clipped with no way to
+  scroll to the third lane.
+*/
+.timeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.2rem;
+}
+
+.timeline-head > * {
+  flex: 0 0 auto;
+}
+
 .timeline-toolbar,
 .selected-clip-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
 }
 
@@ -406,7 +447,7 @@ canvas {
 }
 
 .timeline-toolbar {
-  min-height: 1.8rem;
+  min-height: 2.75rem;
 }
 
 .timeline-toggle,
@@ -423,6 +464,7 @@ canvas {
 .timeline-toggle {
   display: inline-flex;
   align-items: center;
+  min-height: 2.75rem;
   gap: 0.35rem;
   margin-right: auto;
   /* The label wraps the checkbox, so the label is the real tap target —
@@ -493,7 +535,7 @@ canvas {
 }
 
 .selected-clip-toolbar {
-  min-height: 1.8rem;
+  min-height: 2.75rem;
   color: #64748b;
 }
 
@@ -547,8 +589,8 @@ canvas {
 }
 
 .zoom-button {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.24);
   display: inline-flex;
@@ -603,7 +645,7 @@ canvas {
   z-index: 25;
   width: max-content;
   max-width: 8rem;
-  height: 2.2rem;
+  height: 2.75rem;
   border: 0;
   border-radius: 0.45rem;
   padding: 0.3rem 0.5rem;
@@ -781,7 +823,7 @@ canvas {
 }
 
 .export-window-select {
-  height: 2.5rem;
+  height: 2.75rem;
   border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: rgba(148, 163, 184, 0.05);
@@ -844,6 +886,7 @@ canvas {
 
 .project-open {
   display: grid;
+  min-height: 2.75rem;
   gap: 0.2rem;
   flex: 1 1 auto;
   min-width: 0;
@@ -955,7 +998,8 @@ canvas {
 }
 
 .monitor-tab {
-  min-height: 2.25rem;
+  /* 36px was under the touch floor for the surface switch operators hit most. */
+  min-height: 2.75rem;
   padding: 0.35rem 0.9rem;
   border: 0;
   border-radius: 999px;
@@ -1371,7 +1415,8 @@ canvas {
 .monitor-scrub {
   flex: 1 1 auto;
   min-width: 0;
-  height: 1.75rem;
+  /* The scrub track is the seek target; 28px was a thumb-width miss. */
+  height: 2.75rem;
   accent-color: #10b981;
   cursor: pointer;
   touch-action: manipulation;
@@ -1532,7 +1577,7 @@ canvas {
 
 .capture-select {
   width: 100%;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0.55rem;
   border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1577,7 +1622,7 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0.7rem;
   border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1620,7 +1665,7 @@ canvas {
 
 .capture-toggle {
   flex: 1 1 auto;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.35rem 0.6rem;
   border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1746,7 +1791,7 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: rgba(148, 163, 184, 0.05);
@@ -1796,6 +1841,106 @@ canvas {
 
   .capture-shutter {
     width: 4.75rem;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Access sweep — complete reachability for phones, tablets, and short desktop
+   viewports, at the sizes a thumb actually hits.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/*
+  Controls the template styles with utilities alone (the lane/option selects and
+  FX sliders in the side panels) still have to clear the 44px touch floor.
+  Checkboxes are left alone: the label wrapping them carries the target.
+*/
+.cinema-shell select,
+.cinema-shell input[type='text'],
+.cinema-shell input[type='number'],
+.cinema-shell input[type='range'] {
+  min-height: 2.75rem;
+}
+
+/*
+  Header actions wrap instead of overflowing: a 320px-wide phone cannot fit the
+  capture window, the transport toggle, and EXPORT on one line, and an overflow
+  here would push the page sideways.
+*/
+.header-actions {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/*
+  Clips are the primary drag target and a lane is only 40px tall, so the grab
+  area is widened past the painted block instead of making the block chunky.
+*/
+.clip-block::before {
+  content: '';
+  position: absolute;
+  inset: -0.5rem -0.2rem;
+}
+
+@media (max-width: 1023px) {
+  /* A 24px-tall clip is a coin flip on a phone; the lane has room for 32. */
+  .clip-block {
+    height: 2rem;
+    top: 0.25rem;
+  }
+}
+
+/*
+  Phones, small tablets, and any short viewport — a landscape phone, a split
+  window, a 768/900-tall laptop — become ONE vertical scroll surface.
+
+  Above the header and the production blueprint there is not enough height left
+  for a monitor, a deck, and a timeline, and the fixed app layout used to answer
+  that by squeezing them into whatever was left behind overflow:hidden. The
+  shell already owns this scroll container, so unlocking it keeps the column
+  split and makes every panel reachable instead.
+
+  900px: below this the blueprint alone can consume the viewport; ≥1080p-class
+  screens keep the app-like layout with the workspace column scrolling itself.
+*/
+@media (max-width: 1023.98px), (max-height: 900px) {
+  .cinema-shell {
+    height: auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+
+  .cinema-shell header {
+    padding: 0.9rem 1rem 0.6rem;
+  }
+
+  .production-upgrade-bar {
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 1rem;
+  }
+
+  .upgrade-title {
+    font-size: 1.05rem;
+  }
+
+  .cinema-workspace,
+  .cinema-main,
+  .cinema-aside {
+    overflow: visible;
+  }
+
+  .monitor-section {
+    min-height: 0;
+  }
+
+  /*
+    Free to scroll, the monitor's height has to come from its own ratio instead
+    of a flexible parent: width-driven, and capped so a portrait card cannot
+    push the deck a full screen away.
+  */
+  .monitor-card {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
   }
 }
 
