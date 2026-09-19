@@ -195,6 +195,36 @@
           (error)="onFeedError()"
         ></video>
 
+        <!--
+          The artist's own record, on the station's screen.
+
+          This is how Smuve Jeff Radio shows what it is playing. Apple licenses
+          30-second clips and no store hands a browser the master, so the only
+          complete version of a record is the artist's own distributed upload —
+          and this is where it goes, over the station's own scene, for exactly as
+          long as that record is the one on air.
+
+          The frame opens muted: a muted frame is the one every browser starts
+          without a gesture, so the record is on the screen rather than a black
+          rectangle waiting for a tap, and the sound stays with the station's own
+          player so nothing is ever heard twice. A record with no official upload
+          renders nothing here and keeps the scene.
+        -->
+        <div
+          #officialHost
+          class="tv-record"
+          [hidden]="!fullRecordEmbedUrl()"
+        >
+          <iframe
+            *ngIf="fullRecordEmbedUrl()"
+            [src]="fullRecordEmbedUrl()"
+            title="Smuve Jeff Radio — the artist's record"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen
+            referrerpolicy="strict-origin-when-cross-origin"
+          ></iframe>
+        </div>
+
         <div class="tv-bug" aria-live="polite">
           <span class="tv-bug-number">CH {{ activeChannel().number }}</span>
           <span class="tv-bug-name">{{ activeChannel().name }}</span>

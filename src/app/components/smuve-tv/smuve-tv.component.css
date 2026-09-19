@@ -518,6 +518,33 @@
 }
 
 /*
+ * The artist's record, on the station's screen.
+ *
+ * It sits over the canvas scene and under everything the station says about
+ * itself — the channel bug, the ON AIR badge, the lower third — so the picture is
+ * the record while the station's own furniture stays legible on top of it.
+ * `[hidden]` is spelled out because this element lays itself out as a block,
+ * which would otherwise out-specify the user agent's own rule for it.
+ */
+.tv-record {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: #000;
+}
+
+.tv-record[hidden] {
+  display: none;
+}
+
+.tv-record iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/*
  * Feed provenance is a row of the stage, not an overlay. It carries a station
  * name, an operator, and a licence, which does not fit over a phone-sized
  * picture without colliding with the channel bug or the lower third.

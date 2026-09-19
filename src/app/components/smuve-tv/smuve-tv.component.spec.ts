@@ -541,6 +541,90 @@ describe('SmuveTvComponent', () => {
       expect(template).toContain('tv-featured');
       expect(fixture.nativeElement.querySelector('.tv-featured')).not.toBeNull();
     });
+
+    /**
+     * A record the station can only play a clip of — the catalogue shape for
+     * everything Apple licenses, which is nearly the whole catalogue.
+     */
+    const catalogued = (overrides: Record<string, unknown> = {}) => ({
+      id: 'apple-display-1',
+      title: 'Display Record',
+      artist: 'Smuve Jeff',
+      album: 'Official Album',
+      url: 'https://example.test/preview.m4a',
+      preview: true,
+      durationMs: 180000,
+      youtubeId: 'IE-b3hMngfQ',
+      ...overrides,
+    });
+
+    /** The display as it is rendered: the one frame inside the station's player. */
+    const display = (): HTMLIFrameElement | null =>
+      fixture.nativeElement.querySelector('.tv-player .tv-record iframe');
+
+    it("puts the record on the station's screen once it is on air", () => {
+      component.officialCatalogue.set([catalogued()]);
+      const { pause } = player();
+
+      component.tuneToRadio();
+      // Nothing is on the screen until the channel's own audio confirms the
+      // record: a frame raised before the sound would be a picture of a record
+      // nobody is hearing.
+      expect(component.fullRecordActive()).toBe(false);
+      expect(display()).toBeNull();
+
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      const frame = display();
+      expect(component.fullRecordActive()).toBe(true);
+      expect(frame).not.toBeNull();
+      expect(frame?.getAttribute('src')).toContain('/embed/IE-b3hMngfQ');
+      // Muted, so every browser starts it without a gesture, and the station's
+      // own player keeps the air — the record is never heard twice.
+      expect(frame?.getAttribute('src')).toContain('mute=1');
+      expect(pause).not.toHaveBeenCalled();
+    });
+
+    it('takes the record off the screen when the channel moves on', () => {
+      component.officialCatalogue.set([catalogued()]);
+      player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+      expect(display()).not.toBeNull();
+
+      component.tuneTo(service.channels[0]);
+      fixture.detectChanges();
+
+      expect(component.isRadioStation()).toBe(false);
+      expect(component.fullRecordActive()).toBe(false);
+      expect(display()).toBeNull();
+    });
+
+    it('keeps the record off the screen on every other station', () => {
+      component.officialCatalogue.set([catalogued()]);
+      player();
+      component.startMusic();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      expect(component.isRadioStation()).toBe(false);
+      expect(component.fullRecordActive()).toBe(false);
+      expect(display()).toBeNull();
+    });
+
+    it('keeps the station scene for a record with no official upload', () => {
+      component.officialCatalogue.set([catalogued({ youtubeId: undefined })]);
+      player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      expect(component.musicTrack()).not.toBeNull();
+      expect(component.fullRecordActive()).toBe(false);
+      expect(display()).toBeNull();
+    });
   });
 
   describe('the complete official catalogue', () => {
