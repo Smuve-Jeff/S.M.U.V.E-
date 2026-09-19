@@ -19,6 +19,14 @@ import {
   SmuveTvService,
   smuveTvClock,
 } from '../../services/smuve-tv.service';
+import { LibraryService } from '../../services/library.service';
+import {
+  SmuveTvFeedsService,
+  SmuveTvLiveFeed,
+  SmuveTvRadioTrack,
+  shuffleBag,
+  trackLength,
+} from '../../services/smuve-tv-feeds.service';
 
 /** Deterministic 0–1 noise, so scenes never allocate and never repeat visibly. */
 function noise01(seed: number): number {
@@ -293,6 +301,8 @@ function drawScene(
 })
 export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private tv = inject(SmuveTvService);
+  private library = inject(LibraryService);
+  private feeds = inject(SmuveTvFeedsService);
 
   /** The focusable surface wrapper, so entry can move focus into it. */
   @ViewChild('surface', { static: false })
@@ -305,9 +315,17 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private bedRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('stage', { static: false })
   private stageRef?: ElementRef<HTMLElement>;
+  @ViewChild('music', { static: false })
+  private musicRef?: ElementRef<HTMLAudioElement>;
+  @ViewChild('feed', { static: false })
+  private feedRef?: ElementRef<HTMLVideoElement>;
 
   readonly categories = SMUVE_TV_CATEGORIES;
   readonly clock = smuveTvClock;
+  /** Surfaces `m:ss` record lengths to the template. */
+  readonly trackLength = trackLength;
+  /** How many failures in a row end the broadcast rather than keep skipping. */
+  private static readonly MAX_ROTATION_FAILURES = 5;
 
   activeCategory = signal<SmuveTvCategoryId>('all');
   searchQuery = signal('');
@@ -324,6 +342,100 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   isFullscreen = signal(false);
   audioOn = signal(false);
   audioSupported = signal(false);
+  musicSource = signal<string | null>(null);
+  musicTrack = signal<SmuveTvRadioTrack | null>(null);
+  musicError = signal<string | null>(null);
+
+  /** The live feed tuned on this station, or null when it renders its own scene. */
+  activeFeedId = signal<string>(
+    this.feeds.feedForStation(this.tv.channels[0].id)?.id ?? ''
+  );
+  /** True once the feed has buffered real media, so the canvas can step aside. */
+  feedReady = signal(false);
+  feedAudioOn = signal(false);
+  /** Explains a refused or failed feed instead of leaving a black rectangle. */
+  feedError = signal<string | null>(null);
+
+  /** Apple's official catalogue, loaded once per session. */
+  officialCatalogue = signal<SmuveTvRadioTrack[]>([]);
+  catalogueState = signal<'loading' | 'ready' | 'unavailable'>('loading');
+
+  readonly allFeeds = this.feeds.feeds;
+
+  activeFeed = computed<SmuveTvLiveFeed | null>(() =>
+    this.feeds.feedById(this.activeFeedId())
+  );
+
+  /**
+   * Full-length audio the artist authorized leads the rotation, then the
+   * official catalogue. Both are real audio from Smuve Jeff, which is the whole
+   * promise of the channel; nothing else is allowed in.
+   */
+  radioQueue = computed<SmuveTvRadioTrack[]>(() => [
+    ...this.importedTracks(),
+    ...this.officialCatalogue(),
+  ]);
+
+  private importedTracks = computed<SmuveTvRadioTrack[]>(() =>
+    this.library
+      .items()
+      .filter(
+        (item) =>
+          item.official === true &&
+          item.mediaType === 'audio' &&
+          (item.artist ?? '').trim().toLowerCase() === 'smuve jeff'
+      )
+      .map((item) => ({
+        id: item.id,
+        title: item.name,
+        artist: item.artist ?? 'Smuve Jeff',
+        album: 'Authorized master files',
+        url: item.url,
+        blob: item.blob,
+        preview: false,
+      }))
+  );
+
+  /** How many of the queued tracks are the full recording, not a preview. */
+  fullTrackCount = computed(
+    () => this.radioQueue().filter((track) => !track.preview).length
+  );
+
+  /**
+   * What the channel actually rotates through.
+   *
+   * Full-length masters win outright: when the artist's own files are present
+   * the 24/7 rotation is those records and nothing else, which is what "play
+   * the full-length tracks" means. Only when there are no masters at all does
+   * it fall back to the official previews, and the UI says so.
+   */
+  rotationPool = computed<SmuveTvRadioTrack[]>(() => {
+    const queue = this.radioQueue();
+    const masters = queue.filter((track) => !track.preview);
+    return masters.length ? masters : queue;
+  });
+
+  /** True when the rotation is drawing on real full-length recordings. */
+  playsFullLength = computed(() =>
+    this.rotationPool().some((track) => !track.preview)
+  );
+
+  /** Whichever pool is on air, so the count never describes the wrong list. */
+  rotationCount = computed(() => this.rotationPool().length);
+
+  /**
+   * One mute button drives whatever is actually making sound: the live feed when
+   * one is playing, otherwise the locally synthesised station bed.
+   */
+  audioSource = computed<'feed' | 'bed'>(() =>
+    this.activeFeed() && this.feedReady() ? 'feed' : 'bed'
+  );
+  isAudioOn = computed(() =>
+    this.audioSource() === 'feed' ? this.feedAudioOn() : this.audioOn()
+  );
+  audioUsable = computed(
+    () => this.audioSource() === 'feed' || this.audioSupported()
+  );
 
   activeChannel = computed<SmuveTvChannel>(() => {
     const id = this.activeChannelId();
@@ -366,6 +478,21 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }));
   });
 
+  /**
+   * The hls.js instance, kept only as the narrow surface used to tear it down.
+   * Typed structurally so hls.js can stay a lazily-imported optional chunk.
+   */
+  private hls: { destroy(): void } | null = null;
+  /** Records left in the current random pass through the rotation pool. */
+  private rotationBag: SmuveTvRadioTrack[] = [];
+  /** The record that just played, so a new pass cannot open on it. */
+  private lastRotationId: string | null = null;
+  /** Consecutive tracks that failed to play; guards against an endless skip. */
+  private consecutiveFailures = 0;
+  /** Injectable so a test can pin the rotation order. */
+  random: () => number = Math.random;
+  /** Station the current feed was attached for, so zapping re-attaches once. */
+  private feedStationId: string | null = null;
   private nowTimerId: number | null = null;
   private frameId: number | null = null;
   private sceneTime = 0;
@@ -387,6 +514,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
           (window as unknown as { webkitAudioContext?: typeof AudioContext })
             .webkitAudioContext) === 'function'
     );
+    // The official catalogue is fetched, not bundled: it is the artist's real
+    // release list and would be wrong the moment a new record lands.
+    void this.loadCatalogue();
   }
 
   ngAfterViewInit(): void {
@@ -406,6 +536,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     // A full-screen takeover owns the keyboard, so the tab order starts here.
     this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
     this.startSceneLoop();
+    this.attachFeed();
   }
 
   ngOnDestroy(): void {
@@ -415,6 +546,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }
     this.stopSceneLoop();
     this.stopAudio();
+    this.stopFeed();
+    this.releaseMusicSource();
     document.removeEventListener('keydown', this.keyListener, true);
     document.removeEventListener('fullscreenchange', this.fullscreenListener);
     document.removeEventListener('webkitfullscreenchange', this.fullscreenListener);
@@ -438,6 +571,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       this.activeCategory.set('all');
     }
     this.retuneAudio();
+    // Every station carries its own live feed, so a zap re-tunes the source.
+    this.activeFeedId.set(this.feeds.feedForStation(channel.id)?.id ?? '');
+    void this.attachFeed();
   }
 
   stepChannel(step: number): void {
@@ -483,11 +619,14 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     const resume = !this.isPlaying();
     this.isPlaying.set(resume);
 
+    const video = this.feedRef?.nativeElement;
     if (resume) {
       this.startSceneLoop();
       this.rampAudio(AUDIO_LEVEL);
+      this.playMedia(video);
     } else {
       this.stopSceneLoop();
+      video?.pause();
       /*
        * Pausing has to silence the station too. Leaving the bed running under a
        * "PAUSED" badge is simply a lie about what the surface is doing.
@@ -532,17 +671,397 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * The artist radio uses the browser's native audio pipeline. It is separate
+   * from the decorative synth bed: no iframe, no third-party player, and no
+   * autoplay. Playback begins only after the viewer presses play.
+   */
+  toggleMusic(): void {
+    const audio = this.musicRef?.nativeElement;
+    if (!audio || !this.radioQueue().length) return;
+    if (audio.paused) {
+      // The television has one speaker: the radio takes it.
+      this.silenceStationAudio();
+      this.musicError.set(null);
+      this.playMedia(audio, () =>
+        this.musicError.set('Tap play again to allow audio in this browser.')
+      );
+    } else {
+      audio.pause();
+    }
+  }
+
+  startMusic(): void {
+    if (!this.rotationPool().length) return;
+    if (!this.musicTrack()) {
+      // The station opens on a random record, not the top of the catalogue.
+      const first = this.nextRotationTrack();
+      if (!first) return;
+      this.selectMusicTrack(first);
+    }
+    this.toggleMusic();
+  }
+
+  /**
+   * The next record on the 24/7 rotation.
+   *
+   * A shuffle bag, not an independent random pick: each pass plays every record
+   * once in a random order, so nothing repeats within a cycle but the channel
+   * still never follows a predictable sequence. A fresh pass is rotated past the
+   * seam when its first draw is the record that just finished, because hearing
+   * the same song twice in a row is the one thing shuffle must never do.
+   */
+  nextRotationTrack(): SmuveTvRadioTrack | null {
+    const pool = this.rotationPool();
+    if (!pool.length) return null;
+
+    // Anything removed from the pool mid-cycle (an import the artist deleted)
+    // must not still be dealt out of the bag.
+    const live = new Set(pool.map((track) => track.id));
+    this.rotationBag = this.rotationBag.filter((track) => live.has(track.id));
+
+    if (!this.rotationBag.length) {
+      this.rotationBag = shuffleBag(pool, this.random);
+      if (
+        this.rotationBag.length > 1 &&
+        this.rotationBag[0].id === this.lastRotationId
+      ) {
+        const [first, second] = this.rotationBag;
+        this.rotationBag[0] = second;
+        this.rotationBag[1] = first;
+      }
+    }
+
+    const track = this.rotationBag.shift() ?? null;
+    if (track) this.lastRotationId = track.id;
+    return track;
+  }
+
+  /** Hands the channel to its next record, keeping the broadcast unbroken. */
+  advanceRotation(): void {
+    // A pass that ends mid-flight must not leave the bag empty for long; the
+    // next call rebuilds it, so a single empty pool is the only dead end.
+    if (!this.rotationPool().length) {
+      this.musicError.set('Nothing is queued for this channel yet.');
+      return;
+    }
+    const next = this.nextRotationTrack();
+    if (!next) return;
+    this.selectMusicTrack(next, true);
+  }
+
+  selectMusicTrack(track: SmuveTvRadioTrack, autoplay = false): void {
+    const audio = this.musicRef?.nativeElement;
+    if (!audio) return;
+    this.musicTrack.set(track);
+    this.musicError.set(null);
+
+    const source = track.blob
+      ? URL.createObjectURL(track.blob)
+      : track.url ?? null;
+    if (!source) {
+      this.musicError.set('This track has no playable audio source.');
+      return;
+    }
+
+    /*
+     * The element is driven imperatively; the template deliberately does not
+     * bind `src`.
+     *
+     * Measured in Chromium: binding it made Angular re-assign `src` right after
+     * this method had set it, which restarts the load and aborts the pending
+     * `play()` promise — the channel then announced "Tap play again" on a track
+     * it had just queued, and skipped it. Binding `null` was worse: `src` is a
+     * DOM property, so it coerced to the literal string "null", the browser
+     * fetched a bogus URL, and the element fired a spurious `error` event that
+     * the rotation correctly read as a dead track.
+     */
+    const previous = this.musicSource();
+    this.musicSource.set(source);
+    audio.src = source;
+    audio.load();
+    // The old object URL is revoked only once the new source is attached, so a
+    // mid-load revocation can never abort the record that is starting.
+    if (previous && previous !== source && previous.startsWith('blob:')) {
+      URL.revokeObjectURL(previous);
+    }
+
+    if (autoplay) {
+      this.silenceStationAudio();
+      this.playMedia(audio, () =>
+        this.musicError.set('Tap play to start the selected track.')
+      );
+    }
+  }
+
+  onMusicEnded(): void {
+    // One continuous rotation, so the channel really is 24/7: a record hands
+    // over to the next exactly like a broadcast would.
+    this.advanceRotation();
+  }
+
+  /**
+   * A source that will not play must not kill the channel.
+   *
+   * The rotation steps straight past it and keeps broadcasting — one dead
+   * preview URL cannot be allowed to end a 24/7 stream. Only a run of failures
+   * is worth telling the viewer about, because that means the source itself is
+   * gone rather than one record having moved.
+   */
+  onMusicError(): void {
+    this.consecutiveFailures += 1;
+    if (this.consecutiveFailures >= SmuveTvComponent.MAX_ROTATION_FAILURES) {
+      this.musicError.set(
+        'Nothing in the rotation would play. Check that this browser allows audio.'
+      );
+      return;
+    }
+    this.advanceRotation();
+  }
+
+  /**
+   * Confirmed audio output is the only thing that clears the failure guard.
+   * Resetting it on every attempt would defeat the guard entirely.
+   */
+  onMusicPlaying(): void {
+    this.consecutiveFailures = 0;
+    this.musicError.set(null);
+  }
+
+  /**
+   * Reads the artist's official catalogue from Apple's public API.
+   *
+   * Failure is a first-class outcome, not an exception: the module still owns a
+   * full station line-up and the authorized-file path, so an unavailable
+   * catalogue degrades to those and says so.
+   */
+  async loadCatalogue(): Promise<void> {
+    this.catalogueState.set('loading');
+    const tracks = await this.feeds.loadOfficialCatalogue();
+    this.officialCatalogue.set(tracks);
+    this.catalogueState.set(tracks.length ? 'ready' : 'unavailable');
+  }
+
+  // ── Live feeds ─────────────────────────────────────────
+
+  /** Swaps this station's live feed, keeping the native scene as an option. */
+  chooseFeed(feedId: string): void {
+    this.activeFeedId.set(feedId);
+    void this.attachFeed();
+  }
+
+  /**
+   * Tunes the station's live feed.
+   *
+   * hls.js is imported on demand so it never lands in the initial bundle, and
+   * Safari, iOS, and Android Chrome play HLS natively without it. A station with
+   * no feed — or one whose feed fails — keeps its canvas scene, which is why the
+   * module never depends on the network to show a picture.
+   */
+  private async attachFeed(): Promise<void> {
+    const video = this.feedRef?.nativeElement;
+    const feed = this.activeFeed();
+    const stationId = this.activeChannelId();
+
+    this.stopFeed();
+    this.feedStationId = stationId;
+    this.feedError.set(null);
+
+    if (!video || !feed) return;
+
+    try {
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = feed.url;
+        video.addEventListener('loadedmetadata', this.onFeedMetadata, { once: true });
+      } else {
+        const { default: Hls } = await import('hls.js');
+        if (!Hls.isSupported()) {
+          this.onFeedError();
+          return;
+        }
+        const hls = new Hls({ enableWorker: true });
+        this.hls = hls;
+        hls.on(Hls.Events.FRAG_LOADED, () => {
+          // Only the station still on screen may claim the picture.
+          if (this.feedStationId === stationId) this.feedReady.set(true);
+        });
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          // hls.js recovers from most failures on its own. Only a fatal error
+          // means the station genuinely cannot be shown, so only then fall back
+          // rather than flashing the scene during routine recovery.
+          if (data?.fatal && this.feedStationId === stationId) this.onFeedError();
+        });
+        /*
+         * A zap that lands between the import resolving and the player being
+         * ready would otherwise leave two HLS instances fighting over one video
+         * element, so the newest station always wins.
+         */
+        if (this.feedStationId !== stationId) {
+          hls.destroy();
+          this.hls = null;
+          return;
+        }
+        hls.loadSource(feed.url);
+        hls.attachMedia(video);
+      }
+
+      video.muted = !this.feedAudioOn();
+      // Muted playback is allowed without a gesture on every target browser, so
+      // the picture starts on its own and unmuting is the only thing the viewer
+      // ever has to do.
+      this.playMedia(video);
+    } catch {
+      this.onFeedError();
+    }
+  }
+
+  /** Native HLS took the source without hiring hls.js, so the picture is live. */
+  private onFeedMetadata = (): void => {
+    this.feedReady.set(true);
+  };
+
+  onFeedError(): void {
+    const name = this.activeFeed()?.name;
+    this.feedReady.set(false);
+    this.feedError.set(
+      name
+        ? `${name} is not answering right now. Showing the station scene instead.`
+        : 'Live feed unavailable. Showing the station scene instead.'
+    );
+  }
+
+  private stopFeed(): void {
+    const video = this.feedRef?.nativeElement;
+    // Only a feed that actually took a source needs releasing; resetting a
+    // source-less element just makes the browser re-run its load algorithm.
+    const hadSource = !!(video?.getAttribute('src') || video?.src);
+    this.hls?.destroy();
+    this.hls = null;
+    this.feedStationId = null;
+    this.feedReady.set(false);
+    this.feedAudioOn.set(false);
+    if (!video) return;
+    video.removeEventListener('loadedmetadata', this.onFeedMetadata);
+    if (!hadSource) return;
+    try {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } catch {
+      // The element is already gone; there is nothing left to release.
+    }
+  }
+
+  /**
+   * Starts media without trusting what `play()` returns.
+   *
+   * Browsers hand back a promise that rejects when autoplay is blocked, but
+   * embedded webviews — and jsdom's media stubs — return nothing at all. A
+   * refusal is never an error here: the transport badge keeps telling the truth
+   * and the next gesture starts playback anyway.
+   */
+  private playMedia(
+    element: HTMLMediaElement | undefined | null,
+    onRefused?: () => void
+  ): void {
+    if (!element) return;
+    try {
+      const result = element.play() as Promise<void> | undefined;
+      if (result && typeof result.catch === 'function') {
+        void result.catch(() => onRefused?.());
+      }
+    } catch {
+      onRefused?.();
+    }
+  }
+
+  /** TV has one speaker, so the radio and the station never play over each other. */
+  private silenceStationAudio(): void {
+    if (this.feedAudioOn()) {
+      this.feedAudioOn.set(false);
+      const video = this.feedRef?.nativeElement;
+      if (video) video.muted = true;
+    }
+    if (this.audioOn()) this.stopAudio();
+  }
+
+  async onOfficialMusicFiles(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []).filter((file) => file.type.startsWith('audio/'));
+    for (const file of files) {
+      const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${file.name}`;
+      const id = `smuve-jeff-radio-${randomId}`;
+      this.library.addOrUpdate({
+        id,
+        name: file.name.replace(/\.[^.]+$/, ''),
+        addedAt: Date.now(),
+        size: file.size,
+        blob: file,
+        artist: 'Smuve Jeff',
+        official: true,
+        mediaType: 'audio',
+      });
+      await this.library.putOffline(id, file);
+    }
+    input.value = '';
+    // Keep the first track queued but silent until the user explicitly starts
+    // the radio; this respects mobile autoplay policies and the channel promise.
+  }
+
+  private releaseMusicSource(): void {
+    const source = this.musicSource();
+    if (source?.startsWith('blob:')) URL.revokeObjectURL(source);
+    this.musicSource.set(null);
+  }
+
+  /**
    * A station audio bed, synthesised locally. Off by default: a TV that makes
    * noise the moment it opens is hostile. Every note is generated in-page, so
    * there is no stream to fail.
    */
+  /**
+   * Names what the mute button will actually do. It drives two different
+   * sources, so "toggle audio" would be an unhelpful label to hear.
+   */
+  audioTitle(): string {
+    if (this.audioSource() === 'feed') {
+      return this.feedAudioOn() ? 'Mute the live feed' : 'Unmute the live feed';
+    }
+    if (!this.audioSupported()) return 'Audio is unavailable in this browser';
+    return this.audioOn()
+      ? 'Mute the station audio bed'
+      : 'Play the station audio bed';
+  }
+
+  /**
+   * One mute button, whichever source is on air. With a live feed playing it
+   * mutes the feed; the synthesised bed is only the fallback picture's audio.
+   */
   toggleAudio(): void {
+    if (this.audioSource() === 'feed') {
+      const next = !this.feedAudioOn();
+      this.feedAudioOn.set(next);
+      const video = this.feedRef?.nativeElement;
+      if (video) {
+        video.muted = !next;
+        if (next) {
+          this.pauseMusic();
+          this.playMedia(video, () => this.feedAudioOn.set(false));
+        }
+      }
+      return;
+    }
     if (!this.audioSupported()) return;
     if (this.audioOn()) {
       this.stopAudio();
     } else {
+      this.pauseMusic();
       this.startAudio();
     }
+  }
+
+  /** Leaves the radio queued where it is, so play resumes on the same track. */
+  private pauseMusic(): void {
+    this.musicRef?.nativeElement.pause();
   }
 
   private startAudio(): void {

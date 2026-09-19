@@ -142,6 +142,21 @@
       >
         <canvas #bed class="tv-bed" aria-hidden="true"></canvas>
 
+        <!--
+          The station's live feed. Muted on entry so every browser allows it to
+          start without a gesture; unmuting is a single tap on the mute button.
+        -->
+        <video
+          #feed
+          class="tv-feed"
+          [class.on]="feedReady()"
+          playsinline
+          preload="none"
+          [muted]="!feedAudioOn()"
+          aria-hidden="true"
+          (error)="onFeedError()"
+        ></video>
+
         <div class="tv-bug" aria-live="polite">
           <span class="tv-bug-number">CH {{ activeChannel().number }}</span>
           <span class="tv-bug-name">{{ activeChannel().name }}</span>
@@ -216,21 +231,15 @@
         <button
           type="button"
           class="tv-control"
-          [class.on]="audioOn()"
-          [disabled]="!audioSupported()"
-          [attr.aria-pressed]="audioOn()"
-          [attr.title]="
-            audioSupported()
-              ? 'Station audio bed'
-              : 'Audio is unavailable in this browser'
-          "
-          [attr.aria-label]="
-            audioSupported() ? 'Toggle station audio bed' : 'Audio unavailable'
-          "
+          [class.on]="isAudioOn()"
+          [disabled]="!audioUsable()"
+          [attr.aria-pressed]="isAudioOn()"
+          [attr.title]="audioTitle()"
+          [attr.aria-label]="audioTitle()"
           (click)="toggleAudio()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">{{
-            audioOn() ? 'volume_up' : 'volume_off'
+            isAudioOn() ? 'volume_up' : 'volume_off'
           }}</span>
         </button>
         <button
@@ -261,7 +270,137 @@
           />
           <button type="submit" class="tv-tune-go">TUNE</button>
         </form>
+
+        <label class="tv-feed-picker">
+          <span class="material-symbols-outlined" aria-hidden="true">satellite_alt</span>
+          <span class="tv-feed-picker-label">LIVE FEED</span>
+          <select
+            [ngModel]="activeFeedId()"
+            (ngModelChange)="chooseFeed($event)"
+            name="stationFeed"
+          >
+            <option value="">NATIVE SCENE</option>
+            <option *ngFor="let feed of allFeeds" [value]="feed.id">
+              {{ feed.name }}
+            </option>
+          </select>
+        </label>
       </div>
+
+      <!--
+        Feed provenance lives here rather than over the picture. Measured on a
+        412px phone: the player only has ~91px of clear space above its lower
+        third, so an overlay carrying a station name, operator, and licence
+        ended 1px from colliding with it.
+      -->
+      <div class="tv-feed-bar" *ngIf="activeFeed() && feedReady()">
+        <span class="tv-feed-live">LIVE FEED</span>
+        <span class="tv-feed-name">{{ activeFeed()?.name }}</span>
+        <span class="tv-feed-source">
+          {{ activeFeed()?.operator }} &middot; {{ activeFeed()?.source }}
+        </span>
+      </div>
+      <p class="tv-feed-error" *ngIf="feedError()" role="status">
+        {{ feedError() }}
+      </p>
+
+      <section class="tv-music-channel" aria-labelledby="smuve-jeff-radio-title">
+        <div class="tv-music-heading">
+          <div>
+            <p class="tv-lt-label">FIRST-PARTY MUSIC CHANNEL</p>
+            <h3 id="smuve-jeff-radio-title">SMUVE JEFF RADIO <span>24/7</span></h3>
+          </div>
+          <span class="tv-music-count">{{ rotationCount() }} IN ROTATION</span>
+        </div>
+        <p class="tv-music-copy">
+          Shuffled continuously, one record after another, never stopping. Nothing
+          starts until you press play.
+        </p>
+        <p class="tv-music-mode" [class.masters]="playsFullLength()">
+          <span class="material-symbols-outlined" aria-hidden="true">
+            {{ playsFullLength() ? 'album' : 'graphic_eq' }}
+          </span>
+          <ng-container *ngIf="playsFullLength()">
+            FULL-LENGTH MASTERS &mdash; {{ rotationCount() }} complete records on air
+          </ng-container>
+          <ng-container *ngIf="!playsFullLength()">
+            <ng-container *ngIf="catalogueState() === 'loading'">
+              LOADING THE OFFICIAL CATALOGUE&hellip;
+            </ng-container>
+            <ng-container *ngIf="catalogueState() !== 'loading'">
+              OFFICIAL PREVIEWS &mdash; import the full-length masters below to put the
+              complete records on air
+            </ng-container>
+          </ng-container>
+        </p>
+        <p class="tv-music-status" *ngIf="catalogueState() === 'loading'">
+          READING THE OFFICIAL CATALOGUE&hellip;
+        </p>
+        <p class="tv-music-status tv-music-status-warn" *ngIf="catalogueState() === 'unavailable'">
+          The official catalogue could not be reached. Authorized files still play.
+          <button type="button" class="tv-music-retry" (click)="loadCatalogue()">
+            RETRY
+          </button>
+        </p>
+        <p class="tv-music-status" *ngIf="catalogueState() === 'ready' && !playsFullLength()">
+          {{ officialCatalogue().length }} official tracks loaded. Apple publishes
+          30-second previews only, so each record streams its preview; the running
+          time shown is the full record.
+        </p>
+        <!--
+          No `src` binding on purpose: the element is driven imperatively so
+          Angular cannot re-assign the source mid-load and abort playback.
+        -->
+        <audio
+          #music
+          class="tv-music-player"
+          controls
+          preload="metadata"
+          (ended)="onMusicEnded()"
+          (error)="onMusicError()"
+          (playing)="onMusicPlaying()"
+          aria-label="Smuve Jeff Radio player"
+        ></audio>
+        <div class="tv-music-actions">
+          <button
+            type="button"
+            class="tv-tune-go"
+            [disabled]="!rotationCount()"
+            (click)="musicTrack() ? toggleMusic() : startMusic()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ musicTrack() ? 'play_arrow' : 'queue_music' }}</span>
+            {{ musicTrack() ? 'PLAY / PAUSE' : 'START RADIO' }}
+          </button>
+          <label class="tv-music-import">
+            <span class="material-symbols-outlined" aria-hidden="true">upload</span>
+            ADD OFFICIAL TRACKS
+            <input type="file" accept="audio/*" multiple (change)="onOfficialMusicFiles($event)" />
+          </label>
+        </div>
+        <p class="tv-music-empty" *ngIf="!rotationCount() && catalogueState() !== 'loading'">
+          Add authorized Smuve Jeff MP3, AAC, OGG, or WAV files to activate this channel.
+        </p>
+        <p class="tv-music-error" *ngIf="musicError()" role="status">{{ musicError() }}</p>
+        <ul class="tv-music-list" *ngIf="rotationCount()" aria-label="Smuve Jeff Radio queue">
+          <li *ngFor="let track of rotationPool()" [class.active]="track.id === musicTrack()?.id">
+            <button type="button" (click)="selectMusicTrack(track)">
+              <span class="material-symbols-outlined" aria-hidden="true">{{ track.id === musicTrack()?.id ? 'graphic_eq' : 'music_note' }}</span>
+              <span class="tv-music-track">
+                <span class="tv-music-track-title">{{ track.title }}</span>
+                <span class="tv-music-track-meta">
+                  {{ track.album }}<ng-container *ngIf="track.year"> &middot; {{ track.year }}</ng-container>
+                  <ng-container *ngIf="trackLength(track.durationMs)">
+                    &middot; {{ trackLength(track.durationMs) }}
+                  </ng-container>
+                </span>
+              </span>
+              <span class="tv-music-badge" [class.full]="!track.preview">
+                {{ track.preview ? 'PREVIEW' : 'FULL' }}
+              </span>
+            </button>
+          </li>
+        </ul>
+      </section>
 
       <div class="tv-guide">
         <h3 class="tv-guide-heading">

@@ -8,6 +8,11 @@ export interface LibraryItem {
   url?: string; // remote
   size?: number;
   addedAt: number;
+  /** Explicit ownership metadata used by first-party broadcast surfaces. */
+  artist?: string;
+  /** Only items explicitly approved by the catalogue owner enter artist radio. */
+  official?: boolean;
+  mediaType?: 'audio' | 'video' | 'other';
   // offline
   blob?: Blob;
 }

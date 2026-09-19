@@ -3,11 +3,37 @@ import { join } from 'node:path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SmuveTvComponent } from './smuve-tv.component';
 import { SmuveTvService } from '../../services/smuve-tv.service';
+import { LibraryService } from '../../services/library.service';
+import {
+  SmuveTvFeedsService,
+  SmuveTvRadioTrack,
+  seededRandom,
+  trackLength,
+} from '../../services/smuve-tv-feeds.service';
+
+/** One canned entry in Apple's catalogue payload shape. */
+const appleSong = (overrides: Record<string, unknown> = {}) => ({
+  wrapperType: 'track',
+  kind: 'song',
+  trackId: 1,
+  trackName: 'Official Record',
+  artistName: 'Smuve Jeff',
+  collectionName: 'Official Album',
+  previewUrl: 'https://example.test/preview.m4a',
+  releaseDate: '2024-01-01T12:00:00Z',
+  primaryGenreName: 'Hip-Hop/Rap',
+  trackViewUrl: 'https://example.test/album',
+  ...overrides,
+});
 
 describe('SmuveTvComponent', () => {
   let fixture: ComponentFixture<SmuveTvComponent>;
   let component: SmuveTvComponent;
   let service: SmuveTvService;
+  let feeds: SmuveTvFeedsService;
+  let library: LibraryService;
+  let fetchMock: jest.Mock;
+  let originalFetch: typeof fetch | undefined;
 
   const template = readFileSync(
     join(__dirname, 'smuve-tv.component.html'),
@@ -20,11 +46,26 @@ describe('SmuveTvComponent', () => {
     // seed the next test's component at construction time.
     localStorage.removeItem('smuve_tv_stations');
 
+    /*
+     * The official catalogue is a live network read performed at construction,
+     * so it is pinned here: the suite must never depend on Apple being
+     * reachable, nor on how fast it answers.
+     */
+    originalFetch = global.fetch;
+    fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ results: [] }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
     await TestBed.configureTestingModule({
       imports: [SmuveTvComponent],
     }).compileComponents();
 
     service = TestBed.inject(SmuveTvService);
+    feeds = TestBed.inject(SmuveTvFeedsService);
+    library = TestBed.inject(LibraryService);
+    library.items.set([]);
     fixture = TestBed.createComponent(SmuveTvComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -32,6 +73,8 @@ describe('SmuveTvComponent', () => {
 
   afterEach(() => {
     fixture.destroy();
+    if (originalFetch) global.fetch = originalFetch;
+    else delete (global as { fetch?: unknown }).fetch;
   });
 
   it('should create', () => {
@@ -188,6 +231,370 @@ describe('SmuveTvComponent', () => {
 
       component.toggleFavoritesOnly();
       expect(component.visibleChannels().length).toBe(service.channels.length);
+    });
+  });
+
+  describe('Smuve Jeff Radio', () => {
+    const track = (overrides: Record<string, unknown> = {}) => ({
+      id: 'radio-track-1',
+      name: 'Authorized Single',
+      addedAt: 1,
+      url: 'data:audio/mpeg;base64,AAAA',
+      artist: 'Smuve Jeff',
+      official: true,
+      mediaType: 'audio' as const,
+      ...overrides,
+    });
+
+    it('only admits explicitly approved Smuve Jeff audio from the library', () => {
+      library.items.set([
+        track(),
+        track({ id: 'other-artist', artist: 'Someone Else' }),
+        track({ id: 'unapproved', official: false }),
+        track({ id: 'video', mediaType: 'video' }),
+      ]);
+
+      expect(component.radioQueue().map((item) => item.id)).toEqual([
+        'radio-track-1',
+      ]);
+    });
+
+    it('queues a selected track without autoplay, then starts only on user action', () => {
+      library.items.set([track()]);
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      const load = jest.spyOn(audio, 'load').mockImplementation(() => undefined);
+      const play = jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      Object.defineProperty(audio, 'paused', { configurable: true, value: true });
+
+      component.selectMusicTrack(component.radioQueue()[0]);
+      expect(audio.src).toContain('data:audio/mpeg');
+      expect(load).toHaveBeenCalled();
+      expect(play).not.toHaveBeenCalled();
+
+      component.startMusic();
+      expect(play).toHaveBeenCalledTimes(1);
+
+      load.mockRestore();
+      play.mockRestore();
+    });
+
+    it('leads with authorized masters, then the official catalogue', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [appleSong(), appleSong({ trackId: 2 })] }),
+      });
+      library.items.set([track()]);
+
+      await component.loadCatalogue();
+
+      const queue = component.radioQueue();
+      expect(queue).toHaveLength(3);
+      // Masters first, so the catalogue never precedes the artist's own files.
+      expect(queue[0]).toMatchObject({ id: 'radio-track-1', preview: false });
+      expect(queue.slice(1).every((entry) => entry.preview)).toBe(true);
+      expect(component.fullTrackCount()).toBe(1);
+      expect(component.catalogueState()).toBe('ready');
+    });
+
+    it('labels previews as previews rather than implying full tracks', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [appleSong()] }),
+      });
+
+      await component.loadCatalogue();
+
+      expect(component.officialCatalogue()[0]).toMatchObject({
+        title: 'Official Record',
+        album: 'Official Album',
+        year: '2024',
+        preview: true,
+      });
+    });
+
+    it('survives an unreachable catalogue and says so', async () => {
+      fetchMock.mockRejectedValue(new Error('offline'));
+      library.items.set([track()]);
+
+      await component.loadCatalogue();
+
+      expect(component.catalogueState()).toBe('unavailable');
+      expect(component.officialCatalogue()).toEqual([]);
+      // The channel still plays; only the fetched half is missing.
+      expect(component.radioQueue().map((entry) => entry.id)).toEqual([
+        'radio-track-1',
+      ]);
+    });
+
+  });
+
+  describe('24/7 rotation', () => {
+    /** Puts `count` authorized full-length masters in the library. */
+    const seedMasters = (count: number) => {
+      library.items.set(
+        Array.from({ length: count }, (_unused, index) => ({
+          id: `master-${index}`,
+          name: `Master ${index}`,
+          addedAt: index,
+          url: `data:audio/mpeg;base64,AAAA${index}`,
+          artist: 'Smuve Jeff',
+          official: true,
+          mediaType: 'audio' as const,
+        }))
+      );
+    };
+
+    const silenceAudioElement = () => {
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      jest.spyOn(audio, 'load').mockImplementation(() => undefined);
+      Object.defineProperty(audio, 'paused', { configurable: true, value: true });
+      jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      return audio;
+    };
+
+    beforeEach(() => {
+      component.random = seededRandom(20260919);
+    });
+
+    it('plays full-length masters and shuts previews out entirely', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [appleSong(), appleSong({ trackId: 2 })] }),
+      });
+      seedMasters(3);
+      await component.loadCatalogue();
+
+      const pool = component.rotationPool();
+
+      expect(pool).toHaveLength(3);
+      expect(pool.every((entry) => !entry.preview)).toBe(true);
+      expect(component.playsFullLength()).toBe(true);
+      // The catalogue is still listed for the record, but never rotates.
+      expect(component.radioQueue().some((entry) => entry.preview)).toBe(true);
+      expect(pool.some((entry) => entry.preview)).toBe(false);
+    });
+
+    it('falls back to the official previews when no masters exist', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [appleSong(), appleSong({ trackId: 2 })] }),
+      });
+      await component.loadCatalogue();
+
+      expect(component.playsFullLength()).toBe(false);
+      expect(component.rotationPool()).toHaveLength(2);
+    });
+
+    it('plays every record exactly once per random pass', () => {
+      seedMasters(6);
+      const ids = new Set(component.rotationPool().map((entry) => entry.id));
+
+      const pass = Array.from({ length: 6 }, () =>
+        component.nextRotationTrack()?.id
+      );
+
+      // A shuffle bag, not independent picks: a cycle cannot repeat a record.
+      expect(new Set(pass).size).toBe(6);
+      expect(pass.every((id) => id !== undefined && ids.has(id))).toBe(true);
+    });
+
+    it('does not open a new pass with the record that just played', () => {
+      seedMasters(4);
+      component.random = seededRandom(7);
+
+      // Drain a pass, note where it landed, then check the seam of the next one.
+      let last: string | undefined;
+      for (let i = 0; i < 4; i += 1) last = component.nextRotationTrack()?.id;
+      const firstOfNextPass = component.nextRotationTrack()?.id;
+
+      expect(firstOfNextPass).not.toBe(last);
+    });
+
+    it('is genuinely shuffled, not just resequenced from the top', () => {
+      seedMasters(8);
+      const sourceOrder = component.rotationPool().map((entry) => entry.id);
+
+      const pass = Array.from({ length: 8 }, () =>
+        component.nextRotationTrack()?.id
+      );
+
+      expect(pass).not.toEqual(sourceOrder);
+    });
+
+    it('honours the injected random source', () => {
+      seedMasters(5);
+      component.random = seededRandom(1);
+      const first = Array.from({ length: 5 }, () => component.nextRotationTrack()?.id);
+
+      component.random = seededRandom(1);
+      const second = Array.from({ length: 5 }, () => component.nextRotationTrack()?.id);
+
+      // Same seed, same order — which is what makes a shuffle testable at all.
+      expect(second).toEqual(first);
+    });
+
+    it('rebuilds the pass and keeps broadcasting after a record ends', () => {
+      seedMasters(2);
+      silenceAudioElement();
+
+      const first = component.nextRotationTrack();
+      component.selectMusicTrack(first!, true);
+      expect(component.musicTrack()?.id).toBe(first!.id);
+
+      component.onMusicEnded();
+
+      // The channel hands over to the other record without a gap.
+      expect(component.musicTrack()?.id).not.toBe(first!.id);
+      expect(component.musicTrack()).not.toBeNull();
+    });
+
+    it('steps past a record that will not play instead of stalling', () => {
+      seedMasters(4);
+      silenceAudioElement();
+      component.selectMusicTrack(component.rotationPool()[0], true);
+      const before = component.musicTrack()?.id;
+
+      component.onMusicError();
+
+      // A dead source cannot end a 24/7 stream; the rotation just moves on.
+      expect(component.musicTrack()?.id).not.toBe(before);
+      expect(component.musicError()).toBeNull();
+    });
+
+    it('gives up loudly after a run of failures rather than looping forever', () => {
+      seedMasters(2);
+      silenceAudioElement();
+
+      for (let i = 0; i < 6; i += 1) component.onMusicError();
+
+      expect(component.musicError()).toContain('allows audio');
+    });
+
+    it('only a confirmed playing event clears the failure guard', () => {
+      seedMasters(2);
+      silenceAudioElement();
+
+      for (let i = 0; i < 4; i += 1) component.onMusicError();
+      component.onMusicPlaying();
+
+      // The guard reset, so the next failure is treated as the first again.
+      component.onMusicError();
+      expect(component.musicError()).toBeNull();
+    });
+
+    it('reports the running time of the record, not of the clip', () => {
+      expect(trackLength(212_000)).toBe('3:32');
+      expect(trackLength(92_395)).toBe('1:32');
+      expect(trackLength(undefined)).toBeNull();
+      expect(trackLength(0)).toBeNull();
+    });
+
+    it('carries Apple\'s real running time onto the queued track', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [appleSong({ trackTimeMillis: 212_000 })] }),
+      });
+
+      await component.loadCatalogue();
+
+      expect(component.officialCatalogue()[0].durationMs).toBe(212_000);
+      expect(trackLength(component.officialCatalogue()[0].durationMs)).toBe('3:32');
+    });
+
+    it('drops records that leave the pool mid-pass', () => {
+      seedMasters(3);
+      component.nextRotationTrack();
+
+      // The artist deletes a file the bag has not dealt out yet.
+      library.items.set(
+        library.items().filter((entry) => entry.id !== 'master-2')
+      );
+
+      const dealt = Array.from({ length: 2 }, () =>
+        component.nextRotationTrack()?.id
+      );
+
+      expect(dealt).not.toContain('master-2');
+    });
+
+    it('says so rather than silently idling when nothing is queued', () => {
+      component.advanceRotation();
+
+      expect(component.musicError()).toContain('Nothing is queued');
+    });
+  });
+
+  describe('live feeds', () => {
+    it('gives every station a real, verified live feed', () => {
+      for (const channel of service.channels) {
+        const feed = feeds.feedForStation(channel.id);
+        expect(feed).not.toBeNull();
+        expect(feed!.url).toMatch(/^https:\/\//);
+        // Provenance is always stated, never implied.
+        expect(feed!.operator.length).toBeGreaterThan(0);
+        expect(feed!.source.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('opens on the first station already tuned to that station\'s feed', () => {
+      expect(component.activeFeedId()).toBe(
+        feeds.feedForStation(service.channels[0].id)!.id
+      );
+      expect(component.activeFeed()?.name).toBeDefined();
+    });
+
+    it('re-tunes the feed when the station changes', () => {
+      const next = service.channels[2];
+
+      component.tuneTo(next);
+
+      expect(component.activeFeedId()).toBe(feeds.feedForStation(next.id)!.id);
+    });
+
+    it('can be switched back to the station\'s own scene', () => {
+      component.chooseFeed('');
+
+      expect(component.activeFeed()).toBeNull();
+      // With no feed the mute button falls back to the synthesised bed.
+      expect(component.audioSource()).toBe('bed');
+    });
+
+    it('hands the mute button to the feed once it is actually playing', () => {
+      expect(component.audioSource()).toBe('bed');
+      expect(component.audioTitle()).toContain('audio bed');
+
+      component.feedReady.set(true);
+
+      expect(component.audioSource()).toBe('feed');
+      expect(component.audioTitle()).toContain('live feed');
+      // The feed is always unmutable; only the bed depends on Web Audio.
+      expect(component.audioUsable()).toBe(true);
+    });
+
+    it('falls back to the scene, naming the feed that failed', () => {
+      component.feedReady.set(true);
+      const name = component.activeFeed()!.name;
+
+      component.onFeedError();
+
+      expect(component.feedReady()).toBe(false);
+      expect(component.feedError()).toContain(name);
+    });
+
+    it('does not ship hls.js in the initial bundle', () => {
+      const source = readFileSync(
+        join(__dirname, 'smuve-tv.component.ts'),
+        'utf8'
+      );
+
+      // A static import would pull the player into the first load for every
+      // route; only Safari and Android fall through to the dynamic one anyway.
+      expect(source).not.toContain("from 'hls.js'");
+      expect(source).toContain("await import('hls.js')");
     });
   });
 
@@ -503,6 +910,14 @@ describe('SmuveTvComponent', () => {
       expect(template).not.toContain('pluto');
       expect(template).not.toContain('srcdoc');
       expect(template).toContain('<canvas #bed');
+
+      /*
+       * `src` is a DOM property, so binding it coerces null to the string
+       * "null" and re-assigns the source after the track was queued — which
+       * aborts playback. The element is driven imperatively instead.
+       */
+      expect(template).not.toContain('[src]="musicSource()"');
+      expect(template).toContain('#music');
     });
 
     it('binds the touch handlers the swipe-to-zap gestures rely on', () => {
@@ -529,6 +944,20 @@ describe('SmuveTvComponent', () => {
     it('keeps touch targets at or above the 44px floor and scrolls on phones', () => {
       expect(styles).toContain('min-height: 44px');
       expect(styles).toContain('height: 48px');
+
+      /*
+       * Measured in Chromium, these four sat at 40px — under the touch floor
+       * the rest of the surface honoured. Pinned here so they cannot slide back.
+       */
+      for (const selector of [
+        '.tv-tune input',
+        '.tv-tune-go',
+        '.tv-music-import',
+        '.tv-feed-picker select',
+      ]) {
+        const block = styles.slice(styles.indexOf(`${selector} {`));
+        expect(block.slice(0, block.indexOf('}'))).toContain('44px');
+      }
       expect(styles).toContain('touch-action: manipulation');
       expect(styles).toContain('overscroll-behavior: contain');
       expect(styles).toContain('@media (max-width: 900px)');
@@ -541,6 +970,13 @@ describe('SmuveTvComponent', () => {
       // store came out 742x1 — a black rectangle where the picture belongs.
       expect(styles).toContain('.tv-stage > * {');
       expect(styles).toContain('flex: 0 0 auto');
+
+      /*
+       * The player must be pinned at every width, not only in the narrow-screen
+       * media query. Measured at 1440x900 it was the one shrinkable stage row,
+       * so it took the whole overflow and collapsed to 2px tall.
+       */
+      expect(styles).toContain('.tv-stage > .tv-player {');
     });
 
     it('owns the viewport as a flex column so nothing is pushed off-screen', () => {
