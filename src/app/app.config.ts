@@ -5,7 +5,7 @@ import {
   APP_INITIALIZER,
   Injector,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -22,7 +22,20 @@ import { LoginConfirmationService } from './services/login-confirmation.service'
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    /*
+     * `enabled`: every workspace is a surface of its own, so opening one has to
+     * land at its top. This was silently ineffective while <body> was the scroll
+     * container (see the root-scroller rules in styles.css) — the router
+     * scrolls the root, and <html> never moved. `scrollPositionRestoration`
+     * needs the viewport to be the scroller, and styles.css now guarantees that.
+     */
+    provideRouter(
+      routes,
+      withInMemoryScrolling({
+        scrollPositionRestoration: 'enabled',
+        anchorScrolling: 'enabled',
+      })
+    ),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimations(),
     provideServiceWorker('ngsw-worker.js', {

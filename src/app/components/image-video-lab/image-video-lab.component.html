@@ -1,5 +1,5 @@
 <div
-  class="cinema-shell h-full flex flex-col bg-background animate-enter overflow-hidden"
+  class="cinema-shell flex flex-col bg-background animate-enter min-h-full"
 >
   <!-- CINEMA HEADER: Fluid & Adaptive -->
   <header
@@ -63,9 +63,34 @@
     </div>
   </header>
 
-  <section class="production-upgrade-bar">
-    <div class="production-upgrade-copy">
-      <span class="upgrade-eyebrow">Production Upgrade</span>
+  <!--
+    The production blueprint is a disclosure on the stacked layout: it is the
+    hero of the module, and on a phone it sat between the operator and the
+    monitor. Its copy stays visible, so the module always says what it is for.
+  -->
+  <section
+    class="production-upgrade-bar"
+    [class.section-collapsed]="isSectionCollapsed('blueprint')"
+  >
+    <div class="production-upgrade-copy" data-section-head>
+      <div class="section-head-row">
+        <span class="upgrade-eyebrow">Production Upgrade</span>
+        @if (isStackedLayout()) {
+          <button
+            type="button"
+            class="section-toggle"
+            [attr.aria-expanded]="!isSectionCollapsed('blueprint')"
+            [attr.aria-label]="
+              isSectionCollapsed('blueprint')
+                ? 'Show the production setup'
+                : 'Hide the production setup'
+            "
+            (click)="toggleSection('blueprint')"
+          >
+            <span class="material-symbols-outlined">expand_more</span>
+          </button>
+        }
+      </div>
       <h2 class="upgrade-title">
         One visual suite for films, live social broadcasts, and creator vlogs
       </h2>
@@ -141,14 +166,14 @@
   </section>
 
   <div
-    class="cinema-workspace flex-grow flex flex-col lg:flex-row overflow-hidden"
+    class="cinema-workspace flex-grow flex flex-col lg:flex-row"
   >
     <!-- MAIN WORKSPACE -->
     <div
-      class="cinema-main flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto custom-scrollbar"
+      class="cinema-main flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border"
     >
       <!-- PROGRAM MONITOR -->
-      <section class="monitor-section flex-grow bg-black/5 min-h-[300px]">
+      <section class="monitor-section bg-black/5">
         <div class="monitor-head">
           <div class="monitor-head-title">
             <span class="upgrade-eyebrow">Program Monitor</span>
@@ -196,6 +221,7 @@
             #stageSurface
             class="monitor-card glass-v42"
             [style.aspect-ratio]="monitorAspectRatio()"
+            [style.--monitor-ratio]="monitorAspectRatio()"
           >
             <canvas
               #previewCanvas
@@ -632,7 +658,7 @@
 
       <!-- TIMELINE EDITOR: Responsive Height -->
       <section
-        class="h-64 md:h-80 shrink-0 bg-surface/50 p-4 md:p-6 flex flex-col gap-3 border-t border-border overflow-hidden"
+        class="timeline-section bg-surface/50 p-4 md:p-6 border-t border-border"
       >
         <div class="timeline-head flex items-center justify-between">
           <div class="flex items-center gap-4 md:gap-6">
@@ -814,7 +840,7 @@
 
     <!-- SIDEBAR: AI DIRECTOR -->
     <aside
-      class="cinema-aside w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 overflow-y-auto custom-scrollbar shrink-0"
+      class="cinema-aside w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 shrink-0"
     >
       <div class="flex flex-col gap-4 md:gap-6">
         <h2
@@ -838,17 +864,42 @@
           edit has to outlive the tab — this is where it is written down and
           where an old one is reopened.
         -->
-        <section class="project-console" aria-labelledby="project-console-title">
-          <div class="director-console-heading">
+        <section
+          class="project-console"
+          aria-labelledby="project-console-title"
+          [class.section-collapsed]="isSectionCollapsed('projects')"
+        >
+          <div class="director-console-heading" data-section-head>
             <div>
               <span class="upgrade-eyebrow">Long-Form Work</span>
               <h3 id="project-console-title" class="director-console-title">
                 Projects
               </h3>
             </div>
-            <span class="director-state" [class.busy]="cinemaProjects.isBusy()">{{
-              cinemaProjects.activeProject()?.name || 'UNSAVED'
-            }}</span>
+            <div class="section-head-actions">
+              <span
+                class="director-state"
+                [class.busy]="cinemaProjects.isBusy()"
+                >{{
+                  cinemaProjects.activeProject()?.name || 'UNSAVED'
+                }}</span
+              >
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('projects')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('projects')
+                      ? 'Expand Projects'
+                      : 'Collapse Projects'
+                  "
+                  (click)="toggleSection('projects')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
           </div>
 
           <label class="director-field">
@@ -936,22 +987,44 @@
           }
         </section>
 
-        <div class="production-directives-panel">
-          <div class="panel-head">
+        <div
+          class="production-directives-panel"
+          [class.section-collapsed]="isSectionCollapsed('directives')"
+        >
+          <div class="panel-head" data-section-head>
             <h3
               class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
             >
               Mode Directives
             </h3>
-            <button
-              type="button"
-              class="safe-zone-toggle"
-              (click)="videoEngine.safeZoneEnabled.update((value) => !value)"
-            >
-              {{
-                videoEngine.safeZoneEnabled() ? 'Safe Zone On' : 'Safe Zone Off'
-              }}
-            </button>
+            <div class="section-head-actions">
+              <button
+                type="button"
+                class="safe-zone-toggle"
+                (click)="videoEngine.safeZoneEnabled.update((value) => !value)"
+              >
+                {{
+                  videoEngine.safeZoneEnabled()
+                    ? 'Safe Zone On'
+                    : 'Safe Zone Off'
+                }}
+              </button>
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('directives')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('directives')
+                      ? 'Expand mode directives'
+                      : 'Collapse mode directives'
+                  "
+                  (click)="toggleSection('directives')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
           </div>
 
           <div class="production-directives-list">
@@ -968,15 +1041,36 @@
 
         <!-- The director console is deliberately inline with the editor: AI can
              stage work, but every generated decision remains visible and editable. -->
-        <section class="director-console" aria-labelledby="director-console-title">
-          <div class="director-console-heading">
+        <section
+          class="director-console"
+          aria-labelledby="director-console-title"
+          [class.section-collapsed]="isSectionCollapsed('director')"
+        >
+          <div class="director-console-heading" data-section-head>
             <div>
               <span class="upgrade-eyebrow">S.M.U.V.E. Control Surface</span>
               <h3 id="director-console-title" class="director-console-title">Director Console</h3>
             </div>
-            <span class="director-state" [class.busy]="director.isPlanning()">
-              {{ director.isPlanning() ? 'Planning…' : director.shotCount() + ' shots' }}
-            </span>
+            <div class="section-head-actions">
+              <span class="director-state" [class.busy]="director.isPlanning()">
+                {{ director.isPlanning() ? 'Planning…' : director.shotCount() + ' shots' }}
+              </span>
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('director')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('director')
+                      ? 'Expand the director console'
+                      : 'Collapse the director console'
+                  "
+                  (click)="toggleSection('director')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
           </div>
 
           <label class="director-field">
@@ -1070,12 +1164,32 @@
           </section>
         }
 
-        <div class="space-y-4">
-          <h3
-            class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
-          >
-            Neural Assets
-          </h3>
+        <div
+          class="space-y-4"
+          [class.section-collapsed]="isSectionCollapsed('assets')"
+        >
+          <div class="section-head-row" data-section-head>
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Neural Assets
+            </h3>
+            @if (isStackedLayout()) {
+              <button
+                type="button"
+                class="section-toggle"
+                [attr.aria-expanded]="!isSectionCollapsed('assets')"
+                [attr.aria-label]="
+                  isSectionCollapsed('assets')
+                    ? 'Expand neural assets'
+                    : 'Collapse neural assets'
+                "
+                (click)="toggleSection('assets')"
+              >
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+            }
+          </div>
           <div class="grid grid-cols-2 gap-3">
             <button
               (click)="generateImage()"
@@ -1107,12 +1221,32 @@
           </div>
         </div>
 
-        <div class="space-y-4">
-          <h3
-            class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
-          >
-            FX Matrix
-          </h3>
+        <div
+          class="space-y-4"
+          [class.section-collapsed]="isSectionCollapsed('fx')"
+        >
+          <div class="section-head-row" data-section-head>
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              FX Matrix
+            </h3>
+            @if (isStackedLayout()) {
+              <button
+                type="button"
+                class="section-toggle"
+                [attr.aria-expanded]="!isSectionCollapsed('fx')"
+                [attr.aria-label]="
+                  isSectionCollapsed('fx')
+                    ? 'Expand the FX matrix'
+                    : 'Collapse the FX matrix'
+                "
+                (click)="toggleSection('fx')"
+              >
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+            }
+          </div>
           <div class="grid grid-cols-1 gap-2">
             <label
               class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"

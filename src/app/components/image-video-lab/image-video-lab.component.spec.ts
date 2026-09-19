@@ -1687,10 +1687,15 @@ describe('ImageVideoLabComponent', () => {
       join(__dirname, 'image-video-lab.component.html'),
       'utf8'
     );
+    /*
+     * Comments stripped: these assertions are about declarations, and several
+     * of them are negative (`not.toContain('overflow-x: auto')`) — prose that
+     * explains why a rule was removed must not read as the rule itself.
+     */
     const styles = readFileSync(
       join(__dirname, 'image-video-lab.component.css'),
       'utf8'
-    );
+    ).replace(/\/\*[\s\S]*?\*\//g, '');
 
     /** Declaration blocks of every rule whose selector mentions `selector`. */
     const blocksFor = (selector: string): string[] => {
@@ -1720,9 +1725,12 @@ describe('ImageVideoLabComponent', () => {
         )
       );
 
-    it('marks every scroll surface the responsive layout switches on', () => {
-      // Without these hooks the module keeps overflow:hidden on a phone and the
-      // deck, timeline, and side panels are clipped with no scroll path.
+    it('flows through the shell scroll surface instead of clipping its panels', () => {
+      // The module used to declare an app-style fixed layout on the assumption
+      // that an ancestor hands it a definite height. Nothing in the shell chain
+      // does, so `height: 100%` resolved to `auto`, `overflow: hidden` clipped
+      // nothing it was meant to, and the panels fought nested scrollers that
+      // could not move. It flows now.
       for (const hook of [
         'cinema-shell',
         'cinema-workspace',
@@ -1732,34 +1740,77 @@ describe('ImageVideoLabComponent', () => {
         expect(template).toContain(hook);
       }
 
-      // The unlock itself: one scroll surface on phones and short viewports.
-      expect(styles).toContain('(max-width: 1023.98px), (max-height: 900px)');
-      expect(blocksFor('.cinema-workspace').join(' ')).toContain(
+      for (const clipped of [
+        'cinema-shell h-full flex flex-col bg-background animate-enter overflow-hidden',
+        'lg:flex-row overflow-hidden',
+        'overflow-y-auto custom-scrollbar',
+      ]) {
+        expect(template).not.toContain(clipped);
+      }
+
+      // Every panel is `overflow: visible; height: auto` at every viewport …
+      expect(blocksFor('.cinema-main').join(' ')).toContain(
         'overflow: visible'
       );
+      expect(blocksFor('.cinema-aside').join(' ')).toContain(
+        'overflow: visible'
+      );
+      // … and the module keeps its own floor so a short page still fills.
+      expect(blocksFor('.cinema-shell').join(' ')).toContain('min-height: 100%');
     });
 
-    it('lets the monitor take its height from the shot while the page scrolls', () => {
+    it('never stretches one column from the other column height', () => {
+      // The side-panel stack is ~2.4k px. While the `lg` row stretched its
+      // items, that height dragged the main column with it and the monitor's
+      // `flex-grow` turned the leftover into ~1.1k px of dead space.
+      expect(styles).toContain('align-items: flex-start');
+      expect(styles).toContain('(min-width: 1024px)');
+    });
+
+    it('shapes the monitor from the shot ratio, never from a stretched parent', () => {
       const card = blocksFor('.monitor-card').join(' ');
 
       expect(card).toContain('width: 100%');
       expect(card).toContain('height: auto');
-      // And its shape comes from the preset or the live stream, never a fixed box.
+      // Height-driven sizing is what distorted the frame: `max-width` clamped a
+      // box whose height had already been decided, so a 2.39:1 preset rendered
+      // as 0.88:1 on a wide desktop.
+      expect(card).not.toContain('height: 100%');
+      // The width ceiling keeps a portrait ratio inside the viewport (68vh) and
+      // reads the ratio the component publishes, so the two can never disagree.
+      expect(card).toContain('calc(68vh * var(--monitor-ratio');
       expect(template).toContain('[style.aspect-ratio]="monitorAspectRatio()"');
+      expect(template).toContain('[style.--monitor-ratio]="monitorAspectRatio()"');
+
+      // The section and frame stay content-sized, so no dead space is created.
+      expect(blocksFor('.monitor-section').join(' ')).toContain(
+        'flex: 0 0 auto'
+      );
+      expect(blocksFor('.monitor-frame').join(' ')).toContain('flex: 0 0 auto');
     });
 
-    it('keeps the timeline a single control strip with lanes open on both axes', () => {
-      expect(template).toContain('class="timeline-head');
+    it('wraps the timeline controls and lays out every lane in full', () => {
+      expect(template).toContain('class="timeline-section');
       expect(template).toContain(
         'timeline-scroller-touch flex-grow overflow-auto'
       );
 
       const head = blocksFor('.timeline-head').join(' ');
-      expect(head).toContain('flex-wrap: nowrap');
-      expect(head).toContain('overflow-x: auto');
-      // Wrapped toolbars are what used to starve the lanes of vertical space.
+      // A single nowrap row with `overflow-x: auto` parked CUT, DUPLICATE,
+      // DELETE, MARK, PREV and NEXT outside the section box on a phone.
+      expect(head).toContain('flex-wrap: wrap');
+      expect(head).not.toContain('overflow-x: auto');
       expect(blocksFor('.timeline-toolbar').join(' ')).toContain(
-        'flex-wrap: nowrap'
+        'flex-wrap: wrap'
+      );
+
+      // The lanes area is content-sized, so the ruler and all three lanes are
+      // always laid out in full and a vertical drag chains to the page.
+      expect(blocksFor('.timeline-scroller-touch').join(' ')).toContain(
+        'flex: 0 0 auto'
+      );
+      expect(blocksFor('.timeline-section').join(' ')).toContain(
+        'flex-direction: column'
       );
     });
 
@@ -1789,6 +1840,7 @@ describe('ImageVideoLabComponent', () => {
         '.zoom-button',
         '.timeline-tool',
         '.timeline-marker',
+        '.timeline-ruler',
         '.timeline-toggle',
         '.capture-toggle',
         '.capture-angle',

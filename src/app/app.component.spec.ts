@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
@@ -301,6 +303,48 @@ describe('AppComponent', () => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: originalWidth,
+    });
+  });
+
+  /**
+   * The shell's root scroll surface.
+   *
+   * `html, body { height: 100%; overflow-y: auto }` made <body> its own scroll
+   * container while <html> stayed exactly viewport-sized, so every standard
+   * scrolling mechanism — `window.scrollTo()`, `documentElement.scrollTop`, the
+   * router's scroll handling — addressed a scroller that never moved. The
+   * symptom was that opening a workspace from part-way down a long page kept
+   * the previous offset, landing the opened surface mid-page.
+   */
+  describe('root scroll surface', () => {
+    const styles = readFileSync(join(__dirname, '..', 'styles.css'), 'utf8');
+    const config = readFileSync(join(__dirname, 'app.config.ts'), 'utf8');
+
+    /** Declaration bodies of every rule whose selector list mentions `sel`. */
+    const blocksFor = (sel: string, source = styles): string[] =>
+      [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+        .filter((rule) => rule[1].includes(sel))
+        .map((rule) => rule[2]);
+
+    it('scrolls the viewport instead of making <body> the scroller', () => {
+      const body = blocksFor('body').join(' ');
+
+      expect(body).toContain('overflow: visible');
+      // A stray `hidden` on either axis would recompute the other to `auto` and
+      // quietly make <body> a scroll container again.
+      expect(body).not.toMatch(/body\s*\{[^}]*overflow[^:]*:\s*(hidden|auto)/);
+
+      // The root keeps the scroll: the viewport is the surface, and horizontal
+      // overflow stays clipped there.
+      const root = blocksFor('html').join(' ');
+      expect(root).toContain('overflow-y: auto');
+      expect(root).toContain('overflow-x: hidden');
+      expect(root).toContain('overscroll-behavior-y: none');
+    });
+
+    it('restores scroll position through the router', () => {
+      expect(config).toContain('withInMemoryScrolling');
+      expect(config).toContain("scrollPositionRestoration: 'enabled'");
     });
   });
 

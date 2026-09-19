@@ -416,23 +416,35 @@ canvas {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  flex-wrap: nowrap;
+  /*
+   * Wraps, never scrolls sideways. The strip used to be a single nowrap row
+   * with `overflow-x: auto`, which on a 360 px phone parked CUT, DUPLICATE,
+   * DELETE, MARK, PREV and NEXT outside the section's `overflow: hidden` box
+   * behind a horizontal scroll nobody can see. Wrapping costs a row of height
+   * (the section is content-sized now) and hides nothing.
+   */
+  flex-wrap: wrap;
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
   padding-bottom: 0.2rem;
 }
 
+/*
+  `flex: 0 1 auto` (not `0 0 auto`): a 528 px toolbar has to be allowed to
+  shrink to the phone's head width, or it overflows and its own right-hand
+  controls are clipped. It wraps internally once it is narrower than its
+  contents.
+*/
 .timeline-head > * {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .timeline-toolbar,
 .selected-clip-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
@@ -575,6 +587,14 @@ canvas {
  * from fighting the custom scale inside this scroller.
  */
 .timeline-scroller-touch {
+  /*
+   * Content-sized, so the ruler and all three lanes are always laid out in
+   * full: nothing is hidden behind a vertical scroll, and a vertical finger
+   * drag chains to the page (the shell's scroll container) instead of dying
+   * inside the lane viewport. Horizontal panning — a 72,000 px wide timeline —
+   * still belongs to this element, and the two-finger pinch is JS-side.
+   */
+  flex: 0 0 auto;
   touch-action: pan-x pan-y;
 }
 
@@ -960,8 +980,15 @@ canvas {
   flex-direction: column;
   gap: 0.85rem;
   padding: 1rem;
+  /*
+   * Never `flex-grow`. This section used to expand into the leftover of a
+   * stretched flex row, which became ~1.1k px of dead space wrapped around a
+   * 358 px monitor card on a 900-tall desktop. The monitor's box is derived
+   * from its width now, so the section is exactly as tall as its contents.
+   */
+  flex: 0 0 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .monitor-head {
@@ -1053,7 +1080,7 @@ canvas {
 }
 
 .monitor-frame {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1061,17 +1088,30 @@ canvas {
 }
 
 /*
-  Height-driven, with the aspect ratio supplied by the component: the delivery
-  preset shapes the composite, the live stream's own geometry shapes the
-  viewfinder. Sizing by width instead forced every shot into a 16:9 box, so a
-  portrait phone feed or a 9:16 vlog preset played as a letterboxed sliver.
+  Width-driven at every viewport, with the aspect ratio supplied by the
+  component: the delivery preset shapes the composite, the live stream's own
+  geometry shapes the viewfinder.
+
+  Width is the one axis that is always definite, so `width: 100%` plus
+  `aspect-ratio` always produces a correctly shaped frame. Height-driven sizing
+  required a definite parent height, and no ancestor in the shell chain ever
+  supplies one — `height: 100%` silently resolved to `auto`, `max-width` then
+  clamped a box whose height had already been decided, and a 2.39:1 preset
+  rendered as a 0.88:1 monitor on a 1920-wide desktop.
+
+  `--monitor-ratio` is the active ratio published by the component (the inline
+  `aspect-ratio` reads the very same signal, so the two can never disagree).
+  Because the card is width-driven, a portrait ratio — a 9:16 phone feed or a
+  vertical vlog preset — would otherwise build a frame 2.5× taller than the
+  screen: capping the *width* at 68vh × ratio keeps `aspect-ratio` intact, where
+  capping the height would distort the box.
 */
 .monitor-card {
   position: relative;
-  height: 100%;
-  width: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: auto;
+  max-width: min(100%, calc(68vh * var(--monitor-ratio, 1.7778)));
+  margin-inline: auto;
   overflow: hidden;
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -1484,7 +1524,11 @@ canvas {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 0.75rem;
-  align-items: stretch;
+  /*
+   * `start`, not `stretch`: the shutter column was being stretched to the
+   * height of the settings/tray column (255 px tall photo and record buttons).
+   */
+  align-items: start;
 }
 
 .capture-shutters {
@@ -1887,28 +1931,85 @@ canvas {
     height: 2rem;
     top: 0.25rem;
   }
+
+  /*
+    The ruler is the scrub surface (press-and-drag), not a decoration, so on
+    touch widths it clears the same 44px floor as every other control instead
+    of being a 26px strip a thumb has to aim at.
+  */
+  .timeline-ruler {
+    height: 2.75rem;
+  }
 }
 
 /*
-  Phones, small tablets, and any short viewport — a landscape phone, a split
-  window, a 768/900-tall laptop — become ONE vertical scroll surface.
+  Scroll model — the module flows inside the shell's single scroll surface.
 
-  Above the header and the production blueprint there is not enough height left
-  for a monitor, a deck, and a timeline, and the fixed app layout used to answer
-  that by squeezing them into whatever was left behind overflow:hidden. The
-  shell already owns this scroll container, so unlocking it keeps the column
-  split and makes every panel reachable instead.
+  The module declared an app-style fixed layout (`h-full` + `overflow: hidden`
+  on the shell, the workspace and the timeline section) on the assumption that
+  an ancestor hands it a definite height. Nothing in the shell chain does:
+  `.content-scroll-container` is `h-full` against a content-sized parent, so
+  every `height: 100%` below it resolved to `auto`. What was left was circular
+  sizing — the side panel stack (~2.4k px) stretched the flex row, the monitor
+  section's `flex-grow` swallowed the leftover as dead space, and the page grew
+  to 2.8–4.2k px with its panels fighting nested scrollers that could not move.
 
-  900px: below this the blueprint alone can consume the viewport; ≥1080p-class
-  screens keep the app-like layout with the workspace column scrolling itself.
+  So the module grows instead of pretending to be a viewport, the shell's
+  scroll container scrolls the whole thing in one gesture, and no panel is
+  clipped along the way. On `lg` the columns stay side by side (`items-start`),
+  so neither column's height forces dead space into the other.
+*/
+:host {
+  min-height: 100%;
+}
+
+.cinema-shell,
+.cinema-workspace,
+.cinema-main,
+.cinema-aside,
+.timeline-section {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.cinema-shell {
+  min-height: 100%;
+}
+
+/*
+  The `lg` column split keeps working, but the taller column no longer stretches
+  the shorter one: the side panels are ~2.4k px on a wide screen and used to drag
+  the main column to that height, which is what fed the monitor's dead space.
+*/
+.cinema-workspace {
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .cinema-workspace {
+    align-items: flex-start;
+  }
+}
+
+/*
+  Timeline shell: auto height, so a wrapped control strip can never squeeze the
+  lanes out of the box. The lanes themselves are content-sized (see
+  `.timeline-scroller-touch`).
+*/
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+/*
+  Phones, small tablets, and short desktop viewports: the chrome above the
+  workspace (header + production blueprint) gets tighter so the monitor is not
+  pushed a full screen down.
 */
 @media (max-width: 1023.98px), (max-height: 900px) {
-  .cinema-shell {
-    height: auto;
-    min-height: 100%;
-    overflow: visible;
-  }
-
   .cinema-shell header {
     padding: 0.9rem 1rem 0.6rem;
   }
@@ -1920,27 +2021,6 @@ canvas {
 
   .upgrade-title {
     font-size: 1.05rem;
-  }
-
-  .cinema-workspace,
-  .cinema-main,
-  .cinema-aside {
-    overflow: visible;
-  }
-
-  .monitor-section {
-    min-height: 0;
-  }
-
-  /*
-    Free to scroll, the monitor's height has to come from its own ratio instead
-    of a flexible parent: width-driven, and capped so a portrait card cannot
-    push the deck a full screen away.
-  */
-  .monitor-card {
-    width: 100%;
-    height: auto;
-    max-height: 70vh;
   }
 }
 
@@ -1964,5 +2044,90 @@ canvas {
 
   .monitor-readout {
     text-align: left;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Phone-only disclosures — the production blueprint and every side-panel group
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/*
+  On a phone the stacked module is ~4.1k px: the primary workspace (monitor,
+  deck, timeline) is the first ~1.8k of it and the side-panel stack is the rest.
+  Every group below is a disclosure on the stacked layout and open by default on
+  desktop, where the column has the height to spend.
+
+  The mechanism is deliberately CSS-gated rather than state-gated: a group can
+  read "collapsed" in the component and still render in full at `lg`, so a phone
+  collapse can never follow the operator onto a wide screen (and a stray tap
+  cannot hide a desktop tool).
+
+  `[data-section-head]` marks the one child that stays visible — the heading
+  row, which carries the toggle. It is an attribute, not a class, so marking an
+  existing heading cannot drag styling along with it.
+*/
+.section-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Holds a heading's existing trailing control plus the toggle. On desktop the
+   toggle is hidden, so this wrapper is transparent. */
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.section-toggle .material-symbols-outlined {
+  font-size: 1.15rem;
+  transition: transform 0.2s ease;
+}
+
+/* State lives on the button, so the chevron points the right way wherever the
+   toggle sits. */
+.section-toggle[aria-expanded='false'] .material-symbols-outlined {
+  transform: rotate(-90deg);
+}
+
+@media (hover: hover) {
+  .section-toggle:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+  }
+}
+
+.section-toggle:active:not(:disabled) {
+  background: rgba(16, 185, 129, 0.16);
+}
+
+/*
+  The stacked layout — phones, portrait tablets, and any short viewport, the
+  same breakpoint the module's one-scroll-surface rule uses.
+*/
+@media (max-width: 1023.98px), (max-height: 900px) {
+  .section-toggle {
+    display: inline-flex;
+  }
+
+  .section-collapsed > :not([data-section-head]) {
+    display: none;
   }
 }

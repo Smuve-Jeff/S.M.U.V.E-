@@ -210,6 +210,43 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * may roll it without a gesture — this is the recorded opt-in for sound.
    */
   playerUnmuted = signal(false);
+  /**
+   * Section disclosures — the production blueprint and the side-panel groups.
+   *
+   * Stacked, the module is ~4.1k px tall and the side-panel stack (Projects,
+   * Mode Directives, the Director Console, Neural Assets, the FX Matrix) is the
+   * bottom ~2.1k of it: there was no way to skip the tools you are not using,
+   * and no way to reach the ones at the bottom without scrolling past the ones
+   * above. Each group folds away now.
+   *
+   * Offered only while the module is stacked. On a wide screen the side panels
+   * have their own column beside the workspace, where a disclosure would be
+   * dead weight — and, more importantly, a section folded on a phone must never
+   * follow the operator onto a screen that no longer has a toggle to unfold it.
+   * Every binding below is therefore gated twice: the class is dropped and the
+   * toggle is not rendered the moment the layout stops being stacked.
+   */
+  isStackedLayout = signal(false);
+
+  /** Ids folded away while stacked. Projects stays open — it holds live work. */
+  private foldedSections = signal<ReadonlySet<string>>(
+    new Set(['blueprint', 'directives', 'director', 'assets', 'fx'])
+  );
+
+  /** Folded, and only while the disclosure actually applies. */
+  isSectionCollapsed = (id: string): boolean =>
+    this.isStackedLayout() && this.foldedSections().has(id);
+
+  /** Fold or unfold one section without disturbing the others. */
+  toggleSection = (id: string): void => {
+    this.foldedSections.update((folded) => {
+      const next = new Set(folded);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   /** Stills and takes captured this session, newest first. */
   captures = signal<CinemaCapture[]>([]);
 
@@ -515,6 +552,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
+    // Track the one layout where the section disclosures apply. `matchMedia`
+    // rather than a width read: it fires on exactly the boundary the stylesheet
+    // uses, and it survives rotation and keyboard-driven resizes.
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const stacked = window.matchMedia('(max-width: 1023.98px)');
+      this.isStackedLayout.set(stacked.matches);
+      const onStackedChange = (event: MediaQueryListEvent) =>
+        this.isStackedLayout.set(event.matches);
+      stacked.addEventListener('change', onStackedChange);
+      inject(DestroyRef).onDestroy(() =>
+        stacked.removeEventListener('change', onStackedChange)
+      );
+    }
+
     // Pinch state teardown rides DestroyRef so it stays beside the pinch code
     // above without touching the (long) ngOnDestroy block.
     inject(DestroyRef).onDestroy(() => this.disposePinch());

@@ -306,6 +306,30 @@ body {
     color 0.3s ease;
 }
 
+/*
+  The viewport is the page's scroll surface — not <body>.
+
+  Sharing `height: 100%; overflow-y: auto` with <html> turned <body> into its
+  own scroll container while the root stayed exactly viewport-sized
+  (`documentElement.scrollHeight === innerHeight`). Every standard scrolling
+  mechanism is addressed to the root scroller, so they all silently did
+  nothing: `window.scrollTo()` was a no-op, `documentElement.scrollTop` never
+  moved, and the router's scroll handling had nothing to restore. The visible
+  symptom was that opening a workspace from part-way down a long page kept the
+  previous offset — the CinemaEngine arrived with its header, its production
+  blueprint and its program monitor already scrolled past the top of the
+  viewport, which reads as those features being missing.
+
+  <body> keeps its `height: 100%` (the layout still needs a definite height for
+  `min-height: 100%` children), but its overflow now rolls up to the root, so
+  the browser scrolls the page the way every other site does: `scrollTo` works,
+  a touch drag scrolls, the Android URL bar collapses, and navigation lands at
+  the top of the surface being opened.
+*/
+body {
+  overflow: visible;
+}
+
 /* City skyline dust / pixel-noise grain (replaces warm paper grain) */
 body::before {
   content: '';
@@ -1055,6 +1079,7 @@ body.stage-fx-off .led-strip::before {
 }
 
 /* === Slow body bounce on Android === */
+html,
 body {
   overscroll-behavior-y: none;
 }
