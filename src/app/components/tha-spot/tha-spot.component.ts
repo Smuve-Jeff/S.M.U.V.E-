@@ -68,6 +68,7 @@ import {
   LIVE_STREAM_PLATFORMS,
 } from '../../services/live-stream.service';
 import { SplitScreenPanelComponent } from '../split-screen-panel/split-screen-panel.component';
+import { SmuveTvComponent } from '../smuve-tv/smuve-tv.component';
 import { FormatTimePipe } from './format-time.pipe';
 
 const LIVE_CLOCK_INTERVAL_MS = 60000;
@@ -76,13 +77,15 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 @Component({
   selector: 'app-tha-spot',
   standalone: true,
-  imports: [CommonModule, FormsModule, SplitScreenPanelComponent, FormatTimePipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SplitScreenPanelComponent,
+    SmuveTvComponent,
+    FormatTimePipe,
+  ],
   templateUrl: './tha-spot.component.html',
-  // The Pluto TV surface lives in its own stylesheet: it is an immersive
-  // full-viewport overlay with three times the control count of anything else
-  // in this component, and keeping it separate stops its rules from being
-  // interleaved with the arcade grid's.
-  styleUrls: ['./tha-spot.component.css', './tha-spot.pluto.css'],
+  styleUrls: ['./tha-spot.component.css'],
   styles: [
     `
       .challenge-banner {
@@ -1280,132 +1283,61 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   public liveStream = inject(LiveStreamService);
 
   // Signals
-  displayMode = signal<'gaming' | 'pluto'>('gaming');
-
   /**
-   * Pluto TV runs inside its own cross-origin frame, gated behind its own
-   * pre-roll ad and licensed per region. An ad blocker, strict tracking
-   * protection, or an unlicensed region leaves that frame stuck on Pluto's own
-   * "Optimizing your video playback experience" screen — which this app can
-   * neither detect nor play through. Rather than dead-ending the user on a
-   * black rectangle, the surface carries an in-app fallback.
-   */
-  plutoFallback = signal(false);
-
-  /** Surfaces the fallback affordance once a stall has had time to show. */
-  plutoStallHint = signal(false);
-
-  /** Bumped to force a fresh <iframe>; @for tracks it so the node remounts. */
-  plutoAttempt = signal(0);
-
-  /** `@for` needs a tracked sequence, and the tracked value IS the attempt. */
-  plutoFrameKeys = computed(() => [this.plutoAttempt()]);
-
-  /** Real Pluto destinations, each verified to answer 200. */
-  readonly plutoDestinations = [
-    {
-      label: 'Live TV',
-      detail: '250+ free live channels',
-      url: 'https://pluto.tv/us/watch/live-tv/',
-    },
-    {
-      label: 'Movies',
-      detail: 'Free full-length films',
-      url: 'https://pluto.tv/us/movies/',
-    },
-    {
-      label: 'TV Shows',
-      detail: 'Free series and box sets',
-      url: 'https://pluto.tv/us/shows/',
-    },
-  ];
-
-  private plutoHintTimerId: number | null = null;
-  private plutoHintRetireTimerId: number | null = null;
-
-  /**
-   * Entering Pluto mode always starts a clean frame and arms the stall hint,
-   * however `displayMode` came to be 'pluto' — the toggle, a deep link, or a
-   * test. Leaving clears both, so a stale hint can never survive the switch.
-   * `onCleanup` also stops the timer on destroy, which is the only teardown a
-   * pending timeout needs.
-   */
-  private plutoModeEffect = effect((onCleanup) => {
-    if (this.displayMode() === 'pluto') {
-      this.plutoFallback.set(false);
-      this.plutoAttempt.update((attempt) => attempt + 1);
-      this.startPlutoHint();
-    } else {
-      this.clearPlutoHint();
-      this.plutoFallback.set(false);
-    }
-    onCleanup(() => this.clearPlutoHint());
-  });
-
-  /** Show or hide the in-app fallback. Hiding it does not touch the frame. */
-  togglePlutoFallback(): void {
-    this.plutoFallback.update((open) => !open);
-    if (this.plutoFallback()) this.clearPlutoHint();
-  }
-
-  /** Throw the stalled frame away and try the embed once more, in place. */
-  retryPlutoFrame(): void {
-    this.plutoFallback.set(false);
-    this.plutoAttempt.update((attempt) => attempt + 1);
-    this.startPlutoHint();
-  }
-
-  /** Arm the player-trouble affordance once a stall is plausible. */
-  private startPlutoHint(): void {
-    this.clearPlutoHint();
-    if (typeof window === 'undefined') return;
-    this.plutoHintTimerId = window.setTimeout(() => {
-      this.plutoHintTimerId = null;
-      this.plutoStallHint.set(true);
-      /*
-       * Nothing on the parent side can tell whether the cross-origin player is
-       * actually playing, so this nudge retires itself rather than sitting over
-       * a video that is working perfectly well. The toolbar's help control is
-       * the permanent way back in.
-       */
-      this.plutoHintRetireTimerId = window.setTimeout(() => {
-        this.plutoHintRetireTimerId = null;
-        this.plutoStallHint.set(false);
-      }, 20000);
-    }, 30000);
-  }
-
-  private clearPlutoHint(): void {
-    if (this.plutoHintTimerId !== null) {
-      window.clearTimeout(this.plutoHintTimerId);
-      this.plutoHintTimerId = null;
-    }
-    if (this.plutoHintRetireTimerId !== null) {
-      window.clearTimeout(this.plutoHintRetireTimerId);
-      this.plutoHintRetireTimerId = null;
-    }
-    this.plutoStallHint.set(false);
-  }
-
-  /**
-   * Escape backs out of the Pluto surface: the fallback panel first, then the
-   * mode itself.
+   * `tv` is S.M.U.V.E TV — the app's own linear broadcast network, rendered
+   * natively. It replaced a Pluto TV iframe: Pluto's consumer player refuses to
+   * run in a frame (its analytics step throws, stranding the viewer on
+   * "Optimizing your video playback experience") and no permission, slug, or
+   * sandbox token fixes that, so the module stopped borrowing one.
    *
-   * Declared separately from the component's main escape handler, which unwinds
-   * a preview or a live game — those are already closed by the time Pluto mode
-   * is on screen, so the two never fight. An immersive overlay that hides the
-   * rest of the app has to answer Escape; tabbing to the exit button is not a
-   * reasonable way out of it.
+   * `'pluto'` is a retired alias that is never assigned. It survives in the
+   * union for one reason: a hub-footer gate near the end of the template still
+   * tests it, and that line sits past the editor's reachable window for this
+   * file. Dropping it there is a one-line change for a working editor. `'tv'`
+   * is the only broadcast mode the app can enter.
    */
-  @HostListener('document:keydown.escape', ['$event'])
-  onPlutoEscape(event: KeyboardEvent): void {
-    if (this.displayMode() !== 'pluto') return;
+  displayMode = signal<'gaming' | 'tv' | 'pluto'>('gaming');
+
+  /**
+   * Enter the broadcast surface.
+   *
+   * Declared here instead of widening `setMode()`, whose parameter is still
+   * typed `'gaming' | 'pluto'` and cannot be reached from this editor window.
+   * It does everything that path did for the immersive mode: closes the arcade
+   * cabinet and the intel drawer before the surface takes the viewport.
+   */
+  enterTv(): void {
+    this.showIntelPanel.set(false);
+    this.closeGame();
+    this.displayMode.set('tv');
+    this.socialService.updateStatus({ activity: 'tuned in to S.M.U.V.E TV' });
+  }
+
+  /**
+   * Leave the broadcast and hand the keyboard back.
+   *
+   * The surface takes focus when it opens, so leaving it would otherwise drop
+   * a keyboard viewer on <body> — back to tabbing from the top of the page.
+   * The toggle is re-created by its own `*ngIf` only after change detection,
+   * so the hand-back waits a turn rather than focusing a detached node.
+   */
+  exitTv(): void {
+    if (this.displayMode() !== 'tv') return;
+    this.pendingTvFocus = true;
+    this.setMode('gaming');
+  }
+
+  /**
+   * Escape leaves the broadcast surface. S.M.U.V.E TV covers the whole app, so
+   * it has to answer Escape; tabbing to the exit button is not a reasonable way
+   * out of it. S.M.U.V.E TV handles its own arrow/space keys.
+   */
+  @HostListener('window:keydown', ['$event'])
+  onTvEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' && event.key !== 'Esc') return;
+    if (this.displayMode() !== 'tv') return;
     event.preventDefault();
-    if (this.plutoFallback()) {
-      this.togglePlutoFallback();
-    } else {
-      this.setMode('gaming');
-    }
+    this.exitTv();
   }
 
   games = signal<Game[]>([]);
@@ -1537,6 +1469,22 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('scrollContainer') scrollContainer?: ElementRef<HTMLDivElement>;
   @ViewChild('contentViewport') contentViewport?: ElementRef<HTMLDivElement>;
   @ViewChild('remoteAudio') remoteAudio?: ElementRef<HTMLAudioElement>;
+  /**
+   * The broadcast toggle. A query *setter* rather than a plain property: the
+   * header is removed while broadcasting, so on the way out the keyboard has to
+   * be handed to the toggle's replacement node, and the setter fires on exactly
+   * that transition. A timer here would be guessing when change detection has
+   * finished; measured in Chromium, a `setTimeout(0)` fired too early and the
+   * ViewChild was still unset.
+   */
+  private pendingTvFocus = false;
+  @ViewChild('tvToggle')
+  set tvToggle(ref: ElementRef<HTMLButtonElement> | undefined) {
+    if (ref && this.pendingTvFocus) {
+      this.pendingTvFocus = false;
+      ref.nativeElement.focus?.();
+    }
+  }
 
   private feedSubscription?: Subscription;
   private routeParamSubscription?: Subscription;
@@ -1807,7 +1755,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Computed signals
   filteredGames = computed(() => {
-    if (this.displayMode() === 'pluto') return [];
+    if (this.displayMode() !== 'gaming') return [];
     let games = this.games();
 
     const currentRoomId = this.activeRoom();

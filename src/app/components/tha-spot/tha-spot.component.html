@@ -1,6 +1,6 @@
 <div
   class="tha-spot-container full-page no-scrollbar"
-  [class.pluto-active]="displayMode() === 'pluto'"
+  [class.tv-active]="displayMode() === 'tv'"
 >
   <!-- Cosmic Background -->
   <div class="cosmic-bg">
@@ -396,7 +396,7 @@
 
   <header
     class="spot-header glass-v42 shadow-v42-lg"
-    *ngIf="displayMode() !== 'pluto'"
+    *ngIf="displayMode() !== 'tv'"
   >
     <div class="header-left">
       <div class="spot-logo">
@@ -495,12 +495,13 @@
           GAMING
         </button>
         <button
+          #tvToggle
           type="button"
           class="mode-btn"
-          [class.active]="displayMode() === 'pluto'"
-          (click)="setMode('pluto')"
+          [class.active]="displayMode() === 'tv'"
+          (click)="enterTv()"
         >
-          PLUTO TV
+          S.M.U.V.E TV
         </button>
       </div>
     </div>
@@ -509,9 +510,11 @@
   <main
     class="spot-main-content"
     (scroll)="onContentScroll($event)"
+    [attr.aria-hidden]="displayMode() === 'tv' ? 'true' : null"
+    [attr.inert]="displayMode() === 'tv' ? '' : null"
     #contentViewport
   >
-    <div class="mobile-search-bar" *ngIf="displayMode() !== 'pluto'">
+    <div class="mobile-search-bar" *ngIf="displayMode() !== 'tv'">
       <span class="material-symbols-outlined" aria-hidden="true">search</span>
       <input
         type="search"
@@ -1211,68 +1214,30 @@
       </div>
     </ng-container>
 
-    <!--
-      Pluto TV Integration — full-screen Live TV handoff.
-
-      Pluto's consumer player does not provide a dependable embeddable surface
-      here. Rendering it in an iframe produces Pluto's own "Optimizing your
-      video playback experience" dead-end for many browsers, blockers, and
-      regions. The module therefore opens the official Live TV experience
-      directly instead of presenting a broken in-app player.
-    -->
-    <div
-      class="pluto-standalone-experience animate-enter full-standalone"
-      *ngIf="displayMode() === 'pluto'"
-    >
-      <div class="pluto-toolbar">
-        <button
-          type="button"
-          class="exit-pluto-btn glass-v42"
-          (click)="setMode('gaming')"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
-          EXIT PLUTO TV
-        </button>
-        <a
-          class="pluto-external-btn glass-v42"
-          href="https://pluto.tv/us/watch/live-tv/"
-          target="_blank"
-          rel="noopener noreferrer"
-          (click)="logPlutoLaunch()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          OPEN ON PLUTO.TV
-        </a>
-      </div>
-
-      <div class="pluto-live-launch" role="region" aria-label="Pluto TV Live TV">
-        <span class="material-symbols-outlined pluto-live-launch-icon" aria-hidden="true">live_tv</span>
-        <p class="pluto-live-launch-eyebrow">PLUTO TV LIVE TV</p>
-        <h2 class="pluto-live-launch-title">Watch live channels without the broken embed</h2>
-        <p class="pluto-live-launch-copy">
-          Pluto TV does not provide a reliable embeddable player for this page.
-          Open its official Live TV experience to avoid the stuck “Optimizing your
-          video playback experience” screen and get the full channel guide,
-          playback controls, ads, and regional support.
-        </p>
-        <a
-          class="pluto-live-launch-primary"
-          href="https://pluto.tv/us/watch/live-tv/"
-          target="_blank"
-          rel="noopener noreferrer"
-          (click)="logPlutoLaunch()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-          OPEN LIVE TV ON PLUTO.TV
-        </a>
-        <p class="pluto-live-launch-note">Opens in a new tab so Pluto can manage playback securely.</p>
-      </div>
-    </div>
   </main>
+
+  <!--
+    S.M.U.V.E TV — the app's own linear broadcast network.
+
+    This replaced a Pluto TV embed. Pluto's consumer player refuses to run
+    inside a frame (its analytics step throws, stranding viewers on "Optimizing
+    your video playback experience"), and no permission, channel slug, or
+    sandbox token changes that. So the module stopped borrowing a player it
+    could not rely on and renders its own stations natively instead: canvas
+    scenes, a real guide, and a deterministic linear schedule that play on
+    Android Chrome and desktop Chrome alike.
+
+    It hangs off the container rather than <main>, because the surface is
+    `position: fixed` and <main> is made `inert` while the broadcast is up.
+  -->
+  <app-smuve-tv
+    *ngIf="displayMode() === 'tv'"
+    (exit)="exitTv()"
+  ></app-smuve-tv>
 
   <!-- Strategic Intel Panel -->
   <button
-    *ngIf="displayMode() !== 'pluto'"
+    *ngIf="displayMode() !== 'tv'"
     type="button"
     class="intel-toggle"
     data-testid="intel-toggle"
@@ -1294,9 +1259,9 @@
   <aside
     id="intel-panel"
     class="executive-sidebar"
-    [class.active]="showIntelPanel() && displayMode() !== 'pluto'"
-    [attr.aria-hidden]="!showIntelPanel() || displayMode() === 'pluto'"
-    [attr.inert]="!showIntelPanel() || displayMode() === 'pluto' ? '' : null"
+    [class.active]="showIntelPanel() && displayMode() !== 'tv'"
+    [attr.aria-hidden]="!showIntelPanel() || displayMode() === 'tv'"
+    [attr.inert]="!showIntelPanel() || displayMode() === 'tv' ? '' : null"
   >
     <header class="sidebar-header">
       <span class="material-symbols-outlined">neurology</span> STRATEGIC INTEL
@@ -1612,7 +1577,7 @@
        / go-live from a single band. Don't move it into the rival-hub.   -->
 
   <button
-    *ngIf="displayMode() !== 'pluto'"
+    *ngIf="displayMode() !== 'tv'"
     type="button"
     class="rival-hub-toggle"
     [class.panel-open]="showRivalHub()"
@@ -1633,9 +1598,9 @@
   <aside
     id="rival-hub-panel"
     class="rival-hub"
-    [class.active]="showRivalHub() && displayMode() !== 'pluto'"
-    [attr.aria-hidden]="!showRivalHub() || displayMode() === 'pluto'"
-    [attr.inert]="!showRivalHub() || displayMode() === 'pluto' ? '' : null"
+    [class.active]="showRivalHub() && displayMode() !== 'tv'"
+    [attr.aria-hidden]="!showRivalHub() || displayMode() === 'tv'"
+    [attr.inert]="!showRivalHub() || displayMode() === 'tv' ? '' : null"
   >
     <header class="sidebar-header">
       <div class="hub-tabs">

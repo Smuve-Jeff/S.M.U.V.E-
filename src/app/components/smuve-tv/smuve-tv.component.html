@@ -1,0 +1,294 @@
+<section
+  #surface
+  class="smuve-tv"
+  role="region"
+  aria-label="S.M.U.V.E TV"
+  tabindex="0"
+>
+  <header class="tv-header">
+    <div class="tv-brand">
+      <span class="tv-brand-mark" aria-hidden="true">S</span>
+      <div class="tv-brand-text">
+        <h1>S.M.U.V.E TV</h1>
+        <p>{{ activeChannel().number }} &middot; {{ activeChannel().name }}</p>
+      </div>
+    </div>
+
+    <div class="tv-header-status">
+      <span class="tv-live-dot" aria-hidden="true"></span>
+      <span class="tv-live-label">LIVE</span>
+      <span class="tv-clock" role="timer" aria-label="Current time">{{
+        clock(now())
+      }}</span>
+    </div>
+
+    <div class="tv-search">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="SEARCH STATIONS OR SHOWS"
+        aria-label="Search S.M.U.V.E TV stations"
+      />
+      <button
+        *ngIf="searchQuery()"
+        type="button"
+        class="tv-search-clear"
+        (click)="clearSearch()"
+        aria-label="Clear station search"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+
+    <button type="button" class="tv-exit" (click)="exit.emit()">
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      EXIT
+    </button>
+  </header>
+
+  <div class="tv-body">
+    <!-- Station guide rail -->
+    <aside class="tv-rail" aria-label="Station guide">
+      <div class="tv-filters">
+        <button
+          *ngFor="let category of categories"
+          type="button"
+          class="tv-chip"
+          [class.active]="activeCategory() === category.id && !searchQuery()"
+          [attr.aria-pressed]="activeCategory() === category.id && !searchQuery()"
+          (click)="selectCategory(category.id)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            category.icon
+          }}</span>
+          {{ category.label }}
+        </button>
+        <button
+          type="button"
+          class="tv-chip tv-chip-fav"
+          [class.active]="favoritesOnly()"
+          [attr.aria-pressed]="favoritesOnly()"
+          (click)="toggleFavoritesOnly()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">star</span>
+          MY STATIONS
+        </button>
+      </div>
+
+      <ul class="tv-station-list">
+        <li
+          *ngFor="let entry of rail()"
+          class="tv-station"
+          [class.active]="entry.channel.id === activeChannelId()"
+        >
+          <button
+            type="button"
+            class="tv-station-main"
+            [attr.aria-current]="
+              entry.channel.id === activeChannelId() ? 'true' : null
+            "
+            (click)="tuneTo(entry.channel)"
+          >
+            <span class="tv-station-number">{{ entry.channel.number }}</span>
+            <span
+              class="material-symbols-outlined tv-station-icon"
+              aria-hidden="true"
+              >{{ entry.channel.icon }}</span
+            >
+            <span class="tv-station-text">
+              <span class="tv-station-name">{{ entry.channel.name }}</span>
+              <span class="tv-station-now">{{ entry.slot.program.title }}</span>
+            </span>
+            <span
+              class="tv-station-progress"
+              aria-hidden="true"
+              [style.width.%]="entry.slot.progress * 100"
+            ></span>
+          </button>
+          <button
+            type="button"
+            class="tv-station-star"
+            [class.on]="favorites().includes(entry.channel.id)"
+            [attr.aria-pressed]="favorites().includes(entry.channel.id)"
+            [attr.aria-label]="
+              favorites().includes(entry.channel.id)
+                ? 'Remove ' + entry.channel.name + ' from my stations'
+                : 'Add ' + entry.channel.name + ' to my stations'
+            "
+            (click)="toggleFavorite(entry.channel.id)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              favorites().includes(entry.channel.id) ? 'star' : 'star_border'
+            }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <p class="tv-empty" *ngIf="!rail().length">
+        NO STATIONS MATCH. Try another category or clear the search.
+      </p>
+    </aside>
+
+    <!-- Player + guide grid -->
+    <div class="tv-stage">
+      <div
+        class="tv-player"
+        #stage
+        [style.--tv-accent]="activeChannel().accent"
+        (touchstart)="onSwipeStart($event)"
+        (touchend)="onSwipeEnd($event)"
+      >
+        <canvas #bed class="tv-bed" aria-hidden="true"></canvas>
+
+        <div class="tv-bug" aria-live="polite">
+          <span class="tv-bug-number">CH {{ activeChannel().number }}</span>
+          <span class="tv-bug-name">{{ activeChannel().name }}</span>
+        </div>
+
+        <span class="tv-on-air" *ngIf="isPlaying()">ON AIR</span>
+        <span class="tv-on-air tv-on-air-paused" *ngIf="!isPlaying()">PAUSED</span>
+
+        <div class="tv-lower-third">
+          <p class="tv-lt-label">NOW PLAYING</p>
+          <h2 class="tv-lt-title">{{ onAir().program.title }}</h2>
+          <p class="tv-lt-subtitle">{{ onAir().program.subtitle }}</p>
+          <div
+            class="tv-lt-progress"
+            role="progressbar"
+            aria-label="Programme progress"
+            [attr.aria-valuenow]="progressPercent()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <span [style.width.%]="progressPercent()"></span>
+          </div>
+          <div class="tv-lt-times">
+            <span>{{ clock(onAir().startsAt) }}</span>
+            <span>{{ clock(onAir().endsAt) }}</span>
+          </div>
+        </div>
+
+        <p class="tv-swipe-hint">Swipe or use the arrows to change station</p>
+      </div>
+
+      <div class="tv-controls">
+        <button
+          type="button"
+          class="tv-control"
+          (click)="stepChannel(-1)"
+          aria-label="Previous station"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">skip_previous</span>
+        </button>
+        <button
+          type="button"
+          class="tv-control tv-control-primary"
+          (click)="togglePlayback()"
+          [attr.aria-label]="isPlaying() ? 'Pause the station' : 'Play the station'"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            isPlaying() ? 'pause' : 'play_arrow'
+          }}</span>
+        </button>
+        <button
+          type="button"
+          class="tv-control"
+          (click)="stepChannel(1)"
+          aria-label="Next station"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">skip_next</span>
+        </button>
+
+        <button
+          type="button"
+          class="tv-control"
+          [class.on]="favorites().includes(activeChannelId())"
+          [attr.aria-pressed]="favorites().includes(activeChannelId())"
+          aria-label="Toggle this station in my stations"
+          (click)="toggleFavorite()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            favorites().includes(activeChannelId()) ? 'star' : 'star_border'
+          }}</span>
+        </button>
+        <button
+          type="button"
+          class="tv-control"
+          [class.on]="audioOn()"
+          [disabled]="!audioSupported()"
+          [attr.aria-pressed]="audioOn()"
+          [attr.title]="
+            audioSupported()
+              ? 'Station audio bed'
+              : 'Audio is unavailable in this browser'
+          "
+          [attr.aria-label]="
+            audioSupported() ? 'Toggle station audio bed' : 'Audio unavailable'
+          "
+          (click)="toggleAudio()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            audioOn() ? 'volume_up' : 'volume_off'
+          }}</span>
+        </button>
+        <button
+          type="button"
+          class="tv-control"
+          [class.on]="isFullscreen()"
+          [attr.aria-pressed]="isFullscreen()"
+          aria-label="Toggle fullscreen player"
+          (click)="toggleFullscreen()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
+          }}</span>
+        </button>
+
+        <form class="tv-tune" (ngSubmit)="goToChannel()">
+          <label class="tv-tune-label" for="tv-channel-entry">GO TO CHANNEL</label>
+          <input
+            id="tv-channel-entry"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="3"
+            [ngModel]="channelEntry()"
+            (ngModelChange)="channelEntry.set($event)"
+            name="channelEntry"
+            placeholder="101"
+          />
+          <button type="submit" class="tv-tune-go">TUNE</button>
+        </form>
+      </div>
+
+      <div class="tv-guide">
+        <h3 class="tv-guide-heading">
+          <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+          UP NEXT ON {{ activeChannel().name }}
+        </h3>
+        <ol class="tv-guide-list">
+          <li
+            *ngFor="let slot of guide(); let first = first"
+            class="tv-guide-slot"
+            [class.on-air]="first"
+          >
+            <span class="tv-guide-time">{{ clock(slot.startsAt) }}</span>
+            <span class="tv-guide-program">
+              <span class="tv-guide-title">
+                {{ slot.program.title }}
+                <em *ngIf="first">· ON AIR</em>
+              </span>
+              <span class="tv-guide-meta">
+                {{ slot.program.subtitle }} &middot;
+                {{ slot.program.durationMin }} MIN
+              </span>
+            </span>
+            <span class="tv-guide-kind">{{ slot.program.kind | uppercase }}</span>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>

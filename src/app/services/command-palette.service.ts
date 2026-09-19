@@ -395,6 +395,25 @@ export class CommandPaletteService {
     }
 
     if (key === ' ') {
+      /*
+       * Space belongs to whoever is actually holding it. Claiming it
+       * unconditionally cancelled native activation app-wide — measured in
+       * Chromium: pressing Space on a focused transport button left the
+       * button unclicked while this handler started the Studio's master
+       * playback off-screen. Two cases yield instead:
+       *
+       *  - a control that Space natively activates (button, link, select,
+       *    [tabindex], role="button"), exactly as the Transport Bar and the
+       *    S.M.U.V.E TV surface already yield;
+       *  - a handler that already claimed the key and called preventDefault —
+       *    the S.M.U.V.E TV surface toggles its own playback that way, and
+       *    without this the Studio would start playing underneath it.
+       *
+       * Everywhere else the shortcut is unchanged.
+       */
+      if (event.defaultPrevented || this.ownsSpaceKey(event.target)) {
+        return false;
+      }
       event.preventDefault();
       this.triggerById('toggle-playback');
       return true;
@@ -431,6 +450,22 @@ export class CommandPaletteService {
     }
 
     return false;
+  }
+
+  /**
+   * True when the focused element activates itself with Space, so the
+   * palette's Space shortcut must leave the key alone. Mirrors the guard the
+   * Transport Bar uses for the same reason.
+   */
+  private ownsSpaceKey(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'A' ||
+      target.tagName === 'SELECT' ||
+      target.hasAttribute('tabindex') ||
+      target.getAttribute('role') === 'button'
+    );
   }
 
   private isEditableTarget(target: EventTarget | null): boolean {

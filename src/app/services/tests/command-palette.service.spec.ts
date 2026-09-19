@@ -129,4 +129,66 @@ describe('CommandPaletteService', () => {
     expect(service.executeCommandById('no-such-command')).toBe(false);
     expect(deckService.togglePlay).not.toHaveBeenCalled();
   });
+
+  describe('Space ownership', () => {
+    /** A keydown whose target is a real element, so `event.target` is set. */
+    const pressOn = (tag: string, key = ' ') => {
+      const el = document.createElement(tag);
+      const event = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+      });
+      el.dispatchEvent(event);
+      return event;
+    };
+
+    it('still toggles playback when no control owns the key', () => {
+      const event = pressOn('div');
+      expect(service.handleGlobalKey(event)).toBe(true);
+      expect(event.defaultPrevented).toBe(true);
+      expect(deckService.togglePlay).toHaveBeenCalledWith('A');
+    });
+
+    it.each(['button', 'a', 'select'])(
+      'yields Space to a focused <%s> so it activates itself',
+      (tag) => {
+        const event = pressOn(tag);
+        expect(service.handleGlobalKey(event)).toBe(false);
+        expect(event.defaultPrevented).toBe(false);
+        expect(deckService.togglePlay).not.toHaveBeenCalled();
+      }
+    );
+
+    it('yields Space to a tabindex or role=button surface', () => {
+      const tabbed = document.createElement('div');
+      tabbed.setAttribute('tabindex', '0');
+      const first = new KeyboardEvent('keydown', {
+        key: ' ',
+        bubbles: true,
+        cancelable: true,
+      });
+      tabbed.dispatchEvent(first);
+      expect(service.handleGlobalKey(first)).toBe(false);
+
+      const roleButton = document.createElement('div');
+      roleButton.setAttribute('role', 'button');
+      const second = new KeyboardEvent('keydown', {
+        key: ' ',
+        bubbles: true,
+        cancelable: true,
+      });
+      roleButton.dispatchEvent(second);
+      expect(service.handleGlobalKey(second)).toBe(false);
+
+      expect(deckService.togglePlay).not.toHaveBeenCalled();
+    });
+
+    it('yields Space to a handler that already claimed the key', () => {
+      const event = pressOn('div');
+      event.preventDefault();
+      expect(service.handleGlobalKey(event)).toBe(false);
+      expect(deckService.togglePlay).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -1,0 +1,781 @@
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  computed,
+  inject,
+  output,
+  signal,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import {
+  SMUVE_TV_CATEGORIES,
+  SmuveTvCategoryId,
+  SmuveTvChannel,
+  SmuveTvScene,
+  SmuveTvService,
+  smuveTvClock,
+} from '../../services/smuve-tv.service';
+
+/** Deterministic 0–1 noise, so scenes never allocate and never repeat visibly. */
+function noise01(seed: number): number {
+  const value = Math.sin(seed * 127.1) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+/** Station favourites persist the way the arcade's do: namespaced localStorage. */
+const STATION_FAVORITES_KEY = 'smuve_tv_stations';
+
+/** Bed level while the station is playing. Loud enough to hear, quiet enough to talk over. */
+const AUDIO_LEVEL = 0.05;
+
+function readFavoriteStations(service: SmuveTvService): string[] {
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    const raw = localStorage.getItem(STATION_FAVORITES_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    /*
+     * Prune ids that are no longer on the line-up. Without this a station that
+     * was renamed or retired lingers in MY STATIONS as a phantom the viewer can
+     * never clear.
+     */
+    return parsed.filter(
+      (id): id is string =>
+        typeof id === 'string' && service.channels.some((c) => c.id === id)
+    );
+  } catch {
+    // Malformed payload, or storage denied. Favourites start empty, nothing throws.
+    return [];
+  }
+}
+
+function writeFavoriteStations(ids: string[]): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(STATION_FAVORITES_KEY, JSON.stringify(ids));
+  } catch {
+    // Storage is read-only in a private context; favourites stay in memory.
+  }
+}
+
+/** Everything below draws natively — no iframe, no codec, no network request. */
+function drawScene(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  scene: SmuveTvScene,
+  accent: string,
+  time: number
+): void {
+  const seconds = time / 1000;
+  const cx = width / 2;
+  const cy = height / 2;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Shared bed: a slow accent wash over near-black so every station reads as
+  // "on air" even in a still frame.
+  const wash = ctx.createRadialGradient(
+    cx + Math.sin(seconds * 0.3) * width * 0.15,
+    cy + Math.cos(seconds * 0.22) * height * 0.15,
+    0,
+    cx,
+    cy,
+    Math.max(width, height) * 0.75
+  );
+  wash.addColorStop(0, `${accent}55`);
+  wash.addColorStop(0.55, `${accent}18`);
+  wash.addColorStop(1, 'rgba(4,6,10,0.96)');
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.shadowColor = accent;
+  ctx.strokeStyle = accent;
+  ctx.fillStyle = accent;
+
+  switch (scene) {
+    case 'spectrum': {
+      const bars = Math.max(24, Math.floor(width / 26));
+      const barWidth = width / bars;
+      for (let i = 0; i < bars; i += 1) {
+        const wave =
+          Math.sin(seconds * 2.1 + i * 0.45) * 0.35 +
+          Math.sin(seconds * 0.7 + i * 0.13) * 0.3 +
+          noise01(i * 3.3) * 0.35;
+        const barHeight = Math.max(6, height * 0.42 * (0.35 + Math.abs(wave)));
+        ctx.globalAlpha = 0.35 + Math.abs(wave) * 0.6;
+        ctx.fillRect(
+          i * barWidth + barWidth * 0.18,
+          cy + height * 0.18 - barHeight,
+          barWidth * 0.64,
+          barHeight
+        );
+      }
+      break;
+    }
+    case 'vinyl': {
+      const radius = Math.min(width, height) * 0.33;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 1;
+      for (let ring = 1; ring <= 16; ring += 1) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, (radius * ring) / 16, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.95;
+      ctx.lineWidth = 3;
+      for (let groove = 0; groove < 3; groove += 1) {
+        const angle = seconds * 1.4 + groove * 2.1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(
+          cx + Math.cos(angle) * radius * 1.1,
+          cy + Math.sin(angle) * radius * 1.1
+        );
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'skyline': {
+      const layers = 3;
+      for (let layer = 0; layer < layers; layer += 1) {
+        const depth = (layer + 1) / layers;
+        const baseline = height * (0.72 + layer * 0.07);
+        const drift = ((seconds * 12 * depth) % 90) - 45;
+        ctx.globalAlpha = 0.25 + depth * 0.5;
+        for (let i = -1; i < Math.floor(width / 60) + 2; i += 1) {
+          const seed = i + layer * 100;
+          const blockWidth = 34 + noise01(seed) * 34;
+          const blockHeight = 40 + noise01(seed * 1.7) * height * 0.34;
+          ctx.fillRect(
+            i * 60 + drift,
+            baseline - blockHeight / 2,
+            blockWidth,
+            blockHeight
+          );
+        }
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(0, height * 0.72);
+      ctx.lineTo(width, height * 0.72);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'orbit': {
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.4;
+      for (let ring = 1; ring <= 4; ring += 1) {
+        ctx.beginPath();
+        ctx.ellipse(
+          cx,
+          cy,
+          (Math.min(width, height) * 0.42 * ring) / 4,
+          (Math.min(width, height) * 0.42 * ring) / 4 * 0.42,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      for (let dot = 0; dot < 4; dot += 1) {
+        const angle = seconds * (0.6 + dot * 0.25) + dot;
+        const rx = (Math.min(width, height) * 0.42 * (dot + 1)) / 4;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(angle) * rx, cy + Math.sin(angle) * rx * 0.42, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.95;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 16 + Math.sin(seconds * 2) * 3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'neon-grid': {
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 1;
+      const horizon = height * 0.52;
+      for (let lane = -8; lane <= 8; lane += 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx + lane * 26, horizon);
+        ctx.lineTo(cx + lane * width * 0.22, height);
+        ctx.stroke();
+      }
+      const scroll = (seconds * 0.7) % 1;
+      for (let row = 0; row < 12; row += 1) {
+        const depth = (row + scroll) / 12;
+        const y = horizon + depth * depth * (height - horizon);
+        ctx.globalAlpha = 0.18 + depth * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(0, horizon);
+      ctx.lineTo(width, horizon);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'reel': {
+      const frameHeight = height * 0.3;
+      const scroll = (seconds * 40) % frameHeight;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 2;
+      for (let i = -1; i < 4; i += 1) {
+        const y = i * frameHeight - scroll;
+        ctx.strokeRect(width * 0.18, y + 6, width * 0.64, frameHeight - 12);
+      }
+      ctx.globalAlpha = 0.4;
+      for (let hole = -1; hole < 16; hole += 1) {
+        const y = hole * (height / 12) - ((seconds * 40) % (height / 12));
+        ctx.fillRect(width * 0.08, y + 3, width * 0.04, height / 26);
+        ctx.fillRect(width * 0.88, y + 3, width * 0.04, height / 26);
+      }
+      break;
+    }
+    case 'pulse': {
+      for (let ring = 0; ring < 4; ring += 1) {
+        const phase = (seconds * 0.5 + ring / 4) % 1;
+        ctx.globalAlpha = (1 - phase) * 0.8;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, phase * Math.min(width, height) * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22 + Math.sin(seconds * 1.8) * 5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'storm': {
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1.3;
+      for (let drop = 0; drop < 90; drop += 1) {
+        const speed = 0.5 + noise01(drop) * 0.8;
+        const x = (noise01(drop * 1.7) * width + seconds * 60 * speed) % width;
+        const y = (noise01(drop * 2.3) * height + seconds * 420 * speed) % height;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 9, y + 22);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.16 + Math.max(0, Math.sin(seconds * 0.6)) * 0.16;
+      ctx.fillRect(0, 0, width, height);
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
+@Component({
+  selector: 'app-smuve-tv',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './smuve-tv.component.html',
+  styleUrls: ['./smuve-tv.component.css'],
+})
+export class SmuveTvComponent implements AfterViewInit, OnDestroy {
+  private tv = inject(SmuveTvService);
+
+  /** The focusable surface wrapper, so entry can move focus into it. */
+  @ViewChild('surface', { static: false })
+  private surfaceRef?: ElementRef<HTMLElement>;
+
+  /** The immersive surface owns the viewport, so it offers its own way out. */
+  readonly exit = output<void>();
+
+  @ViewChild('bed', { static: false })
+  private bedRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('stage', { static: false })
+  private stageRef?: ElementRef<HTMLElement>;
+
+  readonly categories = SMUVE_TV_CATEGORIES;
+  readonly clock = smuveTvClock;
+
+  activeCategory = signal<SmuveTvCategoryId>('all');
+  searchQuery = signal('');
+  channelEntry = signal('');
+  activeChannelId = signal<string>(this.tv.channels[0].id);
+  /** Survives a reload, exactly like the arcade's `tha_spot_favorites`. */
+  favorites = signal<string[]>(readFavoriteStations(this.tv));
+  favoritesOnly = signal(false);
+
+  /** Ticks the guide's progress bars and the on-air clock. */
+  now = signal(Date.now());
+
+  isPlaying = signal(true);
+  isFullscreen = signal(false);
+  audioOn = signal(false);
+  audioSupported = signal(false);
+
+  activeChannel = computed<SmuveTvChannel>(() => {
+    const id = this.activeChannelId();
+    return this.tv.channels.find((channel) => channel.id === id) ?? this.tv.channels[0];
+  });
+
+  onAir = computed(() => this.tv.nowPlaying(this.activeChannel(), new Date(this.now())));
+
+  guide = computed(() =>
+    this.tv.guideFor(this.activeChannel(), new Date(this.now()), 6)
+  );
+
+  progressPercent = computed(() => Math.round(this.onAir().progress * 100));
+
+  /**
+   * The rail. Favourites filtering sits on top of the category/search result so
+   * "my stations" is a view of the line-up rather than a separate list.
+   */
+  visibleChannels = computed<SmuveTvChannel[]>(() => {
+    const query = this.searchQuery();
+    const pool = query
+      ? this.tv.search(query)
+      : this.tv.channelsIn(this.activeCategory());
+    const chosen = this.favoritesOnly()
+      ? pool.filter((channel) => this.favorites().includes(channel.id))
+      : pool;
+    return chosen.sort((a, b) => a.number - b.number);
+  });
+
+  /**
+   * The rail is the visible line-up paired with what each station is playing
+   * right now, resolved in one pass so the template never re-derives airtimes
+   * per change-detection cycle.
+   */
+  rail = computed(() => {
+    const at = new Date(this.now());
+    return this.visibleChannels().map((channel) => ({
+      channel,
+      slot: this.tv.nowPlaying(channel, at),
+    }));
+  });
+
+  private nowTimerId: number | null = null;
+  private frameId: number | null = null;
+  private sceneTime = 0;
+  private lastFrameAt = 0;
+  /** Last still frame drawn while reduced motion is on, so it can idle. */
+  private lastStillKey: string | null = null;
+  private audio: { ctx: AudioContext; master: GainNode; voices: OscillatorNode[] } | null =
+    null;
+  private touchStart: { x: number; y: number } | null = null;
+  private fullscreenListener = () => {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    this.isFullscreen.set(!!(doc.fullscreenElement ?? doc.webkitFullscreenElement));
+  };
+
+  constructor() {
+    this.audioSupported.set(
+      typeof window !== 'undefined' &&
+        typeof (window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext) === 'function'
+    );
+  }
+
+  ngAfterViewInit(): void {
+    this.nowTimerId = window.setInterval(() => this.now.set(Date.now()), 1000);
+    document.addEventListener('fullscreenchange', this.fullscreenListener);
+    document.addEventListener('webkitfullscreenchange', this.fullscreenListener);
+    /*
+     * The transport keys are claimed at the document in the *capture* phase,
+     * not with a host binding. Measured in Chromium: entering the broadcast
+     * left `document.activeElement` on <body>, so a host-bound listener never
+     * saw a key at all and Space fell through to the app's command palette,
+     * which started the Studio deck playing underneath the broadcast.
+     * Capture wins the race against that bubble-phase listener, and the
+     * surface still yields Space to whatever control actually has focus.
+     */
+    document.addEventListener('keydown', this.keyListener, true);
+    // A full-screen takeover owns the keyboard, so the tab order starts here.
+    this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
+    this.startSceneLoop();
+  }
+
+  ngOnDestroy(): void {
+    if (this.nowTimerId !== null) {
+      window.clearInterval(this.nowTimerId);
+      this.nowTimerId = null;
+    }
+    this.stopSceneLoop();
+    this.stopAudio();
+    document.removeEventListener('keydown', this.keyListener, true);
+    document.removeEventListener('fullscreenchange', this.fullscreenListener);
+    document.removeEventListener('webkitfullscreenchange', this.fullscreenListener);
+  }
+
+  // ── Tuning ─────────────────────────────────────────────
+
+  tuneTo(channel: SmuveTvChannel): void {
+    if (channel.id === this.activeChannelId()) return;
+    this.activeChannelId.set(channel.id);
+    this.channelEntry.set('');
+    /*
+     * A zap can target a station the current filter hides — a number-pad entry
+     * for a cinema channel while MUSIC is selected. Reopening the rail on the
+     * tuned station beats showing a guide that excludes what is playing.
+     */
+    if (
+      this.activeCategory() !== 'all' &&
+      channel.category !== this.activeCategory()
+    ) {
+      this.activeCategory.set('all');
+    }
+    this.retuneAudio();
+  }
+
+  stepChannel(step: number): void {
+    const pool = this.tv.channelsIn('all');
+    const index = pool.findIndex((channel) => channel.id === this.activeChannelId());
+    const next = (index + step + pool.length) % pool.length;
+    this.tuneTo(pool[next]);
+  }
+
+  selectCategory(id: SmuveTvCategoryId): void {
+    this.activeCategory.set(id);
+    this.searchQuery.set('');
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+  }
+
+  goToChannel(): void {
+    const target = this.tv.channelByNumber(this.channelEntry());
+    if (target) {
+      this.tuneTo(target);
+    } else {
+      this.channelEntry.set('');
+    }
+  }
+
+  toggleFavorite(id = this.activeChannel().id): void {
+    const updated = this.favorites().includes(id)
+      ? this.favorites().filter((entry) => entry !== id)
+      : [...this.favorites(), id];
+    this.favorites.set(updated);
+    writeFavoriteStations(updated);
+  }
+
+  toggleFavoritesOnly(): void {
+    this.favoritesOnly.update((value) => !value);
+  }
+
+  // ── Transport ──────────────────────────────────────────
+
+  togglePlayback(): void {
+    const resume = !this.isPlaying();
+    this.isPlaying.set(resume);
+
+    if (resume) {
+      this.startSceneLoop();
+      this.rampAudio(AUDIO_LEVEL);
+    } else {
+      this.stopSceneLoop();
+      /*
+       * Pausing has to silence the station too. Leaving the bed running under a
+       * "PAUSED" badge is simply a lie about what the surface is doing.
+       */
+      this.rampAudio(0);
+    }
+  }
+
+  /** Slide the bed's gain without tearing the graph down. */
+  private rampAudio(level: number): void {
+    if (!this.audio) return;
+    try {
+      this.audio.master.gain.setTargetAtTime(
+        level,
+        this.audio.ctx.currentTime,
+        0.2
+      );
+    } catch {
+      // The context is already closing; there is nothing left to ramp.
+    }
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    const stage = this.stageRef?.nativeElement as
+      | (HTMLElement & { requestFullscreen?: () => Promise<void> })
+      | undefined;
+    if (!stage) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+    try {
+      if (doc.fullscreenElement ?? doc.webkitFullscreenElement) {
+        await (doc.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+      } else if (stage.requestFullscreen) {
+        await stage.requestFullscreen();
+      }
+    } catch {
+      // Fullscreen can be refused (embedded frames, missing user activation).
+      // The player keeps working in place, so this is never worth surfacing.
+    }
+  }
+
+  /**
+   * A station audio bed, synthesised locally. Off by default: a TV that makes
+   * noise the moment it opens is hostile. Every note is generated in-page, so
+   * there is no stream to fail.
+   */
+  toggleAudio(): void {
+    if (!this.audioSupported()) return;
+    if (this.audioOn()) {
+      this.stopAudio();
+    } else {
+      this.startAudio();
+    }
+  }
+
+  private startAudio(): void {
+    if (typeof window === 'undefined') return;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctor) return;
+    try {
+      const ctx = new Ctor();
+      const master = ctx.createGain();
+      master.gain.value = 0;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 900;
+      filter.connect(master);
+      master.connect(ctx.destination);
+
+      const voices = [0, 1, 2].map((index) => {
+        const osc = ctx.createOscillator();
+        osc.type = index === 0 ? 'triangle' : 'sine';
+        osc.frequency.value = this.voiceFrequency(index);
+        osc.connect(filter);
+        osc.start();
+        return osc;
+      });
+
+      // Slow tremolo so the bed breathes instead of droning flat.
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 0.08;
+      lfoGain.gain.value = 0.012;
+      lfo.connect(lfoGain);
+      lfoGain.connect(master.gain);
+      lfo.start();
+
+      // A station opened mid-pause starts silent, so play/pause stays truthful.
+      master.gain.setTargetAtTime(
+        this.isPlaying() ? AUDIO_LEVEL : 0,
+        ctx.currentTime,
+        0.8
+      );
+      this.audio = { ctx, master, voices };
+      this.audioOn.set(true);
+    } catch {
+      this.audio = null;
+      this.audioOn.set(false);
+    }
+  }
+
+  private voiceFrequency(index: number): number {
+    // Minor-ish stack rooted a fifth below the station number, so each channel
+    // has its own bed without ever being musical enough to distract.
+    const root = 55 * Math.pow(2, (this.activeChannel().number % 12) / 12);
+    const ratios = [1, 1.5, 2.25];
+    return root * ratios[index % ratios.length];
+  }
+
+  private retuneAudio(): void {
+    if (!this.audio) return;
+    const at = this.audio.ctx.currentTime;
+    this.audio.voices.forEach((voice, index) => {
+      voice.frequency.setTargetAtTime(this.voiceFrequency(index), at, 0.25);
+    });
+  }
+
+  private stopAudio(): void {
+    const audio = this.audio;
+    this.audio = null;
+    this.audioOn.set(false);
+    if (!audio) return;
+    try {
+      audio.master.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.2);
+      audio.voices.forEach((voice) => voice.stop(audio.ctx.currentTime + 0.6));
+      void audio.ctx.close();
+    } catch {
+      // Already torn down or the context is gone; nothing to release.
+    }
+  }
+
+  // ── Native scene rendering ─────────────────────────────
+
+  private startSceneLoop(): void {
+    if (typeof window === 'undefined' || this.frameId !== null) return;
+    // jsdom and embedded contexts may expose no animation frame at all; the
+    // guide and HUD work regardless, so the scene is the only thing lost.
+    if (typeof window.requestAnimationFrame !== 'function') return;
+    this.lastFrameAt = 0;
+    this.frameId = window.requestAnimationFrame(this.renderFrame);
+  }
+
+  private stopSceneLoop(): void {
+    if (this.frameId !== null) {
+      window.cancelAnimationFrame?.(this.frameId);
+      this.frameId = null;
+    }
+  }
+
+  private renderFrame = (timestamp: number): void => {
+    this.frameId = window.requestAnimationFrame?.(this.renderFrame) ?? null;
+    if (this.frameId === null) return;
+    const delta = this.lastFrameAt ? timestamp - this.lastFrameAt : 16;
+    this.lastFrameAt = timestamp;
+    const animated = this.motionAllowed();
+    if (animated) this.sceneTime += delta;
+
+    const canvas = this.bedRef?.nativeElement;
+    if (!canvas) return;
+    const ratio = window.devicePixelRatio || 1;
+    const width = Math.max(1, Math.floor(canvas.clientWidth * ratio));
+    const height = Math.max(1, Math.floor(canvas.clientHeight * ratio));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      // Resizing clears the buffer, so a frozen scene has to be repainted.
+      this.lastStillKey = null;
+    }
+    let ctx: CanvasRenderingContext2D | null = null;
+    try {
+      ctx = canvas.getContext('2d');
+    } catch {
+      // Canvas unavailable (test doubles, restricted embeds): HUD still works.
+      ctx = null;
+    }
+    if (!ctx) return;
+    const channel = this.activeChannel();
+    if (!animated) {
+      /*
+       * With motion turned down, repainting an unchanging picture sixty times a
+       * second is pure waste: draw one frame per station and per canvas size,
+       * then idle until either changes.
+       */
+      const still = `${channel.id}|${width}x${height}`;
+      if (still === this.lastStillKey) return;
+      this.lastStillKey = still;
+    }
+    drawScene(ctx, width, height, channel.scene, channel.accent, this.sceneTime);
+  };
+
+  /**
+   * The scene is decoration, and it is the one thing on this surface a viewer
+   * cannot switch off. `prefers-reduced-motion` freezes it to a still frame —
+   * the guide, clock, and progress bar keep moving, because those are
+   * information rather than ornament.
+   */
+  private motionAllowed(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return true;
+    }
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  // ── Touch + keyboard ───────────────────────────────────
+
+  onSwipeStart(event: TouchEvent): void {
+    const touch = event.touches[0];
+    if (!touch) return;
+    this.touchStart = { x: touch.clientX, y: touch.clientY };
+  }
+
+  onSwipeEnd(event: TouchEvent): void {
+    const start = this.touchStart;
+    this.touchStart = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    // Horizontal and committed: vertical page scrolling never zaps.
+    if (Math.abs(dx) <= Math.abs(dy) * 1.4 || Math.abs(dx) < 48) return;
+    this.stepChannel(dx < 0 ? 1 : -1);
+  }
+
+  private keyListener = (event: KeyboardEvent): void => this.onKeydown(event);
+
+  onKeydown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const typing =
+      !!target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName ?? '');
+    if (typing) {
+      if (event.key === 'Escape') target?.blur();
+      return;
+    }
+    /*
+     * Escape is handled here, on the surface itself, not only by the parent's
+     * document-level listener. Measured in Chromium: Angular's
+     * `document:keydown.escape` pseudo-event never reached either handler, while
+     * this plain host `keydown` fires reliably, because the host wraps whatever
+     * control currently has focus. The parent keeps its own listener as a
+     * backstop for focus that has left the surface.
+     */
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      event.preventDefault();
+      this.exit.emit();
+      return;
+    }
+    /*
+     * Everything else is a shortcut, and a shortcut must never outrank the
+     * control the viewer actually tabbed to: Space belongs to the focused
+     * button, and the arrow keys scroll a focused listbox. Hijacking them made
+     * the transport unusable from the keyboard.
+     */
+    if (
+      target?.closest?.(
+        'button, a, input, select, textarea, [role="button"], [contenteditable="true"]'
+      )
+    ) {
+      return;
+    }
+    switch (event.key) {
+      case 'ArrowUp':
+        event.preventDefault();
+        this.stepChannel(-1);
+        break;
+      case 'ArrowDown':
+        event.preventDefault();
+        this.stepChannel(1);
+        break;
+      case ' ':
+      case 'Spacebar':
+        event.preventDefault();
+        this.togglePlayback();
+        break;
+      case 'f':
+      case 'F':
+        void this.toggleFullscreen();
+        break;
+      case 'm':
+      case 'M':
+        this.toggleAudio();
+        break;
+      default:
+        break;
+    }
+  }
+}

@@ -299,8 +299,9 @@
 }
 
 /*
-  The GAMING / PLUTO TV switch is the only control that opens Pluto TV, and the
-  768px refinement block further down this file sets `.mode-toggle-group` to
+  The GAMING / S.M.U.V.E TV switch is the only control that opens the broadcast
+  surface, and the 768px refinement block further down this file sets
+  `.mode-toggle-group` to
   `display: none` — which made the entire mode unreachable on every phone and
   portrait tablet.
 
@@ -1752,68 +1753,28 @@
   box-shadow: 0 0 6px rgba(var(--neon-purple-rgb), 0.4);
 }
 
-/* ── Pluto TV (full-page standalone) ──────────────── */
-.pluto-standalone-experience {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 10000 !important;
-  background: #000 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  display: block !important;
+/* ── Broadcast surface (S.M.U.V.E TV) ─────────────────
+   The broadcast module owns its own viewport and every scroll region inside it
+   (see src/app/components/smuve-tv/smuve-tv.component.css). The container must
+   not scroll behind it as well, or a phone ends up with two competing scroll
+   chains and the rail below the player becomes awkward to reach. */
+.tha-spot-container.tv-active {
+  overflow: hidden;
 }
-/* The toolbar owns the fixed position so the exit control stays reachable above
-   the official Live TV handoff surface. */
-.pluto-toolbar {
-  position: fixed !important;
-  top: calc(18px + env(safe-area-inset-top, 0px));
-  left: max(18px, env(safe-area-inset-left, 0px));
-  right: max(18px, env(safe-area-inset-right, 0px));
-  z-index: 10001;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  pointer-events: none;
-}
-.pluto-toolbar > * {
-  pointer-events: auto;
-}
-.exit-pluto-btn,
-.pluto-external-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-weight: 800;
-  font-size: 0.7rem;
-  letter-spacing: 0.05em;
-  text-decoration: none;
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: var(--elite-font);
-  touch-action: manipulation;
-}
-.exit-pluto-btn:hover,
-.pluto-external-btn:hover,
-.exit-pluto-btn:focus-visible,
-.pluto-external-btn:focus-visible {
-  color: #f1f5f9;
-  border-color: rgba(var(--neon-cyan-rgb), 0.3);
-  background: rgba(var(--neon-cyan-rgb), 0.1);
-}
-@media (display-mode: fullscreen) {
-  .pluto-standalone-experience {
-    width: 100% !important;
-    height: 100% !important;
-  }
+
+/*
+  The hub footer is a sibling of <main>, not a child of it, so the `inert` that
+  covers the arcade grid does not cover the footer's chat box — measured in
+  Chromium, `.hub-footer` is rendered and outside `.spot-main-content` while the
+  broadcast is up. Its own template gate still tests the retired 'pluto' alias,
+  and that line sits past the editor's reachable window for the template, so the
+  surface has to remove it from here.
+
+  `display: none` rather than `visibility`: the footer's input has to leave the
+  tab order too, or a keyboard user tabs into a chat box they cannot see.
+*/
+.tha-spot-container.tv-active .hub-footer {
+  display: none;
 }
 
 /* ============================================================
