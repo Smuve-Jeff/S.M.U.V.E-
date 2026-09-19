@@ -90,6 +90,17 @@ export interface SmuveTvSlot {
   onAir: boolean;
 }
 
+/**
+ * The artist's own station.
+ *
+ * Smuve Jeff Radio is the one station in the line-up that is not a canvas bed
+ * with a schedule: it broadcasts the artist's own catalogue, in full, around
+ * the clock. It is a normal entry in the guide on purpose — the guide *is* the
+ * module's navigation — so this id is how the component recognises the station
+ * and hands it the audio transport instead of the station bed.
+ */
+export const SMUVE_JEFF_RADIO_CHANNEL_ID = 'smuve-jeff-radio';
+
 export const SMUVE_TV_CATEGORIES: readonly SmuveTvCategory[] = [
   { id: 'all', label: 'ALL STATIONS', icon: 'tv' },
   { id: 'live', label: 'LIVE NOW', icon: 'sensors' },
@@ -1045,6 +1056,28 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
       show('ca-4', 'NEW RELEASE WALL', 'The videos that just landed', 45, 'mix'),
     ],
   },
+  {
+    id: SMUVE_JEFF_RADIO_CHANNEL_ID,
+    number: 155,
+    name: 'SMUVE JEFF RADIO',
+    callSign: 'SJR',
+    tagline: 'The artist, around the clock.',
+    category: 'music',
+    accent: '#22C55E',
+    scene: 'vinyl',
+    icon: 'radio',
+    /*
+     * The rotation is the programming: the station plays the artist's released
+     * records in full rather than repeating a spoken-word schedule, so these
+     * blocks describe the catalogue being worked through, not invented shows.
+     */
+    shows: [
+      show('sjr-1', 'THE ROTATION', 'Every released record, played in full', 300, 'mix'),
+      show('sjr-2', 'DEEP CUTS', 'Album tracks the singles outshone', 200, 'mix'),
+      show('sjr-3', 'AFTER HOURS', 'Slow records into the small hours', 220, 'mix'),
+      show('sjr-4', 'THE CATALOGUE', 'Nothing but the artist, all day', 240, 'mix'),
+    ],
+  },
 ];
 
 /** Total minutes in one rotation of a station's schedule. */
@@ -1072,6 +1105,15 @@ export function smuveTvClock(ms: number): string {
 export class SmuveTvService {
   readonly categories = SMUVE_TV_CATEGORIES;
   readonly channels = SMUVE_TV_CHANNELS;
+
+  /**
+   * The artist's station, so the module always has a route to it without
+   * hard-coding a channel number into the component.
+   */
+  readonly radioChannel: SmuveTvChannel =
+    this.channels.find(
+      (channel) => channel.id === SMUVE_JEFF_RADIO_CHANNEL_ID
+    ) ?? this.channels[0];
 
   /** Stations in a category, in channel order. `all` returns the line-up. */
   channelsIn(category: SmuveTvCategoryId): SmuveTvChannel[] {

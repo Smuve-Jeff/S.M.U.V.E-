@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import {
+  SMUVE_JEFF_RADIO_CHANNEL_ID,
   SMUVE_TV_CATEGORIES,
   SmuveTvCategoryId,
   SmuveTvChannel,
@@ -418,6 +419,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
 
   readonly categories = SMUVE_TV_CATEGORIES;
   readonly clock = smuveTvClock;
+  /** The artist's own station, offered as a fixed route into the guide. */
+  readonly radioStation = this.tv.radioChannel;
   /** Surfaces `m:ss` record lengths to the template. */
   readonly trackLength = trackLength;
   /** How many failures in a row end the broadcast rather than keep skipping. */
@@ -448,6 +451,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   isMusicPlaying = signal(false);
   musicError = signal<string | null>(null);
+  /** How far into the record the station's own player is, in milliseconds. */
+  musicElapsedMs = signal(0);
+  /**
+   * The playing element's own running time, in milliseconds.
+   *
+   * Measured from the element rather than read off the catalogue record, because
+   * a licensed 30-second preview must never draw a progress bar that claims to
+   * be three minutes long.
+   */
+  musicDurationMs = signal(0);
   /** Full-page lean-back mode for the Smuve Jeff Radio station. */
   radioStandalone = signal(false);
   /**
@@ -590,6 +603,80 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   nowPlaying = computed<SmuveTvRadioTrack | null>(() =>
     this.isMusicPlaying() ? this.musicTrack() : null
   );
+
+  /** True while the tuned station is the artist's own radio station. */
+  isRadioStation = computed(
+    () => this.activeChannelId() === SMUVE_JEFF_RADIO_CHANNEL_ID
+  );
+
+  /**
+   * The record the lower third names: only ever a record actually on air, and
+   * only ever on the artist's own station.
+   *
+   * Every other station's lower third belongs to its linear schedule, so this is
+   * null there and the programme keeps the screen.
+   */
+  private radioRecord = computed<SmuveTvRadioTrack | null>(() =>
+    this.isRadioStation() ? this.nowPlaying() : null
+  );
+
+  /** What the lower third is describing, in the listener's terms. */
+  onAirLabel = computed(() => {
+    const record = this.radioRecord();
+    if (!record) return 'NOW PLAYING';
+    return record.preview
+      ? 'SMUVE JEFF RADIO \u00b7 OFFICIAL PREVIEW'
+      : 'SMUVE JEFF RADIO \u00b7 FULL RECORD';
+  });
+
+  /**
+   * The record's name while it is audible, the schedule otherwise.
+   *
+   * Naming the song is the one thing the station shows about its rotation, and
+   * it appears only while that song is playing.
+   */
+  onAirTitle = computed(
+    () => this.radioRecord()?.title ?? this.onAir().program.title
+  );
+
+  onAirSubtitle = computed(() => {
+    const record = this.radioRecord();
+    if (!record) return this.onAir().program.subtitle;
+    return [record.artist, record.album, trackLength(record.durationMs)]
+      .filter(Boolean)
+      .join(' \u00b7 ');
+  });
+
+  /** The bar follows the record when a record is on air, the slot otherwise. */
+  onAirProgress = computed(() => {
+    if (!this.radioRecord()) return this.progressPercent();
+    const duration = this.musicDurationMs();
+    if (duration <= 0) return 0;
+    return Math.min(
+      100,
+      Math.max(0, Math.round((this.musicElapsedMs() / duration) * 100))
+    );
+  });
+
+  /** Elapsed on the left, running time on the right, or the slot's own times. */
+  onAirStart = computed(() =>
+    this.radioRecord()
+      ? this.recordClock(this.musicElapsedMs())
+      : this.clock(this.onAir().startsAt)
+  );
+
+  onAirEnd = computed(() => {
+    if (!this.radioRecord()) return this.clock(this.onAir().endsAt);
+    const duration = this.musicDurationMs();
+    return duration > 0 ? this.recordClock(duration) : '--:--';
+  });
+
+  /** `m:ss` for a count of milliseconds. */
+  private recordClock(ms: number): string {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    return `${minutes}:${String(totalSeconds % 60).padStart(2, '0')}`;
+  }
 
   /** True when the rotation is drawing on real full-length recordings. */
   playsFullLength = computed(() =>
@@ -742,6 +829,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.stopFeed();
     this.destroyOfficialPlayer();
     this.clearOfficialFallbackTimer();
+    this.stopRadio();
     this.releaseMusicSource();
     document.removeEventListener('keydown', this.keyListener, true);
     document.removeEventListener('fullscreenchange', this.fullscreenListener);
@@ -770,6 +858,31 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     // Every station carries its own live feed, so a zap re-tunes the source.
     this.activeFeedId.set(this.feeds.feedForStation(channel.id)?.id ?? '');
     void this.attachFeed();
+    /*
+     * Smuve Jeff Radio is the one station whose audio is the artist's own
+     * catalogue rather than the station bed, so the zap decides who owns the
+     * speaker: tuning in starts the rotation, tuning away stops the record.
+     */
+    if (this.isRadioStation()) {
+      this.startRadio();
+    } else {
+      this.stopRadio();
+      // The station's own status belongs to the station; it must not follow the
+      // viewer onto another channel as a message about a record nobody hears.
+      this.musicError.set(null);
+    }
+  }
+
+  /** The guide's fixed route into the artist's own station. */
+  tuneToRadio(): void {
+    this.tuneTo(this.radioStation);
+    /*
+     * `tuneTo` returns early when the station is already tuned, so this covers
+     * the case the early return would otherwise skip: the listener is on the
+     * station and reaches for the route again, which has to start a record the
+     * browser refused or the transport stopped.
+     */
+    this.startRadio();
   }
 
   stepChannel(step: number): void {
@@ -812,6 +925,23 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   // ── Transport ──────────────────────────────────────────
 
   togglePlayback(): void {
+    /*
+     * On the artist's station the record *is* the broadcast, so the transport
+     * drives it rather than the bed. Starting the bed here would put a synth
+     * underneath the song and give the surface two audio sources at once.
+     */
+    if (this.isRadioStation()) {
+      if (this.isMusicPlaying()) {
+        this.stopRadio();
+        // The pause event does this too, but the badge must not wait on an
+        // event a host might not deliver before the next render.
+        this.isPlaying.set(false);
+      } else {
+        this.startRadio();
+      }
+      return;
+    }
+
     const resume = !this.isPlaying();
     this.isPlaying.set(resume);
 
@@ -922,6 +1052,45 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Tune the artist's station in.
+   *
+   * A radio station is already broadcasting by the time the viewer reaches it,
+   * so tuning in picks the rotation up where it stands: a random record when
+   * nothing is queued, and play when the record on the deck is merely paused.
+   * The tap is also what lets the browser start unmuted audio at all.
+   */
+  startRadio(): void {
+    if (this.isMusicPlaying()) return;
+    if (!this.rotationPool().length) {
+      this.musicError.set('Nothing is queued for this channel yet.');
+      return;
+    }
+    this.startMusic();
+  }
+
+  /**
+   * Tuning away stops the record.
+   *
+   * The television has one speaker: a song still playing under another
+   * channel's scene is exactly the kind of lie the transport badges exist to
+   * prevent. The queue keeps its place, so tuning back in resumes the record.
+   */
+  stopRadio(): void {
+    if (this.fullRecordActive()) this.officialPlayer?.pauseVideo();
+    const audio = this.musicRef?.nativeElement;
+    /*
+     * Only a record that is actually running has anything to stop. Pausing an
+     * empty element is not just pointless — jsdom and embedded webviews report
+     * the call they do not implement as a page error.
+     */
+    const loaded = !!(audio?.currentSrc || audio?.getAttribute('src'));
+    if (audio && loaded && !audio.paused) {
+      audio.pause();
+    }
+    this.isMusicPlaying.set(false);
+  }
+
+  /**
    * The next record on the 24/7 rotation.
    *
    * A shuffle bag, not an independent random pick: each pass plays every record
@@ -1002,6 +1171,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * fetched a bogus URL, and the element fired a spurious `error` event that
      * the rotation correctly read as a dead track.
      */
+    // A new record starts its own clock: the bar must not carry the previous
+    // record's playback position or running time onto it.
+    this.musicElapsedMs.set(0);
+    this.musicDurationMs.set(0);
+
     const previous = this.musicSource();
     this.musicSource.set(source);
     audio.src = source;
@@ -1056,11 +1230,34 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.consecutiveFailures = 0;
     this.isMusicPlaying.set(true);
     this.musicError.set(null);
+    // On the artist's station the record is the broadcast, so the ON AIR badge
+    // and the transport follow it instead of the station bed.
+    if (this.isRadioStation()) this.isPlaying.set(true);
   }
 
   /** A paused player is not playing, so the metadata comes down with it. */
   onMusicPaused(): void {
     this.isMusicPlaying.set(false);
+    if (this.isRadioStation()) this.isPlaying.set(false);
+  }
+
+  /**
+   * The record's own clock, so the lower third can report where the song is.
+   *
+   * Read from the element rather than a timer: it is the browser's own position,
+   * it costs nothing, and it stops the moment playback does.
+   */
+  onMusicTimeUpdate(): void {
+    const audio = this.musicRef?.nativeElement;
+    if (!audio) return;
+    const elapsed = Number.isFinite(audio.currentTime)
+      ? Math.max(0, audio.currentTime * 1000)
+      : 0;
+    const duration = Number.isFinite(audio.duration)
+      ? Math.max(0, audio.duration * 1000)
+      : 0;
+    this.musicElapsedMs.set(Math.round(elapsed));
+    if (duration > 0) this.musicDurationMs.set(Math.round(duration));
   }
 
   // ── The artist's official full-length upload ───────────

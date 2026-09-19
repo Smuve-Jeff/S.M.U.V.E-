@@ -14,7 +14,10 @@ import {
   shuffleBag,
   trackLength,
 } from './smuve-tv-feeds.service';
-import { SMUVE_TV_CHANNELS } from './smuve-tv.service';
+import {
+  SMUVE_JEFF_RADIO_CHANNEL_ID,
+  SMUVE_TV_CHANNELS,
+} from './smuve-tv.service';
 
 /** One canned entry in Apple's catalogue payload shape. */
 const appleSong = (overrides: Record<string, unknown> = {}) => ({
@@ -93,6 +96,15 @@ describe('SmuveTvFeedsService', () => {
 
     it('tunes every station in the line-up to a listed feed', () => {
       for (const channel of SMUVE_TV_CHANNELS) {
+        /*
+         * Smuve Jeff Radio renders its own scene rather than a licensed feed:
+         * the station's audio is the artist's catalogue, and a feed unmuted
+         * over a record would put two songs on the module's one speaker.
+         */
+        if (channel.id === SMUVE_JEFF_RADIO_CHANNEL_ID) {
+          expect(service.feedForStation(channel.id)).toBeNull();
+          continue;
+        }
         const feed = service.feedForStation(channel.id);
         expect(feed).not.toBeNull();
         // The mapping must point at something actually in the catalogue.

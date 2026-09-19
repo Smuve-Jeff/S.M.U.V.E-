@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SmuveTvComponent } from './smuve-tv.component';
-import { SmuveTvService } from '../../services/smuve-tv.service';
+import {
+  SMUVE_JEFF_RADIO_CHANNEL_ID,
+  SmuveTvService,
+} from '../../services/smuve-tv.service';
 import { LibraryService } from '../../services/library.service';
 import {
   SmuveTvFeedsService,
@@ -393,6 +396,151 @@ describe('SmuveTvComponent', () => {
       ]);
     });
 
+  });
+
+  describe('the route into Smuve Jeff Radio', () => {
+    const track = (overrides: Record<string, unknown> = {}) => ({
+      id: 'radio-track-1',
+      name: 'Authorized Single',
+      addedAt: 1,
+      url: 'data:audio/mpeg;base64,AAAA',
+      artist: 'Smuve Jeff',
+      official: true,
+      mediaType: 'audio' as const,
+      ...overrides,
+    });
+
+    const setPaused = (audio: HTMLAudioElement, value: boolean): void =>
+      Object.defineProperty(audio, 'paused', { configurable: true, value });
+
+    /** The hidden audio sink, stubbed the way the rest of the suite does it. */
+    const player = () => {
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      jest.spyOn(audio, 'load').mockImplementation(() => undefined);
+      const play = jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      const pause = jest
+        .spyOn(audio, 'pause')
+        .mockImplementation(() => undefined);
+      setPaused(audio, true);
+      return { audio, play, pause };
+    };
+
+    it('ships as an ordinary station, so the guide itself is the route in', () => {
+      const station = service.radioChannel;
+
+      expect(station.id).toBe(SMUVE_JEFF_RADIO_CHANNEL_ID);
+      expect(service.channels).toContain(station);
+      expect(service.channelsIn('music')).toContainEqual(station);
+      expect(service.channelByNumber(station.number)?.id).toBe(station.id);
+      expect(service.search('smuve jeff radio')).toContainEqual(station);
+      expect(component.rail().map((entry) => entry.channel.id)).toContain(
+        station.id
+      );
+    });
+
+    it('tunes in from that route and starts the rotation on the spot', () => {
+      library.items.set([track({ id: 'first' }), track({ id: 'second' })]);
+      const { audio, play } = player();
+
+      component.tuneToRadio();
+
+      expect(component.activeChannelId()).toBe(SMUVE_JEFF_RADIO_CHANNEL_ID);
+      expect(component.isRadioStation()).toBe(true);
+      expect(component.musicTrack()).not.toBeNull();
+      expect(audio.getAttribute('src')).toContain('data:audio/mpeg');
+      expect(play).toHaveBeenCalled();
+    });
+
+    it('hands the speaker back when the guide moves to another station', () => {
+      library.items.set([track()]);
+      const { audio, pause } = player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      expect(component.isMusicPlaying()).toBe(true);
+      expect(component.isPlaying()).toBe(true);
+
+      setPaused(audio, false);
+      component.tuneTo(service.channels[0]);
+
+      expect(component.isRadioStation()).toBe(false);
+      expect(pause).toHaveBeenCalled();
+      expect(component.isMusicPlaying()).toBe(false);
+      expect(component.nowPlaying()).toBeNull();
+    });
+
+    it('drives the record from the transport while the station is tuned', () => {
+      library.items.set([track()]);
+      const { audio, pause } = player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+
+      setPaused(audio, false);
+      component.togglePlayback();
+
+      expect(pause).toHaveBeenCalled();
+      expect(component.isMusicPlaying()).toBe(false);
+      expect(component.isPlaying()).toBe(false);
+    });
+
+    it('names the record on the lower third only while it is playing', () => {
+      library.items.set([track()]);
+      player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      expect(component.onAirLabel()).toBe('SMUVE JEFF RADIO \u00b7 FULL RECORD');
+      expect(component.onAirTitle()).toBe('Authorized Single');
+      expect(fixture.nativeElement.textContent).toContain('Authorized Single');
+
+      component.onMusicPaused();
+      fixture.detectChanges();
+
+      expect(component.onAirTitle()).toBe(component.onAir().program.title);
+      expect(fixture.nativeElement.textContent).not.toContain(
+        'Authorized Single'
+      );
+    });
+
+    it("reports the record's own clock rather than a slot's", () => {
+      library.items.set([track()]);
+      const { audio } = player();
+      component.tuneToRadio();
+      component.onMusicPlaying();
+
+      Object.defineProperty(audio, 'currentTime', {
+        configurable: true,
+        value: 30,
+      });
+      Object.defineProperty(audio, 'duration', {
+        configurable: true,
+        value: 120,
+      });
+      component.onMusicTimeUpdate();
+
+      expect(component.onAirProgress()).toBe(25);
+      expect(component.onAirStart()).toBe('0:30');
+      expect(component.onAirEnd()).toBe('2:00');
+    });
+
+    it('leaves every other station on its own linear schedule', () => {
+      library.items.set([track()]);
+      player();
+      component.startMusic();
+      component.onMusicPlaying();
+
+      expect(component.isRadioStation()).toBe(false);
+      expect(component.onAirTitle()).toBe(component.onAir().program.title);
+      expect(component.onAirSubtitle()).toBe(component.onAir().program.subtitle);
+    });
+
+    it('shows that route as a fixed control in the guide', () => {
+      expect(template).toContain('tuneToRadio()');
+      expect(template).toContain('tv-featured');
+      expect(fixture.nativeElement.querySelector('.tv-featured')).not.toBeNull();
+    });
   });
 
   describe('the complete official catalogue', () => {
@@ -914,6 +1062,16 @@ describe('SmuveTvComponent', () => {
   describe('live feeds', () => {
     it('gives every station a real, verified live feed', () => {
       for (const channel of service.channels) {
+        /*
+         * The artist's own station is the one deliberate exception. Its picture
+         * is its own scene rather than a licensed channel, because the station's
+         * audio is the artist's catalogue — a feed unmuted over the record would
+         * put two songs on the module's single speaker.
+         */
+        if (channel.id === SMUVE_JEFF_RADIO_CHANNEL_ID) {
+          expect(feeds.feedForStation(channel.id)).toBeNull();
+          continue;
+        }
         const feed = feeds.feedForStation(channel.id);
         expect(feed).not.toBeNull();
         expect(feed!.url).toMatch(/^https:\/\//);

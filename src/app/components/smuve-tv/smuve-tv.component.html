@@ -51,6 +51,44 @@
   <div class="tv-body">
     <!-- Station guide rail -->
     <aside class="tv-rail" aria-label="Station guide">
+      <!--
+        The permanent access route to the artist's own station.
+
+        Smuve Jeff Radio is the one channel that broadcasts the catalogue
+        itself instead of a canvas bed, and the line-up runs past 50 stations,
+        so it keeps a fixed entry at the top of the guide rather than sitting a
+        scroll away under MUSIC.
+      -->
+      <button
+        type="button"
+        class="tv-featured"
+        [class.on]="isRadioStation()"
+        [attr.aria-current]="isRadioStation() ? 'true' : null"
+        [attr.aria-label]="
+          'Tune to ' + radioStation.name + ', channel ' + radioStation.number
+        "
+        (click)="tuneToRadio()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{
+          radioStation.icon
+        }}</span>
+        <span class="tv-featured-text">
+          <span class="tv-featured-name">{{ radioStation.name }}</span>
+          <span
+            class="tv-featured-meta"
+            *ngIf="isRadioStation() && isMusicPlaying()"
+          >
+            CH {{ radioStation.number }} &middot; ON AIR &middot; 24/7
+          </span>
+          <span
+            class="tv-featured-meta"
+            *ngIf="!(isRadioStation() && isMusicPlaying())"
+          >
+            CH {{ radioStation.number }} &middot; {{ radioStation.tagline }}
+          </span>
+        </span>
+      </button>
+
       <div class="tv-filters">
         <button
           *ngFor="let category of categories"
@@ -165,23 +203,28 @@
         <span class="tv-on-air" *ngIf="isPlaying()">ON AIR</span>
         <span class="tv-on-air tv-on-air-paused" *ngIf="!isPlaying()">PAUSED</span>
 
+        <!--
+          On every other station this is the linear schedule. On Smuve Jeff
+          Radio it names the record that is audible right now, and it appears
+          only while that record is playing.
+        -->
         <div class="tv-lower-third">
-          <p class="tv-lt-label">NOW PLAYING</p>
-          <h2 class="tv-lt-title">{{ onAir().program.title }}</h2>
-          <p class="tv-lt-subtitle">{{ onAir().program.subtitle }}</p>
+          <p class="tv-lt-label">{{ onAirLabel() }}</p>
+          <h2 class="tv-lt-title">{{ onAirTitle() }}</h2>
+          <p class="tv-lt-subtitle">{{ onAirSubtitle() }}</p>
           <div
             class="tv-lt-progress"
             role="progressbar"
             aria-label="Programme progress"
-            [attr.aria-valuenow]="progressPercent()"
+            [attr.aria-valuenow]="onAirProgress()"
             aria-valuemin="0"
             aria-valuemax="100"
           >
-            <span [style.width.%]="progressPercent()"></span>
+            <span [style.width.%]="onAirProgress()"></span>
           </div>
           <div class="tv-lt-times">
-            <span>{{ clock(onAir().startsAt) }}</span>
-            <span>{{ clock(onAir().endsAt) }}</span>
+            <span>{{ onAirStart() }}</span>
+            <span>{{ onAirEnd() }}</span>
           </div>
         </div>
 
@@ -303,6 +346,18 @@
       <p class="tv-feed-error" *ngIf="feedError()" role="status">
         {{ feedError() }}
       </p>
+      <!--
+        What the artist's station has to say for itself. It only ever renders on
+        that station, so a refused autoplay tells the listener to use the
+        transport instead of leaving a silent channel with no explanation.
+      -->
+      <p
+        class="tv-radio-status"
+        *ngIf="isRadioStation() && musicError()"
+        role="status"
+      >
+        {{ musicError() }}
+      </p>
 
       <div class="tv-guide">
         <h3 class="tv-guide-heading">
@@ -349,5 +404,6 @@
     (error)="onMusicError()"
     (playing)="onMusicPlaying()"
     (pause)="onMusicPaused()"
+    (timeupdate)="onMusicTimeUpdate()"
   ></audio>
 </section>
