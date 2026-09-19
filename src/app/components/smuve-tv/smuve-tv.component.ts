@@ -23,6 +23,7 @@ import { LibraryService } from '../../services/library.service';
 import {
   SmuveTvFeedsService,
   SmuveTvLiveFeed,
+  SmuveTvRadioLink,
   SmuveTvRadioTrack,
   shuffleBag,
   trackLength,
@@ -356,9 +357,14 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   /** Explains a refused or failed feed instead of leaving a black rectangle. */
   feedError = signal<string | null>(null);
 
-  /** Apple's official catalogue, loaded once per session. */
+  /**
+   * The complete official catalogue, loaded once per session: the committed file
+   * of all 94 official records with the live Apple catalogue laid over it.
+   */
   officialCatalogue = signal<SmuveTvRadioTrack[]>([]);
   catalogueState = signal<'loading' | 'ready' | 'unavailable'>('loading');
+  /** Full-length recordings the artist hosts, matched onto the catalogue. */
+  hostedMasters = signal<SmuveTvRadioTrack[]>([]);
 
   readonly allFeeds = this.feeds.feeds;
 
@@ -367,14 +373,23 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   );
 
   /**
-   * Full-length audio the artist authorized leads the rotation, then the
-   * official catalogue. Both are real audio from Smuve Jeff, which is the whole
-   * promise of the channel; nothing else is allowed in.
+   * Everything genuinely by this artist, best source first: the files they
+   * imported here, then the full-length recordings they host, then the official
+   * catalogue.
+   *
+   * A record with a hosted master must not also appear as its own preview — the
+   * matched master reuses the catalogue entry's id, so de-duplicating by id
+   * keeps one row per record and always the longer one.
    */
-  radioQueue = computed<SmuveTvRadioTrack[]>(() => [
-    ...this.importedTracks(),
-    ...this.officialCatalogue(),
-  ]);
+  radioQueue = computed<SmuveTvRadioTrack[]>(() => {
+    const hosted = this.hostedMasters();
+    const hostedIds = new Set(hosted.map((track) => track.id));
+    return [
+      ...this.importedTracks(),
+      ...hosted,
+      ...this.officialCatalogue().filter((track) => !hostedIds.has(track.id)),
+    ];
+  });
 
   private importedTracks = computed<SmuveTvRadioTrack[]>(() =>
     this.library
@@ -410,10 +425,28 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * it fall back to the official previews, and the UI says so.
    */
   rotationPool = computed<SmuveTvRadioTrack[]>(() => {
-    const queue = this.radioQueue();
+    /*
+     * Only records this build can actually play are rotated. A catalogue record
+     * with no stream here is listed and linked instead — putting it in the bag
+     * would make the channel stall on something it can never play, and a run of
+     * those is indistinguishable from the source itself being gone.
+     */
+    const queue = this.radioQueue().filter((track) => !!(track.blob || track.url));
     const masters = queue.filter((track) => !track.preview);
     return masters.length ? masters : queue;
   });
+
+  /**
+   * Records the station lists but cannot stream here.
+   *
+   * These are the catalogue entries Apple does not carry, so there is no preview
+   * to play. They are what makes the station hold the artist's *complete*
+   * catalogue rather than the Apple subset, and each opens on a platform that
+   * publishes the complete track.
+   */
+  catalogueOnly = computed<SmuveTvRadioTrack[]>(() =>
+    this.radioQueue().filter((track) => !track.blob && !track.url)
+  );
 
   /** True when the rotation is drawing on real full-length recordings. */
   playsFullLength = computed(() =>
@@ -836,9 +869,50 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   async loadCatalogue(): Promise<void> {
     this.catalogueState.set('loading');
-    const tracks = await this.feeds.loadOfficialCatalogue();
+    // Both reads are independent, so they go out together and either can fail
+    // without taking the other down.
+    const [records, live] = await Promise.all([
+      this.feeds.loadCatalogueRecords(),
+      this.feeds.loadOfficialCatalogue(),
+    ]);
+    const tracks = this.feeds.mergeCatalogue(records, live);
     this.officialCatalogue.set(tracks);
     this.catalogueState.set(tracks.length ? 'ready' : 'unavailable');
+    // The master manifest is joined onto the catalogue, so it must be read after
+    // it — and a record already playing keeps playing, because the rotation only
+    // rebuilds when the pool itself changes.
+    await this.loadMasters(tracks);
+  }
+
+  /**
+   * Where a record's complete version opens, named.
+   *
+   * The platform is carried on the link rather than written into the template,
+   * because the same record is on different stores depending on whether Apple
+   * carries it.
+   */
+  officialLink(track: SmuveTvRadioTrack): SmuveTvRadioLink | null {
+    const link = track.links?.find((entry) => !!entry.url);
+    if (link) return link;
+    return track.linkUrl ? { label: 'OFFICIAL', url: track.linkUrl } : null;
+  }
+
+  /** What a row's badge reads: a hosted master, a preview, or a record only listed. */
+  trackBadge(track: SmuveTvRadioTrack): 'FULL' | 'PREVIEW' | 'OPEN' {
+    if (!track.preview) return 'FULL';
+    return track.blob || track.url ? 'PREVIEW' : 'OPEN';
+  }
+
+  /**
+   * Attaches the artist's own full-length recordings to the catalogue.
+   *
+   * This is the whole answer to "full length on air": Apple licenses 30-second
+   * previews and no platform will hand over the masters, so the recordings come
+   * from the artist and this manifest is the only thing that has to change.
+   */
+  async loadMasters(catalogue = this.officialCatalogue()): Promise<void> {
+    const entries = await this.feeds.loadMasterManifest();
+    this.hostedMasters.set(this.feeds.matchMasters(catalogue, entries));
   }
 
   // ── Live feeds ─────────────────────────────────────────

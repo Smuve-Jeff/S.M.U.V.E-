@@ -1,0 +1,2175 @@
+{
+  "notes": "S.M.U.V.E TV — the complete official Smuve Jeff catalogue, as played by\nSmuve Jeff Radio.\n\nUnioned from Apple’s catalogue API and Deezer’s public API, because the\nartist’s releases are wider than any one store: this list holds 94 unique\nrecords where Apple alone lists 78. The remainder — the records on\n\"The Black Label\", \"Each and Everyone of My Songs The Exact Same\" and\n\"Live out Tha Trunk\" — are not on Apple at all, so they can only be found\nby reading a second catalogue.\n\n`previewUrl` is Apple’s 30-second official preview, played in-app when the\nrecord has no hosted master. `links` are the official pages where the\nCOMPLETE track plays, which is how a listener reaches the full record.\n\n`durationMs` is always the FULL record’s running time, never the clip’s, so\nthe station can show 3:32 beside a 30-second preview and never imply the\nclip is the whole song. Regenerate with:\nnode scripts/build-music-manifest.mjs (existing `file` values are preserved).",
+  "generatedFrom": [
+    "Apple iTunes catalogue API (artist 1517179702)",
+    "Deezer public API",
+    "SoundCloud public API"
+  ],
+  "totalRecords": 94,
+  "records": [
+    {
+      "id": "apple-1691028383",
+      "trackId": 1691028383,
+      "title": "Killuminati",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2020",
+      "durationMs": 169979,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/ff/77/bd/ff77bd7e-6982-a176-9b04-f71234dd8088/mzaf_15344198723528493410.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538895"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/killuminati"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/killuminati/1691028381?i=1691028383&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028388",
+      "trackId": 1691028388,
+      "title": "Lost My Mind (feat. ChrisO)",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2020",
+      "durationMs": 174106,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/ed/69/e3/ed69e36f-ab9d-330d-b03b-a224893d27ed/mzaf_11371583113363992501.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538945"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/lost-my-mind-feat-chriso"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/lost-my-mind-feat-chriso/1691028381?i=1691028388&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194606",
+      "trackId": 1775194606,
+      "title": "Choices",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2020",
+      "durationMs": 186723,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5b/be/b7/5bbeb7d5-0a14-f11e-801a-f57a801bf001/mzaf_16376062117359743889.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600401"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/choices/1775194594?i=1775194606&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970087",
+      "trackId": 1843970087,
+      "title": "Only Thing I Ask (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2020",
+      "durationMs": 126265,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0d/c0/a8/0dc0a87b-39b3-0be6-d834-dd64953fac5b/mzaf_10083588117646592708.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637251"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/only-thing-i-ask-remix/1843970080?i=1843970087&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970086",
+      "trackId": 1843970086,
+      "title": "Warfare Zone (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2020",
+      "durationMs": 82077,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b3/dc/2f/b3dc2fde-ca22-674a-54cd-c8c566e6bd72/mzaf_11689548696720879369.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637241"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/warfare-zone-remix/1843970080?i=1843970086&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028386",
+      "trackId": 1691028386,
+      "title": "1 Rule (feat. Stepho)",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2023",
+      "durationMs": 80569,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/e0/68/e9/e068e962-9499-d07f-6052-64259f8f7915/mzaf_16788967402703789793.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538925"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/1-rule-feat-stepho"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/1-rule-feat-stepho/1691028381?i=1691028386&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028385",
+      "trackId": 1691028385,
+      "title": "Another Song",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2023",
+      "durationMs": 57443,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/d2/16/82/d216828f-fe50-ff91-772d-faea365b5675/mzaf_3139420430038877567.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538915"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/another-song"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/another-song/1691028381?i=1691028385&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028387",
+      "trackId": 1691028387,
+      "title": "Bless Yo Soul",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2023",
+      "durationMs": 180233,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/82/5b/58/825b58ac-a680-b47d-6405-c05d04361bb2/mzaf_15721272172761604327.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538935"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/bless-yo-soul"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/bless-yo-soul/1691028381?i=1691028387&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028382",
+      "trackId": 1691028382,
+      "title": "Glory",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2023",
+      "durationMs": 100702,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/c5/d1/60/c5d1605d-e5d6-6342-44af-0c3b5040a942/mzaf_13284271176404461177.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538885"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/glory"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/glory/1691028381?i=1691028382&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1691028384",
+      "trackId": 1691028384,
+      "title": "Warr",
+      "artist": "Smuve Jeff",
+      "album": "February 25th",
+      "year": "2023",
+      "durationMs": 72046,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/45/0d/6b/450d6b03-1d20-ed6e-0cc5-863575db267b/mzaf_4900258839003879451.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2315538905"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/warr"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/warr/1691028381?i=1691028384&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469786",
+      "trackId": 1695469786,
+      "title": "Can't Escape",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 152372,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/4f/40/89/4f408962-a151-fc03-9abf-1c48b35f3420/mzaf_14038542625895301592.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485075"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/cant-escape"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/cant-escape/1695469751?i=1695469786&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469788",
+      "trackId": 1695469788,
+      "title": "Daamn",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 202258,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/ab/ca/58/abca588b-cf4c-6ed3-6654-6b5a50e36d77/mzaf_7712286421974160438.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485095"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/daamn"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/daamn/1695469751?i=1695469788&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469755",
+      "trackId": 1695469755,
+      "title": "Do It Fo Yo Own",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 189833,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/f0/31/a0/f031a083-30db-e283-2dcd-803a8fb05cf6/mzaf_2228192082122762146.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485065"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/do-it-fo-yo-own"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/do-it-fo-yo-own/1695469751?i=1695469755&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469790",
+      "trackId": 1695469790,
+      "title": "Sleepy Hollow",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 123742,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/11/97/4f/11974f81-13e8-c0c0-b9ac-b1847f6f861f/mzaf_11554915779176486026.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485115"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/sleepy-hollow"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/sleepy-hollow/1695469751?i=1695469790&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469787",
+      "trackId": 1695469787,
+      "title": "Throat Goat",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 102217,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/72/33/9f/72339fa8-2c81-6c9a-b2b4-04dd515e4cc3/mzaf_10062881873946570272.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485085"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/throat-goat"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/throat-goat/1695469751?i=1695469787&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469789",
+      "trackId": 1695469789,
+      "title": "We Gon Ball",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 185183,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/50/cb/a1/50cba129-93d3-6aa6-91b7-cd58928b5300/mzaf_14874913802027979034.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485105"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/we-gon-ball"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/we-gon-ball/1695469751?i=1695469789&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1695469753",
+      "trackId": 1695469753,
+      "title": "Yesterday",
+      "artist": "Smuve Jeff",
+      "album": "I Love You (Mixtape)",
+      "year": "2023",
+      "durationMs": 135027,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/5a/13/ba/5a13ba93-907b-a1c4-e57a-d93a7e059fe8/mzaf_7185420453986455252.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2351485055"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/yesterday"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/yesterday/1695469751?i=1695469753&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494226",
+      "trackId": 1705494226,
+      "title": "Ant'e Up (feat. Kirbo K.T.H.B & Stepho)",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 202369,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/85/dd/7c/85dd7cd1-bb9e-f911-fb4b-0b1ee00dc351/mzaf_11282455749237253544.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629155"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/ante-up-feat-kirbo-k-t-h-b"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/ante-up-feat-kirbo-k-t-h-b-stepho/1705493954?i=1705494226&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493955",
+      "trackId": 1705493955,
+      "title": "Home",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 161123,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/42/d8/22/42d82271-6ee9-9f4f-6a50-9fb8f46b14a4/mzaf_9071738941499865332.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629145"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/home"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/home/1705493954?i=1705493955&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494227",
+      "trackId": 1705494227,
+      "title": "Love Hate & Enemies",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 90245,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/34/d3/4d/34d34d34-05a3-c71b-e44f-568161690872/mzaf_18306314524140070263.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629165"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/love-hate-enemies"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/love-hate-enemies/1705493954?i=1705494227&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494228",
+      "trackId": 1705494228,
+      "title": "Memories",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 89652,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/d0/9b/69/d09b6944-51a0-10da-59ca-aefd9432201b/mzaf_13149849389188411511.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629175"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/memories"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/memories/1705493954?i=1705494228&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494231",
+      "trackId": 1705494231,
+      "title": "Never Give Up",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 128052,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/e3/61/85/e36185c5-e9e3-71ed-852a-2785fbf822c5/mzaf_7470702892264759776.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629215"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/never-give-up"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/never-give-up/1705493954?i=1705494231&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494229",
+      "trackId": 1705494229,
+      "title": "Only Way for Me",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 102322,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/de/2c/d5/de2cd557-3f55-aa09-5f1d-9d1e8d1d3909/mzaf_4794506467419100069.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629185"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/only-way-for-me"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/only-way-for-me/1705493954?i=1705494229&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705494230",
+      "trackId": 1705494230,
+      "title": "Within Myself",
+      "artist": "Smuve Jeff",
+      "album": "It's Only Entertainment",
+      "year": "2023",
+      "durationMs": 125753,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/43/97/71/4397713a-17dd-4e79-57a0-17862af27264/mzaf_6683394527748099594.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2301629195"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/within-myself"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/within-myself/1705493954?i=1705494230&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-nigga why you hating on me",
+      "trackId": null,
+      "title": "Nigga Why You Hating on Me",
+      "artist": "Smuve Jeff",
+      "album": "Live out Tha Trunk",
+      "year": "2023",
+      "durationMs": 200000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2364533215"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/nigga-why-you-hating-on-me"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1697069459",
+      "trackId": 1697069459,
+      "title": "Long Nights (feat. Stepho & Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Live out Tha Trunk - Single",
+      "year": "2023",
+      "durationMs": 137424,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/b3/9e/50/b39e50ad-2622-8491-fb5f-d3d2649d3f71/mzaf_11950875652499503665.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/41/80/79/4180797d-8a74-d010-608b-27e60be550a6/8445888713550.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2364533205"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/long-nights-feat-kirbo-k-t-h-b"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/long-nights-feat-stepho-kirbo-k-t-h-b/1697069457?i=1697069459&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1697069461",
+      "trackId": 1697069461,
+      "title": "N***a Why You Hating on Me (feat. Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Live out Tha Trunk - Single",
+      "year": "2023",
+      "durationMs": 200832,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/31/db/9c/31db9c91-d839-c108-2edd-a0fa0e05b872/mzaf_8842071624112954672.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/41/80/79/4180797d-8a74-d010-608b-27e60be550a6/8445888713550.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/n-a-why-you-hating-on-me-feat-kirbo-k-t-h-b/1697069457?i=1697069461&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1697069458",
+      "trackId": 1697069458,
+      "title": "Set Dis Bitch Off",
+      "artist": "Smuve Jeff",
+      "album": "Live out Tha Trunk - Single",
+      "year": "2023",
+      "durationMs": 122832,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/bc/c2/bf/bcc2bf1a-c43a-fa17-5902-586a3d66edbe/mzaf_14968422178507170987.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/41/80/79/4180797d-8a74-d010-608b-27e60be550a6/8445888713550.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2364533195"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/set-dis-bitch-off"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/set-dis-bitch-off/1697069457?i=1697069458&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493059",
+      "trackId": 1705493059,
+      "title": "100 (feat. Stepho & Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 213088,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/60/ab/78/60ab781b-8c44-b689-551b-9bd4d0e8cb50/mzaf_8667096125555234469.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543925"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/100a1"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/100-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705493059&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493057",
+      "trackId": 1705493057,
+      "title": "Been so Long (feat. Stepho & Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 297605,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/38/76/fe/3876fe86-fb4e-fb97-9ee0-6fd4a4b3bae7/mzaf_5943717908355480013.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543905"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/been-so-long"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/been-so-long-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705493057&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705492904",
+      "trackId": 1705492904,
+      "title": "Dum Dum (feat. PBA)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 119251,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/e8/b7/c0/e8b7c064-54cb-b51d-48a6-19498c7fd357/mzaf_10891238480341482646.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543875"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/dum-dum"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/dum-dum-feat-pba/1705492898?i=1705492904&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705492899",
+      "trackId": 1705492899,
+      "title": "Intro / Outro (feat. ChrisO)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 142518,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/fa/3c/72/fa3c72f1-f2cd-62c5-be22-2f9872f73049/mzaf_6632027990640733826.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543845"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/intro-outro"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/intro-outro-feat-chriso/1705492898?i=1705492899&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705492901",
+      "trackId": 1705492901,
+      "title": "Kilos (feat. Stepho & Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 203773,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/0a/12/ea/0a12ead5-c3cb-877f-a434-dd45c1bd5749/mzaf_8331949956829262417.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543865"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/kilos"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/kilos-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705492901&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705492905",
+      "trackId": 1705492905,
+      "title": "Kirbo My Life (feat. Kirbo K.T.H.B)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 227957,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/9f/f1/95/9ff19578-ad9b-0fee-2f01-af0351d025bb/mzaf_11555286786507914408.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543885"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/kirbo-my-life"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/kirbo-my-life-feat-kirbo-k-t-h-b/1705492898?i=1705492905&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493060",
+      "trackId": 1705493060,
+      "title": "No Clue (feat. PBA)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 106205,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/fb/ab/2e/fbab2e98-69d8-8798-acf2-4f9cfe12235e/mzaf_2846379038462465157.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543935"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/no-clue"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/no-clue-feat-pba/1705492898?i=1705493060&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493056",
+      "trackId": 1705493056,
+      "title": "Smoke (feat. ChrisO & PBA)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 208037,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/1c/91/cd/1c91cda4-5946-e6c4-6ea7-92398a19da53/mzaf_15792252036310172692.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543895"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/smoke"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/smoke-feat-chriso-pba/1705492898?i=1705493056&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705492900",
+      "trackId": 1705492900,
+      "title": "Step On (feat. PBA)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 122945,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/2a/be/51/2abe51b2-6907-456d-c552-e0e2254e003c/mzaf_12509279083701615513.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543855"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/step-on"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/step-on-feat-pba/1705492898?i=1705492900&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493061",
+      "trackId": 1705493061,
+      "title": "When I'm Gone (feat. Kirbo K.T.H.B & Esko)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 239525,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/db/9f/bd/db9fbd8f-f2e1-ce04-9730-838e28dc8dbc/mzaf_16382245125377953243.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543945"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/when-im-gone"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/when-im-gone-feat-kirbo-k-t-h-b-esko/1705492898?i=1705493061&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1705493058",
+      "trackId": 1705493058,
+      "title": "You Die Too (feat. PBA)",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales from Across Tha Tracks Vol.3 Loyalty Envy Greed",
+      "year": "2023",
+      "durationMs": 104982,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/e2/33/bb/e233bb39-9a43-a883-173f-b82d01d9b95e/mzaf_16605765547732849800.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2416543915"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/you-die-too"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/you-die-too-feat-pba/1705492898?i=1705493058&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145005",
+      "trackId": 1773145005,
+      "title": "Crash Out Quick",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 93937,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e8/7d/a3/e87da358-e485-5fc1-e85a-0f7ac9057260/mzaf_2663908269117796041.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956521"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/crash-out-quick/1773145004?i=1773145005&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145221",
+      "trackId": 1773145221,
+      "title": "Hail Mary",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 63049,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/04/ef/59/04ef59d2-62c6-6aa0-de44-fd04ece31148/mzaf_11714000748819340982.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956571"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/hail-mary/1773145004?i=1773145221&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145006",
+      "trackId": 1773145006,
+      "title": "Homicide",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 126824,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/1e/24/6c/1e246cc2-aceb-4575-73a3-ed0cb1318794/mzaf_9037395459495117654.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956531"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/homicide/1773145004?i=1773145006&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145008",
+      "trackId": 1773145008,
+      "title": "That Thang",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 142249,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8e/ac/03/8eac03c2-1b37-4284-e913-2a99e776cf88/mzaf_12370178161946555205.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956551"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/that-thang/1773145004?i=1773145008&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145222",
+      "trackId": 1773145222,
+      "title": "The Liqour Got Me",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 95190,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2f/bd/19/2fbd19c7-eff9-8522-d936-adac2be17e95/mzaf_1341728497055006438.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956581"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/the-liqour-got-me/1773145004?i=1773145222&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145007",
+      "trackId": 1773145007,
+      "title": "Use Too Be",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 82249,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/74/98/d1/7498d1bc-8a21-43e7-d42c-4dceef3dff7d/mzaf_9734306864801988835.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956541"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/use-too-be/1773145004?i=1773145007&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1773145220",
+      "trackId": 1773145220,
+      "title": "Yellow Diamonds",
+      "artist": "Smuve Jeff",
+      "album": "Acquired Taste",
+      "year": "2024",
+      "durationMs": 161113,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e1/81/3c/e1813ce6-5a46-4431-98d5-319099179415/mzaf_6428828014438219397.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3036956561"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/yellow-diamonds/1773145004?i=1773145220&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-diamonds against tha wood",
+      "trackId": null,
+      "title": "Diamonds Against Tha Wood",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 127000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464192"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/diamonds-against-tha-wood"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-fk is you saying dawg",
+      "trackId": null,
+      "title": "Fk Is You Saying Dawg",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 123000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464162"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/fk-is-you-saying-dawg"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-sometimes",
+      "trackId": null,
+      "title": "Sometimes",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 189000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464202"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/sometimes"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-the wall",
+      "trackId": null,
+      "title": "The Wall",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 119000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464182"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/the-wall"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-triple beam",
+      "trackId": null,
+      "title": "Triple Beam",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 101000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464172"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/triple-beam"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-yo people",
+      "trackId": null,
+      "title": "Yo People",
+      "artist": "Smuve Jeff",
+      "album": "Each and Everyone of My Songs The Exact Same (Mixtape)",
+      "year": "2024",
+      "durationMs": 160000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2630464152"
+        },
+        {
+          "label": "SOUNDCLOUD",
+          "url": "https://soundcloud.com/smuvejeff/yo-people"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194595",
+      "trackId": 1775194595,
+      "title": "Back To Back",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 133584,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0a/e7/6c/0ae76c88-b03c-c454-08d6-11f38e09de95/mzaf_10044251379571662110.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600301"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/back-to-back/1775194594?i=1775194595&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194605",
+      "trackId": 1775194605,
+      "title": "Bullets Spread Yo",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 117442,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/36/f3/89/36f38985-becd-2e68-69c5-f3bb5562124a/mzaf_8438003832558748668.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600391"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/bullets-spread-yo/1775194594?i=1775194605&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194599",
+      "trackId": 1775194599,
+      "title": "Losing Composure",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 144660,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/2e/09/6e/2e096ee4-5473-60b8-cde4-8907c09d8281/mzaf_3277379616984816018.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600341"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/losing-composure/1775194594?i=1775194599&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194607",
+      "trackId": 1775194607,
+      "title": "Neva Leave Me",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 207759,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/5a/6f/7b/5a6f7b56-549b-14e0-32bc-5f59b5a93080/mzaf_2562915931761756984.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600411"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/neva-leave-me/1775194594?i=1775194607&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194596",
+      "trackId": 1775194596,
+      "title": "Nine Seven",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 342805,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3c/28/8a/3c288af3-0d16-6288-290a-0091cb219caf/mzaf_15557801639877106961.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600311"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/nine-seven/1775194594?i=1775194596&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194601",
+      "trackId": 1775194601,
+      "title": "Paper Chase",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 136098,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0c/00/c7/0c00c748-22bf-3fdf-ee18-9d4aa4a3d72a/mzaf_4265567646410580258.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600361"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/paper-chase/1775194594?i=1775194601&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194600",
+      "trackId": 1775194600,
+      "title": "Sacrifice",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 140361,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/1e/31/c1/1e31c1a4-9b9b-ff7a-b14b-2d26ea57cbdb/mzaf_1382609399996736921.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600351"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/sacrifice/1775194594?i=1775194600&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194603",
+      "trackId": 1775194603,
+      "title": "Spazz Out",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 113006,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7c/ef/15/7cef150f-5021-171f-5494-dd19d80649ab/mzaf_686163352386610601.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600381"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/spazz-out/1775194594?i=1775194603&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194598",
+      "trackId": 1775194598,
+      "title": "Trust No Plug",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 105639,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c2/1c/35/c21c351a-2748-4334-c562-332a4617367d/mzaf_15064368650615172517.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600331"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/trust-no-plug/1775194594?i=1775194598&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194602",
+      "trackId": 1775194602,
+      "title": "What You Round Me Fo",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 203774,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/81/f1/d981f1ff-78a7-d718-5dbc-83e6714932f6/mzaf_4690793940485828090.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600371"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/what-you-round-me-fo/1775194594?i=1775194602&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1775194597",
+      "trackId": 1775194597,
+      "title": "Work",
+      "artist": "Smuve Jeff",
+      "album": "Head Shot Head Shot: The Bayou City Mixtape",
+      "year": "2024",
+      "durationMs": 62137,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/2b/dc/2c/2bdc2ca2-6b91-b6c3-d001-33d843f6775c/mzaf_13820249442548712461.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3054600321"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/work/1775194594?i=1775194597&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-find a way to burn them bridges",
+      "trackId": null,
+      "title": "Find a Way to Burn Them Bridges",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 70000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787422"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-like me",
+      "trackId": null,
+      "title": "Like Me",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 87000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787402"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-numb niqqa",
+      "trackId": null,
+      "title": "Numb Niqqa",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 93000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787372"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-qu 3 0",
+      "trackId": null,
+      "title": "Qué3.0",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 73000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787442"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-remember when",
+      "trackId": null,
+      "title": "Remember When",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 204000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787412"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-schemes",
+      "trackId": null,
+      "title": "Schemes",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 75000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787392"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-to keepz",
+      "trackId": null,
+      "title": "To Keepz",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 93000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787382"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-win lose draw",
+      "trackId": null,
+      "title": "Win Lose Draw",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 111000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787432"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "dz-wyhh",
+      "trackId": null,
+      "title": "Wyhh",
+      "artist": "Smuve Jeff",
+      "album": "The Black Label",
+      "year": "2024",
+      "durationMs": 144000,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/2873787362"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970081",
+      "trackId": 1843970081,
+      "title": "Beside Me (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 288762,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/59/c4/ea/59c4ea36-153d-7979-bb93-a1b4d5459fe3/mzaf_663386075731993428.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637191"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/beside-me-remix/1843970080?i=1843970081&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970088",
+      "trackId": 1843970088,
+      "title": "Fall Back (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 70513,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/21/3c/01/213c0173-8cab-4adf-261f-b28fa1e28fe7/mzaf_6565200042185815320.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637261"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/fall-back-remix/1843970080?i=1843970088&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970082",
+      "trackId": 1843970082,
+      "title": "Got Away (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 265542,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8e/6f/0e/8e6f0e65-7b3b-f55b-f698-3dc22946f48b/mzaf_10126259577397527764.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637201"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/got-away-remix/1843970080?i=1843970082&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970084",
+      "trackId": 1843970084,
+      "title": "Purple Tag (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 109681,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/30/29/bd/3029bd88-7d6a-34d8-f7ba-fdfba9e6896f/mzaf_2762009830187314336.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637221"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/purple-tag-remix/1843970080?i=1843970084&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970083",
+      "trackId": 1843970083,
+      "title": "Seat Lay Way Back (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 72699,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/84/59/f7/8459f727-1c6c-c73a-7847-9af6eec16208/mzaf_13657961595692534878.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637211"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/seat-lay-way-back-remix/1843970080?i=1843970083&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843970085",
+      "trackId": 1843970085,
+      "title": "Slowly Starve The Hood (Remix)",
+      "artist": "Smuve Jeff",
+      "album": "More Than Others (Remix)",
+      "year": "2025",
+      "durationMs": 100007,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/51/1c/6e/511c6efe-7c9d-011f-757e-7544210d9711/mzaf_8484605256244708936.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3582637231"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/slowly-starve-the-hood-remix/1843970080?i=1843970085&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180417",
+      "trackId": 1843180417,
+      "title": "Back In This (feat. Kirbo K.T.H.B) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 197376,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/e0/03/92/e0039274-b6c2-e24a-5f2a-4d6e6f9c32b1/mzaf_14789092934543627000.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175871"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/back-in-this-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180417&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180422",
+      "trackId": 1843180422,
+      "title": "Bad Decisions (feat. Kirbo K.T.H.B & Stepho) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 136542,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fc/93/41/fc934120-8c66-f266-09d6-a28b3c4552fa/mzaf_8570094965830637965.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175931"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/bad-decisions-feat-kirbo-k-t-h-b-stepho-mixtape/1843180413?i=1843180422&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180419",
+      "trackId": 1843180419,
+      "title": "Can't Cry (feat. PBA) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 117760,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/dc/a1/15/dca11531-c363-3417-2430-165fc86ba6cf/mzaf_12688377162913969683.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175901"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/cant-cry-feat-pba-mixtape/1843180413?i=1843180419&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180414",
+      "trackId": 1843180414,
+      "title": "Gotta Go Get It (feat. Kirbo K.T.H.B) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 130220,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ad/76/85/ad76859f-2b0e-e715-0932-9c4298b24b65/mzaf_4649562888275430586.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175841"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/gotta-go-get-it-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180414&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180415",
+      "trackId": 1843180415,
+      "title": "I'm Sorry (feat. PBA) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 109244,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ad/ab/18/adab18c7-f09c-9dd2-d9b8-1358d0fe54be/mzaf_13645072280802169790.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175851"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/im-sorry-feat-pba-mixtape/1843180413?i=1843180415&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180418",
+      "trackId": 1843180418,
+      "title": "Keep It Real (feat. Kirbo K.T.H.B) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 191660,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/6c/af/f6/6caff644-1e4b-e55c-0b21-24e493b2de7f/mzaf_12790897016211685483.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175881"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/keep-it-real-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180418&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180421",
+      "trackId": 1843180421,
+      "title": "Reckless Talk (feat. PBA) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 92395,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b0/20/1e/b0201ef8-8988-eb14-7f6d-39ee5517881f/mzaf_1835776933614415777.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175921"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/reckless-talk-feat-pba-mixtape/1843180413?i=1843180421&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180416",
+      "trackId": 1843180416,
+      "title": "Stand On That (feat. PBA) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 165198,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c6/1f/88/c61f8835-f9bc-3073-6253-46f318c8c481/mzaf_931457691689616482.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175861"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/stand-on-that-feat-pba-mixtape/1843180413?i=1843180416&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1843180420",
+      "trackId": 1843180420,
+      "title": "The Truth (feat. Kirbo K.T.H.B) [Mixtape]",
+      "artist": "Smuve Jeff",
+      "album": "Mudd Alley Tales From Across Tha Tracks Vol.2 Not For Resale (Mixtape)",
+      "year": "2025",
+      "durationMs": 242782,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f1/8a/e3/f18ae332-efb7-4e76-27eb-c0e737ff8987/mzaf_11364360254275124125.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3578175911"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/the-truth-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180420&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028035",
+      "trackId": 1818028035,
+      "title": "281 (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 137329,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/dd/b1/85/ddb185c0-1412-46aa-52b5-3435e374952c/mzaf_17592117646735315634.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590951"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/281-live/1818028016?i=1818028035&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028036",
+      "trackId": 1818028036,
+      "title": "Chasing Me (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 105012,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/df/72/85/df7285d3-9482-c922-39e9-6238cdd82312/mzaf_11928829788708855983.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590961"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/chasing-me-live/1818028016?i=1818028036&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028034",
+      "trackId": 1818028034,
+      "title": "Crashing (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 76251,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f4/73/05/f4730576-b955-1122-a9d8-574021a47dce/mzaf_6789922036957684754.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590941"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/crashing-live/1818028016?i=1818028034&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028030",
+      "trackId": 1818028030,
+      "title": "Interlude (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 119857,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/64/ec/07/64ec0747-e8da-ace9-cd9b-aa44a3687970/mzaf_3797803859343609135.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590931"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/interlude-live/1818028016?i=1818028030&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028029",
+      "trackId": 1818028029,
+      "title": "M.O.N.E.Y (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 128157,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/56/ca/67/56ca678b-ea56-e1f6-5fe3-d19c77a0baf0/mzaf_8548435299177533106.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590921"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/m-o-n-e-y-live/1818028016?i=1818028029&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028027",
+      "trackId": 1818028027,
+      "title": "Push (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 75886,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d1/50/65/d150650e-c2ca-ac36-a045-57c25c215a5b/mzaf_9783018953857894709.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590911"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/push-live/1818028016?i=1818028027&uo=4"
+        }
+      ],
+      "file": ""
+    },
+    {
+      "id": "apple-1818028019",
+      "trackId": 1818028019,
+      "title": "Stay Aware (Live)",
+      "artist": "Smuve Jeff",
+      "album": "Secret Indictments",
+      "year": "2025",
+      "durationMs": 103576,
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/30/12/fb/3012fb51-4c21-505f-8145-afdfa76f7796/mzaf_8890468376934690739.plus.aac.p.m4a",
+      "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
+      "links": [
+        {
+          "label": "DEEZER",
+          "url": "https://www.deezer.com/track/3394590901"
+        },
+        {
+          "label": "APPLE MUSIC",
+          "url": "https://music.apple.com/us/album/stay-aware-live/1818028016?i=1818028019&uo=4"
+        }
+      ],
+      "file": ""
+    }
+  ]
+}
