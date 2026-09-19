@@ -911,4 +911,207 @@ describe('CameraCaptureService', () => {
       expect(service.lastError()).toContain('Camera permission denied');
     });
   });
+
+  describe('high-quality capture', () => {
+    /** A track that reports an arbitrary granted geometry. */
+    const streamWith = (
+      settings: Record<string, number>,
+      capabilities?: Record<string, { max: number }>
+    ) => {
+      const track = {
+        stop: jest.fn(),
+        addEventListener: jest.fn(),
+        getSettings: jest.fn(() => settings),
+        getCapabilities: capabilities
+          ? jest.fn(() => capabilities)
+          : undefined,
+      };
+      const stream = {
+        getTracks: () => [track],
+        getVideoTracks: () => [track],
+      };
+      return { stream: stream as unknown as MediaStream, track };
+    };
+
+    afterEach(() => {
+      Reflect.deleteProperty(
+        globalThis as unknown as Record<string, unknown>,
+        'ImageCapture'
+      );
+      Reflect.deleteProperty(
+        HTMLCanvasElement.prototype as unknown as Record<string, unknown>,
+        'toBlob'
+      );
+    });
+
+    it('asks for the pinned resolution once a quality is chosen', async () => {
+      const mediaDevices = installMediaDevices();
+      const service = createService();
+
+      await service.setQuality('2160p');
+      await service.start();
+
+      const constraints = mediaDevices.getUserMedia.mock
+        .calls[0][0] as MediaStreamConstraints;
+      // A 25% shortfall is accepted so a device that cannot hit 4K still binds.
+      expect(constraints.video).toEqual(
+        expect.objectContaining({
+          width: { ideal: 3840, min: 2880 },
+          height: { ideal: 2160, min: 1620 },
+        })
+      );
+    });
+
+    it('retargets a live track in place instead of reopening the device', async () => {
+      const { stream, track } = makeStream();
+      const applyConstraints = jest.fn(async () => undefined);
+      (track as unknown as { applyConstraints: jest.Mock }).applyConstraints =
+        applyConstraints;
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => stream),
+      });
+      const service = createService();
+      await service.start();
+      const callsBefore = mediaDevices.getUserMedia.mock.calls.length;
+
+      await expect(service.setQuality('1080p')).resolves.toBe(true);
+
+      expect(applyConstraints).toHaveBeenCalledWith({
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      });
+      // Reopening would flash the viewfinder black and hand the device back.
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(callsBefore);
+      expect(service.quality()).toBe('1080p');
+    });
+
+    it('reopens the device when the host cannot retarget in place', async () => {
+      const mediaDevices = installMediaDevices({ getUserMedia: autoStream() });
+      const service = createService();
+      await service.start();
+      const callsBefore = mediaDevices.getUserMedia.mock.calls.length;
+
+      await expect(service.setQuality('720p')).resolves.toBe(true);
+
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(callsBefore + 1);
+      expect(mediaDevices.getUserMedia).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          video: expect.objectContaining({
+            width: { ideal: 1280, min: 960 },
+          }),
+        })
+      );
+    });
+
+    it('sizes the recorder bitrate to the granted geometry', async () => {
+      const { stream } = makeStream();
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      expect(service.qualityLabel()).toBe('CAPTURE STANDBY');
+      await service.start();
+
+      // 720p30 computes ~3.3 Mbps, which is clamped up to the 6 Mbps floor.
+      expect(service.qualityLabel()).toBe('1280×720 @ 30fps · 6 Mbps');
+    });
+
+    it('lets the bitrate grow with a larger frame', async () => {
+      const { stream } = streamWith({
+        width: 3840,
+        height: 2160,
+        frameRate: 30,
+      });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      await service.start();
+
+      expect(service.qualityLabel()).toBe('3840×2160 @ 30fps · 30 Mbps');
+    });
+
+    it('reports the highest resolution the device advertises', async () => {
+      const { stream } = streamWith(
+        { width: 1920, height: 1080, frameRate: 30 },
+        { width: { max: 3840 }, height: { max: 2160 }, frameRate: { max: 60 } }
+      );
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      expect(service.maxResolutionLabel()).toBe('Detecting…');
+
+      await service.start();
+
+      expect(service.maxResolutionLabel()).toBe('Up to 3840×2160 @ 60fps');
+    });
+
+    it('takes the still off the sensor with ImageCapture when it is there', async () => {
+      const { stream } = makeStream();
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const takePhoto = jest.fn(
+        async () => new Blob(['sensor'], { type: 'image/jpeg' })
+      );
+      (
+        globalThis as unknown as { ImageCapture: unknown }
+      ).ImageCapture = jest.fn(() => ({ takePhoto }));
+      const service = createService();
+      await service.start();
+
+      const photo = await service.capturePhoto();
+
+      expect(takePhoto).toHaveBeenCalledTimes(1);
+      expect(photo).toEqual({
+        blob: expect.any(Blob),
+        width: 1280,
+        height: 720,
+        mimeType: 'image/jpeg',
+        source: 'image-capture',
+      });
+    });
+
+    it('falls back to a canvas grab when no sensor still is available', async () => {
+      const { stream } = makeStream();
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+      await service.start();
+
+      const video = document.createElement('video');
+      Object.defineProperty(video, 'videoWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      Object.defineProperty(video, 'videoHeight', {
+        configurable: true,
+        value: 720,
+      });
+      const drawImage = jest.fn();
+      jest
+        .spyOn(HTMLCanvasElement.prototype, 'getContext')
+        .mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+      Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
+        configurable: true,
+        value: (callback: BlobCallback) =>
+          callback(new Blob(['canvas'], { type: 'image/jpeg' })),
+      });
+
+      const photo = await service.capturePhoto(video, { maxWidth: 640 });
+
+      expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 360);
+      expect(photo).toEqual({
+        blob: expect.any(Blob),
+        width: 640,
+        height: 360,
+        mimeType: 'image/jpeg',
+        source: 'canvas',
+      });
+    });
+
+    it('returns nothing for a still when the feed has not decoded a frame', async () => {
+      const service = createService();
+      await service.start();
+
+      const video = document.createElement('video');
+
+      await expect(service.capturePhoto(video)).resolves.toBeNull();
+    });
+  });
 });

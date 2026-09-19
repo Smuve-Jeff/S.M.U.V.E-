@@ -382,6 +382,18 @@ describe('ImageVideoLabComponent', () => {
         () => 'data:image/jpeg;base64,camera-frame'
       ),
       markPreviewReady: jest.fn(),
+      recordingSupported: computed(() => true),
+      quality: signal<'auto' | '720p' | '1080p' | '1440p' | '2160p'>('auto'),
+      qualityLabel: computed(() => '1280×720 @ 30fps · 6 Mbps'),
+      maxResolutionLabel: computed(() => 'Up to 3840×2160 @ 30fps'),
+      setQuality: jest.fn(async () => true),
+      capturePhoto: jest.fn(async () => ({
+        blob: new Blob(['hq-photo'], { type: 'image/jpeg' }),
+        width: 3840,
+        height: 2160,
+        mimeType: 'image/jpeg',
+        source: 'image-capture' as const,
+      })),
       retry: jest.fn(async () => {
         cameraRetrying.set(true);
         cameraStream.set({ id: 'mock-stream' } as unknown as MediaStream);
@@ -1302,6 +1314,254 @@ describe('ImageVideoLabComponent', () => {
       camera.recordingSeconds.set(9);
       camera.isRecording.set(true);
       expect(component.transportLabel()).toBe('REC 9s');
+    });
+  });
+
+  describe('program monitor and capture deck', () => {
+    /** The mock engine keeps `tracks` as a signal, so tests can stage lanes. */
+    const setTracks = (engine: { tracks: unknown }, tracks: unknown[]) =>
+      (engine.tracks as { set: (value: unknown[]) => void }).set(tracks);
+
+    const cameraTrack = () => ({
+      id: 't1',
+      name: 'Visuals',
+      type: 'visual',
+      muted: false,
+      locked: false,
+      clips: [createVideoClip({ name: 'Camera Take 1' })],
+    });
+
+    it('opens on the timeline composite', async () => {
+      const { component } = await createComponent();
+
+      expect(component.monitorSource()).toBe('program');
+      expect(component.showProgramSurface()).toBe(true);
+      expect(component.showCameraSurface()).toBe(false);
+      expect(component.monitorResolutionLabel()).toBe('2.39:1 · 4096×1716');
+    });
+
+    it('switches the monitor to the live viewfinder on request', async () => {
+      const { component } = await createComponent();
+
+      component.setMonitorSource('camera');
+
+      expect(component.showCameraSurface()).toBe(true);
+      expect(component.showProgramSurface()).toBe(false);
+      // The badge follows the surface: capture profile while on the viewfinder.
+      expect(component.monitorResolutionLabel()).toBe(
+        '1280×720 @ 30fps · 6 Mbps'
+      );
+    });
+
+    it('follows the camera onto the viewfinder and hands the monitor back', async () => {
+      const { component } = await createComponent();
+
+      await component.toggleCamera();
+      TestBed.flushEffects();
+      expect(component.monitorSource()).toBe('camera');
+
+      await component.toggleCamera();
+      TestBed.flushEffects();
+      expect(component.monitorSource()).toBe('program');
+    });
+
+    it('scrubs and stops the transport from the monitor', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.onMonitorSeek({
+        target: { value: '42.5' },
+      } as unknown as Event);
+      expect(videoEngine.seek).toHaveBeenCalledWith(42.5);
+
+      component.stopTransport();
+      expect(videoEngine.pause).toHaveBeenCalled();
+      expect(videoEngine.seek).toHaveBeenLastCalledWith(0);
+    });
+
+    it('ignores a scrub readout that is not a number', async () => {
+      const { component, videoEngine } = await createComponent();
+
+      component.onMonitorSeek({
+        target: { value: 'nope' },
+      } as unknown as Event);
+
+      expect(videoEngine.seek).not.toHaveBeenCalled();
+    });
+
+    it('unmutes the native player explicitly', async () => {
+      const { component } = await createComponent();
+      const player = document.createElement('video');
+      player.muted = true;
+      (
+        component as unknown as { nativePlayerElement?: HTMLVideoElement }
+      ).nativePlayerElement = player;
+
+      component.togglePlayerAudio();
+      expect(player.muted).toBe(false);
+      expect(component.playerUnmuted()).toBe(true);
+      expect(component.aiFeedback()).toContain('UNMUTED');
+
+      component.togglePlayerAudio();
+      expect(player.muted).toBe(true);
+      expect(component.aiFeedback()).toContain('MUTED');
+    });
+
+    it('takes a sensor-resolution photo onto the lane and the deck', async () => {
+      const { component, camera, videoEngine } = await createComponent();
+      await component.toggleCamera();
+
+      await component.captureCameraPhoto();
+
+      expect(camera.capturePhoto).toHaveBeenCalledWith(
+        expect.any(HTMLVideoElement),
+        { maxWidth: 1920 }
+      );
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({
+          name: 'Camera Photo 1',
+          type: 'image',
+          source: 'camera',
+        })
+      );
+      expect(component.captureCount()).toBe(1);
+      expect(component.deckCaptures()[0]).toEqual(
+        expect.objectContaining({
+          kind: 'photo',
+          name: 'Camera Photo 1',
+          width: 3840,
+          height: 2160,
+        })
+      );
+      expect(component.aiFeedback()).toContain('SENSOR STILL');
+    });
+
+    it('falls back to the canvas grab when no sensor still is available', async () => {
+      const { component, camera, videoEngine } = await createComponent();
+      await component.toggleCamera();
+      camera.capturePhoto.mockResolvedValueOnce(null);
+
+      await component.captureCameraPhoto();
+
+      expect(camera.captureFrame).toHaveBeenCalled();
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({ name: 'Camera Frame 1' })
+      );
+    });
+
+    it('refuses a photo while the camera is off', async () => {
+      const { component, camera, videoEngine } = await createComponent();
+
+      await component.captureCameraPhoto();
+
+      expect(camera.capturePhoto).not.toHaveBeenCalled();
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('START THE CAMERA');
+    });
+
+    it('retargets the capture quality and reports the new profile', async () => {
+      const { component, camera } = await createComponent();
+
+      await component.changeCaptureQuality('2160p');
+
+      expect(camera.setQuality).toHaveBeenCalledWith('2160p');
+      expect(component.aiFeedback()).toContain('CAPTURE QUALITY');
+    });
+
+    it('reports a quality change blocked by a rolling take', async () => {
+      const { component, camera } = await createComponent();
+      camera.setQuality.mockResolvedValueOnce(false);
+
+      await component.changeCaptureQuality('1080p');
+
+      expect(component.aiFeedback()).toContain(
+        'BLOCKED WHILE A TAKE IS ROLLING'
+      );
+    });
+
+    it('lists camera takes straight off the lanes', async () => {
+      const { component, videoEngine } = await createComponent();
+      setTracks(videoEngine, [cameraTrack()]);
+
+      const captures = component.deckCaptures();
+
+      expect(captures).toHaveLength(1);
+      expect(captures[0]).toEqual(
+        expect.objectContaining({
+          kind: 'video',
+          name: 'Camera Take 1',
+          seconds: 10,
+        })
+      );
+    });
+
+    it('keeps an upload out of the capture deck', async () => {
+      const { component, videoEngine } = await createComponent();
+      setTracks(videoEngine, [
+        {
+          id: 't1',
+          name: 'Visuals',
+          type: 'visual',
+          muted: false,
+          locked: false,
+          clips: [createVideoClip({ name: 'b-roll.webm', source: 'upload' })],
+        },
+      ]);
+
+      expect(component.deckCaptures()).toEqual([]);
+    });
+
+    it('downloads a still at the bytes that were captured', async () => {
+      const { component, exportService } = await createComponent();
+      await component.toggleCamera();
+      await component.captureCameraPhoto();
+
+      component.downloadCapture(component.deckCaptures()[0]);
+
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        'Camera_Photo_1.jpg'
+      );
+      expect(component.aiFeedback()).toContain('DOWNLOAD STARTED');
+    });
+
+    it('downloads a take through the url its clip carries', async () => {
+      const { component, videoEngine, exportService } = await createComponent();
+      setTracks(videoEngine, [cameraTrack()]);
+
+      component.downloadCapture(component.deckCaptures()[0]);
+
+      expect(exportService.downloadBlob).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('Camera_Take_1.webm');
+    });
+
+    it('puts the playhead on the clip a take came from', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.setMonitorSource('camera');
+      setTracks(videoEngine, [
+        {
+          id: 't1',
+          name: 'Visuals',
+          type: 'visual',
+          muted: false,
+          locked: false,
+          clips: [createVideoClip({ name: 'Camera Take 1', startTime: 12 })],
+        },
+      ]);
+
+      component.locateCapture(component.deckCaptures()[0]);
+
+      expect(videoEngine.seek).toHaveBeenCalledWith(12);
+      expect(component.monitorSource()).toBe('program');
+    });
+
+    it('says so when there is no clip under the playhead to download', async () => {
+      const { component } = await createComponent();
+
+      component.downloadActiveClip();
+
+      expect(component.aiFeedback()).toContain('NO CLIP UNDER THE PLAYHEAD');
     });
   });
 

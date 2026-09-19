@@ -35,11 +35,57 @@ export interface CameraFrameSettings {
   frameRate: number;
 }
 
+/**
+ * Capture resolution the operator asked for. `auto` lets the device pick its
+ * best (ideal 1080p); the rest pin a target the deck can name.
+ */
+export type CaptureQuality = 'auto' | '720p' | '1080p' | '1440p' | '2160p';
+
+export const CAPTURE_QUALITIES: readonly {
+  id: CaptureQuality;
+  label: string;
+  width: number;
+  height: number;
+}[] = [
+  { id: 'auto', label: 'Auto — device best', width: 0, height: 0 },
+  { id: '720p', label: 'HD · 1280×720', width: 1280, height: 720 },
+  { id: '1080p', label: 'Full HD · 1920×1080', width: 1920, height: 1080 },
+  { id: '1440p', label: 'QHD · 2560×1440', width: 2560, height: 1440 },
+  { id: '2160p', label: '4K UHD · 3840×2160', width: 3840, height: 2160 },
+];
+
+/** A still-grab result, either straight off the sensor or off a canvas copy. */
+export interface CapturedPhoto {
+  blob: Blob;
+  width: number;
+  height: number;
+  mimeType: string;
+  /** `image-capture` is the native sensor frame; `canvas` is the fallback grab. */
+  source: 'image-capture' | 'canvas';
+}
+
 /** Requested capture resolution — ideal, not exact, so weak devices still bind. */
 const IDEAL_WIDTH = 1920;
 const IDEAL_HEIGHT = 1080;
 const IDEAL_FRAME_RATE = 30;
+/** Highest frame rate we ever ask for; phones rarely expose more. */
+const MAX_FRAME_RATE = 60;
+/** Legacy default used when the bound track reports no usable geometry. */
 const RECORDER_VIDEO_BITS_PER_SECOND = 12_000_000;
+/**
+ * Bits per encoded pixel-second. 0.12 lands a 1080p30 take near 7.5 Mbps and a
+ * 4K30 take near 30 Mbps — enough for the codec to hold detail without the file
+ * size of a lossless master.
+ */
+const RECORDER_BITS_PER_PIXEL = 0.12;
+const RECORDER_MIN_BITS_PER_SECOND = 6_000_000;
+const RECORDER_MAX_BITS_PER_SECOND = 40_000_000;
+/**
+ * How long `ImageCapture.takePhoto()` may stall before the canvas fallback runs.
+ * Some Android builds never settle the promise, and an unresponsive shutter is
+ * worse than a slightly softer photo.
+ */
+const PHOTO_CAPTURE_TIMEOUT_MS = 2500;
 
 /** Container/codec preference order. WebM is what Chromium/Android WebView can mux. */
 const RECORDER_MIME_CANDIDATES = [
@@ -144,6 +190,14 @@ export class CameraCaptureService implements OnDestroy {
   facingMode = signal<'user' | 'environment'>('user');
   sourceType = signal<CaptureSource>('camera');
   frameSettings = signal<CameraFrameSettings | null>(null);
+  /** Resolution the deck asked for. `auto` follows the device's own best. */
+  quality = signal<CaptureQuality>('auto');
+  /**
+   * Best resolution the bound device advertises, read from its track
+   * capabilities. Null until a first stream lands (or when the host cannot
+   * report capabilities at all).
+   */
+  deviceCapabilities = signal<CameraFrameSettings | null>(null);
   /** Viewfinder mirror — on by default, matching every phone's selfie preview. */
   mirrored = signal(true);
   isRecording = signal(false);
@@ -261,6 +315,26 @@ export class CameraCaptureService implements OnDestroy {
     return 'Camera idle. Start the camera to open a live capture feed.';
   });
 
+  /**
+   * Honest capture profile for the deck badge: the geometry the device actually
+   * granted plus the bitrate the recorder will target for it.
+   */
+  qualityLabel = computed(() => {
+    const settings = this.frameSettings();
+    if (!settings) return 'CAPTURE STANDBY';
+    return `${settings.width}×${settings.height} @ ${Math.round(
+      settings.frameRate
+    )}fps · ${Math.round(
+      this.resolveRecordingBitrate(settings) / 1_000_000
+    )} Mbps`;
+  });
+  /** Human label for the highest resolution this device advertises. */
+  maxResolutionLabel = computed(() => {
+    const caps = this.deviceCapabilities();
+    if (!caps) return 'Detecting…';
+    return `Up to ${caps.width}×${caps.height} @ ${Math.round(caps.frameRate)}fps`;
+  });
+
   private readonly onDeviceChange = () => {
     void this.refreshDevices();
   };
@@ -341,12 +415,19 @@ export class CameraCaptureService implements OnDestroy {
     this.lastError.set(null);
     this.previewWarning.set(null);
 
+    const target = this.qualityTarget();
     const constraints: MediaStreamConstraints = {
       audio: false,
       video: {
-        width: { ideal: IDEAL_WIDTH },
-        height: { ideal: IDEAL_HEIGHT },
-        frameRate: { ideal: IDEAL_FRAME_RATE, max: IDEAL_FRAME_RATE },
+        // A pinned quality asks for the exact class and accepts a 25% shortfall,
+        // so a device that cannot hit 4K still binds instead of failing closed.
+        width: target
+          ? { ideal: target.width, min: Math.round(target.width * 0.75) }
+          : { ideal: IDEAL_WIDTH },
+        height: target
+          ? { ideal: target.height, min: Math.round(target.height * 0.75) }
+          : { ideal: IDEAL_HEIGHT },
+        frameRate: { ideal: IDEAL_FRAME_RATE, max: MAX_FRAME_RATE },
         ...(targetDevice && targetDevice !== 'default'
           ? { deviceId: { exact: targetDevice } }
           : { facingMode: this.facingMode() }),
@@ -585,7 +666,7 @@ export class CameraCaptureService implements OnDestroy {
 
     this.recordingMimeType = this.resolveRecorderMimeType();
     const options: MediaRecorderOptions = {
-      videoBitsPerSecond: RECORDER_VIDEO_BITS_PER_SECOND,
+      videoBitsPerSecond: this.resolveRecordingBitrate(this.frameSettings()),
       audioBitsPerSecond: 192_000,
     };
     if (this.recordingMimeType) options.mimeType = this.recordingMimeType;
@@ -643,6 +724,128 @@ export class CameraCaptureService implements OnDestroy {
     });
     recorder.stop();
     return result;
+  }
+
+  /**
+   * Retarget the capture resolution.
+   *
+   * A live track is re-pointed in place with `applyConstraints` where the host
+   * supports it: reopening the device would flash the viewfinder black and, on
+   * Android, hand the camera back to whatever else was waiting for it. Hosts
+   * without in-place retargeting (or a refused constraint) fall back to a full
+   * reacquisition.
+   */
+  async setQuality(quality: CaptureQuality): Promise<boolean> {
+    this.quality.set(quality);
+    if (!this.isLive() || this.sourceType() !== 'camera') return true;
+    if (!this.canSwitchDevice()) return false;
+
+    const track = this.mediaStream?.getVideoTracks()[0];
+    const target = this.qualityTarget();
+    if (!track?.applyConstraints) return this.start();
+
+    try {
+      await track.applyConstraints({
+        width: target ? { ideal: target.width } : {},
+        height: target ? { ideal: target.height } : {},
+      });
+      this.refreshFrameSettings(track);
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        'Capture quality could not be retargeted in place — reopening the device.',
+        error
+      );
+      return this.start();
+    }
+  }
+
+  /**
+   * Grab a full-resolution still for the deck's photo shutter.
+   *
+   * `ImageCapture.takePhoto()` is the only path that returns the sensor's native
+   * frame — a canvas grab can never exceed what the decoder hands the video
+   * element, so it tops out at the *stream* resolution. It is also unreliable on
+   * some Android builds (the promise can hang), so it races a timeout and falls
+   * back to a high-quality canvas snapshot of the live sink.
+   */
+  async capturePhoto(
+    video?: HTMLVideoElement | null,
+    options: { maxWidth?: number; quality?: number } = {}
+  ): Promise<CapturedPhoto | null> {
+    return (
+      (await this.takeSensorPhoto()) ??
+      (await this.takeCanvasPhoto(video, options))
+    );
+  }
+
+  private async takeSensorPhoto(): Promise<CapturedPhoto | null> {
+    const track = this.mediaStream?.getVideoTracks()[0];
+    const ImageCaptureCtor = (
+      globalThis as unknown as {
+        ImageCapture?: new (track: MediaStreamTrack) => {
+          takePhoto: () => Promise<Blob>;
+        };
+      }
+    ).ImageCapture;
+    if (!track || typeof ImageCaptureCtor !== 'function') return null;
+
+    try {
+      const capture = new ImageCaptureCtor(track);
+      const blob = await Promise.race([
+        capture.takePhoto(),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), PHOTO_CAPTURE_TIMEOUT_MS)
+        ),
+      ]);
+      if (!blob || blob.size === 0) return null;
+      const settings = this.frameSettings();
+      return {
+        blob,
+        width: settings?.width ?? 0,
+        height: settings?.height ?? 0,
+        mimeType: blob.type || 'image/jpeg',
+        source: 'image-capture',
+      };
+    } catch (error) {
+      this.logger.warn(
+        'ImageCapture takePhoto failed — falling back to a canvas grab.',
+        error
+      );
+      return null;
+    }
+  }
+
+  private async takeCanvasPhoto(
+    video: HTMLVideoElement | null | undefined,
+    options: { maxWidth?: number; quality?: number }
+  ): Promise<CapturedPhoto | null> {
+    if (!video || !video.videoWidth || !video.videoHeight) return null;
+    const maxWidth = options.maxWidth ?? IDEAL_WIDTH;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    const width = Math.max(1, Math.round(video.videoWidth * scale));
+    const height = Math.max(1, Math.round(video.videoHeight * scale));
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(video, 0, 0, width, height);
+      if (typeof canvas.toBlob !== 'function') return null;
+      const quality = Math.min(1, Math.max(0.75, options.quality ?? 0.98));
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((result) => resolve(result), 'image/jpeg', quality);
+      });
+      if (!blob || blob.size === 0) return null;
+      return { blob, width, height, mimeType: 'image/jpeg', source: 'canvas' };
+    } catch (error) {
+      this.logger.warn('Canvas photo capture failed', error);
+      return null;
+    }
   }
 
   /**
@@ -705,11 +908,8 @@ export class CameraCaptureService implements OnDestroy {
 
     const track = stream.getVideoTracks()[0];
     const settings = track?.getSettings?.() ?? {};
-    this.frameSettings.set({
-      width: Number(settings.width) || IDEAL_WIDTH,
-      height: Number(settings.height) || IDEAL_HEIGHT,
-      frameRate: Number(settings.frameRate) || 30,
-    });
+    this.refreshFrameSettings(track);
+    this.captureCapabilities(track);
     if (settings.deviceId) this.selectedDeviceId.set(settings.deviceId);
     if (settings.facingMode === 'environment' || settings.facingMode === 'user') {
       this.facingMode.set(settings.facingMode);
@@ -787,6 +987,77 @@ export class CameraCaptureService implements OnDestroy {
     });
     this.chunks = [];
     resolver(blob.size > 0 ? blob : null);
+  }
+
+  /** Resolution target for the pinned quality, or null for `auto`. */
+  private qualityTarget(): { width: number; height: number } | null {
+    const target = CAPTURE_QUALITIES.find((entry) => entry.id === this.quality());
+    if (!target || !target.width || !target.height) return null;
+    return { width: target.width, height: target.height };
+  }
+
+  /**
+   * Read the geometry the device actually granted back into the status surface.
+   * The browser is authoritative here — the request is only a wish.
+   */
+  private refreshFrameSettings(track?: MediaStreamTrack): void {
+    const settings = track?.getSettings?.() ?? {};
+    this.frameSettings.set({
+      width: Number(settings.width) || IDEAL_WIDTH,
+      height: Number(settings.height) || IDEAL_HEIGHT,
+      frameRate: Number(settings.frameRate) || IDEAL_FRAME_RATE,
+    });
+  }
+
+  /**
+   * Highest resolution the bound device advertises, so the deck can name the
+   * real ceiling instead of implying every phone shoots 4K. `getCapabilities` is
+   * optional, and a host without it simply reports nothing.
+   */
+  private captureCapabilities(track?: MediaStreamTrack): void {
+    try {
+      const capabilities = (
+        track as
+          | (MediaStreamTrack & {
+              getCapabilities?: () => MediaTrackCapabilities;
+            })
+          | undefined
+      )?.getCapabilities?.();
+      const width = Number(capabilities?.width?.max);
+      const height = Number(capabilities?.height?.max);
+      const frameRate = Number(capabilities?.frameRate?.max);
+      this.deviceCapabilities.set(
+        width > 0 && height > 0
+          ? {
+              width,
+              height,
+              frameRate: frameRate > 0 ? frameRate : IDEAL_FRAME_RATE,
+            }
+          : null
+      );
+    } catch {
+      this.deviceCapabilities.set(null);
+    }
+  }
+
+  /**
+   * Bitrate that keeps the chosen resolution's detail: sized from the granted
+   * geometry rather than a fixed number, so a 4K take is not crushed into the
+   * same pipe as a 720p one. Clamped to a sane band for weak and strong devices.
+   */
+  private resolveRecordingBitrate(
+    settings: CameraFrameSettings | null
+  ): number {
+    if (!settings || settings.width <= 0 || settings.height <= 0) {
+      return RECORDER_VIDEO_BITS_PER_SECOND;
+    }
+    const pixelRate =
+      settings.width * settings.height * (settings.frameRate || IDEAL_FRAME_RATE);
+    const target = Math.round(pixelRate * RECORDER_BITS_PER_PIXEL);
+    return Math.min(
+      RECORDER_MAX_BITS_PER_SECOND,
+      Math.max(RECORDER_MIN_BITS_PER_SECOND, target)
+    );
   }
 
   private resolveRecorderMimeType(): string {

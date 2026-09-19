@@ -139,121 +139,448 @@
   <div class="flex-grow flex flex-col lg:flex-row overflow-hidden">
     <!-- MAIN WORKSPACE -->
     <div
-      class="flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-hidden"
+      class="flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto custom-scrollbar"
     >
-      <!-- PREVIEW WINDOW -->
-      <section
-        class="flex-grow p-4 md:p-8 flex items-center justify-center bg-black/5 relative group min-h-[300px]"
-      >
-        <div
-          class="w-full max-w-4xl aspect-video glass-v42 rounded-2xl md:rounded-3xl border border-border relative overflow-hidden shadow-2xl bg-black"
-        >
-          <canvas #previewCanvas class="w-full h-full object-contain"></canvas>
-
-          @if (activeVideoClip(); as activeClip) {
-            <div class="native-player-dock" aria-label="Cinema video player">
-              <div class="native-player-heading">
-                <span class="native-player-label">Native playback</span>
-                <span class="native-player-source">{{ activeClip.name }}</span>
-              </div>
-              <video
-                #nativePlayer
-                class="native-player"
-                controls
-                playsinline
-                muted
-                preload="metadata"
-                [attr.aria-label]="'Play ' + activeClip.name"
-                (play)="onNativePlayerPlay()"
-                (pause)="onNativePlayerPause()"
-                (seeked)="onNativePlayerSeek()"
-              ></video>
-              <p class="native-player-hint">Chrome/Android playback · tap play for sound and fullscreen</p>
-            </div>
-          } @else {
-            <div class="native-player-empty" aria-live="polite">
-              <span class="material-symbols-outlined">movie</span>
-              <span>Select a video clip to activate the player</span>
-            </div>
-          }
-
-          <!--
-            Live camera sink. Painted full-bleed *behind* the program monitor
-            (see the CSS note) rather than hidden: `display: none` stops the
-            decoder, and a degenerate 1px box is treated as invisible on Android
-            Chrome — both leave the monitor black while the UI says LIVE.
-            `autoplay` lets the stream start decoding the moment it is bound.
-          -->
-          <video
-            #cameraFeed
-            class="camera-source"
-            autoplay
-            playsinline
-            muted
-            aria-hidden="true"
-          ></video>
-
-          <!--
-            One-tap recovery on the monitor itself. A blocked capture is exactly
-            where the operator is looking, so the way back must not live only in
-            the sidebar panel. Kept mounted while retrying so the label can flip
-            instead of the button vanishing under the pointer.
-          -->
-          @if (camera.canRetry() || camera.isRetrying()) {
-            <button
-              type="button"
-              class="camera-retry-chip"
-              [disabled]="camera.isRetrying()"
-              (click)="retryCamera()"
-            >
-              <span
-                class="material-symbols-outlined"
-                [class.spin]="camera.isRetrying()"
-                >refresh</span
-              >
-              <span>{{ camera.isRetrying() ? 'RETRYING…' : 'RETRY CAPTURE' }}</span>
-            </button>
-          } @else if (camera.status() === 'embedded') {
-            <!--
-              A frame-blocked feed cannot be retried into working, so the only
-              useful action here is to get the module out of the frame.
-            -->
-            <button
-              type="button"
-              class="camera-retry-chip"
-              (click)="openCaptureInNewTab()"
-            >
-              <span class="material-symbols-outlined">open_in_new</span>
-              <span>OPEN IN NEW TAB</span>
-            </button>
-          }
-
-          <!-- HUD OVERLAY -->
-          <div
-            class="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 md:gap-3"
-          >
-            <div
-              class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
-              *ngIf="transportActive()"
-            ></div>
-            <span
-              class="text-[8px] md:text-[9px] font-black text-white/50 uppercase tracking-widest"
-              >{{ transportLabel() }}</span
-            >
+      <!-- PROGRAM MONITOR -->
+      <section class="monitor-section flex-grow bg-black/5 min-h-[300px]">
+        <div class="monitor-head">
+          <div class="monitor-head-title">
+            <span class="upgrade-eyebrow">Program Monitor</span>
+            <h2 class="monitor-title">
+              {{ showCameraSurface() ? 'Live Viewfinder' : 'Timeline Output' }}
+            </h2>
           </div>
 
-          <div
-            class="absolute bottom-4 right-4 md:bottom-6 md:right-6 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 text-[9px] md:text-[10px] font-mono tracking-tight text-white/80"
-          >
-            {{ videoEngine.currentTime() | number: '1.2-2' }}s /
-            {{ videoEngine.duration() | number: '1.2-2' }}s
+          <div class="monitor-tabs" role="tablist" aria-label="Monitor source">
+            <button
+              type="button"
+              role="tab"
+              class="monitor-tab"
+              [class.active]="showProgramSurface()"
+              [attr.aria-selected]="showProgramSurface()"
+              (click)="setMonitorSource('program')"
+            >
+              PROGRAM
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="monitor-tab"
+              [class.active]="showCameraSurface()"
+              [attr.aria-selected]="showCameraSurface()"
+              (click)="setMonitorSource('camera')"
+            >
+              CAMERA
+            </button>
+          </div>
+
+          <div class="monitor-badges">
+            <span class="monitor-badge" [class.live]="transportActive()">{{
+              monitorResolutionLabel()
+            }}</span>
+            <span class="monitor-badge monitor-badge-time"
+              >{{ videoEngine.currentTime() | number: '1.2-2' }}s /
+              {{ videoEngine.duration() | number: '1.2-2' }}s</span
+            >
           </div>
         </div>
+
+        <div class="monitor-frame">
+          <div #stageSurface class="monitor-card glass-v42">
+            <canvas
+              #previewCanvas
+              class="monitor-canvas"
+              [class.monitor-hidden]="showCameraSurface()"
+            ></canvas>
+
+            <!--
+              Live camera sink. It stays in the layout at all times — a fully
+              hidden <video> stops decoding, which leaves the viewfinder black
+              while the UI claims LIVE — so the inactive state is a 1% fade, not
+              `display: none`. `autoplay` starts decoding the moment it is bound.
+            -->
+            <video
+              #cameraFeed
+              class="monitor-viewfinder"
+              [class.viewfinder-active]="showCameraSurface()"
+              [class.mirrored]="camera.mirrored()"
+              autoplay
+              playsinline
+              muted
+            ></video>
+
+            <!--
+              Native player for the clip under the playhead. Full-bleed and with
+              native controls: Chrome and Android get a user-gesture playback
+              path, seek, fullscreen and volume that a canvas cannot provide.
+            -->
+            @if (showProgramSurface()) {
+              @if (activeVideoClip(); as activeClip) {
+                <video
+                  #nativePlayer
+                  class="monitor-player"
+                  controls
+                  muted
+                  playsinline
+                  preload="metadata"
+                  [attr.aria-label]="'Play ' + activeClip.name"
+                  (play)="onNativePlayerPlay()"
+                  (pause)="onNativePlayerPause()"
+                  (seeked)="onNativePlayerSeek()"
+                  (volumechange)="onNativePlayerVolumeChange()"
+                ></video>
+                <div class="monitor-player-tag">
+                  {{ activeClip.name }} · NATIVE PLAYBACK
+                </div>
+              }
+            }
+
+            @if (showCameraSurface()) {
+              @if (!camera.isLive()) {
+                <div class="monitor-empty" aria-live="polite">
+                  <span class="material-symbols-outlined">videocam_off</span>
+                  <span class="monitor-empty-title">Viewfinder offline</span>
+                  <span class="monitor-empty-copy">
+                    Open the camera to frame the shot — photos and takes land on
+                    the Capture Deck below.
+                  </span>
+                  <button
+                    type="button"
+                    class="monitor-empty-cta"
+                    [disabled]="camera.isStarting()"
+                    (click)="toggleCamera()"
+                  >
+                    <span class="material-symbols-outlined">videocam</span>
+                    <span>{{
+                      camera.isStarting() ? 'REQUESTING ACCESS…' : 'START CAMERA'
+                    }}</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="monitor-rec" [class.recording]="camera.isRecording()">
+                  <span class="monitor-rec-dot"></span>
+                  <span>{{
+                    camera.isRecording()
+                      ? 'REC ' + camera.recordingSeconds() + 's'
+                      : camera.qualityLabel()
+                  }}</span>
+                </div>
+              }
+            }
+
+            <!--
+              One-tap recovery sits with the monitor but outside the surface
+              switch: a blocked capture is exactly where the operator is looking,
+              and a start that failed while the monitor sat on PROGRAM must not
+              become unreachable.
+            -->
+            @if (camera.canRetry() || camera.isRetrying()) {
+              <button
+                type="button"
+                class="camera-retry-chip"
+                [disabled]="camera.isRetrying()"
+                (click)="retryCamera()"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  [class.spin]="camera.isRetrying()"
+                  >refresh</span
+                >
+                <span>{{
+                  camera.isRetrying() ? 'RETRYING…' : 'RETRY CAPTURE'
+                }}</span>
+              </button>
+            } @else if (camera.status() === 'embedded') {
+              <button
+                type="button"
+                class="camera-retry-chip"
+                (click)="openCaptureInNewTab()"
+              >
+                <span class="material-symbols-outlined">open_in_new</span>
+                <span>OPEN IN NEW TAB</span>
+              </button>
+            }
+
+            <div class="monitor-hud">
+              <span class="monitor-transport" [class.live]="transportActive()">
+                <i class="monitor-dot"></i>{{ transportLabel() }}
+              </span>
+              <span class="monitor-source-tag">{{
+                showCameraSurface()
+                  ? (camera.sourceType() === 'screen' ? 'SCREEN SHARE' : 'CAMERA')
+                  : 'PROGRAM'
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="monitor-transport-bar">
+          <button
+            type="button"
+            class="monitor-transport-button monitor-transport-primary"
+            (click)="videoEngine.togglePlay()"
+            [attr.aria-label]="
+              videoEngine.isPlaying() ? 'Pause transport' : 'Play transport'
+            "
+          >
+            <span class="material-symbols-outlined">{{
+              videoEngine.isPlaying() ? 'pause' : 'play_arrow'
+            }}</span>
+          </button>
+          <button
+            type="button"
+            class="monitor-transport-button"
+            (click)="stopTransport()"
+            aria-label="Stop and rewind the transport"
+          >
+            <span class="material-symbols-outlined">stop</span>
+          </button>
+          <input
+            type="range"
+            class="monitor-scrub"
+            aria-label="Scrub the playhead"
+            min="0"
+            [max]="videoEngine.duration()"
+            step="0.01"
+            [value]="videoEngine.currentTime()"
+            (input)="onMonitorSeek($event)"
+          />
+          <span class="monitor-readout"
+            >{{ videoEngine.currentTime() | number: '1.2-2' }}s</span
+          >
+          @if (activeVideoClip()) {
+            <button
+              type="button"
+              class="monitor-transport-button"
+              (click)="togglePlayerAudio()"
+              [attr.aria-label]="playerUnmuted() ? 'Mute the player' : 'Unmute the player'"
+            >
+              <span class="material-symbols-outlined">{{
+                playerUnmuted() ? 'volume_up' : 'volume_off'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="monitor-transport-button"
+              (click)="downloadActiveClip()"
+              aria-label="Download the clip under the playhead"
+            >
+              <span class="material-symbols-outlined">download</span>
+            </button>
+          }
+          <button
+            type="button"
+            class="monitor-transport-button"
+            (click)="toggleMonitorFullscreen()"
+            aria-label="Toggle fullscreen monitor"
+          >
+            <span class="material-symbols-outlined">fullscreen</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- CAPTURE DECK: stills and takes straight off the sensor -->
+      <section class="capture-deck" aria-labelledby="capture-deck-title">
+        <div class="capture-deck-head">
+          <div class="capture-deck-title-block">
+            <span class="upgrade-eyebrow">Camera Capture</span>
+            <h2 id="capture-deck-title" class="capture-deck-title">
+              Capture Deck
+            </h2>
+          </div>
+          <span
+            class="camera-status-chip"
+            [class.live]="camera.isLive()"
+            [class.error]="!!camera.lastError()"
+            >{{ camera.statusLabel() }}</span
+          >
+        </div>
+
+        <div class="capture-deck-row">
+          <div class="capture-shutters">
+            <button
+              type="button"
+              class="capture-shutter capture-shutter-photo"
+              [disabled]="!camera.isLive()"
+              (click)="captureCameraPhoto()"
+              aria-label="Take a photo"
+            >
+              <span class="material-symbols-outlined">photo_camera</span>
+              <span class="capture-shutter-label">PHOTO</span>
+            </button>
+            <button
+              type="button"
+              class="capture-shutter capture-shutter-record"
+              [class.recording]="camera.isRecording()"
+              [disabled]="!camera.isLive() || !camera.recordingSupported()"
+              (click)="toggleCameraTake()"
+              [attr.aria-label]="
+                camera.isRecording() ? 'Stop the take' : 'Record a take'
+              "
+            >
+              <span class="material-symbols-outlined">{{
+                camera.isRecording() ? 'stop_circle' : 'fiber_manual_record'
+              }}</span>
+              <span class="capture-shutter-label">{{
+                camera.isRecording() ? camera.recordingSeconds() + 's' : 'RECORD'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="capture-shutter"
+              [class.active]="camera.isLive()"
+              [disabled]="camera.isStarting()"
+              (click)="toggleCamera()"
+            >
+              <span class="material-symbols-outlined">{{
+                camera.isLive() ? 'videocam_off' : 'videocam'
+              }}</span>
+              <span class="capture-shutter-label">{{
+                camera.isLive() ? 'STOP' : 'START'
+              }}</span>
+            </button>
+          </div>
+
+          <div class="capture-settings">
+            <label class="capture-field">
+              <span class="capture-field-label"
+                >Quality · {{ camera.maxResolutionLabel() }}</span
+              >
+              <select
+                class="capture-select"
+                aria-label="Capture quality"
+                [disabled]="camera.isRecording()"
+                [ngModel]="camera.quality()"
+                (ngModelChange)="changeCaptureQuality($event)"
+              >
+                @for (option of captureQualities; track option.id) {
+                  <option [value]="option.id">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="capture-field">
+              <span class="capture-field-label">Input · {{ camera.deviceName() }}</span>
+              <select
+                class="capture-select"
+                aria-label="Camera input device"
+                [disabled]="!camera.canSwitchDevice() || camera.devices().length === 0"
+                [ngModel]="camera.selectedDeviceId()"
+                (ngModelChange)="selectCameraDevice($event)"
+              >
+                @if (camera.devices().length === 0) {
+                  <option value="">No camera detected</option>
+                }
+                @for (device of camera.devices(); track device.deviceId) {
+                  <option [value]="device.deviceId">{{ device.label }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="capture-toggles">
+              <button
+                type="button"
+                class="capture-toggle"
+                [class.active]="camera.mirrored()"
+                (click)="toggleCameraMirror()"
+              >
+                MIRROR
+              </button>
+              <button
+                type="button"
+                class="capture-toggle"
+                [disabled]="!camera.canSwitchDevice()"
+                (click)="switchCameraFacing()"
+              >
+                FLIP
+              </button>
+              <button
+                type="button"
+                class="capture-toggle"
+                [class.active]="camera.isLive() && camera.sourceType() === 'screen'"
+                [disabled]="!camera.screenShareSupported()"
+                (click)="captureScreen()"
+              >
+                SCREEN
+              </button>
+            </div>
+          </div>
+
+          <div class="capture-tray" aria-label="Captured photos and takes">
+            <div class="capture-tray-head">
+              <span>Session Captures</span>
+              <span class="capture-tray-count">{{ captureCount() }}</span>
+            </div>
+            @if (deckCaptures().length === 0) {
+              <p class="capture-tray-empty">
+                Photos and takes appear here the moment they are captured, ready
+                to download or jump back to on the timeline.
+              </p>
+            } @else {
+              <ul class="capture-tray-list">
+                @for (capture of deckCaptures(); track capture.id) {
+                  <li class="capture-card">
+                    @if (capture.kind === 'photo') {
+                      <img
+                        class="capture-thumb"
+                        [src]="capture.url"
+                        [alt]="capture.name"
+                      />
+                    } @else {
+                      <video
+                        class="capture-thumb"
+                        [src]="capture.url"
+                        muted
+                        playsinline
+                        preload="metadata"
+                      ></video>
+                    }
+                    <div class="capture-meta">
+                      <span class="capture-name">{{ capture.name }}</span>
+                      <span class="capture-sub">
+                        @if (capture.width > 0) {
+                          {{ capture.width }}×{{ capture.height }} ·
+                        }
+                        {{ capture.sizeLabel }}{{
+                          capture.ingested ? ' · on timeline' : ''
+                        }}
+                      </span>
+                    </div>
+                    <div class="capture-card-actions">
+                      <button
+                        type="button"
+                        (click)="downloadCapture(capture)"
+                        [attr.aria-label]="'Download ' + capture.name"
+                      >
+                        <span class="material-symbols-outlined">download</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="locateCapture(capture)"
+                        [attr.aria-label]="'Show ' + capture.name + ' on the timeline'"
+                      >
+                        <span class="material-symbols-outlined">my_location</span>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+
+        <p class="capture-detail">{{ camera.statusDetail() }}</p>
+        @if (camera.lastError()) {
+          <p class="camera-error">{{ camera.lastError() }}</p>
+        }
+        @if (camera.previewWarning()) {
+          <p class="camera-warning">{{ camera.previewWarning() }}</p>
+        }
       </section>
 
       <!-- TIMELINE EDITOR: Responsive Height -->
       <section
-        class="h-48 md:h-64 lg:h-80 bg-surface/50 p-4 md:p-6 flex flex-col gap-4 border-t border-border overflow-hidden"
+        class="h-48 md:h-64 lg:h-80 shrink-0 bg-surface/50 p-4 md:p-6 flex flex-col gap-4 border-t border-border overflow-hidden"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4 md:gap-6">
@@ -503,7 +830,7 @@
           @if (cinemaProjects.storageNotice(); as storageNotice) {
             <p class="camera-error">{{ storageNotice }}</p>
           } @else if (!cinemaProjects.hasProjects()) {
-            <p class="camera-detail">
+            <p class="panel-detail">
               No saved projects yet. Name the edit and save it to come back to it
               later.
             </p>
@@ -722,185 +1049,6 @@
               >
             </div>
           </div>
-        </div>
-
-        <div class="space-y-3">
-          <div class="flex items-center justify-between gap-3">
-            <h3
-              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
-            >
-              Camera Uplink
-            </h3>
-            <span
-              class="camera-status-chip"
-              [class.live]="camera.isLive()"
-              [class.error]="!!camera.lastError()"
-              >{{ camera.statusLabel() }}</span
-            >
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              class="camera-action"
-              [class.active]="camera.isLive()"
-              [disabled]="camera.isStarting()"
-              (click)="toggleCamera()"
-            >
-              <span class="material-symbols-outlined text-base">{{
-                camera.isLive() ? 'videocam_off' : 'videocam'
-              }}</span>
-              <span>{{ camera.isLive() ? 'Stop Camera' : 'Start Camera' }}</span>
-            </button>
-
-            <button
-              type="button"
-              class="camera-action"
-              [disabled]="!camera.isLive()"
-              (click)="captureCameraFrame()"
-            >
-              <span class="material-symbols-outlined text-base"
-                >photo_camera</span
-              >
-              <span>Capture Frame</span>
-            </button>
-
-            <button
-              type="button"
-              class="camera-action"
-              [class.recording]="camera.isRecording()"
-              [disabled]="!camera.isLive()"
-              (click)="toggleCameraTake()"
-            >
-              <span class="material-symbols-outlined text-base">{{
-                camera.isRecording() ? 'stop_circle' : 'fiber_manual_record'
-              }}</span>
-              <span>{{ camera.isRecording() ? 'Stop Take' : 'Record Take' }}</span>
-            </button>
-
-            <button
-              type="button"
-              class="camera-action"
-              [class.active]="camera.mirrored()"
-              (click)="toggleCameraMirror()"
-            >
-              <span class="material-symbols-outlined text-base">flip</span>
-              <span>{{ camera.mirrored() ? 'Mirror On' : 'Mirror Off' }}</span>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            class="camera-action w-full"
-            [class.active]="
-              camera.isLive() && camera.sourceType() === 'screen'
-            "
-            [disabled]="!camera.screenShareSupported()"
-            (click)="captureScreen()"
-          >
-            <span class="material-symbols-outlined text-base">{{
-              camera.isLive() && camera.sourceType() === 'screen'
-                ? 'stop_screen_share'
-                : 'screen_share'
-            }}</span>
-            <span>{{
-              camera.isLive() && camera.sourceType() === 'screen'
-                ? 'Stop Sharing'
-                : 'Share Screen'
-            }}</span>
-          </button>
-          @if (!camera.screenShareSupported()) {
-            <p class="camera-detail">
-              Screen capture is not available in this browser.
-            </p>
-          }
-
-          @if (camera.devices().length > 1) {
-            <label
-              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
-            >
-              <span class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
-                >Camera Input</span
-              >
-              <select
-                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
-                aria-label="Camera input device"
-                [disabled]="!camera.canSwitchDevice()"
-                [ngModel]="camera.selectedDeviceId()"
-                (ngModelChange)="selectCameraDevice($event)"
-              >
-                @for (device of camera.devices(); track device.deviceId) {
-                  <option [value]="device.deviceId">{{ device.label }}</option>
-                }
-              </select>
-            </label>
-
-            <button
-              type="button"
-              class="camera-action w-full"
-              [disabled]="!camera.canSwitchDevice()"
-              (click)="switchCameraFacing()"
-            >
-              <span class="material-symbols-outlined text-base">cameraswitch</span>
-              <span>
-                Switch to
-                {{ camera.facingMode() === 'user' ? 'Rear' : 'Front' }} Sensor
-              </span>
-            </button>
-          }
-
-          <p class="camera-detail">{{ camera.statusDetail() }}</p>
-
-          @if (camera.lastError()) {
-            <p class="camera-error">{{ camera.lastError() }}</p>
-          }
-          @if (camera.previewWarning()) {
-            <p class="camera-warning">{{ camera.previewWarning() }}</p>
-          }
-
-          @if (camera.canRetry() || camera.isRetrying()) {
-            <button
-              type="button"
-              class="camera-action retry w-full"
-              [disabled]="camera.isRetrying()"
-              (click)="retryCamera()"
-            >
-              <span
-                class="material-symbols-outlined text-base"
-                [class.spin]="camera.isRetrying()"
-                >refresh</span
-              >
-              <span>{{
-                camera.isRetrying() ? 'Retrying Capture…' : 'Retry Capture'
-              }}</span>
-            </button>
-          }
-          @if (camera.isRetrying()) {
-            <p class="camera-detail">
-              Re-requesting access — attempt
-              {{ camera.retryAttempt() }} of 3.
-            </p>
-          }
-
-          @if (
-            camera.isFramed() &&
-            (camera.canRetry() || camera.status() === 'embedded')
-          ) {
-            <button
-              type="button"
-              class="camera-action w-full"
-              (click)="openCaptureInNewTab()"
-            >
-              <span class="material-symbols-outlined text-base"
-                >open_in_new</span
-              >
-              <span>Open In New Tab</span>
-            </button>
-            <p class="camera-detail">
-              Embedded views can be refused camera and screen access outright,
-              in which case no prompt ever appears. A top-level tab is not.
-            </p>
-          }
         </div>
 
         <div class="space-y-4">

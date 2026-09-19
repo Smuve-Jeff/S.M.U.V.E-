@@ -29,7 +29,11 @@ import {
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
-import { CameraCaptureService } from '../../services/camera-capture.service';
+import {
+  CAPTURE_QUALITIES,
+  CameraCaptureService,
+  CaptureQuality,
+} from '../../services/camera-capture.service';
 import {
   CinemaCommand,
   CinemaDirectorService,
@@ -45,6 +49,28 @@ import {
 interface ProductionDirective {
   title: string;
   detail: string;
+}
+
+/**
+ * A still or take held on the Capture Deck. The timeline keeps its own clip;
+ * this is the operator's copy, with the original bytes when the browser gave us
+ * them so a download is the captured quality rather than the preview's.
+ */
+interface CinemaCapture {
+  id: string;
+  kind: 'photo' | 'video';
+  name: string;
+  /** Filename the download is saved under. */
+  fileName: string;
+  url: string;
+  blob: Blob | null;
+  width: number;
+  height: number;
+  seconds: number;
+  sizeLabel: string;
+  capturedAt: number;
+  /** True once the capture has been cut into a timeline lane. */
+  ingested: boolean;
 }
 
 const MIN_TRANSITION_ALPHA = 0.15;
@@ -147,6 +173,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   @ViewChild('cameraFeed') cameraFeed?: ElementRef<HTMLVideoElement>;
   /** Scroll container that owns the timeline viewport window. */
   @ViewChild('timelineScroller') timelineScroller?: ElementRef<HTMLElement>;
+  /** Monitor card that owns the fullscreen presentation. */
+  @ViewChild('stageSurface') stageSurface?: ElementRef<HTMLElement>;
 
   imagePrompt = signal('');
   // probe
@@ -173,6 +201,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   markerDraft = signal('');
   readonly livePlatforms = LIVE_STREAM_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
+  readonly captureQualities = CAPTURE_QUALITIES;
+  /** Which surface the program monitor is showing. */
+  monitorSource = signal<'program' | 'camera'>('program');
+  /**
+   * Explicit operator unmute. Native playback starts muted so Chrome and Android
+   * may roll it without a gesture — this is the recorded opt-in for sound.
+   */
+  playerUnmuted = signal(false);
+  /** Stills and takes captured this session, newest first. */
+  captures = signal<CinemaCapture[]>([]);
 
   /** Visible window of the timeline, tracked from the scroll container. */
   private readonly timelineViewport = signal({ start: 0, span: 60 });
@@ -369,6 +407,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.videoEngine.isPlaying()
   );
 
+  /** True while the monitor is showing the live camera viewfinder. */
+  showCameraSurface = computed(() => this.monitorSource() === 'camera');
+  /** True while the monitor is showing the timeline composite. */
+  showProgramSurface = computed(() => this.monitorSource() === 'program');
+  /** What the monitor's resolution badge reports for the active surface. */
+  monitorResolutionLabel = computed(() => {
+    if (this.showCameraSurface()) return this.camera.qualityLabel();
+    const preset = this.activePreset();
+    return `${preset.aspectRatio} · ${preset.width}×${preset.height}`;
+  });
+  /** Stills and takes kept on the deck this session. */
+  captureCount = computed(() => this.deckCaptures().length);
+
   // ── Timeline geometry ──────────────────────────────────────────────────
 
   /** Real zoom: pixel density changes, the visible window follows the scroll. */
@@ -472,6 +523,18 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       if (isPlaying) {
         this.aiFeedback.set('BROADCAST LIVE. Dominating the digital airwaves.');
       }
+    });
+
+    // Follow the camera onto the CAMERA surface as it comes up, and hand the
+    // monitor back to the timeline when it is released. Reacting to the service
+    // rather than to one button means every start path — deck, sidebar, retry,
+    // hot-plugged device — lands on a visible picture.
+    let cameraWasLive = false;
+    effect(() => {
+      const live = this.camera.isLive();
+      if (live === cameraWasLive) return;
+      cameraWasLive = live;
+      this.monitorSource.set(live ? 'camera' : 'program');
     });
 
     // Keep the native player aligned with the active timeline clip. This is
@@ -1592,7 +1655,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (!player || !clip?.url) return;
 
     if (player.src !== clip.url) {
-      player.muted = true;
+      player.muted = !this.playerUnmuted();
       player.src = clip.url;
       player.load();
     }
@@ -1655,6 +1718,293 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
     if (video.srcObject) video.srcObject = null;
+  }
+
+  // ── Program monitor (source, transport, fullscreen) ────────────────────
+
+  /**
+   * Switch the monitor between the timeline composite and the live viewfinder.
+   * The camera sink keeps decoding in both states, so switching back is instant
+   * and never restarts the device.
+   */
+  setMonitorSource(source: 'program' | 'camera'): void {
+    this.monitorSource.set(source);
+    if (source === 'camera') this.syncCameraElement();
+  }
+
+  /** Scrub the transport from the monitor's own slider. */
+  onMonitorSeek(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (!Number.isFinite(value)) return;
+    this.videoEngine.seek(value);
+  }
+
+  /** Stop and rewind — the transport's escape hatch after auditioning a cut. */
+  stopTransport(): void {
+    this.videoEngine.pause();
+    this.videoEngine.seek(0);
+  }
+
+  /**
+   * Native playback starts muted so Chrome and Android may roll it without a
+   * user gesture; this is the explicit opt-in that turns the sound on.
+   */
+  togglePlayerAudio(): void {
+    this.playerUnmuted.update((value) => !value);
+    const player = this.nativePlayerElement;
+    if (player) {
+      player.muted = !this.playerUnmuted();
+      if (!player.muted) this.playQuietly(player);
+    }
+    this.aiFeedback.set(
+      this.playerUnmuted() ? 'PLAYER AUDIO UNMUTED.' : 'PLAYER AUDIO MUTED.'
+    );
+  }
+
+  /** Follow the native controls' own mute/volume button. */
+  onNativePlayerVolumeChange(): void {
+    const player = this.nativePlayerElement;
+    if (player) this.playerUnmuted.set(!player.muted && player.volume > 0);
+  }
+
+  /** Send the clip under the playhead to the browser's download shelf. */
+  downloadActiveClip(): void {
+    const clip = this.activeVideoClip();
+    if (!clip?.url) {
+      this.aiFeedback.set('NO CLIP UNDER THE PLAYHEAD TO DOWNLOAD.');
+      return;
+    }
+    this.triggerDownload(clip.url, clip.name);
+    this.aiFeedback.set(clip.name.toUpperCase() + ' DOWNLOAD STARTED.');
+  }
+
+  async toggleMonitorFullscreen(): Promise<void> {
+    if (typeof document === 'undefined') return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      await this.stageSurface?.nativeElement.requestFullscreen();
+    } catch {
+      this.aiFeedback.set('FULLSCREEN WAS REFUSED BY THE BROWSER.');
+    }
+  }
+
+  // ── Capture deck (high-quality stills and takes) ────────────────────────
+
+  /**
+   * Everything the Capture Deck can hand back.
+   *
+   * Stills are held in `captures` as they are shot, with their own bytes, so a
+   * download is the resolution that was captured rather than the preview's.
+   * Takes are read straight off the lanes: the recorder already parked them
+   * there, and a second copy would only drift out of date.
+   */
+  deckCaptures = computed<CinemaCapture[]>(() => {
+    const takes = this.videoEngine
+      .tracks()
+      .flatMap((track) => track.clips)
+      .filter(
+        (clip) =>
+          clip.type === 'video' &&
+          !!clip.url &&
+          (clip.source === 'camera' || clip.source === 'screen')
+      )
+      .map((clip) => ({
+        id: 'take-' + clip.id,
+        kind: 'video' as const,
+        name: clip.name,
+        fileName: clip.name.replace(/[^a-zA-Z0-9._-]+/g, '_') + '.webm',
+        url: clip.url,
+        blob: null,
+        width: 0,
+        height: 0,
+        seconds: clip.duration,
+        sizeLabel: this.formatSeconds(clip.duration) + ' take',
+        capturedAt: 0,
+        ingested: true,
+      }));
+    return [...this.captures(), ...takes];
+  });
+
+  /**
+   * Photo shutter.
+   *
+   * Asks the service for a full-resolution still — `ImageCapture` returns the
+   * sensor frame, which a canvas grab can never reach — and falls back to the
+   * quick-frame path when the host cannot produce one. Either way the shot is
+   * cut into the overlays lane and kept on the deck for download.
+   */
+  async captureCameraPhoto(): Promise<void> {
+    if (!this.camera.isLive()) {
+      this.aiFeedback.set('START THE CAMERA BEFORE TAKING A PHOTO.');
+      return;
+    }
+
+    const shot = await this.camera.capturePhoto(
+      this.cameraFeed?.nativeElement,
+      { maxWidth: CAMERA_STILL_MAX_WIDTH }
+    );
+    if (!shot) {
+      // No sensor implementation, or a feed that has not painted yet. The canvas
+      // grab carries its own honest failure message.
+      this.captureCameraFrame();
+      return;
+    }
+
+    const url = URL.createObjectURL(shot.blob);
+    this.ownedObjectUrls.add(url);
+    this.cameraTakeCount.update((count) => count + 1);
+    const stillName =
+      this.cameraSourceLabel() + ' Photo ' + this.cameraTakeCount();
+    const capture = this.registerCapture({
+      kind: 'photo',
+      name: stillName,
+      url,
+      blob: shot.blob,
+      width: shot.width,
+      height: shot.height,
+    });
+    this.ingestCapture(capture);
+    this.aiFeedback.set(
+      stillName.toUpperCase() +
+        ' — ' +
+        shot.width +
+        '×' +
+        shot.height +
+        ' ' +
+        (shot.source === 'image-capture' ? 'SENSOR' : 'CANVAS') +
+        ' STILL CUT INTO THE OVERLAYS LANE.'
+    );
+  }
+
+  /** Retarget the capture resolution — and the recorder's bitrate with it. */
+  async changeCaptureQuality(quality: CaptureQuality): Promise<void> {
+    const applied = await this.camera.setQuality(quality);
+    this.aiFeedback.set(
+      applied
+        ? 'CAPTURE QUALITY: ' + this.camera.qualityLabel() + '.'
+        : 'QUALITY CHANGE BLOCKED WHILE A TAKE IS ROLLING.'
+    );
+  }
+
+  /** Cut a capture into the timeline. Idempotent: an ingested one is a no-op. */
+  ingestCapture(capture: CinemaCapture): void {
+    if (capture.ingested) return;
+
+    const isPhoto = capture.kind === 'photo';
+    const duration = isPhoto
+      ? this.resolveIngestDuration()
+      : Math.max(1, capture.seconds || this.resolveIngestDuration());
+
+    this.videoEngine.addClip(isPhoto ? 't2' : 't1', {
+      name: capture.name,
+      url: capture.url,
+      startTime: this.videoEngine.currentTime(),
+      duration,
+      offset: 0,
+      type: isPhoto ? 'image' : 'video',
+      source: this.camera.sourceType(),
+      effects: {
+        upscale: this.highQualityEnhancer(),
+        bgRemoval: false,
+        noiseReduction: false,
+        brightness: 1,
+        contrast: 1,
+        filter: this.selectedFilter(),
+        transition: this.selectedTransition(),
+        transitionDuration: this.transitionDuration(),
+        trimStart: this.resolveTrimAmount(duration),
+        trimEnd: this.resolveTrimAmount(duration),
+      },
+    });
+
+    capture.ingested = true;
+    this.captures.update((list) => [...list]);
+  }
+
+  /** Save a capture at its captured quality — the original bytes, not a copy. */
+  downloadCapture(capture: CinemaCapture): void {
+    if (capture.blob) {
+      this.exportService.downloadBlob(capture.blob, capture.fileName);
+    } else {
+      this.triggerDownload(capture.url, capture.fileName);
+    }
+    this.aiFeedback.set(
+      capture.name.toUpperCase() +
+        ' DOWNLOAD STARTED (' +
+        capture.fileName +
+        ').'
+    );
+  }
+
+  /** Put the playhead on the clip a deck capture came from. */
+  locateCapture(capture: CinemaCapture): void {
+    const clip = this.videoEngine
+      .tracks()
+      .flatMap((track) => track.clips)
+      .find(
+        (entry) => entry.url === capture.url && entry.name === capture.name
+      );
+    if (!clip) return;
+    this.setMonitorSource('program');
+    this.videoEngine.seek(clip.startTime);
+    this.aiFeedback.set('PLAYHEAD ON ' + clip.name.toUpperCase() + '.');
+  }
+
+  private cameraSourceLabel(): string {
+    return this.camera.sourceType() === 'screen' ? 'Screen' : 'Camera';
+  }
+
+  /** File a capture on the deck, stamping its name, size and extension. */
+  private registerCapture(input: {
+    kind: 'photo' | 'video';
+    name: string;
+    url: string;
+    blob: Blob | null;
+    width?: number;
+    height?: number;
+    seconds?: number;
+    ingested?: boolean;
+  }): CinemaCapture {
+    const capture: CinemaCapture = {
+      id: 'cap-' + Date.now() + '-' + this.captures().length,
+      kind: input.kind,
+      name: input.name,
+      fileName:
+        input.name.replace(/[^a-zA-Z0-9._-]+/g, '_') +
+        (input.kind === 'photo' ? '.jpg' : '.webm'),
+      url: input.url,
+      blob: input.blob,
+      width: input.width ?? 0,
+      height: input.height ?? 0,
+      seconds: input.seconds ?? 0,
+      sizeLabel: input.blob ? this.formatBytes(input.blob.size) : 'on timeline',
+      capturedAt: Date.now(),
+      ingested: input.ingested ?? false,
+    };
+    this.captures.update((list) => [capture, ...list]);
+    return capture;
+  }
+
+  private triggerDownload(url: string, fileName: string): void {
+    if (typeof document === 'undefined') return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  private formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB';
+    const megabytes = bytes / (1024 * 1024);
+    return megabytes >= 1
+      ? megabytes.toFixed(1) + ' MB'
+      : Math.max(1, Math.round(bytes / 1024)) + ' KB';
   }
 
   private startCanvasLoop() {
