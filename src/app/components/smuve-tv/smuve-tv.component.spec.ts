@@ -305,10 +305,23 @@ describe('SmuveTvComponent', () => {
       play.mockRestore();
     });
 
-    it('keeps track metadata and native controls out of the standalone radio surface', () => {
-      expect(template).toContain('radioStandalone()');
-      expect(template).toContain('[controls]="!radioStandalone()"');
-      expect(template).toContain('[hidden]="radioStandalone()"');
+    it('keeps the music surface off the page, with no controls at all', () => {
+      /*
+       * The module is the channel guide and the picture for the tuned station.
+       * The artist radio survived as a transport and nothing more, so its panel
+       * must not be on the page and its element must never grow native controls
+       * — controls are how a page starts displaying a player.
+       */
+      expect(template).not.toContain('tv-music-channel');
+      expect(template).not.toContain('tv-radio-standalone');
+      expect(template).not.toContain('tv-music-now');
+      expect(template).not.toContain('[controls]');
+      expect(
+        fixture.nativeElement.querySelector('.tv-music-channel')
+      ).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('audio.tv-music-player')
+      ).not.toBeNull();
     });
 
     it('queues a selected track without autoplay, then starts only on user action', () => {
@@ -564,38 +577,30 @@ describe('SmuveTvComponent', () => {
       ).toHaveLength(0);
     });
 
-    it('shows the record metadata only while it is playing', async () => {
+    it('names no record anywhere on the page, playing or not', async () => {
       routeReads({ records: { records: [catalogueRecord()] } });
 
       await component.loadCatalogue();
       player();
-
-      const panel = () =>
-        fixture.nativeElement.querySelector('.tv-music-now') as HTMLElement | null;
-
       component.startMusic();
       fixture.detectChanges();
       // Queued is not playing: nothing may be named while the record is silent.
-      expect(panel()).toBeNull();
       expect(component.nowPlaying()).toBeNull();
 
       component.onMusicPlaying();
       fixture.detectChanges();
 
-      const text = panel()?.textContent ?? '';
-      expect(text).toContain('NOW PLAYING');
-      expect(text).toContain('Official Record');
-      expect(text).toContain('Official Album');
-      expect(text).toContain('2024');
-      // The running time of the record, not of the 30-second preview.
-      expect(text).toContain('3:00');
-      expect(text).toContain('PREVIEW');
-      // Metadata only — no destination is offered from this surface.
-      expect(panel()?.querySelectorAll('a')).toHaveLength(0);
+      // The transport knows what is on air; the page does not show any of it.
+      expect(component.nowPlaying()?.title).toBe('Official Record');
+      expect(fixture.nativeElement.textContent).not.toContain('Official Record');
+      expect(
+        fixture.nativeElement.querySelectorAll(
+          '.tv-music-now, .tv-music-badge, .tv-music-list, .tv-music-link'
+        )
+      ).toHaveLength(0);
 
       component.onMusicPaused();
-      fixture.detectChanges();
-      expect(panel()).toBeNull();
+      expect(component.nowPlaying()).toBeNull();
     });
 
     it('brings the metadata down when a record ends', async () => {
@@ -608,7 +613,7 @@ describe('SmuveTvComponent', () => {
       fixture.detectChanges();
 
       component.onMusicEnded();
-      // The next record has not started yet, so the panel names nothing.
+      // The next record has not started yet, so the transport names nothing.
       expect(component.isMusicPlaying()).toBe(false);
       expect(component.nowPlaying()).toBeNull();
     });
@@ -1283,8 +1288,18 @@ describe('SmuveTvComponent', () => {
   });
 
   describe('template contract', () => {
-    it('renders the broadcast natively and reserves third-party playback for the requested record', () => {
-      expect(template).toContain('tv-music-full-host');
+    it('renders the broadcast natively and keeps the music surface off the page', () => {
+      /*
+       * The guide and the picture are the whole page: the catalogue panel, the
+       * record metadata, and the third-party host that played a complete record
+       * are all off it now, and nothing may quietly reintroduce them.
+       */
+      expect(template).not.toContain('tv-music-channel');
+      expect(template).not.toContain('tv-music-full-host');
+      expect(template).not.toContain('tv-music-full-btn');
+      expect(template).not.toContain('tv-radio-standalone');
+      expect(template).not.toContain('tv-music-import');
+      expect(template).not.toContain('PLUTO');
       expect(template).not.toContain('pluto');
       expect(template).not.toContain('srcdoc');
       expect(template).toContain('<canvas #bed');
@@ -1324,15 +1339,10 @@ describe('SmuveTvComponent', () => {
       expect(styles).toContain('height: 48px');
 
       /*
-       * Measured in Chromium, these four sat at 40px — under the touch floor
-       * the rest of the surface honoured. Pinned here so they cannot slide back.
+       * Measured in Chromium, these sat at 40px — under the touch floor the rest
+       * of the surface honoured. Pinned here so they cannot slide back.
        */
-      for (const selector of [
-        '.tv-tune input',
-        '.tv-tune-go',
-        '.tv-music-import',
-        '.tv-feed-picker select',
-      ]) {
+      for (const selector of ['.tv-tune input', '.tv-tune-go', '.tv-feed-picker select']) {
         const block = styles.slice(styles.indexOf(`${selector} {`));
         expect(block.slice(0, block.indexOf('}'))).toContain('44px');
       }
