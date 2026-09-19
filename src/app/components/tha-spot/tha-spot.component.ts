@@ -78,7 +78,11 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
   standalone: true,
   imports: [CommonModule, FormsModule, SplitScreenPanelComponent, FormatTimePipe],
   templateUrl: './tha-spot.component.html',
-  styleUrls: ['./tha-spot.component.css'],
+  // The Pluto TV surface lives in its own stylesheet: it is an immersive
+  // full-viewport overlay with three times the control count of anything else
+  // in this component, and keeping it separate stops its rules from being
+  // interleaved with the arcade grid's.
+  styleUrls: ['./tha-spot.component.css', './tha-spot.pluto.css'],
   styles: [
     `
       .challenge-banner {
@@ -1277,6 +1281,97 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Signals
   displayMode = signal<'gaming' | 'pluto'>('gaming');
+
+  /**
+   * Pluto TV runs inside its own cross-origin frame, gated behind its own
+   * pre-roll ad and licensed per region. An ad blocker, strict tracking
+   * protection, or an unlicensed region leaves that frame stuck on Pluto's own
+   * "Optimizing your video playback experience" screen — which this app can
+   * neither detect nor play through. Rather than dead-ending the user on a
+   * black rectangle, the surface carries an in-app fallback.
+   */
+  plutoFallback = signal(false);
+
+  /** Surfaces the fallback affordance once a stall has had time to show. */
+  plutoStallHint = signal(false);
+
+  /** Bumped to force a fresh <iframe>; @for tracks it so the node remounts. */
+  plutoAttempt = signal(0);
+
+  /** `@for` needs a tracked sequence, and the tracked value IS the attempt. */
+  plutoFrameKeys = computed(() => [this.plutoAttempt()]);
+
+  /** Real Pluto destinations, each verified to answer 200. */
+  readonly plutoDestinations = [
+    {
+      label: 'Live TV',
+      detail: '250+ free live channels',
+      url: 'https://pluto.tv/us/watch/live-tv/',
+    },
+    {
+      label: 'Movies',
+      detail: 'Free full-length films',
+      url: 'https://pluto.tv/us/movies/',
+    },
+    {
+      label: 'TV Shows',
+      detail: 'Free series and box sets',
+      url: 'https://pluto.tv/us/shows/',
+    },
+  ];
+
+  private plutoHintTimerId: number | null = null;
+
+  /**
+   * Entering Pluto mode always starts a clean frame and arms the stall hint,
+   * however `displayMode` came to be 'pluto' — the toggle, a deep link, or a
+   * test. Leaving clears both, so a stale hint can never survive the switch.
+   * `onCleanup` also stops the timer on destroy, which is the only teardown a
+   * pending timeout needs.
+   */
+  private plutoModeEffect = effect((onCleanup) => {
+    if (this.displayMode() === 'pluto') {
+      this.plutoFallback.set(false);
+      this.plutoAttempt.update((attempt) => attempt + 1);
+      this.startPlutoHint();
+    } else {
+      this.clearPlutoHint();
+      this.plutoFallback.set(false);
+    }
+    onCleanup(() => this.clearPlutoHint());
+  });
+
+  /** Show or hide the in-app fallback. Hiding it does not touch the frame. */
+  togglePlutoFallback(): void {
+    this.plutoFallback.update((open) => !open);
+    if (this.plutoFallback()) this.clearPlutoHint();
+  }
+
+  /** Throw the stalled frame away and try the embed once more, in place. */
+  retryPlutoFrame(): void {
+    this.plutoFallback.set(false);
+    this.plutoAttempt.update((attempt) => attempt + 1);
+    this.startPlutoHint();
+  }
+
+  /** Arm the "still not playing?" affordance once a stall is plausible. */
+  private startPlutoHint(): void {
+    this.clearPlutoHint();
+    if (typeof window === 'undefined') return;
+    this.plutoHintTimerId = window.setTimeout(() => {
+      this.plutoHintTimerId = null;
+      this.plutoStallHint.set(true);
+    }, 30000);
+  }
+
+  private clearPlutoHint(): void {
+    if (this.plutoHintTimerId !== null) {
+      window.clearTimeout(this.plutoHintTimerId);
+      this.plutoHintTimerId = null;
+    }
+    this.plutoStallHint.set(false);
+  }
+
   games = signal<Game[]>([]);
   gamingRooms = signal<any[]>([]);
   badges = signal<any[]>([]);

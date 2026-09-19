@@ -1152,10 +1152,18 @@ export class GameService {
    * Iframe sandbox attribute builder. Browser runtimes need their own origin
    * preserved for localStorage, IndexedDB, WebGL workers, and emulator assets;
    * the sandbox still prevents access to the parent application.
+   *
+   * `allow-storage-access-by-user-activation` is what makes the `storage-access`
+   * permission above usable: Chrome rejects requestStorageAccess() inside a
+   * sandboxed frame that does not carry this token, so without it a cabinet that
+   * keeps its session in cookies still silently loses it.
+   *
+   * No `allow-top-navigation*` token is ever granted — an embedded third-party
+   * page must not be able to drive this app's top-level navigation.
    */
   buildIframeSandbox(game?: Game): string {
     const base =
-      'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads';
+      'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-pointer-lock allow-modals allow-orientation-lock allow-downloads allow-storage-access-by-user-activation';
     if (!game) return base;
 
     const embedUrl = game.launchConfig?.approvedEmbedUrl || game.url || '';
@@ -1174,10 +1182,27 @@ export class GameService {
    * Feature Policy / Permissions Policy for the game iframe. Allowlists only the
    * APIs the cabinet actually needs so the upstream source can't request things
    * outside the approved scope.
+   *
+   * `encrypted-media` is load-bearing: without it Chrome refuses the EME
+   * handshake inside a cross-origin frame, and any DRM-protected cabinet stalls
+   * on its own loading screen instead of playing.
+   *
+   * `storage-access` is what lets a cabinet reach the Storage Access API, which
+   * is the only route back to cookies in a third-party frame now that Chrome
+   * blocks them by default. Granting the permission allows the *request*, not
+   * the access — the frame still has to call requestStorageAccess() and qualify —
+   * so this closes silent logout / "progress not saved" failures without
+   * widening what a cabinet can actually reach on its own.
+   *
+   * `clipboard-read` is deliberately NOT granted. It lets a frame read whatever
+   * the user has copied, it is a privacy-sensitive grant to hand ~200 unrelated
+   * third-party cabinets, and none of them need it: the only clipboard use in
+   * this app is the parent writing a share link (clipboard-write), and no
+   * cabinet ships a paste-to-import feature that depends on programmatic reads.
    */
   buildIframeAllowAttr(game?: Game): string {
     const base =
-      'fullscreen; autoplay; clipboard-read; clipboard-write; encrypted-media; picture-in-picture';
+      'fullscreen; autoplay; clipboard-write; encrypted-media; picture-in-picture; storage-access';
     if (!game) return base;
     if (isOnlineMultiplayerGame(game)) {
       return base + '; microphone; camera; display-capture';

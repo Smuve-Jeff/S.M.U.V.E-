@@ -259,6 +259,97 @@ describe('ThaSpotComponent', () => {
     expect(component.displayMode()).toBe('gaming');
   });
 
+  /*
+   * Pluto TV is gated behind its own pre-roll ad, so ad-blocked and
+   * region-locked viewers can be left on a frame that never plays. These lock
+   * in the escape route: a fallback that can be opened, a frame that is really
+   * rebuilt rather than reused, and a nudge that cannot outlive the mode.
+   */
+  describe('Pluto TV fallback', () => {
+    it('starts a fresh frame and clears the fallback on every entry', () => {
+      component.setMode('pluto');
+      fixture.detectChanges();
+      const firstAttempt = component.plutoAttempt();
+      expect(firstAttempt).toBeGreaterThan(0);
+
+      component.togglePlutoFallback();
+      expect(component.plutoFallback()).toBe(true);
+
+      component.setMode('gaming');
+      fixture.detectChanges();
+      component.setMode('pluto');
+      fixture.detectChanges();
+
+      expect(component.plutoFallback()).toBe(false);
+      expect(component.plutoAttempt()).toBeGreaterThan(firstAttempt);
+    });
+
+    it('toggles the fallback and drops the stall hint when it opens', () => {
+      component.setMode('pluto');
+      fixture.detectChanges();
+      expect(component.plutoFallback()).toBe(false);
+
+      component.togglePlutoFallback();
+      expect(component.plutoFallback()).toBe(true);
+      expect(component.plutoStallHint()).toBe(false);
+
+      component.togglePlutoFallback();
+      expect(component.plutoFallback()).toBe(false);
+    });
+
+    it('rebuilds the frame on retry instead of reusing the stalled one', () => {
+      component.setMode('pluto');
+      fixture.detectChanges();
+      component.togglePlutoFallback();
+      const before = component.plutoAttempt();
+
+      component.retryPlutoFrame();
+
+      expect(component.plutoFallback()).toBe(false);
+      expect(component.plutoAttempt()).toBe(before + 1);
+      expect(component.plutoFrameKeys()).toEqual([before + 1]);
+    });
+
+    it('arms a 30s stall hint on entry and cancels it on leave', () => {
+      const setTimeoutSpy = jest.spyOn(window, 'setTimeout');
+      const clearTimeoutSpy = jest.spyOn(window, 'clearTimeout');
+
+      component.setMode('pluto');
+      fixture.detectChanges();
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 30000);
+
+      const clearsBefore = clearTimeoutSpy.mock.calls.length;
+      component.setMode('gaming');
+      fixture.detectChanges();
+
+      expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(clearsBefore);
+      expect(component.plutoStallHint()).toBe(false);
+
+      setTimeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+    });
+
+    it('only raises the hint when the timer actually elapses', () => {
+      jest.useFakeTimers();
+      try {
+        component.setMode('pluto');
+        fixture.detectChanges();
+        expect(component.plutoStallHint()).toBe(false);
+
+        jest.advanceTimersByTime(30000);
+        expect(component.plutoStallHint()).toBe(true);
+
+        // Leaving must kill a pending hint, not just its signal value.
+        component.setMode('gaming');
+        fixture.detectChanges();
+        jest.advanceTimersByTime(60000);
+        expect(component.plutoStallHint()).toBe(false);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
+
   it('surfaces live socket challenges on the in-hub accept banner', () => {
     expect(fakeSocket.on).toHaveBeenCalledWith(
       'incoming_challenge',

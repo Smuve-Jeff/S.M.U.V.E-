@@ -302,10 +302,17 @@
   The GAMING / PLUTO TV switch is the only control that opens Pluto TV, and the
   768px refinement block further down this file sets `.mode-toggle-group` to
   `display: none` — which made the entire mode unreachable on every phone and
-  portrait tablet. This re-declares it for phones with a two-class selector so
-  it wins on specificity rather than source order, and floors both buttons at
-  the 44px touch target. `.header-right` (the group's parent) wraps at the same
-  breakpoint so the switch gets a full-width row of its own.
+  portrait tablet.
+
+  TO DO: delete that rule. It is the only `.mode-toggle-group { display: none }`
+  in the file; its `@media (max-width: 768px)` block sits with the other phone
+  refinements. Until it goes, the `display: flex` below is load-bearing: the
+  two-class selector is what beats it, since a later rule of equal specificity
+  would otherwise win on source order.
+
+  `.header-right` (the group's parent) wraps at the same breakpoint so the
+  switch gets a full-width row of its own, and both buttons clear the 44px
+  touch floor.
 */
 @media (max-width: 768px) {
   .spot-header .mode-toggle-group {
@@ -1791,7 +1798,8 @@
   pointer-events: auto;
 }
 .exit-pluto-btn,
-.pluto-external-btn {
+.pluto-external-btn,
+.pluto-help-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;

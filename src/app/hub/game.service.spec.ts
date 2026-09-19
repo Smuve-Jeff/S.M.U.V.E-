@@ -277,6 +277,59 @@ describe('GameService', () => {
     expect(allowAttr).not.toContain('display-capture');
   });
 
+  it('keeps the media and DRM baseline on every cabinet, multiplayer or not', () => {
+    const solo = {
+      id: 'solo-puzzle',
+      name: 'Solo Puzzle',
+      genre: 'Puzzle',
+      tags: ['Solo'],
+      multiplayerType: 'None',
+      url: 'https://example.test/solo-puzzle',
+    } as any;
+
+    for (const allowAttr of [
+      service.buildIframeAllowAttr(),
+      service.buildIframeAllowAttr(solo),
+    ]) {
+      // A DRM-protected cabinet stalls on its loading screen without this one.
+      expect(allowAttr).toContain('encrypted-media');
+      expect(allowAttr).toContain('fullscreen');
+      expect(allowAttr).toContain('autoplay');
+      expect(allowAttr).toContain('picture-in-picture');
+      // Chrome blocks third-party cookies in the frame; the Storage Access API
+      // is the only way back, and it rejects unless the parent allows this.
+      expect(allowAttr).toContain('storage-access');
+      // Copy-a-share-link needs the write half only. `clipboard-read` would let
+      // every allowlisted third-party cabinet read the user's clipboard, and
+      // nothing in the app reads it programmatically.
+      expect(allowAttr).toContain('clipboard-write');
+      expect(allowAttr).not.toContain('clipboard-read');
+    }
+  });
+
+  it('lets a sandboxed cabinet actually use the Storage Access API', () => {
+    /*
+     * The `storage-access` permission alone is inert: Chrome rejects
+     * requestStorageAccess() inside a sandboxed frame that does not carry this
+     * token, so a cabinet keeping its session in cookies would still lose it.
+     */
+    expect(service.buildIframeSandbox()).toContain(
+      'allow-storage-access-by-user-activation'
+    );
+    expect(
+      service.buildIframeSandbox({ url: 'https://example.test/game' } as any)
+    ).toContain('allow-storage-access-by-user-activation');
+  });
+
+  it('never lets a cabinet navigate the page it is embedded in', () => {
+    const sandbox = service.buildIframeSandbox({
+      url: 'https://example.test/game',
+    } as any);
+    // Omitting these is the point, not an oversight: an embedded third-party
+    // page must not be able to drive this app's top-level navigation.
+    expect(sandbox).not.toContain('allow-top-navigation');
+  });
+
   it('merges the Shooting facet across Shooting, FPS, and Shooter genres', async () => {
     const pending = firstValueFrom(
       service.listGames({ genre: 'Shooting' }, 'Name')
