@@ -4,6 +4,7 @@ export * from "./product.service";
 export * from "./social.service";
 export * from "./studio-collab.service";
 export * from "./storage.service";
+export * from "./music-master.service";
 export * from "./ai-proxy.service";
 export * from "./project.service";
 export * from "./game-invite.service";

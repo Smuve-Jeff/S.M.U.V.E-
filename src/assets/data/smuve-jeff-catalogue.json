@@ -1,11 +1,12 @@
 {
-  "notes": "S.M.U.V.E TV — the complete official Smuve Jeff catalogue, as played by\nSmuve Jeff Radio.\n\nUnioned from Apple’s catalogue API and Deezer’s public API, because the\nartist’s releases are wider than any one store: this list holds 94 unique\nrecords where Apple alone lists 78. The remainder — the records on\n\"The Black Label\", \"Each and Everyone of My Songs The Exact Same\" and\n\"Live out Tha Trunk\" — are not on Apple at all, so they can only be found\nby reading a second catalogue.\n\n`previewUrl` is Apple’s 30-second official preview, played in-app when the\nrecord has no hosted master. `links` are the official pages where the\nCOMPLETE track plays, which is how a listener reaches the full record.\n\n`durationMs` is always the FULL record’s running time, never the clip’s, so\nthe station can show 3:32 beside a 30-second preview and never imply the\nclip is the whole song. Regenerate with:\nnode scripts/build-music-manifest.mjs (existing `file` values are preserved).",
+  "notes": "S.M.U.V.E TV — the complete official Smuve Jeff catalogue, as played by\nSmuve Jeff Radio.\n\nUnioned from Apple’s catalogue API, Deezer’s public API and the artist’s\nofficial YouTube releases, because the artist’s catalogue is wider than any\none store: this list holds 94 unique records where Apple alone lists 78.\nThe remainder — the records on \"The Black Label\", \"Each and Everyone of My\nSongs The Exact Same\" and \"Live out Tha Trunk\" — are not on Apple at all,\nso they can only be found by reading a second catalogue.\n\n`youtubeId` is the artist’s own official upload of the COMPLETE recording. It\nis the station’s full-length source: YouTube’s official player streams the\nwhole distributed track, where Apple’s `previewUrl` is a 30-second clip.\n`previewUrl` is therefore the fallback, played in-app only for a record with\nneither a hosted master nor an official upload. `links` are the official\npages where the complete track plays, free route first.\n\n`durationMs` is always the FULL record’s running time, never the clip’s, so\nthe station can show 3:32 beside a 30-second preview and never imply the\nclip is the whole song. Regenerate with:\nnode scripts/build-music-manifest.mjs (existing `file` values are preserved).",
   "generatedFrom": [
     "Apple iTunes catalogue API (artist 1517179702)",
     "Deezer public API",
+    "YouTube official releases (Topic channel UCl2ZV5pJt-QbTH8XxyfYdWg)",
     "SoundCloud public API"
   ],
-  "totalRecords": 94,
+  "totalRecords": 99,
   "records": [
     {
       "id": "apple-1691028383",
@@ -19,6 +20,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=IE-b3hMngfQ"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538895"
         },
@@ -31,6 +36,7 @@
           "url": "https://music.apple.com/us/album/killuminati/1691028381?i=1691028383&uo=4"
         }
       ],
+      "youtubeId": "IE-b3hMngfQ",
       "file": ""
     },
     {
@@ -45,6 +51,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=W-kVg3a5vCA"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538945"
         },
@@ -57,6 +67,7 @@
           "url": "https://music.apple.com/us/album/lost-my-mind-feat-chriso/1691028381?i=1691028388&uo=4"
         }
       ],
+      "youtubeId": "W-kVg3a5vCA",
       "file": ""
     },
     {
@@ -71,6 +82,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=RNOQ6qFL_Ko"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600401"
         },
@@ -79,6 +94,7 @@
           "url": "https://music.apple.com/us/album/choices/1775194594?i=1775194606&uo=4"
         }
       ],
+      "youtubeId": "RNOQ6qFL_Ko",
       "file": ""
     },
     {
@@ -93,6 +109,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=vK3jj1sMNNQ"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637251"
         },
@@ -101,6 +121,7 @@
           "url": "https://music.apple.com/us/album/only-thing-i-ask-remix/1843970080?i=1843970087&uo=4"
         }
       ],
+      "youtubeId": "vK3jj1sMNNQ",
       "file": ""
     },
     {
@@ -115,6 +136,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=tVhQYFALm5w"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637241"
         },
@@ -123,6 +148,7 @@
           "url": "https://music.apple.com/us/album/warfare-zone-remix/1843970080?i=1843970086&uo=4"
         }
       ],
+      "youtubeId": "tVhQYFALm5w",
       "file": ""
     },
     {
@@ -137,6 +163,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=ZPQVVD0bOyc"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538925"
         },
@@ -149,6 +179,7 @@
           "url": "https://music.apple.com/us/album/1-rule-feat-stepho/1691028381?i=1691028386&uo=4"
         }
       ],
+      "youtubeId": "ZPQVVD0bOyc",
       "file": ""
     },
     {
@@ -163,6 +194,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=gATJc5JhJAA"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538915"
         },
@@ -175,6 +210,7 @@
           "url": "https://music.apple.com/us/album/another-song/1691028381?i=1691028385&uo=4"
         }
       ],
+      "youtubeId": "gATJc5JhJAA",
       "file": ""
     },
     {
@@ -189,6 +225,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=Ub9jZz5laPg"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538935"
         },
@@ -201,6 +241,7 @@
           "url": "https://music.apple.com/us/album/bless-yo-soul/1691028381?i=1691028387&uo=4"
         }
       ],
+      "youtubeId": "Ub9jZz5laPg",
       "file": ""
     },
     {
@@ -215,6 +256,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=vpnLK0n7Ypc"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538885"
         },
@@ -227,6 +272,7 @@
           "url": "https://music.apple.com/us/album/glory/1691028381?i=1691028382&uo=4"
         }
       ],
+      "youtubeId": "vpnLK0n7Ypc",
       "file": ""
     },
     {
@@ -241,6 +287,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/68/64/d3/6864d35b-06ba-9953-1089-8c5f888dc37a/8445888138421.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=6l6opTaz2ok"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2315538905"
         },
@@ -253,6 +303,7 @@
           "url": "https://music.apple.com/us/album/warr/1691028381?i=1691028384&uo=4"
         }
       ],
+      "youtubeId": "6l6opTaz2ok",
       "file": ""
     },
     {
@@ -267,6 +318,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=2JoFePaLAWo"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485075"
         },
@@ -279,6 +334,7 @@
           "url": "https://music.apple.com/us/album/cant-escape/1695469751?i=1695469786&uo=4"
         }
       ],
+      "youtubeId": "2JoFePaLAWo",
       "file": ""
     },
     {
@@ -293,6 +349,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=pcmFNtM1erU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485095"
         },
@@ -305,6 +365,7 @@
           "url": "https://music.apple.com/us/album/daamn/1695469751?i=1695469788&uo=4"
         }
       ],
+      "youtubeId": "pcmFNtM1erU",
       "file": ""
     },
     {
@@ -319,6 +380,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=iOcbDXDNQpk"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485065"
         },
@@ -331,6 +396,7 @@
           "url": "https://music.apple.com/us/album/do-it-fo-yo-own/1695469751?i=1695469755&uo=4"
         }
       ],
+      "youtubeId": "iOcbDXDNQpk",
       "file": ""
     },
     {
@@ -345,6 +411,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=jCfkSsmiiig"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485115"
         },
@@ -357,6 +427,7 @@
           "url": "https://music.apple.com/us/album/sleepy-hollow/1695469751?i=1695469790&uo=4"
         }
       ],
+      "youtubeId": "jCfkSsmiiig",
       "file": ""
     },
     {
@@ -371,6 +442,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=ZBjC9iMSHxo"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485085"
         },
@@ -383,6 +458,7 @@
           "url": "https://music.apple.com/us/album/throat-goat/1695469751?i=1695469787&uo=4"
         }
       ],
+      "youtubeId": "ZBjC9iMSHxo",
       "file": ""
     },
     {
@@ -397,6 +473,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=c4AQh9XZan0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485105"
         },
@@ -409,6 +489,7 @@
           "url": "https://music.apple.com/us/album/we-gon-ball/1695469751?i=1695469789&uo=4"
         }
       ],
+      "youtubeId": "c4AQh9XZan0",
       "file": ""
     },
     {
@@ -423,6 +504,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/02/6d/95/026d9556-9818-fe58-b23e-5ea30962baaf/8445888607644.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=CEN3FzYk8x4"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2351485055"
         },
@@ -435,6 +520,7 @@
           "url": "https://music.apple.com/us/album/yesterday/1695469751?i=1695469753&uo=4"
         }
       ],
+      "youtubeId": "CEN3FzYk8x4",
       "file": ""
     },
     {
@@ -449,6 +535,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=CW--Zx44PWs"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629155"
         },
@@ -461,6 +551,7 @@
           "url": "https://music.apple.com/us/album/ante-up-feat-kirbo-k-t-h-b-stepho/1705493954?i=1705494226&uo=4"
         }
       ],
+      "youtubeId": "CW--Zx44PWs",
       "file": ""
     },
     {
@@ -475,6 +566,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=sLCjai9xlh0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629145"
         },
@@ -487,6 +582,7 @@
           "url": "https://music.apple.com/us/album/home/1705493954?i=1705493955&uo=4"
         }
       ],
+      "youtubeId": "sLCjai9xlh0",
       "file": ""
     },
     {
@@ -501,6 +597,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=MVLLhhMCZVg"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629165"
         },
@@ -513,6 +613,7 @@
           "url": "https://music.apple.com/us/album/love-hate-enemies/1705493954?i=1705494227&uo=4"
         }
       ],
+      "youtubeId": "MVLLhhMCZVg",
       "file": ""
     },
     {
@@ -527,6 +628,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=zuwqAafmpNc"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629175"
         },
@@ -539,6 +644,7 @@
           "url": "https://music.apple.com/us/album/memories/1705493954?i=1705494228&uo=4"
         }
       ],
+      "youtubeId": "zuwqAafmpNc",
       "file": ""
     },
     {
@@ -553,6 +659,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=DzQ42PgFA5E"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629215"
         },
@@ -565,6 +675,7 @@
           "url": "https://music.apple.com/us/album/never-give-up/1705493954?i=1705494231&uo=4"
         }
       ],
+      "youtubeId": "DzQ42PgFA5E",
       "file": ""
     },
     {
@@ -579,6 +690,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=zqS6ywO1wXk"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629185"
         },
@@ -591,6 +706,7 @@
           "url": "https://music.apple.com/us/album/only-way-for-me/1705493954?i=1705494229&uo=4"
         }
       ],
+      "youtubeId": "zqS6ywO1wXk",
       "file": ""
     },
     {
@@ -605,6 +721,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/b7/1f/3f/b71f3f28-1887-bd8d-3764-ca1ab5905e6f/8445888946651.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=tYgP-LYF_Ac"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2301629195"
         },
@@ -617,6 +737,7 @@
           "url": "https://music.apple.com/us/album/within-myself/1705493954?i=1705494230&uo=4"
         }
       ],
+      "youtubeId": "tYgP-LYF_Ac",
       "file": ""
     },
     {
@@ -631,6 +752,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=pHJB8E2dsTA"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2364533215"
         },
@@ -639,6 +764,7 @@
           "url": "https://soundcloud.com/smuvejeff/nigga-why-you-hating-on-me"
         }
       ],
+      "youtubeId": "pHJB8E2dsTA",
       "file": ""
     },
     {
@@ -653,6 +779,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/41/80/79/4180797d-8a74-d010-608b-27e60be550a6/8445888713550.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=DQesMrh_roY"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2364533205"
         },
@@ -665,6 +795,7 @@
           "url": "https://music.apple.com/us/album/long-nights-feat-stepho-kirbo-k-t-h-b/1697069457?i=1697069459&uo=4"
         }
       ],
+      "youtubeId": "DQesMrh_roY",
       "file": ""
     },
     {
@@ -683,6 +814,7 @@
           "url": "https://music.apple.com/us/album/n-a-why-you-hating-on-me-feat-kirbo-k-t-h-b/1697069457?i=1697069461&uo=4"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -697,6 +829,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/41/80/79/4180797d-8a74-d010-608b-27e60be550a6/8445888713550.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=mf3O55XyDtQ"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2364533195"
         },
@@ -709,6 +845,7 @@
           "url": "https://music.apple.com/us/album/set-dis-bitch-off/1697069457?i=1697069458&uo=4"
         }
       ],
+      "youtubeId": "mf3O55XyDtQ",
       "file": ""
     },
     {
@@ -723,6 +860,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=4_p4gPKkHts"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543925"
         },
@@ -735,6 +876,7 @@
           "url": "https://music.apple.com/us/album/100-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705493059&uo=4"
         }
       ],
+      "youtubeId": "4_p4gPKkHts",
       "file": ""
     },
     {
@@ -749,6 +891,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=jRAnv5bUgxI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543905"
         },
@@ -761,6 +907,7 @@
           "url": "https://music.apple.com/us/album/been-so-long-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705493057&uo=4"
         }
       ],
+      "youtubeId": "jRAnv5bUgxI",
       "file": ""
     },
     {
@@ -775,6 +922,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=7hDHeocZ4Pw"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543875"
         },
@@ -787,6 +938,7 @@
           "url": "https://music.apple.com/us/album/dum-dum-feat-pba/1705492898?i=1705492904&uo=4"
         }
       ],
+      "youtubeId": "7hDHeocZ4Pw",
       "file": ""
     },
     {
@@ -801,6 +953,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=30csbJTwXUw"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543845"
         },
@@ -813,6 +969,7 @@
           "url": "https://music.apple.com/us/album/intro-outro-feat-chriso/1705492898?i=1705492899&uo=4"
         }
       ],
+      "youtubeId": "30csbJTwXUw",
       "file": ""
     },
     {
@@ -827,6 +984,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=rNCpjy4Mz9Q"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543865"
         },
@@ -839,6 +1000,7 @@
           "url": "https://music.apple.com/us/album/kilos-feat-stepho-kirbo-k-t-h-b/1705492898?i=1705492901&uo=4"
         }
       ],
+      "youtubeId": "rNCpjy4Mz9Q",
       "file": ""
     },
     {
@@ -853,6 +1015,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=rzAbaxDn-RE"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543885"
         },
@@ -865,6 +1031,7 @@
           "url": "https://music.apple.com/us/album/kirbo-my-life-feat-kirbo-k-t-h-b/1705492898?i=1705492905&uo=4"
         }
       ],
+      "youtubeId": "rzAbaxDn-RE",
       "file": ""
     },
     {
@@ -879,6 +1046,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=YM47kSH5BAs"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543935"
         },
@@ -891,6 +1062,7 @@
           "url": "https://music.apple.com/us/album/no-clue-feat-pba/1705492898?i=1705493060&uo=4"
         }
       ],
+      "youtubeId": "YM47kSH5BAs",
       "file": ""
     },
     {
@@ -905,6 +1077,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=2MYi7XdsmpY"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543895"
         },
@@ -917,6 +1093,7 @@
           "url": "https://music.apple.com/us/album/smoke-feat-chriso-pba/1705492898?i=1705493056&uo=4"
         }
       ],
+      "youtubeId": "2MYi7XdsmpY",
       "file": ""
     },
     {
@@ -931,6 +1108,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=mXblKmfstiU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543855"
         },
@@ -943,6 +1124,7 @@
           "url": "https://music.apple.com/us/album/step-on-feat-pba/1705492898?i=1705492900&uo=4"
         }
       ],
+      "youtubeId": "mXblKmfstiU",
       "file": ""
     },
     {
@@ -957,6 +1139,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=SQaX6HIM6ro"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543945"
         },
@@ -969,6 +1155,7 @@
           "url": "https://music.apple.com/us/album/when-im-gone-feat-kirbo-k-t-h-b-esko/1705492898?i=1705493061&uo=4"
         }
       ],
+      "youtubeId": "SQaX6HIM6ro",
       "file": ""
     },
     {
@@ -983,6 +1170,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/16/b1/02/16b1024a-90be-af51-e6dd-7fc06c77f94b/8447098183055.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=1UlXfkupbyQ"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2416543915"
         },
@@ -995,6 +1186,7 @@
           "url": "https://music.apple.com/us/album/you-die-too-feat-pba/1705492898?i=1705493058&uo=4"
         }
       ],
+      "youtubeId": "1UlXfkupbyQ",
       "file": ""
     },
     {
@@ -1009,6 +1201,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=60a5usKtzeg"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956521"
         },
@@ -1017,6 +1213,7 @@
           "url": "https://music.apple.com/us/album/crash-out-quick/1773145004?i=1773145005&uo=4"
         }
       ],
+      "youtubeId": "60a5usKtzeg",
       "file": ""
     },
     {
@@ -1031,6 +1228,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=O7fMzyMlaRU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956571"
         },
@@ -1039,6 +1240,7 @@
           "url": "https://music.apple.com/us/album/hail-mary/1773145004?i=1773145221&uo=4"
         }
       ],
+      "youtubeId": "O7fMzyMlaRU",
       "file": ""
     },
     {
@@ -1053,6 +1255,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=TwTwRuqd6q0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956531"
         },
@@ -1061,6 +1267,7 @@
           "url": "https://music.apple.com/us/album/homicide/1773145004?i=1773145006&uo=4"
         }
       ],
+      "youtubeId": "TwTwRuqd6q0",
       "file": ""
     },
     {
@@ -1075,6 +1282,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=3JumdHFJ5Cc"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956551"
         },
@@ -1083,6 +1294,7 @@
           "url": "https://music.apple.com/us/album/that-thang/1773145004?i=1773145008&uo=4"
         }
       ],
+      "youtubeId": "3JumdHFJ5Cc",
       "file": ""
     },
     {
@@ -1097,6 +1309,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=zYYW6vbKvT8"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956581"
         },
@@ -1105,6 +1321,7 @@
           "url": "https://music.apple.com/us/album/the-liqour-got-me/1773145004?i=1773145222&uo=4"
         }
       ],
+      "youtubeId": "zYYW6vbKvT8",
       "file": ""
     },
     {
@@ -1119,6 +1336,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=jrWi9ENANtM"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956541"
         },
@@ -1127,6 +1348,7 @@
           "url": "https://music.apple.com/us/album/use-too-be/1773145004?i=1773145007&uo=4"
         }
       ],
+      "youtubeId": "jrWi9ENANtM",
       "file": ""
     },
     {
@@ -1141,6 +1363,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/a4/38/b7a43820-af35-3b89-5399-e018f89dd2ef/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=CoqcZIeu9mc"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3036956561"
         },
@@ -1149,6 +1375,7 @@
           "url": "https://music.apple.com/us/album/yellow-diamonds/1773145004?i=1773145220&uo=4"
         }
       ],
+      "youtubeId": "CoqcZIeu9mc",
       "file": ""
     },
     {
@@ -1163,6 +1390,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=IL6ZN27RAcM"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464192"
         },
@@ -1171,6 +1402,7 @@
           "url": "https://soundcloud.com/smuvejeff/diamonds-against-tha-wood"
         }
       ],
+      "youtubeId": "IL6ZN27RAcM",
       "file": ""
     },
     {
@@ -1185,6 +1417,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=efPbkNYDQlw"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464162"
         },
@@ -1193,6 +1429,7 @@
           "url": "https://soundcloud.com/smuvejeff/fk-is-you-saying-dawg"
         }
       ],
+      "youtubeId": "efPbkNYDQlw",
       "file": ""
     },
     {
@@ -1207,6 +1444,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=6plcnBkOhik"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464202"
         },
@@ -1215,6 +1456,7 @@
           "url": "https://soundcloud.com/smuvejeff/sometimes"
         }
       ],
+      "youtubeId": "6plcnBkOhik",
       "file": ""
     },
     {
@@ -1229,6 +1471,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=6eW53_6twtI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464182"
         },
@@ -1237,6 +1483,7 @@
           "url": "https://soundcloud.com/smuvejeff/the-wall"
         }
       ],
+      "youtubeId": "6eW53_6twtI",
       "file": ""
     },
     {
@@ -1251,6 +1498,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=P-u12GBuFVg"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464172"
         },
@@ -1259,6 +1510,7 @@
           "url": "https://soundcloud.com/smuvejeff/triple-beam"
         }
       ],
+      "youtubeId": "P-u12GBuFVg",
       "file": ""
     },
     {
@@ -1273,6 +1525,10 @@
       "artworkUrl": null,
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=bjhBzOvmkBw"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/2630464152"
         },
@@ -1281,6 +1537,7 @@
           "url": "https://soundcloud.com/smuvejeff/yo-people"
         }
       ],
+      "youtubeId": "bjhBzOvmkBw",
       "file": ""
     },
     {
@@ -1295,6 +1552,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=151ZFFAn50A"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600301"
         },
@@ -1303,6 +1564,7 @@
           "url": "https://music.apple.com/us/album/back-to-back/1775194594?i=1775194595&uo=4"
         }
       ],
+      "youtubeId": "151ZFFAn50A",
       "file": ""
     },
     {
@@ -1317,6 +1579,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=xyJ2x-6w_Rs"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600391"
         },
@@ -1325,6 +1591,7 @@
           "url": "https://music.apple.com/us/album/bullets-spread-yo/1775194594?i=1775194605&uo=4"
         }
       ],
+      "youtubeId": "xyJ2x-6w_Rs",
       "file": ""
     },
     {
@@ -1339,6 +1606,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=Ev70LPnoFqI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600341"
         },
@@ -1347,6 +1618,7 @@
           "url": "https://music.apple.com/us/album/losing-composure/1775194594?i=1775194599&uo=4"
         }
       ],
+      "youtubeId": "Ev70LPnoFqI",
       "file": ""
     },
     {
@@ -1361,6 +1633,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=-imoE4O8YnU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600411"
         },
@@ -1369,6 +1645,7 @@
           "url": "https://music.apple.com/us/album/neva-leave-me/1775194594?i=1775194607&uo=4"
         }
       ],
+      "youtubeId": "-imoE4O8YnU",
       "file": ""
     },
     {
@@ -1383,6 +1660,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=MjYS2lREC34"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600311"
         },
@@ -1391,6 +1672,7 @@
           "url": "https://music.apple.com/us/album/nine-seven/1775194594?i=1775194596&uo=4"
         }
       ],
+      "youtubeId": "MjYS2lREC34",
       "file": ""
     },
     {
@@ -1405,6 +1687,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=LxAcUn-2uFQ"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600361"
         },
@@ -1413,6 +1699,7 @@
           "url": "https://music.apple.com/us/album/paper-chase/1775194594?i=1775194601&uo=4"
         }
       ],
+      "youtubeId": "LxAcUn-2uFQ",
       "file": ""
     },
     {
@@ -1427,6 +1714,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=BjK09y4KI7o"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600351"
         },
@@ -1435,6 +1726,7 @@
           "url": "https://music.apple.com/us/album/sacrifice/1775194594?i=1775194600&uo=4"
         }
       ],
+      "youtubeId": "BjK09y4KI7o",
       "file": ""
     },
     {
@@ -1449,6 +1741,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=0AQ9Ar0BnmA"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600381"
         },
@@ -1457,6 +1753,7 @@
           "url": "https://music.apple.com/us/album/spazz-out/1775194594?i=1775194603&uo=4"
         }
       ],
+      "youtubeId": "0AQ9Ar0BnmA",
       "file": ""
     },
     {
@@ -1471,6 +1768,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=9UxYm6P7ivo"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600331"
         },
@@ -1479,6 +1780,7 @@
           "url": "https://music.apple.com/us/album/trust-no-plug/1775194594?i=1775194598&uo=4"
         }
       ],
+      "youtubeId": "9UxYm6P7ivo",
       "file": ""
     },
     {
@@ -1493,6 +1795,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=Wh-HFJgncno"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600371"
         },
@@ -1501,6 +1807,7 @@
           "url": "https://music.apple.com/us/album/what-you-round-me-fo/1775194594?i=1775194602&uo=4"
         }
       ],
+      "youtubeId": "Wh-HFJgncno",
       "file": ""
     },
     {
@@ -1515,6 +1822,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dc/16/11/dc161186-6b22-4e5e-9ad4-91e92b17ef74/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=SsfqXUyBsrI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3054600321"
         },
@@ -1523,6 +1834,7 @@
           "url": "https://music.apple.com/us/album/work/1775194594?i=1775194597&uo=4"
         }
       ],
+      "youtubeId": "SsfqXUyBsrI",
       "file": ""
     },
     {
@@ -1541,6 +1853,7 @@
           "url": "https://www.deezer.com/track/2873787422"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1559,6 +1872,7 @@
           "url": "https://www.deezer.com/track/2873787402"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1577,6 +1891,7 @@
           "url": "https://www.deezer.com/track/2873787372"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1595,6 +1910,7 @@
           "url": "https://www.deezer.com/track/2873787442"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1613,6 +1929,7 @@
           "url": "https://www.deezer.com/track/2873787412"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1631,6 +1948,7 @@
           "url": "https://www.deezer.com/track/2873787392"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1649,6 +1967,7 @@
           "url": "https://www.deezer.com/track/2873787382"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1667,6 +1986,7 @@
           "url": "https://www.deezer.com/track/2873787432"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1685,6 +2005,7 @@
           "url": "https://www.deezer.com/track/2873787362"
         }
       ],
+      "youtubeId": null,
       "file": ""
     },
     {
@@ -1699,6 +2020,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=VOe9q1xd3Yw"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637191"
         },
@@ -1707,6 +2032,7 @@
           "url": "https://music.apple.com/us/album/beside-me-remix/1843970080?i=1843970081&uo=4"
         }
       ],
+      "youtubeId": "VOe9q1xd3Yw",
       "file": ""
     },
     {
@@ -1721,6 +2047,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=TQq98713en0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637261"
         },
@@ -1729,6 +2059,7 @@
           "url": "https://music.apple.com/us/album/fall-back-remix/1843970080?i=1843970088&uo=4"
         }
       ],
+      "youtubeId": "TQq98713en0",
       "file": ""
     },
     {
@@ -1743,6 +2074,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=NnK5CyS3kck"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637201"
         },
@@ -1751,6 +2086,7 @@
           "url": "https://music.apple.com/us/album/got-away-remix/1843970080?i=1843970082&uo=4"
         }
       ],
+      "youtubeId": "NnK5CyS3kck",
       "file": ""
     },
     {
@@ -1765,6 +2101,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=HaJveS4Pk7A"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637221"
         },
@@ -1773,6 +2113,7 @@
           "url": "https://music.apple.com/us/album/purple-tag-remix/1843970080?i=1843970084&uo=4"
         }
       ],
+      "youtubeId": "HaJveS4Pk7A",
       "file": ""
     },
     {
@@ -1787,6 +2128,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=mEziFNsRyZI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637211"
         },
@@ -1795,6 +2140,7 @@
           "url": "https://music.apple.com/us/album/seat-lay-way-back-remix/1843970080?i=1843970083&uo=4"
         }
       ],
+      "youtubeId": "mEziFNsRyZI",
       "file": ""
     },
     {
@@ -1809,6 +2155,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/42/be/f5/42bef5d7-6c58-54fe-5fdd-755312638647/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=6VRgmWOEUrk"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3582637231"
         },
@@ -1817,6 +2167,7 @@
           "url": "https://music.apple.com/us/album/slowly-starve-the-hood-remix/1843970080?i=1843970085&uo=4"
         }
       ],
+      "youtubeId": "6VRgmWOEUrk",
       "file": ""
     },
     {
@@ -1831,6 +2182,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=nhUBZ2hVFb0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175871"
         },
@@ -1839,6 +2194,7 @@
           "url": "https://music.apple.com/us/album/back-in-this-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180417&uo=4"
         }
       ],
+      "youtubeId": "nhUBZ2hVFb0",
       "file": ""
     },
     {
@@ -1853,6 +2209,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=BoFkvUeYLG0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175931"
         },
@@ -1861,6 +2221,7 @@
           "url": "https://music.apple.com/us/album/bad-decisions-feat-kirbo-k-t-h-b-stepho-mixtape/1843180413?i=1843180422&uo=4"
         }
       ],
+      "youtubeId": "BoFkvUeYLG0",
       "file": ""
     },
     {
@@ -1875,6 +2236,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=METeHMIbPJU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175901"
         },
@@ -1883,6 +2248,7 @@
           "url": "https://music.apple.com/us/album/cant-cry-feat-pba-mixtape/1843180413?i=1843180419&uo=4"
         }
       ],
+      "youtubeId": "METeHMIbPJU",
       "file": ""
     },
     {
@@ -1897,6 +2263,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=f6NuPlhhDhA"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175841"
         },
@@ -1905,6 +2275,7 @@
           "url": "https://music.apple.com/us/album/gotta-go-get-it-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180414&uo=4"
         }
       ],
+      "youtubeId": "f6NuPlhhDhA",
       "file": ""
     },
     {
@@ -1919,6 +2290,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=_pK-3ew76Uo"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175851"
         },
@@ -1927,6 +2302,7 @@
           "url": "https://music.apple.com/us/album/im-sorry-feat-pba-mixtape/1843180413?i=1843180415&uo=4"
         }
       ],
+      "youtubeId": "_pK-3ew76Uo",
       "file": ""
     },
     {
@@ -1941,6 +2317,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=Ylr0krI8eUY"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175881"
         },
@@ -1949,6 +2329,7 @@
           "url": "https://music.apple.com/us/album/keep-it-real-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180418&uo=4"
         }
       ],
+      "youtubeId": "Ylr0krI8eUY",
       "file": ""
     },
     {
@@ -1963,6 +2344,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=12JU--7Idz0"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175921"
         },
@@ -1971,6 +2356,7 @@
           "url": "https://music.apple.com/us/album/reckless-talk-feat-pba-mixtape/1843180413?i=1843180421&uo=4"
         }
       ],
+      "youtubeId": "12JU--7Idz0",
       "file": ""
     },
     {
@@ -1985,6 +2371,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=hs6p2VWs7HI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175861"
         },
@@ -1993,6 +2383,7 @@
           "url": "https://music.apple.com/us/album/stand-on-that-feat-pba-mixtape/1843180413?i=1843180416&uo=4"
         }
       ],
+      "youtubeId": "hs6p2VWs7HI",
       "file": ""
     },
     {
@@ -2007,6 +2398,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/4b/19/ed4b1901-019b-f977-1a36-dac8e011d7c0/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=I-7XtheWWe8"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3578175911"
         },
@@ -2015,6 +2410,7 @@
           "url": "https://music.apple.com/us/album/the-truth-feat-kirbo-k-t-h-b-mixtape/1843180413?i=1843180420&uo=4"
         }
       ],
+      "youtubeId": "I-7XtheWWe8",
       "file": ""
     },
     {
@@ -2029,6 +2425,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=h_1uFbrDDws"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590951"
         },
@@ -2037,6 +2437,7 @@
           "url": "https://music.apple.com/us/album/281-live/1818028016?i=1818028035&uo=4"
         }
       ],
+      "youtubeId": "h_1uFbrDDws",
       "file": ""
     },
     {
@@ -2051,6 +2452,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=L9dZsphdqlg"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590961"
         },
@@ -2059,6 +2464,7 @@
           "url": "https://music.apple.com/us/album/chasing-me-live/1818028016?i=1818028036&uo=4"
         }
       ],
+      "youtubeId": "L9dZsphdqlg",
       "file": ""
     },
     {
@@ -2073,6 +2479,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=yMI1cipya4w"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590941"
         },
@@ -2081,6 +2491,7 @@
           "url": "https://music.apple.com/us/album/crashing-live/1818028016?i=1818028034&uo=4"
         }
       ],
+      "youtubeId": "yMI1cipya4w",
       "file": ""
     },
     {
@@ -2095,6 +2506,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=VPqrUUzdcsI"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590931"
         },
@@ -2103,6 +2518,7 @@
           "url": "https://music.apple.com/us/album/interlude-live/1818028016?i=1818028030&uo=4"
         }
       ],
+      "youtubeId": "VPqrUUzdcsI",
       "file": ""
     },
     {
@@ -2117,6 +2533,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=aoDqFEG-Btk"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590921"
         },
@@ -2125,6 +2545,7 @@
           "url": "https://music.apple.com/us/album/m-o-n-e-y-live/1818028016?i=1818028029&uo=4"
         }
       ],
+      "youtubeId": "aoDqFEG-Btk",
       "file": ""
     },
     {
@@ -2139,6 +2560,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=Up8NiSmHHPU"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590911"
         },
@@ -2147,6 +2572,7 @@
           "url": "https://music.apple.com/us/album/push-live/1818028016?i=1818028027&uo=4"
         }
       ],
+      "youtubeId": "Up8NiSmHHPU",
       "file": ""
     },
     {
@@ -2161,6 +2587,10 @@
       "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/93/6d/c9/936dc93a-165b-7bfb-faea-40a8ef038505/artwork.jpg/100x100bb.jpg",
       "links": [
         {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=LKYFnP5uyNs"
+        },
+        {
           "label": "DEEZER",
           "url": "https://www.deezer.com/track/3394590901"
         },
@@ -2169,6 +2599,102 @@
           "url": "https://music.apple.com/us/album/stay-aware-live/1818028016?i=1818028019&uo=4"
         }
       ],
+      "youtubeId": "LKYFnP5uyNs",
+      "file": ""
+    },
+    {
+      "id": "yt-UPSEK-Vvxzk",
+      "trackId": null,
+      "title": "Can You Stop The Rain @peabobrysonvevo8514",
+      "artist": "Smuve Jeff",
+      "album": "Single",
+      "year": null,
+      "durationMs": null,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=UPSEK-Vvxzk"
+        }
+      ],
+      "youtubeId": "UPSEK-Vvxzk",
+      "file": ""
+    },
+    {
+      "id": "yt-m3g8GNPgdgw",
+      "trackId": null,
+      "title": "Going in circles",
+      "artist": "Smuve Jeff",
+      "album": "Single",
+      "year": null,
+      "durationMs": null,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=m3g8GNPgdgw"
+        }
+      ],
+      "youtubeId": "m3g8GNPgdgw",
+      "file": ""
+    },
+    {
+      "id": "yt-iIwhS_r8TAQ",
+      "trackId": null,
+      "title": "Hard To Say Goodbye @BoyzIIMenOfficial",
+      "artist": "Smuve Jeff",
+      "album": "Single",
+      "year": null,
+      "durationMs": null,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=iIwhS_r8TAQ"
+        }
+      ],
+      "youtubeId": "iIwhS_r8TAQ",
+      "file": ""
+    },
+    {
+      "id": "yt-vb1CWxZgsMM",
+      "trackId": null,
+      "title": "September 11, 2025",
+      "artist": "Smuve Jeff",
+      "album": "Single",
+      "year": null,
+      "durationMs": null,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=vb1CWxZgsMM"
+        }
+      ],
+      "youtubeId": "vb1CWxZgsMM",
+      "file": ""
+    },
+    {
+      "id": "yt-3tSxOuceqJo",
+      "trackId": null,
+      "title": "Smile",
+      "artist": "Smuve Jeff",
+      "album": "Single",
+      "year": null,
+      "durationMs": null,
+      "previewUrl": "",
+      "artworkUrl": null,
+      "links": [
+        {
+          "label": "YOUTUBE",
+          "url": "https://www.youtube.com/watch?v=3tSxOuceqJo"
+        }
+      ],
+      "youtubeId": "3tSxOuceqJo",
       "file": ""
     }
   ]

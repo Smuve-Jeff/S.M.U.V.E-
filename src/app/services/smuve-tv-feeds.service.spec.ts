@@ -8,6 +8,7 @@ import {
   SmuveJeffCatalogueRecord,
   SmuveTvFeedsService,
   SmuveTvRadioTrack,
+  isSmuveJeffArtist,
   normalizeMatchKey,
   seededRandom,
   shuffleBag,
@@ -56,9 +57,33 @@ describe('SmuveTvFeedsService', () => {
       for (const feed of SMUVE_TV_LIVE_FEEDS) {
         expect(feed.url).toMatch(/^https:\/\/\S+\.m3u8$/);
         expect(feed.operator.trim().length).toBeGreaterThan(0);
-        expect(feed.source.trim().length).toBeGreaterThan(0);
-        expect(['news', 'entertainment', 'music']).toContain(feed.genre);
+        expect(feed.source.trim()).toMatch(/^[A-Z]/);
+        expect([
+          'news',
+          'entertainment',
+          'music',
+          'sports',
+          'documentary',
+        ]).toContain(feed.genre);
       }
+    });
+
+    it('covers every genre with at least one feed', () => {
+      for (const genre of [
+        'news',
+        'entertainment',
+        'music',
+        'sports',
+        'documentary',
+      ] as const) {
+        expect(service.feedsIn(genre).length).toBeGreaterThan(0);
+      }
+    });
+
+    it('keeps the catalogue broader than the line-up it feeds', () => {
+      // The extra feeds are the pool a station is re-fed from, so the catalogue
+      // must never be the smaller of the two lists.
+      expect(SMUVE_TV_LIVE_FEEDS.length).toBeGreaterThan(SMUVE_TV_CHANNELS.length);
     });
 
     it('never lists the same feed id twice', () => {
@@ -303,6 +328,30 @@ describe('SmuveTvFeedsService', () => {
       });
     });
 
+    it('refuses a hosted file credited to somebody else', () => {
+      const resolved = service.matchMasters(
+        catalogue(),
+        [
+          { trackId: 11, file: 'a.mp3', artist: 'Another Artist' },
+          { trackId: 22, file: 'b.mp3', artist: 'Smuve Jeff' },
+        ],
+        CATALOGUE
+      );
+
+      // One artist owns this station, so the credit decides, not the match.
+      expect(resolved.map((track) => track.id)).toEqual(['apple-22']);
+    });
+
+    it('takes an uncredited host file as the artist\'s own', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ trackId: 11, file: 'a.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master.artist).toBe('Smuve Jeff');
+    });
+
     it('skips manifest lines with no file yet', () => {
       const resolved = service.matchMasters(
         catalogue(),
@@ -474,6 +523,20 @@ describe('SmuveTvFeedsService', () => {
       await expect(service.loadCatalogueRecords()).resolves.toEqual([]);
     });
 
+    it('drops a catalogue line credited to somebody else', () => {
+      const merged = service.mergeCatalogue(
+        [
+          catalogueRecord(),
+          catalogueRecord({ id: 'guest-1', trackId: 999, artist: 'Another Artist' }),
+        ],
+        []
+      );
+
+      // The file is this artist's own catalogue; a foreign credit never reaches
+      // the radio, even when the file is edited by hand.
+      expect(merged.map((track) => track.title)).toEqual(['Official Record']);
+    });
+
     it('lists records Apple does not carry, which have no stream here', () => {
       const merged = service.mergeCatalogue(
         [
@@ -635,6 +698,26 @@ describe('SmuveTvFeedsService', () => {
       for (const record of catalogueOnly) {
         expect(record.links?.length).toBeGreaterThan(0);
       }
+
+      // And every one of them is the artist's, which is what the station plays.
+      for (const record of records) {
+        expect(isSmuveJeffArtist(record.artist)).toBe(true);
+      }
+    });
+  });
+
+  describe('the artist gate', () => {
+    it('accepts this artist, alone or in a feature credit', () => {
+      expect(isSmuveJeffArtist('Smuve Jeff')).toBe(true);
+      expect(isSmuveJeffArtist('SMUVE JEFF')).toBe(true);
+      expect(isSmuveJeffArtist('Smuve Jeff feat. ChrisO')).toBe(true);
+    });
+
+    it('refuses anybody else, and an absent credit', () => {
+      expect(isSmuveJeffArtist('Another Artist')).toBe(false);
+      expect(isSmuveJeffArtist('ChrisO')).toBe(false);
+      expect(isSmuveJeffArtist(undefined)).toBe(false);
+      expect(isSmuveJeffArtist(null)).toBe(false);
     });
   });
 });

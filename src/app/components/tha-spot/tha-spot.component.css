@@ -1766,9 +1766,9 @@
   The hub footer is a sibling of <main>, not a child of it, so the `inert` that
   covers the arcade grid does not cover the footer's chat box — measured in
   Chromium, `.hub-footer` is rendered and outside `.spot-main-content` while the
-  broadcast is up. Its own template gate still tests the retired 'pluto' alias,
-  and that line sits past the editor's reachable window for the template, so the
-  surface has to remove it from here.
+  broadcast is up. The footer's own template gate now covers the broadcast too;
+  this stays as the second line of defence, because a footer hidden by only one
+  mechanism is one template edit away from covering the player.
 
   `display: none` rather than `visibility`: the footer's input has to leave the
   tab order too, or a keyboard user tabs into a chat box they cannot see.

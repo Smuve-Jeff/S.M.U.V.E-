@@ -305,6 +305,24 @@
       </p>
 
       <section class="tv-music-channel" aria-labelledby="smuve-jeff-radio-title">
+        <div
+          class="tv-radio-standalone"
+          *ngIf="radioStandalone()"
+          role="dialog"
+          aria-label="Smuve Jeff Radio full-page broadcast"
+        >
+          <div class="tv-radio-standalone-art" aria-hidden="true">
+            <span class="material-symbols-outlined">graphic_eq</span>
+          </div>
+          <p class="tv-lt-label">S.M.U.V.E BROADCAST NETWORK</p>
+          <h3>SMUVE JEFF RADIO</h3>
+          <p class="tv-radio-standalone-live">24/7 · LIVE AUDIO CHANNEL</p>
+          <div class="tv-radio-standalone-pulse" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="tv-radio-standalone-note">The broadcast is playing continuously.</p>
+          <button type="button" class="tv-radio-standalone-exit" (click)="exitRadio()">
+            EXIT RADIO
+          </button>
+        </div>
         <div class="tv-music-heading">
           <div>
             <p class="tv-lt-label">FIRST-PARTY MUSIC CHANNEL</p>
@@ -313,8 +331,8 @@
           <span class="tv-music-count">{{ rotationCount() }} IN ROTATION</span>
         </div>
         <p class="tv-music-copy">
-          Shuffled continuously, one record after another, never stopping. Nothing
-          starts until you press play.
+          Smuve Jeff's records and no one else's, shuffled continuously, one after
+          another, never stopping. Nothing starts until you press play.
         </p>
         <p class="tv-music-mode" [class.masters]="playsFullLength()">
           <span class="material-symbols-outlined" aria-hidden="true">
@@ -328,8 +346,9 @@
               LOADING THE OFFICIAL CATALOGUE&hellip;
             </ng-container>
             <ng-container *ngIf="catalogueState() !== 'loading'">
-              OFFICIAL PREVIEWS &mdash; import the full-length masters below to put the
-              complete records on air
+              OFFICIAL PREVIEWS &mdash; {{ fullRecordCount() }} of
+              {{ officialCatalogue().length }} records play COMPLETE from the
+              artist's own official upload; the rest wait on the masters below
             </ng-container>
           </ng-container>
         </p>
@@ -345,10 +364,12 @@
         <p class="tv-music-status" *ngIf="catalogueState() === 'ready' && !playsFullLength()">
           {{ officialCatalogue().length }} official records catalogued &mdash;
           {{ rotationCount() }} stream here on Apple's 30-second preview (the running
-          time shown is always the full record), and
-          {{ catalogueOnly().length }} open on the platform that publishes them.<br />
-          No store hands out a full-length stream for this catalogue, so the
-          complete records come from the artist's own files.
+          time shown is always the full record), and {{ catalogueOnly().length }}
+          more are catalogued with no free stream attached.<br />
+          No store hands out a full-length stream for this catalogue. The artist's
+          own official uploads do: {{ fullRecordCount() }} of these records are on
+          the distribution channel whole, and every one of them plays complete here
+          on request. Importing your masters below puts the rest on air the same way.
         </p>
         <p
           class="tv-music-status"
@@ -360,26 +381,107 @@
             records hosted at full length.
           </ng-container>
           <ng-container *ngIf="!hostedMasters().length">
-            No records hosted at full length yet. Add a `file` for any track in
-            assets/data/smuve-jeff-masters.json and it goes on air complete, without
-            a code change.
+            No records hosted at full length yet. Import your masters and press
+            PUBLISH TO STATION: the recordings are stored and the channel plays
+            them complete, on every device. Naming them in
+            assets/data/smuve-jeff-masters.json also works and ships with the build.
           </ng-container>
         </p>
         <!--
           No `src` binding on purpose: the element is driven imperatively so
           Angular cannot re-assign the source mid-load and abort playback.
-        -->
-        <audio
-          #music
-          class="tv-music-player"
-          controls
+        -->            <audio
+              #music
+              class="tv-music-player"
+              [controls]="!radioStandalone()"
+
           preload="metadata"
           (ended)="onMusicEnded()"
           (error)="onMusicError()"
           (playing)="onMusicPlaying()"
+          (pause)="onMusicPaused()"
           aria-label="Smuve Jeff Radio player"
         ></audio>
+        <!--
+          The record's metadata lives here and nowhere else: the queue is not
+          listed on this surface and no platform links are offered. It appears
+          only while a record is actually playing, so the panel can never name a
+          track that is silent.
+        -->
+        <div class="tv-music-now" *ngIf="nowPlaying() as track" [hidden]="radioStandalone()" role="status" aria-live="polite">
+          <span class="material-symbols-outlined tv-music-now-mark" aria-hidden="true">graphic_eq</span>
+          <span class="tv-music-now-text">
+            <span class="tv-music-now-label">NOW PLAYING</span>
+            <span class="tv-music-now-title">{{ track.title }}</span>
+            <span class="tv-music-now-meta">
+              {{ track.artist }} &middot; {{ track.album }}
+              <ng-container *ngIf="track.year"> &middot; {{ track.year }}</ng-container>
+              <ng-container *ngIf="trackLength(track.durationMs)">
+                &middot; {{ trackLength(track.durationMs) }}
+              </ng-container>
+            </span>
+          </span>
+          <span class="tv-music-badge" [class.full]="!track.preview">
+            {{ trackBadge(track) }}
+          </span>
+        </div>
+        <!--
+          The complete record, from the artist's own official upload.
+
+          This is the one place the module reaches a third party, and it does so
+          only when the control below is pressed: nothing here embeds anything on
+          its own, and the host stays empty until a complete record is asked for.
+          It appears only for the record that is actually playing, so it can
+          never advertise a song that is silent.
+        -->
+        <div
+          class="tv-music-full"
+          [class.is-live]="fullRecordActive()"
+          *ngIf="musicTrack() as track"
+          [hidden]="radioStandalone() || !offersFullRecord(track)"
+        >
+          <div class="tv-music-full-head">
+            <span class="material-symbols-outlined" aria-hidden="true">album</span>
+            <span class="tv-music-full-label">COMPLETE RECORD</span>
+            <span class="tv-music-full-note">the artist's own official upload</span>
+          </div>
+          <div #officialHost class="tv-music-full-host" [class.live]="fullRecordActive()">
+            <iframe
+              *ngIf="fullRecordEmbedUrl()"
+              [src]="fullRecordEmbedUrl()"
+              title="Smuve Jeff Radio official full-length player"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowfullscreen
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+          </div>
+          <button
+            type="button"
+            class="tv-music-full-btn"
+            [disabled]="fullRecordLoading()"
+            [attr.aria-busy]="fullRecordLoading() ? 'true' : null"
+            (click)="fullRecordActive() ? closeFullRecord() : playFullRecord(track)"
+            aria-label="Play or close the complete record from the artist's official upload"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{ fullRecordActive() ? 'close' : 'play_circle' }}
+            </span>
+            {{ fullRecordActive() ? 'CLOSE FULL RECORD' : 'PLAY FULL RECORD' }}
+          </button>
+          <p class="tv-music-full-state" *ngIf="fullRecordState()" role="status">
+            {{ fullRecordState() }}
+          </p>
+        </div>
         <div class="tv-music-actions">
+          <button
+            type="button"
+            class="tv-radio-enter"
+            (click)="enterRadio()"
+            [disabled]="!rotationCount()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">radio</span>
+            ENTER FULL-PAGE RADIO
+          </button>
           <button
             type="button"
             class="tv-tune-go"
@@ -391,97 +493,31 @@
           </button>
           <label class="tv-music-import">
             <span class="material-symbols-outlined" aria-hidden="true">upload</span>
-            ADD OFFICIAL TRACKS
+            ADD YOUR MASTERS
             <input type="file" accept="audio/*" multiple (change)="onOfficialMusicFiles($event)" />
           </label>
+          <!--
+            Importing only reaches this browser; publishing is what puts the
+            recording on the channel for everyone.
+          -->
+          <button
+            type="button"
+            class="tv-music-publish"
+            [disabled]="publishing()"
+            [attr.aria-busy]="publishing() ? 'true' : null"
+            (click)="publishMasters()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">cloud_upload</span>
+            {{ publishing() ? 'PUBLISHING\u2026' : 'PUBLISH TO STATION' }}
+          </button>
         </div>
+        <p class="tv-music-status" *ngIf="publishState()" role="status">
+          {{ publishState() }}
+        </p>
         <p class="tv-music-empty" *ngIf="!rotationCount() && catalogueState() !== 'loading'">
           Add authorized Smuve Jeff MP3, AAC, OGG, or WAV files to activate this channel.
         </p>
         <p class="tv-music-error" *ngIf="musicError()" role="status">{{ musicError() }}</p>
-        <ul class="tv-music-list" *ngIf="rotationCount()" aria-label="Smuve Jeff Radio queue">
-          <li
-            *ngFor="let track of rotationPool()"
-            class="tv-music-row"
-            [class.active]="track.id === musicTrack()?.id"
-          >
-            <button type="button" (click)="selectMusicTrack(track)">
-              <span class="material-symbols-outlined" aria-hidden="true">{{ track.id === musicTrack()?.id ? 'graphic_eq' : 'music_note' }}</span>
-              <span class="tv-music-track">
-                <span class="tv-music-track-title">{{ track.title }}</span>
-                <span class="tv-music-track-meta">
-                  {{ track.album }}<ng-container *ngIf="track.year"> &middot; {{ track.year }}</ng-container>
-                  <ng-container *ngIf="trackLength(track.durationMs)">
-                    &middot; {{ trackLength(track.durationMs) }}
-                  </ng-container>
-                </span>
-              </span>
-              <span class="tv-music-badge" [class.full]="!track.preview">
-                {{ trackBadge(track) }}
-              </span>
-            </button>
-            <!--
-              The complete record, one tap away. `noopener` is load-bearing: the
-              catalogue links leave the app, so the opened page must not be able
-              to reach back through `window.opener`.
-            -->
-            <a
-              class="tv-music-open"
-              *ngIf="officialLink(track) as link"
-              [href]="link.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              [attr.aria-label]="'Hear the full record of ' + track.title + ' on ' + link.label"
-              [attr.title]="'Full record on ' + link.label"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-            </a>
-          </li>
-        </ul>
-        <div class="tv-music-more" *ngIf="catalogueOnly().length">
-          <p class="tv-music-more-heading">
-            ALSO IN THE CATALOGUE &mdash; {{ catalogueOnly().length }} records Apple does
-            not carry, listed here so the station holds the whole catalogue
-          </p>
-          <ul class="tv-music-list" aria-label="Smuve Jeff catalogue records">
-            <li
-              *ngFor="let track of catalogueOnly()"
-              class="tv-music-row is-open"
-            >
-              <ng-container *ngIf="officialLink(track) as link; else catalogueFallback">
-                <a
-                  class="tv-music-openrow"
-                  [href]="link.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  [attr.aria-label]="'Hear the full record of ' + track.title + ' on ' + link.label"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-                  <span class="tv-music-track">
-                    <span class="tv-music-track-title">{{ track.title }}</span>
-                    <span class="tv-music-track-meta">
-                      {{ track.album }}<ng-container *ngIf="track.year"> &middot; {{ track.year }}</ng-container>
-                      <ng-container *ngIf="trackLength(track.durationMs)">
-                        &middot; {{ trackLength(track.durationMs) }}
-                      </ng-container>
-                    </span>
-                  </span>
-                  <span class="tv-music-badge">{{ link.label }}</span>
-                </a>
-              </ng-container>
-              <ng-template #catalogueFallback>
-                <span class="tv-music-openrow is-disabled">
-                  <span class="material-symbols-outlined" aria-hidden="true">public</span>
-                  <span class="tv-music-track">
-                    <span class="tv-music-track-title">{{ track.title }}</span>
-                    <span class="tv-music-track-meta">{{ track.album }}</span>
-                  </span>
-                  <span class="tv-music-badge">LISTED</span>
-                </span>
-              </ng-template>
-            </li>
-          </ul>
-        </div>
       </section>
 
       <div class="tv-guide">
