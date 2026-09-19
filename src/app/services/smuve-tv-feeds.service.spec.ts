@@ -1,7 +1,14 @@
+import { readFileSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
 import { TestBed } from '@angular/core/testing';
 import {
+  CATALOGUE_PATH,
+  MASTER_MANIFEST_PATH,
   SMUVE_TV_LIVE_FEEDS,
+  SmuveJeffCatalogueRecord,
   SmuveTvFeedsService,
+  SmuveTvRadioTrack,
+  normalizeMatchKey,
   seededRandom,
   shuffleBag,
   trackLength,
@@ -103,6 +110,7 @@ describe('SmuveTvFeedsService', () => {
       expect(tracks).toEqual([
         {
           id: 'apple-1',
+          catalogId: '1',
           title: 'Official Record',
           artist: 'Smuve Jeff',
           album: 'Official Album',
@@ -208,6 +216,152 @@ describe('SmuveTvFeedsService', () => {
     });
   });
 
+  describe('master manifest', () => {
+    const CATALOGUE = 'https://app.test/';
+
+    /** Two real-shaped catalogue entries to match masters against. */
+    const catalogue = (): SmuveTvRadioTrack[] =>
+      service.normalizeCatalogue([
+        appleSong({ trackId: 11, trackName: 'Got Away (Remix)', collectionName: 'More Than Others' }),
+        appleSong({ trackId: 22, trackName: 'Bless Yo Soul', collectionName: 'February 25th' }),
+        appleSong({ trackId: 33, trackName: 'Same Name', collectionName: 'Album One' }),
+        appleSong({ trackId: 44, trackName: 'Same Name', collectionName: 'Album Two' }),
+      ]);
+
+    it('folds case and punctuation but keeps remix markers', () => {
+      expect(normalizeMatchKey('Got Away (Remix)')).toBe('got away remix');
+      expect(normalizeMatchKey('  BLESS   yo soul ')).toBe('bless yo soul');
+      expect(normalizeMatchKey('Lost My Mind (feat. ChrisO)')).toBe('lost my mind');
+      expect(normalizeMatchKey(undefined)).toBe('');
+    });
+
+    it('matches a master to its catalogue record by track id', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ trackId: 11, file: 'assets/audio/got-away.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master).toMatchObject({
+        // The catalogue's own id, so the record never appears twice.
+        id: 'apple-11',
+        catalogId: '11',
+        title: 'Got Away (Remix)',
+        album: 'More Than Others',
+        preview: false,
+        url: 'https://app.test/assets/audio/got-away.mp3',
+      });
+    });
+
+    it('falls back to title and album when no track id is given', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ title: 'bless yo soul', album: 'February 25th', file: '/audio/bless.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master.id).toBe('apple-22');
+      expect(master.url).toBe('https://app.test/audio/bless.mp3');
+    });
+
+    it('uses a title-only match when the catalogue holds one such record', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ title: 'Bless Yo Soul', file: 'a.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master.id).toBe('apple-22');
+    });
+
+    it('refuses a title-only match when the name is ambiguous', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ title: 'Same Name', file: 'a.mp3' }],
+        CATALOGUE
+      );
+
+      // Guessing between two records would put the wrong audio on air.
+      expect(master.id).not.toBe('apple-33');
+      expect(master.id).not.toBe('apple-44');
+      expect(master.title).toBe('Same Name');
+      expect(master.preview).toBe(false);
+    });
+
+    it('keeps an unmatched recording as its own playable master', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ title: 'Unreleased Demo', album: 'Sessions', file: 'https://cdn.test/demo.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master).toMatchObject({
+        title: 'Unreleased Demo',
+        album: 'Sessions',
+        url: 'https://cdn.test/demo.mp3',
+        preview: false,
+      });
+    });
+
+    it('skips manifest lines with no file yet', () => {
+      const resolved = service.matchMasters(
+        catalogue(),
+        [{ trackId: 11, file: '' }, { trackId: 22 }, { trackId: 33, file: '   ' }],
+        CATALOGUE
+      );
+
+      expect(resolved).toEqual([]);
+    });
+
+    it('leaves absolute URLs untouched', () => {
+      const [master] = service.matchMasters(
+        catalogue(),
+        [{ trackId: 11, file: 'https://bucket.example.test/song.m4a?v=2' }],
+        CATALOGUE
+      );
+
+      expect(master.url).toBe('https://bucket.example.test/song.m4a?v=2');
+    });
+
+    it('carries the record\'s real running time onto the master', () => {
+      const [master] = service.matchMasters(
+        service.normalizeCatalogue([appleSong({ trackId: 5, trackTimeMillis: 212_000 })]),
+        [{ trackId: 5, file: 'a.mp3' }],
+        CATALOGUE
+      );
+
+      expect(master.durationMs).toBe(212_000);
+      expect(trackLength(master.durationMs)).toBe('3:32');
+    });
+
+    it('returns nothing when the manifest has no playable lines', () => {
+      expect(service.matchMasters(catalogue(), [], CATALOGUE)).toEqual([]);
+    });
+
+    it('reads the manifest from the path the app actually serves', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ masters: [{ trackId: 1, file: 'a.mp3' }] }),
+      });
+
+      const entries = await service.loadMasterManifest();
+
+      expect(fetchMock).toHaveBeenCalledWith(MASTER_MANIFEST_PATH);
+      expect(entries).toHaveLength(1);
+    });
+
+    it('treats a missing or malformed manifest as nothing hosted', async () => {
+      fetchMock.mockResolvedValue({ ok: false, json: async () => ({}) });
+      await expect(service.loadMasterManifest()).resolves.toEqual([]);
+
+      fetchMock.mockResolvedValue({ ok: true, json: async () => null });
+      await expect(service.loadMasterManifest()).resolves.toEqual([]);
+
+      fetchMock.mockRejectedValue(new Error('offline'));
+      await expect(service.loadMasterManifest()).resolves.toEqual([]);
+    });
+  });
+
   describe('catalogue normalization', () => {
     it('drops anything that is not a playable song', () => {
       const tracks = service.normalizeCatalogue([
@@ -276,6 +430,211 @@ describe('SmuveTvFeedsService', () => {
 
     it('returns nothing for an empty payload', () => {
       expect(service.normalizeCatalogue([])).toEqual([]);
+    });
+  });
+
+  describe('complete catalogue', () => {
+    /** One canned line of the committed catalogue file. */
+    const catalogueRecord = (
+      overrides: Partial<SmuveJeffCatalogueRecord> = {}
+    ): SmuveJeffCatalogueRecord => ({
+      id: 'apple-1',
+      trackId: 1,
+      title: 'Official Record',
+      artist: 'Smuve Jeff',
+      album: 'Official Album',
+      year: '2024',
+      durationMs: 180000,
+      previewUrl: 'https://example.test/preview.m4a',
+      artworkUrl: 'https://example.test/art.jpg',
+      links: [{ label: 'DEEZER', url: 'https://deezer.test/1' }],
+      ...overrides,
+    });
+
+    it('reads the catalogue from the path the app actually serves', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ records: [catalogueRecord()] }),
+      });
+
+      const records = await service.loadCatalogueRecords();
+
+      expect(fetchMock).toHaveBeenCalledWith(CATALOGUE_PATH);
+      expect(records).toHaveLength(1);
+    });
+
+    it('treats a missing or malformed catalogue as no catalogue', async () => {
+      fetchMock.mockResolvedValue({ ok: false, json: async () => ({}) });
+      await expect(service.loadCatalogueRecords()).resolves.toEqual([]);
+
+      fetchMock.mockResolvedValue({ ok: true, json: async () => null });
+      await expect(service.loadCatalogueRecords()).resolves.toEqual([]);
+
+      fetchMock.mockRejectedValue(new Error('offline'));
+      await expect(service.loadCatalogueRecords()).resolves.toEqual([]);
+    });
+
+    it('lists records Apple does not carry, which have no stream here', () => {
+      const merged = service.mergeCatalogue(
+        [
+          catalogueRecord({ previewUrl: '' }),
+          catalogueRecord({ id: 'apple-2', trackId: 2, title: 'Another' }),
+        ],
+        []
+      );
+
+      expect(merged).toHaveLength(2);
+      const listed = merged.find((track) => track.id === 'apple-1');
+      // No preview means no `url`, which is what keeps it out of the rotation.
+      expect(listed?.url).toBeUndefined();
+      expect(listed?.links).toEqual([
+        { label: 'DEEZER', url: 'https://deezer.test/1' },
+      ]);
+      expect(merged.find((track) => track.id === 'apple-2')?.url).toBe(
+        'https://example.test/preview.m4a'
+      );
+    });
+
+    it('makes the first official link the row\'s single destination', () => {
+      const merged = service.mergeCatalogue(
+        [
+          catalogueRecord({
+            links: [
+              { label: 'DEEZER', url: 'https://deezer.test/1' },
+              { label: 'APPLE MUSIC', url: 'https://apple.test/1' },
+            ],
+          }),
+        ],
+        []
+      );
+
+      expect(merged[0].linkUrl).toBe('https://deezer.test/1');
+      expect(merged[0].links).toHaveLength(2);
+    });
+
+    it('drops malformed link rows instead of rendering dead anchors', () => {
+      const merged = service.mergeCatalogue(
+        [
+          catalogueRecord({
+            links: [{ label: 'DEEZER' }, { url: 'https://deezer.test/1' }],
+          }),
+        ],
+        []
+      );
+
+      expect(merged[0].links).toEqual([
+        { label: 'OFFICIAL', url: 'https://deezer.test/1' },
+      ]);
+    });
+
+    it('refreshes a record from the live catalogue rather than duplicating it', () => {
+      const live = service.normalizeCatalogue([
+        appleSong({
+          trackId: 1,
+          previewUrl: 'https://example.test/fresh.m4a',
+          trackTimeMillis: 181000,
+        }),
+      ]);
+
+      const merged = service.mergeCatalogue([catalogueRecord()], live);
+
+      expect(merged).toHaveLength(1);
+      expect(merged[0].url).toBe('https://example.test/fresh.m4a');
+      expect(merged[0].durationMs).toBe(181000);
+      // The committed file's links survive the refresh.
+      expect(merged[0].links).toEqual([
+        { label: 'DEEZER', url: 'https://deezer.test/1' },
+      ]);
+    });
+
+    it('matches on track id even when the two sources name the album differently', () => {
+      const live = service.normalizeCatalogue([
+        appleSong({ trackId: 1, collectionName: 'Official Album (Mixtape)' }),
+      ]);
+
+      const merged = service.mergeCatalogue(
+        [catalogueRecord({ album: 'Official Album' })],
+        live
+      );
+
+      expect(merged).toHaveLength(1);
+      expect(merged[0].url).toBe('https://example.test/preview.m4a');
+    });
+
+    it('appends a release the committed catalogue has never seen', () => {
+      const live = service.normalizeCatalogue([
+        appleSong({ trackId: 77, trackName: 'Brand New Single' }),
+      ]);
+
+      const merged = service.mergeCatalogue([catalogueRecord()], live);
+
+      expect(merged).toHaveLength(2);
+      // Both are 2024 releases, so they land either side of each other by title.
+      expect(merged.map((track) => track.title).sort()).toEqual([
+        'Brand New Single',
+        'Official Record',
+      ]);
+    });
+
+    it('orders the whole catalogue oldest first and sinks undated records', () => {
+      const merged = service.mergeCatalogue(
+        [
+          catalogueRecord({ id: 'a', trackId: 10, year: '2025', title: 'New' }),
+          catalogueRecord({ id: 'b', trackId: 11, year: '2020', title: 'Old' }),
+          catalogueRecord({ id: 'c', trackId: 12, year: null, title: 'Undated' }),
+        ],
+        []
+      );
+
+      expect(merged.map((track) => track.title)).toEqual([
+        'Old',
+        'New',
+        'Undated',
+      ]);
+    });
+
+    it('skips catalogue entries with no title rather than inventing a row', () => {
+      const merged = service.mergeCatalogue(
+        [catalogueRecord({ title: '   ' }), catalogueRecord({ id: 'apple-2' })],
+        []
+      );
+
+      expect(merged).toHaveLength(1);
+    });
+
+    it('keeps every record in the committed catalogue usable', () => {
+      const file = resolvePath(
+        __dirname,
+        '../../assets/data/smuve-jeff-catalogue.json'
+      );
+      const payload = JSON.parse(readFileSync(file, 'utf8')) as {
+        totalRecords?: number;
+        records?: SmuveJeffCatalogueRecord[];
+      };
+      const records = payload.records ?? [];
+
+      expect(payload.totalRecords).toBe(records.length);
+      expect(records.length).toBeGreaterThanOrEqual(80);
+
+      const ids = records.map((record) => record.id);
+      expect(new Set(ids).size).toBe(ids.length);
+
+      for (const record of records) {
+        expect(record.title?.trim()).toBeTruthy();
+        expect(record.durationMs).toBeGreaterThan(0);
+        // Every record must be reachable somehow: a preview to play here, or an
+        // official page holding the complete version.
+        expect(Boolean(record.previewUrl) || Boolean(record.links?.length)).toBe(
+          true
+        );
+      }
+
+      // The records Apple does not carry are the whole reason the file exists.
+      const catalogueOnly = records.filter((record) => !record.previewUrl);
+      expect(catalogueOnly.length).toBeGreaterThan(0);
+      for (const record of catalogueOnly) {
+        expect(record.links?.length).toBeGreaterThan(0);
+      }
     });
   });
 });

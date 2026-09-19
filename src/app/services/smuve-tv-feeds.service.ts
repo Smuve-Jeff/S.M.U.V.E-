@@ -312,6 +312,19 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
 };
 
 /**
+ * One official destination for a record's complete version.
+ *
+ * No platform hands a browser a playable full-length stream for this catalogue,
+ * so the record's full version is reached on the platform that publishes it.
+ * The label is carried rather than assumed, so the station never implies it is
+ * sending a listener somewhere it is not.
+ */
+export interface SmuveTvRadioLink {
+  label: string;
+  url: string;
+}
+
+/**
  * One track on Smuve Jeff Radio. Imported did-you-buy-it files and the official
  * previews share a shape so the radio queue can rotate through both without
  * caring where a track came from.
@@ -329,8 +342,12 @@ export interface SmuveTvRadioTrack {
    */
   blob?: Blob;
   /**
-   * True when this is the ~30-second official preview Apple licenses for public
-   * playback rather than a full-length master.
+   * True when this is not a full-length master the station streams.
+   *
+   * That covers both the ~30-second official preview Apple licenses for public
+   * playback and a catalogue record nothing here can stream at all. Those two
+   * are told apart by whether the track has any playable source: a record with
+   * neither a hosted master nor a preview is listed and linked, never rotated.
    */
   preview: boolean;
   /**
@@ -345,6 +362,68 @@ export interface SmuveTvRadioTrack {
   artworkUrl?: string;
   /** Public catalogue page, so a listener can go and hear the whole record. */
   linkUrl?: string;
+  /**
+   * Every official page where the COMPLETE record plays, free route first.
+   *
+   * `linkUrl` stays the single "open this record" destination; this is the
+   * fuller set, and it is what carries the catalogue's reach: the records Apple
+   * does not list have no other route to their full version at all.
+   */
+  links?: readonly SmuveTvRadioLink[];
+  /**
+   * Apple's track id, when this track came from the official catalogue. It is
+   * the join key between a catalogue entry and a hosted full-length master, so
+   * the two never appear as separate rows for the same record.
+   */
+  catalogId?: string;
+}
+
+/** One line of `assets/data/smuve-jeff-masters.json`. */
+export interface SmuveJeffMasterEntry {
+  trackId?: number;
+  title?: string;
+  album?: string;
+  /** The artist's own full-length audio. Empty until they host it. */
+  file?: string;
+}
+
+/**
+ * One record of `assets/data/smuve-jeff-catalogue.json`.
+ *
+ * That file is the artist's complete official catalogue — 94 records, built by
+ * `scripts/build-music-manifest.mjs` from Apple's catalogue API unioned with
+ * Deezer's, because Apple alone lists 78 of them. The rest are on no Apple
+ * store, so nothing that only queries Apple can ever surface them.
+ */
+export interface SmuveJeffCatalogueRecord {
+  /** Stable id, namespaced by the source that first supplied the record. */
+  id?: string;
+  /** Apple's track id, when Apple carries this record. The master join key. */
+  trackId?: number | null;
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: string | null;
+  durationMs?: number | null;
+  /** Apple's official 30-second preview, when Apple carries this record. */
+  previewUrl?: string;
+  artworkUrl?: string | null;
+  /** Official pages where the complete record plays. */
+  links?: readonly { label?: string; url?: string }[];
+}
+
+/**
+ * Oldest release first, so the channel reads like a catalogue rather than a
+ * jumble.
+ *
+ * A record with no known release date is not "the oldest record": an empty
+ * string sorts ahead of every year, which would put an undated track at the
+ * front of the rotation. It sinks to the end instead.
+ */
+function byReleaseOrder(a: SmuveTvRadioTrack, b: SmuveTvRadioTrack): number {
+  const byYear = (a.year ?? '9999').localeCompare(b.year ?? '9999');
+  if (byYear !== 0) return byYear;
+  return a.album.localeCompare(b.album) || a.title.localeCompare(b.title);
 }
 
 /**
@@ -394,6 +473,30 @@ const SMUVE_JEFF_ARTIST_ID = 1517179702;
 
 const CATALOGUE_ENDPOINT = 'https://itunes.apple.com/lookup';
 const CATALOGUE_TIMEOUT_MS = 12000;
+
+/** Where the artist's full-length master manifest lives in the built app. */
+export const MASTER_MANIFEST_PATH = 'assets/data/smuve-jeff-masters.json';
+
+/** Where the complete official catalogue lives in the built app. */
+export const CATALOGUE_PATH = 'assets/data/smuve-jeff-catalogue.json';
+
+/**
+ * Folds the differences between a hand-written manifest and Apple's naming.
+ *
+ * Case and punctuation are dropped, and feature credits are removed, so
+ * `Lost My Mind (feat. ChrisO)` and a typed `lost my mind` still find each
+ * other. Remix and version markers are deliberately kept: `Got Away (Remix)` is
+ * a different recording from `Got Away`, and quietly playing the wrong one
+ * would be worse than leaving the record on its preview.
+ */
+export function normalizeMatchKey(value: string | undefined): string {
+  return (value ?? '')
+    .toLowerCase()
+    .replace(/\((?:feat|ft|with)\.?[^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
 
 /** The subset of Apple's track payload this service reads. */
 interface AppleTrack {
@@ -465,6 +568,227 @@ export class SmuveTvFeedsService {
   }
 
   /**
+   * Reads the artist's full-length master manifest.
+   *
+   * Never throws: a missing or malformed manifest simply means nothing is
+   * hosted yet, and the channel keeps playing the official previews.
+   */
+  async loadMasterManifest(): Promise<SmuveJeffMasterEntry[]> {
+    if (typeof fetch !== 'function') return [];
+    try {
+      const response = await fetch(MASTER_MANIFEST_PATH);
+      if (!response.ok) return [];
+      const payload = (await response.json()) as { masters?: SmuveJeffMasterEntry[] };
+      return Array.isArray(payload?.masters) ? payload.masters : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Reads the committed catalogue of every official record.
+   *
+   * Never throws: a missing file degrades to the live Apple catalogue, which is
+   * how the station worked before this file existed.
+   */
+  async loadCatalogueRecords(): Promise<SmuveJeffCatalogueRecord[]> {
+    if (typeof fetch !== 'function') return [];
+    try {
+      const response = await fetch(CATALOGUE_PATH);
+      if (!response.ok) return [];
+      const payload = (await response.json()) as {
+        records?: SmuveJeffCatalogueRecord[];
+      };
+      return Array.isArray(payload?.records) ? payload.records : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * The committed catalogue, refreshed with whatever Apple knows right now.
+   *
+   * The committed file is the base rather than a supplement, on purpose. It is
+   * the only source holding the records Apple does not list at all — 16 of the
+   * artist's 94 — and the Apple preview URLs it carries are the same long-lived
+   * ones the API returns, so a blocked or reshaped Apple response costs
+   * freshness instead of the catalogue. Live records are then laid over their
+   * catalogue entry, and a record Apple has that the file has never seen (a
+   * release newer than this build) is appended as-is, so a new single still
+   * reaches the channel without regenerating anything.
+   *
+   * Pure, so the catalogue rules stay directly testable.
+   */
+  mergeCatalogue(
+    records: readonly SmuveJeffCatalogueRecord[],
+    live: readonly SmuveTvRadioTrack[]
+  ): SmuveTvRadioTrack[] {
+    const merged = new Map<string, SmuveTvRadioTrack>();
+    const byCatalogId = new Map<string, SmuveTvRadioTrack>();
+    const byTitleAlbum = new Map<string, SmuveTvRadioTrack>();
+    const byUniqueTitle = new Map<string, SmuveTvRadioTrack | null>();
+
+    records.forEach((record, index) => {
+      const title = record.title?.trim();
+      if (!title) return;
+      const track = this.catalogueTrack(record, index);
+      merged.set(track.id, track);
+      if (track.catalogId) byCatalogId.set(track.catalogId, track);
+      byTitleAlbum.set(
+        `${normalizeMatchKey(title)}|${normalizeMatchKey(record.album)}`,
+        track
+      );
+      // A title that repeats in the catalogue is remembered as ambiguous, so it
+      // is never used on its own to join two records that merely share a name.
+      const titleKey = normalizeMatchKey(title);
+      byUniqueTitle.set(titleKey, byUniqueTitle.has(titleKey) ? null : track);
+    });
+
+    for (const track of live) {
+      const match =
+        (track.catalogId ? byCatalogId.get(track.catalogId) : undefined) ??
+        byTitleAlbum.get(
+          `${normalizeMatchKey(track.title)}|${normalizeMatchKey(track.album)}`
+        ) ??
+        byUniqueTitle.get(normalizeMatchKey(track.title)) ??
+        undefined;
+
+      if (!match) {
+        merged.set(track.id, track);
+        continue;
+      }
+
+      match.url = track.url;
+      match.durationMs = track.durationMs ?? match.durationMs;
+      match.artworkUrl = track.artworkUrl ?? match.artworkUrl;
+      match.linkUrl = track.linkUrl ?? match.linkUrl;
+      match.year = track.year ?? match.year;
+      match.genre = track.genre ?? match.genre;
+      match.album = track.album || match.album;
+    }
+
+    return [...merged.values()].sort(byReleaseOrder);
+  }
+
+  /** One catalogue record as a station track: listed always, playable if it can be. */
+  private catalogueTrack(
+    record: SmuveJeffCatalogueRecord,
+    index: number
+  ): SmuveTvRadioTrack {
+    const links = (record.links ?? [])
+      .filter((link): link is { label?: string; url: string } => !!link.url)
+      .map((link) => ({ label: link.label ?? 'OFFICIAL', url: link.url }));
+
+    return {
+      id:
+        record.id?.trim() ||
+        `catalogue-${normalizeMatchKey(record.title) || index}`,
+      catalogId: record.trackId != null ? String(record.trackId) : undefined,
+      title: record.title?.trim() || 'Untitled',
+      artist: record.artist?.trim() || 'Smuve Jeff',
+      album: record.album?.trim() || 'Single',
+      // Absent when Apple does not carry the record. That absence is the whole
+      // distinction between a record the channel streams and one it only lists.
+      url: record.previewUrl?.trim() || undefined,
+      preview: true,
+      durationMs: record.durationMs ?? undefined,
+      year: record.year ?? undefined,
+      artworkUrl: record.artworkUrl ?? undefined,
+      linkUrl: links[0]?.url,
+      links,
+    };
+  }
+
+  /**
+   * Attaches the artist's hosted recordings to the official catalogue.
+   *
+   * Matching is strict and ordered — track id, then title and album, then a
+   * title that is unique in the catalogue — because attaching the wrong audio to
+   * a record is worse than leaving that record on its preview. An entry that
+   * matches nothing is still returned, so an unreleased recording the artist
+   * hosts themselves is playable too.
+   */
+  matchMasters(
+    catalogue: readonly SmuveTvRadioTrack[],
+    entries: readonly SmuveJeffMasterEntry[],
+    baseUrl = ''
+  ): SmuveTvRadioTrack[] {
+    const byCatalogId = new Map<string, SmuveTvRadioTrack>();
+    const byTitleAlbum = new Map<string, SmuveTvRadioTrack>();
+    const byUniqueTitle = new Map<string, SmuveTvRadioTrack>();
+    const ambiguousTitles = new Set<string>();
+
+    for (const track of catalogue) {
+      if (track.catalogId) byCatalogId.set(track.catalogId, track);
+      byTitleAlbum.set(
+        `${normalizeMatchKey(track.title)}|${normalizeMatchKey(track.album)}`,
+        track
+      );
+      const titleKey = normalizeMatchKey(track.title);
+      if (byUniqueTitle.has(titleKey)) {
+        ambiguousTitles.add(titleKey);
+      } else {
+        byUniqueTitle.set(titleKey, track);
+      }
+    }
+
+    const resolved: SmuveTvRadioTrack[] = [];
+    for (const entry of entries) {
+      const file = entry.file?.trim();
+      if (!file) continue;
+
+      const match =
+        (entry.trackId != null
+          ? byCatalogId.get(String(entry.trackId))
+          : undefined) ??
+        byTitleAlbum.get(
+          `${normalizeMatchKey(entry.title)}|${normalizeMatchKey(entry.album)}`
+        ) ??
+        // Title-only matching is allowed only when the manifest gives no album
+        // and the catalogue holds exactly one record by that name.
+        (!entry.album
+          ? (() => {
+              const key = normalizeMatchKey(entry.title);
+              return ambiguousTitles.has(key) ? undefined : byUniqueTitle.get(key);
+            })()
+          : undefined);
+
+      resolved.push({
+        id: match?.id ?? `master-${normalizeMatchKey(entry.title) || resolved.length}`,
+        catalogId: match?.catalogId,
+        title: match?.title ?? entry.title?.trim() ?? 'Untitled',
+        artist: match?.artist ?? 'Smuve Jeff',
+        album: match?.album ?? entry.album?.trim() ?? 'Authorized master files',
+        url: this.resolveFileUrl(file, baseUrl),
+        preview: false,
+        durationMs: match?.durationMs,
+        year: match?.year,
+        genre: match?.genre,
+        artworkUrl: match?.artworkUrl,
+        linkUrl: match?.linkUrl,
+      });
+    }
+    return resolved;
+  }
+
+  /**
+   * Absolute URLs are used exactly as written; anything else is resolved
+   * against the app, so a same-origin `/assets/audio/…` path works on Render
+   * without the artist having to know the deployment's hostname.
+   */
+  private resolveFileUrl(file: string, baseUrl: string): string {
+    if (/^https?:\/\//i.test(file)) return file;
+    const base =
+      baseUrl || (typeof document !== 'undefined' ? document.baseURI : undefined);
+    if (!base) return file;
+    try {
+      return new URL(file, base).toString();
+    } catch {
+      return file;
+    }
+  }
+
+  /**
    * Reduces Apple's payload to the radio queue's shape.
    *
    * Pure, so the catalogue rules are directly testable: only real songs, only
@@ -490,6 +814,7 @@ export class SmuveTvFeedsService {
 
       byId.set(id, {
         id: `apple-${id}`,
+        catalogId: String(entry.trackId),
         title,
         artist,
         album: entry.collectionName?.trim() || 'Single',
@@ -503,15 +828,6 @@ export class SmuveTvFeedsService {
       });
     }
 
-    return [...byId.values()].sort((a, b) => {
-      /*
-       * A record with no known release date is not "the oldest record" — an
-       * empty string sorts ahead of every year, which would put an undated
-       * track at the front of the rotation. Sink it to the end instead.
-       */
-      const byYear = (a.year ?? '9999').localeCompare(b.year ?? '9999');
-      if (byYear !== 0) return byYear;
-      return a.album.localeCompare(b.album) || a.title.localeCompare(b.title);
-    });
+    return [...byId.values()].sort(byReleaseOrder);
   }
 }

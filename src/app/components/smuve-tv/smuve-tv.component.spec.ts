@@ -330,6 +330,199 @@ describe('SmuveTvComponent', () => {
 
   });
 
+  describe('the complete official catalogue', () => {
+    /**
+     * Routes the station's independent reads by URL. `loadCatalogue` fetches the
+     * committed catalogue and Apple's at the same time and the master manifest
+     * straight after, so one canned payload would answer all three.
+     */
+    const routeReads = (options: {
+      records?: unknown;
+      apple?: unknown;
+      masters?: unknown;
+    }): void => {
+      fetchMock.mockImplementation(async (url: unknown) => {
+        const href = String(url);
+        if (href.includes('smuve-jeff-catalogue')) {
+          return options.records
+            ? { ok: true, json: async () => options.records }
+            : { ok: false, json: async () => ({}) };
+        }
+        if (href.includes('smuve-jeff-masters')) {
+          return {
+            ok: true,
+            json: async () => options.masters ?? { masters: [] },
+          };
+        }
+        return options.apple
+          ? { ok: true, json: async () => options.apple }
+          : { ok: false, json: async () => ({}) };
+      });
+    };
+
+    const catalogueRecord = (overrides: Record<string, unknown> = {}) => ({
+      id: 'apple-1',
+      trackId: 1,
+      title: 'Official Record',
+      artist: 'Smuve Jeff',
+      album: 'Official Album',
+      year: '2024',
+      durationMs: 180000,
+      previewUrl: 'https://example.test/preview.m4a',
+      links: [{ label: 'DEEZER', url: 'https://deezer.test/1' }],
+      ...overrides,
+    });
+
+    /** A record Apple does not carry: listed and linked, but not playable here. */
+    const appleMissingRecord = () =>
+      catalogueRecord({
+        id: 'dz-wyhh',
+        trackId: null,
+        title: 'Wyhh',
+        album: 'The Black Label',
+        durationMs: 144000,
+        previewUrl: '',
+        links: [
+          { label: 'DEEZER', url: 'https://deezer.test/wyhh' },
+          { label: 'SOUNDCLOUD', url: 'https://soundcloud.test/wyhh' },
+        ],
+      });
+
+    it('holds the records Apple does not carry', async () => {
+      routeReads({
+        records: { records: [catalogueRecord(), appleMissingRecord()] },
+        apple: { results: [appleSong()] },
+      });
+
+      await component.loadCatalogue();
+
+      expect(
+        component.officialCatalogue().map((track) => track.title).sort()
+      ).toEqual(['Official Record', 'Wyhh']);
+      expect(component.catalogueOnly().map((track) => track.title)).toEqual([
+        'Wyhh',
+      ]);
+      expect(component.catalogueState()).toBe('ready');
+    });
+
+    it('keeps an unplayable record out of the rotation so the broadcast cannot stall', async () => {
+      routeReads({
+        records: { records: [catalogueRecord(), appleMissingRecord()] },
+      });
+
+      await component.loadCatalogue();
+
+      expect(component.rotationPool().map((track) => track.id)).toEqual([
+        'apple-1',
+      ]);
+
+      // Twenty draws must never deal a record the channel cannot play.
+      const drawn = new Set<string>();
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        const next = component.nextRotationTrack();
+        if (next) drawn.add(next.id);
+      }
+      expect([...drawn]).toEqual(['apple-1']);
+    });
+
+    it('stays quiet when every catalogued record needs an official page', async () => {
+      routeReads({ records: { records: [appleMissingRecord()] } });
+
+      await component.loadCatalogue();
+
+      expect(component.rotationCount()).toBe(0);
+      expect(component.catalogueOnly()).toHaveLength(1);
+      // Starting a channel with nothing to play is a no-op, not a crash.
+      expect(() => component.startMusic()).not.toThrow();
+    });
+
+    it('badges each row by what it can actually do', async () => {
+      routeReads({
+        records: { records: [catalogueRecord(), appleMissingRecord()] },
+      });
+
+      await component.loadCatalogue();
+
+      const playable = component.rotationPool()[0];
+      const listed = component.catalogueOnly()[0];
+
+      expect(component.trackBadge(playable)).toBe('PREVIEW');
+      expect(component.trackBadge(listed)).toBe('OPEN');
+      expect(component.trackBadge({ ...playable, preview: false })).toBe('FULL');
+    });
+
+    it('names the platform a record opens on, and falls back to its catalogue page', async () => {
+      routeReads({ records: { records: [appleMissingRecord()] } });
+
+      await component.loadCatalogue();
+
+      expect(component.officialLink(component.catalogueOnly()[0])).toEqual({
+        label: 'DEEZER',
+        url: 'https://deezer.test/wyhh',
+      });
+      expect(
+        component.officialLink({
+          id: 'x',
+          title: 'X',
+          artist: 'Smuve Jeff',
+          album: 'A',
+          preview: true,
+          linkUrl: 'https://apple.test/x',
+        })
+      ).toEqual({ label: 'OFFICIAL', url: 'https://apple.test/x' });
+      expect(
+        component.officialLink({
+          id: 'y',
+          title: 'Y',
+          artist: 'Smuve Jeff',
+          album: 'A',
+          preview: true,
+        })
+      ).toBeNull();
+    });
+
+    it('renders a safe link per record, never handing over the opener', async () => {
+      routeReads({
+        records: { records: [catalogueRecord(), appleMissingRecord()] },
+      });
+
+      await component.loadCatalogue();
+      fixture.detectChanges();
+
+      const links = [
+        ...fixture.nativeElement.querySelectorAll(
+          '.tv-music-open, .tv-music-openrow'
+        ),
+      ] as HTMLAnchorElement[];
+
+      expect(links.length).toBeGreaterThanOrEqual(2);
+      for (const link of links) {
+        expect(link.getAttribute('href')).toMatch(/^https:\/\//);
+        expect(link.getAttribute('rel')).toContain('noopener');
+        expect(link.getAttribute('rel')).toContain('noreferrer');
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('aria-label')).toBeTruthy();
+      }
+
+      const badges = [
+        ...fixture.nativeElement.querySelectorAll(
+          '.tv-music-openrow .tv-music-badge'
+        ),
+      ].map((element: Element) => element.textContent?.trim());
+      expect(badges).toContain('DEEZER');
+    });
+
+    it('falls back to the live Apple catalogue when the file is missing', async () => {
+      routeReads({ apple: { results: [appleSong()] } });
+
+      await component.loadCatalogue();
+
+      expect(component.catalogueState()).toBe('ready');
+      expect(component.rotationCount()).toBe(1);
+      expect(component.catalogueOnly()).toEqual([]);
+    });
+  });
+
   describe('24/7 rotation', () => {
     /** Puts `count` authorized full-length masters in the library. */
     const seedMasters = (count: number) => {
@@ -525,6 +718,90 @@ describe('SmuveTvComponent', () => {
       component.advanceRotation();
 
       expect(component.musicError()).toContain('Nothing is queued');
+    });
+  });
+
+  describe('hosted full-length masters', () => {
+    /** Routes the two fetches the module makes: Apple's catalogue, then ours. */
+    const routeFetch = (catalogueResults: unknown[], masters: unknown[]) => {
+      fetchMock.mockImplementation(async (url: unknown) => {
+        if (String(url).includes('itunes.apple.com')) {
+          return { ok: true, json: async () => ({ results: catalogueResults }) };
+        }
+        return { ok: true, json: async () => ({ masters }) };
+      });
+    };
+
+    it('puts a hosted master on air in place of its preview', async () => {
+      routeFetch(
+        [appleSong({ trackId: 11, trackName: 'Got Away (Remix)' })],
+        [{ trackId: 11, file: 'https://cdn.test/got-away.mp3' }]
+      );
+
+      await component.loadCatalogue();
+
+      expect(component.hostedMasters()).toHaveLength(1);
+      expect(component.playsFullLength()).toBe(true);
+      const queue = component.radioQueue();
+      // One row per record, and it is the full-length one — not both.
+      expect(queue).toHaveLength(1);
+      expect(queue[0]).toMatchObject({
+        id: 'apple-11',
+        preview: false,
+        url: 'https://cdn.test/got-away.mp3',
+      });
+    });
+
+    it('keeps previews for the records that are not hosted yet', async () => {
+      routeFetch(
+        [appleSong({ trackId: 11 }), appleSong({ trackId: 22 })],
+        [{ trackId: 11, file: 'https://cdn.test/a.mp3' }]
+      );
+
+      await component.loadCatalogue();
+
+      const queue = component.radioQueue();
+      expect(queue).toHaveLength(2);
+      expect(queue.filter((track) => track.preview)).toHaveLength(1);
+      expect(queue.find((track) => track.id === 'apple-22')?.preview).toBe(true);
+    });
+
+    it('stays on the official previews while nothing is hosted', async () => {
+      routeFetch([appleSong({ trackId: 11 })], []);
+
+      await component.loadCatalogue();
+
+      expect(component.hostedMasters()).toEqual([]);
+      expect(component.playsFullLength()).toBe(false);
+      expect(component.rotationPool()).toHaveLength(1);
+    });
+
+    it('rotates only the full-length records once any exist', async () => {
+      routeFetch(
+        [appleSong({ trackId: 11 }), appleSong({ trackId: 22 })],
+        [{ trackId: 11, file: 'https://cdn.test/a.mp3' }]
+      );
+
+      await component.loadCatalogue();
+
+      const pool = component.rotationPool();
+      expect(pool).toHaveLength(1);
+      expect(pool[0]).toMatchObject({ id: 'apple-11', preview: false });
+    });
+
+    it('survives a manifest that is missing entirely', async () => {
+      fetchMock.mockImplementation(async (url: unknown) => {
+        if (String(url).includes('itunes.apple.com')) {
+          return { ok: true, json: async () => ({ results: [appleSong({ trackId: 11 })] }) };
+        }
+        // A fresh clone has no manifest served yet.
+        return { ok: false, json: async () => ({}) };
+      });
+
+      await component.loadCatalogue();
+
+      expect(component.hostedMasters()).toEqual([]);
+      expect(component.radioQueue()).toHaveLength(1);
     });
   });
 

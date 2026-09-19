@@ -343,9 +343,27 @@
           </button>
         </p>
         <p class="tv-music-status" *ngIf="catalogueState() === 'ready' && !playsFullLength()">
-          {{ officialCatalogue().length }} official tracks loaded. Apple publishes
-          30-second previews only, so each record streams its preview; the running
-          time shown is the full record.
+          {{ officialCatalogue().length }} official records catalogued &mdash;
+          {{ rotationCount() }} stream here on Apple's 30-second preview (the running
+          time shown is always the full record), and
+          {{ catalogueOnly().length }} open on the platform that publishes them.<br />
+          No store hands out a full-length stream for this catalogue, so the
+          complete records come from the artist's own files.
+        </p>
+        <p
+          class="tv-music-status"
+          [class.tv-music-status-warn]="!hostedMasters().length"
+          *ngIf="catalogueState() === 'ready'"
+        >
+          <ng-container *ngIf="hostedMasters().length">
+            {{ hostedMasters().length }} of {{ officialCatalogue().length }} official
+            records hosted at full length.
+          </ng-container>
+          <ng-container *ngIf="!hostedMasters().length">
+            No records hosted at full length yet. Add a `file` for any track in
+            assets/data/smuve-jeff-masters.json and it goes on air complete, without
+            a code change.
+          </ng-container>
         </p>
         <!--
           No `src` binding on purpose: the element is driven imperatively so
@@ -382,7 +400,11 @@
         </p>
         <p class="tv-music-error" *ngIf="musicError()" role="status">{{ musicError() }}</p>
         <ul class="tv-music-list" *ngIf="rotationCount()" aria-label="Smuve Jeff Radio queue">
-          <li *ngFor="let track of rotationPool()" [class.active]="track.id === musicTrack()?.id">
+          <li
+            *ngFor="let track of rotationPool()"
+            class="tv-music-row"
+            [class.active]="track.id === musicTrack()?.id"
+          >
             <button type="button" (click)="selectMusicTrack(track)">
               <span class="material-symbols-outlined" aria-hidden="true">{{ track.id === musicTrack()?.id ? 'graphic_eq' : 'music_note' }}</span>
               <span class="tv-music-track">
@@ -395,11 +417,71 @@
                 </span>
               </span>
               <span class="tv-music-badge" [class.full]="!track.preview">
-                {{ track.preview ? 'PREVIEW' : 'FULL' }}
+                {{ trackBadge(track) }}
               </span>
             </button>
+            <!--
+              The complete record, one tap away. `noopener` is load-bearing: the
+              catalogue links leave the app, so the opened page must not be able
+              to reach back through `window.opener`.
+            -->
+            <a
+              class="tv-music-open"
+              *ngIf="officialLink(track) as link"
+              [href]="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.aria-label]="'Hear the full record of ' + track.title + ' on ' + link.label"
+              [attr.title]="'Full record on ' + link.label"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+            </a>
           </li>
         </ul>
+        <div class="tv-music-more" *ngIf="catalogueOnly().length">
+          <p class="tv-music-more-heading">
+            ALSO IN THE CATALOGUE &mdash; {{ catalogueOnly().length }} records Apple does
+            not carry, listed here so the station holds the whole catalogue
+          </p>
+          <ul class="tv-music-list" aria-label="Smuve Jeff catalogue records">
+            <li
+              *ngFor="let track of catalogueOnly()"
+              class="tv-music-row is-open"
+            >
+              <ng-container *ngIf="officialLink(track) as link; else catalogueFallback">
+                <a
+                  class="tv-music-openrow"
+                  [href]="link.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="'Hear the full record of ' + track.title + ' on ' + link.label"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+                  <span class="tv-music-track">
+                    <span class="tv-music-track-title">{{ track.title }}</span>
+                    <span class="tv-music-track-meta">
+                      {{ track.album }}<ng-container *ngIf="track.year"> &middot; {{ track.year }}</ng-container>
+                      <ng-container *ngIf="trackLength(track.durationMs)">
+                        &middot; {{ trackLength(track.durationMs) }}
+                      </ng-container>
+                    </span>
+                  </span>
+                  <span class="tv-music-badge">{{ link.label }}</span>
+                </a>
+              </ng-container>
+              <ng-template #catalogueFallback>
+                <span class="tv-music-openrow is-disabled">
+                  <span class="material-symbols-outlined" aria-hidden="true">public</span>
+                  <span class="tv-music-track">
+                    <span class="tv-music-track-title">{{ track.title }}</span>
+                    <span class="tv-music-track-meta">{{ track.album }}</span>
+                  </span>
+                  <span class="tv-music-badge">LISTED</span>
+                </span>
+              </ng-template>
+            </li>
+          </ul>
+        </div>
       </section>
 
       <div class="tv-guide">
