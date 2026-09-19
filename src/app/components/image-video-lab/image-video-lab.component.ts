@@ -31,6 +31,7 @@ import { ExportService } from '../../services/export.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
 import {
   CAPTURE_QUALITIES,
+  CameraAngle,
   CameraCaptureService,
   CaptureQuality,
 } from '../../services/camera-capture.service';
@@ -1701,6 +1702,56 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * indistinguishable from a failed capture, so a bound sink is always kept
    * rolling instead of being attached once and trusted.
    */
+  /**
+   * Monitor shape, in CSS terms, for the surface on screen: the delivery preset
+   * drives the composite, the live stream's own geometry drives the viewfinder.
+   *
+   * Without this a 9:16 vlog preset or a portrait phone feed was letterboxed
+   * inside a fixed 16:9 card, which is the difference between watching the shot
+   * and squinting at a thumbnail of it.
+   */
+  monitorAspectRatio = computed(() => {
+    if (this.showCameraSurface()) {
+      const settings = this.camera.frameSettings();
+      if (settings && settings.width > 0 && settings.height > 0) {
+        return settings.width + ' / ' + settings.height;
+      }
+      return '16 / 9';
+    }
+    return String(this.resolveAspectRatio(this.activePreset()));
+  });
+
+  /** Move the viewfinder to another angle from the deck's angle rail. */
+  async selectCameraAngle(angle: CameraAngle): Promise<void> {
+    if (!this.camera.canSwitchDevice()) {
+      this.aiFeedback.set(
+        'FINISH THE CURRENT CAMERA TAKE BEFORE SWITCHING ANGLES.'
+      );
+      return;
+    }
+    const switched = await this.camera.selectAngle(angle);
+    this.aiFeedback.set(
+      switched
+        ? 'CAMERA ANGLE: ' +
+            this.camera.activeAngleLabel().toUpperCase() +
+            '. ' +
+            this.camera.statusDetail()
+        : 'THAT ANGLE IS NOT AVAILABLE HERE. ' +
+            (this.camera.lastError() ?? '').toUpperCase()
+    );
+  }
+
+  /**
+   * Cycle to the next angle — the flip button sitting on the viewfinder, the
+   * gesture every camera app has trained operators to reach for.
+   */
+  async flipCameraAngle(): Promise<void> {
+    const angles = this.camera.angles();
+    if (angles.length < 2) return;
+    const current = angles.findIndex((angle) => angle.isActive);
+    await this.selectCameraAngle(angles[(current + 1) % angles.length]);
+  }
+
   private syncCameraElement(): void {
     const video = this.cameraFeed?.nativeElement;
     if (!video) return;

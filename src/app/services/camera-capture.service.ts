@@ -64,6 +64,33 @@ export interface CapturedPhoto {
   source: 'image-capture' | 'canvas';
 }
 
+/** One selectable camera angle: a physical input or a logical sensor. */
+export interface CameraAngle {
+  /** `user`/`environment` for a logical sensor, otherwise the device id. */
+  id: string;
+  label: string;
+  facing: 'user' | 'environment' | 'unknown';
+  /**
+   * Input to open, or null when the angle is a sensor the platform picks via
+   * `facingMode`. Android frequently reports a single unnamed input until the
+   * permission has been granted, yet both sensors are there — so the logical
+   * front/rear angles have to stay selectable.
+   */
+  deviceId: string | null;
+  isActive: boolean;
+}
+
+/** Sensor names as inputs report them, e.g. "camera2 1, facing front". */
+const FRONT_CAMERA_PATTERN = /\b(front|face|user|selfie)\b/i;
+const REAR_CAMERA_PATTERN = /\b(back|rear|environment|world)\b/i;
+
+/** Classify an input label, reporting `unknown` rather than guessing. */
+function classifyFacing(label: string): 'user' | 'environment' | 'unknown' {
+  if (FRONT_CAMERA_PATTERN.test(label)) return 'user';
+  if (REAR_CAMERA_PATTERN.test(label)) return 'environment';
+  return 'unknown';
+}
+
 /** Requested capture resolution — ideal, not exact, so weak devices still bind. */
 const IDEAL_WIDTH = 1920;
 const IDEAL_HEIGHT = 1080;
@@ -333,6 +360,78 @@ export class CameraCaptureService implements OnDestroy {
     const caps = this.deviceCapabilities();
     if (!caps) return 'Detecting…';
     return `Up to ${caps.width}×${caps.height} @ ${Math.round(caps.frameRate)}fps`;
+  });
+
+  /**
+   * Selectable camera angles — what the deck's rail and the flip button offer.
+   *
+   * A labelled input becomes a real, device-backed angle; the logical sensors
+   * stay available so a phone whose inputs are still unnamed can still flip.
+   * Any input that names neither sensor becomes its own angle, which is how a
+   * multi-camera desktop panel shows up instead of being hidden behind "Front".
+   */
+  angles = computed<CameraAngle[]>(() => {
+    const devices = this.devices();
+    const selectedId = this.selectedDeviceId();
+    const front = devices.find((d) => classifyFacing(d.label) === 'user');
+    const rear = devices.find((d) => classifyFacing(d.label) === 'environment');
+
+    const deviceAngle = (
+      device: CameraDevice,
+      facing: CameraAngle['facing'],
+      label: string
+    ): CameraAngle => ({
+      id: device.deviceId,
+      label,
+      facing,
+      deviceId: device.deviceId,
+      isActive: selectedId === device.deviceId,
+    });
+
+    const logicalAngle = (
+      facing: 'user' | 'environment',
+      label: string
+    ): CameraAngle => ({
+      id: facing,
+      label,
+      facing,
+      deviceId: null,
+      // The granted facing is the truth here: choosing an input by hand updates
+      // it too, so the rail never lights up the wrong sensor.
+      isActive: this.facingMode() === facing,
+    });
+
+    // A sensor the device names is offered by that name, so a flip asks for the
+    // exact input instead of whatever the platform decides to match. A phone
+    // whose inputs are still unnamed (before the permission prompt) has at most
+    // the two sensors, so the logical pair describes it just as well.
+    if (front || rear || devices.length <= 2) {
+      return [
+        front
+          ? deviceAngle(front, 'user', 'Front')
+          : logicalAngle('user', 'Front'),
+        rear
+          ? deviceAngle(rear, 'environment', 'Rear')
+          : logicalAngle('environment', 'Rear'),
+      ];
+    }
+
+    // More inputs than a phone has, none naming a sensor: list them, which is
+    // how a multi-camera desktop panel becomes switchable.
+    return devices.map((device, index) =>
+      deviceAngle(
+        device,
+        classifyFacing(device.label),
+        device.label || `Camera ${index + 1}`
+      )
+    );
+  });
+
+  /** Operator-facing name of the angle currently on the viewfinder. */
+  activeAngleLabel = computed(() => {
+    const active = this.angles().find((angle) => angle.isActive);
+    if (active) return active.label;
+    return this.deviceName();
   });
 
   private readonly onDeviceChange = () => {
@@ -637,6 +736,49 @@ export class CameraCaptureService implements OnDestroy {
    * Switch capture device. Returns false when a take is in flight so the UI can
    * keep the control disabled instead of silently dropping the recording.
    */
+  /**
+   * Move the viewfinder to another angle.
+   *
+   * A device-backed angle is opened directly; a logical one flips the sensor
+   * constraint. A flip the hardware cannot satisfy — a single-sensor laptop, a
+   * rear sensor another app is holding — reopens the angle the operator was
+   * already on rather than leaving them with a dead viewfinder, because
+   * `start()` releases the old stream before it tries the new one.
+   */
+  async selectAngle(angle: CameraAngle): Promise<boolean> {
+    if (!this.canSwitchDevice()) return false;
+
+    const previousDeviceId = this.selectedDeviceId();
+    const previousFacing = this.facingMode();
+    const wasLive = this.isLive();
+
+    let switched: boolean;
+    if (angle.deviceId) {
+      switched = await this.setDevice(angle.deviceId);
+    } else if (angle.facing === 'unknown') {
+      return false;
+    } else if (this.facingMode() === angle.facing) {
+      return true;
+    } else {
+      switched = await this.switchFacing();
+    }
+
+    // Nothing to restore when the camera was closed: the choice is recorded and
+    // the next `start()` will honour it.
+    if (switched || !wasLive) return switched;
+
+    this.selectedDeviceId.set(previousDeviceId);
+    this.facingMode.set(previousFacing);
+    const restored = await this.start();
+    if (!restored) {
+      this.lastError.set(
+        'That camera angle could not be opened, and the previous one did not come back. ' +
+          (this.lastError() ?? '')
+      );
+    }
+    return false;
+  }
+
   async setDevice(deviceId: string): Promise<boolean> {
     if (!this.canSwitchDevice()) return false;
     this.selectedDeviceId.set(deviceId);

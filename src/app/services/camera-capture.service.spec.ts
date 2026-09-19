@@ -364,6 +364,165 @@ describe('CameraCaptureService', () => {
     });
   });
 
+  describe('camera angles', () => {
+    it('names the sensors the inputs report and marks the active one', async () => {
+      const service = createService();
+      await Promise.resolve();
+
+      expect(service.angles()).toEqual([
+        {
+          id: 'cam-1',
+          label: 'Front',
+          facing: 'user',
+          deviceId: 'cam-1',
+          isActive: true,
+        },
+        {
+          id: 'cam-2',
+          label: 'Rear',
+          facing: 'environment',
+          deviceId: 'cam-2',
+          isActive: false,
+        },
+      ]);
+      expect(service.activeAngleLabel()).toBe('Front');
+    });
+
+    it('keeps both sensors selectable while the inputs are still unnamed', async () => {
+      installMediaDevices({
+        enumerateDevices: jest.fn(async () => [
+          { kind: 'videoinput', deviceId: 'cam-1', label: '' },
+        ]),
+      });
+      const service = createService();
+      await Promise.resolve();
+
+      expect(service.angles()).toEqual([
+        {
+          id: 'user',
+          label: 'Front',
+          facing: 'user',
+          deviceId: null,
+          isActive: true,
+        },
+        {
+          id: 'environment',
+          label: 'Rear',
+          facing: 'environment',
+          deviceId: null,
+          isActive: false,
+        },
+      ]);
+    });
+
+    it('lists every input when a panel has more cameras than sensors', async () => {
+      installMediaDevices({
+        enumerateDevices: jest.fn(async () => [
+          { kind: 'videoinput', deviceId: 'cam-1', label: 'Integrated Webcam' },
+          { kind: 'videoinput', deviceId: 'cam-2', label: 'USB Capture' },
+          { kind: 'videoinput', deviceId: 'cam-3', label: 'HDMI In' },
+        ]),
+      });
+      const service = createService();
+      await Promise.resolve();
+
+      expect(service.angles().map((angle) => angle.label)).toEqual([
+        'Integrated Webcam',
+        'USB Capture',
+        'HDMI In',
+      ]);
+      expect(service.angles()[0].isActive).toBe(true);
+    });
+
+    it('opens a device-backed angle directly', async () => {
+      const mediaDevices = installMediaDevices({ getUserMedia: autoStream() });
+      const service = createService();
+      await service.start('cam-1');
+      const rear = service.angles().find((angle) => angle.id === 'cam-2')!;
+
+      await expect(service.selectAngle(rear)).resolves.toBe(true);
+
+      expect(mediaDevices.getUserMedia).toHaveBeenLastCalledWith({
+        audio: false,
+        video: expect.objectContaining({
+          deviceId: { exact: 'cam-2' },
+        }),
+      });
+    });
+
+    it('flips the sensor for a logical angle and pins nothing', async () => {
+      const mediaDevices = installMediaDevices({
+        enumerateDevices: jest.fn(async () => [
+          { kind: 'videoinput', deviceId: 'cam-1', label: '' },
+        ]),
+        getUserMedia: autoStream(),
+      });
+      const service = createService();
+      await service.start();
+      const rear = service.angles().find((angle) => angle.id === 'environment')!;
+
+      await expect(service.selectAngle(rear)).resolves.toBe(true);
+
+      expect(service.facingMode()).toBe('environment');
+      expect(mediaDevices.getUserMedia).toHaveBeenLastCalledWith({
+        audio: false,
+        video: expect.objectContaining({ facingMode: 'environment' }),
+      });
+    });
+
+    it('hands the previous angle back when the requested one cannot open', async () => {
+      const mediaDevices = installMediaDevices({
+        enumerateDevices: jest.fn(async () => [
+          { kind: 'videoinput', deviceId: 'cam-1', label: '' },
+        ]),
+      });
+      mediaDevices.getUserMedia
+        .mockResolvedValueOnce(makeStream({ facingMode: 'user' }).stream)
+        .mockRejectedValueOnce(
+          Object.assign(new Error('no rear sensor'), {
+            name: 'OverconstrainedError',
+          })
+        )
+        .mockResolvedValueOnce(makeStream({ facingMode: 'user' }).stream);
+      const service = createService();
+      await service.start();
+      const rear = service.angles().find((angle) => angle.id === 'environment')!;
+
+      await expect(service.selectAngle(rear)).resolves.toBe(false);
+
+      // A refused flip must not cost the operator the feed they had.
+      expect(mediaDevices.getUserMedia).toHaveBeenCalledTimes(3);
+      expect(service.isLive()).toBe(true);
+      expect(service.facingMode()).toBe('user');
+      expect(service.lastError()).toBeNull();
+    });
+
+    it('refuses an angle change while a take is rolling', async () => {
+      installMediaDevices({ getUserMedia: autoStream() });
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.start();
+      expect(service.startRecording()).toBe(true);
+
+      const rear = service.angles().find((angle) => angle.id === 'environment')!;
+
+      await expect(service.selectAngle(rear)).resolves.toBe(false);
+      expect(service.facingMode()).toBe('user');
+    });
+
+    it('records the chosen angle before the camera is opened', async () => {
+      const service = createService();
+      await Promise.resolve();
+      const rear = service.angles().find((angle) => angle.id === 'cam-2')!;
+
+      await expect(service.selectAngle(rear)).resolves.toBe(true);
+
+      expect(service.selectedDeviceId()).toBe('cam-2');
+      expect(service.isLive()).toBe(false);
+    });
+  });
+
   it('records a take with the supported container and reports elapsed seconds', async () => {
     (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
       FakeMediaRecorder;

@@ -186,7 +186,11 @@
         </div>
 
         <div class="monitor-frame">
-          <div #stageSurface class="monitor-card glass-v42">
+          <div
+            #stageSurface
+            class="monitor-card glass-v42"
+            [style.aspect-ratio]="monitorAspectRatio()"
+          >
             <canvas
               #previewCanvas
               class="monitor-canvas"
@@ -265,6 +269,27 @@
                       : camera.qualityLabel()
                   }}</span>
                 </div>
+
+                <!--
+                  The flip button lives on the picture, not in a control row:
+                  that is where an operator's thumb already is, and it names the
+                  angle it switches to so the tap is never a guess.
+                -->
+                @if (camera.angles().length > 1) {
+                  <button
+                    type="button"
+                    class="monitor-flip"
+                    [disabled]="!camera.canSwitchDevice()"
+                    [attr.aria-label]="
+                      'Switch camera angle, currently ' +
+                      camera.activeAngleLabel()
+                    "
+                    (click)="flipCameraAngle()"
+                  >
+                    <span class="material-symbols-outlined">cameraswitch</span>
+                    <span>{{ camera.activeAngleLabel() }}</span>
+                  </button>
+                }
               }
             }
 
@@ -477,6 +502,31 @@
               </select>
             </label>
 
+            <div class="capture-angles">
+              <span class="capture-field-label"
+                >Angle · {{ camera.activeAngleLabel() }}</span
+              >
+              <div
+                class="capture-angle-rail"
+                role="group"
+                aria-label="Camera angle"
+              >
+                @for (angle of camera.angles(); track angle.id) {
+                  <button
+                    type="button"
+                    class="capture-angle"
+                    [class.active]="angle.isActive"
+                    [disabled]="!camera.canSwitchDevice()"
+                    [attr.aria-pressed]="angle.isActive"
+                    (click)="selectCameraAngle(angle)"
+                  >
+                    <span class="material-symbols-outlined">cameraswitch</span>
+                    <span>{{ angle.label }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
             <div class="capture-toggles">
               <button
                 type="button"
@@ -485,14 +535,6 @@
                 (click)="toggleCameraMirror()"
               >
                 MIRROR
-              </button>
-              <button
-                type="button"
-                class="capture-toggle"
-                [disabled]="!camera.canSwitchDevice()"
-                (click)="switchCameraFacing()"
-              >
-                FLIP
               </button>
               <button
                 type="button"
