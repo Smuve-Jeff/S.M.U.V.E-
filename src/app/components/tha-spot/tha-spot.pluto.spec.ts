@@ -122,9 +122,12 @@ describe('Tha Spot — Pluto TV contract', () => {
       expect(plutoAllow).toContain('storage-access');
     });
 
-    it('embeds the Live TV surface instead of the dead per-channel embed route', () => {
+    it('enters the verified Live TV surface without forcing a stale channel', () => {
       expect(plutoBlock).not.toContain('/embed/live/channel');
-      expect(plutoBlock).toContain('https://pluto.tv/us/watch/live-tv/');
+      expect(plutoBlock).toContain(
+        'src="https://pluto.tv/us/watch/live-tv/"'
+      );
+      expect(plutoBlock).not.toContain('?channel=');
     });
 
     it('paints nothing over the frame — the player owns its own controls', () => {
