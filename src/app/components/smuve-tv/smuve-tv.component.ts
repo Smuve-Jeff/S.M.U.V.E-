@@ -295,24 +295,16 @@ function drawScene(
   ctx.restore();
 }
 
-/**
- * The artist's record, framed for the station's own player.
- *
- * Apple licenses 30-second clips and no store hands a browser the master, so the
- * only complete version of a record is the artist's own distributed upload,
- * played by the platform that publishes it. That is what the station puts on its
- * screen while the record is on air.
- *
- * The frame opens muted. Two reasons, and both matter: a muted frame is the one
- * every browser starts without a gesture, so the record is on the station's
- * screen instead of a black rectangle waiting for a tap; and the sound stays
- * with the station's own player — the one source this module can actually verify
- * — because two audible sources would be two records at once, which is the one
- * thing a channel must never be.
- */
+/** Where the artist's official uploads live on the web. */
 const OFFICIAL_FRAME_ORIGIN = 'https://www.youtube-nocookie.com';
 
-/** The station's display for one record: the artist's own official upload. */
+/**
+ * The artist's record, framed for the station's player on the module page.
+ *
+ * Muted by design: the station's own player keeps the air and the frame carries
+ * only the picture — two audible sources would be two records at once, which
+ * is the one thing a channel must never be.
+ */
 function officialEmbedUrl(videoId: string): string {
   const params = [
     'autoplay=1',
@@ -327,6 +319,107 @@ function officialEmbedUrl(videoId: string): string {
   return `${OFFICIAL_FRAME_ORIGIN}/embed/${encodeURIComponent(
     videoId
   )}?${params.join('&')}`;
+}
+
+/**
+ * The artist's record, framed for the broadcast screen.
+ *
+ * Unmuted, no controls, no annotations: the record is the broadcast and the
+ * viewer has no say in what the channel plays. User activation from entering
+ * the broadcast lets the browser start the audio.
+ */
+function officialStageUrl(videoId: string): string {
+  const params = [
+    'autoplay=1',
+    'playsinline=1',
+    'rel=0',
+    'modestbranding=1',
+    'controls=0',
+    'disablekb=1',
+    'iv_load_policy=3',
+  ];
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    params.push(`origin=${encodeURIComponent(window.location.origin)}`);
+  }
+  return `${OFFICIAL_FRAME_ORIGIN}/embed/${encodeURIComponent(
+    videoId
+  )}?${params.join('&')}`;
+}
+
+/** Narrow surface of the platform's official player the station uses. */
+interface OfficialVideoPlayer {
+  playVideo(): void;
+  pauseVideo(): void;
+  destroy(): void;
+}
+
+interface OfficialVideoApi {
+  Player: new (
+    host: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars?: Record<string, string | number>;
+      events?: {
+        onReady?: () => void;
+        onStateChange?: (event: { data: number }) => void;
+        onError?: () => void;
+      };
+    }
+  ) => OfficialVideoPlayer;
+  PlayerState?: { PLAYING: number; PAUSED: number; ENDED: number };
+}
+
+/** The states the API reports, with the values its own docs define. */
+const OFFICIAL_STATES = { PLAYING: 1, PAUSED: 2, ENDED: 0 } as const;
+
+/** The script that gives the station a player it can listen to. */
+const OFFICIAL_API_SRC = 'https://www.youtube.com/iframe_api';
+
+/** Cached, so the network script is fetched once per session. */
+let officialApiPromise: Promise<OfficialVideoApi | null> | null = null;
+
+/**
+ * Loads the platform's player API on demand.
+ *
+ * Nothing on this surface reaches the network for the station itself: this runs
+ * only when the broadcast has a record the artist uploaded, and the script is
+ * added once. A script that cannot load reports `null` through `onerror` rather
+ * than hanging the transport, and a failed load is not cached, so asking again
+ * is a genuine retry rather than a permanent dead end.
+ */
+function loadOfficialVideoApi(): Promise<OfficialVideoApi | null> {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return Promise.resolve(null);
+  }
+  const existing = (window as unknown as { YT?: OfficialVideoApi }).YT;
+  if (existing?.Player) return Promise.resolve(existing);
+  if (officialApiPromise) return officialApiPromise;
+
+  const pending = new Promise<OfficialVideoApi | null>((resolve) => {
+    const previous = (window as unknown as {
+      onYouTubeIframeAPIReady?: () => void;
+    }).onYouTubeIframeAPIReady;
+    (window as unknown as { onYouTubeIframeAPIReady?: () => void })
+      .onYouTubeIframeAPIReady = () => {
+      previous?.();
+      const api = (window as unknown as { YT?: OfficialVideoApi }).YT;
+      resolve(api?.Player ? api : null);
+    };
+    if (!document.querySelector('[data-smuve-tv-official]')) {
+      const script = document.createElement('script');
+      script.src = OFFICIAL_API_SRC;
+      script.async = true;
+      script.setAttribute('data-smuve-tv-official', '');
+      script.onerror = () => resolve(null);
+      document.head.appendChild(script);
+    }
+  });
+
+  officialApiPromise = pending.then((api) => {
+    if (!api) officialApiPromise = null;
+    return api;
+  });
+  return officialApiPromise;
 }
 
 @Component({
@@ -363,6 +456,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   @ViewChild('officialHost', { static: false })
   private officialHostRef?: ElementRef<HTMLElement>;
+  /** The host inside the broadcast overlay where the official player renders. */
+  @ViewChild('standaloneHost', { static: false })
+  private standaloneHostRef?: ElementRef<HTMLElement>;
   @ViewChild('feed', { static: false })
   private feedRef?: ElementRef<HTMLVideoElement>;
 
@@ -422,6 +518,15 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   fullRecordActive = signal(false);
   /** Sanitized URL for the artist's own record, rendered by the station's player. */
   fullRecordEmbedUrl = signal<SafeResourceUrl | null>(null);
+
+  /**
+   * The artist's official upload, playing with sound in the broadcast.
+   *
+   * Only raised when the broadcast is up and the record exists as a preview
+   * but the artist's own upload is complete: Apple clips a record, the
+   * broadcast plays the whole thing through the artist's own frame.
+   */
+  standaloneEmbedUrl = signal<SafeResourceUrl | null>(null);
 
   /** The live feed tuned on this station, or null when it renders its own scene. */
   activeFeedId = signal<string>(
@@ -710,6 +815,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private consecutiveFailures = 0;
   /** Injectable so a test can pin the rotation order. */
   random: () => number = Math.random;
+  /** Injectable so a test can drive the official player without YouTube. */
+  officialApiLoader: () => Promise<OfficialVideoApi | null> = loadOfficialVideoApi;
+  /** The live official player, when a record is playing through the broadcast. */
+  private standalonePlayer: OfficialVideoPlayer | null = null;
+  /** Fallback: advances the rotation if the platform never reports an end. */
+  private standaloneEndTimer: number | null = null;
+  /** Fallback: degrades if the platform never reports playback. */
+  private standaloneReadyTimer: number | null = null;
+  /** Invalidated every time a new record takes the broadcast. */
+  private standaloneToken = 0;
   /** Station the current feed was attached for, so zapping re-attaches once. */
   private feedStationId: string | null = null;
   private nowTimerId: number | null = null;
@@ -766,6 +881,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.stopSceneLoop();
     this.stopAudio();
     this.stopFeed();
+    this.closeStandaloneEmbed();
     this.closeFullRecord();
     this.stopRadio();
     this.releaseMusicSource();
@@ -977,6 +1093,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * playing under the guide exactly as it would on any other station. Only
      * leaving the station itself (`tuneTo` elsewhere) takes the record down.
      */
+    this.closeStandaloneEmbed();
     this.radioStandalone.set(false);
     this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
   }
@@ -1006,6 +1123,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       this.musicError.set('Nothing is queued for this channel yet.');
       return;
     }
+    if (this.radioStandalone()) {
+      const current = this.musicTrack();
+      this.playStandaloneRecord(current ?? this.nextRotationTrack());
+      return;
+    }
     this.startMusic();
   }
 
@@ -1022,6 +1144,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * while the channel is paused — or while the viewer has zapped to another
      * station — is a picture of something that is not on air.
      */
+    this.closeStandaloneEmbed();
     this.closeFullRecord();
     const audio = this.musicRef?.nativeElement;
     /*
@@ -1081,6 +1204,10 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }
     const next = this.nextRotationTrack();
     if (!next) return;
+    if (this.radioStandalone()) {
+      this.playStandaloneRecord(next);
+      return;
+    }
     this.selectMusicTrack(next, true);
   }
 
@@ -1264,6 +1391,218 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   closeFullRecord(): void {
     this.fullRecordActive.set(false);
     this.fullRecordEmbedUrl.set(null);
+  }
+
+  // ── The broadcast: full-length record via the artist's own frame ──
+
+  /**
+   * Puts the next record on the broadcast, choosing the right source for full
+   * length: the artist's own official upload when one exists (preview records
+   * that Apple clips but the artist uploaded complete), the station's own player
+   * when a hosted master is available, or Apple's preview otherwise.
+   *
+   * The broadcast has no controls, so the record that goes on air is the
+   * channel's decision, not the listener's.
+   */
+  private playStandaloneRecord(track: SmuveTvRadioTrack | null): void {
+    if (!track) return;
+    this.musicTrack.set(track);
+    this.musicError.set(null);
+    this.closeFullRecord();
+
+    if (track.youtubeId && this.canPlayFullRecord(track)) {
+      void this.playStandaloneFullRecord(track);
+      return;
+    }
+    this.selectMusicTrack(track, true);
+  }
+
+  /**
+   * The artist's own official upload, playing with sound in the broadcast.
+   *
+   * Apple clips a record; the artist's own upload is complete. The broadcast
+   * hands the speaker to the frame so the full record is what the room hears,
+   * and the platform's own player tells the rotation when the song ends.
+   */
+  private async playStandaloneFullRecord(track: SmuveTvRadioTrack): Promise<void> {
+    const videoId = track.youtubeId;
+    if (!videoId) return;
+
+    const token = ++this.standaloneToken;
+    this.clearStandaloneTimers();
+
+    // The station's own player steps aside: the frame carries the sound.
+    const audio = this.musicRef?.nativeElement;
+    if (audio && (audio.currentSrc || audio.getAttribute('src')) && !audio.paused) {
+      audio.pause();
+    }
+    this.silenceStationAudio();
+
+    this.standaloneEmbedUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(officialStageUrl(videoId))
+    );
+
+    // The browser is allowed to refuse an unmuted start; the station's own
+    // player is the fallback, and a ready timer tells us if the frame took it.
+    this.standaloneReadyTimer = window.setTimeout(() => {
+      if (token !== this.standaloneToken) return;
+      // The platform never reported playback: keep the broadcast going with
+      // the station's own player, which was always the fallback.
+      this.fallbackToStationAudio(track);
+    }, 6000);
+
+    const api = await this.officialApiLoader();
+    if (token !== this.standaloneToken) return;
+    if (!api?.Player) {
+      this.fallbackToStationAudio(track);
+      return;
+    }
+
+    const host = this.standaloneHostRef?.nativeElement ?? this.officialHostRef?.nativeElement;
+    if (!host) {
+      this.fallbackToStationAudio(track);
+      return;
+    }
+
+    this.destroyStandalonePlayer();
+    const states = api.PlayerState ?? OFFICIAL_STATES;
+    try {
+      this.standalonePlayer = new api.Player(host, {
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          rel: 0,
+          modestbranding: 1,
+          controls: 0,
+          disablekb: 1,
+          iv_load_policy: 3,
+        },
+        events: {
+          onReady: () => {
+            if (token === this.standaloneToken) this.standalonePlayer?.playVideo();
+          },
+          onStateChange: (event) => {
+            if (token !== this.standaloneToken) return;
+            this.onStandaloneRecordState(event?.data, states, track);
+          },
+          onError: () => {
+            if (token !== this.standaloneToken) return;
+            this.onStandaloneRecordError(track);
+          },
+        },
+      });
+    } catch {
+      this.fallbackToStationAudio(track);
+    }
+  }
+
+  /**
+   * The platform's own state, mapped onto the broadcast.
+   *
+   * Only `PLAYING` confirms the record is really on air; `ENDED` hands the
+   * rotation to the next one. Everything else is noise the broadcast absorbs.
+   */
+  private onStandaloneRecordState(
+    state: number | undefined,
+    states: { PLAYING: number; PAUSED: number; ENDED: number },
+    track: SmuveTvRadioTrack
+  ): void {
+    if (state === states.PLAYING) {
+      this.clearStandaloneTimers();
+      this.consecutiveFailures = 0;
+      this.isMusicPlaying.set(true);
+      this.musicError.set(null);
+
+      // Safety net: if the platform never reports ENDED, the rotation still
+      // moves on after the record's own running time.
+      const duration = track.durationMs;
+      if (duration && duration > 0) {
+        const endToken = this.standaloneToken;
+        this.standaloneEndTimer = window.setTimeout(() => {
+          if (this.standaloneToken !== endToken) return;
+          this.destroyStandalonePlayer();
+          this.standaloneEmbedUrl.set(null);
+          this.isMusicPlaying.set(false);
+          this.advanceRotation();
+        }, duration + 2000);
+      }
+      return;
+    }
+    if (state === states.PAUSED) {
+      // The broadcast has no controls: a pause the viewer did not cause is
+      // the platform buffering, not a choice. Resume and keep the record on air.
+      this.standalonePlayer?.playVideo();
+      return;
+    }
+    if (state === states.ENDED) {
+      this.clearStandaloneTimers();
+      this.destroyStandalonePlayer();
+      this.standaloneEmbedUrl.set(null);
+      this.isMusicPlaying.set(false);
+      this.advanceRotation();
+    }
+  }
+
+  /**
+   * A refused upload must not end the broadcast.
+   *
+   * The station's own player takes the record back so the channel keeps
+   * sounding, and the rotation keeps moving.
+   */
+  private onStandaloneRecordError(track: SmuveTvRadioTrack): void {
+    this.clearStandaloneTimers();
+    this.destroyStandalonePlayer();
+    this.standaloneEmbedUrl.set(null);
+    this.consecutiveFailures += 1;
+    if (this.consecutiveFailures >= SmuveTvComponent.MAX_ROTATION_FAILURES) {
+      this.musicError.set(
+        'Nothing in the rotation would play. Check that this browser allows audio.'
+      );
+      return;
+    }
+    this.fallbackToStationAudio(track);
+  }
+
+  /**
+   * When the platform will not play, the station's own player takes the record
+   * back: 30 seconds of preview is better than silence, and the rotation keeps
+   * moving.
+   */
+  private fallbackToStationAudio(track: SmuveTvRadioTrack): void {
+    this.clearStandaloneTimers();
+    this.destroyStandalonePlayer();
+    this.standaloneEmbedUrl.set(null);
+    this.selectMusicTrack(track, true);
+  }
+
+  private destroyStandalonePlayer(): void {
+    this.clearStandaloneTimers();
+    const player = this.standalonePlayer;
+    this.standalonePlayer = null;
+    if (!player) return;
+    try {
+      player.destroy();
+    } catch {
+      // The frame is already gone; there is nothing left to release.
+    }
+  }
+
+  private clearStandaloneTimers(): void {
+    if (this.standaloneEndTimer !== null) {
+      window.clearTimeout(this.standaloneEndTimer);
+      this.standaloneEndTimer = null;
+    }
+    if (this.standaloneReadyTimer !== null) {
+      window.clearTimeout(this.standaloneReadyTimer);
+      this.standaloneReadyTimer = null;
+    }
+  }
+
+  /** Tears down the broadcast's own player and timers. */
+  private closeStandaloneEmbed(): void {
+    this.destroyStandalonePlayer();
+    this.standaloneEmbedUrl.set(null);
   }
 
   /**

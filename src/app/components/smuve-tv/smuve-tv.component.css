@@ -458,6 +458,22 @@
   z-index: 1;
 }
 
+.tv-broadcast-artwork {
+  width: min(56vw, 280px);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  margin-bottom: 0.3rem;
+}
+
+.tv-broadcast-artwork img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .tv-broadcast-now {
   margin: 0;
   font-size: 0.6rem;
@@ -483,6 +499,14 @@
   font-size: 0.72rem;
   letter-spacing: 0.1em;
   color: #9fb3a8;
+}
+
+.tv-broadcast-album {
+  margin: 0;
+  font-size: 0.62rem;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: #6b8f7a;
 }
 
 .tv-broadcast-progress {
@@ -544,6 +568,33 @@
 .tv-broadcast-exit:focus-visible {
   border-color: rgba(74, 222, 128, 0.7);
   outline: none;
+}
+
+/*
+ * The host for the full-length record's IFrame player. Hidden by default;
+ * when a record is on air the platform's own API places its frame here.
+ * The player is sized to fill most of the screen while staying under the
+ * branding and exit button.
+ */
+.tv-broadcast-player {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.tv-broadcast-player:not([hidden]) {
+  pointer-events: auto;
+}
+
+.tv-broadcast-player iframe,
+.tv-broadcast-player video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  object-fit: cover;
 }
 
 @media (prefers-reduced-motion: reduce) {

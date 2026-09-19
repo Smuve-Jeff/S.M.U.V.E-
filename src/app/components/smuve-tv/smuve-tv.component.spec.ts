@@ -535,6 +535,54 @@ describe('SmuveTvComponent', () => {
       emitSpy.mockRestore();
     });
 
+    it('displays artwork and metadata for the current record', () => {
+      library.items.set([track()]);
+      player();
+
+      // Simulate entering the broadcast with a track that has artwork.
+      component.radioStandalone.set(true);
+      component.musicTrack.set({
+        id: 'art-track',
+        title: 'Authorized Single',
+        artist: 'Smuve Jeff',
+        album: 'Smuve Sessions Vol. 1',
+        url: 'data:audio/mpeg;base64,AAAA',
+        preview: false,
+        artworkUrl: 'https://example.com/album.jpg',
+      } as any);
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      const overlay = fixture.nativeElement.querySelector('.tv-broadcast');
+      const artwork = overlay.querySelector('.tv-broadcast-artwork img');
+      expect(artwork).not.toBeNull();
+      expect(artwork.getAttribute('src')).toBe('https://example.com/album.jpg');
+      expect(overlay.textContent).toContain('Smuve Sessions Vol. 1');
+      expect(overlay.textContent).toContain('Authorized Single');
+      expect(overlay.textContent).toContain('Smuve Jeff');
+    });
+
+    it('hides artwork when the track has none', () => {
+      library.items.set([track()]);
+      player();
+
+      component.radioStandalone.set(true);
+      component.musicTrack.set({
+        id: 'no-art',
+        title: 'Authorized Single',
+        artist: 'Smuve Jeff',
+        album: '',
+        url: 'data:audio/mpeg;base64,AAAA',
+        preview: false,
+      } as any);
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      const overlay = fixture.nativeElement.querySelector('.tv-broadcast');
+      expect(overlay.querySelector('.tv-broadcast-artwork')).toBeNull();
+      expect(overlay.textContent).toContain('Authorized Single');
+    });
+
     it('hands the speaker back when the guide moves to another station', () => {
       library.items.set([track()]);
       const { audio, pause } = player();

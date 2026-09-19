@@ -451,12 +451,22 @@
 
     <!--
       The one record the channel is playing, and only while it is actually
-      audible — the same rule the module's lower third follows.
+      audible — the same rule the module's lower third follows. The artwork
+      comes from the catalogue; the IFrame host is where the platform's own
+      player renders the full-length record when one is available.
     -->
     <div class="tv-broadcast-record" *ngIf="isMusicPlaying()">
+      <div class="tv-broadcast-artwork" *ngIf="nowPlaying()?.artworkUrl">
+        <img
+          [src]="nowPlaying()!.artworkUrl"
+          [alt]="nowPlaying()!.title + ' — artwork'"
+          loading="eager"
+        />
+      </div>
       <p class="tv-broadcast-now">NOW PLAYING</p>
       <p class="tv-broadcast-title">{{ nowPlaying()?.title }}</p>
       <p class="tv-broadcast-meta">{{ nowPlaying()?.artist }}</p>
+      <p class="tv-broadcast-album" *ngIf="nowPlaying()?.album">{{ nowPlaying()!.album }}</p>
       <div
         class="tv-broadcast-progress"
         role="progressbar"
@@ -472,6 +482,12 @@
         <span>{{ onAirEnd() }}</span>
       </div>
     </div>
+
+    <!--
+      The host for the full-length record's IFrame player. The platform's own
+      API places its frame here; it is hidden until a record is on air.
+    -->
+    <div #standaloneHost class="tv-broadcast-player" [hidden]="!standaloneEmbedUrl()"></div>
 
     <!--
       A record with nothing playable on this device: the channel is between
