@@ -970,6 +970,93 @@
   color: #a7f3ee;
 }
 
+/* A row is the play button plus, when the record has an official page, the
+   link to its complete version. */
+.tv-music-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tv-music-row > button {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tv-music-open {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px, the same touch floor every other control on this surface honours. */
+  width: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  color: #8fa3b4;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.tv-music-open .material-symbols-outlined { font-size: 0.95rem; }
+
+.tv-music-open:hover,
+.tv-music-open:focus-visible {
+  border-color: rgba(43, 160, 156, 0.55);
+  background: rgba(43, 160, 156, 0.16);
+  color: #a7f3ee;
+  outline: none;
+}
+
+/* Catalogue records the station cannot stream here: the whole row is the link. */
+.tv-music-openrow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 46px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 7px;
+  color: #aab8c5;
+  font-size: 0.68rem;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.tv-music-openrow .material-symbols-outlined {
+  font-size: 0.95rem;
+  color: #7f909f;
+}
+
+.tv-music-openrow:hover,
+.tv-music-openrow:focus-visible {
+  background: rgba(43, 160, 156, 0.16);
+  color: #e6fffb;
+  outline: none;
+}
+
+.tv-music-openrow.is-disabled {
+  cursor: default;
+}
+
+.tv-music-openrow.is-disabled:hover {
+  background: transparent;
+  color: #aab8c5;
+}
+
+.tv-music-more {
+  margin-top: 0.7rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.tv-music-more-heading {
+  margin: 0;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: #7f909f;
+}
+
 /*
  * States plainly which pool is on air. The channel streams previews from
  * Apple's public catalogue, whose licence is 30 seconds, so a viewer must never
