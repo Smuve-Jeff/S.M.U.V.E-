@@ -6,7 +6,6 @@ import { SmuveTvService } from '../../services/smuve-tv.service';
 import { LibraryService } from '../../services/library.service';
 import {
   SmuveTvFeedsService,
-  SmuveTvRadioTrack,
   seededRandom,
   trackLength,
 } from '../../services/smuve-tv-feeds.service';
@@ -155,6 +154,32 @@ describe('SmuveTvComponent', () => {
     component.searchQuery.set('zzzz-no-such-station');
 
     expect(component.rail()).toEqual([]);
+  });
+
+  it('opens a non-empty rail on every category chip', () => {
+    // Every chip in the guide has to lead somewhere, or the catalog has a
+    // category with nothing in it.
+    for (const category of component.categories) {
+      component.selectCategory(category.id);
+      expect(component.rail().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('tunes the expanded categories by number, live feed included', () => {
+    for (const category of ['news', 'sports', 'docs'] as const) {
+      const target = service.channels.find(
+        (channel) => channel.category === category
+      );
+      expect(target).toBeTruthy();
+
+      component.channelEntry.set(String(target!.number));
+      component.goToChannel();
+
+      expect(component.activeChannel().id).toBe(target!.id);
+      expect(component.activeFeedId()).toBe(
+        feeds.feedForStation(target!.id)!.id
+      );
+    }
   });
 
   describe('favourites persistence', () => {
@@ -436,80 +461,129 @@ describe('SmuveTvComponent', () => {
       expect(() => component.startMusic()).not.toThrow();
     });
 
-    it('badges each row by what it can actually do', async () => {
-      routeReads({
-        records: { records: [catalogueRecord(), appleMissingRecord()] },
-      });
+    it('badges the record by what it actually is', async () => {
+      routeReads({ records: { records: [catalogueRecord()] } });
 
       await component.loadCatalogue();
 
       const playable = component.rotationPool()[0];
-      const listed = component.catalogueOnly()[0];
 
       expect(component.trackBadge(playable)).toBe('PREVIEW');
-      expect(component.trackBadge(listed)).toBe('OPEN');
       expect(component.trackBadge({ ...playable, preview: false })).toBe('FULL');
     });
 
-    it('names the platform a record opens on, and falls back to its catalogue page', async () => {
-      routeReads({ records: { records: [appleMissingRecord()] } });
+    it("keeps a record that is not the artist's out of the channel", async () => {
+      routeReads({
+        records: {
+          records: [
+            catalogueRecord(),
+            catalogueRecord({
+              id: 'apple-2',
+              trackId: 2,
+              title: 'Somebody Else Song',
+              artist: 'Another Artist',
+            }),
+          ],
+        },
+        // A hosted file credited elsewhere must not be relabelled as Smuve
+        // Jeff's own recording either.
+        masters: [
+          {
+            title: 'Foreign Master',
+            artist: 'Another Artist',
+            file: 'https://cdn.test/foreign.mp3',
+          },
+        ],
+      });
 
       await component.loadCatalogue();
 
-      expect(component.officialLink(component.catalogueOnly()[0])).toEqual({
-        label: 'DEEZER',
-        url: 'https://deezer.test/wyhh',
-      });
-      expect(
-        component.officialLink({
-          id: 'x',
-          title: 'X',
-          artist: 'Smuve Jeff',
-          album: 'A',
-          preview: true,
-          linkUrl: 'https://apple.test/x',
-        })
-      ).toEqual({ label: 'OFFICIAL', url: 'https://apple.test/x' });
-      expect(
-        component.officialLink({
-          id: 'y',
-          title: 'Y',
-          artist: 'Smuve Jeff',
-          album: 'A',
-          preview: true,
-        })
-      ).toBeNull();
+      expect(component.radioQueue().map((track) => track.title)).toEqual([
+        'Official Record',
+      ]);
+      expect(component.rotationPool().map((track) => track.title)).toEqual([
+        'Official Record',
+      ]);
     });
 
-    it('renders a safe link per record, never handing over the opener', async () => {
+    /** The player, silenced the way jsdom needs it silenced. */
+    const player = (): HTMLAudioElement => {
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      jest.spyOn(audio, 'load').mockImplementation(() => undefined);
+      Object.defineProperty(audio, 'paused', { configurable: true, value: true });
+      jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      return audio;
+    };
+
+    it('lists no queue and offers no links anywhere on the surface', async () => {
       routeReads({
         records: { records: [catalogueRecord(), appleMissingRecord()] },
       });
 
       await component.loadCatalogue();
+      player();
+      component.startMusic();
       fixture.detectChanges();
 
-      const links = [
-        ...fixture.nativeElement.querySelectorAll(
-          '.tv-music-open, .tv-music-openrow'
-        ),
-      ] as HTMLAnchorElement[];
+      // The module is a broadcast, not a browser: the record list and every
+      // platform link are gone from the page entirely.
+      expect(template).not.toContain('tv-music-list');
+      expect(template).not.toContain('tv-music-link');
+      expect(template).not.toContain('tv-music-more');
+      expect(
+        fixture.nativeElement.querySelectorAll('.tv-music-list, .tv-music-link')
+      ).toHaveLength(0);
+    });
 
-      expect(links.length).toBeGreaterThanOrEqual(2);
-      for (const link of links) {
-        expect(link.getAttribute('href')).toMatch(/^https:\/\//);
-        expect(link.getAttribute('rel')).toContain('noopener');
-        expect(link.getAttribute('rel')).toContain('noreferrer');
-        expect(link.getAttribute('target')).toBe('_blank');
-        expect(link.getAttribute('aria-label')).toBeTruthy();
-      }
+    it('shows the record metadata only while it is playing', async () => {
+      routeReads({ records: { records: [catalogueRecord()] } });
 
-      const badges = [
-        ...fixture.nativeElement.querySelectorAll(
-          '.tv-music-openrow .tv-music-badge'
-        ),
-      ].map((element: Element) => element.textContent?.trim());
-      expect(badges).toContain('DEEZER');
+      await component.loadCatalogue();
+      player();
+
+      const panel = () =>
+        fixture.nativeElement.querySelector('.tv-music-now') as HTMLElement | null;
+
+      component.startMusic();
+      fixture.detectChanges();
+      // Queued is not playing: nothing may be named while the record is silent.
+      expect(panel()).toBeNull();
+      expect(component.nowPlaying()).toBeNull();
+
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      const text = panel()?.textContent ?? '';
+      expect(text).toContain('NOW PLAYING');
+      expect(text).toContain('Official Record');
+      expect(text).toContain('Official Album');
+      expect(text).toContain('2024');
+      // The running time of the record, not of the 30-second preview.
+      expect(text).toContain('3:00');
+      expect(text).toContain('PREVIEW');
+      // Metadata only — no destination is offered from this surface.
+      expect(panel()?.querySelectorAll('a')).toHaveLength(0);
+
+      component.onMusicPaused();
+      fixture.detectChanges();
+      expect(panel()).toBeNull();
+    });
+
+    it('brings the metadata down when a record ends', async () => {
+      routeReads({ records: { records: [catalogueRecord()] } });
+
+      await component.loadCatalogue();
+      player();
+      component.startMusic();
+      component.onMusicPlaying();
+      fixture.detectChanges();
+
+      component.onMusicEnded();
+      // The next record has not started yet, so the panel names nothing.
+      expect(component.isMusicPlaying()).toBe(false);
+      expect(component.nowPlaying()).toBeNull();
     });
 
     it('falls back to the live Apple catalogue when the file is missing', async () => {

@@ -23,8 +23,8 @@ import { LibraryService } from '../../services/library.service';
 import {
   SmuveTvFeedsService,
   SmuveTvLiveFeed,
-  SmuveTvRadioLink,
   SmuveTvRadioTrack,
+  isSmuveJeffArtist,
   shuffleBag,
   trackLength,
 } from '../../services/smuve-tv-feeds.service';
@@ -345,6 +345,13 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   audioSupported = signal(false);
   musicSource = signal<string | null>(null);
   musicTrack = signal<SmuveTvRadioTrack | null>(null);
+  /**
+   * True only while the artist's audio is actually playing.
+   *
+   * The record's metadata is shown on the strength of this flag and nothing
+   * else, so a paused player never advertises a song as if it were on air.
+   */
+  isMusicPlaying = signal(false);
   musicError = signal<string | null>(null);
 
   /** The live feed tuned on this station, or null when it renders its own scene. */
@@ -365,6 +372,15 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   catalogueState = signal<'loading' | 'ready' | 'unavailable'>('loading');
   /** Full-length recordings the artist hosts, matched onto the catalogue. */
   hostedMasters = signal<SmuveTvRadioTrack[]>([]);
+  /** True while an upload is in flight, so the action cannot be double-fired. */
+  publishing = signal(false);
+  /** What the last publish attempt did, in the artist's own terms. */
+  publishState = signal<string | null>(null);
+
+  /** Masters imported on this device that the station does not host yet. */
+  unpublishedMasters = computed(
+    () => this.importedTracks().filter((track) => !!track.blob).length
+  );
 
   readonly allFeeds = this.feeds.feeds;
 
@@ -388,7 +404,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       ...this.importedTracks(),
       ...hosted,
       ...this.officialCatalogue().filter((track) => !hostedIds.has(track.id)),
-    ];
+      /*
+       * The last gate before the channel, and the only one that matters: this
+       * station plays Smuve Jeff and nobody else. Every source above is already
+       * scoped, and this holds even if one of them ever is not.
+       */
+    ].filter((track) => isSmuveJeffArtist(track.artist));
   });
 
   private importedTracks = computed<SmuveTvRadioTrack[]>(() =>
@@ -446,6 +467,17 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   catalogueOnly = computed<SmuveTvRadioTrack[]>(() =>
     this.radioQueue().filter((track) => !track.blob && !track.url)
+  );
+
+  /**
+   * The record whose metadata is on screen: only the one that is playing.
+   *
+   * Nothing about the queue is listed on the surface — no track list, no
+   * platform links — so this is the module's single place where a record is
+   * named, and it appears only while that record is audible.
+   */
+  nowPlaying = computed<SmuveTvRadioTrack | null>(() =>
+    this.isMusicPlaying() ? this.musicTrack() : null
   );
 
   /** True when the rotation is drawing on real full-length recordings. */
@@ -787,6 +819,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     if (!audio) return;
     this.musicTrack.set(track);
     this.musicError.set(null);
+    // A queued record is not a playing one: the panel only opens on the real
+    // `playing` event, so it can never name a track the browser refused.
+    this.isMusicPlaying.set(false);
 
     const source = track.blob
       ? URL.createObjectURL(track.blob)
@@ -829,6 +864,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   onMusicEnded(): void {
     // One continuous rotation, so the channel really is 24/7: a record hands
     // over to the next exactly like a broadcast would.
+    this.isMusicPlaying.set(false);
     this.advanceRotation();
   }
 
@@ -841,6 +877,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * gone rather than one record having moved.
    */
   onMusicError(): void {
+    this.isMusicPlaying.set(false);
     this.consecutiveFailures += 1;
     if (this.consecutiveFailures >= SmuveTvComponent.MAX_ROTATION_FAILURES) {
       this.musicError.set(
@@ -852,12 +889,19 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Confirmed audio output is the only thing that clears the failure guard.
-   * Resetting it on every attempt would defeat the guard entirely.
+   * Confirmed audio output is the only thing that clears the failure guard and
+   * the only thing that puts the record's metadata on screen.
+   * Resetting the guard on every attempt would defeat it entirely.
    */
   onMusicPlaying(): void {
     this.consecutiveFailures = 0;
+    this.isMusicPlaying.set(true);
     this.musicError.set(null);
+  }
+
+  /** A paused player is not playing, so the metadata comes down with it. */
+  onMusicPaused(): void {
+    this.isMusicPlaying.set(false);
   }
 
   /**
@@ -885,22 +929,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Where a record's complete version opens, named.
-   *
-   * The platform is carried on the link rather than written into the template,
-   * because the same record is on different stores depending on whether Apple
-   * carries it.
+   * What a record's badge reads: a hosted master or a preview. Every record on
+   * this station streams from a real source, so there is no third case.
    */
-  officialLink(track: SmuveTvRadioTrack): SmuveTvRadioLink | null {
-    const link = track.links?.find((entry) => !!entry.url);
-    if (link) return link;
-    return track.linkUrl ? { label: 'OFFICIAL', url: track.linkUrl } : null;
-  }
-
-  /** What a row's badge reads: a hosted master, a preview, or a record only listed. */
-  trackBadge(track: SmuveTvRadioTrack): 'FULL' | 'PREVIEW' | 'OPEN' {
-    if (!track.preview) return 'FULL';
-    return track.blob || track.url ? 'PREVIEW' : 'OPEN';
+  trackBadge(track: SmuveTvRadioTrack): 'FULL' | 'PREVIEW' {
+    return track.preview ? 'PREVIEW' : 'FULL';
   }
 
   /**
@@ -908,11 +941,66 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    *
    * This is the whole answer to "full length on air": Apple licenses 30-second
    * previews and no platform will hand over the masters, so the recordings come
-   * from the artist and this manifest is the only thing that has to change.
+   * from the artist. Two sources feed it — the manifest committed with the build
+   * and the recordings published through the API — and they are folded into one
+   * entry per record before matching, so a record hosted both ways is still one
+   * row on the station.
    */
   async loadMasters(catalogue = this.officialCatalogue()): Promise<void> {
-    const entries = await this.feeds.loadMasterManifest();
-    this.hostedMasters.set(this.feeds.matchMasters(catalogue, entries));
+    const [manifest, published] = await Promise.all([
+      this.feeds.loadMasterManifest(),
+      this.feeds.loadPublishedMasters(),
+    ]);
+    this.hostedMasters.set(
+      this.feeds.matchMasters(
+        catalogue,
+        this.feeds.mergeMasterSources(manifest, published)
+      )
+    );
+  }
+
+  /**
+   * Publishes every master imported on this device to the station.
+   *
+   * Importing only ever put a recording in this browser's own storage, so it
+   * played here and nowhere else. Publishing is what puts it on the channel for
+   * every listener — and what keeps it after this browser's data is cleared.
+   */
+  async publishMasters(): Promise<void> {
+    if (this.publishing()) return;
+
+    const local = this.importedTracks().filter((track) => !!track.blob);
+    if (!local.length) {
+      this.publishState.set('Import a master first, then publish it.');
+      return;
+    }
+
+    this.publishing.set(true);
+    this.publishState.set(`PUBLISHING 0/${local.length}\u2026`);
+
+    const failures: string[] = [];
+    let published = 0;
+    for (const track of local) {
+      try {
+        await this.feeds.publishMaster(track);
+        published += 1;
+      } catch (err) {
+        failures.push(
+          `${track.title}: ${err instanceof Error ? err.message : 'the upload failed'}`
+        );
+      }
+      this.publishState.set(`PUBLISHING ${published}/${local.length}\u2026`);
+    }
+
+    this.publishing.set(false);
+    // Read the published list back rather than assuming the upload landed: the
+    // station only hosts what the API agrees it hosts.
+    await this.loadMasters();
+    this.publishState.set(
+      failures.length
+        ? `${published} OF ${local.length} PUBLISHED \u2014 ${failures[0]}`
+        : `PUBLISHED ${published} \u2014 ON AIR EVERYWHERE NOW`
+    );
   }
 
   // ── Live feeds ─────────────────────────────────────────
@@ -1070,6 +1158,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
         addedAt: Date.now(),
         size: file.size,
         blob: file,
+        /*
+         * This control is the artist putting their own masters on their own
+         * station, and it is the one place a credit is asserted rather than
+         * read: the radio holds every other source to `isSmuveJeffArtist`, and
+         * this is the owner's own authorisation of a local file.
+         */
         artist: 'Smuve Jeff',
         official: true,
         mediaType: 'audio',

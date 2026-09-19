@@ -862,33 +862,64 @@
 
 .tv-music-import input { display: none; }
 
-.tv-music-list {
-  list-style: none;
-  max-height: 140px;
-  overflow-y: auto;
-  margin: 0.55rem 0 0;
-  padding: 0;
-}
-
-.tv-music-list li button {
-  display: flex;
+/*
+  Publishing is the step that puts a recording on the channel for everyone, so it
+  is styled as an action rather than a secondary control — but it stays quiet
+  until there is something imported to send.
+*/
+.tv-music-publish {
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-  /* Comfortably over the 44px touch floor: every track is a tap target. */
-  min-height: 46px;
-  padding: 0.3rem 0.5rem;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #aab8c5;
-  text-align: left;
-  font-size: 0.68rem;
+  gap: 0.35rem;
+  /* 44px, the same touch floor every other control on this surface honours. */
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 8px;
+  background: rgba(125, 211, 252, 0.1);
+  color: #bae6fd;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-.tv-music-track {
+.tv-music-publish .material-symbols-outlined { font-size: 0.95rem; }
+
+.tv-music-publish:hover,
+.tv-music-publish:focus-visible {
+  background: rgba(125, 211, 252, 0.2);
+  outline: none;
+}
+
+.tv-music-publish[disabled] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/*
+  The only place a record is named on this surface. It renders while the record
+  is playing and nothing else is listed, so the channel stays a broadcast rather
+  than a playlist.
+*/
+.tv-music-now {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(43, 160, 156, 0.45);
+  border-radius: 9px;
+  background: rgba(43, 160, 156, 0.14);
+}
+
+.tv-music-now-mark {
+  font-size: 1.1rem;
+  color: #7dd3fc;
+}
+
+.tv-music-now-text {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -896,26 +927,30 @@
   flex: 1 1 auto;
 }
 
-.tv-music-track-title,
-.tv-music-track-meta {
+.tv-music-now-label {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #7dd3fc;
+}
+
+.tv-music-now-title,
+.tv-music-now-meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tv-music-track-title {
-  font-size: 0.7rem;
-  color: #dbe4ec;
+.tv-music-now-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #e6fffb;
 }
 
-.tv-music-track-meta {
+.tv-music-now-meta {
   font-size: 0.56rem;
   letter-spacing: 0.04em;
-  color: #7f909f;
-}
-
-.tv-music-list li.active .tv-music-track-title {
-  color: #e6fffb;
+  color: #9fb3c2;
 }
 
 .tv-music-badge {
@@ -933,93 +968,6 @@
   border-color: rgba(43, 160, 156, 0.55);
   background: rgba(43, 160, 156, 0.18);
   color: #a7f3ee;
-}
-
-/* A row is the play button plus, when the record has an official page, the
-   link to its complete version. */
-.tv-music-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.tv-music-row > button {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.tv-music-open {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* 44px, the same touch floor every other control on this surface honours. */
-  width: 44px;
-  min-height: 44px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 7px;
-  color: #8fa3b4;
-  text-decoration: none;
-  touch-action: manipulation;
-}
-
-.tv-music-open .material-symbols-outlined { font-size: 0.95rem; }
-
-.tv-music-open:hover,
-.tv-music-open:focus-visible {
-  border-color: rgba(43, 160, 156, 0.55);
-  background: rgba(43, 160, 156, 0.16);
-  color: #a7f3ee;
-  outline: none;
-}
-
-/* Catalogue records the station cannot stream here: the whole row is the link. */
-.tv-music-openrow {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-  min-height: 46px;
-  padding: 0.3rem 0.5rem;
-  border-radius: 7px;
-  color: #aab8c5;
-  font-size: 0.68rem;
-  text-decoration: none;
-  touch-action: manipulation;
-}
-
-.tv-music-openrow .material-symbols-outlined {
-  font-size: 0.95rem;
-  color: #7f909f;
-}
-
-.tv-music-openrow:hover,
-.tv-music-openrow:focus-visible {
-  background: rgba(43, 160, 156, 0.16);
-  color: #e6fffb;
-  outline: none;
-}
-
-.tv-music-openrow.is-disabled {
-  cursor: default;
-}
-
-.tv-music-openrow.is-disabled:hover {
-  background: transparent;
-  color: #aab8c5;
-}
-
-.tv-music-more {
-  margin-top: 0.7rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.tv-music-more-heading {
-  margin: 0;
-  font-size: 0.55rem;
-  letter-spacing: 0.1em;
-  color: #7f909f;
 }
 
 /*
@@ -1082,14 +1030,6 @@
 .tv-music-retry:hover,
 .tv-music-retry:focus-visible {
   background: rgba(252, 211, 77, 0.24);
-  outline: none;
-}
-
-.tv-music-list li.active button,
-.tv-music-list li button:hover,
-.tv-music-list li button:focus-visible {
-  background: rgba(43, 160, 156, 0.16);
-  color: #e6fffb;
   outline: none;
 }
 

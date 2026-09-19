@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { APP_SECURITY_CONFIG } from '../app.security';
+import { TokenService } from './token.service';
 
 /**
  * Live feeds and the first-party radio catalogue for S.M.U.V.E. TV.
@@ -8,8 +10,17 @@ import { Injectable } from '@angular/core';
  * 1. `SMUVE_TV_LIVE_FEEDS` — free, publicly distributed live channels (public
  *    broadcasters and ad-supported FAST services). Every URL in this list was
  *    played in real Chromium before being added: hls.js reached `FRAG_LOADED`
- *    and buffered actual media. Channels that only parsed their manifest but
- *    404'd on fragments were removed, so nothing here is aspirational.
+ *    and buffered actual media. The channels added since were held to the same
+ *    bar by hand — the manifest was fetched, its variant playlist followed, and
+ *    the first media fragment downloaded real bytes — which is exactly what
+ *    hls.js walks before it fires `FRAG_LOADED`. Channels that only parsed
+ *    their manifest but 404'd on fragments were removed, so nothing here is
+ *    aspirational.
+ *
+ *    The catalogue is deliberately broader than the station line-up: it is the
+ *    pool a station can be re-fed from without anything having to be invented,
+ *    and it is grouped by `genre` so a station can be handed a whole category
+ *    of verified feeds.
  *
  * 2. The official Smuve Jeff catalogue, read from Apple's public, CORS-enabled
  *    iTunes catalogue API. It returns the artist's real releases with the
@@ -19,7 +30,12 @@ import { Injectable } from '@angular/core';
  *    own authorized files, imported in the module.
  */
 
-export type SmuveTvFeedGenre = 'news' | 'entertainment' | 'music';
+export type SmuveTvFeedGenre =
+  | 'news'
+  | 'entertainment'
+  | 'music'
+  | 'sports'
+  | 'documentary';
 
 export interface SmuveTvLiveFeed {
   id: string;
@@ -73,6 +89,62 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
   },
   // ── Ad-supported free channels ─────────────────────────
   {
+    id: 'trt-world',
+    name: 'TRT WORLD',
+    url: 'https://tv-trtworld.medya.trt.com.tr/master.m3u8',
+    genre: 'news',
+    operator: 'TRT',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'cna-asia',
+    name: 'CNA',
+    url: 'https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index.m3u8',
+    genre: 'news',
+    operator: 'Mediacorp',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'arirang-tv',
+    name: 'ARIRANG TV',
+    url: 'https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Arirang TV',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'tagesschau',
+    name: 'TAGESSCHAU',
+    url: 'https://tagesschau.akamaized.net/hls/live/2020115/tagesschau/tagesschau_1/master.m3u8',
+    genre: 'news',
+    operator: 'ARD',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'dw-arabic',
+    name: 'DW ARABIC',
+    url: 'https://dwamdstream103.akamaized.net/hls/live/2015526/dwstream103/master.m3u8',
+    genre: 'news',
+    operator: 'Deutsche Welle',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'aljazeera-arabic',
+    name: 'AL JAZEERA ARABIC',
+    url: 'https://live-hls-web-aja.getaj.net/AJA/index.m3u8',
+    genre: 'news',
+    operator: 'Al Jazeera Media Network',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'ndtv-24x7',
+    name: 'NDTV 24X7',
+    url: 'https://ndtv24x7elemarchana.akamaized.net/hls/live/2003678/ndtv24x7/master.m3u8',
+    genre: 'news',
+    operator: 'NDTV',
+    source: 'Free live stream (operator-hosted)',
+  },
+  {
     id: 'abc-news-live',
     name: 'ABC NEWS LIVE',
     url: 'https://pb-0n3n2ej0w9pl9.akamaized.net/ABCNewsLive_Disney.m3u8',
@@ -87,6 +159,38 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     genre: 'news',
     operator: 'NBCUniversal',
     source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cbs-news-247',
+    name: 'CBS NEWS 24/7',
+    url: 'https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8',
+    genre: 'news',
+    operator: 'CBS News',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'bloomberg-tv',
+    name: 'BLOOMBERG TELEVISION',
+    url: 'https://bloomberg.com/media-manifest/streams/us.m3u8',
+    genre: 'news',
+    operator: 'Bloomberg L.P.',
+    source: 'Free live stream (operator-hosted)',
+  },
+  {
+    id: 'bloomberg-eu',
+    name: 'BLOOMBERG TV EUROPE',
+    url: 'https://bloomberg.com/media-manifest/streams/eu.m3u8',
+    genre: 'news',
+    operator: 'Bloomberg L.P.',
+    source: 'Free live stream (operator-hosted)',
+  },
+  {
+    id: 'bloomberg-asia',
+    name: 'BLOOMBERG TV ASIA',
+    url: 'https://bloomberg.com/media-manifest/streams/asia.m3u8',
+    genre: 'news',
+    operator: 'Bloomberg L.P.',
+    source: 'Free live stream (operator-hosted)',
   },
   {
     id: 'red-bull-tv',
@@ -113,12 +217,95 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     operator: 'Stingray',
     source: 'Free ad-supported (FAST)',
   },
+  // Named against the operator's own line-up: `ose-107` is Hit List, not a
+  // hip-hop channel, and a station must never be labelled as something it is
+  // not.
   {
-    id: 'stingray-hip-hop',
-    name: 'STINGRAY HIP HOP',
+    id: 'stingray-hit-list',
+    name: 'STINGRAY HIT LIST',
     url: 'https://lotus.stingray.com/manifest/ose-107ads-montreal/samsungtvplus/master.m3u8',
     genre: 'music',
     operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-flashback-70s',
+    name: 'STINGRAY FLASHBACK 70s',
+    url: 'https://lotus.stingray.com/manifest/ose-115ads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-jukebox-oldies',
+    name: 'STINGRAY JUKEBOX OLDIES',
+    url: 'https://lotus.stingray.com/manifest/ose-021ads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-todays-kpop',
+    name: "STINGRAY TODAY'S K-POP",
+    url: 'https://lotus.stingray.com/manifest/ose-317ads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-todays-latin-pop',
+    name: "STINGRAY TODAY'S LATIN POP",
+    url: 'https://lotus.stingray.com/manifest/ose-190ads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-romance-latino',
+    name: 'STINGRAY ROMANCE LATINO',
+    url: 'https://lotus.stingray.com/manifest/ose-202ads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-djazz',
+    name: 'STINGRAY DJAZZ',
+    url: 'https://lotus.stingray.com/manifest/djazz-djaads-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-karaoke',
+    name: 'STINGRAY KARAOKE',
+    url: 'https://lotus.stingray.com/manifest/karaoke-kar000-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-naturescape',
+    name: 'STINGRAY NATURESCAPE',
+    url: 'https://lotus.stingray.com/manifest/naturescape-a003-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'stingray-zenlife',
+    name: 'ZENLIFE BY STINGRAY',
+    url: 'https://lotus.stingray.com/manifest/zenlife-zen001-montreal/samsungtvplus/master.m3u8',
+    genre: 'music',
+    operator: 'Stingray',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'california-music-channel',
+    name: 'CALIFORNIA MUSIC CHANNEL',
+    url: 'https://cmc-cmctv-cineverse.amagi.tv/playlist.m3u8',
+    genre: 'music',
+    operator: 'CMC Television',
     source: 'Free ad-supported (FAST)',
   },
   {
@@ -234,8 +421,8 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     source: 'Free ad-supported (FAST)',
   },
   {
-    id: 'stingray-remember-80s',
-    name: 'STINGRAY REMEMBER 80s',
+    id: 'stingray-everything-80s',
+    name: "STINGRAY EVERYTHING 80s",
     url: 'https://lotus.stingray.com/manifest/ose-128ads-montreal/samsungtvplus/master.m3u8',
     genre: 'music',
     operator: 'Stingray',
@@ -281,6 +468,233 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     operator: 'Stingray',
     source: 'Free ad-supported (FAST)',
   },
+  // ── Sports ─────────────────────────────────────────────
+  {
+    id: 'bein-sports-xtra',
+    name: 'beIN SPORTS XTRA',
+    url: 'https://bein-xtra-bein.amagi.tv/playlist.m3u8',
+    genre: 'sports',
+    operator: 'beIN Media Group',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'acc-digital-network',
+    name: 'ACC DIGITAL NETWORK',
+    url: 'https://raycom-accdn-firetv.amagi.tv/playlist.m3u8',
+    genre: 'sports',
+    operator: 'Raycom Sports',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'fuel-tv-emea',
+    name: 'FUEL TV',
+    url: 'https://amg01074-fueltv-fueltvemeaen-rakuten-b6j62.amagi.tv/hls/amagi_hls_data_rakutenAA-fueltvemeaen/CDN/master.m3u8',
+    genre: 'sports',
+    operator: 'FUEL TV',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'floracing',
+    name: 'FLORACING',
+    url: 'https://amg02278-amg02278c1-flosports-worldwide-7592.playouts.now.amagi.tv/playlist.m3u8',
+    genre: 'sports',
+    operator: 'FloSports',
+    source: 'Free ad-supported (FAST)',
+  },
+  // ── Documentary, science, and true crime ───────────────
+  {
+    id: 'history-hit',
+    name: 'HISTORY HIT',
+    url: 'https://lds-timeline-rakuten.amagi.tv/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Little Dot Studios',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'inwild',
+    name: 'INWILD',
+    url: 'https://amg00861-terninternation-inwild-samsunguk-w5wic.amagi.tv/playlist/amg00861-terninternation-inwild-samsunguk/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Tern International',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'inwonder',
+    name: 'INWONDER',
+    url: 'https://amg00861-terninternation-inwonder-samsungau-1k63k.amagi.tv/playlist/amg00861-terninternation-inwonder-samsungau/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Tern International',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'love-the-planet',
+    name: 'LOVE THE PLANET',
+    url: 'https://amg01821-lovetvchannels-lovetheplanetuksamsung-samsunguk-apopw.amagi.tv/playlist/amg01821-lovetvchannels-lovetheplanetuksamsung-samsunguk/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Love TV Channels',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'magellantv-now',
+    name: 'MAGELLANTV NOW',
+    url: 'https://amg00376-magellan-amg00376c5-samsung-au-1708.playouts.now.amagi.tv/playlist/amg00376-magellantv-magellantvnowww-samsungau/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'MagellanTV',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'curiosity-now',
+    name: 'CURIOSITY NOW',
+    url: 'https://amg00170-amg00170c4-samsung-gb-4232.playouts.now.amagi.tv/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Curiosity Stream',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'court-tv',
+    name: 'COURT TV',
+    url: 'https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-courttv-tablo/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'E.W. Scripps Company',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'inside-crime',
+    name: 'INSIDE CRIME',
+    url: 'https://aenetworks-insidecrime-rakuten.amagi.tv/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'A+E Networks',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cna-originals',
+    name: 'CNA ORIGINALS',
+    url: 'https://amg01082-cna-amg01082c1-rlaxx-us-11304.playouts.now.amagi.tv/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Mediacorp',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'bbc-earth-us',
+    name: 'BBC EARTH',
+    url: 'https://amg00793-amg00793c6-xumo-us-2669.playouts.now.amagi.tv/BBCStudios-BBCEarthA-hls/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'BBC Studios',
+    source: 'Free ad-supported (FAST)',
+  },
+  // ── Series, film, and lifestyle ────────────────────────
+  {
+    id: 'mst3k',
+    name: 'MYSTERY SCIENCE THEATER 3000',
+    url: 'https://mst3k-roku.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Shout! Factory',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'are-we-there-yet',
+    name: 'ARE WE THERE YET?',
+    url: 'https://amg00353-lionsgatestudio-arewethereyet-samsunguk-6h2ju.amagi.tv/playlist/amg00353-lionsgatestudio-arewethereyet-samsunguk/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Lionsgate',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'deal-or-no-deal',
+    name: 'DEAL OR NO DEAL',
+    url: 'https://amg00627-banijaygroup-dealornodeal-samsungau-si7xg.amagi.tv/playlist/amg00627-banijaygroup-dealornodeal-samsungau/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Banijay',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'hells-kitchen',
+    name: "HELL'S KITCHEN",
+    url: 'https://amg00654-itv-amg00654c1-samsung-au-1072.playouts.now.amagi.tv/itv-hellskitchen-samsung/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'ITV Studios',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'circle',
+    name: 'CIRCLE',
+    url: 'https://circle-roku.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Circle Network',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'bounce-xl',
+    name: 'BOUNCE XL',
+    url: 'https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-bouncexl-tablo/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'E.W. Scripps Company',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'moviesphere',
+    name: 'MOVIESPHERE',
+    url: 'https://amg00353-lionsgatestudio-moviesphere-xumo-zh5u0.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Lionsgate',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'great-movies',
+    name: 'GREAT! MOVIES',
+    url: 'https://amg01753-narrativeuk-amg01753c3-lg-gb-1833.playouts.now.amagi.tv/playlist/amg01753-narrativeuk-greatmovies-lggb/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Narrative Entertainment',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cine-nanar',
+    name: 'CINE NANAR',
+    url: 'https://zylo-cinenanar-rakuten.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Zylo',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'emotion-l',
+    name: 'EMOTION L',
+    url: 'https://rakutenaa-zylo-emotional-rakuten-r1zkm.amagi.tv/playlist/rakutenAA-zylo-emotional-rakuten/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Zylo',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'bon-appetit',
+    name: 'BON APPETIT',
+    url: 'https://bonappetit-samsung.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Condé Nast',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'aspire-tv-life',
+    name: 'ASPIRE TV LIFE',
+    url: 'https://uptv-aspiretvlife-klowdtv.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'UPtv / Aspire',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'love-pets',
+    name: 'LOVE PETS',
+    url: 'https://amg01576-blueskyeenterta-lovepetsemea-samsungse-ctamh.amagi.tv/playlist/amg01576-blueskyeenterta-lovepetsemea-samsungse/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Blue Skye Entertainment',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'accuweather-now',
+    name: 'ACCUWEATHER NOW',
+    url: 'https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00684-accuweather-accuweather-plex/playlist.m3u8',
+    genre: 'news',
+    operator: 'AccuWeather',
+    source: 'Free ad-supported (FAST)',
+  },
 ];
 
 /**
@@ -293,14 +707,14 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'producers-desk': 'stingray-focus',
   'neural-uplink': 'stingray-smooth-jazz',
   'midnight-vinyl': 'stingray-souvenirs',
-  'sample-vault': 'stingray-hip-hop',
+  'sample-vault': 'stingray-hit-list',
   'beat-battle-arena': 'stingray-hip-hop-rnb',
   'arcade-after-dark': 'stingray-tiktok-radio',
   'tha-spot-live': 'red-bull-tv',
   'cinema-engine-one': 'stingray-movie-music',
   'noir-channel': 'stingray-classic-rock',
   'deep-focus': 'stingray-spa',
-  'smuve-classics': 'stingray-remember-80s',
+  'smuve-classics': 'stingray-everything-80s',
   'mastering-suite': 'stingray-peaceful-piano',
   'bass-cathedral': 'stingray-soul-storm',
   'synth-city': 'stingray-italo-disco',
@@ -309,6 +723,44 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'news-desk': 'france24-en',
   'story-mode': 'tastemade',
   'the-making-of': 'red-bull-tv',
+  // ── Sports ─────────────────────────────────────────────
+  'smuve-sports': 'bein-sports-xtra',
+  'game-day-feed': 'acc-digital-network',
+  'endurance-tv': 'fuel-tv-emea',
+  'track-day': 'floracing',
+  // ── News ───────────────────────────────────────────────
+  'world-news-now': 'trt-world',
+  'asia-news-desk': 'cna-asia',
+  'seoul-feed': 'arirang-tv',
+  'wall-street-desk': 'bloomberg-tv',
+  'europe-markets': 'bloomberg-eu',
+  'asia-markets': 'bloomberg-asia',
+  'the-german-desk': 'tagesschau',
+  'global-desk': 'dw-arabic',
+  'the-arabic-desk': 'aljazeera-arabic',
+  'south-asia-live': 'ndtv-24x7',
+  'cbs-news-feed': 'cbs-news-247',
+  'the-weather-desk': 'accuweather-now',
+  // ── Documentary ────────────────────────────────────────
+  'history-vault': 'history-hit',
+  'wild-earth': 'inwild',
+  'the-blue-planet': 'love-the-planet',
+  'wonder-lab': 'inwonder',
+  'expedition': 'magellantv-now',
+  'curious-mind': 'curiosity-now',
+  'the-courtroom': 'court-tv',
+  'true-crime-archive': 'inside-crime',
+  // ── Music ──────────────────────────────────────────────
+  'jukebox-gold': 'stingray-jukebox-oldies',
+  'flashback-70s': 'stingray-flashback-70s',
+  'k-pop-now': 'stingray-todays-kpop',
+  'latin-pop-now': 'stingray-todays-latin-pop',
+  'latin-romance': 'stingray-romance-latino',
+  djazztv: 'stingray-djazz',
+  'karaoke-lounge': 'stingray-karaoke',
+  'zen-life': 'stingray-zenlife',
+  naturescape: 'stingray-naturescape',
+  'california-music': 'california-music-channel',
 };
 
 /**
@@ -378,11 +830,30 @@ export interface SmuveTvRadioTrack {
   catalogId?: string;
 }
 
+/** One entry of `GET /api/music/masters` — a recording hosted for the station. */
+export interface PublishedMasterRecord {
+  id?: string;
+  trackId?: number | null;
+  title?: string;
+  album?: string | null;
+  /** Stored when the API records it; absent on older entries. */
+  artist?: string | null;
+  url?: string;
+  publishedAt?: string;
+}
+
 /** One line of `assets/data/smuve-jeff-masters.json`. */
 export interface SmuveJeffMasterEntry {
   trackId?: number;
   title?: string;
   album?: string;
+  /**
+   * Who the recording is credited to, when the source says.
+   *
+   * A hosted file with a credit that is not this artist's never reaches the
+   * station: the radio plays Smuve Jeff and nothing else.
+   */
+  artist?: string;
   /** The artist's own full-length audio. Empty until they host it. */
   file?: string;
 }
@@ -410,6 +881,22 @@ export interface SmuveJeffCatalogueRecord {
   artworkUrl?: string | null;
   /** Official pages where the complete record plays. */
   links?: readonly { label?: string; url?: string }[];
+}
+
+/**
+ * Every key a hosted-master entry can be recognised by: its title and album
+ * together, and its catalogue id when it has one.
+ *
+ * Both, not either — the committed manifest keys off Apple's track id while an
+ * upload from the module is keyed by the name the artist gave the file, and the
+ * same recording has to fold together whichever source it came from.
+ */
+function masterKeys(entry: SmuveJeffMasterEntry): string[] {
+  const keys = [
+    `${normalizeMatchKey(entry.title)}|${normalizeMatchKey(entry.album)}`,
+  ];
+  if (entry.trackId != null) keys.push(`id:${entry.trackId}`);
+  return keys;
 }
 
 /**
@@ -480,6 +967,52 @@ export const MASTER_MANIFEST_PATH = 'assets/data/smuve-jeff-masters.json';
 /** Where the complete official catalogue lives in the built app. */
 export const CATALOGUE_PATH = 'assets/data/smuve-jeff-catalogue.json';
 
+/** The app's own endpoint for hosted masters, relative to the API base. */
+export const PUBLISHED_MASTERS_PATH = '/music/masters';
+
+/** The file suffix for an audio MIME type, so the stored object is legible. */
+export function audioExtension(type: string | undefined): string {
+  switch ((type ?? '').split(';')[0].trim().toLowerCase()) {
+    case 'audio/mpeg':
+    case 'audio/mp3':
+      return '.mp3';
+    case 'audio/mp4':
+    case 'audio/m4a':
+    case 'audio/x-m4a':
+    case 'audio/aac':
+      return '.m4a';
+    case 'audio/ogg':
+      return '.ogg';
+    case 'audio/wav':
+    case 'audio/x-wav':
+    case 'audio/wave':
+      return '.wav';
+    case 'audio/flac':
+    case 'audio/x-flac':
+      return '.flac';
+    case 'audio/webm':
+      return '.webm';
+    default:
+      // The object is served with its real content type, so an unknown suffix
+      // costs nothing; a wrong one would.
+      return '';
+  }
+}
+
+/**
+ * True when a credit belongs to this artist and nobody else.
+ *
+ * S.M.U.V.E Radio plays one artist, so this is the single rule every source is
+ * held to: Apple's catalogue, the committed catalogue, the hosted-master
+ * manifest, the published-master list, and the files imported in the module.
+ * Feature credits still contain the artist's name, which is why this is a
+ * containment test rather than equality — but a record credited to somebody
+ * else is refused outright, however it arrived.
+ */
+export function isSmuveJeffArtist(artist: string | undefined | null): boolean {
+  return (artist ?? '').toLowerCase().includes('smuve jeff');
+}
+
 /**
  * Folds the differences between a hand-written manifest and Apple's naming.
  *
@@ -517,6 +1050,8 @@ interface AppleTrack {
 @Injectable({ providedIn: 'root' })
 export class SmuveTvFeedsService {
   readonly feeds = SMUVE_TV_LIVE_FEEDS;
+
+  private readonly tokens = inject(TokenService);
 
   /** The station's default live feed, or null when it renders its own scene. */
   feedForStation(stationId: string): SmuveTvLiveFeed | null {
@@ -586,6 +1121,117 @@ export class SmuveTvFeedsService {
   }
 
   /**
+   * The full-length recordings hosted through the app's own API.
+   *
+   * Returned in the committed manifest's shape so both join onto the catalogue
+   * by exactly the same rules — there is no second matching path to keep honest.
+   * Never throws: an unreachable API means nothing is hosted *here*, and the
+   * station keeps playing the manifest that shipped with the build.
+   */
+  async loadPublishedMasters(): Promise<SmuveJeffMasterEntry[]> {
+    if (typeof fetch !== 'function') return [];
+    try {
+      const response = await fetch(
+        `${APP_SECURITY_CONFIG.api_url}${PUBLISHED_MASTERS_PATH}`
+      );
+      if (!response.ok) return [];
+      const payload = (await response.json()) as {
+        masters?: PublishedMasterRecord[];
+      };
+      return (Array.isArray(payload?.masters) ? payload.masters : [])
+        .filter((entry) => Boolean(entry?.url))
+        .map((entry) => ({
+          trackId:
+            typeof entry.trackId === 'number' ? entry.trackId : undefined,
+          title: entry.title,
+          album: entry.album ?? undefined,
+          artist: entry.artist ?? undefined,
+          file: entry.url as string,
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Publishes one imported recording to the station.
+   *
+   * This is the difference between "plays in this browser" and "on air": an
+   * import lives in this device's own storage, so it is the upload that puts a
+   * full-length master on the channel everywhere and keeps it there.
+   *
+   * Throws with the API's own message when it refuses. A publish that silently
+   * did nothing would leave the artist believing their record is on air
+   * everywhere when it is only on the machine in front of them.
+   */
+  async publishMaster(track: SmuveTvRadioTrack): Promise<void> {
+    const blob = track.blob;
+    if (!blob) {
+      throw new Error('Only a file imported here can be published.');
+    }
+    if (typeof fetch !== 'function' || typeof FormData !== 'function') {
+      throw new Error('This browser cannot publish files.');
+    }
+
+    const body = new FormData();
+    body.append('file', blob, `${track.title}${audioExtension(blob.type)}`);
+    body.append('title', track.title);
+    if (track.album) body.append('album', track.album);
+    if (track.catalogId) body.append('trackId', track.catalogId);
+
+    const token = this.tokens.jwtToken();
+    const response = await fetch(
+      `${APP_SECURITY_CONFIG.api_url}${PUBLISHED_MASTERS_PATH}`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      }
+    );
+    if (response.ok) return;
+
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(
+      payload?.error ?? `The station refused the upload (${response.status}).`
+    );
+  }
+
+  /**
+   * One entry per record across every source of hosted audio.
+   *
+   * A record can legitimately be in both: the committed manifest ships with the
+   * build, the API list is what the artist uploaded. Later sources win, and the
+   * fold matches on track id *and* on title, so a record that is keyed by an
+   * Apple id in one source and by its name in the other still becomes one
+   * master rather than two.
+   */
+  mergeMasterSources(
+    ...sources: readonly (readonly SmuveJeffMasterEntry[])[]
+  ): SmuveJeffMasterEntry[] {
+    const resolved: SmuveJeffMasterEntry[] = [];
+
+    for (const source of sources) {
+      for (const entry of source) {
+        if (!entry?.file?.trim()) continue;
+        const keys = masterKeys(entry);
+        // Drop every earlier entry describing this record, however it happened
+        // to be keyed: the loop is symmetric, so neither source has to be the
+        // one that carries the track id.
+        for (let index = resolved.length - 1; index >= 0; index -= 1) {
+          if (masterKeys(resolved[index]).some((key) => keys.includes(key))) {
+            resolved.splice(index, 1);
+          }
+        }
+        resolved.push(entry);
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
    * Reads the committed catalogue of every official record.
    *
    * Never throws: a missing file degrades to the live Apple catalogue, which is
@@ -631,6 +1277,11 @@ export class SmuveTvFeedsService {
     records.forEach((record, index) => {
       const title = record.title?.trim();
       if (!title) return;
+      // A catalogue file is a list of this artist's records. A line credited to
+      // somebody else is not one of them, so it never reaches the radio even if
+      // the file is edited by hand.
+      const declared = record.artist?.trim();
+      if (declared && !isSmuveJeffArtist(declared)) return;
       const track = this.catalogueTrack(record, index);
       merged.set(track.id, track);
       if (track.catalogId) byCatalogId.set(track.catalogId, track);
@@ -677,15 +1328,15 @@ export class SmuveTvFeedsService {
   ): SmuveTvRadioTrack {
     const links = (record.links ?? [])
       .filter((link): link is { label?: string; url: string } => !!link.url)
-      .map((link) => ({ label: link.label ?? 'OFFICIAL', url: link.url }));
-
-    return {
-      id:
-        record.id?.trim() ||
-        `catalogue-${normalizeMatchKey(record.title) || index}`,
-      catalogId: record.trackId != null ? String(record.trackId) : undefined,
-      title: record.title?.trim() || 'Untitled',
-      artist: record.artist?.trim() || 'Smuve Jeff',
+      .map((link) => ({ label: link.label ?? 'OFFICIAL', url: link.url }));      return {
+        id:
+          record.id?.trim() ||
+          `catalogue-${normalizeMatchKey(record.title) || index}`,
+        catalogId: record.trackId != null ? String(record.trackId) : undefined,
+        title: record.title?.trim() || 'Untitled',
+        // A record the file leaves uncredited is the artist's own; the one rule
+        // that decides whether it plays is applied on the queue, not here.
+        artist: record.artist?.trim() || 'Smuve Jeff',
       album: record.album?.trim() || 'Single',
       // Absent when Apple does not carry the record. That absence is the whole
       // distinction between a record the channel streams and one it only lists.
@@ -736,6 +1387,9 @@ export class SmuveTvFeedsService {
     for (const entry of entries) {
       const file = entry.file?.trim();
       if (!file) continue;
+      // One artist owns this station. A hosted file credited elsewhere is
+      // skipped rather than relabelled as Smuve Jeff's own recording.
+      if (entry.artist?.trim() && !isSmuveJeffArtist(entry.artist)) continue;
 
       const match =
         (entry.trackId != null
@@ -757,7 +1411,7 @@ export class SmuveTvFeedsService {
         id: match?.id ?? `master-${normalizeMatchKey(entry.title) || resolved.length}`,
         catalogId: match?.catalogId,
         title: match?.title ?? entry.title?.trim() ?? 'Untitled',
-        artist: match?.artist ?? 'Smuve Jeff',
+        artist: entry.artist?.trim() || match?.artist || 'Smuve Jeff',
         album: match?.album ?? entry.album?.trim() ?? 'Authorized master files',
         url: this.resolveFileUrl(file, baseUrl),
         preview: false,
@@ -807,7 +1461,7 @@ export class SmuveTvFeedsService {
       if (!audioUrl || !title || !artist) continue;
       // A feature credit still contains the artist's name; a compilation
       // appearance that does not is somebody else's record.
-      if (!artist.toLowerCase().includes('smuve jeff')) continue;
+      if (!isSmuveJeffArtist(artist)) continue;
 
       const id = String(entry.trackId ?? `${artist}-${title}`);
       if (byId.has(id)) continue;
