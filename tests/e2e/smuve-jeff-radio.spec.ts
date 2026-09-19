@@ -17,6 +17,12 @@ test('Smuve Jeff Radio loads a full-length YouTube source', async ({ page }) => 
   await expect(page.locator('audio.tv-music-player')).toHaveAttribute('src', /.+/);
   await expect(page.getByText('NOW PLAYING', { exact: true })).toBeVisible({ timeout: 10_000 });
 
+  await page.getByRole('button', { name: 'ENTER FULL-PAGE RADIO' }).click();
+  await expect(page.getByRole('dialog', { name: 'Smuve Jeff Radio full-page broadcast' })).toBeVisible();
+  await expect(page.locator('.tv-radio-standalone')).toContainText('24/7 · LIVE AUDIO CHANNEL');
+  await expect(page.locator('.tv-music-channel audio')).not.toHaveAttribute('controls', '');
+  await page.getByRole('button', { name: 'EXIT RADIO' }).click();
+
   const fullRecord = page.getByRole('button', { name: /Play or close the complete record/i });
   await expect(fullRecord).toBeVisible({ timeout: 10_000 });
   await fullRecord.click();

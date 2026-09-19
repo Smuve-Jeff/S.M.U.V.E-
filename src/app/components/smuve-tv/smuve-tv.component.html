@@ -305,6 +305,24 @@
       </p>
 
       <section class="tv-music-channel" aria-labelledby="smuve-jeff-radio-title">
+        <div
+          class="tv-radio-standalone"
+          *ngIf="radioStandalone()"
+          role="dialog"
+          aria-label="Smuve Jeff Radio full-page broadcast"
+        >
+          <div class="tv-radio-standalone-art" aria-hidden="true">
+            <span class="material-symbols-outlined">graphic_eq</span>
+          </div>
+          <p class="tv-lt-label">S.M.U.V.E BROADCAST NETWORK</p>
+          <h3>SMUVE JEFF RADIO</h3>
+          <p class="tv-radio-standalone-live">24/7 · LIVE AUDIO CHANNEL</p>
+          <div class="tv-radio-standalone-pulse" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="tv-radio-standalone-note">The broadcast is playing continuously.</p>
+          <button type="button" class="tv-radio-standalone-exit" (click)="exitRadio()">
+            EXIT RADIO
+          </button>
+        </div>
         <div class="tv-music-heading">
           <div>
             <p class="tv-lt-label">FIRST-PARTY MUSIC CHANNEL</p>
@@ -372,11 +390,11 @@
         <!--
           No `src` binding on purpose: the element is driven imperatively so
           Angular cannot re-assign the source mid-load and abort playback.
-        -->
-        <audio
-          #music
-          class="tv-music-player"
-          controls
+        -->            <audio
+              #music
+              class="tv-music-player"
+              [controls]="!radioStandalone()"
+
           preload="metadata"
           (ended)="onMusicEnded()"
           (error)="onMusicError()"
@@ -390,7 +408,7 @@
           only while a record is actually playing, so the panel can never name a
           track that is silent.
         -->
-        <div class="tv-music-now" *ngIf="nowPlaying() as track" role="status" aria-live="polite">
+        <div class="tv-music-now" *ngIf="nowPlaying() as track" [hidden]="radioStandalone()" role="status" aria-live="polite">
           <span class="material-symbols-outlined tv-music-now-mark" aria-hidden="true">graphic_eq</span>
           <span class="tv-music-now-text">
             <span class="tv-music-now-label">NOW PLAYING</span>
@@ -420,7 +438,7 @@
           class="tv-music-full"
           [class.is-live]="fullRecordActive()"
           *ngIf="musicTrack() as track"
-          [hidden]="!offersFullRecord(track)"
+          [hidden]="radioStandalone() || !offersFullRecord(track)"
         >
           <div class="tv-music-full-head">
             <span class="material-symbols-outlined" aria-hidden="true">album</span>
@@ -455,6 +473,15 @@
           </p>
         </div>
         <div class="tv-music-actions">
+          <button
+            type="button"
+            class="tv-radio-enter"
+            (click)="enterRadio()"
+            [disabled]="!rotationCount()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">radio</span>
+            ENTER FULL-PAGE RADIO
+          </button>
           <button
             type="button"
             class="tv-tune-go"

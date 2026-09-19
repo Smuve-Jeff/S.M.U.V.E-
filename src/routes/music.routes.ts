@@ -42,7 +42,9 @@ router.get("/masters", async (_req, res) => {
   res.json({ masters: await listPublishedMasters() });
 });
 
-// POST /api/music/masters — upload one recording and put it on air.
+// POST /api/music/masters — upload one recording and put it on air. The credit
+// travels with it: the stored entry says whose recording it is, and a credit
+// that belongs to another artist is refused rather than stored.
 router.post(
   "/masters",
   authenticate,
@@ -57,6 +59,7 @@ router.post(
         trackId: req.body?.trackId,
         title: req.body?.title,
         album: req.body?.album,
+        artist: req.body?.artist,
       });
       res.status(201).json(entry);
     } catch (err) {

@@ -448,6 +448,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   isMusicPlaying = signal(false);
   musicError = signal<string | null>(null);
+  /** Full-page lean-back mode for the Smuve Jeff Radio station. */
+  radioStandalone = signal(false);
   /**
    * True while the artist's own official upload is what is on air.
    *
@@ -744,6 +746,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     document.removeEventListener('keydown', this.keyListener, true);
     document.removeEventListener('fullscreenchange', this.fullscreenListener);
     document.removeEventListener('webkitfullscreenchange', this.fullscreenListener);
+    this.radioStandalone.set(false);
   }
 
   // ── Tuning ─────────────────────────────────────────────
@@ -891,6 +894,20 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     } else {
       audio.pause();
     }
+  }
+
+  /** Enter the radio as a lean-back broadcast: one random queue, no track UI. */
+  enterRadio(): void {
+    this.radioStandalone.set(true);
+    if (!this.musicTrack()) {
+      this.startMusic();
+    } else if (this.musicRef?.nativeElement.paused) {
+      this.toggleMusic();
+    }
+  }
+
+  exitRadio(): void {
+    this.radioStandalone.set(false);
   }
 
   startMusic(): void {

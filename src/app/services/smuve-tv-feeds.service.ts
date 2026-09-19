@@ -794,12 +794,16 @@ export interface SmuveTvRadioTrack {
    */
   blob?: Blob;
   /**
-   * True when this is not a full-length master the station streams.
+   * True when the station's own player would only ever be handed a clip.
    *
    * That covers both the ~30-second official preview Apple licenses for public
    * playback and a catalogue record nothing here can stream at all. Those two
    * are told apart by whether the track has any playable source: a record with
    * neither a hosted master nor a preview is listed and linked, never rotated.
+   *
+   * It deliberately says nothing about `youtubeId`: a record with an official
+   * upload is heard complete through the artist's own player, not through this
+   * one, so the flag keeps describing the station's own audio.
    */
   preview: boolean;
   /**
@@ -828,6 +832,16 @@ export interface SmuveTvRadioTrack {
    * the two never appear as separate rows for the same record.
    */
   catalogId?: string;
+  /**
+   * The artist's own official upload of the COMPLETE record, when one exists.
+   *
+   * This is the catalogue's full-length source. Apple and Deezer license
+   * 30-second clips, and no store hands a browser a full-length stream, but the
+   * artist's own distributed uploads are whole records and are playable through
+   * the platform's official player — so this is how a record the artist has
+   * never uploaded to *this* station is still heard complete here.
+   */
+  youtubeId?: string;
 }
 
 /** One entry of `GET /api/music/masters` — a recording hosted for the station. */
@@ -881,6 +895,13 @@ export interface SmuveJeffCatalogueRecord {
   artworkUrl?: string | null;
   /** Official pages where the complete record plays. */
   links?: readonly { label?: string; url?: string }[];
+  /**
+   * The artist's own official upload of the complete record.
+   *
+   * Built by `scripts/build-music-manifest.mjs` from the artist's YouTube
+   * releases, so every record the internet can play whole carries its id here.
+   */
+  youtubeId?: string | null;
 }
 
 /**
@@ -1178,6 +1199,12 @@ export class SmuveTvFeedsService {
     body.append('title', track.title);
     if (track.album) body.append('album', track.album);
     if (track.catalogId) body.append('trackId', track.catalogId);
+    /*
+     * The credit travels with the upload, so the stored master says whose
+     * recording it is instead of leaving every reader to assume. The API holds
+     * the same rule on its side and refuses anything credited elsewhere.
+     */
+    body.append('artist', track.artist);
 
     const token = this.tokens.jwtToken();
     const response = await fetch(
@@ -1328,7 +1355,8 @@ export class SmuveTvFeedsService {
   ): SmuveTvRadioTrack {
     const links = (record.links ?? [])
       .filter((link): link is { label?: string; url: string } => !!link.url)
-      .map((link) => ({ label: link.label ?? 'OFFICIAL', url: link.url }));      return {
+      .map((link) => ({ label: link.label ?? 'OFFICIAL', url: link.url }));
+    return {
         id:
           record.id?.trim() ||
           `catalogue-${normalizeMatchKey(record.title) || index}`,
@@ -1347,6 +1375,8 @@ export class SmuveTvFeedsService {
       artworkUrl: record.artworkUrl ?? undefined,
       linkUrl: links[0]?.url,
       links,
+      // The complete recording, where the artist's own distribution put one.
+      youtubeId: record.youtubeId?.trim() || undefined,
     };
   }
 
@@ -1420,6 +1450,9 @@ export class SmuveTvFeedsService {
         genre: match?.genre,
         artworkUrl: match?.artworkUrl,
         linkUrl: match?.linkUrl,
+        // A hosted master still knows where the official upload lives, so the
+        // record does not lose its full-length source by being hosted here.
+        youtubeId: match?.youtubeId,
       });
     }
     return resolved;

@@ -284,6 +284,33 @@ describe('SmuveTvComponent', () => {
       ]);
     });
 
+    it('enters a full-page radio broadcast and starts a random track', () => {
+      library.items.set([
+        track({ id: 'first' }),
+        track({ id: 'second' }),
+      ]);
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      const play = jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      Object.defineProperty(audio, 'paused', { configurable: true, value: true });
+
+      component.enterRadio();
+
+      expect(component.radioStandalone()).toBe(true);
+      expect(component.musicTrack()).not.toBeNull();
+      expect(play).toHaveBeenCalledTimes(1);
+      component.exitRadio();
+      expect(component.radioStandalone()).toBe(false);
+      play.mockRestore();
+    });
+
+    it('keeps track metadata and native controls out of the standalone radio surface', () => {
+      expect(template).toContain('radioStandalone()');
+      expect(template).toContain('[controls]="!radioStandalone()"');
+      expect(template).toContain('[hidden]="radioStandalone()"');
+    });
+
     it('queues a selected track without autoplay, then starts only on user action', () => {
       library.items.set([track()]);
       const audio = fixture.nativeElement.querySelector(

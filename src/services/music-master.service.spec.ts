@@ -1,11 +1,14 @@
 import type { Request } from "express";
 import {
+  STATION_ARTIST,
+  isStationArtist,
   listPublishedMasters,
   masterId,
   mergeMasterEntry,
   normalizeMasterEntry,
   publishMaster,
   removeMasterEntry,
+  stationCredit,
   unpublishMaster,
   type PublishedMaster,
 } from "./music-master.service";
@@ -15,6 +18,7 @@ const entry = (overrides: Partial<PublishedMaster> = {}): PublishedMaster => ({
   id: "id:1",
   trackId: 1,
   title: "Official Record",
+  artist: STATION_ARTIST,
   album: "Official Album",
   url: "https://cdn.test/one.wav",
   publishedAt: "2026-09-19T00:00:00.000Z",
@@ -37,20 +41,22 @@ describe("music master hosting", () => {
       expect(masterId({ trackId: 1691028383, title: "Killuminati" })).toBe(
         "id:1691028383",
       );
-      expect(masterId({ trackId: null, title: "Killuminati" })).toBe(
-        "title:killuminati",
+      expect(masterId({ trackId: null, title: "Killuminati", album: "February 25th" })).toBe(
+        "title:killuminati|album:february 25th",
       );
     });
 
     it("folds the title the way the radio's own matching does", () => {
       // Case, punctuation, brackets and feature credits all fold away; two
       // devices publishing the same record must produce one entry, not two.
-      expect(masterId({ title: "Lost My Mind (feat. ChrisO)" })).toBe(
-        "title:lost my mind",
+      expect(masterId({ title: "Lost My Mind (feat. ChrisO)", album: "February 25th" })).toBe(
+        "title:lost my mind|album:february 25th",
       );
-      expect(masterId({ title: "LOST  my mind!" })).toBe("title:lost my mind");
-      expect(masterId({ title: "Stand On That (feat. PBA) (Mixtape)" })).toBe(
-        "title:stand on that mixtape",
+      expect(masterId({ title: "LOST  my mind!", album: "February 25th" })).toBe(
+        "title:lost my mind|album:february 25th",
+      );
+      expect(masterId({ title: "Stand On That (feat. PBA) (Mixtape)", album: "The Black Label" })).toBe(
+        "title:stand on that mixtape|album:the black label",
       );
     });
 
@@ -58,10 +64,10 @@ describe("music master hosting", () => {
       // Storing `NaN` would be the worst outcome: it matches nothing on the
       // client and cannot be compared for equality either.
       expect(masterId({ trackId: Number.NaN, title: "Record" })).toBe(
-        "title:record",
+        "title:record|album:",
       );
       expect(masterId({ trackId: undefined, title: "Record" })).toBe(
-        "title:record",
+        "title:record|album:",
       );
     });
   });
@@ -78,10 +84,52 @@ describe("music master hosting", () => {
         id: "id:42",
         trackId: 42,
         title: "The Wall",
+        artist: STATION_ARTIST,
         album: "The Black Label",
         url: "https://cdn.test/wall.wav",
         publishedAt: "2026-09-19T00:00:00.000Z",
       });
+    });
+
+    it("records the credit the publisher sent, so the entry is self-describing", () => {
+      expect(
+        normalizeMasterEntry(
+          { title: "Lost My Mind", artist: "  Smuve Jeff feat. ChrisO  " },
+          "https://cdn.test/lost.wav",
+          "now",
+        )?.artist,
+      ).toBe("Smuve Jeff feat. ChrisO");
+    });
+
+    it("credits an unnamed recording to the station's artist", () => {
+      // The station only ever accepted this artist's records, so a master
+      // published before the credit was stored is still theirs.
+      expect(
+        normalizeMasterEntry(
+          { title: "Record", artist: "   " },
+          "https://cdn.test/a.wav",
+          "now",
+        )?.artist,
+      ).toBe(STATION_ARTIST);
+      expect(
+        normalizeMasterEntry(
+          { title: "Record" },
+          "https://cdn.test/a.wav",
+          "now",
+        )?.artist,
+      ).toBe(STATION_ARTIST);
+    });
+
+    it("refuses a recording credited to another artist", () => {
+      // The one rule the whole station rests on. A credit naming somebody else
+      // must not become this artist's record by being quietly relabelled.
+      expect(
+        normalizeMasterEntry(
+          { title: "Somebody Else's Song", artist: "Another Artist" },
+          "https://cdn.test/theirs.wav",
+          "now",
+        ),
+      ).toBeNull();
     });
 
     it("refuses a master with no title or no audio", () => {
@@ -119,6 +167,36 @@ describe("music master hosting", () => {
           "now",
         )?.trackId,
       ).toBeNull();
+    });
+  });
+
+  describe("the artist credit", () => {
+    it("accepts the artist's own name, including a feature credit", () => {
+      expect(isStationArtist("Smuve Jeff")).toBe(true);
+      expect(isStationArtist("smuve jeff")).toBe(true);
+      expect(isStationArtist("Smuve Jeff feat. PBA")).toBe(true);
+      expect(isStationArtist("Smuve Jeff & Kirbo K.T.H.B")).toBe(true);
+    });
+
+    it("treats an absent credit as the artist's own", () => {
+      // Every reading and writing path funnels through here, so this is what
+      // keeps a file the artist imported by hand playable.
+      expect(isStationArtist(undefined)).toBe(true);
+      expect(isStationArtist(null)).toBe(true);
+      expect(isStationArtist("   ")).toBe(true);
+      expect(isStationArtist(42)).toBe(true);
+    });
+
+    it("rejects every credit that belongs to somebody else", () => {
+      expect(isStationArtist("Another Artist")).toBe(false);
+      expect(isStationArtist("Jeff Smuve Tribute")).toBe(false);
+      expect(stationCredit("Another Artist")).toBeNull();
+    });
+
+    it("folds a blank credit to the station's own artist", () => {
+      expect(stationCredit("  ")).toBe(STATION_ARTIST);
+      expect(stationCredit(undefined)).toBe(STATION_ARTIST);
+      expect(stationCredit("Smuve Jeff (Mixtape)")).toBe("Smuve Jeff (Mixtape)");
     });
   });
 

@@ -27,6 +27,16 @@ export interface PublishedMaster {
   /** Apple's track id, when the record has one. The strongest join key. */
   trackId: number | null;
   title: string;
+  /**
+   * Who the recording is credited to. Always present.
+   *
+   * The station plays one artist, so the credit is what makes a stored master
+   * self-describing: a reader of this object can tell whose recording it is
+   * without trusting the client that uploaded it. A feature credit
+   * (`Smuve Jeff feat. …`) is kept exactly as written; a credit belonging to
+   * somebody else is refused before it is ever stored.
+   */
+  artist: string;
   album: string | null;
   /** Public, CDN-backed URL of the full-length audio. */
   url: string;
@@ -38,6 +48,35 @@ interface MasterList {
   masters?: PublishedMaster[];
   updatedAt?: string;
 }
+
+/**
+ * The one artist this station hosts, and the credit every recording carries when
+ * the publisher does not name one.
+ */
+export const STATION_ARTIST = "Smuve Jeff";
+
+/**
+ * True when a credit belongs to this station's artist and nobody else.
+ *
+ * Mirrors the radio's own rule on the client (`isSmuveJeffArtist`), so the two
+ * ends of the pipeline agree on what may go on air: a feature credit still
+ * contains the artist's name, which is why this is a substring test rather than
+ * an equality one, and an absent credit is the artist's own recording. This is
+ * the rule that makes "record the credit server-side" safe — the server cannot
+ * be talked into storing somebody else's record by a client that simply omits
+ * the field.
+ */
+export const isStationArtist = (credit: unknown): boolean => {
+  const value = typeof credit === "string" ? credit.trim() : "";
+  return !value || value.toLowerCase().includes(STATION_ARTIST.toLowerCase());
+};
+
+/** The credit a request may carry, or `null` when it is not this artist's. */
+export const stationCredit = (credit: unknown): string | null => {
+  const value = typeof credit === "string" ? credit.trim() : "";
+  if (!isStationArtist(value)) return null;
+  return value || STATION_ARTIST;
+};
 
 /**
  * Folds a title the way the radio's own matching does — case, punctuation, and
@@ -56,10 +95,11 @@ const titleKey = (value: string | undefined | null): string =>
 export const masterId = (entry: {
   trackId?: number | null;
   title?: string | null;
+  album?: string | null;
 }): string =>
   entry.trackId != null && Number.isFinite(Number(entry.trackId))
     ? `id:${Number(entry.trackId)}`
-    : `title:${titleKey(entry.title)}`;
+    : `title:${titleKey(entry.title)}|album:${titleKey(entry.album)}`;
 
 /**
  * Validates a publish request into a list entry, or `null` when unusable.
@@ -69,7 +109,7 @@ export const masterId = (entry: {
  * rather than stored as `NaN` (which would match nothing on the client).
  */
 export const normalizeMasterEntry = (
-  input: { trackId?: unknown; title?: unknown; album?: unknown },
+  input: { trackId?: unknown; title?: unknown; album?: unknown; artist?: unknown },
   url: string,
   publishedAt: string,
 ): PublishedMaster | null => {
@@ -78,10 +118,13 @@ export const normalizeMasterEntry = (
 
   const trackId = Number(input.trackId);
   const album = typeof input.album === "string" ? input.album.trim() : "";
+  const artist = stationCredit(input.artist);
+  if (artist === null) return null;
 
   const entry: Omit<PublishedMaster, "id"> = {
     trackId: Number.isFinite(trackId) && trackId > 0 ? trackId : null,
     title,
+    artist,
     album: album || null,
     url,
     publishedAt,
@@ -121,9 +164,19 @@ export const listPublishedMasters = async (): Promise<PublishedMaster[]> => {
   const stored = await readJsonObject<MasterList>(MASTER_LIST_KEY);
   const masters = Array.isArray(stored?.masters) ? stored.masters : [];
   // Defensive: a hand-edited object must not put a row without audio on air.
-  return masters.filter(
-    (entry) => Boolean(entry?.id && entry?.title && entry?.url),
-  );
+  return masters
+    .filter((entry) => Boolean(entry?.id && entry?.title && entry?.url))
+    /*
+     * Back-fill only an absent credit. A persisted foreign credit is not safe to
+     * relabel as Smuve Jeff: it must be excluded, even if an old or hand-edited
+     * object bypassed the publish endpoint. This keeps the server-side credit
+     * gate authoritative on every read, not only on upload.
+     */
+    .filter((entry) => isStationArtist(entry.artist))
+    .map((entry) => ({
+      ...entry,
+      artist: stationCredit(entry.artist) ?? STATION_ARTIST,
+    }));
 };
 
 /**
@@ -135,7 +188,12 @@ export const listPublishedMasters = async (): Promise<PublishedMaster[]> => {
 export const publishMaster = async (
   req: Request,
   file: Express.Multer.File,
-  fields: { trackId?: unknown; title?: unknown; album?: unknown },
+  fields: {
+    trackId?: unknown;
+    title?: unknown;
+    album?: unknown;
+    artist?: unknown;
+  },
 ): Promise<PublishedMaster> => {
   if (!storageConfigured()) {
     throw new AppError(
@@ -144,8 +202,24 @@ export const publishMaster = async (
     );
   }
 
+  /*
+   * The credit is checked before the audio is uploaded, so a request that names
+   * another artist costs nothing and leaves nothing behind in the bucket.
+   */
+  const credit = stationCredit(fields.artist);
+  if (credit === null) {
+    throw new AppError(
+      400,
+      `This station hosts ${STATION_ARTIST} recordings only. Publish a credit that names ${STATION_ARTIST}.`,
+    );
+  }
+
   const { url } = await uploadToStorage(req, file);
-  const entry = normalizeMasterEntry(fields, url, new Date().toISOString());
+  const entry = normalizeMasterEntry(
+    { ...fields, artist: credit },
+    url,
+    new Date().toISOString(),
+  );
   if (!entry) {
     throw new AppError(400, "A track title is required to publish a master.");
   }
