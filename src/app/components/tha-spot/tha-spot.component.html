@@ -1212,21 +1212,13 @@
     </ng-container>
 
     <!--
-      Pluto TV Integration — full-screen live view.
+      Pluto TV Integration — full-screen Live TV handoff.
 
-      Pluto no longer serves a per-channel embed: every /embed/live/channel/*
-      URL 301/302-redirects to the generic Live TV hub, so the frame is pointed
-      at that hub directly and the requested channel rides along as a query
-      param. The iframe must be granted `encrypted-media`: Pluto's player is
-      DRM-protected, and Chrome silently refuses the EME handshake in a
-      cross-origin frame whose `allow` list omits it, which leaves the player
-      stuck on "Optimizing your video playback experience". Nothing decorative
-      is painted over the frame either — the player's own controls live inside
-      it, so any overlay would sit on top of them.
-
-      OPEN ON PLUTO.TV is the escape hatch for what the embed cannot win: a
-      region-locked viewer, an ad blocker, or a codec Chrome will not decode.
-      A stalled player must never be a dead end.
+      Pluto's consumer player does not provide a dependable embeddable surface
+      here. Rendering it in an iframe produces Pluto's own "Optimizing your
+      video playback experience" dead-end for many browsers, blockers, and
+      regions. The module therefore opens the official Live TV experience
+      directly instead of presenting a broken in-app player.
     -->
     <div
       class="pluto-standalone-experience animate-enter full-standalone"
@@ -1251,98 +1243,29 @@
           <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
           OPEN ON PLUTO.TV
         </a>
-        <button
-          type="button"
-          class="pluto-help-btn glass-v42"
-          [class.active]="plutoFallback()"
-          (click)="togglePlutoFallback()"
-          aria-controls="pluto-fallback"
-          [attr.aria-expanded]="plutoFallback()"
-          [attr.aria-label]="plutoFallback() ? 'Hide the Pluto TV alternatives' : 'Pluto TV not playing? See alternatives'"
-          [attr.title]="plutoFallback() ? 'Hide the Pluto TV alternatives' : 'Pluto TV not playing? See alternatives'"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">{{ plutoFallback() ? 'close' : 'help' }}</span>
-          NOT PLAYING?
-        </button>
       </div>
 
-      <section
-        id="pluto-fallback"
-        class="pluto-fallback"
-        *ngIf="plutoFallback()"
-        role="region"
-        aria-label="Pluto TV alternatives"
-      >
-        <h2 class="pluto-fallback-title">PLUTO TV CAN'T PLAY IN-APP</h2>
-        <p class="pluto-fallback-copy">
-          Pluto TV is ad-supported and licensed per region, and its player runs
-          inside its own frame. An ad blocker, strict tracking protection, or a
-          region where Pluto TV isn't licensed leaves it stuck on its loading
-          screen — this app can neither detect which, nor play it for you.
-          Watching directly is the reliable route.
+      <div class="pluto-live-launch" role="region" aria-label="Pluto TV Live TV">
+        <span class="material-symbols-outlined pluto-live-launch-icon" aria-hidden="true">live_tv</span>
+        <p class="pluto-live-launch-eyebrow">PLUTO TV LIVE TV</p>
+        <h2 class="pluto-live-launch-title">Watch live channels without the broken embed</h2>
+        <p class="pluto-live-launch-copy">
+          Pluto TV does not provide a reliable embeddable player for this page.
+          Open its official Live TV experience to avoid the stuck “Optimizing your
+          video playback experience” screen and get the full channel guide,
+          playback controls, ads, and regional support.
         </p>
-        <ul class="pluto-destinations">
-          <li *ngFor="let destination of plutoDestinations">
-            <a
-              class="pluto-destination"
-              [href]="destination.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              (click)="logPlutoLaunch()"
-            >
-              <span class="pluto-destination-label">{{ destination.label }}</span>
-              <span class="pluto-destination-detail">{{ destination.detail }}</span>
-              <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-            </a>
-          </li>
-        </ul>
-        <button type="button" class="pluto-retry-btn" (click)="retryPlutoFrame()">
-          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-          TRY THE IN-APP PLAYER AGAIN
-        </button>
-      </section>
-
-      <button
-        type="button"
-        class="pluto-stall-hint glass-v42"
-        *ngIf="plutoStallHint() && !plutoFallback()"
-        (click)="togglePlutoFallback()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">help</span>
-        Player trouble? See alternatives
-      </button>
-
-      <div class="iframe-glitch-wrapper" *ngIf="!plutoFallback()">
-        <!--
-          `@for ... track` over the attempt counter is what makes TRY AGAIN and
-          every re-entry build a genuinely new frame: an *ngIf would keep the
-          same node, and a stalled cross-origin frame never recovers in place.
-          Dropping the frame while the fallback shows also stops an ad-blocked
-          frame from retrying its ad load forever in the background.
-        -->
-        @for (attempt of plutoFrameKeys(); track attempt) {
-        <!--
-          The frame is sandboxed like the arcade cabinets, but the token set is
-          different because this is a DRM video player rather than a game:
-          `allow-same-origin` is required for its session cookies and its DRM
-          licence store, `allow-popups`/`-to-escape-sandbox` for Sign In and the
-          ad "Learn More" links, and
-          `allow-storage-access-by-user-activation` because Chrome rejects
-          requestStorageAccess() in a sandboxed frame without it — without that
-          token the `storage-access` permission below is inert. There is
-          deliberately no `allow-top-navigation*`: an embedded third-party page
-          must never be able to navigate this app.
-        -->
-        <iframe
-          src="https://pluto.tv/us/watch/live-tv/"
-          class="pluto-standalone-frame"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-orientation-lock allow-presentation allow-storage-access-by-user-activation"
-          allow="autoplay; fullscreen; encrypted-media; picture-in-picture; storage-access; clipboard-write"
-          allowfullscreen
-          referrerpolicy="strict-origin-when-cross-origin"
-          title="Pluto TV — live channels"
-        ></iframe>
-        }
+        <a
+          class="pluto-live-launch-primary"
+          href="https://pluto.tv/us/watch/live-tv/"
+          target="_blank"
+          rel="noopener noreferrer"
+          (click)="logPlutoLaunch()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+          OPEN LIVE TV ON PLUTO.TV
+        </a>
+        <p class="pluto-live-launch-note">Opens in a new tab so Pluto can manage playback securely.</p>
       </div>
     </div>
   </main>
