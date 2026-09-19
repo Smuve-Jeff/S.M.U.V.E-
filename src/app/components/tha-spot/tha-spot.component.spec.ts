@@ -270,6 +270,8 @@ describe('ThaSpotComponent', () => {
   describe('S.M.U.V.E TV broadcast mode', () => {
     const template = () =>
       readFileSync(join(__dirname, 'tha-spot.component.html'), 'utf8');
+    const source = () =>
+      readFileSync(join(__dirname, 'tha-spot.component.ts'), 'utf8');
 
     it('opens the broadcast surface with the arcade and intel drawer shut', () => {
       component.toggleIntel();
@@ -394,17 +396,37 @@ describe('ThaSpotComponent', () => {
       );
     });
 
-    it('leaves at most the one documented retired-alias gate in the template', () => {
-      // One hub-footer condition deep in the template still tests the retired
-      // 'pluto' alias: that line sits past the editor's reachable window for
-      // this file, and deleting it is a one-line change for a working editor.
-      // It is neutralised rather than relied on — <main> is inert — so this is
-      // a ratchet on the residue, not an endorsement of it.
-      const stale = template()
+    it('has no retired Pluto alias left anywhere in the surface', () => {
+      /*
+       * Both sites used to sit past the file editor's byte window, so the alias
+       * was tolerated and pinned rather than removed. They are gone now, and
+       * this is a floor rather than a ratchet: no template line and no class
+       * member may test or assign the retired mode again.
+       */
+      const staleTemplate = template()
+        .split('\n')
+        .filter((line) => line.includes("'pluto'"));
+      const staleSource = source()
         .split('\n')
         .filter((line) => line.includes("'pluto'"));
 
-      expect(stale.length).toBeLessThanOrEqual(1);
+      expect(staleTemplate).toEqual([]);
+      expect(staleSource.filter((line) => !line.trimStart().startsWith('*'))).toEqual(
+        []
+      );
+      expect(source()).not.toContain('logPlutoLaunch');
+
+      // The footer still stands down during a broadcast — now by its own gate
+      // rather than only by the stylesheet.
+      expect(template()).toContain("displayMode() !== 'tv' &&");
+    });
+
+    it('cannot be put into the retired mode at all', () => {
+      component.setMode('gaming');
+      expect(component.displayMode()).toBe('gaming');
+
+      component.setMode('tv');
+      expect(component.displayMode()).toBe('tv');
     });
   });
 

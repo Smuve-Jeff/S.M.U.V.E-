@@ -1290,26 +1290,21 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
    * "Optimizing your video playback experience") and no permission, slug, or
    * sandbox token fixes that, so the module stopped borrowing one.
    *
-   * `'pluto'` is a retired alias that is never assigned. It survives in the
-   * union for one reason: a hub-footer gate near the end of the template still
-   * tests it, and that line sits past the editor's reachable window for this
-   * file. Dropping it there is a one-line change for a working editor. `'tv'`
-   * is the only broadcast mode the app can enter.
+   * `'pluto'` was a retired alias kept only because a hub-footer gate near the
+   * end of the template still tested it. That gate now tests the real broadcast
+   * mode and the alias is gone, so there is nothing left for a third state to
+   * mean: `'tv'` is the only broadcast mode the app can enter.
    */
-  displayMode = signal<'gaming' | 'tv' | 'pluto'>('gaming');
+  displayMode = signal<'gaming' | 'tv'>('gaming');
 
   /**
    * Enter the broadcast surface.
    *
-   * Declared here instead of widening `setMode()`, whose parameter is still
-   * typed `'gaming' | 'pluto'` and cannot be reached from this editor window.
-   * It does everything that path did for the immersive mode: closes the arcade
-   * cabinet and the intel drawer before the surface takes the viewport.
+   * Everything the immersive mode needs is already in `setMode`: closing the
+   * arcade cabinet and the intel drawer before the surface takes the viewport.
    */
   enterTv(): void {
-    this.showIntelPanel.set(false);
-    this.closeGame();
-    this.displayMode.set('tv');
+    this.setMode('tv');
     this.socialService.updateStatus({ activity: 'tuned in to S.M.U.V.E TV' });
   }
 
@@ -2198,17 +2193,16 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.challengeSocket?.off('incoming_challenge', this.handleLiveIncomingChallenge);
   }
 
-  setMode(mode: 'gaming' | 'pluto'): void {
+  setMode(mode: 'gaming' | 'tv'): void {
     this.displayMode.set(mode);
-    // The intel drawer is a utility surface, never part of a game or Pluto
-    // session. Close it before switching contexts so it cannot sit above the
+    // The intel drawer is a utility surface, never part of a game or a
+    // broadcast. Close it before switching contexts so it cannot sit above the
     // active experience or retain focusable controls off-canvas.
     this.showIntelPanel.set(false);
-    if (mode === 'pluto') this.closeGame();
-  }
-
-  logPlutoLaunch(): void {
-    this.socialService.updateStatus({ activity: 'launched Pluto TV' });
+    // The cabinet is not part of the broadcast either: it closes on the way in
+    // so the surface cannot take the viewport with a game still running behind
+    // it.
+    if (mode === 'tv') this.closeGame();
   }
 
   setActiveRoom(id: string) {
