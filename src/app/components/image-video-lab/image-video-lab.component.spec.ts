@@ -10,7 +10,10 @@ import {
   VideoEngineService,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
-import { CameraCaptureService } from '../../services/camera-capture.service';
+import {
+  CameraAngle,
+  CameraCaptureService,
+} from '../../services/camera-capture.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
 
 describe('ImageVideoLabComponent', () => {
@@ -298,6 +301,27 @@ describe('ImageVideoLabComponent', () => {
     const cameraWarning = signal<string | null>(null);
     const cameraRetrying = signal(false);
     const cameraRetryAttempt = signal(0);
+    /** The angles the deck's rail renders; the active one holds the picture. */
+    const cameraAngles = signal<CameraAngle[]>([
+      {
+        id: 'user',
+        label: 'Front',
+        facing: 'user',
+        deviceId: null,
+        isActive: true,
+      },
+      {
+        id: 'environment',
+        label: 'Rear',
+        facing: 'environment',
+        deviceId: null,
+        isActive: false,
+      },
+    ]);
+    const cameraFrameSettings = signal<{
+      width: number;
+      height: number;
+    } | null>(null);
     const camera = {
       stream: cameraStream,
       status: cameraStatus,
@@ -330,6 +354,12 @@ describe('ImageVideoLabComponent', () => {
       deviceName: computed(() =>
         cameraSource() === 'screen' ? 'Screen share' : 'Front Camera'
       ),
+      angles: cameraAngles,
+      activeAngleLabel: computed(() => {
+        const active = cameraAngles().find((angle) => angle.isActive);
+        if (active) return active.label;
+        return cameraSource() === 'screen' ? 'Screen share' : 'Front Camera';
+      }),
       statusLabel: computed(() => {
         if (cameraStatus() === 'live' && cameraSource() === 'screen') {
           return 'SCREEN LIVE';
@@ -364,6 +394,14 @@ describe('ImageVideoLabComponent', () => {
         cameraSource.set('camera');
       }),
       setDevice: jest.fn(async () => true),
+      selectAngle: jest.fn(async (angle: CameraAngle) => {
+        cameraAngles.update((list) =>
+          list.map((entry) => ({ ...entry, isActive: entry.id === angle.id }))
+        );
+        if (angle.facing !== 'unknown') cameraFacing.set(angle.facing);
+        return true;
+      }),
+      frameSettings: cameraFrameSettings,
       switchFacing: jest.fn(async () => {
         cameraFacing.update((mode) =>
           mode === 'user' ? 'environment' : 'user'
@@ -1244,6 +1282,58 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('REAR');
     });
 
+    it('moves the viewfinder to another angle from the rail', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+
+      const rear = camera.angles().find((angle) => angle.id === 'environment')!;
+      await component.selectCameraAngle(rear);
+
+      expect(camera.selectAngle).toHaveBeenCalledWith(rear);
+      expect(component.aiFeedback()).toContain('CAMERA ANGLE: REAR');
+    });
+
+    it('cycles angles from the flip button on the picture', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+
+      await component.flipCameraAngle();
+      expect(camera.selectAngle).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'environment' })
+      );
+
+      await component.flipCameraAngle();
+      expect(camera.selectAngle).toHaveBeenLastCalledWith(
+        expect.objectContaining({ id: 'user' })
+      );
+    });
+
+    it('reports an angle the device cannot open instead of going dark', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+      camera.selectAngle.mockResolvedValueOnce(false);
+      camera.lastError.set('No camera matched the request on this device.');
+
+      const rear = camera.angles().find((angle) => angle.id === 'environment')!;
+      await component.selectCameraAngle(rear);
+
+      expect(component.aiFeedback()).toContain('NOT AVAILABLE HERE');
+      expect(component.aiFeedback()).toContain('NO CAMERA MATCHED');
+    });
+
+    it('refuses an angle change mid-take', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+      await component.toggleCameraTake();
+
+      const rear = camera.angles().find((angle) => angle.id === 'environment')!;
+      await component.selectCameraAngle(rear);
+      await component.flipCameraAngle();
+
+      expect(camera.selectAngle).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('FINISH THE CURRENT CAMERA TAKE');
+    });
+
     it('toggles the viewfinder mirror', async () => {
       const { component, camera } = await createComponent();
       expect(camera.mirrored()).toBe(true);
@@ -1351,6 +1441,20 @@ describe('ImageVideoLabComponent', () => {
       expect(component.monitorResolutionLabel()).toBe(
         '1280×720 @ 30fps · 6 Mbps'
       );
+    });
+
+    it('shapes the monitor to the shot, not to a fixed frame', async () => {
+      const { component, camera } = await createComponent();
+      // PROGRAM follows the delivery preset so the composite is not padded.
+      expect(component.monitorAspectRatio()).toBe('2.39');
+
+      component.setMonitorSource('camera');
+      expect(component.monitorAspectRatio()).toBe('16 / 9');
+
+      // A portrait phone feed gets a portrait frame rather than a letterboxed
+      // sliver inside a 16:9 card.
+      camera.frameSettings.set({ width: 1080, height: 1920 });
+      expect(component.monitorAspectRatio()).toBe('1080 / 1920');
     });
 
     it('follows the camera onto the viewfinder and hands the monitor back', async () => {
