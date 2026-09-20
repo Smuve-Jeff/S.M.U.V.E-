@@ -811,8 +811,14 @@
 }
 
 .comp-shell.comp-compact .comp-fab {
+  /* This rule is the authoritative FAB position on phones (it outranks the
+     base `.comp-fab`), so the dock clearance lives here: the FAB must clear
+     the bottom nav *and* the portrait transport dock that sits on top of it.
+     `--transport-dock-height` only exists in the portrait tier — landscape
+     resolves the fallback and keeps the pre-dock geometry. */
   bottom: calc(
-    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) +
+      var(--transport-dock-height, 0px) + 16px
   );
 }
 
@@ -1103,27 +1109,78 @@
 /* ---------- PORTRAIT / LANDSCAPE FIT-TO-SCREEN ---------- */
 @media (max-width: 768px) and (orientation: portrait) {
   .comp-shell {
-    --mobile-nav-height: 64px;
+    /* 68px, not 64: the tab bar's own padding (6px top + 8px bottom) plus a
+       53px tab row is 68px, and the nav's `min-height` only *wins* over that
+       content when the variable is at least as large. At 64px the nav stayed
+       content-sized (68px) while the dock offset used 64px, leaving the dock
+       4px over the nav — or a 4px gap once a safe-area inset applied. At 68px
+       both read the same value and the seam is exact on any inset. */
+    --mobile-nav-height: 68px;
+    /* Height of the thumb-zone transport dock (68px transport bar + 2px of
+       dock padding top and bottom), used both to size the dock and to reserve
+       exactly the space it occupies above the bottom nav — if these two ever
+       disagree, the dock covers the last rows of a view or leaves a gap. */
+    --transport-dock-height: 72px;
   }
 
   .comp-topbar {
     height: 48px;
     padding: 0 10px;
+    /* The mount animation applies `transform` to the topbar for 0.4s, which
+       would make it the containing block for the fixed transport dock below
+       and park the dock near the top until the animation finished. */
+    animation: none;
   }
 
+  /* ============================================================
+     THUMB-ZONE TRANSPORT DOCK (portrait phones)
+
+     Portrait phones are held one-handed, so only the bottom edge of the
+     screen is reliably reachable. Every professional mobile DAW puts the
+     transport there (FL Studio Mobile, BandLab, GarageBand, Koala); the
+     transport lived in the top row here, ~120px out of reach, while the top
+     bar took 30% of the screen. Docking it frees the top row for the brand
+     and tools and puts play/record/tempo under the thumb.
+
+     Landscape is deliberately NOT docked: a landscape phone is held with
+     both hands, so its top edge is already reachable, and its 412px of height
+     cannot spare a 68px dock.
+     ============================================================ */
   .comp-topbar-center {
     justify-content: flex-start;
     overflow-x: auto;
     scrollbar-width: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: none;
+    min-height: var(--transport-dock-height);
+    padding: 2px max(8px, env(safe-area-inset-left, 0px)) 2px
+      max(8px, env(safe-area-inset-right, 0px));
+    background: var(--ivory-paper);
+    border-top: 1px solid var(--espresso-line);
+    box-shadow: 0 -6px 18px rgba(61, 53, 42, 0.12);
+    /* Above the canvas and the FAB, below every overlay (panels 80, scrim 75,
+       AI assistant 70, drawer 80). */
+    z-index: 45;
+    animation: none;
   }
 
   .comp-topbar-center::-webkit-scrollbar {
     display: none;
   }
 
+  /* Reserve the dock's footprint so no view's bottom row hides behind it. */
+  .comp-main {
+    padding-bottom: var(--transport-dock-height);
+  }
+
+  /* Decorative marquee: hidden on portrait phones, where the 24px buys real
+     canvas and nothing in it is interactive (aria-hidden decoration). */
   .comp-stage-marquee {
-    padding: 4px 12px;
-    font-size: 10px;
+    display: none;
   }
 
   .comp-footer {
@@ -1136,11 +1193,8 @@
     );
   }
 
-  .comp-fab {
-    bottom: calc(
-      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
-    );
-  }
+  /* The FAB's dock clearance is set by `.comp-shell.comp-compact .comp-fab`
+     (which outranks `.comp-fab` here), so no override is needed. */
 }
 
 @media (max-width: 768px) and (orientation: landscape) {

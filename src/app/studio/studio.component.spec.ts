@@ -614,4 +614,57 @@ describe('StudioComponent', () => {
 
     expect(stopPreview).toHaveBeenCalledTimes(1);
   });
+
+  // ── Back navigation (Android system back / browser back) ──
+  describe('back navigation', () => {
+    it('treats the AI assistant as a dismissible surface', () => {
+      component.showAiAssistant.set(true);
+      expect(component.hasOpenOverlay()).toBe(true);
+
+      expect(component.dismissTopOverlay()).toBe(true);
+      expect(component.showAiAssistant()).toBe(false);
+      expect(component.hasOpenOverlay()).toBe(false);
+    });
+
+    it('reports no open overlay when every surface is closed', () => {
+      expect(component.hasOpenOverlay()).toBe(false);
+      expect(component.dismissTopOverlay()).toBe(false);
+    });
+
+    it('arms one history entry per open surface so back can unwind them', () => {
+      const push = jest.spyOn(window.history, 'pushState');
+
+      component.mobileDrawerOpen.set(true);
+      TestBed.flushEffects();
+      expect(push).toHaveBeenCalledTimes(1);
+
+      component.showShortcuts.set(true);
+      TestBed.flushEffects();
+      expect(push).toHaveBeenCalledTimes(2);
+
+      push.mockRestore();
+    });
+
+    it('dismisses the topmost surface on a history back press', () => {
+      const back = jest.spyOn(window.history, 'back').mockImplementation();
+
+      component.showProjectMenu.set(true);
+      TestBed.flushEffects();
+
+      window.dispatchEvent(new PopStateEvent('popstate'));
+
+      expect(component.showProjectMenu()).toBe(false);
+
+      back.mockRestore();
+    });
+
+    it('detaches the history listener on destroy', () => {
+      const remove = jest.spyOn(window, 'removeEventListener');
+
+      component.ngOnDestroy();
+
+      expect(remove).toHaveBeenCalledWith('popstate', expect.any(Function));
+      remove.mockRestore();
+    });
+  });
 });

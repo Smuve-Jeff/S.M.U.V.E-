@@ -3,6 +3,7 @@ import {
   Injectable,
   signal,
   computed,
+  effect,
   inject,
   DestroyRef,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import { MusicManagerService } from '../services/music-manager.service';
 import { MicrophoneService } from '../services/microphone.service';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
 import { RecordingStatusService } from './recording-status.service';
+import { ScreenWakeLockService } from '../services/screen-wake-lock.service';
 
 export interface MicChannel {
   id: string;
@@ -36,6 +38,7 @@ export class AudioSessionService {
   public readonly musicManager = inject(MusicManagerService);
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly wakeLock = inject(ScreenWakeLockService);
 
   readonly playbackState = signal<PlaybackState>('stopped');
   readonly isPlaying = computed(() => this.playbackState() === 'playing');
@@ -72,6 +75,19 @@ export class AudioSessionService {
     if (armed) {
       this.initializeMic(armed.id);
     }
+
+    // Keep the display awake for the whole of a playing/recording session.
+    // Android's screen timeout fires `visibilitychange`, which the listener
+    // below answers by stopping the transport — so without a wake lock a
+    // phone-propped recording dies mid-take. Released the moment the
+    // transport stops so idle sessions let the screen sleep normally.
+    effect(() => {
+      if (this.isPlaying() || this.isRecording()) {
+        this.wakeLock.request();
+      } else {
+        this.wakeLock.release();
+      }
+    });
 
     // Mobile audio hygiene: stop playback when the app/tab is backgrounded so
     // the engine doesn't keep consuming battery or resume mid-bar unannounced.

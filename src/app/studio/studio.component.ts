@@ -482,6 +482,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
   public readonly engineLatency = inject(AudioEngineLatencyService);
+
+  // ── Back navigation (see the BACK NAVIGATION section below) ──
+  /** Synthetic history entries currently pushed for open overlays. */
+  private backTrapDepth = 0;
+  /** Timestamp of the first back press that armed the "press again" exit. */
+  private exitArmedAt = 0;
+  /** Native backButton listener handle (device only). */
+  private backButtonHandle: { remove: () => void } | null = null;
   public readonly orchestration = inject(StudioOrchestrationService);
 
   // ---- State ----
@@ -837,6 +845,28 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.orchestration.setActiveStudioView(this.activeView());
     });
 
+    // ── Back-navigation trap ──
+    // Reads every dismissible surface so the history depth always matches the
+    // number of open overlays (see syncBackHistoryTrap). History-only side
+    // effect — no signal writes, so no effect-loop hazard.
+    effect(() => {
+      const openCount = [
+        this.showShortcuts(),
+        this.showProjectMenu(),
+        this.showAiAssistant(),
+        this.showAiMixAssistant(),
+        this.showSmartRecordingPanel(),
+        this.showProjectMetadata(),
+        this.showStudioInsights(),
+        this.showComponentRecording(),
+        this.showImportPanel(),
+        this.showVocalComp(),
+        this.showBezierEditor(),
+        this.mobileDrawerOpen(),
+      ].filter(Boolean).length;
+      untracked(() => this.syncBackHistoryTrap(openCount));
+    });
+
     // Restore 3-way theme preference from localStorage; fall back to the
     // cross-app profile theme (UIService) when no Studio-specific choice
     // was ever made, so Studio and Hub stay in agreement on first visit.
@@ -970,6 +1000,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async ngOnInit() {
     this.studioTelemetry.beginSession({ entryView: this.activeView() });
+    // Back navigation: the browser/WebView history handler is always live
+    // (desktop back button, Alt+Left, and Android WebView history-back); the
+    // native Android back gesture is bridged separately when on device.
+    window.addEventListener('popstate', this.onStudioPopState);
+    void this.registerNativeBackButton();
     try {
       // Try to resume immediately (works on first server-side render or
       // if browser is already primed). Failure here is harmless —
@@ -1096,7 +1131,137 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     this.stopSpectrumAnalyzer();
     this.stopCompTakePreview();
+    window.removeEventListener('popstate', this.onStudioPopState);
+    this.backButtonHandle?.remove();
+    this.backButtonHandle = null;
+    this.backTrapDepth = 0;
     this.studioTelemetry.endSession('component_destroy');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // BACK NAVIGATION (Android system back / browser back)
+  //
+  // Professional mobile apps treat back as "dismiss what is on top",
+  // never "quit with unsaved work on screen". Android's default for a
+  // WebView activity with no back listener is to finish() immediately, so
+  // an open drawer, panel or assistant would take the whole session down.
+  //
+  // Two layers cooperate here:
+  //   1. A synthetic history entry per open overlay, so the WebView's own
+  //      history-back (and desktop browser back) unwinds surfaces one press
+  //      at a time.
+  //   2. The native `backButton` event (Capacitor App plugin), which mirrors
+  //      `dismissTopOverlay()` and only leaves the app on a confirmed
+  //      double-press.
+  // ═══════════════════════════════════════════════════════════
+
+  /** True when any dismissible surface is open. Mirrors dismissTopOverlay(). */
+  hasOpenOverlay(): boolean {
+    return !!(
+      this.showShortcuts() ||
+      this.showProjectMenu() ||
+      this.showAiAssistant() ||
+      this.showAiMixAssistant() ||
+      this.showSmartRecordingPanel() ||
+      this.showProjectMetadata() ||
+      this.showStudioInsights() ||
+      this.showComponentRecording() ||
+      this.showImportPanel() ||
+      this.showVocalComp() ||
+      this.showBezierEditor() ||
+      this.mobileDrawerOpen()
+    );
+  }
+
+  /**
+   * Keep the synthetic history depth in step with the open-overlay count so
+   * the system back gesture unwinds exactly one surface per press. Runs from
+   * an effect, so it is a pure history side effect (no signal writes).
+   */
+  private syncBackHistoryTrap(openCount: number): void {
+    // `window.history` deliberately qualified: the class field `this.history`
+    // is the project undo/redo service, and the similar names invite mistakes.
+    if (typeof window === 'undefined' || !window.history) return;
+    const native = window.history;
+    if (openCount > this.backTrapDepth) {
+      const add = openCount - this.backTrapDepth;
+      for (let i = 0; i < add; i++) {
+        native.pushState(
+          { ...(native.state ?? {}), smuveStudioOverlay: true },
+          ''
+        );
+      }
+      this.backTrapDepth = openCount;
+    } else if (openCount < this.backTrapDepth) {
+      // A surface was closed by its own control (the X button, a menu pick).
+      // Pop our synthetic entries so the user's next back press is not eaten
+      // by an entry that no longer represents anything on screen.
+      const drop = this.backTrapDepth - openCount;
+      this.backTrapDepth = openCount;
+      for (let i = 0; i < drop; i++) {
+        if (native.state && native.state.smuveStudioOverlay) {
+          native.back();
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  /** Browser/WebView history back: unwind one surface, else let the router act. */
+  private readonly onStudioPopState = () => {
+    if (this.backTrapDepth > 0) this.backTrapDepth--;
+    if (!this.hasOpenOverlay()) {
+      // Nothing of ours to close — the browser/router owns this press.
+      this.backTrapDepth = 0;
+      return;
+    }
+    this.dismissTopOverlay();
+    // Re-arm for the surfaces that are still open (dismissed state lands in
+    // the next tick via signals, so read the *remaining* count defensively).
+    this.backTrapDepth = Math.max(0, this.backTrapDepth);
+  };
+
+  /**
+   * Native Android back gesture/button. Registered only on device (the web
+   * build relies on history + the router) from ngOnInit.
+   */
+  private async registerNativeBackButton(): Promise<void> {
+    if (this.backButtonHandle) return;
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (!Capacitor.isNativePlatform()) return;
+      const { App } = await import('@capacitor/app');
+      this.backButtonHandle = await App.addListener(
+        'backButton',
+        ({ canGoBack }) => {
+          if (this.dismissTopOverlay()) {
+            this.exitArmedAt = 0;
+            return;
+          }
+          if (canGoBack) {
+            window.history.back();
+            return;
+          }
+          // Second act confirms the exit — the pattern Android users expect
+          // from a production app, instead of dropping a live session on one
+          // stray swipe.
+          const now = Date.now();
+          if (now - this.exitArmedAt < 2500) {
+            void App.exitApp();
+            return;
+          }
+          this.exitArmedAt = now;
+          this.snackbarService.info(
+            'Press back again to leave the Studio'
+          );
+        }
+      );
+    } catch (e) {
+      // Web build, plugin absent, or a native bridge error — the history
+      // trap and the Escape key still cover dismissal.
+      this.logger.warn('[Studio] native back listener unavailable', e);
+    }
   }
 
   // ── Theme cycle: Light → Focus → Dark → Light ─────────────────
@@ -1254,6 +1419,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.showProjectMenu()) {
       this.showProjectMenu.set(false);
+      return true;
+    }
+    if (this.showAiAssistant()) {
+      this.showAiAssistant.set(false);
       return true;
     }
     if (this.showAiMixAssistant()) {

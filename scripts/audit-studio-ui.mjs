@@ -291,10 +291,14 @@ const PROFILES = {
   desktop: { name: 'desktop-1440x900', width: 1440, height: 900, mobile: false },
 };
 
+// Split on the FIRST `=` only: selectors like `click=[aria-label="x"]` contain
+// further `=` / quoting that must survive intact.
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
-    const [k, v = ''] = a.split('=');
-    return [k.replace(/^--/, ''), v];
+    const i = a.indexOf('=');
+    const k = (i < 0 ? a : a.slice(0, i)).replace(/^--/, '');
+    const v = i < 0 ? '' : a.slice(i + 1);
+    return [k, v];
   })
 );
 const probeMode = 'probe' in args;
@@ -347,17 +351,38 @@ for (const profileKey of requestedProfiles) {
       await page.click(args.click, { timeout: 8000 });
       await page.waitForTimeout(900);
     }
+    // back=<n>: press the system/browser back gesture n times, so overlay and
+    // view-history behaviour can be measured (see the studio back trap).
+    if (args.back) {
+      const times = Math.max(1, Number(args.back) || 1);
+      for (let i = 0; i < times; i++) {
+        await page.evaluate(() => window.history.back());
+        await page.waitForTimeout(800);
+      }
+    }
     const rows = await page.evaluate((sels) => {
       const props = [
         'display',
         'position',
+        'top',
+        'right',
+        'bottom',
+        'left',
         'width',
         'height',
         'minWidth',
         'minHeight',
+        'maxHeight',
         'padding',
         'margin',
         'transform',
+        // Containing-block triggers for `position: fixed` descendants.
+        'filter',
+        'backdropFilter',
+        'willChange',
+        'contain',
+        'perspective',
+        'animation',
         'overflow',
         'overflowX',
         'overflowY',
@@ -543,6 +568,16 @@ for (const profileKey of requestedProfiles) {
         out.sort((a, b) => b.bottom - a.bottom);
         return out.slice(0, 18);
       }) });
+    }
+    if (probeMode) {
+      rows.push({
+        __state: await page.evaluate(() => ({
+          url: location.href,
+          search: location.search,
+          historyLength: history.length,
+          state: history.state,
+        })),
+      });
     }
     out[profile.name] = rows;
     await context.close();

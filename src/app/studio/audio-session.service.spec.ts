@@ -8,6 +8,7 @@ import { MicrophoneService } from '../services/microphone.service';
 import { StudioRecordingEngineService } from './studio-recording-engine.service';
 import { MusicManagerService } from '../services/music-manager.service';
 import { RecordingStatusService } from './recording-status.service';
+import { ScreenWakeLockService } from '../services/screen-wake-lock.service';
 
 describe('AudioSessionService', () => {
   let service: AudioSessionService;
@@ -23,6 +24,11 @@ describe('AudioSessionService', () => {
     initialize: jest.fn(() => Promise.resolve()),
     isInitialized: jest.fn(() => false),
     isRecording: jest.fn(() => false),
+  };
+
+  const wakeLockMock = {
+    request: jest.fn(),
+    release: jest.fn(),
   };
 
   const setVisibility = (state: 'visible' | 'hidden') => {
@@ -57,10 +63,13 @@ describe('AudioSessionService', () => {
           provide: RecordingStatusService,
           useValue: { clearRecordingSource: jest.fn(), setRecordingSource: jest.fn() },
         },
+        { provide: ScreenWakeLockService, useValue: wakeLockMock },
       ],
     });
     service = TestBed.inject(AudioSessionService);
     engineMock.stop.mockClear();
+    wakeLockMock.request.mockClear();
+    wakeLockMock.release.mockClear();
   });
 
   it('stops playback when the tab/app is hidden mid-transport', () => {
@@ -87,5 +96,26 @@ describe('AudioSessionService', () => {
     setVisibility('hidden');
 
     expect(engineMock.stop).not.toHaveBeenCalled();
+  });
+
+  it('holds the screen awake while playing and releases it on stop', () => {
+    service.playbackState.set('playing');
+    TestBed.flushEffects();
+
+    expect(wakeLockMock.request).toHaveBeenCalled();
+
+    wakeLockMock.request.mockClear();
+    service.stop();
+    TestBed.flushEffects();
+
+    expect(wakeLockMock.request).not.toHaveBeenCalled();
+    expect(wakeLockMock.release).toHaveBeenCalled();
+  });
+
+  it('holds the screen awake while recording', () => {
+    service.playbackState.set('recording');
+    TestBed.flushEffects();
+
+    expect(wakeLockMock.request).toHaveBeenCalled();
   });
 });

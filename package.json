@@ -57,6 +57,7 @@
     "@aws-sdk/client-s3": "^3.1085.0",
     "@capacitor-community/electron": "^5.0.1",
     "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.0",
     "@google/genai": "^1.48.0",
     "animate.css": "^4.1.1",
