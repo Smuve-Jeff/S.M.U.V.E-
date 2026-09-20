@@ -4,6 +4,8 @@
   role="dialog"
   aria-modal="false"
   aria-label="AI Compose Assistant"
+  [attr.aria-hidden]="!open"
+  [attr.inert]="open ? null : ''"
   (keydown)="onKeyDown($event)"
   tabindex="-1"
 >

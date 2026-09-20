@@ -195,6 +195,10 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
 
   private autoSvc = inject(AutomationService);
   private gl!: WebGLRenderer;
+  /** False when the device cannot give us a WebGL2 context (older Android
+   *  WebViews, GPU-blocklisted drivers, exhausted context budget). The curve
+   *  then stays a DOM/readout-only editor instead of throwing in view init. */
+  private isGlReady = false;
   private renderRaf: number | null = null;
 
   @ViewChild('bezierCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -235,8 +239,7 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   });
 
   ngAfterViewInit(): void {
-    this.gl = new WebGLRenderer();
-    this.gl.initialize(this.canvasRef.nativeElement);
+    this.initWebGL();
     this.loadLaneHandles();
     this.startRenderLoop();
   }
@@ -244,6 +247,18 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.renderRaf !== null) cancelAnimationFrame(this.renderRaf);
     this.gl?.destroy();
+  }
+
+  /** Same defensive shape as the piano roll / arrangement views: a missing
+   *  WebGL2 context is a degraded mode, never a thrown error. */
+  private initWebGL(): void {
+    try {
+      this.gl = new WebGLRenderer();
+      this.gl.initialize(this.canvasRef.nativeElement);
+      this.isGlReady = true;
+    } catch (e) {
+      console.warn('WebGL init failed for the bezier editor', e);
+    }
   }
 
   // ── Render loop ─────────────────────────────────────────
@@ -257,6 +272,7 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   private renderCurve(): void {
+    if (!this.isGlReady) return;
     const canvas = this.canvasRef.nativeElement;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;

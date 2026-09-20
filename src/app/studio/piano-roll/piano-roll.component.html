@@ -343,9 +343,18 @@
         aria-hidden="true"
       ></div>
     </div>
+  </div>
 
-    <!-- Velocity lane + Automation toolbar -->
-    <div class="pr-auto-toolbar">
+  <!--
+    Velocity lane, CC lane strip and the automation/toggle bars are siblings of
+    the canvas row, not children of it. They are horizontal bands (border-top,
+    align-items: center) built for the shell's column flow; inside the row — a
+    flex ROW of keys + grid — each of them became a full-height column, and on a
+    desktop viewport the two bar rails alone claimed ~820px of the row, leaving
+    the grid ~150px wide. Their natural height also stacked correctly on phones
+    instead of being clipped by the row's `overflow: hidden`.
+  -->
+  <div class="pr-auto-toolbar">
       <span class="pr-auto-label">Automation</span>
       <div
         class="pr-auto-params"
@@ -573,13 +582,16 @@
     >
       <canvas
         #glVelocityCanvas
-        class="pr-gl-canvas"
+        class="pr-gl-canvas pr-gl-canvas--velocity"
         [style.width.px]="gridWidth()"
         [style.height.px]="80"
       ></canvas>
     </div>
 
-    <!-- Right inspector -->
+    <!-- Right inspector: a companion rail beside the grid, so it keeps the
+         row layout (right-aligned via .pr-canvas-row--inspector) without the
+         row's flexible height. -->
+    <div class="pr-canvas-row pr-canvas-row--inspector">
     <div class="pr-inspector" *ngIf="selectionCount() > 0">
       <!-- Toggle precision panel -->
       <button

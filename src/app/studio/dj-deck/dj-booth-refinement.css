@@ -51,7 +51,7 @@
 .booth-identity { min-width: 215px; gap: 11px; }
 .booth-mark { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(145deg, var(--booth-a), #137c86 46%, var(--booth-b)); color: #061016; font: 900 13px/1 var(--booth-mono); box-shadow: 0 0 22px rgba(32,215,210,.2); }
 .booth-identity h1 { margin: 3px 0 0; color: var(--booth-text); font-size: 17px; line-height: 1; letter-spacing: .06em; }
-.booth-identity h1 span { color: var(--booth-a); font-size: .65em; letter-spacing: .18em; }
+.booth-identity h1 span { color: var(--booth-a); font-size: max(.65em, 10px); letter-spacing: .18em; }
 .booth-session-state { margin-left: auto; color: var(--booth-muted); font: 700 10px var(--booth-mono); letter-spacing: .08em; white-space: nowrap; }
 .booth-session-state strong { color: var(--booth-text); font-size: 12px; }
 .state-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--booth-a); box-shadow: 0 0 12px var(--booth-a); }

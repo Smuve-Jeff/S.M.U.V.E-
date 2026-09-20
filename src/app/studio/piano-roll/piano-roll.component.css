@@ -392,6 +392,13 @@
   min-height: 0;
 }
 
+/* The inspector keeps the row layout for its right rail, but must not take the
+   row's flexible height: it is a companion rail, not the editing surface. */
+.pr-canvas-row--inspector {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
 /* ----- KEYS ----- */
 .pr-keys {
   width: 56px;
@@ -433,6 +440,22 @@
   position: absolute;
   top: 0;
   left: 0;
+  /* The main grid sizes this canvas at gridWidth() (~2048px); inside the
+     velocity viewport that width is redundant — the scroll viewport clips it
+     in every layout, but as a non-scrolling offscreen sliver it only
+     contributed a false "content cut off" signal in layout audits. */
+  max-width: none;
+}
+
+/* Velocity variant: the shared .pr-gl-canvas positioning is `absolute`, which
+   takes the canvas out of flow — an out-of-flow child contributes nothing to
+   the scrollable overflow of a `position: static` scroll container, so
+   .pr-velocity (overflow-x: auto) never scrolled and velocity bars past the
+   first screenful were unreachable. In flow, its inline width (gridWidth)
+   drives the lane's scroll range like the bars' x coordinates expect. */
+.pr-velocity .pr-gl-canvas--velocity {
+  position: static;
+  display: block;
 }
 
 .pr-grid-focus-cell {
@@ -1075,6 +1098,9 @@
   background: var(--ivory-panel);
   border-top: 1px solid var(--ivory-line);
   flex-shrink: 0;
+  /* The lane chips run ~520px wide; without wrapping they were cut off by the
+     shell's `overflow-x: hidden` on phones (~140px of toggles unreachable). */
+  flex-wrap: wrap;
 }
 
 .pr-cc-toggle-label {

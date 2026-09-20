@@ -1217,6 +1217,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * export, or the AI Mix panel, then delegates to the Ctrl+ shortcut handler.
    */
   onShellKeydown(event: KeyboardEvent): void {
+    // Escape closes the nearest open surface, one layer per press — desktop
+    // Chrome and tablet keyboards both route it here. Runs before the text
+    // target bail-out so Escape also works while a panel input has focus
+    // (guarded against IME composition, which owns Escape while active).
+    if (
+      event.key === 'Escape' &&
+      !event.isComposing &&
+      this.dismissTopOverlay()
+    ) {
+      event.preventDefault();
+      return;
+    }
     const target = event.target as HTMLElement | null;
     if (
       target &&
@@ -1228,6 +1240,60 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
     this.handleKeyboardShortcut(event);
+  }
+
+  /**
+   * Close the topmost open overlay, if any. Returns true when a surface was
+   * dismissed so the caller can stop the event. Order matches z-order:
+   * popovers/menus first, then right-slide panels, then the mobile drawer.
+   */
+  dismissTopOverlay(): boolean {
+    if (this.showShortcuts()) {
+      this.showShortcuts.set(false);
+      return true;
+    }
+    if (this.showProjectMenu()) {
+      this.showProjectMenu.set(false);
+      return true;
+    }
+    if (this.showAiMixAssistant()) {
+      this.toggleAiMixAssistant();
+      return true;
+    }
+    if (this.showSmartRecordingPanel()) {
+      this.toggleSmartRecordingPanel();
+      return true;
+    }
+    if (this.showProjectMetadata()) {
+      this.toggleProjectMetadata();
+      return true;
+    }
+    if (this.showStudioInsights()) {
+      this.toggleStudioInsights();
+      return true;
+    }
+    if (this.showComponentRecording()) {
+      this.showComponentRecording.set(false);
+      return true;
+    }
+    if (this.showImportPanel()) {
+      this.toggleImportPanel();
+      return true;
+    }
+    if (this.showVocalComp()) {
+      this.toggleVocalComp();
+      return true;
+    }
+    if (this.showBezierEditor()) {
+      this.toggleBezierEditor();
+      return true;
+    }
+    if (this.mobileDrawerOpen()) {
+      this.mobileDrawerOpen.set(false);
+      this.syncPanelFocus('.comp-drawer', false);
+      return true;
+    }
+    return false;
   }
 
   setActiveView(view: StudioView) {

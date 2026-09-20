@@ -63,7 +63,14 @@
 :host {
   display: block;
   height: 100dvh;
-  width: 100vw;
+  /* Fill the slot the shell gives us, not the raw viewport: on desktop the
+     Studio is a child of the content column (sidebar + app top bar sit beside
+     it), so `100vw` made the shell 224px wider than the column at 1440px and
+     the route host clipped that strip — the top bar's right cluster and the
+     status bar's right edge were off screen. Full-page mode (mobile) supplies
+     a viewport-sized column, so `100%` covers that case too. */
+  width: 100%;
+  max-width: 100%;
   background-color: var(--ivory-bg);
   color: var(--espresso-text);
   overflow-y: auto; overflow-x: hidden;
@@ -496,9 +503,63 @@
   flex: 1 1 auto;
 }
 
-/* ---------- MOBILE COMPACT MODE — RAIL HIDDEN ---------- */
+/* Mobile compact mode — rail hidden. Portrait tablets (769–1024) keep the
+   real rail (the drawer's opener button is hidden at this width, so hiding
+   the rail too would strand the artist without a view selector), and their
+   rail is compacted below instead. */
 .comp-shell.comp-compact .comp-rail {
   display: none;
+}
+
+/* ── Portrait tablet: mobile drawer, desktop canvas ──
+   showMobileNav() is true (drawer renders), but the drawer opener in the
+   topbar is hidden above 768px by the device-tier visibility rules — the
+   artist gets the drawer with no way to open it. Give the tier an explicit
+   opener and a narrow rail. */
+.comp-shell.comp-mobile-nav:not(.comp-compact) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar-tools,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-stage-marquee,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-footer {
+  grid-column: 1 / -1;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-main {
+  grid-column: 1 / -1;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail {
+  display: flex;
+  width: 64px;
+  min-width: 64px;
+  padding: 8px 4px;
+  gap: 4px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail .comp-rail-label {
+  font-size: 7px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact)
+  .comp-rail
+  .comp-rail-item {
+  min-height: 52px;
+  padding: 8px 2px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail-widget {
+  display: none;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-fab {
+  bottom: 20px;
+  right: 16px;
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* The drawer renders on this tier, so its topbar opener must be visible
+     (the device-tier rule in studio-shell-refinement.css stops at 1024px;
+     this is the belt-and-braces guarantee inside the shell itself). */
+  .comp-shell.comp-mobile-nav:not(.comp-compact)
+    button[class~='md:hidden'] {
+    display: grid;
+  }
 }
 
 /* ── Studio shell dark mode canvas ── */

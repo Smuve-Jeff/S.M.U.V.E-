@@ -957,7 +957,10 @@
 }
 
 /* ----- Enhanced touch targets on mobile ----- */
-@media (max-width: 768px) {
+/* Media list, not a plain max-width: a rotated phone is 915px wide, and
+   without the landscape arm the transport's 38px base buttons (plus the
+   36px nudges and 32px take buttons) came back on the tightest shell tier. */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
   .ctb-btn {
     min-width: 44px;
     min-height: 44px;
@@ -975,8 +978,10 @@
     min-height: 40px;
   }
   .ctb-nudge {
-    width: 36px;
-    height: 36px;
+    width: auto;
+    min-width: 44px;
+    height: auto;
+    min-height: 44px;
   }
   .ctb-tap {
     min-width: 44px;

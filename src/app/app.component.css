@@ -256,7 +256,14 @@
 .route-anim-host {
   position: relative;
   min-height: 100%;
-  will-change: opacity, transform;
+  /* `will-change: transform` makes this element the containing block for every
+     `position: fixed` descendant, and this host spans the whole scroll column.
+     Workspaces that slide panels in from the edge (the Studio's AI assistant,
+     mix/metadata panels, search overlay) were therefore anchored to a ~4200px
+     tall box instead of the viewport: the assistant rendered ~4200px tall with
+     its composer far below the fold. The route animation still drives
+     `transform` while it runs; it just no longer needs the standing hint. */
+  will-change: opacity;
 }
 
 .mobile-scroll-smooth {

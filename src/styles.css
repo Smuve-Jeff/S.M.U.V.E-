@@ -1066,6 +1066,287 @@ body.stage-fx-off .led-strip::before {
   }
 }
 
+/* ============================================================
+   STUDIO MOBILE TOUCH & LEGIBILITY FLOOR — phones
+
+   Portrait: ≤768px wide. Landscape: a rotated phone is ≤932px wide with a
+   short viewport, and the per-view landscape blocks already treat
+   (max-width: 932px) + landscape as the phone tier — without this list the
+   floor silently switched off the moment the phone rotated, restoring 7px
+   labels and sub-44px targets on the tightest shell layout of all.
+
+   It lives in the global sheet because it was impossible to reach
+   otherwise: component styles are encapsulated (`[_ngcontent-…]`) and each
+   view has its own mobile block, so a single studio-wide floor has to
+   out-specify them — hence the `!important`s, same as the other kill-switch
+   layers in this file.
+
+   Only controls that are standalone tap targets are listed. Grid cells
+   (drum steps, channel-rack step cells, Tailwind-sized mute dots) keep their
+   compact size, because growing them would break the sequencer grids they
+   tile, and their parent strips already scroll.
+   ============================================================ */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  /* ── 1. Shell chrome ─────────────────────────────────────── */
+  app-studio .comp-shell .comp-icon-btn,
+  app-studio .comp-shell .comp-tool-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .comp-shell .comp-brand {
+    min-height: 44px !important;
+  }
+
+  /* ── 2. Transport bar: chips, toggles, meters and the volume rail ── */
+  app-studio .ctb-countin-chip,
+  app-studio .ctb-loop-chip,
+  app-studio .ctb-undo-btn,
+  app-studio .ctb-punch,
+  app-studio .ctb-toggle,
+  app-studio .ctb-nudge,
+  app-studio .ctb-bpm,
+  app-studio .ctb-tap,
+  app-studio .ctb-volume-slider {
+    min-height: 44px !important;
+  }
+
+  app-studio .ctb-undo-btn,
+  app-studio .ctb-punch,
+  app-studio .ctb-toggle {
+    min-width: 44px !important;
+  }
+
+  /* ── 3. AI assistant + AI band ───────────────────────────── */
+  app-studio .ai-close {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .ai-tab {
+    min-height: 44px !important;
+  }
+
+  /* ── 4. Per-view icon buttons and filter chips ───────────── */
+  app-studio .sl-icon-btn,
+  app-studio .pr-tool,
+  app-studio .dm-transport-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .sl-tag,
+  app-studio .sl-cat,
+  app-studio .sb-cat,
+  app-studio .sb-filter-chip,
+  app-studio .ce-chip,
+  app-studio .pr-snap-btn,
+  app-studio .pr-cc-toggle-btn,
+  app-studio .dm-groove-chip,
+  app-studio .mix-msr-btn,
+  app-studio .mix-sidechain-chip,
+  app-studio .mix-ai-chip,
+  app-studio .mix-segmented button {
+    min-height: 44px !important;
+  }
+
+  app-studio .sl-cat {
+    min-width: 44px !important;
+  }
+
+  /* ── 4b. Second-sweep touch rows ────────────────────────── */
+  /* Wide-but-short controls measured 32-38px tall; the count-in/loop chips
+     reached 44px of height but stayed 28-36px wide. All scroll horizontally,
+     so growing them costs no reachability. */
+  app-studio .dm-macro,
+  app-studio .ps-param input,
+  app-studio .ps-toggle,
+  app-studio .ctb-countin-chip,
+  app-studio .ctb-loop-chip {
+    min-height: 44px !important;
+  }
+
+  app-studio .ctb-countin-chip,
+  app-studio .ctb-loop-chip,
+  app-studio .mix-msr-btn,
+  app-studio .sl-tag {
+    min-width: 44px !important;
+  }
+
+  /* ── 5. Legible micro-labels ─────────────────────────────── */
+  /* Primary navigation + branding: full label size, not a 7px whisper. */
+  app-studio .comp-tab-label,
+  app-studio .comp-brand-tag,
+  app-studio .comp-tool-label {
+    font-size: 11px !important;
+  }
+
+  /* Transport readouts. */
+  app-studio .ctb-bpm-unit,
+  app-studio .ctb-countin-label,
+  app-studio .ctb-undo-badge,
+  app-studio .ctb-db-peak,
+  app-studio .ctb-take-count,
+  app-studio .ctb-mode-pill,
+  app-studio .comp-tool-badge {
+    font-size: 10px !important;
+  }
+
+  /* AI band + assistant captions. */
+  app-studio .ai-band-label-text,
+  app-studio .ai-band-count,
+  app-studio .ai-band-state,
+  app-studio .ai-band-readout,
+  app-studio .ai-header-sub {
+    font-size: 10px !important;
+  }
+
+  /* Landscape misses from the first sweep: ideas label, meter EQ readout and
+     the theme chip rendered at 8-9px on the rotated tier. */
+  app-studio .ctb-ideas-label,
+  app-studio .ctb-meter-out-eq,
+  app-studio .comp-theme-chip {
+    font-size: 10px !important;
+  }
+
+  /* Mixer strip captions (8px channel numbers and 7px pan labels). */
+  app-studio .mix-strip-num,
+  app-studio .mix-strip-name,
+  app-studio .mix-strip-type,
+  app-studio .mix-pan-label,
+  app-studio .mix-fader-readout,
+  app-studio .mix-sends-label,
+  app-studio .mix-sidechain-text,
+  app-studio .mix-phase-label,
+  app-studio .mix-phase-meter-ticks span {
+    font-size: 10px !important;
+  }
+
+  /* Piano roll, drum machine, synth, score and sample captions. */
+  app-studio .pr-ks-label,
+  app-studio .pr-auto-label,
+  app-studio .pr-auto-param,
+  app-studio .pr-cc-toggle-label,
+  app-studio .pr-cc-out-label,
+  app-studio .pr-expand-btn,
+  app-studio .dm-pad-tier,
+  app-studio .dm-strip-toggle,
+  app-studio .synth-patch-btn-tip,
+  app-studio .synth-mtab-label,
+  app-studio .ce-label,
+  app-studio .fader-label,
+  app-studio .stage-status,
+  app-studio .eyebrow {
+    font-size: 10px !important;
+  }
+
+  /* Inline Tailwind micro-text used across the studio templates. */
+  app-studio [class*='text-[7px]'],
+  app-studio [class*='text-[8px]'],
+  app-studio [class*='text-[9px]'] {
+    font-size: 10px !important;
+  }
+
+  /* ── 6. Second-sweep label residue (one per view) ────────── */
+  app-studio .pr-scale-lock span,
+  app-studio .pr-bezier-btn span,
+  app-studio .pr-cc-toggle-btn span,
+  app-studio .pr-cc-rec span,
+  app-studio .pr-sus-led span,
+  app-studio .channel-name span,
+  app-studio .mix-header-title p,
+  app-studio .mix-send-knob-wrap,
+  app-studio .mix-stat-label,
+  app-studio .mix-stat-value,
+  app-studio .er-wasm-item-name,
+  app-studio .er-wasm-item-badge,
+  app-studio .overview-readouts span,
+  app-studio .mobile-deck-switcher span {
+    font-size: 10px !important;
+  }
+
+  /* ── 7. View caption sweep (7-9.9px captions, one tier per view) ── */
+  /* Piano roll */
+  app-studio .pr-snap-label,
+  app-studio .pr-scale-chip,
+  /* Drum machine / mixer */
+  app-studio .dm-takes-new-btn span,
+  app-studio .mix-sidechain-chip span,
+  /* Performance mode */
+  app-studio .perf-velo-label,
+  app-studio .perf-velo-zone,
+  app-studio .perf-sustain-label,
+  /* Mastering presets */
+  app-studio .ms-preset-tagline,
+  app-studio .ms-preset-lufs,
+  app-studio .ms-preset-ceiling,
+  /* AI produce */
+  app-studio .hero-meta .chip,
+  app-studio .latency-context,
+  app-studio .meta-label,
+  /* Sound browser */
+  app-studio .sb-filter-chip,
+  app-studio .sb-fav-btn span,
+  app-studio .sb-pack-filter-btn span,
+  app-studio .sb-packs-count,
+  app-studio .sb-packs-subtitle,
+  app-studio .sb-pack-chip-meta,
+  /* Sound pad / synth / chord editor / sampler / score / plugins / recorder */
+  app-studio .spg-kpi-label,
+  app-studio .synth-patch-name,
+  app-studio .synth-patch-desc,
+  app-studio .synth-mode-toggle span,
+  app-studio .section-hint,
+  app-studio .wave-btn-desc,
+  app-studio .adsr-label,
+  app-studio .adsr-val,
+  app-studio .lfo-wave-label,
+  app-studio .ce-badge,
+  app-studio .ce-chip,
+  app-studio .ce-action-btn,
+  app-studio .pr-cc-toggle-btn,
+  app-studio .performance-pad span,
+  app-studio .sampler-mod-label,
+  app-studio .score-ruler-label,
+  app-studio .score-bar-label,
+  app-studio .score-staff-range,
+  app-studio .score-staff-count,
+  app-studio .ps-category,
+  app-studio .ps-version,
+  app-studio .arv-kpi-label,
+  app-studio .arv-meter-label,
+  /* DJ deck console captions */
+  app-studio .deck-name,
+  app-studio .metric-label,
+  app-studio .mini-status span,
+  app-studio .tap-button,
+  app-studio .jog-rail span,
+  app-studio .jog-velocity span,
+  app-studio .transport-button span,
+  app-studio .btn-chrome,
+  app-studio .online-badge,
+  app-studio .channel-id span,
+  app-studio .knob-group .label,
+  app-studio .knob-group label,
+  app-studio .delta-readout span,
+  app-studio .crossfader-head span,
+  app-studio .crossfader-track-labels span,
+  app-studio .performance-tabs button,
+  app-studio .performance-notice,
+  app-studio .bank-label span,
+  app-studio .fx-mode-list button,
+  app-studio .fx-depth span {
+    font-size: 10px !important;
+  }
+
+  /* ── 8. Last touch-row stragglers ───────────────────────── */
+  app-studio .pr-scale-chip,
+  app-studio .transport-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
 /* === Safe-area === */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);

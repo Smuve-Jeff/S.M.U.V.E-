@@ -298,6 +298,10 @@
     flex-basis: 100%;
     justify-content: flex-start;
     padding: 2px 0 1px;
+    /* The transport takes its own full-width row here, so the 42vw cap the
+       base sheet applies (for the shared-row layout) must not win: at 42vw
+       a phone showed ~170px of a 1500px transport rail. */
+    max-width: 100%;
   }
 
   .comp-topbar-right {
@@ -495,6 +499,9 @@
     order: initial;
     flex-basis: auto;
     padding: 0;
+    /* Landscape keeps the single shared row, so the transport goes back to
+       sharing the width with the tool cluster. */
+    max-width: 42vw;
   }
 
   .comp-topbar-tools {
@@ -658,6 +665,49 @@
 
   .comp-canvas {
     scroll-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   DEVICE-TIER VISIBILITY OF THE TOPBAR CONTROLS
+
+   These buttons carry Tailwind's `md:hidden` / `hidden md:grid` utilities,
+   but the utilities never applied: `.comp-icon-btn` sets `display: grid` in
+   the base sheet, and an encapsulated component rule
+   (`.comp-icon-btn[_ngcontent-…]`) outranks a bare utility class. The result
+   was the worst of both tiers — the drawer opener showed on desktop, where
+   it opens a drawer that is not rendered at all (a dead control), and the
+   desktop controls showed up on phones.
+
+   Spelling the tiers out keeps the intent readable and enforced.
+   ============================================================ */
+/* Desktop: the slide-out drawer is mobile-only (uiService.showMobileNav()),
+   and above 1024px the rail covers view navigation, so the drawer opener has
+   nothing to open here. Portrait tablets (769–1024) DO render the drawer and
+   get an explicit opener from the portrait-tablet block, so they are exempt.
+   (`[class~="md:hidden"]` avoids escaping the Tailwind colon and still
+   outranks `.comp-icon-btn[_ngcontent-…]`.) */
+@media (min-width: 1025px) {
+  .comp-shell button[class~='md:hidden'] {
+    display: none;
+  }
+}
+
+/* Phones: the transport strip is the primary surface, so nothing else claims
+   the row. The header collapse control stays — the shell's chrome (transport
+   + tool row + AI band) takes ~29% of a 412x915 screen, so maximizing the
+   canvas is a phone feature, not a desktop one. */
+@media (max-width: 768px) {
+  .comp-shell .comp-icon-btn.comp-header-toggle {
+    display: grid;
+  }
+}
+
+/* Portrait tablets (769–1024px, taller than wide): the drawer renders, so its
+   opener must too — the rule above intentionally stops at 1024px. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .comp-shell button[class~='md:hidden'] {
+    display: grid;
   }
 }
 

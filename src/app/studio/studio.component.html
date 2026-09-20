@@ -1,6 +1,7 @@
 <div
   class="comp-shell"
   [class.comp-compact]="uiService.isCompactMobile()"
+  [class.comp-mobile-nav]="uiService.showMobileNav()"
   [class.comp-header-collapsed]="headerCollapsed()"
   [class.comp-footer-collapsed]="footerCollapsed()"
   [class.comp-stage-live]="isLivePerforming()"
@@ -56,6 +57,8 @@
         (keydown.space)="$event.preventDefault(); toggleProjectMenu()"
         tabindex="0"
         role="button"
+        [attr.aria-expanded]="showProjectMenu()"
+        aria-haspopup="menu"
         [attr.aria-label]="'S.M.U.V.E. Stage — tap to open project menu'"
       >
         <div class="comp-brand-mark" aria-hidden="true">

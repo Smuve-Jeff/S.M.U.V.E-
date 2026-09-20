@@ -1092,3 +1092,13 @@
     grid-template-columns: 60px 40px 50px 1fr;
   }
 }
+
+/* Last in the sheet so it wins the cascade over the 720px/920px blocks
+   (equal specificity, later source order) — the fixed 2/3-column tracks kept
+   every field at ≥135px, and a 412px shell fits only one column: the fifth
+   field spilled 52px past the card edge and its input was half unreachable. */
+@media (max-width: 480px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

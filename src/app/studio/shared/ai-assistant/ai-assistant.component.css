@@ -15,6 +15,14 @@
   border-left: 1px solid var(--espresso-line);
   transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* While closed the panel lives 100% offscreen; without `visibility: hidden`
+     its focusable controls stayed in the tab order (an invisible dialog you
+     could tab into and "operate" blind). Visibility flips only after the
+     slide-out transition finishes, and immediately on open. */
+  visibility: hidden;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s linear 0.3s;
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(61, 53, 42, 0.12);
@@ -28,6 +36,10 @@
 
 .ai-shell-open {
   transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0s;
 }
 
 @media (min-width: 1024px) {
@@ -524,6 +536,12 @@
   .ai-suggest-chip,
   .ai-action-btn {
     transition: none !important;
+  }
+  /* With the transition killed the visibility delay must go too, or the panel
+     stays invisible for 0.3s after every open. */
+  .ai-shell {
+    transition: none !important;
+    visibility: visible;
   }
 }
 
