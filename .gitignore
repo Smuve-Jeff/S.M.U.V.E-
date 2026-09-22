@@ -63,6 +63,25 @@ Thumbs.db
 !.codebuddy/config.json
 server/.env
 
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
+# Python tooling (see requirements-dev.txt)
+.venv/
+.pytest_cache/
+
+# Studio render/test artifacts
+smuve_test_loop.wav
+smuve_master_compressed.wav
+smuve_master_mix.wav
+smuve_master_session.smuve
+smuve_stem_*.wav
+test_sample_loop.wav
+test_stem_*.wav
+test_anthem.smuve
+dsp_reference.json
+
 # Private keys & nested repo/phone clones (never commit)
 private.key
 public.key

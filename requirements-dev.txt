@@ -1,0 +1,5 @@
+# Python-side (DSP engine) development dependencies.
+# The engines need NumPy; the test suite runs on pytest.
+#   python3 -m venv --system-site-packages .venv && .venv/bin/pip install -r requirements-dev.txt
+numpy>=1.24
+pytest>=7.0
