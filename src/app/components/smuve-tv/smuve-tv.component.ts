@@ -1302,6 +1302,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   onMusicPlaying(): void {
     this.consecutiveFailures = 0;
     this.isMusicPlaying.set(true);
+    this.updateMediaSession();
     this.musicError.set(null);
     // On the artist's station the record is the broadcast, so the ON AIR badge
     // and the transport follow it instead of the station bed.
@@ -1320,6 +1321,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   /** A paused player is not playing, so the metadata comes down with it. */
   onMusicPaused(): void {
     this.isMusicPlaying.set(false);
+    this.updateMediaSession();
     if (this.isRadioStation()) this.isPlaying.set(false);
   }
 
@@ -1937,6 +1939,66 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private pauseMusic(): void {
     this.musicRef?.nativeElement.pause();
   }
+
+  /*
+   * ── Media Session — 24/7 background playback on Android Chrome ──
+   *
+   * A browser tab that only plays `<audio>` can be frozen the moment the
+   * user switches apps. Registering the station with the platform's Media
+   * Session does three things: the record's title and artist appear on the
+   * lock screen and notification shade, the shade's play/pause/next controls
+   * drive the rotation, and Chrome keeps the audio process alive while the
+   * tab is backgrounded — which is what makes the "24/7" promise real on a
+   * phone rather than just a loop inside a foreground tab.
+   */
+  private updateMediaSession(): void {
+    const session =
+      (navigator as Navigator & {
+        mediaSession?: MediaSession;
+      }).mediaSession;
+    if (!session) return;
+
+    const track = this.musicTrack();
+    try {
+      if (track) {
+        session.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.artist,
+          album: 'Smuve Jeff Radio',
+        });
+      }
+      session.playbackState = this.isMusicPlaying() ? 'playing' : 'paused';
+    } catch {
+      // Metadata construction can throw on exotic platforms; the rotation
+      // itself never depends on the shade showing anything.
+      return;
+    }
+
+    /* Action handlers are set once: re-assigning them on every track change
+       would churn the platform UI, and the handlers below all read live
+       signals so they never go stale. */
+    if (this.mediaSessionBound) return;
+    this.mediaSessionBound = true;
+    const setHandler = (
+      action: MediaSessionAction,
+      handler: MediaSessionActionHandler,
+    ): void => {
+      try {
+        session.setActionHandler(action, handler);
+      } catch {
+        // An unsupported action simply never shows its button in the shade.
+      }
+    };
+    setHandler('play', () => this.toggleMusic());
+    setHandler('pause', () => this.toggleMusic());
+    setHandler('nexttrack', () => this.advanceRotation());
+    setHandler('previoustrack', () => this.advanceRotation());
+    setHandler('stop', () => this.toggleMusic());
+  }
+
+  /** True once the shade's action handlers have been registered. */
+  private mediaSessionBound = false;
+
 
   private startAudio(): void {
     if (typeof window === 'undefined') return;
