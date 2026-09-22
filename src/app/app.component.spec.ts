@@ -79,6 +79,7 @@ describe('AppComponent', () => {
       toggleChatbot: jest.fn(),
       toggleTheme: jest.fn(),
       toggleScanlines: jest.fn(),
+      togglePerformanceMode: jest.fn(),
     };
     const commandPalette = {
       handleGlobalKey: jest.fn(),
