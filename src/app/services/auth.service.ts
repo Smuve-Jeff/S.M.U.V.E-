@@ -35,6 +35,23 @@ export class AuthService {
   constructor() {}
 
   /**
+   * Storage APIs can exist but still throw in private/restricted contexts.
+   * Probe the exact store before using it so login fails clearly instead of
+   * leaving a partially-authenticated client session.
+   */
+  private canUseStorage(storage: Storage | undefined): storage is Storage {
+    if (!storage) return false;
+    try {
+      const probeKey = '__smuve_storage_probe__';
+      storage.setItem(probeKey, '1');
+      storage.removeItem(probeKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Persist the session, reporting storage rejections instead of throwing:
    * an already-granted login must not crash because the browser blocks
    * sessionStorage (private/restricted mode) or the quota is spent. Returns
@@ -42,7 +59,13 @@ export class AuthService {
    * fragility rather than pass silently.
    */
   private persistSession(user: AuthUser): boolean {
-    if (typeof sessionStorage === 'undefined') return false;
+    if (
+      typeof sessionStorage === 'undefined' ||
+      !this.canUseStorage(sessionStorage)
+    ) {
+      this.logger.warn('AUTH_ALERT: SESSION PERSISTENCE REJECTED BY STORAGE.');
+      return false;
+    }
     const sessionStr =
       JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
     const salted = btoa(
@@ -95,7 +118,11 @@ export class AuthService {
     // Sessions are intentionally stored in sessionStorage, not localStorage.
     // Check the actual store before touching it because private/restricted
     // browser contexts can expose one storage API while denying the other.
-    if (typeof sessionStorage === 'undefined') return;
+    if (
+      typeof sessionStorage === 'undefined' ||
+      !this.canUseStorage(sessionStorage)
+    )
+      return;
     let session: string | null = null;
     try {
       session = sessionStorage.getItem('smuve_auth_session');
@@ -171,7 +198,10 @@ export class AuthService {
     this.logger.info('AUTH_EXECUTION: INITIATING CRYPTOGRAPHIC VALIDATION...');
     const AUTH_FAILURE_DELAY_MS = 1200;
 
-    if (typeof localStorage === 'undefined') {
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
       return {
         success: false,
         message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
@@ -284,7 +314,10 @@ export class AuthService {
   async register(creds: AuthCredentials, artistName: string) {
     this.logger.info('AUTH_EXECUTION: INITIALIZING GENESIS PROTOCOL...');
 
-    if (typeof localStorage === 'undefined') {
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
       return {
         success: false,
         message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',

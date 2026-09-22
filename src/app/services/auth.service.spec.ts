@@ -62,6 +62,25 @@ describe('AuthService', () => {
       throw new Error('storage blocked');
     }) as any);
 
+  /**
+   * Blocks writes under one key namespace only. The capability probe writes a
+   * private probe key, so it passes and the real write is what fails — the
+   * path a full quota or a per-key rejection would actually take.
+   */
+  const blockKeyWrite = (prefix: string) => {
+    const original = Storage.prototype.setItem;
+    jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(function (
+        this: Storage,
+        key: string,
+        value: string
+      ) {
+        if (String(key).startsWith(prefix)) throw new Error('storage blocked');
+        original.call(this, key, value);
+      });
+  };
+
   beforeEach(() => {
     userStore = {
       user: signal<any>(null),
@@ -108,7 +127,7 @@ describe('AuthService', () => {
       'grants access but warns when the session cannot be persisted',
       async () => {
         await seedAccount();
-        blockStorage('setItem');
+        blockKeyWrite('smuve_auth_session');
 
         const result = await service.login({ email: EMAIL, password: PASSWORD });
 
@@ -132,7 +151,7 @@ describe('AuthService', () => {
     it(
       'reports a storage rejection when the account record cannot be written',
       async () => {
-        blockStorage('setItem');
+        blockKeyWrite('smuve_db_user_');
 
         const result = await service.register(
           { email: EMAIL, password: PASSWORD },

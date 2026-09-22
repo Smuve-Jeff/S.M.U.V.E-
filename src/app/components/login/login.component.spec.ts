@@ -26,9 +26,14 @@ describe('LoginComponent', () => {
       resendVerificationCode: jest.fn(),
       establishApiSession: jest.fn(),
     };
+    // Transport failure, as the real client reports it: a typed ApiAuthError
+    // with status 0. A bare `{ status: 0 }` is not what ApiAuthService throws
+    // and would only be swallowed by the catch-all fallback this flow forbids.
     const apiAuthMock = {
-      login: jest.fn().mockRejectedValue({ status: 0 }),
-      register: jest.fn().mockRejectedValue({ status: 0 }),
+      login: jest.fn().mockRejectedValue(new ApiAuthError(0, 'API unavailable')),
+      register: jest.fn().mockRejectedValue(
+        new ApiAuthError(0, 'API unavailable')
+      ),
     };
     const securityMock = {
       isValidRedirectUrl: jest.fn().mockReturnValue(false),

@@ -207,7 +207,8 @@ export class LoginComponent implements OnInit {
     } catch (err) {
       if (
         this.canUseLegacyFallback() &&
-        (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
+        err instanceof ApiAuthError &&
+        this.isLegacyFallbackStatus(err.status)
       ) {
         // Dev only: transport/server failure or a missing endpoint. A real
         // 401 stays a strict denial, and an unexpected legacy-store throw is
@@ -248,7 +249,8 @@ export class LoginComponent implements OnInit {
     } catch (err) {
       if (
         this.canUseLegacyFallback() &&
-        (!(err instanceof ApiAuthError) || this.isLegacyFallbackStatus(err.status))
+        err instanceof ApiAuthError &&
+        this.isLegacyFallbackStatus(err.status)
       ) {
         this.usesApiAuth.set(false);
         try {
