@@ -49,7 +49,7 @@ interface MasteringPreset {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './mastering-suite.component.html',
-  styleUrls: ['./mastering-suite.component.css'],
+  styleUrls: ['./mastering-suite.component.css', '../shared/platform-ux.css'],
 })
 export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private audioEngine = inject(AudioEngineService);

@@ -44,7 +44,7 @@ const MAX_MIDI = 96;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './piano-roll.component.html',
-  styleUrls: ['./piano-roll.component.css'],
+  styleUrls: ['./piano-roll.component.css', '../shared/platform-ux.css'],
 })
 export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);

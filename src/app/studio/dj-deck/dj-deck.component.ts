@@ -67,7 +67,18 @@ const LOOP_PRESET_BEAT_MAX = 32;
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
-  styleUrls: ['./dj-deck.component.css', './dj-booth-refinement.css'],
+  styleUrls: [
+    './dj-deck.component.css',
+    /* Console-grade DJ booth + mixer polish shared with app-mixer.
+       Registered here (not in studio.component.css) because Angular's
+       emulated encapsulation scopes each stylesheet to its own
+       component's template — a parent stylesheet can never reach
+       these elements. Component-specific booth layer stays last so it
+       wins styling ties. */
+    '../subcomponent-refinement.css',
+    './dj-booth-refinement.css',
+    '../shared/platform-ux.css',
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, SwipeContainerComponent],

@@ -14,7 +14,7 @@ import { AudioSessionService, MicChannel } from '../audio-session.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './channel-strip.component.html',
-  styleUrls: ['./channel-strip.component.css'],
+  styleUrls: ['./channel-strip.component.css', '../shared/platform-ux.css'],
 })
 export class ChannelStripComponent implements OnInit, OnDestroy {
   @Input({ required: true }) channel!: MicChannel;

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-stem-controls',
   templateUrl: './stem-controls.component.html',
-  styleUrls: ['./stem-controls.component.scss'],
+  styleUrls: ['./stem-controls.component.scss', '../shared/platform-ux.css'],
   standalone: true,
   imports: [CommonModule],
 })

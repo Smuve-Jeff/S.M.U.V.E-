@@ -15,7 +15,7 @@ import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './sound-browser.component.html',
-  styleUrls: ['./sound-browser.component.css'],
+  styleUrls: ['./sound-browser.component.css', '../shared/platform-ux.css'],
 })
 export class SoundBrowserComponent {
   private static readonly TOUCH_HOLD_MS = 420;

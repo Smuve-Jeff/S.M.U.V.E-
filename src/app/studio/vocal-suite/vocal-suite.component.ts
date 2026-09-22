@@ -45,7 +45,7 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
     UplinkConsoleComponent,
   ],
   templateUrl: './vocal-suite.component.html',
-  styleUrls: ['./vocal-suite.component.css'],
+  styleUrls: ['./vocal-suite.component.css', '../shared/platform-ux.css'],
 })
 export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly uiService = inject(UIService);

@@ -6,6 +6,6 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './clip.component.html',
-  styleUrls: ['./clip.component.css'],
+  styleUrls: ['./clip.component.css', '../shared/platform-ux.css'],
 })
 export class ClipComponent {}

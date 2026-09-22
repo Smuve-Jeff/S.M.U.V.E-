@@ -44,7 +44,7 @@ interface SessionClip {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './session-view.component.html',
-  styleUrls: ['./session-view.component.css'],
+  styleUrls: ['./session-view.component.css', '../shared/platform-ux.css'],
 })
 export class SessionViewComponent implements OnInit, OnDestroy {
   private audioSession = inject(AudioSessionService);

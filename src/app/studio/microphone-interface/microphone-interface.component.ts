@@ -30,7 +30,7 @@ const SPECTRUM_MAX_HZ = 16000;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './microphone-interface.component.html',
-  styleUrls: ['./microphone-interface.component.css'],
+  styleUrls: ['./microphone-interface.component.css', '../shared/platform-ux.css'],
 })
 export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   private readonly audioSession = inject(AudioSessionService);

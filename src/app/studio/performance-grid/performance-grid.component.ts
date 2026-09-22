@@ -12,7 +12,7 @@ import { HapticService } from '../../services/haptic.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './performance-grid.component.html',
-  styleUrls: ['./performance-grid.component.css'],
+  styleUrls: ['./performance-grid.component.css', '../shared/platform-ux.css'],
 })
 export class PerformanceGridComponent implements OnInit, OnDestroy {
   private musicManager = inject(MusicManagerService);

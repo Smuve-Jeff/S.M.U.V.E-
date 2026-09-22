@@ -15,7 +15,7 @@ import { WaveformRendererComponent } from '../waveform-renderer/waveform-rendere
   standalone: true,
   imports: [CommonModule, WaveformRendererComponent],
   templateUrl: './recording-waveform.component.html',
-  styleUrls: ['./recording-waveform.component.css'],
+  styleUrls: ['./recording-waveform.component.css', '../shared/platform-ux.css'],
 })
 export class RecordingWaveformComponent implements OnDestroy {
   private readonly recordingEngine = inject(StudioRecordingEngineService);

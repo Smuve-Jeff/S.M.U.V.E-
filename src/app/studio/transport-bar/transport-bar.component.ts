@@ -29,7 +29,7 @@ import { HistoryService } from '../../services/history.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './transport-bar.component.html',
-  styleUrls: ['./transport-bar.component.css'],
+  styleUrls: ['./transport-bar.component.css', '../shared/platform-ux.css'],
 })
 export class TransportBarComponent {
   private readonly audioSession = inject(AudioSessionService);

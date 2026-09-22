@@ -35,7 +35,7 @@ const VELOCITY_ZONES: { zone: VelocityZone; range: [number, number]; label: stri
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './performance-mode.component.html',
-  styleUrls: ['./performance-mode.component.css'],
+  styleUrls: ['./performance-mode.component.css', '../shared/platform-ux.css'],
 })
 export class PerformanceModeComponent implements OnInit, OnDestroy {
   private haptic = inject(HapticService);

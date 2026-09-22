@@ -21,7 +21,7 @@ import { SnackbarService } from '../../services/snackbar.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './plugin-store.component.html',
-  styleUrls: ['./plugin-store.component.css'],
+  styleUrls: ['./plugin-store.component.css', '../shared/platform-ux.css'],
 })
 export class PluginStoreComponent {
   private pluginStore = inject(PluginStoreService);

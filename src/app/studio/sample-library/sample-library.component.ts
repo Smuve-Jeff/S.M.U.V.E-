@@ -19,7 +19,7 @@ interface LibraryCategory {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './sample-library.component.html',
-  styleUrls: ['./sample-library.component.css'],
+  styleUrls: ['./sample-library.component.css', '../shared/platform-ux.css'],
 })
 export class SampleLibraryComponent implements OnInit {
   private static readonly TOUCH_HOLD_MS = 420;

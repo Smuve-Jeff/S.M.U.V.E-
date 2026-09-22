@@ -46,7 +46,7 @@ type MobileTab = 'osc' | 'env' | 'filter' | 'fx';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './synthesizer.component.html',
-  styleUrls: ['./synthesizer.component.css'],
+  styleUrls: ['./synthesizer.component.css', '../shared/platform-ux.css'],
 })
 export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   private logger = inject(LoggingService);

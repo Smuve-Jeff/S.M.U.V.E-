@@ -10,8 +10,11 @@
 @import url('./shell-panel-polish.css');
 /* ── Design refinement layer 2.1: pro DAW benchmark pass (touch + desktop) ── */
 @import url('./design-refinement.css');
+/* NOTE: subcomponent-refinement.css is intentionally NOT imported here.
+   It styles dj-deck / mixer internals, which emulated view encapsulation
+   keeps out of the shell's reach. It is registered in dj-deck.component.ts
+   and mixer.component.ts styleUrls instead. */
 /* ── Sub-component extension: DJ booth + mixer refinement pass ── */
-@import url('./subcomponent-refinement.css');
 
 /* ── PREMIUM AMBIENT BACKGROUND ── */
 :host {

@@ -50,7 +50,7 @@ const STAFF_TOP_BY_SEMITONE = 4.5;
   standalone: true,
   imports: [CommonModule],
   templateUrl: './score-view.component.html',
-  styleUrls: ['./score-view.component.css'],
+  styleUrls: ['./score-view.component.css', '../shared/platform-ux.css'],
 })
 export class ScoreViewComponent {
   readonly musicManager = inject(MusicManagerService);

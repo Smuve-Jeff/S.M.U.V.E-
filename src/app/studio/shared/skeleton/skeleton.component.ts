@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './skeleton.component.html',
-  styleUrls: ['./skeleton.component.css'],
+  styleUrls: ['./skeleton.component.css', '../platform-ux.css'],
 })
 export class SkeletonComponent {
   type = input<'text' | 'card' | 'preset' | 'track' | 'circle'>('text');

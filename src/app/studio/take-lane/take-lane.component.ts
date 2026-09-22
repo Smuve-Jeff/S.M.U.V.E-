@@ -20,7 +20,7 @@ import { HapticService } from '../../services/haptic.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './take-lane.component.html',
-  styleUrls: ['./take-lane.component.css'],
+  styleUrls: ['./take-lane.component.css', '../shared/platform-ux.css'],
 })
 export class TakeLaneComponent {
   /** Track whose take stack this panel displays. */

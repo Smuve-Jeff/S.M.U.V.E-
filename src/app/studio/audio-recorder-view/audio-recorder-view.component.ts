@@ -33,7 +33,7 @@ interface RecordingListEntry {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './audio-recorder-view.component.html',
-  styleUrls: ['./audio-recorder-view.component.css'],
+  styleUrls: ['./audio-recorder-view.component.css', '../shared/platform-ux.css'],
 })
 export class AudioRecorderViewComponent
   implements OnInit, OnDestroy, AfterViewInit

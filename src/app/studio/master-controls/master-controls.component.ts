@@ -18,7 +18,7 @@ import { NotificationService } from '../../services/notification.service';
   standalone: true,
   imports: [CommonModule, GainReductionMeterComponent],
   templateUrl: './master-controls.component.html',
-  styleUrls: ['./master-controls.component.css'],
+  styleUrls: ['./master-controls.component.css', '../shared/platform-ux.css'],
 })
 export class MasterControlsComponent {
   private readonly instrumentService = inject(InstrumentService);

@@ -47,7 +47,7 @@ interface DrumStyle {
   standalone: true,
   imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './drum-machine.component.html',
-  styleUrls: ['./drum-machine.component.css'],
+  styleUrls: ['./drum-machine.component.css', '../shared/platform-ux.css'],
 })
 export class DrumMachineComponent implements OnInit, OnDestroy {
   public musicManager = inject(MusicManagerService);

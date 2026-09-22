@@ -5,7 +5,10 @@
 }
 
 .comp-container {
+  /* 100dvh tracks the Android Chrome URL bar (100vh keeps the stale
+     viewport height and pushes the dock off-screen). */
   min-height: calc(100vh - 120px);
+  min-height: calc(100dvh - 120px);
 }
 
 /* Take card hover effects */

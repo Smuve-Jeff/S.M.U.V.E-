@@ -1,10 +1,13 @@
 /* ============================================================
    S.M.U.V.E. STUDIO — SUB-COMPONENT REFINEMENT EXTENSION 2.1
    Benchmarks: dj-booth (Pioneer-style), mixer (console-grade)
-   Additive only — imported by studio.component.css after the
-   base design-refinement layer. Applies the same press physics,
-   icon optical settings, and focus discipline to the two most
-   instrument-dense sub-components.
+   Additive only — registered in dj-deck.component.ts and
+   mixer.component.ts styleUrls (NOT studio.component.css: emulated
+   view encapsulation scopes every rule to the owning component's
+   template, so a shell-level import could never reach these
+   elements). Applies the same press physics, icon optical
+   settings, and focus discipline to the two most instrument-dense
+   sub-components. Each registrant only matches its own half.
    ============================================================ */
 
 /* ── 1. MATERIAL SYMBOLS OPTICAL SETTINGS — both components ── */

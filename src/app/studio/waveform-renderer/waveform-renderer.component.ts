@@ -17,7 +17,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './waveform-renderer.component.html',
-  styleUrls: ['./waveform-renderer.component.css'],
+  styleUrls: ['./waveform-renderer.component.css', '../shared/platform-ux.css'],
   host: {
     // Only an interactive waveform may claim the gesture; a display-only
     // waveform must stay scrollable on a phone.

@@ -48,7 +48,7 @@ function toFiniteNumber(value: unknown, fallback: number): number {
     DecimalPipe,
   ],
   templateUrl: './performer.component.html',
-  styleUrls: ['./performer.component.css'],
+  styleUrls: ['./performer.component.css', '../shared/platform-ux.css'],
 })
 export class PerformerComponent implements OnDestroy, OnInit {
   public readonly audioSession = inject(AudioSessionService);

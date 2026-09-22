@@ -46,7 +46,7 @@ const NOTE_NAMES = [
   standalone: true,
   imports: [CommonModule, FormsModule, WaveformRendererComponent],
   templateUrl: './sampler.component.html',
-  styleUrls: ['./sampler.component.css'],
+  styleUrls: ['./sampler.component.css', '../shared/platform-ux.css'],
   // KnobComponent available for future ADSR knob UI
 })
 export class SamplerComponent implements AfterViewInit, OnDestroy {

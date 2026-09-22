@@ -5,6 +5,6 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './timeline.component.html',
-  styleUrl: './timeline.component.css',
+  styleUrls: ['./timeline.component.css', '../shared/platform-ux.css'],
 })
 export class TimelineComponent {}

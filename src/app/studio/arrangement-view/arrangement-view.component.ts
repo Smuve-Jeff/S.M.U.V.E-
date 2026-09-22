@@ -42,7 +42,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, TakeLaneComponent],
   templateUrl: './arrangement-view.component.html',
-  styleUrls: ['./arrangement-view.component.css'],
+  styleUrls: ['./arrangement-view.component.css', '../shared/platform-ux.css'],
 })
 export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);

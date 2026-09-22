@@ -19,7 +19,7 @@ const MIN_BARS = 4;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './channel-rack.component.html',
-  styleUrls: ['./channel-rack.component.css'],
+  styleUrls: ['./channel-rack.component.css', '../shared/platform-ux.css'],
 })
 export class ChannelRackComponent {
   public musicManager = inject(MusicManagerService);

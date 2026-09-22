@@ -14,7 +14,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './swipe-container.component.html',
-  styleUrls: ['./swipe-container.component.css'],
+  styleUrls: ['./swipe-container.component.css', '../platform-ux.css'],
 })
 export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   @ViewChild('container', { static: false })

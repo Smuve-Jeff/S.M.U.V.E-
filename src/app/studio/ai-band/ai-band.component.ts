@@ -16,7 +16,7 @@ import { AiMusiciansService } from '../ai-musicians.service';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './ai-band.component.html',
-  styleUrls: ['./ai-band.component.css'],
+  styleUrls: ['./ai-band.component.css', '../shared/platform-ux.css'],
 })
 export class AiBandComponent {
   ai = inject(AiService);

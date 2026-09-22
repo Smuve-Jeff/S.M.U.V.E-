@@ -73,7 +73,7 @@ interface ChatMessage {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './ai-assistant.component.html',
-  styleUrls: ['./ai-assistant.component.css'],
+  styleUrls: ['./ai-assistant.component.css', '../platform-ux.css'],
 })
 export class AiAssistantComponent implements OnInit, AfterViewInit {
   @Input() open = false;

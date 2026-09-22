@@ -15,7 +15,7 @@ export interface SearchResult {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './search-overlay.component.html',
-  styleUrls: ['./search-overlay.component.css'],
+  styleUrls: ['./search-overlay.component.css', '../platform-ux.css'],
 })
 export class SearchOverlayComponent implements OnInit {
   visible = signal(false);

@@ -211,6 +211,10 @@ const THEME_LABEL: Record<AppTheme, string> = {
     './studio.component.css',
     './studio-shell-refinement.css',
     './stage-2.0-atmosphere.css',
+    /* Platform UX layer — Android touch + Chrome desktop ergonomics.
+       Also registered in each interactive instrument's styleUrls
+       (encapsulation keeps shell styles out of child templates). */
+    './shared/platform-ux.css',
   ],
   /* Studio-wide deep responsive refinement (additive layer, see
      DEEP RESPONSIVE REFINEMENT blocks in the subview stylesheets). */

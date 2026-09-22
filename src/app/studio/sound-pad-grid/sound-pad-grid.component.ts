@@ -23,7 +23,7 @@ interface PadSlot {
   standalone: true,
   imports: [CommonModule, SoundPadComponent],
   templateUrl: './sound-pad-grid.component.html',
-  styleUrls: ['./sound-pad-grid.component.css'],
+  styleUrls: ['./sound-pad-grid.component.css', '../shared/platform-ux.css'],
 })
 export class SoundPadGridComponent {
   private instruments = inject(InstrumentsService);

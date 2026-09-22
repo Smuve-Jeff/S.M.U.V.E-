@@ -94,7 +94,7 @@ const FALLBACK_SPEC: FxParamSpec[] = [
   standalone: true,
   imports: [CommonModule, FormsModule, KnobComponent],
   templateUrl: './effects-rack-ui.component.html',
-  styleUrls: ['./effects-rack-ui.component.css'],
+  styleUrls: ['./effects-rack-ui.component.css', '../shared/platform-ux.css'],
 })
 export class EffectsRackUiComponent {
   private musicManager = inject(MusicManagerService);

@@ -32,7 +32,15 @@ interface MeterReadings {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './mixer.component.html',
-  styleUrls: ['./mixer.component.css'],
+  styleUrls: [
+    './mixer.component.css',
+    /* Console-grade mixer polish shared with the DJ booth. Registered
+       here (not in studio.component.css): emulated encapsulation keeps
+       parent styles out of child templates, so the old shell-level
+       import never reached these elements. */
+    '../subcomponent-refinement.css',
+    '../shared/platform-ux.css',
+  ],
 })
 export class MixerComponent implements OnInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);

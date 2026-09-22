@@ -21,7 +21,7 @@ type CompareMode = 'off' | 'a-b' | 'all';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './vocal-comp-view.component.html',
-  styleUrls: ['./vocal-comp-view.component.css'],
+  styleUrls: ['./vocal-comp-view.component.css', '../shared/platform-ux.css'],
 })
 export class VocalCompViewComponent {
   private smartRecording = inject(SmartRecordingService);
