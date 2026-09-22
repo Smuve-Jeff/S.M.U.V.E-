@@ -1,141 +1,88 @@
 """
-S.M.U.V.E- Virtual Synthesizer & Drum Sampler Subsystem
+S.M.U.V.E- Polyphonic Synth & Drum Machine Engine (v2.0)
 Author: Smuve-Jeff Architectural Architecture
-Description: Real-time polyphonic synthesizer voice allocation, multi-waveform 
-             oscillation, ADSR envelope shaping, and drum pad sampler engine.
+Description: Generates multi-waveform synthesizer voices with ADSR envelope shaping 
+             and biquad resonant filter sculpting, alongside drum sampler pads.
 """
 
 import numpy as np
-import uuid
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional
-
-# ==========================================
-# 1. SYNTHESIZER OSCILLATOR & ADSR ENVELOPE
-# ==========================================
-
-class ADSR:
-    def __init__(self, attack: float = 0.01, decay: float = 0.1, sustain: float = 0.7, release: float = 0.3, sample_rate: int = 44100):
-        self.sample_rate = sample_rate
-        self.a_samples = int(attack * sample_rate)
-        self.d_samples = int(decay * sample_rate)
-        self.s_level = sustain
-        self.r_samples = int(release * sample_rate)
-
-    def generate(self, total_samples: int) -> np.ndarray:
-        envelope = np.zeros(total_samples)
-        
-        # Attack phase
-        if self.a_samples > 0:
-            a_end = min(self.a_samples, total_samples)
-            envelope[:a_end] = np.linspace(0.0, 1.0, a_end)
-            
-        # Decay phase
-        d_start = self.a_samples
-        d_end = min(d_start + self.d_samples, total_samples)
-        if d_end > d_start:
-            envelope[d_start:d_end] = np.linspace(1.0, self.s_level, d_end - d_start)
-            
-        # Sustain phase
-        s_start = d_end
-        s_end = max(0, total_samples - self.r_samples)
-        if s_end > s_start:
-            envelope[s_start:s_end] = self.s_level
-            
-        # Release phase
-        r_start = s_end
-        if r_start < total_samples:
-            envelope[r_start:] = np.linspace(self.s_level, 0.0, total_samples - r_start)
-            
-        return envelope
-
+from smuve_filter import BiquadFilter
 
 class SynthesizerVoice:
     def __init__(self, sample_rate: int = 44100):
         self.sample_rate = sample_rate
-        self.adsr = ADSR(sample_rate=sample_rate)
 
     def midi_to_freq(self, midi_note: int) -> float:
+        """Converts a MIDI note number to frequency in Hz."""
         return 440.0 * (2.0 ** ((midi_note - 69) / 12.0))
 
-    def render_note(self, midi_note: int, duration_secs: float, wave_type: str = "saw") -> np.ndarray:
-        total_samples = int(self.sample_rate * duration_secs)
+    def render_note(self, midi_note: int, duration_secs: float = 1.0, wave_type: str = "saw", filter_cutoff: float = 1500.0) -> np.ndarray:
+        """Renders a synth note with oscillator waves, ADSR envelope, and biquad lowpass filtering."""
         freq = self.midi_to_freq(midi_note)
-        t = np.linspace(0, duration_secs, total_samples, endpoint=False)
-        
-        # Generate Waveform
+        num_samples = int(self.sample_rate * duration_secs)
+        t = np.linspace(0, duration_secs, num_samples, endpoint=False)
+
+        # 1. Oscillator Wave Generation
         if wave_type == "sine":
-            wave = np.sin(2 * np.pi * freq * t)
+            osc = np.sin(2.0 * np.pi * freq * t)
         elif wave_type == "square":
-            wave = np.sign(np.sin(2 * np.pi * freq * t))
+            osc = np.sign(np.sin(2.0 * np.pi * freq * t))
         elif wave_type == "triangle":
-            wave = 2.0 * np.abs(2.0 * (t * freq - np.floor(t * freq + 0.5))) - 1.0
-        else:  # Sawtooth default
-            wave = 2.0 * (t * freq - np.floor(0.5 + t * freq))
-            
-        # Apply ADSR Envelope shaping
-        envelope = self.adsr.generate(total_samples)
-        return wave * envelope
+            osc = 2.0 * np.abs(2.0 * (t * freq - np.floor(t * freq + 0.5))) - 1.0
+        else:  # Default to Sawtooth
+            osc = 2.0 * (t * freq - np.floor(0.5 + t * freq))
 
+        # 2. ADSR Envelope (Attack, Decay, Sustain, Release)
+        attack = int(0.05 * self.sample_rate)
+        decay = int(0.1 * self.sample_rate)
+        release = int(0.2 * self.sample_rate)
+        sustain_level = 0.7
 
-# ==========================================
-# 2. DRUM MACHINE & SAMPLER MODULE
-# ==========================================
+        envelope = np.ones(num_samples)
+        # Attack ramp
+        if attack > 0:
+            envelope[:attack] = np.linspace(0.0, 1.0, attack)
+        # Decay ramp
+        if attack + decay < num_samples:
+            envelope[attack:attack + decay] = np.linspace(1.0, sustain_level, decay)
+        # Release fade out
+        if num_samples > release:
+            envelope[-release:] = np.linspace(sustain_level, 0.0, release)
 
-@dataclass
-class DrumPad:
-    pad_id: int
-    name: str
-    sample_buffer: np.ndarray = field(default_factory=lambda: np.zeros(44100))
-    volume: float = 1.0
-    pan: float = 0.0
-    pitch_shift_semitones: float = 0.0
+        shaped_audio = osc * envelope
 
-    def trigger(self) -> np.ndarray:
-        """Triggers the sample audio buffer with volume scaling."""
-        return self.sample_buffer * self.volume
+        # 3. Apply Biquad Resonant Filter
+        filt = BiquadFilter(filter_type="lowpass", cutoff_freq=filter_cutoff, q=2.5, sample_rate=self.sample_rate)
+        filtered_audio = filt.process(shaped_audio)
+
+        return filtered_audio
 
 
 class DrumMachineRack:
     def __init__(self, sample_rate: int = 44100):
         self.sample_rate = sample_rate
-        self.pads: Dict[int, DrumPad] = {}
-        self._initialize_default_pads()
 
-    def _initialize_default_pads(self):
-        # Create 3 default synthesized percussion pads (Kick, Snare, Hi-Hat)
-        t_kick = np.linspace(0, 0.2, int(self.sample_rate * 0.2), endpoint=False)
-        kick_buf = np.sin(2 * np.pi * 120 * np.exp(-15 * t_kick) * t_kick) * np.exp(-10 * t_kick)
-        
-        t_snare = np.linspace(0, 0.2, int(self.sample_rate * 0.2), endpoint=False)
-        snare_buf = np.random.uniform(-1, 1, len(t_snare)) * np.exp(-20 * t_snare)
-        
-        t_hh = np.linspace(0, 0.1, int(self.sample_rate * 0.1), endpoint=False)
-        hh_buf = np.random.uniform(-0.5, 0.5, len(t_hh)) * np.exp(-40 * t_hh)
-        
-        self.pads[1] = DrumPad(pad_id=1, name="Kick 808", sample_buffer=kick_buf)
-        self.pads[2] = DrumPad(pad_id=2, name="Snare 909", sample_buffer=snare_buf)
-        self.pads[3] = DrumPad(pad_id=3, name="Closed Hi-Hat", sample_buffer=hh_buf)
+    def play_pad(self, pad_id: int) -> np.ndarray:
+        """Generates synthetic electronic drum hits based on pad ID."""
+        duration = 0.4
+        num_samples = int(self.sample_rate * duration)
+        t = np.linspace(0, duration, num_samples, endpoint=False)
 
-    def play_pad(self, pad_id: int) -> Optional[np.ndarray]:
-        if pad_id in self.pads:
-            return self.pads[pad_id].trigger()
-        return None
+        if pad_id == 1:  # Punchy Kick Drum (Pitch sweep + exponential decay)
+            freq_sweep = 120.0 * np.exp(-15.0 * t) + 40.0
+            kick = np.sin(2.0 * np.pi * np.cumsum(freq_sweep) / self.sample_rate)
+            envelope = np.exp(-8.0 * t)
+            return kick * envelope
+        elif pad_id == 2:  # Crisp Snare Drum (Tone + White Noise)
+            tone = np.sin(2.0 * np.pi * 200.0 * t) * np.exp(-20.0 * t)
+            noise = np.random.uniform(-1.0, 1.0, num_samples) * np.exp(-15.0 * t)
+            return (tone * 0.5) + (noise * 0.5)
+        elif pad_id == 3:  # Closed Hi-Hat (Filtered high-frequency noise)
+            noise = np.random.uniform(-1.0, 1.0, num_samples)
+            filt = BiquadFilter(filter_type="highpass", cutoff_freq=5000.0, q=1.0, sample_rate=self.sample_rate)
+            hat = filt.process(noise)
+            envelope = np.exp(-40.0 * t)
+            return hat * envelope
+        else:
+            return np.zeros(num_samples)
 
-
-# ==========================================
-# 3. VERIFICATION & TEST RUN
-# ==========================================
-if __name__ == "__main__":
-    print("--- Initializing S.M.U.V.E- Synth & Sampler Engine ---")
-    
-    # Test Synth Voice generation (C4 note, saw wave)
-    synth = SynthesizerVoice()
-    note_buffer = synth.render_note(midi_note=60, duration_secs=1.0, wave_type="saw")
-    print(f"Generated Synth Note Buffer Shape: {note_buffer.shape} | Peak Amplitude: {np.max(np.abs(note_buffer)):.2f}")
-    
-    # Test Drum Machine Sampler
-    drums = DrumMachineRack()
-    kick_output = drums.play_pad(1)
-    print(f"Triggered Drum Pad 'Kick 808' | Buffer Length: {len(kick_output)} samples")
-    print("--- Synthesizer & Sampler Subsystem Operational ---")
