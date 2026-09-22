@@ -151,6 +151,61 @@ describe('PianoRollComponent (canvas editor)', () => {
     });
   });
 
+  describe('grid boundaries', () => {
+    /** Every note must be drawable — outside the range it is invisible and unclickable. */
+    const expectNotesToBeReachable = () => {
+      for (const note of component.notes) {
+        expect(note.pitch).toBeGreaterThanOrEqual(component.minPitch);
+        expect(note.pitch).toBeLessThanOrEqual(component.maxPitch);
+        expect(note.startStep).toBeGreaterThanOrEqual(0);
+        expect(note.startStep).toBeLessThan(component.totalSteps);
+      }
+    };
+
+    it('does not create a note above the canvas', () => {
+      const target = cell(20, 81);
+      component.onPointerDown(pointer(target.x, -5));
+
+      expect(component.notes).toHaveLength(3);
+      expectNotesToBeReachable();
+    });
+
+    it('does not create a note past the last step', () => {
+      const canvas = component.canvasRef.nativeElement;
+      component.onPointerDown(pointer(canvas.width, 200));
+
+      expect(component.notes).toHaveLength(3);
+      expectNotesToBeReachable();
+    });
+
+    it('treats the grid line itself as the start of the velocity lane', () => {
+      const existing = component.notes[0];
+      const x = ROW_OFFSET + existing.startStep * CELL_WIDTH + 2;
+
+      component.onPointerDown(pointer(x, GRID_HEIGHT));
+
+      expect(component.selectedNote).toBe(existing);
+      expect(existing.velocity).toBe(127);
+      expect(component.notes).toHaveLength(3); // no note for the boundary row
+    });
+
+    it('keeps every created note inside the visible range across edge clicks', () => {
+      const canvas = component.canvasRef.nativeElement;
+      const edgeClicks = [
+        [ROW_OFFSET, 0],
+        [ROW_OFFSET, GRID_HEIGHT - 1],
+        [canvas.width, GRID_HEIGHT - 1],
+        [ROW_OFFSET + 5 * CELL_WIDTH, -1],
+      ];
+
+      for (const [x, y] of edgeClicks) {
+        component.onPointerDown(pointer(x, y));
+      }
+
+      expectNotesToBeReachable();
+    });
+  });
+
   describe('velocity lane', () => {
     // The lane starts on the row *below* the grid line (y > gridHeight) and the
     // 1..65 travel maps to velocity 0..127.

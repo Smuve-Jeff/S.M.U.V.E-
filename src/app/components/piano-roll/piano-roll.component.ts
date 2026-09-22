@@ -154,7 +154,8 @@ export class PianoRollComponent implements OnInit {
     const step = Math.floor((x - 60) / this.cellWidth);
     const quantizedStep = Math.floor(step / this.snapGrid) * this.snapGrid;
 
-    if (y > gridHeight) {
+    if (y >= gridHeight) {
+      // Velocity lane: it starts on the grid line itself.
       const clickedNote = this.notes.find(n => 
         quantizedStep >= n.startStep && quantizedStep < n.startStep + n.duration
       );
@@ -166,6 +167,12 @@ export class PianoRollComponent implements OnInit {
     } else {
       const pitchIndex = Math.floor(y / this.cellHeight);
       const clickedPitch = this.maxPitch - pitchIndex;
+
+      // Never create a note that the grid cannot show: above the keyboard, on
+      // the boundary row, or past the last step. Those notes are invisible and
+      // cannot be clicked again to remove them.
+      if (clickedPitch < this.minPitch || clickedPitch > this.maxPitch) return;
+      if (quantizedStep >= this.totalSteps) return;
 
       const existingNote = this.notes.find(n => 
         n.pitch === clickedPitch && quantizedStep >= n.startStep && quantizedStep < n.startStep + n.duration
