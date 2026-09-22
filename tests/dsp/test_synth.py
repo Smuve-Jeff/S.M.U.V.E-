@@ -92,6 +92,17 @@ class TestADSR:
         assert env[attack] == pytest.approx(1.0)
         assert env[attack + decay - 1] == pytest.approx(0.4, abs=1e-3)
 
+    def test_sustain_plateau_holds_the_sustain_level(self, sample_rate):
+        """The held section must stay at the sustain level, not jump back to 1.0."""
+        attack = int(0.01 * sample_rate)
+        decay = int(0.1 * sample_rate)
+        release = int(0.1 * sample_rate)
+        env = SynthesizerVoice(sample_rate)._build_envelope(44100, 0.01, 0.1, 0.4, 0.1)
+
+        plateau = env[attack + decay : 44100 - release]
+        assert plateau.shape[0] > 0
+        np.testing.assert_allclose(plateau, np.full(plateau.shape[0], 0.4), rtol=0.0, atol=1e-12)
+
     def test_release_is_continuous_with_the_level_it_starts_from(self, sample_rate):
         release = int(0.1 * sample_rate)
         env = SynthesizerVoice(sample_rate)._build_envelope(44100, 0.01, 0.1, 0.4, 0.1)
@@ -116,10 +127,32 @@ class TestDrumMachineRack:
 
     @pytest.mark.parametrize("pad", [2, 3])
     def test_noise_pads_produce_signal(self, pad, sample_rate):
-        np.random.seed(0)  # the pads use the global RNG
         out = DrumMachineRack(sample_rate).play_pad(pad)
         assert np.max(np.abs(out)) > 0.0
         assert np.isfinite(out).all()
+
+    @pytest.mark.parametrize("pad", [2, 3])
+    def test_noise_pads_render_reproducibly(self, pad, sample_rate):
+        first = DrumMachineRack(sample_rate, seed=7).play_pad(pad)
+        second = DrumMachineRack(sample_rate, seed=7).play_pad(pad)
+        np.testing.assert_array_equal(first, second)
+
+    def test_different_seeds_produce_different_noise(self, sample_rate):
+        a = DrumMachineRack(sample_rate, seed=1).play_pad(3)
+        b = DrumMachineRack(sample_rate, seed=2).play_pad(3)
+        assert not np.allclose(a, b)
+
+    def test_successive_hits_use_fresh_noise(self, sample_rate):
+        rack = DrumMachineRack(sample_rate, seed=0)
+        assert not np.allclose(rack.play_pad(2), rack.play_pad(2))
+
+    def test_global_numpy_random_state_is_untouched(self, sample_rate):
+        np.random.seed(1234)
+        expected = np.random.random(4)
+
+        np.random.seed(1234)
+        DrumMachineRack(sample_rate).play_pad(2)
+        np.testing.assert_array_equal(np.random.random(4), expected)
 
 
 class TestActivePatchRendering:

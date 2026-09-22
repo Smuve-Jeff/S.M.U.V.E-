@@ -81,11 +81,12 @@ class SynthesizerVoice:
                         sustain_level: float, release_sec: float) -> np.ndarray:
         """Builds a click-free ADSR envelope that scales itself down to fit short notes.
 
-        For long notes this is a textbook ADSR; for notes shorter than
-        attack+decay+release the three stages are proportionally compressed so the
-        release always lands on zero (no truncation discontinuities / clicks).
+        For long notes this is a textbook ADSR (the held region sits at the
+        sustain level); for notes shorter than attack+decay+release the three
+        stages are proportionally compressed so the release always lands on zero
+        (no truncation discontinuities / clicks).
         """
-        envelope = np.ones(num_samples)
+        envelope = np.full(num_samples, sustain_level)
 
         attack = max(1, int(attack_sec * self.sample_rate))
         decay = max(1, int(decay_sec * self.sample_rate))
@@ -103,6 +104,7 @@ class SynthesizerVoice:
         # Attack: 0 -> 1
         end_a = min(attack, num_samples)
         envelope[:end_a] = np.linspace(0.0, 1.0, end_a)
+        # Everything after the decay holds at the sustain level until the release.
 
         # Decay: 1 -> sustain
         end_d = min(attack + decay, num_samples)
@@ -119,8 +121,11 @@ class SynthesizerVoice:
 
 
 class DrumMachineRack:
-    def __init__(self, sample_rate: int = 44100):
+    def __init__(self, sample_rate: int = 44100, seed: int = 0):
         self.sample_rate = sample_rate
+        # Per-rack noise source: noise-based pads render reproducibly for a given
+        # seed without disturbing NumPy's global random state.
+        self.rng = np.random.default_rng(seed)
 
     def play_pad(self, pad_id: int) -> np.ndarray:
         """Generates synthetic electronic drum hits based on pad ID."""
@@ -135,10 +140,10 @@ class DrumMachineRack:
             return kick * envelope
         elif pad_id == 2:  # Snare Drum
             tone = np.sin(2.0 * np.pi * 200.0 * t) * np.exp(-20.0 * t)
-            noise = np.random.uniform(-1.0, 1.0, num_samples) * np.exp(-15.0 * t)
+            noise = self.rng.uniform(-1.0, 1.0, num_samples) * np.exp(-15.0 * t)
             return (tone * 0.5) + (noise * 0.5)
         elif pad_id == 3:  # Hi-Hat
-            noise = np.random.uniform(-1.0, 1.0, num_samples)
+            noise = self.rng.uniform(-1.0, 1.0, num_samples)
             filt = BiquadFilter(filter_type="highpass", cutoff_freq=5000.0, q=1.0, sample_rate=self.sample_rate)
             hat = filt.process(noise)
             envelope = np.exp(-40.0 * t)
