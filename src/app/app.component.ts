@@ -5,7 +5,6 @@ import {
   signal,
   HostListener,
   computed,
-  ErrorHandler,
   DestroyRef,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -90,7 +89,7 @@ interface NavigationGroup {
     ]),
   ],
 })
-export class AppComponent implements ErrorHandler {
+export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
   aiService = inject(AiService);
@@ -180,14 +179,6 @@ export class AppComponent implements ErrorHandler {
         this.notificationService.show('System Offline', 'error', 3000);
       }
     });
-  }
-
-  handleError(error: any): void {
-    console.error('Global Error Handler:', error);
-    this.notificationService.show(
-      'An unexpected error occurred. Please check the console.',
-      'error'
-    );
   }
 
   @HostListener('window:beforeinstallprompt', ['$event'])

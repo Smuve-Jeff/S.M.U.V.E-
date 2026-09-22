@@ -18,24 +18,48 @@ export class PullToRefreshService {
   private isPulling = false;
   private config: PullToRefreshConfig | null = null;
 
+  /*
+   * Stable handler references. `addEventListener(type, this.onTouchStart.bind(this))`
+   * allocates a brand-new function on every call, so the teardown closure was
+   * removing a reference the browser had never seen — every attach/detach cycle
+   * left its listeners live, and a detached element kept driving this service's
+   * shared pull state. Bind once, then add and remove the exact same function.
+   */
+  private readonly handleTouchStart = (e: TouchEvent) => this.onTouchStart(e);
+  private readonly handleTouchMove = (e: TouchEvent) => this.onTouchMove(e);
+  private readonly handleTouchEnd = () => void this.onTouchEnd();
+  private readonly handleTouchCancel = () => this.resetPull();
+
   attach(element: HTMLElement, config: PullToRefreshConfig) {
     this.config = config;
 
-    element.addEventListener('touchstart', this.onTouchStart.bind(this), {
+    element.addEventListener('touchstart', this.handleTouchStart, {
       passive: true,
     });
-    element.addEventListener('touchmove', this.onTouchMove.bind(this), {
+    element.addEventListener('touchmove', this.handleTouchMove, {
       passive: false,
     });
-    element.addEventListener('touchend', this.onTouchEnd.bind(this), {
+    element.addEventListener('touchend', this.handleTouchEnd, {
+      passive: true,
+    });
+    // Android hands the gesture to the browser on an overscroll or a system
+    // gesture takeover: without this the pull stayed half-applied forever.
+    element.addEventListener('touchcancel', this.handleTouchCancel, {
       passive: true,
     });
 
     return () => {
-      element.removeEventListener('touchstart', this.onTouchStart.bind(this));
-      element.removeEventListener('touchmove', this.onTouchMove.bind(this));
-      element.removeEventListener('touchend', this.onTouchEnd.bind(this));
+      element.removeEventListener('touchstart', this.handleTouchStart);
+      element.removeEventListener('touchmove', this.handleTouchMove);
+      element.removeEventListener('touchend', this.handleTouchEnd);
+      element.removeEventListener('touchcancel', this.handleTouchCancel);
+      this.resetPull();
     };
+  }
+
+  private resetPull() {
+    this.isPulling = false;
+    this.pullDistance.set(0);
   }
 
   private onTouchStart(e: TouchEvent) {
