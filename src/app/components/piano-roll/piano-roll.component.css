@@ -1,0 +1,69 @@
+.piano-roll-container {
+  display: flex;
+  flex-direction: column;
+  background: #111;
+  color: #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+  width: 100%;
+  font-family: monospace;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e1e1e;
+  padding: 8px 16px;
+  border-bottom: 1px solid #333;
+}
+
+.title {
+  font-weight: bold;
+  color: #4cc9f0;
+  letter-spacing: 1px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+select {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-danger:disabled {
+  background: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.canvas-viewport {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
+  background: #181818;
+  position: relative;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  cursor: crosshair;
+}

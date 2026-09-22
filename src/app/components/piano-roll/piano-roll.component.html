@@ -1,0 +1,24 @@
+<div class="piano-roll-container">
+  <div class="toolbar">
+    <span class="title">S.M.U.V.E- Piano Roll</span>
+    <div class="controls">
+      <label>Snap Grid: 
+        <select [(ngModel)]="snapGrid" (change)="draw()">
+          <option [value]="1">1/16</option>
+          <option [value]="4">1/4 (Beat)</option>
+          <option [value]="8">1/2</option>
+          <option [value]="16">1 Bar</option>
+        </select>
+      </label>
+      <button class="btn-danger" (click)="deleteSelectedNote()" [disabled]="!selectedNote">Delete Note</button>
+    </div>
+  </div>
+
+  <div class="canvas-viewport">
+    <canvas 
+      #canvasRef 
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)">
+    </canvas>
+  </div>
+</div>
