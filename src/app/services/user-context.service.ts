@@ -16,6 +16,7 @@ export type MainViewMode =
   | 'player'
   | 'dj'
   | 'piano-roll'
+  | 'canvas-piano-roll'
   | 'image-editor'
   | 'video-editor'
   | 'vocal-suite'

@@ -189,6 +189,13 @@ const protectedRoutes: Routes = [
       ),
   },
   {
+    path: 'canvas-piano-roll',
+    loadComponent: () =>
+      import('./components/piano-roll/piano-roll.component').then(
+        (m) => m.PianoRollComponent
+      ),
+  },
+  {
     path: 'mixer',
     loadComponent: () =>
       import('./studio/mixer/mixer.component').then((m) => m.MixerComponent),

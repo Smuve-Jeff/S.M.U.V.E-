@@ -63,7 +63,24 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
       'Compose, edit, and route arrangements with the full rack and mix dock.',
     icon: 'piano',
     category: 'CORE',
-    related: ['studio', 'vocal-suite', 'lyric-editor'],
+    related: [
+      'studio',
+      'canvas-piano-roll',
+      'vocal-suite',
+      'lyric-editor',
+    ],
+  },
+  {
+    mode: 'canvas-piano-roll',
+    routePath: '/canvas-piano-roll',
+    label: 'Canvas Piano Roll',
+    description:
+      'Sketch notes on a lightweight canvas grid with direct velocity editing.',
+    icon: 'piano',
+    category: 'CREATIVE',
+    // Reached from the Piano Roll's related views; no separate hub tile.
+    hidden: true,
+    related: ['piano-roll', 'studio', 'drum-machine'],
   },
   {
     mode: 'mixer',
