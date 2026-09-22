@@ -1,0 +1,295 @@
+/* ============================================================
+   S.M.U.V.E. STUDIO — DESIGN REFINEMENT LAYER 2.1
+   Benchmark: FL Studio Mobile · BandLab · Groovepad · Cubasis
+   Scope: Android touchscreen + Chrome desktop. Additive only —
+   no layout re-flows, no binding changes; pure surface quality.
+   Imported by studio.component.css.
+   ============================================================ */
+
+/* ── 1. DESIGN TOKENS — elevation / radius / motion rhythm ── */
+:host {
+  --ref-radius-sm: 10px;
+  --ref-radius-md: 14px;
+  --ref-radius-lg: 18px;
+  --ref-elev-1: 0 1px 2px rgba(61, 53, 42, 0.06), 0 2px 8px rgba(61, 53, 42, 0.05);
+  --ref-elev-2: 0 4px 14px rgba(61, 53, 42, 0.09), 0 1px 3px rgba(61, 53, 42, 0.06);
+  --ref-elev-3: 0 12px 32px rgba(61, 53, 42, 0.13), 0 2px 6px rgba(61, 53, 42, 0.07);
+  --ref-press-scale: 0.965;
+  --ref-spring: cubic-bezier(0.34, 1.4, 0.44, 1);
+  --ref-glide: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ref-teal-glow: rgba(14, 124, 123, 0.4);
+}
+
+:host-context(.dark-mode),
+:host-context(.focus-mode) {
+  --ref-elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.22);
+  --ref-elev-2: 0 4px 14px rgba(0, 0, 0, 0.36), 0 1px 3px rgba(0, 0, 0, 0.26);
+  --ref-elev-3: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --ref-teal-glow: rgba(43, 160, 156, 0.5);
+}
+
+/* ── 2. PRO ICON RENDERING — Material Symbols optical settings ── */
+.comp-shell .material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+  line-height: 1;
+}
+/* Filled icons read better at small sizes and on the active tab — the
+   FL Mobile pattern of "solid glyph = current state". */
+.comp-tab-active .material-symbols-outlined,
+.comp-rail-active .material-symbols-outlined,
+.comp-drawer-active .material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* ── 3. ACTIVE-VIEW ENTRANCE CHOREOGRAPHY ──
+   Every view canvas animates in once with a 12px rise — the signature
+   transition top mobile DAWs use when switching instruments. */
+@keyframes ref-view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.996);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.comp-canvas > .comp-view {
+  animation: ref-view-enter 0.32s var(--ref-glide) backwards;
+}
+/* Stagger the loading placeholders so deferred views feel intentional */
+.comp-view-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 180px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+.comp-view-loading .material-symbols-outlined {
+  font-size: 28px;
+  color: var(--teal-500);
+  animation: ref-load-bob 1.2s ease-in-out infinite;
+}
+@keyframes ref-load-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── 4. RAIL & BOTTOM DOCK — pro nav quality ── */
+/* Desktop rail: springy hover lift + tactile press */
+.comp-rail-item {
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 200ms var(--ref-spring),
+    box-shadow 200ms ease;
+}
+.comp-rail-item:hover {
+  transform: translateY(-1px);
+}
+.comp-rail-item:active {
+  transform: scale(var(--ref-press-scale));
+}
+.comp-rail-item.comp-rail-active {
+  box-shadow:
+    inset 3px 0 0 var(--stage-teal, var(--teal-500)),
+    0 4px 12px rgba(14, 124, 123, 0.12),
+    0 0 18px rgba(14, 124, 123, 0.08);
+}
+
+/* Mobile bottom dock: FL-style glow beneath the active tab + press dip */
+.comp-tab {
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 200ms var(--ref-spring);
+}
+.comp-tab:active {
+  transform: scale(0.92);
+}
+.comp-tab-active .material-symbols-outlined {
+  filter: drop-shadow(0 0 10px var(--ref-teal-glow));
+}
+.comp-tab-indicator {
+  transition: transform 0.28s var(--ref-glide), opacity 0.2s ease;
+}
+
+/* ── 5. TOUCH PHYSICS — unified press language on phones ── */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  .comp-shell button:active:not(:disabled) {
+    transition-duration: 70ms;
+  }
+  .comp-icon-btn:active {
+    transform: scale(0.9);
+  }
+  .comp-tool-btn:active {
+    transform: scale(0.95);
+  }
+  /* Cards and panels get a soft elevation settle on touch-down */
+  .comp-panel,
+  .comp-drawer {
+    box-shadow: var(--ref-elev-3);
+  }
+  /* Dock keeps clear of the Android gesture bar */
+  .comp-bottombar {
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  }
+}
+
+/* ── 6. PANELS & DRAWERS — glass depth parity ── */
+.comp-panel,
+.comp-drawer {
+  box-shadow: var(--ref-elev-3);
+}
+.comp-panel-header,
+.comp-drawer-header {
+  border-bottom: 1px solid var(--stage-line, rgba(61, 53, 42, 0.14));
+}
+/* Grabber handle at the top of mobile slide-overs — the BandLab sheet cue */
+@media (max-width: 768px) {
+  .comp-panel::before,
+  .comp-drawer::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+}
+
+/* ── 7. BUTTONS & CHIPS — coherent interactive vocabulary ── */
+.comp-tool-btn,
+.comp-icon-btn {
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 200ms var(--ref-spring),
+    box-shadow 200ms ease;
+}
+.comp-icon-btn:hover {
+  transform: translateY(-1px);
+}
+.comp-tool-active,
+.comp-ai-btn {
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.2), 0 0 12px rgba(14, 124, 123, 0.1);
+}
+
+/* Primary actions glow — the "one obvious tap" cue from Groovepad */
+.btn-pro-primary,
+.comp-mobile-start-primary {
+  box-shadow:
+    0 4px 16px rgba(14, 124, 123, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+}
+.btn-pro-primary:active,
+.comp-mobile-start-action:active {
+  transform: scale(0.97);
+}
+
+/* ── 8. DESKTOP CHROME — precision pass ── */
+@media (min-width: 769px) {
+  /* Calm, thin, teal scrollbars in every scroll surface */
+  .comp-shell ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  .comp-shell ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .comp-shell ::-webkit-scrollbar-thumb {
+    background: rgba(14, 124, 123, 0.32);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .comp-shell ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(14, 124, 123, 0.55);
+  }
+
+  /* Hover elevation on canvas & cards — the "desk" lifts to meet you */
+  .comp-canvas {
+    transition: box-shadow 0.25s ease;
+  }
+
+  /* Focus ring: crisp, teal, offset — keyboard-first Chrome quality */
+  .comp-shell button:focus-visible,
+  .comp-shell [role='button']:focus-visible,
+  .comp-shell input:focus-visible,
+  .comp-shell select:focus-visible {
+    outline: 2px solid var(--stage-focus, var(--teal-600, #0b6a69));
+    outline-offset: 2px;
+  }
+}
+
+/* ── 9. TYPE RHYTHM — micro-typography pass ── */
+.comp-brand-name,
+.comp-panel-title,
+.comp-drawer-title,
+.comp-kbd-popover-head {
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+}
+.comp-kbd-key kbd {
+  font-family: var(--font-mono, monospace);
+  border: 1px solid var(--espresso-line, rgba(61, 53, 42, 0.2));
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* ── 10. STATUS PILPS — live surfaces breathe, calm ones rest ── */
+.comp-now-playing {
+  box-shadow: 0 0 0 1px rgba(32, 215, 210, 0.3), 0 0 14px rgba(32, 215, 210, 0.12);
+}
+.comp-arm-audio {
+  animation: ref-arm-attention 2.2s ease-in-out infinite;
+}
+@keyframes ref-arm-attention {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+}
+
+/* ── 11. REDUCED MOTION — full guard ── */
+@media (prefers-reduced-motion: reduce) {
+  .comp-canvas > .comp-view,
+  .comp-view-loading .material-symbols-outlined,
+  .comp-arm-audio {
+    animation: none !important;
+  }
+  .comp-rail-item,
+  .comp-tab,
+  .comp-icon-btn,
+  .comp-tool-btn,
+  .comp-tab-indicator {
+    transition-duration: 0.001ms !important;
+  }
+  .comp-rail-item:hover,
+  .comp-icon-btn:hover {
+    transform: none;
+  }
+}

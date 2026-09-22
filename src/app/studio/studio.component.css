@@ -8,6 +8,8 @@
 @import url('./shared/studio-mobile.css');
 /* ── Sprint 1 follow-up: panel-interior micro-interactions ── */
 @import url('./shell-panel-polish.css');
+/* ── Design refinement layer 2.1: pro DAW benchmark pass (touch + desktop) ── */
+@import url('./design-refinement.css');
 
 /* ── PREMIUM AMBIENT BACKGROUND ── */
 :host {
