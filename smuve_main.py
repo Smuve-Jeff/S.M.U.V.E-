@@ -128,7 +128,8 @@ class SmuveInteractiveStudio:
                 
                 add_mix = input("Add this note to the Mixer Bus? (y/n): ").strip().lower()
                 if add_mix == 'y':
-                    self.mixer.add_track_buffer(f"Synth {wave_type.upper()}", buf, volume=0.85)
+                    wave = self.active_patch.get('wave_type', 'saw')
+                    self.mixer.add_track_buffer(f"Synth {wave.upper()}", buf, volume=0.85)
                     print("[+] Track added to Mixer Bus!")
 
             elif choice == "3":
@@ -298,7 +299,9 @@ class SmuveInteractiveStudio:
                     p_idx = int(input(f"Select preset [1-{len(preset_names)}]: ") or "1") - 1
                     if 0 <= p_idx < len(preset_names):
                         selected_name = preset_names[p_idx]
-                        self.active_patch = self.factory_presets[selected_name]
+                        # Copy, never alias: editing the active patch must not
+                        # rewrite the shared factory catalog.
+                        self.active_patch = dict(self.factory_presets[selected_name])
                         self.active_patch["name"] = selected_name
                         print(f"[+] Loaded Factory Patch: '{selected_name}'")
                         
@@ -321,15 +324,21 @@ class SmuveInteractiveStudio:
 
             elif choice == "14":
                 print("\n--- SAVE CURRENT PATCH TO DISK ---")
-                preset_name = input("Enter Patch Name (e.g., Deep Tech Bass): ").strip() or "Custom Patch"
+                # "Save current patch settings" — start from the active patch so
+                # parameters this editor does not prompt for (ADSR, LFO rate,
+                # drive, bit depth) survive the save, and every prompt defaults
+                # to the current value instead of a hardcoded one.
+                current = self.active_patch
+                preset_name = input("Enter Patch Name (e.g., Deep Tech Bass): ").strip() or current.get("name", "Custom Patch")
                 
-                patch_data = {
-                    "name": preset_name,
-                    "wave_type": input("Enter Waveform (saw/sine/square/triangle) [default: saw]: ").strip() or "saw",
-                    "cutoff_hz": float(input("Enter Filter Cutoff Hz [default: 2000]: ") or "2000"),
-                    "resonance_q": float(input("Enter Filter Q Resonance [default: 4.0]: ") or "4.0"),
-                    "use_lfo": input("Enable LFO modulation? (y/n) [default: y]: ").strip().lower() != "n"
-                }
+                patch_data = dict(current)
+                patch_data["name"] = preset_name
+                patch_data["wave_type"] = input(f"Enter Waveform (saw/sine/square/triangle) [default: {current.get('wave_type', 'saw')}]: ").strip() or current.get("wave_type", "saw")
+                patch_data["cutoff_hz"] = float(input(f"Enter Filter Cutoff Hz [default: {current.get('cutoff_hz', 2000)}]: ") or current.get("cutoff_hz", 2000))
+                patch_data["resonance_q"] = float(input(f"Enter Filter Q Resonance [default: {current.get('resonance_q', 4.0)}]: ") or current.get("resonance_q", 4.0))
+                lfo_default = "y" if current.get("use_lfo", True) else "n"
+                lfo_raw = input(f"Enable LFO modulation? (y/n) [default: {lfo_default}]: ").strip().lower() or lfo_default
+                patch_data["use_lfo"] = lfo_raw != "n"
                 
                 success = self.preset_mgr.save_preset(preset_name, "synth", patch_data)
                 if success:
@@ -365,14 +374,32 @@ class SmuveInteractiveStudio:
                         print("[+] Sample successfully added to Mixer tracks!")
                 
             elif choice == "17":
-                session_data = {
-                    "project_name": "S.M.U.V.E- Master Pro Session v2.8", 
-                    "bpm": self.transport.bpm,
-                    "sequencer_pattern": self.step_pattern.pattern_name,
-                    "active_patch": self.active_patch
-                }
-                success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
-                print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
+                print("\n--- PROJECT SESSION (.smuve) ---")
+                print("1. Save Session")
+                print("2. Load Session")
+                session_choice = input("Select action [1-2]: ").strip()
+                session_file = "smuve_master_session.smuve"
+                
+                if session_choice == "2":
+                    session_data = ProjectManager.load_project(session_file)
+                    if session_data:
+                        if session_data.get("bpm"):
+                            self.transport.bpm = float(session_data["bpm"])
+                            self.arranger.bpm = self.transport.bpm
+                        if session_data.get("sequencer_pattern"):
+                            self.step_pattern.pattern_name = session_data["sequencer_pattern"]
+                        if session_data.get("active_patch"):
+                            self.active_patch = dict(session_data["active_patch"])
+                        print(f"[+] Session loaded from '{session_file}' (BPM {self.transport.bpm}).")
+                else:
+                    session_data = {
+                        "project_name": "S.M.U.V.E- Master Pro Session v2.8", 
+                        "bpm": self.transport.bpm,
+                        "sequencer_pattern": self.step_pattern.pattern_name,
+                        "active_patch": self.active_patch
+                    }
+                    success = ProjectManager.save_project(session_data, session_file)
+                    print(f"[+] Session saved to '{session_file}': {success}")
                 
             elif choice == "18":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
