@@ -5,7 +5,8 @@ Description: Unifies studio workspace, synth engine, step sequencer, song arrang
              transport clock, spatial FX, multi-track mixer, master dynamics compressor, 
              audio sampler, chord generator/arpeggiator, stem exporter, 
              analog saturation, sidechain ducking, 3-band parametric EQ, 
-             stereo chorus modulation, and WAV master rendering into a complete professional mobile DAW.
+             stereo chorus modulation, lo-fi bitcrusher, dynamic automation ramps, 
+             and WAV master rendering into a complete professional mobile DAW (v2.7).
 """
 
 import sys
@@ -28,6 +29,8 @@ from smuve_saturation import SaturationEffect
 from smuve_sidechain import SidechainCompressor
 from smuve_eq import ParametricEQ
 from smuve_modulation import ChorusEffect
+from smuve_bitcrusher import Bitcrusher
+from smuve_automation import ParameterAutomation
 
 class SmuveInteractiveStudio:
     def __init__(self):
@@ -46,7 +49,7 @@ class SmuveInteractiveStudio:
     def interactive_menu(self):
         while True:
             print("\n==================================================")
-            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.6)")
+            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.7)")
             print("==================================================")
             print("1. Trigger Drum Pad & Process Spatial FX")
             print("2. Render Synth Lead Note (LFO Filter Sweep)")
@@ -58,12 +61,14 @@ class SmuveInteractiveStudio:
             print("8. Apply Kick Sidechain Ducking to Target Audio")
             print("9. Apply 3-Band Parametric EQ Shaping")
             print("10. Apply Stereo Chorus & Modulation Width")
-            print("11. Export Multi-Track Mixer Stems (.wav)")
-            print("12. Load External WAV Audio Sample / Loop")
-            print("13. Save/Load Project Session (.smuve)")
-            print("14. Exit Studio")
+            print("11. Apply Lo-Fi Bitcrusher & Sample-Rate Reduction")
+            print("12. Create & Apply Dynamic Parameter Automation Ramp")
+            print("13. Export Multi-Track Mixer Stems (.wav)")
+            print("14. Load External WAV Audio Sample / Loop")
+            print("15. Save/Load Project Session (.smuve)")
+            print("16. Exit Studio")
             
-            choice = input("\nSelect an option [1-14]: ").strip()
+            choice = input("\nSelect an option [1-16]: ").strip()
             
             if choice == "1":
                 pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
@@ -113,7 +118,6 @@ class SmuveInteractiveStudio:
                 
                 raw_mix = self.mixer.sum_mix(target_samples=int(self.sample_rate * 3.0))
                 
-                # Apply Master Compressor for studio glue & loudness
                 master_output = self.compressor.process(raw_mix)
                 print(f"[+] Master mix compressed and summed successfully ({len(master_output)} samples).")
                 
@@ -159,8 +163,8 @@ class SmuveInteractiveStudio:
 
             elif choice == "8":
                 print("[*] Applying Sidechain Compression & Ducking...")
-                kick_buf = self.drums.play_pad(1)  # Trigger
-                synth_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)  # Target
+                kick_buf = self.drums.play_pad(1)
+                synth_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
                 
                 thresh = float(input("Enter Threshold in dB (default -15.0): ") or "-15.0")
                 ratio = float(input("Enter Ratio (default 6.0): ") or "6.0")
@@ -207,6 +211,37 @@ class SmuveInteractiveStudio:
                     print("[+] Chorus track added to Mixer Bus!")
 
             elif choice == "11":
+                print("[*] Applying Lo-Fi Bitcrusher & Sample-Rate Decimation...")
+                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                bits = int(input("Enter Bit Depth (1-16, default 8): ") or "8")
+                ds_factor = int(input("Enter Downsample Factor (1-8, default 2): ") or "2")
+                mix_val = float(input("Enter Dry/Wet Mix (default 0.5): ") or "0.5")
+                
+                crusher = Bitcrusher(bit_depth=bits, downsample_factor=ds_factor, mix=mix_val, sample_rate=self.sample_rate)
+                crushed_buf = crusher.process(test_buf)
+                print(f"[+] Bitcrusher applied! Buffer length: {len(crushed_buf)} samples")
+                
+                add_mix = input("Add bitcrushed track to the Mixer Bus? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer("LoFi Synth", crushed_buf, volume=0.9)
+                    print("[+] Bitcrushed track added to Mixer Bus!")
+
+            elif choice == "12":
+                print("[*] Applying Dynamic Parameter Automation Ramp...")
+                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                start_g = float(input("Enter Start Gain (default 0.0): ") or "0.0")
+                end_g = float(input("Enter End Gain (default 1.0): ") or "1.0")
+                curve = input("Enter Curve Type (linear/exponential): ").strip() or "linear"
+                
+                automated_buf = ParameterAutomation.apply_gain_ramp(test_buf, start_gain=start_g, end_gain=end_g, curve_type=curve)
+                print(f"[+] Automation ramp applied! Buffer length: {len(automated_buf)} samples")
+                
+                add_mix = input("Add automated track to the Mixer Bus? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer("Automated Track", automated_buf, volume=0.9)
+                    print("[+] Automated track added to Mixer Bus!")
+
+            elif choice == "13":
                 if not self.mixer.tracks:
                     print("[-] No tracks currently in the Mixer Bus! Run option 5 or add tracks first.")
                 else:
@@ -214,7 +249,7 @@ class SmuveInteractiveStudio:
                     prefix = input("Enter stem filename prefix (default: smuve_stem): ").strip() or "smuve_stem"
                     StemExporter.export_stems(self.mixer.tracks, output_prefix=prefix, sample_rate=self.sample_rate)
 
-            elif choice == "12":
+            elif choice == "14":
                 filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
                 if not filepath:
                     filepath = "smuve_test_loop.wav"
@@ -233,20 +268,20 @@ class SmuveInteractiveStudio:
                         self.mixer.add_track_buffer("External Sample", loaded_audio, volume=0.9)
                         print("[+] Sample successfully added to Mixer tracks!")
                 
-            elif choice == "13":
+            elif choice == "15":
                 session_data = {
-                    "project_name": "S.M.U.V.E- Master Pro Session", 
+                    "project_name": "S.M.U.V.E- Master Pro Session v2.7", 
                     "bpm": self.transport.bpm,
                     "sequencer_pattern": self.step_pattern.pattern_name
                 }
                 success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
                 print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
                 
-            elif choice == "14":
+            elif choice == "16":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
                 break
             else:
-                print("[-] Invalid selection. Please choose between 1 and 14.")
+                print("[-] Invalid selection. Please choose between 1 and 16.")
 
 if __name__ == "__main__":
     studio = SmuveInteractiveStudio()
