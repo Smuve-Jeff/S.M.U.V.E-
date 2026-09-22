@@ -42,9 +42,9 @@
     "qa:sql": "node scripts/repro-500.cjs"
   },
   "dependencies": {
-    "@angular-devkit/build-angular": "21.2.22",
+    "@angular-devkit/build-angular": "21.2.24",
     "@angular/animations": "21.2.22",
-    "@angular/cli": "21.2.22",
+    "@angular/cli": "21.2.24",
     "@angular/common": "21.2.22",
     "@angular/compiler": "21.2.22",
     "@angular/compiler-cli": "21.2.22",
