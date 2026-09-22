@@ -38,27 +38,24 @@ class SongArranger:
             return np.zeros(0)
 
         sec_per_bar = self.seconds_per_bar()
-        
-        # Calculate total duration in samples based on the latest ending clip
-        max_end_sample = 0
-        for clip in self.clips:
-            end_bar = clip.start_bar + clip.length_bars
-            end_sample = int(end_bar * sec_per_bar * self.sample_rate)
-            if end_sample > max_end_sample:
-                max_end_sample = end_sample
 
-        master_arrangement = np.zeros(max_end_sample)
-
+        # Resolve every clip placement first so the timeline can be allocated
+        # once and each clip summed with a single vectorised slice add.
+        placements = []
+        total_samples = 0
         for clip in self.clips:
             start_sample = int(clip.start_bar * sec_per_bar * self.sample_rate)
-            buf = clip.audio_buffer
-            end_sample = start_sample + len(buf)
+            # A clip reserves its bar length, but a longer buffer still has to fit.
+            bar_end_sample = int((clip.start_bar + clip.length_bars) * sec_per_bar * self.sample_rate)
+            end_sample = max(bar_end_sample, start_sample + len(clip.audio_buffer))
 
-            # Ensure master arrangement buffer is large enough
-            if end_sample > len(master_arrangement):
-                padding = np.zeros(end_sample - len(master_arrangement))
-                master_arrangement = np.concatenate([master_arrangement, padding])
+            placements.append((start_sample, clip.audio_buffer))
+            if end_sample > total_samples:
+                total_samples = end_sample
 
+        master_arrangement = np.zeros(total_samples)
+
+        for start_sample, buf in placements:
             master_arrangement[start_sample:start_sample + len(buf)] += buf
 
         return master_arrangement

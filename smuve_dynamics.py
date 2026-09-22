@@ -5,6 +5,8 @@ Description: Implements a digital feedforward dynamic compressor and peak
              limiter to glue multi-track mixes and add professional studio punch.
 """
 
+import math
+
 import numpy as np
 
 class MasterCompressor:
@@ -20,33 +22,43 @@ class MasterCompressor:
         self.envelope = 0.0
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
-        """Applies dynamic compression sample-by-sample with attack/release ballistics."""
-        output = np.zeros_like(audio_in)
-        
-        for i in range(len(audio_in)):
-            x = audio_in[i]
-            abs_x = abs(x)
-            
+        """Applies dynamic compression sample-by-sample with attack/release ballistics.
+
+        Optimized inner loop (plain Python floats instead of NumPy scalar
+        indexing) computing the exact same envelope follower and gain math.
+        """
+        threshold = self.threshold
+        threshold_db = self.threshold_db
+        ratio_inv = 1.0 / self.ratio
+        attack_coeff = self.attack_coeff
+        release_coeff = self.release_coeff
+        env = self.envelope
+        log10 = math.log10
+
+        out = []
+        append = out.append
+        for x in audio_in.tolist():
+            abs_x = x if x >= 0.0 else -x
+
             # Envelope detector
-            if abs_x > self.envelope:
-                self.envelope = self.attack_coeff * self.envelope + (1.0 - self.attack_coeff) * abs_x
+            if abs_x > env:
+                env = attack_coeff * env + (1.0 - attack_coeff) * abs_x
             else:
-                self.envelope = self.release_coeff * self.envelope + (1.0 - self.release_coeff) * abs_x
-                
+                env = release_coeff * env + (1.0 - release_coeff) * abs_x
+
             # Compute gain reduction if envelope exceeds threshold
-            if self.envelope > self.threshold:
-                env_db = 20.0 * np.log10(max(self.envelope, 1e-6))
-                excess_db = env_db - self.threshold_db
-                compressed_excess_db = excess_db / self.ratio
-                target_db = self.threshold_db + compressed_excess_db
-                target_amplitude = 10.0 ** (target_db / 20.0)
-                gain = target_amplitude / max(self.envelope, 1e-6)
+            if env > threshold:
+                env_safe = env if env > 1e-6 else 1e-6
+                env_db = 20.0 * log10(env_safe)
+                target_db = threshold_db + (env_db - threshold_db) * ratio_inv
+                gain = (10.0 ** (target_db * 0.05)) / env_safe
             else:
                 gain = 1.0
-                
-            output[i] = x * gain
-            
-        return output
+
+            append(x * gain)
+
+        self.envelope = env
+        return np.asarray(out, dtype=audio_in.dtype)
 
 # ==========================================
 # VERIFICATION TEST

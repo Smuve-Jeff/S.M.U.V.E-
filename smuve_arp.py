@@ -45,13 +45,11 @@ class Arpeggiator:
         else:  # Default to 'up'
             base_sequence = sorted_notes
             
-        # Loop pattern across specified steps
-        arp_notes = []
-        for i in range(num_steps):
-            note = base_sequence[i % len(base_sequence)]
-            arp_notes.append(note)
-            
-        return arp_notes
+        # Tile the pattern across the requested number of steps
+        if num_steps <= 0:
+            return []
+
+        return np.resize(np.asarray(base_sequence, dtype=int), num_steps).tolist()
 
 
 # ==========================================

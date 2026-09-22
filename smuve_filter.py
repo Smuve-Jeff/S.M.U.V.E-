@@ -50,20 +50,27 @@ class BiquadFilter:
         self.a2 = a2 / a0
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
-        """Applies the biquad filter sample-by-sample to an audio buffer."""
-        output = np.zeros_like(audio_in)
-        for i in range(len(audio_in)):
-            x0 = audio_in[i]
-            y0 = self.b0 * x0 + self.b1 * self.x1 + self.b2 * self.x2 - self.a1 * self.y1 - self.a2 * self.y2
-            
-            # Update delay line history
-            self.x2 = self.x1
-            self.x1 = x0
-            self.y2 = self.y1
-            self.y1 = y0
-            
-            output[i] = y0
-        return output
+        """Applies the biquad filter sample-by-sample to an audio buffer.
+
+        Optimized inner loop: iterates over plain Python floats (via tolist)
+        instead of NumPy scalar indexing, which is several times faster while
+        computing the exact same difference equation.
+        """
+        b0, b1, b2, a1, a2 = self.b0, self.b1, self.b2, self.a1, self.a2
+        x1, x2, y1, y2 = self.x1, self.x2, self.y1, self.y2
+
+        out = []
+        append = out.append
+        for x0 in audio_in.tolist():
+            y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+            x2 = x1
+            x1 = x0
+            y2 = y1
+            y1 = y0
+            append(y0)
+
+        self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
+        return np.asarray(out, dtype=audio_in.dtype)
 
 # ==========================================
 # VERIFICATION TEST

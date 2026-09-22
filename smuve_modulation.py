@@ -18,38 +18,46 @@ class ChorusEffect:
         self.write_ptr = 0
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
-        """Applies time-varying modulated delay lines to create lush chorus width."""
+        """Applies time-varying modulated delay lines to create lush chorus width.
+
+        Fully vectorised: the modulated read is a gather over a linear view of
+        the delay line. The line is written before it is read and the shortest
+        delay is 5 samples, so a read can never touch a sample that is still to
+        be written - the whole delay is therefore feed-forward and the reads can
+        be resolved in one pass.
+        """
         if len(audio_in) == 0:
             return audio_in
 
-        output = np.zeros_like(audio_in)
         num_samples = len(audio_in)
-        
-        # LFO phase increment for modulation
-        phase_inc = (2.0 * np.pi * self.rate_hz) / self.sample_rate
+        line_len = self.delay_buffer_len
+        write_ptr = self.write_ptr
 
-        for i in range(num_samples):
-            x = audio_in[i]
-            
-            # Write current sample to circular delay buffer
-            self.delay_buffer[self.write_ptr] = x
-            
-            # Sinusoidal LFO modulation curve for delay time
-            lfo_val = (np.sin(i * phase_inc) + 1.0) * 0.5  # Range [0, 1]
-            mod_delay = self.depth_samples * lfo_val + 5.0  # Base offset + modulated depth
-            
-            # Read pointer with fractional interpolation
-            read_ptr = (self.write_ptr - mod_delay) % self.delay_buffer_len
-            idx_low = int(np.floor(read_ptr))
-            idx_high = (idx_low + 1) % self.delay_buffer_len
-            frac = read_ptr - idx_low
-            
-            delayed_sample = (1.0 - frac) * self.delay_buffer[idx_low] + frac * self.delay_buffer[idx_high]
-            
-            # Dry/Wet blend
-            output[i] = (1.0 - self.mix) * x + self.mix * delayed_sample
-            
-            self.write_ptr = (self.write_ptr + 1) % self.delay_buffer_len
+        # Linear (oldest -> newest) view of the circular delay line.
+        history = np.concatenate((self.delay_buffer[write_ptr:], self.delay_buffer[:write_ptr]))
+        line = np.concatenate((history, audio_in))
+
+        # Sinusoidal LFO modulation curve for the delay time.
+        phase_inc = (2.0 * np.pi * self.rate_hz) / self.sample_rate
+        samples = np.arange(num_samples, dtype=np.float64)
+        lfo_val = (np.sin(samples * phase_inc) + 1.0) * 0.5  # Range [0, 1]
+        mod_delay = self.depth_samples * lfo_val + 5.0  # Base offset + modulated depth
+
+        # Read pointer with fractional interpolation into the linear view. A
+        # depth beyond the 100 ms line would point past the newest sample, so
+        # clamp it (the old per-sample loop simply read stale slots there).
+        read_pos = np.clip(line_len + samples - mod_delay, 0.0, line.size - 2.0)
+        idx_low = np.floor(read_pos).astype(np.intp)
+        frac = read_pos - idx_low
+
+        delayed_sample = (1.0 - frac) * line[idx_low] + frac * line[idx_low + 1]
+
+        output = (1.0 - self.mix) * audio_in + self.mix * delayed_sample
+
+        # Retain the most recent `line_len` samples so the next block continues
+        # the same delay line.
+        self.delay_buffer = np.roll(line[-line_len:], (write_ptr + num_samples) % line_len)
+        self.write_ptr = (write_ptr + num_samples) % line_len
 
         return output
 

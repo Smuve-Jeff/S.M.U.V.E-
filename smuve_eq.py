@@ -26,23 +26,28 @@ class ParametricEQ:
         mid_gain = 10.0 ** (self.mid_gain_db / 20.0)
         high_gain = 10.0 ** (self.high_gain_db / 20.0)
 
-        # Simple frequency-band separation using moving average / differential filters as lightweight biquad approximations
+        # Simple frequency-band separation using one-pole filters as lightweight
+        # biquad approximations (optimized inner loops over Python floats).
         # Low Band (approx < 250 Hz)
         alpha_low = 0.15
-        low_band = np.zeros_like(audio_in)
         prev_low = 0.0
-        for i in range(len(audio_in)):
-            prev_low = prev_low + alpha_low * (audio_in[i] - prev_low)
-            low_band[i] = prev_low
+        low_list = []
+        low_append = low_list.append
+        for x in audio_in.tolist():
+            prev_low += alpha_low * (x - prev_low)
+            low_append(prev_low)
+        low_band = np.asarray(low_list, dtype=audio_in.dtype)
 
         # High Band (approx > 4000 Hz via highpass approximation)
         high_band = audio_in - low_band
         alpha_high = 0.6
         prev_high = 0.0
-        filtered_high = np.zeros_like(audio_in)
-        for i in range(len(high_band)):
-            prev_high = prev_high + alpha_high * (high_band[i] - prev_high)
-            filtered_high[i] = prev_high
+        high_list = []
+        high_append = high_list.append
+        for x in high_band.tolist():
+            prev_high += alpha_high * (x - prev_high)
+            high_append(prev_high)
+        filtered_high = np.asarray(high_list, dtype=audio_in.dtype)
 
         # Mid Band (the remaining middle frequencies)
         mid_band = audio_in - low_band - filtered_high

@@ -5,6 +5,8 @@ Description: Implements sidechain ducking where a trigger audio track (e.g., Kic
              automatically compresses a target track (e.g., Synth/Bass) for professional mix breathing.
 """
 
+import math
+
 import numpy as np
 
 class SidechainCompressor:
@@ -29,29 +31,37 @@ class SidechainCompressor:
         output = np.zeros_like(target)
         envelope = 0.0
 
-        for i in range(max_len):
-            abs_trig = abs(trigger[i])
-            
+        threshold = self.threshold
+        threshold_db = self.threshold_db
+        ratio_inv = 1.0 / self.ratio
+        attack_coeff = self.attack_coeff
+        release_coeff = self.release_coeff
+        env = 0.0
+        log10 = math.log10
+
+        out = []
+        append = out.append
+        for x, trig in zip(target.tolist(), trigger.tolist()):
+            abs_trig = trig if trig >= 0.0 else -trig
+
             # Envelope detection on trigger signal
-            if abs_trig > envelope:
-                envelope = self.attack_coeff * envelope + (1.0 - self.attack_coeff) * abs_trig
+            if abs_trig > env:
+                env = attack_coeff * env + (1.0 - attack_coeff) * abs_trig
             else:
-                envelope = self.release_coeff * envelope + (1.0 - self.release_coeff) * abs_trig
-                
+                env = release_coeff * env + (1.0 - release_coeff) * abs_trig
+
             # Compute gain reduction based on trigger envelope exceeding threshold
-            if envelope > self.threshold:
-                env_db = 20.0 * np.log10(max(envelope, 1e-6))
-                excess_db = env_db - self.threshold_db
-                compressed_excess_db = excess_db / self.ratio
-                target_db = self.threshold_db + compressed_excess_db
-                target_amplitude = 10.0 ** (target_db / 20.0)
-                gain = target_amplitude / max(envelope, 1e-6)
+            if env > threshold:
+                env_safe = env if env > 1e-6 else 1e-6
+                env_db = 20.0 * log10(env_safe)
+                target_db = threshold_db + (env_db - threshold_db) * ratio_inv
+                gain = (10.0 ** (target_db * 0.05)) / env_safe
             else:
                 gain = 1.0
-                
-            output[i] = target[i] * gain
-            
-        return output
+
+            append(x * gain)
+
+        return np.asarray(out, dtype=target_audio.dtype)
 
 # ==========================================
 # VERIFICATION TEST

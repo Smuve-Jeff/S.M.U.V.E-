@@ -74,18 +74,37 @@ class DelayEffect:
         self.write_index = 0
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
-        output = np.zeros_like(audio_in)
-        for i in range(len(audio_in)):
-            read_index = (self.write_index - self.delay_samples) % len(self.buffer)
-            delayed_sample = self.buffer[read_index]
-            
+        """Applies the feedback delay line to an audio buffer.
+
+        The line is a recursive comb filter (each read is fed back into the
+        line), so it cannot be expressed as a pure NumPy expression: the inner
+        loop runs on plain Python floats, which avoids the per-sample NumPy
+        scalar indexing that dominated the previous implementation.
+        """
+        # The delay line is short enough to mirror into a plain Python list:
+        # list indexing avoids NumPy scalar boxing inside the recursion.
+        buffer = self.buffer.tolist()
+        buffer_len = len(buffer)
+        write_index = self.write_index
+        delay_samples = self.delay_samples
+        feedback = self.feedback
+        dry = 1.0 - self.mix
+        wet = self.mix
+
+        out = []
+        append = out.append
+        for sample in audio_in.tolist():
+            delayed_sample = buffer[(write_index - delay_samples) % buffer_len]
+
             # Compute wet/dry mix
-            wet_sample = audio_in[i] + (delayed_sample * self.feedback)
-            self.buffer[self.write_index] = wet_sample
-            self.write_index = (self.write_index + 1) % len(self.buffer)
-            
-            output[i] = (1.0 - self.mix) * audio_in[i] + self.mix * delayed_sample
-        return output
+            buffer[write_index] = sample + (delayed_sample * feedback)
+            write_index = (write_index + 1) % buffer_len
+
+            append(dry * sample + wet * delayed_sample)
+
+        self.buffer[:] = buffer
+        self.write_index = write_index
+        return np.asarray(out, dtype=audio_in.dtype)
 
 
 class SimpleReverb:

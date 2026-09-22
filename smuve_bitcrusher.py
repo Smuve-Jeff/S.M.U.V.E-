@@ -26,13 +26,12 @@ class Bitcrusher:
         levels = float(2 ** self.bit_depth)
         quantized = np.round(output * levels) / levels
 
-        # 2. Sample-Rate Decimation (Hold samples for crunch/aliasing)
-        if self.downsample_factor > 1:
-            decimated = np.zeros_like(quantized)
-            for i in range(0, num_samples, self.downsample_factor):
-                chunk_end = min(i + self.downsample_factor, num_samples)
-                decimated[i:chunk_end] = quantized[i]
-            quantized = decimated
+        # 2. Sample-Rate Decimation (hold each sample for `downsample_factor`
+        # steps). Vectorised: repeat the sampled grid and trim the tail instead
+        # of walking the buffer one hold-chunk at a time.
+        factor = self.downsample_factor
+        if factor > 1:
+            quantized = np.repeat(quantized[::factor], factor)[:num_samples]
 
         # Dry/Wet blend
         final_output = (1.0 - self.mix) * audio_in + self.mix * quantized
