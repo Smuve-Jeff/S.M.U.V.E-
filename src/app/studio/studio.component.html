@@ -8,6 +8,7 @@
   [class.comp-stage-fx-off]="!stageFxEnabled()"
   [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
   (keydown)="onShellKeydown($event)"
+  (contextmenu)="onShellContextMenu($event)"
 >
   <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
 

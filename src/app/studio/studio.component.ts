@@ -1412,6 +1412,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Shell contextmenu entry point. The workspace is an instrument, not a
+   * document: the native menu (and the Android long-press callout) must
+   * never cover pads, steps, keys, knobs or faders mid-performance. Yields
+   * to editable fields and links so copy/paste and link actions survive.
+   * Component-level handlers (pads, clip slots) run first via bubbling and
+   * may open their own menus on top of this suppression.
+   */
+  onShellContextMenu(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'input, textarea, select, [contenteditable="true"], [contenteditable=""], a[href]'
+      )
+    ) {
+      return;
+    }
+    event.preventDefault();
+  }
+
+  /**
    * Close the topmost open overlay, if any. Returns true when a surface was
    * dismissed so the caller can stop the event. Order matches z-order:
    * popovers/menus first, then right-slide panels, then the mobile drawer.

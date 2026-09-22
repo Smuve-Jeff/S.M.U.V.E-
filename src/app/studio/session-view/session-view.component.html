@@ -426,6 +426,7 @@
               [style.--slot-color]="clip?.color"
               [style.--clip-velocity]="clip?.velocity ?? 0.85"
               (click)="clip && triggerClip(clip, clip.velocity)"
+              (contextmenu)="$event.preventDefault()"
               (dragover)="onSlotDragOver($event, scene.id, track.id)"
               (dragleave)="onSlotDragLeave()"
               (drop)="onSlotDrop($event, scene.id, track.id)"

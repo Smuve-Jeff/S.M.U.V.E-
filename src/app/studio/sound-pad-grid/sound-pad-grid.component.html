@@ -38,7 +38,7 @@
       [class.spg-cell-empty]="!pad.presetId"
       [class.spg-cell-reassigning]="reassignIndex() === pad.index"
       [style.--pad-color]="pad.color"
-      (contextmenu)="openReassign(pad.index); $event.preventDefault()"
+      (contextmenu)="$event.preventDefault(); openReassign(pad.index)"
       role="gridcell"
       [attr.aria-label]="
         pad.label + (pad.presetId ? '' : ' — empty pad (long-press to assign)')
@@ -49,6 +49,7 @@
         [active]="pad.active"
         [color]="pad.color"
         (padTriggered)="triggerPad(pad.index)"
+        (padLongPressed)="openReassign(pad.index)"
       ></app-sound-pad>
 
       <span

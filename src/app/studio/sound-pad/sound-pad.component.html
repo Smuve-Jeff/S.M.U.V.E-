@@ -3,6 +3,11 @@
   [class.active]="active"
   [style.--pad-color]="color"
   (click)="triggerPad()"
+  (pointerdown)="onPointerDown()"
+  (pointerup)="onPointerUp()"
+  (pointercancel)="onPointerUp()"
+  (pointerleave)="onPointerUp()"
+  (contextmenu)="onContextMenu($event)"
 >
   <span class="sp-label">{{ name }}</span>
 </div>
