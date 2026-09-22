@@ -3,7 +3,8 @@ S.M.U.V.E- Master Application Orchestrator & Interactive CLI Workstation
 Author: Smuve-Jeff Architectural Architecture
 Description: Unifies studio workspace, synth engine, step sequencer, song arranger, 
              transport clock, spatial FX, multi-track mixer, master dynamics compressor, 
-             audio sampler loop loader, and WAV export into a complete professional mobile DAW.
+             audio sampler, chord generator/arpeggiator, stem exporter, 
+             and WAV master rendering into a complete professional mobile DAW.
 """
 
 import sys
@@ -20,6 +21,8 @@ from smuve_export import AudioExporter
 from smuve_arranger import SongArranger
 from smuve_dynamics import MasterCompressor
 from smuve_sampler import AudioSampler
+from smuve_stem_export import StemExporter
+from smuve_arp import ChordGenerator, Arpeggiator
 
 class SmuveInteractiveStudio:
     def __init__(self):
@@ -38,18 +41,20 @@ class SmuveInteractiveStudio:
     def interactive_menu(self):
         while True:
             print("\n==================================================")
-            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.3)")
+            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.4)")
             print("==================================================")
             print("1. Trigger Drum Pad & Process Spatial FX")
             print("2. Render Synth Lead Note (LFO Filter Sweep)")
             print("3. Run 16-Step Grid Sequencer Pattern")
             print("4. Build Multi-Bar Song Arrangement")
             print("5. Run Multi-Track Mix, Master Compression & Export WAV")
-            print("6. Load External WAV Audio Sample / Loop")
-            print("7. Save/Load Project Session (.smuve)")
-            print("8. Exit Studio")
+            print("6. Generate Chord & Arpeggiated Synth Sequence")
+            print("7. Export Multi-Track Mixer Stems (.wav)")
+            print("8. Load External WAV Audio Sample / Loop")
+            print("9. Save/Load Project Session (.smuve)")
+            print("10. Exit Studio")
             
-            choice = input("\nSelect an option [1-8]: ").strip()
+            choice = input("\nSelect an option [1-10]: ").strip()
             
             if choice == "1":
                 pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
@@ -107,6 +112,36 @@ class SmuveInteractiveStudio:
                 AudioExporter.export_to_wav(master_output, filename=filename, sample_rate=self.sample_rate)
 
             elif choice == "6":
+                print("[*] Generating Chord Progression & Arpeggiator Sequence...")
+                root_note = int(input("Enter Root MIDI Note (default 60 = C4): ") or "60")
+                chord_type = input("Enter Chord Type (maj/min/maj7/min7/dom7/sus4): ").strip() or "min7"
+                arp_pattern = input("Enter Arp Pattern (up/down/updown): ").strip() or "updown"
+                
+                chord_notes = ChordGenerator.get_chord_notes(root_note, chord_type)
+                arp_notes = Arpeggiator.generate_arp_sequence(chord_notes, pattern=arp_pattern, num_steps=16)
+                print(f"[+] Generated Chord: {chord_notes} -> Arp Sequence: {arp_notes}")
+                
+                step_dur = 0.15
+                arp_buffer = np.zeros(0)
+                for note in arp_notes:
+                    note_buf = self.synth.render_note(midi_note=note, duration_secs=step_dur, wave_type="saw", use_lfo=True)
+                    arp_buffer = np.concatenate([arp_buffer, note_buf])
+                    
+                print(f"[+] Rendered Arp buffer ({len(arp_buffer)} samples).")
+                add_mix = input("Add this arpeggio sequence to the Mixer Bus tracks? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer("Arp Synth", arp_buffer, volume=0.85)
+                    print("[+] Arp track added to Mixer Bus!")
+
+            elif choice == "7":
+                if not self.mixer.tracks:
+                    print("[-] No tracks currently in the Mixer Bus! Run option 5 or add tracks first.")
+                else:
+                    print("[*] Exporting individual mixer tracks as WAV stems...")
+                    prefix = input("Enter stem filename prefix (default: smuve_stem): ").strip() or "smuve_stem"
+                    StemExporter.export_stems(self.mixer.tracks, output_prefix=prefix, sample_rate=self.sample_rate)
+
+            elif choice == "8":
                 filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
                 if not filepath:
                     filepath = "smuve_test_loop.wav"
@@ -125,7 +160,7 @@ class SmuveInteractiveStudio:
                         self.mixer.add_track_buffer("External Sample", loaded_audio, volume=0.9)
                         print("[+] Sample successfully added to Mixer tracks!")
                 
-            elif choice == "7":
+            elif choice == "9":
                 session_data = {
                     "project_name": "S.M.U.V.E- Master Pro Session", 
                     "bpm": self.transport.bpm,
@@ -134,11 +169,11 @@ class SmuveInteractiveStudio:
                 success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
                 print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
                 
-            elif choice == "8":
+            elif choice == "10":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
                 break
             else:
-                print("[-] Invalid selection. Please choose between 1 and 8.")
+                print("[-] Invalid selection. Please choose between 1 and 10.")
 
 if __name__ == "__main__":
     studio = SmuveInteractiveStudio()
