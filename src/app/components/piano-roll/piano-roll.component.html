@@ -2,6 +2,7 @@
   <div class="toolbar">
     <span class="title">S.M.U.V.E- Piano Roll</span>
     <div class="controls">
+      <button class="btn-transport" (click)="togglePlayback()">{{ playing() ? 'Stop' : 'Play' }}</button>
       <label>Snap Grid: 
         <select [(ngModel)]="snapGrid" (change)="draw()">
           <option [value]="1">1/16</option>

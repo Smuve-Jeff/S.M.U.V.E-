@@ -1,5 +1,20 @@
-import { Component, ElementRef, HostListener, Input, OnInit, ViewChild } from '@angular/core';
+import {
+  Component,
+  effect,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  inject,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  MusicManagerService,
+  TrackNote,
+} from '../../services/music-manager.service';
 
 export interface Note {
   id: string;
@@ -24,6 +39,50 @@ export class PianoRollComponent implements OnInit {
   @Input() totalSteps: number = 64;
   @Input() minPitch: number = 48;
   @Input() maxPitch: number = 84;
+  /** Emits the full note list after every committed edit (create/delete/velocity). */
+  @Output() notesChange = new EventEmitter<Note[]>();
+
+  /**
+   * Edits are project edits: notes live on the selected track through the
+   * history-aware MusicManager helpers, so they persist with the project and
+   * undo/redo like every other note edit in the studio.
+   */
+  public readonly musicManager = inject(MusicManagerService);
+
+  /**
+   * Keep the working copy in step with the bound track — undo/redo, comp
+   * applies and edits made in other views all arrive through `tracks()`.
+   * Unbound (no selected track) the roll keeps its local demo phrase.
+   */
+  private readonly syncEffect = effect(() => {
+    const track = this.musicManager.selectedTrack();
+    if (!track) return;
+    this.syncFromTrack();
+  });
+
+  /** Transport mirrors the engine's play state for the Play/Stop button. */
+  public readonly playing = this.musicManager.engine.isPlaying;
+
+  /** Repaint on transport movement so the playhead follows the music. */
+  private readonly playheadEffect = effect(() => {
+    const isPlaying = this.musicManager.engine.isPlaying();
+    const step = this.musicManager.engine.visualStep();
+    this.draw(isPlaying ? step : null);
+  });
+
+  /**
+   * Play/stop the whole project through the sequencer engine — the roll's
+   * notes are the track's notes, so this plays exactly what is on the grid.
+   */
+  public togglePlayback(): void {
+    const engine = this.musicManager.engine;
+    if (!engine?.start || !engine?.stop) return;
+    if (engine.isPlaying()) {
+      engine.stop();
+    } else {
+      engine.start();
+    }
+  }
   
   public cellWidth: number = 32;
   public cellHeight: number = 20;
@@ -46,7 +105,73 @@ export class PianoRollComponent implements OnInit {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
     this.resizeCanvas();
+    this.syncFromTrack();
     this.draw();
+  }
+
+  private syncFromTrack(): void {
+    const track = this.musicManager.selectedTrack();
+    if (!track) return;
+    const selectedId = this.selectedNote?.id ?? null;
+    this.notes = track.notes.map((n) => this.fromTrackNote(n));
+    this.selectedNote = selectedId
+      ? (this.notes.find((n) => n.id === selectedId) ?? null)
+      : null;
+    this.draw();
+  }
+
+  /** Roll shape ⇄ sequencer `TrackNote` (the sequencer stores velocity 0..1). */
+  private toTrackNote(note: Note): TrackNote {
+    return {
+      id: note.id,
+      midi: note.pitch,
+      step: note.startStep,
+      length: note.duration,
+      velocity: note.velocity / 127,
+    };
+  }
+
+  private fromTrackNote(note: TrackNote): Note {
+    return {
+      id: note.id,
+      pitch: note.midi,
+      startStep: note.step,
+      duration: note.length,
+      velocity: Math.round(note.velocity * 127),
+    };
+  }
+
+  private commitAdd(note: Note): void {
+    this.notes = [...this.notes, note];
+    const track = this.musicManager.selectedTrack();
+    if (track) this.musicManager.addNoteToTrack(track.id, this.toTrackNote(note));
+    this.emitChange();
+    this.audition(note);
+  }
+
+  /**
+   * Audition through the track's synth voice — the same engine call the
+   * sequencer uses, so what you hear when drawing is what playback will do.
+   */
+  private audition(note: Note): void {
+    const engine = this.musicManager.engine;
+    if (!engine?.playSynth) return;
+    const freq = 440 * Math.pow(2, (note.pitch - 69) / 12);
+    const tempo = engine.tempo?.() ?? 120;
+    const seconds = Math.max(0.05, (note.duration * 60) / tempo / 4);
+    const track = this.musicManager.selectedTrack();
+    engine.playSynth(
+      engine.ctx?.currentTime ?? 0,
+      freq,
+      seconds,
+      Math.max(0.05, note.velocity / 127),
+      0,
+      track?.synthParams ?? { type: 'sine' }
+    );
+  }
+
+  private emitChange(): void {
+    this.notesChange.emit([...this.notes]);
   }
 
   private resizeCanvas(): void {
@@ -55,7 +180,7 @@ export class PianoRollComponent implements OnInit {
     canvas.height = (this.maxPitch - this.minPitch + 1) * this.cellHeight + this.velocityLaneHeight;
   }
 
-  public draw(): void {
+  public draw(playheadStep: number | null = null): void {
     if (!this.ctx) return;
     const canvas = this.canvasRef.nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -138,6 +263,24 @@ export class PianoRollComponent implements OnInit {
       this.ctx.arc(velX, velYEnd, 3.5, 0, 2 * Math.PI);
       this.ctx.fill();
     });
+
+    // Playhead paints last so it stays on top of the notes. It spans the
+    // grid and the velocity lane (the lane is painted above).
+    if (
+      playheadStep !== null &&
+      playheadStep >= 0 &&
+      playheadStep < this.totalSteps
+    ) {
+      const x = 60 + playheadStep * this.cellWidth;
+      this.ctx.fillStyle = '#ffb703';
+      this.ctx.fillRect(x - 4, 0, 8, 4);
+      this.ctx.strokeStyle = '#ffb703';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0);
+      this.ctx.lineTo(x, canvas.height);
+      this.ctx.stroke();
+    }
   }
 
   public onPointerDown(event: PointerEvent): void {
@@ -180,6 +323,7 @@ export class PianoRollComponent implements OnInit {
 
       if (existingNote) {
         this.selectedNote = existingNote;
+        this.audition(existingNote);
       } else {
         const newNote: Note = {
           id: Math.random().toString(36).substring(2, 9),
@@ -188,7 +332,7 @@ export class PianoRollComponent implements OnInit {
           duration: Math.max(this.snapGrid, 4),
           velocity: this.defaultVelocity
         };
-        this.notes.push(newNote);
+        this.commitAdd(newNote);
         this.selectedNote = newNote;
       }
       this.isDrawing = true;
@@ -216,6 +360,16 @@ export class PianoRollComponent implements OnInit {
   @HostListener('window:pointerup', ['$event'])
   public onPointerUp(event: PointerEvent): void {
     if (this.activePointerId === event.pointerId) {
+      // One history entry per velocity gesture, not one per pixel.
+      if (this.isEditingVelocity && this.selectedNote) {
+        const track = this.musicManager.selectedTrack();
+        if (track) {
+          this.musicManager.updateNote(track.id, this.selectedNote.id, {
+            velocity: this.selectedNote.velocity / 127,
+          });
+        }
+        this.emitChange();
+      }
       this.isDrawing = false;
       this.isEditingVelocity = false;
       this.activePointerId = null;
@@ -236,8 +390,12 @@ export class PianoRollComponent implements OnInit {
 
   public deleteSelectedNote(): void {
     if (this.selectedNote) {
-      this.notes = this.notes.filter(n => n.id !== this.selectedNote?.id);
+      const id = this.selectedNote.id;
+      this.notes = this.notes.filter(n => n.id !== id);
+      const track = this.musicManager.selectedTrack();
+      if (track) this.musicManager.removeNotes(track.id, [id]);
       this.selectedNote = null;
+      this.emitChange();
       this.draw();
     }
   }

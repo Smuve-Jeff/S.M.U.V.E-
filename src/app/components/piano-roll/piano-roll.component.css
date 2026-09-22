@@ -39,6 +39,20 @@ select {
   border-radius: 4px;
 }
 
+.btn-transport {
+  background: #4cc9f0;
+  color: #06212b;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-transport:hover {
+  background: #6fd7ff;
+}
+
 .btn-danger {
   background: #ef4444;
   color: white;

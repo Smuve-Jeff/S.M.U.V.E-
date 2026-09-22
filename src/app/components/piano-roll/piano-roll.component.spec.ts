@@ -1,5 +1,10 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+import {
+  MusicManagerService,
+  TrackNote,
+} from '../../services/music-manager.service';
 import { PianoRollComponent } from './piano-roll.component';
 
 /** Minimal 2D context: jsdom has no canvas backend, so the component draws into this. */
@@ -22,6 +27,72 @@ function createContextMock() {
   };
 }
 
+interface MockTrack {
+  id: string;
+  name: string;
+  notes: TrackNote[];
+  synthParams?: any;
+}
+
+/**
+ * MusicManager mock whose history-aware helpers really mutate the track
+ * signal, so the component's resync effect behaves like it does in the app.
+ */
+function buildMusicManagerMock() {
+  const tracks = signal<MockTrack[]>([]);
+  const selectedTrackId = signal<string | null>(null);
+  const playSynth = jest.fn();
+  const addNoteToTrack = jest.fn((trackId: string, note: TrackNote) =>
+    tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId ? { ...t, notes: [...t.notes, note] } : t
+      )
+    )
+  );
+  const removeNotes = jest.fn((trackId: string, ids: string[]) =>
+    tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId
+          ? { ...t, notes: t.notes.filter((n) => !ids.includes(n.id)) }
+          : t
+      )
+    )
+  );
+  const updateNote = jest.fn(
+    (trackId: string, noteId: string, patch: Partial<TrackNote>) =>
+      tracks.update((ts) =>
+        ts.map((t) =>
+          t.id === trackId
+            ? {
+                ...t,
+                notes: t.notes.map((n) =>
+                  n.id === noteId ? { ...n, ...patch } : n
+                ),
+              }
+            : t
+        )
+      )
+  );
+  return {
+    tracks,
+    selectedTrackId,
+    selectedTrack: () =>
+      tracks().find((t) => t.id === selectedTrackId()) ?? null,
+    addNoteToTrack,
+    removeNotes,
+    updateNote,
+    engine: {
+      tempo: signal(120),
+      ctx: { currentTime: 0 },
+      playSynth,
+      isPlaying: signal(false),
+      visualStep: signal(0),
+      start: jest.fn(),
+      stop: jest.fn(),
+    },
+  };
+}
+
 describe('PianoRollComponent (canvas editor)', () => {
   // Component geometry defaults.
   const ROW_OFFSET = 60;
@@ -33,6 +104,7 @@ describe('PianoRollComponent (canvas editor)', () => {
   let fixture: ComponentFixture<PianoRollComponent>;
   let component: PianoRollComponent;
   let ctx: ReturnType<typeof createContextMock>;
+  let musicManager: ReturnType<typeof buildMusicManagerMock>;
 
   const pointer = (clientX: number, clientY: number, pointerId = 1) =>
     ({ clientX, clientY, pointerId }) as unknown as PointerEvent;
@@ -49,8 +121,13 @@ describe('PianoRollComponent (canvas editor)', () => {
       .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
 
+    musicManager = buildMusicManagerMock();
+
     await TestBed.configureTestingModule({
       imports: [PianoRollComponent],
+      providers: [
+        { provide: MusicManagerService, useValue: musicManager },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PianoRollComponent);
@@ -269,6 +346,180 @@ describe('PianoRollComponent (canvas editor)', () => {
 
       expect(component.selectedNote).toBeNull();
       expect(component.notes.map((note) => note.velocity)).toEqual([100, 90, 110]);
+    });
+  });
+
+  describe('project binding (selected track)', () => {
+    const trackNote = (over: Partial<TrackNote> = {}): TrackNote => ({
+      id: 'n1',
+      midi: 60,
+      step: 0,
+      length: 4,
+      velocity: 0.8,
+      ...over,
+    });
+
+    /** Select a track carrying the given notes and flush the resync effect. */
+    const bindTrack = (notes: TrackNote[]) => {
+      musicManager.tracks.set([
+        { id: 't1', name: 'Lead', notes, synthParams: { type: 'saw' } },
+      ]);
+      musicManager.selectedTrackId.set('t1');
+      fixture.detectChanges();
+      TestBed.flushEffects();
+    };
+
+    it('loads the selected track\u2019s notes into the grid instead of the demo phrase', () => {
+      bindTrack([
+        trackNote(),
+        trackNote({ id: 'n2', midi: 64, step: 4, length: 2, velocity: 0.5 }),
+      ]);
+
+      expect(component.notes).toEqual([
+        { id: 'n1', pitch: 60, startStep: 0, duration: 4, velocity: 102 },
+        { id: 'n2', pitch: 64, startStep: 4, duration: 2, velocity: 64 },
+      ]);
+    });
+
+    it('writes a created note to the track through the manager', () => {
+      bindTrack([]);
+
+      const target = cell(0, 81);
+      component.onPointerDown(pointer(target.x, target.y));
+
+      expect(musicManager.addNoteToTrack).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({
+          midi: 81,
+          step: 0,
+          length: 4,
+          velocity: 100 / 127,
+        })
+      );
+    });
+
+    it('deletes through the manager', () => {
+      bindTrack([trackNote()]);
+
+      const target = cell(0, 60);
+      component.onPointerDown(pointer(target.x, target.y));
+      component.deleteSelectedNote();
+
+      expect(musicManager.removeNotes).toHaveBeenCalledWith('t1', ['n1']);
+    });
+
+    it('commits a velocity gesture as a single edit on release', () => {
+      bindTrack([trackNote()]);
+      const x = ROW_OFFSET + 2;
+
+      component.onPointerDown(pointer(x, GRID_HEIGHT + 1));
+      component.onPointerMove(pointer(x, GRID_HEIGHT + 65));
+      expect(musicManager.updateNote).not.toHaveBeenCalled();
+
+      component.onPointerUp(pointer(x, GRID_HEIGHT + 65));
+      expect(musicManager.updateNote).toHaveBeenCalledTimes(1);
+      expect(musicManager.updateNote).toHaveBeenCalledWith('t1', 'n1', {
+        velocity: 0,
+      });
+    });
+
+    it('auditions a created note through the track\u2019s synth voice', () => {
+      bindTrack([]);
+
+      const target = cell(0, 81);
+      component.onPointerDown(pointer(target.x, target.y));
+
+      const freq = 440 * Math.pow(2, (81 - 69) / 12);
+      expect(musicManager.engine.playSynth).toHaveBeenCalledWith(
+        0,
+        freq,
+        0.5, // 4 steps at 120 BPM
+        100 / 127,
+        0,
+        { type: 'saw' }
+      );
+    });
+
+    it('auditions an existing note when it is selected', () => {
+      bindTrack([trackNote()]);
+
+      const target = cell(0, 60);
+      component.onPointerDown(pointer(target.x, target.y));
+
+      const freq = 440 * Math.pow(2, (60 - 69) / 12);
+      expect(musicManager.engine.playSynth).toHaveBeenCalledWith(
+        0,
+        freq,
+        0.5,
+        102 / 127, // 0.8 rounded through the 1..127 lane scale
+        0,
+        { type: 'saw' }
+      );
+    });
+
+    it('resyncs the grid when the track changes under it (undo, comp, other views)', () => {
+      bindTrack([trackNote(), trackNote({ id: 'n2', midi: 64, step: 4 })]);
+
+      musicManager.removeNotes('t1', ['n1']); // external edit
+      TestBed.flushEffects();
+
+      expect(component.notes.map((note) => note.id)).toEqual(['n2']);
+    });
+
+    it('emits the note list on every committed edit', () => {
+      const emitted: number[][] = [];
+      component.notesChange.subscribe((notes) =>
+        emitted.push(notes.map((n) => n.pitch))
+      );
+      bindTrack([]);
+
+      const target = cell(0, 81);
+      component.onPointerDown(pointer(target.x, target.y));
+      component.deleteSelectedNote();
+
+      expect(emitted).toEqual([[81], []]);
+    });
+  });
+
+  describe('transport', () => {
+    it('starts the engine on Play and stops it while running', () => {
+      component.togglePlayback();
+      expect(musicManager.engine.start).toHaveBeenCalled();
+      expect(musicManager.engine.stop).not.toHaveBeenCalled();
+
+      musicManager.engine.isPlaying.set(true);
+      component.togglePlayback();
+      expect(musicManager.engine.stop).toHaveBeenCalled();
+    });
+
+    it('paints the playhead at the current step while playing', () => {
+      musicManager.engine.isPlaying.set(true);
+      musicManager.engine.visualStep.set(4);
+      TestBed.flushEffects();
+
+      const x = ROW_OFFSET + 4 * CELL_WIDTH;
+      expect(ctx.fillRect).toHaveBeenCalledWith(x - 4, 0, 8, 4);
+    });
+
+    it('does not paint a playhead while stopped', () => {
+      musicManager.engine.visualStep.set(4);
+      TestBed.flushEffects();
+
+      const x = ROW_OFFSET + 4 * CELL_WIDTH;
+      expect(ctx.fillRect).not.toHaveBeenCalledWith(x - 4, 0, 8, 4);
+    });
+
+    it('hides the playhead past the last visible step', () => {
+      musicManager.engine.isPlaying.set(true);
+      musicManager.engine.visualStep.set(component.totalSteps + 2);
+      TestBed.flushEffects();
+
+      expect(ctx.fillRect).not.toHaveBeenCalledWith(
+        ROW_OFFSET + (component.totalSteps + 2) * CELL_WIDTH - 4,
+        0,
+        8,
+        4
+      );
     });
   });
 });
