@@ -1,12 +1,13 @@
 """
 S.M.U.V.E- Master Application Orchestrator & Interactive CLI Workstation
 Author: Smuve-Jeff Architectural Architecture
-Description: Unifies studio workspace, synths, step sequencer, song arranger, 
+Description: Unifies studio workspace, synth engine, step sequencer, song arranger, 
              transport clock, spatial FX, multi-track mixer, master dynamics compressor, 
-             and WAV export into a complete professional mobile DAW.
+             audio sampler loop loader, and WAV export into a complete professional mobile DAW.
 """
 
 import sys
+import wave
 import numpy as np
 
 # Import all S.M.U.V.E- Submodules
@@ -18,6 +19,7 @@ from smuve_mixer_bus import MixerBus
 from smuve_export import AudioExporter
 from smuve_arranger import SongArranger
 from smuve_dynamics import MasterCompressor
+from smuve_sampler import AudioSampler
 
 class SmuveInteractiveStudio:
     def __init__(self):
@@ -31,21 +33,23 @@ class SmuveInteractiveStudio:
         self.step_pattern = StepPattern(pattern_name="Main Beat", num_steps=16)
         self.arranger = SongArranger(bpm=self.transport.bpm, sample_rate=self.sample_rate)
         self.compressor = MasterCompressor(threshold_db=-8.0, ratio=4.0, sample_rate=self.sample_rate)
+        self.sampler = AudioSampler(sample_rate=self.sample_rate)
 
     def interactive_menu(self):
         while True:
             print("\n==================================================")
-            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.2)")
+            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.3)")
             print("==================================================")
             print("1. Trigger Drum Pad & Process Spatial FX")
             print("2. Render Synth Lead Note (LFO Filter Sweep)")
             print("3. Run 16-Step Grid Sequencer Pattern")
             print("4. Build Multi-Bar Song Arrangement")
             print("5. Run Multi-Track Mix, Master Compression & Export WAV")
-            print("6. Save/Load Project Session (.smuve)")
-            print("7. Exit Studio")
+            print("6. Load External WAV Audio Sample / Loop")
+            print("7. Save/Load Project Session (.smuve)")
+            print("8. Exit Studio")
             
-            choice = input("\nSelect an option [1-7]: ").strip()
+            choice = input("\nSelect an option [1-8]: ").strip()
             
             if choice == "1":
                 pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
@@ -101,8 +105,27 @@ class SmuveInteractiveStudio:
                 
                 filename = input("Enter output filename (default: smuve_master_compressed.wav): ").strip() or "smuve_master_compressed.wav"
                 AudioExporter.export_to_wav(master_output, filename=filename, sample_rate=self.sample_rate)
-                
+
             elif choice == "6":
+                filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
+                if not filepath:
+                    filepath = "smuve_test_loop.wav"
+                    dummy_data = (np.sin(2.0 * np.pi * 523.25 * np.linspace(0, 1.0, 44100)) * 32767).astype(np.int16)
+                    with wave.open(filepath, 'w') as wf:
+                        wf.setnchannels(1)
+                        wf.setsampwidth(2)
+                        wf.setframerate(44100)
+                        wf.writeframes(dummy_data.tobytes())
+                    print(f"[*] Created test WAV sample '{filepath}'.")
+
+                loaded_audio = self.sampler.load_wav_sample(filepath)
+                if len(loaded_audio) > 0:
+                    add_mix = input("Add this loaded sample as a track in the Mixer Bus? (y/n): ").strip().lower()
+                    if add_mix == 'y':
+                        self.mixer.add_track_buffer("External Sample", loaded_audio, volume=0.9)
+                        print("[+] Sample successfully added to Mixer tracks!")
+                
+            elif choice == "7":
                 session_data = {
                     "project_name": "S.M.U.V.E- Master Pro Session", 
                     "bpm": self.transport.bpm,
@@ -111,11 +134,11 @@ class SmuveInteractiveStudio:
                 success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
                 print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
                 
-            elif choice == "7":
+            elif choice == "8":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
                 break
             else:
-                print("[-] Invalid selection. Please choose between 1 and 7.")
+                print("[-] Invalid selection. Please choose between 1 and 8.")
 
 if __name__ == "__main__":
     studio = SmuveInteractiveStudio()
