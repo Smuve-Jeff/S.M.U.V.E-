@@ -14,7 +14,7 @@
     "start:unified": "node Build/api/server.js",
     "start": "serve -s Build/browser -l tcp://0.0.0.0:${PORT:-4200}",
     "preview": "npm run build && npm run start -- -l 4200",
-    "test": "jest",
+    "test": "NODE_OPTIONS=--max-old-space-size=2048 jest",
     "lint": "eslint src setup-jest.ts",
     "format": "prettier --write .",
     "deploy": "ng build --configuration=ghpages && cp Build/browser/index.html Build/browser/404.html && npx angular-cli-ghpages --dir=Build/browser",
