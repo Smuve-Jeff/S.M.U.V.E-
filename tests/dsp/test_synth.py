@@ -5,7 +5,24 @@ import pytest
 
 from smuve_dynamics import MasterCompressor
 from smuve_main import SmuveInteractiveStudio
+from smuve_preset_manager import PresetManager
 from smuve_synth_engine import DrumMachineRack, SynthesizerVoice
+
+FACTORY_PRESETS = tuple(PresetManager.get_factory_presets())
+
+
+def preset_stage_samples(patch, sample_rate):
+    """Attack, decay and release stage lengths (in samples) for a patch."""
+    return (
+        max(1, int(patch["attack_sec"] * sample_rate)),
+        max(1, int(patch["decay_sec"] * sample_rate)),
+        max(1, int(patch["release_sec"] * sample_rate)),
+    )
+
+
+def patch_duration(patch):
+    """Note length that leaves half a second sitting on the sustain plateau."""
+    return patch["attack_sec"] + patch["decay_sec"] + patch["release_sec"] + 0.5
 
 
 class TestSynthesizerVoice:
@@ -184,6 +201,80 @@ class TestActivePatchRendering:
             return float(np.sqrt(np.mean(buf**2)))
 
         assert rms(render(4000.0)) > rms(render(120.0))
+
+
+class TestFactoryPresetSustain:
+    """Every factory patch must actually hold its own sustain level."""
+
+    @pytest.mark.parametrize("preset_name", FACTORY_PRESETS)
+    def test_envelope_plateau_holds_the_preset_sustain_level(self, preset_name, sample_rate):
+        patch = PresetManager.get_factory_presets()[preset_name]
+        attack, decay, release = preset_stage_samples(patch, sample_rate)
+        num_samples = attack + decay + release + sample_rate // 2
+
+        env = SynthesizerVoice(sample_rate)._build_envelope(
+            num_samples,
+            patch["attack_sec"],
+            patch["decay_sec"],
+            patch["sustain_level"],
+            patch["release_sec"],
+        )
+
+        held = env[attack + decay : num_samples - release]
+        assert held.shape[0] == sample_rate // 2
+        np.testing.assert_allclose(
+            held, np.full(held.shape[0], patch["sustain_level"]), rtol=0.0, atol=1e-12
+        )
+
+    @pytest.mark.parametrize("preset_name", FACTORY_PRESETS)
+    def test_rendered_held_section_scales_with_the_sustain_level(self, preset_name, sample_rate):
+        """Halving the sustain level must halve the held section, not just tickle it.
+
+        Measured before the patch's drive/bit-depth character, because a saturated
+        output level no longer tracks the level it was fed.
+        """
+        patch = PresetManager.get_factory_presets()[preset_name]
+        attack, decay, release = preset_stage_samples(patch, sample_rate)
+        duration = patch_duration(patch)
+
+        def held_rms(sustain_level):
+            voice = SynthesizerVoice(sample_rate)
+            buffer = voice.render_note(
+                60,
+                duration,
+                patch["wave_type"],
+                float(patch["cutoff_hz"]),
+                float(patch["resonance_q"]),
+                float(patch.get("lfo_rate_hz", 2.0)),
+                bool(patch["use_lfo"]),
+                patch["attack_sec"],
+                patch["decay_sec"],
+                sustain_level,
+                patch["release_sec"],
+            )
+            held = buffer[attack + decay : len(buffer) - release]
+            return float(np.sqrt(np.mean(held**2)))
+
+        sustained = held_rms(patch["sustain_level"])
+        full_level = held_rms(1.0)
+
+        assert sustained == pytest.approx(
+            full_level * patch["sustain_level"], rel=0.02
+        )
+
+    @pytest.mark.parametrize("preset_name", FACTORY_PRESETS)
+    def test_preset_notes_release_to_silence(self, preset_name, sample_rate):
+        """No preset may end on a truncated tail (that would click)."""
+        patch = dict(PresetManager.get_factory_presets()[preset_name], name=preset_name)
+        duration = patch_duration(patch)
+
+        studio = SmuveInteractiveStudio()
+        studio.active_patch = patch
+        buffer = studio.render_active_note(60, duration)
+
+        peak = np.max(np.abs(buffer))
+        assert peak > 0.0
+        assert np.max(np.abs(buffer[-128:])) < 0.2 * peak
 
 
 class TestMasterCompressorDtype:
