@@ -6,7 +6,8 @@ Description: Unifies studio workspace, synth engine, step sequencer, song arrang
              audio sampler, chord generator/arpeggiator, stem exporter, 
              analog saturation, sidechain ducking, 3-band parametric EQ, 
              stereo chorus modulation, lo-fi bitcrusher, dynamic automation ramps, 
-             and WAV master rendering into a complete professional mobile DAW (v2.7).
+             synth patch & preset manager, and WAV master rendering into a complete 
+             professional mobile DAW (v2.8).
 """
 
 import sys
@@ -31,6 +32,7 @@ from smuve_eq import ParametricEQ
 from smuve_modulation import ChorusEffect
 from smuve_bitcrusher import Bitcrusher
 from smuve_automation import ParameterAutomation
+from smuve_preset_manager import PresetManager
 
 class SmuveInteractiveStudio:
     def __init__(self):
@@ -45,14 +47,20 @@ class SmuveInteractiveStudio:
         self.arranger = SongArranger(bpm=self.transport.bpm, sample_rate=self.sample_rate)
         self.compressor = MasterCompressor(threshold_db=-8.0, ratio=4.0, sample_rate=self.sample_rate)
         self.sampler = AudioSampler(sample_rate=self.sample_rate)
+        
+        # Preset Management Integration
+        self.preset_mgr = PresetManager()
+        self.factory_presets = PresetManager.get_factory_presets()
+        self.active_patch = self.factory_presets["Warm Saw Lead"]
 
     def interactive_menu(self):
         while True:
             print("\n==================================================")
-            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.7)")
+            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.8)")
+            print(f"   Active Synth Patch: [{self.active_patch.get('wave_type', 'saw').upper()}] {self.active_patch.get('name', 'Custom Patch')}")
             print("==================================================")
             print("1. Trigger Drum Pad & Process Spatial FX")
-            print("2. Render Synth Lead Note (LFO Filter Sweep)")
+            print("2. Render Synth Note with Active Patch")
             print("3. Run 16-Step Grid Sequencer Pattern")
             print("4. Build Multi-Bar Song Arrangement")
             print("5. Run Multi-Track Mix, Master Compression & Export WAV")
@@ -63,12 +71,14 @@ class SmuveInteractiveStudio:
             print("10. Apply Stereo Chorus & Modulation Width")
             print("11. Apply Lo-Fi Bitcrusher & Sample-Rate Reduction")
             print("12. Create & Apply Dynamic Parameter Automation Ramp")
-            print("13. Export Multi-Track Mixer Stems (.wav)")
-            print("14. Load External WAV Audio Sample / Loop")
-            print("15. Save/Load Project Session (.smuve)")
-            print("16. Exit Studio")
+            print("13. Load Factory Synth Patch or Preset (.json)")
+            print("14. Save Current Patch Settings to Preset File")
+            print("15. Export Multi-Track Mixer Stems (.wav)")
+            print("16. Load External WAV Audio Sample / Loop")
+            print("17. Save/Load Project Session (.smuve)")
+            print("18. Exit Studio")
             
-            choice = input("\nSelect an option [1-16]: ").strip()
+            choice = input("\nSelect an option [1-18]: ").strip()
             
             if choice == "1":
                 pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
@@ -83,11 +93,17 @@ class SmuveInteractiveStudio:
             elif choice == "2":
                 note = int(input("Enter MIDI Note Number (default 60 = C4): ") or "60")
                 dur = float(input("Enter Duration in Seconds (default 1.0): ") or "1.0")
-                wave = input("Enter Waveform (saw/sine/square/triangle): ").strip() or "saw"
+                wave_type = self.active_patch.get("wave_type", "saw")
+                use_lfo = self.active_patch.get("use_lfo", True)
                 
-                buf = self.synth.render_note(midi_note=note, duration_secs=dur, wave_type=wave, use_lfo=True)
-                print(f"[+] Rendered LFO-swept '{wave}' synth note at MIDI {note} ({len(buf)} samples)")
+                buf = self.synth.render_note(midi_note=note, duration_secs=dur, wave_type=wave_type, use_lfo=use_lfo)
+                print(f"[+] Rendered '{wave_type}' synth note at MIDI {note} using active patch settings ({len(buf)} samples)")
                 
+                add_mix = input("Add this note to the Mixer Bus? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer(f"Synth {wave_type.upper()}", buf, volume=0.85)
+                    print("[+] Track added to Mixer Bus!")
+
             elif choice == "3":
                 print("[*] Configuring 16-Step Sequencer Pattern...")
                 for step in [0, 4, 8, 12]:
@@ -99,7 +115,7 @@ class SmuveInteractiveStudio:
                 print("[*] Assembling Song Timeline Arrangement...")
                 self.arranger.clips.clear()
                 intro_buffer = self.drums.play_pad(1)  # Kick
-                lead_buffer = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                lead_buffer = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 
                 self.arranger.add_clip("Intro Kick", start_bar=0, length_bars=2, audio_buffer=intro_buffer)
                 self.arranger.add_clip("Lead Melodic Drop", start_bar=4, length_bars=4, audio_buffer=lead_buffer)
@@ -110,14 +126,13 @@ class SmuveInteractiveStudio:
             elif choice == "5":
                 print("[*] Summing multi-track session through mixer bus & compressor...")
                 track1 = self.drums.play_pad(1)  # Kick
-                track2 = self.synth.render_note(midi_note=60, duration_secs=3.0, wave_type="saw", use_lfo=True)
+                track2 = self.synth.render_note(midi_note=60, duration_secs=3.0, wave_type=self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 
                 self.mixer.tracks.clear()
                 self.mixer.add_track_buffer("Drums", track1, volume=1.0)
                 self.mixer.add_track_buffer("Lead Synth", track2, volume=0.8)
                 
                 raw_mix = self.mixer.sum_mix(target_samples=int(self.sample_rate * 3.0))
-                
                 master_output = self.compressor.process(raw_mix)
                 print(f"[+] Master mix compressed and summed successfully ({len(master_output)} samples).")
                 
@@ -136,8 +151,9 @@ class SmuveInteractiveStudio:
                 
                 step_dur = 0.15
                 arp_buffer = np.zeros(0)
+                wave_type = self.active_patch.get("wave_type", "saw")
                 for note in arp_notes:
-                    note_buf = self.synth.render_note(midi_note=note, duration_secs=step_dur, wave_type="saw", use_lfo=True)
+                    note_buf = self.synth.render_note(midi_note=note, duration_secs=step_dur, wave_type=wave_type, use_lfo=True)
                     arp_buffer = np.concatenate([arp_buffer, note_buf])
                     
                 print(f"[+] Rendered Arp buffer ({len(arp_buffer)} samples).")
@@ -148,7 +164,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "7":
                 print("[*] Applying Analog Saturation & Waveshaper Distortion...")
-                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 drive = float(input("Enter Saturation Drive (default 2.5): ") or "2.5")
                 mix_val = float(input("Enter Dry/Wet Mix (0.0 to 1.0, default 0.4): ") or "0.4")
                 
@@ -164,7 +180,7 @@ class SmuveInteractiveStudio:
             elif choice == "8":
                 print("[*] Applying Sidechain Compression & Ducking...")
                 kick_buf = self.drums.play_pad(1)
-                synth_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                synth_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 
                 thresh = float(input("Enter Threshold in dB (default -15.0): ") or "-15.0")
                 ratio = float(input("Enter Ratio (default 6.0): ") or "6.0")
@@ -180,7 +196,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "9":
                 print("[*] Applying 3-Band Parametric EQ Shaping...")
-                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 low_g = float(input("Enter Low Gain in dB (default 0.0): ") or "0.0")
                 mid_g = float(input("Enter Mid Gain in dB (default 0.0): ") or "0.0")
                 high_g = float(input("Enter High Gain in dB (default 0.0): ") or "0.0")
@@ -196,7 +212,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "10":
                 print("[*] Applying Stereo Chorus & Modulation Width...")
-                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 rate = float(input("Enter LFO Rate in Hz (default 1.2): ") or "1.2")
                 depth = float(input("Enter Depth in ms (default 5.0): ") or "5.0")
                 mix_val = float(input("Enter Dry/Wet Mix (default 0.4): ") or "0.4")
@@ -212,7 +228,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "11":
                 print("[*] Applying Lo-Fi Bitcrusher & Sample-Rate Decimation...")
-                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 bits = int(input("Enter Bit Depth (1-16, default 8): ") or "8")
                 ds_factor = int(input("Enter Downsample Factor (1-8, default 2): ") or "2")
                 mix_val = float(input("Enter Dry/Wet Mix (default 0.5): ") or "0.5")
@@ -228,7 +244,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "12":
                 print("[*] Applying Dynamic Parameter Automation Ramp...")
-                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
                 start_g = float(input("Enter Start Gain (default 0.0): ") or "0.0")
                 end_g = float(input("Enter End Gain (default 1.0): ") or "1.0")
                 curve = input("Enter Curve Type (linear/exponential): ").strip() or "linear"
@@ -242,6 +258,59 @@ class SmuveInteractiveStudio:
                     print("[+] Automated track added to Mixer Bus!")
 
             elif choice == "13":
+                print("\n--- SYNTH PATCH & PRESET LOADER ---")
+                print("1. Factory Presets")
+                print("2. User Presets on Disk (.json)")
+                sub_choice = input("Select source [1-2]: ").strip()
+                
+                if sub_choice == "1":
+                    print("\nAvailable Factory Presets:")
+                    preset_names = list(self.factory_presets.keys())
+                    for idx, name in enumerate(preset_names, 1):
+                        print(f"  {idx}. {name}")
+                    
+                    p_idx = int(input(f"Select preset [1-{len(preset_names)}]: ") or "1") - 1
+                    if 0 <= p_idx < len(preset_names):
+                        selected_name = preset_names[p_idx]
+                        self.active_patch = self.factory_presets[selected_name]
+                        self.active_patch["name"] = selected_name
+                        print(f"[+] Loaded Factory Patch: '{selected_name}'")
+                        
+                elif sub_choice == "2":
+                    disk_files = self.preset_mgr.list_presets(category_filter="synth")
+                    if not disk_files:
+                        print("[-] No saved synth presets found in presets/ directory.")
+                    else:
+                        print("\nAvailable Preset Files:")
+                        for idx, fpath in enumerate(disk_files, 1):
+                            print(f"  {idx}. {fpath}")
+                        
+                        f_idx = int(input(f"Select file [1-{len(disk_files)}]: ") or "1") - 1
+                        if 0 <= f_idx < len(disk_files):
+                            loaded_params = self.preset_mgr.load_preset(disk_files[f_idx])
+                            if loaded_params:
+                                self.active_patch = loaded_params
+                                self.active_patch["name"] = os.path.basename(disk_files[f_idx])
+                                print(f"[+] Successfully loaded patch from disk: {disk_files[f_idx]}")
+
+            elif choice == "14":
+                print("\n--- SAVE CURRENT PATCH TO DISK ---")
+                preset_name = input("Enter Patch Name (e.g., Deep Tech Bass): ").strip() or "Custom Patch"
+                
+                patch_data = {
+                    "name": preset_name,
+                    "wave_type": input("Enter Waveform (saw/sine/square/triangle) [default: saw]: ").strip() or "saw",
+                    "cutoff_hz": float(input("Enter Filter Cutoff Hz [default: 2000]: ") or "2000"),
+                    "resonance_q": float(input("Enter Filter Q Resonance [default: 4.0]: ") or "4.0"),
+                    "use_lfo": input("Enable LFO modulation? (y/n) [default: y]: ").strip().lower() != "n"
+                }
+                
+                success = self.preset_mgr.save_preset(preset_name, "synth", patch_data)
+                if success:
+                    self.active_patch = patch_data
+                    print(f"[+] Current active patch set to '{preset_name}'!")
+
+            elif choice == "15":
                 if not self.mixer.tracks:
                     print("[-] No tracks currently in the Mixer Bus! Run option 5 or add tracks first.")
                 else:
@@ -249,7 +318,7 @@ class SmuveInteractiveStudio:
                     prefix = input("Enter stem filename prefix (default: smuve_stem): ").strip() or "smuve_stem"
                     StemExporter.export_stems(self.mixer.tracks, output_prefix=prefix, sample_rate=self.sample_rate)
 
-            elif choice == "14":
+            elif choice == "16":
                 filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
                 if not filepath:
                     filepath = "smuve_test_loop.wav"
@@ -268,22 +337,23 @@ class SmuveInteractiveStudio:
                         self.mixer.add_track_buffer("External Sample", loaded_audio, volume=0.9)
                         print("[+] Sample successfully added to Mixer tracks!")
                 
-            elif choice == "15":
+            elif choice == "17":
                 session_data = {
-                    "project_name": "S.M.U.V.E- Master Pro Session v2.7", 
+                    "project_name": "S.M.U.V.E- Master Pro Session v2.8", 
                     "bpm": self.transport.bpm,
-                    "sequencer_pattern": self.step_pattern.pattern_name
+                    "sequencer_pattern": self.step_pattern.pattern_name,
+                    "active_patch": self.active_patch
                 }
                 success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
                 print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
                 
-            elif choice == "16":
+            elif choice == "18":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
                 break
             else:
-                print("[-] Invalid selection. Please choose between 1 and 16.")
+                print("[-] Invalid selection. Please choose between 1 and 18.")
 
 if __name__ == "__main__":
     studio = SmuveInteractiveStudio()
     studio.interactive_menu()
-
+	
