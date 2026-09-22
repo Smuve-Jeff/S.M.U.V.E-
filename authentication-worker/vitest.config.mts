@@ -1,11 +1,12 @@
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { defineConfig } from 'vitest/config';
 
-export default defineWorkersConfig({
+// Plain Node runner rather than @cloudflare/vitest-pool-workers: workerd ships
+// no Android/arm64 binary (this repo's development host), so a workers-pool
+// suite can never execute here. The worker's fetch handler is pure
+// Request/Response/fetch plumbing, which Node provides natively.
+export default defineConfig({
 	test: {
-		poolOptions: {
-			workers: {
-				wrangler: { configPath: './wrangler.jsonc' },
-			},
-		},
+		environment: 'node',
+		include: ['test/**/*.spec.ts'],
 	},
 });
