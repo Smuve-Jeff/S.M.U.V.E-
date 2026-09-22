@@ -4,8 +4,8 @@ Author: Smuve-Jeff Architectural Architecture
 Description: Unifies studio workspace, synth engine, step sequencer, song arranger, 
              transport clock, spatial FX, multi-track mixer, master dynamics compressor, 
              audio sampler, chord generator/arpeggiator, stem exporter, 
-             analog saturation, sidechain ducking, and WAV master rendering into 
-             a complete professional mobile DAW.
+             analog saturation, sidechain ducking, 3-band parametric EQ, 
+             stereo chorus modulation, and WAV master rendering into a complete professional mobile DAW.
 """
 
 import sys
@@ -26,6 +26,8 @@ from smuve_stem_export import StemExporter
 from smuve_arp import ChordGenerator, Arpeggiator
 from smuve_saturation import SaturationEffect
 from smuve_sidechain import SidechainCompressor
+from smuve_eq import ParametricEQ
+from smuve_modulation import ChorusEffect
 
 class SmuveInteractiveStudio:
     def __init__(self):
@@ -44,7 +46,7 @@ class SmuveInteractiveStudio:
     def interactive_menu(self):
         while True:
             print("\n==================================================")
-            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.5)")
+            print("   S.M.U.V.E- PRO MOBILE DAW WORKSTATION (v2.6)")
             print("==================================================")
             print("1. Trigger Drum Pad & Process Spatial FX")
             print("2. Render Synth Lead Note (LFO Filter Sweep)")
@@ -54,12 +56,14 @@ class SmuveInteractiveStudio:
             print("6. Generate Chord & Arpeggiated Synth Sequence")
             print("7. Apply Analog Saturation / Waveshaper Distortion")
             print("8. Apply Kick Sidechain Ducking to Target Audio")
-            print("9. Export Multi-Track Mixer Stems (.wav)")
-            print("10. Load External WAV Audio Sample / Loop")
-            print("11. Save/Load Project Session (.smuve)")
-            print("12. Exit Studio")
+            print("9. Apply 3-Band Parametric EQ Shaping")
+            print("10. Apply Stereo Chorus & Modulation Width")
+            print("11. Export Multi-Track Mixer Stems (.wav)")
+            print("12. Load External WAV Audio Sample / Loop")
+            print("13. Save/Load Project Session (.smuve)")
+            print("14. Exit Studio")
             
-            choice = input("\nSelect an option [1-12]: ").strip()
+            choice = input("\nSelect an option [1-14]: ").strip()
             
             if choice == "1":
                 pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
@@ -171,6 +175,38 @@ class SmuveInteractiveStudio:
                     print("[+] Ducked track added to Mixer Bus!")
 
             elif choice == "9":
+                print("[*] Applying 3-Band Parametric EQ Shaping...")
+                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                low_g = float(input("Enter Low Gain in dB (default 0.0): ") or "0.0")
+                mid_g = float(input("Enter Mid Gain in dB (default 0.0): ") or "0.0")
+                high_g = float(input("Enter High Gain in dB (default 0.0): ") or "0.0")
+                
+                eq = ParametricEQ(low_gain_db=low_g, mid_gain_db=mid_g, high_gain_db=high_g, sample_rate=self.sample_rate)
+                eq_buf = eq.process(test_buf)
+                print(f"[+] EQ shaping applied successfully! Buffer length: {len(eq_buf)} samples")
+                
+                add_mix = input("Add EQ-shaped track to the Mixer Bus? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer("EQ Synth", eq_buf, volume=0.9)
+                    print("[+] EQ track added to Mixer Bus!")
+
+            elif choice == "10":
+                print("[*] Applying Stereo Chorus & Modulation Width...")
+                test_buf = self.synth.render_note(60, 2.0, "saw", use_lfo=True)
+                rate = float(input("Enter LFO Rate in Hz (default 1.2): ") or "1.2")
+                depth = float(input("Enter Depth in ms (default 5.0): ") or "5.0")
+                mix_val = float(input("Enter Dry/Wet Mix (default 0.4): ") or "0.4")
+                
+                chorus = ChorusEffect(rate_hz=rate, depth_ms=depth, mix=mix_val, sample_rate=self.sample_rate)
+                chorus_buf = chorus.process(test_buf)
+                print(f"[+] Chorus modulation applied successfully! Buffer length: {len(chorus_buf)} samples")
+                
+                add_mix = input("Add chorus track to the Mixer Bus? (y/n): ").strip().lower()
+                if add_mix == 'y':
+                    self.mixer.add_track_buffer("Chorus Synth", chorus_buf, volume=0.9)
+                    print("[+] Chorus track added to Mixer Bus!")
+
+            elif choice == "11":
                 if not self.mixer.tracks:
                     print("[-] No tracks currently in the Mixer Bus! Run option 5 or add tracks first.")
                 else:
@@ -178,7 +214,7 @@ class SmuveInteractiveStudio:
                     prefix = input("Enter stem filename prefix (default: smuve_stem): ").strip() or "smuve_stem"
                     StemExporter.export_stems(self.mixer.tracks, output_prefix=prefix, sample_rate=self.sample_rate)
 
-            elif choice == "10":
+            elif choice == "12":
                 filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
                 if not filepath:
                     filepath = "smuve_test_loop.wav"
@@ -197,7 +233,7 @@ class SmuveInteractiveStudio:
                         self.mixer.add_track_buffer("External Sample", loaded_audio, volume=0.9)
                         print("[+] Sample successfully added to Mixer tracks!")
                 
-            elif choice == "11":
+            elif choice == "13":
                 session_data = {
                     "project_name": "S.M.U.V.E- Master Pro Session", 
                     "bpm": self.transport.bpm,
@@ -206,11 +242,11 @@ class SmuveInteractiveStudio:
                 success = ProjectManager.save_project(session_data, "smuve_master_session.smuve")
                 print(f"[+] Session saved to 'smuve_master_session.smuve': {success}")
                 
-            elif choice == "12":
+            elif choice == "14":
                 print("Exiting S.M.U.V.E- Studio. Keep making beats!")
                 break
             else:
-                print("[-] Invalid selection. Please choose between 1 and 12.")
+                print("[-] Invalid selection. Please choose between 1 and 14.")
 
 if __name__ == "__main__":
     studio = SmuveInteractiveStudio()
