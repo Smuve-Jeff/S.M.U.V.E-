@@ -34,14 +34,27 @@ export class AuthService {
 
   constructor() {}
 
-  private persistSession(user: AuthUser): void {
-    if (typeof sessionStorage === 'undefined') return;
+  /**
+   * Persist the session, reporting storage rejections instead of throwing:
+   * an already-granted login must not crash because the browser blocks
+   * sessionStorage (private/restricted mode) or the quota is spent. Returns
+   * whether the session actually landed so callers can warn about reload
+   * fragility rather than pass silently.
+   */
+  private persistSession(user: AuthUser): boolean {
+    if (typeof sessionStorage === 'undefined') return false;
     const sessionStr =
       JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
     const salted = btoa(
       String.fromCharCode(...new TextEncoder().encode(sessionStr))
     );
-    sessionStorage.setItem('smuve_auth_session', salted);
+    try {
+      sessionStorage.setItem('smuve_auth_session', salted);
+      return true;
+    } catch {
+      this.logger.warn('AUTH_ALERT: SESSION PERSISTENCE REJECTED BY STORAGE.');
+      return false;
+    }
   }
 
   private async deriveKey(password: string, salt: string): Promise<string> {
@@ -256,11 +269,15 @@ export class AuthService {
       btoa(JSON.stringify({ sub: user.id, role: user.role }));
     this.tokenService.setToken(tempToken, 'legacy');
 
-    this.persistSession(user);
+    const persisted = this.persistSession(user);
 
     return {
       success: true,
-      message: `ACCESS GRANTED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.`,
+      message:
+        `ACCESS GRANTED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.` +
+        (persisted
+          ? ''
+          : ' STORAGE REJECTED: THIS SESSION WILL NOT SURVIVE A RELOAD.'),
     };
   }
 
@@ -281,7 +298,19 @@ export class AuthService {
 
     const registrationDelay = 1000 + Math.random() * 500;
 
-    if (localStorage.getItem(`smuve_db_user_${creds.email.toLowerCase()}`)) {
+    let existingUser: string | null;
+    try {
+      existingUser = localStorage.getItem(
+        `smuve_db_user_${creds.email.toLowerCase()}`
+      );
+    } catch {
+      return {
+        success: false,
+        message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+      };
+    }
+
+    if (existingUser) {
       await new Promise((r) => setTimeout(r, registrationDelay));
       return {
         success: false,
@@ -308,10 +337,18 @@ export class AuthService {
       requires2FA: false,
     };
 
-    localStorage.setItem(
-      `smuve_db_user_${creds.email.toLowerCase()}`,
-      JSON.stringify(newUser)
-    );
+    try {
+      localStorage.setItem(
+        `smuve_db_user_${creds.email.toLowerCase()}`,
+        JSON.stringify(newUser)
+      );
+    } catch {
+      // No account record means no future login — a real failure, not a warning.
+      return {
+        success: false,
+        message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+      };
+    }
 
     const MIN_CODE = 100000;
     const CODE_RANGE = 900000;
@@ -321,10 +358,15 @@ export class AuthService {
         ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE)
         : Math.floor(MIN_CODE + Math.random() * CODE_RANGE);
     const verificationCode = verificationCodeNumber.toString();
-    localStorage.setItem(
-      `smuve_verification_${creds.email.toLowerCase()}`,
-      verificationCode
-    );
+    try {
+      localStorage.setItem(
+        `smuve_verification_${creds.email.toLowerCase()}`,
+        verificationCode
+      );
+    } catch {
+      // Best-effort: the account exists, only code delivery is degraded.
+      this.logger.warn('AUTH_ALERT: VERIFICATION CODE PERSISTENCE REJECTED.');
+    }
 
     if (typeof window !== 'undefined') {
       // In production, verification codes are sent via email/SMS.
@@ -374,8 +416,13 @@ export class AuthService {
   logout() {
     this.userStore.setUser(null);
     this.tokenService.setToken(null);
-    if (typeof sessionStorage !== 'undefined')
-      sessionStorage.removeItem('smuve_auth_session');
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.removeItem('smuve_auth_session');
+      } catch {
+        // Storage may be readable but refuse removal in restricted contexts.
+      }
+    }
     this.logger.info('AUTH_LOG: SESSION TERMINATED.');
   }
 
@@ -399,9 +446,17 @@ export class AuthService {
 
     const normalizedEmail = email?.toLowerCase().trim();
     if (email) {
-      const storedCode = localStorage.getItem(
-        `smuve_verification_${normalizedEmail}`
-      );
+      let storedCode: string | null;
+      try {
+        storedCode = localStorage.getItem(
+          `smuve_verification_${normalizedEmail}`
+        );
+      } catch {
+        return {
+          success: false,
+          message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+        };
+      }
       if (storedCode && code !== storedCode) {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
       }
@@ -413,11 +468,32 @@ export class AuthService {
 
     if (normalizedEmail) {
       const userKey = `smuve_db_user_${normalizedEmail}`;
-      const storedUserStr = localStorage.getItem(userKey);
+      let storedUserStr: string | null;
+      try {
+        storedUserStr = localStorage.getItem(userKey);
+      } catch {
+        return {
+          success: false,
+          message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+        };
+      }
       if (storedUserStr) {
-        const storedUser = JSON.parse(storedUserStr);
-        storedUser.emailVerified = true;
-        localStorage.setItem(userKey, JSON.stringify(storedUser));
+        // A corrupt record must not crash verification — skip the flip and
+        // let the code check above decide the outcome.
+        let storedUser: any = null;
+        try {
+          storedUser = JSON.parse(storedUserStr);
+        } catch {
+          storedUser = null;
+        }
+        if (storedUser && typeof storedUser === 'object') {
+          storedUser.emailVerified = true;
+          try {
+            localStorage.setItem(userKey, JSON.stringify(storedUser));
+          } catch {
+            this.logger.warn('AUTH_ALERT: VERIFICATION WRITE REJECTED BY STORAGE.');
+          }
+        }
       }
 
       const currentUser = this.userStore.user();
@@ -427,7 +503,11 @@ export class AuthService {
         this.persistSession(verifiedUser);
       }
 
-      localStorage.removeItem(`smuve_verification_${normalizedEmail}`);
+      try {
+        localStorage.removeItem(`smuve_verification_${normalizedEmail}`);
+      } catch {
+        // Storage may be readable but not writable in private mode.
+      }
     }
 
     return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };

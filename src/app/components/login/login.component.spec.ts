@@ -277,6 +277,62 @@ describe('LoginComponent', () => {
     }
   });
 
+  it('reports a 5xx as an API outage instead of a credential denial', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(503, 'Server unavailable')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'artist@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toBe(
+        'API OUTAGE: AUTHENTICATION SERVER IS TEMPORARILY UNAVAILABLE.'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('reports a network failure as an outage too', async () => {
+    const { fixture } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(0, 'Unknown authentication error')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'artist@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(fixture.componentInstance.message()).toBe(
+        'API OUTAGE: AUTHENTICATION SERVER IS TEMPORARILY UNAVAILABLE.'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
   it('swallows an unexpected legacy-store failure during fallback', async () => {
     const { fixture, authMock } = await build();
     const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };

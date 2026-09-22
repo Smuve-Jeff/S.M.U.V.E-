@@ -274,6 +274,11 @@ export class LoginComponent implements OnInit {
   }
 
   private apiErrorMessage(err: ApiAuthError): string {
+    // An outage (network or 5xx) and a rejected request are different problems
+    // with different fixes — never collapse them into the generic denial.
+    if (this.isApiUnavailable(err.status)) {
+      return 'API OUTAGE: AUTHENTICATION SERVER IS TEMPORARILY UNAVAILABLE.';
+    }
     const map: Record<number, string> = {
       400: 'INVALID TRANSMISSION. CHECK YOUR INPUT.',
       401: 'AUTHORIZATION DENIED. INVALID CREDENTIALS.',
