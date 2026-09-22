@@ -1,0 +1,11 @@
+{
+    "project_name": "Termux Studio Alpha",
+    "bpm": 128.0,
+    "sample_rate": 44100,
+    "active_pattern_steps": [
+        0,
+        4,
+        8,
+        12
+    ]
+}

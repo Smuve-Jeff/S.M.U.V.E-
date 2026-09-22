@@ -11,6 +11,7 @@ Description: Unifies studio workspace, synth engine, step sequencer, song arrang
 """
 
 import sys
+import os
 import wave
 import numpy as np
 
@@ -51,7 +52,36 @@ class SmuveInteractiveStudio:
         # Preset Management Integration
         self.preset_mgr = PresetManager()
         self.factory_presets = PresetManager.get_factory_presets()
-        self.active_patch = self.factory_presets["Warm Saw Lead"]
+        self.active_patch = dict(self.factory_presets["Warm Saw Lead"])
+        self.active_patch["name"] = "Warm Saw Lead"
+
+    def render_active_note(self, midi_note: int, duration_secs: float = 1.0) -> np.ndarray:
+        """Renders a note using every sound-design parameter of the active patch:
+        waveform, filter cutoff/resonance, LFO rate, ADSR stages, drive & bit depth."""
+        patch = self.active_patch
+        buf = self.synth.render_note(
+            midi_note=midi_note,
+            duration_secs=duration_secs,
+            wave_type=patch.get("wave_type", "saw"),
+            filter_cutoff_base=float(patch.get("cutoff_hz", 800.0)),
+            resonance_q=float(patch.get("resonance_q", 2.5)),
+            lfo_rate=float(patch.get("lfo_rate_hz", 2.0)),
+            use_lfo=bool(patch.get("use_lfo", True)),
+            attack_sec=float(patch.get("attack_sec", 0.05)),
+            decay_sec=float(patch.get("decay_sec", 0.1)),
+            sustain_level=float(patch.get("sustain_level", 0.7)),
+            release_sec=float(patch.get("release_sec", 0.2)),
+        )
+
+        # Optional patch-level character processing
+        drive = patch.get("drive")
+        if drive:
+            buf = np.tanh(buf * float(drive))
+        bit_depth = patch.get("bit_depth")
+        if bit_depth:
+            levels = float(2 ** int(bit_depth))
+            buf = np.round(buf * levels) / levels
+        return buf
 
     def interactive_menu(self):
         while True:
@@ -93,11 +123,8 @@ class SmuveInteractiveStudio:
             elif choice == "2":
                 note = int(input("Enter MIDI Note Number (default 60 = C4): ") or "60")
                 dur = float(input("Enter Duration in Seconds (default 1.0): ") or "1.0")
-                wave_type = self.active_patch.get("wave_type", "saw")
-                use_lfo = self.active_patch.get("use_lfo", True)
-                
-                buf = self.synth.render_note(midi_note=note, duration_secs=dur, wave_type=wave_type, use_lfo=use_lfo)
-                print(f"[+] Rendered '{wave_type}' synth note at MIDI {note} using active patch settings ({len(buf)} samples)")
+                buf = self.render_active_note(midi_note=note, duration_secs=dur)
+                print(f"[+] Rendered '{self.active_patch.get('wave_type', 'saw')}' synth note at MIDI {note} using active patch settings ({len(buf)} samples)")
                 
                 add_mix = input("Add this note to the Mixer Bus? (y/n): ").strip().lower()
                 if add_mix == 'y':
@@ -115,7 +142,7 @@ class SmuveInteractiveStudio:
                 print("[*] Assembling Song Timeline Arrangement...")
                 self.arranger.clips.clear()
                 intro_buffer = self.drums.play_pad(1)  # Kick
-                lead_buffer = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                lead_buffer = self.render_active_note(60, 2.0)
                 
                 self.arranger.add_clip("Intro Kick", start_bar=0, length_bars=2, audio_buffer=intro_buffer)
                 self.arranger.add_clip("Lead Melodic Drop", start_bar=4, length_bars=4, audio_buffer=lead_buffer)
@@ -126,7 +153,7 @@ class SmuveInteractiveStudio:
             elif choice == "5":
                 print("[*] Summing multi-track session through mixer bus & compressor...")
                 track1 = self.drums.play_pad(1)  # Kick
-                track2 = self.synth.render_note(midi_note=60, duration_secs=3.0, wave_type=self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                track2 = self.render_active_note(midi_note=60, duration_secs=3.0)
                 
                 self.mixer.tracks.clear()
                 self.mixer.add_track_buffer("Drums", track1, volume=1.0)
@@ -151,9 +178,8 @@ class SmuveInteractiveStudio:
                 
                 step_dur = 0.15
                 arp_buffer = np.zeros(0)
-                wave_type = self.active_patch.get("wave_type", "saw")
                 for note in arp_notes:
-                    note_buf = self.synth.render_note(midi_note=note, duration_secs=step_dur, wave_type=wave_type, use_lfo=True)
+                    note_buf = self.render_active_note(midi_note=note, duration_secs=step_dur)
                     arp_buffer = np.concatenate([arp_buffer, note_buf])
                     
                 print(f"[+] Rendered Arp buffer ({len(arp_buffer)} samples).")
@@ -164,7 +190,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "7":
                 print("[*] Applying Analog Saturation & Waveshaper Distortion...")
-                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                test_buf = self.render_active_note(60, 2.0)
                 drive = float(input("Enter Saturation Drive (default 2.5): ") or "2.5")
                 mix_val = float(input("Enter Dry/Wet Mix (0.0 to 1.0, default 0.4): ") or "0.4")
                 
@@ -180,7 +206,7 @@ class SmuveInteractiveStudio:
             elif choice == "8":
                 print("[*] Applying Sidechain Compression & Ducking...")
                 kick_buf = self.drums.play_pad(1)
-                synth_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                synth_buf = self.render_active_note(60, 2.0)
                 
                 thresh = float(input("Enter Threshold in dB (default -15.0): ") or "-15.0")
                 ratio = float(input("Enter Ratio (default 6.0): ") or "6.0")
@@ -196,7 +222,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "9":
                 print("[*] Applying 3-Band Parametric EQ Shaping...")
-                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                test_buf = self.render_active_note(60, 2.0)
                 low_g = float(input("Enter Low Gain in dB (default 0.0): ") or "0.0")
                 mid_g = float(input("Enter Mid Gain in dB (default 0.0): ") or "0.0")
                 high_g = float(input("Enter High Gain in dB (default 0.0): ") or "0.0")
@@ -212,7 +238,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "10":
                 print("[*] Applying Stereo Chorus & Modulation Width...")
-                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                test_buf = self.render_active_note(60, 2.0)
                 rate = float(input("Enter LFO Rate in Hz (default 1.2): ") or "1.2")
                 depth = float(input("Enter Depth in ms (default 5.0): ") or "5.0")
                 mix_val = float(input("Enter Dry/Wet Mix (default 0.4): ") or "0.4")
@@ -228,7 +254,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "11":
                 print("[*] Applying Lo-Fi Bitcrusher & Sample-Rate Decimation...")
-                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                test_buf = self.render_active_note(60, 2.0)
                 bits = int(input("Enter Bit Depth (1-16, default 8): ") or "8")
                 ds_factor = int(input("Enter Downsample Factor (1-8, default 2): ") or "2")
                 mix_val = float(input("Enter Dry/Wet Mix (default 0.5): ") or "0.5")
@@ -244,7 +270,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "12":
                 print("[*] Applying Dynamic Parameter Automation Ramp...")
-                test_buf = self.synth.render_note(60, 2.0, self.active_patch.get("wave_type", "saw"), use_lfo=True)
+                test_buf = self.render_active_note(60, 2.0)
                 start_g = float(input("Enter Start Gain (default 0.0): ") or "0.0")
                 end_g = float(input("Enter End Gain (default 1.0): ") or "1.0")
                 curve = input("Enter Curve Type (linear/exponential): ").strip() or "linear"
@@ -316,7 +342,8 @@ class SmuveInteractiveStudio:
                 else:
                     print("[*] Exporting individual mixer tracks as WAV stems...")
                     prefix = input("Enter stem filename prefix (default: smuve_stem): ").strip() or "smuve_stem"
-                    StemExporter.export_stems(self.mixer.tracks, output_prefix=prefix, sample_rate=self.sample_rate)
+                    stem_buffers = {track["name"]: track["buffer"] for track in self.mixer.tracks}
+                    StemExporter.export_stems(stem_buffers, output_prefix=prefix, sample_rate=self.sample_rate)
 
             elif choice == "16":
                 filepath = input("Enter path to WAV file (leave blank to generate test sample): ").strip()
