@@ -33,11 +33,15 @@ class AudioExporter:
             if channels == 2:
                 pcm_data = pcm_data.reshape(-1)
 
-            with wave.open(filename, 'w') as wav_file:
-                wav_file.setnchannels(channels)
-                wav_file.setsampwidth(2)   # 2 bytes per sample (16-bit)
-                wav_file.setframerate(sample_rate)
-                wav_file.writeframes(pcm_data.tobytes())
+            # Open the file ourselves before constructing Wave_write. Passing a
+            # file object keeps a failed path open from leaving a partially
+            # initialized Wave_write instance for its destructor to clean up.
+            with open(filename, 'wb') as raw_file:
+                with wave.open(raw_file, 'w') as wav_file:
+                    wav_file.setnchannels(channels)
+                    wav_file.setsampwidth(2)   # 2 bytes per sample (16-bit)
+                    wav_file.setframerate(sample_rate)
+                    wav_file.writeframes(pcm_data.tobytes())
                 
             print(f"[+] Master mix successfully exported to: {os.path.abspath(filename)}")
             return True
