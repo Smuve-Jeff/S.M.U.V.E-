@@ -32,7 +32,8 @@ export type SmuveTvCategoryId =
   | 'comedy'
   | 'crime'
   | 'cartoons'
-  | 'black-cinema';
+  | 'black-cinema'
+  | 'vintage';
 
 /** The native visual bed a station renders. No network, no codec, no embed. */
 export type SmuveTvScene =
@@ -123,6 +124,7 @@ export const SMUVE_TV_CATEGORIES: readonly SmuveTvCategory[] = [
   { id: 'crime', label: 'CRIME', icon: 'search' },
   { id: 'cartoons', label: 'CARTOONS', icon: 'child_care' },
   { id: 'black-cinema', label: 'BLACK CINEMA', icon: 'palette' },
+  { id: 'vintage', label: 'VINTAGE', icon: 'history' },
 ];
 
 function show(
@@ -1219,6 +1221,61 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
       show('frz-2', 'SEASON TWO', 'The house, the father, and the fallout', 60, 'episode'),
       show('frz-3', 'SEASON THREE', 'Seattle grows up too', 60, 'episode'),
       show('frz-4', 'SEASON FOUR', 'The room got smaller, not the life', 60, 'episode'),
+    ],
+  },
+
+  // ── Vintage ────────────────────────────────────────────
+  {
+    id: 'vintage-classics',
+    number: 163,
+    name: 'VINTAGE CLASSICS',
+    callSign: 'VC',
+    tagline: 'The library that outlasted the network.',
+    category: 'vintage',
+    accent: '#C2884B',
+    scene: 'reel',
+    icon: 'history',
+    shows: [
+      show('vc-1', 'THE GOLDEN HOUR', 'The episodes television kept', 60, 'episode'),
+      show('vc-2', 'PRIME TIME CLASSICS', 'When everybody watched the same thing', 90, 'episode'),
+      show('vc-3', 'THE VAULT REWIND', 'Back before the reboot', 60, 'episode'),
+      show('vc-4', 'LATE NIGHT RERUNS', 'The ones worth losing sleep over', 120, 'episode'),
+    ],
+  },
+  {
+    id: 'game-show-classics',
+    number: 164,
+    name: 'GAME SHOW CLASSICS',
+    callSign: 'GS',
+    tagline: 'Big doors, bright lights, and the wrong answer.',
+    category: 'vintage',
+    accent: '#E11D48',
+    scene: 'pulse',
+    icon: 'celebration',
+    shows: [
+      show('gs-1', 'THE CLASSIC ROUNDS', 'Deals, doors, and dated prizes', 60, 'episode'),
+      show('gs-2', 'LIGHTNING ROUND', 'No thinking, just answering', 30, 'episode'),
+      show('gs-3', 'THE BIG BOARD', 'Where the money was', 45, 'episode'),
+      show('gs-4', 'CHAMPIONS HOUR', 'The streaks that lasted', 60, 'episode'),
+    ],
+  },
+
+  // ── Cartoons (classic) ─────────────────────────────────
+  {
+    id: 'retro-cartoons',
+    number: 165,
+    name: 'RETRO CARTOONS',
+    callSign: 'RC',
+    tagline: 'Hand-drawn mornings, before the CG.',
+    category: 'cartoons',
+    accent: '#F59E0B',
+    scene: 'neon-grid',
+    icon: 'animation',
+    shows: [
+      show('rc-1', 'SATURDAY MORNING', 'The block that ruined weekday sleep', 90, 'episode'),
+      show('rc-2', 'CLASSIC ANIMATION', 'Cels, not render farms', 60, 'episode'),
+      show('rc-3', 'ACTION CARTOONS', 'Transforming, battling, saving the block', 60, 'episode'),
+      show('rc-4', 'THE AFTER-SCHOOL RUN', 'Homework, postponed', 90, 'episode'),
     ],
   },
 ];

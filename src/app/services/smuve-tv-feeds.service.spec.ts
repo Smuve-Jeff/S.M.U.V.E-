@@ -67,6 +67,10 @@ describe('SmuveTvFeedsService', () => {
           'music',
           'sports',
           'documentary',
+          'movies',
+          'comedy',
+          'cartoons',
+          'vintage',
         ]).toContain(feed.genre);
       }
     });
@@ -78,6 +82,10 @@ describe('SmuveTvFeedsService', () => {
         'music',
         'sports',
         'documentary',
+        'movies',
+        'comedy',
+        'cartoons',
+        'vintage',
       ] as const) {
         expect(service.feedsIn(genre).length).toBeGreaterThan(0);
       }
@@ -109,6 +117,33 @@ describe('SmuveTvFeedsService', () => {
         expect(feed).not.toBeNull();
         // The mapping must point at something actually in the catalogue.
         expect(SMUVE_TV_LIVE_FEEDS).toContainEqual(feed);
+      }
+    });
+
+    it('feeds each station a live channel of its own kind', () => {
+      /*
+       * The table below is the rule a station's default feed is held to: a
+       * comedy station is fed comedy, a cartoons station is fed cartoons, and
+       * never whatever channel happened to be nearest. Categories outside the
+       * table (live, studio, gaming, vault, cinema, series, crime,
+       * black-cinema) curate deliberately across genres and answer to that
+       * curation instead.
+       */
+      const genreFor: Record<string, string> = {
+        news: 'news',
+        music: 'music',
+        sports: 'sports',
+        docs: 'documentary',
+        movies: 'movies',
+        comedy: 'comedy',
+        cartoons: 'cartoons',
+        vintage: 'vintage',
+      };
+
+      for (const channel of SMUVE_TV_CHANNELS) {
+        const genre = genreFor[channel.category];
+        if (!genre || channel.id === SMUVE_JEFF_RADIO_CHANNEL_ID) continue;
+        expect(service.feedForStation(channel.id)?.genre).toBe(genre);
       }
     });
 

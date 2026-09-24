@@ -29,6 +29,7 @@ import type {
   RadioBackgroundTrack,
 } from '../../services/radio-background-audio.service';
 import {
+  SMUVE_TV_FEED_GENRE_LABELS,
   SmuveTvFeedsService,
   SmuveTvLiveFeed,
   SmuveTvRadioTrack,
@@ -570,6 +571,22 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   );
 
   readonly allFeeds = this.feeds.feeds;
+
+  /**
+   * The feed picker's catalogue, stacked by genre.
+   *
+   * One flat list of 150+ verified feeds stops being a choice and starts being
+   * a scroll, so the picker keeps every feed but names the shelf each sits on.
+   */
+  readonly feedGroups = this.allFeeds.reduce<
+    { label: string; feeds: SmuveTvLiveFeed[] }[]
+  >((groups, feed) => {
+    const label = SMUVE_TV_FEED_GENRE_LABELS[feed.genre];
+    const group = groups.find((entry) => entry.label === label);
+    if (group) group.feeds.push(feed);
+    else groups.push({ label, feeds: [feed] });
+    return groups;
+  }, []);
 
   activeFeed = computed<SmuveTvLiveFeed | null>(() =>
     this.feeds.feedById(this.activeFeedId())

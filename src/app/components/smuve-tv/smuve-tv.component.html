@@ -353,9 +353,11 @@
             name="stationFeed"
           >
             <option value="">NATIVE SCENE</option>
-            <option *ngFor="let feed of allFeeds" [value]="feed.id">
-              {{ feed.name }}
-            </option>
+            <optgroup *ngFor="let group of feedGroups" [label]="group.label">
+              <option *ngFor="let feed of group.feeds" [value]="feed.id">
+                {{ feed.name }}
+              </option>
+            </optgroup>
           </select>
         </label>
       </div>
