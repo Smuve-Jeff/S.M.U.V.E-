@@ -1133,6 +1133,9 @@
   .comp-topbar {
     height: 48px;
     padding: 0 10px;
+    /* Keep the fixed dock in the header's stacking context above the
+       onboarding footer (z-index: 50), while remaining below app overlays. */
+    z-index: 55;
     /* The mount animation applies `transform` to the topbar for 0.4s, which
        would make it the containing block for the fixed transport dock below
        and park the dock near the top until the animation finished. */
@@ -1169,9 +1172,9 @@
     background: var(--ivory-paper);
     border-top: 1px solid var(--espresso-line);
     box-shadow: 0 -6px 18px rgba(61, 53, 42, 0.12);
-    /* Above the canvas and the FAB, below every overlay (panels 80, scrim 75,
-       AI assistant 70, drawer 80). */
-    z-index: 45;
+    /* Above the canvas, FAB, and onboarding footer (50), but below the
+       assistant/drawer/panel overlays (70–80). */
+    z-index: 55;
     animation: none;
   }
 

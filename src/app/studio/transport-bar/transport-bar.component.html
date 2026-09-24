@@ -3,9 +3,8 @@
   [class.is-playing]="isPlaying()"
   role="toolbar"
   aria-label="Transport controls"
-  (touchstart)="onTouchStart($event)"
-  (touchend)="onTouchEnd($event)"
 >
+  <div class="ctb-primary-row" role="group" aria-label="Primary transport">
   <!-- Play / Stop / Record -->
   <div class="ctb-group" role="group" aria-label="Playback">
     <button
@@ -62,56 +61,13 @@
       [attr.aria-live]="'polite'"
       role="status"
     >
-      <span class="ctb-rec-dot" aria-hidden="true"></span>
+      <span
+        class="ctb-rec-dot"
+        aria-hidden="true"
+      ></span>
       {{ recordingLabel() }}
     </span>
 
-    <!-- Sprint A3 — Take lane: punch-in arm + take stamp + count -->
-    <div
-      class="ctb-group ctb-takes"
-      role="group"
-      aria-label="Take lane — punch-in and take stamping"
-    >
-      <button
-        type="button"
-        class="ctb-punch"
-        [class.ctb-punch-active]="punchInActive()"
-        (click)="togglePunchIn()"
-        [attr.aria-pressed]="punchInActive()"
-        [attr.aria-label]="
-          punchInActive()
-            ? 'Punch-in armed for selected track — disarm'
-            : 'Arm punch-in for selected track'
-        "
-        [attr.title]="
-          punchInActive()
-            ? 'Punch-in armed — stop recording to stamp a take'
-            : 'Punch-in off — tap to arm for the selected track'
-        "
-      >
-        <span class="material-symbols-outlined">radio_button_checked</span>
-      </button>
-      <button
-        type="button"
-        class="ctb-btn ctb-take-stamp"
-        (click)="stampTake()"
-        [attr.aria-label]="'Stamp a take for the selected track'"
-        [attr.title]="'Stamp a take for the selected track (snapshots note region)'"
-      >
-        <span class="material-symbols-outlined">note_add</span>
-      </button>
-      <span
-        *ngIf="takeCount() > 0"
-        class="ctb-take-count"
-        [attr.aria-live]="'polite'"
-        [attr.title]="
-          lastTakeLabel() ? 'Latest: ' + lastTakeLabel() : takeCount() + ' takes'
-        "
-      >
-        <span class="material-symbols-outlined">library_music</span>
-        {{ takeCount() }}<ng-container *ngIf="lastTakeLabel()"> · {{ lastTakeLabel() }}</ng-container>
-      </span>
-    </div>
   </div>
 
   <!-- Tempo group + Tap Tempo -->
@@ -150,27 +106,6 @@
       <span class="material-symbols-outlined">add</span>
     </button>
 
-    <!-- Pro: Tap Tempo button -->
-    <button
-      type="button"
-      class="ctb-btn ctb-tap"
-      [class.ctb-tap-armed]="tapBpmGuess() !== null"
-      (click)="tapTempo()"
-      (dblclick)="resetTapTempo()"
-      [attr.aria-label]="
-        tapBpmGuess()
-          ? 'Tap tempo · locked at ' +
-            tapBpmGuess() +
-            ' BPM — double-click to reset'
-          : 'Tap to set BPM by feel · click again to lock in (double-click resets)'
-      "
-      title="Tap to set BPM by feel · double-click resets"
-    >
-      <span class="material-symbols-outlined">touch_app</span>
-      <span class="ctb-tap-readout" *ngIf="tapBpmGuess() !== null">
-        {{ tapBpmGuess() }}
-      </span>
-    </button>
   </div>
 
   <!-- Stage 2.0 — Live position readout (Bar : Beat : Sixteenth) + time signature -->
@@ -191,6 +126,25 @@
       ><i>:</i><span class="ctb-pos-six">{{ positionReadout().sixteenth }}</span>
     </span>
   </div>
+  </div>
+
+  <details class="ctb-secondary">
+    <summary class="ctb-secondary-trigger" aria-label="More studio controls" aria-controls="ctb-secondary-controls" title="More studio controls">
+      <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+      <span>More</span>
+    </summary>
+    <div id="ctb-secondary-controls" class="ctb-secondary-panel" role="group" aria-label="Secondary studio controls">
+      <div class="ctb-group ctb-tap-group" role="group" aria-label="Tap tempo">
+        <button type="button" class="ctb-btn ctb-tap" [class.ctb-tap-armed]="tapBpmGuess() !== null" (click)="tapTempo()" (dblclick)="resetTapTempo()" [attr.aria-label]="tapBpmGuess() ? 'Tap tempo · locked at ' + tapBpmGuess() + ' BPM — double-click to reset' : 'Tap to set BPM by feel · click again to lock in (double-click resets)'" title="Tap to set BPM by feel · double-click resets">
+          <span class="material-symbols-outlined">touch_app</span>
+          <span class="ctb-tap-readout" *ngIf="tapBpmGuess() !== null">{{ tapBpmGuess() }}</span>
+        </button>
+      </div>
+      <div class="ctb-group ctb-takes" role="group" aria-label="Take lane — punch-in and take stamping">
+        <button type="button" class="ctb-punch" [class.ctb-punch-active]="punchInActive()" (click)="togglePunchIn()" [attr.aria-pressed]="punchInActive()" [attr.aria-label]="punchInActive() ? 'Punch-in armed for selected track — disarm' : 'Arm punch-in for selected track'" [attr.title]="punchInActive() ? 'Punch-in armed — stop recording to stamp a take' : 'Punch-in off — tap to arm for the selected track'"><span class="material-symbols-outlined">radio_button_checked</span></button>
+        <button type="button" class="ctb-btn ctb-take-stamp" (click)="stampTake()" aria-label="Stamp a take for the selected track" title="Stamp a take for the selected track (snapshots note region)"><span class="material-symbols-outlined">note_add</span></button>
+        <span *ngIf="takeCount() > 0" class="ctb-take-count" aria-live="polite" [attr.title]="lastTakeLabel() ? 'Latest: ' + lastTakeLabel() : takeCount() + ' takes'"><span class="material-symbols-outlined">library_music</span> {{ takeCount() }}<ng-container *ngIf="lastTakeLabel()"> · {{ lastTakeLabel() }}</ng-container></span>
+      </div>
 
   <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->
   <div
@@ -544,6 +498,21 @@
     </div>
   </div>
 
+  <!-- Export and Ideas actions -->
+  <div class="ctb-group ctb-export-actions" role="group" aria-label="Export and share">
+    <button type="button" class="ctb-dropdown-action" (click)="exportWav()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">download</span> Export WAV
+    </button>
+    <button type="button" class="ctb-dropdown-action" (click)="exportMidi()">
+      <span class="material-symbols-outlined">music_note</span> Export MIDI
+    </button>
+    <button type="button" class="ctb-dropdown-action" (click)="shareExport()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">share</span> {{ isExporting() ? 'Rendering…' : 'Export & Share WAV' }}
+    </button>
+    <button type="button" class="ctb-dropdown-action" (click)="shareMidi()">
+      <span class="material-symbols-outlined">ios_share</span> Share MIDI
+    </button>
+  </div>
   <!-- Pro: Ideas Generator trigger -->
   <div class="ctb-group ctb-ideas-group">
     <button
@@ -557,6 +526,8 @@
       <span class="ctb-ideas-label">IDEAS</span>
     </button>
   </div>
+  </div>
+  </details>
 
   <!-- BPM dropdown -->
   <div
@@ -585,42 +556,6 @@
         {{ bpm }}
       </button>
     </div>
-    <button
-      type="button"
-      class="ctb-dropdown-action"
-      (click)="showBpmDropdown.set(false); exportWav()"
-    >
-      <span class="material-symbols-outlined">download</span>
-      Export WAV
-    </button>
-    <button
-      type="button"
-      class="ctb-dropdown-action"
-      (click)="showBpmDropdown.set(false); exportMidi()"
-      [attr.title]="'Export the arrangement as a Standard MIDI File (.mid)'"
-    >
-      <span class="material-symbols-outlined">music_note</span>
-      Export MIDI
-    </button>
-    <button
-      type="button"
-      class="ctb-dropdown-action ctb-dropdown-share"
-      (click)="showBpmDropdown.set(false); shareExport()"
-      [disabled]="isExporting()"
-      [attr.title]="'Render offline with real synth voices and share the WAV via the native share sheet'"
-    >
-      <span class="material-symbols-outlined">share</span>
-      {{ isExporting() ? 'Rendering…' : 'Export & Share WAV' }}
-    </button>
-    <button
-      type="button"
-      class="ctb-dropdown-action ctb-dropdown-share"
-      (click)="showBpmDropdown.set(false); shareMidi()"
-      [attr.title]="'Share the arrangement as a Standard MIDI File (.mid)'"
-    >
-      <span class="material-symbols-outlined">ios_share</span>
-      Share MIDI
-    </button>
   </div>
 </div>
 

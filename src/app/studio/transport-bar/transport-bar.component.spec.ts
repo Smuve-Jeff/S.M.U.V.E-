@@ -136,6 +136,53 @@ describe('TransportBarComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('primary and secondary control hierarchy', () => {
+    it('keeps only playback, tempo and position controls in the primary row', () => {
+      const primary = fixture.nativeElement.querySelector('.ctb-primary-row') as HTMLElement;
+      expect(primary.querySelector('.ctb-play')).toBeTruthy();
+      expect(primary.querySelector('.ctb-stop')).toBeTruthy();
+      expect(primary.querySelector('.ctb-rec')).toBeTruthy();
+      expect(primary.querySelector('.ctb-tempo')).toBeTruthy();
+      expect(primary.querySelector('.ctb-position')).toBeTruthy();
+      expect(primary.querySelector('.ctb-tap')).toBeNull();
+      expect(primary.querySelector('.ctb-countin')).toBeNull();
+      expect(primary.querySelector('.ctb-loop-ab')).toBeNull();
+    });
+
+    it('opens a compact secondary-controls panel for advanced actions', () => {
+      const details = fixture.nativeElement.querySelector('.ctb-secondary') as HTMLDetailsElement;
+      expect(details.open).toBe(false);
+      details.querySelector('summary')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+      expect(details.open).toBe(true);
+      expect(details.querySelector('.ctb-countin')).toBeTruthy();
+      expect(details.querySelector('.ctb-loop-ab')).toBeTruthy();
+      expect(details.querySelector('.ctb-undo')).toBeTruthy();
+      expect(details.querySelector('.ctb-test-sound')).toBeTruthy();
+      expect(details.querySelector('.ctb-volume-slider')).toBeTruthy();
+      expect(details.querySelector('.ctb-output-group')).toBeTruthy();
+      expect(details.querySelector('.ctb-ideas')).toBeTruthy();
+    });
+  });
+
+  describe('core transport smoke test', () => {
+    it('keeps Play/Pause, Stop, Record and tempo controls functional', () => {
+      const root: HTMLElement = fixture.nativeElement;
+      root.querySelector<HTMLButtonElement>('.ctb-play')!.click();
+      expect(mockAudioEngine.resume).toHaveBeenCalled();
+      expect(mockAudioSession.togglePlay).toHaveBeenCalled();
+
+      root.querySelector<HTMLButtonElement>('.ctb-stop')!.click();
+      expect(mockAudioSession.stop).toHaveBeenCalled();
+
+      root.querySelector<HTMLButtonElement>('.ctb-rec')!.click();
+      expect(mockAudioSession.toggleRecord).toHaveBeenCalled();
+
+      root.querySelectorAll<HTMLButtonElement>('.ctb-nudge')[1].click();
+      expect(mockAudioEngine.tempo()).toBe(121);
+    });
+  });
+
   describe('Stage 2.0 position readout', () => {
     it('maps the engine step to Bar : Beat : Sixteenth in 4/4', () => {
       // Step 25 → bar 2 (16 steps/bar), beat 3, sixteenth 2.
