@@ -7,54 +7,39 @@ Description: Implements biquad shelving and peaking filter bands to sculpt
 
 import numpy as np
 
+from smuve_filter import BiquadFilter
+
 class ParametricEQ:
-    def __init__(self, low_gain_db: float = 0.0, mid_gain_db: float = 0.0, high_gain_db: float = 0.0, sample_rate: int = 44100):
+    def __init__(self, low_gain_db: float = 0.0, mid_gain_db: float = 0.0, high_gain_db: float = 0.0, sample_rate: int = 44100,
+                 low_crossover_hz: float = 250.0, mid_freq_hz: float = 1000.0, high_crossover_hz: float = 4000.0):
         self.low_gain_db = low_gain_db
         self.mid_gain_db = mid_gain_db
         self.high_gain_db = high_gain_db
         self.sample_rate = sample_rate
+        self.low_crossover_hz = low_crossover_hz
+        self.mid_freq_hz = mid_freq_hz
+        self.high_crossover_hz = high_crossover_hz
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
         """Applies 3-band EQ frequency shaping using digital biquad filter approximations."""
         if len(audio_in) == 0:
             return audio_in
 
-        output = audio_in.copy()
-        
-        # Convert dB gains to linear amplitude multipliers
-        low_gain = 10.0 ** (self.low_gain_db / 20.0)
-        mid_gain = 10.0 ** (self.mid_gain_db / 20.0)
-        high_gain = 10.0 ** (self.high_gain_db / 20.0)
+        # A flat setting must not colour a single sample, and it also skips the
+        # filter transient entirely.
+        if self.low_gain_db == 0.0 and self.mid_gain_db == 0.0 and self.high_gain_db == 0.0:
+            return audio_in.copy()
 
-        # Simple frequency-band separation using one-pole filters as lightweight
-        # biquad approximations (optimized inner loops over Python floats).
-        # Low Band (approx < 250 Hz)
-        alpha_low = 0.15
-        prev_low = 0.0
-        low_list = []
-        low_append = low_list.append
-        for x in audio_in.tolist():
-            prev_low += alpha_low * (x - prev_low)
-            low_append(prev_low)
-        low_band = np.asarray(low_list, dtype=audio_in.dtype)
+        # Real RBJ bands (low shelf -> mid bell -> high shelf) in series. Every
+        # band multiplies the spectrum instead of summing sub-bands, so each
+        # control only shapes its own range - boosting the lows no longer lifts
+        # 2 kHz, and the high control reaches the top octave instead of the mids.
+        low_band = BiquadFilter("lowshelf", self.low_crossover_hz, sample_rate=self.sample_rate, gain_db=self.low_gain_db)
+        mid_band = BiquadFilter("peaking", self.mid_freq_hz, q=0.7, sample_rate=self.sample_rate, gain_db=self.mid_gain_db)
+        high_band = BiquadFilter("highshelf", self.high_crossover_hz, sample_rate=self.sample_rate, gain_db=self.high_gain_db)
 
-        # High Band (approx > 4000 Hz via highpass approximation)
-        high_band = audio_in - low_band
-        alpha_high = 0.6
-        prev_high = 0.0
-        high_list = []
-        high_append = high_list.append
-        for x in high_band.tolist():
-            prev_high += alpha_high * (x - prev_high)
-            high_append(prev_high)
-        filtered_high = np.asarray(high_list, dtype=audio_in.dtype)
+        output = high_band.process(mid_band.process(low_band.process(audio_in)))
 
-        # Mid Band (the remaining middle frequencies)
-        mid_band = audio_in - low_band - filtered_high
-
-        # Recombine with adjusted gain multipliers
-        output = (low_band * low_gain) + (mid_band * mid_gain) + (filtered_high * high_gain)
-        
         # Prevent clipping
         peak = np.max(np.abs(output))
         if peak > 1.0:
@@ -72,4 +57,3 @@ if __name__ == "__main__":
     processed = eq.process(test_signal)
     print(f"[+] EQ test successful! Input Peak: {np.max(np.abs(test_signal)):.2f} | EQ Processed Peak: {np.max(np.abs(processed)):.2f}")
     print("--- Parametric EQ Engine Ready for Integration ---")
-

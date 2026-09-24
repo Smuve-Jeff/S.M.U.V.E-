@@ -55,6 +55,34 @@ class SmuveInteractiveStudio:
         self.active_patch = dict(self.factory_presets["Warm Saw Lead"])
         self.active_patch["name"] = "Warm Saw Lead"
 
+    @staticmethod
+    def _ask_int(prompt: str, default: int) -> int:
+        """Reads a whole number, falling back to `default` on blank/invalid input.
+
+        A typo at a numeric prompt used to raise ValueError and kill the whole
+        session mid-session, losing the unsaved arrangement.
+        """
+        raw = input(prompt).strip()
+        if not raw:
+            return default
+        try:
+            return int(raw)
+        except ValueError:
+            print(f"[-] '{raw}' is not a whole number - using {default}.")
+            return default
+
+    @staticmethod
+    def _ask_float(prompt: str, default: float) -> float:
+        """Reads a number, falling back to `default` on blank/invalid input."""
+        raw = input(prompt).strip()
+        if not raw:
+            return default
+        try:
+            return float(raw)
+        except ValueError:
+            print(f"[-] '{raw}' is not a number - using {default}.")
+            return default
+
     def render_active_note(self, midi_note: int, duration_secs: float = 1.0) -> np.ndarray:
         """Renders a note using every sound-design parameter of the active patch:
         waveform, filter cutoff/resonance, LFO rate, ADSR stages, drive & bit depth."""
@@ -111,25 +139,30 @@ class SmuveInteractiveStudio:
             choice = input("\nSelect an option [1-18]: ").strip()
             
             if choice == "1":
-                pad_id = int(input("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ") or "1")
-                audio = self.drums.play_pad(pad_id)
-                if audio is not None:
+                pad_id = self._ask_int("Enter Drum Pad ID (1: Kick, 2: Snare, 3: Hi-Hat): ", 1)
+                if pad_id not in (1, 2, 3):
+                    # play_pad returns silence (never None) for unknown pads, so
+                    # the old `is not None` check could never report a bad pad.
+                    print("[-] Invalid pad ID. Choose 1 (Kick), 2 (Snare) or 3 (Hi-Hat).")
+                else:
+                    audio = self.drums.play_pad(pad_id)
                     processed = self.delay.process(audio)
                     processed = self.reverb.process(processed)
                     print(f"[+] Triggered Pad {pad_id} | Processed FX Buffer: {len(processed)} samples")
-                else:
-                    print("[-] Invalid pad ID.")
                     
             elif choice == "2":
-                note = int(input("Enter MIDI Note Number (default 60 = C4): ") or "60")
-                dur = float(input("Enter Duration in Seconds (default 1.0): ") or "1.0")
+                note = self._ask_int("Enter MIDI Note Number (default 60 = C4): ", 60)
+                dur = self._ask_float("Enter Duration in Seconds (default 1.0): ", 1.0)
                 buf = self.render_active_note(midi_note=note, duration_secs=dur)
                 print(f"[+] Rendered '{self.active_patch.get('wave_type', 'saw')}' synth note at MIDI {note} using active patch settings ({len(buf)} samples)")
                 
                 add_mix = input("Add this note to the Mixer Bus? (y/n): ").strip().lower()
                 if add_mix == 'y':
-                    wave = self.active_patch.get('wave_type', 'saw')
-                    self.mixer.add_track_buffer(f"Synth {wave.upper()}", buf, volume=0.85)
+                    # Never name this local `wave`: it shadows the module-level
+                    # `import wave` for the whole method, which broke option 16
+                    # with UnboundLocalError.
+                    waveform = self.active_patch.get('wave_type', 'saw')
+                    self.mixer.add_track_buffer(f"Synth {waveform.upper()}", buf, volume=0.85)
                     print("[+] Track added to Mixer Bus!")
 
             elif choice == "3":
@@ -171,7 +204,7 @@ class SmuveInteractiveStudio:
 
             elif choice == "6":
                 print("[*] Generating Chord Progression & Arpeggiator Sequence...")
-                root_note = int(input("Enter Root MIDI Note (default 60 = C4): ") or "60")
+                root_note = self._ask_int("Enter Root MIDI Note (default 60 = C4): ", 60)
                 chord_type = input("Enter Chord Type (maj/min/maj7/min7/dom7/sus4): ").strip() or "min7"
                 arp_pattern = input("Enter Arp Pattern (up/down/updown): ").strip() or "updown"
                 
@@ -194,8 +227,8 @@ class SmuveInteractiveStudio:
             elif choice == "7":
                 print("[*] Applying Analog Saturation & Waveshaper Distortion...")
                 test_buf = self.render_active_note(60, 2.0)
-                drive = float(input("Enter Saturation Drive (default 2.5): ") or "2.5")
-                mix_val = float(input("Enter Dry/Wet Mix (0.0 to 1.0, default 0.4): ") or "0.4")
+                drive = self._ask_float("Enter Saturation Drive (default 2.5): ", 2.5)
+                mix_val = self._ask_float("Enter Dry/Wet Mix (0.0 to 1.0, default 0.4): ", 0.4)
                 
                 saturator = SaturationEffect(drive=drive, mix=mix_val, sample_rate=self.sample_rate)
                 saturated_buf = saturator.process(test_buf)
@@ -211,8 +244,8 @@ class SmuveInteractiveStudio:
                 kick_buf = self.drums.play_pad(1)
                 synth_buf = self.render_active_note(60, 2.0)
                 
-                thresh = float(input("Enter Threshold in dB (default -15.0): ") or "-15.0")
-                ratio = float(input("Enter Ratio (default 6.0): ") or "6.0")
+                thresh = self._ask_float("Enter Threshold in dB (default -15.0): ", -15.0)
+                ratio = self._ask_float("Enter Ratio (default 6.0): ", 6.0)
                 
                 sidechain = SidechainCompressor(threshold_db=thresh, ratio=ratio, sample_rate=self.sample_rate)
                 ducked_buf = sidechain.process(synth_buf, kick_buf)
@@ -226,9 +259,9 @@ class SmuveInteractiveStudio:
             elif choice == "9":
                 print("[*] Applying 3-Band Parametric EQ Shaping...")
                 test_buf = self.render_active_note(60, 2.0)
-                low_g = float(input("Enter Low Gain in dB (default 0.0): ") or "0.0")
-                mid_g = float(input("Enter Mid Gain in dB (default 0.0): ") or "0.0")
-                high_g = float(input("Enter High Gain in dB (default 0.0): ") or "0.0")
+                low_g = self._ask_float("Enter Low Gain in dB (default 0.0): ", 0.0)
+                mid_g = self._ask_float("Enter Mid Gain in dB (default 0.0): ", 0.0)
+                high_g = self._ask_float("Enter High Gain in dB (default 0.0): ", 0.0)
                 
                 eq = ParametricEQ(low_gain_db=low_g, mid_gain_db=mid_g, high_gain_db=high_g, sample_rate=self.sample_rate)
                 eq_buf = eq.process(test_buf)
@@ -242,9 +275,9 @@ class SmuveInteractiveStudio:
             elif choice == "10":
                 print("[*] Applying Stereo Chorus & Modulation Width...")
                 test_buf = self.render_active_note(60, 2.0)
-                rate = float(input("Enter LFO Rate in Hz (default 1.2): ") or "1.2")
-                depth = float(input("Enter Depth in ms (default 5.0): ") or "5.0")
-                mix_val = float(input("Enter Dry/Wet Mix (default 0.4): ") or "0.4")
+                rate = self._ask_float("Enter LFO Rate in Hz (default 1.2): ", 1.2)
+                depth = self._ask_float("Enter Depth in ms (default 5.0): ", 5.0)
+                mix_val = self._ask_float("Enter Dry/Wet Mix (default 0.4): ", 0.4)
                 
                 chorus = ChorusEffect(rate_hz=rate, depth_ms=depth, mix=mix_val, sample_rate=self.sample_rate)
                 chorus_buf = chorus.process(test_buf)
@@ -258,9 +291,9 @@ class SmuveInteractiveStudio:
             elif choice == "11":
                 print("[*] Applying Lo-Fi Bitcrusher & Sample-Rate Decimation...")
                 test_buf = self.render_active_note(60, 2.0)
-                bits = int(input("Enter Bit Depth (1-16, default 8): ") or "8")
-                ds_factor = int(input("Enter Downsample Factor (1-8, default 2): ") or "2")
-                mix_val = float(input("Enter Dry/Wet Mix (default 0.5): ") or "0.5")
+                bits = self._ask_int("Enter Bit Depth (1-16, default 8): ", 8)
+                ds_factor = self._ask_int("Enter Downsample Factor (1-8, default 2): ", 2)
+                mix_val = self._ask_float("Enter Dry/Wet Mix (default 0.5): ", 0.5)
                 
                 crusher = Bitcrusher(bit_depth=bits, downsample_factor=ds_factor, mix=mix_val, sample_rate=self.sample_rate)
                 crushed_buf = crusher.process(test_buf)
@@ -274,8 +307,8 @@ class SmuveInteractiveStudio:
             elif choice == "12":
                 print("[*] Applying Dynamic Parameter Automation Ramp...")
                 test_buf = self.render_active_note(60, 2.0)
-                start_g = float(input("Enter Start Gain (default 0.0): ") or "0.0")
-                end_g = float(input("Enter End Gain (default 1.0): ") or "1.0")
+                start_g = self._ask_float("Enter Start Gain (default 0.0): ", 0.0)
+                end_g = self._ask_float("Enter End Gain (default 1.0): ", 1.0)
                 curve = input("Enter Curve Type (linear/exponential): ").strip() or "linear"
                 
                 automated_buf = ParameterAutomation.apply_gain_ramp(test_buf, start_gain=start_g, end_gain=end_g, curve_type=curve)
@@ -298,7 +331,7 @@ class SmuveInteractiveStudio:
                     for idx, name in enumerate(preset_names, 1):
                         print(f"  {idx}. {name}")
                     
-                    p_idx = int(input(f"Select preset [1-{len(preset_names)}]: ") or "1") - 1
+                    p_idx = self._ask_int(f"Select preset [1-{len(preset_names)}]: ", 1) - 1
                     if 0 <= p_idx < len(preset_names):
                         selected_name = preset_names[p_idx]
                         # Copy, never alias: editing the active patch must not
@@ -316,7 +349,7 @@ class SmuveInteractiveStudio:
                         for idx, fpath in enumerate(disk_files, 1):
                             print(f"  {idx}. {fpath}")
                         
-                        f_idx = int(input(f"Select file [1-{len(disk_files)}]: ") or "1") - 1
+                        f_idx = self._ask_int(f"Select file [1-{len(disk_files)}]: ", 1) - 1
                         if 0 <= f_idx < len(disk_files):
                             loaded_params = self.preset_mgr.load_preset(disk_files[f_idx])
                             if loaded_params:
@@ -336,8 +369,8 @@ class SmuveInteractiveStudio:
                 patch_data = dict(current)
                 patch_data["name"] = preset_name
                 patch_data["wave_type"] = input(f"Enter Waveform (saw/sine/square/triangle) [default: {current.get('wave_type', 'saw')}]: ").strip() or current.get("wave_type", "saw")
-                patch_data["cutoff_hz"] = float(input(f"Enter Filter Cutoff Hz [default: {current.get('cutoff_hz', 2000)}]: ") or current.get("cutoff_hz", 2000))
-                patch_data["resonance_q"] = float(input(f"Enter Filter Q Resonance [default: {current.get('resonance_q', 4.0)}]: ") or current.get("resonance_q", 4.0))
+                patch_data["cutoff_hz"] = self._ask_float(f"Enter Filter Cutoff Hz [default: {current.get('cutoff_hz', 2000)}]: ", float(current.get("cutoff_hz", 2000)))
+                patch_data["resonance_q"] = self._ask_float(f"Enter Filter Q Resonance [default: {current.get('resonance_q', 4.0)}]: ", float(current.get("resonance_q", 4.0)))
                 lfo_default = "y" if current.get("use_lfo", True) else "n"
                 lfo_raw = input(f"Enable LFO modulation? (y/n) [default: {lfo_default}]: ").strip().lower() or lfo_default
                 patch_data["use_lfo"] = lfo_raw != "n"
@@ -361,12 +394,19 @@ class SmuveInteractiveStudio:
                 if not filepath:
                     filepath = "smuve_test_loop.wav"
                     dummy_data = (np.sin(2.0 * np.pi * 523.25 * np.linspace(0, 1.0, 44100)) * 32767).astype(np.int16)
-                    with wave.open(filepath, 'w') as wf:
-                        wf.setnchannels(1)
-                        wf.setsampwidth(2)
-                        wf.setframerate(44100)
-                        wf.writeframes(dummy_data.tobytes())
-                    print(f"[*] Created test WAV sample '{filepath}'.")
+                    try:
+                        # Open the file ourselves (as AudioExporter does) so an
+                        # unusable path cannot leave a half-built Wave_write for
+                        # its destructor to complain about.
+                        with open(filepath, 'wb') as raw_file:
+                            with wave.open(raw_file, 'w') as wf:
+                                wf.setnchannels(1)
+                                wf.setsampwidth(2)
+                                wf.setframerate(44100)
+                                wf.writeframes(dummy_data.tobytes())
+                        print(f"[*] Created test WAV sample '{filepath}'.")
+                    except OSError as err:
+                        print(f"[-] Could not create the test sample: {err}")
 
                 loaded_audio = self.sampler.load_wav_sample(filepath)
                 if len(loaded_audio) > 0:

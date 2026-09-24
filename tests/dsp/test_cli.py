@@ -33,6 +33,24 @@ class TestMenuWiring:
         assert names == ["Synth SAW"]
         assert len(studio.mixer.tracks[0]["buffer"]) > 0
 
+    def test_invalid_numeric_input_falls_back_to_the_default(self, studio, monkeypatch, capsys):
+        # A typo at a numeric prompt used to raise ValueError and end the session.
+        run_menu(monkeypatch, studio, "2", "not-a-note", "nope", "n", "18")
+
+        out = capsys.readouterr().out
+        assert "'not-a-note' is not a whole number - using 60." in out
+        assert "'nope' is not a number - using 1.0." in out
+        # The menu survived the bad input and reached the exit option.
+        assert "Exiting S.M.U.V.E- Studio" in out
+        assert studio.mixer.tracks == []
+
+    def test_unknown_drum_pad_is_reported(self, studio, monkeypatch, capsys):
+        # play_pad returns silence for unknown pads, so the old `is not None`
+        # guard could never report an invalid pad.
+        run_menu(monkeypatch, studio, "1", "9", "18")
+
+        assert "Invalid pad ID" in capsys.readouterr().out
+
     def test_loading_a_factory_patch_copies_it_out_of_the_catalog(self, studio, monkeypatch):
         run_menu(monkeypatch, studio, "13", "1", "1", "18")
 
@@ -43,6 +61,21 @@ class TestMenuWiring:
 
         studio.active_patch["cutoff_hz"] = 999
         assert catalog_entry["cutoff_hz"] != 999
+
+
+class TestSampleImport:
+    def test_generated_test_sample_loads_into_the_mixer(self, studio, monkeypatch, tmp_path):
+        # Option 2 used to assign a local named `wave`, shadowing the module
+        # import, so this path died with UnboundLocalError.
+        run_menu(monkeypatch, studio, "16", "", "y", "18")
+
+        assert [t["name"] for t in studio.mixer.tracks] == ["External Sample"]
+        assert (tmp_path / "smuve_test_loop.wav").exists()
+
+    def test_unloadable_path_leaves_the_mixer_alone(self, studio, monkeypatch):
+        run_menu(monkeypatch, studio, "16", "no-such-dir/missing.wav", "18")
+
+        assert studio.mixer.tracks == []
 
 
 class TestPatchSave:

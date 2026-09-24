@@ -62,14 +62,27 @@ class MIDIClip:
             note.start_time = round(note.start_time / self.quantize_grid) * self.quantize_grid
             
     def apply_scale_constraint(self, root_note: int, scale: List[int]):
-        """Locks notes to a selected musical scale automatically."""
-        scale_pitches = [(root_note + interval) % 12 for interval in scale]
+        """Locks notes to a selected musical scale automatically.
+
+        Notes snap to the nearest scale tone across octave boundaries: matching
+        single-octave pitch classes only pushed a note sitting just under the
+        root (e.g. B against a C scale) up by a whole ninth instead of down a
+        semitone, and could produce out-of-range MIDI numbers.
+        """
+        scale_pitches = sorted({(root_note + interval) % 12 for interval in scale})
+        if not scale_pitches:
+            return
+
         for note in self.notes:
             octave = note.pitch // 12
             pitch_in_octave = note.pitch % 12
-            if pitch_in_octave not in scale_pitches:
-                closest = min(scale_pitches, key=lambda x: abs(x - pitch_in_octave))
-                note.pitch = (octave * 12) + closest
+            if pitch_in_octave in scale_pitches:
+                continue
+
+            candidates = [pitch + 12 * shift for pitch in scale_pitches for shift in (-1, 0, 1)]
+            candidates = [candidate for candidate in candidates if 0 <= octave * 12 + candidate <= 127]
+            closest = min(candidates, key=lambda candidate: (abs(candidate - pitch_in_octave), candidate > pitch_in_octave))
+            note.pitch = (octave * 12) + closest
 
 
 # ==========================================

@@ -35,6 +35,66 @@ class TestBiquadFilter:
         out = BiquadFilter("not-a-filter", 1000.0, 1.0).process(signal)
         np.testing.assert_allclose(out, signal, atol=0.0)
 
+    def test_bandpass_rejects_dc_and_passes_its_centre(self, sample_rate):
+        """The module advertises a bandpass; it used to be an unmatched pass-through."""
+        n = 8192
+        dc = np.ones(n)
+        assert BiquadFilter("bandpass", 1000.0, 2.0, sample_rate).process(dc)[-1] == pytest.approx(0.0, abs=1e-6)
+
+        def rms(signal):
+            return float(np.sqrt(np.mean(np.asarray(signal, dtype=np.float64) ** 2)))
+
+        def tone(freq):
+            return np.sin(2.0 * np.pi * freq * np.arange(n) / sample_rate)
+
+        centre = BiquadFilter("bandpass", 1000.0, 2.0, sample_rate).process(tone(1000.0))
+        far = BiquadFilter("bandpass", 1000.0, 2.0, sample_rate).process(tone(100.0))
+        assert rms(centre) > 5.0 * rms(far)
+
+    @pytest.mark.parametrize(
+        ("filter_type", "corner_hz", "inside_hz", "outside_hz"),
+        [
+            ("lowshelf", 250.0, 60.0, 4000.0),
+            ("peaking", 1000.0, 1000.0, 60.0),
+            ("highshelf", 4000.0, 10000.0, 60.0),
+        ],
+    )
+    def test_eq_bands_only_shape_their_own_range(self, filter_type, corner_hz, inside_hz, outside_hz, sample_rate):
+        n = sample_rate // 2
+
+        def rms(signal):
+            return float(np.sqrt(np.mean(np.asarray(signal, dtype=np.float64) ** 2)))
+
+        def tone(freq):
+            return np.sin(2.0 * np.pi * freq * np.arange(n) / sample_rate)
+
+        boost = BiquadFilter(filter_type, corner_hz, 0.7, sample_rate, gain_db=6.0)
+        cut = BiquadFilter(filter_type, corner_hz, 0.7, sample_rate, gain_db=-6.0)
+
+        inside = tone(inside_hz)
+        assert rms(boost.process(inside)) > 1.2 * rms(inside)
+        assert rms(cut.process(inside)) < 0.85 * rms(inside)
+
+        # The skirt must not reach a band that belongs to another control.
+        outside = tone(outside_hz)
+        assert rms(boost.process(outside)) == pytest.approx(rms(outside), rel=0.05)
+
+    @pytest.mark.parametrize("filter_type", ["lowshelf", "highshelf", "peaking"])
+    def test_zero_db_eq_bands_are_transparent(self, filter_type, noise):
+        signal = noise(seed=7, n=512)
+        out = BiquadFilter(filter_type, 1000.0, 0.707, 44100, gain_db=0.0).process(signal)
+        np.testing.assert_allclose(out, signal, rtol=0.0, atol=1e-12)
+
+    def test_cutoff_above_nyquist_is_clamped_and_stable(self, noise, sample_rate):
+        """Past Nyquist sin(w0) goes negative and the filter used to output NaN."""
+        out = BiquadFilter("lowpass", 90000.0, 2.0, sample_rate).process(noise(seed=8, n=2048))
+        assert np.isfinite(out).all()
+        assert np.max(np.abs(out)) < 10.0
+
+    def test_zero_q_does_not_explode(self, noise, sample_rate):
+        out = BiquadFilter("lowpass", 1000.0, 0.0, sample_rate).process(noise(seed=9, n=2048))
+        assert np.isfinite(out).all()
+
     def test_output_length_and_dtype_follow_input(self, noise):
         signal = noise(seed=2, n=333).astype(np.float32)
         out = BiquadFilter("lowpass").process(signal)
@@ -114,3 +174,32 @@ class TestParametricEQ:
     def test_empty_buffer_is_returned_untouched(self):
         empty = np.zeros(0)
         assert ParametricEQ(3.0, -3.0, 3.0).process(empty) is empty
+
+    def test_flat_settings_are_bit_exact(self, noise):
+        signal = noise(seed=42, n=1000)
+        np.testing.assert_array_equal(ParametricEQ(0.0, 0.0, 0.0).process(signal), signal)
+
+    def test_each_control_shapes_only_its_own_band(self, sample_rate):
+        """Regression: the mid gain used to land on the top octave and the high
+        gain on the upper mids, so a mid boost did nothing at 2 kHz."""
+        n = sample_rate // 2
+
+        def rms(signal):
+            return float(np.sqrt(np.mean(np.asarray(signal, dtype=np.float64) ** 2)))
+
+        def tone(freq, amp=0.3):
+            return amp * np.sin(2.0 * np.pi * freq * np.arange(n) / sample_rate)
+
+        for freq, own_gain, other_gain in (
+            (60.0, ParametricEQ(low_gain_db=6.0), ParametricEQ(mid_gain_db=6.0)),
+            (2000.0, ParametricEQ(mid_gain_db=6.0), ParametricEQ(high_gain_db=6.0)),
+            (8000.0, ParametricEQ(high_gain_db=6.0), ParametricEQ(mid_gain_db=6.0)),
+        ):
+            signal = tone(freq)
+            dry = rms(signal)
+            assert rms(own_gain.process(signal)) > 1.2 * dry
+            assert rms(other_gain.process(signal)) == pytest.approx(dry, rel=0.05)
+
+    def test_float32_buffers_keep_their_dtype(self, sample_rate):
+        signal = np.sin(2.0 * np.pi * 440.0 * np.arange(256) / sample_rate).astype(np.float32)
+        assert ParametricEQ(high_gain_db=6.0).process(signal).dtype == np.float32

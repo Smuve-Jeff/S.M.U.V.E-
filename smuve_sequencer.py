@@ -28,8 +28,13 @@ class StepPattern:
     steps: List[Step] = field(default_factory=list)
 
     def __post_init__(self):
-        if not self.steps:
-            self.steps = [Step() for _ in range(self.num_steps)]
+        # Keep the grid in lockstep with num_steps: a caller passing a partial
+        # list (or editing num_steps later) would otherwise make toggle_step
+        # raise IndexError for indexes the UI still offers.
+        if len(self.steps) < self.num_steps:
+            self.steps.extend(Step() for _ in range(self.num_steps - len(self.steps)))
+        elif len(self.steps) > self.num_steps:
+            del self.steps[self.num_steps:]
 
     def toggle_step(self, step_index: int, velocity: int = 100):
         if 0 <= step_index < self.num_steps:

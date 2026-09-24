@@ -15,7 +15,6 @@ class StemExporter:
     def export_stems(track_buffers: Dict[str, np.ndarray], output_prefix: str = "smuve_stem", sample_rate: int = 44100) -> bool:
         """Exports a dictionary of named track audio buffers into individual WAV stem files."""
         try:
-            os.makedirs(".", exist_ok=True)
             exported_count = 0
             
             for track_name, buffer in track_buffers.items():
@@ -36,11 +35,16 @@ class StemExporter:
                 # Convert to 16-bit PCM
                 pcm_data = (normalized * 32767.0).astype(np.int16)
                 
-                with wave.open(filename, 'w') as wav_file:
-                    wav_file.setnchannels(1)
-                    wav_file.setsampwidth(2)
-                    wav_file.setframerate(sample_rate)
-                    wav_file.writeframes(pcm_data.tobytes())
+                # Open the file ourselves before constructing Wave_write (same as
+                # the master exporter): a path that cannot be opened otherwise
+                # leaves a half-initialised Wave_write behind, and its destructor
+                # prints "Exception ignored in: Wave_write.__del__" on close.
+                with open(filename, 'wb') as raw_file:
+                    with wave.open(raw_file, 'w') as wav_file:
+                        wav_file.setnchannels(1)
+                        wav_file.setsampwidth(2)
+                        wav_file.setframerate(sample_rate)
+                        wav_file.writeframes(pcm_data.tobytes())
                     
                 print(f"[+] Exported Stem: {filename} ({len(buffer)} samples)")
                 exported_count += 1

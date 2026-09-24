@@ -8,10 +8,12 @@ import pytest
 from smuve_arp import Arpeggiator, ChordGenerator
 from smuve_arranger import SongArranger
 from smuve_mixer_bus import MixerBus
-from smuve_sequencer import ProjectManager, StepPattern
+from smuve_sequencer import ProjectManager, Step, StepPattern
 from smuve_studio_engine import (
     Compressor,
     Limiter,
+    MIDIClip,
+    Note,
     SmuveStudioWorkspace,
     TrackType,
     UndoRedoManager,
@@ -194,6 +196,17 @@ class TestStepSequencer:
         pattern.toggle_step(index)
         assert not any(step.active for step in pattern.steps)
 
+    def test_grid_is_padded_or_trimmed_to_num_steps(self):
+        # A short step list used to make toggle_step raise IndexError on an
+        # index the grid still offered.
+        padded = StepPattern(num_steps=8, steps=[Step()])
+        assert len(padded.steps) == 8
+        padded.toggle_step(7)
+        assert padded.steps[7].active
+
+        trimmed = StepPattern(num_steps=4, steps=[Step() for _ in range(10)])
+        assert len(trimmed.steps) == 4
+
     def test_project_round_trip(self, tmp_path):
         session = {
             "project_name": "Midnight Trap Anthem",
@@ -207,6 +220,36 @@ class TestStepSequencer:
 
     def test_missing_project_returns_none(self, tmp_path):
         assert ProjectManager.load_project(str(tmp_path / "nope.smuve")) is None
+
+
+class TestMIDIClip:
+    def test_quantize_snaps_notes_to_the_grid(self):
+        clip = MIDIClip(notes=[Note(pitch=60, start_time=0.30), Note(pitch=62, start_time=0.99)])
+        clip.quantize_notes()
+        assert [note.start_time for note in clip.notes] == pytest.approx([0.25, 1.0])
+
+    def test_scale_constraint_snaps_to_the_nearest_scale_tone(self):
+        clip = MIDIClip(notes=[Note(pitch=61), Note(pitch=63), Note(pitch=66)])
+        clip.apply_scale_constraint(root_note=60, scale=[0, 2, 4, 5, 7, 9, 11])  # C major
+        # C#->C and D#->D fall a semitone; F# is a tie between F and G, so it
+        # resolves downwards instead of drifting sharp.
+        assert [note.pitch for note in clip.notes] == [60, 62, 65]
+
+    def test_scale_constraint_crosses_octaves_instead_of_jumping(self):
+        """B under a C pentatonic must fall/rise to the closest C, not to A."""
+        clip = MIDIClip(notes=[Note(pitch=71)])
+        clip.apply_scale_constraint(root_note=60, scale=[0, 2, 4, 7, 9])
+        assert clip.notes[0].pitch == 72  # the C a semitone above, not A (-2)
+
+    def test_scale_constraint_never_produces_invalid_midi(self):
+        clip = MIDIClip(notes=[Note(pitch=0)])
+        clip.apply_scale_constraint(root_note=11, scale=[0, 2])
+        assert clip.notes[0].pitch == 1
+
+    def test_empty_scale_leaves_notes_alone(self):
+        clip = MIDIClip(notes=[Note(pitch=61)])
+        clip.apply_scale_constraint(root_note=60, scale=[])
+        assert clip.notes[0].pitch == 61
 
 
 class TestStudioDSPChain:
