@@ -5,6 +5,7 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject,
   output,
   signal,
@@ -22,6 +23,11 @@ import {
   smuveTvClock,
 } from '../../services/smuve-tv.service';
 import { LibraryService } from '../../services/library.service';
+import { RadioBackgroundAudioService } from '../../services/radio-background-audio.service';
+import type {
+  RadioBackgroundStatus,
+  RadioBackgroundTrack,
+} from '../../services/radio-background-audio.service';
 import {
   SmuveTvFeedsService,
   SmuveTvLiveFeed,
@@ -434,6 +440,13 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private library = inject(LibraryService);
   private feeds = inject(SmuveTvFeedsService);
   private sanitizer = inject(DomSanitizer);
+  /**
+   * On Android the artist's station is a foreground-service broadcast, not an
+   * `<audio>` element that Android can reclaim. The service reports false on
+   * every call when that engine is unavailable, which keeps the web element as
+   * the one fallback path this component already knew how to drive.
+   */
+  private radioBackground = inject(RadioBackgroundAudioService);
 
   /** The focusable surface wrapper, so entry can move focus into it. */
   @ViewChild('surface', { static: false })
@@ -807,6 +820,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * Typed structurally so hls.js can stay a lazily-imported optional chunk.
    */
   private hls: { destroy(): void } | null = null;
+  /** True once the native background engine proved it can take records. */
+  private nativeRadioReady = false;
+  /** True while the native engine owns the station's speaker. */
+  private nativeRadioActive = false;
+  /** In-flight native load, so a play lands after the source is ready. */
+  private nativeRadioLoad: Promise<boolean> | null = null;
+  /** Set when playback was asked for before the native load finished. */
+  private nativeRadioPlayWhenReady = false;
+  /** Native progress is kept locally: the service exposes no current time. */
+  private nativeRadioElapsedBaseMs = 0;
+  private nativeRadioStartedAt: number | null = null;
+  private nativeRadioDurationMs = 0;
   /** Records left in the current random pass through the rotation pool. */
   private rotationBag: SmuveTvRadioTrack[] = [];
   /** The record that just played, so a new pass cannot open on it. */
@@ -851,10 +876,45 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     // The official catalogue is fetched, not bundled: it is the artist's real
     // release list and would be wrong the moment a new record lands.
     void this.loadCatalogue();
+
+    /*
+     * The native broadcast calls back from the notification and the lock
+     * screen, so the component's own state machine — ON AIR badge, rotation,
+     * progress — stays truthful whether the record advanced here or outside
+     * the app. On the web every call reports false and these callbacks never
+     * fire, which is exactly the old `<audio>`-only behaviour.
+     */
+    this.radioBackground.onEnded(() => this.onNativeRadioEnded());
+    this.radioBackground.onStatusChange((status) =>
+      this.onNativeRadioStatus(status)
+    );
+    void this.radioBackground.init().then((ready) => {
+      this.nativeRadioReady = ready;
+    });
+
+    /*
+     * The television has one speaker. The live feed and the synthesised station
+     * bed can each take it from the radio, and they are toggled deep in paths
+     * that predate the native engine, so the hand-off is watched here in one
+     * place: whichever of them becomes audible pauses the native broadcast.
+     */
+    effect(() => {
+      if (!this.nativeRadioActive) return;
+      if (
+        this.feedAudioOn() ||
+        this.audioOn() ||
+        this.standaloneEmbedUrl()
+      ) {
+        this.pauseNativeRadio();
+      }
+    });
   }
 
   ngAfterViewInit(): void {
-    this.nowTimerId = window.setInterval(() => this.now.set(Date.now()), 1000);
+    this.nowTimerId = window.setInterval(() => {
+      this.now.set(Date.now());
+      this.tickNativeRadioProgress();
+    }, 1000);
     document.addEventListener('fullscreenchange', this.fullscreenListener);
     document.addEventListener('webkitfullscreenchange', this.fullscreenListener);
     /*
@@ -884,6 +944,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.closeStandaloneEmbed();
     this.closeFullRecord();
     this.stopRadio();
+    void this.radioBackground.destroy();
     this.releaseMusicSource();
     document.removeEventListener('keydown', this.keyListener, true);
     document.removeEventListener('fullscreenchange', this.fullscreenListener);
@@ -1057,13 +1118,33 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * The artist radio uses the browser's native audio pipeline. It is separate
-   * from the decorative synth bed: no iframe, no third-party player, and no
-   * autoplay. Playback begins only after the viewer presses play.
+   * The artist radio plays through Android's foreground media service when it
+   * is available, and through the browser's own audio pipeline everywhere else.
+   * It is separate from the decorative synth bed: no iframe, no third-party
+   * player, and no autoplay. Playback begins only after the viewer presses play.
    */
   toggleMusic(): void {
+    if (!this.radioQueue().length) return;
+
+    /*
+     * The native foreground player is the station's voice on Android. It has
+     * no element to inspect, so the component's own playing flag — kept in
+     * sync by the service's status events — is what the transport toggles.
+     */
+    if (this.nativeRadioActive) {
+      if (this.isMusicPlaying()) {
+        this.pauseNativeRadio();
+      } else {
+        // The television has one speaker: the radio takes it.
+        this.silenceStationAudio();
+        this.musicError.set(null);
+        this.playNativeRadio();
+      }
+      return;
+    }
+
     const audio = this.musicRef?.nativeElement;
-    if (!audio || !this.radioQueue().length) return;
+    if (!audio) return;
     if (audio.paused) {
       // The television has one speaker: the radio takes it.
       this.silenceStationAudio();
@@ -1081,7 +1162,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.radioStandalone.set(true);
     if (!this.musicTrack()) {
       this.startMusic();
-    } else if (this.musicRef?.nativeElement.paused) {
+    } else if (!this.isMusicPlaying()) {
       this.toggleMusic();
     }
   }
@@ -1146,6 +1227,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      */
     this.closeStandaloneEmbed();
     this.closeFullRecord();
+    // The native record pauses where it stands, exactly like the element, so
+    // tuning back in resumes the queue instead of restarting the record.
+    if (this.nativeRadioActive) {
+      this.pauseNativeRadio();
+    }
     const audio = this.musicRef?.nativeElement;
     /*
      * Only a record that is actually running has anything to stop. Pausing an
@@ -1220,8 +1306,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.closeFullRecord();
     this.musicTrack.set(track);
     this.musicError.set(null);
-    // A queued record is not a playing one: the panel only opens on the real
-    // `playing` event, so it can never name a track the browser refused.
+    // A queued record is not a playing one: the panel only opens on confirmed
+    // playback (the element's `playing` event or the native status event), so
+    // it can never name a track the engine refused.
     this.isMusicPlaying.set(false);
 
     const source = track.blob
@@ -1251,6 +1338,33 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
 
     const previous = this.musicSource();
     this.musicSource.set(source);
+
+    /*
+     * On Android the foreground player takes the record so the station can
+     * keep broadcasting after the app is backgrounded. A `true` here means the
+     * native engine owns the speaker and the element must stay silent; a
+     * `false` means this source cannot go native and the element keeps the old
+     * behaviour unchanged.
+     */
+    if (this.startNativeRadio(track, source, autoplay)) {
+      // The old object URL is revoked only once the new source is accepted, so
+      // a mid-load revocation can never abort the record that is starting.
+      if (previous && previous !== source && previous.startsWith('blob:')) {
+        URL.revokeObjectURL(previous);
+      }
+      return;
+    }
+
+    // A record that cannot go native must not leave the previous native record
+    // on air underneath it; the element is about to be the only engine.
+    if (this.nativeRadioActive) {
+      this.nativeRadioActive = false;
+      this.nativeRadioLoad = null;
+      this.nativeRadioPlayWhenReady = false;
+      this.resetNativeRadioProgress();
+      void this.radioBackground.destroy();
+    }
+
     audio.src = source;
     audio.load();
     // The old object URL is revoked only once the new source is attached, so a
@@ -1343,6 +1457,176 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.musicElapsedMs.set(Math.round(elapsed));
     if (duration > 0) this.musicDurationMs.set(Math.round(duration));
   }
+
+  // ── Native background broadcast (Android foreground service) ─────
+
+  /**
+   * Hands a record to the native player when it can take it.
+   *
+   * Returns true when the native engine accepted the record, in which case the
+   * `<audio>` element stays silent and every transport call must go through
+   * `playNativeRadio`/`pauseNativeRadio`. The element keeps its `src` only as
+   * the fallback the service itself reports back to.
+   */
+  private startNativeRadio(
+    track: SmuveTvRadioTrack,
+    source: string,
+    autoplay: boolean
+  ): boolean {
+    if (
+      !this.nativeRadioReady ||
+      !this.radioBackground.canHandle(source)
+    ) {
+      return false;
+    }
+
+    // The element must not keep sounding now that the service owns the record.
+    const audio = this.musicRef?.nativeElement;
+    if (audio && !audio.paused) audio.pause();
+
+    this.nativeRadioActive = true;
+    this.nativeRadioPlayWhenReady = autoplay;
+    this.nativeRadioElapsedBaseMs = 0;
+    this.nativeRadioStartedAt = null;
+    this.nativeRadioDurationMs = track.durationMs ?? 0;
+    this.musicElapsedMs.set(0);
+    this.musicDurationMs.set(this.nativeRadioDurationMs);
+
+    const pending = this.radioBackground.load(this.nativeTrack(track, source));
+    this.nativeRadioLoad = pending;
+    void pending.then((loaded) => {
+      if (this.nativeRadioLoad === pending) this.nativeRadioLoad = null;
+      if (!this.nativeRadioActive) return;
+      if (!loaded) {
+        // A `false` is the service's own contract: the element takes over.
+        this.fallBackFromNativeRadio(this.nativeRadioPlayWhenReady);
+        return;
+      }
+      if (this.nativeRadioPlayWhenReady) this.playNativeEngine();
+    });
+    return true;
+  }
+
+  private nativeTrack(
+    track: SmuveTvRadioTrack,
+    source: string
+  ): RadioBackgroundTrack {
+    return {
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
+      artwork: track.artworkUrl,
+      source,
+    };
+  }
+
+  /** The transport's play path while the native engine owns the speaker. */
+  private playNativeRadio(): void {
+    this.nativeRadioPlayWhenReady = true;
+    // A load still in flight will start playback itself once it resolves.
+    if (this.nativeRadioLoad) return;
+    this.playNativeEngine();
+  }
+
+  private playNativeEngine(): void {
+    void this.radioBackground.play().then((played) => {
+      if (!played && this.nativeRadioActive) this.fallBackFromNativeRadio(true);
+    });
+  }
+
+  /** The transport's pause path while the native engine owns the speaker. */
+  private pauseNativeRadio(): void {
+    this.nativeRadioPlayWhenReady = false;
+    this.freezeNativeRadioProgress();
+    void this.radioBackground.pause();
+  }
+
+  /**
+   * The service refused the native job, so the element takes the record back.
+   *
+   * Playback is attempted only when it was already wanted; a record merely
+   * queued for later stays queued on the element.
+   */
+  private fallBackFromNativeRadio(autoplay: boolean): void {
+    this.nativeRadioActive = false;
+    this.nativeRadioLoad = null;
+    this.nativeRadioPlayWhenReady = false;
+    this.resetNativeRadioProgress();
+
+    const audio = this.musicRef?.nativeElement;
+    const source = this.musicSource();
+    if (!audio || !source) return;
+    audio.src = source;
+    audio.load();
+    if (autoplay) {
+      this.silenceStationAudio();
+      this.playMedia(audio, () =>
+        this.musicError.set('Tap play to start the selected track.')
+      );
+    }
+  }
+
+  /**
+   * Native playback reports no current time, so the component keeps its own
+   * clock off the existing one-second guide ticker.
+   */
+  private tickNativeRadioProgress(): void {
+    if (!this.nativeRadioActive || this.nativeRadioStartedAt === null) return;
+    const elapsed =
+      this.nativeRadioElapsedBaseMs + (Date.now() - this.nativeRadioStartedAt);
+    const bounded =
+      this.nativeRadioDurationMs > 0
+        ? Math.min(elapsed, this.nativeRadioDurationMs)
+        : elapsed;
+    this.musicElapsedMs.set(Math.max(0, Math.round(bounded)));
+  }
+
+  private freezeNativeRadioProgress(): void {
+    if (this.nativeRadioStartedAt === null) return;
+    this.nativeRadioElapsedBaseMs += Date.now() - this.nativeRadioStartedAt;
+    this.nativeRadioStartedAt = null;
+  }
+
+  private resetNativeRadioProgress(): void {
+    this.nativeRadioElapsedBaseMs = 0;
+    this.nativeRadioStartedAt = null;
+    this.nativeRadioDurationMs = 0;
+  }
+
+  /** The native notification's own events, mapped onto the station state. */
+  private onNativeRadioStatus(status: RadioBackgroundStatus): void {
+    if (!this.nativeRadioActive) return;
+
+    if (status === 'playing') {
+      this.nativeRadioPlayWhenReady = true;
+      if (this.nativeRadioStartedAt === null) {
+        this.nativeRadioStartedAt = Date.now();
+      }
+      this.onMusicPlaying();
+      return;
+    }
+
+    if (status === 'paused') {
+      this.nativeRadioPlayWhenReady = false;
+      this.freezeNativeRadioProgress();
+      this.onMusicPaused();
+      return;
+    }
+
+    this.nativeRadioPlayWhenReady = false;
+    this.freezeNativeRadioProgress();
+    this.isMusicPlaying.set(false);
+    this.updateMediaSession();
+    if (this.isRadioStation()) this.isPlaying.set(false);
+  }
+
+  private onNativeRadioEnded(): void {
+    if (!this.nativeRadioActive) return;
+    this.nativeRadioPlayWhenReady = false;
+    this.freezeNativeRadioProgress();
+    this.onMusicEnded();
+  }
+
 
   // ── The artist's record, on the station's screen ───────
 

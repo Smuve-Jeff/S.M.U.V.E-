@@ -7,6 +7,7 @@ import {
   SmuveTvService,
 } from '../../services/smuve-tv.service';
 import { LibraryService } from '../../services/library.service';
+import { RadioBackgroundAudioService } from '../../services/radio-background-audio.service';
 import {
   SmuveTvFeedsService,
   seededRandom,
@@ -1657,6 +1658,104 @@ describe('SmuveTvComponent', () => {
     button?.click();
     expect(emitSpy).toHaveBeenCalled();
     emitSpy.mockRestore();
+  });
+
+  describe('native background engine integration', () => {
+    let background: RadioBackgroundAudioService;
+
+    // Microtasks only: a real timer here lets jsdom's animation frame run the
+    // AudioEngine metering loop, which its stubbed AudioContext cannot service.
+    const flush = async () => {
+      for (let tick = 0; tick < 5; tick += 1) await Promise.resolve();
+    };
+
+    const streamTrack = () => ({
+      id: 'radio-native-1',
+      name: 'Native Single',
+      addedAt: 1,
+      url: 'https://example.test/stream.m4a',
+      artist: 'Smuve Jeff',
+      official: true,
+      mediaType: 'audio' as const,
+    });
+
+    beforeEach(async () => {
+      // Let the component's own `init()` settle, then stand in the native
+      // foreground player so the Android path is exercised without a device.
+      await flush();
+      background = TestBed.inject(RadioBackgroundAudioService);
+      background.available.set(true);
+      (component as unknown as { nativeRadioReady: boolean }).nativeRadioReady =
+        true;
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('loads and plays a radio stream through the native service', async () => {
+      const load = jest.spyOn(background, 'load').mockResolvedValue(true);
+      const play = jest.spyOn(background, 'play').mockResolvedValue(true);
+      library.items.set([streamTrack()]);
+
+      component.selectMusicTrack(component.radioQueue()[0], true);
+      await flush();
+
+      expect(load).toHaveBeenCalledWith({
+        title: 'Native Single',
+        artist: 'Smuve Jeff',
+        album: 'Authorized master files',
+        artwork: undefined,
+        source: 'https://example.test/stream.m4a',
+      });
+      expect(play).toHaveBeenCalledTimes(1);
+    });
+
+    it('pauses the native radio stream through the service', async () => {
+      jest.spyOn(background, 'load').mockResolvedValue(true);
+      jest.spyOn(background, 'play').mockResolvedValue(true);
+      const pause = jest.spyOn(background, 'pause').mockResolvedValue(true);
+      library.items.set([streamTrack()]);
+
+      component.selectMusicTrack(component.radioQueue()[0], true);
+      await flush();
+      // The native status event is what confirms the record is on air.
+      component.onMusicPlaying();
+
+      component.toggleMusic();
+
+      expect(pause).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns to the web element when the native engine refuses a record', async () => {
+      jest.spyOn(background, 'load').mockResolvedValue(false);
+      const audio = fixture.nativeElement.querySelector(
+        '.tv-music-player'
+      ) as HTMLAudioElement;
+      const loadElement = jest
+        .spyOn(audio, 'load')
+        .mockImplementation(() => undefined);
+      const playElement = jest.spyOn(audio, 'play').mockResolvedValue(undefined);
+      library.items.set([streamTrack()]);
+
+      component.selectMusicTrack(component.radioQueue()[0], true);
+      await flush();
+
+      expect(loadElement).toHaveBeenCalled();
+      expect(audio.src).toContain('https://example.test/stream.m4a');
+      expect(playElement).toHaveBeenCalledTimes(1);
+    });
+
+    it('releases the native player with the component', () => {
+      const destroy = jest
+        .spyOn(background, 'destroy')
+        .mockResolvedValue(undefined);
+
+      fixture.destroy();
+
+      expect(destroy).toHaveBeenCalledTimes(1);
+      destroy.mockRestore();
+    });
   });
 
   describe('template contract', () => {

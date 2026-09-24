@@ -24,6 +24,29 @@
 
         </activity>
 
+        <!-- Smuve Jeff Radio's background broadcast.
+
+             The 24/7 station must keep playing when the viewer leaves the app
+             or locks the screen. WebView media alone is not enough: Android
+             kills the process of a backgrounded app that holds no foreground
+             service, cutting the broadcast mid-record. This service is the
+             MediaSessionService that @mediagrid/capacitor-native-audio binds
+             to; it owns the media notification (play/pause/stop), the lock
+             screen controls, and the process guarantee for the duration of
+             playback. Declared `mediaPlayback` per Android 14's foreground
+             service type requirement — the FOREGROUND_SERVICE,
+             FOREGROUND_SERVICE_MEDIA_PLAYBACK and WAKE_LOCK permissions it
+             needs are already granted above. -->
+        <service
+            android:name="us.mediagrid.capacitorjs.plugins.nativeaudio.AudioPlayerService"
+            android:description="@string/audio_player_service_description"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService"/>
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
