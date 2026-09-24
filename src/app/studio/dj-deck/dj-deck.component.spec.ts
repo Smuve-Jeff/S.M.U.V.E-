@@ -111,6 +111,8 @@ describe('DjDeckComponent', () => {
         }));
       }),
       setBassBoost: jest.fn(),
+      setDeckFilterMode: jest.fn(),
+      scratch: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -701,5 +703,285 @@ describe('DjDeckComponent', () => {
 
     component.setQuickEq('A', 'low');
     expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 0, 1, 0);
+  });
+
+  // ------------------------------------------------------------------
+  // Vintage transport: multi-touch safety, tonearm needle drops,
+  // rotary knobs, motor speed and keyboard scrubbing.
+  // ------------------------------------------------------------------
+
+  /** A window-level `touchend` carrying the identifiers that lifted. */
+  const endTouches = (...identifiers: number[]) =>
+    ({
+      changedTouches: identifiers.map((identifier) => ({ identifier })),
+    }) as unknown as TouchEvent;
+
+  const grabTouches = (identifier: number, x = 120, y = 120) =>
+    ({
+      preventDefault: jest.fn(),
+      touches: [{ identifier, clientX: x, clientY: y }],
+      changedTouches: [{ identifier, clientX: x, clientY: y }],
+    }) as unknown as TouchEvent;
+
+  const pointer = (x: number, y: number, extra: object = {}) =>
+    ({
+      preventDefault: jest.fn(),
+      clientX: x,
+      clientY: y,
+      ...extra,
+    }) as unknown as MouseEvent;
+
+  it('keeps a scratch alive when another finger ends elsewhere (multi-touch)', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      isPlaying: true,
+    }));
+
+    component.onPlatterDown('A', grabTouches(7));
+    expect(component.isScratchingA()).toBe(true);
+
+    // A pad hit / fader drag on the other hand lifts its own touch point.
+    component.onPlatterTouchEnd(endTouches(99));
+
+    expect(component.isScratchingA()).toBe(true);
+    expect(engine.playDeck).not.toHaveBeenCalledWith('A');
+
+    // The scratch's own finger is the only one that can end it.
+    component.onPlatterTouchEnd(endTouches(7));
+    expect(component.isScratchingA()).toBe(false);
+    expect(engine.playDeck).toHaveBeenCalledWith('A');
+  });
+
+  it('never ends a touch-held scratch on a mouse release', () => {
+    component.onPlatterDown('A', grabTouches(11));
+    expect(component.isScratchingA()).toBe(true);
+
+    component.onPlatterMouseUp({} as MouseEvent);
+
+    expect(component.isScratchingA()).toBe(true);
+    component.onPlatterUp();
+  });
+
+  it('drops the needle proportionally along the tonearm rail', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    const rail = (clientX: number) =>
+      ({
+        preventDefault: jest.fn(),
+        clientX,
+        currentTarget: {
+          getBoundingClientRect: () => ({ left: 0, width: 1000 }),
+        },
+      }) as unknown as MouseEvent;
+
+    // Middle of the rail maps to the middle of the record.
+    component.onTonearmDown('A', rail(500));
+    expect(engine.seekDeck.mock.calls.at(-1)[0]).toBe('A');
+    expect(engine.seekDeck.mock.calls.at(-1)[1]).toBeCloseTo(60, 6);
+
+    // The arm cannot reach the label or the lead-in rim.
+    component.onPlatterMove(rail(1000));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 120);
+
+    component.onPlatterMove(rail(0));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 0);
+
+    component.onPlatterMouseUp({} as MouseEvent);
+    expect(component.tonearmDragging()).toBeNull();
+  });
+
+  it('ignores tonearm drags for a deck with no record on the platter', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    engine.getDeckProgress.mockReturnValue({
+      position: 0,
+      duration: 0,
+      isPlaying: false,
+      slipPosition: 0,
+    });
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      duration: 0,
+    }));
+
+    component.onTonearmDown('B', pointer(500));
+
+    expect(engine.seekDeck).not.toHaveBeenCalled();
+    component.onTonearmUp();
+  });
+
+  it('sweeps a rotary knob on a vertical drag and stops when released', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      gain: 1,
+    }));
+
+    component.onKnobDown('gain', 'A', pointer(0, 300));
+    expect(component.activeKnob()).toEqual({ deck: 'A', param: 'gain' });
+
+    // Half of a 170px sweep up == +1.0 gain on a 0..2 control.
+    component.onPlatterMove(pointer(0, 215));
+    expect(mockDeckService.setDeckGain).toHaveBeenLastCalledWith('A', 2);
+
+    component.onPlatterMouseUp({} as MouseEvent);
+    expect(component.activeKnob()).toBeNull();
+
+    mockDeckService.setDeckGain.mockClear();
+    component.onPlatterMove(pointer(0, 40));
+    expect(mockDeckService.setDeckGain).not.toHaveBeenCalled();
+  });
+
+  it('routes knob sweeps onto the existing deck-service parameters', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      eqHigh: 1,
+      fxAmount: 0,
+    }));
+
+    component.onKnobDown('eqHigh', 'A', pointer(0, 200));
+    component.onPlatterMove(pointer(0, 115));
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 2, 1, 1);
+    component.onPlatterMouseUp({} as MouseEvent);
+
+    component.onKnobDown('fxAmount', 'A', pointer(0, 200));
+    component.onPlatterMove(pointer(0, 115));
+    expect(mockDeckService.setFx).toHaveBeenLastCalledWith('A', 'echo', 0.5);
+    component.onPlatterMouseUp({} as MouseEvent);
+  });
+
+  it('snaps a knob back to its engraved detent', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      eqLow: 1.8,
+    }));
+
+    component.resetKnob('eqLow', 'A');
+
+    expect(mockDeckService.setDeckEq).toHaveBeenLastCalledWith('A', 1, 1, 1);
+    expect(component.sessionNotice()).toMatch(/LOW/i);
+  });
+
+  it('reads rotary positions back in hardware units', () => {
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      eqHigh: 1,
+      filterFreq: 20000,
+    }));
+
+    expect(component.knobNormalized('eqHigh', 'A')).toBe(0.5);
+    expect(component.knobRotation('eqHigh', 'A')).toBe(0);
+    expect(component.knobReadout('eqHigh', 'A')).toBe('+0.0 dB');
+    expect(component.knobReadout('filter', 'A')).toMatch(/kHz/);
+  });
+
+  it('flips the motor between 33 and 45 RPM', () => {
+    expect(component.platterRpm().A).toBe(33);
+
+    component.togglePlatterRpm('A');
+    expect(component.platterRpm().A).toBe(45);
+    expect(component.platterRpm().B).toBe(45);
+    expect(component.sessionNotice()).toMatch(/45 RPM/);
+
+    component.togglePlatterRpm('A');
+    expect(component.platterRpm().A).toBe(33);
+  });
+
+  it('engages slip mode through the deck service', () => {
+    component.toggleSlip('B');
+    expect(mockDeckService.toggleSlip).toHaveBeenCalledWith('B');
+  });
+
+  it('switches the analog filter between LPF and HPF', () => {
+    component.setFilterMode('A', 'highpass');
+
+    expect(component.filterMode().A).toBe('highpass');
+    expect(mockDeckService.setDeckFilterMode).toHaveBeenCalledWith(
+      'A',
+      'highpass'
+    );
+    expect(component.sessionNotice()).toMatch(/HPF/);
+  });
+
+  it('seeks, nudges and plays from the platter keyboard', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    const press = (key: string, shiftKey = false) =>
+      ({ key, shiftKey, preventDefault: jest.fn() }) as unknown as KeyboardEvent;
+
+    engine.getDeckProgress.mockReturnValue({
+      position: 10,
+      duration: 120,
+      isPlaying: false,
+      slipPosition: 10,
+    });
+
+    component.onPlatterKeydown('A', press('ArrowRight'));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 10.5);
+
+    component.onPlatterKeydown('A', press('ArrowLeft', true));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 5);
+
+    component.onPlatterKeydown('A', press('Home'));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 0);
+
+    component.onPlatterKeydown('A', press('End'));
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 120);
+
+    component.onPlatterKeydown('A', press(' '));
+    expect(mockDeckService.togglePlay).toHaveBeenCalledWith('A');
+  });
+
+  it('clamps every seek into the loaded track', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    component.seekTo('A', 999);
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 120);
+
+    component.seekTo('A', -40);
+    expect(engine.seekDeck).toHaveBeenLastCalledWith('A', 0);
+  });
+
+  it('carries a flick out of the scratch and cancels it on the next grab', () => {
+    component.onPlatterDown('A', pointer(100, 100));
+    expect(component.platterSpin().A).toBe(0);
+
+    component.onPlatterMove(pointer(190, 30));
+    expect(Math.abs(component.platterSpin().A)).toBeGreaterThan(0);
+
+    // Catching the spinning record stops the free-wheel.
+    component.onPlatterDown('A', pointer(100, 100));
+    expect(component.platterSpin().A).toBe(0);
+
+    component.onPlatterUp();
+  });
+
+  it('formats booth timecodes and flags the deck on air', () => {
+    expect(component.formatTimecode(0)).toBe('0:00.0');
+    expect(component.formatTimecode(75.5)).toBe('1:15.5');
+
+    mockDeckService.crossfade.set(0.5);
+    expect(component.isDeckLeading('B')).toBe(true);
+    expect(component.isDeckLeading('A')).toBe(false);
+  });
+
+  it('lights the sync lamp only when both decks share a tempo', () => {
+    expect(component.syncLocked()).toBe(false);
+
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      bpm: 120,
+      playbackRate: 1,
+    }));
+
+    expect(component.syncLocked()).toBe(true);
+  });
+
+  it('reports which decks already have a record on the platter', () => {
+    expect(component.trackLoaded('A')).toBe(true);
+
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      track: { name: '', url: '' },
+    }));
+    expect(component.trackLoaded('B')).toBe(false);
   });
 });

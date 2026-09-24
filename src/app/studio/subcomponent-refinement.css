@@ -48,30 +48,16 @@
   user-select: none;
   -webkit-user-select: none;
 }
-/* Recording state breathes with the broadcast. */
-.dj-booth .record-button.is-active {
-  animation: dj-rec-breathe 1.1s ease-in-out infinite;
-}
-@keyframes dj-rec-breathe {
-  0%, 100% { box-shadow: 0 0 18px rgba(255, 77, 104, 0.22); }
-  50% { box-shadow: 0 0 30px rgba(255, 77, 104, 0.42); }
-}
-/* Deck color fields glow when that deck is the live master. */
+/* (The REC breathe animation and the platter/tonearm gesture locks now live
+   in dj-deck.component.css + dj-booth-refinement.css, which own the booth's
+   vintage palette — a second copy here only shadowed the keyframe.) */
+/* Deck color fields glow when that deck is the live master.
+   The halo itself lives in dj-deck.component.css (it owns the vintage
+   amber/jade tokens); this layer only supplies the smoothing, so the
+   two sheets can no longer fight over the box-shadow. */
 .dj-booth .deck-chassis.deck-a,
 .dj-booth .deck-chassis.deck-b {
   transition: box-shadow 0.3s ease;
-}
-.dj-booth .deck-chassis.deck-a.is-live-master {
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.23),
-    0 0 26px rgba(32, 215, 210, 0.16),
-    inset 0 1px rgba(255, 255, 255, 0.045);
-}
-.dj-booth .deck-chassis.deck-b.is-live-master {
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.23),
-    0 0 26px rgba(255, 173, 71, 0.16),
-    inset 0 1px rgba(255, 255, 255, 0.045);
 }
 
 /* ── 3. MIXER — fader, meter & strip polish ── */
