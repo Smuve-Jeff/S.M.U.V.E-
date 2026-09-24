@@ -1,4 +1,5 @@
 import { DjMidiService } from '../../services/dj-midi.service';
+import { HapticService } from '../../services/haptic.service';
 import {
   Component,
   ChangeDetectionStrategy,
@@ -64,6 +65,45 @@ const SATURATION_MAX = 1;
 const LOOP_PRESET_BEAT_MIN = 1 / 32;
 const LOOP_PRESET_BEAT_MAX = 32;
 
+// ── Vintage booth tuning ──────────────────────────────────────────────
+/** Seconds of audio visible in one waveform lane. */
+const WAVEFORM_WINDOW_SECONDS = 4;
+/** Columns in the pre-rendered whole-track peak strip. */
+const WAVEFORM_OVERVIEW_COLUMNS = 3200;
+const WAVEFORM_OVERVIEW_HEIGHT = 96;
+/** A parked booth still repaints (slowly) so seeks/cues show up. */
+const IDLE_REPAINT_INTERVAL_MILLIS = 180;
+/** Platter momentum decay time constant after a scratch release. */
+const PLATTER_SPIN_DECAY_MILLIS = 520;
+const MAX_PLATTER_SPIN_DEG_PER_SEC = 1080;
+/** Rotation speed of a real record — 33⅓ and 45 RPM. */
+const PLATTER_DEG_PER_SEC_33 = 200;
+const PLATTER_DEG_PER_SEC_45 = 270;
+/** Vertical drag distance (px) for a full rotary-knob sweep. */
+const KNOB_DRAG_RANGE_PX = 170;
+const KNOB_FINE_DRAG_RANGE_PX = 720;
+/** Fractions of the tonearm rail that map onto the record's first/last groove. */
+const TONEARM_TRAVEL_START = 0.05;
+const TONEARM_TRAVEL_END = 0.95;
+/** Rotary controls backed by the deck/key lock-free parameter set. */
+export type DjKnobParam =
+  | 'eqHigh'
+  | 'eqMid'
+  | 'eqLow'
+  | 'filter'
+  | 'gain'
+  | 'fxAmount'
+  | 'master'
+  | 'drive';
+
+type KnobDrag = {
+  param: DjKnobParam;
+  deck: 'A' | 'B';
+  startY: number;
+  startNormalized: number;
+  fine: boolean;
+};
+
 @Component({
   selector: 'app-dj-deck',
   templateUrl: './dj-deck.component.html',
@@ -124,39 +164,32 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   );
   stems = ['vocals', 'drums', 'bass', 'instrumental'];
 
-  hotCueMarkersA = computed(() => {
-    const deck = this.deckService.deckA();
-    if (!deck.duration) return [];
-    return deck.hotCues
-      .map((pos, i) => (pos !== null ? { pos, i } : null))
-      .filter((c): c is { pos: number; i: number } => c !== null);
-  });
-
-  hotCueMarkersB = computed(() => {
-    const deck = this.deckService.deckB();
-    if (!deck.duration) return [];
-    return deck.hotCues
-      .map((pos, i) => (pos !== null ? { pos, i } : null))
-      .filter((c): c is { pos: number; i: number } => c !== null);
-  });
-
-  getHotCueMarkerStyle(deckId: 'A' | 'B', pos: number) {
-    const deck =
-      deckId === 'A' ? this.deckService.deckA() : this.deckService.deckB();
-    if (!deck.duration) return {};
-
-    const angle = (pos / 1.8) * 360;
-    return {
-      transform: `rotate(${angle}deg)`,
-      '--cue-color': `var(--color-hotcue-${pos % 8})`,
-    };
-  }
-
   rotationA = signal(0);
   rotationB = signal(0);
   scratchVelocityA = signal(0);
   scratchVelocityB = signal(0);
   masterVolume = signal(0.85);
+
+  // ── Vintage booth state ────────────────────────────────────────────
+  /** Master tube-drive amount (the DRIVE knob owns this; the engine mirrors it). */
+  saturation = signal(0.1);
+  /** Motor speed per deck — a real turntable runs at 33⅓ or 45 RPM. */
+  platterRpm = signal<Record<'A' | 'B', 33 | 45>>({ A: 33, B: 45 });
+  /** Visual record momentum (deg/s) carried out of a scratch release. */
+  platterSpin = signal<Record<'A' | 'B', number>>({ A: 0, B: 0 });
+  /** Deck whose tonearm is currently being dragged to the groove. */
+  tonearmDragging = signal<'A' | 'B' | null>(null);
+  /** Rotary knob under the finger — drives the "engaged" highlight. */
+  activeKnob = signal<{ deck: 'A' | 'B'; param: DjKnobParam } | null>(null);
+  /** Analog filter select per channel (HPF/LPF), mirroring a hardware switch. */
+  filterMode = signal<Record<'A' | 'B', 'lowpass' | 'highpass'>>({
+    A: 'lowpass',
+    B: 'lowpass',
+  });
+  /** Beat-quantized loop bounds, mirrored from the engine region for the UI. */
+  loopRegion = signal<
+    Record<'A' | 'B', { start: number; end: number } | null>
+  >({ A: null, B: null });
   precisionEqA = signal<number[]>(new Array(10).fill(1));
   precisionEqB = signal<number[]>(new Array(10).fill(1));
   currentBeat = this.engine.currentBeat;
@@ -180,6 +213,26 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private activeTouchB: number | null = null;
   private recordingStartedAt: number | null = null;
   private lastRenderTimestamp = 0;
+  private lastFullPaintTimestamp = 0;
+  private resizeHandle: ReturnType<typeof setTimeout> | null = null;
+  private knobDrag: KnobDrag | null = null;
+  private tonearmBounds: Record<
+    'A' | 'B',
+    { left: number; width: number } | null
+  > = { A: null, B: null };
+  /** Off-screen whole-track peak strip, rebuilt once per loaded track. */
+  private waveformOverview: Record<'A' | 'B', HTMLCanvasElement | null> = {
+    A: null,
+    B: null,
+  };
+  private waveformOverviewSource: Record<'A' | 'B', Float32Array | null> = {
+    A: null,
+    B: null,
+  };
+  private meterPeak: Record<'A' | 'B', number> = { A: 0, B: 0 };
+  private cuePalette: string[] | null = null;
+  private hostElement = inject(ElementRef<HTMLElement>);
+  private haptics = inject(HapticService);
   activeMobileDeck = signal<'A' | 'B'>('A');
   performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
@@ -275,6 +328,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngAfterViewInit() {
+    this.resizeCanvases();
     this.startAnimationLoop();
   }
 
@@ -282,16 +336,29 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.animFrame) cancelAnimationFrame(this.animFrame);
     if (this.syncInterval) clearInterval(this.syncInterval);
     if (this.recordingInterval) clearInterval(this.recordingInterval);
+    if (this.resizeHandle) clearTimeout(this.resizeHandle);
     this.clearRollInterval('A');
     this.clearRollInterval('B');
     this.clearSamplerReturnTimer('A');
     this.clearSamplerReturnTimer('B');
   }
 
+  /**
+   * Android fires `resize` once per orientation-change frame (and again while
+   * the on-screen keyboard animates). Rebuilding the sync timer on each event
+   * used to thrash timers and canvases mid-performance, so the work is
+   * coalesced into a single trailing layout pass.
+   */
   @HostListener('window:resize')
   onResize() {
-    this.checkMobile();
-    this.configureSyncInterval();
+    if (this.resizeHandle) return;
+    this.resizeHandle = setTimeout(() => {
+      this.resizeHandle = null;
+      this.checkMobile();
+      this.configureSyncInterval();
+      this.resizeCanvases();
+      this.requestRepaint();
+    }, 120);
   }
 
   private checkMobile() {
@@ -304,37 +371,145 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.syncInterval) clearInterval(this.syncInterval);
     const interval = this.isMobile() || this.uiService.isLowPower() ? 90 : 50;
     this.syncInterval = setInterval(() => {
+      // A parked booth does not need 20 Hz of signal churn into OnPush state:
+      // only mirror the engine while something is actually moving.
+      const a = this.deckService.deckA();
+      const b = this.deckService.deckB();
+      if (
+        !a.isPlaying &&
+        !b.isPlaying &&
+        !this.isScratchingA() &&
+        !this.isScratchingB()
+      ) {
+        return;
+      }
       this.deckService.syncProgress();
     }, interval);
   }
 
+  /** Force the next animation frame to repaint (used after user interactions). */
+  private requestRepaint() {
+    this.lastFullPaintTimestamp = 0;
+  }
+
+  /**
+   * Match each canvas's backing store to its CSS box at device pixel ratio.
+   * Doing this on layout changes (instead of per frame) keeps the 30/60 fps
+   * paint loop free of layout reads, which is what made the booth stutter on
+   * mid-range Android hardware.
+   */
+  private resizeCanvases() {
+    if (typeof window === 'undefined') return;
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const size = (canvas?: HTMLCanvasElement) => {
+      if (!canvas) return;
+      const box = canvas.getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      const width = Math.max(1, Math.round(box.width * ratio));
+      const height = Math.max(1, Math.round(box.height * ratio));
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
+    };
+    size(this.waveformA?.nativeElement);
+    size(this.waveformB?.nativeElement);
+    size(this.meterA?.nativeElement);
+    size(this.meterB?.nativeElement);
+  }
+
   private startAnimationLoop() {
     const loop = (timestamp: number) => {
+      this.animFrame = requestAnimationFrame(loop);
+
       const frameBudget =
         this.isMobile() || this.uiService.isLowPower() ? 1000 / 30 : 1000 / 60;
-
       if (
-        !this.lastRenderTimestamp ||
-        timestamp - this.lastRenderTimestamp >= frameBudget
+        this.lastRenderTimestamp &&
+        timestamp - this.lastRenderTimestamp < frameBudget
       ) {
-        this.drawWaveforms();
-        this.drawMeters();
-        this.updateRotations();
-        this.lastRenderTimestamp = timestamp;
+        return;
       }
+      const deltaMs = this.lastRenderTimestamp
+        ? timestamp - this.lastRenderTimestamp
+        : frameBudget;
+      this.lastRenderTimestamp = timestamp;
 
-      this.animFrame = requestAnimationFrame(loop);
+      this.updateRotations(deltaMs);
+
+      // A parked booth repaints on a slow tick instead of 30/60 times a second,
+      // which keeps idle CPU (and battery) off the floor on Android while still
+      // showing seeks, cue flag changes and needle settling.
+      const idleFor = timestamp - this.lastFullPaintTimestamp;
+      if (!this.isBoothLive() && idleFor < IDLE_REPAINT_INTERVAL_MILLIS) {
+        return;
+      }
+      this.lastFullPaintTimestamp = timestamp;
+
+      this.drawWaveforms();
+      this.drawMeters();
     };
     this.animFrame = requestAnimationFrame(loop);
   }
-  private updateRotations() {
+
+  /** True while any deck transports signal, so the booth should paint fast. */
+  private isBoothLive() {
+    const a = this.deckService.deckA();
+    const b = this.deckService.deckB();
+    return (
+      a.isPlaying ||
+      b.isPlaying ||
+      this.isScratchingA() ||
+      this.isScratchingB() ||
+      this.platterSpin().A !== 0 ||
+      this.platterSpin().B !== 0 ||
+      this.tonearmDragging() !== null
+    );
+  }
+
+  /**
+   * Records turn at a physical speed, not at a frame rate: every deck advances
+   * by real elapsed time, so the platter reads identically at 30 fps (Android),
+   * 60 fps (desktop) and everything in between. Leftovers from a scratch
+   * release keep spinning down like a free-wheeling platter.
+   */
+  private updateRotations(deltaMs: number) {
+    const seconds = deltaMs / 1000;
     const stateA = this.deckService.deckA();
     const stateB = this.deckService.deckB();
+    const rpm = this.platterRpm();
+
+    const motorSpeed = (deck: 'A' | 'B', rate: number) => {
+      if (rpm[deck] === 45) return PLATTER_DEG_PER_SEC_45;
+      return PLATTER_DEG_PER_SEC_33 * Math.max(0.5, Math.min(2, rate || 1));
+    };
+
     if (stateA.isPlaying && !this.isScratchingA()) {
-      this.rotationA.update((r) => (r + stateA.playbackRate * 2.5) % 360);
+      this.rotationA.update(
+        (r) => (r + motorSpeed('A', stateA.playbackRate) * seconds) % 360
+      );
     }
     if (stateB.isPlaying && !this.isScratchingB()) {
-      this.rotationB.update((r) => (r + stateB.playbackRate * 2.5) % 360);
+      this.rotationB.update(
+        (r) => (r + motorSpeed('B', stateB.playbackRate) * seconds) % 360
+      );
+    }
+    this.decayPlatterSpin(seconds);
+  }
+
+  /** Free-wheel: decay the visual momentum left behind by a scratch. */
+  private decayPlatterSpin(seconds: number) {
+    const spin = this.platterSpin();
+    if (spin.A === 0 && spin.B === 0) return;
+    const decay = Math.exp((-seconds * 1000) / PLATTER_SPIN_DECAY_MILLIS);
+    const nextA = spin.A * decay;
+    const nextB = spin.B * decay;
+    const settledA = Math.abs(nextA) < 1 ? 0 : nextA;
+    const settledB = Math.abs(nextB) < 1 ? 0 : nextB;
+    this.platterSpin.set({ A: settledA, B: settledB });
+    if (settledA && !this.isScratchingA()) {
+      this.rotationA.update((r) => (r + settledA * seconds) % 360);
+    }
+    if (settledB && !this.isScratchingB()) {
+      this.rotationB.update((r) => (r + settledB * seconds) % 360);
     }
   }
 
@@ -343,68 +518,212 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.drawDeckWaveform('B', this.waveformB?.nativeElement);
   }
 
+  /**
+   * Booth accent for canvas painting — a 2D context cannot read CSS variables,
+   * so the live tokens are resolved from the host element once and reused.
+   */
+  private boothColor(name: string, fallback: string) {
+    try {
+      const host = this.hostElement?.nativeElement as HTMLElement | undefined;
+      if (!host || typeof window === 'undefined' || !window.getComputedStyle) {
+        return fallback;
+      }
+      return window.getComputedStyle(host).getPropertyValue(name).trim() || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /** Per-slot hot-cue colours (CSS `--cue-N`), cached for the paint loop. */
+  private cueColors(): string[] {
+    if (this.cuePalette) return this.cuePalette;
+    const fallbacks = [
+      '#e5453c',
+      '#e08a34',
+      '#d9b23a',
+      '#7ab648',
+      '#3f9bd6',
+      '#8a6ad6',
+      '#d0529f',
+      '#9dbf46',
+    ];
+    this.cuePalette = fallbacks.map((fallback, index) =>
+      this.boothColor(`--cue-${index}`, fallback)
+    );
+    return this.cuePalette;
+  }
+
+  /**
+   * Pre-render the whole track's peak envelope into an off-screen strip once per
+   * loaded track. Painting a 4-second window then costs a single `drawImage`
+   * instead of scanning ~10⁵ raw samples every frame — the difference between a
+   * smooth booth and a stuttering one on Android.
+   */
+  private ensureWaveformOverview(deck: 'A' | 'B', data: Float32Array) {
+    if (!data.length || typeof document === 'undefined') return;
+    if (
+      this.waveformOverview[deck] &&
+      this.waveformOverviewSource[deck] === data
+    ) {
+      return;
+    }
+    const columns = Math.max(
+      1,
+      Math.min(WAVEFORM_OVERVIEW_COLUMNS, data.length)
+    );
+    const canvas = document.createElement('canvas');
+    canvas.width = columns;
+    canvas.height = WAVEFORM_OVERVIEW_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const mid = WAVEFORM_OVERVIEW_HEIGHT / 2;
+    ctx.fillStyle = this.boothColor(
+      deck === 'A' ? '--vv-a' : '--vv-b',
+      deck === 'A' ? '#f0a24a' : '#3fae9c'
+    );
+    const step = data.length / columns;
+    for (let col = 0; col < columns; col++) {
+      const start = Math.floor(col * step);
+      const end = Math.max(start + 1, Math.floor((col + 1) * step));
+      let peak = 0;
+      for (let i = start; i < end && i < data.length; i++) {
+        const value = Math.abs(data[i]);
+        if (value > peak) peak = value;
+      }
+      const half = Math.max(0.5, peak * mid * 1.3);
+      ctx.fillRect(col, mid - half, 1, half * 2);
+    }
+
+    this.waveformOverview[deck] = canvas;
+    this.waveformOverviewSource[deck] = data;
+  }
+
+  private deckDuration(id: 'A' | 'B') {
+    const progress = this.engine.getDeckProgress(id);
+    return progress.duration || this.getDeckState(id).duration || 0;
+  }
+
   private drawDeckWaveform(id: 'A' | 'B', canvas: HTMLCanvasElement) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const deck =
-      id === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    const deck = this.getDeckState(id);
     const data = this.engine.getDeckWaveformData(id);
+    const width = canvas.width;
+    const height = canvas.height;
+    const mid = height / 2;
+    const hairline = Math.max(1, Math.round(height / 48));
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (data.length === 0) {
-      ctx.strokeStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.stroke();
+    ctx.clearRect(0, 0, width, height);
+
+    const duration = this.deckDuration(id);
+    const progress = this.engine.getDeckProgress(id);
+    const position = progress.position;
+
+    if (!data.length || !duration) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(0, mid - hairline / 2, width, hairline);
       return;
     }
 
-    const sampleRate = this.engine.getContext().sampleRate || 44100;
-    const windowSize = 4;
-    const samplesInWindow = windowSize * sampleRate;
-    const step = samplesInWindow / canvas.width;
-    const currentSample = deck.progress * sampleRate;
-    const startSample = Math.floor(currentSample - samplesInWindow / 2);
-    const amp = canvas.height / 2;
+    this.ensureWaveformOverview(id, data);
+    const overview = this.waveformOverview[id];
+    const windowStart = Math.max(0, position - WAVEFORM_WINDOW_SECONDS / 2);
+    const pxPerSecond = width / WAVEFORM_WINDOW_SECONDS;
+    const xOf = (seconds: number) => (seconds - windowStart) * pxPerSecond;
 
-    ctx.strokeStyle = id === 'A' ? '#10b981' : '#f59e0b';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < canvas.width; i++) {
-      const idx = Math.floor(startSample + i * step);
-      if (idx >= 0 && idx < data.length) {
-        const val = data[idx];
-        ctx.moveTo(i, amp - val * amp);
-        ctx.lineTo(i, amp + val * amp);
+    // 1. The groove itself — one scaled blit of the pre-rendered peak strip.
+    if (overview) {
+      const sourceScale = overview.width / duration;
+      ctx.drawImage(
+        overview,
+        windowStart * sourceScale,
+        0,
+        WAVEFORM_WINDOW_SECONDS * sourceScale,
+        overview.height,
+        0,
+        0,
+        width,
+        height
+      );
+    }
+
+    // 2. Beat grid: the engraved 4/4 reminders of a printed sleeve.
+    const bpm = deck.bpm || 0;
+    if (bpm > 0) {
+      const beat = 60 / bpm;
+      if (beat * pxPerSecond >= 12) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = hairline;
+        ctx.beginPath();
+        const first = Math.ceil(windowStart / beat) * beat;
+        for (
+          let t = first;
+          t < windowStart + WAVEFORM_WINDOW_SECONDS;
+          t += beat
+        ) {
+          const x = Math.round(xOf(t)) + hairline / 2;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        ctx.stroke();
       }
     }
-    ctx.stroke();
 
-    const prog = this.engine.getDeckProgress(id);
-    const slipX =
-      ((prog.slipPosition - (deck.progress - windowSize / 2)) / windowSize) *
-      canvas.width;
-
-    if (prog.slipPosition !== prog.position) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.moveTo(slipX, 0);
-      ctx.lineTo(slipX, canvas.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    // 3. Active loop region — the in/out marks of a locked groove.
+    const loop = this.loopRegionOf(id) ?? this.loopRegion()[id];
+    if (deck.loop && loop && loop.end > loop.start) {
+      const left = Math.max(0, xOf(loop.start));
+      const right = Math.min(width, xOf(loop.end));
+      if (right > left) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.fillRect(left, 0, right - left, height);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillRect(left, 0, hairline, height);
+        ctx.fillRect(right - hairline, 0, hairline, height);
+      }
     }
 
-    ctx.strokeStyle = '#f43f5e';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
-    ctx.stroke();
+    // 4. Played portion sink — keeps the upcoming groove the bright part.
+    const playheadX = Math.max(0, Math.min(width, xOf(position)));
+    ctx.fillStyle = 'rgba(8, 7, 5, 0.5)';
+    ctx.fillRect(0, 0, playheadX, height);
+
+    // 5. Hot-cue pennants, coloured per slot like a Rekordbox strip.
+    const cues = this.cueColors();
+    deck.hotCues.forEach((cuePosition, index) => {
+      if (cuePosition === null) return;
+      const x = xOf(cuePosition);
+      if (x < -hairline || x > width + hairline) return;
+      ctx.fillStyle = cues[index % cues.length];
+      ctx.fillRect(x, 0, Math.max(hairline, 2), height * 0.34);
+      ctx.fillRect(x, height * 0.34, Math.max(hairline, 2), height * 0.66);
+    });
+
+    // 6. Slip marker: where the groove would have been without the scratch.
+    if (progress.slipPosition !== progress.position) {
+      const slipX = xOf(progress.slipPosition);
+      if (slipX > -8 && slipX < width + 8) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+        ctx.lineWidth = hairline;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(slipX, 0);
+        ctx.lineTo(slipX, height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // 7. Stylus position.
+    ctx.fillStyle = this.boothColor('--vv-ink', '#f3ead9');
+    ctx.fillRect(playheadX - hairline, 0, hairline * 2, height);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillRect(playheadX - hairline * 3, 0, hairline * 6, height);
+    ctx.fillStyle = this.boothColor('--vv-ink', '#f3ead9');
+    ctx.fillRect(playheadX - hairline, 0, hairline * 2, height);
   }
 
   private drawMeters() {
@@ -412,25 +731,50 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.drawMeter('B', this.meterB?.nativeElement);
   }
 
+  /**
+   * Vintage console VU ladder: discrete lamp segments (green → amber → red)
+   * with a slow-falling peak-hold line, exactly like the meter bridge of a
+   * 1970s mixer. Deliberately bar-based rather than a needle so the same
+   * canvas reads correctly as a narrow channel strip on Android.
+   */
   private drawMeter(id: 'A' | 'B', canvas: HTMLCanvasElement) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const level = this.engine.getDeckLevel(id);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const width = canvas.width;
+    const height = canvas.height;
+    const level = Math.max(0, Math.min(1, this.engine.getDeckLevel(id)));
+    const held = Math.max(level, this.meterPeak[id] * 0.93);
+    this.meterPeak[id] = held;
 
-    const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-    gradient.addColorStop(0, '#10b981');
-    gradient.addColorStop(0.7, '#fbbf24');
-    gradient.addColorStop(1, '#ef4444');
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = this.boothColor('--vv-meter-well', '#0b0906');
+    ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const segments = 22;
+    const gap = Math.max(1, Math.round(height / (segments * 3)));
+    const segmentHeight = (height - gap * (segments - 1)) / segments;
+    const lamp = (position: number) =>
+      position > 0.86
+        ? '#c0392b'
+        : position > 0.68
+          ? '#e0a13a'
+          : this.boothColor('--vv-lamp', '#7bb648');
 
-    ctx.fillStyle = gradient;
-    const h = Math.min(canvas.height, level * canvas.height * 1.5);
-    ctx.fillRect(0, canvas.height - h, canvas.width, h);
+    for (let index = 0; index < segments; index++) {
+      const position = (index + 1) / segments;
+      const y = height - (index + 1) * segmentHeight - index * gap;
+      const lit = position <= level + 0.0001;
+      ctx.fillStyle = lit ? lamp(position) : 'rgba(255, 255, 255, 0.05)';
+      ctx.fillRect(0, y, width, Math.max(1, segmentHeight));
+    }
+
+    // Peak-hold hairline falls slowly so transients stay readable.
+    const peakY = height - held * height;
+    ctx.fillStyle =
+      held > 0.95 ? '#ff5a45' : this.boothColor('--vv-ink', '#f3ead9');
+    ctx.fillRect(0, Math.max(0, peakY - 1), width, Math.max(1, width * 0.12));
   }
 
   getDeckLevel(id: 'A' | 'B') {
@@ -463,6 +807,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       file
     );
     this.deckService.loadDeckBuffer(deckId, buffer, file.name);
+    // A new record: drop the cached peak strip and any stale loop marks, then
+    // repaint immediately instead of waiting for the idle tick.
+    this.waveformOverview[deckId] = null;
+    this.waveformOverviewSource[deckId] = null;
+    this.resetLoopMarkers(deckId);
+    this.deckService.syncProgress();
+    this.requestRepaint();
+    this.sessionNotice.set(`Deck ${deckId}: ${file.name} on the platter.`);
   }
 
   tapBpm(deck: 'A' | 'B') {
@@ -508,6 +860,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   ) {
     if (this.performanceMode() !== 'roll') return;
     event?.preventDefault();
+    this.haptics.impact('medium');
     this.startRoll(deck, index);
   }
 
@@ -523,6 +876,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const mode = this.performanceMode();
     const d =
       deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+    this.haptics.preset(d.hotCues[index] === null ? 'noteOn' : 'noteOff');
+    this.requestRepaint();
 
     if (mode === 'cue') {
       if (d.hotCues[index] === null) this.deckService.setHotCue(deck, index);
@@ -808,6 +1163,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleLoop(deck: 'A' | 'B') {
     this.deckService.toggleLoop(deck);
+    const engaged = this.getDeckState(deck).loop;
+    if (!engaged) this.resetLoopMarkers(deck);
+    this.haptics.preset('loopMarker');
+    this.requestRepaint();
+    this.sessionNotice.set(
+      `Deck ${deck} loop ${engaged ? 'engaged' : 'released'}.`
+    );
   }
 
   sync(deck: 'A' | 'B') {
@@ -855,9 +1217,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     else this.lastAngleB = angle;
 
     this.platterCenters[deck] = this.getEventTargetCenter(event);
-    const deckState = isA ? this.deckService.deckA() : this.deckService.deckB();
+    const deckState = this.getDeckState(deck);
     this.wasPlaying[deck] = deckState.isPlaying;
     if (deckState.isPlaying) this.engine.pauseDeck(deck);
+    // Catching a spinning record cancels the free-wheel of a previous flick.
+    this.setPlatterSpin(deck, 0);
+    this.haptics.preset('tick');
+    this.requestRepaint();
   }
 
   @HostListener('window:mousemove', ['$event'])
@@ -871,42 +1237,96 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private handlePlatterMove(event: MouseEvent | TouchEvent) {
+    if (this.knobDrag) this.handleKnobMove(event);
+    if (this.tonearmDragging()) this.handleTonearmMove(event);
     if (this.isScratchingA()) this.processScratch('A', event);
     if (this.isScratchingB()) this.processScratch('B', event);
   }
 
-  @HostListener('window:mouseup')
-  @HostListener('window:touchend')
-  @HostListener('window:touchcancel')
+  @HostListener('window:mouseup', ['$event'])
+  onPlatterMouseUp(_event: MouseEvent) {
+    this.endKnobDrag();
+    this.tonearmDragging.set(null);
+    // Mouse pointers carry no identifier: a `mouseup` releases every deck that
+    // was grabbed with the mouse, and never a deck held by a finger.
+    if (this.activeTouchA === null) this.finishScratch('A');
+    if (this.activeTouchB === null) this.finishScratch('B');
+  }
+
+  @HostListener('window:touchend', ['$event'])
+  @HostListener('window:touchcancel', ['$event'])
+  onPlatterTouchEnd(event: TouchEvent) {
+    this.endKnobDrag();
+    this.tonearmDragging.set(null);
+    const ended = new Set<number>();
+    const changed = event?.changedTouches;
+    if (changed) {
+      for (const touch of Array.from(changed)) ended.add(touch.identifier);
+    }
+    this.releaseTouchGrab('A', ended);
+    this.releaseTouchGrab('B', ended);
+  }
+
+  /**
+   * Multi-touch safety net.
+   *
+   * Every finger that lands anywhere in the booth eventually fires a
+   * window-level `touchend` — a pad hit, a crossfader drag, a knob sweep. The
+   * previous implementation released *both* platters on any of those, so a
+   * live scratch died the moment the other hand touched a performance pad.
+   * A deck now only lets go when its own captured touch point ends.
+   */
+  private releaseTouchGrab(deck: 'A' | 'B', ended: Set<number>) {
+    const isA = deck === 'A';
+    if (!(isA ? this.isScratchingA() : this.isScratchingB())) return;
+    const touchId = isA ? this.activeTouchA : this.activeTouchB;
+    if (touchId === null) return;
+    if (ended.size && !ended.has(touchId)) return;
+    this.finishScratch(deck);
+  }
+
+  /** Release every grab regardless of pointer type (used by tests + resets). */
   onPlatterUp() {
-    if (this.isScratchingA()) {
+    this.finishScratch('A');
+    this.finishScratch('B');
+  }
+
+  private finishScratch(deck: 'A' | 'B') {
+    const isA = deck === 'A';
+    if (!(isA ? this.isScratchingA() : this.isScratchingB())) return;
+
+    if (isA) {
       this.isScratchingA.set(false);
+      this.activeTouchA = null;
       this.scratchVelocityA.set(0);
-      const deckState = this.deckService.deckA();
-      const progress = this.engine.getDeckProgress('A');
-
-      if (deckState.slip && this.wasPlaying.A) {
-        this.engine.seekDeck('A', progress.slipPosition);
-      }
-
-      this.engine.setDeckRate('A', deckState.playbackRate, deckState.keyLock);
-      if (this.wasPlaying.A) this.engine.playDeck('A');
-      this.wasPlaying.A = false;
-    }
-    if (this.isScratchingB()) {
+    } else {
       this.isScratchingB.set(false);
+      this.activeTouchB = null;
       this.scratchVelocityB.set(0);
-      const deckState = this.deckService.deckB();
-      const progress = this.engine.getDeckProgress('B');
-
-      if (deckState.slip && this.wasPlaying.B) {
-        this.engine.seekDeck('B', progress.slipPosition);
-      }
-
-      this.engine.setDeckRate('B', deckState.playbackRate, deckState.keyLock);
-      if (this.wasPlaying.B) this.engine.playDeck('B');
-      this.wasPlaying.B = false;
     }
+
+    const deckState = this.getDeckState(deck);
+    const progress = this.engine.getDeckProgress(deck);
+
+    if (deckState.slip && this.wasPlaying[deck]) {
+      this.engine.seekDeck(deck, progress.slipPosition);
+    }
+
+    this.engine.setDeckRate(deck, deckState.playbackRate, deckState.keyLock);
+    if (this.wasPlaying[deck]) this.engine.playDeck(deck);
+    this.wasPlaying[deck] = false;
+    this.deckService.syncProgress();
+    this.requestRepaint();
+  }
+
+  private setPlatterSpin(deck: 'A' | 'B', value: number) {
+    const clamped = Math.max(
+      -MAX_PLATTER_SPIN_DEG_PER_SEC,
+      Math.min(MAX_PLATTER_SPIN_DEG_PER_SEC, value)
+    );
+    const next = { ...this.platterSpin() };
+    next[deck] = clamped;
+    this.platterSpin.set(next);
   }
 
   /**
@@ -961,13 +1381,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (deck === 'A') this.scratchVelocityA.set(velocityValue);
     else this.scratchVelocityB.set(velocityValue);
 
+    const degreeDelta = delta * (180 / Math.PI);
     if (deck === 'A') {
-      this.rotationA.update((r) => r + delta * (180 / Math.PI));
+      this.rotationA.update((r) => r + degreeDelta);
       this.lastAngleA = angle;
     } else {
-      this.rotationB.update((r) => r + delta * (180 / Math.PI));
+      this.rotationB.update((r) => r + degreeDelta);
       this.lastAngleB = angle;
     }
+    // Carry the flick out of the release: the record keeps free-wheeling and
+    // slows down on its own, like a hand-spun platter.
+    this.setPlatterSpin(deck, degreeDelta / SECONDS_PER_FRAME);
+    this.requestRepaint();
   }
 
   private getAngle(event: MouseEvent | TouchEvent, deck?: 'A' | 'B'): number {
@@ -1008,7 +1433,409 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setSaturation(val: any) {
     const amount = this.toFiniteNumber(val);
-    this.engine.setSaturation(this.clampSaturation(amount));
+    const clamped = this.clampSaturation(amount);
+    this.saturation.set(clamped);
+    this.engine.setSaturation(clamped);
+  }
+
+  /** Normalised (0..1) position of the DRIVE knob for its engraved scale. */
+  saturationPercent() {
+    return Math.round(this.saturation() * 100);
+  }
+
+  // ───────────────────────────────────────────────────────────────
+  // Vintage turntable transport — tonearm, motor, rotary controls
+  // ───────────────────────────────────────────────────────────────
+
+  /** 0 = first groove, 1 = run-out groove. Mirrors the cue position. */
+  tonearmRatio(deck: 'A' | 'B') {
+    const duration = this.deckDuration(deck);
+    if (!duration) return 0;
+    return this.clampRange(
+      this.engine.getDeckProgress(deck).position / duration,
+      0,
+      1
+    );
+  }
+
+  /** Degrees the arm swings around its rear-right pivot. */
+  tonearmAngle(deck: 'A' | 'B') {
+    return -22 + this.tonearmRatio(deck) * 44;
+  }
+
+  tonearmCueLabel(deck: 'A' | 'B') {
+    if (!this.deckDuration(deck)) return '--:--';
+    return this.formatTimecode(this.engine.getDeckProgress(deck).position);
+  }
+
+  onTonearmDown(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+    event.preventDefault();
+    const target = event.currentTarget as HTMLElement | null;
+    const box = target?.getBoundingClientRect?.();
+    if (box && box.width) {
+      this.tonearmBounds[deck] = { left: box.left, width: box.width };
+    }
+    this.tonearmDragging.set(deck);
+    this.haptics.impact('light');
+    this.seekFromTonearm(deck, event);
+  }
+
+  private handleTonearmMove(event: MouseEvent | TouchEvent) {
+    const deck = this.tonearmDragging();
+    if (deck) this.seekFromTonearm(deck, event);
+  }
+
+  onTonearmUp() {
+    this.tonearmDragging.set(null);
+  }
+
+  /**
+   * Needle drop: the arm rail spans the record face, so the pointer's x maps
+   * straight onto track time. A real arm cannot reach the label or the lead-in
+   * rim, which is why the travel is inset instead of a flat 0..1.
+   */
+  private seekFromTonearm(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+    let box = this.tonearmBounds[deck];
+    if (!box) {
+      const target = event.currentTarget as HTMLElement | null;
+      const rect = target?.getBoundingClientRect?.();
+      if (!rect || !rect.width) return;
+      box = { left: rect.left, width: rect.width };
+      this.tonearmBounds[deck] = box;
+    }
+    const duration = this.deckDuration(deck);
+    if (!duration) return;
+    const point = this.pointerPoint(event);
+    const ratio = this.clampRange((point.x - box.left) / box.width, 0, 1);
+    const travel = this.clampRange(
+      (ratio - TONEARM_TRAVEL_START) /
+        (TONEARM_TRAVEL_END - TONEARM_TRAVEL_START),
+      0,
+      1
+    );
+    this.engine.seekDeck(deck, travel * duration);
+    this.deckService.syncProgress();
+    this.requestRepaint();
+  }
+
+  private pointerPoint(event: MouseEvent | TouchEvent) {
+    const touchEvent = event as TouchEvent;
+    const touch =
+      touchEvent.touches?.[0] ?? touchEvent.changedTouches?.[0] ?? null;
+    if (touch) return { x: touch.clientX, y: touch.clientY };
+    const mouseEvent = event as MouseEvent;
+    return { x: mouseEvent.clientX, y: mouseEvent.clientY };
+  }
+
+  /** Motor speed lever: 33 or 45 RPM, exactly like the hardware. */
+  togglePlatterRpm(deck: 'A' | 'B') {
+    const next: 33 | 45 = this.platterRpm()[deck] === 33 ? 45 : 33;
+    const state = { ...this.platterRpm() };
+    state[deck] = next;
+    this.platterRpm.set(state);
+    this.haptics.preset('snap');
+    this.sessionNotice.set(`Deck ${deck} motor set to ${next} RPM.`);
+  }
+
+  toggleSlip(deck: 'A' | 'B') {
+    this.deckService.toggleSlip(deck);
+    this.sessionNotice.set(
+      `Deck ${deck} slip mode ${
+        this.getDeckState(deck).slip ? 'engaged' : 'released'
+      }.`
+    );
+  }
+
+  /** Drop the painted loop marks for a deck (loop released or new record). */
+  private resetLoopMarkers(deck: 'A' | 'B') {
+    const next = { ...this.loopRegion() };
+    next[deck] = null;
+    this.loopRegion.set(next);
+  }
+
+  /** Analog filter select: the physical HPF/LPF switch on a mixer channel. */
+  setFilterMode(deck: 'A' | 'B', mode: 'lowpass' | 'highpass') {
+    const next = { ...this.filterMode() };
+    next[deck] = mode;
+    this.filterMode.set(next);
+    this.deckService.setDeckFilterMode(deck, mode);
+    this.sessionNotice.set(
+      `Deck ${deck} filter set to ${mode === 'highpass' ? 'HPF' : 'LPF'}.`
+    );
+  }
+
+  /**
+   * Normalised 0..1 knob position. Every rotary control on the booth shares one
+   * sweep model, so the drag gesture, the engraved pointer and the readout can
+   * never disagree about where a control sits.
+   */
+  knobNormalized(param: DjKnobParam, deck: 'A' | 'B') {
+    const state = this.getDeckState(deck);
+    switch (param) {
+      case 'eqHigh':
+        return this.clampRange(state.eqHigh / 2, 0, 1);
+      case 'eqMid':
+        return this.clampRange(state.eqMid / 2, 0, 1);
+      case 'eqLow':
+        return this.clampRange(state.eqLow / 2, 0, 1);
+      case 'filter':
+        return this.clampRange(
+          Math.log(state.filterFreq / FILTER_FREQ_MIN) /
+            Math.log(FILTER_FREQ_MAX / FILTER_FREQ_MIN),
+          0,
+          1
+        );
+      case 'gain':
+        return this.clampRange(state.gain / 2, 0, 1);
+      case 'fxAmount':
+        return this.clampRange(state.fxAmount, 0, 1);
+      case 'master':
+        return this.clampRange(this.masterVolume() / MASTER_VOLUME_MAX, 0, 1);
+      case 'drive':
+        return this.clampRange(this.saturation(), 0, 1);
+      default:
+        return 0;
+    }
+  }
+
+  /** Engraved-scale angle for a knob (7 o'clock to 5 o'clock). */
+  knobRotation(param: DjKnobParam, deck: 'A' | 'B') {
+    return -135 + this.knobNormalized(param, deck) * 270;
+  }
+
+  knobReadout(param: DjKnobParam, deck: 'A' | 'B') {
+    const value = this.knobNormalized(param, deck);
+    switch (param) {
+      case 'eqHigh':
+      case 'eqMid':
+      case 'eqLow': {
+        const db = (value * 2 - 1) * 12;
+        return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`;
+      }
+      case 'filter': {
+        const hz =
+          FILTER_FREQ_MIN * Math.pow(FILTER_FREQ_MAX / FILTER_FREQ_MIN, value);
+        return hz >= 1000
+          ? `${(hz / 1000).toFixed(1)} kHz`
+          : `${Math.round(hz)} Hz`;
+      }
+      case 'gain': {
+        const db = value <= 0 ? -60 : 20 * Math.log10(value * 2);
+        return `${db >= 0 ? '+' : ''}${Math.max(-60, db).toFixed(1)} dB`;
+      }
+      default:
+        return `${Math.round(value * 100)}%`;
+    }
+  }
+
+  isKnobActive(param: DjKnobParam, deck: 'A' | 'B') {
+    const active = this.activeKnob();
+    return !!active && active.param === param && active.deck === deck;
+  }
+
+  onKnobDown(
+    param: DjKnobParam,
+    deck: 'A' | 'B',
+    event: MouseEvent | TouchEvent
+  ) {
+    event.preventDefault();
+    const point = this.pointerPoint(event);
+    this.knobDrag = {
+      param,
+      deck,
+      startY: point.y,
+      startNormalized: this.knobNormalized(param, deck),
+      fine: !!(event as MouseEvent).shiftKey,
+    };
+    this.activeKnob.set({ deck, param });
+    this.haptics.preset('detent');
+  }
+
+  private handleKnobMove(event: MouseEvent | TouchEvent) {
+    const drag = this.knobDrag;
+    if (!drag) return;
+    event.preventDefault();
+    const point = this.pointerPoint(event);
+    const range = drag.fine ? KNOB_FINE_DRAG_RANGE_PX : KNOB_DRAG_RANGE_PX;
+    const next = this.clampRange(
+      drag.startNormalized + (drag.startY - point.y) / range,
+      0,
+      1
+    );
+    this.applyKnobNormalized(drag.param, drag.deck, next);
+  }
+
+  endKnobDrag() {
+    if (!this.knobDrag) return;
+    this.knobDrag = null;
+    this.activeKnob.set(null);
+    this.haptics.preset('tick');
+  }
+
+  /** Snap a rotary control back to its hardware detent (neutral) position. */
+  resetKnob(param: DjKnobParam, deck: 'A' | 'B') {
+    const neutral: Record<DjKnobParam, number> = {
+      eqHigh: 0.5,
+      eqMid: 0.5,
+      eqLow: 0.5,
+      filter: 1,
+      gain: 0.5,
+      fxAmount: 0,
+      master: 0.85 / MASTER_VOLUME_MAX,
+      drive: 0.1,
+    };
+    this.applyKnobNormalized(param, deck, neutral[param]);
+    this.haptics.preset('faderUnity');
+    this.sessionNotice.set(`${this.knobName(param)} on deck ${deck} reset.`);
+  }
+
+  knobName(param: DjKnobParam) {
+    const names: Record<DjKnobParam, string> = {
+      eqHigh: 'HIGH',
+      eqMid: 'MID',
+      eqLow: 'LOW',
+      filter: 'FILTER',
+      gain: 'CHANNEL LEVEL',
+      fxAmount: 'FX DEPTH',
+      master: 'MASTER OUTPUT',
+      drive: 'DRIVE',
+    };
+    return names[param];
+  }
+
+  /**
+   * Route a normalised knob sweep to the same deck-service call the previous
+   * tap-to-toggle controls used, so the audio path is untouched — only the
+   * gesture (a continuous drag instead of an on/off click) is new.
+   */
+  private applyKnobNormalized(
+    param: DjKnobParam,
+    deck: 'A' | 'B',
+    value: number
+  ) {
+    const normalized = this.clampRange(value, 0, 1);
+    switch (param) {
+      case 'eqHigh':
+        this.updateEq(deck, 'high', normalized * 2);
+        return;
+      case 'eqMid':
+        this.updateEq(deck, 'mid', normalized * 2);
+        return;
+      case 'eqLow':
+        this.updateEq(deck, 'low', normalized * 2);
+        return;
+      case 'filter':
+        this.updateFilter(
+          deck,
+          FILTER_FREQ_MIN *
+            Math.pow(FILTER_FREQ_MAX / FILTER_FREQ_MIN, normalized)
+        );
+        return;
+      case 'gain':
+        this.setGain(deck, normalized * 2);
+        return;
+      case 'fxAmount':
+        this.setFxAmount(deck, normalized);
+        return;
+      case 'master':
+        this.setMasterVolume(normalized * MASTER_VOLUME_MAX);
+        return;
+      case 'drive':
+        this.setSaturation(normalized);
+        return;
+      default:
+        return;
+    }
+  }
+
+  seekTo(deck: 'A' | 'B', seconds: number) {
+    const duration = this.deckDuration(deck);
+    if (!duration) return;
+    const target = this.clampRange(this.toFiniteNumber(seconds), 0, duration);
+    this.engine.seekDeck(deck, target);
+    this.deckService.syncProgress();
+    this.requestRepaint();
+  }
+
+  nudgePosition(deck: 'A' | 'B', deltaSeconds: number) {
+    const position = this.engine.getDeckProgress(deck).position;
+    this.seekTo(deck, position + deltaSeconds);
+  }
+
+  /** Keyboard transport on the platter: a deck you can work without a pointer. */
+  onPlatterKeydown(deck: 'A' | 'B', event: KeyboardEvent) {
+    const step = event.shiftKey ? 5 : 0.5;
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        this.nudgePosition(deck, -step);
+        return;
+      case 'ArrowRight':
+        event.preventDefault();
+        this.nudgePosition(deck, step);
+        return;
+      case 'Home':
+        event.preventDefault();
+        this.seekTo(deck, 0);
+        return;
+      case 'End':
+        event.preventDefault();
+        this.seekTo(deck, this.deckDuration(deck));
+        return;
+      case ' ':
+      case 'Enter':
+        event.preventDefault();
+        this.deckService.togglePlay(deck);
+        return;
+      default:
+        return;
+    }
+  }
+
+  /** `m:ss.t` timecode for the booth readouts. */
+  formatTimecode(seconds: number) {
+    const total = Math.max(0, seconds || 0);
+    const minutes = Math.floor(total / 60);
+    const secs = Math.floor(total % 60);
+    const tenths = Math.floor((total % 1) * 10);
+    return `${minutes}:${secs.toString().padStart(2, '0')}.${tenths}`;
+  }
+
+  /** Which side of the crossfader is on air — drives the live-master rail. */
+  isDeckLeading(deck: 'A' | 'B') {
+    const mix = deck === 'A' ? this.crossfadeMixA() : this.crossfadeMixB();
+    return mix > 52;
+  }
+
+  /** Both decks matched in tempo — the mixer's SYNC lamp. */
+  syncLocked = computed(() => {
+    const a = this.deckService.deckA();
+    const b = this.deckService.deckB();
+    if (!a.track?.name || !b.track?.name || !a.bpm || !b.bpm) return false;
+    return Math.abs(this.deckATempo() - this.deckBTempo()) < 0.5;
+  });
+
+  trackLoaded(deck: 'A' | 'B') {
+    return !!this.getDeckState(deck).track?.name;
+  }
+
+  /**
+   * Live loop bounds straight from the audio engine, so a beat-quantized loop
+   * engaged by a preset chip paints its region even though the preset path does
+   * not round-trip through the signal state.
+   */
+  private loopRegionOf(deck: 'A' | 'B') {
+    try {
+      const runtime = this.engine.getDeck(deck) as
+        | { loopEnabled?: boolean; loopStart?: number; loopEnd?: number }
+        | undefined;
+      if (!runtime?.loopEnabled) return null;
+      const start = runtime.loopStart ?? 0;
+      const end = runtime.loopEnd ?? 0;
+      return end > start ? { start, end } : null;
+    } catch {
+      return null;
+    }
   }
 
   applyScratchFx(deck: 'A' | 'B', type: 'brake' | 'spinback' | 'transform') {

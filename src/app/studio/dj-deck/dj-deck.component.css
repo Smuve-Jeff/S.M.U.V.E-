@@ -1,1991 +1,2195 @@
 /* ============================================================
-   S.M.U.V.E DJ Booth 3.0 — Studio Slate & Tactical LED
-   Enhanced Mobile Landscape · Touch Crossfader · Pad Haptics
+   S.M.U.V.E. DJ BOOTH 4.0 — VALVE & VINYL CONSOLE
+   ------------------------------------------------------------
+   A traditional two-turntable booth: walnut plinth, bakelite
+   face plates, brushed chrome hardware, brass trim, cream
+   silkscreen ink, incandescent lamps and a meter bridge.
+
+   Layout contract (verified by tests/e2e/verify_dj*.spec.ts):
+     .deck-chassis               ×2   (turntable A / turntable B)
+     .vinyl-platter              ×2
+     .central-mixer-console      master mixer between them
+     .knob-group .label "DRIVE"  master drive knob
+     .btn-chrome "BRAKE"         ×2
+     .dj-waveform-bar canvas     ×2
+     .deck-a-transform           carries the 3D booth tilt
+   Keep those selectors intact when editing the template.
    ============================================================ */
 
 :host {
+  /* ── Plinth: walnut ─────────────────────────────────────── */
+  --vv-wood-1: #3a2211;
+  --vv-wood-2: #24140a;
+  --vv-wood-3: #150c05;
+
+  /* ── Bakelite face plates ───────────────────────────────── */
+  --vv-panel: #1e1913;
+  --vv-panel-2: #14100c;
+  --vv-well: #080605;
+  --vv-raised: #2a231a;
+
+  /* ── Brushed chrome / steel ─────────────────────────────── */
+  --vv-chrome-1: #e6e0d2;
+  --vv-chrome-2: #a89e8c;
+  --vv-chrome-3: #6d6455;
+  --vv-chrome-4: #3a342b;
+
+  /* ── Silkscreen ink ─────────────────────────────────────── */
+  --vv-ink: #f3ead8;
+  --vv-ink-dim: #b6a88e;
+  --vv-ink-faint: #7d7059;
+
+  /* ── Lamps ──────────────────────────────────────────────── */
+  --vv-a: #f0a24a; /* side A — amber valve glow */
+  --vv-b: #46b3a2; /* side B — patina jade     */
+  --vv-lamp: #86c14a; /* VU green                 */
+  --vv-cue: #d63d2c; /* cue red                  */
+  --vv-brass: #c9a227;
+  --vv-meter-face: #e9dcbe;
+  --vv-meter-well: #0b0906;
+
+  /* ── Lines ──────────────────────────────────────────────── */
+  --vv-line: rgba(243, 234, 216, 0.14);
+  --vv-line-soft: rgba(243, 234, 216, 0.07);
+  --vv-brass-line: rgba(201, 162, 39, 0.3);
+
+  /* ── Type ───────────────────────────────────────────────── */
+  --vv-display: 'Cinzel', 'Italiana', serif;
+  --vv-label: 'Rajdhani', 'Public Sans', sans-serif;
+  --vv-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* ── Per-slot cue lamps (Rekordbox-style index colours) ─── */
+  --cue-0: #e5453c;
+  --cue-1: #e08a34;
+  --cue-2: #d9b23a;
+  --cue-3: #7ab648;
+  --cue-4: #3f9bd6;
+  --cue-5: #8a6ad6;
+  --cue-6: #d0529f;
+  --cue-7: #9dbf46;
+
+  color-scheme: dark;
   display: block;
   width: 100%;
   min-height: 100%;
-  position: relative;
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  font-feature-settings:
-    'tnum' 1,
-    'cv02' 1,
-    'cv11' 1;
+  font-family: var(--vv-label);
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
-/* ─── Palette tokens ───────────────────────────────────────────── */
-:root {
-  /* Canvas */
-  --dj-bg-deep: #06070c;
-  --dj-bg-base: #090b12;
-  --dj-bg-elevated: #131722;
-  --dj-bg-card: #1a1f2e;
-  --dj-bg-sunken: #050608;
-
-  /* Edges & dividers */
-  --dj-edge-bright: rgba(255, 255, 255, 0.08);
-  --dj-edge-soft: rgba(255, 255, 255, 0.04);
-  --dj-edge-base: rgba(255, 255, 255, 0.12);
-
-  /* Text */
-  --dj-text-primary: #ffffff;
-  --dj-text-secondary: #b8bfcc;
-  --dj-text-muted: #6e7484;
-  --dj-text-disabled: #3f4452;
-
-  /* Deck A — Laser Cyan */
-  --dj-a-base: #00e5ff;
-  --dj-a-soft: rgba(0, 229, 255, 0.18);
-  --dj-a-faint: rgba(0, 229, 255, 0.06);
-  --dj-a-glow: rgba(0, 229, 255, 0.55);
-  --dj-a-deep: #00838f;
-
-  /* Deck B — Amber Orange */
-  --dj-b-base: #ff9500;
-  --dj-b-soft: rgba(255, 149, 0, 0.18);
-  --dj-b-faint: rgba(255, 149, 0, 0.06);
-  --dj-b-glow: rgba(255, 149, 0, 0.55);
-  --dj-b-deep: #b36800;
-
-  /* Hot cue colors (16-color palette like Rekordbox) */
-  --dj-cue-0: #ff3b5c;
-  --dj-cue-1: #ff8a3d;
-  --dj-cue-2: #ffd93d;
-  --dj-cue-3: #6bd968;
-  --dj-cue-4: #3dc8ff;
-  --dj-cue-5: #8e5cff;
-  --dj-cue-6: #ff5cc8;
-  --dj-cue-7: #c8ff5c;
-
-  /* Status colors */
-  --dj-record: #ff3b5c;
-  --dj-loop: #6bd968;
-  --dj-sync: #ffd93d;
-
-  /* Hot cue colors via custom property (for cue-pad tinting) */
-  --cue-color: var(--dj-a-base);
-
-  /* Spacing scale */
-  --dj-pad-1: 4px;
-  --dj-pad-2: 8px;
-  --dj-pad-3: 12px;
-  --dj-pad-4: 16px;
-  --dj-pad-5: 24px;
-  --dj-pad-6: 32px;
-
-  /* Elevation shadows (subtle, dark, hardware-like) */
-  --dj-shadow-low: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --dj-shadow-mid: 0 4px 12px rgba(0, 0, 0, 0.55);
-  --dj-shadow-high: 0 12px 34px rgba(0, 0, 0, 0.65);
-  --dj-inset-deep: inset 0 2px 6px rgba(0, 0, 0, 0.65);
-  --dj-inset-soft: inset 0 1px 2px rgba(0, 0, 0, 0.45);
-
-  /* Typography */
-  --dj-font-display: 'Outfit', 'Inter', sans-serif;
-  --dj-font-mono: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+.dj-booth,
+.dj-booth * {
+  box-sizing: border-box;
 }
 
-/* ─── Master Stage ─────────────────────────────────────────────── */
-.dj-stage {
+/* ── The booth shell: wood grain, warm hush, brass edge ───────────────── */
+.dj-booth {
   position: relative;
-  width: 100%;
-  min-height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  padding: 16px;
+  overflow: auto;
+  color: var(--vv-ink);
   background:
-    radial-gradient(
-      ellipse 120% 80% at 50% -10%,
-      rgba(0, 229, 255, 0.045) 0%,
-      transparent 55%
+    radial-gradient(1100px 520px at 50% -12%, rgba(255, 178, 88, 0.14), transparent 62%),
+    repeating-linear-gradient(
+      92deg,
+      rgba(0, 0, 0, 0.22) 0 1px,
+      rgba(255, 255, 255, 0.012) 1px 3px,
+      transparent 3px 9px
     ),
-    radial-gradient(
-      ellipse 120% 80% at 50% 110%,
-      rgba(255, 149, 0, 0.04) 0%,
-      transparent 60%
-    ),
-    linear-gradient(180deg, var(--dj-bg-base) 0%, var(--dj-bg-deep) 100%);
-  overflow-y: auto; overflow-x: hidden;
-  isolation: isolate;
+    linear-gradient(180deg, var(--vv-wood-1), var(--vv-wood-2) 58%, var(--vv-wood-3));
 }
-.dj-stage::before {
+.dj-booth::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
-  background-size:
-    32px 32px,
-    32px 32px;
   pointer-events: none;
-  z-index: 0;
-  opacity: 0.6;
-  mask-image: radial-gradient(
-    ellipse 80% 80% at 50% 50%,
-    black 30%,
-    transparent 75%
-  );
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+    radial-gradient(120% 90% at 50% 120%, rgba(0, 0, 0, 0.55), transparent 60%);
+}
+.dj-booth.is-recording {
+  box-shadow: inset 0 0 0 2px rgba(214, 61, 44, 0.35);
+}
+.dj-booth .eyebrow {
+  margin: 0;
+  color: var(--vv-ink-faint);
+  font: 700 9px/1.3 var(--vv-label);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.dj-booth button,
+.dj-booth input,
+.dj-booth select {
+  font-family: inherit;
+}
+.dj-booth button {
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
-/* ─── Region 1: Top Bar ────────────────────────────────────────── */
-.dj-top-bar {
-  flex-shrink: 0;
-  height: 56px;
+/* ══════════════════════════════════════════════════════════
+   1. BRASS FASCIA
+   ══════════════════════════════════════════════════════════ */
+.booth-topbar {
+  position: relative;
+  z-index: 6;
   display: flex;
   align-items: center;
-  padding: 0 var(--dj-pad-4);
-  gap: var(--dj-pad-3);
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 10px 14px;
+  border-radius: 14px 14px 8px 8px;
+  border: 1px solid var(--vv-brass-line);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, transparent 100%),
-    var(--dj-bg-elevated);
-  border-bottom: 1px solid var(--dj-edge-soft);
-  position: relative;
-  z-index: 3;
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #2b241c, #17130e 58%, #0f0c09);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    0 14px 30px rgba(0, 0, 0, 0.5);
 }
-.dj-top-bar::after {
+.booth-topbar::after {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--dj-a-base) 35%,
-    var(--dj-b-base) 65%,
-    transparent 100%
-  );
-  opacity: 0.45;
+  inset: auto 12px -1px 12px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--vv-brass), transparent);
+  opacity: 0.5;
 }
 
-.dj-brand {
+.booth-identity {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 11px;
+  min-width: 220px;
 }
-.dj-brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(
-    135deg,
-    var(--dj-a-base) 0%,
-    var(--dj-b-base) 100%
-  );
+.booth-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #241a08;
+  font: 900 13px/1 var(--vv-display);
+  background:
+    radial-gradient(circle at 34% 28%, #fdf3c4, var(--vv-brass) 46%, #7d6412 100%);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.6),
+    0 0 18px rgba(201, 162, 39, 0.28),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.booth-identity h1 {
+  margin: 3px 0 0;
+  color: var(--vv-ink);
+  font: 700 18px/1 var(--vv-display);
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7), 0 0 18px rgba(240, 162, 74, 0.18);
+}
+.booth-identity h1 span {
+  color: var(--vv-brass);
+  font-size: 0.66em;
+  letter-spacing: 0.3em;
+}
+
+.booth-lamps {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 11px;
-  font-family: var(--dj-font-display);
-  letter-spacing: 0.04em;
-  color: #020308;
-  box-shadow: 0 2px 12px rgba(0, 229, 255, 0.35);
+  align-items: flex-end;
+  gap: 12px;
+  margin-left: 4px;
 }
-.dj-brand-text {
+.lamp {
   display: flex;
   flex-direction: column;
-  line-height: 1;
-}
-.dj-brand-text .brand-name {
-  font-family: var(--dj-font-display);
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  color: var(--dj-text-primary);
-  text-transform: uppercase;
-}
-.dj-brand-text .brand-sub {
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  color: var(--dj-text-muted);
-  text-transform: uppercase;
-  font-weight: 700;
-  margin-top: 3px;
-}
-
-.dj-top-spacer {
-  flex: 1;
-  min-width: 12px;
-}
-
-.dj-session-pill {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--dj-bg-card);
-  border: 1px solid var(--dj-edge-base);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--dj-text-secondary);
+  gap: 4px;
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.2em;
 }
-.dj-session-pill .material-symbols-outlined {
-  font-size: 14px;
-  color: var(--dj-a-base);
+.lamp em {
+  font-style: normal;
 }
-.dj-session-pill.is-active {
-  border-color: var(--dj-a-base);
-  color: var(--dj-a-base);
-  box-shadow: 0 0 12px var(--dj-a-soft);
+.lamp i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #1c1710;
+  box-shadow: inset 0 0 4px #000, 0 0 0 2px rgba(255, 255, 255, 0.05);
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+.lamp-power i,
+.lamp-sync.is-lit i,
+.lamp-rec.is-lit i {
+  background: radial-gradient(circle at 35% 30%, #fff, var(--lamp-color, var(--vv-lamp)));
+  box-shadow: 0 0 12px var(--lamp-color, var(--vv-lamp));
+}
+.lamp-power {
+  --lamp-color: var(--vv-lamp);
+}
+.lamp-sync {
+  --lamp-color: var(--vv-brass);
+}
+.lamp-rec {
+  --lamp-color: var(--vv-cue);
+}
+.lamp-rec.is-lit i {
+  animation: vv-lamp-pulse 1.2s ease-in-out infinite;
 }
 
-.dj-icon-btn {
-  background: var(--dj-bg-card);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
+.booth-session-state {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--dj-text-secondary);
-  transition:
-    transform 0.1s ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-  touch-action: manipulation;
+  gap: 8px;
+  margin-left: auto;
+  padding: 7px 11px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 8px;
+  background: var(--vv-well);
+  color: var(--vv-ink-dim);
+  font: 700 9px var(--vv-mono);
+  letter-spacing: 0.14em;
+  white-space: nowrap;
 }
-.dj-icon-btn .material-symbols-outlined {
-  font-size: 18px;
+.booth-session-state strong {
+  color: var(--vv-a);
+  font-size: 12px;
+  text-shadow: 0 0 12px rgba(240, 162, 74, 0.35);
 }
-.dj-icon-btn:hover {
-  background: var(--dj-bg-elevated);
-  border-color: var(--dj-edge-bright);
-  color: var(--dj-text-primary);
+.state-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vv-lamp);
+  box-shadow: 0 0 10px var(--vv-lamp);
 }
-.dj-icon-btn:active {
-  transform: scale(0.94);
+.booth-session-state.is-recording {
+  color: var(--vv-cue);
+  border-color: rgba(214, 61, 44, 0.4);
 }
-.dj-icon-btn.is-on {
-  background: linear-gradient(180deg, var(--dj-a-base), var(--dj-a-deep));
-  color: #020308;
-  border-color: var(--dj-a-base);
-  box-shadow: 0 0 14px var(--dj-a-glow);
+.booth-session-state.is-recording strong {
+  color: var(--vv-cue);
 }
-.dj-icon-btn.is-recording {
-  background: linear-gradient(180deg, var(--dj-record), #b5203a);
-  color: white;
-  border-color: var(--dj-record);
-  box-shadow: 0 0 14px rgba(255, 59, 92, 0.55);
-  animation: dj-pulse-rec 1.4s ease-in-out infinite;
-}
-
-@keyframes dj-pulse-rec {
-  0%,
-  100% {
-    box-shadow: 0 0 14px rgba(255, 59, 92, 0.55);
-  }
-  50% {
-    box-shadow: 0 0 22px rgba(255, 59, 92, 0.85);
-  }
+.booth-session-state.is-recording .state-dot {
+  background: var(--vv-cue);
+  box-shadow: 0 0 12px var(--vv-cue);
+  animation: vv-lamp-pulse 1s ease-in-out infinite;
 }
 
-.dj-btn-group {
-  display: inline-flex;
-  gap: 6px;
+.booth-top-actions {
+  display: flex;
   align-items: center;
+  gap: 6px;
+  margin-left: 6px;
 }
 
-/* ─── Region 2: Waveform Bridge ────────────────────────────────── */
-.dj-wave-bridge {
-  flex-shrink: 0;
+/* Chrome rocker keys */
+.chrome-button,
+.icon-button,
+.mini-status,
+.tap-button,
+.pitch-nudge,
+.transport-button,
+.master-sync-button,
+.automix-button,
+.btn-chrome {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--vv-line);
+  border-radius: 8px;
+  color: var(--vv-ink-dim);
+  background: linear-gradient(180deg, var(--vv-raised), var(--vv-panel-2) 62%, #0d0a07);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    0 2px 0 rgba(0, 0, 0, 0.55);
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 180ms ease,
+    transform 120ms cubic-bezier(0.34, 1.4, 0.44, 1);
+}
+.chrome-button:hover,
+.icon-button:hover,
+.mini-status:hover,
+.tap-button:hover,
+.pitch-nudge:hover,
+.transport-button:hover,
+.btn-chrome:hover {
+  color: var(--vv-ink);
+  border-color: rgba(243, 234, 216, 0.28);
+}
+.chrome-button:active,
+.icon-button:active,
+.mini-status:active,
+.transport-button:active,
+.btn-chrome:active,
+.performance-pad:active,
+.cue-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+.chrome-button .material-symbols-outlined,
+.icon-button .material-symbols-outlined,
+.mini-status .material-symbols-outlined,
+.transport-button .material-symbols-outlined,
+.master-sync-button .material-symbols-outlined {
+  font-size: 17px;
+}
+.icon-button {
+  width: 38px;
+  padding: 0;
+}
+.load-button.is-loaded {
+  color: var(--vv-ink);
+  border-color: rgba(240, 162, 74, 0.4);
+}
+.load-button.is-loaded::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vv-a);
+  box-shadow: 0 0 8px var(--vv-a);
+}
+.record-button.is-active {
+  color: #fff;
+  border-color: var(--vv-cue);
+  background: linear-gradient(180deg, #4a1a14, #2a0f0b);
+  box-shadow: 0 0 20px rgba(214, 61, 44, 0.35), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+.record-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--vv-cue);
+  box-shadow: 0 0 8px rgba(214, 61, 44, 0.8);
+}
+.record-button.is-active .record-dot {
+  animation: vv-lamp-pulse 1.1s ease-in-out infinite;
+}
+
+/* ── Mobile rocker (sticky so a deck flip never needs a scroll hunt) ─── */
+.mobile-deck-switcher {
+  position: sticky;
+  top: 0;
+  z-index: 7;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--dj-edge-soft);
-  padding: 1px;
-  border-bottom: 1px solid var(--dj-edge-soft);
-  position: relative;
-  z-index: 2;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--vv-brass-line);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #241d15, #120e0a);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
 }
-.dj-wave-channel {
-  position: relative;
-  background: var(--dj-bg-sunken);
-  height: 90px;
+.mobile-deck-switcher button {
   display: flex;
-  align-items: stretch;
-  overflow: hidden;
-}
-.dj-wave-channel.deck-a {
-  border-left: 2px solid var(--dj-a-base);
-}
-.dj-wave-channel.deck-b {
-  border-right: 2px solid var(--dj-b-base);
-}
-.dj-wave-channel canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.dj-wave-channel .wave-meta {
-  position: absolute;
-  top: var(--dj-pad-1);
-  left: var(--dj-pad-2);
-  font-family: var(--dj-font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--dj-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  align-items: baseline;
-  pointer-events: none;
-  z-index: 2;
+  min-height: 44px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 7px;
+  color: var(--vv-ink-dim);
+  background: linear-gradient(180deg, #221c15, #100d09);
+  font: 700 11px var(--vv-label);
+  letter-spacing: 0.18em;
 }
-.dj-wave-channel .wave-meta .label {
-  color: var(--dj-text-secondary);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+.mobile-deck-switcher button span {
+  color: var(--vv-ink-faint);
+  font: 700 9px var(--vv-mono);
+  letter-spacing: 0.04em;
 }
-.dj-wave-channel.deck-a .wave-meta .bpm-mono {
-  color: var(--dj-a-base);
-  text-shadow: 0 0 6px var(--dj-a-glow);
-  font-size: 12px;
+.mobile-deck-switcher button.is-active {
+  color: #1a1206;
+  border-color: var(--vv-a);
+  background: linear-gradient(180deg, #f6c078, var(--vv-a) 62%, #a6651f);
+  box-shadow: 0 0 18px rgba(240, 162, 74, 0.3);
 }
-.dj-wave-channel.deck-b .wave-meta .bpm-mono {
-  color: var(--dj-b-base);
-  text-shadow: 0 0 6px var(--dj-b-glow);
-  font-size: 12px;
+.mobile-deck-switcher button:last-child.is-active {
+  color: #06201c;
+  border-color: var(--vv-b);
+  background: linear-gradient(180deg, #86dfd0, var(--vv-b) 62%, #1d6d63);
+  box-shadow: 0 0 18px rgba(70, 179, 162, 0.3);
 }
-.dj-wave-channel .wave-timecode {
-  position: absolute;
-  top: var(--dj-pad-1);
-  right: var(--dj-pad-2);
-  font-family: var(--dj-font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  pointer-events: none;
-  z-index: 2;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--dj-edge-soft);
-}
-.dj-wave-channel.deck-a .wave-timecode {
-  color: var(--dj-a-base);
-}
-.dj-wave-channel.deck-b .wave-timecode {
-  color: var(--dj-b-base);
-}
-.dj-wave-channel .wave-playhead-overlay {
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  width: 2px;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
-  pointer-events: none;
-  transition: left 0.04s linear;
-  z-index: 1;
-}
-.dj-wave-channel .wave-playhead-overlay::before,
-.dj-wave-channel .wave-playhead-overlay::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  transform: translateX(-50%);
-}
-.dj-wave-channel .wave-playhead-overlay::before {
-  top: -2px;
-  border-bottom: 6px solid rgba(255, 255, 255, 0.95);
-}
-.dj-wave-channel .wave-playhead-overlay::after {
-  bottom: -2px;
-  border-top: 6px solid rgba(255, 255, 255, 0.95);
+.mobile-deck-switcher button.is-active span {
+  color: rgba(20, 14, 6, 0.7);
 }
 
-/* ─── Region 3: Deck Surfaces ──────────────────────────────────── */
-.dj-decks-region {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 280px 1fr;
-  gap: var(--dj-pad-3);
-  padding: var(--dj-pad-3) var(--dj-pad-3) 0;
-  min-height: 0;
+/* ══════════════════════════════════════════════════════════
+   2. DUAL SCOPE RAIL
+   ══════════════════════════════════════════════════════════ */
+.mix-overview {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #1a1510, #0d0a07 70%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 12px 26px rgba(0, 0, 0, 0.4);
 }
-
-.dj-deck {
-  background: linear-gradient(
-    180deg,
-    var(--dj-bg-card) 0%,
-    var(--dj-bg-elevated) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 14px;
-  box-shadow:
-    inset 0 1px 0 var(--dj-edge-bright),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.5),
-    var(--dj-shadow-mid);
+.overview-heading {
   display: flex;
-  flex-direction: column;
-  padding: var(--dj-pad-3);
-  gap: var(--dj-pad-3);
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.overview-heading h2,
+.mixer-heading h2 {
+  margin: 3px 0 0;
+  color: var(--vv-ink);
+  font: 700 13px var(--vv-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.overview-readouts {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--vv-ink-dim);
+  font: 700 10px var(--vv-mono);
+}
+.overview-readouts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.pulse-dot.cyan {
+  background: var(--vv-a);
+  box-shadow: 0 0 8px var(--vv-a);
+}
+.pulse-dot.amber {
+  background: var(--vv-b);
+  box-shadow: 0 0 8px var(--vv-b);
+}
+.sync-readout,
+.clock-readout {
+  padding: 5px 8px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 6px;
+  background: var(--vv-well);
+}
+.sync-readout {
+  color: var(--vv-brass);
+}
+.sync-readout.is-locked {
+  color: #1b1405;
+  background: linear-gradient(180deg, #f0d47a, var(--vv-brass));
+  border-color: var(--vv-brass);
+}
+.clock-readout {
+  color: var(--vv-ink-faint);
+}
+
+.waveform-rack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.waveform-lane {
   position: relative;
+  height: 118px;
   overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--vv-line-soft);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #0c0a07, #060505);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.8);
+  touch-action: pan-y;
+}
+.waveform-lane.deck-a {
+  border-left: 3px solid var(--vv-a);
+}
+.waveform-lane.deck-b {
+  border-right: 3px solid var(--vv-b);
+}
+.waveform-lane canvas {
+  position: absolute;
+  inset: 22px 0 16px;
+  width: 100%;
+  height: calc(100% - 38px);
+  opacity: 0.95;
+}
+.lane-grid {
+  position: absolute;
+  inset: 22px 0 16px;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, rgba(243, 234, 216, 0.09) 1px, transparent 1px);
+  background-size: 12.5% 100%;
+  opacity: 0.5;
+}
+.playhead {
+  position: absolute;
+  top: 20px;
+  bottom: 14px;
+  left: 50%;
+  width: 1px;
+  background: rgba(243, 234, 216, 0.22);
+  pointer-events: none;
+}
+.lane-head,
+.lane-foot {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vv-ink-dim);
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+.lane-head {
+  top: 5px;
+}
+.lane-foot {
+  bottom: 3px;
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-mono);
+}
+.lane-foot span:last-child {
+  margin-left: auto;
+}
+.lane-head strong {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: #1a1206;
+  font: 900 11px var(--vv-display);
+}
+.deck-a .lane-head strong {
+  background: var(--vv-a);
+}
+.deck-b .lane-head strong {
+  background: var(--vv-b);
+}
+.lane-head span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.lane-head em {
+  margin-left: auto;
+  color: var(--vv-ink);
+  font: 700 10px var(--vv-mono);
+  font-style: normal;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. THE CONSOLE — turntable / mixer / turntable
+   ══════════════════════════════════════════════════════════ */
+.booth-console {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(296px, 336px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.deck-chassis,
+.central-mixer-console {
   min-width: 0;
 }
-.dj-deck.deck-a {
-  border-top: 2px solid var(--dj-a-base);
+
+/* Turntable plate + tilt. `.flat-view` lays the booth back on the bench. */
+.deck-chassis {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid var(--vv-line-soft);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #241d16, #130f0b 58%, #0b0806);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.06),
+    0 20px 44px rgba(0, 0, 0, 0.55);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 320ms ease;
 }
-.dj-deck.deck-b {
-  border-top: 2px solid var(--dj-b-base);
-}
-.dj-deck::before {
+.deck-chassis::before {
   content: '';
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: 14px;
-  background: radial-gradient(
-    circle at 50% 0%,
-    var(--deck-tint, transparent) 0%,
-    transparent 35%
-  );
-  opacity: 0.35;
-  z-index: 0;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, transparent, var(--deck-color), transparent);
+  box-shadow: 0 0 16px var(--deck-color);
+  opacity: 0.85;
 }
-.dj-deck.deck-a {
-  --deck-tint: rgba(0, 229, 255, 0.2);
+.deck-chassis.deck-a {
+  --deck-color: var(--vv-a);
 }
-.dj-deck.deck-b {
-  --deck-tint: rgba(255, 149, 0, 0.2);
+.deck-chassis.deck-b {
+  --deck-color: var(--vv-b);
 }
-.dj-deck > * {
-  position: relative;
-  z-index: 1;
+.deck-a-transform {
+  transform: perspective(1500px) rotateY(4.5deg) rotateX(1.5deg);
+}
+.deck-b-transform {
+  transform: perspective(1500px) rotateY(-4.5deg) rotateX(1.5deg);
+}
+.flat-view .deck-a-transform,
+.flat-view .deck-b-transform {
+  transform: none;
+}
+.deck-chassis.is-live-master {
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    0 20px 44px rgba(0, 0, 0, 0.55),
+    0 0 28px color-mix(in srgb, var(--deck-color), transparent 78%);
+}
+.deck-chassis > app-swipe-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
-.dj-deck-header {
+.deck-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.deck-title-block {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--dj-pad-2);
-  flex-shrink: 0;
+  gap: 9px;
+  min-width: 0;
 }
-.dj-deck-id {
+.deck-badge {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: #150e05;
+  font: 900 15px var(--vv-display);
+  background: linear-gradient(180deg, #f7cd8c, var(--deck-color) 58%, #8f5716);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+.deck-badge + div {
+  min-width: 0;
+}
+.deck-name {
+  display: block;
+  margin-top: 1px;
+  color: var(--deck-color);
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--deck-color), transparent 60%);
+}
+.deck-title-block h2 {
+  margin: 2px 0 0;
+  max-width: 210px;
+  overflow: hidden;
+  color: var(--vv-ink);
+  font: 700 13px var(--vv-label);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.deck-header-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.mini-status {
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.12em;
+}
+.mini-status .material-symbols-outlined {
+  font-size: 13px;
+}
+.mini-status.is-active {
+  color: #150e05;
+  border-color: var(--deck-color);
+  background: linear-gradient(180deg, #f4c98a, var(--deck-color));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--deck-color), transparent 55%);
+}
+.rpm-switch.is-active {
+  color: #150e05;
+}
+
+/* Metric plate: engraved readouts, ivory numerals */
+.deck-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px 4px 4px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--dj-edge-soft);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #100d09, #070605);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
 }
-.dj-deck-id .deck-letter {
+.metric-label {
+  display: block;
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.18em;
+}
+.deck-metrics strong {
+  color: var(--vv-a);
+  font: 700 15px var(--vv-mono);
+  text-shadow: 0 0 14px rgba(240, 162, 74, 0.3);
+}
+.deck-b .deck-metrics strong {
+  color: var(--vv-b);
+  text-shadow: 0 0 14px rgba(70, 179, 162, 0.3);
+}
+.tap-button {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.16em;
+}
+
+/* ── Rotary tone stack ─────────────────────────────────────────────── */
+.tone-stack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px 8px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--vv-line-soft);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 60%),
+    linear-gradient(180deg, #191410, #0b0906);
+}
+.knob-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.knob-group .label,
+.knob-group span.label {
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.knob-group em {
+  color: var(--vv-ink-dim);
+  font: 700 8px var(--vv-mono);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+/* Skirted bakelite knob with a chrome cap and an engraved scale that
+   stays put while the knob body turns. */
+.vknob {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.85);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, #574e40, #26211a 48%, #0b0906 80%);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.7),
+    0 3px 7px rgba(0, 0, 0, 0.6);
+  transform: rotate(var(--knob-angle, 0deg));
+  transition: box-shadow 160ms ease;
+  touch-action: none;
+}
+.vknob::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from -135deg,
+    rgba(243, 234, 216, 0.4) 0deg 1.2deg,
+    transparent 1.2deg 27deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0 56%, #000 57%);
+  mask: radial-gradient(circle, transparent 0 56%, #000 57%);
+  opacity: 0.45;
+  /* Counter-rotate so the engraved scale never spins with the knob. */
+  transform: rotate(calc(-1 * var(--knob-angle, 0deg)));
+  pointer-events: none;
+}
+.vknob-pointer {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 3px;
+  height: 15px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--vv-ink), rgba(243, 234, 216, 0.12));
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
+}
+.vknob:hover {
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.7),
+    0 0 14px color-mix(in srgb, var(--deck-color, var(--vv-a)), transparent 60%);
+}
+.vknob.is-engaged {
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.24),
+    0 0 0 2px color-mix(in srgb, var(--deck-color, var(--vv-a)), transparent 45%),
+    0 0 20px color-mix(in srgb, var(--deck-color, var(--vv-a)), transparent 40%);
+}
+.filter-group {
+  gap: 4px;
+}
+.filter-switch {
+  display: flex;
+  gap: 3px;
+}
+.filter-switch button {
+  min-height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 5px;
+  color: var(--vv-ink-faint);
+  background: #100d09;
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.14em;
+}
+.filter-switch button.is-active {
+  color: #150e05;
+  border-color: var(--deck-color, var(--vv-a));
+  background: var(--deck-color, var(--vv-a));
+}
+
+/* ── Platter stage: record, slipmat and a working tonearm ──────────── */
+.jog-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.platter-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 296px);
+  aspect-ratio: 1;
+}
+
+/* Tonearm rail: the top band of the stage is the needle-drop surface. */
+.tonearm-rail {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 4;
+  height: 48px;
+  border-radius: 8px 8px 0 0;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.tonearm-rail::after {
+  content: 'DRAG TO DROP THE NEEDLE';
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.2em;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.tonearm-rail:hover::after,
+.tonearm-rail:focus-visible::after {
+  opacity: 0.9;
+}
+.tonearm {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 86%;
+  height: 34px;
+  transform-origin: 96% 40%;
+  transition: transform 220ms linear;
+}
+.tonearm-pivot {
+  position: absolute;
+  right: 0;
+  top: 6px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 11px;
-  letter-spacing: 0;
-  color: #020308;
+  background:
+    radial-gradient(circle at 34% 30%, var(--vv-chrome-1), var(--vv-chrome-3) 60%, #1a1712);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.7);
 }
-.dj-deck.deck-a .deck-letter {
-  background: var(--dj-a-base);
+.tonearm-arm {
+  position: absolute;
+  right: 12px;
+  top: 15px;
+  left: 14%;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--vv-chrome-1), var(--vv-chrome-3) 55%, #221e18);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
-.dj-deck.deck-b .deck-letter {
-  background: var(--dj-b-base);
+.tonearm-head {
+  position: absolute;
+  left: 12%;
+  top: 8px;
+  width: 20px;
+  height: 16px;
+  border-radius: 3px 3px 5px 5px;
+  background: linear-gradient(180deg, #2c261e, #100d09);
+  border: 1px solid rgba(243, 234, 216, 0.14);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
 }
-.dj-deck-id .deck-track-name {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--dj-text-secondary);
-  text-transform: uppercase;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dj-deck-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.dj-deck-bpm-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.dj-bpm-keylock-toggle {
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-muted);
-  cursor: pointer;
-  text-transform: uppercase;
-  touch-action: manipulation;
-}
-.dj-bpm-keylock-toggle.is-on {
-  background: var(--sync-color, var(--dj-sync));
-  color: #020308;
-  border-color: var(--sync-color, var(--dj-sync));
-  box-shadow: 0 0 10px var(--dj-sync);
+.tonearm-head::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 2px;
+  height: 5px;
+  margin-left: -1px;
+  background: var(--vv-brass);
+  box-shadow: 0 0 6px rgba(201, 162, 39, 0.7);
 }
 
-/* ─── Platter (top-down 2D, hardware-accurate) ────────────────── */
-.dj-platter-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-}
-.dj-platter {
+/* The record itself */
+.vinyl-platter {
   position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 268px);
   aspect-ratio: 1;
-  width: 100%;
-  max-width: 280px;
-  margin: var(--dj-pad-2) auto;
+  border-radius: 50%;
+  border: 2px solid #090705;
+  background: #090705;
+  box-shadow:
+    0 22px 42px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(201, 162, 39, 0.22),
+    inset 0 0 24px rgba(0, 0, 0, 0.9);
   cursor: grab;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
-.dj-platter:active,
-.dj-platter.is-scratching {
+.vinyl-platter.is-scratching {
   cursor: grabbing;
 }
-.dj-platter-outer-ring {
+.platter-rim {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background: conic-gradient(
-    from 0deg,
-    rgba(255, 255, 255, 0.06) 0deg,
-    rgba(255, 255, 255, 0.02) 30deg,
-    rgba(255, 255, 255, 0.06) 60deg,
-    rgba(255, 255, 255, 0.02) 90deg,
-    rgba(255, 255, 255, 0.06) 120deg,
-    rgba(255, 255, 255, 0.02) 150deg,
-    rgba(255, 255, 255, 0.06) 180deg,
-    rgba(255, 255, 255, 0.02) 210deg,
-    rgba(255, 255, 255, 0.06) 240deg,
-    rgba(255, 255, 255, 0.02) 270deg,
-    rgba(255, 255, 255, 0.06) 300deg,
-    rgba(255, 255, 255, 0.02) 330deg
+    from 20deg,
+    #8d8578,
+    #efeadf 9%,
+    #7c7568 19%,
+    #dcd6c9 30%,
+    #6f6558 42%,
+    #efeadd 54%,
+    #7a7264 66%,
+    #d7d1c3 78%,
+    #6b6255 88%,
+    #8d8578
   );
-  box-shadow:
-    var(--dj-inset-deep),
-    0 0 0 2px rgba(255, 255, 255, 0.05),
-    0 0 0 3px rgba(0, 0, 0, 0.6),
-    0 12px 22px rgba(0, 0, 0, 0.6);
+  -webkit-mask: radial-gradient(circle, transparent 0 88%, #000 89%);
+  mask: radial-gradient(circle, transparent 0 88%, #000 89%);
+  opacity: 0.85;
 }
-.dj-platter-vinyl {
+.platter-grooves {
   position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 50% 50%,
-    #1b1e28 0%,
-    #0f1116 70%,
-    #050608 100%
-  );
-  box-shadow:
-    inset 0 0 0 1px var(--dj-edge-soft),
-    inset 0 4px 12px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  transition: transform 0.04s linear;
-}
-.dj-platter-vinyl::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-radial-gradient(
-    circle at 50% 50%,
-    transparent 0,
-    transparent 3px,
-    rgba(255, 255, 255, 0.04) 3px,
-    rgba(255, 255, 255, 0.04) 4px
-  );
-  border-radius: 50%;
-  pointer-events: none;
-}
-.dj-platter-strobe-dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  top: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-  z-index: 3;
-}
-.dj-deck.deck-a .dj-platter-strobe-dot {
-  background: var(--dj-a-base);
-  box-shadow: 0 0 6px var(--dj-a-glow);
-}
-.dj-deck.deck-b .dj-platter-strobe-dot {
-  background: var(--dj-b-base);
-  box-shadow: 0 0 6px var(--dj-b-glow);
-}
-
-.dj-platter-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 32%;
-  height: 32%;
-  margin: -16% 0 0 -16%;
+  inset: 7%;
   border-radius: 50%;
   background:
-    radial-gradient(
-      circle at 35% 35%,
-      rgba(255, 255, 255, 0.18) 0%,
-      transparent 50%
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.05) 0 1px,
+      transparent 1px 3px
     ),
-    var(--dj-bg-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  font-family: var(--dj-font-display);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-secondary);
-  text-align: center;
-  text-transform: uppercase;
-  box-shadow:
-    inset 0 0 0 2px var(--dj-edge-base),
-    inset 0 -4px 8px rgba(0, 0, 0, 0.5);
-  z-index: 2;
-  padding: 4px;
-  word-break: break-word;
+    radial-gradient(circle at 42% 34%, #23201b, #0a0908 62%);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
 }
-.dj-platter-label img {
+.platter-strobe {
+  position: absolute;
+  inset: 5%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--deck-color, var(--vv-a)) 0 0.7deg,
+    transparent 0.7deg 8deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 0 84%, #000 85%);
+  mask: radial-gradient(circle, transparent 0 84%, #000 85%);
+  opacity: 0.35;
+  transition: opacity 220ms ease;
+}
+.platter-slip {
+  position: absolute;
+  inset: 9%;
+  border-radius: 50%;
+  border: 2px dashed color-mix(in srgb, var(--deck-color, var(--vv-a)), transparent 45%);
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+.platter-disc {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #16130f 0 40%, #0b0906 41%);
+  will-change: transform;
+}
+.platter-art {
+  position: absolute;
+  inset: 34%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #2a2116;
+  background: linear-gradient(160deg, #f2e7cd, #cbb98f 70%, #a8956b);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    inset 0 0 16px rgba(0, 0, 0, 0.22),
+    0 0 0 2px #0d0a07;
+  font: 900 16px var(--vv-display);
+  letter-spacing: 0.04em;
+}
+.platter-art img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
-.dj-platter-label .label-text {
+.platter-art span {
   position: relative;
-  z-index: 1;
 }
-.dj-platter-label .initials {
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: var(--dj-text-primary);
-}
-.dj-platter-spindle {
+.platter-label-ring {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  background: radial-gradient(circle at 30% 30%, #e4e4e8 0%, #5e6068 100%);
+  inset: 30%;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.65);
-  z-index: 4;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  pointer-events: none;
 }
-
-/* Scrub feedback meter overlaid on platter */
-.dj-platter-scrub {
+.platter-spindle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff, var(--vv-chrome-2) 60%, #4b453b);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+.platter-scratch-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--vv-cue);
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+}
+.vinyl-platter.is-scratching .platter-scratch-ring {
+  opacity: 0.9;
+  box-shadow: 0 0 24px rgba(214, 61, 44, 0.45);
+}
+.vinyl-platter.is-scratching .platter-strobe {
+  opacity: 0.9;
+}
+.platter-marks {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
   pointer-events: none;
-  z-index: 5;
-  opacity: 0;
-  transition: opacity 0.18s ease;
 }
-.dj-platter.is-scratching .dj-platter-scrub {
-  opacity: 1;
-}
-.dj-platter-scrub::before {
-  content: '';
+.platter-marks .mark {
   position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  border: 2px solid var(--dj-a-base);
-  opacity: 0.65;
-  filter: blur(2px);
+  font: 700 8px var(--vv-mono);
 }
-.dj-deck.deck-b .dj-platter-scrub::before {
-  border-color: var(--dj-b-base);
+.mark-33 {
+  left: 14%;
+  bottom: 16%;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: var(--vv-ink-dim);
+  background: rgba(8, 6, 5, 0.7);
+  border: 1px solid var(--vv-line-soft);
+}
+.mark-live {
+  right: 15%;
+  bottom: 17%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #241a12;
+  box-shadow: inset 0 0 4px #000;
+}
+.mark-live.is-lit {
+  background: var(--vv-cue);
+  box-shadow: 0 0 12px var(--vv-cue);
 }
 
-/* ─── Deck transport (Play / Cue / Sync row) ───────────────────── */
-.dj-transport-row {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 10px;
+.jog-rail {
+  display: flex;
   align-items: center;
-  flex-shrink: 0;
+  gap: 8px;
+  width: min(100%, 296px);
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.22em;
 }
-.dj-transport-btn {
-  height: 56px;
-  border-radius: 10px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  font-family: var(--dj-font-display);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dj-text-secondary);
-  cursor: pointer;
+.jog-rail i {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--deck-color, var(--vv-a)), transparent);
+  opacity: 0.6;
+}
+.jog-velocity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 296px);
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.18em;
+}
+.jog-velocity strong {
+  color: var(--deck-color, var(--vv-a));
+  font: 700 10px var(--vv-mono);
+}
+.velocity-line {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.velocity-line i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--deck-color, var(--vv-a)), rgba(255, 255, 255, 0.7));
+}
+
+/* ── Cue bank & loop chips ─────────────────────────────────────────── */
+.hotcue-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.cue-button {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  transition:
-    transform 0.08s ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-  box-shadow: var(--dj-inset-soft);
-  touch-action: manipulation;
+  min-height: 48px;
+  border: 1px solid var(--vv-line);
+  border-radius: 8px;
+  color: var(--vv-ink-faint);
+  background: linear-gradient(180deg, #1c1712, #0b0906);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.14em;
 }
-.dj-transport-btn .material-symbols-outlined {
-  font-size: 20px;
+.cue-button b {
+  color: var(--cue-color);
+  font-size: 11px;
 }
-.dj-transport-btn:hover {
-  background: var(--dj-bg-card);
-  border-color: var(--dj-edge-bright);
-  color: var(--dj-text-primary);
+.cue-button.is-set {
+  color: #170f06;
+  border-color: var(--cue-color);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cue-color), #fff 35%), var(--cue-color));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--cue-color), transparent 55%);
 }
-.dj-transport-btn:active {
-  transform: scale(0.96);
+.cue-button.is-set b {
+  color: #170f06;
 }
-.dj-transport-btn.is-cue-holding {
-  background: var(--dj-cue-color, var(--dj-cue-0));
-  color: #020308;
-  border-color: var(--dj-cue-color);
-}
-.dj-transport-btn.is-sync-armed {
-  background: var(--dj-sync);
-  color: #020308;
-  border-color: var(--dj-sync);
-  box-shadow: 0 0 12px rgba(255, 217, 61, 0.55);
+.cue-button.is-fired {
+  animation: vv-cue-fire 520ms ease-out;
 }
 
-.dj-play-btn {
-  height: 64px;
-  border-radius: 12px;
-  font-size: 12px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  cursor: pointer;
+.loop-presets {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--dj-text-secondary);
-  transition: all 0.12s ease;
-  box-shadow: var(--dj-inset-soft);
-  position: relative;
-  overflow: hidden;
-  touch-action: manipulation;
+  gap: 5px;
 }
-.dj-play-btn .material-symbols-outlined {
-  font-size: 32px;
+.loop-label {
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.2em;
 }
-.dj-play-btn.is-playing.deck-a {
-  background: linear-gradient(
-    180deg,
-    var(--dj-a-base) 0%,
-    var(--dj-a-deep) 100%
-  );
-  color: #020308;
-  border-color: var(--dj-a-base);
-  box-shadow:
-    0 0 18px var(--dj-a-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  animation: dj-play-pulse-a 1.8s ease-in-out infinite;
+.loop-chip {
+  flex: 1;
+  min-height: 28px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 6px;
+  color: var(--vv-ink-faint);
+  background: #0e0b08;
+  font: 700 8px var(--vv-mono);
+  letter-spacing: 0.06em;
 }
-.dj-play-btn.is-playing.deck-b {
-  background: linear-gradient(
-    180deg,
-    var(--dj-b-base) 0%,
-    var(--dj-b-deep) 100%
-  );
-  color: #020308;
-  border-color: var(--dj-b-base);
-  box-shadow:
-    0 0 18px var(--dj-b-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  animation: dj-play-pulse-b 1.8s ease-in-out infinite;
+.loop-chip.is-active {
+  color: #150e05;
+  border-color: var(--vv-brass);
+  background: linear-gradient(180deg, #f0d47a, var(--vv-brass));
 }
-@keyframes dj-play-pulse-a {
-  0%,
-  100% {
-    box-shadow:
-      0 0 18px var(--dj-a-glow),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-  50% {
-    box-shadow:
-      0 0 28px var(--dj-a-glow),
-      inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  }
-}
-@keyframes dj-play-pulse-b {
-  0%,
-  100% {
-    box-shadow:
-      0 0 18px var(--dj-b-glow),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-  50% {
-    box-shadow:
-      0 0 28px var(--dj-b-glow),
-      inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  }
+.loop-chip:hover {
+  color: var(--vv-ink);
+  border-color: var(--vv-line);
 }
 
-/* ─── Pitch fader row (deeper inside the deck) ─────────────────── */
-.dj-pitch-row {
+/* ── Pitch fader ───────────────────────────────────────────────────── */
+.pitch-control {
   display: grid;
-  grid-template-columns: 44px 1fr 44px;
-  gap: 8px;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
-  flex-shrink: 0;
+  gap: 7px;
 }
-.dj-pitch-bend-btn {
-  height: 56px;
-  border-radius: 8px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  font-size: 26px;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--dj-text-secondary);
-  cursor: pointer;
-  transition:
-    transform 0.08s ease,
-    background 0.15s ease,
-    color 0.15s ease;
-  touch-action: manipulation;
-  box-shadow: var(--dj-inset-soft);
+.pitch-scale-label {
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.2em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
-.dj-pitch-bend-btn:hover {
-  background: var(--dj-bg-card);
-  color: var(--dj-text-primary);
+.pitch-nudge {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  color: var(--deck-color, var(--vv-a));
+  font: 700 15px var(--vv-mono);
 }
-.dj-pitch-bend-btn:active {
-  transform: scale(0.94);
-}
-.dj-deck.deck-a .dj-pitch-bend-btn:active {
-  background: var(--dj-a-soft);
-  color: var(--dj-a-base);
-}
-.dj-deck.deck-b .dj-pitch-bend-btn:active {
-  background: var(--dj-b-soft);
-  color: var(--dj-b-base);
-}
-
-.dj-pitch-track {
+.pitch-slider {
   position: relative;
-  height: 56px;
-  background: linear-gradient(180deg, var(--dj-bg-sunken), var(--dj-bg-deep));
-  border: 1px solid var(--dj-edge-base);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
   border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #0d0a07, #060505);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8);
 }
-.dj-pitch-track::before {
+.pitch-slider::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: var(--dj-edge-bright);
-  transform: translateY(-50%);
+  left: 50%;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: rgba(243, 234, 216, 0.25);
 }
-.dj-pitch-track input[type='range'] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
+.pitch-zero {
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-mono);
+}
+.pitch-readout {
+  color: var(--deck-color, var(--vv-a));
+  font: 700 11px var(--vv-mono);
+  white-space: nowrap;
+}
+
+/* ── Long-throw faders: channel level, crossfader, pitch ───────────── */
+.dj-booth input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
+  width: 100%;
   background: transparent;
-  cursor: ew-resize;
   touch-action: none;
 }
-.dj-pitch-track input[type='range']::-webkit-slider-thumb {
+.dj-booth input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #070605, #1a1611);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.dj-booth input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #070605, #1a1611);
+}
+.dj-booth input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 38px;
-  background: linear-gradient(
-    180deg,
-    var(--dj-edge-bright) 0%,
-    var(--dj-bg-card) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 3px;
-  cursor: ew-resize;
+  width: 34px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  background: linear-gradient(180deg, var(--vv-chrome-1), var(--vv-chrome-2) 46%, var(--vv-chrome-4));
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.4);
+    inset 0 1px rgba(255, 255, 255, 0.7),
+    0 2px 5px rgba(0, 0, 0, 0.7);
+  cursor: grab;
 }
-.dj-pitch-track input[type='range']::-webkit-slider-thumb:active {
-  background: linear-gradient(180deg, var(--dj-a-base), var(--dj-a-deep));
-  box-shadow: 0 0 10px var(--dj-a-glow);
+.dj-booth input[type='range']:active::-webkit-slider-thumb {
+  cursor: grabbing;
 }
-.dj-deck.deck-b
-  .dj-pitch-track
-  input[type='range']::-webkit-slider-thumb:active {
-  background: linear-gradient(180deg, var(--dj-b-base), var(--dj-b-deep));
-  box-shadow: 0 0 10px var(--dj-b-glow);
-}
-.dj-pitch-track input[type='range']::-moz-range-thumb {
-  width: 16px;
-  height: 38px;
-  background: linear-gradient(
-    180deg,
-    var(--dj-edge-bright) 0%,
-    var(--dj-bg-card) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 3px;
-  cursor: ew-resize;
-}
-.dj-pitch-readout {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  transform: translateY(-50%);
-  font-family: var(--dj-font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--dj-text-secondary);
-  pointer-events: none;
-  background: rgba(0, 0, 0, 0.45);
-  padding: 2px 6px;
-  border-radius: 4px;
-  z-index: 2;
-}
-.dj-deck.deck-a .dj-pitch-readout {
-  color: var(--dj-a-base);
-}
-.dj-deck.deck-b .dj-pitch-readout {
-  color: var(--dj-b-base);
+.dj-booth input[type='range']::-moz-range-thumb {
+  width: 34px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.8);
+  background: linear-gradient(180deg, var(--vv-chrome-1), var(--vv-chrome-2) 46%, var(--vv-chrome-4));
 }
 
-/* ─── Cue strip (4 rectangular edge-lit pads above transport) ───── */
-.dj-cue-strip {
+/* ── Transport: cue / ivory play key / sync ────────────────────────── */
+.deck-transport {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  flex-shrink: 0;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 7px;
 }
-.dj-cue-pad {
-  position: relative;
-  height: 56px;
-  border-radius: 8px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.transport-button {
   flex-direction: column;
-  gap: 2px;
-  font-family: var(--dj-font-display);
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--dj-text-muted);
-  text-transform: uppercase;
-  user-select: none;
-  transition:
-    transform 0.08s ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-  overflow: hidden;
-  touch-action: manipulation;
-  box-shadow: var(--dj-inset-soft);
+  gap: 1px;
+  min-height: 54px;
+  color: var(--vv-ink-dim);
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.16em;
 }
-.dj-cue-pad .cue-index {
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-muted);
-  font-family: var(--dj-font-mono);
+.transport-button.play {
+  color: #1c1508;
+  border-color: rgba(0, 0, 0, 0.7);
+  background: linear-gradient(180deg, #f6efdd, #cdc3ab 70%, #a89c81);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.9),
+    0 3px 0 rgba(0, 0, 0, 0.5);
+  font: 700 10px var(--vv-display);
+  letter-spacing: 0.12em;
 }
-.dj-cue-pad .cue-glyph {
-  font-size: 14px;
-  font-weight: 900;
-  color: var(--dj-cue-color, var(--dj-a-base));
-  line-height: 1;
+.transport-button.play .material-symbols-outlined {
+  font-size: 22px;
 }
-.dj-cue-pad.is-set {
-  background: linear-gradient(
-    180deg,
-    var(--dj-cue-color, var(--dj-a-base)) 0%,
-    rgba(0, 0, 0, 0.5) 130%
-  );
-  color: #020308;
-  border-color: var(--dj-cue-color);
-  box-shadow: 0 0 14px var(--dj-cue-color, var(--dj-a-glow));
+.transport-button.play.is-playing {
+  color: #150e05;
+  border-color: var(--deck-color, var(--vv-a));
+  background: linear-gradient(180deg, #f8d19b, var(--deck-color, var(--vv-a)) 70%, #a6651f);
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--deck-color, var(--vv-a)), transparent 45%),
+    inset 0 1px rgba(255, 255, 255, 0.6);
 }
-.dj-cue-pad.is-set .cue-index {
-  color: rgba(2, 3, 8, 0.7);
+.transport-button.cue.is-cueing {
+  color: var(--vv-cue);
+  border-color: rgba(214, 61, 44, 0.5);
 }
-.dj-cue-pad.is-fired {
-  animation: dj-cue-fire 0.32s ease-out;
+.transport-button.sync {
+  color: var(--vv-brass);
 }
-@keyframes dj-cue-fire {
-  0% {
-    transform: scale(1);
-  }
-  35% {
-    transform: scale(0.88);
-    box-shadow: 0 0 24px var(--dj-cue-color, var(--dj-a-glow));
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* ─── Loop preset chips ────────────────────────────────────────── */
-.dj-loop-presets {
+.deck-effects-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  flex-shrink: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
 }
-.dj-loop-chip {
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
+.btn-chrome {
+  min-height: 32px;
+  padding: 0 6px;
   border-radius: 6px;
-  padding: 6px 0;
-  text-align: center;
-  cursor: pointer;
-  font-family: var(--dj-font-mono);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--dj-text-muted);
-  transition: all 0.12s ease;
-  text-transform: uppercase;
-  touch-action: manipulation;
-}
-.dj-loop-chip:hover {
-  background: var(--dj-bg-card);
-  color: var(--dj-text-secondary);
-  border-color: var(--dj-edge-bright);
-}
-.dj-loop-chip.is-active {
-  background: var(--dj-loop);
-  color: #020308;
-  border-color: var(--dj-loop);
-  box-shadow: 0 0 12px rgba(107, 217, 104, 0.55);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.12em;
 }
 
-/* ─── Mixer region (center column) ────────────────────────────── */
-.dj-mixer {
-  background: linear-gradient(
-    180deg,
-    var(--dj-bg-card) 0%,
-    var(--dj-bg-elevated) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 14px;
-  padding: var(--dj-pad-3);
+/* ══════════════════════════════════════════════════════════
+   4. MASTER MIXER
+   ══════════════════════════════════════════════════════════ */
+.central-mixer-console {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--dj-pad-3);
+  gap: 12px;
+  padding: 13px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--vv-brass-line);
+  background:
+    radial-gradient(140% 60% at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, #26201a, #14100c 55%, #0c0906);
   box-shadow:
-    inset 0 1px 0 var(--dj-edge-bright),
-    var(--dj-shadow-mid);
-  position: relative;
-  overflow: hidden;
-  min-width: 0;
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    0 20px 44px rgba(0, 0, 0, 0.55);
 }
-.dj-mixer::before {
+.central-mixer-console::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--dj-a-base) 50%,
-    var(--dj-b-base) 100%
-  );
-  opacity: 0.7;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, var(--vv-a), var(--vv-brass), var(--vv-b));
+  opacity: 0.75;
 }
-
-.dj-mixer-section-title {
+.mixer-heading {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-family: var(--dj-font-display);
-  font-size: 9px;
-  font-weight: 800;
+  justify-content: space-between;
+  gap: 8px;
+}
+.online-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--vv-lamp);
+  font: 700 8px var(--vv-label);
   letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--dj-text-muted);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--dj-edge-soft);
+}
+.online-badge i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vv-lamp);
+  box-shadow: 0 0 8px var(--vv-lamp);
 }
 
-.dj-channel-strip {
+/* Channel strips stack as two horizontal rows with the VU bridge beside
+   them: at the mixer's real width a side-by-side strip pair leaves ~108px
+   per fader, which is neither mixable nor touchable. */
+.mixer-channels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 66px;
+  gap: 8px;
+  align-items: stretch;
+}
+.mixer-channel {
+  display: grid;
+  grid-template-columns: auto auto auto auto minmax(56px, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #171310, #0a0806);
+}
+.mixer-channel .knob-group {
+  gap: 3px;
+}
+.mixer-channel .vknob {
+  width: 40px;
+  height: 40px;
+}
+.mixer-channels .master-meter {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.mixer-channel.deck-a {
+  --deck-color: var(--vv-a);
+}
+.mixer-channel.deck-b {
+  --deck-color: var(--vv-b);
+}
+.channel-id {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--deck-color);
+  font: 700 14px var(--vv-display);
+  letter-spacing: 0.08em;
+}
+.channel-id span {
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-mono);
+}
+.channel-fader {
+  width: 100%;
+  min-width: 56px;
+  height: 34px;
+}
+.mixer-channel .fader-label {
+  display: none;
+}
+.fader-label {
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.2em;
+}
+
+/* Meter bridge: cream VU faces with a brass bezel */
+.master-meter {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 10px;
-  padding: 8px 6px;
-  position: relative;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 5px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #15110e, #090705);
 }
-.dj-channel-strip.deck-a {
-  border-top: 2px solid var(--dj-a-base);
+.meter-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.2em;
 }
-.dj-channel-strip.deck-b {
-  border-top: 2px solid var(--dj-b-base);
+.meter-label strong {
+  color: var(--vv-a);
+  font: 700 10px var(--vv-mono);
 }
-.dj-channel-strip .channel-label {
-  text-align: center;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: var(--dj-text-muted);
-  font-family: var(--dj-font-mono);
-  text-transform: uppercase;
-}
-.dj-deck.deck-a .channel-label {
-  color: var(--dj-a-base);
-}
-.dj-deck.deck-b .channel-label {
-  color: var(--dj-b-base);
-}
-
-.dj-eq-knob-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.meter-columns {
+  display: flex;
   gap: 4px;
 }
-.dj-eq-mini {
+.meter-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-}
-.dj-eq-mini-knob {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle at 30% 30%,
-      rgba(255, 255, 255, 0.1) 0%,
-      transparent 50%
-    ),
-    var(--dj-bg-card);
-  border: 1px solid var(--dj-edge-base);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--dj-font-mono);
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--dj-text-secondary);
-  cursor: pointer;
-  transition: all 0.12s ease;
-  touch-action: manipulation;
-}
-.dj-eq-mini-knob::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  width: 1.5px;
-  height: 6px;
-  background: var(--dj-text-secondary);
-  transform-origin: center 13px;
-  transform: translateX(-50%) rotate(0deg);
-}
-.dj-eq-mini-knob.hi-cut::before {
-  transform: translateX(-50%) rotate(-135deg);
-}
-.dj-eq-mini-knob.mid-cut::before {
-  transform: translateX(-50%) rotate(-135deg);
-}
-.dj-eq-mini-knob.low-cut::before {
-  transform: translateX(-50%) rotate(-135deg);
-}
-.dj-eq-mini-knob.is-cut.deck-a {
-  border-color: var(--dj-a-base);
-  box-shadow: 0 0 8px var(--dj-a-soft);
-  color: var(--dj-a-base);
-}
-.dj-eq-mini-knob.is-cut.deck-b {
-  border-color: var(--dj-b-base);
-  box-shadow: 0 0 8px var(--dj-b-soft);
-  color: var(--dj-b-base);
-}
-.dj-eq-mini-knob .knob-label {
-  position: absolute;
-  bottom: -16px;
-  font-size: 7px;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-muted);
-}
-
-.dj-channel-fader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.dj-channel-fader-track {
-  width: 26px;
-  height: 110px;
-  background: linear-gradient(180deg, var(--dj-bg-deep), var(--dj-bg-card));
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  position: relative;
-  overflow: hidden;
-}
-.dj-channel-fader-track input[type='range'] {
-  position: absolute;
-  inset: 0;
-  -webkit-appearance: slider-vertical;
-  appearance: none;
-  writing-mode: bt-lr;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  background: transparent;
-  cursor: ns-resize;
-  touch-action: none;
-}
-.dj-channel-fader-track input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 28px;
-  height: 16px;
-  background: linear-gradient(
-    180deg,
-    var(--dj-edge-bright) 0%,
-    var(--dj-bg-card) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 3px;
-  cursor: ns-resize;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-.dj-channel-fader-track input[type='range']::-webkit-slider-thumb:active {
-  background: var(--dj-a-base);
-  box-shadow: 0 0 8px var(--dj-a-glow);
-}
-.dj-deck.deck-b
-  .dj-channel-fader-track
-  input[type='range']::-webkit-slider-thumb:active {
-  background: var(--dj-b-base);
-  box-shadow: 0 0 8px var(--dj-b-glow);
-}
-
-.dj-channel-vu {
-  display: flex;
-  gap: 2px;
-  width: 100%;
-  height: 8px;
-  background: var(--dj-bg-deep);
-  border-radius: 3px;
-  padding: 1px;
-  border: 1px solid var(--dj-edge-soft);
-}
-.dj-channel-vu .vu-segment {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 1px;
-  transition: background 0.05s linear;
-}
-.dj-channel-vu .vu-segment.is-active-a {
-  background: var(--dj-a-base);
-  box-shadow: 0 0 4px var(--dj-a-glow);
-}
-.dj-channel-vu .vu-segment.is-active-b {
-  background: var(--dj-b-base);
-  box-shadow: 0 0 4px var(--dj-b-glow);
-}
-
-.dj-mixer-center {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 10px;
-  padding: 8px 8px 10px;
-}
-
-.dj-master-vu {
-  display: flex;
-  gap: 2px;
-  height: 60px;
-  background: var(--dj-bg-deep);
-  border: 1px solid var(--dj-edge-soft);
-  border-radius: 6px;
   padding: 3px;
-  align-items: end;
-  position: relative;
-  overflow: hidden;
-}
-.dj-master-vu::before {
-  content: 'MASTER';
-  position: absolute;
-  top: 4px;
-  left: 6px;
-  font-family: var(--dj-font-display);
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--dj-text-muted);
-  text-transform: uppercase;
-  z-index: 1;
-}
-.dj-master-vu .vu-bar {
-  flex: 1;
-  background: linear-gradient(180deg, #ff3b5c 0%, #ff9500 35%, #6bd968 80%);
-  min-height: 2px;
-  border-radius: 1px;
-  transition: height 0.05s linear;
-}
-
-.dj-crossfader-area {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.dj-crossfader-labels {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--dj-font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--dj-text-muted);
-}
-.dj-crossfader-labels .label-a {
-  color: var(--dj-a-base);
-}
-.dj-crossfader-labels .label-b {
-  color: var(--dj-b-base);
-}
-.dj-crossfader-track {
-  position: relative;
-  height: 56px;
-  background: linear-gradient(180deg, var(--dj-bg-deep), var(--dj-bg-card));
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 10px;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
-}
-.dj-crossfader-track input[type='range'] {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  cursor: ew-resize;
-  -webkit-appearance: none;
-  appearance: none;
-  touch-action: none;
-}
-.dj-crossfader-track input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 36px;
-  height: 44px;
-  background: linear-gradient(
-    180deg,
-    var(--dj-edge-bright) 0%,
-    var(--dj-bg-card) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  cursor: ew-resize;
+  border-radius: 5px;
+  background: linear-gradient(180deg, var(--vv-meter-face), #c8b791);
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.6),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.4);
-  position: relative;
+    inset 0 1px rgba(255, 255, 255, 0.7),
+    0 2px 5px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
 }
-.dj-crossfader-track input[type='range']::-webkit-slider-thumb::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 2px;
-  height: 24px;
-  background: linear-gradient(180deg, var(--dj-a-base), var(--dj-b-base));
-  border-radius: 1px;
-  box-shadow: 0 0 4px var(--dj-a-glow);
+.meter-cell canvas {
+  display: block;
+  width: 12px;
+  height: 132px;
+  border-radius: 2px;
 }
-.dj-crossfader-track input[type='range']::-moz-range-thumb {
-  width: 36px;
-  height: 44px;
-  background: linear-gradient(
-    180deg,
-    var(--dj-edge-bright) 0%,
-    var(--dj-bg-card) 100%
-  );
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  cursor: ew-resize;
+.meter-cell em {
+  color: #4a3f2c;
+  font: 700 7px var(--vv-mono);
+  font-style: normal;
 }
-
-.dj-utility-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.master-presets {
+  display: flex;
   gap: 4px;
 }
-.dj-utility-btn {
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  height: 32px;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-muted);
-  text-transform: uppercase;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: all 0.12s ease;
-}
-.dj-utility-btn:hover {
-  background: var(--dj-bg-card);
-  color: var(--dj-text-secondary);
-}
-.dj-utility-btn.is-on {
-  background: var(--dj-a-base);
-  color: #020308;
-  border-color: var(--dj-a-base);
+.master-presets button {
+  min-width: 26px;
+  min-height: 24px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 5px;
+  color: var(--vv-ink-dim);
+  background: linear-gradient(180deg, #221c16, #100d09);
+  font: 700 9px var(--vv-mono);
 }
 
-.dj-sync-state {
+.mixer-sync-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  align-items: center;
+}
+.master-sync-button {
+  min-height: 44px;
+  color: #1c1508;
+  border-color: var(--vv-brass);
+  background: linear-gradient(180deg, #f4dc9a, var(--vv-brass) 62%, #8f7212);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.6),
+    0 3px 0 rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(201, 162, 39, 0.25);
+  font: 700 10px var(--vv-label);
+}
+.automix-button {
+  min-height: 44px;
+  font: 700 8px var(--vv-label);
+}
+.automix-button i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #241f18;
+  box-shadow: inset 0 0 4px #000;
+}
+.automix-button.is-active {
+  color: #150e05;
+  border-color: var(--vv-a);
+  background: linear-gradient(180deg, #f6c078, var(--vv-a));
+}
+.automix-button.is-active i {
+  background: var(--vv-cue);
+  box-shadow: 0 0 8px var(--vv-cue);
+}
+.delta-readout {
+  grid-column: 1 / -1;
   display: flex;
   justify-content: space-between;
-  font-family: var(--dj-font-mono);
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--dj-text-muted);
+  color: var(--vv-ink-faint);
+  font: 700 8px var(--vv-mono);
   letter-spacing: 0.06em;
-  padding: 4px 6px;
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 4px;
-  border: 1px solid var(--dj-edge-soft);
 }
-.dj-sync-state .delta {
-  color: var(--dj-sync);
+.delta-readout span {
+  color: var(--vv-brass);
 }
 
-/* ─── Region 4: Performance Bed (pads + FX) ────────────────────── */
-.dj-perf-bed {
-  flex-shrink: 0;
-  background: var(--dj-bg-elevated);
-  border-top: 1px solid var(--dj-edge-base);
-  padding: var(--dj-pad-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--dj-pad-3);
-  position: relative;
-  z-index: 3;
+.crossfader-block {
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #100d09, #070605);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
 }
-
-.dj-perf-bed-header {
+.crossfader-head,
+.crossfader-track-labels {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--dj-pad-3);
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.18em;
+}
+.crossfader-head {
+  margin-bottom: 4px;
+}
+.a-text {
+  color: var(--vv-a);
+}
+.b-text {
+  color: var(--vv-b);
+}
+.crossfader-block input[type='range']::-webkit-slider-thumb {
+  width: 22px;
+  height: 34px;
+  margin-top: -14px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #f6f2e8, var(--vv-chrome-2) 50%, #5f584c);
+}
+.crossfader-track-labels {
+  margin-top: 3px;
+}
+.master-drive {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #14100d, #0a0806);
+}
+
+/* ══════════════════════════════════════════════════════════
+   5. PERFORMANCE DECK — pads, FX bank, session transcript
+   ══════════════════════════════════════════════════════════ */
+.performance-station {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #1b1611, #0c0a07);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.04), 0 14px 30px rgba(0, 0, 0, 0.42);
+}
+.performance-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
-.dj-perf-tabs {
-  display: inline-flex;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 10px;
-  padding: 3px;
-}
-.dj-perf-tab {
-  background: transparent;
-  border: none;
-  padding: 6px 14px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--dj-text-muted);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  touch-action: manipulation;
-}
-.dj-perf-tab.is-active {
-  background: var(--dj-bg-card);
-  color: var(--dj-text-primary);
-  box-shadow: inset 0 1px 0 var(--dj-edge-bright);
-}
-
-.dj-perf-mode-selectors {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-.dj-perf-select {
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--dj-text-secondary);
-  text-transform: uppercase;
-  font-family: var(--dj-font-mono);
-  cursor: pointer;
-}
-
-.dj-pad-grid-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--dj-pad-3);
-}
-.dj-pad-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-.dj-pad-grid.deck-a .dj-pad-tile.is-set {
-  box-shadow: 0 0 16px var(--dj-a-glow);
-}
-.dj-pad-grid.deck-b .dj-pad-tile.is-set {
-  box-shadow: 0 0 16px var(--dj-b-glow);
-}
-.dj-pad-tile {
-  position: relative;
-  height: 64px;
-  border-radius: 6px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
-  cursor: pointer;
-  font-family: var(--dj-font-display);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--dj-text-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  transition:
-    transform 0.08s ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-  touch-action: manipulation;
-  box-shadow: var(--dj-inset-soft);
-  text-transform: uppercase;
-}
-.dj-pad-tile .pad-num {
-  font-family: var(--dj-font-mono);
-  font-size: 8px;
-  color: var(--dj-text-disabled);
-  letter-spacing: 0.1em;
-}
-.dj-pad-tile.is-set {
-  background: linear-gradient(
-    180deg,
-    var(--pad-color) 0%,
-    rgba(0, 0, 0, 0.5) 140%
-  );
-  color: #020308;
-  border-color: var(--pad-color);
-}
-.dj-pad-tile.is-fired {
-  animation: dj-pad-fired 0.28s ease-out;
-  background: var(--pad-color);
-  color: #020308;
-  border-color: var(--pad-color);
-}
-@keyframes dj-pad-fired {
-  0% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  40% {
-    transform: scale(0.92);
-    filter: brightness(1.4);
-  }
-  100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-}
-.dj-pad-tile.is-active {
-  background: var(--pad-color, var(--dj-a-base));
-  color: #020308;
-  border-color: var(--pad-color);
-}
-
-.dj-fx-bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--dj-pad-2);
-}
-.dj-fx-modes {
+.performance-tabs {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
+  padding: 4px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 9px;
+  background: var(--vv-well);
 }
-.dj-fx-mode {
-  flex-shrink: 0;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
+.performance-tabs button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid transparent;
   border-radius: 6px;
-  padding: 8px 14px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--dj-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  touch-action: manipulation;
+  color: var(--vv-ink-faint);
+  background: transparent;
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.16em;
 }
-.dj-fx-mode.is-active {
-  background: linear-gradient(
-    180deg,
-    var(--dj-a-base) 0%,
-    var(--dj-a-deep) 100%
-  );
-  color: #020308;
-  border-color: var(--dj-a-base);
-  box-shadow: 0 0 12px var(--dj-a-glow);
+.performance-tabs button.is-active {
+  color: #150e05;
+  background: linear-gradient(180deg, #f4c98a, var(--vv-a));
+  box-shadow: 0 0 14px rgba(240, 162, 74, 0.3);
 }
-.dj-fx-knobs {
+.performance-selects {
+  display: flex;
+  gap: 8px;
+}
+.select-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 7px;
+  background: var(--vv-well);
+}
+.select-field span {
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.18em;
+}
+.select-field select {
+  min-height: 26px;
+  border: 0;
+  color: var(--vv-ink);
+  background: transparent;
+  font: 700 10px var(--vv-mono);
+}
+.performance-notice {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(240, 162, 74, 0.18);
+  background: linear-gradient(180deg, #0d0a07, #060505);
+  color: var(--vv-a);
+  font: 700 9px var(--vv-mono);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 12px rgba(240, 162, 74, 0.3);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+}
+.performance-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.dj-fx-knob-panel {
+.pad-bank {
+  padding: 9px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #14110d, #0a0806);
+}
+.pad-bank.deck-a {
+  border-top: 3px solid var(--vv-a);
+}
+.pad-bank.deck-b {
+  border-top: 3px solid var(--vv-b);
+}
+.bank-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  color: var(--vv-ink-dim);
+  font: 700 9px var(--vv-label);
+  letter-spacing: 0.18em;
+}
+.bank-label small {
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-mono);
+}
+.pad-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.performance-pad {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: var(--dj-bg-sunken);
-  border: 1px solid var(--dj-edge-base);
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 62px;
+  border: 1px solid var(--vv-line);
   border-radius: 8px;
-  padding: 6px 8px;
+  color: var(--vv-ink-faint);
+  background: linear-gradient(180deg, #1d1813, #0b0906);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.1em;
+  touch-action: manipulation;
 }
-.dj-fx-knob-panel.deck-a {
-  border-top: 2px solid var(--dj-a-base);
+.performance-pad small {
+  color: var(--vv-ink-faint);
+  font: 700 9px var(--vv-mono);
 }
-.dj-fx-knob-panel.deck-b {
-  border-top: 2px solid var(--dj-b-base);
+.performance-pad.is-set {
+  color: #150e05;
+  border-color: var(--pad-color, var(--vv-a));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--pad-color, var(--vv-a)), #fff 30%), var(--pad-color, var(--vv-a)));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--pad-color, var(--vv-a)), transparent 60%);
 }
-.dj-fx-knob-panel label {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dj-text-muted);
-  font-family: var(--dj-font-mono);
+.performance-pad.is-set small {
+  color: rgba(18, 12, 4, 0.7);
 }
-.dj-fx-knob-panel.deck-a label {
-  color: var(--dj-a-base);
+.performance-pad.is-fired {
+  color: #150e05;
+  background: var(--pad-color, var(--vv-a));
+  animation: vv-cue-fire 420ms ease-out;
 }
-.dj-fx-knob-panel.deck-b label {
-  color: var(--dj-b-base);
-}
-.dj-fx-knob-panel input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  background: var(--dj-bg-deep);
-  border-radius: 3px;
-  outline: none;
-  touch-action: none;
-}
-.dj-fx-knob-panel input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--dj-bg-card);
-  border: 1px solid var(--dj-edge-base);
-  cursor: pointer;
-}
-
-.dj-mixer-eq-advanced {
+.fx-console {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 2px;
-  background: var(--dj-bg-deep);
-  border-radius: 4px;
-  padding: 4px 2px;
+  grid-template-columns: 1fr 128px 128px;
+  gap: 10px;
+  align-items: start;
 }
-.dj-mixer-eq-advanced input[type='range'] {
-  -webkit-appearance: slider-vertical;
-  appearance: none;
-  writing-mode: bt-lr;
+.fx-mode-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.fx-mode-list .eyebrow {
   width: 100%;
-  height: 60px;
-  margin: 0;
-  background: transparent;
-  cursor: ns-resize;
-  touch-action: none;
 }
-.dj-mixer-eq-advanced input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 10px;
-  height: 8px;
-  background: var(--dj-bg-card);
-  border: 1px solid var(--dj-edge-base);
-  border-radius: 1px;
-  cursor: ns-resize;
+.fx-mode-list button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--vv-line-soft);
+  border-radius: 6px;
+  color: var(--vv-ink-faint);
+  background: #0d0b08;
+  font: 700 8px var(--vv-label);
+  letter-spacing: 0.14em;
+}
+.fx-mode-list button.is-active {
+  color: #150e05;
+  border-color: var(--vv-brass);
+  background: linear-gradient(180deg, #f0d47a, var(--vv-brass));
+}
+.fx-depth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--vv-line-soft);
+  background: linear-gradient(180deg, #15110d, #0a0806);
+}
+.fx-depth.deck-a {
+  border-top: 3px solid var(--vv-a);
+}
+.fx-depth.deck-b {
+  border-top: 3px solid var(--vv-b);
+}
+.fx-depth span {
+  color: var(--vv-ink-faint);
+  font: 700 7px var(--vv-label);
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+.fx-depth em {
+  color: var(--vv-ink-dim);
+  font: 700 9px var(--vv-mono);
+  font-style: normal;
 }
 
-/* ─── RESPONSIVE 2.0 ────────────────────────────────────────── */
-@media (max-width: 1180px) {
-  .dj-decks-region {
-    grid-template-columns: 1fr 260px 1fr;
-    gap: 10px;
-    padding: 10px 10px 0;
+/* ══════════════════════════════════════════════════════════
+   6. MOTION
+   ══════════════════════════════════════════════════════════ */
+@keyframes vv-lamp-pulse {
+  0%,
+  100% {
+    opacity: 1;
   }
-  .dj-pad-tile {
-    height: 56px;
-  }
-}
-@media (max-width: 980px) {
-  .dj-decks-region {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  .dj-platter {
-    max-width: 200px;
+  50% {
+    opacity: 0.4;
   }
 }
-@media (max-width: 768px) {
-  .dj-decks-region {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 8px;
+@keyframes vv-cue-fire {
+  0% {
+    box-shadow: 0 0 26px currentColor;
+    filter: brightness(1.5);
   }
-  .dj-deck {
-    padding: 10px;
+  100% {
+    box-shadow: 0 0 0 transparent;
+    filter: brightness(1);
   }
-  .dj-platter {
-    max-width: 220px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   7. ERGONOMICS — Android touch, Chrome desktop
+   ══════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  .chrome-button,
+  .icon-button,
+  .mini-status,
+  .tap-button,
+  .pitch-nudge,
+  .transport-button,
+  .master-sync-button,
+  .automix-button,
+  .btn-chrome,
+  .loop-chip,
+  .filter-switch button,
+  .fx-mode-list button,
+  .performance-tabs button,
+  .master-presets button {
+    min-height: 44px;
   }
-  .dj-pad-grid-row {
-    grid-template-columns: 1fr;
+  .filter-switch button {
+    min-height: 34px;
   }
-  .dj-perf-bed {
-    padding: 10px;
+  .loop-chip {
+    min-height: 34px;
   }
-  .dj-transport-btn {
-    height: 48px;
-  }
-  .dj-play-btn {
-    height: 56px;
-  }
-  .dj-wave-bridge {
-    grid-template-columns: 1fr;
-  }
-  .dj-wave-channel {
-    height: 80px;
-  }
-  .mixer-section-hidden-mobile {
-    display: none;
-  }
-  /* ── Mobile crossfader touch enhancement ── */
-  .dj-crossfader-track {
-    height: 64px;
-  }
-  .dj-crossfader-track input[type='range']::-webkit-slider-thumb {
-    width: 44px;
+  .vknob {
+    width: 52px;
     height: 52px;
   }
-  .dj-pitch-track {
-    height: 64px;
+  /* Equal-specificity floor for the mixer's channel rotaries, which are
+     deliberately smaller on the desktop tier — fingers still need 44px+. */
+  .mixer-channel .vknob {
+    width: 46px;
+    height: 46px;
   }
 }
-@media (max-width: 480px) {
-  .dj-top-bar {
-    height: 48px;
-    padding: 0 10px;
-  }
-  .dj-brand-text .brand-name {
-    font-size: 11px;
-  }
-  .dj-brand-text .brand-sub {
-    font-size: 8px;
-  }
-  .dj-platter {
-    max-width: 180px;
-  }
-  .dj-pad-tile {
-    height: 48px;
-    font-size: 9px;
-  }
-  .dj-cue-pad {
-    height: 48px;
-  }
-  .dj-loop-chip {
-    font-size: 8px;
-  }
-  .dj-transport-btn {
-    font-size: 10px;
-    height: 44px;
-  }
-  .dj-play-btn {
-    height: 50px;
-  }
-  .dj-play-btn .material-symbols-outlined {
-    font-size: 26px;
+@media (hover: hover) and (pointer: fine) {
+  .vinyl-platter:hover .platter-rim {
+    opacity: 1;
   }
 }
-/* ── LANDSCAPE PHONE: side-by-side decks ── */
-@media (max-width: 932px) and (orientation: landscape) {
-  .dj-decks-region {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 6px max(6px, env(safe-area-inset-right, 0px)) 0 max(6px, env(safe-area-inset-left, 0px));
+
+/* ══════════════════════════════════════════════════════════
+   8. RESPONSIVE PLACEMENT
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1440px) {
+  .booth-console {
+    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
   }
-  .dj-mixer {
+}
+@media (max-width: 1280px) {
+  .dj-booth {
+    padding: 12px;
+    gap: 10px;
+  }
+  .button-copy {
     display: none;
   }
-  .dj-platter {
-    max-width: 140px;
+  .chrome-button {
+    width: 40px;
+    padding: 0;
   }
-  .dj-top-bar {
-    height: 40px;
-    padding: 0 max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+  .vinyl-platter {
+    width: min(100%, 224px);
   }
-  .dj-wave-channel {
-    height: 60px;
+  .platter-stage {
+    width: min(100%, 240px);
   }
-  .dj-deck {
-    padding: 6px;
+  .jog-rail,
+  .jog-velocity {
+    width: min(100%, 240px);
+  }
+  .deck-metrics {
+    grid-template-columns: 1fr 1fr auto;
+  }
+  .deck-metrics > div:nth-child(3) {
+    display: none;
+  }
+}
+@media (max-width: 1023px) {
+  .deck-chassis.mobile-hidden {
+    display: none;
+  }
+  .booth-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .deck-a-transform,
+  .deck-b-transform {
+    transform: none;
+  }
+  /* Exactly one turntable is visible below this breakpoint (the other is
+     display:none), so this always resolves to the active turntable first and
+     the mixer directly beneath it — the same shape whichever side the rocker
+     selects, so the mixer never jumps from the bottom to the top of the
+     scroll when the artist flips decks. */
+  .deck-chassis {
+    order: 1;
+  }
+  .central-mixer-console {
+    order: 2;
+    grid-row: auto;
+  }
+  .vinyl-platter {
+    width: min(70vw, 268px);
+  }
+  .platter-stage {
+    width: min(70vw, 296px);
+  }
+  .jog-rail,
+  .jog-velocity {
+    width: min(70vw, 296px);
+  }
+  .meter-cell canvas {
+    height: 118px;
+  }
+}
+@media (max-width: 900px) {
+  .overview-readouts {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .overview-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .waveform-rack {
+    grid-template-columns: 1fr;
+  }
+  .waveform-lane {
+    height: 104px;
+  }
+  .fx-console {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fx-mode-list {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .dj-booth {
+    padding: 8px;
+    gap: 8px;
+  }
+  .booth-topbar {
+    padding: 9px 10px;
+  }
+  .booth-identity {
+    min-width: 0;
+    flex: 1;
+  }
+  .booth-identity h1 {
+    font-size: 15px;
+  }
+  .booth-mark {
+    width: 38px;
+    height: 38px;
+  }
+  .booth-lamps {
+    gap: 9px;
+  }
+  .booth-session-state {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .booth-top-actions {
     gap: 4px;
   }
-  .dj-cue-pad {
-    height: 40px;
+  .deck-chassis,
+  .central-mixer-console,
+  .mixer-overview {
+    padding: 10px;
   }
-  .dj-transport-btn {
-    height: 40px;
-    font-size: 9px;
+  .performance-grid {
+    grid-template-columns: 1fr;
   }
-  .dj-play-btn {
-    height: 44px;
+  .deck-title-block h2 {
+    max-width: 42vw;
   }
-  .dj-pad-tile {
-    height: 38px;
-    font-size: 7px;
+  .tone-stack {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 9px 5px 7px;
   }
-  .dj-perf-bed {
-    padding: 6px max(6px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
-  }
-}
-
-/* ─── Focus ring (a11y) ────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid var(--dj-a-base);
-  outline-offset: 2px;
-  box-shadow: 0 0 10px var(--dj-a-glow);
-}
-
-/* ─── Reduced motion ───────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001s !important;
-    transition-duration: 0.001s !important;
-  }
-}
-
-/* ─── Safety-area for notched phones ───────────────────────────── */
-@supports (padding: max(0px)) {
-  .dj-stage {
-    padding-bottom: max(0px, env(safe-area-inset-bottom));
-  }
-  .dj-top-bar {
-    padding-left: max(var(--dj-pad-3), env(safe-area-inset-left));
-  }
-}
-
-/* ============================================================
-   DEEP RESPONSIVE REFINEMENT — DJ Deck
-   Landscape phones: compact chrome so both decks fit the short
-   viewport without scrolling.
-   ============================================================ */
-@media (max-width: 932px) and (orientation: landscape) {
-  .dj-top-bar {
-    height: 44px;
-  }
-  .dj-decks-region {
-    gap: 6px;
-    padding: 6px 6px 0;
-  }
-  .dj-platter {
-    max-width: 150px;
-  }
-  .dj-pad-tile,
-  .dj-cue-pad {
+  .vknob {
+    width: 42px;
     height: 42px;
   }
-  .dj-perf-bed {
-    padding: 6px;
+  /* Phones: the mixer row (id + 3 rotaries + fader + VU bridge) is the
+     widest fixed-content row in the booth — tighten it so a 360px viewport
+     keeps every control on one line instead of overflowing sideways. */
+  .mixer-channels {
+    grid-template-columns: minmax(0, 1fr) 56px;
+    gap: 6px;
+  }
+  .mixer-channel {
+    grid-template-columns: auto auto auto auto minmax(46px, 1fr);
+    gap: 6px;
+    padding: 8px;
+  }
+  .mixer-channel .vknob {
+    width: 44px;
+    height: 44px;
+  }
+  .channel-id {
+    font-size: 12px;
+  }
+  .meter-label strong {
+    font-size: 9px;
+  }
+  .knob-group em {
+    font-size: 7px;
+  }
+  .cue-button {
+    min-height: 52px;
+  }
+  .performance-pad {
+    min-height: 64px;
+  }
+  .performance-notice {
+    min-width: 0;
+    width: 100%;
+    order: 3;
+  }
+}
+/* Phones on their side: keep both platters and the transport on screen. */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 560px) {
+  .vinyl-platter {
+    width: min(40vh, 200px);
+  }
+  .platter-stage {
+    width: min(40vh, 220px);
+  }
+  .jog-rail,
+  .jog-velocity {
+    width: min(40vh, 220px);
+  }
+  .booth-console {
+    grid-template-columns: minmax(0, 1fr) 280px minmax(0, 1fr);
+  }
+}
+@media (max-width: 390px) {
+  .overview-readouts span:not(.sync-readout) {
+    display: none;
+  }
+  .loop-presets {
+    gap: 3px;
+  }
+  .loop-chip {
+    min-height: 30px;
+    font-size: 7px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   9. FOCUS & REDUCED MOTION
+   ══════════════════════════════════════════════════════════ */
+.dj-booth :focus-visible {
+  outline: 2px solid var(--vv-a);
+  outline-offset: 2px;
+}
+.dj-booth .vinyl-platter:focus-visible {
+  outline-offset: -6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dj-booth *,
+  .dj-booth *::before,
+  .dj-booth *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .platter-disc {
+    transition: none;
   }
 }
