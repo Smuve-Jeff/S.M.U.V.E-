@@ -85,10 +85,52 @@ class TestMixerBus:
         mixer.add_track_buffer("short", np.ones(4) * 0.3)
         mixer.add_track_buffer("long", np.ones(20) * 0.2)
         mixed = mixer.sum_mix(8)
-        assert mixed.shape == (8,)
-        # First 4 samples overlap (0.3 + 0.2), then only the truncated track remains.
-        expected = np.concatenate([np.tanh(np.full(4, 0.5)), np.tanh(np.full(4, 0.2))])
+        assert mixed.shape == (8, 2)
+        # Center-panned tracks contribute equal power to both channels.
+        center_gain = np.sqrt(0.5)
+        expected = np.column_stack(
+            (
+                np.tanh(np.concatenate([np.full(4, 0.5), np.full(4, 0.2)]) * center_gain),
+                np.tanh(np.concatenate([np.full(4, 0.5), np.full(4, 0.2)]) * center_gain),
+            )
+        )
         np.testing.assert_allclose(mixed, expected, rtol=1e-12)
+
+    @pytest.mark.parametrize(
+        ("pan", "expected_left", "expected_right"),
+        [
+            (-1.0, 1.0, 0.0),
+            (0.0, np.sqrt(0.5), np.sqrt(0.5)),
+            (1.0, 0.0, 1.0),
+        ],
+    )
+    def test_constant_power_pan(self, pan, expected_left, expected_right):
+        mixer = MixerBus()
+        mixer.add_track_buffer("panned", np.ones(8), pan=pan)
+
+        mixed = mixer.sum_mix(8)
+
+        assert mixed.shape == (8, 2)
+        np.testing.assert_allclose(mixed[:, 0], np.tanh(expected_left), rtol=1e-12, atol=1e-15)
+        np.testing.assert_allclose(mixed[:, 1], np.tanh(expected_right), rtol=1e-12, atol=1e-15)
+        if pan == -1.0:
+            assert np.allclose(mixed[:, 1], 0.0, atol=1e-15)
+        elif pan == 1.0:
+            assert np.allclose(mixed[:, 0], 0.0, atol=1e-15)
+
+    def test_pan_is_clamped_to_valid_range(self):
+        left_mixer = MixerBus()
+        left_mixer.add_track_buffer("left", np.ones(4), pan=-2.0)
+        right_mixer = MixerBus()
+        right_mixer.add_track_buffer("right", np.ones(4), pan=2.0)
+
+        left_mix = left_mixer.sum_mix(4)
+        right_mix = right_mixer.sum_mix(4)
+
+        np.testing.assert_allclose(left_mix[:, 0], np.tanh(np.ones(4)), rtol=1e-12)
+        np.testing.assert_allclose(left_mix[:, 1], np.zeros(4), rtol=1e-12, atol=1e-15)
+        np.testing.assert_allclose(right_mix[:, 0], np.zeros(4), rtol=1e-12, atol=1e-15)
+        np.testing.assert_allclose(right_mix[:, 1], np.tanh(np.ones(4)), rtol=1e-12)
 
     def test_master_limiter_prevents_clipping(self, sample_rate):
         mixer = MixerBus(sample_rate)
@@ -99,7 +141,9 @@ class TestMixerBus:
 
     def test_empty_mix_is_silent(self, sample_rate):
         mixer = MixerBus(sample_rate)
-        assert not np.any(mixer.sum_mix(32))
+        mixed = mixer.sum_mix(32)
+        assert mixed.shape == (32, 2)
+        assert not np.any(mixed)
 
 
 class TestSongArranger:

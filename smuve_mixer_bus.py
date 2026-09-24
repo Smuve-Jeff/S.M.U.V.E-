@@ -19,27 +19,37 @@ class MixerBus:
         self.tracks.append({
             "name": name,
             "buffer": buffer * volume,
-            "pan": pan
+            "pan": float(np.clip(pan, -1.0, 1.0))
         })
 
     def sum_mix(self, target_samples: int) -> np.ndarray:
-        """Summates all registered track buffers into a single master mix stream with limiting."""
-        master_mix = np.zeros(target_samples)
-        
+        """Sum tracks into a constant-power stereo mix with soft clipping.
+
+        The returned array has shape ``(target_samples, 2)`` in left/right
+        channel order. Pan follows the equal-power law: hard left and hard
+        right send full amplitude to one side, while center sends equal
+        ``sqrt(0.5)`` gain to both channels.
+        """
+        master_mix = np.zeros((target_samples, 2), dtype=np.float64)
+
         for track in self.tracks:
             buf = track["buffer"]
             if len(buf) < target_samples:
-                padded = np.zeros(target_samples)
+                padded = np.zeros(target_samples, dtype=np.float64)
                 padded[:len(buf)] = buf
                 buf = padded
             else:
                 buf = buf[:target_samples]
-                
-            master_mix += buf
-            
+
+            pan = float(np.clip(track["pan"], -1.0, 1.0))
+            pan_angle = (pan + 1.0) * np.pi / 4.0
+            left_gain = np.cos(pan_angle)
+            right_gain = np.sin(pan_angle)
+            master_mix[:, 0] += buf * left_gain
+            master_mix[:, 1] += buf * right_gain
+
         # Apply Master Limiter / Soft Clipping protection (Tanh saturation)
-        master_mix = np.tanh(master_mix * self.master_volume)
-        return master_mix
+        return np.tanh(master_mix * self.master_volume)
 
 
 

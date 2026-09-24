@@ -116,7 +116,11 @@ class SimpleReverb:
         self.damping = damping
 
     def process(self, audio_in: np.ndarray) -> np.ndarray:
-        reverberated = np.convolve(audio_in, np.exp(-np.linspace(0, 3, 2000)) * self.feedback, mode='same')
+        if len(audio_in) == 0:
+            return audio_in
+
+        kernel = np.exp(-np.linspace(0, 3, 2000)) * self.feedback
+        reverberated = np.convolve(audio_in, kernel, mode='same')[:len(audio_in)]
         return (1.0 - self.mix) * audio_in + self.mix * reverberated
 
 

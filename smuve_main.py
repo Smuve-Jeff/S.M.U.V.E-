@@ -161,7 +161,9 @@ class SmuveInteractiveStudio:
                 self.mixer.add_track_buffer("Lead Synth", track2, volume=0.8)
                 
                 raw_mix = self.mixer.sum_mix(target_samples=int(self.sample_rate * 3.0))
-                master_output = self.compressor.process(raw_mix)
+                master_output = np.column_stack(
+                    [self.compressor.process(raw_mix[:, channel]) for channel in range(raw_mix.shape[1])]
+                )
                 print(f"[+] Master mix compressed and summed successfully ({len(master_output)} samples).")
                 
                 filename = input("Enter output filename (default: smuve_master_compressed.wav): ").strip() or "smuve_master_compressed.wav"

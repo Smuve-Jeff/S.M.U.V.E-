@@ -12,20 +12,29 @@ import os
 class AudioExporter:
     @staticmethod
     def export_to_wav(audio_buffer: np.ndarray, filename: str = "smuve_master_mix.wav", sample_rate: int = 44100) -> bool:
-        """Normalizes and exports a NumPy audio buffer to 16-bit PCM WAV."""
+        """Normalizes and exports a mono or interleaved stereo buffer to 16-bit PCM WAV."""
         try:
-            # Normalize audio to prevent clipping (-1.0 to 1.0)
-            peak = np.max(np.abs(audio_buffer))
-            if peak > 0:
-                normalized = audio_buffer / peak
+            audio_buffer = np.asarray(audio_buffer)
+            if audio_buffer.ndim == 2:
+                if audio_buffer.shape[1] != 2:
+                    raise ValueError("audio_buffer must have shape (N,) or (N, 2)")
+                channels = 2
+            elif audio_buffer.ndim == 1:
+                channels = 1
             else:
-                normalized = audio_buffer
-                
-            # Convert float32 [-1.0, 1.0] to int16 [-32768, 32767]
+                raise ValueError("audio_buffer must be one- or two-dimensional")
+
+            # Normalize audio to prevent clipping (-1.0 to 1.0)
+            peak = np.max(np.abs(audio_buffer)) if audio_buffer.size else 0.0
+            normalized = audio_buffer / peak if peak > 0 else audio_buffer
+
+            # Convert float samples to int16 PCM and interleave stereo frames.
             pcm_data = (normalized * 32767.0).astype(np.int16)
-            
+            if channels == 2:
+                pcm_data = pcm_data.reshape(-1)
+
             with wave.open(filename, 'w') as wav_file:
-                wav_file.setnchannels(1)  # Mono track mix
+                wav_file.setnchannels(channels)
                 wav_file.setsampwidth(2)   # 2 bytes per sample (16-bit)
                 wav_file.setframerate(sample_rate)
                 wav_file.writeframes(pcm_data.tobytes())

@@ -131,6 +131,17 @@ class TestSimpleReverb:
         signal = noise(seed=34, n=4096)
         assert SimpleReverb(mix=0.3).process(signal).shape == signal.shape
 
+    @pytest.mark.parametrize("sample_count", [10, 100, 1000])
+    def test_short_buffers_preserve_length(self, sample_count):
+        signal = np.ones(sample_count)
+        output = SimpleReverb(mix=0.3).process(signal)
+        assert output.shape == signal.shape
+        assert np.isfinite(output).all()
+
+    def test_empty_buffer_is_returned_untouched(self):
+        empty = np.zeros(0)
+        assert SimpleReverb().process(empty) is empty
+
     def test_wet_mix_smears_energy_past_the_dry_signal(self, noise):
         signal = noise(seed=35, n=4096)
         out = SimpleReverb(room_size=0.7, damping=0.5, mix=1.0).process(signal)
