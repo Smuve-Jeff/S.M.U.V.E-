@@ -4,4 +4,7 @@
     <string name="title_activity_main">S.M.U.V.E.</string>
     <string name="package_name">com.smuve.smuve2</string>
     <string name="custom_url_scheme">com.smuve.smuve2</string>
+    <!-- Describes the media playback service in the system's app info once
+         Smuve Jeff Radio keeps playing in the background. -->
+    <string name="audio_player_service_description">Smuve Jeff Radio keeps broadcasting while the app is in the background.</string>
 </resources>
