@@ -95,7 +95,7 @@
       <div class="comp-menu-backdrop" *ngIf="showProjectMenu()" (click)="toggleProjectMenu()"></div>
     </div>
 
-    <app-transport-bar class="comp-topbar-center"></app-transport-bar>
+    <app-studio-transport-shell class="comp-topbar-center"></app-studio-transport-shell>
 
     <div class="comp-topbar-right">
       <!-- Stage status pip -->
@@ -365,7 +365,12 @@
 
   <!-- ====================== TOPBAR CONTROLS ====================== -->
   <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
-  <div class="comp-topbar-tools" *ngIf="!headerCollapsed()">
+  <div
+    class="comp-topbar-tools studio-context-toolbar"
+    role="toolbar"
+    aria-label="Studio context tools"
+    *ngIf="!headerCollapsed()"
+  >
     <button
       type="button"
       class="comp-tool-btn"
@@ -494,7 +499,11 @@
   </div>
 
   <!-- ====================== MAIN WORKSPACE ====================== -->
-  <main class="comp-main" role="main">
+  <main
+    class="comp-main studio-workspace-frame"
+    role="main"
+    [attr.data-studio-workspace]="activeView()"
+  >
     <!-- Mobile quick-start lane: keep the first musical action one tap away.
          Hidden in Beginner Mode — the wizard already owns first-run guidance
          on the arrangement slot, so the lane would duplicate onboarding. -->
@@ -554,7 +563,7 @@
 
     <!-- Desktop view rail (FL Studio side rail pattern) -->
     <nav
-      class="comp-rail"
+      class="comp-rail studio-workspace-navigation"
       [class.comp-rail-collapsed]="railCollapsed()"
       aria-label="Studio view selector"
     >
@@ -606,7 +615,7 @@
     </nav>
 
     <!-- Active view canvas -->
-    <section class="comp-canvas" [ngSwitch]="activeView()">
+    <section class="comp-canvas studio-primary-canvas" [ngSwitch]="activeView()">
       <!-- Arrangement / Beginner Wizard (toggled by mode) -->
       <ng-container *ngSwitchCase="'arrangement'">
         <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
@@ -622,6 +631,9 @@
           ></app-arrangement-view>
         </div>
       </ng-container>
+      <div class="comp-view" *ngSwitchCase="'session'">
+        <app-session-view></app-session-view>
+      </div>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">
         @defer (on viewport) {
           <app-piano-roll
@@ -724,7 +736,7 @@
   </main>
 
   <!-- ====================== STUDIO FOOTER ====================== -->
-  <footer class="comp-footer" role="contentinfo">
+  <footer class="comp-footer studio-global-status-bar" role="contentinfo">
     <div class="comp-footer-left">
       <button
         type="button"
@@ -757,6 +769,58 @@
     </div>
 
     <div class="comp-footer-center">
+      <span
+        class="comp-footer-chip studio-status-chip"
+        [attr.data-state]="
+          showArmAudioPip()
+            ? 'blocked'
+            : audioEngine.isRecording()
+              ? 'recording'
+              : audioEngine.isPlaying()
+                ? 'playing'
+                : 'ready'
+        "
+        [attr.aria-label]="
+          showArmAudioPip()
+            ? 'Audio blocked — tap to arm audio'
+            : audioEngine.isRecording()
+              ? 'Recording'
+              : audioEngine.isPlaying()
+                ? 'Playing'
+                : 'Audio ready'
+        "
+        aria-live="polite"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{
+            showArmAudioPip()
+              ? 'volume_off'
+              : audioEngine.isRecording()
+                ? 'fiber_manual_record'
+                : audioEngine.isPlaying()
+                  ? 'play_arrow'
+                  : 'check_circle'
+          }}
+        </span>
+        {{
+          showArmAudioPip()
+            ? 'Audio blocked'
+            : audioEngine.isRecording()
+              ? 'Recording'
+              : audioEngine.isPlaying()
+                ? 'Playing'
+                : 'Audio ready'
+        }}
+      </span>
+      <span
+        *ngIf="projectWorkspace.isDirty()"
+        class="comp-footer-chip studio-status-chip"
+        data-state="dirty"
+        title="Project has unsaved changes"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+        Unsaved
+      </span>
       <span class="comp-footer-chip" title="Current view">
         <span class="material-symbols-outlined">view_quilt</span>
         {{ activeView() | titlecase }}

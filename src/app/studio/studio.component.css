@@ -69,7 +69,8 @@
 
 :host {
   display: block;
-  height: 100dvh;
+  height: 100%;
+  min-height: 0;
   /* Fill the slot the shell gives us, not the raw viewport: on desktop the
      Studio is a child of the content column (sidebar + app top bar sit beside
      it), so `100vw` made the shell 224px wider than the column at 1440px and
@@ -80,17 +81,51 @@
   max-width: 100%;
   background-color: var(--ivory-bg);
   color: var(--espresso-text);
-  overflow-y: auto; overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The routed Studio host fills the bounded content column supplied by the
+   application shell. Avoid a hard-coded desktop subtraction: the global
+   header/footer can change height with responsive chrome, and the column
+   already knows the exact remaining space. */
+@media (min-width: 769px) {
+  :host {
+    height: 100%;
+    max-height: 100%;
+  }
+}
+
+/* Studio is a full-page route on phones and portrait/landscape tablets. The
+   app shell collapses its global chrome there, so the host owns the complete
+   dynamic viewport (including the 390px landscape case). */
+@media (max-width: 1024px) {
+  :host {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
 .comp-shell {
+  --studio-header-height: 72px;
+  --studio-rail-width: 200px;
+  --studio-rail-collapsed-width: 56px;
+  --studio-inspector-width: 320px;
+  --studio-footer-height: 48px;
+  --studio-mobile-dock-height: 72px;
+  --studio-radius-sm: 10px;
+  --studio-radius-md: 14px;
+  --studio-radius-lg: 18px;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   position: relative;
   isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ---------- TOPBAR ---------- */
@@ -99,7 +134,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 56px;
+  height: 72px;
+  min-height: 72px;
   padding: 0 16px;
   background: var(--ivory-paper);
   border-bottom: 1px solid var(--espresso-line);
@@ -169,6 +205,21 @@
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+}
+
+/* The transport is the shell's primary control surface. Give its complete
+   persistent row priority on desktop; secondary header utilities remain
+   scrollable when the viewport narrows instead of clipping the More control
+   or the BPM/position readouts. */
+@media (min-width: 1025px) {
+  .comp-topbar-center {
+    min-width: 500px;
+    overflow: visible;
+  }
+
+  .comp-topbar-right {
+    flex: 0 1 auto;
+  }
 }
 
 .comp-brand {
@@ -312,6 +363,7 @@
   flex: 1 1 auto;
   display: flex;
   overflow: hidden;
+  min-width: 0;
   min-height: 0;
   background: var(--ivory-bg);
 }
@@ -489,6 +541,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 :host-context(.dark-mode) .comp-canvas,
@@ -1278,7 +1332,7 @@
 /* ---------- DESKTOP CHROME FIT-TO-SCREEN ---------- */
 @media (min-width: 1024px) {
   .comp-shell {
-    max-height: 100dvh;
+    max-height: 100%;
   }
 
   .comp-main {

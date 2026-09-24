@@ -4,6 +4,7 @@ import { AudioSessionService } from '../audio-session.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
 
 interface SessionScene {
   id: string;
@@ -42,7 +43,7 @@ interface SessionClip {
 @Component({
   selector: 'app-session-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, StudioBottomSheetComponent],
   templateUrl: './session-view.component.html',
   styleUrls: ['./session-view.component.css', '../shared/platform-ux.css'],
 })
@@ -65,6 +66,30 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   private followTimer: ReturnType<typeof setTimeout> | null = null;
   private quantizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private sceneLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private sceneLongPressStart: { x: number; y: number } | null = null;
+  private suppressSceneClickUntil = 0;
+
+  /** Mobile scene actions are deliberately separate from the clip grid. */
+  sceneActionSceneId = signal<string | null>(null);
+  sceneNameInput = signal('');
+  launchSettingsOpen = signal(false);
+  nextLaunchBoundaryLabel = computed(() => {
+    const quantize = this.launchQuantize();
+    if (!this.audioSession.isPlaying() || quantize === 'none') {
+      return 'Immediate launch';
+    }
+    const bars = quantize === '1bar' ? 1 : quantize === '2bar' ? 2 : 4;
+    const tempo = this.audioSession.engine.tempo() || 120;
+    const secondsPerBar = (60 / tempo) * 4;
+    const step = this.audioSession.engine.visualStep?.() ?? 0;
+    const stepsPerBar = 16;
+    const stepsIntoBar = step % stepsPerBar;
+    const totalSteps = bars * stepsPerBar;
+    const stepsToNext = (totalSteps - stepsIntoBar) % totalSteps || totalSteps;
+    const seconds = Math.max(0, (stepsToNext / stepsPerBar) * secondsPerBar);
+    return `Next ${bars === 1 ? 'bar' : `${bars} bars`} · ${seconds.toFixed(1)}s`;
+  });
 
   readonly transportPlaying = this.audioSession.isPlaying;
 
@@ -79,6 +104,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (this.followTimer) clearTimeout(this.followTimer);
     if (this.quantizeTimer) clearTimeout(this.quantizeTimer);
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    this.cancelSceneLongPress();
   }
 
   /** Seconds until the next quantized bar boundary (0 when off/stopped). */
@@ -104,6 +130,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.activeSceneId.set(null);
     if (this.quantizeTimer) clearTimeout(this.quantizeTimer);
     if (this.followTimer) clearTimeout(this.followTimer);
+    if (this.quantizeTimer) {
+      clearTimeout(this.quantizeTimer);
+      this.quantizeTimer = null;
+    }
+    this.cancelSceneLongPress();
     if (this.audioSession.isPlaying()) {
       this.audioSession.togglePlay();
     }
@@ -111,6 +142,140 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   micChannels = this.audioSession.micChannels;
+
+  isSceneActive(scene: SessionScene): boolean {
+    return this.activeSceneId() === scene.id;
+  }
+
+  isSceneQueued(scene: SessionScene): boolean {
+    return this.getClipsForScene(scene.id).some((clip) =>
+      this.queuedClipIds().has(clip.id)
+    );
+  }
+
+  sceneStateLabel(scene: SessionScene): string {
+    if (this.isSceneQueued(scene)) return 'Queued';
+    if (this.isSceneActive(scene)) return 'Playing';
+    return 'Ready';
+  }
+
+  sceneLaunchLabel(scene: SessionScene): string {
+    if (this.isSceneQueued(scene)) return 'Queued';
+    if (this.isSceneActive(scene)) return 'Stop';
+    return 'Launch';
+  }
+
+  onSceneHeaderClick(scene: SessionScene): void {
+    if (Date.now() < this.suppressSceneClickUntil) return;
+    this.launchScene(scene);
+  }
+
+  openSceneActions(scene: SessionScene): void {
+    this.cancelSceneLongPress();
+    this.suppressSceneClickUntil = Date.now() + 500;
+    this.sceneActionSceneId.set(scene.id);
+    this.sceneNameInput.set(scene.name);
+  }
+
+  closeSceneActions(): void {
+    this.sceneActionSceneId.set(null);
+  }
+
+  openLaunchSettings(): void {
+    this.launchSettingsOpen.set(true);
+  }
+
+  closeLaunchSettings(): void {
+    this.launchSettingsOpen.set(false);
+  }
+
+  setLaunchQuantize(value: string): void {
+    if (this.quantizeOptions.includes(value as (typeof this.quantizeOptions)[number])) {
+      this.launchQuantize.set(value as (typeof this.quantizeOptions)[number]);
+    }
+  }
+
+  renameSelectedScene(): void {
+    const sceneId = this.sceneActionSceneId();
+    if (!sceneId) return;
+    const name = this.sceneNameInput().trim();
+    if (!name) {
+      this.snackbar.warning('Scene name cannot be empty');
+      return;
+    }
+    this.scenes.update((list) =>
+      list.map((scene) => (scene.id === sceneId ? { ...scene, name } : scene))
+    );
+    this.scheduleAutoSave();
+    this.closeSceneActions();
+    this.snackbar.success(`Scene renamed to “${name}”`);
+  }
+
+  duplicateSelectedScene(): void {
+    const sceneId = this.sceneActionSceneId();
+    const source = this.scenes().find((scene) => scene.id === sceneId);
+    if (!source) return;
+    const copyId = `${source.id}-copy-${Date.now()}`;
+    const copyIndex = source.index + 1;
+    const clipCopies = this.getClipsForScene(source.id).map((clip) => ({
+      ...clip,
+      id: `${clip.id}-copy-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      sceneId: copyId,
+      isPlaying: false,
+      automation: clip.automation?.map((point) => ({ ...point })),
+    }));
+    this.scenes.update((list) => {
+      const next = [...list];
+      next.splice(copyIndex, 0, {
+        ...source,
+        id: copyId,
+        name: `${source.name} Copy`,
+        index: copyIndex,
+      });
+      return next.map((scene, index) => ({ ...scene, index }));
+    });
+    this.clips.update((list) => [...list, ...clipCopies]);
+    this.scheduleAutoSave();
+    this.closeSceneActions();
+    this.snackbar.success(`Scene “${source.name}” duplicated`);
+  }
+
+  launchSelectedScene(): void {
+    const sceneId = this.sceneActionSceneId();
+    const scene = this.scenes().find((candidate) => candidate.id === sceneId);
+    if (!scene) return;
+    this.closeSceneActions();
+    this.launchScene(scene);
+  }
+
+  startSceneLongPress(event: PointerEvent, scene: SessionScene): void {
+    if (event.pointerType === 'mouse') return;
+    this.cancelSceneLongPress();
+    this.sceneLongPressStart = { x: event.clientX, y: event.clientY };
+    this.sceneLongPressTimer = setTimeout(() => {
+      this.sceneLongPressTimer = null;
+      this.suppressSceneClickUntil = Date.now() + 700;
+      this.haptic.medium();
+      this.openSceneActions(scene);
+    }, 550);
+  }
+
+  moveSceneLongPress(event: PointerEvent): void {
+    if (!this.sceneLongPressStart || !this.sceneLongPressTimer) return;
+    const dx = event.clientX - this.sceneLongPressStart.x;
+    const dy = event.clientY - this.sceneLongPressStart.y;
+    if (Math.hypot(dx, dy) > 10) this.cancelSceneLongPress();
+  }
+
+  endSceneLongPress(): void {
+    this.cancelSceneLongPress();
+  }
+
+  cancelSceneLongPress(): void {
+    if (this.sceneLongPressTimer) clearTimeout(this.sceneLongPressTimer);
+    this.sceneLongPressTimer = null;
+    this.sceneLongPressStart = null;
+  }
 
   // ── Scenes ───────────────────────────────────────────
   scenes = signal<SessionScene[]>([
@@ -333,6 +498,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   /** Actually start a scene's clips (called directly or after quantization). */
   private commitSceneLaunch(scene: SessionScene): void {
+    this.queuedClipIds.set(new Set());
+    this.quantizeTimer = null;
     this.activeSceneId.set(scene.id);
     this.clips.update((list) =>
       list.map((c) => ({
@@ -698,11 +865,13 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   loadPreset(name: string): void {
+    this.cancelSceneLongPress();
     const preset = this.savedPresets().find((p) => p.name === name);
     if (!preset) return;
     this.scenes.set(preset.scenes.map((s, i) => ({ ...s, index: i })));
     this.clips.set(preset.clips.map((c) => ({ ...c, isPlaying: false })));
     this.activeSceneId.set(null);
+    this.queuedClipIds.set(new Set());
     this.presetLoadOpen.set(false);
     this.haptic.medium();
     this.snackbar.success(`Preset "${name}" loaded`);

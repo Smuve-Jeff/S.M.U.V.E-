@@ -30,6 +30,7 @@ import { LoggingService } from '../../services/logging.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { WavEncoder } from '../wav-encoder.util';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
 import { peakNormalizeInPlace, trimSilenceEdges } from '../take-edit.util';
 
 type ViewMode = 'pipeline' | 'console';
@@ -64,6 +65,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private snackbar = inject(SnackbarService);
   public readonly hardware = inject(HardwareService);
   private readonly haptic = inject(HapticService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
   showUplink = signal(false);
 
   // ── Take editing / routing ──────────────────────────────
@@ -96,6 +98,31 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
    * than a cosmetic switch — the old "Monitor" button had no handler at all.
    */
   monitorEnabled = signal(true);
+  captureError = signal<string | null>(null);
+  captureState = computed(() => {
+    if (this.captureError()) return 'error' as const;
+    if (this.micService.isRecording()) return 'recording' as const;
+    if (this.micService.isPaused()) return 'paused' as const;
+    if (this.micService.isInitialized()) return 'ready' as const;
+    return 'idle' as const;
+  });
+  capturePathLabel = computed(() => {
+    const label = (this.micService as any).capturePathLabel;
+    if (typeof label === 'function') return label();
+    return (this.micService as any).usingProcessedCapture?.()
+      ? 'Processed vocal chain'
+      : 'Raw microphone input';
+  });
+  deviceSwitchLocked = computed(() => {
+    const canSwitch = (this.micService as any).canSwitchDevice;
+    return typeof canSwitch === 'function' ? !canSwitch() : this.micService.isRecording();
+  });
+  latencyWarning = computed(() => {
+    const snapshot = (this.engineLatency as any).snapshot;
+    if (typeof snapshot !== 'function') return null;
+    const total = snapshot()?.totalLatencyMs ?? 0;
+    return total > 60 ? 'Bluetooth or wireless latency may be audible' : null;
+  });
 
   /** De-Esser state, read straight off the live mastering parameters. */
   deEsserEnabled = computed(
@@ -135,7 +162,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
 
 
-  private animationId?: number;
+  private visualTaskCleanup: (() => void) | null = null;
   private ctx2d?: CanvasRenderingContext2D;
   private waveformCtx?: CanvasRenderingContext2D;
 
@@ -161,7 +188,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.animationId) cancelAnimationFrame(this.animationId);
+    this.visualTaskCleanup?.();
+    this.visualTaskCleanup = null;
+    (this.micService as any).detachProcessedCapture?.();
   }
 
   private initCanvases() {
@@ -181,9 +210,16 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async initializeMic() {
+    this.captureError.set(null);
     const deviceId = this.micService.selectedDeviceId();
     const ready = await this.micService.initialize(deviceId || undefined);
-    if (!ready) return;
+    if (!ready) {
+      const lastError = (this.micService as any).lastError;
+      this.captureError.set(
+        (typeof lastError === 'function' ? lastError() : null) || 'Microphone unavailable'
+      );
+      return;
+    }
     const node = this.micService.getAnalyserNode();
     if (node) {
       // Route the mic through the real-time pitch-correction stage first; the
@@ -197,6 +233,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   async toggleRecording() {
+    this.captureError.set(null);
     if (this.micService.isRecording()) {
       const blob = await this.micService.stopRecording();
       if (blob && this.autoRouteTakes()) {
@@ -216,6 +253,12 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     }
     this.waveformData = [];
     this.micService.startRecording();
+    if (!this.micService.isRecording()) {
+      const lastError = (this.micService as any).lastError;
+      this.captureError.set(
+        (typeof lastError === 'function' ? lastError() : null) || 'Could not start capture'
+      );
+    }
   }
 
   toggleAutoRoute(): void {
@@ -351,12 +394,16 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   private startVisualization() {
-    const draw = () => {
-      this.drawSpectrograph();
-      this.drawWaveform();
-      this.animationId = requestAnimationFrame(draw);
-    };
-    draw();
+    this.visualTaskCleanup?.();
+    this.visualTaskCleanup = this.visualScheduler.register(() => {
+      // Static take envelopes do not need a second redraw every frame. Live
+      // spectrograph/waveform sampling is shared and throttled with the rest of
+      // Studio instead of owning an unrestricted requestAnimationFrame loop.
+      if (this.micService.isRecording() || this.micService.isInitialized() || this.takeEnvelope().length > 0) {
+        this.drawSpectrograph();
+        this.drawWaveform();
+      }
+    }, { fps: 24, immediate: true });
   }
 
   private drawSpectrograph() {

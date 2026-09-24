@@ -23,6 +23,53 @@
     </div>
   </header>
 
+  <section class="arv-input-bar" aria-label="Recorder input and capture state">
+    <div class="arv-input-select-wrap">
+      <span class="material-symbols-outlined" aria-hidden="true">mic</span>
+      <label for="arv-input-select">Input</label>
+      <select
+        id="arv-input-select"
+        [value]="selectedInputId() || ''"
+        [disabled]="deviceSwitchLocked()"
+        (change)="setInputDevice($any($event.target).value)"
+        aria-label="Recorder input device"
+      >
+        @if (!inputDevices().length) {
+          <option value="">Default microphone</option>
+        }
+        @for (device of inputDevices(); track device.deviceId) {
+          <option [value]="device.deviceId">{{ device.label }}</option>
+        }
+      </select>
+    </div>
+    <button
+      type="button"
+      class="arv-icon-action"
+      (click)="refreshInputDevices()"
+      [disabled]="deviceSwitchLocked()"
+      aria-label="Refresh input devices"
+      title="Refresh input devices"
+    >
+      <span class="material-symbols-outlined">refresh</span>
+    </button>
+    <div class="arv-capture-state" [attr.data-state]="captureState()" aria-live="polite">
+      <span class="material-symbols-outlined" aria-hidden="true">
+        {{ captureState() === 'recording' ? 'fiber_manual_record' : captureState() === 'error' ? 'error' : 'graphic_eq' }}
+      </span>
+      <span>
+        <strong>{{ captureStatusLabel() }}</strong>
+        <small>{{ inputDeviceName() }} · {{ capturePathLabel() }}</small>
+      </span>
+    </div>
+  </section>
+
+  @if (captureError()) {
+    <div class="arv-inline-error" role="alert">
+      <span class="material-symbols-outlined">warning</span>
+      {{ captureError() }}
+    </div>
+  }
+
   <!-- INPUT LEVEL METER -->
   <div class="arv-meter-strip" aria-label="Input level">
     <div class="arv-meter-channel">
@@ -63,7 +110,7 @@
   </div>
 
   <!-- WAVEFORM VISUALIZER (during recording) -->
-  @if (isRecording()) {
+  @if (captureState() === 'recording' || isRecording()) {
     <div class="arv-waveform" aria-hidden="true">
       <canvas
         #waveformCanvas
@@ -80,18 +127,19 @@
       type="button"
       class="arv-record-btn"
       [class.arv-record-btn-armed]="isRequestingMic()"
-      [class.arv-record-btn-live]="isRecording()"
+      [class.arv-record-btn-live]="captureState() === 'recording' || isRecording()"
+      [class.arv-record-btn-stopping]="captureState() === 'stopping'"
       (click)="toggleRecord()"
-      [attr.aria-pressed]="isRecording()"
-      [attr.aria-label]="isRecording() ? 'Stop recording' : 'Start recording'"
+      [attr.aria-pressed]="captureState() === 'recording' || isRecording()"
+      [attr.aria-label]="captureState() === 'recording' || isRecording() ? 'Stop recording' : 'Start recording'"
     >
       <span class="material-symbols-outlined" aria-hidden="true">
         {{ isRecording() ? 'stop_circle' : 'radio_button_checked' }}
       </span>
       <span class="arv-record-label">
-        {{ isRequestingMic() ? 'ARMING MIC…' : isRecording() ? 'STOP' : 'REC' }}
+        {{ isRequestingMic() ? 'ARMING MIC…' : captureState() === 'stopping' ? 'SAVING…' : captureState() === 'recording' || isRecording() ? 'STOP' : 'REC' }}
       </span>
-      <span class="arv-record-time" *ngIf="isRecording()">
+      <span class="arv-record-time" *ngIf="captureState() === 'recording' || isRecording()">
         {{ formatTime(elapsedSec()) }}
       </span>
     </button>
@@ -212,6 +260,24 @@
       </div>
     </div>
   </div>
+
+  @if (latestRecording(); as lastTake) {
+    <section class="arv-latest-take" aria-label="Latest take actions">
+      <div class="arv-latest-take-copy">
+        <span class="material-symbols-outlined" aria-hidden="true">audio_file</span>
+        <span>
+          <small>LAST TAKE</small>
+          <strong>{{ lastTake.name }}</strong>
+          <small>{{ formatTime(lastTake.durationSec) }} · {{ capturePathLabel() }}</small>
+        </span>
+      </div>
+      <div class="arv-latest-actions">
+        <button type="button" (click)="keepLatestTake()" [disabled]="deviceSwitchLocked()">Keep</button>
+        <button type="button" (click)="retryLatestTake()" [disabled]="deviceSwitchLocked()">Retry</button>
+        <button type="button" class="is-primary" (click)="addLatestToArrangement()" [disabled]="!lastTake.url">Add to Song</button>
+      </div>
+    </section>
+  }
 
   <!-- PERMISSIONS / ERROR -->
   <div class="arv-banners" *ngIf="permissionsDenied()">

@@ -30,17 +30,27 @@ import { SnackbarService } from '../../services/snackbar.service';
 import { TakeManagerService } from '../../services/take-manager.service';
 import { TakeLaneComponent } from '../take-lane/take-lane.component';
 import { WebGLRenderer } from '../webgl/webgl-renderer';
-import {
-  TimelineRenderer,
+import { TimelineRenderer,
   TimelineClip,
   TimelineTrack,
   clipColorFromId,
 } from '../webgl/timeline-renderer';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
+import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
+
+export type ArrangementTool =
+  | 'select'
+  | 'draw'
+  | 'split'
+  | 'trim'
+  | 'slip'
+  | 'duplicate'
+  | 'glue';
 
 @Component({
   selector: 'app-arrangement-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, TakeLaneComponent],
+  imports: [CommonModule, FormsModule, TakeLaneComponent, StudioBottomSheetComponent],
   templateUrl: './arrangement-view.component.html',
   styleUrls: ['./arrangement-view.component.css', '../shared/platform-ux.css'],
 })
@@ -52,6 +62,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly enhancedGestures = inject(EnhancedTouchGestureService);
   private readonly stemSvc = inject(StemSeparationService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
   /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
   public readonly takeManager = inject(TakeManagerService);
 
@@ -65,7 +76,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   // ── WebGL renderer ───────────────────────────────────────
   private glRenderer!: WebGLRenderer;
   private timelineRenderer!: TimelineRenderer;
-  private renderRafId: number | null = null;
+  private stopVisualTask: (() => void) | null = null;
   private isGlInitialized = false;
 
   // ── Stem-Splitter UI state ───────────────────────────────
@@ -76,10 +87,61 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   stemBusy = signal(false);
 
   readonly tracks = this.musicManager.tracks;
+  /** The visible editing mode is explicit; the low-level renderer tool follows it. */
+  editMode = signal<ArrangementTool>('select');
   activeTool = signal<'select' | 'blade' | 'glue'>('select');
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
   isRecordingAutomation = signal(false);
+  clipActionsOpen = signal(false);
+  overviewZoom = signal(1);
+
+  readonly arrangementTools: Array<{ id: ArrangementTool; label: string; icon: string }> = [
+    { id: 'select', label: 'Select', icon: 'near_me' },
+    { id: 'draw', label: 'Draw', icon: 'edit' },
+    { id: 'split', label: 'Split', icon: 'content_cut' },
+    { id: 'trim', label: 'Trim', icon: 'compare_arrows' },
+    { id: 'slip', label: 'Slip', icon: 'swap_horiz' },
+    { id: 'duplicate', label: 'Duplicate', icon: 'content_copy' },
+    { id: 'glue', label: 'Glue', icon: 'join_full' },
+  ];
+
+  setEditMode(mode: ArrangementTool): void {
+    this.editMode.set(mode);
+    this.activeTool.set(
+      mode === 'split' ? 'blade' : mode === 'glue' ? 'glue' : 'select',
+    );
+    this.haptic.light();
+  }
+
+  editModeLabel(): string {
+    return this.arrangementTools.find((tool) => tool.id === this.editMode())?.label ?? 'Select';
+  }
+
+  openClipActions(): void {
+    if (this.selectedClipIds().size > 0) this.clipActionsOpen.set(true);
+  }
+
+  closeClipActions(): void {
+    this.clipActionsOpen.set(false);
+  }
+
+  setOverviewZoom(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    this.overviewZoom.set(Math.max(0.5, Math.min(2, value)));
+    this.barWidth.set(Math.round(200 * this.overviewZoom()));
+    this.markDirty();
+  }
+
+  seekFromOverview(event: MouseEvent): void {
+    const target = event.currentTarget as HTMLElement | null;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    if (!rect.width) return;
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    this.musicManager.currentStep.set(Math.round(ratio * 16 * Math.max(1, this.effectiveBars())));
+    this.markDirty();
+  }
 
   laneHeight = signal(80);
   barWidth = signal(200);
@@ -122,14 +184,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.initWebGL();
-    this.scheduleRender();
+    this.stopVisualTask = this.visualScheduler.register(
+      () => this.renderTimelineIfNeeded(),
+      { fps: 30 },
+    );
   }
 
   ngOnDestroy(): void {
-    if (this.renderRafId !== null) {
-      cancelAnimationFrame(this.renderRafId);
-      this.renderRafId = null;
-    }
+    this.stopVisualTask?.();
+    this.stopVisualTask = null;
     this.glRenderer?.destroy();
   }
 
@@ -145,19 +208,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // ── Render loop ──────────────────────────────────────────
+  // ── Shared render loop ───────────────────────────────────
 
-  private scheduleRender(): void {
-    const tick = () => {
-      this.renderRafId = requestAnimationFrame(tick);
-      if (this.isGlInitialized) {
-        const isPlaying = this.audioSession.isPlaying();
-        if (isPlaying || this.glRenderer.isDirty) {
-          this.renderTimeline();
-        }
-      }
-    };
-    this.renderRafId = requestAnimationFrame(tick);
+  private renderTimelineIfNeeded(): void {
+    if (!this.isGlInitialized) return;
+    const isPlaying = this.audioSession.isPlaying();
+    if (isPlaying || this.glRenderer.isDirty) {
+      this.renderTimeline();
+    }
   }
 
   private markDirty(): void {

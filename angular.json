@@ -21,6 +21,7 @@
             "serviceWorker": "ngsw-config.json",
             "styles": [
               "src/styles.css",
+              "src/studio-redesign-global.css",
               "node_modules/animate.css/animate.min.css"
             ],
             "optimization": {

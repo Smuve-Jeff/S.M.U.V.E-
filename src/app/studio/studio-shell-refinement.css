@@ -24,7 +24,10 @@
 
 .comp-shell {
   --shell-gap: clamp(8px, 1vw, 16px);
-  min-height: 100dvh;
+  /* The Studio is a bounded child workspace. A viewport-sized minimum here
+     makes the route host grow to the full page and reintroduces document
+     scrolling underneath the shell. */
+  min-height: 0;
   background:
     radial-gradient(circle at 82% 4%, rgba(93, 196, 194, 0.14), transparent 28%),
     radial-gradient(circle at 10% 100%, rgba(217, 119, 6, 0.06), transparent 30%),
@@ -132,8 +135,8 @@
 }
 
 .comp-rail {
-  width: clamp(76px, 6.5vw, 104px);
-  min-width: 76px;
+  width: clamp(184px, 14vw, 220px);
+  min-width: 184px;
   padding: 10px 8px;
   gap: 5px;
   border: 1px solid var(--stage-line);
@@ -292,7 +295,7 @@
 @media (max-width: 768px) {
   .comp-shell {
     --shell-gap: 6px;
-    min-height: 100dvh;
+    min-height: 0;
   }
 
   .comp-topbar {
@@ -390,6 +393,7 @@
   .comp-main {
     gap: var(--shell-gap);
     padding: var(--shell-gap);
+    padding-bottom: var(--transport-dock-height, 0px);
   }
 
   .comp-canvas {
@@ -507,8 +511,9 @@
    shallow enough for the creative surface. */
 @media (max-width: 900px) and (orientation: landscape) {
   .comp-topbar {
-    min-height: 46px;
-    padding-block: 3px;
+    min-height: 64px;
+    height: 64px;
+    padding-block: 0;
   }
 
   .comp-topbar-center {
@@ -552,6 +557,39 @@
   }
 
   .comp-tab-label {
+    display: none;
+  }
+}
+
+/* A short landscape phone has one usable row: keep the transport fully
+   readable by reducing the surrounding chrome to its essential controls.
+   The workspace still exposes the complete desktop utility set when the
+   viewport has room. */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-topbar-left {
+    flex: 0 0 auto;
+    width: 42px;
+  }
+
+  .comp-topbar-left .comp-header-toggle,
+  .comp-topbar-left .comp-brand-text {
+    display: none;
+  }
+
+  .comp-topbar-center {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .comp-topbar-right {
+    flex: 0 0 48px;
+    width: 48px;
+    max-width: 48px;
+    overflow: hidden;
+  }
+
+  .comp-topbar-right > :not(.comp-ai-btn) {
     display: none;
   }
 }

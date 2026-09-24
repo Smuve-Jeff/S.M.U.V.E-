@@ -215,7 +215,23 @@
 }
 
 @media (max-width: 932px) and (orientation: landscape) {
+  :host {
+    height: 63px;
+    min-height: 63px;
+    max-height: 63px;
+    overflow: hidden;
+  }
+
+  .ctb-shell {
+    height: 63px;
+    min-height: 63px;
+    padding: 2px 4px;
+    align-items: center;
+  }
+
   .ctb-primary-row {
+    height: 58px;
+    max-height: 58px;
     overflow-x: auto;
     overflow-y: hidden;
     min-width: 0;

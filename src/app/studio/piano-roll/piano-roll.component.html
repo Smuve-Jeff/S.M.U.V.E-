@@ -1,4 +1,4 @@
-<div class="pr-shell">
+<div class="pr-shell studio-workspace-surface piano-roll-surface" data-studio-module="piano-roll">
   <!-- HEADER -->
   <header class="pr-header" role="banner">
     <div class="pr-header-left">
@@ -82,6 +82,38 @@
       >
         <span class="material-symbols-outlined">backspace</span>
       </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'velocity'"
+        (click)="setEditMode('velocity')"
+        [attr.aria-pressed]="editMode() === 'velocity'"
+        [attr.aria-label]="'Velocity tool'"
+        title="Velocity (V)"
+      >
+        <span class="material-symbols-outlined">speed</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'chord'"
+        (click)="setEditMode('chord')"
+        [attr.aria-pressed]="editMode() === 'chord'"
+        [attr.aria-label]="'Chord stamp tool'"
+        title="Chord stamp (C)"
+      >
+        <span class="material-symbols-outlined">piano</span>
+      </button>
+    </div>
+
+    <div
+      class="pr-tool-status"
+      role="status"
+      aria-live="polite"
+      [attr.data-tool]="editMode()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+      Tool: {{ editMode() | titlecase }}
     </div>
 
     <div class="pr-snap" role="radiogroup" aria-label="Snap-to-grid resolution">

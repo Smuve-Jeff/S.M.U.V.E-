@@ -1,5 +1,6 @@
 <div
-  class="playlist-container glass-v42 shadow-v42-xl"
+  class="playlist-container studio-workspace-surface arrangement-surface glass-v42 shadow-v42-xl"
+  data-studio-module="arrangement"
   [class.tool-blade]="activeTool() === 'blade'"
   [class.tool-glue]="activeTool() === 'glue'"
 >
@@ -35,28 +36,19 @@
       </div>
     </div>
 
-    <div class="module-transport glass-v42 mx-4">
-      <div class="btn-group flex gap-1">
-        <button
-          class="m-btn tactile-v42"
-          (click)="audioSession.togglePlay()"
-          [title]="audioSession.isPlaying() ? 'Pause' : 'Play'"
-        >
-          <span class="material-symbols-outlined text-sm">
-            {{ audioSession.isPlaying() ? 'pause' : 'play_arrow' }}
-          </span>
-        </button>
-        <button
-          class="m-btn tactile-v42 rec"
-          [class.active]="audioSession.isRecording()"
-          (click)="audioSession.toggleRecord()"
-          title="Record Professional Take"
-        >
-          <span class="material-symbols-outlined text-sm"
-            >fiber_manual_record</span
-          >
-        </button>
-      </div>
+    <div
+      class="module-transport glass-v42 mx-4"
+      role="status"
+      aria-live="polite"
+      aria-label="Arrangement transport follows the global Studio transport"
+    >
+      <span class="module-transport-label">GLOBAL TRANSPORT</span>
+      <span class="module-transport-state" [attr.data-state]="audioSession.isPlaying() ? (audioSession.isRecording() ? 'recording' : 'playing') : 'ready'">
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ audioSession.isRecording() ? 'fiber_manual_record' : audioSession.isPlaying() ? 'play_arrow' : 'check_circle' }}
+        </span>
+        {{ audioSession.isRecording() ? 'RECORDING' : audioSession.isPlaying() ? 'PLAYING' : 'READY' }}
+      </span>
     </div>
 
     <div class="flex items-center gap-2 mx-2">
@@ -122,29 +114,19 @@
         </span>
       </div>
     </div>
-    <div class="tool-selector flex gap-1 mx-2">
+    <div class="tool-selector studio-horizontal-rail" role="toolbar" aria-label="Arrangement edit mode">
       <button
-        *ngFor="let tool of ['select', 'blade', 'glue']"
-        (click)="activeTool.set(tool)"
+        *ngFor="let tool of arrangementTools"
+        type="button"
+        (click)="setEditMode(tool.id)"
         class="tool-btn tactile-v42"
-        [class.active]="activeTool() === tool"
-        [title]="
-          tool === 'select'
-            ? 'Selection Tool (V)'
-            : tool === 'blade'
-              ? 'Blade Tool (B)'
-              : 'Glue Tool (G)'
-        "
+        [class.active]="editMode() === tool.id"
+        [attr.aria-pressed]="editMode() === tool.id"
+        [attr.aria-label]="tool.label + ' edit mode'"
+        [title]="tool.label"
       >
-        <span class="material-symbols-outlined text-xs">
-          {{
-            tool === 'select'
-              ? 'near_me'
-              : tool === 'blade'
-                ? 'content_cut'
-                : 'link'
-          }}
-        </span>
+        <span class="material-symbols-outlined text-xs" aria-hidden="true">{{ tool.icon }}</span>
+        <span class="tool-btn-label">{{ tool.label }}</span>
       </button>
     </div>
 
@@ -323,6 +305,17 @@
         🎚 STEM SPLIT
       </button>
     </div>
+  </div>  <div
+    class="arrangement-mode-status"
+    role="status"
+    aria-live="polite"
+    [attr.data-mode]="editMode()"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+    <span><strong>{{ editModeLabel() }}</strong> mode</span>
+    <span *ngIf="selectedClipIds().size > 0" class="arrangement-selection-status">
+      · {{ selectedClipIds().size }} clip{{ selectedClipIds().size === 1 ? '' : 's' }} selected
+    </span>
   </div>
 
   <div class="playlist-content no-scrollbar">
@@ -451,7 +444,99 @@
         [style.height.px]="canvasHeight()"
       ></canvas>
     </div>
+
+    <section class="arrangement-overview" aria-label="Arrangement overview">
+      <div class="arrangement-overview-head">
+        <span class="arrangement-overview-title">OVERVIEW</span>
+        <span class="arrangement-overview-readout">
+          Bar {{ (musicManager.currentStep() / 16) + 1 | number: '1.0-0' }} / {{ effectiveBars() }}
+        </span>
+        <label class="arrangement-zoom">
+          <span class="material-symbols-outlined" aria-hidden="true">zoom_in</span>
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            [value]="overviewZoom()"
+            (input)="setOverviewZoom($event)"
+            aria-label="Arrangement zoom"
+          />
+        </label>
+      </div>
+      <button
+        type="button"
+        class="arrangement-overview-track"
+        (click)="seekFromOverview($event)"
+        aria-label="Seek arrangement from overview"
+      >
+        <span
+          class="arrangement-overview-playhead"
+          [style.left.%]="(musicManager.currentStep() / (16 * effectiveBars())) * 100"
+          aria-hidden="true"
+        ></span>
+      </button>
+    </section>
   </div>
+
+  <nav
+    *ngIf="selectedClipIds().size > 0"
+    class="arrangement-mobile-actions"
+    aria-label="Selected clip actions"
+  >
+    <span class="arrangement-mobile-selection" aria-live="polite">
+      {{ selectedClipIds().size }} selected
+    </span>
+    <button type="button" class="arrangement-mobile-action" (click)="splitAtPlayhead()">
+      <span class="material-symbols-outlined" aria-hidden="true">content_cut</span>
+      Split
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="duplicateSelected()">
+      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+      Duplicate
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="trimSelected('start', snapEnabled() ? 0.25 : 0.1)">
+      <span class="material-symbols-outlined" aria-hidden="true">west</span>
+      Trim
+    </button>
+    <button type="button" class="arrangement-mobile-action arrangement-mobile-action-danger" (click)="deleteSelected()">
+      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+      Delete
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="openClipActions()">
+      <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+      More
+    </button>
+  </nav>
+
+  <app-studio-bottom-sheet
+    [open]="clipActionsOpen()"
+    title="Clip actions"
+    description="Non-destructive edits apply to the selected clip or clips."
+    (closed)="closeClipActions()"
+  >
+    <div class="arrangement-sheet-grid">
+      <button type="button" class="studio-secondary-button" (click)="cycleFade('in'); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">trending_up</span>
+        Fade in · {{ formatFade(firstSelectedFade('in')) }}
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="cycleFade('out'); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">trending_down</span>
+        Fade out · {{ formatFade(firstSelectedFade('out')) }}
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="quantizeSelected(0.25); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">grid_guides</span>
+        Quantize to ¼ bar
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="toggleAutomation(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">show_chart</span>
+        {{ showAutomation() ? 'Hide automation' : 'Show automation' }}
+      </button>
+    </div>
+    <div studio-sheet-actions class="arrangement-sheet-actions">
+      <button type="button" class="studio-ghost-button" (click)="closeClipActions()">Done</button>
+    </div>
+  </app-studio-bottom-sheet>
 </div>
 
 <!-- ─────────────────────────────────────────────────────────────

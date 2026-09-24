@@ -136,6 +136,53 @@
     </div>
   </header>
 
+  <!-- Compact scene-first controls for touch layouts. The desktop rail below
+       remains the dense launcher; this surface keeps one scene and its launch
+       decision visible without horizontal page overflow. -->
+  <section class="sv-mobile-launcher" aria-label="Scene launcher controls">
+    <div class="sv-mobile-launcher-head">
+      <div>
+        <span class="sv-mobile-eyebrow">SESSION LAUNCHER</span>
+        <strong>{{ scenes().length }} scenes · {{ clipTracks().length }} tracks</strong>
+      </div>
+      <button
+        type="button"
+        class="sv-mobile-settings-btn"
+        (click)="openLaunchSettings()"
+        aria-label="Open launch settings"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        <span>Launch</span>
+      </button>
+    </div>
+    <div class="sv-boundary-chip" aria-live="polite">
+      <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+      <span>{{ nextLaunchBoundaryLabel() }}</span>
+    </div>
+    <nav class="sv-mobile-scene-tabs" aria-label="Scenes">
+      @for (scene of scenes(); track scene.id) {
+        <button
+          type="button"
+          class="sv-mobile-scene-tab"
+          [class.is-active]="isSceneActive(scene)"
+          [class.is-queued]="isSceneQueued(scene)"
+          [style.--scene-color]="scene.color"
+          (click)="onSceneHeaderClick(scene)"
+          (pointerdown)="startSceneLongPress($event, scene)"
+          (pointermove)="moveSceneLongPress($event)"
+          (pointerup)="endSceneLongPress()"
+          (pointercancel)="endSceneLongPress()"
+          (pointerleave)="endSceneLongPress()"
+          [attr.aria-label]="'Scene ' + scene.name + ', ' + sceneStateLabel(scene)"
+        >
+          <span class="sv-scene-pip" aria-hidden="true"></span>
+          <span>{{ scene.index + 1 }} · {{ scene.name }}</span>
+          <small>{{ sceneStateLabel(scene) }}</small>
+        </button>
+      }
+    </nav>
+  </section>
+
   <!-- ───────── PRESET LOAD LIST ───────── -->
   @if (presetLoadOpen()) {
     <div class="sv-preset-list">
@@ -482,4 +529,167 @@
       </div>
     </div>
   </div>
+
+  <!-- Mobile scene cards intentionally replace, rather than squeeze, the
+       desktop track matrix. Each card exposes its real launch state and a
+       finger-sized launch action. -->
+  <section class="sv-mobile-scenes" aria-label="Scenes and clip launch">
+    @for (scene of scenes(); track scene.id) {
+      <article
+        class="sv-mobile-scene-card"
+        [class.is-active]="isSceneActive(scene)"
+        [class.is-queued]="isSceneQueued(scene)"
+        [style.--scene-color]="scene.color"
+      >
+        <header class="sv-mobile-scene-card-head">
+          <button
+            type="button"
+            class="sv-mobile-scene-card-title"
+            (click)="onSceneHeaderClick(scene)"
+            (pointerdown)="startSceneLongPress($event, scene)"
+            (pointermove)="moveSceneLongPress($event)"
+            (pointerup)="endSceneLongPress()"
+            (pointercancel)="endSceneLongPress()"
+            (pointerleave)="endSceneLongPress()"
+            [attr.aria-label]="'Launch scene ' + scene.name"
+          >
+            <span class="sv-scene-pip" aria-hidden="true"></span>
+            <span>
+              <strong>Scene {{ scene.index + 1 }} · {{ scene.name }}</strong>
+              <small>
+                {{ sceneStateLabel(scene) }}
+                @if (followOnEnabled()) { · Follow-on on }
+              </small>
+            </span>
+          </button>
+          <span class="sv-mobile-scene-state" [attr.data-state]="sceneStateLabel(scene).toLowerCase()">
+            {{ sceneStateLabel(scene) }}
+          </span>
+        </header>
+        <div class="sv-mobile-clip-list">
+          @for (track of clipTracks(); track track.id) {
+            @let clip = getClipsForScene(scene.id).find((candidate) => candidate.trackId === track.id);
+            <div class="sv-mobile-clip-row" [class.is-empty]="!clip" [class.is-playing]="clip?.isPlaying">
+              <span class="sv-mobile-clip-track">{{ track.name }}</span>
+              @if (clip) {
+                <span class="sv-mobile-clip-name">{{ clip.name }} <small>{{ clip.duration }}</small></span>
+                <button
+                  type="button"
+                  class="sv-mobile-clip-trigger"
+                  (click)="triggerClip(clip, clip.velocity)"
+                  [attr.aria-label]="'Trigger ' + clip.name"
+                  [attr.aria-pressed]="clip.isPlaying"
+                >
+                  {{ clip.isPlaying ? 'Stop' : 'Play' }}
+                </button>
+              } @else {
+                <span class="sv-mobile-clip-name sv-mobile-clip-empty">Empty slot</span>
+                <span class="sv-mobile-clip-placeholder" aria-hidden="true">—</span>
+              }
+            </div>
+          }
+        </div>
+        <button
+          type="button"
+          class="sv-mobile-scene-launch"
+          [class.is-active]="isSceneActive(scene)"
+          [class.is-queued]="isSceneQueued(scene)"
+          (click)="launchScene(scene)"
+          [attr.aria-label]="sceneLaunchLabel(scene) + ' scene ' + scene.name"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">
+            {{ isSceneActive(scene) ? 'stop_circle' : isSceneQueued(scene) ? 'schedule' : 'play_arrow' }}
+          </span>
+          {{ sceneLaunchLabel(scene) }} scene
+        </button>
+      </article>
+    }
+  </section>
+
+  <app-studio-bottom-sheet
+    [open]="sceneActionSceneId() !== null"
+    [title]="sceneActionSceneId() ? 'Scene actions' : ''"
+    description="Rename, duplicate, or launch this scene without leaving the grid."
+    (closed)="closeSceneActions()"
+  >
+    @if (sceneActionSceneId(); as sceneId) {
+      @let actionScene = scenes().find((scene) => scene.id === sceneId);
+      @if (actionScene) {
+        <div class="sv-scene-sheet">
+          <label class="sv-sheet-field">
+            <span>Scene name</span>
+            <input
+              type="text"
+              [value]="sceneNameInput()"
+              (input)="sceneNameInput.set($any($event.target).value)"
+              (keydown.enter)="renameSelectedScene()"
+              autocomplete="off"
+            />
+          </label>
+          <div class="sv-sheet-status">
+            <span class="sv-scene-pip" [style.--scene-color]="actionScene.color"></span>
+            <span>{{ sceneStateLabel(actionScene) }} · {{ getClipsForScene(actionScene.id).length }} clips</span>
+          </div>
+          <div class="sv-sheet-actions" studio-sheet-actions>
+            <button type="button" class="sv-action-btn" (click)="duplicateSelectedScene()">
+              <span class="material-symbols-outlined">content_copy</span>
+              Duplicate
+            </button>
+            <button type="button" class="sv-action-btn" (click)="renameSelectedScene()">
+              <span class="material-symbols-outlined">edit</span>
+              Rename
+            </button>
+            <button type="button" class="sv-action-btn sv-primary-action" (click)="launchSelectedScene()">
+              <span class="material-symbols-outlined">play_arrow</span>
+              Launch
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </app-studio-bottom-sheet>
+
+  <app-studio-bottom-sheet
+    [open]="launchSettingsOpen()"
+    title="Launch settings"
+    description="Choose the next musical boundary and follow-on behavior."
+    (closed)="closeLaunchSettings()"
+  >
+    <div class="sv-launch-settings">
+      <fieldset>
+        <legend>Launch quantization</legend>
+        <div class="sv-quantize-options">
+          @for (q of quantizeOptions; track q) {
+            <button
+              type="button"
+              class="sv-quantize-option"
+              [class.is-selected]="launchQuantize() === q"
+              (click)="setLaunchQuantize(q)"
+              [attr.aria-pressed]="launchQuantize() === q"
+            >
+              {{ q === 'none' ? 'Off' : q === '1bar' ? '1 bar' : q === '2bar' ? '2 bars' : '4 bars' }}
+            </button>
+          }
+        </div>
+      </fieldset>
+      <button
+        type="button"
+        class="sv-follow-toggle"
+        [class.is-active]="followOnEnabled()"
+        (click)="followOnEnabled.update((value) => !value)"
+        [attr.aria-pressed]="followOnEnabled()"
+      >
+        <span class="material-symbols-outlined">skip_next</span>
+        <span>
+          <strong>Follow-on</strong>
+          <small>Advance to the next scene when this scene ends</small>
+        </span>
+        <span class="sv-toggle-indicator" aria-hidden="true"></span>
+      </button>
+      <p class="sv-boundary-readout"><span class="material-symbols-outlined">schedule</span> {{ nextLaunchBoundaryLabel() }}</p>
+      <div studio-sheet-actions class="sv-sheet-actions">
+        <button type="button" class="sv-action-btn sv-primary-action" (click)="closeLaunchSettings()">Done</button>
+      </div>
+    </div>
+  </app-studio-bottom-sheet>
 </div>

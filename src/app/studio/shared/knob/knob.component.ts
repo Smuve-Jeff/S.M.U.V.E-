@@ -31,6 +31,7 @@ import { HapticService } from '../../../services/haptic.service';
       [class.fine-mode]="isFineMode()"
       [class.at-limit]="isAtLimit()"
       (pointerdown)="startDrag($event)"
+      (lostpointercapture)="stopDrag()"
       (mousedown)="startDrag($event)"
       (touchstart)="startDrag($event)"
       (keydown)="onKeydown($event)"
@@ -258,6 +259,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   private tapTimer: ReturnType<typeof setTimeout> | null = null;
   /** Pointer id captured for the active drag, when Pointer Events are used. */
   private capturedPointerId: number | null = null;
+  private capturedPointerTarget: Element | null = null;
   /** Timestamp of the last pointerdown, used to ignore its paired mousedown. */
   private lastPointerStartAt = 0;
 
@@ -318,6 +320,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
       // supports it and jsdom does not implement it at all.
       try {
         const target = event.currentTarget as Element | null;
+        this.capturedPointerTarget = target;
         target?.setPointerCapture?.(event.pointerId);
       } catch {
         /* capture is an optimisation, never a requirement */
@@ -410,10 +413,23 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
 
   @HostListener('window:pointerup')
   @HostListener('window:pointercancel')
+  @HostListener('window:lostpointercapture')
+  @HostListener('window:blur')
   @HostListener('window:mouseup')
   @HostListener('window:touchend')
   @HostListener('window:touchcancel')
   stopDrag() {
+    if (this.capturedPointerId !== null) {
+      try {
+        const target = this.capturedPointerTarget as HTMLElement | null;
+        if (target?.hasPointerCapture?.(this.capturedPointerId)) {
+          target.releasePointerCapture(this.capturedPointerId);
+        }
+      } catch {
+        // Pointer capture is best-effort in jsdom and older WebViews.
+      }
+      this.capturedPointerTarget = null;
+    }
     if (this.isDragging) {
       // Snap to nearest detent if close enough
       this.snapToNearestDetent();

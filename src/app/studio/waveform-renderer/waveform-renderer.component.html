@@ -4,6 +4,12 @@
     class="wr-canvas"
     [attr.width]="800"
     [attr.height]="160"
+    [attr.aria-label]="
+      duration > 0
+        ? 'Audio waveform, ' + duration.toFixed(1) + ' seconds'
+        : 'Audio waveform'
+    "
+    role="img"
   ></canvas>
 
   <!-- Recording indicator overlay -->
