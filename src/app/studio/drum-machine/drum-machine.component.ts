@@ -21,6 +21,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { AiService } from '../../services/ai.service';
 import { HapticService } from '../../services/haptic.service';
 import { SnackbarService } from '../../services/snackbar.service';
+import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
 
 interface DrumPad {
   id: string;
@@ -45,7 +46,7 @@ interface DrumStyle {
 @Component({
   selector: 'app-drum-machine',
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent],
+  imports: [CommonModule, FormsModule, KnobComponent, StudioBottomSheetComponent],
   templateUrl: './drum-machine.component.html',
   styleUrls: ['./drum-machine.component.css', '../shared/platform-ux.css'],
 })
@@ -56,6 +57,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
+  private stepClipboard: Array<{ midi: number; step: number; velocity: number; probability: number; params: any }> = [];
+  private stepLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+  private suppressStepClick = false;
 
   @ViewChild('sampleInput') sampleInput!: ElementRef<HTMLInputElement>;
 
@@ -70,6 +74,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.pads().find((p) => p.id === this.selectedPadId())
   );
   public graphTarget = signal<'velocity' | 'probability'>('velocity');
+  public polymeter = signal<number>(16);
+  public stepSheetOpen = signal(false);
+  public selectedStepPadId = signal<string | null>(null);
+  public selectedStepIndex = signal(0);
+  public selectedStepRatchet = signal(1);
+  public selectedStepProbability = signal(1);
   public inspectorCollapsed = signal(false);
   public padsCollapsed = signal(false);
   public highDensity = computed(
@@ -698,7 +708,106 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {}
-  ngOnDestroy() {}
+  ngOnDestroy() {
+    if (this.stepLongPressTimer) clearTimeout(this.stepLongPressTimer);
+    this.stepLongPressTimer = null;
+  }
+
+  openStepSheet(pad: DrumPad, stepIndex: number): void {
+    this.selectPad(pad.id);
+    const step = this.getPadStep(pad.id, this.resolveStepIdx(stepIndex));
+    this.selectedStepPadId.set(pad.id);
+    this.selectedStepIndex.set(this.resolveStepIdx(stepIndex));
+    this.selectedStepProbability.set(step.probability);
+    this.selectedStepRatchet.set(Number((step as any).ratchet ?? 1));
+    this.stepSheetOpen.set(true);
+  }
+
+  closeStepSheet(): void {
+    this.stepSheetOpen.set(false);
+  }
+
+  onStepPointerDown(pad: DrumPad, stepIndex: number): void {
+    if (this.stepLongPressTimer) clearTimeout(this.stepLongPressTimer);
+    this.stepLongPressTimer = setTimeout(() => {
+      this.suppressStepClick = true;
+      this.openStepSheet(pad, stepIndex);
+      this.haptic.heavy();
+    }, 520);
+  }
+
+  onStepPointerUp(): void {
+    if (this.stepLongPressTimer) clearTimeout(this.stepLongPressTimer);
+    this.stepLongPressTimer = null;
+  }
+
+  onStepClick(pad: DrumPad, stepIndex: number): void {
+    if (this.suppressStepClick) {
+      this.suppressStepClick = false;
+      return;
+    }
+    this.toggleStep(pad.id, this.resolveStepIdx(stepIndex));
+  }
+
+  setPolymeter(value: number): void {
+    const allowed = [5, 7, 9, 11, 13, 16];
+    this.polymeter.set(allowed.includes(value) ? value : 16);
+    this.haptic.light();
+  }
+
+  copyPattern(): void {
+    const track = this.getDrumTrack();
+    if (!track) return;
+    this.stepClipboard = track.notes.map((n) => ({
+      midi: n.midi,
+      step: n.step,
+      velocity: n.velocity,
+      probability: n.probability,
+      params: { ...(n.params ?? {}) },
+    }));
+    this.snack.success(`Pattern copied · ${this.stepClipboard.length} hits`);
+  }
+
+  pastePattern(): void {
+    const track = this.getDrumTrack();
+    if (!track || this.stepClipboard.length === 0) {
+      this.snack.info('Copy a pattern before pasting');
+      return;
+    }
+    this.clearDrumPattern();
+    this.stepClipboard.forEach((n) => {
+      this.musicManager.addNoteToTrack(track.id, {
+        id: 'drum_' + Date.now() + Math.random(),
+        midi: n.midi,
+        step: n.step,
+        length: 1,
+        velocity: n.velocity,
+        probability: n.probability,
+        params: { ...n.params },
+      });
+    });
+    this.snack.success(`Pattern pasted · ${this.stepClipboard.length} hits`);
+  }
+
+  updateSelectedStepProbability(value: number): void {
+    const probability = Math.max(0.05, Math.min(1, value));
+    this.selectedStepProbability.set(probability);
+    const pad = this.selectedPad();
+    const track = this.getDrumTrack();
+    if (!pad || !track) return;
+    const note = track.notes.find((n) => n.midi === pad.midi && n.step === this.selectedStepIndex());
+    if (note) this.musicManager.updateNote(track.id, note.id, { probability });
+  }
+
+  updateSelectedStepRatchet(value: number): void {
+    const ratchet = Math.max(1, Math.min(4, Math.round(value)));
+    this.selectedStepRatchet.set(ratchet);
+    const pad = this.selectedPad();
+    const track = this.getDrumTrack();
+    if (!pad || !track) return;
+    const note = track.notes.find((n) => n.midi === pad.midi && n.step === this.selectedStepIndex());
+    if (note) this.musicManager.updateNote(track.id, note.id, { params: { ...(note.params ?? {}), ratchet } });
+  }
 
   private initPads() {
     const initialPads = this.blueprints.map((b) => ({
@@ -809,6 +918,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       active: !!note,
       velocity: note?.velocity || 0.8,
       probability: note?.probability || 1.0,
+      ratchet: Number((note?.params as any)?.ratchet ?? 1),
     };
   }
 

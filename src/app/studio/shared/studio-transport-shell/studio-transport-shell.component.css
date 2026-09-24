@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.studio-transport-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  /* Landscape phones have a 64px top row. Keep the nested transport at the
+     same height so its intrinsic 58px button row cannot push the control
+     cluster above the viewport. */
+  .studio-transport-shell {
+    height: 63px;
+    min-height: 63px;
+  }
+}
+
+.studio-transport-shell__primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.studio-transport-shell__utility {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.studio-transport-shell__utility:empty {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .studio-transport-shell__primary {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-transport-shell {
+    gap: 6px;
+  }
+
+  .studio-transport-shell__utility {
+    max-width: 42vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .studio-transport-shell__utility::-webkit-scrollbar {
+    display: none;
+  }
+}

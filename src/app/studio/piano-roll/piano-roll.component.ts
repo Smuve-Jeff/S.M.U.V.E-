@@ -35,9 +35,13 @@ import {
   PianoRollRenderer,
   PianoRollNote,
 } from '../webgl/piano-roll-renderer';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
 
 const VELOCITY_LANE_HEIGHT = 80;
 const MAX_MIDI = 96;
+
+/** Explicit editor tools; gestures refine a tool but never define it. */
+export type PianoTool = 'draw' | 'select' | 'erase' | 'velocity' | 'chord';
 
 @Component({
   selector: 'app-piano-roll',
@@ -60,6 +64,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly quantization = inject(QuantizationService);
   /** Phase F3 — one-tap auto key/scale detection (Krumhansl–Kessler). */
   private readonly scaleDetection = inject(ScaleDetectionService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
 
   /** Sustain pedal state (CC64) surfaced from the hardware layer. */
   readonly sustainActive = this.hardware.sustainActive;
@@ -74,7 +79,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private glRenderer!: WebGLRenderer;
   private prRenderer!: PianoRollRenderer;
   private glVelRenderer!: WebGLRenderer;
-  private renderRafId: number | null = null;
+  private stopVisualTask: (() => void) | null = null;
   private isGlInitialized = false;
 
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
@@ -86,7 +91,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
   @Output() openBezierEditor = new EventEmitter<string>();
 
-  editMode = signal<'draw' | 'select' | 'erase' | 'chord'>('draw');
+  editMode = signal<PianoTool>('draw');
 
   // ── Chord Stamp Tool ──────────────────────────────────────
   selectedChordType = signal<
@@ -770,7 +775,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this.initWebGL();
-    this.scheduleRender();
+    this.stopVisualTask = this.visualScheduler.register(
+      () => this.renderPianoRollIfNeeded(),
+      { fps: 30 },
+    );
   }
 
   ngOnDestroy() {
@@ -779,10 +787,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.noteOnSubscription?.unsubscribe();
     this.noteOffSubscription?.unsubscribe();
     this.learnEffect?.destroy();
-    if (this.renderRafId !== null) {
-      cancelAnimationFrame(this.renderRafId);
-      this.renderRafId = null;
-    }
+    this.stopVisualTask?.();
+    this.stopVisualTask = null;
     this.glRenderer?.destroy();
     this.glVelRenderer?.destroy();
   }
@@ -803,19 +809,14 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // ── Render loop ──────────────────────────────────────────
+  // ── Shared render loop ───────────────────────────────────
 
-  private scheduleRender(): void {
-    const tick = () => {
-      this.renderRafId = requestAnimationFrame(tick);
-      if (this.isGlInitialized) {
-        const isPlaying = this.audioSession.isPlaying();
-        if (isPlaying || this.glRenderer.isDirty) {
-          this.renderPianoRoll();
-        }
-      }
-    };
-    this.renderRafId = requestAnimationFrame(tick);
+  private renderPianoRollIfNeeded(): void {
+    if (!this.isGlInitialized) return;
+    const isPlaying = this.audioSession.isPlaying();
+    if (isPlaying || this.glRenderer.isDirty) {
+      this.renderPianoRoll();
+    }
   }
 
   private markDirty(): void {
@@ -1284,6 +1285,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
 
+    if (this.editMode() === 'velocity') {
+      // Velocity is edited in the lower lane; selecting here keeps the grid
+      // from creating a note when the user is adjusting dynamics.
+      if (existing) this.updateSelectionForNote(existing, !!options.shiftKey);
+      return;
+    }
+
     if (this.editMode() === 'select') {
       if (!options.shiftKey) {
         this.selectedNoteIds.set(new Set());
@@ -1398,7 +1406,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Existing utility methods ─────────────────────────────
 
-  setEditMode(mode: 'draw' | 'select' | 'erase' | 'chord') {
+  setEditMode(mode: PianoTool) {
     this.editMode.set(mode);
     this.haptic.light();
   }

@@ -1,5 +1,6 @@
 <div
-  class="mix-shell"
+  class="mix-shell studio-workspace-surface"
+  data-studio-module="mixer"
   [class.mix-view-strips]="mixerView() === 'strips'"
   [class.mix-view-sends]="mixerView() === 'sends'"
   [class.mix-view-routing]="mixerView() === 'routing'"
@@ -532,4 +533,85 @@
       </div>
     </div>
   </div>
+
+  <section class="mix-mobile-summary" aria-label="Mixer output summary">
+    <div class="mix-summary-item">
+      <span class="mix-summary-label">LUFS</span>
+      <strong>{{ outputLufs() | number: '1.1-1' }}</strong>
+    </div>
+    <div class="mix-summary-item">
+      <span class="mix-summary-label">PEAK</span>
+      <strong>{{ (masterPeakHold() * 1.5) | number: '1.1-1' }}</strong>
+    </div>
+    <div class="mix-summary-item" [attr.data-state]="phaseCorrelation() < 0 ? 'warning' : 'ready'">
+      <span class="mix-summary-label">STEREO</span>
+      <strong>{{ phaseCorrelationLabel() }}</strong>
+    </div>
+    <button type="button" class="mix-summary-reset" (click)="resetMaster()" aria-label="Reset master output">
+      <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+      Reset
+    </button>
+  </section>
+
+  <section
+    class="mix-mobile-inspector"
+    [class.is-open]="mobileInspectorOpen()"
+    aria-label="Selected channel inspector"
+  >
+    <header class="mix-mobile-inspector-header">
+      <div>
+        <span class="mix-mobile-kicker">SELECTED CHANNEL</span>
+        <h2>{{ selectedTrackForMobile()?.name || 'No channel' }}</h2>
+      </div>
+      <button
+        type="button"
+        class="mix-mobile-inspector-toggle"
+        (click)="toggleMobileInspector()"
+        [attr.aria-expanded]="mobileInspectorOpen()"
+        aria-label="Toggle selected channel inspector"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ mobileInspectorOpen() ? 'expand_less' : 'expand_more' }}
+        </span>
+      </button>
+    </header>
+    <div *ngIf="mobileInspectorOpen() && selectedTrackForMobile() as selected" class="mix-mobile-controls">
+      <app-studio-meter
+        label="Level"
+        [level]="getTrackLevel(selected.id)"
+        [peak]="getTrackPeakHold(selected.id)"
+        [vertical]="false"
+        unit="%"
+      ></app-studio-meter>
+      <label class="mix-mobile-control">
+        <span>Fader <strong>{{ gainPercent(selected.id) }}%</strong></span>
+        <input
+          type="range"
+          min="0"
+          max="150"
+          step="1"
+          [value]="gainPercent(selected.id)"
+          (input)="updateTrackVolume(selected.id, +$any($event.target).value)"
+          [attr.aria-label]="'Volume for ' + selected.name"
+        />
+      </label>
+      <label class="mix-mobile-control">
+        <span>Pan <strong>{{ panPercent(selected.id) }}</strong></span>
+        <input
+          type="range"
+          min="-100"
+          max="100"
+          step="1"
+          [value]="panPercent(selected.id)"
+          (input)="updatePanPercent(selected.id, +$any($event.target).value)"
+          [attr.aria-label]="'Pan for ' + selected.name"
+        />
+      </label>
+      <div class="mix-mobile-msr" role="group" [attr.aria-label]="'Controls for ' + selected.name">
+        <button type="button" [class.active]="selected.muted" (click)="toggleMute(selected.id)" [attr.aria-pressed]="selected.muted">M</button>
+        <button type="button" [class.active]="selected.soloed" (click)="toggleSolo(selected.id)" [attr.aria-pressed]="selected.soloed">S</button>
+        <button type="button" [class.active]="isArmed(selected.id)" (click)="toggleArmTrack(selected.id)" [attr.aria-pressed]="isArmed(selected.id)">R</button>
+      </div>
+    </div>
+  </section>
 </div>

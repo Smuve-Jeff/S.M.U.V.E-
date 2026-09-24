@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.studio-meter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.studio-meter-label {
+  flex: 0 0 auto;
+  color: var(--espresso-muted, #776c5e);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-meter-track {
+  position: relative;
+  min-width: 8px;
+  min-height: 72px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--espresso-line, #a89b88) 60%, transparent);
+  border-radius: 6px;
+  background:
+    linear-gradient(to top, rgba(220, 38, 38, 0.55) 0 8%, transparent 8% 16%, rgba(220, 38, 38, 0.22) 16% 22%, transparent 22% 100%),
+    var(--ivory-deep, #eee5d6);
+}
+
+.studio-meter-fill {
+  position: absolute;
+  inset: auto 0 0;
+  min-height: 2px;
+  background: linear-gradient(to top, #0e7c7b, #2ba09c 72%, #d97706 90%, #dc2626);
+  transition: height 80ms linear;
+}
+
+.studio-meter-peak {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: #241d15;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.7);
+}
+
+.studio-meter-readout {
+  min-width: 42px;
+  color: var(--espresso-muted, #776c5e);
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.studio-meter[data-state='clip'] .studio-meter-track {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.35);
+}
+
+.studio-meter[data-state='warning'] .studio-meter-readout {
+  color: #a16207;
+  font-weight: 800;
+}
+
+.studio-meter[data-state='muted'] .studio-meter-track {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.studio-meter-horizontal {
+  width: 100%;
+}
+
+.studio-meter-horizontal .studio-meter-track {
+  min-height: 12px;
+  height: 12px;
+}
+
+.studio-meter-horizontal .studio-meter-fill {
+  inset: 0 auto 0 0;
+  width: 0;
+}
+
+.studio-meter-horizontal .studio-meter-peak {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-meter-fill {
+    transition: none;
+  }
+}

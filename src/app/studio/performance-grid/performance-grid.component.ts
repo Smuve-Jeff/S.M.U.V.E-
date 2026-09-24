@@ -6,6 +6,7 @@ import {
   TrackModel,
 } from '../../services/music-manager.service';
 import { HapticService } from '../../services/haptic.service';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
 
 @Component({
   selector: 'app-performance-grid',
@@ -18,10 +19,11 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   private musicManager = inject(MusicManagerService);
   private haptic = inject(HapticService);
   private audioSession = inject(AudioSessionService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
 
   trackLevels = signal<Record<string, number>>({});
   private analysers = new Map<string, AnalyserNode>();
-  private animationFrame: number | null = null;
+  private stopMeteringTask: (() => void) | null = null;
 
   tracks = this.musicManager.tracks;
   rows = Array.from({ length: 8 }, (_, index) => index);
@@ -31,28 +33,42 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+    this.stopMeteringTask?.();
+    this.stopMeteringTask = null;
+    for (const analyser of this.analysers.values()) {
+      try {
+        analyser.disconnect();
+      } catch {
+        // The audio graph may already have been torn down.
+      }
+    }
+    this.analysers.clear();
   }
 
   private startMetering() {
-    const update = () => {
-      const levels: Record<string, number> = {};
-      this.tracks().forEach((track) => {
-        let analyser = this.analysers.get(track.id);
-        if (!analyser) {
-          analyser = this.audioSession.engine.ctx.createAnalyser();
-          analyser.fftSize = 32;
-          this.audioSession.engine.getTrackOutput(track.id).connect(analyser);
-          this.analysers.set(track.id, analyser);
-        }
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        levels[track.id] = data.reduce((a, b) => a + b, 0) / data.length / 255;
-      });
-      this.trackLevels.set(levels);
-      this.animationFrame = requestAnimationFrame(update);
-    };
-    this.animationFrame = requestAnimationFrame(update);
+    this.stopMeteringTask = this.visualScheduler.register(
+      () => this.updateMeters(),
+      { fps: 20, immediate: true },
+    );
+  }
+
+  private updateMeters(): void {
+    const levels: Record<string, number> = {};
+    this.tracks().forEach((track) => {
+      let analyser = this.analysers.get(track.id);
+      if (!analyser) {
+        analyser = this.audioSession.engine.ctx.createAnalyser();
+        analyser.fftSize = 32;
+        this.audioSession.engine.getTrackOutput(track.id).connect(analyser);
+        this.analysers.set(track.id, analyser);
+      }
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(data);
+      levels[track.id] = data.length
+        ? data.reduce((a, b) => a + b, 0) / data.length / 255
+        : 0;
+    });
+    this.trackLevels.set(levels);
   }
 
   getTrackLevel(id: string) {

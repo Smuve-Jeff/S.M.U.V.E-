@@ -828,6 +828,271 @@
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* ---------- INPUT / CAPTURE STATE ---------- */
+.arv-input-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(220px, 0.8fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 12px;
+  background: var(--ivory-panel);
+}
+
+.arv-input-select-wrap {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 9px;
+  background: var(--ivory-deep);
+}
+
+.arv-input-select-wrap .material-symbols-outlined {
+  color: var(--teal-500);
+  font-size: 18px;
+}
+
+.arv-input-select-wrap label {
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.arv-input-select-wrap select {
+  min-width: 0;
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--espresso-text);
+  font-size: 12px;
+}
+
+.arv-input-select-wrap select:disabled {
+  opacity: 0.55;
+}
+
+.arv-icon-action {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ivory-line);
+  border-radius: 10px;
+  background: var(--ivory-deep);
+  color: var(--teal-500);
+  cursor: pointer;
+}
+
+.arv-icon-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.arv-capture-state {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  background: var(--ivory-deep);
+}
+
+.arv-capture-state .material-symbols-outlined {
+  color: var(--teal-500);
+}
+
+.arv-capture-state[data-state='recording'] .material-symbols-outlined {
+  color: var(--record);
+}
+
+.arv-capture-state[data-state='error'] .material-symbols-outlined {
+  color: var(--record);
+}
+
+.arv-capture-state strong,
+.arv-capture-state small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arv-capture-state strong {
+  color: var(--espresso-text);
+  font-size: 10px;
+}
+
+.arv-capture-state small {
+  margin-top: 2px;
+  color: var(--espresso-muted);
+  font-size: 9px;
+}
+
+.arv-inline-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 26, 77, 0.4);
+  border-radius: 10px;
+  background: rgba(255, 26, 77, 0.1);
+  color: #ffb5c2;
+  font-size: 11px;
+}
+
+.arv-record-btn-stopping {
+  border-color: var(--neon-amber);
+}
+
+.arv-latest-take {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--teal-500);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--teal-500) 9%, var(--ivory-panel));
+}
+
+.arv-latest-take-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arv-latest-take-copy > .material-symbols-outlined {
+  color: var(--teal-500);
+}
+
+.arv-latest-take-copy strong,
+.arv-latest-take-copy small {
+  display: block;
+}
+
+.arv-latest-take-copy strong {
+  color: var(--espresso-text);
+  font-size: 12px;
+}
+
+.arv-latest-take-copy small {
+  margin-top: 2px;
+  color: var(--espresso-muted);
+  font-size: 9px;
+}
+
+.arv-latest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.arv-latest-actions button {
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 9px;
+  background: var(--ivory-paper);
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.arv-latest-actions button.is-primary {
+  border-color: var(--teal-500);
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+}
+
+.arv-latest-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 768px) {
+  :host {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .arv-shell {
+    max-width: none;
+    min-height: 100%;
+    padding: 12px 12px calc(22px + env(safe-area-inset-bottom, 0px));
+    gap: 14px;
+  }
+
+  .arv-header {
+    padding: 11px 12px;
+  }
+
+  .arv-sub {
+    font-size: 10px;
+  }
+
+  .arv-input-bar {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .arv-capture-state {
+    grid-column: 1 / -1;
+  }
+
+  .arv-transport {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .arv-record-btn {
+    min-height: 88px;
+    justify-content: center;
+  }
+
+  .arv-record-time {
+    font-size: 16px;
+  }
+
+  .arv-transport-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arv-latest-take {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .arv-latest-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .arv-latest-actions button {
+    min-width: 0;
+    padding: 0 5px;
+  }
+
+  .arv-bank,
+  .arv-takes-manager {
+    padding: 12px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arv-record-btn-live {
     animation: none !important;

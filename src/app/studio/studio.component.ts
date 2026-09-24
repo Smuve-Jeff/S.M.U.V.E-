@@ -91,6 +91,8 @@ import { BezierEditorComponent } from './automation/bezier-editor.component';
 import { ScoreViewComponent } from './score-view/score-view.component';
 import { PluginStoreComponent } from './plugin-store/plugin-store.component';
 import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
+import { StudioTransportShellComponent } from './shared/studio-transport-shell/studio-transport-shell.component';
+import { SessionViewComponent } from './session-view/session-view.component';
 import {
   StudioCoachAction,
   StudioCoachActionId,
@@ -102,6 +104,7 @@ import { buildZip, type ZipEntry } from './zip.util';
 
 type StudioView =
   | 'arrangement'
+  | 'session'
   | 'dj'
   | 'piano-roll'
   | 'mixer'
@@ -126,6 +129,7 @@ type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
   'arrangement',
+  'session',
   'dj',
   'piano-roll',
   'mixer',
@@ -180,7 +184,6 @@ const THEME_LABEL: Record<AppTheme, string> = {
     MasteringSuiteComponent,
     DrumMachineComponent,
     PerformerComponent,
-    TransportBarComponent,
     SnackbarComponent,
     SearchOverlayComponent,
     AiAssistantComponent,
@@ -205,12 +208,15 @@ const THEME_LABEL: Record<AppTheme, string> = {
     ScoreViewComponent,
     PluginStoreComponent,
     WaveformRendererComponent,
+    StudioTransportShellComponent,
+    SessionViewComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: [
     './studio.component.css',
     './studio-shell-refinement.css',
     './stage-2.0-atmosphere.css',
+    './studio-redesign.css',
     /* Platform UX layer — Android touch + Chrome desktop ergonomics.
        Also registered in each interactive instrument's styleUrls
        (encapsulation keeps shell styles out of child templates). */
@@ -799,8 +805,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   bottomNavItems = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
+    { id: 'session', label: 'Session', icon: 'grid_view' },
     { id: 'piano-roll', label: 'Piano', icon: 'piano' },
-    { id: 'drum-machine', label: 'Drums', icon: 'grid_view' },
     { id: 'mixer', label: 'Mix', icon: 'tune' },
   ]);
 
@@ -812,6 +818,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   allStudioViews = computed(() => [
     { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
+    { id: 'session', label: 'Session', icon: 'grid_view' },
     { id: 'piano-roll', label: 'Piano Roll', icon: 'piano' },
     { id: 'drum-machine', label: 'Drum Machine', icon: 'grid_view' },
     { id: 'channel-rack', label: 'Channel Rack', icon: 'inventory_2' },

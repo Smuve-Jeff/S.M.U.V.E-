@@ -37,6 +37,13 @@ export class AudioRecorderService implements OnDestroy {
   mediaRecorder: MediaRecorder | null = null;
   private activeUrls = new Set<string>();
 
+  /** Create a URL owned by the recorder so views can release it predictably. */
+  createRecordingUrl(blob: Blob): string {
+    const url = URL.createObjectURL(blob);
+    this.activeUrls.add(url);
+    return url;
+  }
+
   revokeRecordingUrl(url: string) {
     if (this.activeUrls.has(url)) {
       URL.revokeObjectURL(url);
@@ -110,9 +117,7 @@ export class AudioRecorderService implements OnDestroy {
           );
         }
 
-        this.revokeAllUrls();
-        const url = URL.createObjectURL(blob);
-        this.activeUrls.add(url);
+        const url = this.createRecordingUrl(blob);
 
         this.recordingFinished$.next({
           id,
@@ -147,6 +152,23 @@ export class AudioRecorderService implements OnDestroy {
 
   async getOfflineRecordings() {
     return await this.localStorageService.getAllItems('audio_blobs');
+  }
+
+  async deleteOfflineRecording(id: string): Promise<void> {
+    const remove = (this.localStorageService as any).removeItem;
+    if (typeof remove === 'function') {
+      await remove.call(this.localStorageService, 'audio_blobs', id);
+      return;
+    }
+    // Older storage adapters expose only save/get; retain compatibility by
+    // replacing the collection without the deleted item when possible.
+    const items = (await this.getOfflineRecordings()) as RecordingItem[];
+    if (typeof (this.localStorageService as any).saveItems === 'function') {
+      await (this.localStorageService as any).saveItems(
+        'audio_blobs',
+        items.filter((item) => item.id !== id)
+      );
+    }
   }
 
   async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {

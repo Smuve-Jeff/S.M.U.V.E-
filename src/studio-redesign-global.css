@@ -1,0 +1,248 @@
+/* ============================================================
+   S.M.U.V.E. Studio — global workspace redesign contracts
+   Low-specificity rules intentionally complement component CSS.
+   ============================================================ */
+
+:root {
+  --studio-space-1: 4px;
+  --studio-space-2: 8px;
+  --studio-space-3: 12px;
+  --studio-space-4: 16px;
+  --studio-space-5: 24px;
+  --studio-space-6: 32px;
+  --studio-touch-target: 44px;
+  --studio-mobile-dock: calc(64px + env(safe-area-inset-bottom, 0px));
+  --studio-header: 64px;
+  --studio-footer: 48px;
+  --studio-radius-sm: 10px;
+  --studio-radius-md: 14px;
+  --studio-radius-lg: 20px;
+}
+
+app-arrangement-view,
+app-piano-roll,
+app-drum-machine,
+app-mixer,
+app-session-view,
+app-audio-recorder-view,
+app-vocal-suite,
+app-performance-mode,
+app-performance-grid,
+app-mastering-suite,
+app-dj-deck,
+app-synthesizer,
+app-sampler,
+app-sound-browser,
+app-sample-library,
+app-sound-pad-grid,
+app-sound-pad,
+app-chord-editor,
+app-score-view,
+app-plugin-store,
+app-effects-rack-ui,
+app-channel-rack,
+app-ai-produce {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.studio-workspace-surface {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+}
+
+.studio-horizontal-rail {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.studio-horizontal-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-module-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.studio-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.studio-primary-button,
+.studio-secondary-button,
+.studio-ghost-button,
+.studio-icon-button {
+  min-height: var(--studio-touch-target);
+  min-width: var(--studio-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: var(--studio-radius-sm);
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  padding: 0 14px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.studio-primary-button {
+  color: var(--ivory-deep, #06091a);
+  background: var(--teal-500, #00e5ff);
+  border-color: var(--teal-400, #5eead4);
+}
+
+.studio-secondary-button,
+.studio-ghost-button,
+.studio-icon-button {
+  color: var(--espresso-text, #f1f5ff);
+  background: color-mix(in srgb, var(--ivory-paper, #1a2040) 86%, transparent);
+}
+
+.studio-icon-button {
+  width: var(--studio-touch-target);
+  padding: 0;
+}
+
+.studio-primary-button:active,
+.studio-secondary-button:active,
+.studio-ghost-button:active,
+.studio-icon-button:active {
+  transform: scale(0.97);
+}
+
+.studio-primary-button:disabled,
+.studio-secondary-button:disabled,
+.studio-ghost-button:disabled,
+.studio-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.studio-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 3px;
+  overflow-x: auto;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 72%, transparent);
+  scrollbar-width: none;
+}
+
+.studio-segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-segmented > button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--espresso-muted, #94a3c8);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.studio-segmented > button[aria-pressed='true'],
+.studio-segmented > button.active {
+  color: var(--ivory-deep, #06091a);
+  background: var(--teal-500, #00e5ff);
+}
+
+.studio-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio-status-pill[data-state='recording'] {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.studio-status-pill[data-state='blocked'],
+.studio-status-pill[data-state='warning'] {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.studio-empty-state,
+.studio-loading-state {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--espresso-muted, #94a3c8);
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --studio-header: 60px;
+    --studio-footer: 40px;
+  }
+
+  .studio-primary-button,
+  .studio-secondary-button,
+  .studio-ghost-button,
+  .studio-icon-button {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .studio-module-scroll {
+    scrollbar-width: none;
+  }
+
+  .studio-module-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-primary-button,
+  .studio-secondary-button,
+  .studio-ghost-button,
+  .studio-icon-button,
+  .studio-segmented > button {
+    transition: none !important;
+    animation: none !important;
+  }
+}

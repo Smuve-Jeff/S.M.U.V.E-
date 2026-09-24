@@ -1,4 +1,4 @@
-<div class="dm-shell">
+<div class="dm-shell studio-workspace-surface" data-studio-module="drum-machine">
   <header class="dm-header" role="banner">
     <div>
       <h1>Rhythm Unit<small>Drum Machine</small></h1>
@@ -30,75 +30,25 @@
     </div>
   </header>
 
-  <section class="dm-transport-mini" aria-label="Tempo and metronome">
-    <button
-      type="button"
-      class="dm-transport-btn"
-      (click)="togglePlay()"
-      [attr.aria-label]="audioSession.isPlaying() ? 'Pause playback' : 'Start playback'"
-    >
-      <span class="material-symbols-outlined">{{
-        audioSession.isPlaying() ? 'pause' : 'play_arrow'
-      }}</span>
-    </button>
-    <button
-      type="button"
-      class="dm-transport-btn"
-      [class.active]="metronomeEnabled()"
-      (click)="toggleMetronome()"
-      [attr.aria-pressed]="metronomeEnabled()"
-      aria-label="Toggle metronome"
-    >
-      <span class="material-symbols-outlined">metronome</span>
-    </button>
-    <button
-      type="button"
-      class="dm-tempo-chip"
-      (click)="showTempoMenu.set(!showTempoMenu())"
-      [attr.aria-expanded]="showTempoMenu()"
-      aria-haspopup="menu"
-      [attr.aria-label]="'Tempo ' + audioEngine.tempo() + ' BPM'"
-    >
-      {{ audioEngine.tempo() }} BPM
-    </button>
-    <button
-      type="button"
-      class="dm-transport-btn"
-      (click)="nudgeTempo(-1)"
-      [attr.aria-label]="'Decrease tempo to ' + (audioEngine.tempo() - 1) + ' BPM'"
-    >
-      −
-    </button>
-    <button
-      type="button"
-      class="dm-transport-btn"
-      (click)="nudgeTempo(1)"
-      [attr.aria-label]="'Increase tempo to ' + (audioEngine.tempo() + 1) + ' BPM'"
-    >
-      +
-    </button>
-    <button
-      type="button"
-      class="dm-transport-btn"
-      (click)="tapTempo()"
-      [attr.aria-label]="
-        tapBpmGuess() === null
-          ? 'Tap tempo'
-          : 'Tap tempo locked at ' + tapBpmGuess() + ' BPM'
-      "
-    >
-      Tap
-    </button>
-    <div class="dm-tempo-menu" *ngIf="showTempoMenu()" role="menu">
-      <button
-        *ngFor="let preset of tempoPresets"
-        type="button"
-        class="dm-tempo-preset"
-        (click)="setTempo(preset)"
-        role="menuitem"
-      >
-        {{ preset }} BPM
-      </button>
+  <section class="dm-pattern-context" aria-label="Pattern context and global transport status">
+    <div class="dm-pattern-context-status" role="status" aria-live="polite">
+      <span class="material-symbols-outlined" aria-hidden="true">
+        {{ audioSession.isPlaying() ? 'play_arrow' : 'pause' }}
+      </span>
+      <span>{{ audioSession.isPlaying() ? 'Pattern follows transport' : 'Transport ready' }}</span>
+    </div>
+    <div class="dm-pattern-context-readout">
+      <span class="dm-context-label">BPM</span>
+      <strong>{{ audioEngine.tempo() }}</strong>
+    </div>
+    <div class="dm-pattern-context-readout">
+      <span class="dm-context-label">BAR</span>
+      <strong>{{ currentBar() + 1 }}</strong>
+    </div>
+    <div class="dm-pattern-actions" role="group" aria-label="Pattern actions">
+      <button type="button" class="dm-context-btn" (click)="copyPattern()">Copy</button>
+      <button type="button" class="dm-context-btn" (click)="pastePattern()">Paste</button>
+      <button type="button" class="dm-context-btn" (click)="randomizeAll()">Randomize</button>
     </div>
   </section>
 
@@ -185,6 +135,23 @@
         </button>
       </div>
     </div>
+
+    <div class="dm-polymeter-block" aria-label="Pattern length and polymeter">
+      <span class="dm-polymeter-label">LENGTH</span>
+      <div class="dm-polymeter-options" role="group" aria-label="Pattern length">
+        <button
+          *ngFor="let length of [5, 7, 9, 11, 13, 16]"
+          type="button"
+          class="dm-polymeter-option"
+          [class.active]="polymeter() === length"
+          (click)="setPolymeter(length)"
+          [attr.aria-pressed]="polymeter() === length"
+        >
+          {{ length }}
+        </button>
+      </div>
+      <span class="dm-polymeter-hint">Longer patterns scroll inside the step rail.</span>
+    </div>
   </section>
 
   <div class="dm-body">
@@ -262,12 +229,14 @@
               pad.name +
               (getPadStep(pad.id, currentBar() * 16 + s).active
                 ? ', active'
-                : ', empty')
+                : ', empty') +
+              '. Long press for step settings.'
             "
-            (click)="
-              toggleStep(pad.id, currentBar() * 16 + s);
-              $event.stopPropagation()
-            "
+            (pointerdown)="onStepPointerDown(pad, s); $event.stopPropagation()"
+            (pointerup)="onStepPointerUp()"
+            (pointercancel)="onStepPointerUp()"
+            (pointerleave)="onStepPointerUp()"
+            (click)="onStepClick(pad, s); $event.stopPropagation()"
           ></button>
         </div>
       </div>
@@ -539,4 +508,60 @@
       </div>
     </aside>
   </div>
+
+  <nav class="dm-mobile-actions" aria-label="Drum machine actions">
+    <button type="button" class="dm-mobile-action" (click)="graphTarget.set('velocity')" [class.active]="graphTarget() === 'velocity'">
+      <span class="material-symbols-outlined" aria-hidden="true">speed</span>
+      <span>Velocity</span>
+    </button>
+    <button type="button" class="dm-mobile-action" (click)="graphTarget.set('probability')" [class.active]="graphTarget() === 'probability'">
+      <span class="material-symbols-outlined" aria-hidden="true">help</span>
+      <span>Probability</span>
+    </button>
+    <button type="button" class="dm-mobile-action" (click)="humanize()">
+      <span class="material-symbols-outlined" aria-hidden="true">fluorescent</span>
+      <span>Humanize</span>
+    </button>
+    <button type="button" class="dm-mobile-action" (click)="clearCurrentPad()">
+      <span class="material-symbols-outlined" aria-hidden="true">delete_sweep</span>
+      <span>Clear</span>
+    </button>
+  </nav>
+
+  <app-studio-bottom-sheet
+    [open]="stepSheetOpen()"
+    title="Step settings"
+    description="Long-press a step to edit probability or ratchets without leaving the grid."
+    (closed)="closeStepSheet()"
+  >
+    <div class="dm-step-sheet-readout">
+      <span class="material-symbols-outlined" aria-hidden="true">grid_on</span>
+      <strong>{{ selectedPad()?.name }} · step {{ selectedStepIndex() + 1 }}</strong>
+    </div>
+    <label class="dm-step-sheet-field">
+      <span>Probability <strong>{{ (selectedStepProbability() * 100) | number: '1.0-0' }}%</strong></span>
+      <input
+        type="range"
+        min="0.05"
+        max="1"
+        step="0.05"
+        [value]="selectedStepProbability()"
+        (input)="updateSelectedStepProbability(+$any($event.target).value)"
+      />
+    </label>
+    <label class="dm-step-sheet-field">
+      <span>Ratchet <strong>{{ selectedStepRatchet() }}×</strong></span>
+      <input
+        type="range"
+        min="1"
+        max="4"
+        step="1"
+        [value]="selectedStepRatchet()"
+        (input)="updateSelectedStepRatchet(+$any($event.target).value)"
+      />
+    </label>
+    <div studio-sheet-actions class="dm-step-sheet-actions">
+      <button type="button" class="studio-ghost-button" (click)="closeStepSheet()">Done</button>
+    </div>
+  </app-studio-bottom-sheet>
 </div>

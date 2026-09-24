@@ -37,6 +37,9 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   @Input() isRecording = false;
   /** Display mode: 'bars' | 'envelope' | 'mirrored' */
   @Input() mode: 'bars' | 'envelope' | 'mirrored' = 'envelope';
+  /** Optional non-destructive selection range, expressed as 0..1 fractions. */
+  @Input() selectionStart: number | null = null;
+  @Input() selectionEnd: number | null = null;
 
   /** Loop region start position (0..1 as fraction of waveform). Null = no loop. */
   @Input() loopStart: number | null = null;
@@ -63,6 +66,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   private readonly _onPointerDown = this.onCanvasPointerDown.bind(this);
   private readonly _onPointerMove = this.onCanvasPointerMove.bind(this);
   private readonly _onPointerUp = this.onCanvasPointerUp.bind(this);
+  private resizeObserver: ResizeObserver | null = null;
 
   /**
    * Pointer Events unify mouse, touch and pen, so the loop handles stay
@@ -80,6 +84,11 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     this.ctx = canvas.getContext('2d');
     this.draw();
 
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.draw());
+      this.resizeObserver.observe(canvas);
+    }
+
     if (this.loopInteractive) {
       this.usesPointerEvents =
         typeof window !== 'undefined' && 'PointerEvent' in window;
@@ -89,6 +98,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
         canvas.addEventListener('pointermove', this._onPointerMove);
         canvas.addEventListener('pointerup', this._onPointerUp);
         canvas.addEventListener('pointercancel', this._onPointerUp);
+        canvas.addEventListener('lostpointercapture', this._onPointerUp);
       } else {
         canvas.addEventListener('mousedown', this._onMouseDown);
         canvas.addEventListener('mousemove', this._onMouseMove);
@@ -103,6 +113,8 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   }
 
   ngOnDestroy() {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     if (this.loopInteractive) {
       const canvas = this.canvasRef?.nativeElement;
       if (canvas) {
@@ -110,6 +122,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
         canvas.removeEventListener('pointermove', this._onPointerMove);
         canvas.removeEventListener('pointerup', this._onPointerUp);
         canvas.removeEventListener('pointercancel', this._onPointerUp);
+        canvas.removeEventListener('lostpointercapture', this._onPointerUp);
         canvas.removeEventListener('mousedown', this._onMouseDown);
         canvas.removeEventListener('mousemove', this._onMouseMove);
         canvas.removeEventListener('mouseup', this._onMouseUp);
@@ -291,6 +304,20 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
       ctx.shadowBlur = 6;
       ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+
+    // Selection range is deliberately rendered separately from the loop so
+    // destructive edits can preview a region without changing playback.
+    if (this.selectionStart !== null && this.selectionEnd !== null) {
+      const sx = Math.min(this.selectionStart, this.selectionEnd) * w;
+      const ex = Math.max(this.selectionStart, this.selectionEnd) * w;
+      ctx.fillStyle = 'rgba(14, 124, 123, 0.18)';
+      ctx.fillRect(sx, 0, Math.max(1, ex - sx), h);
+      ctx.strokeStyle = 'rgba(14, 124, 123, 0.9)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(sx, 0, Math.max(1, ex - sx), h);
+      ctx.setLineDash([]);
     }
 
     // Loop region overlay

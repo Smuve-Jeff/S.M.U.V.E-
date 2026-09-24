@@ -1,0 +1,18 @@
+<div
+  class="studio-meter"
+  [class.studio-meter-horizontal]="!vertical"
+  [attr.data-state]="state"
+  role="meter"
+  [attr.aria-label]="label || 'Level meter'"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  [attr.aria-valuenow]="normalized(level) * 100"
+  [attr.aria-valuetext]="displayValue()"
+>
+  <span *ngIf="label" class="studio-meter-label">{{ label }}</span>
+  <div class="studio-meter-track" aria-hidden="true">
+    <div class="studio-meter-fill" [style.height.%]="vertical ? normalized(level) * 100 : 100" [style.width.%]="vertical ? 100 : normalized(level) * 100"></div>
+    <div class="studio-meter-peak" [style.bottom.%]="vertical ? normalized(peak) * 100 : 0" [style.left.%]="vertical ? 0 : normalized(peak) * 100"></div>
+  </div>
+  <span class="studio-meter-readout">{{ displayValue() }}</span>
+</div>

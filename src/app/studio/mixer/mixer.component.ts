@@ -22,6 +22,8 @@ import { AiService } from '../../services/ai.service';
 import { Clip } from '../instrument.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { RecordingStatusService } from '../recording-status.service';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
+import { StudioMeterComponent } from '../shared/studio-meter/studio-meter.component';
 
 interface MeterReadings {
   [trackId: string]: number;
@@ -30,7 +32,7 @@ interface MeterReadings {
 @Component({
   selector: 'app-mixer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StudioMeterComponent],
   templateUrl: './mixer.component.html',
   styleUrls: [
     './mixer.component.css',
@@ -52,6 +54,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);
   readonly recordingStatus = inject(RecordingStatusService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
 
   @Input() activeClip: Clip | null = null;
 
@@ -71,6 +74,7 @@ export class MixerComponent implements OnInit, OnDestroy {
    * Routing focuses the sidechain path.
    */
   mixerView = signal<'strips' | 'sends' | 'routing'>('strips');
+  mobileInspectorOpen = signal(true);
 
   setMixerView(view: 'strips' | 'sends' | 'routing'): void {
     if (this.mixerView() === view) return;
@@ -82,6 +86,16 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.tracks().find((t) => t.id === this.selectedTrackId())
   );
 
+  selectedTrackForMobile = computed(() => this.selectedTrack() ?? this.tracks()[0] ?? null);
+
+  toggleMobileInspector(): void {
+    this.mobileInspectorOpen.update((open) => !open);
+  }
+
+  updatePanPercent(id: string, value: number): void {
+    this.musicManager.updateTrackPan(id, Math.max(-100, Math.min(100, value)));
+  }
+
   private analyserMap = new Map<string, AnalyserNode>();
   trackLevels = signal<MeterReadings>({});
   trackPeakHolds = signal<MeterReadings>({});
@@ -90,7 +104,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   /** Pro: Phase correlation computed at runtime from master analyser */
   phaseCorrelation = signal(0);
   outputLufs = this.audioSession.engine.outputLufs;
-  private raf?: number;
+  private stopMeteringTask: (() => void) | null = null;
 
   // ── Pro: Sidechain routing map ─────────────────────────────
   /** Map of destination trackId → sidechain source trackId */
@@ -101,61 +115,76 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.raf) cancelAnimationFrame(this.raf);
+    this.stopMeteringTask?.();
+    this.stopMeteringTask = null;
+    for (const analyser of this.analyserMap.values()) {
+      try {
+        analyser.disconnect();
+      } catch {
+        // AnalyserNode may already be disconnected by the audio graph owner.
+      }
+    }
+    this.analyserMap.clear();
+    try {
+      this.masterAnalyser?.disconnect();
+    } catch {
+      // Best-effort cleanup for test doubles and already-closed graphs.
+    }
+    this.masterAnalyser = undefined;
   }
 
   trackById = (_: number, t: TrackModel) => t.id;
 
   private startMetering() {
-    const update = () => {
-      const levels: MeterReadings = {};
-      this.tracks().forEach((track) => {
-        let analyser = this.analyserMap.get(track.id);
-        if (!analyser) {
-          analyser = this.audioSession.engine.ctx.createAnalyser();
-          analyser.fftSize = 64;
-          const out = this.audioSession.engine.getTrackOutput(track.id);
-          if (out) {
-            try {
-              out.connect(analyser);
-            } catch {
-              /* already connected */
-            }
+    this.stopMeteringTask?.();
+    this.stopMeteringTask = this.visualScheduler.register(
+      () => this.updateMeters(),
+      { fps: 24, immediate: true },
+    );
+  }
+
+  private updateMeters(): void {
+    const levels: MeterReadings = {};
+    this.tracks().forEach((track) => {
+      let analyser = this.analyserMap.get(track.id);
+      if (!analyser) {
+        analyser = this.audioSession.engine.ctx.createAnalyser();
+        analyser.fftSize = 64;
+        const out = this.audioSession.engine.getTrackOutput(track.id);
+        if (out) {
+          try {
+            out.connect(analyser);
+          } catch {
+            /* already connected */
           }
-          this.analyserMap.set(track.id, analyser);
         }
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length || 0;
-        levels[track.id] = avg / 255;
-      });
-      this.trackLevels.set(levels);
-
-      const DECAY = 0.015;
-      this.trackPeakHolds.update((holds) => {
-        const next: MeterReadings = { ...holds };
-        for (const [id, lvl] of Object.entries(levels)) {
-          next[id] = Math.max(lvl, (next[id] ?? 0) - DECAY);
-        }
-        return next;
-      });
-
-      if (!this.masterAnalyser) {
-        const master = (this.audioSession.engine as any).masterAnalyser;
-        if (master) {
-          this.masterAnalyser = master;
-        }
+        this.analyserMap.set(track.id, analyser);
       }
-      const masterLvl = this.masterLevel();
-      this.masterPeakHold.update((v) => Math.max(masterLvl, v - 0.015));
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(data);
+      const avg = data.length
+        ? data.reduce((a, b) => a + b, 0) / data.length / 255
+        : 0;
+      levels[track.id] = Math.max(0, Math.min(1, avg));
+    });
+    this.trackLevels.set(levels);
 
-      // Phase correlation (simplified): use correlation of recent samples
-      // between L and R channels of master output
-      this.phaseCorrelation.set(this.computePhaseCorrelation());
+    const DECAY = 0.015;
+    this.trackPeakHolds.update((holds) => {
+      const next: MeterReadings = { ...holds };
+      for (const [id, lvl] of Object.entries(levels)) {
+        next[id] = Math.max(lvl, (next[id] ?? 0) - DECAY);
+      }
+      return next;
+    });
 
-      this.raf = requestAnimationFrame(update);
-    };
-    this.raf = requestAnimationFrame(update);
+    if (!this.masterAnalyser) {
+      const master = (this.audioSession.engine as any).masterAnalyser;
+      if (master) this.masterAnalyser = master;
+    }
+    const masterLvl = this.masterLevel();
+    this.masterPeakHold.update((v) => Math.max(masterLvl, v - 0.015));
+    this.phaseCorrelation.set(this.computePhaseCorrelation());
   }
 
   /**
@@ -168,18 +197,10 @@ export class MixerComponent implements OnInit, OnDestroy {
     try {
       const data = new Uint8Array(this.masterAnalyser.frequencyBinCount);
       this.masterAnalyser.getByteTimeDomainData?.(data as any);
-      // Fallback: estimate from analysis peaks — use stable drum-correlated
-      // heuristic by averaging recent signals. 0.7 is a typical music mix value.
-      // (A real impl would compare L vs R time-domain vectors via Pearson r.)
-      const avg = data.length
-        ? data.reduce((a, b) => a + b, 0) / data.length
-        : 128;
-      // Smoothly chase 0.7 default with light drift for visual feel
-      const drift = Math.sin(performance.now() / 800) * 0.15;
-      return Math.max(
-        -1,
-        Math.min(1, 0.7 + drift - Math.abs((avg - 128) / 800))
-      );
+      // A single analyser exposes a mono/downmixed buffer in most browsers.
+      // Report an honest neutral value when stereo vectors are unavailable;
+      // never animate a fabricated correlation reading.
+      return 0;
     } catch {
       return 0.7;
     }

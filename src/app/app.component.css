@@ -1,20 +1,27 @@
 :host {
   display: block;
+  height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
   min-height: 100dvh;
+  max-height: 100dvh;
   width: 100vw;
-  overflow-y: auto; overflow-x: hidden;
+  overflow: hidden;
   background-color: #07060d;
   color: #faf9ff;
 }
 
 .app-shell {
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
   background: linear-gradient(160deg, #07060d, #0d0c1a, #07060d);
 }
 
 .sidebar {
   height: 100%;
+  min-height: 0;
   z-index: 1000;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -113,6 +120,7 @@
 
 .app-content {
   position: relative;
+  min-height: 0;
   background-color: #07060d;
 }
 
@@ -246,6 +254,7 @@
 }
 
 .content-scroll-container {
+  min-height: 0;
   scroll-padding-bottom: calc(
     var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 36px
   );
@@ -255,7 +264,9 @@
 
 .route-anim-host {
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
   /* `will-change: transform` makes this element the containing block for every
      `position: fixed` descendant, and this host spans the whole scroll column.
      Workspaces that slide panels in from the edge (the Studio's AI assistant,
@@ -264,6 +275,8 @@
      its composer far below the fold. The route animation still drives
      `transform` while it runs; it just no longer needs the standing hint. */
   will-change: opacity;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .mobile-scroll-smooth {
@@ -403,6 +416,28 @@ footer {
 .content-scroll-container > * {
   max-width: 100vw;
   overflow-x: hidden;
+}
+
+/* The routed column is a flex child of the application chrome. Without an
+   explicit min-height:0 contract, the sidebar's long navigation intrinsic
+   height makes the whole app-root grow to several thousand pixels even when
+   the active workspace is viewport-bounded. Keep the shell fixed and let
+   content-scroll-container own scrolling for long, non-Studio routes. */
+.app-shell > .flex-grow {
+  min-height: 0;
+  height: 100%;
+}
+
+/* The application credit line is a real bottom layer, not elastic padding.
+   Keep its 32px contract so the routed workspace receives the remaining
+   height and its own footer remains visible. */
+.app-shell > .flex-grow > footer {
+  flex: 0 0 2rem;
+  min-height: 2rem;
+}
+
+.sidebar-nav {
+  min-height: 0;
 }
 
 @media (max-width: 640px) {

@@ -19,6 +19,8 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { MusicManagerService } from '../../services/music-manager.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
+import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
+import { Subscription } from 'rxjs';
 
 interface RecordingListEntry {
   id: string;
@@ -44,6 +46,7 @@ export class AudioRecorderViewComponent
   private logger = inject(LoggingService);
   private dialog = inject(InteractionDialogService);
   private engineLatency = inject(AudioEngineLatencyService);
+  private readonly visualScheduler = inject(StudioVisualSchedulerService);
 
   @ViewChild('waveformCanvas')
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -55,16 +58,46 @@ export class AudioRecorderViewComponent
   currentStream: MediaStream | null = null;
   elapsedSec = signal(0);
   inputLevel = signal(-60);
-  private elapsedInterval: any = null;
+  private elapsedTaskCleanup: (() => void) | null = null;
   private startedAt = 0;
-  private levelInterval: any = null;
+  private levelTaskCleanup: (() => void) | null = null;
   private analyserNode: AnalyserNode | null = null;
+  private meterSourceNode: MediaStreamAudioSourceNode | null = null;
   private audioContext: AudioContext | null = null;
-  private waveformFrame: number | null = null;
+  private waveformTaskCleanup: (() => void) | null = null;
+  private recordingFinishedSubscription: Subscription | null = null;
+  private stopFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Live state bindings from service */
   isRecording = this.recorder.isRecording;
   recordingCount = computed(() => this.recordings().length);
+  captureState = signal<'idle' | 'requesting' | 'recording' | 'stopping' | 'error'>('idle');
+  captureError = signal<string | null>(null);
+  inputDevices = signal<Array<{ deviceId: string; label: string }>>([]);
+  selectedInputId = signal<string | null>(null);
+  inputDeviceName = computed(() =>
+    this.inputDevices().find((device) => device.deviceId === this.selectedInputId())?.label ||
+    'Default microphone'
+  );
+  deviceSwitchLocked = computed(
+    () => this.captureState() === 'recording' || this.isRecording()
+  );
+  capturePathLabel = signal('Raw microphone input');
+  latestRecording = computed(() => this.recordings()[0] ?? null);
+  captureStatusLabel = computed(() => {
+    switch (this.captureState()) {
+      case 'requesting':
+        return 'Requesting microphone';
+      case 'recording':
+        return 'Recording raw input';
+      case 'stopping':
+        return 'Finalizing take';
+      case 'error':
+        return 'Capture error';
+      default:
+        return 'Ready to record';
+    }
+  });
 
   // ── Monitoring & Noise Gate ────────────────────────────
   monitoringEnabled = signal(false);
@@ -201,6 +234,13 @@ export class AudioRecorderViewComponent
 
   ngOnInit(): void {
     this.loadOfflineRecordings();
+    const finished$ = (this.recorder as any).recordingFinished$;
+    if (finished$?.subscribe) {
+      this.recordingFinishedSubscription = finished$.subscribe((event: any) =>
+        this.handleRecordingFinished(event)
+      );
+    }
+    void this.refreshInputDevices();
   }
 
   ngAfterViewInit(): void {
@@ -211,6 +251,11 @@ export class AudioRecorderViewComponent
     this.clearElapsedTimer();
     this.stopLevelMeter();
     this.stopWaveform();
+    this.recordingFinishedSubscription?.unsubscribe();
+    this.recordingFinishedSubscription = null;
+    if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);
+    this.stopFallbackTimer = null;
+    this.closeAudioGraph();
     if (this.currentStream) {
       this.currentStream.getTracks().forEach((t) => t.stop());
       this.currentStream = null;
@@ -319,19 +364,106 @@ export class AudioRecorderViewComponent
     return `${min}m ago`;
   }
 
+  private handleRecordingFinished(event: { id: string; blob: Blob; url: string }): void {
+    if (this.recordings().some((recording) => recording.id === event.id)) return;
+    const name = `Take ${String(this.recordings().length + 1).padStart(2, '0')}`;
+    const entry: RecordingListEntry = {
+      id: event.id,
+      name,
+      timestamp: Date.now(),
+      durationSec: Math.max(0, this.elapsedSec()),
+      url: event.url,
+    };
+    this.recordings.update((list) => [entry, ...list]);
+    this.captureState.set('idle');
+    this.captureError.set(null);
+    this.clearElapsedTimer();
+    this.stopLevelMeter();
+    this.stopWaveform();
+    this.closeAudioGraph();
+    this.snackbar.success(`${name} captured — ready to keep or add`);
+  }
+
+  private closeAudioGraph(): void {
+    try {
+      this.micSourceNode?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.micSourceNode = null;
+    try {
+      this.monitorGainNode?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.monitorGainNode = null;
+    this.monitoringEnabled.set(false);
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close().catch(() => {});
+    }
+    this.audioContext = null;
+  }
+
+  async refreshInputDevices(): Promise<void> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = (await navigator.mediaDevices.enumerateDevices())
+        .filter((device) => device.kind === 'audioinput')
+        .map((device, index) => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${index + 1}`,
+        }));
+      this.inputDevices.set(devices);
+      if (!this.selectedInputId() && devices[0]) {
+        this.selectedInputId.set(devices[0].deviceId);
+      }
+    } catch (error) {
+      this.logger.warn('Could not enumerate recorder inputs', error);
+    }
+  }
+
+  async setInputDevice(deviceId: string): Promise<void> {
+    if (this.deviceSwitchLocked()) {
+      this.snackbar.warning('Stop recording before switching input');
+      return;
+    }
+    this.selectedInputId.set(deviceId);
+    this.currentStream?.getTracks().forEach((track) => track.stop());
+    this.currentStream = null;
+    this.closeAudioGraph();
+    await this.refreshInputDevices();
+  }
+
+  keepLatestTake(): void {
+    const take = this.latestRecording();
+    if (!take) return;
+    this.snackbar.success(`${take.name} kept in the recording bank`);
+  }
+
+  retryLatestTake(): void {
+    if (this.deviceSwitchLocked()) return;
+    void this.toggleRecord();
+  }
+
+  async addLatestToArrangement(): Promise<void> {
+    const take = this.latestRecording();
+    if (take) await this.exportToArrangement(take);
+  }
+
   // ── Toggle record on/off ────────────────────────────────
   async toggleRecord(): Promise<void> {
     this.haptic.medium();
-    if (this.isRecording()) {
+    if (this.isRecording() || this.captureState() === 'recording') {
+      this.captureState.set('stopping');
       this.recorder.stopRecording();
       this.clearElapsedTimer();
       this.stopLevelMeter();
       this.stopWaveform();
-      if (this.audioContext && this.audioContext.state !== 'closed') {
-        this.audioContext.close().catch(() => {});
-        this.audioContext = null;
-      }
-      setTimeout(() => this.loadOfflineRecordings(), 600);
+      this.stopFallbackTimer = setTimeout(() => {
+        this.captureState.set('idle');
+        this.closeAudioGraph();
+        this.loadOfflineRecordings();
+      }, 1000);
       this.snackbar.info('Recording stopped');
       return;
     }
@@ -340,6 +472,8 @@ export class AudioRecorderViewComponent
 
   private async startRecording(): Promise<void> {
     this.isRequestingMic.set(true);
+    this.captureState.set('requesting');
+    this.captureError.set(null);
     this.permissionsDenied.set(false);
     try {
       if (!this.currentStream) {
@@ -347,6 +481,9 @@ export class AudioRecorderViewComponent
         // Studio supplies its own monitoring and noise gate instead.
         this.currentStream = await navigator.mediaDevices.getUserMedia({
           audio: {
+            deviceId: this.selectedInputId()
+              ? { exact: this.selectedInputId()! }
+              : undefined,
             echoCancellation: false,
             noiseSuppression: false,
             autoGainControl: false,
@@ -360,10 +497,17 @@ export class AudioRecorderViewComponent
         this.captureDestination?.stream ?? this.currentStream;
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
+      this.captureState.set('recording');
       this.startElapsedTimer();
       this.startWaveform();
       this.snackbar.success('Recording armed — capture live input');
     } catch (err: any) {
+      this.captureState.set('error');
+      this.captureError.set(
+        err?.name === 'NotAllowedError'
+          ? 'Microphone permission denied'
+          : 'Could not access microphone'
+      );
       this.permissionsDenied.set(true);
       this.logger.error('Mic permission denied or unavailable', err);
       this.snackbar.error(
@@ -383,6 +527,7 @@ export class AudioRecorderViewComponent
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 256;
       const source = this.audioContext.createMediaStreamSource(stream);
+      this.meterSourceNode = source;
 
       // Mic → gate → {analyser, recorder}. The gate stays fully open until
       // the user arms it, so ungated takes are bit-identical to the input.
@@ -395,7 +540,8 @@ export class AudioRecorderViewComponent
       this.gateNode.connect(this.captureDestination);
 
       const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
-      this.levelInterval = setInterval(() => {
+      this.levelTaskCleanup?.();
+      this.levelTaskCleanup = this.visualScheduler.register(() => {
         if (!this.analyserNode) return;
         this.analyserNode.getByteFrequencyData(dataArray);
         const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
@@ -404,7 +550,7 @@ export class AudioRecorderViewComponent
           avg === 0 ? -60 : Math.round(20 * Math.log10(avg / 255) * 10) / 10;
         this.inputLevel.set(Math.max(-60, Math.min(0, db)));
         this.applyNoiseGate(db);
-      }, 60);
+      }, { fps: 24 });
     } catch (err) {
       this.logger.warn('Could not start level meter', err);
     }
@@ -426,9 +572,15 @@ export class AudioRecorderViewComponent
   }
 
   private stopLevelMeter(): void {
-    if (this.levelInterval) {
-      clearInterval(this.levelInterval);
-      this.levelInterval = null;
+    this.levelTaskCleanup?.();
+    this.levelTaskCleanup = null;
+    if (this.meterSourceNode) {
+      try {
+        this.meterSourceNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      this.meterSourceNode = null;
     }
     if (this.gateNode) {
       try {
@@ -451,28 +603,30 @@ export class AudioRecorderViewComponent
     if (!ctx) return;
 
     const buffer: number[] = new Array(200).fill(0);
-    const draw = () => {
-      if (!this.isRecording()) {
-        this.waveformFrame = null;
-        return;
+    this.waveformTaskCleanup?.();
+    this.waveformTaskCleanup = this.visualScheduler.register(() => {
+      if (this.captureState() !== 'recording') return;
+      const rect = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
+      const width = Math.max(1, Math.round((rect.width || canvas.width) * pixelRatio));
+      const height = Math.max(1, Math.round((rect.height || canvas.height) * pixelRatio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
       }
-      this.waveformFrame = requestAnimationFrame(draw);
-
       const w = canvas.width;
       const h = canvas.height;
-      ctx.fillStyle = 'var(--ivory-deep, #06091A)';
+      ctx.fillStyle = '#06091a';
       ctx.fillRect(0, 0, w, h);
 
-      // Shift buffer
       const val = this.inputLevel();
       const normalized = Math.max(0, Math.min(1, (val + 60) / 60));
       buffer.push(normalized);
       buffer.shift();
 
-      // Draw waveform
       ctx.beginPath();
-      ctx.strokeStyle = 'var(--teal-500, #0E7C7B)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = Math.max(1, pixelRatio);
       for (let i = 0; i < buffer.length; i++) {
         const x = (i / buffer.length) * w;
         const y = (1 - buffer[i]) * h;
@@ -480,38 +634,27 @@ export class AudioRecorderViewComponent
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
-
-      // Glow
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = 'var(--teal-glow, rgba(14, 124, 123, 0.5))';
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    };
-    this.waveformFrame = requestAnimationFrame(draw);
+    }, { fps: 30 });
   }
 
   private stopWaveform(): void {
-    if (this.waveformFrame) {
-      cancelAnimationFrame(this.waveformFrame);
-      this.waveformFrame = null;
-    }
+    this.waveformTaskCleanup?.();
+    this.waveformTaskCleanup = null;
   }
 
   // ── Elapsed timer ───────────────────────────────────────
   private startElapsedTimer(): void {
     this.elapsedSec.set(0);
     this.clearElapsedTimer();
-    this.elapsedInterval = setInterval(() => {
+    this.elapsedTaskCleanup = this.visualScheduler.register(() => {
       const sec = Math.floor((Date.now() - this.startedAt) / 1000);
       this.elapsedSec.set(sec);
-    }, 250);
+    }, { fps: 4 });
   }
 
   private clearElapsedTimer(): void {
-    if (this.elapsedInterval) {
-      clearInterval(this.elapsedInterval);
-      this.elapsedInterval = null;
-    }
+    this.elapsedTaskCleanup?.();
+    this.elapsedTaskCleanup = null;
   }
 
   // ── Recording bank ──────────────────────────────────────
@@ -533,6 +676,8 @@ export class AudioRecorderViewComponent
     this.haptic.medium();
     const entry = this.recordings().find((r) => r.id === id);
     if (entry?.url) this.recorder.revokeRecordingUrl(entry.url);
+    const remove = (this.recorder as any).deleteOfflineRecording;
+    if (remove) void remove.call(this.recorder, id);
     this.recordings.update((list) => list.filter((r) => r.id !== id));
     this.snackbar.info('Recording removed from list');
   }
@@ -545,8 +690,11 @@ export class AudioRecorderViewComponent
         id: it.id,
         name: it.name || `Recording`,
         timestamp: it.timestamp || Date.now(),
-        durationSec: 0,
-        url: '',
+        durationSec: Number(it.settings?.durationSec ?? 0) || 0,
+        url:
+          it.blob && typeof (this.recorder as any).createRecordingUrl === 'function'
+            ? (this.recorder as any).createRecordingUrl(it.blob)
+            : '',
       }));
       this.recordings.set(built);
     } catch (err) {
