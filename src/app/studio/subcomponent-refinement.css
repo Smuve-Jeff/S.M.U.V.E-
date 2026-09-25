@@ -79,18 +79,15 @@
   box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
 }
 /* Channel strips read as hardware modules with consistent depth. */
-.mix-shell .mix-strip,
-.mix-shell .channel-strip {
+.mix-shell .mix-strip {
   transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
-.mix-shell .mix-strip:hover,
-.mix-shell .channel-strip:hover {
+.mix-shell .mix-strip:hover {
   border-color: rgba(14, 124, 123, 0.3);
   box-shadow: 0 6px 18px rgba(14, 124, 123, 0.1);
 }
 /* Selected channel gets the console's teal rail light. */
-.mix-shell .mix-strip.selected,
-.mix-shell .channel-strip.selected {
+.mix-shell .mix-strip.selected {
   box-shadow:
     inset 3px 0 0 var(--teal-500),
     0 6px 18px rgba(14, 124, 123, 0.12);
@@ -101,8 +98,7 @@
   .dj-booth .performance-pad,
   .dj-booth .hotcue,
   .dj-booth .transport-button,
-  .mix-shell .mix-strip button,
-  .mix-shell .channel-strip button {
+  .mix-shell .mix-strip button {
     min-width: 44px;
     min-height: 44px;
   }
