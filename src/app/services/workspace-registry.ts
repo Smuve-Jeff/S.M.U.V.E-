@@ -385,6 +385,35 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     category: 'STRATEGY',
     related: ['career', 'strategy', 'profile'],
   },
+  {
+    mode: 'command-center',
+    routePath: '/command-center',
+    label: 'Command Center',
+    description:
+      'Run the AI terminal, upgrade queue, and strategic decrees as one feed.',
+    icon: 'terminal',
+    category: 'STRATEGY',
+    related: ['neural-foundry', 'strategy', 'analytics'],
+  },
+  {
+    mode: 'neural-foundry',
+    routePath: '/neural-foundry',
+    label: 'Neural Foundry',
+    description: 'Unlock neural upgrades and track their activation progress.',
+    icon: 'psychology',
+    category: 'STRATEGY',
+    related: ['command-center', 'strategy', 'produce'],
+  },
+  {
+    mode: 'journey',
+    routePath: '/journey',
+    label: 'Artist Journey',
+    description:
+      'Walk the artist dossier from origin story through production DNA.',
+    icon: 'route',
+    category: 'CORE',
+    related: ['profile', 'career', 'strategy'],
+  },
 ];
 
 export const WORKSPACE_INDEX = new Map(

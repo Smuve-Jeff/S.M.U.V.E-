@@ -224,6 +224,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     [/profile/, '/profile'],
     [/practice/, '/practice'],
     [/development/, '/artist-development'],
+    [/command center|command-center|terminal/, '/command-center'],
+    [/neural foundry|neural-foundry|foundry|neural/, '/neural-foundry'],
+    [/journey|dossier/, '/journey'],
     [/project/, '/projects'],
     [/inbox|challenge/, '/inbox'],
     [/timeline|session graph/, '/timeline'],
@@ -504,7 +507,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const route = this.NAV_MAP.find(([re]) => re.test(target))?.[1];
     if (!route) {
       return {
-        content: `I don't have a surface called "${target}". Try: studio, mixer, drum machine, mastering, DJ, AI Produce, business suite, career, strategy, store, knowledge base, analytics, release pipeline, or cloud vault.`,
+        content: `I don't have a surface called "${target}". Try: studio, mixer, drum machine, mastering, DJ, AI Produce, business suite, career, strategy, command center, neural foundry, journey, store, knowledge base, analytics, release pipeline, or cloud vault.`,
         actions: [],
       };
     }

@@ -49,7 +49,10 @@ export type MainViewMode =
   | 'products'
   | 'inbox'
   | 'cowrite'
-  | 'artist-development';
+  | 'artist-development'
+  | 'command-center'
+  | 'neural-foundry'
+  | 'journey';
 
 export interface Stems {
   vocals: AudioBuffer;

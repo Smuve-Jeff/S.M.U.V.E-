@@ -27,6 +27,13 @@ const protectedRoutes: Routes = [
       ),
   },
   {
+    path: 'journey',
+    loadComponent: () =>
+      import('./components/journey/journey.component').then(
+        (m) => m.JourneyComponent
+      ),
+  },
+  {
     path: 'tha-spot',
     loadComponent: () =>
       import('./components/tha-spot/tha-spot.component').then(
@@ -106,6 +113,20 @@ const protectedRoutes: Routes = [
     loadComponent: () =>
       import('./components/ai-produce/ai-produce.component').then(
         (m) => m.AiProduceComponent
+      ),
+  },
+  {
+    path: 'command-center',
+    loadComponent: () =>
+      import('./components/command-center/command-center.component').then(
+        (m) => m.CommandCenterComponent
+      ),
+  },
+  {
+    path: 'neural-foundry',
+    loadComponent: () =>
+      import('./neural-foundry/neural-foundry.component').then(
+        (m) => m.NeuralFoundryComponent
       ),
   },
   {

@@ -109,10 +109,17 @@ export class LegalDocumentEditorComponent {
   content = '';
 
   ngOnInit() {
-    if (this.document) {
-      this.documentId = this.document.id;
-      this.title = this.document.title;
-      this.content = this.document.content;
+    const doc = this.document;
+    if (!doc) return;
+
+    this.documentId = doc.id;
+    this.title = doc.title;
+    this.content = doc.content;
+
+    // A typed-but-empty draft opens with its clause pack already loaded.
+    if (!doc.content && (doc.type === 'Split Sheet' || doc.type === 'Work-for-Hire')) {
+      this.loadTemplate(doc.type);
+      if (doc.title) this.title = doc.title;
     }
   }
 
