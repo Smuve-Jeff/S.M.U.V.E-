@@ -960,3 +960,71 @@ button[disabled] {
     border-bottom-color: CanvasText;
   }
 }
+
+/* Desktop portrait/narrow workspaces: the step editor receives its own
+   full-width rail instead of competing with track metadata for inline width. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .channel-rack-header {
+    min-height: 50px;
+    padding: 7px 10px;
+  }
+
+  .channel-rack-list {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .channel-rack-channel {
+    min-height: 68px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .channel-rack-channel > .flex-1 {
+    min-width: 150px;
+  }
+
+  .channel-rack-meter-stack {
+    width: 68px;
+    flex-basis: 68px;
+  }
+
+  .channel-rack-actions {
+    opacity: 1;
+  }
+
+  .channel-rack-step-lane {
+    flex: 1 1 100%;
+    order: 5;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-top: 2px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .channel-rack-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .channel-rack-list {
+    padding-block: 6px;
+  }
+
+  .channel-rack-channel {
+    min-height: 58px;
+    padding-block: 6px;
+  }
+
+  .channel-rack-step-cell {
+    height: 28px;
+  }
+
+  .channel-rack-bar-pager button {
+    min-height: 27px;
+  }
+}

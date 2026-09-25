@@ -723,3 +723,71 @@
     animation: none;
   }
 }
+
+/* Desktop portrait/narrow pad boards keep four stable columns and delegate
+   overflow to the grid rather than shrinking or hiding performance pads. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .spg-shell {
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .spg-header {
+    min-height: 50px;
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  .spg-title {
+    flex-basis: 100%;
+  }
+
+  .spg-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .spg-grid {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .spg-foot {
+    padding-top: 6px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .spg-shell {
+    padding: 7px 9px;
+    gap: 6px;
+  }
+
+  .spg-header {
+    min-height: 46px;
+    padding-block: 6px;
+  }
+
+  .spg-sub {
+    display: none;
+  }
+
+  .spg-grid {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .spg-cell {
+    min-height: 48px;
+  }
+
+  .spg-foot {
+    padding-top: 4px;
+  }
+
+  .spg-hint {
+    min-height: 24px;
+    font-size: 10px;
+  }
+}

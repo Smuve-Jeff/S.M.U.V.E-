@@ -622,6 +622,56 @@ export interface ChordProgressionItem {
           transition: none;
         }
       }
+
+      /* Desktop portrait/narrow workspaces keep the editor in one bounded
+         scroll surface with compact controls and a deliberate chord list. */
+      @media (min-width: 1025px) and (orientation: portrait),
+        (min-width: 1025px) and (max-width: 1280px) {
+        .chord-editor {
+          padding: 9px;
+          gap: 8px;
+        }
+        .ce-header {
+          min-height: 48px;
+          padding: 7px 9px;
+        }
+        .ce-section {
+          padding: 9px;
+        }
+        .ce-progression {
+          max-height: min(180px, 28vh);
+        }
+        .ce-chord-card {
+          min-height: 48px;
+        }
+      }
+
+      @media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+        .chord-editor {
+          padding: 7px 9px;
+          gap: 6px;
+        }
+        .ce-header {
+          min-height: 44px;
+          padding-block: 5px;
+        }
+        .ce-section {
+          padding: 7px 8px;
+        }
+        .ce-progression {
+          max-height: 130px;
+        }
+        .ce-chord-card {
+          min-height: 44px;
+          padding-block: 5px;
+        }
+        .ce-icon-btn-sm {
+          width: 44px;
+          height: 44px;
+          min-width: 44px;
+          min-height: 44px;
+        }
+      }
     `,
   ],
 })

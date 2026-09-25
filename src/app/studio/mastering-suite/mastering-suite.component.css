@@ -882,3 +882,113 @@
     transform: none !important;
   }
 }
+
+/* Desktop portrait/narrow workspaces: the dashboard becomes one readable
+   analysis column while every module remains available in the surface scroll. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .mastering-surface {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .mastering-header {
+    gap: 8px;
+  }
+
+  .mastering-header h1 {
+    font-size: 28px;
+  }
+
+  .mastering-header button {
+    min-height: 40px;
+  }
+
+  .mastering-header > div:last-child {
+    gap: 6px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 10px;
+  }
+
+  .mastering-preset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mastering-preset-card {
+    min-height: 118px;
+    padding: 10px;
+  }
+
+  .mastering-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .mastering-dashboard > div {
+    grid-column: 1 / -1;
+  }
+
+  .mastering-visualizer {
+    min-height: 148px;
+    height: 180px !important;
+    padding: 10px;
+  }
+
+  .mastering-band-card {
+    min-height: 124px;
+    padding: 9px 7px;
+  }
+
+  .mastering-meter-card,
+  .mastering-control-card,
+  .mastering-roast-card {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .mastering-surface {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .mastering-header h1 {
+    font-size: 24px;
+  }
+
+  .mastering-header button {
+    min-height: 38px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 8px 10px;
+  }
+
+  .mastering-preset-card {
+    min-height: 108px;
+    padding: 8px;
+  }
+
+  .mastering-visualizer {
+    min-height: 118px;
+    height: 142px !important;
+  }
+
+  .mastering-band-card {
+    min-height: 106px;
+    padding: 7px 6px;
+  }
+
+  .mastering-meter-card,
+  .mastering-control-card,
+  .mastering-roast-card {
+    padding: 10px;
+  }
+}

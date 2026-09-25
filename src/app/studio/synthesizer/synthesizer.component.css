@@ -1514,3 +1514,78 @@
     min-height: 44px;
   }
 }
+
+/* Desktop portrait/narrow workspaces: two module columns keep every synth
+   section legible; the bounded content rail owns the resulting scroll. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .synth-header {
+    min-height: 50px;
+    padding: 7px 10px;
+  }
+
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-patch-rail {
+    padding-block: 5px;
+  }
+
+  .synth-content {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .synth-section {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .synth-canvas-wrap {
+    min-height: 62px;
+  }
+
+  .fader-well {
+    min-height: 82px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .synth-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-patch-rail {
+    padding-block: 4px;
+  }
+
+  .synth-content {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .synth-section {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .synth-canvas-wrap {
+    min-height: 52px;
+  }
+
+  .synth-canvas {
+    min-height: 48px;
+  }
+
+  .fader-well,
+  .synth-slider-v {
+    min-height: 68px;
+  }
+}

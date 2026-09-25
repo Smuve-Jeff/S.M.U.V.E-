@@ -1,30 +1,20 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
-test('Performance Module keyboard and enhancements verification', async ({
-  page,
-}) => {
-  await page.goto('http://localhost:4200/studio?view=performance');
+test('Performance module exposes its core live-production controls', async ({ page }) => {
+  await seedAuthenticatedSession(page);
+  await page.goto('/studio?view=performer');
 
-  // Wait for the container
-  const container = page.locator('.performer-container');
-  await expect(container).toBeVisible();
+  const performer = page.locator('.performer-shell');
+  await expect(performer).toBeVisible();
+  await expect(page.locator('.spectrum-strip')).toBeVisible();
+  await expect(page.locator('.kb-key.is-white').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /smart\s+chords/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^arp$/i })).toBeVisible();
+  await expect(page.locator('app-knob[label="CUT"]')).toBeVisible();
 
-  // Check keyboard visibility (first white key)
-  const firstKey = page.locator('.perf-key-v42.white-key').first();
-  await expect(firstKey).toBeVisible();
-
-  // Verify visualizer presence
-  const visualizer = page.locator('.visualizer-mini');
-  await expect(visualizer).toBeVisible();
-
-  // Check dashboard buttons (Smart Chords, Arp, etc)
-  const smartChordsBtn = page.getByRole('button', { name: /smart chords/i });
-  await expect(smartChordsBtn).toBeVisible();
-
-  const arpBtn = page.getByRole('button', { name: /arp/i });
-  await expect(arpBtn).toBeVisible();
-
-  // Check Granular Rack knobs
-  const cutoffKnob = page.locator('.granular-rack app-knob[label="CUTOFF"]');
-  await expect(cutoffKnob).toBeVisible();
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });

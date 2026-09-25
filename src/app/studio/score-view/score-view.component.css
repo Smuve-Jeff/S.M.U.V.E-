@@ -667,3 +667,97 @@ h1 {
     animation: none;
   }
 }
+
+/* Desktop portrait/narrow score: make the shell a real flex column so the
+   notation canvas receives remaining height after the two header rails. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .score-surface {
+    display: flex;
+    flex-direction: column;
+    padding: 9px 10px;
+  }
+
+  .score-header {
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 7px;
+  }
+
+  .score-header h1 {
+    font-size: 26px;
+  }
+
+  .score-subtitle {
+    display: none;
+  }
+
+  .score-stat {
+    min-height: 32px;
+    padding: 6px 9px;
+  }
+
+  .score-toolbar {
+    flex: 0 0 auto;
+    min-height: 40px;
+    margin-bottom: 7px;
+    padding: 6px 8px;
+  }
+
+  .score-toolbar-hint {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .score-scroll {
+    flex: 1 1 auto;
+    height: auto;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .score-surface {
+    display: flex;
+    flex-direction: column;
+    padding: 7px 9px;
+  }
+
+  .score-header {
+    flex: 0 0 auto;
+    align-items: flex-start;
+    margin-bottom: 5px;
+  }
+
+  .score-header h1 {
+    font-size: 24px;
+  }
+
+  .score-subtitle {
+    display: none;
+  }
+
+  .score-toolbar {
+    flex: 0 0 auto;
+    min-height: 36px;
+    margin-bottom: 5px;
+    padding: 5px 8px;
+  }
+
+  .score-scroll {
+    flex: 1 1 auto;
+    height: auto;
+  }
+
+  .score-staff-heading {
+    min-height: 38px;
+    padding-block: 6px;
+  }
+
+  .score-staff-viewport {
+    min-height: 98px;
+    padding-block: 12px;
+  }
+}

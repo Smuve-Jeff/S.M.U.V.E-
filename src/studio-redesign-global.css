@@ -384,3 +384,96 @@ app-recording-waveform :focus-visible {
   outline: 2px solid var(--teal-500, #00e5ff);
   outline-offset: 2px;
 }
+
+/* Performer is URL-accessible even though its desktop nav entry is hidden.
+   Prefix the scoped classes to preserve them over the component's very large
+   final style sheet while keeping these desktop workspace refinements local. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  app-performer .performer-header {
+    align-items: stretch;
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  app-performer .performer-brand-rail,
+  app-performer .performer-layout-switcher {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  app-performer .performer-rack {
+    min-height: 82px;
+    padding: 8px 10px;
+  }
+
+  app-performer .performer-rack .rack-cell {
+    min-height: 62px;
+  }
+
+  app-performer .performer-meter-deck {
+    gap: 8px;
+  }
+
+  app-performer .performer-meter-deck .meter-pane {
+    min-width: 78px;
+  }
+
+  app-performer .performer-pad-grid {
+    padding: 10px;
+    gap: 7px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  app-performer .performer-header {
+    min-height: 50px;
+    padding-block: 6px;
+  }
+
+  app-performer .performer-header .spectrum-strip {
+    height: 28px;
+  }
+
+  app-performer .performer-midi-panel,
+  app-performer .performer-midi-editor,
+  app-performer .performer-midi-log {
+    max-height: min(30vh, 250px);
+    margin-top: 6px;
+  }
+
+  app-performer .performer-rack {
+    min-height: 74px;
+    padding-block: 6px;
+  }
+
+  app-performer .performer-rack .rack-cell {
+    min-height: 54px;
+    padding-block: 5px;
+  }
+
+  app-performer .performer-meter-deck {
+    padding-block: 6px;
+  }
+
+  app-performer .performer-viewport {
+    min-height: 160px;
+  }
+
+  app-performer .performer-keyboard-rail {
+    min-height: 148px;
+  }
+
+  app-performer .performer-takes {
+    padding-block: 6px;
+  }
+
+  app-performer .performer-take-rail {
+    min-height: 98px;
+  }
+
+  app-performer .performer-take-card,
+  app-performer .performer-take-empty {
+    min-height: 92px;
+  }
+}
