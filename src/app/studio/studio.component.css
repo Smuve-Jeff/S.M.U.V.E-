@@ -209,15 +209,30 @@
 /* The transport is the shell's primary control surface. Give its complete
    persistent row priority on desktop; secondary header utilities remain
    scrollable when the viewport narrows instead of clipping the More control
-   or the BPM/position readouts. */
+   or the BPM/position readouts.
+   In desktop portrait or narrower snap widths (1025px - 1280px), relax min-width
+   so the right utility cluster and transport remain visible without horizontal clipping. */
 @media (min-width: 1025px) {
   .comp-topbar-center {
-    min-width: 500px;
+    min-width: min(500px, 46vw);
     overflow: visible;
   }
 
   .comp-topbar-right {
     flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px), (min-width: 1025px) and (orientation: portrait) {
+  .comp-topbar-center {
+    min-width: 0;
+    max-width: 48vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .comp-topbar-center::-webkit-scrollbar {
+    display: none;
   }
 }
 

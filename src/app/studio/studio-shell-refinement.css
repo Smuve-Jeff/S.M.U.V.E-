@@ -786,3 +786,182 @@
     border-color: rgba(255, 255, 255, 0.12);
   }
 }
+
+/* ============================================================
+   DESKTOP PORTRAIT MONITOR & WINDOW SPLIT (1025px+ Portrait / 1025-1280px)
+   ============================================================ */
+@media (min-width: 1025px) and (orientation: portrait), (min-width: 1025px) and (max-width: 1280px) {
+  .comp-shell {
+    --studio-rail-width: 68px;
+  }
+
+  .comp-topbar {
+    padding-inline: 10px;
+    gap: 8px;
+  }
+
+  .comp-topbar-left {
+    gap: 8px;
+  }
+
+  .comp-brand-tag {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .comp-topbar-center {
+    max-width: 48vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comp-topbar-right {
+    max-width: 38vw;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .comp-topbar-right .comp-now-performing span:last-child {
+    display: none;
+  }
+
+  .comp-topbar-tools {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: 8px;
+    gap: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .comp-tool-btn {
+    min-height: 32px;
+    padding: 5px 8px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+
+  .comp-rail {
+    width: 68px !important;
+    min-width: 68px !important;
+    padding: 8px 4px;
+    gap: 4px;
+  }
+
+  .comp-rail-item {
+    min-height: 52px;
+    padding: 6px 2px;
+    font-size: 8px;
+  }
+
+  .comp-rail-item .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .comp-rail-widget {
+    display: none;
+  }
+
+  .comp-main {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .comp-view {
+    padding: 10px;
+  }
+}
+
+/* ============================================================
+   DESKTOP COMPACT LANDSCAPE HEIGHT (<880px Viewport Height)
+   Standard laptop / 1080p landscape chrome height optimization
+   ============================================================ */
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .comp-shell {
+    --studio-header-height: 56px;
+    --studio-footer-height: 38px;
+  }
+
+  .comp-topbar {
+    height: 56px;
+    min-height: 56px;
+    padding-inline: 12px;
+  }
+
+  .comp-topbar-tools {
+    min-height: 34px;
+    padding-block: 2px;
+    padding-inline: 12px;
+  }
+
+  .comp-tool-btn {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .comp-tool-btn .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .comp-stage-marquee {
+    display: none;
+  }
+
+  .comp-main {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .comp-view {
+    padding: 10px 12px;
+  }
+
+  .comp-footer {
+    min-height: 36px;
+    margin-bottom: 6px;
+    padding-inline: 10px;
+  }
+
+  .comp-footer-chip {
+    min-height: 22px;
+    font-size: 10px;
+  }
+}
+
+/* Very compact desktop landscape (e.g. 1366x768 or split horizontal windows < 700px height) */
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 720px) {
+  .comp-shell {
+    --studio-header-height: 52px;
+  }
+
+  .comp-topbar {
+    height: 52px;
+    min-height: 52px;
+  }
+
+  .comp-topbar-tools {
+    min-height: 30px;
+    padding-block: 1px;
+  }
+
+  .comp-tool-btn {
+    min-height: 26px;
+    padding: 3px 6px;
+  }
+
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+
+  .comp-footer {
+    display: none;
+  }
+}

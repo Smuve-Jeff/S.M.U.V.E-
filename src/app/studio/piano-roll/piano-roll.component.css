@@ -1822,3 +1822,265 @@
 :host-context(.dark-mode) .pr-inspector-pill {
   background: #141b26;
 }
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE STUDIO EDITOR — desktop portrait and short desktop
+   The editor header is a control surface, not a second navigation
+   rail. Keep identity/status on the first line and let the editing
+   controls occupy one deliberately scrollable line on the second.
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) and (orientation: portrait),
+       (min-width: 1025px) and (max-width: 1280px) {
+  .pr-shell {
+    min-width: 0;
+  }
+
+  .pr-header {
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) repeat(4, max-content);
+    grid-template-rows: auto auto;
+    align-items: center;
+    justify-content: start;
+    column-gap: 8px;
+    row-gap: 6px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .pr-header::-webkit-scrollbar,
+  .pr-key-scale-bar::-webkit-scrollbar,
+  .pr-auto-toolbar::-webkit-scrollbar,
+  .pr-cc-toggle-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pr-header-left {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: max-content;
+  }
+  .pr-tool-status {
+    grid-column: 2 / -1;
+    grid-row: 1;
+    justify-self: end;
+    min-height: 28px;
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+  .pr-header-tools {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: max-content;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .pr-header > .pr-snap[aria-label='Snap-to-grid resolution'] {
+    grid-column: 2;
+    grid-row: 2;
+    flex-wrap: nowrap;
+  }
+  .pr-header > .pr-snap[aria-label='Quantization controls'] {
+    grid-column: 4;
+    grid-row: 2;
+    flex-wrap: nowrap;
+  }
+  .pr-ai-chip {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .pr-transport-mini {
+    grid-column: 5;
+    grid-row: 2;
+    min-width: max-content;
+    flex-wrap: nowrap;
+  }
+
+  .pr-tool {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  .pr-tool-sm {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .pr-zoom-group {
+    gap: 2px;
+    padding: 2px;
+  }
+  .pr-zoom-readout {
+    min-width: 32px;
+    font-size: 9px;
+  }
+  .pr-snap-label {
+    padding-inline: 5px;
+  }
+  .pr-snap-btn {
+    min-height: 32px;
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+  .pr-ai-chip {
+    min-height: 36px;
+    height: 36px;
+    padding-inline: 10px;
+    font-size: 10px;
+  }
+  .pr-tempo-chip,
+  .pr-tempo-preset {
+    min-height: 36px;
+    padding: 5px 9px;
+    font-size: 10px;
+  }
+
+  .pr-selection-status {
+    padding: 2px 10px;
+    font-size: 10px;
+  }
+  .pr-key-scale-bar {
+    flex-wrap: nowrap;
+    min-height: 38px;
+    gap: 6px;
+    padding: 5px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pr-key-scale-bar > * {
+    flex: 0 0 auto;
+  }
+  .pr-scale-chips {
+    flex-wrap: nowrap;
+  }
+  .pr-ks-select,
+  .pr-scale-chip,
+  .pr-detect-btn,
+  .pr-expand-btn {
+    min-height: 32px;
+  }
+  .pr-scale-chip {
+    padding: 3px 7px;
+  }
+
+  .pr-canvas-row:not(.pr-canvas-row--inspector) {
+    min-height: 260px;
+  }
+  .pr-auto-toolbar,
+  .pr-cc-toggle-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pr-auto-toolbar > *,
+  .pr-cc-toggle-bar > * {
+    flex: 0 0 auto;
+  }
+  .pr-auto-param,
+  .pr-cc-toggle-btn {
+    min-height: 32px;
+  }
+  .pr-bezier-btn {
+    min-height: 32px;
+  }
+  .pr-cc-lane {
+    min-height: 76px;
+  }
+  .pr-cc-track {
+    min-height: 30px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .pr-header {
+    padding: 5px 8px;
+    column-gap: 6px;
+    row-gap: 4px;
+  }
+  .pr-tool-status {
+    min-height: 24px;
+    padding-inline: 6px;
+    font-size: 8px;
+  }
+  .pr-tool {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .pr-tool-sm {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  .pr-snap-btn,
+  .pr-ai-chip,
+  .pr-tempo-chip,
+  .pr-tempo-preset,
+  .pr-ks-select,
+  .pr-scale-chip,
+  .pr-detect-btn,
+  .pr-expand-btn {
+    min-height: 30px;
+  }
+  .pr-snap-btn {
+    padding-inline: 5px;
+    font-size: 9px;
+  }
+  .pr-ai-chip {
+    height: 30px;
+    padding-inline: 8px;
+    font-size: 9px;
+  }
+  .pr-tempo-chip,
+  .pr-tempo-preset {
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+  .pr-selection-status {
+    padding-block: 1px;
+    font-size: 9px;
+  }
+  .pr-key-scale-bar {
+    min-height: 34px;
+    padding-block: 3px;
+  }
+  .pr-canvas-row:not(.pr-canvas-row--inspector) {
+    min-height: 220px;
+  }
+  .pr-velocity {
+    height: 58px;
+  }
+  .pr-velocity-head {
+    height: 58px;
+  }
+  .pr-auto-toolbar,
+  .pr-cc-toggle-bar {
+    min-height: 36px;
+    padding-block: 4px;
+  }
+  .pr-auto-param,
+  .pr-cc-toggle-btn,
+  .pr-bezier-btn {
+    min-height: 28px;
+  }
+  .pr-cc-lane {
+    min-height: 68px;
+    padding-block: 4px;
+  }
+  .pr-cc-track {
+    min-height: 26px;
+  }
+  .pr-inspector {
+    padding: 6px;
+    gap: 6px;
+  }
+  .pr-inspector-toggle,
+  .pr-inspector-pill input[type='range'] {
+    min-height: 28px;
+  }
+}
