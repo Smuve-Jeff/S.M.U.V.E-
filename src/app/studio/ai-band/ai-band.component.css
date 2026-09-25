@@ -1,146 +1,252 @@
+/* ============================================================
+   S.M.U.V.E. Studio — AI session band strip
+   ------------------------------------------------------------
+   The virtual session players (drummer / bassist / keyboardist)
+   that improvise over the arrangement during playback. Scoped
+   styling only: the strip stays a single horizontally scrollable
+   row so it can never push the workspace out of the 100dvh shell,
+   and every roster row keeps its existing toggle bindings.
+   ============================================================ */
+
 :host {
   display: block;
+  min-width: 0;
 }
 
 .ai-band {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.4rem 0.75rem;
-  margin: 0 0.5rem 0.35rem;
-  border: 1px solid var(--espresso-line);
-  border-radius: 12px;
-  background: var(--ivory-panel, rgba(255, 255, 255, 0.03));
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  margin: 0 8px 6px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-md, 14px);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--teal-500, #00e5ff) 9%, transparent) 0%,
+      transparent 42%
+    ),
+    color-mix(in srgb, var(--ivory-paper, #1a2040) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 20px rgba(0, 0, 0, 0.16);
   /* Horizontal scroll rather than wrapping: the strip must stay one row tall
      so it can never push the canvas out of the 100dvh shell on a phone. */
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── Section label ──────────────────────────────────────── */
+
 .ai-band-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
   flex: 0 0 auto;
-  color: var(--espresso-muted);
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--teal-500, #00e5ff) 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 10%, transparent);
+  color: var(--espresso-text, #f1f5ff);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 800;
+  font-size: 9px;
+  font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .ai-band-label .material-symbols-outlined {
-  font-size: 1rem;
-  color: var(--teal-300);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--teal-300, #a5f8ff);
+}
+
+.ai-band-label-text {
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .ai-band-count {
-  color: var(--teal-300);
+  font-variant-numeric: tabular-nums;
+  color: var(--teal-300, #a5f8ff);
 }
+
+/* ── Player roster ──────────────────────────────────────── */
 
 .ai-band-players {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 8px;
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ai-band-player {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 8px;
+  flex: 0 0 auto;
   /* 44px minimum touch target for Android Chrome. */
   min-height: 44px;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--espresso-line);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--espresso-text);
+  padding: 5px 12px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 34%, transparent);
+  color: var(--espresso-text, #f1f5ff);
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    transform 140ms ease;
 }
 
 .ai-band-player .material-symbols-outlined {
-  font-size: 1.1rem;
-  color: var(--espresso-muted);
+  font-size: 17px;
+  line-height: 1;
+  color: var(--espresso-muted, #94a3c8);
+  transition: color 160ms ease;
 }
 
 .ai-band-player-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.15;
 }
 
 .ai-band-player-text strong {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.ai-band-player-text small {
-  font-size: 0.58rem;
-  color: var(--espresso-muted);
-}
-
-.ai-band-state {
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  color: var(--espresso-muted);
-}
-
-.ai-band-player:hover {
-  border-color: var(--teal-300);
-}
-
-.ai-band-player:focus-visible {
-  outline: 2px solid var(--teal-300);
-  outline-offset: 2px;
-}
-
-.ai-band-player.is-engaged {
-  border-color: var(--teal-500);
-  background: color-mix(in srgb, var(--teal-500) 14%, transparent);
-  box-shadow: 0 0 12px var(--teal-glow, rgba(43, 160, 156, 0.35));
-}
-
-.ai-band-player.is-engaged .material-symbols-outlined,
-.ai-band-player.is-engaged .ai-band-state {
-  color: var(--teal-300);
-}
-
-.ai-band-readout {
-  flex: 0 0 auto;
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--teal-300);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.ai-band-readout.is-idle {
-  color: var(--espresso-muted);
+.ai-band-player-text small {
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--espresso-muted, #94a3c8);
+  white-space: nowrap;
 }
+
+/* Off / standby state pill on the right of each roster row. */
+.ai-band-state {
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 2px 7px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #94a3c8);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.ai-band-player:hover {
+  border-color: color-mix(in srgb, var(--teal-500, #00e5ff) 50%, transparent);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 7%, transparent);
+}
+
+.ai-band-player:active {
+  transform: scale(0.97);
+}
+
+.ai-band-player:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+.ai-band-player.is-engaged {
+  border-color: var(--teal-500, #00e5ff);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 16%, transparent);
+  box-shadow:
+    0 0 14px var(--teal-glow, rgba(0, 229, 255, 0.35)),
+    inset 0 0 0 1px color-mix(in srgb, var(--teal-300, #a5f8ff) 28%, transparent);
+}
+
+.ai-band-player.is-engaged .material-symbols-outlined {
+  color: var(--teal-300, #a5f8ff);
+}
+
+.ai-band-player.is-engaged .ai-band-state {
+  border-color: color-mix(in srgb, var(--teal-300, #a5f8ff) 60%, transparent);
+  background: color-mix(in srgb, var(--teal-300, #a5f8ff) 16%, transparent);
+  color: var(--teal-300, #a5f8ff);
+}
+
+/* ── Render readout ─────────────────────────────────────── */
+
+.ai-band-readout {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--teal-500, #00e5ff) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 8%, transparent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-300, #a5f8ff);
+  white-space: nowrap;
+}
+
+.ai-band-readout.is-idle {
+  border-color: var(--espresso-line, rgba(180, 200, 255, 0.16));
+  background: transparent;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+/* ── Android / narrow viewport ──────────────────────────── */
 
 @media (max-width: 640px) {
   .ai-band {
-    margin: 0 0.35rem 0.3rem;
-    padding: 0.35rem 0.5rem;
+    gap: 8px;
+    margin: 0 6px 5px;
+    padding: 5px 8px;
   }
 
   .ai-band-player-text small {
     display: none;
+  }
+
+  .ai-band-readout {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .ai-band-player {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-band-player,
+  .ai-band-state,
+  .ai-band-player .material-symbols-outlined {
+    transition: none;
+  }
+
+  .ai-band-player:active {
+    transform: none;
   }
 }
