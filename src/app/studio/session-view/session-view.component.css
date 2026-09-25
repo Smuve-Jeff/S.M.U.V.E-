@@ -1759,3 +1759,103 @@
     padding: 0 5px;
   }
 }
+
+/* Desktop portrait/narrow workspaces: the launcher keeps a compact scene
+   rail and delegates additional tracks to the clip grid's own scroll rail. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  :host,
+  .sv-shell {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .sv-header {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    gap: 7px 9px;
+  }
+
+  .sv-header-left {
+    flex: 1 1 190px;
+  }
+
+  .sv-header-actions {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    overscroll-behavior-x: contain;
+  }
+
+  .sv-header-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .sv-preset-group {
+    min-width: 210px;
+  }
+
+  .sv-scene-rail {
+    width: 108px;
+  }
+
+  .sv-scene-rail-header {
+    padding-inline: 8px;
+  }
+
+  .sv-scene-item {
+    gap: 7px;
+    padding-inline: 8px;
+  }
+
+  .sv-track-header,
+  .sv-clip-slot {
+    flex-basis: 122px;
+  }
+
+  .sv-scene-label {
+    width: 108px;
+    padding-inline: 8px;
+  }
+
+  .sv-clip-slot {
+    height: 60px;
+    margin: 3px;
+    padding: 5px 6px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .sv-header {
+    padding-block: 6px;
+  }
+
+  .sv-action-btn {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+
+  .sv-scene-rail-header {
+    min-height: 36px;
+    padding-block: 6px;
+  }
+
+  .sv-scene-item {
+    min-height: 44px;
+    padding-block: 7px;
+  }
+
+  .sv-track-header {
+    min-height: 42px;
+    padding-block: 5px;
+  }
+
+  .sv-clip-slot {
+    height: 50px;
+    margin-block: 2px;
+  }
+}

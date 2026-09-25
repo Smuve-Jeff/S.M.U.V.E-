@@ -1517,3 +1517,68 @@
     border-color: CanvasText;
   }
 }
+
+/* Desktop portrait/narrow workspaces: three columns preserve readable pad
+   labels while the grid itself remains the only vertical scroll owner. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .performance-shell {
+    gap: 8px;
+    padding: 9px;
+  }
+
+  .performance-velocity-toolbar {
+    min-height: 50px;
+    padding: 7px 9px;
+    gap: 7px;
+  }
+
+  .performance-velocity-toolbar .perf-velo-slider {
+    min-width: 116px;
+  }
+
+  .performance-pad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .performance-pad-surface {
+    min-height: 80px;
+  }
+
+  .performance-midi-console {
+    max-height: min(34vh, 300px);
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .performance-shell {
+    gap: 6px;
+    padding: 7px 9px;
+  }
+
+  .performance-velocity-toolbar {
+    min-height: 44px;
+    padding-block: 5px;
+  }
+
+  .performance-pad-grid {
+    gap: 6px;
+    padding-bottom: 7px;
+  }
+
+  .performance-pad-surface {
+    min-height: 66px;
+  }
+
+  .performance-midi-console {
+    max-height: 30vh;
+    padding: 8px;
+  }
+
+  .performance-midi-header {
+    top: -8px;
+    margin: -8px -8px 6px;
+    padding: 6px 8px;
+  }
+}

@@ -48,12 +48,13 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
       .reverse()
       .slice(0, 4)
   );
-  strategicRecs = signal<any[]>([]);
+  strategicRecs = signal<StrategicRecommendation[]>([]);
   isPoweringUp = signal(false);
 
   // Terminal state
   terminalLogs = signal<TerminalLog[]>([]);
-  private intervalId: any;
+  private decreePollId: ReturnType<typeof setInterval> | null = null;
+  private terminalIntervalId: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit() {
     this.startTerminalSimulation();
@@ -66,35 +67,37 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.intervalId) clearInterval(this.intervalId);
+    if (this.decreePollId) clearInterval(this.decreePollId);
+    if (this.terminalIntervalId) clearInterval(this.terminalIntervalId);
   }
 
   private startTerminalSimulation() {
     // Wait for decrees to be available
-    const checkDecrees = setInterval(() => {
+    this.decreePollId = setInterval(() => {
       const decrees = this.aiService.strategicDecrees();
-      if (decrees.length > 0) {
-        clearInterval(checkDecrees);
+      if (decrees.length === 0) return;
 
-        this.terminalLogs.set([]);
+      if (this.decreePollId) clearInterval(this.decreePollId);
+      this.decreePollId = null;
+      this.terminalLogs.set([]);
 
-        let currentLine = 0;
-        this.intervalId = setInterval(() => {
-          if (currentLine < decrees.length) {
-            this.terminalLogs.update((logs) => [
-              ...logs,
-              {
-                timestamp: Date.now(),
-                type: 'system',
-                message: decrees[currentLine],
-              },
-            ]);
-            currentLine++;
-          } else {
-            clearInterval(this.intervalId);
-          }
-        }, 800);
-      }
+      let currentLine = 0;
+      this.terminalIntervalId = setInterval(() => {
+        if (currentLine < decrees.length) {
+          this.terminalLogs.update((logs) => [
+            ...logs,
+            {
+              timestamp: Date.now(),
+              type: 'system',
+              message: decrees[currentLine],
+            },
+          ]);
+          currentLine++;
+        } else if (this.terminalIntervalId) {
+          clearInterval(this.terminalIntervalId);
+          this.terminalIntervalId = null;
+        }
+      }, 800);
     }, 500);
   }
 

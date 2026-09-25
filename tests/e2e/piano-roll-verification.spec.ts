@@ -1,61 +1,35 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
 
-test.describe('Piano Roll Refinement Verification', () => {
-  test('should render the refined Bento layout and Analog Engine v4.2 aesthetics', async ({
-    page,
-  }) => {
-    // Set viewport to desktop
+async function expectNoPageOverflow(page: import('@playwright/test').Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+}
+
+test.describe('Piano Roll production layout', () => {
+  test('renders the desktop editor without page-level overflow', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
+    await seedAuthenticatedSession(page);
+    await page.goto('/studio?view=piano-roll');
 
-    // Navigate to studio (mocking the path if possible, or assuming it serves)
-    // Since I cannot easily start the server and wait for it in this environment without blocking,
-    // I will assume the server is running or I will just write the test for future use.
-    // However, I SHOULD try to run it if possible.
-
-    await page.goto('http://localhost:4200/studio?view=piano-roll');
-
-    // Check for bento grid structure
-    const bentoGrid = page.locator('.bento-grid-pr');
-    await expect(bentoGrid).toBeVisible();
-
-    // Check for wood frames
-    const woodFrame = page.locator('.wood-frame.top');
-    await expect(woodFrame).toBeVisible();
-
-    // Check for glassmorphism
-    const header = page.locator('.header-module');
-    await expect(header).toHaveClass(/glass-v42/);
-
-    // Check for neon text
-    const title = page.locator('.glimmer-text');
-    await expect(title).toBeVisible();
-
-    // Check for scanlines
-    const scanlines = page.locator('.scanline-overlay');
-    await expect(scanlines).toBeVisible();
-
-    await page.screenshot({ path: 'screenshots/piano-roll-desktop.png' });
+    await expect(page.locator('.piano-roll-surface')).toBeVisible();
+    await expect(page.locator('.pr-header')).toBeVisible();
+    await expect(page.locator('.pr-grid canvas')).toBeVisible();
+    await expect(page.locator('.pr-auto-toolbar')).toBeVisible();
+    await expectNoPageOverflow(page);
   });
 
-  test('should adapt to mobile bento layout', async ({ page }) => {
-    // Set viewport to Android-like mobile
+  test('keeps the grid and inspector usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await seedAuthenticatedSession(page);
+    await page.goto('/studio?view=piano-roll');
 
-    await page.goto('http://localhost:4200/studio?view=piano-roll');
-
-    // Sidebar should be hidden by default on mobile
-    const sidebar = page.locator('.sidebar-left');
-    await expect(sidebar).not.toBeVisible();
-
-    // Header should be visible
-    const header = page.locator('.header-module');
-    await expect(header).toBeVisible();
-
-    // Click more_vert to show sidebar
-    await page.click('button:has-text("more_vert")');
-    await expect(sidebar).toBeVisible();
-    await expect(sidebar).toHaveClass(/mobile-visible/);
-
-    await page.screenshot({ path: 'screenshots/piano-roll-mobile.png' });
+    await expect(page.locator('.piano-roll-surface')).toBeVisible();
+    await expect(page.locator('.pr-header')).toBeVisible();
+    await expect(page.locator('.pr-grid')).toBeVisible();
+    await expect(page.locator('.pr-canvas-row--inspector')).toBeVisible();
+    await expectNoPageOverflow(page);
   });
 });

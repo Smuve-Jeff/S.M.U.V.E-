@@ -1,5 +1,5 @@
 <div
-  class="min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-fl-blue/30 flex flex-col relative overflow-hidden"
+  class="vocal-suite-root min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-fl-blue/30 flex flex-col relative overflow-hidden"
 >
   <!-- Dynamic HUD Background -->
   <div class="absolute inset-0 pointer-events-none opacity-20">
@@ -221,7 +221,7 @@
           </div>
 
           <div
-            class="h-64 mb-8 bg-vocal-oled rounded-2xl border border-fl-border relative flex items-center justify-center overflow-hidden"
+            class="vs-spectrogram h-64 mb-8 bg-vocal-oled rounded-2xl border border-fl-border relative flex items-center justify-center overflow-hidden"
           >
             <canvas
               #spectrograph
@@ -312,7 +312,7 @@
             Non-Destructive Waveform Editor
           </h2>
           <div
-            class="h-48 bg-vocal-oled rounded-xl border border-fl-border mb-6 relative overflow-hidden group"
+            class="vs-edit-spectrogram h-48 bg-vocal-oled rounded-xl border border-fl-border mb-6 relative overflow-hidden group"
           >
             <canvas
               #waveformCanvas
@@ -608,7 +608,7 @@
           class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-fl-border rounded-3xl p-6 flex flex-col gap-6"
         >
           <div
-            class="h-80 bg-vocal-oled rounded-2xl border border-fl-border relative overflow-hidden"
+            class="vs-spectrogram h-80 bg-vocal-oled rounded-2xl border border-fl-border relative overflow-hidden"
           >
             <canvas
               #spectrograph

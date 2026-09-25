@@ -117,6 +117,51 @@ describe('AiService', () => {
     expect(service).toBeTruthy();
   });
 
+  it('exposes a stable system-status signal for status consumers', () => {
+    expect(service.systemStatus()).toEqual(
+      expect.objectContaining({
+        cpuLoad: expect.any(Number),
+        neuralSync: expect.any(Number),
+        memoryUsage: expect.any(Number),
+        latency: expect.any(Number),
+      }),
+    );
+  });
+
+  it('maps upgrade cards to uniquely keyed strategic operations', () => {
+    const recommendations = service.getStrategicRecommendations();
+
+    expect(recommendations).toEqual([
+      expect.objectContaining({
+        id: 'operation-test-upgrade',
+        action: 'Test Upgrade',
+        impact: 'High',
+        toolId: 'test-tool',
+      }),
+    ]);
+    expect(new Set(recommendations.map(({ id }) => id)).size).toBe(
+      recommendations.length,
+    );
+  });
+
+  it('stores bounded, uniquely identified industry research results', async () => {
+    jest
+      .spyOn(service, 'getAIResponse')
+      .mockResolvedValue('Concise verified industry brief.');
+
+    await service.industryDeepSearch('  streaming discovery trends  ');
+
+    expect(service.industryIntelligence()).toEqual([
+      expect.objectContaining({
+        id: expect.stringMatching(/^industry-/),
+        query: 'streaming discovery trends',
+        intel: 'Concise verified industry brief.',
+        timestamp: expect.any(Number),
+      }),
+    ]);
+    expect(service.systemStatus().activeProcesses).toBe(0);
+  });
+
   it('should unlock an upgrade', (done) => {
     expect(service.isUnlocked('test-upgrade')).toBe(false);
     service.unlockUpgrade('test-upgrade');

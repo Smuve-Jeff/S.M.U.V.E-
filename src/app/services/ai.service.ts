@@ -12,7 +12,9 @@ import { catchError } from 'rxjs/operators';
 import {
   ExecutiveAuditReport,
   MarketAlert,
+  StrategicRecommendation,
   StrategicTask,
+  SystemStatus,
 } from '../types/ai.types';
 import { buildArtistMusicContext } from '../types/profile.types';
 import {
@@ -56,6 +58,25 @@ export class AiService {
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
   marketAlerts = signal<MarketAlert[]>([]);
+  /**
+   * Runtime-safe system telemetry contract used by Command Center. Browser
+   * apps cannot read CPU utilization directly, so unsupported values remain
+   * zero instead of being replaced with invented measurements.
+   */
+  readonly systemStatus = signal<SystemStatus>({
+    cpuLoad: 0,
+    neuralSync:
+      typeof navigator === 'undefined' || navigator.onLine ? 100 : 0,
+    memoryUsage: 0,
+    latency: 0,
+    marketVelocity: 0,
+    activeProcesses: 0,
+    neuralLinkStrength:
+      typeof navigator === 'undefined' || navigator.onLine ? 100 : 0,
+  });
+  industryIntelligence = signal<
+    Array<{ id: string; query: string; intel: string; timestamp: number }>
+  >([]);
   isProcessing = signal(false);
   private loggingService = inject(LoggingService);
   private http = inject(HttpClient);
@@ -249,8 +270,71 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   getUpgradeRecommendations() {
     return this.availableUpgrades();
   }
-  getStrategicRecommendations() {
-    return this.availableUpgrades();
+
+  /**
+   * Command Center consumes StrategicRecommendation records, not raw upgrade
+   * cards. Returning UpgradeRecommendation objects directly left `action`
+   * undefined, which collapsed every Angular track key to an empty string and
+   * produced NG0955 on every change-detection pass.
+   */
+  getStrategicRecommendations(): StrategicRecommendation[] {
+    return this.getUpgradeRecommendations().slice(0, 4).map((upgrade) => ({
+      id: `operation-${upgrade.id}`,
+      action: upgrade.title,
+      impact: upgrade.impact,
+      difficulty: upgrade.prerequisites.length
+        ? 'Prerequisite required'
+        : 'Immediate',
+      toolId: upgrade.toolId,
+    }));
+  }
+
+  private industrySearchSequence = 0;
+
+  /** Runs the existing AI endpoint and retains a bounded search history. */
+  async industryDeepSearch(query: string): Promise<void> {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
+
+    const startedAt =
+      typeof performance !== 'undefined' ? performance.now() : Date.now();
+    this.systemStatus.update((status) => ({
+      ...status,
+      activeProcesses: status.activeProcesses + 1,
+    }));
+
+    try {
+      const intel = await this.getAIResponse(
+        `Answer this music-industry research query with a concise, factual brief. ` +
+          `Separate verified facts from informed hypotheses, and do not invent citations. ` +
+          `Query: ${normalizedQuery}`,
+      );
+      const endedAt =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const timestamp = Date.now();
+      const id = `industry-${timestamp}-${++this.industrySearchSequence}`;
+
+      this.industryIntelligence.update((entries) =>
+        [
+          {
+            id,
+            query: normalizedQuery,
+            intel,
+            timestamp,
+          },
+          ...entries,
+        ].slice(0, 6),
+      );
+      this.systemStatus.update((status) => ({
+        ...status,
+        latency: Math.max(0, Math.round(endedAt - startedAt)),
+      }));
+    } finally {
+      this.systemStatus.update((status) => ({
+        ...status,
+        activeProcesses: Math.max(0, status.activeProcesses - 1),
+      }));
+    }
   }
   async getAIResponse(prompt: string): Promise<string> {
     this.isProcessing.set(true);

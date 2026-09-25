@@ -1559,3 +1559,75 @@
     border-color: CanvasText;
   }
 }
+
+/* Desktop portrait/narrow browser: tighten the discovery rails while the
+   preset grid keeps independent two-dimensional scrolling. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .sb-header {
+    padding: 9px 10px;
+    gap: 7px;
+  }
+
+  .sb-search input {
+    height: 42px;
+  }
+
+  .sb-packs-section {
+    padding: 8px;
+  }
+
+  .sb-pack-chip {
+    min-width: 176px;
+    min-height: 60px;
+  }
+
+  .sb-similar {
+    margin: 8px 10px 0;
+  }
+
+  .sb-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .sound-browser-card {
+    min-height: 72px;
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .sound-browser-card .sb-card-thumb {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .sb-header {
+    padding-block: 6px;
+    gap: 5px;
+  }
+
+  .sb-search input {
+    height: 38px;
+  }
+
+  .sb-cat {
+    min-height: 38px;
+  }
+
+  .sb-packs-section {
+    padding-block: 6px;
+  }
+
+  .sb-list {
+    padding-block: 7px;
+  }
+
+  .sound-browser-card {
+    min-height: 66px;
+    padding-block: 7px;
+  }
+}

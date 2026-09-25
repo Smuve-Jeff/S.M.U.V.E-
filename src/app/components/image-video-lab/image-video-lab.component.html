@@ -712,7 +712,7 @@
             <button type="button" class="timeline-tool" (click)="seekRelativeMarker(-1)">PREV</button>
             <button type="button" class="timeline-tool" (click)="seekRelativeMarker(1)">NEXT</button>
           </div>
-          <div class="selected-clip-toolbar" *ngIf="selectedClip(); as clip">
+          <div class="selected-clip-toolbar" *ngIf="selectedClip() as clip">
             <span class="selected-clip-name">{{ clip.name }}</span>
             <span>{{ clip.startTime | number: '1.2-2' }}s · {{ clip.duration | number: '1.2-2' }}s</span>
             <span class="selected-clip-bars">{{ selectedClipBars() }}</span>

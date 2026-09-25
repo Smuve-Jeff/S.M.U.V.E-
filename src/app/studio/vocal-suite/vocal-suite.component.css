@@ -48,6 +48,11 @@
   gap: 1.5rem;
 }
 
+.vocal-suite-root {
+  height: 100%;
+  min-height: 100%;
+}
+
 .vocal-header {
   display: flex;
   justify-content: space-between;
@@ -404,5 +409,127 @@ main input[type="checkbox"] {
   .vs-steps button[aria-selected="true"],
   .vs-master-tabs button[aria-selected="true"] {
     outline: 2px solid Highlight;
+  }
+}
+
+/* Desktop portrait/narrow workspaces: retain the full console while
+   reclaiming edge padding and splitting the four-stage launcher into two. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  :host {
+    height: 100%;
+    min-height: 0;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .vs-hud-header {
+    height: auto;
+    min-height: 52px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 7px 10px;
+  }
+
+  .vs-hud-header > div:first-child {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .vs-hud-header nav {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  main {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  main > div {
+    gap: 12px;
+  }
+
+  main > div > * + * {
+    margin-top: 12px;
+  }
+
+  .vs-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .vs-steps button {
+    min-height: 56px;
+    padding: 10px;
+  }
+
+  .vs-spectrogram {
+    height: 210px;
+  }
+
+  .vs-edit-spectrogram {
+    height: 132px;
+  }
+
+  .vs-master-tabs,
+  .vs-transport-row {
+    gap: 8px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  :host {
+    padding: 7px 9px;
+  }
+
+  .vs-hud-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .vs-hud-sub {
+    display: none;
+  }
+
+  main {
+    padding: 8px 10px;
+  }
+
+  main > div {
+    gap: 8px;
+  }
+
+  main > div > * + * {
+    margin-top: 8px;
+  }
+
+  .vs-steps {
+    gap: 6px;
+  }
+
+  .vs-steps button {
+    min-height: 48px;
+    padding: 7px 9px;
+  }
+
+  .vs-spectrogram {
+    height: 150px;
+  }
+
+  .vs-edit-spectrogram {
+    height: 104px;
+  }
+
+  .vs-master-tabs,
+  .vs-transport-row {
+    gap: 6px;
+  }
+
+  .vs-status-bar {
+    min-height: 30px;
+    padding-block: 5px;
   }
 }

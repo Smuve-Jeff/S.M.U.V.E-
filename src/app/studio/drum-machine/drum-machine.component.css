@@ -1804,3 +1804,146 @@
     border-left-color: CanvasText;
   }
 }
+
+/* Desktop portrait/narrow workspaces: stack the three playing surfaces so
+   neither the 16-step grid nor the inspector is crushed by a fixed rail. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  :host,
+  .dm-shell {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .dm-shell {
+    gap: 7px;
+  }
+
+  .dm-header {
+    min-height: 50px;
+    padding: 7px 10px;
+  }
+
+  .dm-header h1 {
+    font-size: 16px;
+  }
+
+  .dm-pattern-context,
+  .dm-style-bar {
+    margin-inline: 8px;
+    padding: 7px 9px;
+  }
+
+  .dm-body {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0 8px 8px;
+    gap: 8px;
+    overscroll-behavior-y: contain;
+  }
+
+  .dm-pads {
+    flex: 0 0 auto;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    min-height: 156px;
+    padding: 8px;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .dm-pad {
+    min-height: 62px;
+    aspect-ratio: auto;
+    padding: 6px 4px;
+  }
+
+  .dm-step-grid {
+    flex: 0 0 auto;
+    min-height: 340px;
+    border-left: 1px solid rgba(61, 53, 42, 0.14);
+  }
+
+  .dm-step-bar-tabs {
+    padding: 7px 8px 3px;
+  }
+
+  .dm-step-row {
+    min-width: 560px;
+  }
+
+  .dm-steps-list {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .dm-inspector {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    padding: 10px;
+    overflow: visible;
+  }
+
+  .dm-kit-bar,
+  .dm-takes-bar {
+    padding: 8px 10px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .dm-shell {
+    gap: 5px;
+  }
+
+  .dm-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .dm-pattern-context {
+    padding-block: 5px;
+  }
+
+  .dm-style-bar {
+    padding-block: 6px;
+  }
+
+  .dm-body {
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  .dm-pads {
+    padding: 7px;
+    gap: 6px;
+  }
+
+  .dm-pad {
+    min-height: 50px;
+  }
+
+  .dm-inspector {
+    width: 204px;
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .dm-step-bar-tabs {
+    padding-block: 6px 3px;
+  }
+
+  .dm-step-row {
+    min-height: 31px;
+  }
+
+  .dm-step {
+    height: 31px;
+  }
+
+  .dm-kit-bar,
+  .dm-takes-bar {
+    padding-block: 7px;
+  }
+}

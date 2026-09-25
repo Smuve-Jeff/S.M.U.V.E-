@@ -982,3 +982,80 @@
     transition: none;
   }
 }
+
+/* Desktop portrait/narrow storefront: two card columns avoid the tiny
+   three-column desktop grid while the shelf retains independent scrolling. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .plugin-store-surface {
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .ps-header {
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  .ps-header-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .ps-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ps-card {
+    min-height: 0;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .ps-params {
+    padding: 7px;
+  }
+
+  .ps-community {
+    max-height: 180px;
+    padding: 8px;
+  }
+
+  .ps-community-list {
+    max-height: 128px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .plugin-store-surface {
+    padding: 7px 9px;
+    gap: 7px;
+  }
+
+  .ps-header {
+    min-height: 48px;
+    padding-block: 6px;
+  }
+
+  .ps-sub {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .ps-card {
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .ps-community {
+    max-height: 150px;
+    padding: 7px;
+  }
+
+  .ps-community-list {
+    max-height: 104px;
+  }
+}

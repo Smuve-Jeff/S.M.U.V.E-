@@ -1554,3 +1554,100 @@
 }
 
 /* End of Effects Rack presentation pass */
+
+/* Desktop portrait/narrow workspaces use the same deliberate vertical
+   console flow as the compact breakpoint, without removing any module. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .effects-rack-header {
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .er-body {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .effects-rack-wasm {
+    flex: 0 0 auto;
+    margin: 8px 8px 0;
+    padding: 9px 10px;
+  }
+
+  .effects-rack-slots {
+    display: flex;
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--fx-line);
+    scroll-snap-type: x proximity;
+  }
+
+  .effects-rack-slot,
+  .effects-rack-add-slot {
+    flex: 0 0 166px;
+    min-width: 166px;
+    scroll-snap-align: start;
+  }
+
+  .effects-rack-params {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 260px;
+    padding: 12px;
+  }
+
+  .effects-rack-params .er-knob-grid {
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    gap: 8px;
+  }
+
+  .effects-rack-knob-cell {
+    min-height: 116px;
+    padding: 9px 7px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .effects-rack-header {
+    min-height: 48px;
+    padding-block: 6px;
+  }
+
+  .er-body {
+    grid-template-columns: minmax(168px, 0.28fr) minmax(0, 1fr) minmax(188px, 0.56fr);
+  }
+
+  .effects-rack-wasm {
+    margin: 8px 8px 0;
+    padding: 7px 8px;
+  }
+
+  .effects-rack-slots {
+    padding: 8px;
+  }
+
+  .effects-rack-params {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .effects-rack-params .er-knob-grid {
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 7px;
+  }
+
+  .effects-rack-knob-cell {
+    min-height: 104px;
+    padding: 7px;
+  }
+}
