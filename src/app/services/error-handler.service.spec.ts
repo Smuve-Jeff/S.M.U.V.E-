@@ -112,6 +112,48 @@ describe('GlobalErrorHandler', () => {
   });
 
   /*
+   * The toast queue has no dedupe of its own, so a fault that repeats every
+   * frame used to stack an identical card per frame until the interface was
+   * buried. One fault is one card.
+   */
+  it('toasts a repeating anomaly once instead of once per occurrence', () => {
+    service.handleError(new Error('audio graph keeps detaching'));
+
+    for (let i = 0; i < 20; i += 1) {
+      service.handleError(new Error('audio graph keeps detaching'));
+    }
+
+    expect(show).toHaveBeenCalledTimes(1);
+    // Every occurrence is still logged — suppression is for the UI, not the record.
+    expect(logger.error).toHaveBeenCalledTimes(21);
+  });
+
+  it('still toasts a different anomaly while one is already on screen', () => {
+    service.handleError(new Error('first failure'));
+    service.handleError(new Error('second failure'));
+
+    expect(show).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * Swapping a video source or leaving a route mid-play makes the browser
+   * reject operations on a media element that is already gone. That is the
+   * sound of teardown, not of a broken app, and it must never reach a toast.
+   */
+  it.each([
+    'AbortError: The operation was aborted',
+    'The play() request was interrupted by a new load request',
+    'DOMException: The element has no supported sources',
+    'ResizeObserver loop completed with undelivered notifications',
+    'net::ERR_ABORTED',
+  ])('stays quiet for teardown noise: %s', (message) => {
+    service.handleError(new Error(message));
+
+    expect(show).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  /*
    * Angular can hand the handler a rejection with no reason at all; reading
    * `.message` off undefined used to throw from inside the handler itself,
    * hiding the original failure behind a reporting bug.

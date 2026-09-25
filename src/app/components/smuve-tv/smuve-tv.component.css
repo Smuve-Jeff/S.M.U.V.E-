@@ -794,6 +794,8 @@
   width: 100%;
   height: 100%;
   display: block;
+  /* The painted scene is the floor of the stage; everything else stacks on it. */
+  z-index: 0;
 }
 
 /*
@@ -824,6 +826,12 @@
  * template, so the guide's ordinary component styles cannot see it — Angular
  * keeps the element's own scoped rules, and nothing else, while it is being
  * carried between the two surfaces. Style it deeply here.
+ *
+ * The app shell appends this element to the stage, so it lands after the
+ * station's own furniture in DOM order. Without an explicit layer it would
+ * paint over the channel bug, the ON AIR badge, and the lower third — the
+ * live picture hiding the information that explains it. It sits one layer
+ * above the canvas and below every overlay.
  */
 .tv-player ::ng-deep video.smuve-tv-persistent-video {
   position: absolute;
@@ -834,6 +842,7 @@
   object-fit: cover;
   background: #020305;
   opacity: 0;
+  z-index: 1;
   pointer-events: none;
   transition: opacity 180ms ease;
 }
@@ -861,6 +870,8 @@
   inset: 0;
   display: block;
   background: #000;
+  /* The artist's own record outranks the live feed while it is on air. */
+  z-index: 2;
 }
 
 .tv-record[hidden] {
@@ -942,6 +953,7 @@
   position: absolute;
   top: 0.7rem;
   left: 0.75rem;
+  z-index: 3;
   display: flex;
   align-items: center;
   /* Capped so a long station name cannot grow into the ON AIR pill. */
@@ -973,6 +985,7 @@
   position: absolute;
   top: 0.7rem;
   right: 0.75rem;
+  z-index: 3;
   padding: 0.22rem 0.55rem;
   border: 1px solid rgba(239, 68, 68, 0.45);
   border-radius: 999px;
@@ -994,6 +1007,7 @@
   left: 0.75rem;
   right: 0.75rem;
   bottom: 0.75rem;
+  z-index: 3;
   padding: 0.55rem 0.7rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
@@ -1066,6 +1080,8 @@
   position: absolute;
   top: 2.7rem;
   left: 0.75rem;
+  /* Sits over the live picture rather than beneath it. */
+  z-index: 3;
   margin: 0;
   max-width: calc(100% - 1.5rem);
   font-size: 0.6rem;

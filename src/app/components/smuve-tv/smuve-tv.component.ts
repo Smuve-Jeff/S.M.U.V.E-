@@ -1130,6 +1130,14 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * floating dock rather than a false "PiP active" state.
    */
   async popOut(): Promise<void> {
+    // A second press means "I changed my mind": the picture is already out of
+    // the guide, so it belongs to the shell and the only honest action left is
+    // to bring it back. Re-requesting PiP here could only reopen a window the
+    // viewer just asked to close.
+    if (this.playback.isPersistent()) {
+      await this.playback.dock();
+      return;
+    }
     await this.playback.popOut();
   }
 

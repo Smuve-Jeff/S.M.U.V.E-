@@ -167,20 +167,22 @@ export class SmuveTvPlaybackService {
     this.moduleHost = null;
   }
 
-  /** Moves the one video into the guide's stage and returns any native PiP. */
+  /**
+   * Moves the one video into the guide's stage and returns any native PiP.
+   *
+   * The move happens whether or not a session is running. The guide mounts
+   * this host *before* it tunes a feed, so waiting for an active session left
+   * the element parked in the shell and the stage showed nothing but the
+   * canvas scene — the live picture never appeared on screen.
+   */
   mountInModule(host: HTMLElement): void {
     this.moduleHost = host;
     if (this.surface() === 'pip') {
       void this.exitNativePictureInPicture();
     }
 
-    if (this.sessionActive()) {
-      this.surface.set('module');
-      this.moveVideo(host);
-      return;
-    }
-
     this.surface.set('module');
+    this.moveVideo(host);
   }
 
   /**
@@ -233,6 +235,11 @@ export class SmuveTvPlaybackService {
 
     const video = this.video;
     if (!video) return;
+
+    // A fresh source attaches wherever the session currently lives, so tuning
+    // a channel from the floating dock never yanks the video back into a
+    // guide that is no longer on screen.
+    this.moveVideo(this.moduleHost ?? this.fallbackHost);
 
     const token = ++this.loadToken;
     video.muted = !audioOn;
@@ -308,8 +315,19 @@ export class SmuveTvPlaybackService {
    */
   async popOut(): Promise<boolean> {
     if (!this.video || !this.hasPlayableSession()) return false;
-    this.moveVideo(this.fallbackHost);
+
+    /*
+     * The video must be on screen before the browser will open a Picture-in-
+     * Picture window for it. Moving it into the dock is not enough on its own:
+     * the dock is `display: none` until the surface signal reaches change
+     * detection, and a video inside a display-none subtree is not eligible.
+     * Wait for the frame that actually paints the dock, then ask. Without this
+     * the request is refused on every browser and the viewer only ever got the
+     * floating surface, which is the symptom this whole path exists to fix.
+     */
     this.surface.set('floating');
+    this.moveVideo(this.fallbackHost);
+    await this.afterRender();
 
     const video = this.video as PictureInPictureVideo;
     if (
@@ -337,6 +355,31 @@ export class SmuveTvPlaybackService {
     return false;
   }
 
+  /**
+   * Resolves once the browser has had a chance to paint the pending DOM.
+   *
+   * Two animation frames is the honest minimum: the first lets change
+   * detection apply the surface class, the second lets layout and style settle
+   * so the video is genuinely visible to the PiP eligibility check. Falls back
+   * to a macrotask where no animation frame exists, and resolves immediately
+   * during teardown rather than holding a caller open forever.
+   */
+  private afterRender(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (typeof requestAnimationFrame !== 'function') {
+        setTimeout(resolve, 0);
+        return;
+      }
+      requestAnimationFrame(() => {
+        if (typeof requestAnimationFrame !== 'function') {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+
   /** Leaves native PiP and keeps the session visible in the shell. */
   async dock(): Promise<void> {
     await this.exitNativePictureInPicture();
@@ -345,11 +388,17 @@ export class SmuveTvPlaybackService {
     this.moveVideo(this.moduleHost ?? this.fallbackHost);
   }
 
-  /** Stops and releases the source when the viewer explicitly closes TV. */
+  /**
+   * Stops and releases the source when the viewer explicitly closes TV.
+   *
+   * The session state is torn down *before* the Picture-in-Picture window is
+   * asked to close, not after. Awaiting first left the session reading as
+   * active for at least a frame after the caller was done with it — so a guide
+   * being destroyed on a route change kept a "playing" session, and a decoder
+   * still pulling a stream, for the length of that await.
+   */
   async close(): Promise<void> {
-    await this.exitNativePictureInPicture();
     this.moduleHost = null;
-    this.moveVideo(this.fallbackHost);
     this.surface.set('closed');
     this.sessionActive.set(false);
     this.channelId.set(null);
@@ -359,7 +408,9 @@ export class SmuveTvPlaybackService {
     this.audioOn.set(false);
     this.error.set(null);
     this.sourceKey = '';
+    this.moveVideo(this.fallbackHost);
     this.releaseSource();
+    await this.exitNativePictureInPicture();
   }
 
   /** Human-readable feed failure used by both the guide and the floating dock. */
