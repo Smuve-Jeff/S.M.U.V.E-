@@ -1318,3 +1318,39 @@
   .ctb-group { transition: box-shadow 0.2s ease, border-color 0.2s ease; }
   .ctb-group:hover { transform: none; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — TRANSPORT CLUSTER COVERAGE
+   The tap-tempo and play-mode clusters rendered with browser
+   defaults inside an otherwise finished transport. Presentation
+   only: tempo maths, tap windows and mode bindings are untouched.
+   ════════════════════════════════════════════════════════════ */
+
+.ctb-tap-group {
+  gap: 6px;
+}
+
+.ctb-playmode {
+  gap: 3px;
+}
+
+.ctb-tap-group > .ctb-btn,
+.ctb-playmode > .ctb-btn {
+  min-height: 28px;
+}
+
+/* Android: the transport is the one surface that must never miss a tap. */
+@media (pointer: coarse) {
+  .ctb-tap-group > .ctb-btn,
+  .ctb-playmode > .ctb-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .ctb-tap-group,
+  .ctb-playmode {
+    border-color: CanvasText;
+  }
+}

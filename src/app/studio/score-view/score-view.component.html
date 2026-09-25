@@ -1,5 +1,8 @@
-<section class="score-shell" aria-labelledby="score-title">
-  <header class="score-header">
+<section
+  class="score-shell studio-workspace-surface score-surface"
+  aria-labelledby="score-title"
+>
+  <header class="score-header studio-context-toolbar">
     <div>
       <p class="score-eyebrow">A5 · SCORE VIEW</p>
       <h1 id="score-title">Notation</h1>
@@ -15,7 +18,11 @@
     </div>
   </header>
 
-  <div class="score-toolbar" role="toolbar" aria-label="Notation tools">
+  <div
+    class="score-toolbar studio-context-toolbar"
+    role="toolbar"
+    aria-label="Notation tools"
+  >
     <span class="score-toolbar-status">
       <span class="score-live-dot" aria-hidden="true"></span>
       LIVE SCORE SYNC
@@ -23,7 +30,10 @@
     <span class="score-toolbar-hint">4/4 · 16th-note grid · click a part to edit in Piano Roll</span>
   </div>
 
-  <div class="score-scroll" *ngIf="staves().length > 0; else emptyScore">
+  <div
+    class="score-scroll studio-module-scroll"
+    *ngIf="staves().length > 0; else emptyScore"
+  >
     <div class="score-ruler" [style.width.px]="bars() * 16 * 5.5 + 120">
       <span class="score-ruler-label">BARS</span>
       <span
@@ -90,7 +100,7 @@
   </div>
 
   <ng-template #emptyScore>
-    <div class="score-empty">
+    <div class="score-empty studio-empty-state">
       <span class="material-symbols-outlined">music_note</span>
       <h2>Your score is waiting for a note</h2>
       <p>Add a MIDI track and draw a few notes in Piano Roll to see the notation appear here.</p>

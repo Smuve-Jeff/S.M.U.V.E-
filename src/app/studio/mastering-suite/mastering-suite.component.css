@@ -479,3 +479,406 @@
     transform: none !important;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Mastering Suite
+   A calm destination monitor: actions, presets, meters, and
+   safety feedback read as one bounded desk at every breakpoint.
+   ============================================================ */
+
+:host {
+  --ms-canvas: var(--ivory-deep, #06091a);
+  --ms-surface: var(--ivory-paper, #fbf7ec);
+  --ms-panel: var(--ivory-panel, #fffaf0);
+  --ms-ink: var(--espresso-text, #1f1a12);
+  --ms-muted: var(--espresso-muted, #7e7259);
+  --ms-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --ms-teal: var(--teal-500, #0e7c7b);
+  --ms-amber: var(--neon-amber, #d97706);
+  --ms-shadow: 0 16px 36px rgba(2, 8, 23, 0.22);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--ms-ink);
+}
+
+.mastering-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(14px, 2vw, 24px);
+  gap: clamp(14px, 1.8vw, 22px);
+  border: 1px solid var(--ms-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(80% 38% at 88% 0%, color-mix(in srgb, var(--ms-teal) 9%, transparent), transparent 68%),
+    radial-gradient(65% 36% at 4% 100%, color-mix(in srgb, var(--ms-amber) 6%, transparent), transparent 70%),
+    var(--ms-canvas);
+  box-shadow: var(--ms-shadow);
+  color: var(--ms-ink);
+  isolation: isolate;
+}
+
+.mastering-surface .mastering-header {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.mastering-header h1 {
+  color: var(--ms-ink);
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.mastering-header h1 .text-fl-blue {
+  color: var(--ms-teal);
+}
+
+.mastering-header p {
+  color: var(--ms-muted);
+  letter-spacing: 0.22em;
+}
+
+.mastering-header > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mastering-header button {
+  min-height: 44px;
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.mastering-header .studio-secondary-button {
+  border-color: var(--ms-line);
+  background: color-mix(in srgb, var(--ms-panel) 12%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-header .studio-secondary-button:hover,
+.mastering-header .studio-secondary-button:focus-visible {
+  border-color: var(--ms-teal);
+  background: color-mix(in srgb, var(--ms-teal) 14%, transparent);
+  color: var(--ms-teal);
+}
+
+.mastering-header .studio-primary-button {
+  border-color: var(--ms-teal);
+  background: var(--ms-teal);
+  color: var(--ivory-deep, #fbf7ec);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--ms-teal) 26%, transparent);
+}
+
+.mastering-render-card,
+.mastering-genre-panel,
+.mastering-presets-panel,
+.mastering-visualizer,
+.mastering-meter-card,
+.mastering-control-card,
+.mastering-roast-card {
+  border: 1px solid var(--ms-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+  box-shadow: 0 8px 22px rgba(2, 8, 23, 0.16);
+}
+
+.mastering-render-card {
+  padding: 14px;
+  border-color: color-mix(in srgb, var(--ms-teal) 45%, var(--ms-line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ms-teal) 12%, transparent), color-mix(in srgb, var(--ms-panel) 8%, transparent));
+}
+
+.mastering-genre-panel {
+  padding: 14px;
+}
+
+.mastering-genre-panel > .flex:first-child {
+  color: var(--ms-muted);
+}
+
+.mastering-presets-panel {
+  padding: 14px;
+}
+
+.mastering-presets-panel > .flex:first-child {
+  color: var(--ms-muted);
+}
+
+.mastering-preset-grid {
+  gap: 10px;
+}
+
+.mastering-preset-card {
+  min-height: 136px;
+  padding: 14px 12px 12px;
+  align-items: flex-start;
+  text-align: left;
+  border-color: var(--ms-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-preset-card:hover,
+.mastering-preset-card:focus-visible {
+  border-color: var(--ms-teal);
+  background: color-mix(in srgb, var(--ms-teal) 12%, var(--ms-panel));
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--ms-teal) 18%, transparent);
+}
+
+.mastering-preset-card.ms-preset-active {
+  border-color: var(--ms-teal) !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ms-teal) 24%, transparent), color-mix(in srgb, var(--ms-panel) 10%, transparent)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ms-teal) 35%, transparent), 0 8px 22px color-mix(in srgb, var(--ms-teal) 18%, transparent) !important;
+}
+
+.mastering-preset-card .ms-preset-label,
+.mastering-preset-card .ms-preset-tagline,
+.mastering-preset-card .ms-preset-readout {
+  color: var(--ms-ink);
+}
+
+.mastering-preset-card .ms-preset-tagline {
+  color: var(--ms-muted);
+}
+
+.mastering-preset-card .ms-preset-lufs {
+  color: var(--ms-teal);
+}
+
+.mastering-preset-card .ms-preset-ceiling {
+  color: var(--ms-amber);
+}
+
+.mastering-dashboard {
+  min-width: 0;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.mastering-dashboard > div {
+  min-width: 0;
+}
+
+.mastering-visualizer {
+  min-height: 160px;
+  padding: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ms-panel) 12%, transparent), transparent),
+    color-mix(in srgb, var(--ms-canvas) 82%, transparent);
+}
+
+.mastering-visualizer canvas {
+  min-height: 130px;
+  border-radius: 12px;
+}
+
+.mastering-band-card {
+  min-width: 0;
+  min-height: 154px;
+  padding: 12px 10px;
+  border-color: var(--ms-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ms-panel) 9%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-band-card:hover {
+  border-color: color-mix(in srgb, var(--ms-teal) 55%, var(--ms-line));
+  background: color-mix(in srgb, var(--ms-teal) 9%, var(--ms-panel));
+}
+
+.mastering-band-card .text-slate-500,
+.mastering-band-card .text-white,
+.mastering-band-card .text-fl-blue {
+  color: var(--ms-ink);
+}
+
+.mastering-band-card .text-fl-blue {
+  color: var(--ms-teal) !important;
+}
+
+.mastering-meter-card {
+  padding: clamp(14px, 2vw, 22px);
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+}
+
+.mastering-meter-card .text-slate-500 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-meter-card .text-white {
+  color: var(--ms-ink) !important;
+}
+
+.mastering-control-card {
+  padding: clamp(14px, 2vw, 22px);
+  gap: 16px;
+}
+
+.mastering-control-card .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-control-card label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: center;
+  color: var(--ms-ink);
+}
+
+.mastering-control-card label input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 40px;
+  accent-color: var(--ms-teal);
+}
+
+.mastering-control-card label span {
+  color: var(--ms-teal);
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.mastering-control-card p {
+  color: var(--ms-muted);
+}
+
+.mastering-roast-card {
+  padding: clamp(14px, 2vw, 22px);
+  border-color: color-mix(in srgb, var(--ms-teal) 35%, var(--ms-line));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ms-teal) 10%, transparent), color-mix(in srgb, var(--ms-panel) 8%, transparent));
+}
+
+.mastering-roast-card .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-slate-500 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-white {
+  color: var(--ms-ink) !important;
+}
+
+.mastering-surface .text-fl-blue {
+  color: var(--ms-teal) !important;
+}
+
+@media (max-width: 900px) {
+  .mastering-surface {
+    padding: 14px;
+  }
+
+  .mastering-header > div:last-child {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .mastering-header button {
+    flex: 1 1 150px;
+  }
+
+  .mastering-dashboard {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mastering-surface {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .mastering-header {
+    gap: 12px;
+  }
+
+  .mastering-header h1 {
+    font-size: 26px;
+  }
+
+  .mastering-header p {
+    font-size: 8px;
+    letter-spacing: 0.16em;
+  }
+
+  .mastering-header > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mastering-header button {
+    min-width: 0;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 9px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 10px;
+  }
+
+  .mastering-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mastering-preset-card {
+    min-height: 128px;
+    padding: 10px;
+  }
+
+  .mastering-band-card {
+    min-height: 136px;
+  }
+
+  .mastering-meter-card {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .mastering-surface {
+    padding: 10px 12px;
+  }
+
+  .mastering-header h1 {
+    font-size: 24px;
+  }
+
+  .mastering-visualizer {
+    min-height: 130px;
+    height: 150px !important;
+  }
+
+  .mastering-band-card {
+    min-height: 124px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mastering-preset-card,
+  .mastering-band-card {
+    transition: none !important;
+  }
+
+  .mastering-preset-card:hover,
+  .mastering-band-card:hover {
+    transform: none !important;
+  }
+}

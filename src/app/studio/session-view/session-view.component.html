@@ -3,9 +3,9 @@
   Scene rail (left) + track column headers + clip slot grid
   Ivory + Teal DAW theme, mobile-responsive
 -->
-<div class="sv-shell" aria-label="Session clip launcher">
+<div class="sv-shell studio-workspace-surface session-workspace-surface" aria-label="Session clip launcher">
   <!-- HEADER -->
-  <header class="sv-header">
+  <header class="sv-header studio-context-toolbar">
     <div class="sv-header-left">
       <span
         class="material-symbols-outlined"
@@ -147,7 +147,7 @@
       </div>
       <button
         type="button"
-        class="sv-mobile-settings-btn"
+        class="sv-mobile-settings-btn studio-touch-target"
         (click)="openLaunchSettings()"
         aria-label="Open launch settings"
       >
@@ -159,11 +159,11 @@
       <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
       <span>{{ nextLaunchBoundaryLabel() }}</span>
     </div>
-    <nav class="sv-mobile-scene-tabs" aria-label="Scenes">
+    <nav class="sv-mobile-scene-tabs studio-horizontal-rail" aria-label="Scenes">
       @for (scene of scenes(); track scene.id) {
         <button
           type="button"
-          class="sv-mobile-scene-tab"
+          class="sv-mobile-scene-tab studio-touch-target"
           [class.is-active]="isSceneActive(scene)"
           [class.is-queued]="isSceneQueued(scene)"
           [style.--scene-color]="scene.color"
@@ -185,9 +185,9 @@
 
   <!-- ───────── PRESET LOAD LIST ───────── -->
   @if (presetLoadOpen()) {
-    <div class="sv-preset-list">
+    <div class="sv-preset-list studio-module-scroll">
       @if (savedPresets().length === 0) {
-        <div class="sv-preset-empty">
+        <div class="sv-preset-empty studio-empty-state">
           No saved presets yet. Name your session and tap Save.
         </div>
       }
@@ -222,7 +222,7 @@
   @if (selectedClipId()) {
     @let selClip = clips().find((c) => c.id === selectedClipId());
     @if (selClip) {
-      <div class="sv-auto-editor">
+      <div class="sv-auto-editor studio-module-card">
         <div class="sv-auto-editor-header">
           <span class="sv-auto-editor-title"
             >Automation — {{ selClip.name }}</span
@@ -259,7 +259,7 @@
           </div>
           <button
             type="button"
-            class="sv-auto-close"
+            class="sv-auto-close studio-touch-target"
             (click)="selectedClipId.set(null)"
           >
             ✕
@@ -351,7 +351,7 @@
               </div>
               <button
                 type="button"
-                class="sv-auto-del-btn"
+                class="sv-auto-del-btn studio-touch-target"
                 (click)="deleteAutomationPoint(selClip.id, i)"
                 aria-label="Delete point {{ i + 1 }}"
               >
@@ -365,14 +365,14 @@
   }
 
   <!-- MAIN BODY -->
-  <div class="sv-body">
+  <div class="sv-body studio-module-scroll">
     <!-- SCENE RAIL (left sidebar) -->
-    <nav class="sv-scene-rail" aria-label="Scene list">
+    <nav class="sv-scene-rail studio-module-scroll" aria-label="Scene list">
       <div class="sv-scene-rail-header">
         <span class="sv-scene-rail-title">Scenes</span>
         <button
           type="button"
-          class="sv-scene-rail-add"
+          class="sv-scene-rail-add studio-touch-target"
           (click)="addScene()"
           aria-label="Add new scene"
         >
@@ -382,7 +382,7 @@
       <button
         *ngFor="let scene of scenes(); trackBy: trackByScene"
         type="button"
-        class="sv-scene-item"
+        class="sv-scene-item studio-touch-target"
         [class.is-active]="activeSceneId() === scene.id"
         [style.--scene-color]="scene.color"
         (click)="launchScene(scene)"
@@ -536,7 +536,7 @@
   <section class="sv-mobile-scenes" aria-label="Scenes and clip launch">
     @for (scene of scenes(); track scene.id) {
       <article
-        class="sv-mobile-scene-card"
+        class="sv-mobile-scene-card studio-module-card"
         [class.is-active]="isSceneActive(scene)"
         [class.is-queued]="isSceneQueued(scene)"
         [style.--scene-color]="scene.color"
@@ -544,7 +544,7 @@
         <header class="sv-mobile-scene-card-head">
           <button
             type="button"
-            class="sv-mobile-scene-card-title"
+            class="sv-mobile-scene-card-title studio-touch-target"
             (click)="onSceneHeaderClick(scene)"
             (pointerdown)="startSceneLongPress($event, scene)"
             (pointermove)="moveSceneLongPress($event)"
@@ -575,7 +575,7 @@
                 <span class="sv-mobile-clip-name">{{ clip.name }} <small>{{ clip.duration }}</small></span>
                 <button
                   type="button"
-                  class="sv-mobile-clip-trigger"
+                  class="sv-mobile-clip-trigger studio-touch-target"
                   (click)="triggerClip(clip, clip.velocity)"
                   [attr.aria-label]="'Trigger ' + clip.name"
                   [attr.aria-pressed]="clip.isPlaying"
@@ -591,7 +591,7 @@
         </div>
         <button
           type="button"
-          class="sv-mobile-scene-launch"
+          class="sv-mobile-scene-launch studio-touch-target"
           [class.is-active]="isSceneActive(scene)"
           [class.is-queued]="isSceneQueued(scene)"
           (click)="launchScene(scene)"

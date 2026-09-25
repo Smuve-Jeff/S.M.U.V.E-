@@ -577,3 +577,386 @@ button[disabled] {
   opacity: 0.25;
   pointer-events: none;
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Channel Rack
+   A bounded, touch-first instrument shelf that keeps the legacy
+   step lane and instrument fly-outs intact.
+   ============================================================ */
+
+:host {
+  --rack-surface: var(--ivory-paper, #fbf7ec);
+  --rack-panel: var(--ivory-panel, #fffaf0);
+  --rack-canvas: var(--ivory-bg, #f5efe0);
+  --rack-ink: var(--espresso-text, #1f1a12);
+  --rack-muted: var(--espresso-muted, #7e7259);
+  --rack-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --rack-teal: var(--teal-500, #0e7c7b);
+  --rack-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--rack-ink);
+}
+
+.channel-rack-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--rack-line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 30%),
+    var(--rack-canvas);
+  box-shadow: var(--rack-shadow);
+}
+
+.rack-header {
+  min-height: 58px;
+  height: auto;
+  padding: 10px 14px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--rack-surface) 92%, transparent);
+  border-bottom: 1px solid var(--rack-line);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.05);
+}
+
+.rack-title,
+.channel-rack-title {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  color: var(--rack-teal);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.channel-rack-add {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--rack-teal) 55%, transparent);
+  border-radius: 10px;
+  background: var(--rack-teal);
+  color: var(--ivory-deep, #fbf7ec);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--rack-teal) 24%, transparent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.channel-rack-add:hover,
+.channel-rack-add:focus-visible {
+  background: var(--teal-600, #0a5f5e);
+  border-color: var(--teal-400, #2ba09c);
+  color: white;
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--rack-teal) 32%, transparent);
+}
+
+.channel-rack-list {
+  min-height: 0;
+  padding: 12px;
+  gap: 8px;
+  background: color-mix(in srgb, var(--rack-canvas) 86%, transparent);
+}
+
+.channel-rack-channel {
+  min-height: 76px;
+  padding: 12px;
+  gap: 12px;
+  overflow: visible;
+  border: 1px solid var(--rack-line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--rack-surface) 94%, transparent);
+  box-shadow: 0 4px 14px rgba(61, 53, 42, 0.055);
+}
+
+.channel-rack-channel::before {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rack-teal) 6%, transparent));
+}
+
+.channel-rack-channel:hover:not(.selected) {
+  border-color: color-mix(in srgb, var(--rack-teal) 42%, var(--rack-line));
+  background: color-mix(in srgb, var(--rack-teal) 4%, var(--rack-surface));
+  box-shadow: 0 7px 18px rgba(61, 53, 42, 0.08);
+}
+
+.channel-rack-channel.selected {
+  border-color: var(--rack-teal);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--rack-teal) 10%, var(--rack-surface)), var(--rack-surface));
+  box-shadow:
+    inset 3px 0 0 var(--rack-teal),
+    0 8px 20px color-mix(in srgb, var(--rack-teal) 16%, transparent);
+}
+
+.channel-rack-channel.selected .channel-name {
+  color: var(--rack-teal);
+}
+
+.channel-rack-meter-stack {
+  width: 78px;
+  flex: 0 0 78px;
+  gap: 7px;
+}
+
+.channel-rack-meter-stack .rack-fader-pro {
+  min-width: 0;
+  height: 5px;
+  background: color-mix(in srgb, var(--rack-ink) 12%, transparent);
+}
+
+.channel-rack-meter-stack .rack-fader-pro::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--rack-surface);
+  background: var(--rack-teal);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--rack-teal) 38%, transparent);
+}
+
+.channel-rack-instrument {
+  min-height: 28px;
+  padding: 3px 5px;
+  border-radius: 7px;
+  color: var(--rack-muted);
+  opacity: 0.78;
+  letter-spacing: 0.08em;
+}
+
+.channel-rack-instrument:hover,
+.channel-rack-instrument:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 9%, transparent);
+  color: var(--rack-teal);
+  opacity: 1;
+}
+
+.channel-rack-actions {
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 70%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--rack-surface) 72%, transparent);
+}
+
+.channel-rack-actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 7px;
+  color: var(--rack-muted);
+}
+
+.channel-rack-actions button:hover,
+.channel-rack-actions button:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 12%, transparent);
+  color: var(--rack-teal);
+}
+
+.channel-rack-step-lane {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  touch-action: pan-x;
+}
+
+.channel-rack-bar-pager {
+  justify-content: flex-end;
+  max-width: 100%;
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1px;
+}
+
+.channel-rack-bar-pager button {
+  flex: 0 0 auto;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 80%, transparent);
+  border-radius: 7px;
+  color: var(--rack-muted);
+  background: color-mix(in srgb, var(--rack-surface) 76%, transparent);
+}
+
+.channel-rack-bar-pager button:hover,
+.channel-rack-bar-pager button:focus-visible,
+.channel-rack-bar-pager button.bar-active {
+  border-color: var(--rack-teal);
+  color: var(--rack-teal);
+  background: color-mix(in srgb, var(--rack-teal) 12%, var(--rack-surface));
+}
+
+.channel-rack-step-grid {
+  flex: 0 0 auto;
+  min-width: max-content;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 80%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--rack-ink) 7%, transparent);
+}
+
+.channel-rack-step-cell {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 86%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--rack-surface) 72%, transparent);
+  box-shadow: none;
+  touch-action: manipulation;
+}
+
+.channel-rack-step-cell:hover,
+.channel-rack-step-cell:focus-visible {
+  border-color: var(--rack-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rack-teal) 20%, transparent);
+}
+
+.channel-rack-step-cell.active {
+  border-color: color-mix(in srgb, var(--rack-teal) 80%, white);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rack-teal) 48%, transparent);
+}
+
+.channel-rack-step-cell.current-step {
+  border-color: var(--neon-amber, #d97706);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--neon-amber, #d97706) 32%, transparent);
+}
+
+.add-flyout,
+.instrument-flyout {
+  min-width: 220px;
+  max-height: min(320px, 56vh);
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--rack-teal) 35%, var(--rack-line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--rack-panel) 96%, transparent);
+  box-shadow: 0 18px 40px rgba(25, 35, 42, 0.2);
+}
+
+.add-flyout button,
+.instrument-flyout button {
+  min-height: 36px;
+  border-radius: 8px;
+  color: var(--rack-ink);
+}
+
+.add-flyout button:hover,
+.instrument-flyout button:hover,
+.add-flyout button:focus-visible,
+.instrument-flyout button:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 12%, transparent);
+  color: var(--rack-teal);
+}
+
+@media (max-width: 900px) {
+  .channel-rack-channel {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .channel-rack-channel > .flex-1 {
+    min-width: 150px;
+  }
+
+  .channel-rack-step-lane {
+    flex: 1 1 100%;
+    order: 5;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-top: 2px;
+  }
+
+  .channel-rack-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .rack-header {
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .channel-rack-list {
+    padding: 8px;
+  }
+
+  .channel-rack-channel {
+    min-height: 68px;
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .channel-rack-meter-stack {
+    width: 68px;
+    flex-basis: 68px;
+  }
+
+  .channel-rack-step-cell {
+    flex-basis: 24px;
+    width: 24px;
+    height: 38px;
+  }
+
+  .channel-rack-actions button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .channel-rack-channel {
+    min-height: 60px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .channel-rack-step-cell {
+    height: 30px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — RACK HEADER COVERAGE
+   The rack header hook had no rule, so it could not hold its own
+   row while the channel list scrolled. Styling only: channel
+   rows, grouping and routing bindings are untouched.
+   ════════════════════════════════════════════════════════════ */
+
+.channel-rack-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+}
+
+@media (max-width: 768px) {
+  .channel-rack-header {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--ivory-panel, #14192e);
+  }
+}
+
+@media (forced-colors: active) {
+  .channel-rack-header {
+    border-bottom-color: CanvasText;
+  }
+}

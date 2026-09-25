@@ -134,3 +134,41 @@
     transition: none;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Sound Pad
+   A press-safe reusable pad face. Pointer capture and long-press
+   remain owned by the host component.
+   ============================================================ */
+
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  touch-action: none;
+}
+
+.sound-pad-surface {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sound-pad-surface:focus-visible {
+  outline: 2px solid var(--pad-color, #00e5ff);
+  outline-offset: 2px;
+}
+
+.sound-pad-surface:active,
+.sound-pad-surface.active {
+  will-change: transform, box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-pad-surface:active,
+  .sound-pad-surface.active {
+    will-change: auto;
+  }
+}

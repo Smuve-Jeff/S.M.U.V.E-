@@ -1,8 +1,8 @@
-<div class="rack-container glass-v42 shadow-v42-xl h-full flex flex-col">
+<div class="rack-container glass-v42 shadow-v42-xl h-full flex flex-col studio-workspace-surface channel-rack-surface">
   <div
-    class="rack-header wood-panel flex items-center justify-between px-4 border-b border-fl-border"
+    class="rack-header wood-panel flex items-center justify-between px-4 border-b border-fl-border channel-rack-header"
   >
-    <div class="rack-title neon-text text-[10px] font-black tracking-widest">
+    <div class="rack-title neon-text text-[10px] font-black tracking-widest channel-rack-title">
       CHANNEL RACK
     </div>
     <div class="relative">
@@ -12,13 +12,13 @@
         aria-haspopup="menu"
         [attr.aria-expanded]="addTrackOpen()"
         aria-label="Add a new channel"
-        class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all"
+        class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all studio-primary-button channel-rack-add"
       >
         + ADD CHANNEL
       </button>
       <div
         *ngIf="addTrackOpen()"
-        class="add-flyout absolute right-0 mt-1 z-30 rounded-xl border border-white/10 bg-black/90 backdrop-blur p-2 max-h-64 overflow-y-auto w-56"
+        class="add-flyout absolute right-0 mt-1 z-30 rounded-xl border border-white/10 bg-black/90 backdrop-blur p-2 max-h-64 overflow-y-auto w-56 studio-module-scroll"
         role="menu"
         aria-label="Instrument picker for new channel"
       >
@@ -45,10 +45,10 @@
     </div>
   </div>
 
-  <div class="channel-list flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
+  <div class="channel-list flex-1 overflow-y-auto no-scrollbar p-2 space-y-2 studio-module-scroll channel-rack-list">
     <div
       *ngFor="let track of tracks(); let i = index"
-      class="channel-item glass-v42 flex items-center p-3 gap-3 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group relative overflow-hidden"
+      class="channel-item glass-v42 flex items-center p-3 gap-3 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group relative overflow-hidden channel-rack-channel"
       [class.selected]="selectedTrackId() === track.id"
       (click)="selectTrack(track)"
       (drop)="onDrop($event)"
@@ -83,7 +83,7 @@
       </div>
 
       <!-- Controls (Vol/Pan) -->
-      <div class="flex flex-col gap-2 w-14">
+      <div class="flex flex-col gap-2 w-14 channel-rack-meter-stack">
         <div class="flex items-center gap-1.5">
           <span class="text-[7px] font-black font-mono opacity-40">VOL</span>
           <input
@@ -132,7 +132,7 @@
         </div>
         <button
           type="button"
-          class="text-[7px] font-mono truncate uppercase tracking-widest text-left opacity-30 hover:opacity-80 transition-all flex items-center gap-1"
+          class="text-[7px] font-mono truncate uppercase tracking-widest text-left opacity-30 hover:opacity-80 transition-all flex items-center gap-1 channel-rack-instrument"
           (click)="toggleInstrumentPicker(track.id); $event.stopPropagation()"
           [attr.aria-haspopup]="'menu'"
           [attr.aria-expanded]="instrumentPickerTrackId() === track.id"
@@ -178,7 +178,7 @@
 
       <!-- Quick Actions -->
       <div
-        class="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all"
+        class="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all channel-rack-actions"
         role="group"
         [attr.aria-label]="track.name + ' quick actions'"
       >
@@ -233,12 +233,12 @@
            step lane still only renders for midi tracks; drum tracks instead
            show a hint chip that deep-links to the kit. -->
       <div
-        class="flex flex-col items-end gap-1"
+        class="flex flex-col items-end gap-1 channel-rack-step-lane studio-horizontal-rail"
         *ngIf="track.type === 'midi' || track.type === 'drum'"
         [attr.aria-label]="track.name + ' step sequencer'"
       >
         <!-- Bar window pager -->
-        <div class="flex items-center gap-1" role="group" aria-label="Pattern bar">
+        <div class="flex items-center gap-1 channel-rack-bar-pager studio-horizontal-rail" role="group" aria-label="Pattern bar">
           <button
             type="button"
             (click)="nudgeBar(-1); $event.stopPropagation()"
@@ -264,7 +264,7 @@
         </div>
 
         <div
-          class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5"
+          class="flex gap-1 items-center bg-black/20 p-1.5 rounded-lg border border-white/5 channel-rack-step-grid"
           role="group"
           [attr.aria-label]="
             track.name + ' steps, bar ' + (stepWindowBar() + 1)
@@ -272,7 +272,7 @@
         >
           <div
             *ngFor="let step of laneSteps; let sIdx = index"
-            class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair"
+            class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair channel-rack-step-cell"
             [class.active]="cellLit(track, sIdx)"
             [class.current-step]="cellNow(sIdx)"
             [style.background-color]="

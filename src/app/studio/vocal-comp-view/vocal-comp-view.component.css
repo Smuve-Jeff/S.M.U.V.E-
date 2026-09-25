@@ -1,103 +1,365 @@
 :host {
+  --vcomp-bg: #080a0f;
+  --vcomp-panel: rgba(18, 21, 29, 0.9);
+  --vcomp-panel-raised: rgba(25, 29, 39, 0.86);
+  --vcomp-line: rgba(148, 163, 184, 0.14);
+  --vcomp-ink: #f1f5f9;
+  --vcomp-muted: #94a3b8;
+  --vcomp-violet: #c084fc;
+  --vcomp-cyan: #67e8f9;
   display: block;
-  background: var(--vocal-obsidian, #07070a);
-  min-height: 100%;
+  min-width: 0;
+  color: var(--vcomp-ink);
+  background:
+    radial-gradient(ellipse at 84% 4%, rgba(124, 58, 237, 0.13), transparent 34%),
+    radial-gradient(ellipse at 12% 22%, rgba(34, 211, 238, 0.06), transparent 30%),
+    var(--vcomp-bg);
 }
 
 .comp-container {
-  /* 100dvh tracks the Android Chrome URL bar (100vh keeps the stale
-     viewport height and pushes the dock off-screen). */
+  position: relative;
+  isolation: isolate;
   min-height: calc(100vh - 120px);
   min-height: calc(100dvh - 120px);
+  overflow-x: clip;
+  background: transparent;
 }
 
-/* Take card hover effects */
-.take-card {
-  transition: all 0.2s ease;
+.comp-container > div:first-child {
+  position: relative;
+  gap: 1rem;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--vcomp-line);
 }
 
-.take-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateX(2px);
+.comp-container > div:first-child::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(192, 132, 252, 0.52), rgba(103, 232, 249, 0.24), transparent);
+  content: '';
+  pointer-events: none;
 }
 
-/* Waveform animation */
-.waveform-bar {
-  transition: height 0.1s ease;
+.comp-container h2 {
+  letter-spacing: 0.12em;
 }
 
-/* Animate comp selection pulse */
+.comp-container > div:first-child button,
+.comp-container button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-container > div:first-child button {
+  min-height: 44px;
+  border-color: var(--vcomp-line);
+  background: rgba(255, 255, 255, 0.045);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 140ms ease, box-shadow 160ms ease;
+}
+
+.comp-container > div:first-child button:hover,
+.comp-container > div:first-child button:focus-visible {
+  border-color: rgba(192, 132, 252, 0.5);
+  background: rgba(168, 85, 247, 0.13);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.comp-container > div:first-child button:active {
+  transform: scale(0.97);
+}
+
+.comp-container > .grid {
+  align-items: start;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.comp-container > .grid > div {
+  min-width: 0;
+}
+
+.comp-container > .grid > div > div:first-child,
+.comp-container > .grid > div > div:has(> h3) {
+  min-width: 0;
+}
+
+.comp-container input[type="text"] {
+  min-height: 44px;
+  border-color: var(--vcomp-line);
+  background: rgba(13, 16, 23, 0.9);
+  color: var(--vcomp-ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.comp-container input[type="text"]:focus-visible {
+  border-color: rgba(192, 132, 252, 0.72);
+  outline: 2px solid rgba(192, 132, 252, 0.72);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+}
+
+.comp-container input::placeholder {
+  color: #64748b;
+}
+
+/* Comp groups: the selected take folder gets a clear, tactile rail. */
+.comp-container [class*="bg-vocal-titanium"][class*="border"] {
+  border-color: var(--vcomp-line);
+  background: linear-gradient(145deg, var(--vcomp-panel-raised), var(--vcomp-panel));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.comp-container [class*="border-vocal-primary"] {
+  box-shadow: inset 3px 0 0 var(--vcomp-violet), 0 8px 24px rgba(124, 58, 237, 0.12);
+}
+
+.comp-container [class*="border-fl-blue"] {
+  box-shadow: inset 3px 0 0 var(--vcomp-cyan), 0 8px 24px rgba(8, 145, 178, 0.12);
+}
+
+.comp-container .take-card,
+.comp-container [class*="bg-vocal-titanium"][class*="rounded-2xl"] {
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.comp-container .take-card:hover,
+.comp-container [class*="bg-vocal-titanium"][class*="rounded-2xl"]:hover {
+  transform: translateY(-1px);
+  border-color: rgba(203, 213, 225, 0.24);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.comp-container [class*="rounded-xl"][class*="bg-vocal-oled"] {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: linear-gradient(180deg, rgba(5, 7, 12, 0.92), rgba(12, 15, 22, 0.96));
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.comp-container [class*="rounded-xl"][class*="bg-vocal-oled"] > div {
+  filter: drop-shadow(0 0 4px rgba(192, 132, 252, 0.25));
+}
+
+.comp-container [class*="bg-gradient-to-br"] {
+  border-radius: 16px;
+  background-image: linear-gradient(125deg, rgba(8, 145, 178, 0.16), rgba(124, 58, 237, 0.1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05), 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.comp-container button:focus-visible,
+.comp-container [role="button"]:focus-visible {
+  outline: 2px solid rgba(192, 132, 252, 0.88);
+  outline-offset: 3px;
+}
+
+.comp-container button:disabled {
+  cursor: not-allowed;
+  filter: saturate(0.65);
+}
+
+.comp-container button:not(:disabled) {
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 140ms ease;
+}
+
+.comp-container button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.comp-selected {
+  animation: compPulse 2.2s ease-in-out infinite;
+}
+
 @keyframes compPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.28);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0);
+    box-shadow: 0 0 0 5px rgba(168, 85, 247, 0);
   }
 }
 
-.comp-selected {
-  animation: compPulse 2s ease-in-out infinite;
+.comp-container .custom-scrollbar {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.38) transparent;
 }
 
-/* Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.2);
-  border-radius: 2px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.4);
+.comp-container .custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
 }
 
-/* Mobile responsive */
+.comp-container .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.comp-container .custom-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.32);
+}
+
+.comp-container .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 132, 252, 0.6);
+}
+
+@media (max-width: 1024px) {
+  .comp-container > .grid {
+    gap: 0.9rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child > div:last-child {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 768px) {
   .comp-container {
-    padding: 12px;
+    min-height: calc(100vh - 96px);
+    min-height: calc(100dvh - 96px);
+    padding: 1rem;
+  }
+
+  .comp-container > div:first-child {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+  }
+
+  .comp-container > div:first-child > div:first-child {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .comp-container > div:first-child > div:last-child {
+    flex-wrap: wrap;
+  }
+
+  .comp-container > .grid {
+    gap: 1rem;
+    margin-top: 0;
+  }
+
+  .comp-container > .grid > div:nth-child(1) > div:nth-child(4),
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) {
+    max-height: min(58dvh, 520px);
+    padding-right: 0.25rem;
+    touch-action: pan-y;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child > div:last-child {
+    flex: 1 1 100%;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child button {
+    min-height: 44px;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] {
+    padding: 0.9rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child {
+    gap: 0.75rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child > div:last-child {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child > div:last-child button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .comp-container > .grid > div:last-child > div {
+    padding: 1rem;
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STAGE 2.0 — Vocal Comp View · Studio polish
-   ═══════════════════════════════════════════════════════════ */
-.take-card {
-  transition:
-    transform 0.16s cubic-bezier(0.34, 1.3, 0.64, 1),
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
+@media (max-width: 480px) {
+  .comp-container {
+    padding: 0.75rem;
+  }
+
+  .comp-container h2 {
+    font-size: 1rem;
+  }
+
+  .comp-container > div:first-child > div:last-child {
+    width: 100%;
+  }
+
+  .comp-container > div:first-child > div:last-child button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:first-child > div:last-child button {
+    justify-content: center;
+    padding-inline: 0.5rem;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child {
+    align-items: flex-start;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(40px, 1fr));
+    flex: 1 1 100%;
+  }
+
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child > div:last-child button {
+    width: 100%;
+    height: 44px;
+  }
+
+  .comp-container > .grid > div:nth-child(1) > div:nth-child(4),
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) {
+    max-height: 54dvh;
+  }
 }
 
-.take-card:hover {
-  transform: translateX(3px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.comp-selected {
-  animation: compPulse 2s ease-in-out infinite;
-}
-
-.waveform-bar {
-  transition: height 0.1s ease;
-}
-
-/* Playback glow while a take is the active comp */
-.take-card.comp-selected .waveform-bar {
-  background: linear-gradient(180deg, #c084fc, #7c3aed);
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  transition: background 0.15s ease;
+@media (max-width: 360px) {
+  .comp-container > .grid > div:nth-child(2) > div:nth-child(2) > div[class*="rounded-2xl"] > div:first-child > div:last-child {
+    grid-template-columns: repeat(2, minmax(40px, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .comp-selected {
-    animation: none;
+  .comp-container *,
+  .comp-container *::before,
+  .comp-container *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .comp-container .comp-selected {
+    animation: none !important;
+  }
+
+  .comp-container [class*="bg-vocal-titanium"][class*="rounded-2xl"]:hover {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .comp-container button:focus-visible,
+  .comp-container [role="button"]:focus-visible {
+    outline-color: Highlight;
   }
 }

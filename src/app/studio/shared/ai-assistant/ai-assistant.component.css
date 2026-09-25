@@ -726,3 +726,22 @@
   scrollbar-width: thin;
   scrollbar-color: var(--teal-500) transparent;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — ASSISTANT MESSAGE COVERAGE
+   Assistant replies had no rule of their own, so they were
+   indistinguishable from user turns. Styling only: the chat
+   socket, streaming state and message ordering are untouched.
+   ═══════════════════════════════════════════════════════════ */
+.ai-msg-assistant {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 14px 14px 14px 6px;
+  background: color-mix(in srgb, var(--ivory-panel, #14192e) 94%, transparent);
+}
+
+@media (forced-colors: active) {
+  .ai-msg-assistant {
+    border: 1px solid CanvasText;
+  }
+}

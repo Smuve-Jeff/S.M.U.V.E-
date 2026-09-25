@@ -1,559 +1,265 @@
 /* ============================================================
-   Sprint A3 Phase 3 — Take Lane panel
-   Compact per-track take stack: chips with comp-select highlight,
-   punch-in arm, stamp, and per-take delete. Ivory/teal theme.
+   Sprint A3 — Take Lane · layered comping console
    ============================================================ */
+:host {
+  display: block;
+  min-width: 0;
+  --take-ink: var(--espresso-text, #1f1a12);
+  --take-muted: var(--espresso-muted, #7e7259);
+  --take-paper: var(--ivory-paper, #fbf7ec);
+  --take-panel: var(--ivory-panel, #f5efe0);
+  --take-line: var(--espresso-line, rgba(31, 26, 18, 0.16));
+  --take-teal: var(--teal-500, #0e7c7b);
+  --take-teal-soft: rgba(14, 124, 123, 0.1);
+  --take-amber: var(--orange, #d97706);
+}
 
 .take-lane {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 6px 8px;
-  background: var(--ivory-panel, #f5efe0);
-  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.18));
-  border-radius: 10px;
-  animation: takeLaneIn 0.25s ease-out;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  overflow: visible;
+  border: 1px solid var(--take-line);
+  border-radius: 13px;
+  background: linear-gradient(145deg, var(--take-panel), var(--take-paper));
+  box-shadow: 0 6px 18px rgba(61, 53, 42, 0.08), inset 0 1px rgba(255, 255, 255, 0.52);
+  animation: takeLaneIn 0.22s ease-out;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
+
+.take-lane:hover {
+  border-color: color-mix(in srgb, var(--take-teal) 40%, var(--take-line));
+  box-shadow: 0 8px 22px rgba(61, 53, 42, 0.1), inset 0 1px rgba(255, 255, 255, 0.52);
+}
+
 @keyframes takeLaneIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .take-lane-head {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 34px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid color-mix(in srgb, var(--take-line) 75%, transparent);
 }
-.take-lane-title {
+
+.take-lane-head::before {
+  width: 3px;
+  height: 13px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--teal-300, #5dc4c2), var(--take-teal));
+  box-shadow: 0 0 8px var(--teal-glow, rgba(43, 160, 156, 0.4));
+  content: '';
+}
+
+.take-lane-title,
+.comp-strip-label {
+  color: var(--take-muted);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0.14em;
-  color: var(--espresso-muted, #7e7259);
 }
+
 .take-lane-count {
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--take-teal) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--take-teal) 10%, var(--take-paper));
+  color: var(--take-teal);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 9px;
   font-weight: 800;
-  color: var(--teal-500, #0e7c7b);
-  background: var(--teal-50, #e6f5f4);
-  border-radius: 999px;
-  padding: 0 7px;
   line-height: 16px;
 }
 
 .tl-btn {
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--espresso-muted, #7e7259);
-  cursor: pointer;
   display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
   place-items: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--take-muted);
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    background 0.12s ease,
-    transform 0.12s ease,
-    color 0.12s ease;
-}
-.tl-btn .material-symbols-outlined {
-  font-size: 15px;
-}
-.tl-btn:hover,
-.tl-btn:focus-visible {
-  background: rgba(14, 124, 123, 0.1);
-}
-.tl-btn:active {
-  transform: scale(0.92);
-}
-.tl-btn.tl-punch.armed {
-  background: var(--teal-500, #0e7c7b);
-  color: white;
-  box-shadow: 0 0 6px var(--teal-glow, rgba(43, 160, 156, 0.45));
-  animation: punchPulse 1.2s ease-in-out infinite;
-}
-@keyframes punchPulse {
-  0%,
-  100% {
-    box-shadow: 0 0 4px var(--teal-glow, rgba(43, 160, 156, 0.4));
-  }
-  50% {
-    box-shadow: 0 0 9px var(--teal-glow, rgba(43, 160, 156, 0.65));
-  }
+  transition: background 140ms ease, transform 140ms ease, color 140ms ease, box-shadow 160ms ease;
 }
 
-.take-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.tl-btn .material-symbols-outlined { font-size: 16px; }
+.tl-btn:hover,
+.tl-btn:focus-visible { border-color: color-mix(in srgb, var(--take-teal) 25%, transparent); background: var(--take-teal-soft); color: var(--take-teal); }
+.tl-btn:active { transform: scale(0.92); }
+.tl-btn.tl-punch.armed,
+.tl-btn.tl-sections.armed { background: var(--take-teal); color: white; box-shadow: 0 0 9px var(--teal-glow, rgba(43, 160, 156, 0.45)); animation: punchPulse 1.2s ease-in-out infinite; }
+.tl-btn.tl-comp.armed { background: var(--take-amber); color: white; box-shadow: 0 0 8px rgba(217, 119, 6, 0.38); }
+
+@keyframes punchPulse {
+  0%, 100% { box-shadow: 0 0 4px var(--teal-glow, rgba(43, 160, 156, 0.4)); }
+  50% { box-shadow: 0 0 10px var(--teal-glow, rgba(43, 160, 156, 0.65)); }
 }
+
+.take-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 
 .take-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
-  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.16));
-  border-radius: 8px;
-  padding: 4px 6px;
-  background: var(--ivory-paper, #fbf7ec);
-  color: var(--espresso-text, #1f1a12);
+  min-height: 40px;
+  padding: 5px 7px;
+  border: 1px solid var(--take-line);
+  border-radius: 9px;
+  background: var(--take-paper);
+  color: var(--take-ink);
   cursor: pointer;
   font-size: 11px;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    transform 0.12s ease;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
+
 .take-chip:hover,
-.take-chip:focus-visible {
-  border-color: var(--teal-500, #0e7c7b);
-  transform: translateX(1px);
-}
-.take-chip:active {
-  transform: scale(0.98);
-}
-.take-chip.active {
-  border-color: var(--teal-500, #0e7c7b);
-  background: var(--teal-50, #e6f5f4);
-  box-shadow: 0 0 0 1px var(--teal-500, #0e7c7b) inset;
-}
-.take-chip-label {
-  font-weight: 700;
-  flex: 0 0 auto;
-}
-.take-chip-meta {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--teal-500, #0e7c7b);
-  background: var(--teal-50, #e6f5f4);
-  border-radius: 4px;
-  padding: 0 5px;
-  line-height: 14px;
-}
-.take-chip-region {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  color: var(--espresso-muted, #7e7259);
-  margin-left: auto;
-}
-
-.take-chip-del {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  color: var(--espresso-muted, #7e7259);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
+.take-chip:focus-visible { border-color: var(--take-teal); transform: translateX(2px); box-shadow: 0 4px 12px rgba(14, 124, 123, 0.1); }
+.take-chip:active { transform: scale(0.985); }
+.take-chip.active { border-color: var(--take-teal); background: color-mix(in srgb, var(--take-teal) 10%, var(--take-paper)); box-shadow: inset 3px 0 0 var(--take-teal), 0 3px 12px rgba(14, 124, 123, 0.1); }
+.take-chip.in-comp { border-style: dashed; border-color: color-mix(in srgb, var(--take-amber) 70%, var(--take-line)); background: color-mix(in srgb, var(--take-amber) 8%, var(--take-paper)); }
+.take-chip-label { min-width: 0; flex: 0 1 auto; overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.take-chip-meta,
+.take-chip-badge { display: inline-grid; min-width: 18px; height: 18px; flex: 0 0 auto; place-items: center; padding: 0 5px; border-radius: 5px; background: color-mix(in srgb, var(--take-teal) 10%, var(--take-paper)); color: var(--take-teal); font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; font-weight: 900; }
+.take-chip-badge { background: var(--take-amber); color: white; }
+.take-chip-region { min-width: 0; margin-left: auto; overflow: hidden; color: var(--take-muted); font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.take-chip-del { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid transparent; border-radius: 7px; color: var(--take-muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
 .take-chip-del:hover,
-.take-chip-del:focus-visible {
-  background: rgba(217, 119, 6, 0.14);
-  color: var(--orange, #d97706);
-}
-.take-chip-del .material-symbols-outlined {
-  font-size: 13px;
-}
+.take-chip-del:focus-visible { background: rgba(217, 119, 6, 0.13); color: var(--take-amber); }
+.take-chip-del .material-symbols-outlined { font-size: 14px; }
+.take-empty { padding: 4px 6px; color: var(--take-muted); font-size: 10px; font-style: italic; }
 
-.take-empty {
-  font-size: 10px;
-  color: var(--espresso-muted, #7e7259);
-  font-style: italic;
-  padding: 2px 4px;
-}
-
-/* ============================================================
-   Sprint A3 Phase 4 — Comp stack (badges + strip)
-   ============================================================ */
-.tl-btn.tl-comp {
-  margin-left: 1px;
-}
-.tl-btn.tl-comp.armed {
-  background: var(--orange, #d97706);
-  color: white;
-  box-shadow: 0 0 6px rgba(217, 119, 6, 0.45);
-}
-
-.take-chip-badge {
-  display: grid;
-  place-items: center;
-  min-width: 15px;
-  height: 15px;
-  border-radius: 5px;
-  background: var(--orange, #d97706);
-  color: white;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 900;
-  padding: 0 3px;
-}
-.take-chip.in-comp {
-  border-style: dashed;
-  border-color: var(--orange, #d97706);
-  background: rgba(217, 119, 6, 0.08);
-}
-
-.comp-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: rgba(217, 119, 6, 0.1);
-  border: 1px dashed rgba(217, 119, 6, 0.5);
-}
-.comp-strip-label {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--orange, #d97706);
-}
-.comp-strip-order {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  color: var(--espresso-muted, #7e7259);
-}
-.comp-btn {
-  border: none;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: background 0.12s ease, transform 0.12s ease, opacity 0.12s ease;
-}
-.comp-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.comp-btn:not(:disabled):active {
-  transform: scale(0.94);
-}
-.comp-apply {
-  margin-left: auto;
-  background: var(--orange, #d97706);
-  color: white;
-}
-.comp-apply:not(:disabled):hover {
-  background: #b85e04;
-}
-.comp-clear {
-  background: transparent;
-  color: var(--espresso-muted, #7e7259);
-  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.18));
-}
-.comp-clear:not(:disabled):hover {
-  background: rgba(31, 26, 18, 0.06);
-}
-
-/* ============================================================
-   Sprint A3 Phase 5 — Sectional comp strip
-   ============================================================ */
-.tl-btn.tl-sections {
-  margin-left: 1px;
-}
-.tl-btn.tl-sections.armed {
-  background: var(--teal-500, #0e7c7b);
-  color: white;
-  box-shadow: 0 0 6px var(--teal-glow, rgba(43, 160, 156, 0.45));
-}
-
+.comp-strip,
 .section-strip {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
   margin-top: 2px;
-  padding: 5px 6px;
-  border-radius: 8px;
-  background: rgba(14, 124, 123, 0.08);
-  border: 1px dashed rgba(14, 124, 123, 0.5);
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--take-amber) 42%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--take-amber) 8%, var(--take-paper));
+  animation: takeLaneIn 180ms ease-out;
 }
-.section-strip-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.section-bars {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.section-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid var(--espresso-line, rgba(31, 26, 18, 0.16));
-  border-radius: 6px;
-  background: var(--ivory-paper, #fbf7ec);
-  padding: 2px 6px;
-  cursor: pointer;
-  min-height: 22px;
-  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
-}
+
+.comp-strip-order { min-width: 0; overflow: hidden; color: var(--take-muted); font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.comp-btn { min-height: 34px; padding: 4px 9px; border: 1px solid transparent; border-radius: 7px; font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; font-weight: 900; letter-spacing: 0.08em; cursor: pointer; transition: background 120ms ease, transform 120ms ease, opacity 120ms ease; }
+.comp-btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.comp-btn:not(:disabled):active { transform: scale(0.95); }
+.comp-apply { margin-left: auto; background: var(--take-amber); color: white; box-shadow: 0 3px 9px rgba(217, 119, 6, 0.2); }
+.comp-apply:not(:disabled):hover { background: #b85e04; }
+.comp-clear { border-color: var(--take-line); background: transparent; color: var(--take-muted); }
+.comp-clear:not(:disabled):hover { background: rgba(31, 26, 18, 0.06); }
+
+.section-strip { flex-direction: column; align-items: stretch; border-color: color-mix(in srgb, var(--take-teal) 40%, transparent); background: color-mix(in srgb, var(--take-teal) 7%, var(--take-paper)); }
+.section-strip-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.section-bars { display: flex; flex-wrap: wrap; gap: 5px; }
+.section-bar { display: flex; min-width: 34px; min-height: 36px; align-items: center; justify-content: center; gap: 4px; padding: 4px 7px; border: 1px solid var(--take-line); border-radius: 7px; background: var(--take-paper); cursor: pointer; transition: border-color 120ms ease, background 120ms ease, transform 120ms ease, box-shadow 120ms ease; }
 .section-bar:hover,
-.section-bar:focus-visible {
-  border-color: var(--teal-500, #0e7c7b);
-  transform: translateY(-1px);
-}
-.section-bar:active {
-  transform: scale(0.95);
-}
-.section-bar.assigned {
-  background: var(--teal-50, #e6f5f4);
-  border-color: var(--teal-500, #0e7c7b);
-}
-.section-bar.picked {
-  box-shadow: 0 0 0 2px var(--orange, #d97706) inset;
-}
-.section-bar-num {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--espresso-muted, #7e7259);
-}
-.section-bar-take {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 9px;
-  font-weight: 900;
-  color: var(--teal-500, #0e7c7b);
-}
-.section-hint {
-  font-size: 10px;
-  font-style: italic;
-  color: var(--espresso-muted, #7e7259);
-  margin: 0;
-}
+.section-bar:focus-visible { border-color: var(--take-teal); transform: translateY(-1px); }
+.section-bar.assigned { border-color: var(--take-teal); background: color-mix(in srgb, var(--take-teal) 10%, var(--take-paper)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--take-teal) 24%, transparent); }
+.section-bar.picked { box-shadow: inset 0 0 0 2px var(--take-amber), 0 0 9px rgba(217, 119, 6, 0.16); }
+.section-bar-num,
+.section-bar-take { font-family: var(--font-mono, ui-monospace, monospace); font-size: 9px; }
+.section-bar-num { color: var(--take-muted); font-weight: 800; }
+.section-bar-take { color: var(--take-teal); font-weight: 900; }
+.section-hint { margin: 0; color: var(--take-muted); font-size: 10px; font-style: italic; }
 
-:host-context(.dark-mode) .section-strip {
-  background: rgba(43, 160, 156, 0.1);
-  border-color: rgba(43, 160, 156, 0.4);
-}
-:host-context(.dark-mode) .section-bar {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-:host-context(.dark-mode) .section-bar.assigned {
-  background: rgba(43, 160, 156, 0.16);
-  border-color: var(--teal-400, #2ba09c);
-}
-:host-context(.dark-mode) .section-bar-num,
-:host-context(.dark-mode) .section-hint {
-  color: rgba(255, 255, 255, 0.45);
-}
-:host-context(.dark-mode) .section-bar-take {
-  color: var(--teal-300, #5dc4c2);
-}
+.er-slot:focus-visible,
+.take-lane button:focus-visible,
+.take-lane [role="button"]:focus-visible { outline: 2px solid color-mix(in srgb, var(--take-teal) 75%, white); outline-offset: 2px; }
 
-/* ── Dark mode ───────────────────────────────────────────── */
-:host-context(.dark-mode) .take-lane {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-:host-context(.dark-mode) .take-lane-title {
-  color: rgba(255, 255, 255, 0.5);
-}
-:host-context(.dark-mode) .tl-btn {
-  color: rgba(255, 255, 255, 0.55);
-}
-:host-context(.dark-mode) .tl-btn:hover,
-:host-context(.dark-mode) .tl-btn:focus-visible {
-  background: rgba(93, 196, 194, 0.14);
-}
-:host-context(.dark-mode) .tl-btn.tl-punch.armed {
-  background: var(--teal-500, #0e7c7b);
-  color: white;
-}
-:host-context(.dark-mode) .take-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
-}
-:host-context(.dark-mode) .take-chip.active {
-  border-color: var(--teal-400, #2ba09c);
-  background: rgba(43, 160, 156, 0.16);
-}
-:host-context(.dark-mode) .take-chip-meta {
-  color: var(--teal-300, #5dc4c2);
-  background: rgba(43, 160, 156, 0.16);
-}
-:host-context(.dark-mode) .take-chip-region,
-:host-context(.dark-mode) .take-empty {
-  color: rgba(255, 255, 255, 0.45);
-}
-:host-context(.dark-mode) .take-chip-del {
-  color: rgba(255, 255, 255, 0.45);
-}
-:host-context(.dark-mode) .take-chip-del:hover,
-:host-context(.dark-mode) .take-chip-del:focus-visible {
-  background: rgba(217, 119, 6, 0.2);
-  color: var(--orange, #d97706);
-}
-
-/* ============================================================
-   DEEP RESPONSIVE REFINEMENT — Take Lane
-   Touch-friendly chips + wrapping header on mobile.
-   ============================================================ */
 @media (max-width: 768px) {
-  .take-chip {
-    min-height: 44px;
-  }
-  .take-chip-del {
-    min-width: 36px;
-    min-height: 36px;
-  }
-  .take-lane-head {
-    flex-wrap: wrap;
-  }
+  .take-lane { padding: 8px; gap: 6px; }
+  .take-lane-head { flex-wrap: wrap; }
+  .tl-btn { width: 40px; height: 40px; }
+  .take-chip { min-height: 44px; gap: 6px; }
+  .take-chip-del { width: 36px; height: 36px; }
+  .comp-strip { flex-wrap: wrap; }
+  .comp-btn { min-height: 40px; }
+  .section-strip-head { align-items: flex-start; }
+  .section-bar { min-width: 40px; min-height: 40px; }
+}
+
+@media (max-width: 420px) {
+  .take-lane { padding: 7px; }
+  .take-chip-label { flex: 1 1 40%; }
+  .take-chip-region { max-width: 64px; }
+  .take-chip-meta { font-size: 8px; }
+  .comp-strip { gap: 5px; }
+  .comp-strip-order { flex: 1 1 50px; }
+}
+
+:host-context(.dark-mode) .take-lane { border-color: rgba(255, 255, 255, 0.12); background: linear-gradient(145deg, rgba(28, 30, 35, 0.94), rgba(17, 19, 23, 0.96)); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.045); }
+:host-context(.dark-mode) .take-lane-title,
+:host-context(.dark-mode) .take-chip-region,
+:host-context(.dark-mode) .take-empty,
+:host-context(.dark-mode) .comp-strip-order,
+:host-context(.dark-mode) .section-hint { color: rgba(226, 232, 240, 0.58); }
+:host-context(.dark-mode) .take-chip { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.045); color: #f1f5f9; }
+:host-context(.dark-mode) .take-chip.active { border-color: var(--teal-400, #2ba09c); background: rgba(43, 160, 156, 0.15); }
+:host-context(.dark-mode) .take-chip.in-comp,
+:host-context(.dark-mode) .comp-strip { background: rgba(217, 119, 6, 0.12); }
+:host-context(.dark-mode) .section-strip { background: rgba(43, 160, 156, 0.1); border-color: rgba(43, 160, 156, 0.34); }
+:host-context(.dark-mode) .section-bar { border-color: rgba(255, 255, 255, 0.13); background: rgba(255, 255, 255, 0.05); }
+:host-context(.dark-mode) .section-bar.assigned { border-color: var(--teal-400, #2ba09c); background: rgba(43, 160, 156, 0.16); }
+
+@media (prefers-reduced-motion: reduce) {
+  .take-lane,
+  .take-chip,
+  .tl-btn,
+  .comp-btn,
+  .section-bar { transition: none !important; }
+  .take-lane,
+  .comp-strip,
+  .section-strip,
+  .tl-btn.tl-punch.armed,
+  .tl-btn.tl-sections.armed { animation: none !important; }
+  .take-chip:hover,
+  .section-bar:hover { transform: none !important; }
+}
+
+@media (forced-colors: active) {
+  .take-chip.active,
+  .take-chip.in-comp,
+  .section-bar.assigned,
+  .section-bar.picked { outline: 2px solid Highlight; }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   STAGE 2.0 — Take Lane · Tape-stack polish
+   REDESIGN — TAKE STAMP COVERAGE
+   The take-stamp control had no size contract of its own.
+   Styling only: take stamping and comp selection are untouched.
    ═══════════════════════════════════════════════════════════ */
-.take-lane {
-  position: relative;
-  overflow: hidden;
-  transition: border-color 180ms ease;
+.tl-stamp {
+  min-height: 32px;
 }
 
-.take-lane:hover {
-  border-color: color-mix(in srgb, var(--teal-500) 45%, transparent);
+@media (pointer: coarse) {
+  .tl-stamp {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
-.take-lane-head::before {
-  content: '';
-  width: 3px;
-  height: 12px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--teal-400), var(--teal-600));
-  box-shadow: 0 0 8px var(--teal-glow, rgba(43, 160, 156, 0.4));
-  flex-shrink: 0;
-}
-
-.take-lane-count {
-  transition:
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.take-lane:hover .take-lane-count {
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(43, 160, 156, 0.25);
-}
-
-.tl-btn {
-  transition:
-    background 0.12s ease,
-    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
-    color 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-.tl-btn:hover {
-  transform: translateY(-1px);
-}
-
-.tl-btn:active {
-  transform: scale(0.88);
-}
-
-.tl-btn.tl-punch.armed {
-  animation: punchPulse 1.2s ease-in-out infinite;
-}
-
-.tl-btn.tl-comp.armed {
-  animation: punchPulse 1.2s ease-in-out infinite;
-}
-
-.take-chip {
-  transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
-    box-shadow 0.12s ease;
-}
-
-.take-chip:hover {
-  transform: translateX(2px);
-}
-
-.take-chip.active {
-  box-shadow:
-    0 0 0 1px var(--teal-500, #0e7c7b) inset,
-    0 2px 10px rgba(43, 160, 156, 0.2);
-}
-
-.take-chip-meta {
-  transition: background 0.12s ease;
-}
-
-.take-chip.active .take-chip-meta {
-  background: var(--teal-500, #0e7c7b);
-  color: white;
-}
-
-.take-chip-del {
-  transition:
-    background 0.12s ease,
-    color 0.12s ease,
-    transform 0.12s ease;
-}
-
-.take-chip-del:hover {
-  transform: scale(1.1);
-}
-
-.comp-apply {
-  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.3);
-}
-
-.section-bar {
-  transition:
-    border-color 0.12s ease,
-    background 0.12s ease,
-    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
-    box-shadow 0.12s ease;
-}
-
-.section-bar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
-}
-
-.section-bar.assigned {
-  box-shadow: 0 0 0 1px var(--teal-500, #0e7c7b) inset;
-}
-
-.section-bar.picked {
-  box-shadow:
-    0 0 0 2px var(--orange, #d97706) inset,
-    0 0 10px rgba(217, 119, 6, 0.2);
-}
-
-.comp-strip {
-  animation: takeLaneIn 200ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tl-btn.tl-punch.armed,
-  .tl-btn.tl-comp.armed,
-  .comp-strip {
-    animation: none;
+@media (forced-colors: active) {
+  .tl-stamp {
+    border-color: CanvasText;
   }
 }

@@ -1341,3 +1341,339 @@
     min-height: 48px;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — MASTERING CONSOLE
+   Warm console materials with instrument-grade readouts. All
+   strips, faders, and routing interactions remain unchanged.
+   ════════════════════════════════════════════════════════════ */
+.mix-shell {
+  gap: 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(14, 124, 123, 0.1), transparent 40%),
+    linear-gradient(180deg, #f2ecdc 0%, #e9e1cf 100%);
+}
+
+.mix-header {
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #fffdf6 0%, #eee7d7 100%);
+  border-bottom-color: rgba(61, 53, 42, 0.16);
+  box-shadow: 0 8px 22px rgba(39, 34, 25, 0.08);
+}
+.mix-header-title .material-symbols-outlined {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(14, 124, 123, 0.2);
+  border-radius: 11px;
+  background: rgba(14, 124, 123, 0.08);
+  color: var(--teal-700);
+}
+.mix-segmented {
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(61, 53, 42, 0.06);
+}
+.mix-segmented button {
+  min-height: 40px;
+  padding-inline: 14px;
+  transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+.mix-segmented button.active {
+  background: var(--teal-700);
+  box-shadow: 0 3px 10px rgba(14, 124, 123, 0.22);
+}
+.mix-ai-chip {
+  min-height: 44px;
+  height: auto;
+  padding-inline: 16px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.mix-ai-chip:hover {
+  box-shadow: 0 8px 18px rgba(14, 124, 123, 0.25);
+}
+
+.mix-phase-bar {
+  margin: 0 12px;
+  padding: 12px 16px;
+  border: 1px solid rgba(61, 53, 42, 0.13);
+  border-radius: 14px;
+  background: rgba(255, 253, 246, 0.8);
+}
+.mix-phase-title {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.mix-phase-meter {
+  margin: 8px 4px 14px;
+  height: 12px;
+  border-radius: 999px;
+}
+.mix-phase-meter-axis {
+  border-radius: inherit;
+}
+.mix-phase-meter-indicator {
+  border: 2px solid #fffdf6;
+}
+.mix-phase-help {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.mix-vca-rack {
+  margin-inline: 12px;
+  border-radius: 14px;
+}
+.mix-vca-add,
+.mix-vca-mute,
+.mix-vca-remove {
+  min-width: 40px;
+  min-height: 40px;
+}
+.mix-vca-row {
+  min-height: 48px;
+  grid-template-columns: minmax(4rem, 1.4fr) minmax(0, 4fr) 2.6rem 2.2rem 2.5rem 2.5rem 2.5rem;
+}
+.mix-strips {
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(14, 124, 123, 0.07), transparent 55%),
+    var(--ivory-bg);
+  scrollbar-color: rgba(14, 124, 123, 0.5) transparent;
+}
+.mix-strip {
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(39, 34, 25, 0.07), inset 0 1px rgba(255, 255, 255, 0.75);
+}
+.mix-strip-selected {
+  box-shadow: 0 0 0 2px var(--teal-soft-glow), 0 12px 26px rgba(39, 34, 25, 0.18);
+}
+.mix-strip-master {
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.mix-strip-sends {
+  min-height: 42px;
+}
+.mix-mobile-summary,
+.mix-mobile-inspector {
+  margin-inline: 12px;
+  border-radius: 14px;
+  background: rgba(255, 253, 246, 0.9);
+  border: 1px solid rgba(61, 53, 42, 0.14);
+  box-shadow: 0 8px 20px rgba(39, 34, 25, 0.07);
+}
+.mix-mobile-inspector-header {
+  min-height: 56px;
+}
+.mix-mobile-inspector-toggle {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+:host-context(.dark-mode) .mix-shell {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(32, 215, 210, 0.08), transparent 42%),
+    linear-gradient(180deg, #10151c 0%, #0b0e13 100%);
+}
+:host-context(.dark-mode) .mix-header,
+:host-context(.dark-mode) .mix-phase-bar,
+:host-context(.dark-mode) .mix-mobile-summary,
+:host-context(.dark-mode) .mix-mobile-inspector {
+  background: #141922;
+  border-color: rgba(255, 255, 255, 0.09);
+}
+:host-context(.dark-mode) .mix-vca-row {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+@media (max-width: 768px) {
+  .mix-shell { gap: 8px; }
+  .mix-header { padding: 9px 10px; gap: 8px; }
+  .mix-header-title { gap: 7px; }
+  .mix-segmented { order: 3; width: 100%; }
+  .mix-segmented button { flex: 1 1 0; min-height: 44px; }
+  .mix-ai-chip { min-height: 44px; }
+  .mix-phase-bar { margin-inline: 6px; padding: 10px; }
+  .mix-vca-rack { margin-inline: 6px; }
+  .mix-vca-row { grid-template-columns: minmax(3.5rem, 1fr) minmax(3rem, 2fr) 2.2rem 1.8rem 2.5rem 2.5rem 2.5rem; gap: 0.3rem; }
+  .mix-strips { padding: 10px 6px; }
+  .mix-mobile-summary,
+  .mix-mobile-inspector { margin-inline: 6px; }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .mix-header { padding-block: 6px; }
+  .mix-phase-bar { padding-block: 7px; }
+  .mix-mobile-summary { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mix-segmented button,
+  .mix-ai-chip { transition: none; }
+}
+
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — MOBILE MIX CONSOLE COVERAGE
+   The output summary and selected-channel inspector (plan §8) had
+   no presentation layer. Styling only: metering, routing state and
+   every gesture handler stay owned by the component.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Output summary (LUFS / peak / stereo) ───────────────── */
+.mix-summary-item {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mix-summary-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(61, 53, 42, 0.58);
+}
+
+.mix-summary-item strong {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #241d15;
+}
+
+.mix-summary-item[data-state='ready'] strong {
+  color: #0e7c7b;
+}
+
+.mix-summary-item[data-state='warning'] strong {
+  color: #a16207;
+}
+
+.mix-summary-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(61, 53, 42, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 253, 246, 0.9);
+  color: rgba(36, 29, 21, 0.74);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mix-summary-reset:active {
+  transform: scale(0.97);
+}
+
+/* ── Selected-channel inspector ─────────────────────────── */
+.mix-mobile-inspector {
+  overflow: hidden;
+}
+
+.mix-mobile-inspector.is-open {
+  box-shadow: 0 14px 30px rgba(39, 34, 25, 0.16);
+}
+
+.mix-mobile-kicker {
+  display: block;
+  color: #0e7c7b;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mix-mobile-controls {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.mix-mobile-control {
+  display: grid;
+  gap: 6px;
+  color: rgba(61, 53, 42, 0.6);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mix-mobile-control strong {
+  color: #241d15;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.mix-mobile-control input[type='range'] {
+  width: 100%;
+  min-height: 36px;
+  margin: 0;
+  accent-color: #0e7c7b;
+  touch-action: pan-y;
+}
+
+.mix-mobile-msr {
+  display: flex;
+  gap: 6px;
+}
+
+.mix-mobile-msr button {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(61, 53, 42, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 253, 246, 0.9);
+  color: rgba(61, 53, 42, 0.6);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.mix-mobile-msr button.active {
+  background: linear-gradient(180deg, #12908e, #0e7c7b);
+  border-color: rgba(14, 124, 123, 0.55);
+  color: #fffdf6;
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.28);
+}
+
+/* ── Focus, motion and contrast contracts ────────────────── */
+.mix-summary-reset:focus-visible,
+.mix-mobile-msr button:focus-visible,
+.mix-mobile-control input[type='range']:focus-visible {
+  outline: 2px solid rgba(14, 124, 123, 0.55);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mix-summary-reset,
+  .mix-mobile-inspector {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .mix-mobile-msr button.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

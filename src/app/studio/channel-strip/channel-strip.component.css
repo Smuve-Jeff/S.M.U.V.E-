@@ -145,3 +145,40 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — STRIP FRAME + FADER TOUCH BANDS
+   The strip container hook had no rule and the fader thumb stayed
+   pointer-sized on touch. Styling only: gain, pan and mute/solo
+   bindings are untouched.
+   ═══════════════════════════════════════════════════════════ */
+.channel-strip-container {
+  min-width: 0;
+}
+
+.channel-strip-container:focus-within {
+  border-color: rgba(93, 196, 194, 0.45);
+}
+
+/* Touch: a finger needs a wider thumb and a taller travel band than a cursor. */
+@media (pointer: coarse) {
+  .channel-strip-container .channel-fader {
+    min-height: 44px;
+  }
+
+  .channel-strip-container .channel-fader::-webkit-slider-thumb {
+    height: 30px;
+    width: 40px;
+  }
+
+  .channel-strip-container .channel-fader::-moz-range-thumb {
+    height: 30px;
+    width: 40px;
+  }
+}
+
+@media (forced-colors: active) {
+  .channel-strip-container {
+    border-color: CanvasText;
+  }
+}

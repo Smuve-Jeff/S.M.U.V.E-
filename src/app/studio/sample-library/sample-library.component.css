@@ -535,3 +535,339 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Sample Library
+   A bounded, searchable shelf with touch-safe sample actions and
+   an independently scrolling card grid. Drag and long-press
+   behavior remain owned by the component.
+   ============================================================ */
+
+:host {
+  --sl-canvas: var(--ivory-bg, #f5efe0);
+  --sl-surface: var(--ivory-paper, #fbf7ec);
+  --sl-panel: var(--ivory-panel, #fffaf0);
+  --sl-ink: var(--espresso-text, #1f1a12);
+  --sl-muted: var(--espresso-muted, #7e7259);
+  --sl-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --sl-teal: var(--teal-500, #0e7c7b);
+  --sl-amber: var(--neon-amber, #d97706);
+  --sl-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--sl-ink);
+}
+
+.sample-library-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--sl-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(78% 32% at 96% 0%, color-mix(in srgb, var(--sl-teal) 9%, transparent), transparent 72%),
+    var(--sl-canvas);
+  box-shadow: var(--sl-shadow);
+}
+
+.sl-shell {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(12px, 2vw, 22px);
+  overflow: hidden;
+}
+
+.sl-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 62px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--sl-surface) 94%, transparent);
+  border-color: var(--sl-line);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.06);
+}
+
+.sl-title {
+  flex: 1 1 260px;
+  gap: 12px;
+}
+
+.sl-h2 {
+  color: var(--sl-ink);
+  font-size: clamp(15px, 1.8vw, 19px);
+  letter-spacing: 0.08em;
+}
+
+.sl-sub {
+  max-width: 52ch;
+  color: var(--sl-muted);
+  line-height: 1.4;
+}
+
+.sl-title-icon {
+  flex: 0 0 auto;
+  color: var(--sl-teal);
+  filter: none;
+}
+
+.sl-search {
+  flex: 0 1 360px;
+  min-width: min(100%, 220px);
+  min-height: 44px;
+  padding: 0 12px;
+  border-color: var(--sl-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sl-panel) 84%, transparent);
+  color: var(--sl-muted);
+}
+
+.sl-search:focus-within {
+  border-color: var(--sl-teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-teal) 16%, transparent);
+}
+
+.sl-search input {
+  min-width: 0;
+  min-height: 42px;
+  color: var(--sl-ink);
+}
+
+.sl-cats {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 6px;
+  border-color: var(--sl-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--sl-panel) 74%, transparent);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.sl-cats::-webkit-scrollbar {
+  display: none;
+}
+
+.sl-cat {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border-color: var(--sl-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--sl-surface) 88%, transparent);
+  color: var(--sl-muted);
+  touch-action: manipulation;
+}
+
+.sl-cat:hover,
+.sl-cat:focus-visible {
+  border-color: var(--sl-teal);
+  background: color-mix(in srgb, var(--sl-teal) 8%, var(--sl-surface));
+  color: var(--sl-ink);
+}
+
+.sl-cat-active {
+  border-color: var(--sl-teal);
+  background: var(--sl-teal);
+  color: var(--ivory-deep, #06091a);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sl-teal) 24%, transparent);
+}
+
+.sl-cat-active .material-symbols-outlined,
+.sl-cat-active .sl-cat-count {
+  color: var(--ivory-deep, #06091a);
+}
+
+.sl-grid {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  align-content: start;
+  padding: 2px 4px 2px 0;
+  gap: 10px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sl-teal) transparent;
+}
+
+.sl-card {
+  min-width: 0;
+  min-height: 74px;
+  padding: 11px 12px;
+  gap: 10px;
+  border-color: var(--sl-line);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--sl-surface) 94%, transparent);
+  box-shadow: 0 3px 11px rgba(61, 53, 42, 0.045);
+  touch-action: none;
+}
+
+.sl-card:hover,
+.sl-card:focus-visible {
+  border-color: color-mix(in srgb, var(--sl-teal) 58%, var(--sl-line));
+  background: color-mix(in srgb, var(--sl-teal) 5%, var(--sl-surface));
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--sl-teal) 14%, transparent);
+}
+
+.sl-card:focus-visible {
+  outline: 2px solid var(--sl-teal);
+  outline-offset: 2px;
+}
+
+.sl-card-previewing {
+  border-color: var(--sl-amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-amber) 24%, transparent);
+}
+
+.sl-card-icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--sl-teal) 18%, var(--sl-line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sl-teal) 8%, var(--sl-canvas));
+  color: var(--sl-teal);
+}
+
+.sl-card-name {
+  color: var(--sl-ink);
+}
+
+.sl-card-tags {
+  gap: 4px;
+}
+
+.sl-tag {
+  min-height: 26px;
+  padding: 2px 7px;
+  border-color: var(--sl-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--sl-panel) 70%, transparent);
+  color: var(--sl-muted);
+  touch-action: manipulation;
+}
+
+.sl-tag:hover,
+.sl-tag:focus-visible {
+  border-color: var(--sl-teal);
+  color: var(--sl-ink);
+}
+
+.sl-tag-active {
+  border-color: var(--sl-teal);
+  background: color-mix(in srgb, var(--sl-teal) 16%, var(--sl-panel));
+  color: var(--sl-teal);
+}
+
+.sl-card-meta {
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.sl-icon-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-color: var(--sl-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--sl-panel) 76%, transparent);
+  color: var(--sl-muted);
+  touch-action: manipulation;
+}
+
+.sl-icon-btn:hover,
+.sl-icon-btn:focus-visible {
+  border-color: var(--sl-teal);
+  background: color-mix(in srgb, var(--sl-teal) 10%, var(--sl-panel));
+  color: var(--sl-teal);
+}
+
+.sl-icon-btn-primary {
+  border-color: var(--sl-teal);
+  background: var(--sl-teal);
+  color: var(--ivory-deep, #06091a);
+}
+
+.sl-icon-btn-primary .material-symbols-outlined {
+  color: var(--ivory-deep, #06091a);
+}
+
+.sl-foot {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 18px;
+  color: var(--sl-muted);
+}
+
+@media (max-width: 700px) {
+  .sl-shell {
+    padding: 10px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+
+  .sl-header {
+    min-height: 0;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .sl-title {
+    flex-basis: 100%;
+  }
+
+  .sl-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .sl-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .sl-card {
+    min-height: 68px;
+    padding: 9px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .sl-shell {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    gap: 8px;
+  }
+
+  .sl-header {
+    min-height: 50px;
+    padding-block: 7px;
+  }
+
+  .sl-sub {
+    display: none;
+  }
+
+  .sl-card {
+    min-height: 62px;
+    padding-block: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-header::after,
+  .sl-card-previewing {
+    animation: none;
+  }
+}

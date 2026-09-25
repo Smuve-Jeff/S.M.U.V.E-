@@ -11,10 +11,21 @@
      .central-mixer-console      master mixer between them
      .knob-group .label "DRIVE"  master drive knob
      .btn-chrome "BRAKE"         ×2
-     .dj-waveform-bar canvas     ×2
-     .deck-a-transform           carries the 3D booth tilt
-   Keep those selectors intact when editing the template.
+     .dj-waveform-bar canvas     ×2     .deck-a-transform           carries the 3D booth tilt
+     Keep those selectors intact when editing the template.
    ============================================================ */
+
+/* REDESIGN — PLATTER TAP FEEDBACK
+   .dj-platter carries the scratch pointer/touch/keyboard handlers but had
+   no rule of its own, so a tap flashed the browser's grey highlight over the
+   platter art. Visual only: the .vinyl-platter geometry, the two-platter
+   layout contract verified by the DJ e2e specs and every handler stay as
+   they are. The platter focus ring lives in the booth-wide focus contract
+   further down this file. */
+.dj-platter {
+  min-width: 0;
+  -webkit-tap-highlight-color: transparent;
+}
 
 :host {
   /* ── Plinth: walnut ─────────────────────────────────────── */

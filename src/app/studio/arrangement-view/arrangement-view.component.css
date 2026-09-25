@@ -1018,3 +1018,467 @@
     transition: none !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — ARRANGEMENT TIMELINE
+   Analog console framing around the existing canvas and track
+   rails; all editing, MIDI, and transport handlers stay intact.
+   ════════════════════════════════════════════════════════════ */
+.playlist-container {
+  gap: 0;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(14, 124, 123, 0.09), transparent 38%),
+    linear-gradient(180deg, #f1ead9 0%, #e8dfcb 100%);
+}
+
+.playlist-header {
+  padding: 10px 14px;
+  gap: 8px 12px;
+  background: linear-gradient(180deg, #fffdf6 0%, #eee7d7 100%);
+  border-bottom-color: rgba(61, 53, 42, 0.16);
+  box-shadow: 0 8px 22px rgba(39, 34, 25, 0.08);
+}
+.view-tabs {
+  gap: 8px;
+}
+.tab-btn {
+  min-height: 34px;
+  border-radius: 9px;
+  background: rgba(14, 124, 123, 0.08);
+  border-color: rgba(14, 124, 123, 0.2);
+  letter-spacing: 0.1em;
+}
+.history-controls {
+  align-items: center;
+}
+.mini-btn,
+.m-btn,
+.tool-btn {
+  transition: transform 0.14s ease, color 0.14s ease, background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.mini-btn,
+.m-btn {
+  min-height: 36px;
+  border-radius: 9px;
+}
+.mini-btn:hover,
+.m-btn:hover,
+.tool-btn:hover {
+  transform: translateY(-1px);
+}
+.module-transport {
+  align-items: center;
+  min-height: 40px;
+  padding-inline: 12px;
+  border: 1px solid rgba(61, 53, 42, 0.13);
+  background: rgba(255, 253, 246, 0.82);
+}
+.module-transport-label {
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+.module-transport-state {
+  color: var(--teal-700);
+  font-weight: 900;
+}
+.module-transport-state[data-state='recording'] {
+  color: var(--record, #dc2626);
+}
+.tool-selector {
+  gap: 4px;
+  border-radius: 10px;
+  background: rgba(61, 53, 42, 0.055);
+}
+.tool-btn {
+  min-height: 36px;
+  border-radius: 8px;
+}
+.tool-btn.active {
+  background: var(--teal-700, #075e5d);
+  box-shadow: 0 4px 12px rgba(14, 124, 123, 0.2);
+}
+.header-actions {
+  gap: 6px;
+}
+.arrangement-mode-status {
+  border-bottom: 1px solid rgba(61, 53, 42, 0.12);
+  background: rgba(255, 253, 246, 0.62);
+}
+
+.playlist-content {
+  background:
+    radial-gradient(ellipse at 85% 0%, rgba(14, 124, 123, 0.05), transparent 42%),
+    #e9e1cf;
+}
+.track-headers {
+  background: linear-gradient(180deg, #f9f5e9 0%, #eee7d7 100%);
+  border-right-color: rgba(61, 53, 42, 0.16);
+}
+.track-header {
+  border-bottom-color: rgba(61, 53, 42, 0.13);
+  background: rgba(255, 253, 246, 0.72);
+}
+.track-header.selected {
+  box-shadow: inset 3px 0 0 var(--teal-500), 0 4px 14px rgba(14, 124, 123, 0.1);
+}
+.grid-viewport {
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(14, 124, 123, 0.5) transparent;
+  background-color: #f5efdf;
+  background-image:
+    linear-gradient(rgba(61, 53, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 53, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, transparent calc(25% - 1px), rgba(14, 124, 123, 0.11) 25%, transparent calc(25% + 1px));
+  background-size: 100% 32px, 48px 100%, 192px 100%;
+}
+.arr-empty-cta {
+  border: 1px solid rgba(61, 53, 42, 0.14);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 253, 246, 0.97), rgba(238, 231, 215, 0.96));
+  box-shadow: 0 18px 40px rgba(39, 34, 25, 0.1);
+}
+.arr-empty-primary,
+.arr-empty-secondary {
+  min-height: 48px;
+  border-radius: 11px;
+}
+.arrangement-overview {
+  background: linear-gradient(180deg, rgba(250, 247, 237, 0.96), rgba(236, 229, 213, 0.96));
+  border-top-color: rgba(61, 53, 42, 0.15);
+}
+.arrangement-overview-track {
+  height: 20px;
+  border-radius: 7px;
+  background-color: #ded5c1;
+}
+.arrangement-overview-playhead {
+  box-shadow: 0 0 12px var(--teal-500);
+}
+
+:host-context(.dark-mode) .playlist-container {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(32, 215, 210, 0.08), transparent 40%),
+    linear-gradient(180deg, #10151c 0%, #0b0e13 100%);
+}
+:host-context(.dark-mode) .playlist-header,
+:host-context(.dark-mode) .arrangement-overview {
+  background: linear-gradient(180deg, #171d26, #11161e);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+:host-context(.dark-mode) .playlist-content,
+:host-context(.dark-mode) .grid-viewport {
+  background-color: #11161e;
+}
+:host-context(.dark-mode) .grid-viewport {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, transparent calc(25% - 1px), rgba(32, 215, 210, 0.1) 25%, transparent calc(25% + 1px));
+}
+:host-context(.dark-mode) .track-headers,
+:host-context(.dark-mode) .track-header {
+  background-color: #151b24;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+:host-context(.dark-mode) .arr-empty-cta {
+  background: linear-gradient(145deg, #171d26, #11161e);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .playlist-header {
+    max-height: min(178px, 34dvh);
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .header-actions {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    overscroll-behavior-x: contain;
+  }
+  .header-actions > button { flex: 0 0 auto; min-height: 44px; }
+  .track-headers { width: 112px; }
+  .grid-viewport { background-size: 100% 28px, 40px 100%, 160px 100%; }
+  .arrangement-overview { padding-inline: 8px; }
+  .arrangement-mobile-actions {
+    background: rgba(255, 253, 246, 0.96);
+    border-top-color: rgba(61, 53, 42, 0.14);
+  }
+  :host-context(.dark-mode) .arrangement-mobile-actions {
+    background: rgba(17, 22, 30, 0.97);
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .playlist-header { padding-block: 5px; }
+  .arrangement-mode-status { min-height: 28px; }
+  .arrangement-overview { padding-block: 3px 5px; }
+  .arrangement-overview-track { height: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-btn,
+  .m-btn,
+  .tool-btn { transition: none; }
+}
+
+/* Final timeline-console pass: sharpen lane hierarchy without touching the
+   WebGL canvas, its coordinates, or any pointer/touch interaction surface. */
+.playlist-container {
+  --arr-ink: #18221f;
+  --arr-muted: #718079;
+  --arr-line: rgba(48, 63, 55, 0.16);
+  --arr-panel: #f8f5ec;
+  --arr-accent: #137b73;
+  border: 1px solid var(--arr-line);
+  border-radius: 14px;
+  box-shadow: 0 20px 55px rgba(30, 38, 32, 0.12);
+  color: var(--arr-ink);
+}
+
+.playlist-header {
+  position: relative;
+  z-index: 2;
+  gap: 8px 10px;
+  padding: 10px 12px;
+}
+
+.view-tabs,
+.history-controls,
+.header-actions,
+.edit-tools {
+  min-width: 0;
+}
+
+.header-actions {
+  flex: 1 1 360px;
+  justify-content: flex-end;
+}
+
+.edit-tools {
+  flex-wrap: wrap;
+  margin-right: 4px;
+}
+
+.arrangement-mode-status {
+  min-height: 34px;
+  padding-inline: 14px;
+  font-size: 10px;
+  background: linear-gradient(90deg, rgba(19, 123, 115, 0.08), transparent 72%);
+}
+
+.playlist-content {
+  min-width: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.track-headers {
+  width: clamp(138px, 16vw, 190px);
+  background: linear-gradient(180deg, #f8f5ec, #eee8d9);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(19, 123, 115, 0.35) transparent;
+}
+
+.track-header {
+  min-height: 80px;
+  background: rgba(255, 253, 247, 0.78);
+  border-bottom: 1px solid rgba(48, 63, 55, 0.13);
+}
+
+.track-top {
+  min-height: 42px;
+  padding: 7px 9px;
+  gap: 2px;
+}
+
+.track-name {
+  color: #25332e;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.track-color-strip {
+  width: 4px;
+  min-height: 28px;
+  border-radius: 999px;
+}
+
+.track-controls {
+  min-height: 36px;
+  align-items: center;
+  padding: 0 8px 7px;
+}
+
+.track-controls .mini-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 30px;
+  min-height: 30px;
+}
+
+.track-take-lane {
+  display: block;
+  margin: 0 7px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(48, 63, 55, 0.14);
+  border-radius: 9px;
+}
+
+.grid-viewport {
+  min-width: 0;
+  background-color: #f5f0e3;
+  background-image:
+    linear-gradient(rgba(48, 63, 55, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48, 63, 55, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, transparent calc(25% - 1px), rgba(19, 123, 115, 0.15) 25%, transparent calc(25% + 1px));
+  background-size: 100% 40px, 50px 100%, 200px 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(19, 123, 115, 0.4) transparent;
+}
+
+.arrangement-overview {
+  padding: 8px 12px 10px;
+}
+
+.arrangement-overview-track {
+  min-height: 24px;
+  border-color: rgba(48, 63, 55, 0.2);
+}
+
+.mini-btn:focus-visible,
+.m-btn:focus-visible,
+.tool-btn:focus-visible,
+.arr-empty-primary:focus-visible,
+.arr-empty-secondary:focus-visible,
+.arrangement-overview-track:focus-visible,
+.arrangement-mobile-action:focus-visible {
+  outline: 3px solid #137b73;
+  outline-offset: 2px;
+}
+
+:host-context(.dark-mode) .playlist-container {
+  --arr-ink: #e4ece8;
+  --arr-muted: #9baaa4;
+  --arr-line: rgba(221, 237, 229, 0.12);
+  background: #10161b;
+  color: var(--arr-ink);
+}
+
+:host-context(.dark-mode) .playlist-header,
+:host-context(.dark-mode) .arrangement-mode-status {
+  background: linear-gradient(180deg, #1a2329, #141b20);
+  border-color: var(--arr-line);
+}
+
+:host-context(.dark-mode) .track-headers {
+  background: #141b20;
+  border-color: var(--arr-line);
+}
+
+:host-context(.dark-mode) .track-header {
+  background: #182127;
+  border-color: rgba(221, 237, 229, 0.09);
+}
+
+:host-context(.dark-mode) .track-name,
+:host-context(.dark-mode) .arrangement-mode-status strong {
+  color: #e4ece8;
+}
+
+:host-context(.dark-mode) .grid-viewport {
+  background-color: #10171c;
+  background-image:
+    linear-gradient(rgba(221, 237, 229, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(221, 237, 229, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, transparent calc(25% - 1px), rgba(32, 215, 210, 0.12) 25%, transparent calc(25% + 1px));
+}
+
+:host-context(.dark-mode) .arrangement-mobile-action {
+  background: #1a2329;
+  color: #e4ece8;
+  border-color: rgba(221, 237, 229, 0.14);
+}
+
+@media (max-width: 768px) {
+  .playlist-container {
+    border-radius: 10px;
+  }
+
+  .playlist-header {
+    max-height: min(196px, 38dvh);
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+  }
+
+  .track-headers {
+    width: clamp(112px, 32vw, 150px);
+  }
+
+  .track-top {
+    padding-inline: 6px;
+  }
+
+  .track-name {
+    font-size: 9px;
+  }
+
+  .track-controls .mini-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .arrangement-overview-head {
+    gap: 7px;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .track-header,
+  .arrangement-mode-status,
+  .arrangement-overview-track {
+    border-color: currentColor;
+  }
+}
+
+@media (forced-colors: active) {
+  .track-header.selected,
+  .tool-btn.active,
+  .mini-btn.active-solo,
+  .mini-btn.active-snap {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — ARRANGE TOOLBAR COVERAGE
+   The new-pattern entry in the arrangement toolbar had no styling
+   of its own. Styling only: pattern creation behaviour is intact.
+   ════════════════════════════════════════════════════════════ */
+
+.av-new-pattern-btn {
+  min-height: 30px;
+}
+
+@media (pointer: coarse) {
+  .av-new-pattern-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .av-new-pattern-btn {
+    border-color: CanvasText;
+  }
+}

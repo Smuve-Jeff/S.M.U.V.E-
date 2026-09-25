@@ -3,9 +3,9 @@
   Beginner Mode with tooltips · Visual waveform & ADSR canvas
   Swipeable tabs on mobile · Expanded grid on desktop
 -->
-<div class="synth-container">
+<div class="synth-container studio-workspace-surface synth-surface">
   <!-- HEADER -->
-  <header class="synth-header">
+  <header class="synth-header studio-context-toolbar">
     <div class="synth-header-left">
       <span class="synth-title">Neural Synth v5</span>
       <span class="synth-patch-name">{{ activePatch()?.name ?? 'INIT' }}</span>
@@ -35,7 +35,7 @@
   </header>
 
   <!-- PATCH BROWSER (horizontal scroll) -->
-  <div class="synth-patch-rail">
+  <div class="synth-patch-rail studio-horizontal-rail">
     <button
       *ngFor="let patch of patches"
       type="button"
@@ -53,7 +53,7 @@
 
   <!-- MOBILE TABS (visible < 768px only) -->
   <nav
-    class="synth-mobile-tabs"
+    class="synth-mobile-tabs studio-horizontal-rail"
     role="tablist"
     aria-label="Synthesizer sections"
   >
@@ -72,7 +72,7 @@
   </nav>
 
   <!-- MAIN CONTENT (scrollable) -->
-  <div class="synth-content no-scrollbar">
+  <div class="synth-content no-scrollbar studio-module-scroll">
     <!-- ════════ OSCILLATOR SECTION ════════ -->
     <div
       class="synth-section oscillator-section"

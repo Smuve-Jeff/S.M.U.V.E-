@@ -1,5 +1,8 @@
-<section class="sl-shell" aria-label="Sample library">
-  <header class="sl-header">
+<section
+  class="sl-shell studio-workspace-surface sample-library-surface"
+  aria-label="Sample library"
+>
+  <header class="sl-header studio-context-toolbar">
     <div class="sl-title">
       <span class="material-symbols-outlined sl-title-icon">library_music</span>
       <div>
@@ -23,7 +26,10 @@
   </header>
 
   <!-- CATEGORY CHIPS -->
-  <nav class="sl-cats" aria-label="Sample categories">
+  <nav
+    class="sl-cats studio-horizontal-rail"
+    aria-label="Sample categories"
+  >
     <button
       *ngFor="let cat of categories()"
       type="button"
@@ -41,7 +47,7 @@
   </nav>
 
   <!-- GRID -->
-  <div class="sl-grid" role="list">
+  <div class="sl-grid studio-module-scroll" role="list">
     <article
       *ngFor="let sample of filteredSamples()"
       class="sl-card"
@@ -104,7 +110,10 @@
     </article>
   </div>
 
-  <footer class="sl-foot" *ngIf="filteredSamples().length === 0">
+  <footer
+    class="sl-foot studio-empty-state"
+    *ngIf="filteredSamples().length === 0"
+  >
     <p>
       No samples match those filters. Try clearing search or switching category.
     </p>

@@ -87,7 +87,6 @@ describe('DjDeckComponent', () => {
         const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
         target.update((d: typeof initialDeckState) => ({ ...d, gain }));
       }),
-      setDeckGain: jest.fn(),
       setDeckSend: jest.fn(),
       setBpm: jest.fn(),
       sync: jest.fn(),
@@ -111,7 +110,10 @@ describe('DjDeckComponent', () => {
         }));
       }),
       setBassBoost: jest.fn(),
-      setDeckFilterMode: jest.fn(),
+      setDeckFilterMode: jest.fn().mockImplementation((id, filterMode) => {
+        const target = mockDeckService[id === 'A' ? 'deckA' : 'deckB'];
+        target.update((d: typeof initialDeckState) => ({ ...d, filterMode }));
+      }),
       scratch: jest.fn(),
     };
 
@@ -900,6 +902,18 @@ describe('DjDeckComponent', () => {
       'highpass'
     );
     expect(component.sessionNotice()).toMatch(/HPF/);
+  });
+
+  it('tracks the filter switch even when the mode is set outside the booth', () => {
+    // The switch used to keep its own copy of the filter type, so a mode change
+    // made through the deck service left the booth showing a stale value.
+    mockDeckService.deckB.update((d: typeof initialDeckState) => ({
+      ...d,
+      filterMode: 'highpass',
+    }));
+
+    expect(component.filterMode().B).toBe('highpass');
+    expect(component.filterMode().A).toBe('lowpass');
   });
 
   it('seeks, nudges and plays from the platter keyboard', () => {

@@ -5,7 +5,6 @@
    =========================================================== */
 
 :host {
-  /* ── Core vocal palette (dark by design) ── */
   --vs-obsidian: #07070a;
   --vs-oled: #0a0a0d;
   --vs-titanium: #111116;
@@ -17,6 +16,9 @@
   --vs-text: #f0f0f5;
   --vs-text-dim: #6b7280;
   --vs-glass: rgba(255, 255, 255, 0.03);
+  --vs-console-line: rgba(148, 163, 184, 0.14);
+  --vs-console-well: rgba(3, 7, 13, 0.72);
+  --vs-console-glow: rgba(168, 85, 247, 0.16);
 
   display: block;
   min-height: 100%;
@@ -26,7 +28,6 @@
   font-family: 'Rajdhani', sans-serif;
 }
 
-/* Dark-mode: intensify the palette (already dark, just refined) */
 :host-context(.dark-mode) {
   --vs-obsidian: #050508;
   --vs-oled: #08080b;
@@ -106,7 +107,8 @@
   border-radius: 16px;
   border: 1px solid var(--studio-border);
   position: relative;
-  overflow-y: auto; overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .control-panel {
@@ -125,22 +127,162 @@
   );
 }
 
-/* Mobile Optimizations */
+/* HUD header: restrained glass and a spectral lower edge. */
+.vs-hud-header {
+  position: relative;
+  border-color: var(--vs-console-line);
+  background: linear-gradient(115deg, rgba(20, 19, 28, 0.96), rgba(8, 9, 14, 0.92));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.vs-hud-header::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.48), rgba(168, 85, 247, 0.5), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.vs-hud-header h1 {
+  letter-spacing: 0.09em;
+}
+
+/* Pipeline stages read as instrument buttons with a clear selected state. */
+.vs-steps button {
+  min-height: 64px;
+  border-color: var(--vs-console-line);
+  background: linear-gradient(140deg, rgba(20, 19, 28, 0.82), rgba(8, 9, 14, 0.92));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.18s ease;
+}
+
+.vs-steps button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.vs-steps button:active {
+  transform: scale(0.98);
+}
+
+.vs-steps button[aria-selected="true"] {
+  border-color: rgba(192, 132, 252, 0.62);
+  background: linear-gradient(120deg, rgba(126, 34, 206, 0.18), rgba(8, 9, 14, 0.94));
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.32), 0 8px 26px rgba(168, 85, 247, 0.18);
+}
+
+main [class*="bg-vocal-titanium"] {
+  border-color: var(--vs-console-line);
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 45%);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+main [class*="bg-vocal-oled"] {
+  background-color: var(--vs-console-well);
+  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.46);
+}
+
+main canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: inherit;
+  filter: drop-shadow(0 0 10px var(--vs-console-glow));
+}
+
+.vs-master-tabs {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.42) transparent;
+}
+
+.vs-master-tabs button,
+.vs-edit-actions button,
+.vs-hud-header nav button {
+  min-height: 44px;
+}
+
+.vs-master-tabs button {
+  transition: transform 0.14s ease, border-color 0.16s ease, box-shadow 0.2s ease;
+}
+
+.vs-master-tabs button:hover,
+.vs-edit-actions button:hover {
+  transform: translateY(-1px);
+}
+
+.vs-master-tabs button:active,
+.vs-edit-actions button:active {
+  transform: scale(0.97);
+}
+
+.vs-master-tabs button[aria-selected="true"] {
+  border-color: rgba(192, 132, 252, 0.72);
+  color: #e9d5ff;
+  background: rgba(168, 85, 247, 0.13);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
+}
+
+.vs-edit-actions button {
+  transition: transform 0.14s ease, background 0.16s ease, box-shadow 0.2s ease;
+}
+
+.vs-transport-row button {
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, background 0.16s ease;
+}
+
+.vs-transport-row button:hover {
+  transform: translateY(-2px);
+}
+
+.vs-transport-row button:active {
+  transform: scale(0.95);
+}
+
+.vs-status-bar {
+  position: relative;
+  border-color: var(--vs-console-line);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.vs-status-bar::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.4), rgba(168, 85, 247, 0.5), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.vs-hud-header button:focus-visible,
+.vs-hud-header [role="button"]:focus-visible,
+.vs-steps button:focus-visible,
+.vs-master-tabs button:focus-visible,
+.vs-edit-actions button:focus-visible,
+.vs-transport-row button:focus-visible,
+main input:focus-visible {
+  outline: 2px solid rgba(192, 132, 252, 0.9);
+  outline-offset: 3px;
+}
+
+main input[type="range"],
+main input[type="checkbox"] {
+  accent-color: #c084fc;
+}
+
+/* Mobile: compact the console while keeping stage and tab targets usable. */
 @media (max-width: 768px) {
   :host {
     padding: 0.5rem;
   }
 
-  .vocal-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .spectrogram-container {
-    height: 200px;
-  }
-
-  /* HUD header — allow wrapping so title/nav/HUD never clip on phones */
   .vs-hud-header {
     height: auto;
     min-height: 56px;
@@ -149,11 +291,33 @@
     padding: 0.5rem 1rem;
   }
 
-  /* The header's first child (title + nav) is a non-wrapping flex row;
-     allow it to break so the nav drops below the title on narrow phones. */
   .vs-hud-header > div:first-child {
+    min-width: 0;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .vs-hud-header > div:last-child {
+    margin-left: auto;
+  }
+
+  .vs-hud-sub,
+  .vs-status-meta {
+    display: none;
+  }
+
+  .vs-hud-header nav button {
+    min-height: 44px;
+  }
+
+  .vs-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .vs-steps button {
+    min-height: 56px;
+    padding: 0.75rem;
   }
 
   .vs-master-tabs,
@@ -179,167 +343,50 @@
 
   .vs-transport-row button {
     flex: 1 1 auto;
-    text-align: center;
-    padding-left: 1rem;
+    min-height: 44px;
     padding-right: 1rem;
-  }
-
-  .vs-steps {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    padding-left: 1rem;
+    text-align: center;
   }
 
   .vs-status-bar {
-    gap: 0.5rem;
-    padding: 0 1rem;
     flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
   }
 }
 
-/* Narrow phones — drop low-value metadata, keep controls touch-size */
 @media (max-width: 480px) {
-  .vs-hud-sub,
-  .vs-status-meta {
-    display: none;
-  }
-
-  .vs-hud-header nav button {
-    min-height: 40px;
+  .vs-hud-header nav {
+    max-width: 100%;
   }
 
   .vs-status-bar > div:first-child {
     gap: 0.5rem;
   }
+
+  .vs-master-tabs {
+    flex-wrap: nowrap;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .vs-master-tabs button {
+    flex: 0 0 auto;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
 }
 
-/* ============================================================
-   STAGE 2.0 — VOCAL SUITE NEURAL GLOW
-   Neon hairline HUD · step-card lift · console control strip
-   ============================================================ */
+@media (max-width: 360px) {
+  .vs-hud-header > div:last-child {
+    width: 100%;
+  }
 
-/* HUD header: bottom neon hairline + glass sheen. */
-.vs-hud-header {
-  position: relative;
-  box-shadow:
-    0 12px 34px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-.vs-hud-header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(168, 85, 247, 0.55),
-    rgba(236, 91, 19, 0.45),
-    transparent
-  );
-  pointer-events: none;
-}
-
-/* Pipeline step cards: tactile lift + active-state glow. */
-.vs-steps button {
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
-}
-.vs-steps button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
-}
-.vs-steps button:active {
-  transform: translateY(0) scale(0.98);
-}
-.vs-steps button.border-vocal-primary {
-  box-shadow:
-    0 0 0 1px rgba(168, 85, 247, 0.5),
-    0 8px 26px rgba(168, 85, 247, 0.22);
-}
-
-/* Header nav + mode chips: crisper active states. */
-.vs-hud-header nav button {
-  min-height: 28px;
-  transition: transform 0.14s ease, background 0.14s ease, box-shadow 0.2s ease;
-}
-.vs-hud-header nav button:active {
-  transform: scale(0.96);
-}
-.vs-hud-header nav button.bg-vocal-primary {
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.45);
-}
-
-/* Spectrogram / waveform wells: inner instrument glow. */
-.vocal-content canvas {
-  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.25));
-}
-
-/* Mastering tabs: active tab neon echo. */
-.vs-master-tabs button {
-  transition: transform 0.14s ease, border-color 0.16s ease, box-shadow 0.2s ease;
-}
-.vs-master-tabs button:hover {
-  transform: translateY(-1px);
-}
-.vs-master-tabs button:active {
-  transform: scale(0.97);
-}
-.vs-master-tabs button.border-vocal-primary {
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.3);
-}
-
-/* Edit actions: consistent press feedback. */
-.vs-edit-actions button {
-  transition: transform 0.14s ease, background 0.16s ease, box-shadow 0.2s ease;
-}
-.vs-edit-actions button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-.vs-edit-actions button:active {
-  transform: scale(0.97);
-}
-
-/* Transport row: monitor/record controls pop. */
-.vs-transport-row button {
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, background 0.16s ease;
-}
-.vs-transport-row button:hover {
-  transform: translateY(-2px);
-}
-.vs-transport-row button:active {
-  transform: scale(0.95);
-}
-
-/* Status bar: teal→violet hairline + accent readouts. */
-.vs-status-bar {
-  position: relative;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
-}
-.vs-status-bar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(59, 130, 246, 0.4),
-    rgba(168, 85, 247, 0.5),
-    transparent
-  );
-  pointer-events: none;
-}
-
-/* Record button: breathing halo while idle (pure CSS). */
-.vs-hud-header .material-symbols-outlined {
-  transition: filter 0.2s ease;
-}
-.vs-hud-header > div:hover .material-symbols-outlined {
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.8));
+  .vs-hud-header > div:last-child > [role="button"] {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -347,11 +394,15 @@
   .vs-master-tabs button,
   .vs-edit-actions button,
   .vs-transport-row button {
-    transition: none !important;
-  }
-  .vs-steps button:hover,
-  .vs-edit-actions button:hover,
-  .vs-transport-row button:hover {
     transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .vs-steps button[aria-selected="true"],
+  .vs-master-tabs button[aria-selected="true"] {
+    outline: 2px solid Highlight;
   }
 }

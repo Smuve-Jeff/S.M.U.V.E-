@@ -29,9 +29,9 @@ export interface ChordProgressionItem {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="chord-editor">
+    <div class="chord-editor studio-workspace-surface chord-editor-surface">
       <!-- Header -->
-      <div class="ce-header">
+      <div class="ce-header studio-context-toolbar">
         <div class="ce-title-row">
           <span class="material-symbols-outlined">music_note</span>
           <span>CHORD EDITOR</span>
@@ -118,7 +118,7 @@ export interface ChordProgressionItem {
           </div>
         </div>
         <div
-          class="ce-progression"
+          class="ce-progression studio-module-scroll"
           cdkDropList
           (cdkDropListDropped)="dropChord($event)"
         >
@@ -158,7 +158,10 @@ export interface ChordProgressionItem {
             </div>
           </div>
         </div>
-        <div class="ce-empty-state" *ngIf="progression().length === 0">
+        <div
+          class="ce-empty-state studio-empty-state"
+          *ngIf="progression().length === 0"
+        >
           <span>No chords yet — tap "+ Add" to build a progression</span>
         </div>
       </div>
@@ -421,6 +424,203 @@ export interface ChordProgressionItem {
         padding: 2px 5px;
         border-radius: 4px;
         background: rgba(255, 255, 255, 0.04);
+      }
+
+      /* COMPONENT CONTRACT — Chord Editor */
+      :host {
+        --ce-canvas: var(--ivory-bg, #f5efe0);
+        --ce-surface: var(--ivory-paper, #fbf7ec);
+        --ce-panel: var(--ivory-panel, #fffaf0);
+        --ce-ink: var(--espresso-text, #1f1a12);
+        --ce-muted: var(--espresso-muted, #7e7259);
+        --ce-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+        --ce-teal: var(--teal-500, #0e7c7b);
+        --ce-amber: var(--neon-amber, #d97706);
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        background: transparent;
+        color: var(--ce-ink);
+      }
+      .chord-editor {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        padding: clamp(10px, 1.6vw, 16px);
+        gap: 12px;
+        border: 1px solid var(--ce-line);
+        border-radius: 16px;
+        box-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+        background:
+          radial-gradient(80% 30% at 96% 0%, color-mix(in srgb, var(--ce-teal) 8%, transparent), transparent 72%),
+          var(--ce-canvas);
+      }
+      .ce-header {
+        min-height: 56px;
+        padding: 10px 12px;
+        border: 1px solid var(--ce-line);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--ce-surface) 94%, transparent);
+        box-shadow: 0 4px 14px rgba(61, 53, 42, 0.05);
+      }
+      .ce-title-row {
+        color: var(--ce-teal);
+        letter-spacing: 0.14em;
+      }
+      .ce-badge {
+        min-height: 28px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid color-mix(in srgb, var(--ce-teal) 28%, var(--ce-line));
+        background: color-mix(in srgb, var(--ce-teal) 10%, var(--ce-panel)) !important;
+        color: var(--ce-teal) !important;
+      }
+      .ce-section {
+        padding: 12px;
+        border: 1px solid var(--ce-line);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--ce-panel) 88%, transparent);
+        box-shadow: 0 3px 12px rgba(61, 53, 42, 0.04);
+      }
+      .ce-inline-group {
+        gap: 8px;
+      }
+      .ce-label {
+        color: var(--ce-muted);
+      }
+      .ce-select {
+        min-height: 44px;
+        padding: 0 10px;
+        border-color: var(--ce-line);
+        background: color-mix(in srgb, var(--ce-surface) 84%, transparent);
+        color: var(--ce-ink);
+      }
+      .ce-chips {
+        gap: 7px;
+      }
+      .ce-chip,
+      .ce-action-btn {
+        min-height: 44px;
+        padding: 0 11px;
+        border-color: var(--ce-line);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--ce-surface) 74%, transparent);
+        color: var(--ce-muted);
+        touch-action: manipulation;
+      }
+      .ce-chip:hover,
+      .ce-chip:focus-visible,
+      .ce-action-btn:hover,
+      .ce-action-btn:focus-visible {
+        border-color: var(--ce-teal);
+        background: color-mix(in srgb, var(--ce-teal) 9%, var(--ce-surface));
+        color: var(--ce-ink);
+      }
+      .ce-chip-active {
+        border-color: var(--ce-teal);
+        background: var(--ce-teal);
+        color: var(--ivory-deep, #06091a);
+      }
+      .ce-chip-preset {
+        border-color: color-mix(in srgb, var(--ce-amber) 32%, var(--ce-line));
+        background: color-mix(in srgb, var(--ce-amber) 9%, var(--ce-surface));
+        color: var(--ce-amber);
+      }
+      .ce-progression {
+        min-height: 0;
+        max-height: min(220px, 34vh);
+        padding-right: 3px;
+        gap: 7px;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ce-teal) transparent;
+      }
+      .ce-chord-card {
+        min-height: 54px;
+        padding: 7px 8px;
+        border: 1px solid var(--ce-line);
+        background: color-mix(in srgb, var(--ce-surface) 76%, transparent);
+        touch-action: none;
+      }
+      .ce-chord-card:hover {
+        border-color: color-mix(in srgb, var(--ce-teal) 48%, var(--ce-line));
+        background: color-mix(in srgb, var(--ce-teal) 7%, var(--ce-surface));
+      }
+      .ce-chord-quality,
+      .ce-empty-state {
+        color: var(--ce-muted);
+      }
+      .ce-key-dot {
+        color: var(--ce-teal);
+        background: color-mix(in srgb, var(--ce-teal) 12%, var(--ce-panel));
+      }
+      .ce-icon-btn-sm {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        color: var(--ce-muted);
+        touch-action: manipulation;
+      }
+      .ce-icon-btn-sm:hover,
+      .ce-icon-btn-sm:focus-visible {
+        background: color-mix(in srgb, var(--ce-teal) 12%, var(--ce-panel));
+        color: var(--ce-teal);
+      }
+      .ce-empty-state {
+        min-height: 80px;
+        display: grid;
+        place-items: center;
+      }
+      .ce-piano {
+        padding: 8px;
+        border: 1px solid var(--ce-line);
+        border-radius: 9px;
+        background: color-mix(in srgb, var(--ce-surface) 72%, transparent);
+      }
+      .ce-piano-canvas {
+        border: 1px solid color-mix(in srgb, var(--ce-teal) 20%, var(--ce-line));
+        background: #0d1120;
+      }
+      @media (max-width: 700px) {
+        .chord-editor {
+          padding: 10px;
+          gap: 9px;
+        }
+        .ce-header {
+          min-height: 48px;
+          padding: 8px 10px;
+        }
+        .ce-section {
+          padding: 10px;
+        }
+      }
+      @media (max-width: 932px) and (orientation: landscape) {
+        .chord-editor {
+          padding: 8px 10px;
+          gap: 7px;
+        }
+        .ce-header {
+          min-height: 44px;
+          padding-block: 6px;
+        }
+        .ce-section {
+          padding: 8px;
+        }
+        .ce-progression {
+          max-height: 150px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ce-chip,
+        .ce-action-btn,
+        .ce-chord-card {
+          transition: none;
+        }
       }
     `,
   ],

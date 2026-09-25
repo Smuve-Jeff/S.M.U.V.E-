@@ -3,9 +3,12 @@
   MPC-style pad grid with haptic feedback, long-press context, velocity zones,
   MIDI Learn Mode, and pressure-sensitive pads
 -->
-<div class="performance-shell">
+<div class="performance-shell studio-workspace-surface performance-mode-surface">
   <!-- VELOCITY STRIP -->
-  <div class="perf-velocity-strip" aria-label="Velocity control">
+  <div
+    class="perf-velocity-strip studio-context-toolbar performance-velocity-toolbar"
+    aria-label="Velocity control"
+  >
     <span class="perf-velo-label">Velocity</span>
     <input
       type="range"
@@ -58,7 +61,7 @@
     <!-- MIDI Mapping Toggle -->
     <button
       type="button"
-      class="perf-midi-toggle"
+      class="perf-midi-toggle studio-icon-button performance-midi-toggle"
       [class.active]="showMidiMapping()"
       [class.learn-active]="isLearnMode()"
       (click)="toggleMidiMapping()"
@@ -69,10 +72,14 @@
   </div>
 
   <!-- PAD GRID -->
-  <div class="performance-grid" role="grid" aria-label="Performance pad grid">
+  <div
+    class="performance-grid studio-module-scroll performance-pad-grid"
+    role="grid"
+    aria-label="Performance pad grid"
+  >
     <div
       *ngFor="let pad of pads; trackBy: trackByPad"
-      class="performance-pad"
+      class="performance-pad performance-pad-surface"
       tabindex="0"
       (keydown)="onPadKeydown(pad, $event)"
       [ngClass]="{
@@ -142,24 +149,24 @@
 
       <!-- Long-press context menu -->
       @if (longPressPadId() === pad.id) {
-        <div class="pad-context-menu" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+        <div class="pad-context-menu performance-context-menu" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
           <button
             type="button"
-            class="pad-ctx-btn"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
             (click)="triggerPad(pad); dismissLongPress()"
           >
             ▶ Play
           </button>
           <button
             type="button"
-            class="pad-ctx-btn"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
             (click)="startLearnMode(pad.id); dismissLongPress()"
           >
             <span class="ctx-icon">🎯</span> MIDI Learn
           </button>
           <button
             type="button"
-            class="pad-ctx-btn"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
             (click)="dismissLongPress()"
           >
             ✕ Close
@@ -168,7 +175,10 @@
       }
     </div>
 
-    <div *ngIf="pads.length === 0" class="empty-state">
+    <div
+      *ngIf="pads.length === 0"
+      class="empty-state studio-empty-state performance-empty-state"
+    >
       <span class="empty-icon">∿</span>
       <p>No performance pads mapped. Load an instrument or clips to begin.</p>
     </div>
@@ -176,8 +186,8 @@
 
   <!-- MIDI MAPPING PANEL (collapsible) -->
   @if (showMidiMapping()) {
-    <div class="perf-midi-panel">
-      <div class="perf-midi-header">
+    <div class="perf-midi-panel studio-module-scroll performance-midi-console">
+      <div class="perf-midi-header studio-context-toolbar performance-midi-header">
         <span class="perf-midi-title">MIDI NOTE MAP</span>
         <span class="perf-midi-help">Assign MIDI note numbers (0–127) to pads</span>
       </div>
@@ -203,7 +213,7 @@
             <!-- Learn button per pad -->
             <button
               type="button"
-              class="perf-learn-btn"
+              class="perf-learn-btn studio-secondary-button performance-learn-button"
               [class.active]="isPadLearning(pad.id)"
               (click)="isPadLearning(pad.id) ? cancelLearnMode() : startLearnMode(pad.id)"
               title="MIDI Learn — tap this then press a key on your MIDI controller"
@@ -223,7 +233,7 @@
           Waiting for MIDI note... tap a key on your controller
           <button
             type="button"
-            class="perf-learn-cancel"
+            class="perf-learn-cancel studio-ghost-button performance-learn-cancel"
             (click)="cancelLearnMode()"
           >Cancel</button>
         </div>

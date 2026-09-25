@@ -1411,3 +1411,396 @@
 .dm-pad:active {
   filter: brightness(1.12);
 }
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — RHYTHM WORKSTATION
+   Hardware-inspired sequencing surfaces; controls and hit areas
+   remain owned by the existing pointer/transport bindings.
+   ════════════════════════════════════════════════════════════ */
+.dm-shell {
+  gap: 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(14, 124, 123, 0.12), transparent 42%),
+    linear-gradient(180deg, #f2ecdc 0%, #e9e1cf 100%);
+}
+
+.dm-header {
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #fffdf6 0%, #eee7d7 100%);
+  border-bottom-color: rgba(61, 53, 42, 0.16);
+  box-shadow: 0 8px 22px rgba(39, 34, 25, 0.08);
+}
+.dm-header > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+.dm-header h1 {
+  font-size: 18px;
+  letter-spacing: 0.1em;
+}
+.dm-header-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--teal-700);
+  font: 800 9px/1 var(--font-mono, monospace);
+  letter-spacing: 0.16em;
+}
+.dm-header-eyebrow .material-symbols-outlined {
+  font-size: 14px;
+}
+.dm-header-icons {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dm-header-icons button,
+.dm-style-apply {
+  min-height: 44px;
+  border-radius: 10px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.dm-header-icons button:hover,
+.dm-style-apply:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(14, 124, 123, 0.18);
+}
+
+.dm-pattern-context {
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px;
+  padding: 9px 12px;
+  border: 1px solid rgba(61, 53, 42, 0.13);
+  border-radius: 12px;
+  background: rgba(255, 253, 246, 0.78);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.9);
+}
+.dm-pattern-context-status {
+  color: var(--teal-700);
+  font-weight: 800;
+}
+.dm-pattern-context-readout {
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(14, 124, 123, 0.07);
+}
+.dm-pattern-context-readout strong {
+  font-family: var(--font-mono, monospace);
+}
+.dm-context-btn,
+.dm-polymeter-option {
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+}
+.dm-context-btn:hover,
+.dm-polymeter-option:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+  transform: translateY(-1px);
+}
+
+.dm-style-bar {
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px;
+  padding: 12px;
+  border: 1px solid rgba(61, 53, 42, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255, 253, 246, 0.94), rgba(239, 231, 214, 0.94));
+  box-shadow: 0 8px 22px rgba(39, 34, 25, 0.06);
+}
+.dm-style-bar-label,
+.dm-swing-label,
+.dm-groove-label {
+  color: var(--espresso-muted);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+.dm-style-chips,
+.dm-groove-chips,
+.dm-polymeter-options {
+  scrollbar-width: none;
+}
+.dm-style-chip,
+.dm-groove-chip {
+  min-height: 40px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(61, 53, 42, 0.14);
+  transition: border-color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+}
+.dm-style-chip:hover,
+.dm-groove-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(14, 124, 123, 0.55);
+}
+.dm-groove-chip-active,
+.dm-style-chip-active {
+  box-shadow: 0 0 0 2px rgba(14, 124, 123, 0.15), 0 5px 14px rgba(14, 124, 123, 0.12);
+}
+.dm-swing-block,
+.dm-groove-block,
+.dm-polymeter-block {
+  border-color: rgba(61, 53, 42, 0.14);
+}
+.dm-swing-slider {
+  accent-color: var(--teal-500);
+}
+.dm-polymeter-option.active {
+  box-shadow: 0 4px 12px rgba(14, 124, 123, 0.22);
+}
+
+.dm-body {
+  gap: 12px;
+  padding: 0 14px 12px;
+}
+.dm-pads,
+.dm-step-grid,
+.dm-inspector {
+  border: 1px solid rgba(61, 53, 42, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(39, 34, 25, 0.08), inset 0 1px rgba(255, 255, 255, 0.7);
+}
+.dm-pads {
+  align-content: stretch;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.76), transparent 60%),
+    #e9e1cf;
+}
+.dm-pad {
+  border-color: color-mix(in srgb, var(--pad-color, var(--teal-500)) 28%, var(--ivory-line));
+  border-radius: 16px;
+  box-shadow: 0 5px 12px rgba(39, 34, 25, 0.08), inset 0 1px rgba(255, 255, 255, 0.9);
+}
+.dm-pad.selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pad-color, var(--teal-500)) 28%, transparent), 0 10px 20px rgba(39, 34, 25, 0.13);
+}
+.dm-step-grid {
+  border-left: 1px solid rgba(61, 53, 42, 0.14);
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(238, 231, 215, 0.98));
+}
+.dm-steps-list {
+  overscroll-behavior-x: contain;
+  scrollbar-color: rgba(14, 124, 123, 0.5) transparent;
+}
+.dm-step-row {
+  border-bottom-color: rgba(61, 53, 42, 0.11);
+}
+.dm-step-row-label {
+  background: rgba(255, 253, 246, 0.92);
+}
+.dm-step {
+  border-radius: 5px;
+  transition: background 0.1s ease, box-shadow 0.12s ease, transform 0.1s ease;
+}
+.dm-step:active {
+  transform: scale(0.92);
+}
+.dm-inspector {
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.96), rgba(238, 231, 215, 0.98));
+}
+.dm-mobile-actions {
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -8px 22px rgba(39, 34, 25, 0.1);
+}
+
+:host-context(.dark-mode) .dm-shell {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(32, 215, 210, 0.1), transparent 44%),
+    linear-gradient(180deg, #10151c 0%, #0b0e13 100%);
+}
+:host-context(.dark-mode) .dm-pattern-context,
+:host-context(.dark-mode) .dm-style-bar,
+:host-context(.dark-mode) .dm-pads,
+:host-context(.dark-mode) .dm-step-grid,
+:host-context(.dark-mode) .dm-inspector {
+  border-color: rgba(255, 255, 255, 0.09);
+  background-color: #141922;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+:host-context(.dark-mode) .dm-style-chip,
+:host-context(.dark-mode) .dm-groove-chip,
+:host-context(.dark-mode) .dm-context-btn,
+:host-context(.dark-mode) .dm-polymeter-option {
+  background: #1a202a;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #d7dee8;
+}
+
+@media (max-width: 768px) {
+  .dm-shell { gap: 8px; }
+  .dm-header { padding: 10px 12px; }
+  .dm-header-icons { width: 100%; justify-content: stretch; }
+  .dm-header-icons button { flex: 1 1 0; justify-content: center; }
+  .dm-pattern-context,
+  .dm-style-bar { margin-inline: 8px; }
+  .dm-style-bar { align-items: stretch; }
+  .dm-style-chips,
+  .dm-groove-chips { overflow-x: auto; overscroll-behavior-x: contain; }
+  .dm-body { padding: 0 8px 8px; gap: 8px; }
+  .dm-pads { border-radius: 12px; }
+  .dm-step-grid { border-left: 0; }
+  .dm-step-row { min-width: 560px; }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .dm-shell { gap: 6px; }
+  .dm-header { padding-block: 6px; }
+  .dm-style-bar { padding: 7px; }
+  .dm-pad { min-height: 52px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-header-icons button,
+  .dm-style-apply,
+  .dm-style-chip,
+  .dm-groove-chip,
+  .dm-step { transition: none; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — RHYTHM WORKSTATION COVERAGE
+   Kit chip labels, the drum take manager, per-pad generate text and
+   the velocity/probability graph toggles had no presentation layer.
+   Styling only: the shared transport tick, per-step bindings and
+   audio scheduling are untouched.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Kit selector labels ─────────────────────────────────── */
+.dm-kit-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(36, 29, 21, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dm-kit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dm-kit-chip-glyph {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.dm-kit-chip-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dm-style-chip-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ── Drum take manager ───────────────────────────────────── */
+.dm-takes-bar {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(61, 53, 42, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 253, 246, 0.62);
+}
+
+.dm-takes-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(36, 29, 21, 0.72);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dm-takes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dm-takes-empty {
+  color: rgba(36, 29, 21, 0.55);
+  font-size: 10px;
+}
+
+.dm-take-chip-load {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(36, 29, 21, 0.72);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.dm-take-chip-remove {
+  min-width: 30px;
+  border: 0;
+  border-left: 1px solid rgba(61, 53, 42, 0.14);
+  background: transparent;
+  color: rgba(36, 29, 21, 0.5);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dm-take-chip-remove:hover {
+  color: var(--record, #ff1a4d);
+}
+
+/* ── Per-pad generate + graph target toggles ─────────────── */
+.dm-ai-generate-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-strip-toggles {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: rgba(61, 53, 42, 0.06);
+}
+
+/* ── Touch and contrast contracts ────────────────────────── */
+@media (pointer: coarse) {
+  .dm-kit-chip,
+  .dm-take-chip-load {
+    min-height: 44px;
+  }
+
+  .dm-take-chip-remove {
+    min-width: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .dm-kit-chip.dm-kit-chip-active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  .dm-take-chip-remove {
+    border-left-color: CanvasText;
+  }
+}

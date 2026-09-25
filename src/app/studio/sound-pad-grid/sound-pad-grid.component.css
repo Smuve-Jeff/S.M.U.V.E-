@@ -441,3 +441,285 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Sound Pad Grid
+   A launch surface that keeps the 4×4 bank visible in short
+   landscape windows while leaving reassignment gestures intact.
+   ============================================================ */
+
+:host {
+  --pad-grid-canvas: var(--ivory-bg, #f5efe0);
+  --pad-grid-surface: var(--ivory-paper, #fbf7ec);
+  --pad-grid-panel: var(--ivory-panel, #fffaf0);
+  --pad-grid-ink: var(--espresso-text, #1f1a12);
+  --pad-grid-muted: var(--espresso-muted, #7e7259);
+  --pad-grid-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --pad-grid-teal: var(--teal-500, #0e7c7b);
+  --pad-grid-amber: var(--neon-amber, #d97706);
+  --pad-grid-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--pad-grid-ink);
+}
+
+.sound-pad-grid-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--pad-grid-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(78% 36% at 50% 0%, color-mix(in srgb, var(--pad-grid-teal) 9%, transparent), transparent 72%),
+    var(--pad-grid-canvas);
+  box-shadow: var(--pad-grid-shadow);
+}
+
+.spg-shell {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(12px, 2vw, 22px);
+  overflow: hidden;
+  gap: 14px;
+}
+
+.spg-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 62px;
+  padding: 12px 14px;
+  border-color: var(--pad-grid-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pad-grid-surface) 94%, transparent);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.06);
+}
+
+.spg-title {
+  flex: 1 1 260px;
+  gap: 12px;
+}
+
+.spg-title-icon {
+  flex: 0 0 auto;
+  color: var(--pad-grid-teal);
+  filter: none;
+}
+
+.spg-h2 {
+  color: var(--pad-grid-ink);
+  font-size: clamp(15px, 1.8vw, 19px);
+  letter-spacing: 0.08em;
+}
+
+.spg-sub {
+  max-width: 52ch;
+  color: var(--pad-grid-muted);
+  line-height: 1.4;
+}
+
+.spg-actions {
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 10px;
+}
+
+.spg-kpi {
+  min-width: 58px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--pad-grid-teal) 28%, var(--pad-grid-line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pad-grid-teal) 7%, var(--pad-grid-panel));
+}
+
+.spg-kpi-label {
+  color: var(--pad-grid-muted);
+}
+
+.spg-kpi-value {
+  color: var(--pad-grid-teal);
+}
+
+.spg-clear-btn {
+  min-height: 44px;
+  padding: 0 13px;
+  border-color: var(--pad-grid-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--pad-grid-panel) 80%, transparent);
+  color: var(--pad-grid-ink);
+  touch-action: manipulation;
+}
+
+.spg-clear-btn:hover,
+.spg-clear-btn:focus-visible {
+  border-color: var(--pad-grid-amber);
+  background: color-mix(in srgb, var(--pad-grid-amber) 10%, var(--pad-grid-panel));
+  color: var(--pad-grid-amber);
+}
+
+.spg-grid {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  align-content: center;
+  padding: clamp(8px, 1.4vw, 14px);
+  gap: clamp(7px, 1.1vw, 12px);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pad-grid-teal) transparent;
+  border-color: var(--pad-grid-line);
+  background: color-mix(in srgb, var(--pad-grid-panel) 82%, var(--pad-grid-canvas));
+}
+
+.spg-cell {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 12px;
+  touch-action: none;
+}
+
+.spg-cell-active {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--pad-grid-teal) 36%, transparent);
+}
+
+.spg-cell-empty > app-sound-pad {
+  opacity: 0.58;
+}
+
+.spg-cell-picker {
+  max-height: min(320px, 100%);
+  overflow: hidden;
+  border-color: var(--pad-grid-amber);
+  background: var(--pad-grid-panel);
+  box-shadow: 0 12px 30px color-mix(in srgb, #000000 40%, transparent);
+}
+
+.spg-cell-picker-list {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pad-grid-teal) transparent;
+}
+
+.spg-cell-picker-close,
+.spg-cell-picker-item {
+  min-height: 40px;
+  border-color: var(--pad-grid-line);
+  background: color-mix(in srgb, var(--pad-grid-surface) 78%, transparent);
+  color: var(--pad-grid-ink);
+  touch-action: manipulation;
+}
+
+.spg-cell-picker-close:hover,
+.spg-cell-picker-close:focus-visible,
+.spg-cell-picker-item:hover,
+.spg-cell-picker-item:focus-visible {
+  border-color: var(--pad-grid-teal);
+  color: var(--pad-grid-teal);
+}
+
+.spg-cell-picker-text strong {
+  color: var(--pad-grid-ink);
+}
+
+.spg-cell-picker-text small,
+.spg-hint {
+  color: var(--pad-grid-muted);
+}
+
+.spg-foot {
+  flex: 0 0 auto;
+  padding-top: 10px;
+  border-color: var(--pad-grid-line);
+}
+
+.spg-hint {
+  min-height: 30px;
+  line-height: 1.4;
+}
+
+.spg-hint .material-symbols-outlined {
+  color: var(--pad-grid-amber);
+}
+
+@media (max-width: 700px) {
+  .spg-shell {
+    padding: 10px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+
+  .spg-header {
+    min-height: 0;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .spg-title {
+    flex-basis: 100%;
+  }
+
+  .spg-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .spg-grid {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .spg-foot {
+    padding-top: 6px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .spg-shell {
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  .spg-header {
+    min-height: 48px;
+    padding: 6px 10px;
+  }
+
+  .spg-sub {
+    display: none;
+  }
+
+  .spg-grid {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .spg-cell {
+    min-height: 52px;
+  }
+
+  .spg-foot {
+    padding-top: 4px;
+  }
+
+  .spg-hint {
+    min-height: 24px;
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spg-header::after,
+  .spg-cell-reassigning {
+    animation: none;
+  }
+}

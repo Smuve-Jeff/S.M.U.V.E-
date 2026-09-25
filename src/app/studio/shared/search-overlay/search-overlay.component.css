@@ -366,3 +366,21 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — RECENT SECTION COVERAGE
+   The recent-searches group had no layout rule of its own, so its
+   rows could crowd at narrow widths. Styling only: search,
+   keyboard navigation and result selection are untouched.
+   ═══════════════════════════════════════════════════════════ */
+.recent-section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .recent-section {
+    gap: 6px;
+  }
+}

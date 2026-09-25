@@ -54,6 +54,21 @@ app-ai-produce {
   isolation: isolate;
 }
 
+.studio-module-card {
+  min-width: 0;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-md);
+  background: color-mix(in srgb, var(--ivory-paper, #1a2040) 88%, transparent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.studio-touch-target {
+  min-width: var(--studio-touch-target);
+  min-height: var(--studio-touch-target);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .studio-horizontal-rail {
   max-width: 100%;
   min-width: 0;
@@ -222,7 +237,8 @@ app-ai-produce {
   .studio-primary-button,
   .studio-secondary-button,
   .studio-ghost-button,
-  .studio-icon-button {
+  .studio-icon-button,
+  .studio-touch-target {
     min-height: 48px;
     min-width: 48px;
   }
@@ -245,4 +261,110 @@ app-ai-produce {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ============================================================
+   MOBILE AUDIT CONTRACT — Android portrait + landscape
+   ------------------------------------------------------------
+   Checks encoded here so a workspace can never reintroduce them:
+     1. No module may create page-level horizontal overflow.
+     2. Tap surfaces must not wait on the 300ms delay or flash grey.
+     3. Safe areas are respected by the canvas and by scroll rails.
+     4. Every interactive element shows a visible focus ring.
+   `overflow-x: clip` (not `hidden`) keeps the inner scroll rails,
+   sticky lanes and sticky headers of each workspace intact.
+   ============================================================ */
+app-arrangement-view,
+app-piano-roll,
+app-drum-machine,
+app-mixer,
+app-session-view,
+app-audio-recorder-view,
+app-vocal-suite,
+app-vocal-comp-view,
+app-performance-mode,
+app-performance-grid,
+app-performer,
+app-mastering-suite,
+app-dj-deck,
+app-synthesizer,
+app-sampler,
+app-sound-browser,
+app-sample-library,
+app-sound-pad-grid,
+app-sound-pad,
+app-chord-editor,
+app-score-view,
+app-plugin-store,
+app-effects-rack-ui,
+app-channel-rack,
+app-ai-produce,
+app-take-lane,
+app-waveform-renderer {
+  overflow-x: clip;
+}
+
+@media (pointer: coarse) {
+  app-arrangement-view button,
+  app-arrangement-view [role='button'],
+  app-piano-roll button,
+  app-piano-roll [role='button'],
+  app-drum-machine button,
+  app-mixer button,
+  app-session-view button,
+  app-audio-recorder-view button,
+  app-vocal-suite button,
+  app-vocal-comp-view button,
+  app-performance-mode button,
+  app-mastering-suite button,
+  app-dj-deck button,
+  app-synthesizer button,
+  app-sampler button,
+  app-sound-browser button,
+  app-sample-library button,
+  app-sound-pad-grid button,
+  app-channel-rack button,
+  app-plugin-store button,
+  app-effects-rack-ui button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Keep the last row of any workspace clear of the Android gesture bar. */
+  .studio-primary-canvas {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .studio-module-scroll {
+    scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* Visible focus for every interactive element inside the workspaces. Module
+   stylesheets are injected after this file, so any component that ships its
+   own ring still wins; this only fills the gaps. */
+app-arrangement-view :focus-visible,
+app-piano-roll :focus-visible,
+app-drum-machine :focus-visible,
+app-mixer :focus-visible,
+app-session-view :focus-visible,
+app-audio-recorder-view :focus-visible,
+app-vocal-suite :focus-visible,
+app-vocal-comp-view :focus-visible,
+app-performance-mode :focus-visible,
+app-mastering-suite :focus-visible,
+app-dj-deck :focus-visible,
+app-synthesizer :focus-visible,
+app-sampler :focus-visible,
+app-sound-browser :focus-visible,
+app-sample-library :focus-visible,
+app-sound-pad-grid :focus-visible,
+app-channel-rack :focus-visible,
+app-plugin-store :focus-visible,
+app-effects-rack-ui :focus-visible,
+app-score-view :focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
 }

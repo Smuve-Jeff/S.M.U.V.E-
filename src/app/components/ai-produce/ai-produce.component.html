@@ -1,5 +1,5 @@
-<div class="ai-produce-shell">
-  <header class="hero">
+<div class="ai-produce-shell studio-workspace-surface ai-produce-surface">
+  <header class="hero studio-context-toolbar">
     <div class="hero-meta">
       <span class="chip">Sprint B3 · AI Produce</span>
       <span class="chip chip-ghost">one-tap · {{ stageLabel() }}</span>
@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div class="stage-pills">
+    <div class="stage-pills studio-horizontal-rail">
       <span
         *ngFor="let stage of stageOrder; let i = index"
         class="stage-pill"
@@ -40,7 +40,7 @@
     </div>
   </header>
 
-  <section class="form-card">
+  <section class="form-card studio-workspace-surface">
     <div class="form-header">
       <h2>STEP 0 · Idea Input</h2>
       <p>Type the vibe. The orchestrator handles the rest.</p>

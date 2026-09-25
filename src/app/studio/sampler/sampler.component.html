@@ -1,13 +1,13 @@
-<div class="sampler-shell">
+<div class="sampler-shell studio-workspace-surface sampler-surface">
   <!-- Top bar: title + import + global controls -->
-  <header class="sampler-topbar">
+  <header class="sampler-topbar studio-context-toolbar">
     <div class="sampler-title">
       <span class="material-symbols-outlined">library_music</span>
       <span>SAMPLER</span>
       <span class="sampler-zone-count">{{ zones().length }} zone(s)</span>
     </div>
 
-    <div class="sampler-controls">
+    <div class="sampler-controls studio-horizontal-rail">
       <!-- Import button -->
       <button
         type="button"
@@ -73,7 +73,7 @@
   <!-- Drop zone -->
   <div
     #dropZone
-    class="sampler-dropzone"
+    class="sampler-dropzone sampler-import-surface"
     [class.sampler-dropzone-active]="dragOver()"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave()"
@@ -89,11 +89,11 @@
   </div>
 
   <!-- Main content: waveform + editor -->
-  <div class="sampler-main">
+  <div class="sampler-main studio-module-scroll">
     <!-- Left: Waveform + keyboard -->
-    <div class="sampler-waveform-panel">
+    <div class="sampler-waveform-panel sampler-waveform-panel-surface">
       <!-- Waveform display -->
-      <div class="sampler-waveform-container">
+      <div class="sampler-waveform-container sampler-waveform-surface">
         <app-waveform-renderer
           [audioData]="waveformData()"
           [duration]="waveformDuration()"
@@ -111,7 +111,7 @@
       </div>
 
       <!-- Zone keyboard (mini piano) -->
-      <div class="sampler-keyboard">
+      <div class="sampler-keyboard sampler-zone-rail">
         <button
           *ngFor="let z of zones()"
           type="button"
@@ -137,9 +137,9 @@
 
     <!-- Right: Editor tabs -->
     <ng-container *ngIf="selectedZone() as zone">
-      <div class="sampler-editor">
+      <div class="sampler-editor sampler-editor-surface">
         <!-- Tab bar -->
-        <nav class="sampler-tabs">
+        <nav class="sampler-tabs studio-segmented">
           <button
             type="button"
             class="sampler-tab"
@@ -442,7 +442,7 @@
     </ng-container>
 
     <!-- Empty state: no zone selected -->
-    <div class="sampler-editor sampler-editor-empty" *ngIf="!selectedZone()">
+    <div class="sampler-editor sampler-editor-empty studio-empty-state" *ngIf="!selectedZone()">
       <span class="material-symbols-outlined">touch_app</span>
       <span>Select a zone above to edit its settings</span>
     </div>

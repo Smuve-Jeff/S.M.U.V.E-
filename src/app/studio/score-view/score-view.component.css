@@ -454,3 +454,216 @@ h1 {
     transform: none !important;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Score View
+   The notation rail owns horizontal overflow while the surrounding
+   score desk stays bounded to the Studio workspace.
+   ============================================================ */
+
+:host {
+  --score-canvas: var(--ivory-bg, #f5efe0);
+  --score-surface: var(--ivory-paper, #fbf7ec);
+  --score-panel: var(--ivory-panel, #fffaf0);
+  --score-ink: var(--espresso-text, #1f1a12);
+  --score-muted: var(--espresso-muted, #7e7259);
+  --score-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --score-teal: var(--teal-500, #0e7c7b);
+  --score-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--score-ink);
+}
+
+.score-surface {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(12px, 2vw, 22px);
+  background:
+    radial-gradient(76% 30% at 94% 0%, color-mix(in srgb, var(--score-teal) 8%, transparent), transparent 72%),
+    var(--score-canvas);
+}
+
+.score-header {
+  max-width: none;
+  min-height: 0;
+  margin: 0 0 12px;
+  padding: 2px 2px 0;
+}
+
+.score-header h1 {
+  color: var(--score-ink);
+  font-size: clamp(22px, 3vw, 34px);
+  letter-spacing: -0.02em;
+}
+
+.score-subtitle {
+  color: var(--score-muted);
+}
+
+.score-stat {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border-color: var(--score-line);
+  background: color-mix(in srgb, var(--score-panel) 70%, transparent);
+  color: var(--score-muted);
+}
+
+.score-stat strong {
+  color: var(--score-teal);
+}
+
+.score-toolbar {
+  max-width: none;
+  min-height: 44px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-color: var(--score-line);
+  background: color-mix(in srgb, var(--score-surface) 78%, transparent);
+  box-shadow: 0 4px 14px rgba(61, 53, 42, 0.05);
+}
+
+.score-toolbar-status,
+.score-toolbar-hint {
+  color: var(--score-muted);
+}
+
+.score-toolbar-status {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--score-teal) 22%, var(--score-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--score-teal) 7%, var(--score-panel));
+  color: var(--score-teal);
+}
+
+.score-scroll {
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100% - 122px);
+  overflow: auto;
+  padding: 0 0 10px;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--score-teal) transparent;
+  scrollbar-width: thin;
+}
+
+.score-ruler {
+  min-width: 640px;
+  color: var(--score-muted);
+}
+
+.score-staff-card {
+  min-width: 640px;
+  margin-bottom: 12px;
+  border-color: var(--score-line);
+  background: color-mix(in srgb, var(--score-surface) 88%, transparent);
+  box-shadow: 0 4px 16px rgba(61, 53, 42, 0.06);
+}
+
+.score-staff-heading {
+  min-height: 44px;
+  padding: 9px 12px;
+  border-color: var(--score-line);
+}
+
+.score-staff-range,
+.score-staff-count {
+  color: var(--score-muted);
+}
+
+.score-staff-viewport {
+  min-height: 116px;
+  padding: 18px 0;
+}
+
+.score-staff-canvas {
+  min-width: 640px;
+}
+
+.score-empty {
+  min-height: 220px;
+  border-color: color-mix(in srgb, var(--score-line) 80%, transparent);
+  background: color-mix(in srgb, var(--score-surface) 58%, transparent);
+  color: var(--score-muted);
+}
+
+.score-empty h2 {
+  color: var(--score-ink);
+}
+
+@media (max-width: 700px) {
+  .score-surface {
+    padding: 10px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .score-header {
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .score-header h1 {
+    font-size: 24px;
+  }
+
+  .score-stats {
+    gap: 6px;
+  }
+
+  .score-stat {
+    min-height: 32px;
+    padding: 6px 9px;
+  }
+
+  .score-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .score-scroll {
+    height: calc(100% - 174px);
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .score-surface {
+    padding: 8px 10px;
+  }
+
+  .score-header {
+    margin-bottom: 5px;
+  }
+
+  .score-subtitle {
+    display: none;
+  }
+
+  .score-toolbar {
+    min-height: 36px;
+    padding: 5px 8px;
+  }
+
+  .score-scroll {
+    height: calc(100% - 92px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-staff-card,
+  .score-stat,
+  .score-live-dot {
+    transition: none;
+    animation: none;
+  }
+}

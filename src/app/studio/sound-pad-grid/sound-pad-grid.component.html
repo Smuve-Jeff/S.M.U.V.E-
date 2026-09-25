@@ -1,5 +1,8 @@
-<section class="spg-shell" aria-label="Sound pad bank">
-  <header class="spg-header">
+<section
+  class="spg-shell studio-workspace-surface sound-pad-grid-surface"
+  aria-label="Sound pad bank"
+>
+  <header class="spg-header studio-context-toolbar">
     <div class="spg-title">
       <span class="material-symbols-outlined spg-title-icon">grid_on</span>
       <div>
@@ -30,7 +33,11 @@
   </header>
 
   <!-- PAD GRID — uses the <app-sound-pad> child for proper reuse -->
-  <div class="spg-grid" role="grid" aria-label="Pad bank">
+  <div
+    class="spg-grid studio-module-scroll"
+    role="grid"
+    aria-label="Pad bank"
+  >
     <div
       *ngFor="let pad of pads(); trackBy: trackByIndex"
       class="spg-cell"
@@ -101,7 +108,7 @@
     </div>
   </div>
 
-  <footer class="spg-foot">
+  <footer class="spg-foot studio-safe-bottom">
     <div class="spg-hint">
       <span class="material-symbols-outlined">touch_app</span>
       <span

@@ -857,3 +857,663 @@
     transform: none;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Performance Mode
+   A bounded, paper-and-ink launch surface with a touch-safe pad
+   grid. Pointer capture, long-press, MIDI learn, and sustain state
+   remain owned by the component template and TypeScript.
+   ============================================================ */
+
+:host {
+  --perf-canvas: var(--ivory-bg, #f5efe0);
+  --perf-surface: var(--ivory-paper, #fbf7ec);
+  --perf-panel: var(--ivory-panel, #fffaf0);
+  --perf-ink: var(--espresso-text, #1f1a12);
+  --perf-muted: var(--espresso-muted, #7e7259);
+  --perf-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --perf-teal: var(--teal-500, #0e7c7b);
+  --perf-teal-bright: var(--teal-400, #2ba09c);
+  --perf-amber: var(--neon-amber, #d97706);
+  --perf-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--perf-ink);
+}
+
+:host-context(.dark-mode) {
+  --perf-canvas: #0b1020;
+  --perf-surface: #151c31;
+  --perf-panel: #1b2540;
+  --perf-ink: #f8fafc;
+  --perf-muted: #aab6cc;
+  --perf-line: rgba(226, 232, 240, 0.14);
+  --perf-teal: #5eead4;
+  --perf-teal-bright: #99f6e4;
+  --perf-amber: #fbbf24;
+  --perf-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+.performance-mode-surface,
+.performance-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--perf-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      80% 38% at 50% 0%,
+      color-mix(in srgb, var(--perf-teal) 8%, transparent),
+      transparent 72%
+    ),
+    var(--perf-canvas);
+  color: var(--perf-ink);
+  box-shadow: var(--perf-shadow);
+}
+
+.performance-shell {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vw, 14px);
+  padding: clamp(10px, 1.4vw, 16px);
+}
+
+/* Velocity, pressure, sustain, and MIDI controls form one bounded toolbar. */
+.performance-velocity-toolbar {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border: 1px solid var(--perf-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--perf-surface) 94%, transparent);
+  box-shadow: 0 5px 16px rgba(61, 53, 42, 0.06);
+}
+
+.performance-velocity-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.performance-velocity-toolbar .perf-velo-label,
+.performance-velocity-toolbar .perf-velo-zone,
+.performance-velocity-toolbar .perf-sustain-led {
+  flex: 0 0 auto;
+}
+
+.performance-velocity-toolbar .perf-velo-label {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--perf-muted);
+}
+
+.performance-velocity-toolbar .perf-velo-slider {
+  flex: 1 1 180px;
+  min-width: 132px;
+  min-height: 44px;
+  accent-color: var(--perf-teal);
+}
+
+.performance-velocity-toolbar .perf-velo-readout {
+  min-width: 48px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--perf-teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.performance-velocity-toolbar .perf-velo-zone {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 10px;
+  border: 1px solid color-mix(in srgb, var(--perf-teal) 28%, var(--perf-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--perf-teal) 12%, var(--perf-panel));
+  color: var(--perf-ink);
+  letter-spacing: 0.1em;
+}
+
+.performance-velocity-toolbar .perf-sustain-led {
+  min-height: 30px;
+  padding-inline: 10px;
+  border-color: var(--perf-line);
+  background: var(--perf-panel);
+  color: var(--perf-muted);
+}
+
+.performance-velocity-toolbar .perf-sustain-led.active {
+  border-color: color-mix(in srgb, var(--neon-pink, #ec4899) 58%, var(--perf-line));
+  background: color-mix(in srgb, var(--neon-pink, #ec4899) 12%, var(--perf-panel));
+}
+
+.performance-velocity-toolbar .perf-sustain-led.half {
+  border-color: color-mix(in srgb, var(--perf-amber) 58%, var(--perf-line));
+  background: color-mix(in srgb, var(--perf-amber) 12%, var(--perf-panel));
+}
+
+.performance-midi-toggle {
+  flex: 0 0 44px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--perf-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--perf-panel) 88%, transparent);
+  color: var(--perf-muted);
+}
+
+.performance-midi-toggle:hover,
+.performance-midi-toggle:focus-visible {
+  border-color: var(--perf-teal);
+  color: var(--perf-teal);
+  background: color-mix(in srgb, var(--perf-teal) 10%, var(--perf-panel));
+}
+
+.performance-midi-toggle.active {
+  border-color: var(--perf-teal);
+  background: var(--perf-teal);
+  color: var(--perf-ink);
+}
+
+.performance-midi-toggle.learn-active {
+  border-color: var(--perf-amber);
+  color: var(--perf-amber);
+}
+
+/* The grid owns vertical scrolling; each pad owns its XY/press gesture. */
+.performance-pad-grid {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px 3px 12px;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--perf-teal) 45%, transparent) transparent;
+}
+
+.performance-pad,
+.performance-pad-surface {
+  min-width: 0;
+  min-height: 96px;
+  max-width: 100%;
+  overflow: visible;
+  border-color: var(--perf-line);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, white 42%, var(--perf-surface)), var(--perf-panel));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 72%, transparent),
+    0 5px 14px rgba(61, 53, 42, 0.08);
+  touch-action: none;
+  user-select: none;
+}
+
+.performance-pad-surface.loop {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--perf-teal) 7%, var(--perf-surface)) 0 10px,
+      var(--perf-surface) 10px 20px
+    );
+}
+
+.performance-pad-surface:hover,
+.performance-pad-surface:focus-visible {
+  border-color: var(--perf-teal);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--perf-teal) 18%, transparent),
+    0 8px 18px color-mix(in srgb, var(--perf-teal) 13%, transparent);
+}
+
+.performance-pad-surface.is-pressed {
+  border-color: var(--velo-zone-color, var(--perf-teal));
+  box-shadow:
+    0 0 0 1px var(--velo-zone-color, var(--perf-teal)) inset,
+    0 0 22px color-mix(in srgb, var(--velo-zone-color, var(--perf-teal)) 42%, transparent);
+}
+
+.performance-pad-surface.active {
+  border-color: color-mix(in srgb, var(--perf-teal-bright) 78%, white);
+  background: linear-gradient(180deg, var(--perf-teal-bright), var(--perf-teal));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, white 34%, transparent) inset,
+    0 8px 20px color-mix(in srgb, var(--perf-teal) 28%, transparent);
+}
+
+.performance-pad-surface.is-longpressed {
+  border-color: var(--perf-amber);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--perf-amber) 34%, transparent) inset,
+    0 0 22px color-mix(in srgb, var(--perf-amber) 34%, transparent);
+}
+
+.performance-pad-surface .pad-name,
+.performance-pad-surface .pad-type,
+.performance-pad-surface .pad-midi-badge,
+.performance-pad-surface .pad-learn-badge {
+  z-index: 3;
+}
+
+.performance-pad-surface .pad-name {
+  color: var(--perf-ink);
+  font-size: 11px;
+}
+
+.performance-pad-surface .pad-type,
+.performance-pad-surface .pad-midi-badge {
+  color: var(--perf-muted);
+}
+
+.performance-pad-surface.active .pad-name,
+.performance-pad-surface.active .pad-type {
+  color: var(--perf-ink);
+}
+
+.performance-pad-surface .pad-midi-badge {
+  background: color-mix(in srgb, var(--perf-ink) 10%, transparent);
+}
+
+.performance-pad-surface .pad-velo-bar,
+.performance-pad-surface .pad-pressure-bar {
+  background: color-mix(in srgb, var(--perf-ink) 10%, transparent);
+}
+
+.performance-pad-surface .pad-status-indicator {
+  background: var(--perf-teal);
+}
+
+.performance-pad-surface .pad-learn-badge {
+  color: var(--perf-amber);
+}
+
+.performance-context-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  min-width: 156px;
+  max-width: min(224px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--perf-teal) 34%, var(--perf-line));
+  border-radius: 12px;
+  background: var(--perf-panel);
+  box-shadow: 0 16px 34px rgba(35, 29, 20, 0.2);
+  transform: translateX(-50%);
+}
+
+.performance-context-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--perf-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--perf-surface) 88%, transparent);
+  color: var(--perf-ink);
+  font-size: 10px;
+}
+
+.performance-context-button:hover,
+.performance-context-button:focus-visible {
+  border-color: var(--perf-teal);
+  background: color-mix(in srgb, var(--perf-teal) 12%, var(--perf-panel));
+  color: var(--perf-teal);
+}
+
+.performance-empty-state {
+  grid-column: 1 / -1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  color: var(--perf-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.performance-empty-state .empty-icon {
+  color: var(--perf-teal);
+  opacity: 0.7;
+}
+
+/* MIDI mapping is a bounded console insert, not a page overlay. */
+.performance-midi-console {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-height: min(42vh, 420px);
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--perf-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--perf-panel) 96%, transparent);
+  box-shadow: 0 8px 20px rgba(61, 53, 42, 0.08);
+}
+
+.performance-midi-header {
+  position: sticky;
+  top: -12px;
+  z-index: 2;
+  min-height: 44px;
+  margin: -12px -12px 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--perf-panel) 96%, transparent);
+  border-bottom: 1px solid var(--perf-line);
+}
+
+.performance-midi-header .perf-midi-title {
+  color: var(--perf-teal);
+}
+
+.performance-midi-header .perf-midi-help {
+  color: var(--perf-muted);
+  opacity: 1;
+}
+
+.perf-midi-grid {
+  gap: 8px;
+}
+
+.perf-midi-row {
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 8px;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--perf-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--perf-surface) 70%, transparent);
+  box-shadow: none;
+}
+
+.perf-midi-row.learning {
+  border-color: color-mix(in srgb, var(--perf-amber) 52%, var(--perf-line));
+  background: color-mix(in srgb, var(--perf-amber) 10%, var(--perf-panel));
+}
+
+.perf-midi-pad-name {
+  flex: 1 1 90px;
+  min-width: 72px;
+  color: var(--perf-ink);
+}
+
+.perf-midi-slider {
+  flex: 1 1 120px;
+  min-width: 100px;
+  min-height: 40px;
+  max-width: none;
+  accent-color: var(--perf-teal);
+}
+
+.perf-midi-note,
+.perf-midi-number {
+  color: var(--perf-teal);
+}
+
+.perf-midi-number {
+  color: var(--perf-muted);
+}
+
+.performance-learn-button {
+  flex: 0 0 auto;
+  min-width: 92px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--perf-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--perf-panel) 90%, transparent);
+  color: var(--perf-muted);
+  font-size: 9px;
+}
+
+.performance-learn-button:hover,
+.performance-learn-button:focus-visible,
+.performance-learn-button.active {
+  border-color: var(--perf-amber);
+  background: color-mix(in srgb, var(--perf-amber) 14%, var(--perf-panel));
+  color: var(--perf-amber);
+}
+
+.performance-learn-button.active {
+  background: var(--perf-amber);
+  color: var(--perf-ink);
+}
+
+.perf-learn-status {
+  min-height: 44px;
+  padding: 8px 10px;
+  flex-wrap: wrap;
+  border-color: color-mix(in srgb, var(--perf-amber) 34%, var(--perf-line));
+  background: color-mix(in srgb, var(--perf-amber) 9%, var(--perf-panel));
+  color: var(--perf-amber);
+}
+
+.performance-learn-cancel {
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--perf-amber) 46%, transparent);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--perf-amber);
+}
+
+.performance-learn-cancel:hover,
+.performance-learn-cancel:focus-visible {
+  background: color-mix(in srgb, var(--perf-amber) 16%, transparent);
+}
+
+@media (max-width: 900px) {
+  .performance-pad-grid {
+    gap: 9px;
+  }
+
+  .perf-midi-help {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .performance-pad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .performance-pad-surface {
+    min-height: 78px;
+  }
+}
+
+@media (max-width: 480px) {
+  .performance-mode-surface,
+  .performance-shell {
+    border-radius: 14px;
+  }
+
+  .performance-shell {
+    padding: 9px;
+    gap: 9px;
+  }
+
+  .performance-velocity-toolbar {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .performance-velocity-toolbar .perf-velo-slider {
+    flex-basis: 120px;
+    min-width: 104px;
+  }
+
+  .performance-pad-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding-inline: 1px;
+  }
+
+  .performance-pad-surface {
+    min-height: 72px;
+  }
+
+  .performance-midi-console {
+    max-height: 46vh;
+    padding: 9px;
+  }
+
+  .performance-midi-header {
+    top: -9px;
+    margin: -9px -9px 7px;
+    padding-inline: 9px;
+  }
+
+  .perf-midi-row {
+    gap: 6px;
+  }
+
+  .perf-midi-pad-name {
+    flex-basis: 72px;
+  }
+
+  .performance-learn-button {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .performance-shell {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .performance-velocity-toolbar {
+    min-height: 48px;
+    padding-block: 6px;
+  }
+
+  .performance-pad-grid {
+    gap: 6px;
+    padding-bottom: 7px;
+  }
+
+  .performance-pad-surface {
+    min-height: 64px;
+  }
+
+  .performance-midi-console {
+    max-height: 38vh;
+  }
+}
+
+@media (pointer: coarse) {
+  .performance-midi-toggle,
+  .performance-context-button,
+  .performance-learn-button,
+  .performance-learn-cancel {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
+
+.performance-mode-surface :where(button, [role='button'], input, summary):focus-visible {
+  outline: 2px solid var(--perf-teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .performance-mode-surface *,
+  .performance-mode-surface *::before,
+  .performance-mode-surface *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .performance-pad-surface:hover,
+  .performance-pad-surface:active,
+  .performance-pad-surface.is-longpressed {
+    transform: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — LONG-PRESS CONTEXT MENU
+   The pad long-press menu rendered as an unstyled box over the pad
+   surface. Styling only: long-press detection, dismissal and pad
+   triggers are unchanged, and the menu stops propagation itself.
+   ════════════════════════════════════════════════════════════ */
+
+.pad-context-menu {
+  position: absolute;
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  min-width: 164px;
+  padding: 8px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ivory-panel, #14192e) 96%, transparent);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: pad-menu-in 140ms ease-out;
+}
+
+.pad-context-menu .pad-ctx-btn {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 44px;
+}
+
+@keyframes pad-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-context-menu {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .pad-context-menu {
+    border-color: CanvasText;
+  }
+}

@@ -131,3 +131,15 @@
     animation: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — RECORDING BADGE LABEL
+   The badge label had no typography rule, so it inherited the
+   body font at an arbitrary size over the canvas.
+   ═══════════════════════════════════════════════════════════ */
+.wr-rec-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

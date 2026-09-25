@@ -968,3 +968,594 @@
     transform: none !important;
   }
 }
+
+/* ============================================================
+   COMPONENT CONTRACT — Sound Browser
+   Search, smart filters, packs, and cards become one bounded
+   discovery shelf without changing drag or long-press behavior.
+   ============================================================ */
+
+:host {
+  --browser-canvas: var(--ivory-bg, #f5efe0);
+  --browser-surface: var(--ivory-paper, #fbf7ec);
+  --browser-panel: var(--ivory-panel, #fffaf0);
+  --browser-ink: var(--espresso-text, #1f1a12);
+  --browser-muted: var(--espresso-muted, #7e7259);
+  --browser-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --browser-teal: var(--teal-500, #0e7c7b);
+  --browser-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--browser-ink);
+}
+
+.sound-browser-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--browser-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(78% 34% at 90% 0%, color-mix(in srgb, var(--browser-teal) 8%, transparent), transparent 70%),
+    var(--browser-canvas);
+  box-shadow: var(--browser-shadow);
+}
+
+.sb-header {
+  min-width: 0;
+  padding: 14px 18px 12px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--browser-surface) 94%, transparent);
+  border-bottom: 1px solid var(--browser-line);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.05);
+}
+
+.sound-browser-title {
+  min-width: 0;
+  gap: 12px;
+}
+
+.sb-title h1 {
+  color: var(--browser-ink);
+  font-size: clamp(15px, 1.7vw, 19px);
+  letter-spacing: 0.08em;
+}
+
+.sb-title small {
+  margin-top: 3px;
+  color: var(--browser-teal);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+.sb-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-ai-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--browser-teal) 42%, transparent);
+  border-radius: 10px;
+  background: var(--browser-teal);
+  color: white;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--browser-teal) 24%, transparent);
+}
+
+.sb-ai-btn:hover,
+.sb-ai-btn:focus-visible {
+  background: var(--teal-600, #0a5f5e);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--browser-teal) 32%, transparent);
+}
+
+.sound-browser-search {
+  min-width: 0;
+}
+
+.sb-search input {
+  height: 48px;
+  border-color: var(--browser-line);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--browser-panel) 88%, transparent);
+  color: var(--browser-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.sb-search input::placeholder {
+  color: var(--browser-muted);
+}
+
+.sb-search input:focus-visible,
+.sb-search input:focus {
+  border-color: var(--browser-teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--browser-teal) 16%, transparent);
+}
+
+.sound-browser-filters {
+  gap: 7px;
+}
+
+.sb-filter-chips {
+  min-width: 0;
+  gap: 6px;
+  padding-bottom: 1px;
+}
+
+.sb-filter-chip,
+.sb-recent-chip,
+.sb-fav-btn,
+.sb-pack-filter-btn {
+  min-height: 36px;
+  border-color: var(--browser-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--browser-panel) 76%, transparent);
+  color: var(--browser-muted);
+}
+
+.sb-filter-chip:hover,
+.sb-filter-chip:focus-visible,
+.sb-recent-chip:hover,
+.sb-recent-chip:focus-visible,
+.sb-fav-btn:hover,
+.sb-fav-btn:focus-visible,
+.sb-pack-filter-btn:hover,
+.sb-pack-filter-btn:focus-visible {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 10%, var(--browser-panel));
+  color: var(--browser-teal);
+}
+
+.sb-filter-chip.active,
+.sb-cat.active {
+  border-color: var(--browser-teal);
+  background: var(--browser-teal);
+  color: white;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--browser-teal) 26%, transparent);
+}
+
+.sb-fav-toggle {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.sb-fav-btn.active {
+  border-color: #ca8a04;
+  background: #ca8a04;
+  color: white;
+}
+
+.sb-fav-count {
+  color: #ca8a04;
+}
+
+.sb-cats {
+  min-width: 0;
+  gap: 7px;
+  padding: 2px 0 4px;
+}
+
+.sb-cat {
+  min-height: 44px;
+  padding: 8px 13px;
+  border-color: var(--browser-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--browser-panel) 82%, transparent);
+  color: var(--browser-muted);
+}
+
+.sb-cat:hover,
+.sb-cat:focus-visible {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 10%, var(--browser-panel));
+  color: var(--browser-teal);
+}
+
+.sb-packs-section {
+  min-width: 0;
+  padding: 10px;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--browser-line) 82%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--browser-panel) 48%, transparent);
+}
+
+.sb-packs-header {
+  padding: 0 2px;
+}
+
+.sb-packs-title {
+  color: var(--browser-ink);
+}
+
+.sb-packs-title .material-symbols-outlined {
+  color: var(--browser-teal);
+}
+
+.sb-packs-count,
+.sb-packs-subtitle {
+  color: var(--browser-muted);
+}
+
+.sb-packs-rail {
+  min-width: 0;
+  gap: 5px;
+}
+
+.sb-pack-chips {
+  min-width: 0;
+  gap: 7px;
+  padding: 2px;
+}
+
+.sb-pack-chip {
+  min-height: 66px;
+  min-width: 196px;
+  padding: 9px 11px;
+  border-color: var(--browser-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--browser-surface) 90%, transparent);
+  color: var(--browser-ink);
+  box-shadow: 0 3px 10px rgba(61, 53, 42, 0.05);
+}
+
+.sb-pack-chip:hover,
+.sb-pack-chip:focus-visible {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 8%, var(--browser-surface));
+}
+
+.sb-pack-chip.installed {
+  background: color-mix(in srgb, var(--browser-teal) 5%, var(--browser-surface));
+  border-style: dashed;
+}
+
+.sb-pack-chip.installing {
+  border-width: 2px;
+  border-color: var(--browser-teal);
+}
+
+.sb-pack-chip-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.sb-pack-chip-name {
+  color: var(--browser-ink);
+}
+
+.sb-pack-chip-meta,
+.sb-pack-chip-count {
+  color: var(--browser-muted);
+}
+
+.sb-pack-chip-install {
+  width: 32px;
+  height: 32px;
+  background: var(--browser-teal);
+}
+
+.sb-pack-remove {
+  width: 28px;
+  height: 28px;
+}
+
+.sb-pack-remove:hover,
+.sb-pack-remove:focus-visible {
+  background: #dc2626;
+  color: white;
+}
+
+.sb-recent {
+  min-width: 0;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.sb-recent-label {
+  color: var(--browser-teal);
+}
+
+.sb-similar {
+  margin: 10px 14px 0;
+  border-color: color-mix(in srgb, var(--browser-teal) 42%, var(--browser-line));
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--browser-teal) 9%, var(--browser-panel)), color-mix(in srgb, #7c3aed 6%, var(--browser-panel)));
+}
+
+.sb-similar-head {
+  min-height: 42px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--browser-teal) 10%, transparent);
+  color: var(--browser-teal);
+}
+
+.sb-similar-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--browser-muted);
+}
+
+.sb-similar-close:hover,
+.sb-similar-close:focus-visible {
+  background: color-mix(in srgb, var(--browser-ink) 8%, transparent);
+  color: var(--browser-ink);
+}
+
+.sb-similar-item {
+  min-height: 36px;
+  border-color: var(--browser-line);
+  background: color-mix(in srgb, var(--browser-surface) 86%, transparent);
+  color: var(--browser-ink);
+}
+
+.sb-similar-item:hover,
+.sb-similar-item:focus-visible {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 10%, var(--browser-surface));
+  color: var(--browser-teal);
+}
+
+.sb-list {
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  gap: 11px;
+  overflow: auto;
+  background: color-mix(in srgb, var(--browser-canvas) 88%, transparent);
+}
+
+.sound-browser-card {
+  min-width: 0;
+  min-height: 78px;
+  padding: 12px;
+  gap: 11px;
+  border-color: var(--browser-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--browser-surface) 94%, transparent);
+  color: var(--browser-ink);
+  box-shadow: 0 4px 12px rgba(61, 53, 42, 0.055);
+}
+
+.sound-browser-card:hover,
+.sound-browser-card:focus-visible,
+.sound-browser-card:focus-within {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 6%, var(--browser-surface));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--browser-teal) 15%, transparent);
+}
+
+.sound-browser-card .sb-card-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, var(--browser-ink), color-mix(in srgb, var(--browser-teal) 48%, var(--browser-ink)));
+  color: var(--browser-teal);
+}
+
+.sound-browser-card .sb-card-name {
+  color: var(--browser-ink);
+}
+
+.sound-browser-card .sb-card-info {
+  color: var(--browser-muted);
+}
+
+.sb-card-play,
+.sb-card-fav,
+.sb-card-similar {
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 9px;
+}
+
+.sb-card-play {
+  top: 33px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  background: var(--browser-teal);
+}
+
+.sb-card-fav {
+  top: 6px;
+  right: 6px;
+  width: 34px;
+  height: 34px;
+}
+
+.sb-card-similar {
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+}
+
+.sb-card:hover .sb-card-play,
+.sb-card:focus-within .sb-card-play,
+.sb-card:hover .sb-card-fav,
+.sb-card:focus-within .sb-card-fav,
+.sb-card:hover .sb-card-similar,
+.sb-card:focus-within .sb-card-similar {
+  opacity: 1;
+}
+
+.sb-card-fav.active {
+  background: #ca8a04;
+  color: white;
+}
+
+.sb-card-similar:hover,
+.sb-card-similar:focus-visible {
+  border-color: var(--browser-teal);
+  background: color-mix(in srgb, var(--browser-teal) 14%, var(--browser-panel));
+  color: var(--browser-teal);
+}
+
+.sb-empty {
+  min-height: 150px;
+  color: var(--browser-muted);
+}
+
+.sb-empty .material-symbols-outlined {
+  color: var(--browser-teal);
+}
+
+@media (pointer: coarse) {
+  .sb-card-play,
+  .sb-card-fav,
+  .sb-card-similar {
+    opacity: 1;
+  }
+
+  .sb-card-play,
+  .sb-card-fav,
+  .sb-card-similar {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  .sound-browser-surface {
+    overflow: auto;
+  }
+
+  .sb-header {
+    padding: 10px;
+  }
+
+  .sound-browser-title {
+    align-items: flex-start;
+  }
+
+  .sb-title-actions {
+    flex: 0 0 auto;
+  }
+
+  .sb-ai-btn {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 8px;
+  }
+
+  .sb-list {
+    padding: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .sound-browser-card {
+    min-height: 132px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .sound-browser-card .sb-card-thumb {
+    width: 100%;
+    height: 58px;
+  }
+
+  .sound-browser-card .sb-card-play {
+    top: 9px;
+    right: 48px;
+  }
+
+  .sound-browser-card .sb-card-fav {
+    top: 9px;
+    right: 8px;
+  }
+
+  .sound-browser-card .sb-card-similar {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .sb-similar {
+    margin: 8px 10px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .sb-list {
+    grid-template-columns: 1fr;
+  }
+
+  .sound-browser-card {
+    min-height: 112px;
+  }
+
+  .sb-pack-chip {
+    min-width: 172px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .sb-header {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .sb-list {
+    padding-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-browser-card,
+  .sb-cat,
+  .sb-filter-chip,
+  .sb-recent-chip,
+  .sb-fav-btn,
+  .sb-pack-chip {
+    transition: none !important;
+  }
+
+  .sound-browser-card:hover,
+  .sb-cat:hover,
+  .sb-pack-chip:hover {
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — LIBRARY SECTION COVERAGE
+   The pack and similar-sound section hooks had no rules, so their
+   spacing collapsed at narrow widths. Styling only: browsing,
+   auditioning and selection behaviour is untouched.
+   ═══════════════════════════════════════════════════════════ */
+.sound-browser-packs,
+.sound-browser-similar {
+  min-width: 0;
+}
+
+.sound-browser-packs {
+  display: grid;
+  gap: 10px;
+}
+
+.sound-browser-similar {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .sound-browser-packs {
+    gap: 8px;
+  }
+}
+
+@media (forced-colors: active) {
+  .sound-browser-packs,
+  .sound-browser-similar {
+    border-color: CanvasText;
+  }
+}

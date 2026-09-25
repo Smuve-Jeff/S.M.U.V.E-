@@ -532,8 +532,43 @@
         <span class="material-symbols-outlined" aria-hidden="true">show_chart</span>
         {{ showAutomation() ? 'Hide automation' : 'Show automation' }}
       </button>
+      <button type="button" class="studio-secondary-button" (click)="splitAtPlayhead(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">content_cut</span>
+        Split at playhead
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="duplicateSelected(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+        Duplicate
+      </button>
+      <!-- Trim stays open so the edge can be nudged repeatedly. -->
+      <button type="button" class="studio-secondary-button" (click)="trimSelected('start', -0.25)">
+        <span class="material-symbols-outlined" aria-hidden="true">first_page</span>
+        Trim start · ¼ bar
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="trimSelected('end', 0.25)">
+        <span class="material-symbols-outlined" aria-hidden="true">last_page</span>
+        Trim end · ¼ bar
+      </button>
+      <button
+        type="button"
+        class="studio-secondary-button"
+        [disabled]="!canConsolidateSelection()"
+        (click)="consolidateSelected(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">join_full</span>
+        Consolidate
+      </button>
     </div>
     <div studio-sheet-actions class="arrangement-sheet-actions">
+      <button
+        type="button"
+        class="studio-ghost-button"
+        [disabled]="selectedClipIds().size === 0"
+        (click)="deleteSelected(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+        Delete
+      </button>
       <button type="button" class="studio-ghost-button" (click)="closeClipActions()">Done</button>
     </div>
   </app-studio-bottom-sheet>

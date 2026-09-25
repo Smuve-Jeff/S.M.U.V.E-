@@ -1,7 +1,7 @@
 <div
-  class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-fl-border rounded-3xl animate__animated animate__fadeIn"
+  class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-fl-border rounded-3xl animate__animated animate__fadeIn studio-workspace-surface studio-module-scroll mastering-surface"
 >
-  <header class="flex flex-wrap justify-between items-center gap-3 mb-6">
+  <header class="flex flex-wrap justify-between items-center gap-3 mb-6 mastering-header">
     <div>
       <h1
         class="text-3xl font-black text-white italic tracking-tighter uppercase"
@@ -17,7 +17,7 @@
     <div class="flex flex-wrap gap-3">
       <button
         (click)="refreshRoast()"
-        class="px-5 py-2 bg-white/5 tactile-v42 text-slate-200 text-xs font-black uppercase tracking-widest rounded-full border border-fl-border hover:bg-white/10 transition-all"
+        class="px-5 py-2 bg-white/5 tactile-v42 text-slate-200 text-xs font-black uppercase tracking-widest rounded-full border border-fl-border hover:bg-white/10 transition-all studio-secondary-button"
         aria-label="Refresh AI mastering roast"
       >
         <span class="material-symbols-outlined align-middle text-base mr-1"
@@ -27,7 +27,7 @@
       </button>
       <button
         (click)="renderAndMaster()"
-        class="px-6 py-2 bg-emerald-500/90 tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
+        class="px-6 py-2 bg-emerald-500/90 tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all studio-primary-button"
         [disabled]="isRendering()"
       >
         <span class="material-symbols-outlined align-middle text-base mr-1">
@@ -39,7 +39,7 @@
         type="button"
         (click)="processMastering()"
         aria-label="Run automated mastering on the mix"
-        class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all"
+        class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all studio-secondary-button"
       >
         AUTO-PROCESS
       </button>
@@ -49,7 +49,7 @@
   <!-- Sprint B1 Phase 2: real-render meters -->
   <section
     *ngIf="renderedPeak() !== null"
-    class="mb-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 p-4 flex flex-col gap-2"
+    class="mb-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 p-4 flex flex-col gap-2 mastering-render-card"
     aria-label="Real render mastering meters"
   >
     <div class="flex items-center gap-2">
@@ -142,7 +142,7 @@
   </section>
 
   <!-- Genre selector for AI mastering -->
-  <section class="mb-4" aria-label="Genre selector for AI Mastering">
+  <section class="mb-4 mastering-genre-panel" aria-label="Genre selector for AI Mastering">
     <div class="flex items-center gap-2 mb-2">
       <span class="material-symbols-outlined text-fl-blue text-sm"
         >music_note</span
@@ -177,7 +177,7 @@
   </section>
 
   <!-- Pro: AI mastering presets rail -->
-  <section class="mb-6" aria-label="AI mastering presets">
+  <section class="mb-6 mastering-presets-panel" aria-label="AI mastering presets">
     <div class="flex items-center gap-2 mb-3">
       <span class="material-symbols-outlined text-fl-blue text-lg"
         >auto_awesome</span
@@ -188,11 +188,11 @@
         AI Mastering Presets · one-click destination
       </span>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mastering-preset-grid">
       <button
         *ngFor="let preset of presets"
         type="button"
-        class="ms-preset-card"
+        class="ms-preset-card mastering-preset-card"
         [class.ms-preset-active]="activePresetId() === preset.id"
         (click)="applyPreset(preset)"
         [attr.aria-pressed]="activePresetId() === preset.id"
@@ -225,11 +225,11 @@
     </div>
   </section>
 
-  <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-8 mastering-dashboard">
     <!-- Visualizer Section -->
     <div class="col-span-1 md:col-span-12 lg:col-span-7 space-y-6">
       <div
-        class="glass-v42 shadow-v42-xl p-4 rounded-2xl border border-fl-border relative overflow-hidden h-40 md:h-64"
+        class="glass-v42 shadow-v42-xl p-4 rounded-2xl border border-fl-border relative overflow-hidden h-40 md:h-64 mastering-visualizer"
       >
         <div
           class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"
@@ -250,7 +250,7 @@
       <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
         @for (band of bands(); track band.id) {
           <div
-            class="p-3 bg-black/40 border border-fl-border rounded-2xl flex flex-col items-center text-center group hover:border-fl-blue/30 transition-all"
+            class="p-3 bg-black/40 border border-fl-border rounded-2xl flex flex-col items-center text-center group hover:border-fl-blue/30 transition-all mastering-band-card"
           >
             <span class="text-[8px] font-black text-slate-500 mb-1">{{
               band.range
@@ -279,7 +279,7 @@
     <!-- Meters Section -->
     <div class="col-span-1 md:col-span-12 lg:col-span-5 space-y-6">
       <div
-        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border grid grid-cols-2 gap-4 md:gap-6"
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border grid grid-cols-2 gap-4 md:gap-6 mastering-meter-card"
       >
         <div class="flex flex-col gap-1">
           <span
@@ -324,7 +324,7 @@
       </div>
 
       <div
-        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border flex flex-col gap-4"
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border flex flex-col gap-4 mastering-control-card"
       >
         <div
           class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
@@ -373,7 +373,7 @@
       </div>
 
       <div
-        class="p-6 rounded-3xl bg-fl-blue/5 border border-fl-blue/20 flex flex-col gap-4"
+        class="p-6 rounded-3xl bg-fl-blue/5 border border-fl-blue/20 flex flex-col gap-4 mastering-roast-card"
       >
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-fl-blue animate-pulse"

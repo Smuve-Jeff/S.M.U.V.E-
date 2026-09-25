@@ -393,3 +393,169 @@
     animation: none;
   }
 }
+
+/* Arrangement companion rail: a calmer instrument-panel hierarchy with
+   comfortable controls, preserving every existing binding and action. */
+:host {
+  --ti-ink: #e5efea;
+  --ti-muted: #91a19a;
+  --ti-border: rgba(221, 237, 229, 0.11);
+  display: block;
+  min-width: 0;
+  color: var(--ti-ink);
+  background: #11181d;
+}
+
+.inspector-container,
+.ti-shell {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(32, 215, 210, 0.08), transparent 42%),
+    linear-gradient(180deg, #172027, #11181d);
+  color: var(--ti-ink);
+}
+
+.ti-topbar,
+.ti-header {
+  padding: 13px 14px;
+  background: rgba(26, 36, 42, 0.96);
+  border-color: var(--ti-border);
+}
+
+.ti-topbar h3,
+.ti-header h1,
+.ti-card-title {
+  color: #d9e8e1;
+}
+
+.ti-pill,
+.ti-select,
+.ti-fx-row,
+.ti-card,
+.ti-header-card {
+  background: rgba(27, 38, 44, 0.94);
+  border-color: var(--ti-border);
+  color: var(--ti-ink);
+}
+
+.ti-pill {
+  min-height: 40px;
+  padding-inline: 12px;
+  color: #b7c7c0;
+}
+
+.ti-pill.active {
+  background: #16766f;
+  border-color: #50c7b6;
+  color: #f3fffc;
+}
+
+.ti-body {
+  gap: 12px;
+  padding: 12px;
+}
+
+.ti-card {
+  border-radius: 13px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.ti-card:hover {
+  border-color: rgba(78, 195, 179, 0.38);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+.ti-card-title {
+  min-height: 24px;
+  letter-spacing: 0.14em;
+}
+
+.ti-select {
+  min-height: 44px;
+  color: #8edfd2;
+}
+
+.ti-fx-row {
+  min-height: 44px;
+}
+
+.ti-row label,
+.ti-header small {
+  color: var(--ti-muted);
+}
+
+.ti-row .value {
+  color: #8edfd2;
+  font-variant-numeric: tabular-nums;
+}
+
+.ti-row input[type='range'] {
+  min-height: 40px;
+  accent-color: #43b9a9;
+}
+
+.ti-fx-row .toggle {
+  width: 42px;
+  height: 24px;
+  background: #37464d;
+}
+
+.ti-fx-row .toggle::before {
+  width: 18px;
+  height: 18px;
+}
+
+.ti-fx-row .toggle.on {
+  background: #16766f;
+}
+
+.ti-fx-row .toggle.on::before {
+  left: 20px;
+}
+
+.ti-ai-chip {
+  min-height: 42px;
+  background: linear-gradient(135deg, #187e75, #11534f);
+}
+
+.inspector-container button:focus-visible,
+.inspector-container select:focus-visible,
+.inspector-container input:focus-visible,
+.ti-shell button:focus-visible,
+.ti-shell select:focus-visible,
+.ti-shell input:focus-visible {
+  outline: 3px solid #70dbca;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .ti-body {
+    padding: 10px;
+  }
+
+  .ti-card {
+    padding: 11px;
+  }
+
+  .ti-knob-grid {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ti-pill,
+  .ti-card,
+  .ti-fx-row,
+  .ti-ai-chip {
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .ti-card,
+  .ti-pill,
+  .ti-select,
+  .ti-fx-row {
+    border: 1px solid CanvasText;
+  }
+}

@@ -2396,3 +2396,1401 @@
     transition: none;
   }
 }
+
+/* Safe-area contract for the persistent take surface. */
+:host .performer-takes {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ============================================================
+   COMPONENT CONTRACT — Performer
+   A bounded Studio console for instruments, live views, recording
+   transport, and takes. The template remains the source of truth for
+   keyboard/pad pointer lifecycles, XY capture, MIDI, and recording.
+   ============================================================ */
+
+:host {
+  --performer-canvas: var(--ivory-bg, #f5efe0);
+  --performer-surface: var(--ivory-paper, #fbf7ec);
+  --performer-panel: var(--ivory-panel, #fffaf0);
+  --performer-ink: var(--espresso-text, #1f1a12);
+  --performer-muted: var(--espresso-muted, #7e7259);
+  --performer-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --performer-teal: var(--teal-500, #0e7c7b);
+  --performer-teal-bright: var(--teal-400, #2ba09c);
+  --performer-amber: var(--neon-amber, #d97706);
+  --performer-record: #b91c1c;
+  --performer-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  color: var(--performer-ink);
+}
+
+:host-context(.dark-mode) {
+  --performer-canvas: #0b1020;
+  --performer-surface: #151c31;
+  --performer-panel: #1b2540;
+  --performer-ink: #f8fafc;
+  --performer-muted: #aab6cc;
+  --performer-line: rgba(226, 232, 240, 0.14);
+  --performer-teal: #5eead4;
+  --performer-teal-bright: #99f6e4;
+  --performer-amber: #fbbf24;
+  --performer-record: #f87171;
+  --performer-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+}
+
+.performer-surface,
+.performer-shell {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  border: 1px solid var(--performer-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      72% 28% at 88% 0%,
+      color-mix(in srgb, var(--performer-teal) 8%, transparent),
+      transparent 72%
+    ),
+    var(--performer-canvas);
+  color: var(--performer-ink);
+  box-shadow: var(--performer-shadow);
+}
+
+.performer-shell {
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--performer-teal) 42%, transparent) transparent;
+}
+
+/* Header rails stay compact and independently scrollable. */
+.performer-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: color-mix(in srgb, var(--performer-surface) 94%, transparent);
+  border-bottom: 1px solid var(--performer-line);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.05);
+}
+
+.performer-brand-rail {
+  flex: 1 1 360px;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.performer-brand-rail::-webkit-scrollbar,
+.performer-layout-switcher::-webkit-scrollbar {
+  display: none;
+}
+
+.performer-brand-rail > * {
+  flex: 0 0 auto;
+}
+
+.performer-header .spectrum-strip {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 36px;
+  border: 1px solid color-mix(in srgb, var(--performer-teal) 30%, var(--performer-line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-teal) 8%, var(--performer-panel));
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--performer-teal) 16%, transparent);
+}
+
+.performer-header .spectrum-bar {
+  background: var(--performer-teal);
+}
+
+.performer-header .brand-title {
+  min-width: max-content;
+}
+
+.performer-header .brand-title h1 {
+  color: var(--performer-ink);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+
+.performer-header .brand-title p {
+  margin-top: 3px;
+  color: var(--performer-teal);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+.performer-header .perf-notebook {
+  min-width: 0;
+  max-width: min(100%, 380px);
+  min-height: 34px;
+  padding: 4px 8px;
+  overflow: hidden;
+  border-color: var(--performer-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--performer-panel) 86%, transparent);
+  color: var(--performer-ink);
+}
+
+.performer-header .notebook-stream {
+  min-width: 0;
+  max-width: 230px;
+  overflow: hidden;
+}
+
+.performer-header .notebook-note {
+  color: var(--performer-muted);
+}
+
+.performer-layout-switcher {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px;
+  gap: 3px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--performer-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--performer-panel) 90%, transparent);
+}
+
+.performer-layout-switcher button {
+  flex: 0 0 auto;
+  min-width: 74px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--performer-muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.performer-layout-switcher button:hover,
+.performer-layout-switcher button:focus-visible {
+  background: color-mix(in srgb, var(--performer-teal) 10%, transparent);
+  color: var(--performer-teal);
+}
+
+.performer-layout-switcher button.is-active {
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--performer-teal) 24%, transparent);
+}
+
+/* MIDI surfaces are bounded inserts with touch-sized controls. */
+.performer-midi-panel,
+.performer-midi-editor,
+.performer-midi-log {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  max-height: min(36vh, 360px);
+  margin: 8px 12px 0;
+  padding: 12px 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--performer-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--performer-panel) 96%, transparent);
+  box-shadow: 0 8px 22px rgba(61, 53, 42, 0.08);
+}
+
+.performer-midi-panel {
+  border-color: color-mix(in srgb, var(--performer-teal) 38%, var(--performer-line));
+}
+
+.performer-midi-panel .midi-picker-head,
+.performer-midi-editor .midi-mapping-editor-head,
+.performer-midi-log .midi-log-head {
+  min-height: 36px;
+  gap: 10px;
+}
+
+.performer-midi-panel .midi-picker-title,
+.performer-midi-editor .midi-mapping-title,
+.performer-midi-log .midi-mapping-title,
+.performer-midi-panel .midi-clock-label,
+.performer-midi-panel .midi-log-type {
+  color: var(--performer-teal);
+}
+
+.performer-midi-panel .midi-picker-activity {
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--performer-muted);
+}
+
+.performer-midi-panel .midi-picker-activity.is-pulsing {
+  color: var(--performer-teal);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--performer-teal) 55%, transparent);
+}
+
+.performer-midi-panel .midi-picker-list,
+.performer-midi-panel .midi-clock-strip,
+.performer-midi-editor .midi-mapping-table {
+  min-width: 0;
+}
+
+.performer-midi-panel .midi-picker-row {
+  min-height: 44px;
+  padding: 6px 8px;
+  border-color: var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 74%, transparent);
+}
+
+.performer-midi-device-toggle,
+.performer-midi-edit-button,
+.performer-midi-clear-button,
+.performer-midi-clock-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 88%, transparent);
+  color: var(--performer-muted);
+  font-size: 9px;
+}
+
+.performer-midi-device-toggle.is-on,
+.performer-midi-clock-button.is-active,
+.performer-midi-edit-button:hover,
+.performer-midi-device-toggle:hover,
+.performer-midi-clock-button:hover,
+.performer-midi-clear-button:hover,
+.performer-midi-device-toggle:focus-visible,
+.performer-midi-clock-button:focus-visible,
+.performer-midi-edit-button:focus-visible {
+  border-color: var(--performer-teal);
+  background: color-mix(in srgb, var(--performer-teal) 12%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-midi-close,
+.performer-midi-delete-button,
+.performer-midi-learn {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 88%, transparent);
+  color: var(--performer-teal);
+}
+
+.performer-midi-close:hover,
+.performer-midi-delete-button:hover,
+.performer-midi-learn:hover,
+.performer-midi-close:focus-visible,
+.performer-midi-delete-button:focus-visible,
+.performer-midi-learn:focus-visible,
+.performer-midi-learn.is-learning {
+  border-color: var(--performer-teal);
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+}
+
+.performer-midi-panel .midi-clock-strip {
+  min-height: 48px;
+  padding: 6px 8px;
+  border-color: var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 68%, transparent);
+}
+
+.performer-midi-panel .midi-clock-label {
+  min-width: 68px;
+}
+
+.performer-midi-panel .midi-clock-slider {
+  min-height: 40px;
+  accent-color: var(--performer-teal);
+}
+
+.performer-midi-panel .midi-clock-readout {
+  color: var(--performer-teal);
+}
+
+.performer-midi-panel .midi-thru-details {
+  border-color: var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 54%, transparent);
+}
+
+.performer-midi-panel .midi-thru-summary,
+.performer-midi-panel .midi-thru-select {
+  min-height: 40px;
+  color: var(--performer-teal);
+}
+
+.performer-midi-panel .midi-thru-body {
+  background: color-mix(in srgb, var(--performer-panel) 84%, transparent);
+}
+
+.performer-midi-panel .midi-thru-select,
+.performer-rack .rack-select {
+  min-height: 40px;
+  border-color: var(--performer-line);
+  border-radius: 8px;
+  background: var(--performer-panel);
+  color: var(--performer-ink);
+}
+
+.performer-midi-editor .midi-mapping-table {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.performer-midi-editor .midi-mapping-row {
+  min-width: 270px;
+  min-height: 46px;
+  padding: 6px 8px;
+  border-color: var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 72%, transparent);
+}
+
+.performer-midi-editor .midi-mapping-header {
+  min-height: 30px;
+  color: var(--performer-muted);
+}
+
+.performer-midi-editor .midi-mapping-target {
+  color: var(--performer-ink);
+}
+
+.performer-midi-editor .midi-mapping-detail {
+  color: var(--performer-teal);
+}
+
+.performer-midi-log {
+  max-height: min(34vh, 320px);
+}
+
+.performer-midi-log .midi-log-stream {
+  min-height: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.performer-midi-log .midi-log-empty,
+.performer-midi-editor .midi-mapping-empty {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  color: var(--performer-muted);
+}
+
+.performer-midi-log .midi-log-row {
+  min-height: 36px;
+  padding: 5px 8px;
+  border-color: var(--performer-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--performer-surface) 72%, transparent);
+}
+
+.performer-midi-log .midi-log-icon,
+.performer-midi-log .midi-log-ch,
+.performer-midi-log .midi-log-val {
+  color: var(--performer-muted);
+}
+
+.performer-midi-log .midi-log-val {
+  color: var(--performer-ink);
+}
+
+/* Instrument rack is a single horizontal rail, never a wrapping page. */
+.performer-rack {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 92px;
+  padding: 10px 14px;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  background: color-mix(in srgb, var(--performer-surface) 88%, transparent);
+  border-bottom: 1px solid var(--performer-line);
+}
+
+.performer-rack::-webkit-scrollbar {
+  display: none;
+}
+
+.performer-rack .rack-cell {
+  min-height: 68px;
+  padding: 8px 10px;
+  gap: 8px;
+  border-color: var(--performer-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--performer-panel) 84%, transparent);
+}
+
+.performer-rack .rack-instrument {
+  min-width: 176px;
+}
+
+.performer-rack .rack-knobs,
+.performer-rack .rack-craft,
+.performer-rack .rack-modes {
+  min-width: max-content;
+}
+
+.performer-rack .rack-label {
+  color: var(--performer-muted);
+}
+
+.performer-rack .rack-track-tag {
+  min-height: 30px;
+  border-color: color-mix(in srgb, var(--performer-teal) 28%, var(--performer-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--performer-teal) 8%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-rack .tag-pip {
+  background: var(--performer-teal);
+}
+
+.performer-rack .rack-select {
+  min-height: 40px;
+}
+
+.performer-rack .rack-select-sm {
+  min-height: 36px;
+}
+
+.performer-rack-toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-surface) 86%, transparent);
+  color: var(--performer-muted);
+  font-size: 9px;
+}
+
+.performer-rack-toggle:hover,
+.performer-rack-toggle:focus-visible,
+.performer-rack-toggle.is-active {
+  border-color: var(--performer-teal);
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+}
+
+.performer-rack-toggle.is-active {
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--performer-teal) 22%, transparent);
+}
+
+/* Metering and record transport remain visible without creating page overflow. */
+.performer-meter-deck {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 10px 14px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--performer-surface) 86%, transparent);
+  border-bottom: 1px solid var(--performer-line);
+}
+
+.performer-meter-deck .meter-strip {
+  min-width: 0;
+  gap: 12px;
+}
+
+.performer-meter-deck .meter-pane {
+  min-width: 92px;
+}
+
+.performer-meter-deck .meter-label {
+  color: var(--performer-teal);
+}
+
+.performer-meter-deck .meter-readout {
+  color: var(--performer-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.performer-meter-deck .meter-bar {
+  height: 10px;
+  border: 1px solid var(--performer-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--performer-ink) 8%, transparent);
+}
+
+.performer-meter-deck .meter-fill.in-l,
+.performer-meter-deck .meter-fill.in-r {
+  background: linear-gradient(90deg, var(--performer-teal), var(--performer-amber));
+}
+
+.performer-meter-deck .meter-fill.out-l,
+.performer-meter-deck .meter-fill.out-r {
+  background: linear-gradient(90deg, var(--performer-teal), var(--performer-record));
+}
+
+.performer-meter-deck .rec-transport {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.performer-record-button {
+  min-height: 48px;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--performer-line);
+  border-radius: 999px;
+  background: var(--performer-panel);
+  color: var(--performer-muted);
+  box-shadow: none;
+}
+
+.performer-record-button:hover,
+.performer-record-button:focus-visible {
+  border-color: var(--performer-teal);
+  color: var(--performer-teal);
+}
+
+.performer-record-button.is-armed {
+  border-color: var(--performer-teal);
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+}
+
+.performer-record-button.is-rec {
+  border-color: var(--performer-record);
+  background: var(--performer-record);
+  color: white;
+}
+
+.performer-record-utility {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--performer-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--performer-panel) 86%, transparent);
+  color: var(--performer-muted);
+  font-size: 9px;
+}
+
+.performer-record-utility:hover,
+.performer-record-utility:focus-visible,
+.performer-record-utility.is-on {
+  border-color: var(--performer-teal);
+  background: color-mix(in srgb, var(--performer-teal) 12%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-record-utility.is-on {
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+}
+
+/* One bounded viewport; each view supplies its own intentional rail. */
+.performer-viewport {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 220px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--performer-canvas);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--performer-teal) 42%, transparent) transparent;
+}
+
+.performer-view {
+  min-width: 0;
+  min-height: 100%;
+}
+
+.performer-keyboard-view,
+.performer-pads-view,
+.performer-matrix-view {
+  overflow: visible;
+}
+
+.performer-keyboard-view .kb-suggestion,
+.performer-pads-view .pads-suggestion {
+  min-height: 44px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: color-mix(in srgb, var(--performer-surface) 78%, transparent);
+  border-bottom-color: var(--performer-line);
+}
+
+.performer-keyboard-view .ai-pill,
+.performer-pads-view .ai-pill {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-color: color-mix(in srgb, var(--performer-teal) 32%, var(--performer-line));
+  background: color-mix(in srgb, var(--performer-teal) 9%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-keyboard-rail {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 170px;
+  padding: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  background: color-mix(in srgb, var(--performer-panel) 72%, transparent);
+  scrollbar-width: none;
+}
+
+.performer-keyboard-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.performer-keyboard-rail .keyboard-row {
+  min-width: max-content;
+  min-height: 140px;
+  height: 100%;
+}
+
+.performer-keyboard-rail .kb-key {
+  min-height: 96px;
+  touch-action: none;
+  user-select: none;
+}
+
+.performer-keyboard-rail .kb-key.is-white {
+  width: 64px;
+  border-color: var(--performer-line);
+  background: linear-gradient(180deg, var(--performer-surface), var(--performer-panel));
+  color: var(--performer-ink);
+}
+
+.performer-keyboard-rail .kb-key.is-black {
+  width: 44px;
+  border-color: color-mix(in srgb, var(--performer-ink) 34%, var(--performer-line));
+  background: linear-gradient(180deg, #596273, #202a3b);
+}
+
+.performer-keyboard-rail .kb-key.is-white.is-active {
+  border-color: var(--performer-teal);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--performer-teal) 22%, var(--performer-surface)), var(--performer-teal));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--performer-teal) 34%, transparent);
+}
+
+.performer-keyboard-rail .kb-key.is-black.is-active {
+  border-color: var(--performer-amber);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--performer-amber) 34%, #596273), var(--performer-amber));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--performer-amber) 32%, transparent);
+}
+
+.performer-keyboard-rail .kb-legend {
+  color: var(--performer-muted);
+}
+
+.performer-keyboard-view .kb-expression {
+  min-height: 64px;
+  padding: 8px 12px;
+  gap: 10px;
+  background: color-mix(in srgb, var(--performer-surface) 78%, transparent);
+  border-top-color: var(--performer-line);
+}
+
+.performer-keyboard-view .xb-strip {
+  min-width: min(100%, 170px);
+  min-height: 40px;
+}
+
+.performer-keyboard-view .xb-label {
+  color: var(--performer-muted);
+}
+
+.performer-keyboard-view .xb-slider {
+  min-height: 40px;
+}
+
+.performer-keyboard-view .xb-slider::-webkit-slider-runnable-track {
+  background: color-mix(in srgb, var(--performer-ink) 12%, transparent);
+}
+
+.performer-keyboard-view .xb-slider::-webkit-slider-thumb {
+  border-color: var(--performer-teal);
+  background: var(--performer-panel);
+}
+
+.performer-keyboard-view .xb-readout,
+.performer-keyboard-view .octave-readout {
+  color: var(--performer-teal);
+}
+
+.performer-keyboard-view .octave-cluster {
+  min-height: 44px;
+  border-color: var(--performer-line);
+  background: var(--performer-panel);
+}
+
+.performer-octave-button {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--performer-muted);
+}
+
+.performer-octave-button:hover,
+.performer-octave-button:focus-visible {
+  background: color-mix(in srgb, var(--performer-teal) 12%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-pad-grid {
+  min-width: 0;
+  min-height: 100%;
+  padding: 14px;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--performer-canvas);
+}
+
+.performer-pad-surface {
+  min-width: 0;
+  min-height: 76px;
+  border-color: var(--performer-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--performer-panel) 88%, transparent);
+  box-shadow: 0 5px 14px rgba(61, 53, 42, 0.08);
+  touch-action: none;
+  user-select: none;
+}
+
+.performer-pad-surface:hover,
+.performer-pad-surface:focus-visible {
+  border-color: var(--performer-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--performer-teal) 18%, transparent);
+}
+
+.performer-pad-surface.is-active {
+  border-color: var(--pad-color, var(--performer-teal));
+  background: color-mix(in srgb, var(--pad-color, var(--performer-teal)) 14%, var(--performer-panel));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--pad-color, var(--performer-teal)) 28%, transparent),
+    0 0 18px color-mix(in srgb, var(--pad-color, var(--performer-teal)) 30%, transparent);
+}
+
+.performer-pad-surface .pad-label {
+  color: var(--performer-ink);
+}
+
+.performer-pad-surface .pad-led {
+  background: var(--pad-color, var(--performer-teal));
+}
+
+.performer-macros-view {
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px;
+  overflow: auto;
+  background: var(--performer-canvas);
+}
+
+.performer-macro-rail {
+  width: 100%;
+  max-width: 680px;
+  min-width: 0;
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 3px 1px;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.performer-macro-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.performer-macro-chip {
+  flex: 0 0 112px;
+  min-width: 112px;
+  min-height: 64px;
+  padding: 8px;
+  gap: 4px;
+  border: 1px solid var(--performer-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--performer-panel) 86%, transparent);
+  color: var(--performer-ink);
+}
+
+.performer-macro-chip:hover,
+.performer-macro-chip:focus-visible,
+.performer-macro-chip.is-active {
+  border-color: var(--macro-color, var(--performer-teal));
+  background: color-mix(in srgb, var(--macro-color, var(--performer-teal)) 12%, var(--performer-panel));
+  color: var(--performer-ink);
+}
+
+.performer-macro-chip.is-active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--macro-color, var(--performer-teal)) 20%, transparent);
+}
+
+.performer-macro-chip .macro-preset-name {
+  color: var(--performer-ink);
+}
+
+.performer-xy-surface {
+  align-self: center;
+  width: min(100%, 420px);
+  height: min(52vw, 52vh, 420px);
+  max-height: 420px;
+  min-height: 180px;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  border-color: color-mix(in srgb, var(--performer-teal) 38%, var(--performer-line));
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--performer-teal) 8%, transparent), var(--performer-ink) 115%),
+    var(--performer-canvas);
+  box-shadow: 0 12px 28px rgba(35, 29, 20, 0.16);
+  touch-action: none !important;
+}
+
+.performer-xy-surface .xy-cross {
+  background: color-mix(in srgb, var(--performer-teal) 20%, transparent);
+}
+
+.performer-xy-surface .xy-corner-label,
+.performer-xy-surface .xy-corner-value,
+.performer-xy-surface .xy-corner-name {
+  color: var(--performer-ink);
+}
+
+.performer-xy-surface .xy-corner-status,
+.performer-xy-surface .xy-corner-label {
+  color: var(--performer-muted);
+}
+
+.performer-xy-surface .xy-corner-reset,
+.performer-xy-reset {
+  min-width: 64px;
+  min-height: 44px;
+  width: auto;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--performer-teal);
+  border-radius: 9px;
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+  font-size: 8px;
+}
+
+.performer-xy-reset:hover,
+.performer-xy-reset:focus-visible {
+  background: var(--performer-teal-bright);
+  color: var(--performer-ink);
+}
+
+.performer-xy-surface .xy-dot::after {
+  background: var(--performer-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, white 62%, transparent);
+}
+
+.performer-macros-view .macro-hint {
+  max-width: 560px;
+  color: var(--performer-muted);
+}
+
+.performer-macros-view .macro-hint strong {
+  color: var(--performer-teal);
+}
+
+.performer-matrix-view {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--performer-canvas);
+}
+
+.performer-scene-rail {
+  flex: 0 0 128px;
+  width: 128px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--performer-surface) 78%, transparent);
+  border-right: 1px solid var(--performer-line);
+}
+
+.performer-scene-rail .rail-title {
+  min-height: 34px;
+  color: var(--performer-teal);
+  border-bottom-color: var(--performer-line);
+}
+
+.performer-scene-button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  gap: 8px;
+  border: 1px solid var(--performer-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--performer-panel) 82%, transparent);
+  color: var(--performer-muted);
+  text-align: left;
+}
+
+.performer-scene-button:hover,
+.performer-scene-button:focus-visible,
+.performer-scene-button.is-active {
+  border-color: var(--scene-color, var(--performer-teal));
+  background: color-mix(in srgb, var(--scene-color, var(--performer-teal)) 12%, var(--performer-panel));
+  color: var(--performer-ink);
+}
+
+.performer-scene-button .scene-name {
+  color: inherit;
+}
+
+.performer-matrix-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--performer-canvas);
+}
+
+/* Take cards remain div role=option; the rail only owns horizontal scroll. */
+.performer-takes {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--performer-surface) 90%, transparent);
+  border-top: 1px solid var(--performer-line);
+}
+
+.performer-takes .tc-title-row h2 {
+  color: var(--performer-ink);
+}
+
+.performer-takes .tc-count {
+  color: var(--performer-teal);
+}
+
+.performer-takes .tc-help {
+  color: var(--performer-muted);
+}
+
+.performer-take-rail {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 116px;
+  gap: 10px;
+  padding: 2px 1px 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.performer-take-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.performer-take-card {
+  flex: 0 0 216px;
+  min-width: 216px;
+  min-height: 108px;
+  padding: 9px 10px;
+  gap: 5px;
+  border: 1px solid var(--performer-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--performer-panel) 86%, transparent);
+  color: var(--performer-ink);
+}
+
+.performer-take-card:hover,
+.performer-take-card:focus-visible,
+.performer-take-card.is-selected {
+  border-color: var(--performer-teal);
+  background: color-mix(in srgb, var(--performer-teal) 8%, var(--performer-panel));
+}
+
+.performer-take-card.is-selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--performer-teal) 28%, transparent);
+}
+
+.performer-take-card .tc-card-num,
+.performer-take-card:hover .tc-card-num {
+  color: var(--performer-teal);
+}
+
+.performer-take-card .tc-card-name {
+  color: var(--performer-ink);
+}
+
+.performer-take-card .tc-card-meta {
+  color: var(--performer-muted);
+}
+
+.performer-take-card .tc-card-actions {
+  gap: 5px;
+  margin-top: auto;
+}
+
+.performer-take-action {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  width: auto;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--performer-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--performer-surface) 88%, transparent);
+  color: var(--performer-teal);
+}
+
+.performer-take-action:hover,
+.performer-take-action:focus-visible,
+.performer-take-action.is-on {
+  border-color: var(--performer-teal);
+  background: color-mix(in srgb, var(--performer-teal) 12%, var(--performer-panel));
+  color: var(--performer-teal);
+}
+
+.performer-take-action.is-on {
+  background: var(--performer-teal);
+  color: var(--performer-ink);
+}
+
+.performer-take-action.tc-mini-danger {
+  color: var(--performer-record);
+}
+
+.performer-take-action.tc-mini-danger:hover,
+.performer-take-action.tc-mini-danger:focus-visible {
+  border-color: var(--performer-record);
+  background: color-mix(in srgb, var(--performer-record) 12%, var(--performer-panel));
+  color: var(--performer-record);
+}
+
+.performer-take-empty {
+  flex: 0 0 240px;
+  min-width: 240px;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  border: 1px dashed var(--performer-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--performer-panel) 56%, transparent);
+  color: var(--performer-muted);
+}
+
+.performer-take-empty .tc-empty-glyph,
+.performer-take-empty .tc-empty-text {
+  color: var(--performer-muted);
+}
+
+.performer-surface :where(button, [role='button'], [role='tab'], [role='option'], input, select, summary):focus-visible {
+  outline: 2px solid var(--performer-teal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .performer-header {
+    align-items: stretch;
+  }
+
+  .performer-brand-rail {
+    flex-basis: 100%;
+  }
+
+  .performer-layout-switcher {
+    width: 100%;
+  }
+
+  .performer-rack .rack-cell {
+    min-height: 64px;
+  }
+
+  .performer-meter-deck {
+    gap: 8px;
+  }
+
+  .performer-meter-deck .meter-pane {
+    min-width: 78px;
+  }
+}
+
+@media (max-width: 680px) {
+  .performer-surface,
+  .performer-shell {
+    border-radius: 14px;
+  }
+
+  .performer-header {
+    min-height: 0;
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  .performer-header .brand-title p {
+    display: none;
+  }
+
+  .performer-layout-switcher button {
+    min-width: 68px;
+    min-height: 42px;
+    padding-inline: 9px;
+  }
+
+  .performer-midi-panel,
+  .performer-midi-editor,
+  .performer-midi-log {
+    margin-inline: 8px;
+    padding: 10px;
+  }
+
+  .performer-midi-panel .midi-picker-row {
+    min-height: 48px;
+  }
+
+  .performer-midi-device-toggle,
+  .performer-midi-edit-button,
+  .performer-midi-clock-button,
+  .performer-midi-clear-button {
+    min-height: 48px;
+  }
+
+  .performer-rack {
+    min-height: 84px;
+    padding: 8px 10px;
+  }
+
+  .performer-meter-deck {
+    padding: 8px 10px;
+  }
+
+  .performer-meter-deck .meter-pane {
+    flex-basis: 72px;
+    min-width: 72px;
+  }
+
+  .performer-record-button {
+    min-height: 48px;
+    height: 48px;
+  }
+
+  .performer-viewport {
+    min-height: 190px;
+  }
+
+  .performer-keyboard-rail {
+    min-height: 150px;
+    padding: 9px;
+  }
+
+  .performer-keyboard-rail .kb-key.is-white {
+    width: 52px;
+  }
+
+  .performer-keyboard-rail .kb-key.is-black {
+    width: 36px;
+    margin-inline: -18px;
+  }
+
+  .performer-keyboard-view .kb-expression {
+    padding: 8px 10px;
+  }
+
+  .performer-keyboard-view .xb-strip {
+    min-width: min(100%, 145px);
+  }
+
+  .performer-pad-grid {
+    padding: 10px;
+    gap: 7px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .performer-pad-surface {
+    min-height: 62px;
+    padding: 8px 4px;
+  }
+
+  .performer-pad-surface .pad-label {
+    font-size: 10px;
+  }
+
+  .performer-macros-view {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .performer-macro-chip {
+    flex-basis: 96px;
+    min-width: 96px;
+    min-height: 58px;
+    padding: 6px 4px;
+  }
+
+  .performer-xy-surface {
+    width: min(100%, 300px);
+    height: min(72vw, 42vh, 300px);
+    min-height: 170px;
+  }
+
+  .performer-scene-rail {
+    flex-basis: 108px;
+    width: 108px;
+  }
+
+  .performer-takes {
+    padding: 8px 10px;
+  }
+
+  .performer-take-card {
+    flex-basis: 190px;
+    min-width: 190px;
+  }
+
+  .performer-take-empty {
+    flex-basis: 210px;
+    min-width: 210px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .performer-header {
+    min-height: 52px;
+    padding: 6px 10px;
+  }
+
+  .performer-header .spectrum-strip {
+    height: 28px;
+  }
+
+  .performer-rack {
+    min-height: 76px;
+    padding-block: 6px;
+  }
+
+  .performer-rack .rack-cell {
+    min-height: 56px;
+    padding-block: 5px;
+  }
+
+  .performer-meter-deck {
+    padding-block: 6px;
+  }
+
+  .performer-viewport {
+    min-height: 170px;
+  }
+
+  .performer-macros-view {
+    padding: 8px;
+  }
+
+  .performer-xy-surface {
+    width: min(100%, 220px);
+    height: min(52vw, 48vh, 220px);
+    min-height: 150px;
+  }
+
+  .performer-takes {
+    padding-block: 6px;
+  }
+}
+
+@media (pointer: coarse) {
+  .performer-layout-switcher button,
+  .performer-midi-device-toggle,
+  .performer-midi-edit-button,
+  .performer-midi-clock-button,
+  .performer-midi-clear-button,
+  .performer-midi-close,
+  .performer-midi-delete-button,
+  .performer-midi-learn,
+  .performer-rack-toggle,
+  .performer-record-button,
+  .performer-record-utility,
+  .performer-octave-button,
+  .performer-scene-button,
+  .performer-macro-chip,
+  .performer-xy-reset,
+  .performer-take-action {
+    min-width: 48px;
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .performer-surface *,
+  .performer-surface *::before,
+  .performer-surface *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .performer-surface .layout-switcher button:hover,
+  .performer-surface .rack-cell:hover,
+  .performer-surface .tc-card:hover,
+  .performer-surface .macro-preset-chip:hover {
+    transform: none;
+  }
+}

@@ -194,3 +194,105 @@
     transition: none;
   }
 }
+
+/* Compact beat-grid ruler treatment; future ruler ticks inherit these local
+   styles without adding component state or interaction. */
+:host {
+  height: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #151c20;
+  border-bottom: 1px solid rgba(221, 237, 229, 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(32, 215, 210, 0.45) transparent;
+}
+
+.timeline-ruler {
+  min-width: max-content;
+  background:
+    linear-gradient(180deg, rgba(34, 45, 48, 0.98), rgba(20, 28, 31, 0.98)),
+    #151c20;
+}
+
+.timeline-tick {
+  min-height: 36px;
+  padding-left: 8px;
+  border-right-color: rgba(221, 237, 229, 0.1);
+  color: #9baaa4;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-tick.is-bar {
+  color: #77d8ca;
+  border-right: 2px solid rgba(119, 216, 202, 0.72);
+  text-shadow: 0 0 10px rgba(32, 215, 210, 0.22);
+}
+
+.timeline-tick.is-beat {
+  color: #84938e;
+  border-right-color: rgba(221, 237, 229, 0.08);
+}
+
+.timeline-tick:hover {
+  background: rgba(32, 215, 210, 0.07);
+  color: #d7eee8;
+}
+
+.timeline-playhead {
+  width: 2px;
+  background: #f0bd65;
+  box-shadow: 0 0 10px rgba(240, 189, 101, 0.65);
+}
+
+.timeline-playhead::before {
+  top: 0;
+  border-top-color: #f0bd65;
+}
+
+.timeline-loop-region {
+  top: 20%;
+  bottom: 20%;
+  border-radius: 4px;
+  border-color: rgba(32, 215, 210, 0.7);
+  background: rgba(32, 215, 210, 0.12);
+}
+
+.timeline-ruler::after {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(32, 215, 210, 0.38), transparent);
+}
+
+:host-context(.dark-mode) .timeline-ruler {
+  background: linear-gradient(180deg, #1a2329, #12191e);
+}
+
+:host-context(.dark-mode) .timeline-tick {
+  color: #9baaa4;
+  border-right-color: rgba(221, 237, 229, 0.09);
+}
+
+:host-context(.dark-mode) .timeline-tick.is-bar {
+  color: #8de1d3;
+  border-right-color: rgba(141, 225, 211, 0.7);
+}
+
+@media (max-width: 600px) {
+  :host,
+  .timeline-tick {
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .timeline-tick {
+    padding-inline: 9px 5px;
+  }
+}
+
+@media (forced-colors: active) {
+  .timeline-tick.is-bar,
+  .timeline-playhead,
+  .timeline-loop-region {
+    outline: 1px solid Highlight;
+  }
+}

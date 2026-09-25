@@ -1,6 +1,6 @@
-<div class="er-shell">
+<div class="er-shell studio-workspace-surface effects-rack-surface">
   <!-- Header -->
-  <header class="er-header" role="banner">
+  <header class="er-header effects-rack-header" role="banner">
     <div class="er-header-title">
       <span class="material-symbols-outlined">blur_on</span>
       <div>
@@ -9,7 +9,7 @@
       </div>
     </div>
     <div
-      class="er-header-chip"
+      class="er-header-chip studio-status-pill"
       *ngIf="selectedTrack() as track"
       title="Current track"
     >
@@ -22,7 +22,7 @@
   <div class="er-body">
     <!-- Sprint B1 Phase 2: WASM live insert chain -->
     <section
-      class="er-wasm"
+      class="er-wasm effects-rack-wasm"
       *ngIf="selectedTrack()"
       aria-label="WASM plugin inserts"
     >
@@ -44,7 +44,7 @@
           No WASM inserts — tap a plugin below
         </span>
       </div>
-      <div class="er-wasm-grid">
+      <div class="er-wasm-grid studio-horizontal-rail">
         <button
           *ngFor="let manifest of wasmCatalog"
           type="button"
@@ -64,7 +64,7 @@
     </section>
 
     <!-- Sprint B1 Phase 3 — master-bus live insert (whole mix). -->
-    <section class="er-wasm er-wasm-master" aria-label="Master bus WASM inserts">
+    <section class="er-wasm er-wasm-master effects-rack-wasm effects-rack-wasm-master" aria-label="Master bus WASM inserts">
       <div class="er-wasm-head">
         <span class="material-symbols-outlined">cable</span>
         <b>Master Bus Inserts</b>
@@ -83,7 +83,7 @@
           No master inserts — tap a plugin below
         </span>
       </div>
-      <div class="er-wasm-grid">
+      <div class="er-wasm-grid studio-horizontal-rail">
         <button
           *ngFor="let manifest of wasmCatalog"
           type="button"
@@ -107,10 +107,10 @@
     <!-- Slot list. The row is a div with role="button": a <button> cannot
          legally contain the power/remove buttons below, and the browser hoists
          the inner buttons out of the DOM entirely when they are nested. -->
-    <nav class="er-slots" aria-label="Macro effect slots">
+    <nav class="er-slots studio-module-scroll effects-rack-slots" aria-label="Macro effect slots">
       <div
         *ngFor="let slot of fxSlots(); let i = index"
-        class="er-slot"
+        class="er-slot effects-rack-slot"
         role="button"
         tabindex="0"
         [class.active]="activeSlot() === i + 1"
@@ -136,7 +136,7 @@
         <span class="er-slot-name">{{ slot.type || 'Empty' }}</span>
         <button
           type="button"
-          class="er-slot-toggle"
+          class="er-slot-toggle effects-rack-slot-action"
           [class.enabled]="slot.enabled"
           (click)="toggleFx(slot.id); $event.stopPropagation()"
           [attr.aria-label]="
@@ -149,7 +149,7 @@
         </button>
         <button
           type="button"
-          class="er-slot-remove"
+          class="er-slot-remove effects-rack-slot-action"
           (click)="removeFxSlot(i, $event)"
           [attr.aria-label]="'Remove ' + (slot.type || 'effect') + ' slot'"
           title="Remove this effect slot"
@@ -161,7 +161,7 @@
       <div class="er-add-wrap">
         <button
           type="button"
-          class="er-add-slot"
+          class="er-add-slot effects-rack-add-slot"
           aria-label="Add new effect slot"
           [attr.aria-expanded]="addMenuOpen()"
           (click)="toggleAddMenu($event)"
@@ -188,7 +188,7 @@
     </nav>
 
     <!-- Parameters panel -->
-    <section class="er-params" aria-label="Effect parameters">
+    <section class="er-params studio-module-scroll effects-rack-params" aria-label="Effect parameters">
       <ng-container *ngIf="activeFxSlot() as slot; else emptyParams">
         <div class="er-params-title">
           {{ slot.type }} · Slot {{ activeSlot() }}
@@ -197,7 +197,7 @@
         <!-- Knob grid, driven by the type's parameter spec so every knob reads
              and writes the slot's real stored value. -->
         <div class="er-knob-grid">
-          <div class="er-knob-cell" *ngFor="let spec of paramSpecs(slot.type)">
+          <div class="er-knob-cell effects-rack-knob-cell" *ngFor="let spec of paramSpecs(slot.type)">
             <app-knob
               [label]="spec.label"
               [min]="spec.min"
@@ -233,7 +233,7 @@
         </div>
 
         <!-- Slot mix bar — reflects the slot's real wet/dry value. -->
-        <div class="er-master">
+        <div class="er-master effects-rack-master">
           <div class="er-master-row">
             <span class="er-master-label">Master Mix</span>
             <div class="er-master-bar" aria-hidden="true">

@@ -4,10 +4,10 @@
   omnipresent take carousel for multi-take recording, L/R peak meters, monitor/phantom
   toggles, expressive pitch + mod sliders, and high-quality live instrument selection.
 -->
-<div class="performer-shell">
+<div class="performer-shell studio-workspace-surface performer-surface">
   <!-- ───────── TOP META BAR ───────── -->
-  <header class="perf-header">
-    <div class="brand-row">
+  <header class="perf-header studio-context-toolbar performer-header">
+    <div class="brand-row studio-horizontal-rail performer-brand-rail">
       <div class="spectrum-strip" aria-hidden="true">
         <span
           *ngFor="let v of spectrumData()"
@@ -42,7 +42,10 @@
       </div>
     </div>
 
-    <div class="layout-switcher" role="tablist">
+    <div
+      class="layout-switcher studio-segmented studio-horizontal-rail performer-layout-switcher"
+      role="tablist"
+    >
       <button
         type="button"
         role="tab"
@@ -86,7 +89,7 @@
   <!-- ───────── MIDI DEVICE PICKER PANEL ───────── -->
   @if (midiPanelOpen() && midiService.connectedDevices().length) {
     <div
-      class="midi-picker-panel"
+      class="midi-picker-panel studio-module-scroll performer-midi-panel"
       role="region"
       aria-label="MIDI device picker"
     >
@@ -106,7 +109,7 @@
           <span class="midi-picker-name">{{ device }}</span>
           <button
             type="button"
-            class="midi-picker-toggle"
+            class="midi-picker-toggle studio-ghost-button performer-midi-device-toggle"
             [class.is-on]="isDeviceEnabled(device)"
             (click)="toggleDevice(device)"
             [attr.aria-label]="
@@ -119,7 +122,7 @@
       </div>
       <button
         type="button"
-        class="midi-picker-close"
+        class="midi-picker-close studio-icon-button performer-midi-close"
         (click)="midiPanelOpen.set(false)"
         aria-label="Close MIDI panel"
       >
@@ -130,7 +133,7 @@
         <label class="midi-clock-label">MIDI Clock</label>
         <button
           type="button"
-          class="midi-clock-btn"
+          class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
           [class.is-active]="midiService.clockEnabled()"
           (click)="toggleClock()"
         >
@@ -155,7 +158,7 @@
       <!-- Mapping editor toggle -->
       <button
         type="button"
-        class="midi-picker-edit-btn"
+        class="midi-picker-edit-btn studio-secondary-button performer-midi-edit-button"
         (click)="toggleMappingEditor()"
       >
         {{ midiMappingEditorOpen() ? '✕ Close Editor' : '✎ Edit CC Mappings' }}
@@ -165,7 +168,7 @@
         <label class="midi-clock-label">Slave Sync</label>
         <button
           type="button"
-          class="midi-clock-btn"
+          class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
           [class.is-active]="midiService.slaveSyncEnabled()"
           (click)="midiService.toggleSlaveSync()"
         >
@@ -189,7 +192,7 @@
       <!-- Activity log toggle -->
       <button
         type="button"
-        class="midi-picker-edit-btn"
+        class="midi-picker-edit-btn studio-secondary-button performer-midi-edit-button"
         (click)="midiLogOpen.update((v) => !v)"
       >
         {{ midiLogOpen() ? '✕ Close Log' : '📋 MIDI Activity Log' }}
@@ -203,7 +206,7 @@
             <label class="midi-clock-label">Active</label>
             <button
               type="button"
-              class="midi-clock-btn"
+              class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
               [class.is-active]="midiService.thruEnabled()"
               (click)="midiService.thruEnabled.update((v) => !v)"
             >
@@ -272,12 +275,12 @@
 
   <!-- ───────── MIDI ACTIVITY LOG ───────── -->
   @if (midiLogOpen()) {
-    <div class="midi-activity-log">
+    <div class="midi-activity-log studio-module-scroll performer-midi-log">
       <div class="midi-log-head">
         <span class="midi-mapping-title">MIDI Activity</span>
         <button
           type="button"
-          class="midi-mapping-clear-all"
+          class="midi-mapping-clear-all studio-ghost-button performer-midi-clear-button"
           (click)="midiService.clearMidiLog()"
         >
           Clear
@@ -327,12 +330,12 @@
 
   <!-- ───────── MIDI MAPPING EDITOR MODAL ───────── -->
   @if (midiMappingEditorOpen()) {
-    <div class="midi-mapping-editor">
+    <div class="midi-mapping-editor studio-module-scroll performer-midi-editor">
       <div class="midi-mapping-editor-head">
         <span class="midi-mapping-title">Performer CC Mappings</span>
         <button
           type="button"
-          class="midi-mapping-clear-all"
+          class="midi-mapping-clear-all studio-ghost-button performer-midi-clear-button"
           (click)="clearAllPerformerMappings()"
         >
           Clear All
@@ -361,7 +364,7 @@
               <span class="midi-mapping-detail">{{ mapping.controller }}</span>
               <button
                 type="button"
-                class="midi-mapping-delete"
+                class="midi-mapping-delete studio-icon-button performer-midi-delete-button"
                 (click)="deletePerformerMapping(mapping.target)"
                 aria-label="Delete mapping for {{ mapping.target }}"
               >
@@ -375,7 +378,10 @@
   }
 
   <!-- ───────── INSTRUMENT RACK ───────── -->
-  <section class="perf-rack" *ngIf="selectedTrack() as track">
+  <section
+    class="perf-rack studio-horizontal-rail performer-rack"
+    *ngIf="selectedTrack() as track"
+  >
     <div class="rack-cell rack-instrument">
       <label class="rack-label">Instrument</label>
       <select
@@ -413,7 +419,7 @@
         <div style="display: flex; align-items: center; gap: 4px">
           <button
             type="button"
-            class="midi-learn-btn"
+            class="midi-learn-btn studio-icon-button performer-midi-learn"
             [class.is-learning]="
               midiService.performerLearnTarget() === 'volume'
             "
@@ -449,7 +455,7 @@
         <div style="display: flex; align-items: center; gap: 4px">
           <button
             type="button"
-            class="midi-learn-btn"
+            class="midi-learn-btn studio-icon-button performer-midi-learn"
             [class.is-learning]="midiService.performerLearnTarget() === 'pan'"
             (click)="
               midiService.performerLearnActive() &&
@@ -499,7 +505,7 @@
     <div class="rack-cell rack-modes">
       <button
         type="button"
-        class="rack-toggle"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
         [class.is-active]="smartChords()"
         [attr.aria-pressed]="smartChords()"
         (click)="toggleSmartChords()"
@@ -508,7 +514,7 @@
       </button>
       <button
         type="button"
-        class="rack-toggle"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
         [class.is-active]="liveEngine.arpeggiatorEnabled()"
         [attr.aria-pressed]="liveEngine.arpeggiatorEnabled()"
         (click)="liveEngine.arpeggiatorEnabled.update((v) => !v)"
@@ -517,7 +523,7 @@
       </button>
       <button
         type="button"
-        class="rack-toggle"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
         [class.is-active]="liveEngine.scaleLock()"
         [attr.aria-pressed]="liveEngine.scaleLock()"
         (click)="liveEngine.scaleLock.update((v) => !v)"
@@ -542,7 +548,10 @@
   </section>
 
   <!-- ───────── LIVE METERS (L/R PRO PEAK-HOLD) ───────── -->
-  <section class="perf-meter-deck" aria-label="Input and output meters">
+  <section
+    class="perf-meter-deck performer-meter-deck"
+    aria-label="Input and output meters"
+  >
     <div class="meter-strip">
       <div class="meter-pane">
         <div class="meter-led-row">
@@ -633,7 +642,7 @@
     <div class="rec-transport">
       <button
         type="button"
-        class="rec-arm-btn"
+        class="rec-arm-btn studio-primary-button performer-record-button"
         [class.is-armed]="perfRecording.isArmed()"
         [class.is-rec]="perfRecording.isRecording()"
         [attr.aria-pressed]="
@@ -661,7 +670,7 @@
       <div class="rec-toggles">
         <button
           type="button"
-          class="rec-util-btn"
+          class="rec-util-btn studio-secondary-button performer-record-utility"
           [class.is-on]="perfRecording.monitorEnabled()"
           [attr.aria-pressed]="perfRecording.monitorEnabled()"
           title="Monitor (headphone pass-through)"
@@ -671,7 +680,7 @@
         </button>
         <button
           type="button"
-          class="rec-util-btn"
+          class="rec-util-btn studio-secondary-button performer-record-utility"
           [class.is-on]="perfRecording.phantomPowerEnabled()"
           [attr.aria-pressed]="perfRecording.phantomPowerEnabled()"
           title="+48V Phantom Power"
@@ -684,14 +693,21 @@
   </section>
 
   <!-- ───────── MAIN VIEWPORT ───────── -->
-  <section class="perf-viewport">
+  <section class="perf-viewport studio-module-scroll performer-viewport">
     <!-- KEYBOARD -->
-    <div class="view-keyboard" *ngIf="layout() === 'keyboard'">
+    <div
+      class="view-keyboard performer-view performer-keyboard-view"
+      *ngIf="layout() === 'keyboard'"
+    >
       <div class="kb-suggestion">
         <span class="ai-pill">✨ Humanize</span>
         <span class="ai-pill">🎼 Suggest Chord</span>
       </div>
-      <div class="keyboard-scroll" tabindex="0" aria-label="On-screen keyboard">
+      <div
+        class="keyboard-scroll studio-horizontal-rail performer-keyboard-rail"
+        tabindex="0"
+        aria-label="On-screen keyboard"
+      >
         <div class="keyboard-row">
           <button
             *ngFor="let key of keyboardKeys"
@@ -730,7 +746,7 @@
             >Modulation
             <button
               type="button"
-              class="midi-learn-btn"
+              class="midi-learn-btn studio-icon-button performer-midi-learn"
               [class.is-learning]="
                 midiService.performerLearnTarget() === 'modulation'
               "
@@ -790,7 +806,7 @@
           <div class="octave-cluster">
             <button
               type="button"
-              class="oct-btn"
+              class="oct-btn studio-icon-button performer-octave-button"
               (click)="nudgeOctave(-1)"
               aria-label="Octave down"
             >
@@ -801,7 +817,7 @@
             }}</span>
             <button
               type="button"
-              class="oct-btn"
+              class="oct-btn studio-icon-button performer-octave-button"
               (click)="nudgeOctave(1)"
               aria-label="Octave up"
             >
@@ -813,16 +829,19 @@
     </div>
 
     <!-- PADS -->
-    <div class="view-pads" *ngIf="layout() === 'pads'">
+    <div
+      class="view-pads performer-view performer-pads-view"
+      *ngIf="layout() === 'pads'"
+    >
       <div class="pads-suggestion">
         <span class="ai-pill">🌀 Generate Pattern</span>
         <span class="ai-pill">🎚️ Humanize Velocity</span>
       </div>
-      <div class="pad-grid">
+      <div class="pad-grid studio-module-scroll performer-pad-grid">
         <button
           *ngFor="let pad of performerPads; let i = index"
           type="button"
-          class="perf-pad"
+          class="perf-pad performer-pad-surface"
           [class.is-active]="activeKeys().has(pad.midi)"
           [style.--pad-color]="pad.color"
           [attr.aria-label]="'Pad ' + (i + 1)"
@@ -838,13 +857,20 @@
     </div>
 
     <!-- FX MACROS (XY pad) -->
-    <div class="view-macros" *ngIf="layout() === 'macros'">
+    <div
+      class="view-macros performer-view performer-macros-view"
+      *ngIf="layout() === 'macros'"
+    >
       <!-- 5 preset chips on top -->
-      <div class="macro-preset-strip" role="tablist" aria-label="Macro presets">
+      <div
+        class="macro-preset-strip studio-horizontal-rail performer-macro-rail"
+        role="tablist"
+        aria-label="Macro presets"
+      >
         <button
           *ngFor="let p of fxMacros.presets"
           type="button"
-          class="macro-preset-chip"
+          class="macro-preset-chip studio-secondary-button performer-macro-chip"
           [class.is-active]="fxMacros.activeMacroId() === p.id"
           [style.--macro-color]="p.color"
           (click)="fxMacros.setMacro(p.id)"
@@ -857,7 +883,7 @@
 
       <!-- The XY surface -->
       <div
-        class="xy-pad"
+        class="xy-pad performer-xy-surface"
         #xyPad
         (pointerdown)="onPadDown($event, xyPad)"
         (pointermove)="onPadMove($event, xyPad)"
@@ -905,7 +931,7 @@
           }}</span>
           <button
             type="button"
-            class="xy-corner-reset"
+            class="xy-corner-reset studio-icon-button performer-xy-reset"
             (click)="fxMacros.reset(); $event.stopPropagation()"
             aria-label="Reset macro to center"
           >
@@ -933,13 +959,16 @@
     </div>
 
     <!-- MATRIX -->
-    <div class="view-matrix" *ngIf="layout() === 'matrix'">
-      <aside class="scene-rail">
+    <div
+      class="view-matrix performer-view performer-matrix-view"
+      *ngIf="layout() === 'matrix'"
+    >
+      <aside class="scene-rail studio-module-scroll performer-scene-rail">
         <div class="rail-title">Scenes</div>
         <button
           *ngFor="let scene of scenes()"
           type="button"
-          class="scene-btn"
+          class="scene-btn performer-scene-button"
           [class.is-active]="isSceneActive(scene)"
           [style.--scene-color]="scene.color"
           (click)="launchScene(scene)"
@@ -949,14 +978,17 @@
           <span class="scene-name">{{ scene.name }}</span>
         </button>
       </aside>
-      <div class="matrix-area">
+      <div class="matrix-area studio-module-scroll performer-matrix-area">
         <app-performance-grid></app-performance-grid>
       </div>
     </div>
   </section>
 
   <!-- ───────── TAKE CAROUSEL ───────── -->
-  <footer class="take-carousel" aria-label="Recorded takes">
+  <footer
+    class="take-carousel studio-safe-bottom performer-takes"
+    aria-label="Recorded takes"
+  >
     <div class="tc-head">
       <div class="tc-title-row">
         <h2>Takes</h2>
@@ -967,14 +999,18 @@
         inspect or export.
       </p>
     </div>
-    <div class="tc-list" role="listbox" aria-label="Take list">
+    <div
+      class="tc-list studio-horizontal-rail performer-take-rail"
+      role="listbox"
+      aria-label="Take list"
+    >
       <!-- A take card carries its own action buttons, so the card itself is a
            div with role="option" rather than a <button>. Nesting a button
            inside a button is invalid HTML: the parser hoists the inner
            buttons out of the card, orphaning its Comp / Export / Delete
            actions. -->
       <div
-        class="tc-card"
+        class="tc-card performer-take-card"
         *ngFor="let take of perfRecording.takes()"
         role="option"
         tabindex="0"
@@ -994,7 +1030,7 @@
         <div class="tc-card-actions">
           <button
             type="button"
-            class="tc-mini"
+            class="tc-mini studio-icon-button performer-take-action"
             title="Comping"
             [class.is-on]="take.isComping"
             [attr.aria-pressed]="take.isComping"
@@ -1007,7 +1043,7 @@
           </button>
           <button
             type="button"
-            class="tc-mini"
+            class="tc-mini studio-icon-button performer-take-action"
             title="Export"
             (click)="
               perfRecording.exportTake(take.id, 'wav'); $event.stopPropagation()
@@ -1017,7 +1053,7 @@
           </button>
           <button
             type="button"
-            class="tc-mini tc-mini-danger"
+            class="tc-mini tc-mini-danger studio-icon-button performer-take-action"
             title="Delete take"
             (click)="
               perfRecording.deleteTake(take.id); $event.stopPropagation()
@@ -1027,7 +1063,7 @@
           </button>
         </div>
       </div>
-      <div class="tc-empty" *ngIf="perfRecording.takeCount() === 0">
+      <div class="tc-empty studio-empty-state performer-take-empty" *ngIf="perfRecording.takeCount() === 0">
         <span class="tc-empty-glyph">∿</span>
         <span class="tc-empty-text">No takes yet</span>
       </div>

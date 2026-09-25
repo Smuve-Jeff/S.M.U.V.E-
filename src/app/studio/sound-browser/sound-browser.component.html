@@ -1,6 +1,6 @@
-<div class="sb-shell">
-  <header class="sb-header" role="banner">
-    <div class="sb-title">
+<div class="sb-shell studio-workspace-surface sound-browser-surface">
+  <header class="sb-header studio-context-toolbar" role="banner">
+    <div class="sb-title sound-browser-title">
       <div>
         <h1>Sound Matrix<small>Instruments &amp; Presets</small></h1>
       </div>
@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="sb-search">
+    <div class="sb-search sound-browser-search">
       <span class="material-symbols-outlined" aria-hidden="true">search</span>
       <input
         type="text"
@@ -33,8 +33,8 @@
     </div>
 
     <!-- Smart filters: Genre, Mood, Favorites -->
-    <div class="sb-smart-filters">
-      <div class="sb-filter-chips">
+    <div class="sb-smart-filters sound-browser-filters">
+      <div class="sb-filter-chips studio-horizontal-rail">
         <button
           type="button"
           class="sb-filter-chip"
@@ -64,7 +64,7 @@
           {{ g }}
         </button>
       </div>
-      <div class="sb-filter-chips">
+      <div class="sb-filter-chips studio-horizontal-rail">
         <button
           type="button"
           class="sb-filter-chip"
@@ -129,7 +129,7 @@
       </div>
     </div>
 
-    <div class="sb-cats" role="tablist" aria-label="Category">
+    <div class="sb-cats studio-horizontal-rail" role="tablist" aria-label="Category">
       <button
         *ngFor="let cat of categories"
         type="button"
@@ -146,7 +146,7 @@
     </div>
 
     <!-- ═══ SOUND PACKS SECTION ══════════════════════════ -->
-    <div class="sb-packs-section" *ngIf="!searchQuery()">
+    <div class="sb-packs-section sound-browser-packs" *ngIf="!searchQuery()">
       <div class="sb-packs-header">
         <span class="sb-packs-title">
           <span class="material-symbols-outlined">package_2</span>
@@ -157,7 +157,7 @@
         >
       </div>
       <!-- Installed packs -->
-      <div class="sb-packs-rail" *ngIf="smartSound.installedPacks().length > 0">
+      <div class="sb-packs-rail studio-horizontal-rail" *ngIf="smartSound.installedPacks().length > 0">
         <span class="sb-packs-subtitle">Installed</span>
         <div class="sb-pack-chips">
           <div
@@ -189,7 +189,7 @@
         </div>
       </div>
       <!-- Available packs -->
-      <div class="sb-packs-rail" *ngIf="smartSound.availablePacks().length > 0">
+      <div class="sb-packs-rail studio-horizontal-rail" *ngIf="smartSound.availablePacks().length > 0">
         <span class="sb-packs-subtitle">Available</span>
         <div class="sb-pack-chips">
           <button
@@ -241,7 +241,7 @@
 
     <!-- Recently used rail -->
     <div
-      class="sb-recent"
+      class="sb-recent studio-horizontal-rail"
       *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()"
     >
       <span class="sb-recent-label">Recent</span>
@@ -260,7 +260,7 @@
 
   <!-- Similar sounds panel -->
   <div
-    class="sb-similar"
+    class="sb-similar sound-browser-similar"
     *ngIf="similarSounds().length > 0"
     role="region"
     aria-label="Similar sounds"
@@ -286,14 +286,14 @@
   </div>
 
   <div
-    class="sb-list"
+    class="sb-list studio-module-scroll"
     role="list"
     [attr.aria-busy]="false"
     aria-label="Available presets"
   >
     <article
       *ngFor="let preset of presets()"
-      class="sb-card"
+      class="sb-card sound-browser-card"
       role="listitem"
       draggable="true"
       (click)="onCardClick($event, preset)"
@@ -359,7 +359,7 @@
     </article>
   </div>
 
-  <div *ngIf="presets().length === 0" class="sb-empty">
+  <div *ngIf="presets().length === 0" class="sb-empty studio-empty-state">
     <span class="material-symbols-outlined">search_off</span>
     <span>No presets match</span>
   </div>

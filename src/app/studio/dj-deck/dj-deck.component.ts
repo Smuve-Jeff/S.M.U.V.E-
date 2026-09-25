@@ -181,10 +181,15 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   tonearmDragging = signal<'A' | 'B' | null>(null);
   /** Rotary knob under the finger — drives the "engaged" highlight. */
   activeKnob = signal<{ deck: 'A' | 'B'; param: DjKnobParam } | null>(null);
-  /** Analog filter select per channel (HPF/LPF), mirroring a hardware switch. */
-  filterMode = signal<Record<'A' | 'B', 'lowpass' | 'highpass'>>({
-    A: 'lowpass',
-    B: 'lowpass',
+  /**
+   * Analog filter select per channel (HPF/LPF), mirroring a hardware switch.
+   * Derived from the deck state rather than kept in a second signal, so the
+   * switch can never disagree with the engine about which filter is engaged.
+   */
+  filterMode = computed<Record<'A' | 'B', 'lowpass' | 'highpass'>>(() => {
+    const mode = (deck: 'A' | 'B') =>
+      this.getDeckState(deck).filterMode === 'highpass' ? 'highpass' : 'lowpass';
+    return { A: mode('A'), B: mode('B') };
   });
   /** Beat-quantized loop bounds, mirrored from the engine region for the UI. */
   loopRegion = signal<
@@ -1555,9 +1560,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Analog filter select: the physical HPF/LPF switch on a mixer channel. */
   setFilterMode(deck: 'A' | 'B', mode: 'lowpass' | 'highpass') {
-    const next = { ...this.filterMode() };
-    next[deck] = mode;
-    this.filterMode.set(next);
     this.deckService.setDeckFilterMode(deck, mode);
     this.sessionNotice.set(
       `Deck ${deck} filter set to ${mode === 'highpass' ? 'HPF' : 'LPF'}.`

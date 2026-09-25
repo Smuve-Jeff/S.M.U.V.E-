@@ -67,6 +67,8 @@ export interface DeckState {
   duration: number;
   gain: number;
   filterFreq: number;
+  /** Analog filter topology (LPF/HPF) the channel is currently switched to. */
+  filterMode: BiquadFilterType;
   eqHigh: number;
   eqMid: number;
   eqLow: number;
@@ -105,6 +107,7 @@ export const initialDeckState: DeckState = {
   duration: 0,
   gain: 1,
   filterFreq: 20000,
+  filterMode: 'lowpass',
   eqHigh: 1,
   eqMid: 1,
   eqLow: 1,

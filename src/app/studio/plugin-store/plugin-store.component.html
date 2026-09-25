@@ -1,5 +1,8 @@
-<section class="plugin-store" aria-label="WASM plugin store">
-  <header class="ps-header">
+<section
+    class="plugin-store studio-workspace-surface plugin-store-surface"
+    aria-label="WASM plugin store"
+  >
+  <header class="ps-header studio-context-toolbar">
     <div class="ps-header-icon">
       <span class="material-symbols-outlined">extension</span>
     </div>
@@ -37,7 +40,7 @@
     </div>
   </header>
 
-  <div class="ps-grid">
+  <div class="ps-grid studio-module-scroll">
     <article
       *ngFor="let plugin of catalog"
       class="ps-card"
@@ -115,7 +118,7 @@
       <span class="material-symbols-outlined">groups</span>
       Community Plugins
     </h2>
-    <div class="ps-community-list">
+    <div class="ps-community-list studio-module-scroll">
       <div
         *ngFor="let item of community"
         class="ps-community-row"
