@@ -1342,15 +1342,22 @@ describe('SmuveTvComponent', () => {
     });
 
     it('does not ship hls.js in the initial bundle', () => {
-      const source = readFileSync(
+      const componentSource = readFileSync(
         join(__dirname, 'smuve-tv.component.ts'),
         'utf8'
       );
+      const serviceSource = readFileSync(
+        join(__dirname, '../../services/smuve-tv-playback.service.ts'),
+        'utf8'
+      );
 
-      // A static import would pull the player into the first load for every
-      // route; only Safari and Android fall through to the dynamic one anyway.
-      expect(source).not.toContain("from 'hls.js'");
-      expect(source).toContain("await import('hls.js')");
+      // The video transport is lazily imported — a static import would pull the
+      // player into the first load for every route; only Safari and Android
+      // fall through to the dynamic import anyway.
+      expect(componentSource).not.toContain("from 'hls.js'");
+      expect(componentSource).not.toContain("import('hls.js')");
+      expect(serviceSource).not.toContain("from 'hls.js'");
+      expect(serviceSource).toContain("await import('hls.js')");
     });
   });
 

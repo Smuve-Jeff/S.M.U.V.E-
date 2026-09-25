@@ -181,20 +181,11 @@
         <canvas #bed class="tv-bed" aria-hidden="true"></canvas>
 
         <!--
-          The station's live feed. Muted on entry so every browser allows it to
-          start without a gesture; unmuting is a single tap on the mute button.
+          The station's live feed lives in the app shell's single video
+          element. The guide only asks the shared player to tune to a
+          channel, so a viewer can pop the picture out, change routes, and
+          come back to the same broadcast without a second decoder.
         -->
-        <video
-          #feed
-          class="tv-feed"
-          [class.on]="feedReady()"
-          playsinline
-          preload="none"
-          [muted]="!feedAudioOn()"
-          aria-hidden="true"
-          (error)="onFeedError()"
-        ></video>
-
         <!--
           The artist's own record, on the station's screen.
 
@@ -325,6 +316,16 @@
         >
           <span class="material-symbols-outlined" aria-hidden="true">{{
             isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
+          }}</span>
+        </button>
+        <button
+          type="button"
+          class="tv-control"
+          [attr.aria-label]="player.isPersistent() ? 'Dock the live picture back inside this guide' : 'Pop the live picture out of the guide'"
+          (click)="popOut()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{
+            player.isPersistent() ? 'minimize' : 'open_in_new'
           }}</span>
         </button>
 

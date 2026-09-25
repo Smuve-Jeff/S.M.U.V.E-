@@ -818,6 +818,29 @@
   opacity: 1;
 }
 
+/*
+ * The guide's stage owns the single video element the app shell lays out in
+ * the floating dock. The video is rendered by the persistent player's own
+ * template, so the guide's ordinary component styles cannot see it — Angular
+ * keeps the element's own scoped rules, and nothing else, while it is being
+ * carried between the two surfaces. Style it deeply here.
+ */
+.tv-player ::ng-deep video.smuve-tv-persistent-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  background: #020305;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.tv-player ::ng-deep video.smuve-tv-persistent-video.on {
+  opacity: 1;
+}
 @media (prefers-reduced-motion: reduce) {
   .tv-feed {
     transition: none;

@@ -24,6 +24,7 @@ import { UIService } from './services/ui.service';
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
 import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.component';
+import { SmuveTvPersistentPlayerComponent } from './components/smuve-tv-persistent-player/smuve-tv-persistent-player.component';
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
 import { AiService } from './services/ai.service';
@@ -66,6 +67,7 @@ interface NavigationGroup {
     ChatbotComponent,
     NotificationToastComponent,
     SmuveAdvisorComponent,
+    SmuveTvPersistentPlayerComponent,
     CommandPaletteComponent,
     InteractionDialogComponent,
   ],

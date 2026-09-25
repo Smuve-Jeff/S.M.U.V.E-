@@ -37,6 +37,7 @@ import {
   shuffleBag,
   trackLength,
 } from '../../services/smuve-tv-feeds.service';
+import { SmuveTvPlaybackService /* app-wide */ } from '../../services/smuve-tv-playback.service';
 
 /** Deterministic 0–1 noise, so scenes never allocate and never repeat visibly. */
 function noise01(seed: number): number {
@@ -440,6 +441,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private tv = inject(SmuveTvService);
   private library = inject(LibraryService);
   private feeds = inject(SmuveTvFeedsService);
+  private playback = inject(SmuveTvPlaybackService /* app-wide */);
   private sanitizer = inject(DomSanitizer);
   /**
    * On Android the artist's station is a foreground-service broadcast, not an
@@ -473,8 +475,6 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   /** The host inside the broadcast overlay where the official player renders. */
   @ViewChild('standaloneHost', { static: false })
   private standaloneHostRef?: ElementRef<HTMLElement>;
-  @ViewChild('feed', { static: false })
-  private feedRef?: ElementRef<HTMLVideoElement>;
 
   readonly categories = SMUVE_TV_CATEGORIES;
   readonly clock = smuveTvClock;
@@ -488,7 +488,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   activeCategory = signal<SmuveTvCategoryId>('all');
   searchQuery = signal('');
   channelEntry = signal('');
-  activeChannelId = signal<string>(this.tv.channels[0].id);
+  /** The app-wide player owns this session so a route change cannot reset it. */
+  private readonly restoredSession = {
+    channelId: this.playback.channelId(),
+    feedId: this.playback.feedId(),
+  };
+  /** The app-wide player, exposed so the guide's controls can read its state. */
+  readonly player = this.playback;
+  activeChannelId = signal<string>(
+    this.restoredSession.channelId ?? this.tv.channels[0].id
+  );
   /** Survives a reload, exactly like the arcade's `tha_spot_favorites`. */
   favorites = signal<string[]>(readFavoriteStations(this.tv));
   favoritesOnly = signal(false);
@@ -544,13 +553,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
 
   /** The live feed tuned on this station, or null when it renders its own scene. */
   activeFeedId = signal<string>(
-    this.feeds.feedForStation(this.tv.channels[0].id)?.id ?? ''
+    this.restoredSession.feedId ??
+      this.feeds.feedForStation(this.activeChannelId())?.id ??
+      ''
   );
-  /** True once the feed has buffered real media, so the canvas can step aside. */
-  feedReady = signal(false);
-  feedAudioOn = signal(false);
+  /** True once the shared feed has buffered real media, so the canvas can step aside. */
+  readonly feedReady = this.playback.ready;
+  /** The guide mirrors the one app-wide feed's audio state. */
+  readonly feedAudioOn = this.playback.audioOn;
   /** Explains a refused or failed feed instead of leaving a black rectangle. */
-  feedError = signal<string | null>(null);
+  readonly feedError = this.playback.error;
 
   /**
    * The complete official catalogue, loaded once per session: the committed file
@@ -832,11 +844,6 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }));
   });
 
-  /**
-   * The hls.js instance, kept only as the narrow surface used to tear it down.
-   * Typed structurally so hls.js can stay a lazily-imported optional chunk.
-   */
-  private hls: { destroy(): void } | null = null;
   /** True once the native background engine proved it can take records. */
   private nativeRadioReady = false;
   /** True while the native engine owns the station's speaker. */
@@ -867,8 +874,6 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private standaloneReadyTimer: number | null = null;
   /** Invalidated every time a new record takes the broadcast. */
   private standaloneToken = 0;
-  /** Station the current feed was attached for, so zapping re-attaches once. */
-  private feedStationId: string | null = null;
   private nowTimerId: number | null = null;
   private frameId: number | null = null;
   private sceneTime = 0;
@@ -947,7 +952,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     // A full-screen takeover owns the keyboard, so the tab order starts here.
     this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
     this.startSceneLoop();
-    this.attachFeed();
+    this.playback.mountInModule(this.stageRef!.nativeElement);
+    void this.attachFeed();
   }
 
   ngOnDestroy(): void {
@@ -957,7 +963,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }
     this.stopSceneLoop();
     this.stopAudio();
-    this.stopFeed();
+    /*
+     * A pop-out is an explicit request to keep watching. Move the one shared
+     * video back to the app shell before Angular tears this view down; an
+     * ordinary route change still releases the source as it did before.
+     */
+    this.playback.detachFromModule();
     this.closeStandaloneEmbed();
     this.closeFullRecord();
     this.stopRadio();
@@ -969,7 +980,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.radioStandalone.set(false);
   }
 
-  // ── Tuning ─────────────────────────────────────────────
+  // ── Tuning (persistent) ─────────────────────────────────────────────
 
   tuneTo(channel: SmuveTvChannel): void {
     if (channel.id === this.activeChannelId()) return;
@@ -988,7 +999,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     }
     this.retuneAudio();
     // Every station carries its own live feed, so a zap re-tunes the source.
-    this.activeFeedId.set(this.feeds.feedForStation(channel.id)?.id ?? '');
+    const nextFeedId = this.feeds.feedForStation(channel.id)?.id ?? '';
+    this.activeFeedId.set(nextFeedId);
     void this.attachFeed();
     /*
      * Smuve Jeff Radio is the one station whose audio is the artist's own
@@ -1083,14 +1095,13 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     const resume = !this.isPlaying();
     this.isPlaying.set(resume);
 
-    const video = this.feedRef?.nativeElement;
     if (resume) {
       this.startSceneLoop();
       this.rampAudio(AUDIO_LEVEL);
-      this.playMedia(video);
+      this.playback.setPlaying(true);
     } else {
       this.stopSceneLoop();
-      video?.pause();
+      this.playback.setPlaying(false);
       /*
        * Pausing has to silence the station too. Leaving the bed running under a
        * "PAUSED" badge is simply a lie about what the surface is doing.
@@ -1111,6 +1122,15 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     } catch {
       // The context is already closing; there is nothing left to ramp.
     }
+  }
+
+  /**
+   * Hands the live picture to the app shell. Native Picture-in-Picture is
+   * attempted first; browsers that refuse it get the same session in the
+   * floating dock rather than a false "PiP active" state.
+   */
+  async popOut(): Promise<void> {
+    await this.playback.popOut();
   }
 
   async toggleFullscreen(): Promise<void> {
@@ -2023,65 +2043,27 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   /**
    * Tunes the station's live feed.
    *
-   * hls.js is imported on demand so it never lands in the initial bundle, and
-   * Safari, iOS, and Android Chrome play HLS natively without it. A station with
-   * no feed — or one whose feed fails — keeps its canvas scene, which is why the
-   * module never depends on the network to show a picture.
+   * The decoder is a single app-wide session, so the guide only has to say
+   * "play this channel" and leave the element, the source, and the playback
+   * state to the service. hls.js is imported on demand inside the service so
+   * it never lands in the initial bundle, and Safari, iOS, and Android Chrome
+   * play HLS natively without it. A station with no feed — or one whose feed
+   * fails — keeps its canvas scene, which is why the module never depends on
+   * the network to show a picture.
    */
   private async attachFeed(): Promise<void> {
-    const video = this.feedRef?.nativeElement;
     const feed = this.activeFeed();
-    const stationId = this.activeChannelId();
-
-    this.stopFeed();
-    this.feedStationId = stationId;
-    this.feedError.set(null);
-
-    if (!video || !feed) return;
+    if (!feed) return;
 
     try {
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = feed.url;
-        video.addEventListener('loadedmetadata', this.onFeedMetadata, { once: true });
-      } else {
-        const { default: Hls } = await import('hls.js');
-        if (!Hls.isSupported()) {
-          this.onFeedError();
-          return;
-        }
-        const hls = new Hls({ enableWorker: true });
-        this.hls = hls;
-        hls.on(Hls.Events.FRAG_LOADED, () => {
-          // Only the station still on screen may claim the picture.
-          if (this.feedStationId === stationId) this.feedReady.set(true);
-        });
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          // hls.js recovers from most failures on its own. Only a fatal error
-          // means the station genuinely cannot be shown, so only then fall back
-          // rather than flashing the scene during routine recovery.
-          if (data?.fatal && this.feedStationId === stationId) this.onFeedError();
-        });
-        /*
-         * A zap that lands between the import resolving and the player being
-         * ready would otherwise leave two HLS instances fighting over one video
-         * element, so the newest station always wins.
-         */
-        if (this.feedStationId !== stationId) {
-          hls.destroy();
-          this.hls = null;
-          return;
-        }
-        hls.loadSource(feed.url);
-        hls.attachMedia(video);
-      }
-
-      video.muted = !this.feedAudioOn();
-      // Muted playback is allowed without a gesture on every target browser, so
-      // the picture starts on its own and unmuting is the only thing the viewer
-      // ever has to do.
-      this.playMedia(video);
+      await this.playback.loadFeed(
+        feed,
+        this.activeChannelId(),
+        this.isPlaying(),
+        this.feedAudioOn()
+      );
     } catch {
-      this.onFeedError();
+      this.playback.failFeed();
     }
   }
 
@@ -2091,35 +2073,19 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   };
 
   onFeedError(): void {
-    const name = this.activeFeed()?.name;
-    this.feedReady.set(false);
-    this.feedError.set(
-      name
-        ? `${name} is not answering right now. Showing the station scene instead.`
-        : 'Live feed unavailable. Showing the station scene instead.'
-    );
+    // The shared session owns the decoder, so the guide just re-broadcasts
+    // what the transport already knows: readiness and the human-readable
+    // failure text.
+    this.playback.failFeed();
   }
 
   private stopFeed(): void {
-    const video = this.feedRef?.nativeElement;
-    // Only a feed that actually took a source needs releasing; resetting a
-    // source-less element just makes the browser re-run its load algorithm.
-    const hadSource = !!(video?.getAttribute('src') || video?.src);
-    this.hls?.destroy();
-    this.hls = null;
-    this.feedStationId = null;
+    // The shared session owns the element, the decoder, and the source; a
+    // reload of this station is just another call to loadFeed, which releases
+    // the old source and starts the new one. Nothing here ever frees its own
+    // video element again.
     this.feedReady.set(false);
     this.feedAudioOn.set(false);
-    if (!video) return;
-    video.removeEventListener('loadedmetadata', this.onFeedMetadata);
-    if (!hadSource) return;
-    try {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    } catch {
-      // The element is already gone; there is nothing left to release.
-    }
   }
 
   /**
@@ -2147,11 +2113,10 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
 
   /** TV has one speaker, so the radio and the station never play over each other. */
   private silenceStationAudio(): void {
-    if (this.feedAudioOn()) {
-      this.feedAudioOn.set(false);
-      const video = this.feedRef?.nativeElement;
-      if (video) video.muted = true;
-    }
+    // The shared session owns the live feed; the synthesised bed is the only
+    // thing this module still plays on its own speaker, so exactly one flag
+    // here decides which sound actually goes to the speaker.
+    if (this.feedAudioOn()) this.playback.setAudio(false);
     if (this.audioOn()) this.stopAudio();
   }
 
@@ -2215,16 +2180,10 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   toggleAudio(): void {
     if (this.audioSource() === 'feed') {
-      const next = !this.feedAudioOn();
-      this.feedAudioOn.set(next);
-      const video = this.feedRef?.nativeElement;
-      if (video) {
-        video.muted = !next;
-        if (next) {
-          this.pauseMusic();
-          this.playMedia(video, () => this.feedAudioOn.set(false));
-        }
-      }
+      // The shared session owns the live feed, so the guide only flips the
+      // session's audio flag. The decoded stream mutes itself, and the
+      // transport picks the right route from the new state.
+      this.playback.setAudio(!this.feedAudioOn());
       return;
     }
     if (!this.audioSupported()) return;
