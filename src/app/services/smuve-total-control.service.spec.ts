@@ -49,11 +49,37 @@ describe('SmuveTotalControlService', () => {
           useValue: { profile: profileSignal, updateProfile },
         },
         { provide: ProjectService, useValue: {} },
-        { provide: MusicManagerService, useValue: { tracks: signal([]) } },
+        {
+          provide: MusicManagerService,
+          useValue: { tracks: signal([]), engine: { tempo: signal(120) } },
+        },
         { provide: NotificationService, useValue: { show: jest.fn() } },
         { provide: SnackbarService, useValue: { show: jest.fn() } },
         { provide: AiService, useValue: { performExecutiveAudit: jest.fn() } },
-        { provide: SmuveKnowledgeEngine, useValue: {} },
+        {
+          provide: SmuveKnowledgeEngine,
+          useValue: {
+            search: jest.fn().mockImplementation((topic: string) => [
+              {
+                title: `Knowledge: ${topic}`,
+                content: `Guidance on ${topic}.`,
+                category: 'Production',
+                subcategory: 'General',
+                difficulty: 'Beginner',
+                actionRequired: null,
+              },
+            ]),
+            getAllKnowledge: jest.fn().mockReturnValue([]),
+            getRandomByCategory: jest.fn().mockReturnValue({
+              title: 'Market Intel Stub',
+              content: 'Genre trends and DSP algorithm shifts.',
+              category: 'Marketing',
+              actionRequired: null,
+            }),
+            getCounts: jest.fn().mockReturnValue({}),
+            generateLesson: jest.fn().mockReturnValue(null),
+          },
+        },
         { provide: SongwritingAssistantService, useValue: {} },
         { provide: AiBeatGeneratorService, useValue: {} },
         { provide: CoWriteService, useValue: {} },
@@ -190,5 +216,87 @@ describe('SmuveTotalControlService', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('Command not recognized');
+  });
+
+  /*
+   * The chatbot footer also exposes these Total Control commands; each must
+   * resolve even while full-control mutations remain guarded. Music-specific
+   * chips are covered by ChatMusicCommandEngineService because the chatbot
+   * intentionally routes those before Total Control.
+   */
+  it('resolves every non-music quick command the footer advertises', async () => {
+    for (const chip of [
+      '/audit',
+      '/intel',
+      '/promo',
+      '/hooks',
+      '/business',
+      '/release',
+      '/status',
+      '/sync_kb',
+      '/musicians',
+      '/splits',
+      '/teach',
+      '/mimic',
+      '/learn',
+      '/knowledge',
+      '/studio',
+      '/studio tempo',
+      '/tracks',
+      '/vocal',
+      '/mixer',
+      '/project',
+      '/go',
+      '/export',
+    ]) {
+      const result = await service.executeCommand(chip);
+      if (!result.success) {
+        throw new Error(`chip ${chip} failed: ${result.message}`);
+      }
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('keeps /hooks on a searchable knowledge topic', async () => {
+    const result = await service.executeCommand('/hooks');
+    const search = (service as any).knowledge.search as jest.Mock;
+
+    expect(result.success).toBe(true);
+    expect(search).toHaveBeenCalledWith('viral');
+  });
+
+  it('contains command failures and clears the active command', async () => {
+    router.navigate.mockImplementationOnce(() => {
+      throw new Error('router unavailable');
+    });
+
+    const result = await service.executeCommand('/go studio');
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('could not complete');
+    expect(service.activeCommand()).toBeNull();
+  });
+
+  it('answers bare slash forms with guidance instead of an error', async () => {
+    const go = await service.executeCommand('/go');
+    expect(go.success).toBe(true);
+    expect(go.message).toContain('DESTINATIONS');
+
+    const project = await service.executeCommand('/project');
+    expect(project.success).toBe(true);
+    expect(project.message).toContain('Project control');
+
+    const vocal = await service.executeCommand('/vocal');
+    expect(vocal.success).toBe(true);
+    expect(vocal.message).toContain('Vocal control active');
+
+    const ai = await service.executeCommand('/ai');
+    expect(ai.success).toBe(true);
+    expect(ai.message).toContain('AI command center');
+  });
+
+  it('keeps mutation guards on the argumented project forms', async () => {
+    const result = await service.executeCommand('/project save');
+    expect(result.success).toBe(false);
   });
 });

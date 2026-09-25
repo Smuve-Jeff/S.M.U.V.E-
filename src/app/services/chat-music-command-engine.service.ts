@@ -49,6 +49,10 @@ interface UndoEntry {
   label: string;
   tempo?: number;
   notes: { trackId: string; notes: TrackNote[] }[];
+  /** Tracks created by this command, so undo can remove them again. */
+  createdTrackIds?: string[];
+  /** Selection before the command changed it by creating a track. */
+  selectedTrackId?: string | null;
 }
 
 interface NoteEvent {
@@ -212,6 +216,13 @@ export class ChatMusicCommandEngineService {
         actions: [],
       };
     }
+    // A command that created tracks must remove those tracks as part of its
+    // own undo transaction. Otherwise "undo" leaves empty Drums/Bass/etc.
+    // channels behind and the assistant falsely claims the session is exact.
+    if (entry.createdTrackIds?.length) {
+      const created = new Set(entry.createdTrackIds);
+      this.music.tracks.update((ts) => ts.filter((track) => !created.has(track.id)));
+    }
     for (const snap of entry.notes) {
       this.music.tracks.update((ts) =>
         ts.map((t) =>
@@ -221,6 +232,9 @@ export class ChatMusicCommandEngineService {
     }
     if (entry.tempo !== undefined) {
       this.music.engine.tempo.set(entry.tempo);
+    }
+    if (entry.selectedTrackId !== undefined) {
+      this.music.selectedTrackId.set(entry.selectedTrackId);
     }
     this.lastCommandLabel = entry.label;
     return {
@@ -346,6 +360,28 @@ export class ChatMusicCommandEngineService {
       return this.preview();
     }
 
+    // "play a beat" / "play some drums" / "play bass" / "play some lofi
+    // beats" — a request to *create* something, not to navigate or parse
+    // harmony. Checked before the chord parser, whose note-letter
+    // regex would happily read "bass" as a B chord and "a melody" as an A
+    // chord. Anything with an instrument noun routes to the right writer; a
+    // request with a style adjective ("lofi beats", "drill beat") still lands
+    // on the beat builder.
+    const playRequest = lower.match(/^(?:play|make|drop|cook up|give me)\s+(.+)$/);
+    if (playRequest && !/^(?:the\s+)?(?:mixer|console|studio|master|track list)/.test(playRequest[1])) {
+      const rest = playRequest[1];
+      const args = this.parseBeatArgs(rest);
+      if (/\bbass\b/.test(rest)) return this.createBass(args);
+      if (/\bmelod|lead line|riff\b/.test(rest)) return this.createMelody(args);
+      if (/\bchord|progression\b/.test(rest)) return this.createChords(args);
+      if (/\bdrum/.test(rest)) return this.createDrums({ genre: args.genre });
+      if (
+        /\b(beat|beats|banger|loop|track|vibe|instrumental)/.test(rest)
+      ) {
+        return this.createBeat(args);
+      }
+    }
+
     // Chord progression playback: "play C - Am - F - G" / "play C major".
     const chordPlay = lower.match(
       /^(?:play|play the chords|give me)\s+(.+)$/
@@ -377,7 +413,7 @@ export class ChatMusicCommandEngineService {
 
     // "chords in C minor" / "add some chords" / "give me chords".
     if (/(chords|progression)/.test(lower)) {
-      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(m|min|minor|major))?)/);
+      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(major|maj|minor|min|m))?)/);
       return this.createChords(
         keyArg ? { key: keyArg[1] } : {}
       );
@@ -390,13 +426,13 @@ export class ChatMusicCommandEngineService {
 
     // "bassline in A minor" / "bass in E" / "add a bass line".
     if (/(bassline|bass line|bass\b)/.test(lower)) {
-      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(m|min|minor|major))?)/);
+      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(major|maj|minor|min|m))?)/);
       return this.createBass(keyArg ? { key: keyArg[1] } : {});
     }
 
     // "melody in E major" / "write me a melody".
     if (/(melody|lead line|riff)/.test(lower)) {
-      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(m|min|minor|major))?)/);
+      const keyArg = lower.match(/in\s+([a-g](#|b)?(\s*(major|maj|minor|min|m))?)/);
       return this.createMelody(keyArg ? { key: keyArg[1] } : {});
     }
 
@@ -425,6 +461,8 @@ export class ChatMusicCommandEngineService {
       label: `beat in ${key.label} at ${bpm} BPM (${genre})`,
       tempo: this.currentTempo(),
       notes: [],
+      createdTrackIds: [],
+      selectedTrackId: this.music.selectedTrackId(),
     };
 
     const drumId = this.ensureTrack(tracks, 'Drums', 'trap-808-elite', 'drum', snapshot);
@@ -458,6 +496,8 @@ export class ChatMusicCommandEngineService {
     const snapshot: UndoEntry = {
       label: 'drum pattern',
       notes: [],
+      createdTrackIds: [],
+      selectedTrackId: this.music.selectedTrackId(),
     };
     const drumId = this.ensureTrack(tracks, 'Drums', 'trap-808-elite', 'drum', snapshot);
     this.writeDrumPattern(drumId, args.genre || 'trap');
@@ -478,6 +518,8 @@ export class ChatMusicCommandEngineService {
     const snapshot: UndoEntry = {
       label: `bassline in ${key.label}`,
       notes: [],
+      createdTrackIds: [],
+      selectedTrackId: this.music.selectedTrackId(),
     };
     const bassId = this.ensureTrack(tracks, 'Bass', 'sub-commander', 'midi', snapshot);
     this.writeBass(bassId, key);
@@ -497,6 +539,8 @@ export class ChatMusicCommandEngineService {
     const snapshot: UndoEntry = {
       label: 'chord progression',
       notes: [],
+      createdTrackIds: [],
+      selectedTrackId: this.music.selectedTrackId(),
     };
     const chordId = this.ensureTrack(tracks, 'Chords', 'analog-warmth', 'midi', snapshot);
 
@@ -529,6 +573,8 @@ export class ChatMusicCommandEngineService {
     const snapshot: UndoEntry = {
       label: `melody in ${key.label}`,
       notes: [],
+      createdTrackIds: [],
+      selectedTrackId: this.music.selectedTrackId(),
     };
     const melodyId = this.ensureTrack(tracks, 'Melody', 'cyber-stab', 'midi', snapshot);
     this.writeMelody(melodyId, key);
@@ -599,6 +645,8 @@ export class ChatMusicCommandEngineService {
       return existing.id;
     }
     const id = this.music.addTrack(name, instrumentId, type);
+    snapshot.createdTrackIds ??= [];
+    snapshot.createdTrackIds.push(id);
     snapshot.notes.push({ trackId: id, notes: [] });
     return id;
   }
@@ -624,7 +672,17 @@ export class ChatMusicCommandEngineService {
     const stamp = `drums_${Date.now()}`;
 
     const hits: { midi: number; step: number; velocity: number }[] = [];
-    if (/pop/i.test(genre)) {
+    if (/lofi/i.test(genre)) {
+      for (let b = 0; b < bars; b++) {
+        hits.push({ midi: kickMidi, step: b * 16, velocity: 0.82 });
+        hits.push({ midi: kickMidi, step: b * 16 + 10, velocity: 0.58 });
+        hits.push({ midi: snareMidi, step: b * 16 + 4, velocity: 0.68 });
+        hits.push({ midi: snareMidi, step: b * 16 + 12, velocity: 0.62 });
+        for (let s = 0; s < 16; s += 2) {
+          hits.push({ midi: hatMidi, step: b * 16 + s, velocity: s % 4 === 0 ? 0.34 : 0.22 });
+        }
+      }
+    } else if (/pop/i.test(genre)) {
       for (let b = 0; b < bars; b++) {
         for (let q = 0; q < 4; q++) hits.push({ midi: kickMidi, step: b * 16 + q * 4, velocity: 0.95 });
         hits.push({ midi: snareMidi, step: b * 16 + 4, velocity: 0.9 });
@@ -800,7 +858,9 @@ export class ChatMusicCommandEngineService {
     const raw = input
       .trim()
       .toLowerCase()
-      .replace(/\s+(m|minor|maj|major)\s*$/, (_, q) => (q === 'm' || q === 'minor' ? 'm' : ''));
+      .replace(/\s+(major|maj|minor|min|m)\s*$/, (_, q) =>
+        q === 'm' || q === 'min' || q === 'minor' ? 'm' : ''
+      );
     const match = raw.match(/^([a-g])(#|b)?(m)?$/);
     if (!match) return null;
     const root = NOTE_INDEX[(match[1].toUpperCase() + (match[2] || '')) as string];
@@ -885,9 +945,9 @@ export class ChatMusicCommandEngineService {
     const args: { bpm?: number; key?: string; genre?: string } = {};
     const bpmMatch = raw.match(/(\d{2,3})\s*(bpm)?/);
     if (bpmMatch) args.bpm = Math.max(40, Math.min(240, Number(bpmMatch[1])));
-    const keyMatch = raw.match(/in\s+([a-g](#|b)?(\s*(m|min|minor|major))?)/);
+    const keyMatch = raw.match(/in\s+([a-g](#|b)?(\s*(major|maj|minor|min|m))?)/);
     if (keyMatch) args.key = keyMatch[1];
-    for (const genre of ['trap', 'hip hop', 'hiphop', 'pop', 'house', 'drill', 'boom bap']) {
+    for (const genre of ['trap', 'hip hop', 'hiphop', 'pop', 'house', 'drill', 'boom bap', 'lofi']) {
       if (raw.includes(genre)) {
         args.genre = genre;
         break;

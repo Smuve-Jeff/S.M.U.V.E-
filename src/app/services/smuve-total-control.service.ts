@@ -60,6 +60,9 @@ const READ_ONLY_CONTROL_ACTIONS = new Set([
   'list',
   'count',
   'available',
+  // Searching the knowledge base only reads it, even when the topic mentions
+  // a guarded verb like "release strategy".
+  'search',
 ]);
 
 @Injectable({ providedIn: 'root' })
@@ -115,10 +118,24 @@ export class SmuveTotalControlService {
     }
 
     this.activeCommand.set(command);
-    const result = await this.routeCommand(command);
-    this.commandHistory.update((h) => [...h.slice(-19), result]);
-    this.activeCommand.set(null);
-    return result;
+    try {
+      const result = await this.routeCommand(command);
+      this.commandHistory.update((h) => [...h.slice(-19), result]);
+      return result;
+    } catch {
+      // A command failure must not leave the UI in a permanently "running"
+      // state or bubble into the global anomaly reporter. The chat receives a
+      // recoverable result and can keep the conversation moving.
+      const result: CommandResult = {
+        success: false,
+        message:
+          'S.M.U.V.E. could not complete that command safely. Check the target and try again.',
+      };
+      this.commandHistory.update((h) => [...h.slice(-19), result]);
+      return result;
+    } finally {
+      this.activeCommand.set(null);
+    }
   }
 
   /**
@@ -255,6 +272,13 @@ export class SmuveTotalControlService {
         requiresConfirmation: false,
       };
     }
+    if (text === '/go' || text === '/navigate') {
+      return {
+        domain: 'navigation',
+        action: 'destinations',
+        requiresConfirmation: false,
+      };
+    }
 
     // Studio commands
     if (text.startsWith('/studio ')) {
@@ -299,17 +323,26 @@ export class SmuveTotalControlService {
       const action = text.replace('/project ', '');
       return { domain: 'project', action, requiresConfirmation: true };
     }
+    if (text === '/project') {
+      return { domain: 'project', action: 'overview', requiresConfirmation: false };
+    }
 
     // Profile commands
     if (text.startsWith('/profile ')) {
       const action = text.replace('/profile ', '');
       return { domain: 'profile', action, requiresConfirmation: true };
     }
+    if (text === '/profile') {
+      return { domain: 'profile', action: 'status', requiresConfirmation: false };
+    }
 
     // Voice commands
     if (text.startsWith('/voice ') || text.startsWith('/vocal ')) {
       const action = text.replace(/^\/(voice|vocal) /, '');
       return { domain: 'vocal', action, requiresConfirmation: false };
+    }
+    if (text === '/voice' || text === '/vocal') {
+      return { domain: 'vocal', action: 'overview', requiresConfirmation: false };
     }
 
     // Knowledge / Learn commands
@@ -332,6 +365,62 @@ export class SmuveTotalControlService {
         action: 'overview',
         requiresConfirmation: false,
       };
+    }
+
+    // Knowledge-base sync — the /sync_kb chip in the chatbot footer.
+    if (text === '/sync_kb' || text === '/sync-kb' || text === '/synckb') {
+      return { domain: 'ai', action: 'sync-kb', requiresConfirmation: false };
+    }
+
+    // Marketing & business quick chips — these read from the knowledge engine
+    // so an artist tapping "PROMO" gets a plan, not "Command not recognized".
+    if (text === '/promo' || text === '/hooks') {
+      return {
+        domain: 'knowledge',
+        action: 'search',
+        // Search the single indexed tag rather than the phrase "viral hooks";
+        // the knowledge engine matches individual tags and would otherwise
+        // return no result for the advertised /hooks chip.
+        target: text === '/promo' ? 'promotion' : 'viral',
+        requiresConfirmation: false,
+      };
+    }
+    if (text === '/intel') {
+      return { domain: 'ai', action: 'market-intel', requiresConfirmation: false };
+    }
+    if (text === '/business') {
+      return {
+        domain: 'knowledge',
+        action: 'search',
+        target: 'business',
+        requiresConfirmation: false,
+      };
+    }
+    if (text === '/release') {
+      return {
+        domain: 'knowledge',
+        action: 'search',
+        target: 'release',
+        requiresConfirmation: false,
+      };
+    }
+
+    // AI session musicians — the /musicians chip in the chatbot footer.
+    if (text === '/musicians' || text === '/band') {
+      return { domain: 'ai', action: 'musicians', requiresConfirmation: false };
+    }
+
+    // System chips — /audit and /status read state, they never change it.
+    if (text === '/audit') {
+      return { domain: 'ai', action: 'audit', requiresConfirmation: false };
+    }
+    if (text === '/status') {
+      return { domain: 'ai', action: 'status', requiresConfirmation: false };
+    }
+
+    // Split sheets — the /splits chip in the chatbot footer.
+    if (text === '/splits') {
+      return { domain: 'ai', action: 'generate-splits', requiresConfirmation: false };
     }
 
     // Teach commands
@@ -374,6 +463,9 @@ export class SmuveTotalControlService {
     if (text.startsWith('/ai ')) {
       const action = text.replace('/ai ', '');
       return { domain: 'ai', action, requiresConfirmation: false };
+    }
+    if (text === '/ai') {
+      return { domain: 'ai', action: 'overview', requiresConfirmation: false };
     }
 
     // Piano Roll command
@@ -565,6 +657,17 @@ export class SmuveTotalControlService {
   };
 
   private handleNavigation(cmd: ControlCommand): CommandResult {
+    // A bare "/go" lists where S.M.U.V.E. can take the artist.
+    if (cmd.action === 'destinations') {
+      const list = Object.keys(this.navigateRoutes)
+        .sort()
+        .map((key) => `  ${key} → ${this.navigateRoutes[key]}`)
+        .join('\n');
+      return {
+        success: true,
+        message: `DESTINATIONS — name one and I drive:\n${list}\n\nUse: /go [destination]`,
+      };
+    }
     // Artists type "remix arena", not "remix-arena" — normalize the spacing so
     // multi-word module names resolve instead of reporting a dead destination.
     const key = cmd.target?.toLowerCase().trim().replace(/\s+/g, '-');
@@ -700,6 +803,14 @@ export class SmuveTotalControlService {
   }
 
   private handleProject(cmd: ControlCommand): CommandResult {
+    // A bare "/project" is a read-only overview, not a mutation.
+    if (cmd.action === 'overview') {
+      return {
+        success: true,
+        message:
+          'Project control: save, new, open, export. Your project has neural checkpoints at every major change.',
+      };
+    }
     if (cmd.action === 'save' || cmd.action === 'status') {
       return {
         success: true,
@@ -744,6 +855,14 @@ export class SmuveTotalControlService {
   }
 
   private async handleVocal(cmd: ControlCommand): Promise<CommandResult> {
+    // A bare "/vocal" lists the vocal surface instead of erroring.
+    if (cmd.action === 'overview') {
+      return {
+        success: true,
+        message:
+          'Vocal control active. Commands: warmup, tips, chain, record, comp, mix. Your voice is your instrument — S.M.U.V.E will sharpen it.',
+      };
+    }
     if (cmd.action === 'warmup' || cmd.action === 'warm-up') {
       return {
         success: true,
@@ -968,6 +1087,41 @@ export class SmuveTotalControlService {
         success: true,
         message:
           'Executive audit initialized. S.M.U.V.E is scanning your entire profile, catalog, and trajectory. Results in 3... 2... 1...',
+      };
+    }
+    if (cmd.action === 'sync-kb') {
+      return {
+        success: true,
+        message: `KNOWLEDGE BASE SYNC: ${this.knowledge.getAllKnowledge().length} entries indexed across every domain. Search with /knowledge [topic] or /teach [domain].`,
+      };
+    }
+    if (cmd.action === 'market-intel') {
+      const entry =
+        this.knowledge.search('market trends')[0] ||
+        this.knowledge.getRandomByCategory('Marketing');
+      return entry
+        ? {
+            success: true,
+            message: `MARKET INTELLIGENCE\n${'─'.repeat(50)}\n${entry.content}${entry.actionRequired ? `\n\n🎯 ACTION: ${entry.actionRequired}` : ''}`,
+          }
+        : {
+            success: false,
+            message:
+              'Market intelligence library unavailable. Try /knowledge marketing instead.',
+          };
+    }
+    if (cmd.action === 'musicians') {
+      return {
+        success: true,
+        message:
+          'AI SESSION MUSICIANS — your band on call:\n  • /musicians drums — a pocket drummer, locked to your grid\n  • /musicians bass — a bassist who never rushes the one\n  • /musicians keys — chords and pads on request\n  • /musicians guitar — riffs and textures\n  • /musicians strings — cinematic depth\nCue them in the Studio; they never ask for a cut of the publishing.',
+      };
+    }
+    if (cmd.action === 'generate-splits') {
+      return {
+        success: true,
+        message:
+          'SPLIT SHEETS — the paperwork that keeps friendships alive:\n  1. List every collaborator by legal name and role.\n  2. Assign composition percentages before the session ends, not after the money moves.\n  3. Master splits mirror composition splits unless negotiated otherwise.\n  4. Sign it, scan it, store it in the Cloud Vault.\nGenerate a sheet with /cowrite or formalize in the Business Suite.',
       };
     }
     if (cmd.action === 'status') {
