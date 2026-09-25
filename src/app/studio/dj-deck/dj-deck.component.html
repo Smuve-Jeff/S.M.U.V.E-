@@ -52,16 +52,6 @@
     </div>
   </header>
 
-  <!-- Mobile rocker: flips the visible turntable without losing the mixer. -->
-  <div class="mobile-deck-switcher" *ngIf="isMobile()" role="tablist" aria-label="Choose the visible turntable">
-    <button type="button" [class.is-active]="activeMobileDeck() === 'A'" (click)="activeMobileDeck.set('A')" role="tab">
-      DECK A <span>{{ deckATempo() | number:'1.0-0' }} BPM</span>
-    </button>
-    <button type="button" [class.is-active]="activeMobileDeck() === 'B'" (click)="activeMobileDeck.set('B')" role="tab">
-      DECK B <span>{{ deckBTempo() | number:'1.0-0' }} BPM</span>
-    </button>
-  </div>
-
   <!-- ══════════════════════════════════════════════════════════════
        SCOPE RAIL — both grooves side by side, master bus readouts
        ══════════════════════════════════════════════════════════════ -->
@@ -121,10 +111,9 @@
     <section
       class="deck-chassis deck-a-transform deck-a"
       [class.is-live-master]="isDeckLeading('A')"
-      [class.mobile-hidden]="isMobile() && activeMobileDeck() !== 'A'"
       aria-labelledby="deck-a-title"
     >
-      <app-swipe-container (swipeLeft)="activeMobileDeck.set('B')" [threshold]="40" [disabled]="!isMobile()">
+      <app-swipe-container>
         <div class="deck-header">
           <div class="deck-title-block">
             <div class="deck-badge">A</div>
@@ -506,10 +495,9 @@
     <section
       class="deck-chassis deck-b-transform deck-b"
       [class.is-live-master]="isDeckLeading('B')"
-      [class.mobile-hidden]="isMobile() && activeMobileDeck() !== 'B'"
       aria-labelledby="deck-b-title"
     >
-      <app-swipe-container (swipeRight)="activeMobileDeck.set('A')" [threshold]="40" [disabled]="!isMobile()">
+      <app-swipe-container>
         <div class="deck-header">
           <div class="deck-title-block">
             <div class="deck-badge">B</div>

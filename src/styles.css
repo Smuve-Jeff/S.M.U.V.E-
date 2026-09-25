@@ -1260,8 +1260,7 @@ body.stage-fx-off .led-strip::before {
   app-studio .mix-stat-value,
   app-studio .er-wasm-item-name,
   app-studio .er-wasm-item-badge,
-  app-studio .overview-readouts span,
-  app-studio .mobile-deck-switcher span {
+  app-studio .overview-readouts span {
     font-size: 10px !important;
   }
 

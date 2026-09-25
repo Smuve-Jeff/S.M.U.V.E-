@@ -238,7 +238,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private cuePalette: string[] | null = null;
   private hostElement = inject(ElementRef<HTMLElement>);
   private haptics = inject(HapticService);
-  activeMobileDeck = signal<'A' | 'B'>('A');
   performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
   readonly rollPadLabels = ['1/8', '1/4', '1/2', '1', '2', '4', '8', '16'];

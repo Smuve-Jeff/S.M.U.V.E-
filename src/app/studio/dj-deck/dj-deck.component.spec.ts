@@ -998,4 +998,38 @@ describe('DjDeckComponent', () => {
     }));
     expect(component.trackLoaded('B')).toBe(false);
   });
+
+  /**
+   * The booth is defined by its pair of platters: both turntables must be on
+   * the bench at the same time, on every viewport, with nothing swapping one
+   * out for the other.
+   */
+  const renderBench = async () => {
+    const fixture = TestBed.createComponent(DjDeckComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  it('renders both turntables and both platters at once', async () => {
+    const booth = await renderBench();
+
+    expect(booth.querySelectorAll('.deck-chassis').length).toBe(2);
+    expect(booth.querySelectorAll('.deck-chassis.deck-a').length).toBe(1);
+    expect(booth.querySelectorAll('.deck-chassis.deck-b').length).toBe(1);
+    expect(booth.querySelectorAll('.vinyl-platter').length).toBe(2);
+  });
+
+  it('never hides a deck behind a deck-switching control', async () => {
+    const booth = await renderBench();
+
+    // The single-deck rocker is gone: with both platters permanently on the
+    // bench there is no "visible turntable" left to choose between.
+    expect(booth.querySelector('.mobile-deck-switcher')).toBeNull();
+    expect(booth.querySelector('.deck-chassis.mobile-hidden')).toBeNull();
+    const chassis = Array.from(booth.querySelectorAll('.deck-chassis'));
+    expect(
+      chassis.every((deck) => !deck.classList.contains('mobile-hidden'))
+    ).toBe(true);
+  });
 });
