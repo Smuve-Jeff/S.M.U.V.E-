@@ -64,10 +64,12 @@
       @if (isVerifying()) {
         <div class="space-y-3">
           <label
+            for="verificationCode"
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
             >Authorization Cipher</label
           >
           <input
+            id="verificationCode"
             type="text"
             [(ngModel)]="verificationCode"
             name="verificationCode"
@@ -102,10 +104,12 @@
       } @else if (requires2FA()) {
         <div class="space-y-3">
           <label
+            for="twoFactorCode"
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
             >Neural Key</label
           >
           <input
+            id="twoFactorCode"
             type="text"
             [(ngModel)]="credentials.twoFactorCode"
             name="twoFactorCode"
@@ -133,10 +137,12 @@
         @if (isRegistering()) {
           <div class="space-y-2">
             <label
+              for="artistName"
               class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
               >Artist Designation</label
             >
             <input
+              id="artistName"
               type="text"
               [(ngModel)]="artistName"
               name="artistName"
@@ -150,10 +156,12 @@
 
         <div class="space-y-2">
           <label
+            for="email"
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
             >Secure Channel</label
           >
           <input
+            id="email"
             type="email"
             [(ngModel)]="credentials.email"
             name="email"
@@ -166,11 +174,13 @@
 
         <div class="space-y-2">
           <label
+            for="password"
             class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
             >Access Cipher</label
           >
           <div class="relative">
             <input
+              id="password"
               [type]="showPassword() ? 'text' : 'password'"
               [(ngModel)]="credentials.password"
               name="password"

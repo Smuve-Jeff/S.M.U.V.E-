@@ -114,6 +114,37 @@ describe('ChatMusicCommandEngineService', () => {
     expect(service.tryExecute('')).toBeNull();
   });
 
+  /*
+   * "play some lofi beats" used to fall through the chord parser into the
+   * generic AI fallback. A "play X" request for an instrument is a creation
+   * request, and the engine must claim it instead of shrugging.
+   */
+  it('creates a beat from loose phrasing like "play some lofi beats"', () => {
+    const result = service.tryExecute('play some lofi beats');
+    expect(result).not.toBeNull();
+    expect(result!.content).toContain('Beat forged');
+    expect(result!.content).toContain('lofi energy');
+    expect(trackNames()).toEqual(
+      expect.arrayContaining(['Drums', 'Bass', 'Chords', 'Melody'])
+    );
+  });
+
+  it('routes "play a beat" to the beat builder, not the AI fallback', () => {
+    const result = service.tryExecute('play a beat');
+    expect(result).not.toBeNull();
+    expect(trackNames()).toContain('Drums');
+  });
+
+  it('routes instrument phrasing to the right writer and keeps its key', () => {
+    expect(service.tryExecute('play some drums')!.content).toContain('Drum pattern');
+    expect(service.tryExecute('play bass in A minor')!.content).toContain('A minor');
+    expect(service.tryExecute('play a melody in E major')!.content).toContain('E major');
+  });
+
+  it('still leaves navigation phrases like "play the mixer" to the router', () => {
+    expect(service.tryExecute('play the mixer')).toBeNull();
+  });
+
   it('shows the help deck for /music', () => {
     const result = service.tryExecute('/music');
     expect(result).not.toBeNull();
@@ -248,6 +279,18 @@ describe('ChatMusicCommandEngineService', () => {
   it('stop halts audition playback', () => {
     service.tryExecute('stop');
     expect(stopAudition).toHaveBeenCalled();
+  });
+
+  it('undo removes tracks created by a command and restores the prior selection', () => {
+    service.tryExecute('make a beat');
+    expect(trackNames()).toEqual(
+      expect.arrayContaining(['Drums', 'Bass', 'Chords', 'Melody'])
+    );
+
+    const result = service.tryExecute('undo');
+    expect(result!.content).toContain('Undone');
+    expect(trackNames()).toEqual([]);
+    expect((service as any).music.selectedTrackId()).toBeNull();
   });
 
   it('speaks confirmations in the Ominous Protocol archetype when asked', () => {

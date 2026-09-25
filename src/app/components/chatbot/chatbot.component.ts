@@ -207,6 +207,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
 
   /** Feature → route map so S.M.U.V.E can open anything in the app. */
   private readonly NAV_MAP: [RegExp, string][] = [
+    [/studio/, '/studio'],
     [/mixer|mix console/, '/mixer'],
     [/drum/, '/drum-machine'],
     [/master/, '/mastering'],

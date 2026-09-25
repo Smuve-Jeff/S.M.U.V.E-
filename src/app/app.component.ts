@@ -363,6 +363,11 @@ export class AppComponent {
       }
     };
 
+    // The shell can be torn down by tests or an embedding host before the
+    // first authenticated gesture. Do not leave a body listener behind that
+    // can later resolve the injector after its component is gone.
+    this.destroyRef.onDestroy(cleanup);
+
     events.forEach((event) =>
       body.addEventListener(event, arm, { capture: true })
     );
