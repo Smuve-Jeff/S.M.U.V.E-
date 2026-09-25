@@ -228,12 +228,12 @@ describe('SmuveTvComponent', () => {
       // viewer can never clear.
       localStorage.setItem(
         STORE_KEY,
-        JSON.stringify(['midnight-vinyl', 'retired-station', 42])
+        JSON.stringify(['prime-sitcoms', 'retired-station', 42])
       );
 
       const next = reloaded();
       try {
-        expect(next.componentInstance.favorites()).toEqual(['midnight-vinyl']);
+        expect(next.componentInstance.favorites()).toEqual(['prime-sitcoms']);
       } finally {
         next.destroy();
       }

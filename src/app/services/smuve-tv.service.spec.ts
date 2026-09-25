@@ -145,9 +145,9 @@ describe('SmuveTvService', () => {
     it('matches name, call sign, tagline, and programme titles', () => {
       const channel = service.channels.find((c) => c.number === 104)!;
 
-      expect(service.search('midnight')).toContainEqual(channel);
-      expect(service.search('MV')).toContainEqual(channel);
-      expect(service.search('crate dig')).toContainEqual(channel);
+      expect(service.search('prime')).toContainEqual(channel);
+      expect(service.search('PS')).toContainEqual(channel);
+      expect(service.search('laugh track')).toContainEqual(channel);
     });
 
     it('returns the whole line-up for a blank query and nothing for a miss', () => {
