@@ -41,7 +41,11 @@ app-score-view,
 app-plugin-store,
 app-effects-rack-ui,
 app-channel-rack,
-app-ai-produce {
+app-ai-produce,
+app-ai-band,
+app-bezier-editor,
+app-midi-input-widget,
+app-recording-waveform {
   display: block;
   min-width: 0;
   min-height: 0;
@@ -300,7 +304,11 @@ app-effects-rack-ui,
 app-channel-rack,
 app-ai-produce,
 app-take-lane,
-app-waveform-renderer {
+app-waveform-renderer,
+app-ai-band,
+app-bezier-editor,
+app-midi-input-widget,
+app-recording-waveform {
   overflow-x: clip;
 }
 
@@ -325,7 +333,11 @@ app-waveform-renderer {
   app-sound-pad-grid button,
   app-channel-rack button,
   app-plugin-store button,
-  app-effects-rack-ui button {
+  app-effects-rack-ui button,
+  app-ai-band button,
+  app-bezier-editor button,
+  app-midi-input-widget button,
+  app-recording-waveform button {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
@@ -364,7 +376,11 @@ app-sound-pad-grid :focus-visible,
 app-channel-rack :focus-visible,
 app-plugin-store :focus-visible,
 app-effects-rack-ui :focus-visible,
-app-score-view :focus-visible {
+app-score-view :focus-visible,
+app-ai-band :focus-visible,
+app-bezier-editor :focus-visible,
+app-midi-input-widget :focus-visible,
+app-recording-waveform :focus-visible {
   outline: 2px solid var(--teal-500, #00e5ff);
   outline-offset: 2px;
 }

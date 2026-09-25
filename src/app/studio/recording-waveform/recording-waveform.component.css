@@ -1,28 +1,72 @@
+/* ============================================================
+   S.M.U.V.E. Studio — Live recording monitor
+   ------------------------------------------------------------
+   Scoped styling for the capture strip the Performer and Voice
+   Recorder surfaces render: status pulse, live waveform, headroom
+   meter and limiter arm. The existing signals drive every visual
+   state; nothing but presentation lives in this file.
+   ============================================================ */
+
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .rec-waveform-container {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
   padding: 12px;
-  background: linear-gradient(180deg, #0a0e27 0%, #12162e 100%);
-  transition: border-color 0.2s ease;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-md, 14px);
+  background:
+    radial-gradient(
+      120% 100% at 100% 0%,
+      color-mix(in srgb, #ef4444 8%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ivory-paper, #1a2040) 88%, transparent) 0%,
+      color-mix(in srgb, var(--ivory-deep, #06091a) 94%, transparent) 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--espresso-text, #f1f5ff);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .rec-waveform-container.recording {
-  border-color: rgba(220, 38, 38, 0.45);
+  border-color: rgba(220, 38, 38, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(220, 38, 38, 0.18),
+    0 10px 26px rgba(220, 38, 38, 0.14);
 }
+
+/* ── Status row ─────────────────────────────────────────── */
 
 .rec-waveform-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 10px;
+  min-height: 28px;
+  margin: 0;
 }
 
+/* Tailwind helpers the template also relies on, kept local so the strip
+   renders identically wherever it is embedded. */
 .flex {
   display: flex;
 }
+
 .items-center {
   align-items: center;
 }
+
 .gap-2 {
   gap: 8px;
 }
@@ -30,13 +74,15 @@
 .rec-pulse {
   width: 9px;
   height: 9px;
-  border-radius: 9999px;
-  background: #4b5563;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--espresso-muted, #94a3c8) 50%, transparent);
+  box-shadow: inset 0 0 0 1px var(--espresso-line, rgba(180, 200, 255, 0.16));
 }
 
 .rec-pulse.active {
   background: #ef4444;
-  animation: rec-blink 1s infinite;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.75);
+  animation: rec-blink 1s ease-in-out infinite;
 }
 
 @keyframes rec-blink {
@@ -50,49 +96,81 @@
 }
 
 .rec-label {
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.12em;
-  color: #94a3b8;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .rec-waveform-container.recording .rec-label {
-  color: #ef4444;
+  color: #fca5a5;
 }
 
 .rec-time {
+  font-family: var(--font-mono);
   font-size: 13px;
-  color: #2ba09c;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--teal-300, #a5f8ff);
 }
 
 .rec-action {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid rgba(43, 160, 156, 0.3);
-  border-radius: 6px;
-  color: #2ba09c;
-  background: transparent;
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--teal-500, #00e5ff) 34%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 8%, transparent);
+  color: var(--teal-300, #a5f8ff);
   cursor: pointer;
-  transition: background 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 140ms ease,
+    opacity 150ms ease;
 }
 
 .rec-action:hover:not(:disabled) {
-  background: rgba(43, 160, 156, 0.15);
+  border-color: var(--teal-500, #00e5ff);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 18%, transparent);
+}
+
+.rec-action:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.rec-action:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
 }
 
 .rec-action:disabled {
-  opacity: 0.3;
+  opacity: 0.32;
   cursor: default;
 }
 
+.rec-action .material-symbols-outlined {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* ── Live waveform ──────────────────────────────────────── */
+
 .rec-waveform-canvas {
   height: 84px;
-  border-radius: 8px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-sm, 10px);
+  background: var(--ivory-deep, #06091a);
   overflow: hidden;
-  margin-bottom: 10px;
 }
 
 .rec-waveform-canvas app-waveform-renderer {
@@ -101,50 +179,64 @@
   height: 100%;
 }
 
+/* ── Headroom meter + limiter ───────────────────────────── */
+
 .rec-meter-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
+  min-width: 0;
 }
 
 .rec-meter {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .rec-meter-label {
   display: block;
+  margin-bottom: 5px;
+  font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 900;
-  letter-spacing: 0.14em;
-  color: #64748b;
-  margin-bottom: 4px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .rec-meter-track {
   position: relative;
-  height: 6px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 8px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.07) 0 1px,
+      transparent 1px 9px
+    ),
+    var(--ivory-deep, #06091a);
   overflow: hidden;
 }
 
 .rec-meter-fill {
   height: 100%;
-  background: linear-gradient(90deg, #10b981, #2ba09c 60%, #eab308);
-  border-radius: 9999px;
-  transition: width 0.08s linear;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981 0%, #2ba09c 58%, #eab308 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.28);
+  transition: width 80ms linear;
 }
 
 .rec-meter-fill.hot {
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
 
 .rec-meter-marker {
   position: absolute;
   top: 0;
-  height: 6px;
   width: 2px;
+  height: 100%;
   background: #ef4444;
   opacity: 0.7;
   transform: translateX(-1px);
@@ -152,37 +244,125 @@
 
 .rec-meter-marker.clip {
   opacity: 1;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
 }
 
 .rec-limiter-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-sm, 10px);
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 46%, transparent);
+  color: var(--espresso-muted, #94a3c8);
+  font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 900;
-  letter-spacing: 0.1em;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    transform 140ms ease;
+}
+
+.rec-limiter-toggle:hover {
+  border-color: color-mix(in srgb, var(--teal-500, #00e5ff) 40%, transparent);
+  color: var(--espresso-text, #f1f5ff);
+}
+
+.rec-limiter-toggle:active {
+  transform: scale(0.97);
+}
+
+.rec-limiter-toggle:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+.rec-limiter-toggle .material-symbols-outlined {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .rec-limiter-toggle.on {
-  color: #2ba09c;
-  border-color: rgba(43, 160, 156, 0.4);
-  background: rgba(43, 160, 156, 0.12);
+  border-color: color-mix(in srgb, var(--teal-500, #00e5ff) 55%, transparent);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 14%, transparent);
+  color: var(--teal-300, #a5f8ff);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.14);
 }
 
 .rec-limiter-state {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.16);
   font-size: 8px;
   font-weight: 900;
-  color: #ef4444;
+  letter-spacing: 0.14em;
+  color: #fca5a5;
 }
 
 .rec-limiter-toggle.on .rec-limiter-state {
-  color: #2ba09c;
+  background: color-mix(in srgb, var(--teal-300, #a5f8ff) 18%, transparent);
+  color: var(--teal-300, #a5f8ff);
+}
+
+/* ── Android / narrow viewport ──────────────────────────── */
+
+@media (max-width: 768px) {
+  .rec-waveform-container {
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rec-waveform-canvas {
+    height: 72px;
+  }
+
+  .rec-meter-row {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .rec-limiter-toggle {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+  }
+
+  .rec-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) {
+  .rec-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .rec-limiter-toggle {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-pulse.active {
+    animation: none;
+  }
+
+  .rec-meter-fill,
+  .rec-waveform-container,
+  .rec-action,
+  .rec-limiter-toggle {
+    transition: none;
+  }
 }
