@@ -241,6 +241,44 @@ describe('AppComponent', () => {
     expect(component.isFullPageMode()).toBe(true);
   });
 
+  /*
+   * The login screen used to report a System Anomaly on arrival. Two causes,
+   * both in the shell rather than the login form itself:
+   *
+   *  1. The route animation was bound to `RouterOutlet.isActivated`, which
+   *     flips *after* the checked pass, so Angular reported NG0100 on every
+   *     cold start.
+   *  2. The persistent TV player rendered on the auth route, where there is
+   *     no TV and no session to keep.
+   */
+  describe('login surface', () => {
+    const template = readFileSync(
+      join(__dirname, 'app.component.html'),
+      'utf8'
+    );
+    const source = readFileSync(join(__dirname, 'app.component.ts'), 'utf8');
+
+    it('drives the route animation from a signal settled before change detection', () => {
+      // Reading the outlet's activation state is what made the binding change
+      // mid-pass; the animation now reads the shell's own navigation signal.
+      expect(source).not.toContain('outlet.isActivated');
+      expect(source).toContain('activeRoutePath');
+      expect(template).toContain('routeAnimState()');
+      expect(template).not.toContain('routeAnimState(outlet)');
+    });
+
+    it('keeps the persistent TV player off the auth route', () => {
+      // Every other shell overlay is gated the same way; the player was the
+      // one surface that mounted on login.
+      expect(template).toContain(
+        '<app-smuve-tv-persistent-player *ngIf="!isAuthRoute()">'
+      );
+      expect(template).not.toContain(
+        '<app-smuve-tv-persistent-player></app-smuve-tv-persistent-player>'
+      );
+    });
+  });
+
   it('updates mobile shell state when the viewport changes', async () => {
     const { component } = await createComponent('/hub');
     const originalWidth = window.innerWidth;

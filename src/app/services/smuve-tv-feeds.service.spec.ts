@@ -64,7 +64,6 @@ describe('SmuveTvFeedsService', () => {
         expect([
           'news',
           'entertainment',
-          'music',
           'sports',
           'documentary',
           'movies',
@@ -79,7 +78,6 @@ describe('SmuveTvFeedsService', () => {
       for (const genre of [
         'news',
         'entertainment',
-        'music',
         'sports',
         'documentary',
         'movies',
@@ -100,6 +98,20 @@ describe('SmuveTvFeedsService', () => {
     it('never lists the same feed id twice', () => {
       const ids = SMUVE_TV_LIVE_FEEDS.map((feed) => feed.id);
       expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('keeps music out of the live catalogue and leaves only Smuve Jeff Radio', () => {
+      const musicFeeds = SMUVE_TV_LIVE_FEEDS.filter(
+        (feed) => feed.operator === 'Stingray' || /music/i.test(feed.name)
+      );
+      const musicStations = SMUVE_TV_CHANNELS.filter(
+        (channel) => channel.category === 'music'
+      );
+
+      expect(musicFeeds).toEqual([]);
+      expect(musicStations.map((channel) => channel.id)).toEqual([
+        SMUVE_JEFF_RADIO_CHANNEL_ID,
+      ]);
     });
 
     it('tunes every station in the line-up to a listed feed', () => {
@@ -131,7 +143,6 @@ describe('SmuveTvFeedsService', () => {
        */
       const genreFor: Record<string, string> = {
         news: 'news',
-        music: 'music',
         sports: 'sports',
         docs: 'documentary',
         movies: 'movies',
@@ -153,10 +164,12 @@ describe('SmuveTvFeedsService', () => {
       expect(service.feedForStation('does-not-exist')).toBeNull();
     });
 
-    it('filters the catalogue by genre', () => {
-      const music = service.feedsIn('music');
-      expect(music.length).toBeGreaterThan(0);
-      expect(music.every((feed) => feed.genre === 'music')).toBe(true);
+    it('filters the catalogue by television genre', () => {
+      const entertainment = service.feedsIn('entertainment');
+      expect(entertainment.length).toBeGreaterThan(0);
+      expect(entertainment.every((feed) => feed.genre === 'entertainment')).toBe(
+        true
+      );
     });
   });
 

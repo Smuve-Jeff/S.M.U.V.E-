@@ -126,6 +126,181 @@ interface DeckChannel {
   fxPhaserWet: GainNode;
 }
 
+type AudioContextConstructor = new (options?: AudioContextOptions) => AudioContext;
+
+const AUDIO_PARAM_PROPERTIES = new Set([
+  'gain',
+  'pan',
+  'detune',
+  'frequency',
+  'Q',
+  'playbackRate',
+  'delayTime',
+  'threshold',
+  'knee',
+  'ratio',
+  'attack',
+  'release',
+  'pitch',
+]);
+
+/** A small inert AudioParam used only when the browser has no Web Audio API. */
+function createSilentAudioParam(initialValue = 0): AudioParam {
+  let value = initialValue;
+  const param = {
+    get value() {
+      return value;
+    },
+    set value(next: number) {
+      value = Number.isFinite(next) ? next : initialValue;
+    },
+    cancelScheduledValues: () => param,
+    cancelAndHoldAtTime: () => param,
+    setValueAtTime: () => param,
+    linearRampToValueAtTime: () => param,
+    exponentialRampToValueAtTime: () => param,
+    setTargetAtTime: () => param,
+  };
+  return param as unknown as AudioParam;
+}
+
+/**
+ * Keep the shell and route components usable in embedded browsers that expose
+ * no AudioContext. The graph is deliberately inert: callers still receive
+ * nodes and params, but no sound is produced. This is a capability fallback,
+ * not a second audio implementation.
+ */
+function createSilentAudioNode(): AudioNode {
+  let node: AudioNode;
+  const params = new Map<string, AudioParam>();
+  const port = {
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    postMessage: () => undefined,
+    close: () => undefined,
+  };
+  const target: Record<PropertyKey, unknown> = {
+    connect: () => node,
+    disconnect: () => undefined,
+    start: () => undefined,
+    stop: () => undefined,
+    port,
+    getFloatTimeDomainData: (array: Float32Array) => array.fill(0),
+    getByteFrequencyData: (array: Uint8Array) => array.fill(0),
+    getFloatFrequencyData: (array: Float32Array) => array.fill(0),
+  };
+
+  node = new Proxy(target, {
+    get(target, property) {
+      if (property in target) return target[property];
+      if (typeof property !== 'string') return undefined;
+      if (AUDIO_PARAM_PROPERTIES.has(property)) {
+        let param = params.get(property);
+        if (!param) {
+          const initialValue =
+            property === 'gain' || property === 'playbackRate' ? 1 : 0;
+          param = createSilentAudioParam(initialValue);
+          params.set(property, param);
+        }
+        return param;
+      }
+      if (property === 'fftSize') return 2048;
+      if (property === 'frequencyBinCount') return 1024;
+      if (property === 'channelCount' || property === 'numberOfChannels') return 2;
+      if (property === 'sampleRate') return 48000;
+      if (property === 'duration') return 0;
+      if (property === 'buffer') return undefined;
+      if (property === 'loop') return false;
+      if (property === 'type') return 'sine';
+      if (property === 'stream') return { getTracks: () => [] };
+      return undefined;
+    },
+  }) as unknown as AudioNode;
+  return node;
+}
+
+function createSilentAudioContext(): AudioContext {
+  const context: Record<PropertyKey, unknown> = {
+    sampleRate: 48000,
+    currentTime: 0,
+    state: 'suspended',
+    destination: createSilentAudioNode(),
+    onstatechange: null,
+    audioWorklet: { addModule: () => Promise.resolve() },
+    createAnalyser: () => createSilentAudioNode(),
+    createBiquadFilter: () => createSilentAudioNode(),
+    createBuffer: (channels: number, length: number) => {
+      const channelData = new Map<number, Float32Array>();
+      return {
+        getChannelData: (channel: number) => {
+          let data = channelData.get(channel);
+          if (!data) {
+            data = new Float32Array(length);
+            channelData.set(channel, data);
+          }
+          return data;
+        },
+        copyFromChannel: (destination: Float32Array, channel: number) => {
+          const data = channelData.get(channel);
+          if (data) destination.set(data.subarray(0, destination.length));
+        },
+        numberOfChannels: channels,
+        length,
+        duration: length / 48000,
+        sampleRate: 48000,
+      } as unknown as AudioBuffer;
+    },
+    createBufferSource: () => createSilentAudioNode(),
+    createChannelMerger: () => createSilentAudioNode(),
+    createChannelSplitter: () => createSilentAudioNode(),
+    createConvolver: () => createSilentAudioNode(),
+    createDelay: () => createSilentAudioNode(),
+    createDynamicsCompressor: () => createSilentAudioNode(),
+    createGain: () => createSilentAudioNode(),
+    createMediaStreamDestination: () => createSilentAudioNode(),
+    createOscillator: () => createSilentAudioNode(),
+    createPeriodicWave: () => createSilentAudioNode(),
+    createScriptProcessor: () => createSilentAudioNode(),
+    createStereoPanner: () => createSilentAudioNode(),
+    createWaveShaper: () => createSilentAudioNode(),
+    resume: () => {
+      context.state = 'running';
+      return Promise.resolve();
+    },
+    close: () => {
+      context.state = 'closed';
+      return Promise.resolve();
+    },
+    setSinkId: () => Promise.resolve(),
+  };
+  return context as unknown as AudioContext;
+}
+
+function createAudioContext(): { context: AudioContext; available: boolean } {
+  if (typeof window === 'undefined') {
+    return { context: createSilentAudioContext(), available: false };
+  }
+
+  const AudioContextCtor =
+    window.AudioContext || (window as any).webkitAudioContext;
+  if (typeof AudioContextCtor !== 'function') {
+    return { context: createSilentAudioContext(), available: false };
+  }
+
+  const Ctor = AudioContextCtor as AudioContextConstructor;
+  for (const sampleRate of [96000, 48000]) {
+    try {
+      return { context: new Ctor({ sampleRate }), available: true };
+    } catch {
+      // Try the next rate, then the browser's default below.
+    }
+  }
+  try {
+    return { context: new Ctor(), available: true };
+  } catch {
+    return { context: createSilentAudioContext(), available: false };
+  }
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -135,23 +310,10 @@ export class AudioEngineService {
   public static readonly DEFAULT_SCHEDULER_INTERVAL_MS = 25;
 
   // ── Pro: High-Quality Audio Context with oversampling ──────
-  public readonly ctx: AudioContext = (() => {
-    try {
-      return new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 96000,
-      });
-    } catch {
-      try {
-        return new (window.AudioContext || (window as any).webkitAudioContext)({
-          sampleRate: 48000,
-        });
-      } catch {
-        return new (
-          window.AudioContext || (window as any).webkitAudioContext
-        )();
-      }
-    }
-  })();
+  private readonly audioContext = createAudioContext();
+  public readonly ctx: AudioContext = this.audioContext.context;
+  /** False only when the host has no usable Web Audio implementation. */
+  public readonly audioAvailable = this.audioContext.available;
 
   public readonly nativeSampleRate: number = this.ctx.sampleRate;
   public readonly oversampleFactor: number =
@@ -459,18 +621,33 @@ export class AudioEngineService {
 
     this.setSoftClip(0.1);
     this.setQuantumSaturation(0.0);
-    this.initMasterWorklet();
-    this.initMidiOut();
-    // Populate the sink enumeration so the transport-bar dropdown has options on first click.
-    // Device labels stay empty until the user grants permission, but deviceId entries are still
-    // useful for setSinkId targeting and the empty-state hint check (`outputDevices().length === 0`).
-    this.refreshOutputDevices();
-    this.initWorklet();
+    if (this.audioAvailable) {
+      this.initMidiOut();
+      // Populate the sink enumeration so the transport-bar dropdown has options on first click.
+      // Device labels stay empty until the user grants permission, but deviceId entries are still
+      // useful for setSinkId targeting and the empty-state hint check (`outputDevices().length === 0`).
+      this.refreshOutputDevices();
+      const canUseWorklet =
+        typeof (this.ctx as any).audioWorklet?.addModule === 'function' &&
+        typeof AudioWorkletNode !== 'undefined';
+      if (canUseWorklet) {
+        this.initMasterWorklet();
+        this.initWorklet();
+      } else {
+        this.logger.info(
+          'AudioWorklet unavailable in this host; using the main-thread audio path.'
+        );
+      }
+    } else {
+      this.logger.info(
+        'Audio engine unavailable in this host; continuing with a silent capability fallback.'
+      );
+    }
     // Track AudioContext.state reactively so the contextState signal stays in sync
     // with engine lifecycle transitions (suspended ↔ running ↔ closed).
     this.ctx.onstatechange = this._ctxStateHandler;
     this._ctxStateHandler();
-    this.startOutputMetering();
+    if (this.audioAvailable) this.startOutputMetering();
     this.autoAdjustEffect();
   }
 

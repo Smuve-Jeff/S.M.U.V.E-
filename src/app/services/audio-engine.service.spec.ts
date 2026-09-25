@@ -1,3 +1,4 @@
+import { TestBed } from '@angular/core/testing';
 import {
   AudioEngineService,
   computeCrossfaderGains,
@@ -26,6 +27,34 @@ function gain(map: Map<string, any>, id: string) {
   }
   return map.get(id)!;
 }
+
+describe('AudioEngineService host fallback', () => {
+  const originalAudioContext = window.AudioContext;
+  const originalWebkitAudioContext = (window as any).webkitAudioContext;
+
+  beforeEach(() => {
+    delete (window as any).AudioContext;
+    delete (window as any).webkitAudioContext;
+    TestBed.configureTestingModule({});
+  });
+
+  afterEach(() => {
+    (window as any).AudioContext = originalAudioContext;
+    (window as any).webkitAudioContext = originalWebkitAudioContext;
+    TestBed.resetTestingModule();
+  });
+
+  it('keeps the shell usable when the host has no Web Audio implementation', () => {
+    const service = TestBed.inject(AudioEngineService);
+
+    expect(service.audioAvailable).toBe(false);
+    expect(service.ctx.state).toBe('suspended');
+    expect(() =>
+      service.masterGain.gain.setTargetAtTime(0.5, 0, 0.05)
+    ).not.toThrow();
+    expect(() => service.armOnFirstUserGesture()).not.toThrow();
+  });
+});
 
 describe('AudioEngineService.setSendLevel', () => {
   let svc: AudioEngineService;

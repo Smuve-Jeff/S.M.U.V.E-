@@ -107,6 +107,14 @@ describe('LiveEngineService', () => {
     expect((service as any).currentInstrumentNode).not.toBeNull();
   });
 
+  it('does not initialize Tone when the host has no Web Audio implementation', async () => {
+    (service as any).audioEngine.audioAvailable = false;
+
+    await expect(service.initialize()).resolves.toBeUndefined();
+    expect(service.isInitialized()).toBe(false);
+    expect((service as any).currentInstrumentNode).toBeNull();
+  });
+
   it('should produce sound after initialize - triggerNoteStart works', async () => {
     await service.initialize();
 

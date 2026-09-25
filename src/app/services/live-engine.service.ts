@@ -46,8 +46,14 @@ export class LiveEngineService {
   async initialize() {
     if (this.isInitialized()) return;
 
-    // Crucial: Sync Tone with our core Audio Engine context
-    if (!this.audioEngine.ctx || this.audioEngine.ctx.state === 'closed') {
+    // Crucial: Sync Tone with our core Audio Engine context. Tone constructs its
+    // own native context on first use, so it must not be called when the host
+    // has already reported that Web Audio is unavailable.
+    if (
+      this.audioEngine.audioAvailable === false ||
+      !this.audioEngine.ctx ||
+      this.audioEngine.ctx.state === 'closed'
+    ) {
       this.logger.warn('LiveEngine: AudioEngine context unavailable');
       return;
     }

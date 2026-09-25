@@ -6,6 +6,7 @@ import {
   HostListener,
   computed,
   DestroyRef,
+  Injector,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
@@ -39,6 +40,7 @@ import { InteractionDialogComponent } from './components/interaction-dialog/inte
 import { InteractionDialogService } from './services/interaction-dialog.service';
 import { AudioEngineService } from './services/audio-engine.service';
 import { ChallengeInboxService } from './services/challenge-inbox.service';
+import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -103,7 +105,8 @@ export class AppComponent {
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
-  audioEngine = inject(AudioEngineService);
+  private injector = inject(Injector);
+  private logger = inject(LoggingService);
   dialog = inject(InteractionDialogService);
   inboxService = inject(ChallengeInboxService);
   swUpdate = inject(SwUpdate, { optional: true });
@@ -165,7 +168,7 @@ export class AppComponent {
     this.setupPwaListeners();
     this.setupAppUpdateNotifications();
     this.updateShellFromUrl(this.router.url);
-    this.audioEngine.armOnFirstUserGesture();
+    this.armAudioOnFirstUserGesture();
 
     this.router.events
       .pipe(
@@ -310,6 +313,7 @@ export class AppComponent {
 
   private updateFullPageMode(url: string) {
     const path = this.getPrimaryRoute(url);
+    this.activeRoutePath.set(url.split(/[?#]/)[0].replace(/^\/+/, ''));
     this.isAuthRoute.set(path === 'login');
     this.isFullPageMode.set(
       this.isAuthRoute() ||
@@ -324,6 +328,43 @@ export class AppComponent {
           'mastering',
         ].includes(path) ||
         (path === 'studio' && this.isMobile())
+    );
+  }
+
+  /**
+   * Audio is a protected capability, not a login prerequisite. The previous
+   * shell injection created the full Web Audio graph while the auth route was
+   * still rendering, which produced autoplay warnings and could take down the
+   * entire app in embedded browsers without AudioContext. Defer the first
+   * engine lookup until a real gesture on an authenticated surface; audio-aware
+   * route components still inject the service normally when they load.
+   */
+  private armAudioOnFirstUserGesture(): void {
+    if (typeof document === 'undefined' || !document.body) return;
+
+    const body = document.body;
+    const events = ['click', 'touchstart', 'keydown'];
+    const cleanup = () =>
+      events.forEach((event) =>
+        body.removeEventListener(event, arm, { capture: true })
+      );
+    const arm = () => {
+      // Keep the listener installed while the user is signing in. This avoids
+      // constructing audio on the login page and still arms the engine as soon
+      // as the first authenticated interaction arrives.
+      if (this.isAuthRoute()) return;
+      cleanup();
+      try {
+        this.injector.get(AudioEngineService).armOnFirstUserGesture();
+      } catch (error) {
+        // An unavailable audio implementation must not become a global anomaly
+        // or prevent the rest of the workspace from rendering.
+        this.logger.warn('Audio engine unavailable; continuing without audio.', error);
+      }
+    };
+
+    events.forEach((event) =>
+      body.addEventListener(event, arm, { capture: true })
     );
   }
 
@@ -413,6 +454,12 @@ export class AppComponent {
     const normalizedPath = url.split(/[?#]/)[0].replace(/^\/+/, '');
     return normalizedPath.split('/')[0] ?? '';
   }
+
+  /**
+   * The full route path, kept in a signal so the route animation has a value
+   * that is already settled when change detection reads it.
+   */
+  private readonly activeRoutePath = signal('');
 
   toggleSidebar() {
     this.isSidebarOpen.update((v) => !v);
@@ -512,10 +559,19 @@ export class AppComponent {
     }
   }
 
-  routeAnimState(outlet: RouterOutlet): string {
-    if (!outlet || !outlet.isActivated) return '';
-    return (
-      outlet.activatedRoute?.snapshot?.url?.map((s) => s.path).join('/') ?? ''
-    );
+  /**
+   * The route key the animation switches on.
+   *
+   * Read from the shell's own navigation signal rather than from the outlet's
+   * activation state. `RouterOutlet.isActivated` flips *after* the current
+   * change-detection pass, so binding to it made the value change between the
+   * checked pass and the verification pass — Angular reported that as
+   * NG0100 (ExpressionChangedAfterItHasBeenCheckedError) on every cold start,
+   * including the login screen, where the shell is the very first thing to
+   * render. The navigation signal updates from the router event, which runs
+   * before change detection, so the binding is stable within a pass.
+   */
+  routeAnimState(): string {
+    return this.activeRoutePath();
   }
 }
