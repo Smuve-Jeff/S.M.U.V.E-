@@ -1,4 +1,6 @@
 <div
+  role="region"
+  aria-label="S.M.U.V.E 2.0 assistant chat"
   class="chatbot-container h-full flex flex-col glass-v42 shadow-v42-xl border-none selection:bg-brand-primary/20 animate-enter no-scrollbar overflow-hidden"
 >
   <header
@@ -91,7 +93,10 @@
         }
       </button>
       <button
+        type="button"
         (click)="close.emit()"
+        aria-label="Close S.M.U.V.E assistant chat"
+        title="Close assistant"
         class="w-8 h-8 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white transition-all flex items-center justify-center"
       >
         <span class="material-symbols-outlined">close</span>

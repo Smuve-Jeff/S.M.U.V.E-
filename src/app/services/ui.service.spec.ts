@@ -65,3 +65,46 @@ describe('UIService responsive breakpoints', () => {
     expect(service.showMobileNav()).toBe(false);
   });
 });
+
+describe('UIService assistant drawer state', () => {
+  let service: UIService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Router, useValue: { navigateByUrl: jest.fn() } },
+        {
+          provide: UserProfileService,
+          useValue: { profile: () => null, updateProfile: jest.fn() },
+        },
+      ],
+    });
+    service = TestBed.inject(UIService);
+  });
+
+  it('keeps the legacy and canonical names on the same signal', () => {
+    expect(service.isChatbotOpen).toBe(service.showChatbot);
+
+    service.showChatbot.set(true);
+
+    expect(service.isChatbotOpen()).toBe(true);
+  });
+
+  it('opens and closes the shared assistant drawer idempotently', () => {
+    service.openChatbot();
+    service.openChatbot();
+    expect(service.isChatbotOpen()).toBe(true);
+
+    service.closeChatbot();
+    service.closeChatbot();
+    expect(service.isChatbotOpen()).toBe(false);
+  });
+
+  it('toggles the shared assistant drawer in both directions', () => {
+    service.toggleChatbot();
+    expect(service.isChatbotOpen()).toBe(true);
+
+    service.toggleChatbot();
+    expect(service.isChatbotOpen()).toBe(false);
+  });
+});

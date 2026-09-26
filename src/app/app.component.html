@@ -484,6 +484,8 @@
           type="button"
           (click)="toggleChatbot()"
           class="shell-icon-button relative group"
+          [attr.aria-expanded]="uiService.isChatbotOpen()"
+          aria-controls="smuve-assistant-drawer"
           aria-label="Toggle S.M.U.V.E advisor"
         >
           <div
@@ -735,14 +737,17 @@
       </aside>
       <div
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
-        (click)="toggleChatbot()"
+        (click)="closeChatbot()"
+        aria-hidden="true"
         class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-300"
       ></div>
       <aside
         *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
+        id="smuve-assistant-drawer"
+        aria-label="S.M.U.V.E 2.0 assistant"
         class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96 shadow-2xl"
       >
-        <app-chatbot (close)="uiService.toggleChatbot()"></app-chatbot>
+        <app-chatbot (close)="closeChatbot()"></app-chatbot>
       </aside>
     </main>
 

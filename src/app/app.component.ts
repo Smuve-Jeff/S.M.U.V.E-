@@ -205,6 +205,9 @@ export class AppComponent {
   /** ESC closes the drawer on phones with external keyboards. */
   @HostListener('window:keydown.escape')
   onEscapeKey() {
+    if (this.uiService.isChatbotOpen()) {
+      this.closeChatbot();
+    }
     if (this.isMobile() && this.isSidebarOpen() && !this.isFullPageMode()) {
       this.isSidebarOpen.set(false);
     }
@@ -315,6 +318,9 @@ export class AppComponent {
     const path = this.getPrimaryRoute(url);
     this.activeRoutePath.set(url.split(/[?#]/)[0].replace(/^\/+/, ''));
     this.isAuthRoute.set(path === 'login');
+    // Do not carry an invisible open drawer through login and then unexpectedly
+    // reveal it after authentication returns to the Hub.
+    if (path === 'login') this.uiService.closeChatbot();
     this.isFullPageMode.set(
       this.isAuthRoute() ||
         [
@@ -476,6 +482,10 @@ export class AppComponent {
 
   toggleChatbot() {
     this.uiService.toggleChatbot();
+  }
+
+  closeChatbot(): void {
+    this.uiService.closeChatbot();
   }
 
   openInteractionGuide() {

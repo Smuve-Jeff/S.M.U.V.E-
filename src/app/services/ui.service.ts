@@ -57,8 +57,9 @@ export class UIService {
   mainViewMode = signal<MainViewMode>('hub');
   activeTheme = signal<AppTheme>(THEMES[0]);
   showEqPanel = signal(false);
+  /** Canonical chatbot drawer state; retain the legacy name as a signal alias. */
   showChatbot = signal(false);
-  isChatbotOpen = signal(false);
+  isChatbotOpen = this.showChatbot;
   visualIntensity = signal(0);
   isCompactMobile = signal(false);
   /** Portrait tablets (769–1024px, taller than wide) get the mobile shell. */
@@ -374,7 +375,15 @@ export class UIService {
       .filter((value): value is WorkspaceConfig => Boolean(value));
   }
 
-  toggleChatbot() {
+  openChatbot(): void {
+    this.isChatbotOpen.set(true);
+  }
+
+  closeChatbot(): void {
+    this.isChatbotOpen.set(false);
+  }
+
+  toggleChatbot(): void {
     this.isChatbotOpen.update((isOpen) => !isOpen);
   }
 

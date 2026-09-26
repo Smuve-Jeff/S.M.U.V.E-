@@ -127,7 +127,9 @@
           <button
             type="button"
             class="hub-primary-button hub-smuve-button"
-            (click)="uiService.toggleChatbot()"
+            (click)="uiService.openChatbot()"
+            [attr.aria-expanded]="uiService.isChatbotOpen()"
+            aria-controls="smuve-assistant-drawer"
             aria-label="Talk to S.M.U.V.E 2.0, your AI Music Manager"
           >
             <span class="material-symbols-outlined">neurology</span>

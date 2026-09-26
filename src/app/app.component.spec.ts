@@ -28,6 +28,8 @@ describe('AppComponent', () => {
       showScanlines: signal(false),
       isOnline: signal(true),
       isChatbotOpen: signal(false),
+      openChatbot: jest.fn(() => uiService.isChatbotOpen.set(true)),
+      closeChatbot: jest.fn(() => uiService.isChatbotOpen.set(false)),
       getViewModes: jest.fn().mockReturnValue(['hub', 'strategy']),
       getViewConfigs: jest.fn().mockReturnValue([
         {
@@ -80,6 +82,11 @@ describe('AppComponent', () => {
       toggleTheme: jest.fn(),
       toggleScanlines: jest.fn(),
       togglePerformanceMode: jest.fn(),
+    };
+    const router = {
+      url: routerUrl,
+      events: routerEvents$.asObservable(),
+      navigateByUrl: jest.fn(),
     };
     const commandPalette = {
       handleGlobalKey: jest.fn(),
@@ -149,14 +156,7 @@ describe('AppComponent', () => {
           provide: InteractionDialogService,
           useValue: { confirm: jest.fn().mockResolvedValue(false) },
         },
-        {
-          provide: Router,
-          useValue: {
-            url: routerUrl,
-            events: routerEvents$.asObservable(),
-            navigateByUrl: jest.fn(),
-          },
-        },
+        { provide: Router, useValue: router },
       ],
     })
       .overrideComponent(AppComponent, { set: { template: '<div></div>' } })
@@ -166,7 +166,7 @@ describe('AppComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { component, uiService, commandPalette, routerEvents$ };
+    return { component, uiService, commandPalette, routerEvents$, router };
   };
 
   it('should create the app', async () => {
@@ -235,10 +235,23 @@ describe('AppComponent', () => {
   });
 
   it('treats login as an auth-only full-page route', async () => {
-    const { component } = await createComponent('/login');
+    const { component, uiService } = await createComponent('/login');
 
     expect(component.isAuthRoute()).toBe(true);
     expect(component.isFullPageMode()).toBe(true);
+    expect(uiService.closeChatbot).toHaveBeenCalled();
+  });
+
+  it('closes the shared assistant drawer when navigating to login', async () => {
+    const { uiService, routerEvents$, router } = await createComponent('/hub');
+    uiService.openChatbot();
+    expect(uiService.isChatbotOpen()).toBe(true);
+
+    router.url = '/login';
+    routerEvents$.next(new NavigationEnd(1, '/hub', '/login'));
+
+    expect(uiService.isChatbotOpen()).toBe(false);
+    expect(uiService.closeChatbot).toHaveBeenCalledTimes(1);
   });
 
   /*

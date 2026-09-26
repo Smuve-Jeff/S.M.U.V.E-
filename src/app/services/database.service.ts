@@ -82,7 +82,10 @@ export class DatabaseService {
           return profile;
         }
       } catch (error) {
-        this.logger.error('Failed to load profile from cloud', error);
+        // Cloud sync is optional when no backend profile is available; continue
+        // with the local backup without reporting this expected fallback as an
+        // application-wide error on login or workspace initialization.
+        this.logger.warn('Cloud profile unavailable; checking local backup.', error);
       }
     }
 
