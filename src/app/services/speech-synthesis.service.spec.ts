@@ -170,6 +170,86 @@ describe('SpeechSynthesisService', () => {
     expect(service.liveVoice()?.archetype).toBe('Deep Bass (Male)');
   });
 
+  it('should give every sentence a different vocal tone from the full spectrum', () => {
+    service.speak('One. Two! Three? Four… Five. Six! Seven? Eight.');
+
+    const tones: string[] = [];
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      tones.push(service.liveVoice()!.archetype);
+    });
+
+    expect(tones).toHaveLength(8);
+    tones.forEach((tone, i) => {
+      if (i > 0) expect(tone).not.toBe(tones[i - 1]);
+    });
+    // Eight sentences must reach well beyond the bass/tenor families.
+    expect(new Set(tones).size).toBeGreaterThanOrEqual(7);
+  });
+
+  it('should use every vocal tone before repeating any tone', () => {
+    randomSpy.mockReturnValue(0.42);
+    const sentences = Array.from({ length: 30 }, (_, i) => `Line ${i + 1}.`);
+
+    service.speak(sentences.join(' '));
+
+    const tones: string[] = [];
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      tones.push(service.liveVoice()!.archetype);
+    });
+
+    // 11 distinct tones exist in the table; the deck must surface all of them
+    // inside two cycles of a 30-sentence message, and the first pass must be
+    // repeat-free — that is the "every tone before any repeat" guarantee.
+    expect(new Set(tones).size).toBe(11);
+    expect(tones.slice(0, 11).length).toBe(new Set(tones.slice(0, 11)).size);
+    expect(tones).toEqual(
+      expect.arrayContaining(['Deep Bass (Male)', 'Soprano Elite (Female)'])
+    );
+  });
+
+  it('should walk the whole pitch range inside one message', () => {
+    // A deterministic cycle keeps the run reproducible while still moving the
+    // band picker through every branch.
+    const cycle = [
+      0, 0.9, 0.4, 0.7, 0.1, 0.6, 0.95, 0.2, 0.8, 0.35, 0.55, 0.05, 0.65,
+      0.85, 0.15, 0.45,
+    ];
+    let cursor = 0;
+    randomSpy.mockImplementation(() => cycle[cursor++ % cycle.length]);
+
+    service.speak(
+      'Alpha. Beta! Gamma? Delta. Epsilon! Zeta? Eta. Theta! Iota. Kappa. Lambda! Mu?'
+    );
+
+    const pitches = mockUtterances.map((u) => u.pitch);
+    const bands: string[] = [];
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      bands.push(service.liveVoice()!.band);
+    });
+
+    expect(mockUtterances.length).toBeGreaterThanOrEqual(12);
+    expect(Math.min(...pitches)).toBeLessThan(0.5);
+    expect(Math.max(...pitches)).toBeGreaterThan(1.4);
+    expect(new Set(bands)).toEqual(new Set(['low', 'mid', 'high']));
+    bands.forEach((band, i) => {
+      if (i > 0) expect(band).not.toBe(bands[i - 1]);
+    });
+  });
+
+  it('should keep forcing one archetype when a caller pins the register (mimic mode)', () => {
+    service.speak('Pinned one. Pinned two! Pinned three?', {
+      forceArchetype: 'Alto Dominance (Female)',
+    });
+
+    mockUtterances.forEach((u) => {
+      u.onstart();
+      expect(service.liveVoice()?.archetype).toBe('Alto Dominance (Female)');
+    });
+  });
+
   it('should never repeat the same pitch band on consecutive sentences', () => {
     randomSpy.mockReturnValue(0.99);
 

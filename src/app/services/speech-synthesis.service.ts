@@ -57,8 +57,11 @@ export interface VoiceReadout {
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
 
-  // Default behaviour: automatically use the Ominous persona unless the user
-  // explicitly forces a different archetype or disables the feature.
+  // Identity anchor: the first default sentence of a session opens in the
+  // Ominous Protocol persona (whose own range already spans deep bass to
+  // soprano). Every sentence after it rolls the full spectrum — unless the
+  // caller forces one archetype, which is how mimic/profile-register mode
+  // pins the tone.
   public defaultToOminous = true;
 
   // 13 Elite S.M.U.V.E. Vocal Archetypes — Full Spectrum
@@ -211,6 +214,10 @@ export class SpeechSynthesisService {
   private lastUsedVoice: SpeechSynthesisVoice | null = null;
   private lastPitchBand: PitchBand | null = null;
   private archetypeHistory: number[] = [];
+  /** Full-spectrum deck — one vocal tone per sentence, no tone twice until all are used. */
+  private spectrumDeck: SmuveArchetype[] = [];
+  /** False until the first default sentence anchors the session in the signature tone. */
+  private sessionOpened = false;
 
   private userProfile = inject(UserProfileService, { optional: true });
 
@@ -221,10 +228,13 @@ export class SpeechSynthesisService {
 
   /**
    * Speaks text with per-sentence shape-shifting.
-   * EVERY sentence is spoken as its own utterance with a freshly rolled
-   * archetype, a full-spectrum pitch band (deep male bass → high female
-   * soprano) and a rotated voice — the voice NEVER stays the same by default
-   * unless the caller passes shapeShift: false or forceArchetype.
+   * EVERY sentence is spoken as its own utterance with a fresh vocal tone from
+   * the complete archetype table (deep bass male → baritone → tenor → alto →
+   * mezzo → soprano and the non-human voices), a full-spectrum pitch band, and
+   * a rotated browser voice. No tone repeats until every other tone has been
+   * used, so the full pitch range and every vocal tone in between are heard in
+   * normal speech. State only holds when the caller passes shapeShift: false
+   * or pins one archetype with forceArchetype.
    */
   speak(text: string, options?: SpeakOptions): void {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis)
@@ -355,65 +365,102 @@ export class SpeechSynthesisService {
   }
 
   /**
-   * Selects archetype with full spectrum rotation.
-   * By default the service chooses the Ominous Protocol persona unless the
-   * caller explicitly forces a different archetype (forceArchetype) — this
-   * keeps the product behaviour consistent with the request "use its custom
-   * ominous persona ... unless explicitly changed by the user".
+   * Selects the archetype for one sentence.
+   *
+   * `forceArchetype` wins (mimic / profile-register mode pins the tone).
+   * Otherwise the voice rolls through the FULL spectrum: a shuffled deck of
+   * every distinct vocal tone is consumed one card per sentence, so a message
+   * walks deep bass → baritone → tenor → alto → mezzo → soprano → the
+   * non-human voices, and no tone repeats until every other tone has been
+   * used. Every sentence therefore sounds like a different entity.
    */
   private selectDynamicArchetype(options?: SpeakOptions): SmuveArchetype {
     if (options?.forceArchetype) {
       const forced = this.SMUVE_ARCHETYPES.find(
         (a) => a.name === options.forceArchetype
       );
-      if (forced) return forced;
+      if (forced) {
+        this.rememberArchetype(forced);
+        return forced;
+      }
     }
+    return this.nextSpectrumArchetype();
+  }
 
-    // If the app is configured to default to ominous, pick that archetype.
-    if (this.defaultToOminous && !options?.forceArchetype) {
+  /**
+   * One card off the spectrum deck.
+   *
+   * The FIRST default sentence of a session is the signature Ominous Protocol
+   * persona (its own range already spans [0.15, 1.7]), so the identity still
+   * opens every conversation; every sentence after it is a fresh tone from the
+   * shuffled remainder of the complete table.
+   */
+  private nextSpectrumArchetype(): SmuveArchetype {
+    if (!this.sessionOpened) {
+      this.sessionOpened = true;
       const ominous = this.SMUVE_ARCHETYPES.find(
         (a) => a.name === 'Ominous Protocol'
       );
-      if (ominous) {
-        // Still record history for gender balancing logic.
-        this.archetypeHistory = [
-          ...this.archetypeHistory.slice(-5),
-          this.SMUVE_ARCHETYPES.indexOf(ominous),
-        ];
+      if (this.defaultToOminous && ominous) {
+        this.rememberArchetype(ominous);
+        // The remainder is a full-spectrum shuffle, so sentence two onward
+        // never falls back into the same signature tone.
+        this.spectrumDeck = this.buildSpectrumDeck([ominous]);
         return ominous;
       }
     }
 
-    // Fallback random selection with light biasing to cover the full spectrum.
-    const genderWeights =
-      this.archetypeHistory.length > 3 ? this.getUnderrepresentedGender() : null;
-
-    let pool: SmuveArchetype[];
-    if (genderWeights === 'female' && Math.random() < 0.7) {
-      pool = this.SMUVE_ARCHETYPES.filter((a) => a.gender === 'female');
-    } else if (genderWeights === 'male' && Math.random() < 0.7) {
-      pool = this.SMUVE_ARCHETYPES.filter((a) => a.gender === 'male');
-    } else {
-      pool = this.SMUVE_ARCHETYPES;
+    if (this.spectrumDeck.length === 0) {
+      this.spectrumDeck = this.buildSpectrumDeck();
     }
-
-    const selected = pool[Math.floor(Math.random() * pool.length)];
-    this.archetypeHistory = [
-      ...this.archetypeHistory.slice(-5),
-      this.SMUVE_ARCHETYPES.indexOf(selected),
-    ];
-    return selected;
+    const next = this.spectrumDeck.shift() ?? this.SMUVE_ARCHETYPES[0];
+    this.rememberArchetype(next);
+    return next;
   }
 
-  private getUnderrepresentedGender(): 'male' | 'female' | null {
-    const recent = this.archetypeHistory
-      .slice(-5)
-      .map((i) => this.SMUVE_ARCHETYPES[i]?.gender);
-    const maleCount = recent.filter((g) => g === 'male').length;
-    const femaleCount = recent.filter((g) => g === 'female').length;
-    if (femaleCount === 0 && maleCount >= 2) return 'female';
-    if (maleCount === 0 && femaleCount >= 2) return 'male';
-    return null;
+  /**
+   * Every distinct vocal tone in the table (the table carries intentional
+   * duplicates — Deep Bass and Tenor Commander each appear twice).
+   */
+  private uniqueArchetypes(): SmuveArchetype[] {
+    const byName = new Map<VoiceArchetype, SmuveArchetype>();
+    this.SMUVE_ARCHETYPES.forEach((archetype) => {
+      if (!byName.has(archetype.name)) byName.set(archetype.name, archetype);
+    });
+    return [...byName.values()];
+  }
+
+  /**
+   * A shuffled deck over the full spectrum. `spoken` cards are removed from the
+   * deck so every tone is used before any tone repeats, and the deck never
+   * opens with one of the two most recent tones (so a refill cannot produce a
+   * back-to-back repeat at the boundary).
+   */
+  private buildSpectrumDeck(spoken: SmuveArchetype[] = []): SmuveArchetype[] {
+    const spokenNames = new Set(spoken.map((archetype) => archetype.name));
+    const deck = this.uniqueArchetypes().filter(
+      (archetype) => !spokenNames.has(archetype.name)
+    );
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    const recent = new Set(
+      this.archetypeHistory
+        .slice(-2)
+        .map((index) => this.SMUVE_ARCHETYPES[index]?.name)
+    );
+    if (deck.length > 1 && recent.has(deck[0].name)) {
+      deck.push(deck.shift() as SmuveArchetype);
+    }
+    return deck;
+  }
+
+  /** Records a tone as spoken so the deck can avoid immediate repeats. */
+  private rememberArchetype(archetype: SmuveArchetype): void {
+    const index = this.SMUVE_ARCHETYPES.indexOf(archetype);
+    if (index < 0) return;
+    this.archetypeHistory = [...this.archetypeHistory.slice(-7), index];
   }
 
   private applyAuthoritativePronunciation(text: string): string {
