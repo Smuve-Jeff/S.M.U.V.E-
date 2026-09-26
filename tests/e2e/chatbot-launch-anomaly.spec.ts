@@ -63,7 +63,7 @@ test.describe('S.M.U.V.E advisor launch and anomaly regression', () => {
 
     const advisor = page.locator('app-chatbot .chatbot-container');
     const hubLaunch = page.getByRole('button', {
-      name: 'Talk to S.M.U.V.E 2.0, your AI Music Manager',
+      name: 'Activate Access to S.M.U.V.E 2.0, your AI Music Manager',
     });
     const headerLaunch = page.getByRole('button', {
       name: 'Toggle S.M.U.V.E advisor',
