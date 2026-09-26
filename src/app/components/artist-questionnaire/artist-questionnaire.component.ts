@@ -18,6 +18,7 @@ import { ArtistIntelligenceService } from '../../services/artist-intelligence.se
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
+import { questionnaireReadLine } from '../../services/artist-profile-read';
 import { SMUVE_PERSONAS } from '../../types/persona.types';
 import {
   EnhancedArtistQuestionnaireEngine,
@@ -343,11 +344,24 @@ export class ArtistQuestionnaireComponent {
 
   private appendQuestionSignal(question: QuestionnaireQuestion, answer: any) {
     const response = this.engine.generateAIQuestionResponse(question, answer);
+    // The S.M.U.V.E. read of the answer is derived from the draft the artist has
+    // already built (genre, signature sound, declared barrier), so the live
+    // monitor reacts to real evidence instead of printing one template line for
+    // every artist. Composed here because the engine's generator carries the
+    // generic phase context; this layer carries the artist-specific read.
+    const read = questionnaireReadLine(
+      question.field,
+      answer,
+      this.profileDraft()
+    );
     this.aiChatLog.update((logs) =>
       [
         ...logs,
         { type: 'observation' as const, text: response.observation },
-        { type: 'adaptation' as const, text: response.adaptation },
+        {
+          type: 'adaptation' as const,
+          text: read ? `${response.adaptation} ${read}` : response.adaptation,
+        },
       ].slice(-20)
     );
   }
@@ -378,7 +392,7 @@ export class ArtistQuestionnaireComponent {
 
     try {
       const answer = await this.aiService.getAIResponse(
-        `You are assisting an artist inside the S.M.U.V.E. Artist DNA Uplink.\n${context}\n\nArtist asks: ${prompt}\n\nReply in 3 concise parts: (1) direct answer, (2) one concrete next action, (3) one question that would improve your advice. Do not invent facts or claim to have changed the profile.`
+        this.buildCoachPrompt(prompt, context)
       );
       if (requestId !== this.aiCoachRequest) return;
       this.aiCoachAnswer.set(answer?.trim() || 'No signal returned. Try a more specific question.');
@@ -396,6 +410,42 @@ export class ArtistQuestionnaireComponent {
     } finally {
       if (requestId === this.aiCoachRequest) this.aiCoachBusy.set(false);
     }
+  }
+
+  /**
+   * The in-uplink coach prompt.
+   *
+   * The questionnaire is a S.M.U.V.E. surface, so it carries the same persona
+   * contract as the chatbot — without it the artist gets a polite generic
+   * assistant mid-interview and the character breaks exactly where the artist
+   * is paying attention. The draft reading is attached so the answer is built
+   * on answers already given instead of asking the artist to restate them.
+   */
+  private buildCoachPrompt(prompt: string, context: string): string {
+    const report = this.intelligenceReport();
+    const reading = [
+      report.strengths[0] ? `- Strength: ${report.strengths[0]}` : '',
+      report.weaknesses[0] ? `- Gap: ${report.weaknesses[0]}` : '',
+      report.nextBestMoves[0] ? `- Next move: ${report.nextBestMoves[0]}` : '',
+      `- Differentiation score: ${report.differentiationScore}/100`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    return [
+      'You are S.M.U.V.E. 2.0, running the Artist DNA Uplink interview.',
+      'CHARACTER CONTRACT (never break it, even while coaching):',
+      this.aiService.personaDirectives(),
+      '',
+      context,
+      '',
+      'S.M.U.V.E READING OF THE DRAFT (already known — use it, never ask the artist to repeat it):',
+      reading,
+      '',
+      `Artist asks: ${prompt}`,
+      '',
+      'Reply in 3 concise parts: (1) direct answer, (2) one concrete next action, (3) one question that would improve your advice. Stay in the character above — arrogant, precise, aimed at the work rather than the person. Do not invent facts or claim to have changed the profile.',
+    ].join('\n');
   }
 
   askSuggestedAiPrompt(prompt: string) {

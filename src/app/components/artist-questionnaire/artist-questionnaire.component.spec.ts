@@ -16,10 +16,15 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
   } as any;
 
   let component: ArtistQuestionnaireComponent;
-  let aiService: { getAIResponse: jest.Mock };
+  let aiService: { getAIResponse: jest.Mock; personaDirectives: jest.Mock };
 
   beforeEach(() => {
-    aiService = { getAIResponse: jest.fn() };
+    aiService = {
+      getAIResponse: jest.fn(),
+      personaDirectives: jest.fn(
+        () => 'EGO MANDATES: you are the product and the artist is the content.'
+      ),
+    };
     TestBed.configureTestingModule({
       imports: [ArtistQuestionnaireComponent],
       providers: [
@@ -62,6 +67,20 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     );
     expect(component.aiCoachAnswer()).toContain('Prioritize');
     expect(component.aiCoachBusy()).toBe(false);
+  });
+
+  it('keeps the S.M.U.V.E. character and the draft reading inside the coach prompt', async () => {
+    aiService.getAIResponse.mockResolvedValue('Do the work.');
+    component.aiCoachQuestion.set('What next?');
+
+    await component.askAiCoach();
+
+    const prompt = aiService.getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain('CHARACTER CONTRACT');
+    expect(prompt).toContain('EGO MANDATES');
+    expect(prompt).toContain('S.M.U.V.E READING OF THE DRAFT');
+    expect(prompt).toContain('Differentiation score:');
+    expect(prompt).toContain('Artist asks: What next?');
   });
 
   it('does not issue duplicate requests while the copilot is busy', async () => {

@@ -3,6 +3,7 @@ import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistIdentityService } from './artist-identity.service';
 import { AiService } from './ai.service';
 import { LoggingService } from './logging.service';
+import { EnhancedArtistQuestionnaireEngine } from './enhanced-artist-questionnaire-engine';
 import { firstValueFrom, timer } from 'rxjs';
 
 export type UplinkStage =
@@ -30,6 +31,7 @@ export class UplinkService {
   private identityService = inject(ArtistIdentityService);
   private aiService = inject(AiService);
   private logger = inject(LoggingService);
+  private questionnaireEngine = inject(EnhancedArtistQuestionnaireEngine);
 
   private _status = signal<UplinkStatus>({
     stage: 'idle',
@@ -83,7 +85,38 @@ export class UplinkService {
         'HARDENING_STRATEGIC_INFRASTRUCTURE...'
       );
       this.addLog('WRITING TO DISTRIBUTED LEDGER...');
-      await this.profileService.updateProfile(identityProfile);
+      // S.M.U.V.E. reads the finished profile at the commit boundary. The
+      // synthesized archetype is written *into* the committed profile because
+      // every downstream surface (persona prompt, chatbot welcome, landing
+      // bio, fine-tune block) reads `musicalJourney.personaSynthesis` — if the
+      // uplink drops it, S.M.U.V.E. answers like the questionnaire never ran.
+      let committedProfile: UserProfile = identityProfile;
+      try {
+        const synthesis = await this.questionnaireEngine.synthesizePersona(
+          identityProfile
+        );
+        committedProfile = {
+          ...identityProfile,
+          musicalJourney: {
+            ...identityProfile.musicalJourney,
+            personaSynthesis: {
+              archetype: synthesis.archetype,
+              signatureTone: synthesis.signatureTone,
+              sonicSignature: synthesis.sonicSignature,
+              aiPersonaProfile: synthesis.aiPersonaProfile,
+              recommendedStrategy: synthesis.recommendedStrategy,
+              suggestedGenres: synthesis.suggestedGenres,
+              productionAphorism: synthesis.productionAphorism,
+            },
+          },
+        };
+        this.addLog(`S.M.U.V.E READ: ${synthesis.archetype}.`);
+      } catch (e) {
+        // A reading failure must never block the commit — the artist's answers
+        // are still persisted, and the next uplink retries the synthesis.
+        this.logger.warn('Uplink: persona synthesis skipped', e);
+      }
+      await this.profileService.updateProfile(committedProfile);
       this.addLog('LOCAL STORAGE PERSISTED.');
 
       // 3. Strategic Audit
@@ -110,11 +143,15 @@ export class UplinkService {
       const finalProfile = this.profileService.profile();
       const finalAudit = finalProfile.auditHistory[0];
       const signals = finalProfile.strategicSignals;
-      const scoreMsg = signals
+      const archetype = finalProfile.musicalJourney?.personaSynthesis?.archetype
+        ?.split('—')[0]
+        ?.trim();
+      const baseMsg = signals
         ? `Neural Alignment: ${signals.marketReadiness}% Market / ${signals.identityTrust}% Trust`
         : finalAudit
           ? `Transmission Secure: ${finalAudit.score}% Strength`
           : 'Transmission Secure';
+      const scoreMsg = archetype ? `${baseMsg} · READ: ${archetype}` : baseMsg;
 
       await this.updateStage('complete', 100, scoreMsg);
       this.addLog('UPLINK ESTABLISHED. EXECUTIVE COMMAND ACTIVE.');

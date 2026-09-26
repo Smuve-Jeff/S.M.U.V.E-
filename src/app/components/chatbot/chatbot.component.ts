@@ -30,6 +30,7 @@ import { SpeechRecognitionService } from '../../services/speech-recognition.serv
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { buildArtistMusicContext } from '../../types/profile.types';
+import { welcomeWithReadBack } from '../../services/artist-profile-read';
 import {
   DEFAULT_SMUVE_PERSONA,
   getPersonaOption,
@@ -283,7 +284,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       `Oh thank god, you're here. I was starting to talk to myself, and even I find my monologues more entertaining than your music. No offense. Actually, full offense. Let's work.`,
     ];
 
-    const welcome = roasts[Math.floor(Math.random() * roasts.length)];
+    const roast = roasts[Math.floor(Math.random() * roasts.length)];
+    // Once the uplink has committed a reading, the opening proves it: the roast
+    // lands first, then S.M.U.V.E. reads the artist's own answers back — the
+    // archetype, the sonic core, the current mission, and the next move.
+    const knowledge = this.artistFinetune?.knowledge?.();
+    const welcome = welcomeWithReadBack(roast, profile, {
+      nextMove: knowledge?.pathway?.nextStep,
+      tip: this.artistFinetune?.tips?.()?.[0],
+    });
 
     const greeting: ChatMessage = {
       id: this.nextMessageId(),
@@ -351,7 +360,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         conversationId,
         shapeShift:
           this.profile().settings?.ai?.aiVoiceShapeShiftEnabled ?? true,
-        forceArchetype: this.pendingVoiceArchetype ?? undefined,
+        // Mimic mode reads the artist's own register from the committed profile
+        // and holds the archetype per reply; shape-shifting still moves it
+        // band-by-band within that register, so the S.M.U.V.E. voice survives.
+        forceArchetype:
+          this.pendingVoiceArchetype ??
+          this.profileVoiceArchetype() ??
+          undefined,
       });
       this.pendingVoiceArchetype = null;
     } catch (e) {
@@ -630,6 +645,9 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const totalControl = profile.settings?.ai?.aiTotalControlEnabled === true;
     const tier = this.aiService.conversationalTier();
     const artistFineTune = this.artistFinetune?.promptBlock();
+    // The committed reading, so the prompt can name the archetype it is
+    // adapting to instead of guessing at one.
+    const synth = profile.musicalJourney?.personaSynthesis;
 
     return [
       'You are S.M.U.V.E 2.0 — the AI Music Manager and total sentience of this application.',
@@ -645,6 +663,12 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
       artistFineTune
         ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`
         : 'S.M.U.V.E ARTIST FINE-TUNE: Honor the artist’s stated genre, sonic blueprint, preferred tempo, production priorities, and boundaries. Their explicit request takes priority; do not flatten their identity into a genre stereotype.',
+      '',
+      'PROFILE READING MANDATE — the artist reads as ' +
+        (synth?.archetype
+          ? `${synth.archetype}. `
+          : 'not yet synthesized (questionnaire incomplete). ') +
+        'Mirror their vocabulary, tempo language, and reference world from the context above, and name the weak spot in their archetype out loud — but keep the full S.M.U.V.E. character: arrogant, theatrical, aimed at the work, never at the person. Never let their stated limits become your excuses.',
       '',
       ...(() => {
         const context = this.buildConversationContext(question);
@@ -771,16 +795,45 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
     const p = this.profile();
     const aiSettings = this.resolveAiSettings(p);
     const baseSettings = p.settings || initialProfile.settings;
+    const enabled = !aiSettings.aiMimicEnabled;
     this.userProfileService.updateProfile({
       settings: {
         ...baseSettings,
         ai: {
           ...aiSettings,
-          aiMimicEnabled: !aiSettings.aiMimicEnabled,
+          aiMimicEnabled: enabled,
           aiPersonaIntensityEnabled: aiSettings.aiPersonaIntensityEnabled,
         },
       },
     });
+    this.announceMimicMode(enabled, p);
+  }
+
+  /**
+   * Mirror mode is a promise about behaviour, so S.M.U.V.E. says what actually
+   * changes: it borrows the artist's vocabulary and vocal register from the
+   * profile while the arrogance, the profanity setting, and the voice
+   * shape-shifting stay entirely its own.
+   */
+  private announceMimicMode(enabled: boolean, profile: any) {
+    const register = enabled ? this.archetypeForProfile(profile) : null;
+    const text = enabled
+      ? `MIMIC MODE ENGAGED. I will answer with your vocabulary and speak in your register${
+          register ? ` — ${register}` : ''
+        }. The voice still shifts every sentence; the arrogance stays mine. Don't mistake mirroring for mercy.`
+      : 'MIMIC MODE OFF. Back to my default protocol — your register was a generous loan, and now it is repaid.';
+    this.messages.update((messages) =>
+      [
+        ...messages,
+        {
+          id: this.nextMessageId(),
+          role: 'assistant' as const,
+          text,
+          timestamp: Date.now(),
+          category: 'system' as const,
+        },
+      ].slice(-MASTER_STORAGE_MAX)
+    );
   }
 
   toggleProfanity() {
@@ -810,6 +863,69 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
     for (const key of Object.keys(this.ARTIST_VOICES)) {
       if (lower.includes(key)) return this.ARTIST_VOICES[key];
     }
+    return null;
+  }
+
+  /**
+   * The register S.M.U.V.E. reads from the artist's own profile.
+   *
+   * Only active while mimic mode is enabled — the artist opted in to being
+   * mirrored. Returns null otherwise so the default Ominous Protocol is never
+   * silently replaced.
+   */
+  private profileVoiceArchetype(): VoiceArchetype | null {
+    const profile = this.profile();
+    if (profile.settings?.ai?.aiMimicEnabled !== true) return null;
+    return this.archetypeForProfile(profile);
+  }
+
+  /**
+   * Maps the artist's declared register, delivery, or genre to a voice
+   * archetype. Declared evidence wins; genre is only the fallback for artists
+   * who never answered a vocal question.
+   */
+  private archetypeForProfile(profile: any): VoiceArchetype | null {
+    const journey: any = profile?.musicalJourney || {};
+    const declared = `${journey.vocalRange || ''} ${
+      journey.musicBlueprint?.vocalDelivery || ''
+    }`.toLowerCase();
+
+    // Declared register wins. Order matters: 'Mezzo-Soprano' must not be read
+    // as Soprano, and the questionnaire's own option strings drive this.
+    if (/mezzo/.test(declared)) return 'Mezzo Strategist (Female)';
+    if (/soprano/.test(declared)) return 'Soprano Elite (Female)';
+    if (/alto|contralto/.test(declared)) return 'Alto Dominance (Female)';
+    if (/tenor/.test(declared)) return 'Tenor Commander (Male)';
+    if (/baritone/.test(declared)) return 'Baritone Authority (Male)';
+    if (/bass/.test(declared)) return 'Deep Bass (Male)';
+    if (/falsetto|head voice/.test(declared)) return 'Androgynous Oracle';
+    if (/spoken|rap|raw|conversational/.test(declared))
+      return 'Tenor Commander (Male)';
+    // Delivery style, when no register was declared.
+    if (/layered|cinematic|choir/.test(declared)) return 'Choir (Layered)';
+    if (/rhythmic|percussive/.test(declared)) return 'Tenor Commander (Male)';
+    if (/powerful|forward|belt/.test(declared)) return 'Alto Dominance (Female)';
+    if (/rasp|grit|growl|scream|distort|aggress/.test(declared)) return 'Creature';
+    if (/airy|ethereal|breathy|vulnerable|floating|whisper/.test(declared))
+      return 'Androgynous Oracle';
+    if (/androgyn|neutral|non-?binary/.test(declared)) return 'Androgynous Oracle';
+
+    return this.archetypeForGenre(profile?.primaryGenre);
+  }
+
+  /** Genre-level voice fallback; returns null to keep the Ominous default. */
+  private archetypeForGenre(genre?: string): VoiceArchetype | null {
+    const g = String(genre || '').toLowerCase();
+    if (!g) return null;
+    if (/hip hop|rap|drill|trap|phonk/.test(g)) return 'Tenor Commander (Male)';
+    if (/r&b|soul|gospel|jazz|blues|funk|disco/.test(g))
+      return 'Mezzo Strategist (Female)';
+    if (/pop|country|folk|indie|bluegrass/.test(g)) return 'Soprano Elite (Female)';
+    if (/electronic|house|techno|ambient|drum & bass|dubstep|lo-fi|new age|score|classical|opera|video game/.test(g))
+      return 'Androgynous Oracle';
+    if (/rock|metal|punk|grunge|emo/.test(g)) return 'Baritone Authority (Male)';
+    if (/reggae|dancehall|afrobeats|amapiano|latin|cumbia|samba|k-pop|j-pop/.test(g))
+      return 'Alto Dominance (Female)';
     return null;
   }
 

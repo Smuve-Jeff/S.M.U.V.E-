@@ -202,6 +202,140 @@ describe('ChatbotComponent', () => {
     );
   });
 
+  it('opens with a profile read-back once the uplink has committed a reading', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      artistName: 'Nova Vale',
+      primaryGenre: 'Electronic',
+      profileSetupCompleted: true,
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        signatureSound: 'warped tape 808s with choir pads',
+        currentFocus: 'first official EP',
+        personaSynthesis: {
+          archetype: 'The Architect — precision-driven, technically focused creator',
+          signatureTone: 'Calculated precision.',
+          sonicSignature: 'warped tape 808s',
+          aiPersonaProfile: 'S.M.U.V.E recognizes you as: The Architect.',
+          recommendedStrategy: 'Priority: ship the EP.',
+          suggestedGenres: ['Ambient'],
+          productionAphorism: 'Craft first.',
+        },
+      },
+    });
+
+    (component as any).setWelcomeGreeting();
+
+    const opening = component.messages()[0].text;
+    expect(opening).toContain('PROFILE READING');
+    expect(opening).toContain('ARCHETYPE: The Architect');
+    expect(opening).toContain('CURRENT MISSION: first official EP');
+  });
+
+  it('keeps the roast as the whole greeting when no reading exists', () => {
+    (component as any).setWelcomeGreeting();
+
+    expect(component.messages()[0].text).not.toContain('PROFILE READING');
+  });
+
+  it('reads the artist’s own register for mimic mode only when mimic is enabled', () => {
+    const completed = {
+      ...initialProfile,
+      artistName: 'Nova Vale',
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        vocalRange: 'Tenor (C3–C5)',
+      },
+    };
+    userProfileServiceMock.profile.set(completed);
+
+    // Mimic off — the default Ominous Protocol must never be replaced silently.
+    expect((component as any).profileVoiceArchetype()).toBeNull();
+
+    userProfileServiceMock.profile.set({
+      ...completed,
+      settings: {
+        ...completed.settings,
+        ai: { ...completed.settings.ai, aiMimicEnabled: true },
+      },
+    });
+    expect((component as any).profileVoiceArchetype()).toBe(
+      'Tenor Commander (Male)'
+    );
+  });
+
+  it('says what mimic mode actually changes when the artist enables it', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      artistName: 'Nova Vale',
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        vocalRange: 'Tenor (C3–C5)',
+      },
+    });
+
+    component.toggleMimic();
+
+    const announcement = component.messages().at(-1)!;
+    expect(announcement.text).toContain('MIMIC MODE ENGAGED');
+    expect(announcement.text).toContain('Tenor Commander (Male)');
+    // The character is never traded for the mirror.
+    expect(announcement.text).toContain('arrogance stays mine');
+  });
+
+  it('reads the questionnaire’s own register options without collisions', () => {
+    const map = (vocalRange: string) =>
+      (component as any).archetypeForProfile({
+        musicalJourney: { ...initialProfile.musicalJourney, vocalRange },
+        primaryGenre: 'Pop',
+      });
+
+    expect(map('Mezzo-Soprano (A3–A5)')).toBe('Mezzo Strategist (Female)');
+    expect(map('Soprano (C4–C6)')).toBe('Soprano Elite (Female)');
+    expect(map('Baritone (A2–A4)')).toBe('Baritone Authority (Male)');
+    expect(map('Falsetto')).toBe('Androgynous Oracle');
+    expect(map('Spoken / Rap')).toBe('Tenor Commander (Male)');
+    // “I don’t sing” carries no register — genre decides, not a guess.
+    expect(map('Non-Vocalist')).toBe('Soprano Elite (Female)');
+  });
+
+  it('falls back to a genre-level register when no vocal answer exists', () => {
+    const profile = {
+      ...initialProfile,
+      primaryGenre: 'Rock',
+      musicalJourney: { ...initialProfile.musicalJourney, vocalRange: '' },
+    };
+    // No declared register at all → nothing to mimic.
+    expect((component as any).archetypeForProfile({ ...profile, primaryGenre: '' })).toBeNull();
+    expect((component as any).archetypeForProfile(profile)).toBe(
+      'Baritone Authority (Male)'
+    );
+  });
+
+  it('names the archetype in the live prompt so the model adapts in character', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      artistName: 'Nova Vale',
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        personaSynthesis: {
+          archetype: 'The Architect — precision-driven, technically focused creator',
+          signatureTone: 'Calculated precision.',
+          sonicSignature: 'warped tape 808s',
+          aiPersonaProfile: 'x',
+          recommendedStrategy: 'y',
+          suggestedGenres: ['Ambient'],
+          productionAphorism: 'Craft first.',
+        },
+      },
+    });
+
+    const prompt = (component as any).buildMasterPrompt('what is my angle?');
+    expect(prompt).toContain('PROFILE READING MANDATE');
+    expect(prompt).toContain('The Architect');
+    expect(prompt).toContain('aimed at the work, never at the person');
+  });
+
   it('should keep voice shape-shift permanently enabled (core S.M.U.V.E. identity)', () => {
     expect(
       userProfileServiceMock.profile().settings.ai.aiVoiceShapeShiftEnabled

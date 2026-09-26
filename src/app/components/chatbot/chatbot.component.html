@@ -29,7 +29,11 @@
         class="p-2 rounded-xl transition-all"
         [class.text-brand-primary]="profile().settings.ai.aiMimicEnabled"
         [class.text-slate-600]="!profile().settings.ai.aiMimicEnabled"
-        title="Mimic Mode: Tracking your pathetic input"
+        [title]="
+          profile().settings.ai.aiMimicEnabled
+            ? 'Mimic Mode ON — I read your profile and mirror your vocabulary and vocal register. Every sentence still shifts; the attitude stays mine.'
+            : 'Mimic Mode OFF — enable it and I will read your own register and vocabulary out of the profile instead of guessing.'
+        "
       >
         <span class="material-symbols-outlined text-lg">psychology</span>
       </button>
