@@ -147,6 +147,16 @@
       class="ml-auto text-[7px] font-black text-slate-600 uppercase tracking-widest"
       >PITCH {{ voiceReadout()!.pitch.toFixed(2) }}</span
     >
+    <button
+      type="button"
+      (click)="stopVoiceOutput()"
+      class="px-2 py-1 rounded-md bg-white/5 text-[7px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors flex items-center gap-1"
+      title="Stop spoken reply"
+      aria-label="Stop spoken reply"
+    >
+      <span class="material-symbols-outlined text-xs">stop_circle</span>
+      Stop
+    </button>
   </div>
 
   <!-- Contextual command drawer -->
@@ -245,11 +255,41 @@
         [(ngModel)]="userInput"
         (keyup.enter)="sendMessage()"
         placeholder="Command S.M.U.V.E 2.0... or ask about production, marketing, business"
-        class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-16 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-brand-primary/40 focus:bg-black/80 transition-all outline-none"
+        class="w-full bg-black/60 border border-white/10 rounded-2xl pl-6 pr-28 py-4 text-xs font-bold text-white placeholder:text-slate-700 focus:border-brand-primary/40 focus:bg-black/80 transition-all outline-none"
       />
       <button
+        type="button"
+        (click)="toggleVoiceInput()"
+        [disabled]="!voiceInputSupported() || isTyping()"
+        [attr.aria-label]="
+          voiceInputListening()
+            ? 'Stop voice input'
+            : voiceInputSupported()
+              ? 'Start voice input'
+              : 'Voice input unavailable in this browser'
+        "
+        [attr.aria-pressed]="voiceInputListening()"
+        [title]="
+          voiceInputSupported()
+            ? voiceInputListening()
+              ? 'Stop voice capture'
+              : 'Dictate a command; review the transcript before sending'
+            : 'Speech recognition is unavailable in this browser'
+        "
+        class="absolute right-16 w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 flex items-center justify-center hover:text-brand-primary hover:border-brand-primary/40 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
+        [class.text-red-400]="voiceInputListening()"
+        [class.border-red-500/40]="voiceInputListening()"
+      >
+        <span class="material-symbols-outlined text-lg">{{
+          voiceInputListening() ? 'mic_off' : 'mic'
+        }}</span>
+      </button>
+      <button
+        type="button"
         (click)="sendMessage()"
         [disabled]="isTyping()"
+        aria-label="Send message to S.M.U.V.E"
+        title="Send message"
         class="absolute right-3 w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center shadow-lg shadow-brand-primary/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span class="material-symbols-outlined text-lg">bolt</span>

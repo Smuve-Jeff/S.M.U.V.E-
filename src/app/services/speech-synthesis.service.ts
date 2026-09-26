@@ -601,8 +601,9 @@ export class SpeechSynthesisService {
   cancel(): void {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      this.isSpeaking.set(false);
     }
+    this.isSpeaking.set(false);
+    this.liveVoice.set(null);
   }
 
   // ----- Helper: profanity sanitization (opt-out) -----

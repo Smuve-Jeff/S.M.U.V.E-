@@ -7,6 +7,7 @@ import { Injectable, signal, inject } from '@angular/core';
 export class SpeechRecognitionService {
   private logger = inject(LoggingService);
   isListening = signal(false);
+  isSupported = signal(false);
   private speechRecognition: SpeechRecognition | null = null;
 
   constructor() {
@@ -14,28 +15,41 @@ export class SpeechRecognitionService {
   }
 
   private initialize() {
-    const SpeechRecognition =
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognitionConstructor =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const speechRecognition = new SpeechRecognition() as SpeechRecognition;
+    if (!SpeechRecognitionConstructor) {
+      this.logger.warn('Speech recognition is unavailable in this browser.');
+      return;
+    }
+
+    try {
+      const speechRecognition = new SpeechRecognitionConstructor() as SpeechRecognition;
       speechRecognition.continuous = false;
       speechRecognition.interimResults = false;
       this.speechRecognition = speechRecognition;
-    } else {
-      this.logger.error('Speech recognition not supported in this browser.');
+      this.isSupported.set(true);
+    } catch (error) {
+      this.logger.error('Could not initialize speech recognition', error);
     }
   }
 
   startListening(onResult: (text: string) => void): void {
-    if (this.speechRecognition && !this.isListening()) {
+    if (this.speechRecognition && this.isSupported() && !this.isListening()) {
       this.speechRecognition.onresult = (event: {
         results: SpeechRecognitionResultList;
       }) => {
-        const transcript =
-          event.results[event.results.length - 1][0].transcript.trim();
-        onResult(transcript);
-        this.isListening.set(false);
+        try {
+          const result = event.results[event.results.length - 1];
+          const transcript = result?.[0]?.transcript?.trim() ?? '';
+          if (transcript) onResult(transcript);
+        } catch (error) {
+          this.logger.error('Could not read speech transcript', error);
+        } finally {
+          this.isListening.set(false);
+        }
       };
       this.speechRecognition.onend = () => this.isListening.set(false);
       this.speechRecognition.onerror = (event: { error: string }) => {
@@ -54,8 +68,13 @@ export class SpeechRecognitionService {
 
   stopListening(): void {
     if (this.speechRecognition && this.isListening()) {
-      this.speechRecognition.stop();
-      this.isListening.set(false);
+      try {
+        this.speechRecognition.stop();
+      } catch (error) {
+        this.logger.error('Could not stop speech recognition', error);
+      } finally {
+        this.isListening.set(false);
+      }
     }
   }
 }

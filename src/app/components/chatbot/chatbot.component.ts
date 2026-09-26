@@ -8,6 +8,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewChecked,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -25,6 +26,7 @@ import {
   SpeechSynthesisService,
   VoiceArchetype,
 } from '../../services/speech-synthesis.service';
+import { SpeechRecognitionService } from '../../services/speech-recognition.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { buildArtistMusicContext } from '../../types/profile.types';
@@ -112,7 +114,7 @@ const NOTE_TO_MIDI: Record<string, number> = {
   templateUrl: './chatbot.component.html',
   styleUrls: ['./chatbot.component.css'],
 })
-export class ChatbotComponent implements OnInit, AfterViewChecked {
+export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   public aiService = inject(AiService);
   public userProfileService = inject(UserProfileService);
   public uiService = inject(UIService);
@@ -150,6 +152,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   private get artistFinetune(): ArtistProfileFinetuneService | null {
     return this.injector.get(ArtistProfileFinetuneService, null);
   }
+  /** Browser-native dictation is optional; resolve only when the composer renders. */
+  private get speechRecognition(): SpeechRecognitionService | null {
+    return this.injector.get(SpeechRecognitionService, null);
+  }
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
 
@@ -175,6 +181,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   /** Live voice readout surfaced from the speech engine. */
   public voiceReadout = this.speechSynthesisService.liveVoice;
   public voiceSpeaking = this.speechSynthesisService.isSpeaking;
+  /** Capability/state signals keep voice controls accessible and browser-aware. */
+  public voiceInputSupported = computed(
+    () => this.speechRecognition?.isSupported() ?? false
+  );
+  public voiceInputListening = computed(
+    () => this.speechRecognition?.isListening() ?? false
+  );
   /** Artist-matched archetype for the next spoken reply (mimic mode). */
   private pendingVoiceArchetype: VoiceArchetype | null = null;
 
@@ -555,6 +568,60 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  /**
+   * Keep live follow-ups coherent without sending the entire saved transcript.
+   * The current user turn is already appended before the model request, so omit
+   * it here and include only the last eight completed conversational messages.
+   */
+  private buildConversationContext(question: string): string {
+    const messages = this.messages();
+    let currentTurnIndex = -1;
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (
+        messages[i].role === 'user' &&
+        messages[i].text.trim() === question.trim()
+      ) {
+        currentTurnIndex = i;
+        break;
+      }
+    }
+
+    const historyEnd = currentTurnIndex >= 0 ? currentTurnIndex : messages.length;
+    const completedMessages = messages
+      .slice(0, historyEnd)
+      .filter((message) => !message.isStreaming && message.text.trim());
+    const firstUserMessage = completedMessages.findIndex(
+      (message) => message.role === 'user'
+    );
+    if (firstUserMessage < 0) return '';
+
+    let includedCharacters = 0;
+    const recentMessages = completedMessages
+      .slice(firstUserMessage)
+      .slice(-8);
+    const boundedMessages: string[] = [];
+
+    for (let i = recentMessages.length - 1; i >= 0; i--) {
+      const message = recentMessages[i];
+      const remainingCharacters = 6000 - includedCharacters;
+      if (remainingCharacters <= 0) break;
+
+      const excerpt = message.text.trim().split(' ').filter(Boolean).join(' ');
+      const excerptLimit = Math.min(800, remainingCharacters);
+      const boundedExcerpt =
+        excerpt.length > excerptLimit
+          ? `${excerpt.slice(0, Math.max(0, excerptLimit - 1)).trimEnd()}…`
+          : excerpt;
+      boundedMessages.unshift(
+        `${message.role === 'user' ? 'Artist' : 'S.M.U.V.E'}: ${boundedExcerpt}`
+      );
+      includedCharacters += boundedExcerpt.length;
+    }
+
+    return boundedMessages.join(String.fromCharCode(10));
+  }
+
   /** Rich persona + omnipotence prompt so the AI answers as S.M.U.V.E 2.0. */
   private buildMasterPrompt(question: string): string {
     const profile = this.userProfileService.profile();
@@ -579,6 +646,16 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
         ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`
         : 'S.M.U.V.E ARTIST FINE-TUNE: Honor the artist’s stated genre, sonic blueprint, preferred tempo, production priorities, and boundaries. Their explicit request takes priority; do not flatten their identity into a genre stereotype.',
       '',
+      ...(() => {
+        const context = this.buildConversationContext(question);
+        return context
+          ? [
+              'RECENT CONVERSATION (use for continuity; the latest artist request below takes priority):',
+              context,
+              '',
+            ]
+          : [];
+      })(),
       `ARTIST REQUEST: ${question}`,
     ].join('\n');
   }
@@ -631,6 +708,36 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
       return 'Production: gain-stage everything under -18 dBFS, high-pass the mud, sidechain kick vs bass, and master to -14 LUFS with a -1 dB true peak. Say "neural mix" and I will balance your session myself.';
     }
     return 'I am S.M.U.V.E 2.0. I navigate this app, I teach every music business domain, I mimic any artist, and I execute your commands. Try: "teach me royalties", "mimic Drake", "open the mixer", "start my journey", or "/teach".';
+  }
+
+  ngOnDestroy(): void {
+    this.speechRecognition?.stopListening();
+    this.speechSynthesisService.cancel();
+  }
+
+  /** Start/stop browser dictation; recognized words remain editable before sending. */
+  toggleVoiceInput(): void {
+    const recognition = this.speechRecognition;
+    if (!recognition || !recognition.isSupported()) return;
+
+    if (recognition.isListening()) {
+      recognition.stopListening();
+      return;
+    }
+
+    this.speechSynthesisService.cancel();
+    recognition.startListening((transcript) => {
+      const spokenText = transcript.trim();
+      if (!spokenText) return;
+      this.userInput = [this.userInput.trim(), spokenText]
+        .filter(Boolean)
+        .join(' ');
+    });
+  }
+
+  /** Stop an in-progress spoken reply without affecting the text response. */
+  stopVoiceOutput(): void {
+    this.speechSynthesisService.cancel();
   }
 
   /** Fire a suggested chip / quick command as if typed. */
