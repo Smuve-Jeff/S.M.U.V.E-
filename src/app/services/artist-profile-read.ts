@@ -113,14 +113,20 @@ export function welcomeWithReadBack(
  * Deterministic and derived only from what the artist already saved, so the
  * monitor reacts to real evidence instead of printing a template. Aimed at the
  * work — never at the person — to match S.M.U.V.E.'s character contract.
+ *
+ * `questionType` gates the "too thin" callout: a select/chip answer is one of
+ * the questionnaire's own options and cannot be thin, so it falls through to
+ * the profile read instead of being scolded for brevity.
  */
 export function questionnaireReadLine(
   field: string,
   answer: unknown,
-  profile: UserProfile | null | undefined
+  profile: UserProfile | null | undefined,
+  questionType?: string
 ): string {
   const value = typeof answer === 'string' ? answer.trim() : '';
   const journey: any = profile?.musicalJourney || {};
+  const freeText = questionType === 'text' || questionType === 'textarea';
 
   switch (field) {
     case 'primaryGenre':
@@ -140,9 +146,13 @@ export function questionnaireReadLine(
         ? 'READ: uniqueness core registered. I will hold every future release to this sentence.'
         : '';
     case 'musicalJourney.originStory':
-      return value && value.length < 40
-        ? 'READ: thin. Generic origin stories produce generic artists; add the concrete detail.'
-        : '';
+      // Only a *free-text* origin story can be thin. A chosen option falls
+      // through to the profile read below instead of returning empty, so the
+      // artist always gets a reaction to the answer they just gave.
+      if (freeText && value && value.length < 40) {
+        return 'READ: thin. Generic origin stories produce generic artists; add the concrete detail.';
+      }
+      break;
     case 'musicalJourney.biggestChallenge':
       return value
         ? `READ: barrier logged (${cap(value, 90)}). Coaching routes there first.`

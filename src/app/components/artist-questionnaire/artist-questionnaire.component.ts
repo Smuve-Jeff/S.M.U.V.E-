@@ -352,7 +352,8 @@ export class ArtistQuestionnaireComponent {
     const read = questionnaireReadLine(
       question.field,
       answer,
-      this.profileDraft()
+      this.profileDraft(),
+      question.type
     );
     this.aiChatLog.update((logs) =>
       [

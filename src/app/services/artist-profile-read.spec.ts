@@ -101,10 +101,26 @@ describe('artist-profile-read', () => {
     expect(line).toContain('warped tape 808s');
   });
 
-  it('calls out a thin origin story and logs a declared barrier', () => {
+  it('calls out a thin free-text origin story and logs a declared barrier', () => {
     expect(
-      questionnaireReadLine('musicalJourney.originStory', 'I just started', COMMITTED)
+      questionnaireReadLine(
+        'musicalJourney.originStory',
+        'I just started',
+        COMMITTED,
+        'textarea'
+      )
     ).toContain('thin');
+    // A select answer comes from the questionnaire's own options — it cannot be
+    // thin, so the read falls through to the profile instead of scolding.
+    const noSignature = profileWith({ 'musicalJourney.signatureSound': '' });
+    expect(
+      questionnaireReadLine(
+        'musicalJourney.originStory',
+        'self-taught',
+        noSignature,
+        'select'
+      )
+    ).toContain('catalogued under Hip Hop');
     const barrier = questionnaireReadLine(
       'musicalJourney.biggestChallenge',
       'No budget for videos',
