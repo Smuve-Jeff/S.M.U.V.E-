@@ -18,9 +18,11 @@ import {
 } from '../types/ai.types';
 import { buildArtistMusicContext } from '../types/profile.types';
 import {
+  PersonaOfflineVoice,
   getPersonaOption,
   isOminousPersona,
   normalizePersona,
+  personaOfflineVoice,
 } from '../types/persona.types';
 import { APP_SECURITY_CONFIG } from '../app.security';
 import { TokenService } from './token.service';
@@ -336,6 +338,32 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       }));
     }
   }
+  /** Offline copy for the active mode, or null for the signature character. */
+  private offlineVoice(): PersonaOfflineVoice | null {
+    return personaOfflineVoice(
+      this.userProfileService.profile().settings?.ai?.commanderPersona
+    );
+  }
+
+  /** Substitute `{placeholders}` in a persona line with caller values. */
+  private fillVoiceLine(
+    line: string,
+    values: Record<string, string>
+  ): string {
+    return Object.keys(values).reduce(
+      (text, key) => text.split(`{${key}}`).join(values[key]),
+      line
+    );
+  }
+
+  private pickVoiceLine(
+    lines: string[],
+    values: Record<string, string>
+  ): string {
+    const line = lines[Math.floor(Math.random() * lines.length)] ?? '';
+    return this.fillVoiceLine(line, values);
+  }
+
   private ensurePersonaDirectives(prompt: string): string {
     // Chatbot, Studio, and questionnaire prompts already include the shared
     // contract. Every other S.M.U.V.E. AI surface gets it here automatically.
@@ -365,7 +393,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
           .pipe(
             catchError(() =>
               of({
-                text: 'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
+                text:
+                  this.offlineVoice()?.linkSevered ??
+                  'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
               })
             )
           )
@@ -417,7 +447,16 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
         `Processing "${text}". Don't worry about the details — worrying is my job. Actually, everything is my job. Sit down and look impressive.`,
       ];
 
-      const response = responses[Math.floor(Math.random() * responses.length)];
+      // The long-form roasts are the signature character's voice. Any other
+      // selected mode answers in its own register instead of being insulted on
+      // the signature character's behalf.
+      const offline = this.offlineVoice();
+      const response = offline
+        ? this.pickVoiceLine(offline.acknowledgements, {
+            request: text,
+            artist: profile.artistName || 'artist',
+          })
+        : responses[Math.floor(Math.random() * responses.length)];
       return this.userProfileService.profile().settings?.ai?.aiProfanityEnabled ===
         true
         ? response
@@ -435,6 +474,20 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   roastComponent(componentName: string) {
+    const persona = getPersonaOption(
+      this.userProfileService.profile().settings?.ai?.commanderPersona
+    );
+    if (persona.offlineVoice) {
+      const reaction = this.pickVoiceLine(persona.offlineVoice.reactions, {
+        subject: componentName,
+      });
+      this.notification.show(
+        `S.M.U.V.E ${persona.label.toUpperCase()}: ${reaction}`,
+        'info',
+        5000
+      );
+      return;
+    }
     const roasts = [
       `${componentName}? That's your idea of production? I've heard more musicality from a dying hard drive.`,
       `Your ${componentName} settings are offensive to every engineer who's ever touched a fucking fader.`,
@@ -468,6 +521,12 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   getMasteringRoast(): string {
+    const voice = this.offlineVoice();
+    if (voice) {
+      return this.pickVoiceLine(voice.reactions, {
+        subject: 'The mastering chain',
+      });
+    }
     const roasts = [
       'Elite Mastering Chain Engaged. Try not to fuck this up like the last 47 bounces.',
       'Mastering engaged. I will make your track sound passable despite your best efforts to ruin it.',

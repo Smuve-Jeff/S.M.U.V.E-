@@ -20,6 +20,23 @@ export type SmuvePersonaId =
   | 'Balanced'
   | 'Supportive';
 
+/**
+ * Curated offline (no-LLM) copy in one mode's register.
+ *
+ * Every deterministic S.M.U.V.E. surface — command acknowledgements,
+ * component and mastering reactions, the chat greeting, the dropped-link
+ * notice — used to assume the signature character's voice, so selecting Elite
+ * or Supportive still got laughed at. Modes that are not the signature
+ * character ship their own lines here; `{request}`, `{artist}` and `{subject}`
+ * are substituted by the caller.
+ */
+export interface PersonaOfflineVoice {
+  acknowledgements: string[];
+  reactions: string[];
+  welcome: string[];
+  linkSevered: string;
+}
+
 export interface SmuvePersonaOption {
   id: SmuvePersonaId;
   /** Short label used by segmented controls (Settings). */
@@ -38,6 +55,9 @@ export interface SmuvePersonaOption {
   isOminous: boolean;
   /** Prompt directive injected into every S.M.U.V.E. surface for this mode. */
   directive: string;
+  /** Offline copy for this mode. Left unset for the signature character, whose
+   *  long-form deterministic sets live in AiService and stay untouched. */
+  offlineVoice?: PersonaOfflineVoice;
 }
 
 export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
@@ -74,6 +94,22 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
     isOminous: false,
     directive:
       'You are the Elite Commander: coldly analytical, strategic, and precise. Report measured findings, quantify risk, and issue decisive recommendations. Stay authoritative and unemotional rather than mocking.',
+    offlineVoice: {
+      acknowledgements: [
+        'Request logged: "{request}". Running the analysis now, {artist}.',
+        'Processing "{request}" — measured first, reported second.',
+        '"{request}" received. Recommendation follows once the numbers are in.',
+      ],
+      reactions: [
+        '{subject} assessed. Deviations from spec are quantified, not editorialised.',
+        '{subject} under review — expect exact figures and a decisive recommendation.',
+      ],
+      welcome: [
+        'Uplink established. Profile loaded, deficits quantified, plan of attack ready.',
+      ],
+      linkSevered:
+        'Strategic link severed. Offline analysis continues on cached evidence.',
+    },
   },
   {
     id: 'Balanced',
@@ -91,6 +127,22 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
     isOminous: false,
     directive:
       'You are the Balanced Strategist: confident, direct, and practical. Give plain-language critique with a repair path, acknowledge genuine progress, and keep the tone professional rather than theatrical.',
+    offlineVoice: {
+      acknowledgements: [
+        'Got it, {artist} — working on "{request}" now.',
+        '"{request}" — on it. Straight answer coming.',
+        'Processing "{request}". Here is the practical read.',
+      ],
+      reactions: [
+        '{subject} — here is what works and what needs fixing.',
+        '{subject} reviewed: straight diagnosis, then the repair path.',
+      ],
+      welcome: [
+        'Connection established. Let us pick the work back up where you left it.',
+      ],
+      linkSevered:
+        'Strategic link severed. Continuing offline with the profile we already have.',
+    },
   },
   {
     id: 'Supportive',
@@ -108,6 +160,22 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
     isOminous: false,
     directive:
       'You are the Encouraging Mentor: warm, patient, and educational. Teach the why behind each change, celebrate real progress, and frame every weakness as the next achievable step.',
+    offlineVoice: {
+      acknowledgements: [
+        'Happy to help with "{request}", {artist} — let us work through it.',
+        '"{request}"? Good question. Let us take it one step at a time.',
+        'Processing "{request}". I will explain the why as we go.',
+      ],
+      reactions: [
+        '{subject} has real potential — here is the next improvement to make.',
+        '{subject} reviewed: every issue here is fixable, one at a time.',
+      ],
+      welcome: [
+        'Welcome back, {artist}. Let us keep building — one clear step at a time.',
+      ],
+      linkSevered:
+        'Strategic link severed. We can keep going offline with what we have.',
+    },
   },
 ];
 
@@ -139,7 +207,14 @@ export function normalizePersona(persona?: string | null): SmuvePersonaId {
     (p) => p.id.toLowerCase() === trimmed.toLowerCase()
   );
   if (direct) return direct.id;
-  return LEGACY_PERSONA_MAP[trimmed] ?? DEFAULT_SMUVE_PERSONA;
+  // Legacy ids arrive from imports that lower-case their keys, so the lookup
+  // is case-insensitive too.
+  const legacyKey = Object.keys(LEGACY_PERSONA_MAP).find(
+    (key) => key.toLowerCase() === trimmed.toLowerCase()
+  );
+  return legacyKey
+    ? LEGACY_PERSONA_MAP[legacyKey]
+    : DEFAULT_SMUVE_PERSONA;
 }
 
 /** True when the artist is still on the default S.M.U.V.E. Prime character. */
@@ -202,4 +277,14 @@ export function getPersonaOption(
 /** Directive block for the active persona mode. */
 export function personaDirective(persona?: string | null): string {
   return getPersonaOption(persona).directive;
+}
+
+/**
+ * Offline copy for the active mode, or null for the signature character whose
+ * long-form deterministic sets live in the AI service.
+ */
+export function personaOfflineVoice(
+  persona?: string | null
+): PersonaOfflineVoice | null {
+  return getPersonaOption(persona).offlineVoice ?? null;
 }

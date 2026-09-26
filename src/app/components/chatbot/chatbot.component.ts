@@ -34,6 +34,7 @@ import { welcomeWithReadBack } from '../../services/artist-profile-read';
 import {
   DEFAULT_SMUVE_PERSONA,
   getPersonaOption,
+  personaOfflineVoice,
   normalizePersona,
 } from '../../types/persona.types';
 import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
@@ -284,7 +285,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       `Oh thank god, you're here. I was starting to talk to myself, and even I find my monologues more entertaining than your music. No offense. Actually, full offense. Let's work.`,
     ];
 
-    const roast = roasts[Math.floor(Math.random() * roasts.length)];
+    // The long-form roasts are the signature character's voice: any other
+    // selected mode greets the artist in its own register.
+    const voice = personaOfflineVoice(profile.settings?.ai?.commanderPersona);
+    const roast = voice?.welcome?.length
+      ? (voice.welcome[Math.floor(Math.random() * voice.welcome.length)] ?? '')
+          .split('{artist}')
+          .join(name)
+      : roasts[Math.floor(Math.random() * roasts.length)];
     // Once the uplink has committed a reading, the opening proves it: the roast
     // lands first, then S.M.U.V.E. reads the artist's own answers back — the
     // archetype, the sonic core, the current mission, and the next move.

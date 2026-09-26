@@ -582,5 +582,54 @@ describe('AiService', () => {
       expect(prompt).toContain('Current Persona: S.M.U.V.E. Prime');
       expect(prompt).toContain('LANGUAGE — UNLOCKED');
     });
+
+    it('answers offline commands in the selected mode instead of the signature roasts', async () => {
+      setAi({ commanderPersona: 'Supportive' });
+
+      const response = await service.processCommand('bounce my hook');
+
+      expect(response).toContain('bounce my hook');
+      // No unsubstituted persona placeholders, and none of the arrogance that
+      // belongs to the signature character.
+      expect(response).not.toMatch(/\{request\}|\{artist\}|\{subject\}/);
+      expect(response).not.toMatch(/pathetic|contempt|mediocrity/i);
+    });
+
+    it('keeps every offline reply free of unsubstituted persona placeholders', async () => {
+      for (const persona of ['S.M.U.V.E. Prime', 'Elite', 'Balanced', 'Supportive']) {
+        setAi({ commanderPersona: persona });
+
+        expect(await service.processCommand('status')).not.toMatch(/\{/);
+        expect(service.getMasteringRoast()).not.toMatch(/\{/);
+      }
+    });
+
+    it('reports mastering in the selected mode', () => {
+      setAi({ commanderPersona: 'Balanced' });
+      expect(service.getMasteringRoast()).toContain('The mastering chain');
+
+      setAi({ commanderPersona: 'Supportive' });
+      expect(service.getMasteringRoast()).toContain('The mastering chain');
+    });
+
+    it('announces a severed link in the selected mode', async () => {
+      setAi({ commanderPersona: 'Elite' });
+      const eliteRequest = service.getAIResponse('status report');
+      httpMock
+        .expectOne('http://localhost:4000/api/ai/analyze')
+        .error(new ErrorEvent('Network error'));
+      await expect(eliteRequest).resolves.toBe(
+        'Strategic link severed. Offline analysis continues on cached evidence.'
+      );
+
+      setAi({ commanderPersona: 'S.M.U.V.E. Prime' });
+      const signatureRequest = service.getAIResponse('status report');
+      httpMock
+        .expectOne('http://localhost:4000/api/ai/analyze')
+        .error(new ErrorEvent('Network error'));
+      await expect(signatureRequest).resolves.toContain(
+        'Strategic Link Severed'
+      );
+    });
   });
 });
