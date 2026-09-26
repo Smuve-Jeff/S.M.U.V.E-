@@ -8,6 +8,7 @@ import { SpeechSynthesisService } from '../../services/speech-synthesis.service'
 import { LoggingService } from '../../services/logging.service';
 import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
+import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 
 describe('ChatbotComponent', () => {
   let component: ChatbotComponent;
@@ -23,6 +24,7 @@ describe('ChatbotComponent', () => {
 
     aiServiceMock = {
       conversationalTier: signal('Standard'),
+      personaDirectives: jest.fn(() => 'Keep S.M.U.V.E. direct, precise, and in character.'),
       processCommand: jest.fn(),
     };
 
@@ -57,6 +59,10 @@ describe('ChatbotComponent', () => {
           useValue: speechSynthesisServiceMock,
         },
         { provide: LoggingService, useValue: loggingServiceMock },
+        {
+          provide: ArtistProfileFinetuneService,
+          useValue: { promptBlock: jest.fn(() => 'SONIC NON-NEGOTIABLE: preserve the room tone.') },
+        },
       ],
     }).compileComponents();
 
@@ -67,6 +73,14 @@ describe('ChatbotComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('adds existing artist-specific fine-tuning context to the live AI prompt', () => {
+    const prompt = (component as any).buildMasterPrompt('make my next beat');
+
+    expect(prompt).toContain('S.M.U.V.E ARTIST FINE-TUNE');
+    expect(prompt).toContain('SONIC NON-NEGOTIABLE: preserve the room tone.');
+    expect(prompt).toContain('the artist’s explicit request takes priority');
   });
 
   it('should toggle mimic settings correctly with all required AI properties', () => {
